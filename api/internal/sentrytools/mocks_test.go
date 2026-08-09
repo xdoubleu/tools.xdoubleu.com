@@ -32,7 +32,6 @@ func TestMockedSentryHubCapturesEvents(t *testing.T) {
 func TestMockedHubEventsPanicsForWrongHub(t *testing.T) {
 	t.Parallel()
 
-	//nolint:exhaustruct //other fields are optional
 	client, err := sentry.NewClient(sentry.ClientOptions{Dsn: ""})
 	require.NoError(t, err)
 

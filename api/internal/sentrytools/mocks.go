@@ -12,7 +12,6 @@ const testDsn = "http://whatever@example.com/1337"
 
 // MockedSentryClientOptions returns a mocked version of [sentry.ClientOptions].
 func MockedSentryClientOptions() sentry.ClientOptions {
-	//nolint:exhaustruct //other fields are optional
 	return sentry.ClientOptions{
 		Dsn:       testDsn,
 		Transport: newTransportMock(),

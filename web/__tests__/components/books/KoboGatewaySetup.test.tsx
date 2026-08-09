@@ -3,7 +3,8 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 jest.mock('@/lib/env', () => ({
   getApiUrl: () => 'https://api.example.com',
-  getRelease: () => 'current-sha'
+  getRelease: () => 'current-sha',
+  getKoboGatewayRelease: () => 'current-sha'
 }))
 
 jest.mock('@/lib/books/koboDevice', () => ({
@@ -16,8 +17,8 @@ const mockRevertGateway = jest.fn()
 const mockUpdateGateway = jest.fn()
 
 // gatewayNeedsUpdate and REQUIRED_GATEWAY_VERSION are kept real (they're pure
-// version/release comparisons against the mocked getRelease above); only the
-// network calls are stubbed.
+// version/release comparisons against the mocked getKoboGatewayRelease
+// above); only the network calls are stubbed.
 jest.mock('@/lib/books/gatewayClient', () => ({
   ...jest.requireActual('@/lib/books/gatewayClient'),
   configureGateway: (...args: unknown[]) => mockConfigureGateway(...args),
@@ -57,8 +58,8 @@ const KOBO_MANAGED = {
   currentEndpoint: 'https://api.example.com/books/kobo/some-token'
 }
 
-// Matches the mocked getRelease() above so these don't trigger the
-// self-update effect unless a test explicitly wants to.
+// Matches the mocked getKoboGatewayRelease() above so these don't trigger
+// the self-update effect unless a test explicitly wants to.
 function status(kobos: (typeof KOBO_UNMANAGED)[], version = 2, release = 'current-sha') {
   return { version, release, kobos }
 }

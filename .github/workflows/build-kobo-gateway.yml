@@ -24,7 +24,24 @@ jobs:
         with:
           go-version-file: './kobo-gateway/go.mod'
           cache-dependency-path: './kobo-gateway/go.sum'
-      - run: make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
+      # kobo-gateway's RELEASE stamp is baked in at compile time (it's a
+      # downloaded binary that runs on a user's machine, no deploy-env to
+      # read a version from at runtime — unlike api/gateway/web). A cache
+      # hit reuses whatever was built (and stamped) the last time
+      # kobo-gateway/ source actually changed, including the RELEASE file
+      # below — docker.yml reads that file's contents into the separate
+      # KOBO_GATEWAY_RELEASE image env var so downstream consumers (the web
+      # update-check) compare against what's actually bundled, not this
+      # deploy's overall SHA. See root CLAUDE.md's CI section.
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: kobo-gateway/dist/kobo-gateway
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
+          echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'
       - uses: actions/upload-artifact@v7
         with:

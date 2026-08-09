@@ -6,6 +6,12 @@ import (
 	"github.com/xdoubleu/essentia/v4/pkg/config"
 )
 
+const (
+	defaultPort    = 8000
+	defaultAPIPort = 8001
+	defaultWebPort = 3000
+)
+
 // Config holds only what routing/process-supervision needs — a small
 // subset of api's own config.Config, deliberately not shared across the
 // module boundary (see this package's own CLAUDE.md).
@@ -13,6 +19,13 @@ type Config struct {
 	Env       string
 	SentryDsn string
 	Release   string
+
+	// KoboGatewayRelease is the release actually baked into the bundled
+	// kobo-gateway .dmg/binary — can lag behind Release when kobo-gateway's
+	// own build was skipped (unchanged source, see build-kobo-gateway.yml).
+	// Forwarded to the web child so gatewayNeedsUpdate compares against the
+	// artifact that's actually bundled, not this deploy's overall SHA.
+	KoboGatewayRelease string
 
 	// Port is external — the only thing DO's edge/health check ever hits.
 	Port int
@@ -42,13 +55,17 @@ func New(logger *slog.Logger) Config {
 
 	cfg.Env = parser.EnvStr("ENV", config.ProdEnv)
 	cfg.SentryDsn = parser.EnvStr("SENTRY_DSN", "")
-	cfg.Release = parser.EnvStr("RELEASE", config.DevEnv)
+	// "dev" (not config.DevEnv/"development") — web's getRelease() and the
+	// kobo-gateway update-check both hardcode this exact literal as the
+	// "no real deploy" sentinel.
+	cfg.Release = parser.EnvStr("RELEASE", "dev")
+	cfg.KoboGatewayRelease = parser.EnvStr("KOBO_GATEWAY_RELEASE", "dev")
 
-	cfg.Port = parser.EnvInt("PORT", 8000)
-	cfg.APIPort = parser.EnvInt("API_PORT", 8001)
+	cfg.Port = parser.EnvInt("PORT", defaultPort)
+	cfg.APIPort = parser.EnvInt("API_PORT", defaultAPIPort)
 	cfg.APIBinPath = parser.EnvStr("API_BIN_PATH", "/app/bin/api")
 
-	cfg.WebPort = parser.EnvInt("WEB_PORT", 3000)
+	cfg.WebPort = parser.EnvInt("WEB_PORT", defaultWebPort)
 	cfg.WebNodeBin = parser.EnvStr("WEB_NODE_BIN", "node")
 	cfg.WebServerJS = parser.EnvStr("WEB_SERVER_JS", "/app/web/server.js")
 

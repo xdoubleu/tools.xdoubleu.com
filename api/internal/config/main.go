@@ -186,7 +186,10 @@ func New(logger *slog.Logger) Config {
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
 	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
 	cfg.DBDsn = p.envStr("DB_DSN", "postgres://postgres@localhost/postgres")
-	cfg.Release = p.envStr("RELEASE", DevEnv)
+	// "dev" (not DevEnv/"development") — web's getRelease() and the
+	// kobo-gateway update-check both hardcode this exact literal as the
+	// "no real deploy" sentinel (see gateway/internal/gateway/config.go).
+	cfg.Release = p.envStr("RELEASE", "dev")
 
 	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")
 	cfg.SupabaseAPIKey = p.envStr("SUPABASE_API_KEY", "")

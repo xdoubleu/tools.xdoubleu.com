@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestInitSentrySkipsWhenDSNEmpty(t *testing.T) {
+func TestInitSentrySkipsWhenDSNEmpty(_ *testing.T) {
 	SentryDSN = ""
 
 	// No observable effect to assert beyond "doesn't panic" — the whole

@@ -1,3 +1,4 @@
+//nolint:exhaustruct //test fixtures only set the fields each case exercises
 package kobogateway
 
 import (

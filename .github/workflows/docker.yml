@@ -17,28 +17,14 @@ on:
         value: ${{ jobs.docker-app.outputs.built }}
 
 jobs:
-  # kobo-gateway ships inside the merged image but needs cgo + AppKit (can't
-  # build in the Linux docker-app job below) — built separately on macOS and
-  # handed off as an artifact. Always runs when docker-app will, regardless
-  # of whether kobo-gateway sources themselves changed or the push only
-  # touched api/, since the merged image always bundles this artifact (issue
-  # #558 — accepted cost of not changing the auto-update path's release
-  # stamping).
-  build-kobo-gateway:
-    if: github.event_name == 'workflow_dispatch' || inputs.build_app
-    name: Build Kobo Gateway
-    uses: ./.github/workflows/build-kobo-gateway.yml
-    permissions:
-      contents: read
-    secrets: inherit
-
+  # Assembly-only — api/gateway/web/kobo-gateway are each built by their own
+  # workflow (build-api.yml/build-gateway.yml/build-web.yml/
+  # build-kobo-gateway.yml), which the caller (main.yml) runs before calling
+  # this one and hands off as artifacts here. No compilation happens in this
+  # job; see root Dockerfile and CLAUDE.md's CI section.
   docker-app:
     name: Docker Build & Push App
-    needs: build-kobo-gateway
-    if: |
-      always() &&
-      (github.event_name == 'workflow_dispatch' || inputs.build_app) &&
-      needs.build-kobo-gateway.result == 'success'
+    if: github.event_name == 'workflow_dispatch' || inputs.build_app
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -48,14 +34,39 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: api-bin
+          path: bin/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: gateway-bin
+          path: bin/
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-standalone
+          path: web-standalone/
+
       # kobo-gateway.dmg + the raw binary, built on macOS by
-      # build-kobo-gateway above (see
+      # build-kobo-gateway.yml (see
       # kobo-gateway/cmd/kobo-gateway/menubar_darwin.go for why). The root
-      # Dockerfile COPYs these straight into web/public/downloads/.
+      # Dockerfile COPYs these straight into web/public/downloads/. The
+      # RELEASE file records the actual release baked into this artifact —
+      # can be older than this deploy's SHA when kobo-gateway/ was
+      # unchanged and its build was cache-skipped.
       - uses: actions/download-artifact@v8
         with:
           name: kobo-gateway-dist
           path: web/public/downloads/
+
+      - name: Read kobo-gateway's bundled release
+        id: kobo-gateway-release
+        run: |
+          value=$(cat web/public/downloads/RELEASE)
+          echo "value=$value" >> "$GITHUB_OUTPUT"
+          rm web/public/downloads/RELEASE
 
       - uses: docker/setup-buildx-action@v4
 
@@ -85,7 +96,4 @@ jobs:
           cache-to: type=gha,scope=app,mode=max
           build-args: |
             RELEASE=${{ github.sha }}
-            SENTRY_ORG=${{ vars.SENTRY_ORG }}
-            SENTRY_PROJECT=${{ vars.SENTRY_PROJECT }}
-          secrets: |
-            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+            KOBO_GATEWAY_RELEASE=${{ steps.kobo-gateway-release.outputs.value }}

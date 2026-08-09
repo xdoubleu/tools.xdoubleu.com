@@ -84,7 +84,7 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 		return fmt.Errorf("could not replace running binary: %w", err)
 	}
 
-	if err = resignBundle(executable); err != nil {
+	if err = resignBundle(ctx, executable); err != nil {
 		return fmt.Errorf("could not re-sign updated app bundle: %w", err)
 	}
 
@@ -97,14 +97,13 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 // before signing), so overwriting the binary above invalidates the seal
 // unless it's redone here. A raw dev binary run outside a bundle has nothing
 // to re-sign.
-func resignBundle(executable string) error {
+func resignBundle(ctx context.Context, executable string) error {
 	appDir := AppBundlePath(executable)
 	if appDir == "" {
 		return nil
 	}
 
-	//nolint:gosec //re-signs the bundle we just updated in place, no user input
-	return exec.Command("codesign", "--force", "--sign", "-", appDir).Run()
+	return exec.CommandContext(ctx, "codesign", "--force", "--sign", "-", appDir).Run()
 }
 
 // AppBundlePath returns the .app bundle directory containing executable

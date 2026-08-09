@@ -44,10 +44,27 @@ func DiffKobos(prev, curr []Kobo) []KoboEvent {
 	return events
 }
 
+// ShortReleaseLen matches web/components/Footer.tsx's truncation, the only
+// other place a release SHA is shown to a user rather than compared.
+const ShortReleaseLen = 7
+
+// ShortRelease truncates a full commit SHA for display; short values (e.g.
+// the literal "dev" in local builds) pass through unchanged.
+func ShortRelease(release string) string {
+	if len(release) <= ShortReleaseLen {
+		return release
+	}
+
+	return release[:ShortReleaseLen]
+}
+
 // KoboTooltip renders the status-bar tooltip text for the current
-// connect/disconnect state, prefixed with the running release so it's
-// visible on hover without opening the menu.
+// connect/disconnect state, prefixed with the running release (truncated
+// for display — the full SHA is still what gatewayNeedsUpdate compares) so
+// it's visible on hover without opening the menu.
 func KoboTooltip(ev KoboEvent, release string) string {
+	release = ShortRelease(release)
+
 	if ev.Connected {
 		return fmt.Sprintf("Kobo Gateway %s — Kobo connected (%s)", release, ev.Kobo.Serial)
 	}
@@ -65,9 +82,9 @@ func KoboMenuLine(ev KoboEvent) string {
 	return "No Kobo connected"
 }
 
-// KoboNotification renders the title/body of the best-effort notification
-// posted for the current connect/disconnect state.
-func KoboNotification(ev KoboEvent) (title, body string) {
+// KoboNotification renders the (title, body) of the best-effort
+// notification posted for the current connect/disconnect state.
+func KoboNotification(ev KoboEvent) (string, string) {
 	if ev.Connected {
 		return "Kobo connected", "Serial " + ev.Kobo.Serial
 	}

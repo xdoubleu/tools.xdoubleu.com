@@ -43,7 +43,9 @@ func TestEnsureTrustedNoOpUnderTest(t *testing.T) {
 
 func TestEnsureTrustedSkipsWhenMarkerExists(t *testing.T) {
 	dir := t.TempDir()
-	require.NoError(t, os.WriteFile(filepath.Join(dir, ".trusted"), []byte("trusted\n"), 0o600))
+	require.NoError(
+		t, os.WriteFile(filepath.Join(dir, ".trusted"), []byte("trusted\n"), 0o600),
+	)
 
 	// Marker already present, so this must return before even checking
 	// testing.Testing().

@@ -1,3 +1,4 @@
+//nolint:testpackage //mutates unexported childProcessStopTimeout var
 package gateway
 
 import (
@@ -32,7 +33,7 @@ func writeStubScript(t *testing.T, body string) string {
 func stubCmd(t *testing.T, body string) *exec.Cmd {
 	t.Helper()
 	script := writeStubScript(t, body)
-	cmd := exec.CommandContext(context.Background(), script) //nolint:gosec //test stub
+	cmd := exec.CommandContext(context.Background(), script)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
@@ -89,7 +90,7 @@ func TestStartChildProcess_StopSuppressesShutdownSignal(t *testing.T) {
 }
 
 func TestStartChildProcess_StartFailureReturnsError(t *testing.T) {
-	cmd := exec.CommandContext( //nolint:gosec //test path deliberately doesn't exist
+	cmd := exec.CommandContext(
 		context.Background(), filepath.Join(t.TempDir(), "does-not-exist"),
 	)
 

@@ -18,5 +18,20 @@ jobs:
         with:
           go-version-file: './gateway/go.mod'
           cache-dependency-path: './gateway/go.sum'
-      - run: make build
+      # gateway no longer embeds RELEASE at compile time (reads it from the
+      # container env at runtime, see gateway/internal/gateway/config.go) —
+      # cacheable across commits where gateway/ didn't change, same
+      # reasoning as build-api.yml.
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: gateway/bin/gateway
+          key: build-gateway-${{ hashFiles('gateway/**') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/gateway ./cmd/gateway
         working-directory: './gateway'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gateway-bin
+          path: gateway/bin/gateway

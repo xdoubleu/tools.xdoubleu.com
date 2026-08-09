@@ -59,7 +59,11 @@ Runs `macos.RunApp` as an accessory app (no Dock icon) on the main OS thread.
 Builds an `NSStatusItem` (icon rendered at 18pt — an unsized image falls back
 to the PNG's native 36px and effectively disappears), a header, an "Open
 tools.xdoubleu.com" link, a live Kobo connected/disconnected line, a "Start
-at Login" toggle, and Quit.
+at Login" toggle, and Quit. The header and tooltip (`KoboTooltip`,
+`internal/kobogateway/watcher.go`) show the release truncated to 7
+characters via `kobogateway.ShortRelease` — matching
+`web/components/Footer.tsx`'s own truncation — the full SHA is still what
+the web update-check (`gatewayNeedsUpdate`) compares exactly.
 
 The status item, its button, and its live line are package-level vars, not
 locals — `objc.Retain` installs a Go finalizer that releases the object once
@@ -128,10 +132,13 @@ bundle-less dev binary.
 The web UI (`gatewayNeedsUpdate` in `web/lib/books/gatewayClient.ts`)
 decides *when* to trigger this by comparing two independent things: the
 gateway's `GatewayVersion` against a required floor (bump only on a real
-protocol break), and its `release` build stamp against the web app's own —
-both stamped with the same `github.sha` by CI, so a mismatch means a newer
-binary is available even when the protocol hasn't changed. `'dev'` on either
-side skips the check.
+protocol break), and its `release` build stamp against
+`getKoboGatewayRelease()` — the release of the kobo-gateway artifact
+actually bundled in the running deploy (not the web app's own release,
+since kobo-gateway's build can be cache-skipped and lag behind — see
+`## Distribution` above), so a mismatch means a newer binary is genuinely
+available even when the protocol hasn't changed. `'dev'` on either side
+skips the check.
 
 ## Building
 
@@ -141,7 +148,7 @@ side skips the check.
 make build   # ./bin/kobo-gateway-darwin-arm64 (arm64 native)
 make dist    # packages into dist/kobo-gateway/: KoboGateway.app → .dmg, plus the raw binary
 make test    # go test ./... (internal/kobogateway is pure fs/httptest, no DB)
-make lint    # go vet + gofmt -l
+make lint    # golangci-lint, shared root .golangci.yml config
 make lint/fix
 ```
 
@@ -171,3 +178,19 @@ kobo-gateway itself. There is a separate, unrelated `gateway/` module at the
 repo root (routing + process supervision for the merged api/web container,
 see its own `CLAUDE.md`) — don't confuse the two. See root `CLAUDE.md`'s CI
 section for the full wiring.
+
+This is the **only** one of the four image components that still bakes its
+release into the compiled artifact — it's a binary that leaves the
+container and runs on a user's own machine, so there's no runtime
+environment to read a version from (unlike `api`/`gateway`/`web`, which now
+read `RELEASE` from the container env, see root `CLAUDE.md`). Its build is
+still cacheable: `build-kobo-gateway.yml` skips `make dist` entirely when
+`hashFiles('kobo-gateway/**')` is unchanged, reusing whatever was built the
+last time this module's source actually changed — including the
+`dist/kobo-gateway/RELEASE` file it writes alongside the `.dmg`/binary,
+which `docker.yml` reads to set the image's separate `KOBO_GATEWAY_RELEASE`
+env var (as opposed to `RELEASE`, which always reflects the current
+deploy). This means the release baked into a given deploy's bundled
+kobo-gateway artifact can be older than the rest of the image — expected,
+and exactly what `KOBO_GATEWAY_RELEASE` exists to track correctly (see
+`gatewayNeedsUpdate` in `web/lib/books/gatewayClient.ts`).

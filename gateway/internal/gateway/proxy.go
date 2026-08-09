@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xdoubleu/essentia/v4/pkg/communication/httptools"
 	essentialogger "github.com/xdoubleu/essentia/v4/pkg/logging"
 )
 
@@ -18,6 +19,11 @@ import (
 // not something worth sharing a Go const for across the module boundary —
 // api/cmd/api/health.go registers the same literal independently.
 const healthPath = "/health"
+
+// versionPath answers gateway's own release directly, unproxied — same
+// shape as healthPath — so it stays available even when both children are
+// unready and doesn't need either child's own version endpoint touched.
+const versionPath = "/gateway/version"
 
 // upstreamResponseHeaderTimeout caps how long a proxy target has to start
 // sending response headers. A wedged child (alive, socket listening, event
@@ -33,6 +39,8 @@ const upstreamResponseHeaderTimeout = 15 * time.Second
 //   - GET /health goes to the api child directly, unstripped — DO's health
 //     check hits the container port directly and web/app has no health
 //     route.
+//   - GET /gateway/version answers gateway's own release directly, same
+//     shape as /health — not proxied to either child.
 //   - /api and /api/* go to the api child with the /api prefix stripped,
 //     exactly like the ingress's `preserve_path_prefix: false` did — so
 //     API_URL stays an absolute https://.../api URL and web/ needs no code
@@ -48,7 +56,9 @@ const upstreamResponseHeaderTimeout = 15 * time.Second
 // the existing "upstream not ready" 503 can originate from, now that api
 // isn't guaranteed fully started the instant the listener that fronts it
 // starts.
-func NewHandler(apiPort, webPort int, logger *slog.Logger) http.Handler {
+func NewHandler(
+	apiPort, webPort int, release string, logger *slog.Logger,
+) http.Handler {
 	apiProxy := newReverseProxy(apiPort, logger)
 	webProxy := newReverseProxy(webPort, logger)
 
@@ -56,6 +66,12 @@ func NewHandler(apiPort, webPort int, logger *slog.Logger) http.Handler {
 		switch {
 		case r.URL.Path == healthPath:
 			apiProxy.ServeHTTP(w, r)
+		case r.URL.Path == versionPath:
+			if err := httptools.WriteJSON(
+				w, http.StatusOK, map[string]string{"release": release}, nil,
+			); err != nil {
+				logger.Error("failed to write version response", essentialogger.ErrAttr(err))
+			}
 		case r.URL.Path == "/api" || strings.HasPrefix(r.URL.Path, "/api/"):
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, "/api")
 			if r.URL.Path == "" {

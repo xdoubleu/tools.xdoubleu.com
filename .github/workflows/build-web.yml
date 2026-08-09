@@ -21,5 +21,33 @@ jobs:
           cache-dependency-path: './web/package-lock.json'
       - run: npm ci
         working-directory: './web'
-      - run: npm run build
+      # web reads RELEASE from the container env at runtime (web/lib/env.ts)
+      # for its own app code, but next.config.ts still inlines it into
+      # NEXT_PUBLIC_RELEASE for the Sentry release tag on server/edge error
+      # reports — so a cached/reused build correctly keeps tagging errors
+      # with whatever release web/ last actually changed at, same
+      # per-component-release philosophy as web/components/Footer.tsx.
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: web/build-artifact
+          key: build-web-${{ hashFiles('web/**') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          RELEASE: ${{ github.sha }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: |
+          npm run build
+          # .next/standalone excludes .next/static by design (Next expects
+          # it served separately); fold it in here so the uploaded artifact
+          # is a single, ready-to-COPY tree — same shape as
+          # build-kobo-gateway.yml's dist/ output.
+          cp -r .next/static .next/standalone/.next/static
+          mv .next/standalone build-artifact
         working-directory: './web'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: web-standalone
+          path: web/build-artifact

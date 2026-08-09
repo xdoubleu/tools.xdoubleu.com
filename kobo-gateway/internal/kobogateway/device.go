@@ -86,7 +86,9 @@ func writeConfFile(volumePath string, conf *Conf) error {
 	}
 
 	tmpPath := path + ".tmp"
-	if err = os.WriteFile(tmpPath, []byte(conf.Serialize()), info.Mode().Perm()); err != nil {
+	if err = os.WriteFile(
+		tmpPath, []byte(conf.Serialize()), info.Mode().Perm(),
+	); err != nil {
 		return fmt.Errorf("could not write Kobo eReader.conf: %w", err)
 	}
 

@@ -97,6 +97,11 @@ linters:
         - ^google.golang.org/protobuf/.+Options$
         - ^gopkg.in/yaml.v3.Node$
         - ^tools\.xdoubleu\.com/gen/.+$
+        - ^crypto/tls.Config$
+        - ^crypto/x509.Certificate$
+        - ^crypto/x509/pkix.Name$
+        - ^encoding/pem.Block$
+        - ^github.com/getsentry/sentry-go.ClientOptions$
     funlen:
       lines: 100
       statements: 50
@@ -167,6 +172,11 @@ linters:
       - linters:
           - gocritic
         source: //noinspection
+      # Apple's plist DOCTYPE line is fixed-format content inside a raw
+      # string literal — a trailing //nolint would corrupt the string.
+      - linters:
+          - lll
+        source: '<!DOCTYPE plist PUBLIC'
       - linters:
           - bodyclose
           - dupl

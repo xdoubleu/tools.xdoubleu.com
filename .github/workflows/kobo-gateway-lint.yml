@@ -1,0 +1,28 @@
+name: Kobo Gateway Lint Workflow
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  lint-go:
+    name: Kobo Gateway Go Lint
+    # menubar_darwin.go is //go:build darwin-tagged — linting from Linux
+    # would silently only cover the !darwin stub (menubar_other.go), same
+    # reasoning as kobo-gateway-test.yml/build-kobo-gateway.yml running here.
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: './kobo-gateway/go.mod'
+          cache-dependency-path: './kobo-gateway/go.sum'
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+          version: v2.12.2
+          working-directory: ./kobo-gateway

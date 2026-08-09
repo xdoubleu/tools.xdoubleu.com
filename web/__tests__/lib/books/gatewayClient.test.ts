@@ -159,32 +159,41 @@ describe('gatewayNeedsUpdate', () => {
     return { version: REQUIRED_GATEWAY_VERSION, release: 'abc1234', kobos: [], ...overrides }
   }
 
+  function withEnv(koboGatewayRelease: string) {
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: koboGatewayRelease
+    }
+  }
+
   it('is true when the protocol version is below the required minimum', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'abc1234' }
+    withEnv('abc1234')
 
     expect(gatewayNeedsUpdate(status({ version: REQUIRED_GATEWAY_VERSION - 1 }))).toBe(true)
   })
 
-  it('is true when the release does not match this web build', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'current-sha' }
+  it('is true when the release does not match the bundled kobo-gateway release', () => {
+    withEnv('current-sha')
 
     expect(gatewayNeedsUpdate(status({ release: 'stale-sha' }))).toBe(true)
   })
 
   it('is false when version and release both match', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'abc1234' }
+    withEnv('abc1234')
 
     expect(gatewayNeedsUpdate(status({ release: 'abc1234' }))).toBe(false)
   })
 
-  it('is false when this web build is a local dev build', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'dev' }
+  it('is false when the bundled kobo-gateway release is a local dev build', () => {
+    withEnv('dev')
 
     expect(gatewayNeedsUpdate(status({ release: 'stale-sha' }))).toBe(false)
   })
 
   it('is false when the gateway itself is a local dev build', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: 'current-sha' }
+    withEnv('current-sha')
 
     expect(gatewayNeedsUpdate(status({ release: 'dev' }))).toBe(false)
   })

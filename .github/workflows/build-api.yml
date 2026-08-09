@@ -18,5 +18,22 @@ jobs:
         with:
           go-version-file: './api/go.mod'
           cache-dependency-path: './api/go.sum'
-      - run: make build
+      # api no longer embeds RELEASE at compile time (it reads it from the
+      # container env at runtime, see api/internal/config) — this build is
+      # now a pure function of api/ source, so it's cacheable across commits
+      # where api/ didn't change, unlike the merged image's old
+      # -X main.Release=... stamp which changed (and cache-missed) every
+      # single commit regardless of source. See root CLAUDE.md's CI section.
+      - uses: actions/cache@v6
+        id: cache
+        with:
+          path: api/bin/api
+          key: build-api-${{ hashFiles('api/**') }}
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/api ./cmd/api
         working-directory: './api'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: api-bin
+          path: api/bin/api

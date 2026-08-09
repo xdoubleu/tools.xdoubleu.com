@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { getRelease, getApiUrl, getSentryDsn } from '@/lib/env'
+import { getRelease, getApiUrl, getSentryDsn, getKoboGatewayRelease } from '@/lib/env'
 
 describe('getRelease', () => {
   const originalEnv = process.env
@@ -13,7 +13,7 @@ describe('getRelease', () => {
     process.env = { ...originalEnv }
     // Reset window.__ENV__ for each test
     if (typeof window !== 'undefined') {
-      window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '' }
+      window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
     }
   })
 
@@ -26,7 +26,8 @@ describe('getRelease', () => {
     window.__ENV__ = {
       API_URL: '',
       SENTRY_DSN: '',
-      RELEASE: 'abc123def456'
+      RELEASE: 'abc123def456',
+      KOBO_GATEWAY_RELEASE: ''
     }
 
     const release = getRelease()
@@ -34,18 +35,14 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when window.__ENV__.RELEASE is not set', () => {
-    window.__ENV__ = {
-      API_URL: '',
-      SENTRY_DSN: '',
-      RELEASE: ''
-    }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
 
     const release = getRelease()
     expect(release).toBe('')
   })
 
   it('returns empty string when window.__ENV__ is not defined', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
 
     const release = getRelease()
     expect(release).toBe('')
@@ -55,7 +52,8 @@ describe('getRelease', () => {
     window.__ENV__ = {
       API_URL: '',
       SENTRY_DSN: '',
-      RELEASE: 'browser-release'
+      RELEASE: 'browser-release',
+      KOBO_GATEWAY_RELEASE: ''
     }
     process.env.RELEASE = 'process-release'
 
@@ -64,11 +62,50 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when neither is set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
     delete process.env.RELEASE
 
     const release = getRelease()
     expect(release).toBe('')
+  })
+})
+
+describe('getKoboGatewayRelease', () => {
+  const originalEnv = process.env
+  const originalWindow = global.window
+
+  beforeEach(() => {
+    jest.resetModules()
+    process.env = { ...originalEnv }
+  })
+
+  afterEach(() => {
+    process.env = originalEnv
+    Object.assign(global, { window: originalWindow })
+  })
+
+  it('returns window.__ENV__.KOBO_GATEWAY_RELEASE when available', () => {
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: 'def789abc012'
+    }
+
+    expect(getKoboGatewayRelease()).toBe('def789abc012')
+  })
+
+  it('defaults to dev when window.__ENV__.KOBO_GATEWAY_RELEASE is not set', () => {
+    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+
+    expect(getKoboGatewayRelease()).toBe('')
+  })
+
+  it('defaults to dev when window.__ENV__ itself is undefined', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    window.__ENV__ = undefined as any
+
+    expect(getKoboGatewayRelease()).toBe('dev')
   })
 })
 
@@ -81,7 +118,8 @@ describe('getApiUrl', () => {
     window.__ENV__ = {
       API_URL: 'https://api.example.com',
       SENTRY_DSN: '',
-      RELEASE: ''
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: ''
     }
 
     const apiUrl = getApiUrl()
@@ -98,7 +136,8 @@ describe('getSentryDsn', () => {
     window.__ENV__ = {
       API_URL: '',
       SENTRY_DSN: 'https://sentry.example.com/dsn',
-      RELEASE: ''
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: ''
     }
 
     const sentryDsn = getSentryDsn()

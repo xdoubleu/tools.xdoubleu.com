@@ -39,9 +39,6 @@ import (
 //go:embed migrations/*.sql
 var globalMigrations embed.FS
 
-//nolint:gochecknoglobals //Release is set at build time via -ldflags.
-var Release = "dev"
-
 type Application struct {
 	ctx               context.Context
 	logger            *slog.Logger
@@ -114,8 +111,6 @@ func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
 
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
-	// Release is set at build time via -ldflags; always use that value
-	cfg.Release = Release
 
 	logger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
@@ -251,7 +246,6 @@ func NewApplication(
 ) *Application {
 	ctx := context.Background()
 
-	//nolint:exhaustruct //other fields are optional
 	sentryHub, err := sentrytools.Init(config.Env, sentry.ClientOptions{
 		Dsn:              config.SentryDsn,
 		Environment:      config.Env,
@@ -290,7 +284,7 @@ func NewApplication(
 		sentryClient, doClient, mailClient, notifiedIssuesRepo,
 	)
 
-	//nolint:exhaustruct //other fields are optional
+	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
 		ctx:               ctx,
 		logger:            logger,

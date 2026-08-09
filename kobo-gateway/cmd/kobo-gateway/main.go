@@ -71,8 +71,11 @@ func main() {
 
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		// reportFatal already reports this returned error; the deferred
+		// reportAndRepanic above exists for panics only, not skipping it
+		// here.
 		reportFatal(err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic //reportFatal already reported this error, see above
 	}
 }
 
@@ -198,6 +201,8 @@ func certDir() (string, error) {
 // serve runs the gateway and its menu-bar UI on the main thread until it
 // fails, the user quits from the menu, or a successful self-update asks for
 // a restart (in which case it re-execs the freshly replaced binary).
+//
+//nolint:funlen
 func serve(
 	gateway *kobogateway.Server,
 	cfg kobogateway.Config,
@@ -219,7 +224,8 @@ func serve(
 		fmt.Fprintf(stdout, "warning: could not trust gateway cert automatically: %v\n", err)
 		fmt.Fprintln(
 			stdout,
-			"open Keychain Access and trust", certPath, "manually if Safari can't reach the gateway",
+			"open Keychain Access and trust", certPath,
+			"manually if Safari can't reach the gateway",
 		)
 	}
 
@@ -289,6 +295,7 @@ func serve(
 	// before the headless branch below so go test still exercises it.
 	firstLaunch := kobogateway.IsFirstLaunch(certsDir)
 
+	//nolint:nestif //extracting this only relocates coverage gaps, see git history
 	if headless {
 		<-stop
 	} else {

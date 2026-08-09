@@ -9,7 +9,7 @@
  * reach it too.
  */
 
-import { getRelease } from '@/lib/env'
+import { getKoboGatewayRelease } from '@/lib/env'
 
 const GATEWAY_PORT = 41132
 const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
@@ -95,16 +95,18 @@ export function revertGateway(
 
 /**
  * True when the installed gateway should self-update: either it's below the
- * required protocol version, or its release (build SHA) doesn't match this
- * web build's — CI stamps both with the same github.sha, so any mismatch
- * means a newer gateway binary is available. Routine releases (icon fixes,
- * login-item changes, etc.) don't bump GatewayVersion, so the release check
+ * required protocol version, or its release (build SHA) doesn't match the
+ * release of the kobo-gateway artifact actually bundled in this deploy
+ * (getKoboGatewayRelease() — not this web build's own release, since
+ * kobo-gateway's build can be skipped/cached when its source is unchanged,
+ * so it can legitimately lag behind web's release). Routine releases (icon
+ * fixes, login-item changes, etc.) don't bump GatewayVersion, so this check
  * is what actually delivers them to installed gateways.
  */
 export function gatewayNeedsUpdate(status: GatewayStatus): boolean {
   if (status.version < REQUIRED_GATEWAY_VERSION) return true
 
-  const current = getRelease()
+  const current = getKoboGatewayRelease()
   // Local/dev builds have no deployed binary to fetch — skip the check.
   if (current === 'dev' || status.release === 'dev') return false
 
