@@ -11,7 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/digitalocean"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
@@ -135,6 +137,14 @@ func testLoggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
 }
 
+// testNotifications wraps mail in a notifications.Service for the job to
+// enqueue onto; deliveries now happen on a background worker (issue #923),
+// so tests must call WaitUntilDone before asserting on mail/notified state.
+func testNotifications(t *testing.T, mail *fakeMailer) *notifications.Service {
+	t.Helper()
+	return notifications.New(t.Context(), logging.NewNopLogger(), mail)
+}
+
 func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
@@ -142,9 +152,11 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
 	assert.True(t, notified.keys["sentry:1"])
@@ -158,9 +170,11 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["sentry:1"] = true
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.Empty(t, mail.sent)
 }
@@ -170,9 +184,11 @@ func TestIssueNotifierSentryNotConfiguredDoesNotBlockDO(t *testing.T) {
 	do := fakeDOClient{deployment: doDeployment("d1", "ERROR"), err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
 	assert.True(t, notified.keys["digitalocean:d1"])
@@ -183,9 +199,11 @@ func TestIssueNotifierDOIgnoresNonErrorPhase(t *testing.T) {
 	do := fakeDOClient{deployment: doDeployment("d1", "ACTIVE"), err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.Empty(t, mail.sent)
 }
@@ -195,9 +213,11 @@ func TestIssueNotifierDONotConfiguredSkipsSilently(t *testing.T) {
 	do := fakeDOClient{deployment: nil, err: digitalocean.ErrNotConfigured}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.Empty(t, mail.sent)
 }
@@ -209,9 +229,11 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: mailer.ErrNotConfigured}
 	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
 
 	assert.False(t, notified.keys["sentry:1"])
 }
@@ -222,9 +244,11 @@ func TestIssueNotifierLogsWarnForTransientDOError(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
 
 	assert.Contains(t, buf.String(), "level=WARN")
 	assert.NotContains(t, buf.String(), "level=ERROR")
@@ -236,9 +260,11 @@ func TestIssueNotifierLogsErrorForNonTransientDOError(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
 
 	assert.Contains(t, buf.String(), "level=ERROR")
 }
@@ -249,9 +275,11 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
 
 	assert.Contains(t, buf.String(), "level=WARN")
 	assert.NotContains(t, buf.String(), "level=ERROR")
@@ -263,9 +291,11 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
+	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, mail, notified)
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
 
 	assert.Contains(t, buf.String(), "level=ERROR")
 }
@@ -274,7 +304,7 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 	job := jobs.NewIssueNotifierJob(
 		fakeSentryClient{issues: nil, err: nil},
 		fakeDOClient{deployment: nil, err: nil},
-		&fakeMailer{sent: nil, err: nil},
+		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
 	)
 	assert.Equal(t, "notify-new-issues", job.ID())

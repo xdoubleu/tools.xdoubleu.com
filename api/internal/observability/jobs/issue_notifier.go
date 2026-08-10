@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/digitalocean"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -33,29 +34,32 @@ type notifiedRepo interface {
 	Insert(ctx context.Context, key string) error
 }
 
-// IssueNotifierJob emails an admin (via mailer.Client) the first time a
-// Sentry issue or a failed DigitalOcean deployment is seen (issue #561).
-// Either provider being unconfigured degrades that half silently instead of
-// failing the whole run, matching how the /monitoring dashboard already
-// treats sentryapi.ErrNotConfigured/digitalocean.ErrNotConfigured.
+// IssueNotifierJob emails an admin (via notifications.Service) the first
+// time a Sentry issue or a failed DigitalOcean deployment is seen (issue
+// #561). Either provider being unconfigured degrades that half silently
+// instead of failing the whole run, matching how the /monitoring dashboard
+// already treats sentryapi.ErrNotConfigured/digitalocean.ErrNotConfigured.
+// The actual email delivery is queued on notifications rather than sent
+// inline, so a slow/rate-limited Resend call never blocks this job's
+// worker (issue #923).
 type IssueNotifierJob struct {
-	sentry   sentryapi.Client
-	do       digitalocean.Client
-	mail     mailer.Client
-	notified notifiedRepo
+	sentry        sentryapi.Client
+	do            digitalocean.Client
+	notifications *notifications.Service
+	notified      notifiedRepo
 }
 
 func NewIssueNotifierJob(
 	sentry sentryapi.Client,
 	do digitalocean.Client,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	notified notifiedRepo,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
-		sentry:   sentry,
-		do:       do,
-		mail:     mail,
-		notified: notified,
+		sentry:        sentry,
+		do:            do,
+		notifications: notifications,
+		notified:      notified,
 	}
 }
 
@@ -142,10 +146,10 @@ func logAPIErr(
 	logger.ErrorContext(ctx, msg, essentialogger.ErrAttr(err))
 }
 
-// notifyOnce sends subject/body and records key as notified, unless key was
-// already notified. The dedup key is only inserted after a successful send,
-// so a failed send is retried on the next run instead of being silently
-// dropped.
+// notifyOnce queues subject/body for delivery and records key as notified,
+// unless key was already notified. The dedup key is only inserted once
+// notifications confirms a successful send, so a failed send is retried on
+// the next run instead of being silently dropped.
 func (j *IssueNotifierJob) notifyOnce(
 	ctx context.Context,
 	key, subject, body string,
@@ -158,11 +162,14 @@ func (j *IssueNotifierJob) notifyOnce(
 		return nil
 	}
 
-	if err = j.mail.Send(ctx, subject, body); errors.Is(err, mailer.ErrNotConfigured) {
-		return nil
-	} else if err != nil {
-		return err
-	}
-
-	return j.notified.Insert(ctx, key)
+	j.notifications.Enqueue(subject, body, func(ctx context.Context, err error) error {
+		if errors.Is(err, mailer.ErrNotConfigured) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		return j.notified.Insert(ctx, key)
+	})
+	return nil
 }

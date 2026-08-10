@@ -28,6 +28,7 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/observability/jobs"
@@ -162,21 +163,26 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	return sealer
 }
 
-// newContactsService wires the contacts service to the Resend mailer (issue
-// #383) so a contact request emails its recipient; mailClient is also
-// returned for reuse by IssueNotifierJob.
+// newContactsService wires the contacts service to a notifications.Service
+// backed by the Resend mailer (issue #383) so a contact request emails its
+// recipient without blocking the request on the Resend round trip (issue
+// #923). mailClient and notificationsSvc are also returned for reuse by
+// NewApps (feeds) and IssueNotifierJob respectively.
 func newContactsService(
+	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
 	repo *repositories.ContactsRepository,
 	authSvc auth.Service,
-) (contacts.Service, mailer.Client) {
+) (contacts.Service, mailer.Client, *notifications.Service) {
 	mailClient := mailer.New(
 		config.ResendAPIKey,
 		config.EmailFrom,
 		config.NotifyEmailTo,
 	)
-	return contacts.New(repo, authSvc, mailClient, config.WebURL, logger), mailClient
+	notificationsSvc := notifications.New(ctx, logger, mailClient)
+	return contacts.New(repo, authSvc, notificationsSvc, config.WebURL, logger),
+		mailClient, notificationsSvc
 }
 
 // newObservabilityClients builds the three external observability clients,
@@ -270,7 +276,9 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
-	contactsSvc, mailClient := newContactsService(logger, config, contactsRepo, authSvc)
+	contactsSvc, mailClient, notificationsSvc := newContactsService(
+		ctx, logger, config, contactsRepo, authSvc,
+	)
 
 	oauthConnRepo := repositories.NewOAuthConnectionsRepository(
 		db, newOAuthSealer(logger, config),
@@ -281,7 +289,7 @@ func NewApplication(
 
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, doClient, mailClient, notifiedIssuesRepo,
+		sentryClient, doClient, notificationsSvc, notifiedIssuesRepo,
 	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
