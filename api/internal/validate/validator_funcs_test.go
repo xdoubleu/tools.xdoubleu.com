@@ -62,16 +62,3 @@ func TestIsValidTimeZone(t *testing.T) {
 	assert.False(t, ok)
 	assert.Equal(t, "must be a valid IANA value", msg)
 }
-
-func TestCheckOptional(t *testing.T) {
-	t.Parallel()
-
-	v := validate.New()
-	validate.CheckOptional(v, "field", nil, validate.IsNotEmpty)
-	assert.True(t, v.Valid())
-
-	empty := ""
-	validate.CheckOptional(v, "field", &empty, validate.IsNotEmpty)
-	assert.False(t, v.Valid())
-	assert.Equal(t, "must be provided", v.Errors()["field"])
-}

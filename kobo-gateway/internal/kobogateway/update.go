@@ -45,15 +45,6 @@ func NewUpdater() *Updater {
 	}
 }
 
-// NewUpdaterFor builds an Updater with an explicit executable path and
-// client, for tests.
-func NewUpdaterFor(executable string, client *http.Client) *Updater {
-	return &Updater{
-		client:         client,
-		executablePath: func() (string, error) { return executable, nil },
-	}
-}
-
 // SelfUpdate downloads origin+DownloadPath to a temp file next to the
 // current executable, sanity-checks it, and atomically renames it over the
 // executable. On any failure the running binary is left untouched.

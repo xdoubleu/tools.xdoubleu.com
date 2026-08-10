@@ -1,8 +1,6 @@
 package format_test
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -10,13 +8,6 @@ import (
 
 	"tools.xdoubleu.com/internal/format"
 )
-
-// ── SetConfig ────────────────────────────────────────────────────────────────
-
-func TestSetConfig_DoesNotPanic(_ *testing.T) {
-	// SetConfig sets package-level globals; just verify it doesn't panic.
-	format.SetConfig("v1.2.3")
-}
 
 // ── RenderTitleLinks ─────────────────────────────────────────────────────────
 
@@ -197,19 +188,4 @@ func TestDescFirstLine_MultiLine(t *testing.T) {
 
 func TestDescFirstLine_Empty(t *testing.T) {
 	assert.Equal(t, "", format.DescFirstLine(""))
-}
-
-// ── RenderError ───────────────────────────────────────────────────────────────
-
-func TestRenderError_WritesStatusAndBody(t *testing.T) {
-	rec := httptest.NewRecorder()
-	format.RenderError(rec, http.StatusBadRequest, "bad input")
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	assert.Contains(t, rec.Body.String(), "bad input")
-}
-
-func TestRenderError_InternalServerError(t *testing.T) {
-	rec := httptest.NewRecorder()
-	format.RenderError(rec, http.StatusInternalServerError, "oops")
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }

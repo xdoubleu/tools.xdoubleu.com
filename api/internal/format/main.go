@@ -4,20 +4,11 @@ import (
 	"fmt"
 	"html"
 	"math"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-// SetConfig is a no-op retained for API compatibility.
-func SetConfig(_ string) {}
-
-// RenderError renders an HTTP error response with the given status and message.
-func RenderError(w http.ResponseWriter, status int, message string) {
-	http.Error(w, message, status)
-}
 
 // ToAmount formats an amount for display as its exact value, with no rounding.
 // Trailing zeros (and a dangling decimal point) are trimmed, so 0.5 -> "0.5"

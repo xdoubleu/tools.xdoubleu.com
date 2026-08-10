@@ -116,9 +116,6 @@ func trustCertArgs(certPath string) []string {
 	return []string{"add-trusted-cert", "-r", "trustRoot", "-p", "ssl", certPath}
 }
 
-// TrustCertArgsForTest exposes trustCertArgs to the _test package.
-func TrustCertArgsForTest(certPath string) []string { return trustCertArgs(certPath) }
-
 // EnsureTrusted prompts the user (via the macOS Keychain UI) to trust the
 // gateway's self-signed cert, once. A marker file in dir skips the prompt on
 // subsequent launches; the marker is only written after `security` succeeds,

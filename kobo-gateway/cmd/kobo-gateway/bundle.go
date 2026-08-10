@@ -1,6 +1,6 @@
 package main
 
-import "strings"
+import "tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 
 // runningInAppBundle reports whether execPath points at a binary launched
 // from inside a real .app bundle (e.g.
@@ -10,5 +10,5 @@ import "strings"
 // inside a bundle — calling it from a raw binary throws, so callers must
 // check this first and skip notifications otherwise.
 func runningInAppBundle(execPath string) bool {
-	return strings.Contains(execPath, ".app/Contents/MacOS/")
+	return kobogateway.AppBundlePath(execPath) != ""
 }
