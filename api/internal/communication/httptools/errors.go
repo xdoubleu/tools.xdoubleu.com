@@ -18,11 +18,6 @@ func HandleError(
 	r *http.Request,
 	err error,
 ) {
-	//nolint:exhaustruct //fields are not needed here
-	notFoundError := errortools.NotFoundError{}
-	//nolint:exhaustruct //fields are not needed here
-	conflictError := errortools.ConflictError{}
-
 	badRequestError := errortools.BadRequestError{}
 
 	unauthorizedError := errortools.UnauthorizedError{}
@@ -32,10 +27,6 @@ func HandleError(
 		UnauthorizedResponse(w, r, unauthorizedError)
 	case errors.As(err, &badRequestError):
 		BadRequestResponse(w, r, badRequestError)
-	case errors.As(err, &notFoundError):
-		NotFoundResponse(w, r, notFoundError)
-	case errors.As(err, &conflictError):
-		ConflictResponse(w, r, conflictError)
 	default:
 		ServerErrorResponse(w, r, err)
 	}
@@ -88,28 +79,6 @@ func UnauthorizedResponse(w http.ResponseWriter,
 // isn't authorized to access a certain resource.
 func ForbiddenResponse(w http.ResponseWriter, r *http.Request) {
 	ErrorResponse(w, r, http.StatusForbidden, errortools.MessageForbidden)
-}
-
-// ConflictResponse is used to handle an error when a resource already exists.
-func ConflictResponse(
-	w http.ResponseWriter,
-	r *http.Request,
-	err errortools.ConflictError,
-) {
-	outputErr := make(map[string]string)
-	outputErr[err.JSONField] = err.Error()
-	ErrorResponse(w, r, http.StatusConflict, outputErr)
-}
-
-// NotFoundResponse is used to handle an error when a resource wasn't found.
-func NotFoundResponse(
-	w http.ResponseWriter,
-	r *http.Request,
-	err errortools.NotFoundError,
-) {
-	outputErr := make(map[string]string)
-	outputErr[err.JSONField] = err.Error()
-	ErrorResponse(w, r, http.StatusNotFound, outputErr)
 }
 
 // FailedValidationResponse is used to handle an error of a [validate.Validator].

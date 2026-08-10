@@ -1,7 +1,6 @@
 package httptools_test
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/gateway/internal/communication/httptools"
+	"tools.xdoubleu.com/gateway/internal/testtools"
 )
 
 func TestWriteJSON(t *testing.T) {
@@ -30,19 +30,16 @@ func TestWriteJSON(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), `"release": "abc"`)
 }
 
-type brokenWriter struct {
-	http.ResponseWriter
-}
-
-func (brokenWriter) Write([]byte) (int, error) {
-	return 0, errors.New("write failed")
-}
-
 func TestWriteJSONWriteError(t *testing.T) {
 	t.Parallel()
 
 	rec := httptest.NewRecorder()
-	err := httptools.WriteJSON(brokenWriter{rec}, http.StatusOK, "data", nil)
+	err := httptools.WriteJSON(
+		testtools.ErrorWriter{ResponseWriter: rec},
+		http.StatusOK,
+		"data",
+		nil,
+	)
 	require.Error(t, err)
 }
 

@@ -127,11 +127,3 @@ func TestSetAPIEndpointRevert(t *testing.T) {
 
 	assert.Equal(t, sampleConf, conf.Serialize())
 }
-
-func TestDefaultKoboEndpoint(t *testing.T) {
-	assert.Equal(
-		t,
-		"https://storeapi.kobo.com",
-		kobogateway.DefaultKoboEndpoint,
-	)
-}

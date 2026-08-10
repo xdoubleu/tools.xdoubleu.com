@@ -2,20 +2,15 @@ package recipes
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"strings"
 	"time"
-
-	"connectrpc.com/connect"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
 	"tools.xdoubleu.com/gen/recipes/v1/recipesv1connect"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -33,40 +28,7 @@ func getUser(ctx context.Context) *sharedmodels.User {
 }
 
 func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return connect.NewError(connect.CodeNotFound, err)
-	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return connect.NewError(connect.CodeAlreadyExists, err)
-	}
-	// For iapp.HTTPError, map the status code.
-	var httpErr *iapp.HTTPError
-	if err != nil && func() *iapp.HTTPError {
-		target := &iapp.HTTPError{} //nolint:exhaustruct // used for type assertion only
-		_ = errors.As(err, &target)
-		return target
-	}() != nil {
-		httpErr = func() *iapp.HTTPError {
-			target := &iapp.HTTPError{} //nolint:exhaustruct // used for type assertion only
-			_ = errors.As(err, &target)
-			return target
-		}()
-
-		switch httpErr.Status {
-		case http.StatusBadRequest:
-			return connect.NewError(connect.CodeInvalidArgument, err)
-		case http.StatusNotFound:
-			return connect.NewError(connect.CodeNotFound, err)
-		case http.StatusConflict:
-			return connect.NewError(connect.CodeAlreadyExists, err)
-		default:
-			return connect.NewError(connect.CodeInternal, err)
-		}
-	}
-	return connect.NewError(connect.CodeInternal, err)
+	return connecttools.MapError(err)
 }
 
 func protoRecipe(r *models.Recipe) *recipesv1.Recipe {

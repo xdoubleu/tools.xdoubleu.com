@@ -2,20 +2,15 @@ package mealplans
 
 import (
 	"context"
-	"errors"
-	"net/http"
 	"time"
-
-	"connectrpc.com/connect"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
 	"tools.xdoubleu.com/gen/mealplans/v1/mealplansv1connect"
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
@@ -32,29 +27,7 @@ func getUser(ctx context.Context) *sharedmodels.User {
 }
 
 func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return connect.NewError(connect.CodeNotFound, err)
-	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return connect.NewError(connect.CodeAlreadyExists, err)
-	}
-	var httpErr *iapp.HTTPError
-	if errors.As(err, &httpErr) {
-		switch httpErr.Status {
-		case http.StatusBadRequest:
-			return connect.NewError(connect.CodeInvalidArgument, err)
-		case http.StatusNotFound:
-			return connect.NewError(connect.CodeNotFound, err)
-		case http.StatusConflict:
-			return connect.NewError(connect.CodeAlreadyExists, err)
-		default:
-			return connect.NewError(connect.CodeInternal, err)
-		}
-	}
-	return connect.NewError(connect.CodeInternal, err)
+	return connecttools.MapError(err)
 }
 
 func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {

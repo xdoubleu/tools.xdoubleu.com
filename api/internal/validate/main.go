@@ -41,18 +41,3 @@ func Check[T any](v *Validator, key string, value T, validatorFunc ValidatorFunc
 		v.addError(key, message)
 	}
 }
-
-// CheckOptional checks if value passes the validatorFunc, when the value is provided.
-// The provided key is used for creating the errors map of the [Validator].
-func CheckOptional[T any](
-	v *Validator,
-	key string,
-	value *T,
-	validatorFunc ValidatorFunc[T],
-) {
-	if value == nil {
-		return
-	}
-
-	Check(v, key, *value, validatorFunc)
-}

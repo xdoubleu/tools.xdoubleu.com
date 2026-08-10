@@ -9,25 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-// Init initializes Sentry and returns a hub clone suitable for use on
-// background contexts (e.g. job queues). Returns nil, nil when the DSN is
-// empty or env is [config.TestEnv] — in those cases no initialization is
-// performed and Middleware() handles its own setup.
-// Must be called before Middleware().
-func Init(env string, options sentry.ClientOptions) (*sentry.Hub, error) {
-	if env == config.TestEnv || options.Dsn == "" {
-		return nil, nil //nolint:nilnil //Sentry disabled is not an error
-	}
-
-	if err := sentry.Init(options); err != nil {
-		return nil, err
-	}
-
-	return sentry.CurrentHub().Clone(), nil
-}
-
 // Middleware is middleware used to configure and enable Sentry.
-// Call [Init] at application startup before using this middleware.
+// Call [tools.xdoubleu.com/sentrytools.Init] at application startup before
+// using this middleware.
 // When env is [config.TestEnv], a mocked [sentry.Hub] will be used and
 // Sentry is self-initialized with mock options.
 func Middleware(env string) (func(http.Handler) http.Handler, error) {

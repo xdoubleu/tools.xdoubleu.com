@@ -100,6 +100,9 @@ the Next.js standalone server as supervised children and reverse-proxies
 every request between them, stripping `/api` for the api child and routing
 everything else to the web child — the same split the two-component DO
 ingress used to provide. `api` itself has no awareness of any of this.
+`api` and `gateway` both pull their slog→Sentry logging glue from a third,
+tiny Go module, `sentrytools/` (own `go.mod`, no deployable artifact of its
+own), via a local `replace` directive rather than duplicating it.
 
 ## Apps MCP server
 

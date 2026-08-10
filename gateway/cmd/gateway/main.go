@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/gateway/internal/communication/httptools"
 	"tools.xdoubleu.com/gateway/internal/gateway"
 	"tools.xdoubleu.com/gateway/internal/logging"
-	"tools.xdoubleu.com/gateway/internal/sentrytools"
+	"tools.xdoubleu.com/sentrytools"
 )
 
 const (

@@ -13,6 +13,14 @@ layer.
 Not to be confused with `kobo-gateway/` at the repo root — an unrelated
 macOS menu-bar app for Kobo device setup (own `CLAUDE.md`).
 
+`cmd/gateway/main.go`'s logger/Sentry init (`sentrytools.NewLogHandler`,
+`sentrytools.Init`) comes from the repo-root `sentrytools/` module — a
+separate, tiny Go module (own `go.mod`) pulled in via a local `replace`
+directive, not `api`'s config/dependency graph. It used to be a
+byte-for-byte duplicate of `api`'s own copy; see root `CLAUDE.md`'s CI
+section for how the two modules share it without either depending on the
+other's `internal/` packages.
+
 ## Structure
 
 ```text

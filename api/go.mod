@@ -77,4 +77,7 @@ require (
 	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	tools.xdoubleu.com/sentrytools v0.0.0
 )
+
+replace tools.xdoubleu.com/sentrytools => ../sentrytools

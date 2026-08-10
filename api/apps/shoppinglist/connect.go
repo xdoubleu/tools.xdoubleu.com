@@ -2,9 +2,7 @@ package shoppinglist
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -14,10 +12,9 @@ import (
 	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
-	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/connecttools"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/format"
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
@@ -55,29 +52,7 @@ func (h *shoppingConnectHandler) resolveOwner(
 }
 
 func mapError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, database.ErrResourceNotFound) {
-		return connect.NewError(connect.CodeNotFound, err)
-	}
-	if errors.Is(err, database.ErrResourceConflict) {
-		return connect.NewError(connect.CodeAlreadyExists, err)
-	}
-	var httpErr *iapp.HTTPError
-	if errors.As(err, &httpErr) {
-		switch httpErr.Status {
-		case http.StatusBadRequest:
-			return connect.NewError(connect.CodeInvalidArgument, err)
-		case http.StatusNotFound:
-			return connect.NewError(connect.CodeNotFound, err)
-		case http.StatusForbidden:
-			return connect.NewError(connect.CodePermissionDenied, err)
-		default:
-			return connect.NewError(connect.CodeInternal, err)
-		}
-	}
-	return connect.NewError(connect.CodeInternal, err)
+	return connecttools.MapError(err)
 }
 
 func (h *shoppingConnectHandler) GetCustomList(

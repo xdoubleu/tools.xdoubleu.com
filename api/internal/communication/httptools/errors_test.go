@@ -88,40 +88,6 @@ func TestForbiddenResponse(t *testing.T) {
 	assert.Equal(t, errortools.MessageForbidden, dto.Message)
 }
 
-func TestConflictResponse(t *testing.T) {
-	t.Parallel()
-
-	rec := do(t, func(w http.ResponseWriter, r *http.Request) {
-		httptools.ConflictResponse(
-			w,
-			r,
-			errortools.NewConflictError("book", "abc", "id"),
-		)
-	})
-	assert.Equal(t, http.StatusConflict, rec.Code)
-	dto := decode(t, rec)
-	outputErr, ok := dto.Message.(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "book with id 'abc' already exists", outputErr["id"])
-}
-
-func TestNotFoundResponse(t *testing.T) {
-	t.Parallel()
-
-	rec := do(t, func(w http.ResponseWriter, r *http.Request) {
-		httptools.NotFoundResponse(
-			w,
-			r,
-			errortools.NewNotFoundError("book", "abc", "id"),
-		)
-	})
-	assert.Equal(t, http.StatusNotFound, rec.Code)
-	dto := decode(t, rec)
-	outputErr, ok := dto.Message.(map[string]any)
-	require.True(t, ok)
-	assert.Equal(t, "book with id 'abc' doesn't exist", outputErr["id"])
-}
-
 func TestFailedValidationResponse(t *testing.T) {
 	t.Parallel()
 
@@ -143,16 +109,6 @@ func TestHandleError(t *testing.T) {
 		err        error
 		wantStatus int
 	}{
-		{
-			"not found",
-			errortools.NewNotFoundError("book", "abc", "id"),
-			http.StatusNotFound,
-		},
-		{
-			"conflict",
-			errortools.NewConflictError("book", "abc", "id"),
-			http.StatusConflict,
-		},
 		{
 			"bad request",
 			errortools.NewBadRequestError(errors.New("bad")),

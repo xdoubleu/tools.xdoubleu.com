@@ -27,7 +27,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v7
         with:
-          context: ./gateway
+          # Repo-root context (not ./gateway) — gateway/go.mod's local
+          # `replace tools.xdoubleu.com/sentrytools => ../sentrytools` needs
+          # that sibling directory inside the build context too; see
+          # gateway/Dockerfile's comment.
+          context: .
+          file: ./gateway/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ghcr.io/${{ github.repository }}/gateway:latest

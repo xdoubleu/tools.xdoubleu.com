@@ -54,9 +54,3 @@ func TestEnvSecretDoesNotLogValue(t *testing.T) {
 	assert.Contains(t, logs, "GW_CFG_SECRET'='<redacted>'")
 	assert.Contains(t, logs, "GW_CFG_SECRET_MISSING'='<unset>'")
 }
-
-func TestEnvConstants(t *testing.T) {
-	assert.Equal(t, "production", config.ProdEnv)
-	assert.Equal(t, "test", config.TestEnv)
-	assert.Equal(t, "development", config.DevEnv)
-}

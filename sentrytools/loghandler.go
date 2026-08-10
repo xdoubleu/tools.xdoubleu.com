@@ -1,3 +1,6 @@
+// Package sentrytools contains tools for wiring Go's slog into Sentry,
+// shared by every component (api, gateway) that wants Error-level log
+// records reported as Sentry events.
 package sentrytools
 
 import (
@@ -7,9 +10,12 @@ import (
 	"log/slog"
 
 	"github.com/getsentry/sentry-go"
-
-	"tools.xdoubleu.com/gateway/internal/config"
 )
+
+// devEnv is the env value that enables slog.LevelDebug. Callers pass their
+// own module's env string (e.g. config.DevEnv) straight through — every
+// component in this repo defines it as this same literal.
+const devEnv = "development"
 
 // LogHandler is used for capturing logs and sending these to Sentry.
 type LogHandler struct {
@@ -23,11 +29,13 @@ type groupOrAttrs struct {
 	attrs []slog.Attr // attrs if non-empty
 }
 
-// NewLogHandler returns a new [LogHandler].
+// NewLogHandler returns a new [LogHandler]. env is compared against the
+// literal "development" (every component's config.DevEnv) to pick the log
+// level; pass your own env string through unchanged.
 func NewLogHandler(env string, handler slog.Handler) slog.Handler {
 	level := slog.LevelInfo
 
-	if env == config.DevEnv {
+	if env == devEnv {
 		level = slog.LevelDebug
 	}
 
@@ -127,6 +135,7 @@ func (l *LogHandler) setRecordTags(
 	record slog.Record,
 	prefix string,
 ) error {
+	// Walk per-record attrs: extract the first error value; set the rest as tags.
 	var captureErr error
 	record.Attrs(func(attr slog.Attr) bool {
 		if captureErr == nil && attr.Value.Kind() == slog.KindAny {
