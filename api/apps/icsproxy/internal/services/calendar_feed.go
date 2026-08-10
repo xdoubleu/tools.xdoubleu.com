@@ -55,6 +55,20 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	return io.ReadAll(resp.Body)
 }
 
+// PreviewEvents fetches the calendar at sourceURL and extracts its events,
+// without persisting anything. Shared by the PreviewEvents RPC and
+// GetConfigWithEvents.
+func (s *CalendarService) PreviewEvents(
+	ctx context.Context,
+	sourceURL string,
+) ([]models.EventInfo, error) {
+	data, err := s.FetchICS(ctx, sourceURL)
+	if err != nil {
+		return nil, err
+	}
+	return s.ExtractEvents(ctx, data)
+}
+
 func (s *CalendarService) ExtractEvents(
 	ctx context.Context,
 	data []byte,

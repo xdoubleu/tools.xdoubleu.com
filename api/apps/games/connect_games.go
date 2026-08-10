@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 
 	"tools.xdoubleu.com/apps/games/internal/models"
+	"tools.xdoubleu.com/apps/games/internal/services"
 	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	gamesv1connect "tools.xdoubleu.com/gen/games/v1/gamesv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -138,28 +139,20 @@ func (h *gamesConnectHandler) GetSteamDistribution(
 		)
 	}
 
-	labels := distributionLabels()
-	bucket := int(req.Msg.Bucket)
-
-	if bucket < 0 || bucket >= len(labels) {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New("invalid bucket index"),
-		)
-	}
-
-	_, bucketGames, err := h.app.Services.Progress.GetCompletionRateDistribution(
-		ctx,
-		user.ID,
+	label, bucketGames, err := h.app.Services.Progress.GetDistributionBucket(
+		ctx, user.ID, int(req.Msg.Bucket),
 	)
+	if errors.Is(err, services.ErrInvalidBucket) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&gamesv1.GetSteamDistributionResponse{
 		Data: &gamesv1.SteamDistributionResponse{
-			Label: labels[bucket],
-			Games: protoGames(bucketGames[bucket]),
+			Label: label,
+			Games: protoGames(bucketGames),
 		},
 	}), nil
 }

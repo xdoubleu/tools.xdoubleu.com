@@ -10,6 +10,47 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 )
 
+const (
+	daysPerWeek = 7
+	hoursPerDay = 24
+
+	// Slot end hours (UTC) — match the iCal DTEND times in mealplans/ical.go.
+	slotBreakfastEnd = 9
+	slotNoonEnd      = 13
+	slotEveningEnd   = 20
+
+	slotBreakfast = "breakfast"
+	slotNoon      = "noon"
+	slotEvening   = "evening"
+)
+
+// ExportWindow returns the day-truncated start of the meal-plan export
+// window plus which of today's slots (breakfast/noon/evening) have already
+// passed, and the window's end: 7 days out normally, 8 when a slot has
+// already passed today so that slot's next occurrence (next week) is still
+// included.
+func ExportWindow(now time.Time) (time.Time, time.Time, []string) {
+	start := now.Truncate(hoursPerDay * time.Hour)
+	var pastSlots []string
+	if now.Hour() >= slotBreakfastEnd {
+		pastSlots = append(pastSlots, slotBreakfast)
+	}
+	if now.Hour() >= slotNoonEnd {
+		pastSlots = append(pastSlots, slotNoon)
+	}
+	if now.Hour() >= slotEveningEnd {
+		pastSlots = append(pastSlots, slotEvening)
+	}
+
+	endOffset := daysPerWeek - 1
+	if len(pastSlots) > 0 {
+		endOffset = daysPerWeek
+	}
+	end := start.AddDate(0, 0, endOffset)
+
+	return start, end, pastSlots
+}
+
 type shoppingRepo interface {
 	CheckPlanAccess(ctx context.Context, planID uuid.UUID, userID string) error
 	GetCustomItems(

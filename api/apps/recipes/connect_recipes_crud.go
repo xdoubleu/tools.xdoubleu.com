@@ -55,20 +55,19 @@ func (h *recipesConnectHandler) GetRecipe(
 		)
 	}
 
-	recipe, canEdit, err := h.app.services.Recipes.Get(ctx, id, user.ID)
+	recipe, canEdit, servings, scaledIngredients, err := h.app.services.Recipes.GetScaled(
+		ctx,
+		id,
+		user.ID,
+		int(req.Msg.Servings),
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
-	servings := recipe.BaseServings
-	if req.Msg.Servings > 0 {
-		servings = int(req.Msg.Servings)
-	}
-
-	scaled := make([]*recipesv1.ScaledIngredient, len(recipe.Ingredients))
-	for i, ing := range recipe.Ingredients {
-		ratio := float64(servings) / float64(recipe.BaseServings)
-		scaled[i] = protoScaledIngredient(ing.Name, ing.Amount*ratio, ing.Unit)
+	scaled := make([]*recipesv1.ScaledIngredient, len(scaledIngredients))
+	for i, ing := range scaledIngredients {
+		scaled[i] = protoScaledIngredient(ing.Name, ing.Amount, ing.Unit)
 	}
 
 	return connect.NewResponse(&recipesv1.GetRecipeResponse{

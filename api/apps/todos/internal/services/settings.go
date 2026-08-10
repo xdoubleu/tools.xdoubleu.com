@@ -14,7 +14,76 @@ import (
 )
 
 type SettingsService struct {
-	settings *repositories.SettingsRepository
+	settings   *repositories.SettingsRepository
+	sections   *SectionsService
+	policies   *PoliciesService
+	workspaces *WorkspacesService
+}
+
+// SettingsAggregate bundles everything the GetSettings RPC needs: the user's
+// active-workspace context plus every per-workspace setting collection.
+type SettingsAggregate struct {
+	UserSettings *models.UserSettings
+	Workspaces   []models.Workspace
+	LabelPresets *models.LabelPresets
+	URLPatterns  []models.URLPattern
+	Archive      *models.ArchiveSettings
+	Sections     []models.Section
+	Policies     []models.Policy
+}
+
+// GetSettings assembles the full settings payload for userID: their user
+// settings and workspace list, plus label presets, URL patterns, archive
+// settings, sections, and policies scoped to their active workspace.
+func (s *SettingsService) GetSettings(
+	ctx context.Context,
+	userID string,
+) (*SettingsAggregate, error) {
+	userSettings, err := s.GetUserSettings(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	wsID := userSettings.ActiveWorkspaceID
+
+	workspaces, err := s.workspaces.List(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	presets, err := s.GetLabelPresets(ctx, userID, wsID)
+	if err != nil {
+		return nil, err
+	}
+
+	patterns, err := s.GetURLPatterns(ctx, userID, wsID)
+	if err != nil {
+		return nil, err
+	}
+
+	archive, err := s.GetArchiveSettings(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	sections, err := s.sections.List(ctx, userID, wsID)
+	if err != nil {
+		return nil, err
+	}
+
+	policies, err := s.policies.List(ctx, userID, wsID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SettingsAggregate{
+		UserSettings: userSettings,
+		Workspaces:   workspaces,
+		LabelPresets: presets,
+		URLPatterns:  patterns,
+		Archive:      archive,
+		Sections:     sections,
+		Policies:     policies,
+	}, nil
 }
 
 func (s *SettingsService) GetLabelPresets(

@@ -188,6 +188,39 @@ func TestPlanMealMutations_AllowedWithEditAccess(t *testing.T) {
 	assert.True(t, store.mealMoved)
 }
 
+func TestWeekWindow_OffsetZeroIsCurrentWeek(t *testing.T) {
+	start, end := WeekWindow(0)
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+
+	assert.Equal(t, today, start)
+	assert.Equal(t, 6*24*time.Hour, end.Sub(start))
+}
+
+func TestWeekWindow_OffsetShiftsByWeeks(t *testing.T) {
+	start1, _ := WeekWindow(1)
+	start0, _ := WeekWindow(0)
+	assert.Equal(t, 7*24*time.Hour, start1.Sub(start0))
+
+	startNeg1, _ := WeekWindow(-1)
+	assert.Equal(t, -7*24*time.Hour, startNeg1.Sub(start0))
+}
+
+func TestPlanGetWithWeek_ComputesWindowAndMeals(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
+	svc := &PlanService{repo: store}
+
+	plan, windowStart, windowEnd, err := svc.GetWithWeek(
+		t.Context(), store.plan.ID, "owner", 2,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, plan)
+
+	wantStart, wantEnd := WeekWindow(2)
+	assert.Equal(t, wantStart, windowStart)
+	assert.Equal(t, wantEnd, windowEnd)
+}
+
 func TestPlanSharing_OwnerOnly(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakePlansStore{plan: newPlanFixture(true)}

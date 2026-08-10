@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/shoppinglist/internal/services"
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
@@ -19,20 +20,6 @@ import (
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/format"
 	sharedmodels "tools.xdoubleu.com/internal/models"
-)
-
-const (
-	daysPerWeek = 7
-	hoursPerDay = 24
-
-	// Slot end hours (UTC) — match the iCal DTEND times in mealplans/ical.go.
-	slotBreakfastEnd = 9
-	slotNoonEnd      = 13
-	slotEveningEnd   = 20
-
-	slotBreakfast = "breakfast"
-	slotNoon      = "noon"
-	slotEvening   = "evening"
 )
 
 type shoppingConnectHandler struct {
@@ -234,21 +221,6 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 	return connect.NewResponse(&shoppinglistv1.DeleteShoppingItemResponse{}), nil
 }
 
-func exportWindow(now time.Time) (time.Time, []string) {
-	today := now.Truncate(hoursPerDay * time.Hour)
-	var pastSlots []string
-	if now.Hour() >= slotBreakfastEnd {
-		pastSlots = append(pastSlots, slotBreakfast)
-	}
-	if now.Hour() >= slotNoonEnd {
-		pastSlots = append(pastSlots, slotNoon)
-	}
-	if now.Hour() >= slotEveningEnd {
-		pastSlots = append(pastSlots, slotEvening)
-	}
-	return today, pastSlots
-}
-
 func (h *shoppingConnectHandler) GetMealPlanExportItems(
 	ctx context.Context,
 	req *connect.Request[shoppinglistv1.GetMealPlanExportItemsRequest],
@@ -269,13 +241,7 @@ func (h *shoppingConnectHandler) GetMealPlanExportItems(
 		)
 	}
 
-	now := time.Now().UTC()
-	today, pastSlots := exportWindow(now)
-	endOffset := daysPerWeek - 1
-	if len(pastSlots) > 0 {
-		endOffset = daysPerWeek
-	}
-	end := today.AddDate(0, 0, endOffset)
+	today, end, pastSlots := services.ExportWindow(time.Now().UTC())
 
 	items, err := h.app.services.Shopping.GetMealPlanExportItems(
 		ctx, planID, user.ID, today, end, pastSlots, req.Msg.ExcludedGroups,
@@ -320,13 +286,7 @@ func (h *shoppingConnectHandler) GetPlanIngredientGroups(
 		)
 	}
 
-	now := time.Now().UTC()
-	today, pastSlots := exportWindow(now)
-	endOffset := daysPerWeek - 1
-	if len(pastSlots) > 0 {
-		endOffset = daysPerWeek
-	}
-	end := today.AddDate(0, 0, endOffset)
+	today, end, pastSlots := services.ExportWindow(time.Now().UTC())
 
 	groups, err := h.app.services.Shopping.GetPlanIngredientGroups(
 		ctx, planID, user.ID, today, end, pastSlots,

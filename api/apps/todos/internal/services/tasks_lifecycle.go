@@ -76,6 +76,31 @@ func (s *TaskService) List(
 	return s.enrichWithShortcuts(ctx, userID, workspaceID, tasks), nil
 }
 
+// ListByRequestedStatus resolves the ListTasks RPC's free-form status filter:
+// "done" and "archived" list that status directly (archived reuses Search so
+// query shortcuts still apply), anything else falls back to the paginated
+// open-task listing.
+func (s *TaskService) ListByRequestedStatus(
+	ctx context.Context,
+	userID string,
+	status string,
+	sectionID *uuid.UUID,
+	workspaceID *uuid.UUID,
+	limit int32,
+	offset int32,
+) ([]models.Task, bool, error) {
+	switch status {
+	case "done":
+		tasks, err := s.List(ctx, userID, models.StatusDone, workspaceID)
+		return tasks, false, err
+	case "archived":
+		tasks, err := s.Search(ctx, userID, "", workspaceID)
+		return tasks, false, err
+	default:
+		return s.ListOpen(ctx, userID, sectionID, workspaceID, limit, offset)
+	}
+}
+
 func (s *TaskService) Get(
 	ctx context.Context,
 	id uuid.UUID,

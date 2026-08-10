@@ -75,27 +75,13 @@ func (h *mealplansConnectHandler) GetPlan(
 		)
 	}
 
-	plan, err := h.app.services.Plans.Get(ctx, id, user.ID)
-	if err != nil {
-		return nil, mapError(err)
-	}
-
 	offset := int(req.Msg.Offset)
-	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
-	windowStart := today.AddDate(0, 0, daysPerWeek*offset)
-	windowEnd := windowStart.AddDate(0, 0, daysPerWeek-1)
-
-	meals, err := h.app.services.Plans.GetMeals(
-		ctx,
-		id,
-		user.ID,
-		windowStart,
-		windowEnd,
+	plan, windowStart, windowEnd, err := h.app.services.Plans.GetWithWeek(
+		ctx, id, user.ID, offset,
 	)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	plan.Meals = meals
 
 	icalURL := fmt.Sprintf("/%s/ical/%s.ics", h.app.GetName(), plan.ICalToken)
 
