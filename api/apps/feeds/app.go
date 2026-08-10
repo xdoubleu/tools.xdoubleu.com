@@ -17,7 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
-	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
 )
@@ -40,11 +40,11 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	return NewInner(
-		authService, logger, cfg, db, webfetch.New(logger), mail, appUsersRepo,
+		authService, logger, cfg, db, webfetch.New(logger), notifications, appUsersRepo,
 	)
 }
 
@@ -55,7 +55,7 @@ func NewInner(
 	cfg config.Config,
 	db postgres.DB,
 	webFetchClient webfetch.Client,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	//nolint:exhaustruct // jobQueue/Services/feedPollJob initialised below
@@ -81,7 +81,7 @@ func NewInner(
 		webFetchClient,
 		cfg.EmailInboundDomain,
 		authService,
-		mail,
+		notifications,
 		appUsersRepo,
 		cfg.WebURL,
 	)

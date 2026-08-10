@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/notifications"
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -66,7 +67,11 @@ func TestMain(m *testing.M) {
 		cfg,
 		postgresDB,
 		mockWebFetch,
-		mailer.New("", "", ""),
+		notifications.New(
+			context.Background(),
+			logging.NewNopLogger(),
+			mailer.New("", "", ""),
+		),
 		appUsersRepo,
 	)
 

@@ -11,7 +11,13 @@ import (
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/notifications"
 )
+
+func testNotifications(t *testing.T) *notifications.Service {
+	t.Helper()
+	return notifications.New(t.Context(), slog.Default(), mailer.New("", "", ""))
+}
 
 // TestNotFoundError_Error verifies that the error returned when a user is not
 // found by email has a non-empty message.
@@ -19,7 +25,7 @@ func TestNotFoundError_Error(t *testing.T) {
 	// The mock auth service only knows one user (email "user@example.com").
 	// Searching for a different email triggers the notFoundError path.
 	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
-		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
+		testNotifications(t), "http://localhost:3000", slog.Default())
 	err := svc.AddByEmail(
 		context.Background(),
 		"test-user",
@@ -34,7 +40,7 @@ func TestNotFoundError_Error(t *testing.T) {
 // email does not match any user known to the auth service.
 func TestAddByEmail_UserNotFound(t *testing.T) {
 	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
-		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
+		testNotifications(t), "http://localhost:3000", slog.Default())
 
 	err := svc.AddByEmail(
 		context.Background(),
@@ -52,7 +58,7 @@ func TestNotFoundError_HTTPStatus(t *testing.T) {
 		HTTPStatus() int
 	}
 	svc := contacts.New(nil, mocks.NewMockedAuthService("test-user"),
-		mailer.New("", "", ""), "http://localhost:3000", slog.Default())
+		testNotifications(t), "http://localhost:3000", slog.Default())
 	err := svc.AddByEmail(
 		context.Background(),
 		"test-user",

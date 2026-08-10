@@ -13,6 +13,7 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -28,26 +29,26 @@ type Service interface {
 }
 
 type contactsService struct {
-	repo   *repositories.ContactsRepository
-	auth   auth.Service
-	mail   mailer.Client
-	webURL string
-	logger *slog.Logger
+	repo          *repositories.ContactsRepository
+	auth          auth.Service
+	notifications *notifications.Service
+	webURL        string
+	logger        *slog.Logger
 }
 
 func New(
 	repo *repositories.ContactsRepository,
 	authService auth.Service,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	webURL string,
 	logger *slog.Logger,
 ) Service {
 	return &contactsService{
-		repo:   repo,
-		auth:   authService,
-		mail:   mail,
-		webURL: webURL,
-		logger: logger,
+		repo:          repo,
+		auth:          authService,
+		notifications: notifications,
+		webURL:        webURL,
+		logger:        logger,
 	}
 }
 
@@ -103,29 +104,38 @@ func (s *contactsService) AddByEmail(
 		return err
 	}
 
-	s.sendContactRequestEmail(ctx, recipient.Email, senderEmail)
+	s.sendContactRequestEmail(recipient.Email, senderEmail)
 	return nil
 }
 
-// sendContactRequestEmail notifies the recipient by email; failures never
-// fail the contact request itself — the request is already persisted, and
-// email delivery is a secondary notification, matching how IssueNotifierJob
-// treats mailer.ErrNotConfigured as a degraded (not failed) state.
-func (s *contactsService) sendContactRequestEmail(
-	ctx context.Context,
-	to, senderEmail string,
-) {
+// sendContactRequestEmail queues an email to the recipient (delivered
+// off the request path by notifications.Service, issue #923); failures
+// never fail the contact request itself — the request is already
+// persisted, and email delivery is a secondary notification, matching how
+// IssueNotifierJob treats mailer.ErrNotConfigured as a degraded (not
+// failed) state.
+func (s *contactsService) sendContactRequestEmail(to, senderEmail string) {
 	subject := fmt.Sprintf("%s wants to add you as a contact", senderEmail)
 	body := fmt.Sprintf(
 		"%s sent you a contact request on tools.xdoubleu.com.\n\n"+
 			"Accept or decline it here: %s/contacts",
 		senderEmail, s.webURL,
 	)
-	if err := s.mail.SendTo(ctx, to, subject, body); err != nil &&
-		!errors.Is(err, mailer.ErrNotConfigured) {
-		s.logger.ErrorContext(ctx, "contacts: failed to send contact request email",
-			essentialogger.ErrAttr(err))
-	}
+	s.notifications.EnqueueTo(
+		to,
+		subject,
+		body,
+		func(ctx context.Context, err error) error {
+			if err != nil && !errors.Is(err, mailer.ErrNotConfigured) {
+				s.logger.ErrorContext(
+					ctx,
+					"contacts: failed to send contact request email",
+					essentialogger.ErrAttr(err),
+				)
+			}
+			return nil
+		},
+	)
 }
 
 func (s *contactsService) Accept(
