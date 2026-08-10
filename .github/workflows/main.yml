@@ -22,6 +22,7 @@ jobs:
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
       gateway: ${{ steps.filter.outputs.gateway }}
+      sentrytools: ${{ steps.filter.outputs.sentrytools }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -57,6 +58,14 @@ jobs:
             gateway:
               - 'gateway/**'
               - '!gateway/**/*.md'
+            # sentrytools/ is a standalone Go module (own go.mod) with no
+            # deployable artifact of its own — api/ and gateway/ each pull it
+            # in via a local `replace` directive, so a change here can break
+            # either of them even though neither's own subtree changed. See
+            # the api/gateway gates below, which OR this in too.
+            sentrytools:
+              - 'sentrytools/**'
+              - '!sentrytools/**/*.md'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
@@ -95,6 +104,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
@@ -124,6 +134,7 @@ jobs:
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Gateway Workflow
     uses: ./.github/workflows/build-gateway.yml
@@ -149,6 +160,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml
@@ -172,6 +184,7 @@ jobs:
       github.event_name != 'push' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Gateway Lint Workflow
     uses: ./.github/workflows/gateway-lint.yml
@@ -196,6 +209,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true'
     name: API Test Workflow
     uses: ./.github/workflows/api-test.yml
@@ -221,6 +235,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.gateway == 'true' ||
+      needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.workflows == 'true'
     name: Gateway Test Workflow
     uses: ./.github/workflows/gateway-test.yml
@@ -238,6 +253,33 @@ jobs:
     uses: ./.github/workflows/kobo-gateway-test.yml
     secrets: inherit
 
+  # sentrytools/ has no deployable artifact of its own (see the `changes`
+  # job's sentrytools filter comment) — it's still linted/tested standalone
+  # so a break is caught here, in addition to api-test/gateway-test catching
+  # it transitively through their own `replace` on this module.
+  sentrytools-lint:
+    needs: changes
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.sentrytools == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Sentrytools Lint Workflow
+    uses: ./.github/workflows/sentrytools-lint.yml
+    secrets: inherit
+
+  sentrytools-test:
+    needs: changes
+    # Runs on push to main too (in parallel with docker/deploy, which do not
+    # depend on it) purely to refresh Codecov's default-branch baseline.
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.sentrytools == 'true' ||
+      needs.changes.outputs.workflows == 'true'
+    name: Sentrytools Test Workflow
+    uses: ./.github/workflows/sentrytools-test.yml
+    secrets: inherit
+
   # Build-only (no push) validation of the merged Docker image on PRs, so a
   # break that only shows up inside the Dockerfile's narrower file set (e.g.
   # issue #900 — a test file colocated outside the copied dirs) is caught
@@ -248,7 +290,7 @@ jobs:
     if: |
       always() &&
       github.event_name == 'pull_request' &&
-      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true') &&
+      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true') &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.build-gateway.result == 'success' || needs.build-gateway.result == 'skipped') &&
@@ -273,10 +315,12 @@ jobs:
         web-lint,
         gateway-lint,
         kobo-gateway-lint,
+        sentrytools-lint,
         api-test,
         web-test,
         gateway-test,
         kobo-gateway-test,
+        sentrytools-test,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -306,7 +350,8 @@ jobs:
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
           needs.gateway-test.result == 'success' ||
-          needs.kobo-gateway-test.result == 'success'
+          needs.kobo-gateway-test.result == 'success' ||
+          needs.sentrytools-test.result == 'success'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_TOKEN: ${{ github.token }}
@@ -374,7 +419,7 @@ jobs:
       # Union of both former conditions (api ∨ web) — one merged image
       # (issue #558) means any change that would have rebuilt either
       # component now rebuilds the single one.
-      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.workflows == 'true' }}
+      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
   deploy:

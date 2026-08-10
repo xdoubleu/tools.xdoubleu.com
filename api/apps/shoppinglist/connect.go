@@ -51,7 +51,9 @@ func (h *shoppingConnectHandler) resolveOwner(
 	return owner, nil
 }
 
-var mapError = connecttools.MapError
+func mapError(err error) error {
+	return connecttools.MapError(err)
+}
 
 func (h *shoppingConnectHandler) GetCustomList(
 	ctx context.Context,

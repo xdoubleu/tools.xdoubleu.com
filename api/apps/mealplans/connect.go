@@ -26,7 +26,9 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 }
 
-var mapError = connecttools.MapError
+func mapError(err error) error {
+	return connecttools.MapError(err)
+}
 
 func protoPlanMeal(m *models.PlanMeal) *mealplansv1.PlanMeal {
 	if m == nil {

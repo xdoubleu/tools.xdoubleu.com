@@ -2,14 +2,24 @@
 # only used as a `COPY --from=` source by the root Dockerfile, which
 # assembles api/gateway/web into the single merged deploy image. See root
 # CLAUDE.md's CI section and root Dockerfile.
+#
+# Build context is the REPO ROOT, not api/ (see build-api.yml's
+# `context: .` / `file: ./api/Dockerfile`) — api/go.mod's local `replace
+# tools.xdoubleu.com/sentrytools => ../sentrytools` directive needs that
+# sibling module inside the build context too, so paths below are
+# repo-root-relative until WORKDIR switches to /app/api.
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY sentrytools ./sentrytools
+COPY api/go.mod api/go.sum ./api/
+WORKDIR /app/api
 RUN go mod download
 
-COPY . .
+WORKDIR /app
+COPY api ./api
+WORKDIR /app/api
 
 # api reads RELEASE from the container env at runtime (api/internal/config),
 # not compile-time — no -X main.Release=... stamp needed here.
@@ -24,7 +34,7 @@ FROM gcr.io/distroless/static-debian12:nonroot AS server
 
 WORKDIR /app
 
-COPY --from=builder /app/bin/api ./bin/api
+COPY --from=builder /app/api/bin/api ./bin/api
 
 EXPOSE 8000
 

@@ -27,7 +27,9 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	)
 }
 
-var mapError = connecttools.MapError
+func mapError(err error) error {
+	return connecttools.MapError(err)
+}
 
 func protoRecipe(r *models.Recipe) *recipesv1.Recipe {
 	if r == nil {

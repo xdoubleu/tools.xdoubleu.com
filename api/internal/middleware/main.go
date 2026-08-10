@@ -42,8 +42,8 @@ func Default(
 //   - All middleware from [Default]
 //   - [sentrytools.Middleware]
 //
-// Call [sentrytools.Init] at application startup before using this so that
-// Sentry is initialised exactly once.
+// Call [tools.xdoubleu.com/sentrytools.Init] at application startup before
+// using this so that Sentry is initialised exactly once.
 func DefaultWithSentry(
 	logger *slog.Logger,
 	allowedOrigins []string,

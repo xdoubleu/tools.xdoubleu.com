@@ -7,28 +7,24 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/gateway/internal/config"
-	"tools.xdoubleu.com/gateway/internal/sentrytools"
+	"tools.xdoubleu.com/sentrytools"
 )
 
-func TestInitSkippedForTestEnv(t *testing.T) {
+func TestInit_SkippedForTestEnv(t *testing.T) {
 	t.Parallel()
 
 	hub, err := sentrytools.Init(
-		config.TestEnv,
+		"test",
 		sentry.ClientOptions{Dsn: "http://x@example.com/1"},
 	)
 	require.NoError(t, err)
 	assert.Nil(t, hub)
 }
 
-func TestInitSkippedForEmptyDsn(t *testing.T) {
+func TestInit_SkippedForEmptyDsn(t *testing.T) {
 	t.Parallel()
 
-	hub, err := sentrytools.Init(
-		config.ProdEnv,
-		sentry.ClientOptions{Dsn: ""},
-	)
+	hub, err := sentrytools.Init("production", sentry.ClientOptions{Dsn: ""})
 	require.NoError(t, err)
 	assert.Nil(t, hub)
 }
