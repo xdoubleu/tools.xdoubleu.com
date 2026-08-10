@@ -9,15 +9,14 @@ import (
 
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
-	"tools.xdoubleu.com/apps/todos/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 )
 
 type SettingsService struct {
-	settings   *repositories.SettingsRepository
-	sections   *SectionsService
-	policies   *PoliciesService
-	workspaces *WorkspacesService
+	settings   settingsRepo
+	sections   sectionsLister
+	policies   policiesLister
+	workspaces workspacesLister
 }
 
 // SettingsAggregate bundles everything the GetSettings RPC needs: the user's

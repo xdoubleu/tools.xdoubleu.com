@@ -14,9 +14,27 @@ var (
 	ErrConfigAccessDenied = errors.New("permission denied")
 )
 
+// calendarStore is the storage surface CalendarService needs. It is
+// satisfied by repositories.CalendarRepository and by fakes in unit tests,
+// so ownership/error-propagation rules can be tested without a database.
+type calendarStore interface {
+	UpsertFilterConfig(ctx context.Context, cfg models.FilterConfig) error
+	GetFilterConfig(ctx context.Context, token string) (models.FilterConfig, bool)
+	ListFilterConfigs(
+		ctx context.Context,
+		userID string,
+		limit, offset int32,
+	) ([]models.FilterConfig, bool, error)
+	ListFilterSummaries(
+		ctx context.Context,
+		userID string,
+	) ([]repositories.FilterSummary, error)
+	DeleteFilterConfig(ctx context.Context, token string, userID string) error
+}
+
 type CalendarService struct {
 	logger *slog.Logger
-	repo   *repositories.CalendarRepository
+	repo   calendarStore
 }
 
 func (s *CalendarService) SaveConfig(

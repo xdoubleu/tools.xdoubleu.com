@@ -7,12 +7,30 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/todos/internal/models"
-	"tools.xdoubleu.com/apps/todos/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 )
 
+// policiesRepo is the storage surface PoliciesService needs. It is
+// satisfied by repositories.PoliciesRepository and by fakes in unit tests.
+type policiesRepo interface {
+	ListByUser(
+		ctx context.Context,
+		userID string,
+		workspaceID *uuid.UUID,
+	) ([]models.Policy, error)
+	Create(ctx context.Context, p models.Policy) (*models.Policy, error)
+	Update(
+		ctx context.Context,
+		id uuid.UUID,
+		userID string,
+		text string,
+		reappearAfterHours int,
+	) (*models.Policy, error)
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+}
+
 type PoliciesService struct {
-	policies *repositories.PoliciesRepository
+	policies policiesRepo
 }
 
 func (s *PoliciesService) List(

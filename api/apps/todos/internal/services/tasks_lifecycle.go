@@ -8,13 +8,12 @@ import (
 
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
-	"tools.xdoubleu.com/apps/todos/internal/repositories"
 )
 
 type TaskService struct {
-	tasks    *repositories.TasksRepository
-	settings *repositories.SettingsRepository
-	sections *repositories.SectionsRepository
+	tasks    tasksRepo
+	settings settingsRepo
+	sections sectionsRepo
 }
 
 func (s *TaskService) ListOpen(
