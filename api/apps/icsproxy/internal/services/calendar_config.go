@@ -41,11 +41,8 @@ func (s *CalendarService) GetConfigWithEvents(
 	userID string,
 ) (models.FilterConfig, []models.EventInfo, error) {
 	cfg, ok := s.LoadConfig(ctx, token)
-	if !ok {
-		return models.FilterConfig{}, nil, ErrConfigNotFound
-	}
-	if cfg.UserID != userID {
-		return models.FilterConfig{}, nil, ErrConfigAccessDenied
+	if err := authorizeConfigAccess(cfg, ok, userID); err != nil {
+		return models.FilterConfig{}, nil, err
 	}
 
 	events, err := s.PreviewEvents(ctx, cfg.SourceURL)
@@ -54,6 +51,19 @@ func (s *CalendarService) GetConfigWithEvents(
 	}
 
 	return cfg, events, nil
+}
+
+// authorizeConfigAccess returns ErrConfigNotFound when the token resolved to
+// no config, ErrConfigAccessDenied when it resolved but userID isn't its
+// owner, and nil otherwise.
+func authorizeConfigAccess(cfg models.FilterConfig, found bool, userID string) error {
+	if !found {
+		return ErrConfigNotFound
+	}
+	if cfg.UserID != userID {
+		return ErrConfigAccessDenied
+	}
+	return nil
 }
 
 func (s *CalendarService) ListConfigs(

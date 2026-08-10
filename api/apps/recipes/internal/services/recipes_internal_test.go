@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 type fakeRecipesStore struct {
 	recipe      *models.Recipe
 	ingredients []models.Ingredient
+	getErr      error
 	// book access returned by GetBookAccess for any (owner, user) pair
 	accessCanEdit bool
 	accessOK      bool
@@ -36,6 +38,9 @@ func (f *fakeRecipesStore) ListForUser(
 func (f *fakeRecipesStore) GetByID(
 	_ context.Context, _ uuid.UUID,
 ) (*models.Recipe, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
 	cp := *f.recipe
 	return &cp, nil
 }
@@ -212,6 +217,16 @@ func TestRecipeGetScaled_ZeroRequestKeepsBaseServings(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, servings)
 	assert.Equal(t, float64(100), scaled[0].Amount)
+}
+
+func TestRecipeGetScaled_PropagatesGetError(t *testing.T) {
+	getErr := errors.New("db error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture(), getErr: getErr}
+	svc := &RecipeService{repo: store}
+
+	_, _, _, _, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 4)
+	assert.ErrorIs(t, err, getErr)
 }
 
 func TestRecipeShareBook_RejectsEmptyAndSelf(t *testing.T) {
