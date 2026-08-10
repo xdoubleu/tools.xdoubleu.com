@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -15,7 +16,9 @@ import (
 
 // fakeRecipesStore implements recipesStore in memory for permission tests.
 type fakeRecipesStore struct {
-	recipe *models.Recipe
+	recipe      *models.Recipe
+	ingredients []models.Ingredient
+	getErr      error
 	// book access returned by GetBookAccess for any (owner, user) pair
 	accessCanEdit bool
 	accessOK      bool
@@ -35,6 +38,9 @@ func (f *fakeRecipesStore) ListForUser(
 func (f *fakeRecipesStore) GetByID(
 	_ context.Context, _ uuid.UUID,
 ) (*models.Recipe, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
 	cp := *f.recipe
 	return &cp, nil
 }
@@ -48,7 +54,7 @@ func (f *fakeRecipesStore) GetBookAccess(
 func (f *fakeRecipesStore) GetIngredients(
 	_ context.Context, _ uuid.UUID,
 ) ([]models.Ingredient, error) {
-	return nil, nil
+	return f.ingredients, nil
 }
 
 func (f *fakeRecipesStore) Create(
@@ -175,6 +181,52 @@ func TestRecipeDelete_NonOwnerForbidden(t *testing.T) {
 	err := svc.Delete(t.Context(), uuid.New(), "someone-else")
 	assert.Equal(t, http.StatusForbidden, httpStatus(t, err))
 	assert.False(t, store.deleted)
+}
+
+func TestRecipeGetScaled_DoublesIngredientAmounts(t *testing.T) {
+	recipe := newRecipeFixture()
+	recipe.BaseServings = 2
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{
+		recipe: recipe,
+		ingredients: []models.Ingredient{
+			{Name: "Flour", Amount: 100, Unit: "g"},
+		},
+	}
+	svc := &RecipeService{repo: store}
+
+	_, _, servings, scaled, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 4)
+	require.NoError(t, err)
+	assert.Equal(t, 4, servings)
+	assert.Equal(t, float64(200), scaled[0].Amount)
+}
+
+func TestRecipeGetScaled_ZeroRequestKeepsBaseServings(t *testing.T) {
+	recipe := newRecipeFixture()
+	recipe.BaseServings = 2
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{
+		recipe: recipe,
+		ingredients: []models.Ingredient{
+			{Name: "Flour", Amount: 100, Unit: "g"},
+		},
+	}
+	svc := &RecipeService{repo: store}
+
+	_, _, servings, scaled, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 0)
+	require.NoError(t, err)
+	assert.Equal(t, 2, servings)
+	assert.Equal(t, float64(100), scaled[0].Amount)
+}
+
+func TestRecipeGetScaled_PropagatesGetError(t *testing.T) {
+	getErr := errors.New("db error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture(), getErr: getErr}
+	svc := &RecipeService{repo: store}
+
+	_, _, _, _, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 4)
+	assert.ErrorIs(t, err, getErr)
 }
 
 func TestRecipeShareBook_RejectsEmptyAndSelf(t *testing.T) {

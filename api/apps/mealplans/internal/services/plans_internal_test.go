@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -16,7 +17,10 @@ import (
 
 // fakePlansStore implements plansStore in memory for permission tests.
 type fakePlansStore struct {
-	plan *models.Plan
+	plan          *models.Plan
+	getErr        error
+	mealsInWindow []models.PlanMeal
+	mealsErr      error
 
 	updated     bool
 	deleted     bool
@@ -36,6 +40,9 @@ func (f *fakePlansStore) ListForUser(
 func (f *fakePlansStore) GetByID(
 	_ context.Context, _ uuid.UUID, _ string,
 ) (*models.Plan, error) {
+	if f.getErr != nil {
+		return nil, f.getErr
+	}
 	cp := *f.plan
 	return &cp, nil
 }
@@ -49,7 +56,10 @@ func (f *fakePlansStore) GetSharedWith(
 func (f *fakePlansStore) GetMealsInWindow(
 	_ context.Context, _ uuid.UUID, _, _ time.Time,
 ) ([]models.PlanMeal, error) {
-	return nil, nil
+	if f.mealsErr != nil {
+		return nil, f.mealsErr
+	}
+	return f.mealsInWindow, nil
 }
 
 func (f *fakePlansStore) SuggestRecipes(
@@ -186,6 +196,59 @@ func TestPlanMealMutations_AllowedWithEditAccess(t *testing.T) {
 	assert.True(t, store.mealCreated)
 	assert.True(t, store.mealDeleted)
 	assert.True(t, store.mealMoved)
+}
+
+func TestWeekWindow_OffsetZeroIsCurrentWeek(t *testing.T) {
+	start, end := WeekWindow(0)
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+
+	assert.Equal(t, today, start)
+	assert.Equal(t, 6*24*time.Hour, end.Sub(start))
+}
+
+func TestWeekWindow_OffsetShiftsByWeeks(t *testing.T) {
+	start1, _ := WeekWindow(1)
+	start0, _ := WeekWindow(0)
+	assert.Equal(t, 7*24*time.Hour, start1.Sub(start0))
+
+	startNeg1, _ := WeekWindow(-1)
+	assert.Equal(t, -7*24*time.Hour, startNeg1.Sub(start0))
+}
+
+func TestPlanGetWithWeek_ComputesWindowAndMeals(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
+	svc := &PlanService{repo: store}
+
+	plan, windowStart, windowEnd, err := svc.GetWithWeek(
+		t.Context(), store.plan.ID, "owner", 2,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, plan)
+
+	wantStart, wantEnd := WeekWindow(2)
+	assert.Equal(t, wantStart, windowStart)
+	assert.Equal(t, wantEnd, windowEnd)
+}
+
+func TestPlanGetWithWeek_PropagatesGetError(t *testing.T) {
+	getErr := errors.New("db error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true), getErr: getErr}
+	svc := &PlanService{repo: store}
+
+	_, _, _, err := svc.GetWithWeek(t.Context(), uuid.New(), "owner", 0)
+	assert.ErrorIs(t, err, getErr)
+}
+
+func TestPlanGetWithWeek_PropagatesMealsError(t *testing.T) {
+	mealsErr := errors.New("db error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true), mealsErr: mealsErr}
+	svc := &PlanService{repo: store}
+
+	_, _, _, err := svc.GetWithWeek(t.Context(), store.plan.ID, "owner", 0)
+	assert.ErrorIs(t, err, mealsErr)
 }
 
 func TestPlanSharing_OwnerOnly(t *testing.T) {

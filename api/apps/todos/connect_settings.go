@@ -44,44 +44,18 @@ func (h *settingsConnectHandler) GetSettings(
 ) (*connect.Response[todosv1.GetSettingsResponse], error) {
 	userID := h.userID(ctx)
 
-	wsCtx, err := h.app.loadWorkspaceCtx(ctx, userID)
-	if err != nil {
-		return nil, connectErr(err)
-	}
-	wsID := wsCtx.Settings.ActiveWorkspaceID
-
-	presets, err := h.app.services.Settings.GetLabelPresets(ctx, userID, wsID)
+	agg, err := h.app.services.Settings.GetSettings(ctx, userID)
 	if err != nil {
 		return nil, connectErr(err)
 	}
 
-	patterns, err := h.app.services.Settings.GetURLPatterns(ctx, userID, wsID)
-	if err != nil {
-		return nil, connectErr(err)
-	}
-
-	archive, err := h.app.services.Settings.GetArchiveSettings(ctx, userID)
-	if err != nil {
-		return nil, connectErr(err)
-	}
-
-	sections, err := h.app.services.Sections.List(ctx, userID, wsID)
-	if err != nil {
-		return nil, connectErr(err)
-	}
-
-	policies, err := h.app.services.Policies.List(ctx, userID, wsID)
-	if err != nil {
-		return nil, connectErr(err)
-	}
-
-	protoPresets := make([]*todosv1.LabelPreset, len(presets.Labels))
-	for i, p := range presets.Labels {
+	protoPresets := make([]*todosv1.LabelPreset, len(agg.LabelPresets.Labels))
+	for i, p := range agg.LabelPresets.Labels {
 		protoPresets[i] = &todosv1.LabelPreset{Value: p.Value, Color: p.Color}
 	}
 
-	protoPatterns := make([]*todosv1.URLPattern, len(patterns))
-	for i, p := range patterns {
+	protoPatterns := make([]*todosv1.URLPattern, len(agg.URLPatterns))
+	for i, p := range agg.URLPatterns {
 		protoPatterns[i] = &todosv1.URLPattern{
 			Id:           p.ID.String(),
 			UserId:       p.UserID,
@@ -95,8 +69,8 @@ func (h *settingsConnectHandler) GetSettings(
 		}
 	}
 
-	protoPolicies := make([]*todosv1.Policy, len(policies))
-	for i, p := range policies {
+	protoPolicies := make([]*todosv1.Policy, len(agg.Policies))
+	for i, p := range agg.Policies {
 		protoPolicies[i] = &todosv1.Policy{
 			Id:          p.ID.String(),
 			OwnerUserId: p.OwnerUserID,
@@ -113,9 +87,9 @@ func (h *settingsConnectHandler) GetSettings(
 	}
 
 	var archiveHours int32
-	if archive != nil {
+	if agg.Archive != nil {
 		archiveHours = int32( //nolint:gosec // int32 safe for domain values
-			archive.ArchiveAfterHours,
+			agg.Archive.ArchiveAfterHours,
 		)
 	}
 
@@ -126,13 +100,13 @@ func (h *settingsConnectHandler) GetSettings(
 			UserId:            userID,
 			ArchiveAfterHours: archiveHours,
 		},
-		Sections:   protoSections(sections),
+		Sections:   protoSections(agg.Sections),
 		Policies:   protoPolicies,
-		Workspaces: protoWorkspaces(wsCtx.Workspaces),
+		Workspaces: protoWorkspaces(agg.Workspaces),
 		UserSettings: &todosv1.UserSettings{
-			UserId:            wsCtx.Settings.UserID,
-			ActiveWorkspaceId: uuidPtrToStr(wsCtx.Settings.ActiveWorkspaceID),
-			HideShortcutHints: wsCtx.Settings.HideShortcutHints,
+			UserId:            agg.UserSettings.UserID,
+			ActiveWorkspaceId: uuidPtrToStr(agg.UserSettings.ActiveWorkspaceID),
+			HideShortcutHints: agg.UserSettings.HideShortcutHints,
 		},
 	}), nil
 }

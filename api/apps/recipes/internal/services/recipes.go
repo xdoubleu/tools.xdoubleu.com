@@ -89,6 +89,35 @@ func (s *RecipeService) Get(
 	return recipe, canEdit, nil
 }
 
+// GetScaled returns a recipe the user owns or has book access to, along with
+// the resolved serving count and its ingredients scaled to that count.
+// requestedServings <= 0 keeps the recipe's own BaseServings.
+func (s *RecipeService) GetScaled(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	requestedServings int,
+) (*models.Recipe, bool, int, []models.Ingredient, error) {
+	recipe, canEdit, err := s.Get(ctx, id, userID)
+	if err != nil {
+		return nil, false, 0, nil, err
+	}
+
+	servings := recipe.BaseServings
+	if requestedServings > 0 {
+		servings = requestedServings
+	}
+
+	ratio := float64(servings) / float64(recipe.BaseServings)
+	scaled := make([]models.Ingredient, len(recipe.Ingredients))
+	for i, ing := range recipe.Ingredients {
+		scaled[i] = ing
+		scaled[i].Amount = ing.Amount * ratio
+	}
+
+	return recipe, canEdit, servings, scaled, nil
+}
+
 func (s *RecipeService) Create(
 	ctx context.Context,
 	userID string,

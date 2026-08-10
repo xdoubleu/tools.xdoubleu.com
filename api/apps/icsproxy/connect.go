@@ -2,11 +2,13 @@ package icsproxy
 
 import (
 	"context"
+	"errors"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
+	"tools.xdoubleu.com/apps/icsproxy/internal/services"
 	icsproxyv1 "tools.xdoubleu.com/gen/icsproxy/v1"
 	"tools.xdoubleu.com/gen/icsproxy/v1/icsproxyv1connect"
 	"tools.xdoubleu.com/internal/constants"
@@ -60,12 +62,7 @@ func (h *icsProxyConnectHandler) PreviewEvents(
 		return nil, connect.NewError(connect.CodeInvalidArgument, nil)
 	}
 
-	data, err := h.app.services.Calendar.FetchICS(ctx, req.Msg.SourceUrl)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	events, err := h.app.services.Calendar.ExtractEvents(ctx, data)
+	events, err := h.app.services.Calendar.PreviewEvents(ctx, req.Msg.SourceUrl)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -90,21 +87,15 @@ func (h *icsProxyConnectHandler) GetConfig(
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	cfg, ok := h.app.services.Calendar.LoadConfig(ctx, req.Msg.Token)
-	if !ok {
-		return nil, connect.NewError(connect.CodeNotFound, nil)
+	cfg, events, err := h.app.services.Calendar.GetConfigWithEvents(
+		ctx, req.Msg.Token, userID,
+	)
+	if errors.Is(err, services.ErrConfigNotFound) {
+		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
-
-	if cfg.UserID != userID {
-		return nil, connect.NewError(connect.CodePermissionDenied, nil)
+	if errors.Is(err, services.ErrConfigAccessDenied) {
+		return nil, connect.NewError(connect.CodePermissionDenied, err)
 	}
-
-	data, err := h.app.services.Calendar.FetchICS(ctx, cfg.SourceURL)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	events, err := h.app.services.Calendar.ExtractEvents(ctx, data)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}

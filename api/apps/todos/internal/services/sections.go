@@ -8,12 +8,24 @@ import (
 
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
 	"tools.xdoubleu.com/apps/todos/internal/models"
-	"tools.xdoubleu.com/apps/todos/internal/repositories"
 	"tools.xdoubleu.com/internal/app"
 )
 
+// sectionsRepo is the storage surface SectionsService (and TaskService's
+// section lookups) need. It is satisfied by repositories.SectionsRepository
+// and by fakes in unit tests.
+type sectionsRepo interface {
+	ListByUser(
+		ctx context.Context,
+		userID string,
+		workspaceID *uuid.UUID,
+	) ([]models.Section, error)
+	Create(ctx context.Context, s models.Section) (*models.Section, error)
+	Delete(ctx context.Context, id uuid.UUID, userID string) error
+}
+
 type SectionsService struct {
-	sections *repositories.SectionsRepository
+	sections sectionsRepo
 }
 
 func (s *SectionsService) List(

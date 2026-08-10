@@ -14,6 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/progresshistory"
 )
 
+var ErrInvalidBucket = errors.New("invalid bucket index")
+
 type ProgressService struct {
 	history  *progresshistory.Service
 	progress *repositories.ProgressRepository
@@ -109,4 +111,38 @@ func (s *ProgressService) GetCompletionRateDistribution(
 	}
 
 	return counts, bucketGames, nil
+}
+
+func DistributionLabels() []string {
+	return []string{
+		"0–9%",
+		"10–19%",
+		"20–29%",
+		"30–39%",
+		"40–49%",
+		"50–59%",
+		"60–69%",
+		"70–79%",
+		"80–89%",
+		"90–99%",
+		"100%",
+	}
+}
+
+func (s *ProgressService) GetDistributionBucket(
+	ctx context.Context,
+	userID string,
+	bucket int,
+) (string, []models.Game, error) {
+	labels := DistributionLabels()
+	if bucket < 0 || bucket >= len(labels) {
+		return "", nil, ErrInvalidBucket
+	}
+
+	_, bucketGames, err := s.GetCompletionRateDistribution(ctx, userID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return labels[bucket], bucketGames[bucket], nil
 }

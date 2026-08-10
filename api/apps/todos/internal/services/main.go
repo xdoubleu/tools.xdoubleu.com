@@ -21,6 +21,10 @@ func New(
 	repos *repositories.Repositories,
 	authService auth.Service,
 ) *Services {
+	sections := &SectionsService{sections: repos.Sections}
+	policies := &PoliciesService{policies: repos.Policies}
+	workspaces := &WorkspacesService{workspaces: repos.Workspaces}
+
 	return &Services{
 		Auth: authService,
 		Tasks: &TaskService{
@@ -28,9 +32,14 @@ func New(
 			settings: repos.Settings,
 			sections: repos.Sections,
 		},
-		Settings:   &SettingsService{settings: repos.Settings},
-		Sections:   &SectionsService{sections: repos.Sections},
-		Policies:   &PoliciesService{policies: repos.Policies},
-		Workspaces: &WorkspacesService{workspaces: repos.Workspaces},
+		Settings: &SettingsService{
+			settings:   repos.Settings,
+			sections:   sections,
+			policies:   policies,
+			workspaces: workspaces,
+		},
+		Sections:   sections,
+		Policies:   policies,
+		Workspaces: workspaces,
 	}
 }

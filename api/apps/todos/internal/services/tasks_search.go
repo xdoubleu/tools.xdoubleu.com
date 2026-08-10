@@ -34,6 +34,41 @@ func (s *TaskService) SearchAll(
 	return s.tasks.SearchAll(ctx, userID, query, workspaceID)
 }
 
+// SearchBucketed runs SearchAll and splits the results into open/done/archived
+// buckets by status, for the SearchTasks RPC's grouped response.
+func (s *TaskService) SearchBucketed(
+	ctx context.Context,
+	userID string,
+	query string,
+	workspaceID *uuid.UUID,
+) ([]models.Task, []models.Task, []models.Task, error) {
+	tasks, err := s.SearchAll(ctx, userID, query, workspaceID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	open, done, archived := bucketTasksByStatus(tasks)
+	return open, done, archived, nil
+}
+
+// bucketTasksByStatus splits tasks into open/done/archived buckets by status.
+func bucketTasksByStatus(
+	tasks []models.Task,
+) ([]models.Task, []models.Task, []models.Task) {
+	var open, done, archived []models.Task
+	for _, t := range tasks {
+		switch t.Status {
+		case models.StatusDone:
+			done = append(done, t)
+		case models.StatusArchived:
+			archived = append(archived, t)
+		default:
+			open = append(open, t)
+		}
+	}
+	return open, done, archived
+}
+
 // shortcutQueryPattern matches strings like "DCP1234" or "PROJ-42".
 var shortcutQueryPattern = regexp.MustCompile(`^([A-Z]+)([0-9A-Za-z-]+)$`)
 

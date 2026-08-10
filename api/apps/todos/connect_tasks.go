@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/todos/internal/dtos"
-	"tools.xdoubleu.com/apps/todos/internal/models"
 	todosv1 "tools.xdoubleu.com/gen/todos/v1"
 )
 
@@ -31,27 +30,15 @@ func (h *taskConnectHandler) ListTasks(
 		}
 	}
 
-	var (
-		tasks   []models.Task
-		hasMore bool
-		err     error
+	tasks, hasMore, err := h.app.services.Tasks.ListByRequestedStatus(
+		ctx,
+		userID,
+		req.Msg.Status,
+		sectionID,
+		workspaceID,
+		req.Msg.Limit,
+		req.Msg.Offset,
 	)
-
-	switch req.Msg.Status {
-	case "done":
-		tasks, err = h.app.services.Tasks.List(
-			ctx,
-			userID,
-			models.StatusDone,
-			workspaceID,
-		)
-	case "archived":
-		tasks, err = h.app.services.Tasks.Search(ctx, userID, "", workspaceID)
-	default:
-		tasks, hasMore, err = h.app.services.Tasks.ListOpen(
-			ctx, userID, sectionID, workspaceID, req.Msg.Limit, req.Msg.Offset,
-		)
-	}
 	if err != nil {
 		return nil, connectErr(err)
 	}
@@ -221,7 +208,7 @@ func (h *taskConnectHandler) SearchTasks(
 			workspaceID = &id
 		}
 	}
-	tasks, err := h.app.services.Tasks.SearchAll(
+	open, done, archived, err := h.app.services.Tasks.SearchBucketed(
 		ctx,
 		userID,
 		req.Msg.Query,
@@ -229,17 +216,6 @@ func (h *taskConnectHandler) SearchTasks(
 	)
 	if err != nil {
 		return nil, connectErr(err)
-	}
-	var open, done, archived []models.Task
-	for _, t := range tasks {
-		switch t.Status {
-		case models.StatusDone:
-			done = append(done, t)
-		case models.StatusArchived:
-			archived = append(archived, t)
-		default:
-			open = append(open, t)
-		}
 	}
 	return connect.NewResponse(&todosv1.SearchTasksResponse{
 		Open:     protoTasks(open),

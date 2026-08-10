@@ -13,6 +13,21 @@ import (
 
 const errNoEditAccess = "You do not have edit access to this plan"
 
+const (
+	daysPerWeek = 7
+	hoursPerDay = 24
+)
+
+// WeekWindow returns the 7-day window that starts `offset` weeks from today
+// (UTC, truncated to the day), used both to page through a plan's meals and
+// to render its iCal feed.
+func WeekWindow(offset int) (time.Time, time.Time) {
+	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
+	start := today.AddDate(0, 0, daysPerWeek*offset)
+	end := start.AddDate(0, 0, daysPerWeek-1)
+	return start, end
+}
+
 // plansStore is the storage surface PlanService needs. It is satisfied by
 // repositories.PlansRepository and by fakes in unit tests, so the ownership
 // and edit-access rules can be tested without a database.
@@ -88,6 +103,30 @@ func (s *PlanService) Get(
 		}
 	}
 	return plan, nil
+}
+
+// GetWithWeek returns the plan along with its meals for the 7-day window
+// `offset` weeks from today, and the resolved window bounds.
+func (s *PlanService) GetWithWeek(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	offset int,
+) (*models.Plan, time.Time, time.Time, error) {
+	plan, err := s.Get(ctx, id, userID)
+	if err != nil {
+		return nil, time.Time{}, time.Time{}, err
+	}
+
+	windowStart, windowEnd := WeekWindow(offset)
+
+	meals, err := s.GetMeals(ctx, id, userID, windowStart, windowEnd)
+	if err != nil {
+		return nil, time.Time{}, time.Time{}, err
+	}
+	plan.Meals = meals
+
+	return plan, windowStart, windowEnd, nil
 }
 
 func (s *PlanService) GetMeals(

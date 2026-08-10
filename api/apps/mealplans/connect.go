@@ -19,10 +19,7 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-const (
-	daysPerWeek = 7
-	hoursPerDay = 24
-)
+const hoursPerDay = 24
 
 type mealplansConnectHandler struct {
 	app *MealPlans
