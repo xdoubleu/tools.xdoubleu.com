@@ -20,7 +20,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -47,7 +47,7 @@ func NewApps(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	appUsersRepo *repositories.AppUsersRepository,
 ) (*Apps, *books.Books) {
 	var apps Apps = []App{}
@@ -62,7 +62,7 @@ func NewApps(
 	// — those tables must still exist when feeds' migration runs.
 	booksApp := books.New(authService, logger, cfg, db)
 	apps.addApp(booksApp)
-	apps.addApp(feeds.New(authService, logger, cfg, db, mail, appUsersRepo))
+	apps.addApp(feeds.New(authService, logger, cfg, db, notifications, appUsersRepo))
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(icsproxy.New(authService, logger, cfg, db))

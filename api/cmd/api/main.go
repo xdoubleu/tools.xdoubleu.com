@@ -166,15 +166,16 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 // newContactsService wires the contacts service to a notifications.Service
 // backed by the Resend mailer (issue #383) so a contact request emails its
 // recipient without blocking the request on the Resend round trip (issue
-// #923). mailClient and notificationsSvc are also returned for reuse by
-// NewApps (feeds) and IssueNotifierJob respectively.
+// #923). notificationsSvc is also returned for reuse by NewApps (feeds) and
+// IssueNotifierJob, so every mail notification in the app shares the one
+// FIFO delivery queue.
 func newContactsService(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
 	repo *repositories.ContactsRepository,
 	authSvc auth.Service,
-) (contacts.Service, mailer.Client, *notifications.Service) {
+) (contacts.Service, *notifications.Service) {
 	mailClient := mailer.New(
 		config.ResendAPIKey,
 		config.EmailFrom,
@@ -182,7 +183,7 @@ func newContactsService(
 	)
 	notificationsSvc := notifications.New(ctx, logger, mailClient)
 	return contacts.New(repo, authSvc, notificationsSvc, config.WebURL, logger),
-		mailClient, notificationsSvc
+		notificationsSvc
 }
 
 // newObservabilityClients builds the three external observability clients,
@@ -276,7 +277,7 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
-	contactsSvc, mailClient, notificationsSvc := newContactsService(
+	contactsSvc, notificationsSvc := newContactsService(
 		ctx, logger, config, contactsRepo, authSvc,
 	)
 
@@ -321,7 +322,7 @@ func NewApplication(
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
 	app.apps, app.booksApp = NewApps(
-		app.auth, logger, config, spanDB, mailClient, appUsersRepo,
+		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 	)
 
 	err = app.ApplyMigrations(db)

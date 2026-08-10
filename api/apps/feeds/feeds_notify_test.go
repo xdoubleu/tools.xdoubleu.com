@@ -21,6 +21,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -60,10 +61,17 @@ func (c *capturingMailServer) count() int {
 // migrations are already applied by app_test.go's TestMain) but with its
 // own webfetch mock and a mailer pointed at a local capturing server —
 // testApp's own mailer is deliberately not-configured so unrelated tests
-// never send real requests.
+// never send real requests. The returned notifications.Service lets callers
+// wait for a RefreshFeed-triggered alert to actually be delivered (issue
+// #923: delivery now happens off the RPC handler's own path).
 func newNotifyTestApp(
 	t *testing.T,
-) (feedsv1connect.FeedServiceClient, *mocks.MockWebFetchClient, *capturingMailServer) {
+) (
+	feedsv1connect.FeedServiceClient,
+	*mocks.MockWebFetchClient,
+	*capturingMailServer,
+	*notifications.Service,
+) {
 	t.Helper()
 
 	mailSrv := newCapturingMailServer(t)
@@ -75,20 +83,25 @@ func newNotifyTestApp(
 	cfg.ResendAPIKey = "test-resend-key"
 
 	webFetch := mocks.NewMockWebFetchClient()
+	notifSvc := notifications.New(
+		t.Context(),
+		logging.NewNopLogger(),
+		mailer.New("test-resend-key", "feeds@example.com", ""),
+	)
 	app := feeds.NewInner(
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		cfg,
 		testDB,
 		webFetch,
-		mailer.New("test-resend-key", "feeds@example.com", ""),
+		notifSvc,
 		appUsersRepo,
 	)
 
 	ts := httptest.NewServer(testhelper.BuildMux(app))
 	t.Cleanup(ts.Close)
 	client := feedsv1connect.NewFeedServiceClient(http.DefaultClient, ts.URL)
-	return client, webFetch, mailSrv
+	return client, webFetch, mailSrv, notifSvc
 }
 
 func feedConsecutiveFailuresAndNotified(
@@ -112,7 +125,7 @@ func feedConsecutiveFailuresAndNotified(
 // exactly one email while broken (dedup), and the notified marker clears on
 // recovery.
 func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
-	client, webFetch, mailSrv := newNotifyTestApp(t)
+	client, webFetch, mailSrv, notifSvc := newNotifyTestApp(t)
 
 	base := uniqueBlogBase()
 	feedURL := base + "/feed.xml"
@@ -138,6 +151,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 		)
 		require.Error(t, refreshErr)
 	}
+	notifSvc.WaitUntilDone()
 	assert.Equal(t, 0, mailSrv.count(), "no email before the 3rd consecutive failure")
 
 	_, err = client.RefreshFeed(
@@ -145,6 +159,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
 	)
 	require.Error(t, err)
+	notifSvc.WaitUntilDone()
 	assert.Equal(t, 1, mailSrv.count(), "3rd consecutive failure sends the alert")
 	failures, notified := feedConsecutiveFailuresAndNotified(t, feedID)
 	assert.Equal(t, 3, failures)
@@ -155,6 +170,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
 	)
 	require.Error(t, err)
+	notifSvc.WaitUntilDone()
 	assert.Equal(t, 1, mailSrv.count(), "dedup: no 2nd email while still broken")
 
 	delete(webFetch.Errs, feedURL)
@@ -163,6 +179,7 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: feedID}),
 	)
 	require.NoError(t, err)
+	notifSvc.WaitUntilDone()
 	failures, notified = feedConsecutiveFailuresAndNotified(t, feedID)
 	assert.Equal(t, 0, failures)
 	assert.False(t, notified, "notified marker clears on recovery")

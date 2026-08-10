@@ -20,6 +20,7 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
@@ -70,22 +71,23 @@ type FeedService struct {
 	items         *repositories.ItemsRepository
 	webFetch      webfetch.Client
 	inboundDomain string
-	mail          mailer.Client
+	notifications *notifications.Service
 	users         *globalrepositories.AppUsersRepository
 	webURL        string
 }
 
 // NewFeedService constructs a FeedService. inboundDomain is the
 // EMAIL_INBOUND_DOMAIN used to build email feeds' inbound addresses; empty
-// disables CreateEmail (see ErrEmailFeedsNotConfigured). mail/users/webURL
-// back the issue #799 problem-email alert.
+// disables CreateEmail (see ErrEmailFeedsNotConfigured). notifications/
+// users/webURL back the issue #799 problem-email alert, delivered off the
+// polling job's own path via notifications.Service (issue #923).
 func NewFeedService(
 	logger *slog.Logger,
 	feeds *repositories.FeedsRepository,
 	items *repositories.ItemsRepository,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	users *globalrepositories.AppUsersRepository,
 	webURL string,
 ) *FeedService {
@@ -95,7 +97,7 @@ func NewFeedService(
 		items:         items,
 		webFetch:      webFetchClient,
 		inboundDomain: inboundDomain,
-		mail:          mail,
+		notifications: notifications,
 		users:         users,
 		webURL:        webURL,
 	}
@@ -726,10 +728,12 @@ func isFeedQuiet(times []time.Time, now time.Time) bool {
 	return now.Sub(latest) > threshold
 }
 
-// notifyProblem emails the feed owner about a detected problem, deduped via
-// MarkNotified (only recorded once SendTo succeeds, so a failed send is
-// retried on the next poll) — mirrors contacts.sendContactRequestEmail's
-// degrade-not-fail handling of mailer.ErrNotConfigured (issue #799).
+// notifyProblem queues an email to the feed owner about a detected problem
+// (delivered off the polling job's own path by notifications.Service, issue
+// #923), deduped via MarkNotified (only recorded once the send succeeds, so
+// a failed send is retried on the next poll) — mirrors
+// contacts.sendContactRequestEmail's degrade-not-fail handling of
+// mailer.ErrNotConfigured (issue #799).
 func (s *FeedService) notifyProblem(
 	ctx context.Context,
 	feed models.Feed,
@@ -748,18 +752,25 @@ func (s *FeedService) notifyProblem(
 		"Your feed %q is %s.\n\nView it: %s/feeds",
 		title, reason, s.webURL,
 	)
-	if err = s.mail.SendTo(ctx, user.Email, subject, body); err != nil {
-		if !errors.Is(err, mailer.ErrNotConfigured) {
-			s.logger.WarnContext(ctx, "feed notify: send failed",
-				"feedID", feed.ID, "error", err)
-		}
-		return
-	}
-
-	if err = s.feeds.MarkNotified(ctx, feed.ID); err != nil {
-		s.logger.WarnContext(ctx, "feed notify: mark-notified failed",
-			"feedID", feed.ID, "error", err)
-	}
+	s.notifications.EnqueueTo(
+		user.Email,
+		subject,
+		body,
+		func(ctx context.Context, err error) error {
+			if err != nil {
+				if !errors.Is(err, mailer.ErrNotConfigured) {
+					s.logger.WarnContext(ctx, "feed notify: send failed",
+						"feedID", feed.ID, "error", err)
+				}
+				return nil
+			}
+			if markErr := s.feeds.MarkNotified(ctx, feed.ID); markErr != nil {
+				s.logger.WarnContext(ctx, "feed notify: mark-notified failed",
+					"feedID", feed.ID, "error", markErr)
+			}
+			return nil
+		},
+	)
 }
 
 func itemGUID(item *gofeed.Item) string {

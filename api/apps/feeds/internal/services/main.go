@@ -6,7 +6,7 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/repositories"
 	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	"tools.xdoubleu.com/internal/auth"
-	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/notifications"
 	globalrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
@@ -21,7 +21,7 @@ func New(
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 	authService auth.Service,
-	mail mailer.Client,
+	notifications *notifications.Service,
 	appUsersRepo *globalrepositories.AppUsersRepository,
 	webURL string,
 ) *Services {
@@ -33,7 +33,7 @@ func New(
 			repos.Items,
 			webFetchClient,
 			inboundDomain,
-			mail,
+			notifications,
 			appUsersRepo,
 			webURL,
 		),
