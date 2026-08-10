@@ -45,7 +45,7 @@ func (t *transportMock) Events() []*sentry.Event {
 func mockedHub(t *testing.T) (*sentry.Hub, *transportMock) {
 	t.Helper()
 
-	transport := &transportMock{}
+	transport := &transportMock{} //nolint:exhaustruct //zero value is correct
 	client, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:       "http://whatever@example.com/1337",
 		Transport: transport,
