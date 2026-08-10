@@ -62,7 +62,12 @@ func TestNewHandler_RoutesToAPI(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
+			handler := gateway.NewHandler(
+				apiPort,
+				webPort,
+				"abc1234",
+				logging.NewNopLogger(),
+			)
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, tt.requestPath, nil)
@@ -126,7 +131,12 @@ func TestNewHandler_ProxiesEverythingElseToWeb(t *testing.T) {
 					w.WriteHeader(http.StatusOK)
 				},
 			))
-			handler := gateway.NewHandler(apiPort, webPort, "abc1234", logging.NewNopLogger())
+			handler := gateway.NewHandler(
+				apiPort,
+				webPort,
+				"abc1234",
+				logging.NewNopLogger(),
+			)
 
 			rr := httptest.NewRecorder()
 			req := httptest.NewRequest(http.MethodGet, path, nil)
