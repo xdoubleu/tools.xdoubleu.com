@@ -127,6 +127,20 @@ func (f *fakeNotifiedRepo) Insert(_ context.Context, key string) error {
 	return nil
 }
 
+// erroringNotifiedRepo makes Exists always fail, for
+// TestIssueNotifierNotifiedExistsErrorPropagates.
+type erroringNotifiedRepo struct {
+	err error
+}
+
+func (f *erroringNotifiedRepo) Exists(_ context.Context, _ string) (bool, error) {
+	return false, f.err
+}
+
+func (f *erroringNotifiedRepo) Insert(_ context.Context, _ string) error {
+	return nil
+}
+
 func testLogger() *slog.Logger {
 	logger, _ := testLoggerWithBuf()
 	return logger
@@ -309,4 +323,36 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 	)
 	assert.Equal(t, "notify-new-issues", job.ID())
 	assert.Positive(t, job.RunEvery())
+}
+
+func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("42", "kaboom")}, err: nil,
+	}
+	do := fakeDOClient{deployment: nil, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := &erroringNotifiedRepo{err: assert.AnError}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
+	err := job.Run(t.Context(), testLogger())
+
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	do := fakeDOClient{deployment: nil, err: nil}
+	mail := &fakeMailer{sent: nil, err: assert.AnError}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.False(t, notified.keys["sentry:1"])
 }
