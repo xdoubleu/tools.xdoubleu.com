@@ -15,12 +15,16 @@ tools/lint/go:
 	go install github.com/daixiang0/gci@v0.14.0
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.28.0
 
+# Keep this pin in step with Homebrew's sqlfluff, which macOS gets below and
+# cannot pin (PEP 668 rules out a bare `pip install` there). LT01's opinion on
+# `TEXT[]` reversed between 3.x and 4.x, so a mismatch means `make lint/fix`
+# on one platform produces SQL the other platform's lint rejects.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
 endif
 ifeq ($(UNAME_S),Linux)
-	pip install sqlfluff==3.3.0
+	pip install sqlfluff==4.3.0
 endif
 
 lint/sql: tools/lint/sql

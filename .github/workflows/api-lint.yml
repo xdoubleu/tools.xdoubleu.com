@@ -35,9 +35,9 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ~/.cache/pip
-          key: sqlfluff-3.3.0
+          key: sqlfluff-4.3.0
       - name: Install sqlfluff
-        run: pip install sqlfluff==3.3.0
+        run: pip install sqlfluff==4.3.0
       - name: Run sqlfluff
         run: sqlfluff lint --dialect postgres .
         working-directory: './api'
