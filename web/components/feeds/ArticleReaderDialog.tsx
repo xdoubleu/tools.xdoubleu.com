@@ -92,7 +92,10 @@ export default function ArticleReaderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent side="fullscreen" className="p-4 sm:p-5 max-w-2xl sm:h-[85vh] flex flex-col">
+      <DialogContent
+        side="fullscreen"
+        className="max-w-2xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[85vh] sm:p-5 flex flex-col"
+      >
         <DialogHeader className="items-start gap-3">
           <div className="min-w-0 flex-1">
             <DialogTitle className="leading-tight">{item.title}</DialogTitle>
