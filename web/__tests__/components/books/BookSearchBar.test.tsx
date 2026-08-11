@@ -100,7 +100,26 @@ describe('BookSearchBar — standalone mode', () => {
     expect(mockRouterPush).toHaveBeenCalledWith('/books/external/hardcover/1')
   })
 
-  it('renders a result with no providerId as disabled', async () => {
+  it('omits results with no providerId from the dropdown', async () => {
+    mockSearchLibrary.mockResolvedValue({ books: [] })
+    mockSearchExternal.mockResolvedValue({
+      results: [
+        { ...EXTERNAL_BOOK, providerId: '' },
+        { ...EXTERNAL_BOOK, title: 'Linkable Book', providerId: '2' }
+      ]
+    })
+    render(<BookSearchBar />)
+    fireEvent.change(screen.getByPlaceholderText('Search books…'), {
+      target: { value: 'Go' }
+    })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => screen.getByText('Linkable Book'))
+    expect(screen.queryByText('Go Book')).not.toBeInTheDocument()
+  })
+
+  it('shows nothing when every external result has no providerId', async () => {
     mockSearchLibrary.mockResolvedValue({ books: [] })
     mockSearchExternal.mockResolvedValue({ results: [{ ...EXTERNAL_BOOK, providerId: '' }] })
     render(<BookSearchBar />)
@@ -110,9 +129,8 @@ describe('BookSearchBar — standalone mode', () => {
     await act(async () => {
       jest.advanceTimersByTime(300)
     })
-    await waitFor(() => screen.getByText('Go Book'))
-    fireEvent.click(screen.getByText('Go Book'))
-    expect(mockRouterPush).not.toHaveBeenCalled()
+    await waitFor(() => expect(mockSearchExternal).toHaveBeenCalledWith('Go'))
+    expect(screen.queryByText('Go Book')).not.toBeInTheDocument()
   })
 
   it('clears results when query is emptied', () => {

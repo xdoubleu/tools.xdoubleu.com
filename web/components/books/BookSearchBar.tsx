@@ -72,8 +72,11 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
           setExternalResults([])
         } else {
           setLibraryHits([])
+          // Results with no providerId have no detail page to navigate to
+          // (see ExternalBookCard) — keeping them in this click-to-navigate
+          // dropdown just renders permanently disabled, grayed-out rows.
           const extResp = await searchExternal(standaloneQuery.trim())
-          setExternalResults(extResp.results)
+          setExternalResults(extResp.results.filter((b) => b.providerId))
         }
       } catch {
         setLibraryHits([])
@@ -157,7 +160,6 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
               : externalResults.map((book) => (
                   <li key={`${book.provider}-${book.providerId}`}>
                     <MenuItem
-                      disabled={!book.providerId}
                       onClick={() => {
                         router.push(`/books/external/${book.provider}/${book.providerId}`)
                         setExternalResults([])
