@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -18,6 +19,17 @@ import (
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/testhelper"
 )
+
+// hangingObjectStore wraps a real objectstore.Client but blocks Exists until
+// the caller's context is cancelled, simulating a stalled R2 HeadObject call.
+type hangingObjectStore struct {
+	objectstore.Client
+}
+
+func (h hangingObjectStore) Exists(ctx context.Context, _ string) (bool, error) {
+	<-ctx.Done()
+	return false, ctx.Err()
+}
 
 // buildCoverApp creates a test Backlog with a fresh fakeStore so cover cache
 // tests are isolated. Covers are fetched eagerly at write time (AddToLibrary,
@@ -181,6 +193,47 @@ func TestCoverHandler_InvalidID(t *testing.T) {
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestCoverHandler_HangingObjectStoreFailsFast is a regression test for
+// #851: a stalled R2 call (e.g. HeadObject never returning) must not hang
+// the handler past the server's global write timeout, since that leaves the
+// browser's <img> request hanging with neither a cover nor a clean error to
+// trigger the placeholder. The handler must bound the whole read path and
+// return an error response well within a few seconds.
+func TestCoverHandler_HangingObjectStoreFailsFast(t *testing.T) {
+	ub := addTestBook(t, "CoverHandlerHangingStoreBook")
+
+	clients := books.Clients{
+		UniCat:           nil,
+		WebFetch:         nil,
+		Hardcover:        nil,
+		ObjectStore:      hangingObjectStore{Client: objectstore.NewFake()},
+		KoboStoreBaseURL: "",
+		PublicAPIBaseURL: "http://api.test",
+	}
+	app := books.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		testCfg,
+		testDB,
+		clients,
+	)
+
+	mux := testhelper.BuildMux(app)
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/books/api/cover/"+ub.BookID.String(),
+		nil,
+	)
+	w := httptest.NewRecorder()
+
+	start := time.Now()
+	mux.ServeHTTP(w, req)
+	elapsed := time.Since(start)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Less(t, elapsed, 9*time.Second, "must fail fast, not hang")
 }
 
 // TestAddToLibrary_CachesCoverEagerly verifies that adding a book with a
