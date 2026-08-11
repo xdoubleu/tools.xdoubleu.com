@@ -152,10 +152,24 @@ export default function BooksLibrary({
         />
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-semibold mb-3">
-            {headerLabel}
-            <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
-          </h2>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-semibold">
+              {headerLabel}
+              <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
+            </h2>
+            {/* Always visible (not just on a no-results search) — search may
+                turn up an unrelated result, or the user may not have
+                searched at all, and either way there's otherwise no way to
+                reach the manual-add flow. */}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setManualAddOpen(true)}
+            >
+              Add book
+            </Button>
+          </div>
 
           {isSearching ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -166,12 +180,7 @@ export default function BooksLibrary({
                 <ExternalBookCard key={`${book.provider}-${book.providerId}`} book={book} />
               ))}
               {!isSearchingExternal && resultCount === 0 && (
-                <div className="col-span-full flex flex-col items-center gap-3 py-16 text-center">
-                  <p className="text-sm text-muted">No results.</p>
-                  <Button type="button" variant="secondary" onClick={() => setManualAddOpen(true)}>
-                    Add &quot;{searchQuery.trim()}&quot; manually
-                  </Button>
-                </div>
+                <p className="col-span-full py-16 text-center text-sm text-muted">No results.</p>
               )}
               {isSearchingExternal && (
                 <p className="col-span-full text-sm text-muted">Searching…</p>

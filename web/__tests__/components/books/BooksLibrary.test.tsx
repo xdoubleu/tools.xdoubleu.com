@@ -417,7 +417,12 @@ describe('BooksLibrary', () => {
     })
   })
 
-  it('offers to add the book manually when nothing matches, prefilled with the search query', async () => {
+  it('shows a persistent "Add book" button even when not searching', () => {
+    renderLibrary(makeLibrary())
+    expect(screen.getByRole('button', { name: 'Add book' })).toBeInTheDocument()
+  })
+
+  it('opens the manual-add modal from the persistent button, prefilled with the search query', async () => {
     renderLibrary(makeLibrary(), { searchQuery: 'Dungeon Crawler Carl' })
     await act(async () => {
       jest.advanceTimersByTime(300)
@@ -426,22 +431,25 @@ describe('BooksLibrary', () => {
       expect(screen.getByText('No results.')).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add "Dungeon Crawler Carl" manually' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
 
     expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
     expect(screen.getByLabelText('Title')).toHaveValue('Dungeon Crawler Carl')
   })
 
-  it('closes the manual-add modal via its Cancel button', async () => {
-    renderLibrary(makeLibrary(), { searchQuery: 'nothing-matches-anything' })
-    await act(async () => {
-      jest.advanceTimersByTime(300)
-    })
-    await waitFor(() => {
-      expect(screen.getByText('No results.')).toBeInTheDocument()
-    })
+  it('opens the manual-add modal even when a search returns an (unwanted) match', () => {
+    // resultCount > 0 here (Dune matches), so the old no-results-only
+    // affordance would never have shown — the persistent button must still
+    // work regardless of whether the search found something.
+    renderLibrary(makeLibrary(), { searchQuery: 'dune' })
+    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
+    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toHaveValue('dune')
+  })
 
-    fireEvent.click(screen.getByRole('button', { name: /Add ".*" manually/ }))
+  it('closes the manual-add modal via its Cancel button', () => {
+    renderLibrary(makeLibrary())
+    fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
     expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
