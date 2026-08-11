@@ -53,6 +53,9 @@ export interface BookColumn {
   renderCell: (ub: UserBook, ctx: CellContext) => ReactNode
 }
 
+/** Caps rendered author lines so rows with many co-authors don't grow the row height unpredictably. */
+const MAX_AUTHORS_SHOWN = 2
+
 export function nextDir(current: SortDir): SortDir {
   if (current === null) return 'asc'
   if (current === 'asc') return 'desc'
@@ -133,19 +136,32 @@ export const ALL_COLUMNS: BookColumn[] = [
     label: 'Author',
     sortKey: 'author',
     cellClassName: 'max-w-36',
-    renderCell: (ub) => (
-      <div className="flex flex-col gap-0.5">
-        {(ub.book?.authors ?? []).map((author) => (
-          <Link
-            key={author}
-            href={`/books/author/${encodeURIComponent(author)}`}
-            className="text-sm text-subtle hover:text-accent transition-colors truncate"
-          >
-            {author}
-          </Link>
-        ))}
-      </div>
-    )
+    renderCell: (ub) => {
+      const authors = ub.book?.authors ?? []
+      const shown = authors.slice(0, MAX_AUTHORS_SHOWN)
+      const hiddenCount = authors.length - shown.length
+      return (
+        <div className="flex flex-col gap-0.5">
+          {shown.map((author) => (
+            <Link
+              key={author}
+              href={`/books/author/${encodeURIComponent(author)}`}
+              className="text-sm text-subtle hover:text-accent transition-colors truncate"
+            >
+              {author}
+            </Link>
+          ))}
+          {hiddenCount > 0 && (
+            <span
+              className="text-xs text-muted"
+              title={authors.slice(MAX_AUTHORS_SHOWN).join(', ')}
+            >
+              +{hiddenCount} more
+            </span>
+          )}
+        </div>
+      )
+    }
   },
   {
     key: 'pages',
