@@ -11,10 +11,17 @@ import { PageContainer } from '@/components/ui/page-container'
 const BASE_URL = getApiUrl()
 
 function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () => void }) {
-  const feedUrl = `${BASE_URL}/icsproxy/${config.token}/feed.ics`
+  const feedUrl = `${BASE_URL}/icsproxy/${config.token}.ics`
   const deleteConfig = useDeleteConfig()
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(feedUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -31,14 +38,14 @@ function FeedCard({ config, onDeleted }: { config: FilterConfig; onDeleted: () =
     <div className="border border-border rounded-2xl bg-card p-4">
       <p className="text-sm font-mono text-subtle break-all">{config.sourceUrl}</p>
       <div className="flex items-center gap-3 mt-3 flex-wrap">
-        <a
-          href={feedUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-sm text-accent hover:underline"
+        <Button
+          variant="link"
+          size="sm"
+          onClick={copyLink}
+          className="h-auto px-0 text-sm text-accent"
         >
-          ICS Feed
-        </a>
+          {copied ? 'Copied!' : 'Copy ICS Feed link'}
+        </Button>
         <span className="text-border">|</span>
         <span className="text-xs text-muted">
           {config.hideEventUids.length} hidden event

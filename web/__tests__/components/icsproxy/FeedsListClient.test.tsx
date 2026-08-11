@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 jest.mock('@/hooks/useICSProxy', () => ({
   useICSFeeds: jest.fn(),
@@ -62,5 +62,26 @@ describe('FeedsListClient', () => {
     })
     render(<FeedsListClient />)
     expect(screen.getByText('https://cal.example/a.ics')).toBeInTheDocument()
+  })
+
+  it('copies the feed link to the clipboard instead of navigating', async () => {
+    const writeText = jest.fn(() => Promise.resolve())
+    Object.assign(navigator, { clipboard: { writeText } })
+
+    mockFeeds({
+      data: create(ListConfigsResponseSchema, {
+        configs: [
+          create(FilterConfigSchema, { token: 't1', sourceUrl: 'https://cal.example/a.ics' })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<FeedsListClient />)
+
+    const copyButton = screen.getByRole('button', { name: 'Copy ICS Feed link' })
+    fireEvent.click(copyButton)
+
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('http://localhost/icsproxy/t1.ics'))
+    expect(await screen.findByRole('button', { name: 'Copied!' })).toBeInTheDocument()
   })
 })
