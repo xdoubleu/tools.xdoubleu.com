@@ -1,12 +1,13 @@
 package models
 
 type FilterConfig struct {
-	Token         string
-	UserID        string
-	SourceURL     string
-	HideEventUIDs []string
-	HolidayUIDs   []string
-	HideSeries    map[string]bool // SeriesKey -> hide
+	Token          string
+	UserID         string
+	SourceURL      string
+	HideEventUIDs  []string
+	HolidayUIDs    []string
+	HideSeries     map[string]bool // SeriesKey -> hide
+	HideUnaccepted bool
 }
 
 type EventInfo struct {

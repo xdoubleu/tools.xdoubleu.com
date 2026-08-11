@@ -30,6 +30,7 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
   const [hideSeries, setHideSeries] = useState<Set<string>>(
     new Set(initialConfig?.hideSeries || [])
   )
+  const [hideUnaccepted, setHideUnaccepted] = useState(initialConfig?.hideUnaccepted ?? false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -56,7 +57,8 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
         sourceUrl: fetchUrl || sourceUrl,
         hideEventUids: Array.from(hideEventUids),
         holidayUids: Array.from(holidayUids),
-        hideSeries: Array.from(hideSeries)
+        hideSeries: Array.from(hideSeries),
+        hideUnaccepted
       }
       const result = await saveConfig(req)
       router.push('/icsproxy')
@@ -91,6 +93,19 @@ export default function FeedForm({ token, initialConfig, initialEvents }: FeedFo
             Preview
           </Button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          id="hide-unaccepted"
+          checked={hideUnaccepted}
+          onChange={(e) => setHideUnaccepted(e.target.checked)}
+          className="accent-accent"
+        />
+        <Label htmlFor="hide-unaccepted" className="font-normal">
+          Hide events I haven&apos;t accepted (Google Calendar only)
+        </Label>
       </div>
 
       {previewLoading && <p className="text-sm text-muted">Loading events…</p>}

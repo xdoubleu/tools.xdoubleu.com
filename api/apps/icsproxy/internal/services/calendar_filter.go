@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -36,6 +37,11 @@ func (s *CalendarService) ApplyFilter(
 	holidayWindows := s.findHolidayWindows(events, cfg)
 	hasHoliday := len(holidayWindows) > 0
 
+	var selfEmail string
+	if cfg.HideUnaccepted {
+		selfEmail = selfEmailFromSourceURL(cfg.SourceURL)
+	}
+
 	var newComponents []ics.Component
 
 OUTER:
@@ -63,7 +69,7 @@ OUTER:
 		// RULE B — NON-RECURRING events → delete if needed
 		// -------------------------------------------------------
 		if ev.GetProperty("RRULE") == nil {
-			if s.shouldHideEvent(ev, cfg, holidayWindows, hasHoliday) {
+			if s.shouldHideEvent(ev, cfg, holidayWindows, hasHoliday, selfEmail) {
 				continue
 			}
 			newComponents = append(newComponents, ev)
@@ -78,6 +84,10 @@ OUTER:
 				// ❌ remove the entire recurring series
 				continue OUTER
 			}
+		}
+
+		if selfEmail != "" && isUnaccepted(ev, selfEmail) {
+			continue OUTER
 		}
 
 		// -------------------------------------------------------
@@ -188,6 +198,7 @@ func (s *CalendarService) shouldHideEvent(
 	cfg models.FilterConfig,
 	windows []holidayWindow,
 	hasHoliday bool,
+	selfEmail string,
 ) bool {
 	baseKey := makeSeriesKey(propValue(ev, "SUMMARY"))
 	uid := propValue(ev, "UID")
@@ -203,16 +214,15 @@ func (s *CalendarService) shouldHideEvent(
 
 	// Also protect all events with the SAME base name as a holiday
 	// (so "Absent 01/01" is kept if ANY "Absent" was marked holiday)
-	if hasHoliday {
-		for _, w := range windows {
-			start, _ := parseICSTime(propValue(ev, "DTSTART"))
-			end, _ := parseICSTime(propValue(ev, "DTEND"))
+	if hasHoliday && isHolidayWindowEvent(ev, windows) {
+		return false
+	}
 
-			// If THIS event *is* one of the holiday windows → keep it
-			if start.Equal(w.start) && end.Equal(w.end) {
-				return false
-			}
-		}
+	// -------------------------------------------------------
+	// 0) Not yet accepted / declined (non-holiday only)
+	// -------------------------------------------------------
+	if selfEmail != "" && isUnaccepted(ev, selfEmail) {
+		return true
 	}
 
 	// -------------------------------------------------------
@@ -245,6 +255,21 @@ func (s *CalendarService) shouldHideEvent(
 	return false
 }
 
+// isHolidayWindowEvent reports whether ev is itself one of the events that
+// defines a holiday window (as opposed to an event merely overlapping one).
+func isHolidayWindowEvent(ev *ics.VEvent, windows []holidayWindow) bool {
+	start, _ := parseICSTime(propValue(ev, "DTSTART"))
+	end, _ := parseICSTime(propValue(ev, "DTEND"))
+
+	for _, w := range windows {
+		if start.Equal(w.start) && end.Equal(w.end) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (s *CalendarService) isExplicitlyHidden(uid string, cfg models.FilterConfig) bool {
 	for _, h := range cfg.HideEventUIDs {
 		if h == uid {
@@ -266,4 +291,43 @@ func (s *CalendarService) overlapsHoliday(ev *ics.VEvent, w holidayWindow) bool 
 	}
 
 	return evStart.Before(w.end) && evEnd.After(w.start)
+}
+
+// selfEmailFromSourceURL extracts the calendar owner's email from a Google
+// Calendar private ICS URL (.../ical/<email>/private-.../basic.ics), the
+// only source format that embeds it. Other source URLs return "", which
+// disables the unaccepted-event filter for that feed since there is no
+// self-identity to match against ATTENDEE entries.
+func selfEmailFromSourceURL(sourceURL string) string {
+	parsed, err := neturl.Parse(sourceURL)
+	if err != nil {
+		return ""
+	}
+
+	for _, segment := range strings.Split(parsed.Path, "/") {
+		decoded, unescapeErr := neturl.QueryUnescape(segment)
+		if unescapeErr == nil && strings.Contains(decoded, "@") {
+			return decoded
+		}
+	}
+
+	return ""
+}
+
+// isUnaccepted reports whether selfEmail is an attendee of ev with a
+// pending or declined RSVP.
+func isUnaccepted(ev *ics.VEvent, selfEmail string) bool {
+	for _, attendee := range ev.Attendees() {
+		if !strings.EqualFold(attendee.Email(), selfEmail) {
+			continue
+		}
+
+		status := attendee.ParticipationStatus()
+		if status == ics.ParticipationStatusNeedsAction ||
+			status == ics.ParticipationStatusDeclined {
+			return true
+		}
+	}
+
+	return false
 }

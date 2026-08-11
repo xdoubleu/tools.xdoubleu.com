@@ -145,6 +145,24 @@ describe('FeedForm', () => {
     expect(checkboxes[4]).toBeChecked()
   })
 
+  it('pre-checks hide-unaccepted from initialConfig and includes it on submit', async () => {
+    mockSaveConfig.mockResolvedValue({})
+    const config = create(FilterConfigSchema, {
+      sourceUrl: 'https://cal.example.com/feed.ics',
+      hideUnaccepted: true
+    })
+    render(<FeedForm token="tok-1" initialConfig={config} />)
+
+    const checkbox = screen.getByLabelText(/haven't accepted/i)
+    expect(checkbox).toBeChecked()
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Filter' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockSaveConfig).toHaveBeenCalledWith(expect.objectContaining({ hideUnaccepted: true }))
+    })
+  })
+
   it('handleFetch triggers preview by setting fetchUrl', () => {
     render(<FeedForm />)
     const input = screen.getByPlaceholderText(/calendar.ics/)
