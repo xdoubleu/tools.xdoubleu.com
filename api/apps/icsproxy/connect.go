@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/apps/icsproxy/internal/services"
@@ -90,14 +89,8 @@ func (h *icsProxyConnectHandler) GetConfig(
 	cfg, events, err := h.app.services.Calendar.GetConfigWithEvents(
 		ctx, req.Msg.Token, userID,
 	)
-	if errors.Is(err, services.ErrConfigNotFound) {
-		return nil, connect.NewError(connect.CodeNotFound, err)
-	}
-	if errors.Is(err, services.ErrConfigAccessDenied) {
-		return nil, connect.NewError(connect.CodePermissionDenied, err)
-	}
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, mapConfigError(err)
 	}
 
 	protoEvents := make([]*icsproxyv1.EventInfo, len(events))
@@ -121,11 +114,6 @@ func (h *icsProxyConnectHandler) SaveConfig(
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	token := req.Msg.Token
-	if token == "" {
-		token = uuid.NewString()
-	}
-
 	// Convert hide_series slice to map[string]bool
 	hideSeries := make(map[string]bool)
 	for _, key := range req.Msg.HideSeries {
@@ -133,7 +121,7 @@ func (h *icsProxyConnectHandler) SaveConfig(
 	}
 
 	cfg := models.FilterConfig{
-		Token:         token,
+		Token:         req.Msg.Token,
 		UserID:        userID,
 		SourceURL:     req.Msg.SourceUrl,
 		HideEventUIDs: req.Msg.HideEventUids,
@@ -141,8 +129,9 @@ func (h *icsProxyConnectHandler) SaveConfig(
 		HideSeries:    hideSeries,
 	}
 
-	if err := h.app.services.Calendar.SaveConfig(ctx, cfg); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+	token, err := h.app.services.Calendar.SaveConfig(ctx, cfg)
+	if err != nil {
+		return nil, mapConfigError(err)
 	}
 
 	return connect.NewResponse(&icsproxyv1.SaveConfigResponse{
@@ -167,6 +156,19 @@ func (h *icsProxyConnectHandler) DeleteConfig(
 	}
 
 	return connect.NewResponse(&icsproxyv1.DeleteConfigResponse{}), nil
+}
+
+// mapConfigError translates the service's ownership errors into Connect codes;
+// anything else stays Internal (and is scrubbed by the interceptor).
+func mapConfigError(err error) *connect.Error {
+	switch {
+	case errors.Is(err, services.ErrConfigNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, services.ErrConfigAccessDenied):
+		return connect.NewError(connect.CodePermissionDenied, err)
+	default:
+		return connect.NewError(connect.CodeInternal, err)
+	}
 }
 
 // Proto conversion helpers

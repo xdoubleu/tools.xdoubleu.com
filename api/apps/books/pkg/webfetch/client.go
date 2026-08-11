@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"tools.xdoubleu.com/internal/safedial"
 )
 
 const (
@@ -28,19 +30,14 @@ type client struct {
 	http   *http.Client
 }
 
-// New returns the production Client.
-func New(logger *slog.Logger) Client {
+// New returns the production Client. allowPrivate lets it reach
+// private/loopback addresses — true outside production only, since a
+// user-suppliable URL must never be able to reach the container's own network
+// (see [safedial]).
+func New(logger *slog.Logger, allowPrivate bool) Client {
 	return &client{
 		logger: logger,
-		http: &http.Client{
-			Timeout: requestTimeout,
-			CheckRedirect: func(_ *http.Request, via []*http.Request) error {
-				if len(via) >= maxRedirects {
-					return fmt.Errorf("stopped after %d redirects", maxRedirects)
-				}
-				return nil
-			},
-		},
+		http:   safedial.Client(requestTimeout, maxRedirects, allowPrivate),
 	}
 }
 

@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,13 +19,26 @@ import (
 
 const (
 	calendarFetchTimeout = 10 * time.Second
-	oneDay               = 24 * time.Hour
+	maxCalendarRedirects = 5
+	// maxCalendarBytes bounds how much of an upstream calendar we buffer —
+	// the api process is shared by every app, so an unbounded read is a
+	// memory-exhaustion lever for anyone who can point a feed at a big file.
+	maxCalendarBytes = int64(5 << 20) // 5 MiB
+	oneDay           = 24 * time.Hour
 )
 
+var errCalendarTooLarge = errors.New("calendar too large")
+
+// FetchICS retrieves the calendar at url.
+//
+// Source URLs are secrets (a private Outlook/Google ICS link is a bearer
+// credential), so neither the span description nor any returned error may
+// contain the full URL — errors here surface in logs and Sentry. The client
+// itself refuses non-public addresses; see [safedial].
 func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, error) {
 	parsed, err := neturl.Parse(url)
 	if err != nil {
-		return nil, fmt.Errorf("invalid calendar url: %w", err)
+		return nil, errors.New("invalid calendar url")
 	}
 	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return nil, fmt.Errorf("unsupported scheme: %s", parsed.Scheme)
@@ -33,18 +47,23 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 	span := sentry.StartSpan(
 		ctx,
 		"http.client",
-		sentry.WithDescription("FetchICS "+url),
+		sentry.WithDescription("FetchICS "+parsed.Host),
 	)
 	defer span.Finish()
 
-	client := &http.Client{Timeout: calendarFetchTimeout}
-	req, _ := http.NewRequestWithContext(span.Context(), http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(
+		span.Context(), http.MethodGet, url, nil,
+	)
+	if err != nil {
+		return nil, errors.New("invalid calendar url")
+	}
 	req.Header.Set("User-Agent", "tools.xdoubleu.com-icsproxy/1.0")
 	req.Header.Set("Accept", "text/calendar")
 
-	resp, err := client.Do(req)
+	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, err
+		// Deliberately not wrapped: *url.Error carries the full URL.
+		return nil, fmt.Errorf("fetching calendar from %s failed", parsed.Host)
 	}
 	defer resp.Body.Close()
 
@@ -52,7 +71,20 @@ func (s *CalendarService) FetchICS(ctx context.Context, url string) ([]byte, err
 		return nil, fmt.Errorf("non-200 from calendar: %d", resp.StatusCode)
 	}
 
-	return io.ReadAll(resp.Body)
+	// Read one byte past the cap to tell exactly-at-cap from over.
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxCalendarBytes+1))
+	if err != nil {
+		return nil, errors.New("reading calendar failed")
+	}
+	if int64(len(data)) > maxCalendarBytes {
+		return nil, fmt.Errorf(
+			"%w: over %d bytes",
+			errCalendarTooLarge,
+			maxCalendarBytes,
+		)
+	}
+
+	return data, nil
 }
 
 // PreviewEvents fetches the calendar at sourceURL and extracts its events,
@@ -109,6 +141,18 @@ func (s *CalendarService) ExtractEvents(
 	return events, nil
 }
 
+// propValue reads an event property, returning "" when it is absent.
+// golang-ical returns a nil *IANAProperty for a missing property, and an
+// upstream calendar is free to omit even UID/DTSTART — dereferencing that
+// directly turned any malformed VEVENT into a panic.
+func propValue(ev *ics.VEvent, name ics.ComponentProperty) string {
+	p := ev.GetProperty(name)
+	if p == nil {
+		return ""
+	}
+	return p.Value
+}
+
 func (s *CalendarService) extractAllEvents(data []byte) ([]models.EventInfo, error) {
 	cal, err := ics.ParseCalendar(bytes.NewReader(data))
 	if err != nil {
@@ -123,18 +167,14 @@ func (s *CalendarService) extractAllEvents(data []byte) ([]models.EventInfo, err
 			continue
 		}
 
-		rawSummary := ev.GetProperty("SUMMARY").Value
+		rawSummary := propValue(ev, "SUMMARY")
 		baseName := normalizeSummary(rawSummary)
 		baseKey := makeSeriesKey(rawSummary)
 
-		startRaw := ev.GetProperty("DTSTART").Value
-		endRaw := ev.GetProperty("DTEND").Value
-		uid := ev.GetProperty("UID").Value
-
-		var rrule string
-		if p := ev.GetProperty("RRULE"); p != nil {
-			rrule = p.Value
-		}
+		startRaw := propValue(ev, "DTSTART")
+		endRaw := propValue(ev, "DTEND")
+		uid := propValue(ev, "UID")
+		rrule := propValue(ev, "RRULE")
 
 		hasRecID := ev.GetProperty("RECURRENCE-ID") != nil
 

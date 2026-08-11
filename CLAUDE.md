@@ -8,7 +8,10 @@ Go 1.26 backend (`api/`) serving multiple apps from a single binary, paired with
 
 Apps: **games**, **books** (Go package `apps/books`, schema `books`, proto `books.v1`), **watchparty**, **icsproxy**, **recipes**, **mealplans**, **shoppinglist**, **todos**. All apps are registered in `api/cmd/api/apps.go` (implements the `App` interface: `Routes`, `ApplyMigrations`, `GetName`, `GetDisplayName`, `GetDomain`, `Start`) — migrations run sequentially in registration order, so schema dependencies between apps (e.g. books adopting the old backlog schema before games drops it) dictate the list order.
 
-Shared Go code lives in `api/internal/` (auth, config, encryption, contacts, observability, digitalocean, github, sentryapi, mailer, oauthconn, mcptools, repositories, testhelper). Each app under `api/apps/<name>/` follows: `internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, and (where relevant) `pkg/`.
+Shared Go code lives in `api/internal/` (auth, config, encryption, contacts, observability, digitalocean, github, sentryapi, mailer, oauthconn, mcptools, repositories, safedial, testhelper). Any outbound fetch of a
+**user-supplied URL** must go through `api/internal/safedial` — its dialer
+refuses non-public IPs, which is what keeps icsproxy/books/feeds from being
+turned into an SSRF pivot against the container's own network. Each app under `api/apps/<name>/` follows: `internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, and (where relevant) `pkg/`.
 
 **Deploy shape (issue #558, split into 3 processes in #904):** `api`, `web`, and `gateway` build into a single Docker image (root `Dockerfile`) and deploy as one DigitalOcean App Platform component (DO bills per component; api/web used to run on separate smallest-tier instances before #558). `gateway` (its own Go module, `gateway/`, deliberately not part of the `api` module) is PID 1, spawns both `api` and the Next.js standalone `web` server as supervised children (`gateway/internal/gateway/child_process.go`), and reverse-proxies every request between them (`gateway/internal/gateway/proxy.go`) — stripping `/api` for the api child, routing everything else to the web child, replicating the old two-component ingress split. `api` itself is a plain server with no awareness of any of this — see `gateway/CLAUDE.md`.
 

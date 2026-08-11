@@ -67,7 +67,7 @@ func New(
 	}
 
 	endpoint := "https://" + cfg.R2AccountID + ".r2.cloudflarestorage.com"
-	webFetchClient := webfetch.New(logger)
+	webFetchClient := webfetch.New(logger, cfg.Env != config.ProdEnv)
 
 	clients := Clients{
 		UniCat:    unicat.New(logger),

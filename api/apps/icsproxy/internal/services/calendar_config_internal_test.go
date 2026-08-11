@@ -11,7 +11,18 @@ import (
 
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
+	"tools.xdoubleu.com/internal/safedial"
 )
+
+// newTestService builds a service whose fetcher may reach loopback, so unit
+// tests can point it at httptest servers.
+func newTestServiceWithStore(store calendarStore) *CalendarService {
+	return &CalendarService{
+		logger: nil,
+		repo:   store,
+		client: safedial.Client(calendarFetchTimeout, maxCalendarRedirects, true),
+	}
+}
 
 // fakeCalendarStore implements calendarStore in memory for unit tests.
 type fakeCalendarStore struct {
@@ -70,10 +81,8 @@ func TestAuthorizeConfigAccess_Owner(t *testing.T) {
 }
 
 func TestGetConfigWithEvents_NotFound(t *testing.T) {
-	//nolint:exhaustruct // repo/logger only
-	svc := &CalendarService{
-		repo: &fakeCalendarStore{found: false}, //nolint:exhaustruct // found only
-	}
+	//nolint:exhaustruct // found only
+	svc := newTestServiceWithStore(&fakeCalendarStore{found: false})
 
 	_, _, err := svc.GetConfigWithEvents(t.Context(), "missing-token", "user-1")
 	assert.ErrorIs(t, err, ErrConfigNotFound)
@@ -85,7 +94,7 @@ func TestGetConfigWithEvents_AccessDenied(t *testing.T) {
 		//nolint:exhaustruct // only UserID matters for the ownership check
 		cfg: models.FilterConfig{UserID: "owner"},
 	}
-	svc := &CalendarService{repo: store} //nolint:exhaustruct // repo/logger only
+	svc := newTestServiceWithStore(store)
 
 	_, _, err := svc.GetConfigWithEvents(t.Context(), "token", "someone-else")
 	assert.ErrorIs(t, err, ErrConfigAccessDenied)
@@ -97,7 +106,7 @@ func TestGetConfigWithEvents_FetchError(t *testing.T) {
 		//nolint:exhaustruct // SourceURL/UserID only
 		cfg: models.FilterConfig{UserID: "owner", SourceURL: "http://127.0.0.1:1"},
 	}
-	svc := &CalendarService{repo: store} //nolint:exhaustruct // repo/logger only
+	svc := newTestServiceWithStore(store)
 
 	_, _, err := svc.GetConfigWithEvents(t.Context(), "token", "owner")
 	assert.Error(t, err)
@@ -121,7 +130,7 @@ func TestGetConfigWithEvents_Success(t *testing.T) {
 		//nolint:exhaustruct // SourceURL/UserID only
 		cfg: models.FilterConfig{UserID: "owner", SourceURL: srv.URL},
 	}
-	svc := &CalendarService{repo: store} //nolint:exhaustruct // repo/logger only
+	svc := newTestServiceWithStore(store)
 
 	cfg, events, err := svc.GetConfigWithEvents(t.Context(), "token", "owner")
 	require.NoError(t, err)
