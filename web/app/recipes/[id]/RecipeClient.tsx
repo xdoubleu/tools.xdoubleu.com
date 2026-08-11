@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
 import type { DeleteRecipeInput } from '@/hooks/useRecipes'
+import { useWakeLock } from '@/hooks/useWakeLock'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
@@ -15,6 +16,11 @@ export default function RecipeClient({ id }: { id: string }) {
   const { data, error, isLoading } = useRecipe(id, servings || undefined)
   const deleteRecipe = useDeleteRecipe()
   const router = useRouter()
+  const {
+    isActive: cookingModeActive,
+    isSupported: wakeLockSupported,
+    toggle: toggleCookingMode
+  } = useWakeLock()
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
@@ -134,6 +140,16 @@ export default function RecipeClient({ id }: { id: string }) {
               <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">
                 Batch prep: {recipe.batchServings} servings
               </span>
+            )}
+            {wakeLockSupported && (
+              <Button
+                variant={cookingModeActive ? 'default' : 'secondary'}
+                size="sm"
+                onClick={toggleCookingMode}
+                className="ml-auto"
+              >
+                {cookingModeActive ? 'Cooking Mode: On' : 'Cooking Mode'}
+              </Button>
             )}
           </div>
 

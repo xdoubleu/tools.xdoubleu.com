@@ -6,6 +6,10 @@ jest.mock('@/hooks/useRecipes', () => ({
   useDeleteRecipe: jest.fn()
 }))
 
+jest.mock('@/hooks/useWakeLock', () => ({
+  useWakeLock: jest.fn()
+}))
+
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn()
 }))
@@ -18,6 +22,7 @@ jest.mock('next/link', () => {
 
 import RecipeClient from '@/app/recipes/[id]/RecipeClient'
 import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
+import { useWakeLock } from '@/hooks/useWakeLock'
 import { useRouter } from 'next/navigation'
 import { create } from '@bufbuild/protobuf'
 import {
@@ -29,11 +34,18 @@ import {
 
 const mockRouter = { push: jest.fn() }
 
+const mockToggleCookingMode = jest.fn()
+
 beforeEach(() => {
   jest.clearAllMocks()
   // @ts-expect-error -- partial mock
   jest.mocked(useRouter).mockReturnValue(mockRouter)
   jest.mocked(useDeleteRecipe).mockReturnValue(jest.fn())
+  jest.mocked(useWakeLock).mockReturnValue({
+    isActive: false,
+    isSupported: true,
+    toggle: mockToggleCookingMode
+  })
 })
 
 describe('RecipeClient', () => {
@@ -307,5 +319,59 @@ describe('RecipeClient', () => {
     render(<RecipeClient id="r1" />)
     expect(screen.getByText('Vegetables')).toBeInTheDocument()
     expect(screen.getByText('Meat')).toBeInTheDocument()
+  })
+
+  it('shows a Cooking Mode toggle when the Wake Lock API is supported', async () => {
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    const button = screen.getByRole('button', { name: 'Cooking Mode' })
+    button.click()
+    expect(mockToggleCookingMode).toHaveBeenCalled()
+  })
+
+  it('shows the active label once cooking mode is on', () => {
+    jest.mocked(useWakeLock).mockReturnValue({
+      isActive: true,
+      isSupported: true,
+      toggle: mockToggleCookingMode
+    })
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    expect(screen.getByRole('button', { name: 'Cooking Mode: On' })).toBeInTheDocument()
+  })
+
+  it('hides the Cooking Mode toggle when the Wake Lock API is unsupported', () => {
+    jest.mocked(useWakeLock).mockReturnValue({
+      isActive: false,
+      isSupported: false,
+      toggle: mockToggleCookingMode
+    })
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    expect(screen.queryByRole('button', { name: /Cooking Mode/ })).not.toBeInTheDocument()
   })
 })
