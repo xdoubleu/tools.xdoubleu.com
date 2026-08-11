@@ -1,13 +1,26 @@
 package books
 
 import (
+	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/services"
 )
+
+// coverCtxTimeout bounds the whole cover read path — R2 HeadObject, the DB
+// lookup, the self-heal fetch+upload, and PresignGet — below the server's
+// global 10s httpWriteTimeout (cmd/api/main.go). Without it, a slow or
+// hanging R2/DB call can run past that write deadline: the write then
+// silently fails (no error, no log line — see the deployLogsCtxTimeout
+// comment in cmd/api/routes.go for the same failure mode), leaving the
+// browser's <img> request hanging with neither a cover nor a clean error to
+// trigger the placeholder. coverFetchTimeout (book_covers.go) only bounds
+// the external cover-source fetch half of this path; this bounds the rest.
+const coverCtxTimeout = 8 * time.Second
 
 // coverRoutes mounts the public book-cover proxy endpoint.
 // No auth is required — covers are public data and the response is suitable
@@ -30,7 +43,10 @@ func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := app.Services.Books.GetBookCover(r.Context(), bookID)
+	ctx, cancel := context.WithTimeout(r.Context(), coverCtxTimeout)
+	defer cancel()
+
+	result, err := app.Services.Books.GetBookCover(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, services.ErrCoverNotFound) {
 			http.Error(w, "cover not found", http.StatusNotFound)
