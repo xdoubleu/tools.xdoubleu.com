@@ -9,6 +9,7 @@ message FilterConfig {
   repeated string hide_event_uids = 4;
   repeated string holiday_uids = 5;
   repeated string hide_series = 6;
+  bool hide_unaccepted = 7;
 }
 
 message EventInfo {
@@ -46,6 +47,7 @@ message SaveConfigRequest {
   repeated string hide_event_uids = 3;
   repeated string holiday_uids = 4;
   repeated string hide_series = 5;
+  bool hide_unaccepted = 6;
 }
 message SaveConfigResponse { string token = 1; }
 

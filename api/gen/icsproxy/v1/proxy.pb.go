@@ -22,15 +22,16 @@ const (
 )
 
 type FilterConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	SourceUrl     string                 `protobuf:"bytes,3,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	HideEventUids []string               `protobuf:"bytes,4,rep,name=hide_event_uids,json=hideEventUids,proto3" json:"hide_event_uids,omitempty"`
-	HolidayUids   []string               `protobuf:"bytes,5,rep,name=holiday_uids,json=holidayUids,proto3" json:"holiday_uids,omitempty"`
-	HideSeries    []string               `protobuf:"bytes,6,rep,name=hide_series,json=hideSeries,proto3" json:"hide_series,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Token          string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	SourceUrl      string                 `protobuf:"bytes,3,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	HideEventUids  []string               `protobuf:"bytes,4,rep,name=hide_event_uids,json=hideEventUids,proto3" json:"hide_event_uids,omitempty"`
+	HolidayUids    []string               `protobuf:"bytes,5,rep,name=holiday_uids,json=holidayUids,proto3" json:"holiday_uids,omitempty"`
+	HideSeries     []string               `protobuf:"bytes,6,rep,name=hide_series,json=hideSeries,proto3" json:"hide_series,omitempty"`
+	HideUnaccepted bool                   `protobuf:"varint,7,opt,name=hide_unaccepted,json=hideUnaccepted,proto3" json:"hide_unaccepted,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *FilterConfig) Reset() {
@@ -103,6 +104,13 @@ func (x *FilterConfig) GetHideSeries() []string {
 		return x.HideSeries
 	}
 	return nil
+}
+
+func (x *FilterConfig) GetHideUnaccepted() bool {
+	if x != nil {
+		return x.HideUnaccepted
+	}
+	return false
 }
 
 type EventInfo struct {
@@ -502,14 +510,15 @@ func (x *GetConfigResponse) GetEvents() []*EventInfo {
 }
 
 type SaveConfigRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	SourceUrl     string                 `protobuf:"bytes,2,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	HideEventUids []string               `protobuf:"bytes,3,rep,name=hide_event_uids,json=hideEventUids,proto3" json:"hide_event_uids,omitempty"`
-	HolidayUids   []string               `protobuf:"bytes,4,rep,name=holiday_uids,json=holidayUids,proto3" json:"holiday_uids,omitempty"`
-	HideSeries    []string               `protobuf:"bytes,5,rep,name=hide_series,json=hideSeries,proto3" json:"hide_series,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Token          string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	SourceUrl      string                 `protobuf:"bytes,2,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
+	HideEventUids  []string               `protobuf:"bytes,3,rep,name=hide_event_uids,json=hideEventUids,proto3" json:"hide_event_uids,omitempty"`
+	HolidayUids    []string               `protobuf:"bytes,4,rep,name=holiday_uids,json=holidayUids,proto3" json:"holiday_uids,omitempty"`
+	HideSeries     []string               `protobuf:"bytes,5,rep,name=hide_series,json=hideSeries,proto3" json:"hide_series,omitempty"`
+	HideUnaccepted bool                   `protobuf:"varint,6,opt,name=hide_unaccepted,json=hideUnaccepted,proto3" json:"hide_unaccepted,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SaveConfigRequest) Reset() {
@@ -575,6 +584,13 @@ func (x *SaveConfigRequest) GetHideSeries() []string {
 		return x.HideSeries
 	}
 	return nil
+}
+
+func (x *SaveConfigRequest) GetHideUnaccepted() bool {
+	if x != nil {
+		return x.HideUnaccepted
+	}
+	return false
 }
 
 type SaveConfigResponse struct {
@@ -705,7 +721,7 @@ var File_icsproxy_v1_proxy_proto protoreflect.FileDescriptor
 
 const file_icsproxy_v1_proxy_proto_rawDesc = "" +
 	"\n" +
-	"\x17icsproxy/v1/proxy.proto\x12\vicsproxy.v1\"\xc8\x01\n" +
+	"\x17icsproxy/v1/proxy.proto\x12\vicsproxy.v1\"\xf1\x01\n" +
 	"\fFilterConfig\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1d\n" +
@@ -714,7 +730,8 @@ const file_icsproxy_v1_proxy_proto_rawDesc = "" +
 	"\x0fhide_event_uids\x18\x04 \x03(\tR\rhideEventUids\x12!\n" +
 	"\fholiday_uids\x18\x05 \x03(\tR\vholidayUids\x12\x1f\n" +
 	"\vhide_series\x18\x06 \x03(\tR\n" +
-	"hideSeries\"\x88\x02\n" +
+	"hideSeries\x12'\n" +
+	"\x0fhide_unaccepted\x18\a \x01(\bR\x0ehideUnaccepted\"\x88\x02\n" +
 	"\tEventInfo\x12\x10\n" +
 	"\x03uid\x18\x01 \x01(\tR\x03uid\x12\x18\n" +
 	"\asummary\x18\x02 \x01(\tR\asummary\x12\x1b\n" +
@@ -742,7 +759,7 @@ const file_icsproxy_v1_proxy_proto_rawDesc = "" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"v\n" +
 	"\x11GetConfigResponse\x121\n" +
 	"\x06config\x18\x01 \x01(\v2\x19.icsproxy.v1.FilterConfigR\x06config\x12.\n" +
-	"\x06events\x18\x02 \x03(\v2\x16.icsproxy.v1.EventInfoR\x06events\"\xb4\x01\n" +
+	"\x06events\x18\x02 \x03(\v2\x16.icsproxy.v1.EventInfoR\x06events\"\xdd\x01\n" +
 	"\x11SaveConfigRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +
@@ -750,7 +767,8 @@ const file_icsproxy_v1_proxy_proto_rawDesc = "" +
 	"\x0fhide_event_uids\x18\x03 \x03(\tR\rhideEventUids\x12!\n" +
 	"\fholiday_uids\x18\x04 \x03(\tR\vholidayUids\x12\x1f\n" +
 	"\vhide_series\x18\x05 \x03(\tR\n" +
-	"hideSeries\"*\n" +
+	"hideSeries\x12'\n" +
+	"\x0fhide_unaccepted\x18\x06 \x01(\bR\x0ehideUnaccepted\"*\n" +
 	"\x12SaveConfigResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\"+\n" +
 	"\x13DeleteConfigRequest\x12\x14\n" +

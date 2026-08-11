@@ -35,13 +35,15 @@ func (r *CalendarRepository) UpsertFilterConfig(
 
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO icsproxy.feeds
-		(token, user_id, source_url, hide_event_uids, holiday_uids, hide_series)
-		VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+		(token, user_id, source_url, hide_event_uids, holiday_uids,
+		 hide_series, hide_unaccepted)
+		VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7)
 		ON CONFLICT (token) DO UPDATE SET
 		  source_url=$3,
 		  hide_event_uids=$4,
 		  holiday_uids=$5,
-		  hide_series=$6::jsonb
+		  hide_series=$6::jsonb,
+		  hide_unaccepted=$7
 		WHERE icsproxy.feeds.user_id = EXCLUDED.user_id
 	`,
 		cfg.Token,
@@ -50,6 +52,7 @@ func (r *CalendarRepository) UpsertFilterConfig(
 		cfg.HideEventUIDs,
 		cfg.HolidayUIDs,
 		string(seriesStr),
+		cfg.HideUnaccepted,
 	)
 
 	return err
@@ -67,7 +70,8 @@ func (r *CalendarRepository) GetFilterConfig(
 	var seriesJSON []byte
 
 	err := r.db.QueryRow(ctx, `
-		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids,
+		       hide_series, hide_unaccepted
 		FROM icsproxy.feeds
 		WHERE token=$1
 	`, token).Scan(
@@ -77,6 +81,7 @@ func (r *CalendarRepository) GetFilterConfig(
 		&cfg.HideEventUIDs,
 		&cfg.HolidayUIDs,
 		&seriesJSON,
+		&cfg.HideUnaccepted,
 	)
 
 	if err != nil {
@@ -105,7 +110,8 @@ func (r *CalendarRepository) ListFilterConfigs(
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT token, user_id, source_url, hide_event_uids, holiday_uids, hide_series
+		SELECT token, user_id, source_url, hide_event_uids, holiday_uids,
+		       hide_series, hide_unaccepted
 		FROM icsproxy.feeds
 		WHERE user_id = $1
 		ORDER BY created_at DESC, token
@@ -129,6 +135,7 @@ func (r *CalendarRepository) ListFilterConfigs(
 			&cfg.HideEventUIDs,
 			&cfg.HolidayUIDs,
 			&seriesJSON,
+			&cfg.HideUnaccepted,
 		); err != nil {
 			return nil, false, err
 		}

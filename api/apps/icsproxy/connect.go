@@ -121,12 +121,13 @@ func (h *icsProxyConnectHandler) SaveConfig(
 	}
 
 	cfg := models.FilterConfig{
-		Token:         req.Msg.Token,
-		UserID:        userID,
-		SourceURL:     req.Msg.SourceUrl,
-		HideEventUIDs: req.Msg.HideEventUids,
-		HolidayUIDs:   req.Msg.HolidayUids,
-		HideSeries:    hideSeries,
+		Token:          req.Msg.Token,
+		UserID:         userID,
+		SourceURL:      req.Msg.SourceUrl,
+		HideEventUIDs:  req.Msg.HideEventUids,
+		HolidayUIDs:    req.Msg.HolidayUids,
+		HideSeries:     hideSeries,
+		HideUnaccepted: req.Msg.HideUnaccepted,
 	}
 
 	token, err := h.app.services.Calendar.SaveConfig(ctx, cfg)
@@ -175,12 +176,13 @@ func mapConfigError(err error) *connect.Error {
 
 func protoFilterConfig(cfg models.FilterConfig) *icsproxyv1.FilterConfig {
 	return &icsproxyv1.FilterConfig{
-		Token:         cfg.Token,
-		UserId:        cfg.UserID,
-		SourceUrl:     cfg.SourceURL,
-		HideEventUids: cfg.HideEventUIDs,
-		HolidayUids:   cfg.HolidayUIDs,
-		HideSeries:    mapsToSlice(cfg.HideSeries),
+		Token:          cfg.Token,
+		UserId:         cfg.UserID,
+		SourceUrl:      cfg.SourceURL,
+		HideEventUids:  cfg.HideEventUIDs,
+		HolidayUids:    cfg.HolidayUIDs,
+		HideSeries:     mapsToSlice(cfg.HideSeries),
+		HideUnaccepted: cfg.HideUnaccepted,
 	}
 }
 

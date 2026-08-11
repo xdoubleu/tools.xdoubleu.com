@@ -269,6 +269,30 @@ func TestSaveConfig_WithHideSeries(t *testing.T) {
 	assert.Len(t, resp.Msg.Config.HideSeries, 2)
 }
 
+func TestSaveConfig_WithHideUnaccepted(t *testing.T) {
+	client := newConnectClient(t)
+	ctx := context.Background()
+
+	srv := calendarServer(t)
+	defer srv.Close()
+
+	saveResp, err := client.SaveConfig(
+		ctx,
+		connect.NewRequest(&icsproxyv1.SaveConfigRequest{
+			SourceUrl:      srv.URL,
+			HideUnaccepted: true,
+		}),
+	)
+	require.NoError(t, err)
+	token := saveResp.Msg.Token
+
+	resp, err := client.GetConfig(ctx, connect.NewRequest(&icsproxyv1.GetConfigRequest{
+		Token: token,
+	}))
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Config.HideUnaccepted)
+}
+
 // ── feedHandler ──────────────────────────────────────────────────────────────
 
 func TestFeedHandler_TokenNotFound(t *testing.T) {
