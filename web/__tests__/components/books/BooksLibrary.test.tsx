@@ -10,10 +10,21 @@ import {
 } from '@/lib/gen/books/v1/library_pb'
 
 const mockSearchExternal = jest.fn()
+const mockCreateBook = jest.fn()
 
+// AddManualBookModal (rendered from the "No results." empty state) also
+// calls useLibrary for its custom-shelf options — stub it with a minimal
+// shape rather than a real proto message, since jest.mock factories can't
+// reference out-of-scope imports (they're hoisted above the imports).
 jest.mock('@/hooks/useBooks', () => ({
   ...jest.requireActual('@/hooks/useBooks'),
-  useSearchExternal: () => mockSearchExternal
+  useSearchExternal: () => mockSearchExternal,
+  useCreateBook: () => mockCreateBook,
+  useLibrary: () => ({
+    data: { library: { shelves: [] } },
+    isLoading: false,
+    error: undefined
+  })
 }))
 
 jest.useFakeTimers()
@@ -111,6 +122,7 @@ describe('BooksLibrary', () => {
   beforeEach(() => {
     mockSearchExternal.mockReset()
     mockSearchExternal.mockResolvedValue({ results: [] })
+    mockCreateBook.mockReset()
   })
 
   afterEach(() => {
@@ -403,5 +415,36 @@ describe('BooksLibrary', () => {
     await waitFor(() => {
       expect(screen.getByText('No results.')).toBeInTheDocument()
     })
+  })
+
+  it('offers to add the book manually when nothing matches, prefilled with the search query', async () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'Dungeon Crawler Carl' })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => {
+      expect(screen.getByText('No results.')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add "Dungeon Crawler Carl" manually' }))
+
+    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Title')).toHaveValue('Dungeon Crawler Carl')
+  })
+
+  it('closes the manual-add modal via its Cancel button', async () => {
+    renderLibrary(makeLibrary(), { searchQuery: 'nothing-matches-anything' })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => {
+      expect(screen.getByText('No results.')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Add ".*" manually/ }))
+    expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('heading', { name: 'Add book manually' })).not.toBeInTheDocument()
   })
 })

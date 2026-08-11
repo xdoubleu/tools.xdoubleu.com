@@ -11,6 +11,8 @@ import BooksTable from '@/components/books/BooksTable'
 import BookCard from '@/components/books/BookCard'
 import ExternalBookCard from '@/components/books/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
+import AddManualBookModal from '@/components/books/AddManualBookModal'
+import { Button } from '@/components/ui/button'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 
@@ -45,6 +47,7 @@ export default function BooksLibrary({
 
   const [selection, setSelection] = useState<Selection>({ kind: 'shelf', id: 'all' })
   const [manageOpen, setManageOpen] = useState(false)
+  const [manualAddOpen, setManualAddOpen] = useState(false)
   const searchExternal = useSearchExternal()
   const [externalResults, setExternalResults] = useState<ExternalBookResult[]>([])
   const [isSearchingExternal, setIsSearchingExternal] = useState(false)
@@ -163,7 +166,12 @@ export default function BooksLibrary({
                 <ExternalBookCard key={`${book.provider}-${book.providerId}`} book={book} />
               ))}
               {!isSearchingExternal && resultCount === 0 && (
-                <p className="col-span-full py-16 text-center text-sm text-muted">No results.</p>
+                <div className="col-span-full flex flex-col items-center gap-3 py-16 text-center">
+                  <p className="text-sm text-muted">No results.</p>
+                  <Button type="button" variant="secondary" onClick={() => setManualAddOpen(true)}>
+                    Add &quot;{searchQuery.trim()}&quot; manually
+                  </Button>
+                </div>
               )}
               {isSearchingExternal && (
                 <p className="col-span-full text-sm text-muted">Searching…</p>
@@ -186,6 +194,14 @@ export default function BooksLibrary({
         shelves={shelves}
         tags={allTags.map((t) => t.name)}
       />
+
+      {manualAddOpen && (
+        <AddManualBookModal
+          initialTitle={searchQuery.trim()}
+          onClose={() => setManualAddOpen(false)}
+          onAdded={onSaved}
+        />
+      )}
     </>
   )
 }
