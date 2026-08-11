@@ -1,12 +1,8 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import './globals.css'
-import DeployNotification from '@/components/DeployNotification'
-import Footer from '@/components/Footer'
-import Navbar from '@/components/Navbar'
-import SWRProvider from '@/components/SWRProvider'
-import { createServerClient } from '@/lib/server/client'
-import { fetchOrNull } from '@/lib/server/fetchers'
-import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
+import AppShell from '@/components/AppShell'
+import Splash from '@/components/Splash'
 import { themeInitScript } from '@/lib/theme'
 
 export const dynamic = 'force-dynamic'
@@ -21,11 +17,7 @@ export const metadata: Metadata = {
   }
 }
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const currentUser = await fetchOrNull(async () =>
-    (await createServerClient(AuthService)).getCurrentUser({})
-  )
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // themeInitScript writes data-theme on <html> before hydration
     <html lang="en" suppressHydrationWarning>
@@ -50,14 +42,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body className="flex min-h-screen flex-col bg-bg text-fg">
-        <SWRProvider currentUser={currentUser}>
-          <Navbar />
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
-            <div className="w-full">{children}</div>
-          </main>
-          <Footer />
-          <DeployNotification />
-        </SWRProvider>
+        <Suspense fallback={<Splash />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
       </body>
     </html>
   )
