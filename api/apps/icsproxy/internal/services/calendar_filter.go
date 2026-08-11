@@ -12,6 +12,9 @@ import (
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 )
 
+// maxHolidayDays bounds the EXDATE expansion of a single holiday window.
+const maxHolidayDays = 366
+
 //nolint:gocognit,funlen //it works stfu
 func (s *CalendarService) ApplyFilter(
 	ctx context.Context,
@@ -43,9 +46,8 @@ OUTER:
 			continue
 		}
 
-		uid := ev.GetProperty("UID").Value
-		rawSummary := ev.GetProperty("SUMMARY").Value
-		baseKey := makeSeriesKey(rawSummary)
+		uid := propValue(ev, "UID")
+		baseKey := makeSeriesKey(propValue(ev, "SUMMARY"))
 
 		// -------------------------------------------------------
 		// RULE A — NEVER hide holiday events themselves
@@ -95,8 +97,12 @@ OUTER:
 				// Build list of all excluded occurrences
 				var exdates []string
 
+				// ponytail: hard iteration cap, not a smarter algorithm —
+				// an upstream event may span centuries and this walks it a
+				// day at a time. Revisit if anyone needs holidays longer
+				// than a year.
 				d := w.start
-				for !d.After(w.end) {
+				for i := 0; !d.After(w.end) && i < maxHolidayDays; i++ {
 					// IMPORTANT: keep the SAME time-of-day as the recurring event
 					occurrence := time.Date(
 						d.Year(),
@@ -183,9 +189,8 @@ func (s *CalendarService) shouldHideEvent(
 	windows []holidayWindow,
 	hasHoliday bool,
 ) bool {
-	rawSummary := ev.GetProperty("SUMMARY").Value
-	baseKey := makeSeriesKey(rawSummary)
-	uid := ev.GetProperty("UID").Value
+	baseKey := makeSeriesKey(propValue(ev, "SUMMARY"))
+	uid := propValue(ev, "UID")
 
 	// -------------------------------------------------------
 	// 🔥 FIX #1 — NEVER hide the holiday events themselves
@@ -200,8 +205,8 @@ func (s *CalendarService) shouldHideEvent(
 	// (so "Absent 01/01" is kept if ANY "Absent" was marked holiday)
 	if hasHoliday {
 		for _, w := range windows {
-			start, _ := parseICSTime(ev.GetProperty("DTSTART").Value)
-			end, _ := parseICSTime(ev.GetProperty("DTEND").Value)
+			start, _ := parseICSTime(propValue(ev, "DTSTART"))
+			end, _ := parseICSTime(propValue(ev, "DTEND"))
 
 			// If THIS event *is* one of the holiday windows → keep it
 			if start.Equal(w.start) && end.Equal(w.end) {

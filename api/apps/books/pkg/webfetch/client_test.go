@@ -15,7 +15,7 @@ import (
 )
 
 func newClient() webfetch.Client {
-	return webfetch.New(logging.NewNopLogger())
+	return webfetch.New(logging.NewNopLogger(), true)
 }
 
 // opts builds fully-initialized Options with just a size cap.

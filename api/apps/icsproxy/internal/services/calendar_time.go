@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -8,6 +9,10 @@ import (
 
 	ics "github.com/arran4/golang-ical"
 )
+
+// errMissingProperty signals an event that omits a property we need — an
+// upstream calendar can leave out anything, including DTSTART.
+var errMissingProperty = errors.New("event property missing")
 
 var dateSuffixRegex = regexp.MustCompile(
 	`(?i)\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s*-\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$`,
@@ -62,6 +67,10 @@ func parseICSTime(raw string) (time.Time, error) {
 }
 
 func parseICSTimeWithTZID(p *ics.IANAProperty) (time.Time, error) {
+	if p == nil {
+		return time.Time{}, errMissingProperty
+	}
+
 	raw := p.Value
 
 	if tzid, ok := p.ICalParameters["TZID"]; ok && len(tzid) > 0 {

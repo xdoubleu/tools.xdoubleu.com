@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/http"
+
+	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/icsproxy/internal/models"
 	"tools.xdoubleu.com/apps/icsproxy/internal/repositories"
@@ -35,13 +38,33 @@ type calendarStore interface {
 type CalendarService struct {
 	logger *slog.Logger
 	repo   calendarStore
+	client *http.Client
 }
 
+// SaveConfig upserts cfg and returns the token the feed is served under.
+//
+// An empty cfg.Token mints a fresh UUID; a non-empty one must already exist
+// and be owned by cfg.UserID. Tokens are never accepted from the client for a
+// *new* feed: the feed endpoint is unauthenticated, so an unguessable
+// server-generated token is the only thing protecting a feed's contents.
 func (s *CalendarService) SaveConfig(
 	ctx context.Context,
 	cfg models.FilterConfig,
-) error {
-	return s.repo.UpsertFilterConfig(ctx, cfg)
+) (string, error) {
+	if cfg.Token == "" {
+		cfg.Token = uuid.NewString()
+	} else {
+		existing, ok := s.LoadConfig(ctx, cfg.Token)
+		if err := authorizeConfigAccess(existing, ok, cfg.UserID); err != nil {
+			return "", err
+		}
+	}
+
+	if err := s.repo.UpsertFilterConfig(ctx, cfg); err != nil {
+		return "", err
+	}
+
+	return cfg.Token, nil
 }
 
 func (s *CalendarService) LoadConfig(

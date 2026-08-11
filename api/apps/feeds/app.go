@@ -44,7 +44,13 @@ func New(
 	appUsersRepo *globalrepositories.AppUsersRepository,
 ) *Feeds {
 	return NewInner(
-		authService, logger, cfg, db, webfetch.New(logger), notifications, appUsersRepo,
+		authService,
+		logger,
+		cfg,
+		db,
+		webfetch.New(logger, cfg.Env != config.ProdEnv),
+		notifications,
+		appUsersRepo,
 	)
 }
 

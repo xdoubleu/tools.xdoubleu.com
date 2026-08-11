@@ -42,6 +42,7 @@ func New(
 		logger,
 		repositories.New(db),
 		authService,
+		cfg.Env != config.ProdEnv,
 	)
 
 	return proxy
