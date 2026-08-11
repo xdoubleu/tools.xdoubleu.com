@@ -176,6 +176,28 @@ describe('BooksTable', () => {
     expect(screen.getByText('1 / 2')).toBeInTheDocument()
   })
 
+  it('caps rendered authors and shows a "+N more" indicator for books with many authors', () => {
+    const book = create(UserBookSchema, {
+      id: '1',
+      status: 'to-read',
+      tags: [],
+      formats: [],
+      addedAt: '2024-01-01T00:00:00Z',
+      book: create(BookSchema, {
+        title: 'Anthology',
+        authors: ['Author One', 'Author Two', 'Author Three', 'Author Four'],
+        pageCount: 300
+      })
+    })
+    render(<BooksTable books={[book]} knownShelves={[]} knownTags={[]} />)
+
+    expect(screen.getByRole('link', { name: 'Author One' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Author Two' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Author Three' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Author Four' })).not.toBeInTheDocument()
+    expect(screen.getByText('+2 more')).toBeInTheDocument()
+  })
+
   it('sorts by author asc when Author header is clicked', () => {
     const books = [makeBook('1', 'Book A', 'Zoe'), makeBook('2', 'Book B', 'Alice')]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
