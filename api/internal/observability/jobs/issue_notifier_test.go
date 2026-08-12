@@ -106,8 +106,16 @@ func (f fakeGithubClient) ListFailingPullRequests(
 }
 
 func failingPR(headSHA string, labels ...string) github.PullRequest {
+	return failingPRNumbered(42, headSHA, labels...)
+}
+
+func failingPRNumbered(
+	number int64,
+	headSHA string,
+	labels ...string,
+) github.PullRequest {
 	return github.PullRequest{
-		Number:    42,
+		Number:    number,
 		Title:     "Bump some-dep from 1.0.0 to 1.0.1",
 		URL:       "https://gh/pr/" + headSHA,
 		Author:    "renovate[bot]",
@@ -425,6 +433,46 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 
 	assert.Len(t, mail.sent, 1)
 	assert.True(t, notified.keys["github:pr:42:sha1"])
+}
+
+func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: nil, err: nil}
+	gh := fakeGithubClient{prs: []github.PullRequest{}, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{
+			failingPRNumbered(1, "sha1", "bug"),
+			failingPRNumbered(2, "sha2", "dependencies"),
+			failingPRNumbered(3, "sha3", "dependencies", "go"),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 2)
+	assert.False(t, notified.keys["github:pr:1:sha1"])
+	assert.True(t, notified.keys["github:pr:2:sha2"])
+	assert.True(t, notified.keys["github:pr:3:sha3"])
 }
 
 func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
