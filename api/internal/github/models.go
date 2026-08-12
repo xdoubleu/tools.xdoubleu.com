@@ -19,7 +19,21 @@ type PullRequest struct {
 	URL           string
 	Author        string
 	UpdatedAt     time.Time
+	HeadSHA       string
+	Labels        []string
 	FailingChecks []FailingCheck
+}
+
+// HasLabel reports whether the pull request carries the given label (e.g.
+// "dependencies", set by Renovate on every PR it opens — see
+// renovate.json5).
+func (pr PullRequest) HasLabel(name string) bool {
+	for _, l := range pr.Labels {
+		if l == name {
+			return true
+		}
+	}
+	return false
 }
 
 // prWire is the subset of the GitHub pulls API payload that is decoded.
@@ -34,6 +48,9 @@ type prWire struct {
 	Head struct {
 		SHA string `json:"sha"`
 	} `json:"head"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
 }
 
 // checkRunsWire is the GitHub "list check runs for a ref" response.

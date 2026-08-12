@@ -290,7 +290,7 @@ func NewApplication(
 
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, doClient, notificationsSvc, notifiedIssuesRepo,
+		sentryClient, doClient, githubClient, notificationsSvc, notifiedIssuesRepo,
 	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
