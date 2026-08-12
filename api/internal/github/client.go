@@ -182,9 +182,7 @@ func (c *client) fetchFailingPullRequests(
 	return prs, nil
 }
 
-func labelNames(labels []struct {
-	Name string `json:"name"`
-}) []string {
+func labelNames(labels []labelWire) []string {
 	names := make([]string, len(labels))
 	for i, l := range labels {
 		names[i] = l.Name

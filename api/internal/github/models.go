@@ -48,9 +48,12 @@ type prWire struct {
 	Head struct {
 		SHA string `json:"sha"`
 	} `json:"head"`
-	Labels []struct {
-		Name string `json:"name"`
-	} `json:"labels"`
+	Labels []labelWire `json:"labels"`
+}
+
+// labelWire is a single entry in a pull request's "labels" array.
+type labelWire struct {
+	Name string `json:"name"`
 }
 
 // checkRunsWire is the GitHub "list check runs for a ref" response.

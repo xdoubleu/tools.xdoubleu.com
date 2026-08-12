@@ -481,6 +481,47 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 	assert.True(t, notified.keys["github:pr:42:sha2"])
 }
 
+// TestIssueNotifierGithubNotifiedExistsErrorPropagates mirrors
+// TestIssueNotifierNotifiedExistsErrorPropagates for the github path: a
+// failed dedup lookup must abort the run instead of being swallowed.
+func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := &erroringNotifiedRepo{err: assert.AnError}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	err := job.Run(t.Context(), testLogger())
+
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Empty(t, mail.sent)
+}
+
+// TestIssueNotifierDOErrorStopsRunBeforeGithub asserts Run now short-circuits
+// on a genuine (non-degraded) notifyDigitalOcean error instead of falling
+// through to notifyGithub — the DO and github steps used to be a single
+// tail return, so this branch didn't exist before notifyGithub was added.
+func TestIssueNotifierDOErrorStopsRunBeforeGithub(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	do := fakeDOClient{deployment: doDeployment("d1", "ERROR"), err: nil}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := &erroringNotifiedRepo{err: assert.AnError}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	err := job.Run(t.Context(), testLogger())
+
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Empty(t, mail.sent)
+}
+
 func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	do := fakeDOClient{deployment: nil, err: nil}
