@@ -72,10 +72,6 @@ export const swrKeys = {
   // dashboardFeedsSummary above.
   feedsSummary: '/feeds/summary',
 
-  icsFeeds: '/icsproxy',
-  icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,
-  icsConfig: (token: string) => `/icsproxy/${token}`,
-
   mealPlans: '/mealplans',
   mealPlan: (id: string, offset: number) => `/mealplans/${id}?offset=${offset}`,
   mealSuggestions: (planId: string, mealDate: string, mealSlot: string) =>

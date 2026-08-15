@@ -55,7 +55,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
-      expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
@@ -70,7 +69,6 @@ describe('HomeClient', () => {
       '/dashboard/reading'
     )
     expect(screen.getByRole('link', { name: /Watch Party/ })).toHaveAttribute('href', '/watchparty')
-    expect(screen.getByRole('link', { name: /ICS Proxy/ })).toHaveAttribute('href', '/icsproxy')
     expect(screen.getByRole('link', { name: /Recipes/ })).toHaveAttribute('href', '/recipes/list')
     expect(screen.getByRole('link', { name: /Meal Plans/ })).toHaveAttribute('href', '/mealplans')
     expect(screen.getByRole('link', { name: /Shopping List/ })).toHaveAttribute(
@@ -268,7 +266,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Search, library and reading progress.')).toBeInTheDocument()
       expect(screen.getByText('Unread RSS and newsletter articles.')).toBeInTheDocument()
       expect(screen.getByText('WebRTC screen sharing')).toBeInTheDocument()
-      expect(screen.getByText('Calendar feed filtering')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
       expect(screen.getByText('Task management')).toBeInTheDocument()
       expect(screen.getByText('User preferences')).toBeInTheDocument()
@@ -301,7 +298,6 @@ describe('HomeClient', () => {
     })
 
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
-    expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Food' })).not.toBeInTheDocument()
@@ -370,7 +366,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Watch Party')).toBeInTheDocument()
-      expect(screen.getByText('ICS Proxy')).toBeInTheDocument()
       expect(screen.getByText('Recipes')).toBeInTheDocument()
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
@@ -399,7 +394,6 @@ describe('HomeClient', () => {
     expect(screen.queryByText('Reading')).not.toBeInTheDocument()
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
-    expect(screen.queryByText('ICS Proxy')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
     expect(screen.queryByText('Todos')).not.toBeInTheDocument()
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()

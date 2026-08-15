@@ -61,7 +61,6 @@ describe('UsersTable', () => {
     expect(screen.getByText('recipes')).toBeInTheDocument()
     expect(screen.getByText('contacts')).toBeInTheDocument()
     expect(screen.getByText('watchparty')).toBeInTheDocument()
-    expect(screen.getByText('icsproxy')).toBeInTheDocument()
   })
 
   it('calls setRole and onUpdated when role changes', async () => {

@@ -51,8 +51,6 @@ var appsToolNames = []string{
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
 	// todos (4)
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
-	// icsproxy (3)
-	"icsproxy_list_configs", "icsproxy_get_config", "icsproxy_preview_events",
 	// observability (10, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_sentry_issues", "resolve_sentry_issue",
@@ -67,7 +65,6 @@ var appsNetworkTools = map[string]bool{
 	"books_search_external":     true,
 	"books_get_external_book":   true,
 	"books_get_book_sources":    true,
-	"icsproxy_preview_events":   true,
 	"get_failing_pull_requests": true,
 	"get_sentry_issues":         true,
 	"get_deploy_status":         true,
@@ -249,7 +246,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"games_get_recently_active_games", "books_get_library",
 		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
 		"shoppinglist_list_accessible_lists", "todos_list_tasks",
-		"icsproxy_list_configs", "get_job_stats", "get_usage_stats",
+		"get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
 		"get_deploy_logs", "get_slow_transactions",
@@ -302,7 +299,6 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"resolve_sentry_issue":                    map[string]any{"issue_id": uid},
 		"todos_get_task":                          map[string]any{"id": uid},
 		"todos_search_tasks":                      map[string]any{"query": "x"},
-		"icsproxy_get_config":                     map[string]any{"token": "x"},
 	}
 
 	session := appsMCPSession(t, accessToken.Value)
