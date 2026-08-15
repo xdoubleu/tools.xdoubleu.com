@@ -22,6 +22,15 @@ message Feed {
   // is never persisted in plaintext, so it cannot be shown again later and
   // is never returned by ListFeeds.
   string inbound_address = 8;
+  // The conditional-GET validators from the last successful fetch; empty
+  // until the feed has been fetched once.
+  string etag = 9;
+  string last_modified = 10;
+  // Unbroken poll failures since the last success (issue #799).
+  int32 consecutive_failures = 11;
+  // RFC3339; set while a problem email is outstanding for this feed, empty
+  // once it recovers.
+  string notified_at = 12;
 }
 
 message ListFeedsRequest {}
