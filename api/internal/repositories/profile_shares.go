@@ -7,10 +7,10 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// ProfileSharesRepository stores the opaque tokens behind public profile
-// links (global.profile_shares), one per (user, app). A token resolves to
-// the owning user for the unauthenticated profile RPCs in the books and
-// games apps.
+// ProfileSharesRepository stores the opaque tokens behind public dashboard
+// links (global.profile_shares), one per (user, kind). A token resolves to
+// the owning user for the unauthenticated public dashboard RPCs in the
+// dashboard app.
 type ProfileSharesRepository struct {
 	db postgres.DB
 }
@@ -24,7 +24,7 @@ func NewProfileSharesRepository(db postgres.DB) *ProfileSharesRepository {
 func (r *ProfileSharesRepository) Get(
 	ctx context.Context,
 	userID string,
-	app models.ProfileApp,
+	app models.DashboardKind,
 ) (*models.ProfileShare, error) {
 	var share models.ProfileShare
 	err := r.db.QueryRow(ctx, `
@@ -43,7 +43,7 @@ func (r *ProfileSharesRepository) Get(
 func (r *ProfileSharesRepository) Upsert(
 	ctx context.Context,
 	userID string,
-	app models.ProfileApp,
+	app models.DashboardKind,
 	token string,
 ) (*models.ProfileShare, error) {
 	var share models.ProfileShare
@@ -64,7 +64,7 @@ func (r *ProfileSharesRepository) Upsert(
 func (r *ProfileSharesRepository) Delete(
 	ctx context.Context,
 	userID string,
-	app models.ProfileApp,
+	app models.DashboardKind,
 ) error {
 	_, err := r.db.Exec(ctx, `
 		DELETE FROM global.profile_shares WHERE user_id = $1 AND app = $2
@@ -78,7 +78,7 @@ func (r *ProfileSharesRepository) Delete(
 func (r *ProfileSharesRepository) ResolveToken(
 	ctx context.Context,
 	token string,
-	app models.ProfileApp,
+	app models.DashboardKind,
 ) (string, string, error) {
 	var userID, displayName string
 	err := r.db.QueryRow(ctx, `

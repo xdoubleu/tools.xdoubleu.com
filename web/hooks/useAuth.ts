@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { createServiceClient } from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
-import { ProfileService } from '@/lib/gen/profile/v1/profile_pb'
+import { DashboardService } from '@/lib/gen/dashboard/v1/dashboard_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
 export function useSignIn() {
@@ -32,7 +32,7 @@ export function useUpdatePassword() {
 }
 
 export function useUpdateDisplayName() {
-  const client = createServiceClient(ProfileService)
+  const client = createServiceClient(DashboardService)
   return (displayName: string) => client.setDisplayName({ displayName })
 }
 

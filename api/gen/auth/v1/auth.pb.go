@@ -919,7 +919,7 @@ type GetCurrentUserResponse struct {
 	AppAccess []string               `protobuf:"bytes,2,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
 	HasMfa    bool                   `protobuf:"varint,3,opt,name=has_mfa,json=hasMfa,proto3" json:"has_mfa,omitempty"`
 	// Public profile display name; empty when unset (share links require this
-	// to be set first, see profile.v1.ProfileService).
+	// to be set first, see dashboard.v1.DashboardService).
 	DisplayName   string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

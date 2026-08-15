@@ -127,6 +127,12 @@ func (s *FeedService) ListItems(
 	)
 }
 
+// CountUnread returns the number of unread items across any of the user's
+// feeds — backs the reading dashboard's feeds summary widget.
+func (s *FeedService) CountUnread(ctx context.Context, userID string) (int, error) {
+	return s.items.CountUnread(ctx, userID)
+}
+
 // Create validates the URL by fetching and parsing it and stores the feed
 // (with its self-reported title), then imports the feed's current contents
 // as a first batch in the background. Returns the feed as soon as it is

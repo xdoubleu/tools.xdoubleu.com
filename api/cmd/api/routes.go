@@ -12,8 +12,8 @@ import (
 	"tools.xdoubleu.com/gen/access/v1/accessv1connect"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
+	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
-	"tools.xdoubleu.com/gen/profile/v1/profilev1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
@@ -116,13 +116,13 @@ func (app *Application) Routes() http.Handler {
 		app.auth.Access(contactsHandler.ServeHTTP),
 	)
 
-	profilePath, profileHandler := profilev1connect.NewProfileServiceHandler(
-		&profileConnectHandler{app: app},
+	dashboardPath, dashboardHandler := dashboardv1connect.NewDashboardServiceHandler(
+		&dashboardConnectHandler{app: app},
 		scrub,
 	)
 	mux.Handle(
-		"POST "+profilePath,
-		app.auth.Access(profileHandler.ServeHTTP),
+		"POST "+dashboardPath,
+		app.auth.Access(dashboardHandler.ServeHTTP),
 	)
 
 	// MCP server (read-only) behind OAuth 2.1 Bearer auth — every app's own

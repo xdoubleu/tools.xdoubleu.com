@@ -22,15 +22,16 @@ export const swrKeys = {
   webRelease: '/release',
   sharedMealPlans: '/sharing/mealplans',
 
-  profileShare: (app: 'books' | 'games') => `/profile/share/${app}`,
-  profileBooks: (token: string) => `/profile/books/${token}`,
-  profileBooksProgress: (token: string, dateStart?: string, dateEnd?: string) =>
-    ['/profile/books-progress', token, dateStart, dateEnd] as const,
-  profileGames: (token: string) => `/profile/games/${token}`,
-  profileGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
-    ['/profile/games-progress', token, dateStart, dateEnd] as const,
-  profileGame: (token: string, gameId: number) => `/profile/games/${token}/${gameId}`,
-  profileRecentGames: (token: string) => `/profile/games/${token}/recent`,
+  dashboardShare: (kind: 'games' | 'reading') => `/dashboard/share/${kind}`,
+  dashboardReading: (token: string) => `/dashboard/reading/${token}`,
+  dashboardReadingProgress: (token: string, dateStart?: string, dateEnd?: string) =>
+    ['/dashboard/reading-progress', token, dateStart, dateEnd] as const,
+  dashboardFeedsSummary: (token: string) => `/dashboard/reading/${token}/feeds-summary`,
+  dashboardGames: (token: string) => `/dashboard/games/${token}`,
+  dashboardGamesProgress: (token: string, dateStart?: string, dateEnd?: string) =>
+    ['/dashboard/games-progress', token, dateStart, dateEnd] as const,
+  dashboardGame: (token: string, gameId: number) => `/dashboard/games/${token}/${gameId}`,
+  dashboardRecentGames: (token: string) => `/dashboard/games/${token}/recent`,
 
   books: '/books',
   booksProgress: (dateStart?: string, dateEnd?: string) =>
@@ -65,6 +66,10 @@ export const swrKeys = {
   feedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
   feedStats: '/feeds/stats',
+  // Owner's own reading dashboard feeds widget — a handful of unread items
+  // via the authenticated FeedService, separate from the public
+  // dashboardFeedsSummary above.
+  feedsSummary: '/feeds/summary',
 
   icsFeeds: '/icsproxy',
   icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,
