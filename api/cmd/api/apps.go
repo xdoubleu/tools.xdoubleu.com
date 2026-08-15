@@ -49,7 +49,7 @@ func NewApps(
 	db postgres.DB,
 	notifications *notifications.Service,
 	appUsersRepo *repositories.AppUsersRepository,
-) (*Apps, *books.Books) {
+) (*Apps, *books.Books, *feeds.Feeds) {
 	var apps Apps = []App{}
 
 	// Migrations run sequentially in registration order: books must adopt its
@@ -79,7 +79,7 @@ func NewApps(
 		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)
 
-	return &apps, booksApp
+	return &apps, booksApp, feedsApp
 }
 
 func (apps *Apps) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

@@ -404,6 +404,12 @@ func (s *FeedService) PollAll(
 	return nil
 }
 
+// ListUnhealthy returns every feed currently failing to poll, across all
+// users, for the weekly digest job (issue #1014).
+func (s *FeedService) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
+	return s.feeds.ListUnhealthy(ctx)
+}
+
 // pollFeed fetches one feed (conditional GET) and ingests its new items,
 // dispatching on source type — scrape feeds have no RSS/Atom body to parse.
 func (s *FeedService) pollFeed(

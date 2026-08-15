@@ -16,6 +16,7 @@ import (
 	"github.com/pressly/goose/v3"
 	gotrue "github.com/supabase-community/auth-go"
 
+	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
@@ -64,6 +65,7 @@ type Application struct {
 	issueNotifierJob              *jobs.IssueNotifierJob
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
+	weeklyDigestJob               *jobs.WeeklyDigestJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -277,6 +279,48 @@ func newCrossAppJobs(
 	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
 }
 
+// feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
+// WeeklyDigestJob (internal/observability/jobs) never imports apps/feeds
+// directly — feeds.UnhealthyFeed and jobs.UnhealthyFeed are structurally
+// identical but distinct types, so main.go (the composition root) is what
+// bridges them.
+type feedsHealthAdapter struct {
+	feeds *feeds.Feeds
+}
+
+func (a feedsHealthAdapter) ListUnhealthy(
+	ctx context.Context,
+) ([]jobs.UnhealthyFeed, error) {
+	unhealthy, err := a.feeds.ListUnhealthy(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]jobs.UnhealthyFeed, len(unhealthy))
+	for i, feed := range unhealthy {
+		out[i] = jobs.UnhealthyFeed{
+			Title:               feed.Title,
+			URL:                 feed.URL,
+			LastError:           feed.LastError,
+			ConsecutiveFailures: feed.ConsecutiveFailures,
+		}
+	}
+	return out, nil
+}
+
+func newWeeklyDigestJob(
+	sentryClient sentryapi.Client,
+	doClient digitalocean.Client,
+	githubClient github.Client,
+	feedsApp *feeds.Feeds,
+	notificationsSvc *notifications.Service,
+) *jobs.WeeklyDigestJob {
+	return jobs.NewWeeklyDigestJob(
+		sentryClient, doClient, githubClient,
+		feedsHealthAdapter{feeds: feedsApp}, notificationsSvc,
+	)
+}
+
 // startCrossAppJobs registers every job living directly on app.globalJobQueue
 // — cross-app observability concerns, not scoped to one apps/<name> — rather
 // than one apps/<name>/app.go's own Start().
@@ -287,9 +331,14 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.transactionLatencySnapshotJob, app.db),
 		noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
 	)
 }
 
@@ -369,8 +418,12 @@ func NewApplication(
 
 	// One tracing wrapper for every app's queries; migrations keep the raw pool.
 	spanDB := postgres.NewSpanDB(db)
-	app.apps, app.booksApp = NewApps(
+	var feedsApp *feeds.Feeds
+	app.apps, app.booksApp, feedsApp = NewApps(
 		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
+	)
+	app.weeklyDigestJob = newWeeklyDigestJob(
+		sentryClient, doClient, githubClient, feedsApp, notificationsSvc,
 	)
 
 	err = app.ApplyMigrations(db)
