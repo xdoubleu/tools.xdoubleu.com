@@ -382,7 +382,7 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
 
   /**
    * Public profile display name; empty when unset (share links require this
-   * to be set first, see profile.v1.ProfileService).
+   * to be set first, see dashboard.v1.DashboardService).
    *
    * @generated from field: string display_name = 4;
    */

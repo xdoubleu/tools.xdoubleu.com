@@ -34,13 +34,13 @@ const ALL_APPS: AppLink[] = [
   {
     name: 'games',
     label: 'Games',
-    href: '/games',
+    href: '/dashboard/games',
     description: 'Steam backlog, progress and distribution.'
   },
   {
     name: 'books',
-    label: 'Books',
-    href: '/books',
+    label: 'Reading',
+    href: '/dashboard/reading',
     description: 'Search, library and reading progress.'
   },
   {

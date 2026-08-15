@@ -18,8 +18,8 @@ jest.mock('@/lib/client', () => ({
 jest.mock('@/lib/gen/auth/v1/auth_pb', () => ({
   AuthService: {}
 }))
-jest.mock('@/lib/gen/profile/v1/profile_pb', () => ({
-  ProfileService: {}
+jest.mock('@/lib/gen/dashboard/v1/dashboard_pb', () => ({
+  DashboardService: {}
 }))
 
 import useSWR from 'swr'

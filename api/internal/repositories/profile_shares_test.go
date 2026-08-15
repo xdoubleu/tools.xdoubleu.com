@@ -24,13 +24,13 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	clearProfileShares(t)
 	repo := repositories.NewProfileSharesRepository(testDB)
 
-	_, err := repo.Get(t.Context(), shareUserID, models.ProfileAppBooks)
+	_, err := repo.Get(t.Context(), shareUserID, models.DashboardKindReading)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound, "no share should exist yet")
 
 	created, err := repo.Upsert(
 		t.Context(),
 		shareUserID,
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 		"repo-test-token",
 	)
 	require.NoError(t, err)
@@ -38,7 +38,7 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	assert.Equal(t, "repo-test-token", created.Token)
 	assert.False(t, created.CreatedAt.IsZero())
 
-	share, err := repo.Get(t.Context(), shareUserID, models.ProfileAppBooks)
+	share, err := repo.Get(t.Context(), shareUserID, models.DashboardKindReading)
 	require.NoError(t, err)
 	require.NotNil(t, share)
 	assert.Equal(t, "repo-test-token", share.Token)
@@ -46,7 +46,7 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	owner, _, err := repo.ResolveToken(
 		t.Context(),
 		"repo-test-token",
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, shareUserID, owner)
@@ -56,7 +56,7 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	_, _, err = repo.ResolveToken(
 		t.Context(),
 		"repo-test-token",
-		models.ProfileAppGames,
+		models.DashboardKindGames,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 
@@ -64,7 +64,7 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	replaced, err := repo.Upsert(
 		t.Context(),
 		shareUserID,
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 		"repo-test-token-2",
 	)
 	require.NoError(t, err)
@@ -73,20 +73,23 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	_, _, err = repo.ResolveToken(
 		t.Context(),
 		"repo-test-token",
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 
-	require.NoError(t, repo.Delete(t.Context(), shareUserID, models.ProfileAppBooks))
+	require.NoError(
+		t,
+		repo.Delete(t.Context(), shareUserID, models.DashboardKindReading),
+	)
 
-	_, err = repo.Get(t.Context(), shareUserID, models.ProfileAppBooks)
+	_, err = repo.Get(t.Context(), shareUserID, models.DashboardKindReading)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound,
 		"share should be gone after delete")
 
 	_, _, err = repo.ResolveToken(
 		t.Context(),
 		"repo-test-token-2",
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
@@ -98,25 +101,28 @@ func TestProfileSharesIndependentPerApp(t *testing.T) {
 	_, err := repo.Upsert(
 		t.Context(),
 		shareUserID,
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 		"books-token",
 	)
 	require.NoError(t, err)
 	_, err = repo.Upsert(
 		t.Context(),
 		shareUserID,
-		models.ProfileAppGames,
+		models.DashboardKindGames,
 		"games-token",
 	)
 	require.NoError(t, err)
 
 	// Deleting the books share must not affect the games share.
-	require.NoError(t, repo.Delete(t.Context(), shareUserID, models.ProfileAppBooks))
+	require.NoError(
+		t,
+		repo.Delete(t.Context(), shareUserID, models.DashboardKindReading),
+	)
 
-	_, err = repo.Get(t.Context(), shareUserID, models.ProfileAppBooks)
+	_, err = repo.Get(t.Context(), shareUserID, models.DashboardKindReading)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 
-	gamesShare, err := repo.Get(t.Context(), shareUserID, models.ProfileAppGames)
+	gamesShare, err := repo.Get(t.Context(), shareUserID, models.DashboardKindGames)
 	require.NoError(t, err)
 	assert.Equal(t, "games-token", gamesShare.Token)
 }
@@ -126,7 +132,7 @@ func TestProfileSharesResolveToken_Unknown(t *testing.T) {
 	_, _, err := repo.ResolveToken(
 		t.Context(),
 		"no-such-token",
-		models.ProfileAppBooks,
+		models.DashboardKindReading,
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }

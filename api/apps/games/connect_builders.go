@@ -10,8 +10,8 @@ import (
 )
 
 // buildSteamResponse assembles the dashboard/library payload for a user. It
-// is shared by the authenticated GetSteam RPC and the public shareable
-// profile's GetSharedSteam RPC.
+// is shared by the authenticated GetSteam RPC and BuildSharedSteam (used by
+// the dashboard app's public games dashboard, see api/apps/dashboard).
 func (a *Games) buildSteamResponse(
 	ctx context.Context,
 	userID string,
@@ -70,9 +70,63 @@ func (a *Games) buildSteamResponse(
 	}, nil
 }
 
+// BuildSharedSteam assembles the games dashboard's Steam payload for a user,
+// plus their most recent Steam library sync time (empty string when the
+// library has never been synced). This is the one exported entry point the
+// dashboard app (api/apps/dashboard) uses to build its public games
+// dashboard, keeping games' own achievement/progress logic un-duplicated.
+func (a *Games) BuildSharedSteam(
+	ctx context.Context,
+	userID string,
+	dateStart, dateEnd time.Time,
+) (*gamesv1.SteamResponse, string, error) {
+	steam, err := a.buildSteamResponse(ctx, userID, dateStart, dateEnd)
+	if err != nil {
+		return nil, "", err
+	}
+
+	lastSynced, err := a.Services.Steam.GetLastSyncedAt(ctx, userID)
+	if err != nil {
+		return nil, "", err
+	}
+	lastSyncedAt := ""
+	if lastSynced != nil {
+		lastSyncedAt = lastSynced.Format(time.RFC3339)
+	}
+
+	return steam, lastSyncedAt, nil
+}
+
+// BuildSharedSteamGame assembles a single game's payload for the dashboard
+// app's public games dashboard (api/apps/dashboard) — the exported
+// counterpart of buildSteamGameResponse for callers outside this package.
+func (a *Games) BuildSharedSteamGame(
+	ctx context.Context,
+	userID string,
+	gameID int,
+) (*gamesv1.SteamGameResponse, error) {
+	return a.buildSteamGameResponse(ctx, userID, gameID)
+}
+
+// BuildSharedRecentlyActiveGames assembles the recently-active games list for
+// the dashboard app's public games dashboard. GetRecentlyActive itself
+// returns games' internal domain model (apps/games/internal/models), which
+// callers outside this package cannot reference — this wrapper is the
+// exported boundary that converts to the proto type instead.
+func (a *Games) BuildSharedRecentlyActiveGames(
+	ctx context.Context,
+	userID string,
+) ([]*gamesv1.RecentGame, error) {
+	recentGames, err := a.Services.Steam.GetRecentlyActive(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return protoRecentGames(recentGames), nil
+}
+
 // buildSteamGameResponse assembles a single game's payload with its
 // achievements sorted by global completion percent (most common first).
-// Shared by GetSteamGame, RefreshSteamGame, and the public GetSharedSteamGame.
+// Shared by GetSteamGame, RefreshSteamGame, and BuildSharedSteamGame.
 func (a *Games) buildSteamGameResponse(
 	ctx context.Context,
 	userID string,

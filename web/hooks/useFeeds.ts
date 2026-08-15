@@ -11,6 +11,20 @@ import type {
   GetFeedStatsResponse
 } from '@/lib/gen/feeds/v1/feeds_pb'
 
+// FEEDS_SUMMARY_ITEM_LIMIT bounds the reading dashboard's feeds widget.
+const FEEDS_SUMMARY_ITEM_LIMIT = 5
+
+interface FeedsSummaryItem {
+  title: string
+  sourceUrl: string
+  publishedAt: string
+}
+
+export interface FeedsSummary {
+  unreadCount: number
+  items: FeedsSummaryItem[]
+}
+
 // RSS/Atom and email-newsletter feed subscriptions, standalone from the
 // reading library (issue #734) — items are self-contained, so mutations
 // only ever invalidate feeds-scoped keys.
@@ -113,4 +127,42 @@ export function useUpdateItem() {
 export function useFeedStats() {
   const client = createServiceClient(FeedService)
   return useSWR<GetFeedStatsResponse, Error>(swrKeys.feedStats, () => client.getFeedStats({}))
+}
+
+// useFeedsSummary backs the reading dashboard's feeds widget (issue #737):
+// a handful of recent unread items plus an unread count. There's no
+// dedicated summary RPC for the owner's own authenticated view — unlike the
+// public dashboard's GetSharedFeedsSummary, this composes two existing
+// FeedService calls instead. The unread count is a best-effort estimate
+// (per-feed item_count * (1 - read_rate), rounded and summed) rather than an
+// exact count, which is an acceptable tradeoff for a summary widget.
+export function useFeedsSummary() {
+  const itemsClient = createServiceClient(FeedService)
+  const {
+    data: itemsData,
+    error,
+    isLoading
+  } = useSWR<ListFeedItemsResponse, Error>(swrKeys.feedsSummary, () =>
+    itemsClient.listFeedItems({ limit: FEEDS_SUMMARY_ITEM_LIMIT, unreadOnly: true })
+  )
+  const { data: statsData } = useFeedStats()
+
+  const unreadCount =
+    statsData?.stats.reduce(
+      (sum, stats) => sum + Math.round(stats.itemCount * (1 - stats.readRate)),
+      0
+    ) ?? 0
+
+  const data: FeedsSummary | undefined = itemsData
+    ? {
+        unreadCount,
+        items: itemsData.items.map((item) => ({
+          title: item.title,
+          sourceUrl: item.sourceUrl,
+          publishedAt: item.publishedAt
+        }))
+      }
+    : undefined
+
+  return { data, error, isLoading }
 }

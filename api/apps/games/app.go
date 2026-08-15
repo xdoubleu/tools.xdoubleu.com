@@ -17,7 +17,6 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/jobqueue"
 	"tools.xdoubleu.com/internal/observability"
-	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -28,10 +27,9 @@ type Games struct {
 	db postgres.DB
 	// Services and Repositories are exported so integration tests can seed
 	// data through the real service layer.
-	Services      *services.Services
-	Repositories  *repositories.Repositories
-	profileShares *sharedrepos.ProfileSharesRepository
-	jobQueue      *jobqueue.JobQueue
+	Services     *services.Services
+	Repositories *repositories.Repositories
+	jobQueue     *jobqueue.JobQueue
 }
 
 func New(
@@ -77,7 +75,6 @@ func NewInner(
 	)
 
 	a.Repositories = repositories.New(a.db)
-	a.profileShares = sharedrepos.NewProfileSharesRepository(a.db)
 	a.Services = services.New(
 		a.Ctx,
 		logger,

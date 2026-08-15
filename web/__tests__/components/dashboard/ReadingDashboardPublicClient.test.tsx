@@ -1,0 +1,175 @@
+import React from 'react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { create } from '@bufbuild/protobuf'
+import {
+  LibraryResponseSchema,
+  UserBookSchema,
+  BookSchema,
+  BookShelfSchema
+} from '@/lib/gen/books/v1/library_pb'
+import { GetSharedLibraryResponseSchema } from '@/lib/gen/dashboard/v1/reading_pb'
+
+const mockUseSharedLibrary = jest.fn()
+const mockUseSharedBooksProgress = jest.fn()
+const mockUseSharedFeedsSummary = jest.fn()
+
+jest.mock('@/hooks/useDashboardShare', () => ({
+  useSharedLibrary: () => mockUseSharedLibrary(),
+  useSharedBooksProgress: () => mockUseSharedBooksProgress(),
+  useSharedFeedsSummary: () => mockUseSharedFeedsSummary()
+}))
+
+jest.mock('@/components/books/BooksProgressChart', () => () => (
+  <div data-testid="books-progress-chart" />
+))
+
+jest.mock('next/link', () => {
+  const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
+})
+
+import ReadingDashboardPublicClient from '@/components/dashboard/ReadingDashboardPublicClient'
+
+function makeLibrary() {
+  return create(GetSharedLibraryResponseSchema, {
+    library: create(LibraryResponseSchema, {
+      reading: [
+        create(UserBookSchema, {
+          id: 'ub-1',
+          status: 'currently-reading',
+          tags: [],
+          progressPercent: 40,
+          book: create(BookSchema, { title: 'Reading Book', authors: ['Author A'] })
+        })
+      ],
+      wishlist: [
+        create(UserBookSchema, {
+          id: 'ub-2',
+          status: 'to-read',
+          tags: ['favourite', 'sci-fi'],
+          rating: 4,
+          book: create(BookSchema, { title: 'Wishlist Book', authors: ['Author B'] })
+        })
+      ],
+      finished: [],
+      shelves: [
+        create(BookShelfSchema, {
+          name: 'custom-shelf',
+          books: [
+            create(UserBookSchema, {
+              id: 'ub-3',
+              status: 'custom-shelf',
+              tags: [],
+              book: create(BookSchema, { title: 'Shelved Book', authors: ['Author C'] })
+            })
+          ]
+        })
+      ]
+    }),
+    lastSyncedAt: '2026-07-01T10:00:00Z'
+  })
+}
+
+describe('ReadingDashboardPublicClient', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockUseSharedBooksProgress.mockReturnValue({ data: undefined })
+    mockUseSharedFeedsSummary.mockReturnValue({ data: undefined })
+  })
+
+  it('renders stat cards and last synced state', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.getByText('Total books')).toBeInTheDocument()
+    expect(screen.getByText('Read this year')).toBeInTheDocument()
+    expect(screen.getByText(/Last synced:/)).toBeInTheDocument()
+  })
+
+  it('links to the shared library and omits the inline library', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    const link = screen.getByRole('link', { name: 'Browse full library' })
+    expect(link).toHaveAttribute('href', '/dashboard/reading/tok-1/library')
+
+    // The inline library (search + shelf sidebar) now lives on its own route.
+    expect(screen.queryByPlaceholderText('Search books…')).not.toBeInTheDocument()
+    expect(screen.queryByText('custom-shelf')).not.toBeInTheDocument()
+  })
+
+  it('shows the currently-reading strip only', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    // Reading Book appears once (currently-reading strip); library-only books
+    // like the wishlist entry are not shown on the dashboard.
+    expect(screen.getAllByText('Reading Book')).toHaveLength(1)
+    expect(screen.queryByText('Wishlist Book')).not.toBeInTheDocument()
+  })
+
+  it('is read-only: no refresh button', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.queryByRole('button', { name: /refresh/i })).not.toBeInTheDocument()
+  })
+
+  it('shows an error state when the library fails to load', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: undefined, error: new Error('nope') })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.getByText('Failed to load books.')).toBeInTheDocument()
+  })
+
+  it('omits the last-synced line when it is unset', () => {
+    const lib = makeLibrary()
+    lib.lastSyncedAt = ''
+    mockUseSharedLibrary.mockReturnValue({ data: lib })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.queryByText(/Last synced:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Browse full library' })).toBeInTheDocument()
+  })
+
+  it('switches to the all-time chart and loads progress data', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    mockUseSharedBooksProgress.mockReturnValue({
+      data: {
+        progress: {
+          labels: ['2026-01-01', '2026-01-02'],
+          values: ['1', '2'],
+          dateStart: '2026-01-01',
+          dateEnd: '2026-01-02'
+        }
+      }
+    })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    fireEvent.click(screen.getByRole('tab', { name: 'All time' }))
+
+    expect(screen.getByTestId('books-progress-chart')).toBeInTheDocument()
+    expect(screen.getByLabelText('From')).toBeInTheDocument()
+    expect(screen.getByLabelText('To')).toBeInTheDocument()
+  })
+
+  it('renders the feeds summary widget without a /feeds link (visitor has no access)', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    mockUseSharedFeedsSummary.mockReturnValue({
+      data: { summary: { unreadCount: 3, items: [] } }
+    })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.getByText('3 unread')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Feeds' })).not.toBeInTheDocument()
+  })
+
+  it('omits the feeds widget while the summary has not loaded', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.queryByText(/unread/)).not.toBeInTheDocument()
+  })
+})

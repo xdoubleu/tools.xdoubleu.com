@@ -1,0 +1,39 @@
+syntax = "proto3";
+package dashboard.v1;
+option go_package = "tools.xdoubleu.com/gen/dashboard/v1;dashboardv1";
+
+import "games/v1/games.proto";
+
+// PublicGamesDashboardService serves the read-only shareable games
+// dashboard. It is registered WITHOUT auth middleware: requests are
+// authorized solely by the opaque dashboard share token (see
+// dashboard.v1.DashboardService), which resolves to the owning user.
+// Unknown tokens return CodeNotFound.
+service PublicGamesDashboardService {
+  rpc GetSharedSteam(GetSharedSteamRequest) returns (GetSharedSteamResponse);
+  rpc GetSharedSteamGame(GetSharedSteamGameRequest) returns (GetSharedSteamGameResponse);
+  rpc GetSharedRecentlyActiveGames(GetSharedRecentlyActiveGamesRequest) returns (GetSharedRecentlyActiveGamesResponse);
+}
+
+message GetSharedSteamRequest {
+  string token = 1;
+  string date_start = 2;
+  string date_end = 3;
+}
+message GetSharedSteamResponse {
+  games.v1.SteamResponse steam = 1;
+  // Most recent Steam library sync (max last_synced_at across the owner's
+  // games); empty when the library has never been synced.
+  string last_synced_at = 2;
+  // The owner's public profile display name.
+  string display_name = 3;
+}
+
+message GetSharedSteamGameRequest {
+  string token = 1;
+  int32 game_id = 2;
+}
+message GetSharedSteamGameResponse { games.v1.SteamGameResponse data = 1; }
+
+message GetSharedRecentlyActiveGamesRequest { string token = 1; }
+message GetSharedRecentlyActiveGamesResponse { repeated games.v1.RecentGame games = 1; }

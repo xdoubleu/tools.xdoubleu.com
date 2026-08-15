@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
 type bookShelf struct {
@@ -124,6 +125,64 @@ func (app *Books) buildLibraryData(
 		Wishlist: wishlist,
 		Finished: finished,
 		Shelves:  shelves,
+	}, nil
+}
+
+// BuildSharedLibrary assembles the reading dashboard's library payload for a
+// user, plus their most recent Kobo device sync time (empty string when the
+// owner has no Kobo devices — Kobo sync is the books equivalent of a
+// refresh). This is the one exported entry point the dashboard app
+// (api/apps/dashboard) uses to build its public reading dashboard, keeping
+// books' own shelving/formats logic un-duplicated.
+func (app *Books) BuildSharedLibrary(
+	ctx context.Context,
+	userID string,
+) (*booksv1.LibraryResponse, string, error) {
+	data, err := app.buildLibraryData(ctx, userID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	lastSeen, err := app.Repositories.KoboDevices.GetLastSeenAt(ctx, userID)
+	if err != nil {
+		return nil, "", err
+	}
+	lastSyncedAt := ""
+	if lastSeen != nil {
+		lastSyncedAt = lastSeen.Format(time.RFC3339)
+	}
+
+	base := app.clients.PublicAPIBaseURL
+	return &booksv1.LibraryResponse{
+		Reading:  protoUserBooks(data.Reading, base),
+		Wishlist: protoUserBooks(data.Wishlist, base),
+		Finished: protoUserBooks(data.Finished, base),
+		Shelves:  protoBookshelves(data.Shelves, base),
+	}, lastSyncedAt, nil
+}
+
+// BuildSharedProgress assembles the reading dashboard's progress-chart
+// payload for a user over the given date range — the exported counterpart
+// used by the dashboard app's public reading dashboard.
+func (app *Books) BuildSharedProgress(
+	ctx context.Context,
+	userID string,
+	dateStart, dateEnd time.Time,
+) (*booksv1.BooksProgressResponse, error) {
+	labels, values, err := app.Services.Progress.GetByDates(
+		ctx,
+		userID,
+		dateStart,
+		dateEnd,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &booksv1.BooksProgressResponse{
+		Labels:    labels,
+		Values:    values,
+		DateStart: dateStart.Format(models.ProgressDateFormat),
+		DateEnd:   dateEnd.Format(models.ProgressDateFormat),
 	}, nil
 }
 

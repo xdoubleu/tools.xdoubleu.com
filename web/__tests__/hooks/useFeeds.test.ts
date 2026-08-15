@@ -34,7 +34,8 @@ import {
   useDeleteFeed,
   useRefreshFeed,
   useUpdateItem,
-  useFeedStats
+  useFeedStats,
+  useFeedsSummary
 } from '@/hooks/useFeeds'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -183,5 +184,44 @@ describe('useFeeds', () => {
     expect(key).toBe(swrKeys.feedStats)
     await fetcher!()
     expect(clientMocks.getFeedStats).toHaveBeenCalledWith({})
+  })
+
+  it('useFeedsSummary queries a small unread-items page and estimates an unread count from stats', async () => {
+    mockUseSWR
+      // @ts-expect-error -- partial SWRResponse is fine for these tests
+      .mockReturnValueOnce({
+        data: { items: [{ title: 'A', sourceUrl: 'u1', publishedAt: 'p1' }] }
+      })
+      // @ts-expect-error -- partial SWRResponse is fine for these tests
+      .mockReturnValueOnce({
+        data: {
+          stats: [
+            { itemCount: 10, readRate: 0.7 },
+            { itemCount: 4, readRate: 0 }
+          ]
+        }
+      })
+
+    const { result } = renderHook(() => useFeedsSummary())
+
+    const [itemsKey, itemsFetcher] = mockUseSWR.mock.calls[0]!
+    expect(itemsKey).toBe(swrKeys.feedsSummary)
+    await itemsFetcher!()
+    expect(clientMocks.listFeedItems).toHaveBeenCalledWith({ limit: 5, unreadOnly: true })
+
+    // unreadCount = round(10*(1-0.7)) + round(4*(1-0)) = 3 + 4
+    expect(result.current.data).toEqual({
+      unreadCount: 7,
+      items: [{ title: 'A', sourceUrl: 'u1', publishedAt: 'p1' }]
+    })
+  })
+
+  it('useFeedsSummary returns undefined data while items have not loaded', () => {
+    // @ts-expect-error -- partial SWRResponse is fine for these tests
+    mockUseSWR.mockReturnValueOnce({ data: undefined }).mockReturnValueOnce({ data: undefined })
+
+    const { result } = renderHook(() => useFeedsSummary())
+
+    expect(result.current.data).toBeUndefined()
   })
 })

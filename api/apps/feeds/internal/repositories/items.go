@@ -207,6 +207,27 @@ func (repo *ItemsRepository) ListByUser(
 	return page, hasMore, nil
 }
 
+// CountUnread returns the number of non-dismissed, successfully ingested,
+// unread items across any of userID's feeds — the reading dashboard's feeds
+// widget shows this alongside a few recent items from ListByUser.
+func (repo *ItemsRepository) CountUnread(
+	ctx context.Context,
+	userID string,
+) (int, error) {
+	var count int
+	err := repo.db.QueryRow(ctx, `
+		SELECT count(*)
+		FROM feeds.items i
+		JOIN feeds.feeds f ON f.id = i.feed_id
+		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
+		  AND i.read_at IS NULL
+	`, userID).Scan(&count)
+	if err != nil {
+		return 0, postgres.PgxErrorToHTTPError(err)
+	}
+	return count, nil
+}
+
 // RecentPublishedAt returns the publish timestamps of the feed's most recent
 // successfully-ingested items, newest first, for the quiet-feed cadence
 // check (issue #799).

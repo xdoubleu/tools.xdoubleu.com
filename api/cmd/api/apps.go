@@ -9,6 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"tools.xdoubleu.com/apps/books"
+	"tools.xdoubleu.com/apps/dashboard"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/mealplans"
@@ -58,16 +59,25 @@ func NewApps(
 	// registers immediately after books because its own migration copies
 	// feed/item data out of books.feeds/books.feed_items/books.books/
 	// books.user_books before dropping the reading-era tables (issue #734)
-	// — those tables must still exist when feeds' migration runs.
+	// — those tables must still exist when feeds' migration runs. dashboard
+	// registers last (it has no migrations of its own) and is constructed
+	// with live references to books/feeds/games, since its public RPCs
+	// delegate to their exported methods instead of duplicating any
+	// business logic or querying their schemas directly (issue #737).
 	booksApp := books.New(authService, logger, cfg, db)
 	apps.addApp(booksApp)
-	apps.addApp(feeds.New(authService, logger, cfg, db, notifications, appUsersRepo))
-	apps.addApp(games.New(authService, logger, cfg, db))
+	feedsApp := feeds.New(authService, logger, cfg, db, notifications, appUsersRepo)
+	apps.addApp(feedsApp)
+	gamesApp := games.New(authService, logger, cfg, db)
+	apps.addApp(gamesApp)
 	apps.addApp(watchparty.New(authService, logger, cfg))
 	apps.addApp(recipes.New(authService, logger, cfg, db))
 	apps.addApp(mealplans.New(authService, logger, cfg, db))
 	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
 	apps.addApp(todos.New(authService, logger, cfg, db))
+	apps.addApp(
+		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
+	)
 
 	return &apps, booksApp
 }

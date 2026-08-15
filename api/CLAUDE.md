@@ -114,11 +114,13 @@ apps/<name>/
 
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress/distribution, favourites, per-user Steam settings. Background sync job + WebSocket live updates. Schema `games` (adopted from the former `backlog` schema).
 - **books** — book library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates. Schema `books`.
+- **feeds** — RSS/Atom and email-relay newsletter subscriptions, standalone from `books` since issue #734. Poll job + Resend inbound-email webhook. Schema `feeds`.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no jobs, own custom domain (`watchparty.xdoubleu.com`).
 - **recipes** — recipe management: fraction parsing, iCal export, whole-recipe-book sharing. Schema `recipes`.
 - **mealplans** — weekly meal planning with per-plan iCal feeds and sharing. Schema `mealplans` (its `plans` tables were adopted from `recipes` via `ALTER TABLE ... SET SCHEMA`).
 - **shoppinglist** — custom items plus meal-plan ingredient aggregation, categories, store-ordered export, sharing. Stores themselves stay private per-user even when the rest of the list is shared. Schema `shoppinglist`.
 - **todos** — task management: sections, workspaces, subtasks, policies, archive, search. Background archive job.
+- **dashboard** — centralizes the public Games and Reading (books+feeds) dashboards, both private/owner and public/shared views, plus the share-token lifecycle (issue #737). No DB, no jobs, like `watchparty`; registers last in `apps.go` since it holds live references to the already-constructed `games`/`books`/`feeds` apps. See "Public Dashboard Sharing" below.
 
 ### Database Conventions
 
@@ -144,15 +146,29 @@ agent close out an issue it just filed a fix for. Auth is MCP OAuth
 Supabase access token), Supabase is the authorization server, and the web
 `/oauth/consent` page drives the approval. See root `README.md` for setup.
 
-### Public Profile Sharing
+### Public Dashboard Sharing
 
-`books.v1.PublicLibraryService` and `games.v1.PublicGamesService` (each
-app's `connect_public.go`) are registered **without** any auth middleware —
-every request carries an opaque share token (`global.profile_shares`, keyed
-by `(user_id, app)`) that resolves to the owning user. Public handlers must
-never read the user-context key, since no middleware sets it. The owner
-manages both apps' tokens independently through `profile.v1.ProfileService`
-(`cmd/api/connect_profile.go`, behind normal `Access`).
+Public dashboard serving is owned entirely by the `dashboard` app (issue
+#737) — `games`/`books` no longer have any public-sharing code of their
+own. `dashboard.v1.PublicGamesDashboardService` and
+`dashboard.v1.PublicReadingDashboardService` (`apps/dashboard/connect_public.go`)
+are registered **without** any auth middleware — every request carries an
+opaque share token (`global.profile_shares`, keyed by `(user_id, app)` where
+`app` is now `'games'`/`'reading'`) that resolves to the owning user. Public
+handlers must never read the user-context key, since no middleware sets it.
+Each handler resolves the token, then delegates to an exported method on the
+live `*games.Games`/`*books.Books`/`*feeds.Feeds` reference `dashboard` was
+constructed with (`BuildSharedSteam`, `BuildSharedLibrary`, `BuildSummary`,
+...) rather than duplicating any business logic — see the Apps list above
+for why this is exported methods, not direct schema reads.
+
+The owner manages both dashboards' tokens (plus their public display name)
+through `dashboard.v1.DashboardService` (`cmd/api/connect_dashboard.go`,
+behind normal `Access` — deliberately **not** gated by `dashboard`'s own
+`AppAccess`, so a user's ability to share their games/reading dashboard
+doesn't depend on a separate `dashboard` app-access grant; see that file's
+doc comment). `dashboard`'s own `Routes()` therefore only ever registers the
+two public services above.
 
 ### Key Libraries
 
