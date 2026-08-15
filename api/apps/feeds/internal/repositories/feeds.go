@@ -76,6 +76,18 @@ func (repo *FeedsRepository) ListAll(ctx context.Context) ([]models.Feed, error)
 	return repo.queryFeeds(ctx, query)
 }
 
+// ListUnhealthy returns every feed currently failing to poll, across all
+// users, for the weekly digest job (issue #1014).
+func (repo *FeedsRepository) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
+	query := `
+		SELECT ` + feedColumns + `
+		FROM feeds.feeds
+		WHERE consecutive_failures > 0
+		ORDER BY user_id, title, url
+	`
+	return repo.queryFeeds(ctx, query)
+}
+
 func (repo *FeedsRepository) queryFeeds(
 	ctx context.Context,
 	query string,
