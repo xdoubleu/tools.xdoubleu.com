@@ -75,6 +75,7 @@ func (worker *Worker) Run(ctx context.Context, logger *slog.Logger) error {
 		worker.isDoingWorkMu.Lock()
 		worker.isDoingWork = false
 		worker.isDoingWorkMu.Unlock()
+		worker.pool.wg.Done()
 	}
 
 	return nil

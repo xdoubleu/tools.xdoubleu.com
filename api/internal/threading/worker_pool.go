@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
+	"sync"
 
 	"tools.xdoubleu.com/internal/sentrytools"
 )
@@ -19,6 +19,17 @@ type WorkerPool struct {
 	logger  *slog.Logger
 	workers []Worker
 	queue   chan DoWork
+	// wg tracks outstanding work so WaitUntilDone can block deterministically
+	// -- IsWorkRemaining (len(queue)>0 || IsDoingWork()) has a window right
+	// after a worker dequeues but before it flips isDoingWork where both are
+	// false even though the work hasn't run yet, letting WaitUntilDone
+	// return early (observed as an intermittent WaitUntilDone-then-assert
+	// failure in notifications tests). A pointer, not a value, because
+	// EventQueue embeds a WorkerPool by value (workerPool WorkerPool) while
+	// each Worker's goroutine holds a *WorkerPool back to the original —
+	// a value sync.WaitGroup would silently split into two independent
+	// counters across that copy the same way a value chan/slice wouldn't.
+	wg *sync.WaitGroup
 }
 
 // NewWorkerPool creates a new [WorkerPool].
@@ -33,6 +44,7 @@ func NewWorkerPool(
 		logger:  logger,
 		workers: make([]Worker, amountWorkers),
 		queue:   make(chan DoWork, queueSize),
+		wg:      &sync.WaitGroup{},
 	}
 
 	pool.createWorkers(amountWorkers)
@@ -76,6 +88,7 @@ func (pool *WorkerPool) Start() {
 
 // EnqueueWork puts an work on the queue.
 func (pool *WorkerPool) EnqueueWork(doWork DoWork) {
+	pool.wg.Add(1)
 	pool.queue <- doWork
 }
 
@@ -84,12 +97,9 @@ func (pool *WorkerPool) IsWorkRemaining() bool {
 	return len(pool.queue) > 0 || pool.IsDoingWork()
 }
 
-// WaitUntilDone blocks until the queue is empty.
+// WaitUntilDone blocks until every enqueued work item has finished running.
 func (pool *WorkerPool) WaitUntilDone() {
-	for pool.IsWorkRemaining() {
-		//nolint:mnd //no magic number
-		time.Sleep(100 * time.Millisecond)
-	}
+	pool.wg.Wait()
 }
 
 // Stop stops all workers.
