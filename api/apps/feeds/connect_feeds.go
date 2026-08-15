@@ -34,14 +34,32 @@ func protoFeed(f models.Feed) *feedsv1.Feed {
 	if f.LastError != nil {
 		lastError = *f.LastError
 	}
+	etag := ""
+	if f.ETag != nil {
+		etag = *f.ETag
+	}
+	lastModified := ""
+	if f.LastModified != nil {
+		lastModified = *f.LastModified
+	}
+	notifiedAt := ""
+	if f.NotifiedAt != nil {
+		notifiedAt = f.NotifiedAt.Format(time.RFC3339)
+	}
+	//nolint:gosec // failure count never approaches int32 range
+	consecutiveFailures := int32(f.ConsecutiveFailures)
 	return &feedsv1.Feed{
-		Id:            f.ID.String(),
-		Url:           f.URL,
-		Title:         f.Title,
-		LastFetchedAt: lastFetched,
-		LastError:     lastError,
-		CreatedAt:     f.CreatedAt.Format(time.RFC3339),
-		SourceType:    f.SourceType,
+		Id:                  f.ID.String(),
+		Url:                 f.URL,
+		Title:               f.Title,
+		LastFetchedAt:       lastFetched,
+		LastError:           lastError,
+		CreatedAt:           f.CreatedAt.Format(time.RFC3339),
+		SourceType:          f.SourceType,
+		Etag:                etag,
+		LastModified:        lastModified,
+		ConsecutiveFailures: consecutiveFailures,
+		NotifiedAt:          notifiedAt,
 	}
 }
 
