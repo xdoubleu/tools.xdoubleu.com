@@ -101,6 +101,9 @@
   minimumReleaseAge: '3 days',
   internalChecksFilter: 'strict',
   constraintsFiltering: 'strict',
+  // Only rebase on actual conflicts, not every time main moves — avoids
+  // re-triggering CI (and a stale-failure email) on every unrelated merge (#1016)
+  rebaseWhen: 'conflicted',
   automerge: true,
   automergeType: 'pr',
   platformAutomerge: true,
