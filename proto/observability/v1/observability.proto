@@ -15,6 +15,8 @@ service ObservabilityService {
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
+  rpc GetSlowTransactions(GetSlowTransactionsRequest)
+      returns (GetSlowTransactionsResponse);
   rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
   // Server-streaming: each component's log is sent as soon as it resolves,
   // rather than one response after every component finishes, so the first
@@ -173,6 +175,40 @@ message ResolveSentryIssueRequest {
 }
 
 message ResolveSentryIssueResponse {}
+
+// SlowTransaction is one transaction's (an API endpoint or a frontend
+// page/route) p95 duration + request count over the last 24h, sourced live
+// from Sentry.
+message SlowTransaction {
+  string transaction = 1;
+  string project = 2;
+  double p95_duration_ms = 3;
+  int64 request_count = 4;
+}
+
+// TransactionTrend flags a transaction whose p95 duration is regressing:
+// recent_avg_p95_ms vs prior_avg_p95_ms are averages over two adjacent
+// historical windows, and pct_change is the increase between them.
+message TransactionTrend {
+  string transaction = 1;
+  string project = 2;
+  double prior_avg_p95_ms = 3;
+  double recent_avg_p95_ms = 4;
+  double pct_change = 5;
+}
+
+message GetSlowTransactionsRequest {}
+
+// GetSlowTransactionsResponse carries both views: current is live from
+// Sentry (configured is false when no Sentry org/project/token is set —
+// current is degraded, empty). trending is computed from stored history
+// and populated independently of configured — it still reports past
+// regressions even when Sentry is unreachable right now.
+message GetSlowTransactionsResponse {
+  repeated SlowTransaction current = 1;
+  bool configured = 2;
+  repeated TransactionTrend trending = 3;
+}
 
 message GetDeployStatusRequest {}
 

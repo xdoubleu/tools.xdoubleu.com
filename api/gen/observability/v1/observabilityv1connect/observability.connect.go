@@ -57,6 +57,9 @@ const (
 	// ObservabilityServiceResolveSentryIssueProcedure is the fully-qualified name of the
 	// ObservabilityService's ResolveSentryIssue RPC.
 	ObservabilityServiceResolveSentryIssueProcedure = "/observability.v1.ObservabilityService/ResolveSentryIssue"
+	// ObservabilityServiceGetSlowTransactionsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetSlowTransactions RPC.
+	ObservabilityServiceGetSlowTransactionsProcedure = "/observability.v1.ObservabilityService/GetSlowTransactions"
 	// ObservabilityServiceGetDeployStatusProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDeployStatus RPC.
 	ObservabilityServiceGetDeployStatusProcedure = "/observability.v1.ObservabilityService/GetDeployStatus"
@@ -90,6 +93,7 @@ type ObservabilityServiceClient interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
+	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	// Server-streaming: each component's log is sent as soon as it resolves,
 	// rather than one response after every component finishes, so the first
@@ -163,6 +167,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("ResolveSentryIssue")),
 			connect.WithClientOptions(opts...),
 		),
+		getSlowTransactions: connect.NewClient[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetSlowTransactionsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
+			connect.WithClientOptions(opts...),
+		),
 		getDeployStatus: connect.NewClient[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetDeployStatusProcedure,
@@ -218,6 +228,7 @@ type observabilityServiceClient struct {
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	resolveSentryIssue        *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
+	getSlowTransactions       *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
 	getDeployStatus           *connect.Client[v1.GetDeployStatusRequest, v1.GetDeployStatusResponse]
 	getDeployLogs             *connect.Client[v1.GetDeployLogsRequest, v1.ObservabilityServiceGetDeployLogsResponse]
 	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
@@ -267,6 +278,11 @@ func (c *observabilityServiceClient) ResolveSentryIssue(ctx context.Context, req
 	return c.resolveSentryIssue.CallUnary(ctx, req)
 }
 
+// GetSlowTransactions calls observability.v1.ObservabilityService.GetSlowTransactions.
+func (c *observabilityServiceClient) GetSlowTransactions(ctx context.Context, req *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
+	return c.getSlowTransactions.CallUnary(ctx, req)
+}
+
 // GetDeployStatus calls observability.v1.ObservabilityService.GetDeployStatus.
 func (c *observabilityServiceClient) GetDeployStatus(ctx context.Context, req *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error) {
 	return c.getDeployStatus.CallUnary(ctx, req)
@@ -313,6 +329,7 @@ type ObservabilityServiceHandler interface {
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
+	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	// Server-streaming: each component's log is sent as soon as it resolves,
 	// rather than one response after every component finishes, so the first
@@ -382,6 +399,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("ResolveSentryIssue")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetSlowTransactionsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetSlowTransactionsProcedure,
+		svc.GetSlowTransactions,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	observabilityServiceGetDeployStatusHandler := connect.NewUnaryHandler(
 		ObservabilityServiceGetDeployStatusProcedure,
 		svc.GetDeployStatus,
@@ -442,6 +465,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetSentryIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceResolveSentryIssueProcedure:
 			observabilityServiceResolveSentryIssueHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetSlowTransactionsProcedure:
+			observabilityServiceGetSlowTransactionsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDeployStatusProcedure:
 			observabilityServiceGetDeployStatusHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDeployLogsProcedure:
@@ -495,6 +520,10 @@ func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context,
 
 func (UnimplementedObservabilityServiceHandler) ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.ResolveSentryIssue is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetSlowTransactions is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error) {

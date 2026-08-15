@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sort"
 	"time"
 
 	"connectrpc.com/connect"
@@ -13,6 +14,11 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
+
+// currentSlowTransactionsLimit caps how many transactions GetSlowTransactions'
+// "current" (live) section returns — the slowest ones are what the dashboard
+// card actually shows.
+const currentSlowTransactionsLimit = 20
 
 // These handlers surface the three external observability signals. Each GUARDS
 // its source: an unset token yields configured=false and an upstream failure is
@@ -151,6 +157,95 @@ func (h *obsConnectHandler) resolveSentryIssue(
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return &observabilityv1.ResolveSentryIssueResponse{}, nil
+}
+
+func (h *obsConnectHandler) GetSlowTransactions(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetSlowTransactionsRequest],
+) (*connect.Response[observabilityv1.GetSlowTransactionsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.slowTransactions(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// slowTransactions combines two independent sections: current is live from
+// Sentry (guarded the same way sentryIssues/failingPullRequests are — an
+// unset token yields configured=false, an upstream failure is logged and
+// downgraded to an empty section), and trending is computed from stored
+// history (global.transaction_latency_daily), fetched regardless of whether
+// Sentry is currently reachable so past regressions stay visible.
+func (h *obsConnectHandler) slowTransactions(
+	ctx context.Context,
+) (*observabilityv1.GetSlowTransactionsResponse, error) {
+	resp := &observabilityv1.GetSlowTransactionsResponse{
+		Current:    []*observabilityv1.SlowTransaction{},
+		Configured: true,
+		Trending:   []*observabilityv1.TransactionTrend{},
+	}
+
+	stats, err := h.app.sentryClient.ListTransactionStats(ctx)
+	if err != nil {
+		if errors.Is(err, sentryapi.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "slow transactions unavailable",
+				slog.Any("error", err))
+		}
+	} else {
+		resp.Current = protoSlowTransactions(stats)
+	}
+
+	trends, err := h.app.transactionLatencyRepo.Trends(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	protoTrends := make([]*observabilityv1.TransactionTrend, len(trends))
+	for i, t := range trends {
+		protoTrends[i] = &observabilityv1.TransactionTrend{
+			Transaction:    t.Transaction,
+			Project:        t.Project,
+			PriorAvgP95Ms:  t.PriorAvgP95Ms,
+			RecentAvgP95Ms: t.RecentAvgP95Ms,
+			PctChange:      t.PctChange,
+		}
+	}
+	resp.Trending = protoTrends
+
+	return resp, nil
+}
+
+// protoSlowTransactions sorts stats slowest-first and caps it to
+// currentSlowTransactionsLimit — ListTransactionStats returns a broad
+// sample (not necessarily pre-sorted after project filtering), this is the
+// "current" view's own ordering.
+func protoSlowTransactions(
+	stats []sentryapi.TransactionStat,
+) []*observabilityv1.SlowTransaction {
+	sorted := make([]sentryapi.TransactionStat, len(stats))
+	copy(sorted, stats)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].P95DurationMs > sorted[j].P95DurationMs
+	})
+	if len(sorted) > currentSlowTransactionsLimit {
+		sorted = sorted[:currentSlowTransactionsLimit]
+	}
+
+	protoStats := make([]*observabilityv1.SlowTransaction, len(sorted))
+	for i, s := range sorted {
+		protoStats[i] = &observabilityv1.SlowTransaction{
+			Transaction:   s.Transaction,
+			Project:       s.Project,
+			P95DurationMs: s.P95DurationMs,
+			RequestCount:  s.RequestCount,
+		}
+	}
+	return protoStats
 }
 
 func (h *obsConnectHandler) GetDeployStatus(

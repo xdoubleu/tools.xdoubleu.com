@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -50,6 +51,10 @@ const (
 	// cacheTTL is how long a fetched issue list is served from memory before
 	// the next call re-fetches.
 	cacheTTL = 45 * time.Second
+	// transactionStatsPerPage caps how many distinct transactions Sentry's
+	// Discover API returns per call — comfortably above this app's real
+	// route count, so no pagination is needed.
+	transactionStatsPerPage = 100
 )
 
 // configStore is the subset of *repositories.OAuthConnectionsRepository used
@@ -76,6 +81,10 @@ type client struct {
 	mu       sync.Mutex
 	cached   []Issue
 	cachedAt time.Time
+
+	statsMu       sync.Mutex
+	cachedStats   []TransactionStat
+	cachedStatsAt time.Time
 }
 
 // New creates a Sentry API client. tokenFn resolves a live OAuth bearer
@@ -118,6 +127,33 @@ func (c *client) ListUnresolvedIssues(ctx context.Context) ([]Issue, error) {
 
 	c.store(issues)
 	return issues, nil
+}
+
+func (c *client) ListTransactionStats(ctx context.Context) ([]TransactionStat, error) {
+	cfg, err := c.resolveConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached, ok := c.cachedTransactionStats(); ok {
+		return cached, nil
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	stats, err := c.fetchTransactionStats(ctx, token, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	c.storeTransactionStats(stats)
+	return stats, nil
 }
 
 // ResolveIssue marks the given issue as resolved. Sentry's issue-detail
@@ -218,6 +254,80 @@ func (c *client) store(issues []Issue) {
 	defer c.mu.Unlock()
 	c.cached = issues
 	c.cachedAt = time.Now()
+}
+
+func (c *client) cachedTransactionStats() ([]TransactionStat, bool) {
+	c.statsMu.Lock()
+	defer c.statsMu.Unlock()
+	if c.cachedStats != nil && time.Since(c.cachedStatsAt) < cacheTTL {
+		return c.cachedStats, true
+	}
+	return nil, false
+}
+
+func (c *client) storeTransactionStats(stats []TransactionStat) {
+	c.statsMu.Lock()
+	defer c.statsMu.Unlock()
+	c.cachedStats = stats
+	c.cachedStatsAt = time.Now()
+}
+
+// eventsResponse is the envelope Sentry's org-level Events (Discover) API
+// wraps its rows in.
+type eventsResponse struct {
+	Data []transactionStatWire `json:"data"`
+}
+
+// fetchTransactionStats queries Sentry's org-level Events (Discover) API
+// for p95 duration + request count per transaction over the last 24h, one
+// call covering every project the org grants access to, then keeps only
+// the rows belonging to the admin-picked projects (mirrors fetchAll's
+// per-project tagging for issues, but as a single request since the
+// Discover endpoint is org-scoped, not per-project).
+func (c *client) fetchTransactionStats(
+	ctx context.Context, token string, cfg projectsConfig,
+) ([]TransactionStat, error) {
+	endpoint := fmt.Sprintf(
+		"%s/api/0/organizations/%s/events/?%s",
+		baseURL, cfg.Org, transactionStatsQuery(),
+	)
+
+	var resp eventsResponse
+	if err := c.get(ctx, endpoint, token, &resp); err != nil {
+		return nil, err
+	}
+
+	allowed := make(map[string]bool, len(cfg.Projects))
+	for _, p := range cfg.Projects {
+		allowed[p] = true
+	}
+
+	stats := make([]TransactionStat, 0, len(resp.Data))
+	for _, w := range resp.Data {
+		if !allowed[w.Project] {
+			continue
+		}
+		stats = append(stats, w.toTransactionStat())
+	}
+	return stats, nil
+}
+
+// transactionStatsQuery builds the Discover query string: p95 duration and
+// request count per transaction, sorted slowest-first, over the last 24h.
+func transactionStatsQuery() string {
+	params := url.Values{
+		"field": {
+			"transaction",
+			"project",
+			"p95(transaction.duration)",
+			"count()",
+		},
+		"query":       {"event.type:transaction"},
+		"sort":        {"-p95(transaction.duration)"},
+		"statsPeriod": {"24h"},
+		"per_page":    {strconv.Itoa(transactionStatsPerPage)},
+	}
+	return params.Encode()
 }
 
 func (c *client) fetch(

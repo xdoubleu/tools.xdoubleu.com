@@ -35,4 +35,10 @@ type Client interface {
 	// ListProjects returns the projects within org visible to the connected
 	// account, for the admin config picker.
 	ListProjects(ctx context.Context, org string) ([]Project, error)
+	// ListTransactionStats returns p95 duration + request count over the
+	// last 24h for transactions (API endpoints/frontend pages) on the
+	// configured projects, sourced from Sentry's org-level Events
+	// (Discover) API. Returns ErrNotConfigured when org/project/token is
+	// unset.
+	ListTransactionStats(ctx context.Context) ([]TransactionStat, error)
 }
