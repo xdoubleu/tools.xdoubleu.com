@@ -25,9 +25,10 @@ func (a *Dashboard) Routes(_ string, mux *http.ServeMux) {
 	)
 	mux.Handle("POST "+gamesPath, gamesHandler)
 
-	readingPath, readingHandler := dashboardv1connect.NewPublicReadingDashboardServiceHandler(
-		handler,
-		scrub,
-	)
+	readingPath, readingHandler := dashboardv1connect.
+		NewPublicReadingDashboardServiceHandler(
+			handler,
+			scrub,
+		)
 	mux.Handle("POST "+readingPath, readingHandler)
 }
