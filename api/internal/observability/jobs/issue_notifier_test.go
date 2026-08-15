@@ -44,6 +44,12 @@ func (f fakeSentryClient) ListProjects(
 	return nil, nil
 }
 
+func (f fakeSentryClient) ListTransactionStats(
+	_ context.Context,
+) ([]sentryapi.TransactionStat, error) {
+	return nil, nil
+}
+
 func sentryIssue(id, title string) sentryapi.Issue {
 	return sentryapi.Issue{
 		ID:        id,

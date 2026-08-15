@@ -113,10 +113,11 @@ pulled in as context for testing/verifying changes. Every app tool wraps an
 existing **read** RPC of an app (games, books, recipes, mealplans,
 shoppinglist, todos, icsproxy) — no per-app tool ever mutates. App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
-`todos_list_tasks`); the 9 observability tools are unprefixed
+`todos_list_tasks`); the 10 observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_sentry_issues`,
-`resolve_sentry_issue`, `get_deploy_status`, `get_deploy_logs`). One of those,
+`resolve_sentry_issue`, `get_deploy_status`, `get_deploy_logs`,
+`get_slow_transactions`). One of those,
 `resolve_sentry_issue`, is a deliberate exception to read-only: it marks a
 Sentry issue resolved, so an admin-authenticated agent can close out an issue
 it just filed a fix for.

@@ -12,6 +12,7 @@ import {
   useDatabaseStats,
   useFailingPullRequests,
   useSentryIssues,
+  useSlowTransactions,
   useDeployStatus,
   useOAuthConnections
 } from '@/hooks/useMonitoring'
@@ -23,6 +24,7 @@ import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
 import SentryCard from './SentryCard'
+import SlowTransactionsCard from './SlowTransactionsCard'
 import DeployCard from './DeployCard'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
 
@@ -39,6 +41,7 @@ export default function ObservabilityClient() {
   const databaseStats = useDatabaseStats()
   const failingPullRequests = useFailingPullRequests()
   const sentryIssues = useSentryIssues()
+  const slowTransactions = useSlowTransactions()
   const deployStatus = useDeployStatus()
   const oauthConnections = useOAuthConnections()
 
@@ -51,6 +54,7 @@ export default function ObservabilityClient() {
       databaseStats.mutate(),
       failingPullRequests.mutate(),
       sentryIssues.mutate(),
+      slowTransactions.mutate(),
       deployStatus.mutate(),
       oauthConnections.mutate()
     ])
@@ -138,6 +142,7 @@ export default function ObservabilityClient() {
         <UsageCard data={usageStats.data} />
         <FailingPullRequestsCard data={failingPullRequests.data} />
         <SentryCard data={sentryIssues.data} />
+        <SlowTransactionsCard data={slowTransactions.data} />
         <DeployCard data={deployStatus.data} />
         <OAuthConnectionsCard data={oauthConnections.data} />
       </div>

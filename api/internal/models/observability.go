@@ -54,3 +54,15 @@ type SchemaStats struct {
 	SizeBytes  int64
 	TableCount int64
 }
+
+// TransactionTrend flags a transaction (API endpoint or frontend page)
+// whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
+// global.transaction_latency_daily rows over two adjacent windows, and
+// PctChange is the increase from the former to the latter.
+type TransactionTrend struct {
+	Transaction    string
+	Project        string
+	PriorAvgP95Ms  float64
+	RecentAvgP95Ms float64
+	PctChange      float64
+}
