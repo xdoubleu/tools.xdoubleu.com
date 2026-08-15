@@ -11,7 +11,6 @@ import (
 	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
-	"tools.xdoubleu.com/apps/icsproxy"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
@@ -65,7 +64,6 @@ func NewApps(
 	apps.addApp(feeds.New(authService, logger, cfg, db, notifications, appUsersRepo))
 	apps.addApp(games.New(authService, logger, cfg, db))
 	apps.addApp(watchparty.New(authService, logger, cfg))
-	apps.addApp(icsproxy.New(authService, logger, cfg, db))
 	apps.addApp(recipes.New(authService, logger, cfg, db))
 	apps.addApp(mealplans.New(authService, logger, cfg, db))
 	apps.addApp(shoppinglist.New(authService, logger, cfg, db))

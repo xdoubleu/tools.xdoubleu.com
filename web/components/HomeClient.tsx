@@ -70,12 +70,6 @@ const ALL_APPS: AppLink[] = [
     href: '/watchparty',
     description: 'WebRTC screen sharing'
   },
-  {
-    name: 'icsproxy',
-    label: 'ICS Proxy',
-    href: '/icsproxy',
-    description: 'Calendar feed filtering'
-  },
   { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
   { name: 'contacts', label: 'Contacts', href: '/contacts', description: 'Manage contacts' },
   {
@@ -103,7 +97,7 @@ const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Productivity', names: ['games', 'books', 'feeds', 'todos'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
-  { title: 'Tools', names: ['watchparty', 'icsproxy'] },
+  { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
   { title: 'Admin', names: ['user-management', 'monitoring'] }
 ]

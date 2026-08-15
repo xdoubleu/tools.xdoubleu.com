@@ -17,7 +17,6 @@ describe('swrKeys', () => {
     expect(swrKeys.games).toBe('/games')
     expect(swrKeys.gamesRecent).toBe('/games/recent')
     expect(swrKeys.gamesIntegrations).toBe('/games/integrations')
-    expect(swrKeys.icsFeeds).toBe('/icsproxy')
     expect(swrKeys.mealPlans).toBe('/mealplans')
     expect(swrKeys.recipes).toBe('/recipes')
     expect(swrKeys.recipeBookShares).toBe('/recipes/book-shares')
@@ -38,10 +37,6 @@ describe('swrKeys', () => {
     expect(swrKeys.game(7)).toBe('/games/7')
     expect(swrKeys.gamesDistribution(3)).toBe('/games/distribution/3')
     expect(swrKeys.gamesProgress('a', 'b')).toEqual(['/games/progress', 'a', 'b'])
-    expect(swrKeys.icsPreview('https://x.test/a b')).toBe(
-      '/icsproxy/preview?url=https%3A%2F%2Fx.test%2Fa%20b'
-    )
-    expect(swrKeys.icsConfig('tok')).toBe('/icsproxy/tok')
     expect(swrKeys.mealPlan('p1', 2)).toBe('/mealplans/p1?offset=2')
     expect(swrKeys.mealSuggestions('p1', '2026-07-04', 'dinner')).toBe(
       '/mealplans/p1/suggest?d=2026-07-04&s=dinner'
