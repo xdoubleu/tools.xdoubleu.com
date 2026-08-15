@@ -32,6 +32,12 @@ export function safeNext(): string {
 
 const ALL_APPS: AppLink[] = [
   {
+    name: 'dashboard',
+    label: 'Dashboards',
+    href: '/dashboard',
+    description: 'Steam backlog and book library, side by side.'
+  },
+  {
     name: 'games',
     label: 'Games',
     href: '/dashboard/games',
@@ -95,14 +101,14 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Productivity', names: ['games', 'books', 'feeds', 'todos'] },
+  { title: 'Productivity', names: ['dashboard', 'games', 'books', 'feeds', 'todos'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
   { title: 'Admin', names: ['user-management', 'monitoring'] }
 ]
 
-const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing'])
+const ALWAYS_VISIBLE = new Set(['dashboard', 'settings', 'contacts', 'sharing'])
 const ADMIN_ONLY = new Set(['user-management', 'monitoring'])
 
 export default function HomeClient() {
