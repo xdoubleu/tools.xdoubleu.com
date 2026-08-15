@@ -257,6 +257,7 @@ func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
 	doClient digitalocean.Client,
+	githubClient github.Client,
 	notificationsSvc *notifications.Service,
 ) (
 	*jobs.IssueNotifierJob,
@@ -265,7 +266,7 @@ func newCrossAppJobs(
 ) {
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, doClient, notificationsSvc, notifiedIssuesRepo,
+		sentryClient, doClient, githubClient, notificationsSvc, notifiedIssuesRepo,
 	)
 
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
@@ -336,7 +337,7 @@ func NewApplication(
 	)
 
 	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
-		newCrossAppJobs(db, sentryClient, doClient, notificationsSvc)
+		newCrossAppJobs(db, sentryClient, doClient, githubClient, notificationsSvc)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{

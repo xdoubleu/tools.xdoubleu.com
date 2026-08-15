@@ -174,10 +174,20 @@ func (c *client) fetchFailingPullRequests(
 			URL:           w.HTMLURL,
 			Author:        w.User.Login,
 			UpdatedAt:     w.UpdatedAt,
+			HeadSHA:       w.Head.SHA,
+			Labels:        labelNames(w.Labels),
 			FailingChecks: checks,
 		})
 	}
 	return prs, nil
+}
+
+func labelNames(labels []labelWire) []string {
+	names := make([]string, len(labels))
+	for i, l := range labels {
+		names[i] = l.Name
+	}
+	return names
 }
 
 // fetchFailingChecks returns the non-passing, completed check runs on sha.
@@ -297,6 +307,13 @@ func backoffDelay(attempt int) time.Duration {
 func isRetryableStatus(status int) bool {
 	return status == http.StatusTooManyRequests ||
 		(status >= http.StatusInternalServerError && status < 600)
+}
+
+// IsTransientAPIError reports whether err is a known-benign, self-healing
+// failure (a timeout) rather than a real bug, so callers polling on an
+// interval can log it at a lower level than a persistent failure.
+func IsTransientAPIError(err error) bool {
+	return isTransientErr(err)
 }
 
 func isTransientErr(err error) bool {

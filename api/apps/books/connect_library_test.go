@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -185,17 +186,23 @@ func TestConnectSearchLibrary_TitleAndAuthorNarrows(t *testing.T) {
 	assert.Empty(t, resp.Msg.Books)
 }
 
+// TestConnectSearchLibrary_Pagination scopes its fixture titles with a
+// per-run unique token so the exact-count assertions below can't be thrown
+// off by another test's books that happen to also match a generic
+// "PaginatedBook"-style substring (all books share the same test userID and
+// nothing resets the library between tests in this package).
 func TestConnectSearchLibrary_Pagination(t *testing.T) {
-	addTestBookNoISBN(t, "PaginatedBookOne")
-	addTestBookNoISBN(t, "PaginatedBookTwo")
-	addTestBookNoISBN(t, "PaginatedBookThree")
+	prefix := "PaginatedBook-" + uuid.NewString()
+	addTestBookNoISBN(t, prefix+"-One")
+	addTestBookNoISBN(t, prefix+"-Two")
+	addTestBookNoISBN(t, prefix+"-Three")
 
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	firstPage := connect.NewRequest(&booksv1.SearchLibraryRequest{
-		Query: "PaginatedBook",
+		Query: prefix,
 		Limit: 2,
 	})
 	firstPage.Header().Set("Cookie", accessToken.String())
@@ -205,7 +212,7 @@ func TestConnectSearchLibrary_Pagination(t *testing.T) {
 	assert.True(t, resp.Msg.HasMore)
 
 	secondPage := connect.NewRequest(&booksv1.SearchLibraryRequest{
-		Query:  "PaginatedBook",
+		Query:  prefix,
 		Limit:  2,
 		Offset: 2,
 	})
