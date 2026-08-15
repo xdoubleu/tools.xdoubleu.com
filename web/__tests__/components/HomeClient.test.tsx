@@ -427,6 +427,57 @@ describe('HomeClient', () => {
     })
   })
 
+  it('redirects via safeNext instead of rendering the app grid when session recovers passively with a next param present (#1009)', async () => {
+    window.history.pushState({}, '', '/auth/sign-in?next=%2Fsettings')
+
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: undefined
+    })
+
+    const { rerender } = render(<HomeClient />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+    rerender(<HomeClient />)
+
+    // jsdom's `window.location` is non-configurable, so the actual
+    // `window.location.href = safeNext()` navigation can't be spied on here;
+    // instead assert the observable effect: the code took the early-return
+    // branch and never called setAuthState('authenticated'), so the app grid
+    // never renders (it stays on the loading state rather than the home page).
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Account' })).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+
+    window.history.pushState({}, '', '/')
+  })
+
+  it('renders the app grid (not a redirect) when session recovers passively with no next param', async () => {
+    window.history.pushState({}, '', '/')
+
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseSettings.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+
+    render(<HomeClient />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Account' })).toBeInTheDocument()
+    })
+  })
+
   it('shows MFA challenge UI when needsMfa is true', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseSettings.mockReturnValue({

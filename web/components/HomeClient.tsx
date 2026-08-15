@@ -131,6 +131,13 @@ export default function HomeClient() {
   useEffect(() => {
     if (!isLoading) {
       if (data) {
+        if (
+          typeof window !== 'undefined' &&
+          new URLSearchParams(window.location.search).has('next')
+        ) {
+          window.location.href = safeNext()
+          return
+        }
         setAuthState('authenticated')
       } else if (error) {
         setAuthState((prev) => (prev === 'mfa-challenge' ? prev : 'unauthenticated'))

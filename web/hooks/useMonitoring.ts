@@ -13,6 +13,7 @@ import type {
   GetDatabaseStatsResponse,
   GetFailingPullRequestsResponse,
   GetSentryIssuesResponse,
+  GetSlowTransactionsResponse,
   GetDeployStatusResponse,
   DeployComponentLog,
   ObservabilityServiceGetDeployLogsResponse,
@@ -84,6 +85,13 @@ export function useResolveSentryIssue() {
       await mutate(swrKeys.monitoringSentryIssues)
     },
     [client]
+  )
+}
+
+export function useSlowTransactions() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetSlowTransactionsResponse, Error>(swrKeys.monitoringSlowTransactions, () =>
+    client.getSlowTransactions({})
   )
 }
 

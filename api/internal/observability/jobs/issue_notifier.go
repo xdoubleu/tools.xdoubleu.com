@@ -7,14 +7,23 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"tools.xdoubleu.com/internal/digitalocean"
+	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
+
+// dependenciesLabel is the label Renovate sets on every PR it opens (see
+// renovate.json5). Only these are notified on: a PR a user or a Claude Code
+// session opened already has someone actively driving it to green (issue
+// #915) — notifying on every failing PR here would just be noise on top of
+// that.
+const dependenciesLabel = "dependencies"
 
 // deploymentErrorPhase is the DigitalOcean deployment phase treated as the
 // DO equivalent of a "new issue" — there is no issue tracker on that side,
@@ -34,17 +43,24 @@ type notifiedRepo interface {
 	Insert(ctx context.Context, key string) error
 }
 
+// failingPRLister is the subset of github.Client this job needs.
+type failingPRLister interface {
+	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
+}
+
 // IssueNotifierJob emails an admin (via notifications.Service) the first
-// time a Sentry issue or a failed DigitalOcean deployment is seen (issue
-// #561). Either provider being unconfigured degrades that half silently
-// instead of failing the whole run, matching how the /monitoring dashboard
-// already treats sentryapi.ErrNotConfigured/digitalocean.ErrNotConfigured.
-// The actual email delivery is queued on notifications rather than sent
-// inline, so a slow/rate-limited Resend call never blocks this job's
-// worker (issue #923).
+// time a Sentry issue, a failed DigitalOcean deployment (issue #561), or a
+// failing "dependencies"-labeled pull request (issue #915) is seen. Any
+// provider being unconfigured degrades that part silently instead of
+// failing the whole run, matching how the /monitoring dashboard already
+// treats sentryapi.ErrNotConfigured/digitalocean.ErrNotConfigured/
+// github.ErrNotConfigured. The actual email delivery is queued on
+// notifications rather than sent inline, so a slow/rate-limited Resend call
+// never blocks this job's worker (issue #923).
 type IssueNotifierJob struct {
 	sentry        sentryapi.Client
 	do            digitalocean.Client
+	gh            failingPRLister
 	notifications *notifications.Service
 	notified      notifiedRepo
 }
@@ -52,12 +68,14 @@ type IssueNotifierJob struct {
 func NewIssueNotifierJob(
 	sentry sentryapi.Client,
 	do digitalocean.Client,
+	gh failingPRLister,
 	notifications *notifications.Service,
 	notified notifiedRepo,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
 		sentry:        sentry,
 		do:            do,
+		gh:            gh,
 		notifications: notifications,
 		notified:      notified,
 	}
@@ -75,7 +93,10 @@ func (j *IssueNotifierJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if err := j.notifySentry(ctx, logger); err != nil {
 		return err
 	}
-	return j.notifyDigitalOcean(ctx, logger)
+	if err := j.notifyDigitalOcean(ctx, logger); err != nil {
+		return err
+	}
+	return j.notifyGithub(ctx, logger)
 }
 
 func (j *IssueNotifierJob) notifySentry(
@@ -131,6 +152,54 @@ func (j *IssueNotifierJob) notifyDigitalOcean(
 		deployment.Cause,
 	)
 	return j.notifyOnce(ctx, key, subject, body)
+}
+
+// notifyGithub emails an admin the first time a "dependencies"-labeled pull
+// request is seen with a failing CI check on its current head commit. The
+// dedup key includes the head SHA (not just the PR number) so a re-push —
+// Renovate rebasing, or a fix landing and then failing differently — is
+// notified again, mirroring how notifyDigitalOcean keys on deployment ID
+// rather than a static "the deploy failed" key.
+func (j *IssueNotifierJob) notifyGithub(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
+	prs, err := j.gh.ListFailingPullRequests(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return nil
+	}
+	if err != nil {
+		logAPIErr(ctx, logger, "issue-notifier: failed to list failing pull requests",
+			err, github.IsTransientAPIError(err))
+		return nil
+	}
+
+	for _, pr := range prs {
+		if !pr.HasLabel(dependenciesLabel) {
+			continue
+		}
+
+		key := fmt.Sprintf("github:pr:%d:%s", pr.Number, pr.HeadSHA)
+		subject := fmt.Sprintf("[GitHub] Dependency PR #%d failing CI", pr.Number)
+		body := fmt.Sprintf(
+			"%s\n%s\n\nFailing checks: %s",
+			pr.Title, pr.URL, failingCheckNames(pr.FailingChecks),
+		)
+		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// failingCheckNames renders a pull request's failing checks as a
+// comma-separated "name (conclusion)" list for the notification body.
+func failingCheckNames(checks []github.FailingCheck) string {
+	names := make([]string, len(checks))
+	for i, c := range checks {
+		names[i] = fmt.Sprintf("%s (%s)", c.Name, c.Conclusion)
+	}
+	return strings.Join(names, ", ")
 }
 
 // logAPIErr logs a poll failure at Warn (transient, self-heals on the next

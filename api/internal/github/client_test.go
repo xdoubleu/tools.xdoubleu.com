@@ -125,6 +125,38 @@ func TestListFailingPullRequests_ReturnsOnlyPRsWithFailingChecks(t *testing.T) {
 	assert.Equal(t, "failure", prs[0].FailingChecks[0].Conclusion)
 }
 
+func TestListFailingPullRequests_CapturesLabelsAndHeadSHA(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/" + testRepo + "/pulls":
+				_, _ = w.Write([]byte(`[
+					{"number":1,"title":"Bump foo","html_url":"https://gh/pr/1",
+					 "updated_at":"2026-07-01T10:00:00Z",
+					 "user":{"login":"renovate[bot]"},"head":{"sha":"sha1"},
+					 "labels":[{"name":"dependencies"},{"name":"go"}]}
+				]`))
+			case "/repos/" + testRepo + "/commits/sha1/check-runs":
+				_, _ = w.Write([]byte(`{"check_runs":[
+					{"name":"ci-pass","status":"completed","conclusion":"failure",
+					 "html_url":"https://gh/checks/1"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	defer cleanup()
+
+	prs, err := newClient().ListFailingPullRequests(context.Background())
+	require.NoError(t, err)
+	require.Len(t, prs, 1)
+	assert.Equal(t, "sha1", prs[0].HeadSHA)
+	assert.Equal(t, []string{"dependencies", "go"}, prs[0].Labels)
+	assert.True(t, prs[0].HasLabel("dependencies"))
+	assert.False(t, prs[0].HasLabel("bug"))
+}
+
 func TestListFailingPullRequests_CheckRunsUpstreamError(t *testing.T) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -241,6 +273,33 @@ func TestListFailingPullRequests_ServerError_Retries(t *testing.T) {
 	_, err := newClient().ListFailingPullRequests(context.Background())
 	require.Error(t, err)
 	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
+}
+
+func TestIsTransientAPIError_Timeout(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) {
+			time.Sleep(50 * time.Millisecond)
+		}))
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	defer cancel()
+
+	_, err := newClient().ListFailingPullRequests(ctx)
+	require.Error(t, err)
+	assert.True(t, github.IsTransientAPIError(err))
+}
+
+func TestIsTransientAPIError_ServerError(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListFailingPullRequests(context.Background())
+	require.Error(t, err)
+	assert.False(t, github.IsTransientAPIError(err))
 }
 
 func jsonHandler(status int, body string) http.Handler {

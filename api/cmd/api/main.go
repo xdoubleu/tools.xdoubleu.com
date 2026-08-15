@@ -41,28 +41,30 @@ import (
 var globalMigrations embed.FS
 
 type Application struct {
-	ctx               context.Context
-	logger            *slog.Logger
-	config            config.Config
-	db                *pgxpool.Pool
-	auth              *auth.GoTrueService
-	contacts          contacts.Service
-	apps              *Apps
-	booksApp          storageScanRunner
-	appUsersRepo      *repositories.AppUsersRepository
-	profileSharesRepo *repositories.ProfileSharesRepository
-	usage             *observability.UsageRecorder
-	jobRunsRepo       *repositories.JobRunsRepository
-	usageRepo         *repositories.UsageRepository
-	storageRepo       *repositories.StorageSnapshotsRepository
-	dbStatsRepo       *repositories.DBStatsRepository
-	githubClient      github.Client
-	sentryClient      sentryapi.Client
-	doClient          digitalocean.Client
-	oauthConnRepo     *repositories.OAuthConnectionsRepository
-	oauthState        *oauthconn.StateStore
-	issueNotifierJob  *jobs.IssueNotifierJob
-	globalJobQueue    *jobqueue.JobQueue
+	ctx                           context.Context
+	logger                        *slog.Logger
+	config                        config.Config
+	db                            *pgxpool.Pool
+	auth                          *auth.GoTrueService
+	contacts                      contacts.Service
+	apps                          *Apps
+	booksApp                      storageScanRunner
+	appUsersRepo                  *repositories.AppUsersRepository
+	profileSharesRepo             *repositories.ProfileSharesRepository
+	usage                         *observability.UsageRecorder
+	jobRunsRepo                   *repositories.JobRunsRepository
+	usageRepo                     *repositories.UsageRepository
+	storageRepo                   *repositories.StorageSnapshotsRepository
+	dbStatsRepo                   *repositories.DBStatsRepository
+	githubClient                  github.Client
+	sentryClient                  sentryapi.Client
+	doClient                      digitalocean.Client
+	oauthConnRepo                 *repositories.OAuthConnectionsRepository
+	oauthState                    *oauthconn.StateStore
+	issueNotifierJob              *jobs.IssueNotifierJob
+	transactionLatencyRepo        *repositories.TransactionLatencyRepository
+	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
+	globalJobQueue                *jobqueue.JobQueue
 }
 
 //	@title			tools
@@ -86,7 +88,8 @@ const (
 	// written to global.usage_daily.
 	usageFlushInterval = time.Minute
 	// globalJobQueueWorkers/globalJobQueueSize size the job queue backing
-	// cross-app jobs (currently just the issue notifier, issue #561).
+	// cross-app jobs (the issue notifier, issue #561, and the daily
+	// transaction-latency snapshot, issue #848).
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
 )
@@ -245,6 +248,51 @@ func newObservabilityClients(
 	return githubClient, sentryClient, doClient
 }
 
+// newCrossAppJobs builds the jobs registered directly on
+// Application.globalJobQueue by startCrossAppJobs — cross-app observability
+// concerns, not scoped to one apps/<name>. transactionLatencyRepo is
+// returned alongside its job since the Connect/MCP handlers also read from
+// it directly.
+func newCrossAppJobs(
+	db *pgxpool.Pool,
+	sentryClient sentryapi.Client,
+	doClient digitalocean.Client,
+	githubClient github.Client,
+	notificationsSvc *notifications.Service,
+) (
+	*jobs.IssueNotifierJob,
+	*repositories.TransactionLatencyRepository,
+	*jobs.TransactionLatencySnapshotJob,
+) {
+	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
+	issueNotifierJob := jobs.NewIssueNotifierJob(
+		sentryClient, doClient, githubClient, notificationsSvc, notifiedIssuesRepo,
+	)
+
+	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
+	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
+		sentryClient, transactionLatencyRepo,
+	)
+
+	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
+}
+
+// startCrossAppJobs registers every job living directly on app.globalJobQueue
+// — cross-app observability concerns, not scoped to one apps/<name> — rather
+// than one apps/<name>/app.go's own Start().
+func startCrossAppJobs(app *Application) error {
+	noopCallback := func(_ string, _ bool, _ *time.Time) {}
+	if err := app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.issueNotifierJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.transactionLatencySnapshotJob, app.db),
+		noopCallback,
+	)
+}
+
 func NewApplication(
 	logger *slog.Logger,
 	config config.Config,
@@ -288,32 +336,32 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
-	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
-	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, doClient, notificationsSvc, notifiedIssuesRepo,
-	)
+	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
+		newCrossAppJobs(db, sentryClient, doClient, githubClient, notificationsSvc)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
-		ctx:               ctx,
-		logger:            logger,
-		config:            config,
-		db:                db,
-		auth:              authSvc,
-		contacts:          contactsSvc,
-		appUsersRepo:      appUsersRepo,
-		profileSharesRepo: repositories.NewProfileSharesRepository(db),
-		usage:             observability.NewUsageRecorder(logger, db),
-		jobRunsRepo:       repositories.NewJobRunsRepository(db),
-		usageRepo:         repositories.NewUsageRepository(db),
-		storageRepo:       repositories.NewStorageSnapshotsRepository(db),
-		dbStatsRepo:       repositories.NewDBStatsRepository(db),
-		oauthConnRepo:     oauthConnRepo,
-		oauthState:        oauthconn.NewStateStore(),
-		githubClient:      githubClient,
-		sentryClient:      sentryClient,
-		doClient:          doClient,
-		issueNotifierJob:  issueNotifierJob,
+		ctx:                           ctx,
+		logger:                        logger,
+		config:                        config,
+		db:                            db,
+		auth:                          authSvc,
+		contacts:                      contactsSvc,
+		appUsersRepo:                  appUsersRepo,
+		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
+		usage:                         observability.NewUsageRecorder(logger, db),
+		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
+		usageRepo:                     repositories.NewUsageRepository(db),
+		storageRepo:                   repositories.NewStorageSnapshotsRepository(db),
+		dbStatsRepo:                   repositories.NewDBStatsRepository(db),
+		oauthConnRepo:                 oauthConnRepo,
+		oauthState:                    oauthconn.NewStateStore(),
+		githubClient:                  githubClient,
+		sentryClient:                  sentryClient,
+		doClient:                      doClient,
+		issueNotifierJob:              issueNotifierJob,
+		transactionLatencyRepo:        transactionLatencyRepo,
+		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),
@@ -334,10 +382,7 @@ func NewApplication(
 	// the loop lives for the process lifetime (ctx is context.Background).
 	app.usage.Start(ctx, usageFlushInterval)
 
-	noopCallback := func(_ string, _ bool, _ *time.Time) {}
-	if err = app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.issueNotifierJob, app.db), noopCallback,
-	); err != nil {
+	if err = startCrossAppJobs(app); err != nil {
 		panic(err)
 	}
 

@@ -94,8 +94,17 @@ type Feed struct {
 	// is never persisted in plaintext, so it cannot be shown again later and
 	// is never returned by ListFeeds.
 	InboundAddress string `protobuf:"bytes,8,opt,name=inbound_address,json=inboundAddress,proto3" json:"inbound_address,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The conditional-GET validators from the last successful fetch; empty
+	// until the feed has been fetched once.
+	Etag         string `protobuf:"bytes,9,opt,name=etag,proto3" json:"etag,omitempty"`
+	LastModified string `protobuf:"bytes,10,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
+	// Unbroken poll failures since the last success (issue #799).
+	ConsecutiveFailures int32 `protobuf:"varint,11,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
+	// RFC3339; set while a problem email is outstanding for this feed, empty
+	// once it recovers.
+	NotifiedAt    string `protobuf:"bytes,12,opt,name=notified_at,json=notifiedAt,proto3" json:"notified_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Feed) Reset() {
@@ -180,6 +189,34 @@ func (x *Feed) GetSourceType() string {
 func (x *Feed) GetInboundAddress() string {
 	if x != nil {
 		return x.InboundAddress
+	}
+	return ""
+}
+
+func (x *Feed) GetEtag() string {
+	if x != nil {
+		return x.Etag
+	}
+	return ""
+}
+
+func (x *Feed) GetLastModified() string {
+	if x != nil {
+		return x.LastModified
+	}
+	return ""
+}
+
+func (x *Feed) GetConsecutiveFailures() int32 {
+	if x != nil {
+		return x.ConsecutiveFailures
+	}
+	return 0
+}
+
+func (x *Feed) GetNotifiedAt() string {
+	if x != nil {
+		return x.NotifiedAt
 	}
 	return ""
 }
@@ -1277,7 +1314,7 @@ var File_feeds_v1_feeds_proto protoreflect.FileDescriptor
 
 const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\n" +
-	"\x14feeds/v1/feeds.proto\x12\bfeeds.v1\"\xee\x01\n" +
+	"\x14feeds/v1/feeds.proto\x12\bfeeds.v1\"\xfb\x02\n" +
 	"\x04Feed\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x14\n" +
@@ -1289,7 +1326,13 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12\x1f\n" +
 	"\vsource_type\x18\a \x01(\tR\n" +
 	"sourceType\x12'\n" +
-	"\x0finbound_address\x18\b \x01(\tR\x0einboundAddress\"\x12\n" +
+	"\x0finbound_address\x18\b \x01(\tR\x0einboundAddress\x12\x12\n" +
+	"\x04etag\x18\t \x01(\tR\x04etag\x12#\n" +
+	"\rlast_modified\x18\n" +
+	" \x01(\tR\flastModified\x121\n" +
+	"\x14consecutive_failures\x18\v \x01(\x05R\x13consecutiveFailures\x12\x1f\n" +
+	"\vnotified_at\x18\f \x01(\tR\n" +
+	"notifiedAt\"\x12\n" +
 	"\x10ListFeedsRequest\"9\n" +
 	"\x11ListFeedsResponse\x12$\n" +
 	"\x05feeds\x18\x01 \x03(\v2\x0e.feeds.v1.FeedR\x05feeds\"c\n" +

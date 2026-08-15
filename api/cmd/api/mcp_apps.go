@@ -84,8 +84,8 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (which include the one mutating tool,
-// resolve_sentry_issue — see registerObservabilityMCPTools).
+// tools registered directly below (10 tools, which include the one mutating
+// tool, resolve_sentry_issue — see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -103,8 +103,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 9 admin observability tools —
-// 8 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 10 admin observability tools —
+// 9 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -139,6 +139,12 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		"Unresolved Sentry issues for the project.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.sentryIssues(ctx), nil
+		})
+	addObsTool(srv, "get_slow_transactions",
+		"Slow API endpoints/pages: currently-slowest transactions (live from "+
+			"Sentry) plus ones regressing over time (from stored history).",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.slowTransactions(ctx)
 		})
 	addObsTool(srv, "resolve_sentry_issue",
 		"Marks a Sentry issue as resolved. The one mutating observability tool.",

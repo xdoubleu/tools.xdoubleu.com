@@ -7,6 +7,7 @@ import {
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
   GetSentryIssuesResponseSchema,
+  GetSlowTransactionsResponseSchema,
   GetDeployStatusResponseSchema,
   ListOAuthConnectionsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -19,6 +20,7 @@ const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseFailingPullRequests = jest.fn()
 const mockUseSentryIssues = jest.fn()
+const mockUseSlowTransactions = jest.fn()
 const mockUseDeployStatus = jest.fn()
 const mockUseOAuthConnections = jest.fn()
 
@@ -30,6 +32,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDatabaseStats: () => mockUseDatabaseStats(),
   useFailingPullRequests: () => mockUseFailingPullRequests(),
   useSentryIssues: () => mockUseSentryIssues(),
+  useSlowTransactions: () => mockUseSlowTransactions(),
   useDeployStatus: () => mockUseDeployStatus(),
   useOAuthConnections: () => mockUseOAuthConnections(),
   useDisconnectOAuthConnection: () => jest.fn()
@@ -92,6 +95,14 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
+  mockUseSlowTransactions.mockReturnValue({
+    data: create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [],
+      trending: []
+    }),
+    mutate: mockMutate
+  })
   mockUseDeployStatus.mockReturnValue({
     data: create(GetDeployStatusResponseSchema, { configured: true, phase: 'ACTIVE' }),
     mutate: mockMutate
@@ -149,8 +160,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 7 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(7)
+    // instead of a plain mutate(), so mockMutate covers the other 8 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(8)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

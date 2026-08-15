@@ -24,6 +24,7 @@ jest.mock('@/lib/client', () => ({
     getDatabaseStats: jest.fn(),
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
+    getSlowTransactions: jest.fn(),
     resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
     getDeployStatus: jest.fn(),
     getDeployLogs: (...args: unknown[]) => mockGetDeployLogs(...args),
@@ -47,6 +48,7 @@ import {
   useDatabaseStats,
   useFailingPullRequests,
   useSentryIssues,
+  useSlowTransactions,
   useResolveSentryIssue,
   useDeployStatus,
   useDeployLogs,
@@ -104,6 +106,14 @@ describe('useMonitoring', () => {
   it('keys sentry issues statically', () => {
     renderHook(() => useSentryIssues())
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues, expect.any(Function))
+  })
+
+  it('keys slow transactions statically', () => {
+    renderHook(() => useSlowTransactions())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringSlowTransactions,
+      expect.any(Function)
+    )
   })
 
   it('keys deploy status statically', () => {

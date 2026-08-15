@@ -48,3 +48,34 @@ func (w issueWire) toIssue() Issue {
 		Project: "",
 	}
 }
+
+// TransactionStat is one Sentry transaction's (an API endpoint or a
+// frontend page/route) p95 duration and request count over the last 24h,
+// as sampled from Sentry's org-level Events (Discover) API. Not
+// necessarily one of the slowest — ListTransactionStats returns a broad
+// sample; callers sort/truncate as needed for their own view (a live "top
+// N slowest" list, or a full daily snapshot for trend detection).
+type TransactionStat struct {
+	Transaction   string
+	Project       string
+	P95DurationMs float64
+	RequestCount  int64
+}
+
+// transactionStatWire is the subset of one row of Sentry's Discover
+// events payload that is decoded — see client.go's transactionStatsFields.
+type transactionStatWire struct {
+	Transaction string  `json:"transaction"`
+	Project     string  `json:"project"`
+	P95Duration float64 `json:"p95(transaction.duration)"`
+	Count       float64 `json:"count()"`
+}
+
+func (w transactionStatWire) toTransactionStat() TransactionStat {
+	return TransactionStat{
+		Transaction:   w.Transaction,
+		Project:       w.Project,
+		P95DurationMs: w.P95Duration,
+		RequestCount:  int64(w.Count),
+	}
+}

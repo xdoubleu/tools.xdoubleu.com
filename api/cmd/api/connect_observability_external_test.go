@@ -713,3 +713,95 @@ func TestObservabilityGetHealthOverview_NonAdmin(t *testing.T) {
 	)
 	requirePermissionDenied(t, err)
 }
+
+// --- Slow transactions ---
+
+func clearTransactionLatencyDaily(t *testing.T) {
+	t.Helper()
+	_, err := testApp.db.Exec(
+		context.Background(), "DELETE FROM global.transaction_latency_daily",
+	)
+	require.NoError(t, err)
+}
+
+func TestObservabilityGetSlowTransactions_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	clearTransactionLatencyDaily(t)
+
+	srv := jsonServer(t, http.StatusOK, `{"data": [
+		{"transaction":"GET /api/slow","project":"proj",
+		 "p95(transaction.duration)":900,"count()":3},
+		{"transaction":"GET /api/fast","project":"proj",
+		 "p95(transaction.duration)":50,"count()":30}
+	]}`)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	resp, err := callSlowTransactions(t)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	require.Len(t, resp.Msg.Current, 2)
+	assert.Equal(t, "GET /api/slow", resp.Msg.Current[0].Transaction, "slowest first")
+	assert.Equal(t, "GET /api/fast", resp.Msg.Current[1].Transaction)
+	assert.Empty(t, resp.Msg.Trending, "no history seeded yet")
+}
+
+func TestObservabilityGetSlowTransactions_NotConfiguredStillReportsTrending(
+	t *testing.T,
+) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	clearTransactionLatencyDaily(t)
+
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
+	)
+
+	now := time.Now()
+	seedTransactionLatencyDay(t, now.Add(-3*24*time.Hour), "GET /api/regressed", 300)
+	seedTransactionLatencyDay(t, now.Add(-10*24*time.Hour), "GET /api/regressed", 100)
+
+	resp, err := callSlowTransactions(t)
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Current)
+	require.Len(t, resp.Msg.Trending, 1,
+		"trending must still be reported when Sentry itself is unconfigured")
+	assert.Equal(t, "GET /api/regressed", resp.Msg.Trending[0].Transaction)
+	assert.InEpsilon(t, 2.0, resp.Msg.Trending[0].PctChange, 0.001)
+}
+
+func TestObservabilityGetSlowTransactions_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callSlowTransactions(t)
+	requirePermissionDenied(t, err)
+}
+
+func seedTransactionLatencyDay(
+	t *testing.T,
+	day time.Time,
+	transaction string,
+	p95Ms float64,
+) {
+	t.Helper()
+	_, err := testApp.db.Exec(context.Background(), `
+		INSERT INTO global.transaction_latency_daily
+			(day, project, transaction_name, p95_duration_ms, request_count)
+		VALUES ($1, 'proj', $2, $3, 1)
+	`, day, transaction, p95Ms)
+	require.NoError(t, err)
+}
+
+func callSlowTransactions(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetSlowTransactionsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetSlowTransactionsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetSlowTransactions(context.Background(), req)
+}

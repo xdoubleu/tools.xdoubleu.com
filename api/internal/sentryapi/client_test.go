@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -293,6 +294,100 @@ func TestIsTransientAPIError_Timeout(t *testing.T) {
 	_, err := newClient().ListUnresolvedIssues(ctx)
 	require.Error(t, err)
 	assert.True(t, sentryapi.IsTransientAPIError(err))
+}
+
+func TestListTransactionStats_ParsesPayload(t *testing.T) {
+	body := `{"data": [
+		{"transaction":"GET /api/books","project":"proj",
+		 "p95(transaction.duration)":123.4,"count()":42},
+		{"transaction":"GET /api/other-project","project":"other",
+		 "p95(transaction.duration)":999,"count()":5}
+	]}`
+
+	var gotPath, authHeader string
+	var gotQuery url.Values
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			gotQuery = r.URL.Query()
+			authHeader = r.Header.Get("Authorization")
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(body))
+		}))
+	defer cleanup()
+
+	stats, err := newClient().ListTransactionStats(context.Background())
+	require.NoError(t, err)
+	require.Len(t, stats, 1, "must filter out rows from unconfigured projects")
+	assert.Equal(t, "GET /api/books", stats[0].Transaction)
+	assert.Equal(t, "proj", stats[0].Project)
+	assert.InEpsilon(t, 123.4, stats[0].P95DurationMs, 0.001)
+	assert.Equal(t, int64(42), stats[0].RequestCount)
+	assert.True(t, strings.HasSuffix(gotPath, "/api/0/organizations/org/events/"))
+	assert.Equal(t, "event.type:transaction", gotQuery.Get("query"))
+	assert.Equal(t, "24h", gotQuery.Get("statsPeriod"))
+	assert.Equal(t, "Bearer token", authHeader)
+}
+
+func TestListTransactionStats_NotConfigured(t *testing.T) {
+	called := false
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			called = true
+			w.WriteHeader(http.StatusOK)
+		}))
+	defer cleanup()
+
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
+	_, err := c.ListTransactionStats(context.Background())
+	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
+	assert.False(t, called, "must not hit the API when unconfigured")
+}
+
+func TestListTransactionStats_CachesResult(t *testing.T) {
+	requests := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data": []}`))
+		}))
+	defer cleanup()
+
+	c := newClient()
+	_, err := c.ListTransactionStats(context.Background())
+	require.NoError(t, err)
+	_, err = c.ListTransactionStats(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, requests, "second call must be served from cache")
+}
+
+func TestListTransactionStats_ServerError_Retries(t *testing.T) {
+	attempts := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListTransactionStats(context.Background())
+	require.Error(t, err)
+	assert.Equal(t, 4, attempts)
+}
+
+func TestListTransactionStats_ConfigLookupError(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configGetError())
+	_, err := c.ListTransactionStats(context.Background())
+	require.ErrorIs(t, err, assert.AnError)
+}
+
+func TestListTransactionStats_TokenNotConnected(t *testing.T) {
+	c := sentryapi.New(
+		logging.NewNopLogger(), stubNotConnected(), configWith("org", "proj"),
+	)
+	_, err := c.ListTransactionStats(context.Background())
+	require.ErrorIs(t, err, sentryapi.ErrNotConfigured)
 }
 
 func TestResolveIssue_SendsResolvePUT(t *testing.T) {
