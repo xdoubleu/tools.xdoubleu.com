@@ -780,6 +780,21 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	require.NotNil(t, found)
 	assert.Contains(t, found.LastError, assert.AnError.Error())
 	assert.Equal(t, int32(1), found.ConsecutiveFailures)
+
+	_, err = testDB.Exec(
+		context.Background(),
+		"UPDATE feeds.feeds SET notified_at = now() WHERE id = $1",
+		found.Id,
+	)
+	require.NoError(t, err)
+
+	list, err = client.ListFeeds(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+	)
+	require.NoError(t, err)
+	found = findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
+	require.NotNil(t, found)
+	assert.NotEmpty(t, found.NotifiedAt)
 }
 
 func findFeed(feeds []*feedsv1.Feed, id string) *feedsv1.Feed {
