@@ -31,7 +31,7 @@
     "react-reader": "2.0.15",
     "recharts": "3.10.1",
     "remark-gfm": "4.0.1",
-    "swr": "2.5.0",
+    "swr": "2.5.1",
     "tailwind-merge": "3.6.0",
     "typescript": "6.0.3"
   },
