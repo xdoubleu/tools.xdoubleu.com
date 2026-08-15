@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 	"tools.xdoubleu.com/internal/pagination"
@@ -729,6 +730,65 @@ func TestRefreshFeed_NewPost_Ingests(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
+}
+
+func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-health.xml"
+	//nolint:exhaustruct // NotModified false is the zero value
+	mockWebFetch.Responses[feedURL] = &webfetch.Result{
+		Body: []byte(rssXML(
+			"Health Blog", rssItem{"Post", base + "/h1", "h1", itemContent},
+		)),
+		ContentType:  "application/rss+xml",
+		FinalURL:     feedURL,
+		ETag:         `"v1"`,
+		LastModified: "Wed, 21 Oct 2015 07:28:00 GMT",
+	}
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	list, err := client.ListFeeds(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+	)
+	require.NoError(t, err)
+	found := findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
+	require.NotNil(t, found)
+	assert.Equal(t, `"v1"`, found.Etag)
+	assert.Equal(t, "Wed, 21 Oct 2015 07:28:00 GMT", found.LastModified)
+	assert.Equal(t, int32(0), found.ConsecutiveFailures)
+	assert.Empty(t, found.NotifiedAt)
+
+	mockWebFetch.Errs[feedURL] = assert.AnError
+	_, err = client.RefreshFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.RefreshFeedRequest{FeedId: created.Msg.Feed.Id}),
+	)
+	require.Error(t, err)
+
+	list, err = client.ListFeeds(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+	)
+	require.NoError(t, err)
+	found = findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
+	require.NotNil(t, found)
+	assert.Contains(t, found.LastError, assert.AnError.Error())
+	assert.Equal(t, int32(1), found.ConsecutiveFailures)
+}
+
+func findFeed(feeds []*feedsv1.Feed, id string) *feedsv1.Feed {
+	for _, f := range feeds {
+		if f.Id == id {
+			return f
+		}
+	}
+	return nil
 }
 
 // ── UpdateFeed / DeleteFeed ─────────────────────────────────────────────────
