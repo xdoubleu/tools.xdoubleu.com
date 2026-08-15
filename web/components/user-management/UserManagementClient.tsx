@@ -12,7 +12,6 @@ const APP_NAMES = [
   'games',
   'books',
   'feeds',
-  'icsproxy',
   'mealplans',
   'recipes',
   'shoppinglist',

@@ -67,10 +67,6 @@ export const swrKeys = {
     `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
   feedStats: '/feeds/stats',
 
-  icsFeeds: '/icsproxy',
-  icsPreview: (sourceUrl: string) => `/icsproxy/preview?url=${encodeURIComponent(sourceUrl)}`,
-  icsConfig: (token: string) => `/icsproxy/${token}`,
-
   mealPlans: '/mealplans',
   mealPlan: (id: string, offset: number) => `/mealplans/${id}?offset=${offset}`,
   mealSuggestions: (planId: string, mealDate: string, mealSlot: string) =>

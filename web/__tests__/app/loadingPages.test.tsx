@@ -9,7 +9,6 @@ const ROUTES = [
   'recipes/list',
   'mealplans',
   'shoppinglist',
-  'icsproxy',
   'contacts',
   'sharing',
   'user-management',

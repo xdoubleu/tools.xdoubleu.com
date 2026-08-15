@@ -106,7 +106,7 @@ apps/<name>/
 - **`progressws`** — WebSocket service broadcasting background-job progress ("X of N") keyed by job-ID topics.
 - **`progresshistory`** — generic cumulative-progress storage with carry-forward reads (games/books progress graphs).
 - **`repositories`** — shared DB repos over the `global` schema (users, contacts, the observability tables, `oauth_connections`, `profile_shares`).
-- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)`, an `http.Client` whose `net.Dialer.Control` refuses to connect to non-public IPs (loopback, RFC1918, link-local incl. `169.254.169.254`, CGNAT, multicast). Any code fetching a **user-supplied URL** must build its client here: icsproxy's calendar fetcher and both apps' `pkg/webfetch` do. Blocking at dial time rather than validating the URL is what makes it survive redirects and DNS rebinding. `allowPrivate` (wired to `cfg.Env != config.ProdEnv`) keeps httptest-based tests and local development working.
+- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)`, an `http.Client` whose `net.Dialer.Control` refuses to connect to non-public IPs (loopback, RFC1918, link-local incl. `169.254.169.254`, CGNAT, multicast). Any code fetching a **user-supplied URL** must build its client here: both apps' `pkg/webfetch` do. Blocking at dial time rather than validating the URL is what makes it survive redirects and DNS rebinding. `allowPrivate` (wired to `cfg.Env != config.ProdEnv`) keeps httptest-based tests and local development working.
 - **`mcptools`** — `RequireAppAccess` (per-app MCP gate, mirrors `auth.AppAccess`), `AddReadTool`, `Unwrap`/`Result`.
 - **`testhelper`** — `ConnectTestDB` for integration tests, `NewTestConfig` (auth cache TTL 0), `BuildMux` for a test handler from any `Routes`/`GetName` app, `CreateRequestTester` for exercising a handler over real HTTP.
 
@@ -115,7 +115,6 @@ apps/<name>/
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress/distribution, favourites, per-user Steam settings. Background sync job + WebSocket live updates. Schema `games` (adopted from the former `backlog` schema).
 - **books** — book library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates. Schema `books`.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no jobs, own custom domain (`watchparty.xdoubleu.com`).
-- **icsproxy** — ICS calendar feed filtering/proxying. Schema `icsproxy`.
 - **recipes** — recipe management: fraction parsing, iCal export, whole-recipe-book sharing. Schema `recipes`.
 - **mealplans** — weekly meal planning with per-plan iCal feeds and sharing. Schema `mealplans` (its `plans` tables were adopted from `recipes` via `ALTER TABLE ... SET SCHEMA`).
 - **shoppinglist** — custom items plus meal-plan ingredient aggregation, categories, store-ordered export, sharing. Stores themselves stay private per-user even when the rest of the list is shared. Schema `shoppinglist`.

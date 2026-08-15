@@ -18,8 +18,7 @@ const APPS = [
   'mealplans',
   'shoppinglist',
   'contacts',
-  'watchparty',
-  'icsproxy'
+  'watchparty'
 ]
 
 export default function UsersTable({ users, onUpdated }: UsersTableProps) {

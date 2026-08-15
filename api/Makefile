@@ -126,15 +126,6 @@ test/cov/per-pkg:
 	go test ./apps/books/internal/... \
 		-coverpkg=./apps/books,./apps/books/internal/... \
 		-covermode=set -count=1 -coverprofile=cov_books_internal.out
-	go test ./apps/icsproxy \
-		-coverpkg=./apps/icsproxy,./apps/icsproxy/internal/... \
-		-covermode=set -count=1 -coverprofile=cov_icsproxy_pkg.out
-	go test ./apps/icsproxy/internal/services \
-		-coverpkg=./apps/icsproxy/internal/services \
-		-covermode=set -count=1 -coverprofile=cov_icsproxy_svc.out
-	go test ./apps/icsproxy/internal/dtos \
-		-coverpkg=./apps/icsproxy/internal/dtos \
-		-covermode=set -count=1 -coverprofile=cov_icsproxy_dtos.out
 	go test ./apps/recipes \
 		-coverpkg=./apps/recipes,./apps/recipes/internal/... \
 		-covermode=set -count=1 -coverprofile=cov_recipes_pkg.out
@@ -169,7 +160,6 @@ test/cov/per-pkg:
 		cov_todos_pkg.out cov_todos_internal.out \
 		cov_games_pkg.out cov_games_internal.out \
 		cov_books_pkg.out cov_books_internal.out \
-		cov_icsproxy_pkg.out cov_icsproxy_svc.out cov_icsproxy_dtos.out \
 		cov_recipes_pkg.out \
 		cov_mealplans_pkg.out \
 		cov_shoppinglist_pkg.out cov_shoppinglist_svc.out \

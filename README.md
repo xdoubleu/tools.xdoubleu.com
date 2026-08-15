@@ -11,7 +11,6 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 - **games** — Steam backlog tracker: library sync, achievements, completion-rate progress and distribution, favourite games, with background sync jobs and WebSocket live updates.
 - **books** — Book library and e-reader companion. External metadata sync (UniCat, Hardcover) and EPUB/PDF uploads, converted to KEPUB and synced to Kobo devices per-item. Devices sync against `/books/kobo/<token>/…`; devices set up under an older prefix (`/reading/kobo/…` or `/backlog/kobo/…`) must re-run the setup flow. Setup is entirely driven by **kobo-gateway** (`kobo-gateway/`), a downloadable macOS menu-bar app the books page drives over a loopback-only HTTP API — built on a macOS CI runner (its menu bar needs cgo + AppKit) and served as a `.dmg` at `/downloads/kobo-gateway.dmg`, so kobo-gateway code changes rebuild the *web* image too (see the `kobo_gateway` path filter in `main.yml`). Unrelated to the separate `gateway/` module below, which routes requests and supervises the `api`/`web` processes inside the merged deploy container.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
-- **icsproxy** — Calendar (ICS) feed filtering and proxying with event hiding and holiday management.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, store-ordered export (group items by the aisle order of the store you're visiting), and full-list sharing with contacts (switch between your own and shared lists).
 - **todos** — Task management with sections, workspaces, subtasks, policies, archive, and search.
@@ -111,7 +110,7 @@ exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
 server at `/apps/mcp`, so production domain data and system health can be
 pulled in as context for testing/verifying changes. Every app tool wraps an
 existing **read** RPC of an app (games, books, recipes, mealplans,
-shoppinglist, todos, icsproxy) — no per-app tool ever mutates. App tools are
+shoppinglist, todos) — no per-app tool ever mutates. App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 `todos_list_tasks`); the 10 observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
