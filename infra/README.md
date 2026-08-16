@@ -71,20 +71,18 @@ rotating the password (`tofu apply -replace=random_password.postgres <same
 ## Migrate data from Supabase (one-time)
 
 Run once, after `tofu apply` has stood up Postgres, against an existing
-`pg_dump --format=custom` of the source database (see `infra/migrate-db.sh`):
+`pg_dump --format=custom` of the source database (including Supabase's
+`auth` schema, not just the app schemas). Streams straight into `pg_restore`
+on the VPS via SSH — the file never touches disk on the VPS:
 
 ```bash
 ssh deploy@<ip> docker ps   # confirm the postgres container's name
 
-export DEPLOY_HOST=deploy@<ip>
-export PG_CONTAINER=<name from docker ps>
-./migrate-db.sh <path-to-dump-file>
+ssh deploy@<ip> "docker exec -i <container> pg_restore --no-owner --no-privileges --username=postgres --dbname=postgres --verbose" \
+  <path-to-dump-file>
 ```
 
-This streams the dump file (which should include Supabase's `auth` schema,
-not just the app schemas) straight into `pg_restore` on the VPS via SSH —
-the file never touches disk on the VPS. Supabase's own database is
-untouched throughout, so this is safe to re-run.
+Supabase's own database is untouched throughout, so this is safe to re-run.
 
 ## Verify
 
