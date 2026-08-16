@@ -3,7 +3,8 @@
 OpenTofu config for the Hetzner VPS (issue #1030) that will host the
 self-hosted stack (app + Postgres + GoTrue, replacing DO App Platform +
 Supabase — see #1029). Manages the firewall, OS-level hardening, and
-self-hosted Postgres (issue #1031); the server itself is created manually.
+self-hosted Postgres (issue #1031) and GoTrue (issue #1032); the server
+itself is created manually.
 
 Tofu is run locally, not in CI — this is one-time/rare provisioning, not a
 recurring deploy.
@@ -81,6 +82,39 @@ migration), wipe the volume and let it start fresh:
 ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
 ```
 
+## Stand up GoTrue
+
+The same `tofu apply` also creates a `gotrue` service in
+`postgres-compose.yml` (issue #1032), pointed at the restored `auth` schema
+above via `GOTRUE_DB_DATABASE_URL` (compose network hostname `postgres`, not
+`127.0.0.1`). It runs `supabase/gotrue:v2.195.0` — pinned, not `latest`, for
+reproducibility — and lets GoTrue apply its own internal migrations against
+that schema on first boot; watch `docker logs` for migration errors when
+first applying.
+
+Pass four extra `-var` flags alongside the ones above:
+
+- `gotrue_jwt_secret` — pull the **actual** value from the Supabase
+  dashboard (Project Settings → API), not a freshly generated one, so
+  already-issued client JWTs keep validating post-cutover instead of forcing
+  every signed-in user to re-authenticate.
+- `resend_api_key` — same Resend account already used by
+  `api/internal/mailer`; used as the password for GoTrue's SMTP relay
+  (`smtp.resend.com:465`).
+- `gotrue_site_url` — the app's public URL.
+- `gotrue_smtp_admin_email` — the From address for GoTrue's own auth emails.
+
+Like Postgres, GoTrue is bound to `127.0.0.1:9999` — not exposed publicly.
+
+Before flipping DNS over to self-hosted GoTrue (not part of this smoke test):
+check the Supabase dashboard's Auth → Providers page for any enabled
+third-party providers (Google, GitHub, etc.) beyond email/password — their
+redirect URIs need updating at the provider to point at self-hosted GoTrue's
+callback endpoint first, or that sign-in method breaks silently. Also note
+(don't patch) whether self-hosted OSS GoTrue lacks the OAuth-server/dynamic-
+client-registration feature the MCP flow (`api/cmd/api/mcp.go`) relies on —
+closed properly by the future "retire GoTrue entirely" work instead.
+
 ## Migrate data from Supabase (one-time)
 
 Run once, after `tofu apply` has stood up Postgres, against an existing
@@ -121,6 +155,15 @@ ssh -L 5432:localhost:5432 deploy@<ip>
 # in another shell, using the password from `tofu output -raw postgres_password`:
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dt auth.*'
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c 'select * from goose_db_version'
+
+# GoTrue: tunnel in and sign in with an existing migrated account
+ssh -L 9999:localhost:9999 deploy@<ip>
+# in another shell:
+curl -X POST 'http://localhost:9999/token?grant_type=password' \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"<existing-account-email>","password":"<...>"}'
+# then, with the access_token from the response:
+curl http://localhost:9999/user -H 'Authorization: Bearer <access_token>'
 ```
 
 ## Destroy

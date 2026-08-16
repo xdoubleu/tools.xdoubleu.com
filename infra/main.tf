@@ -78,8 +78,12 @@ resource "null_resource" "postgres" {
   depends_on = [null_resource.harden]
 
   triggers = {
-    compose_hash  = filesha256("${path.module}/postgres-compose.yml")
-    password_hash = sha256(random_password.postgres.result)
+    compose_hash    = filesha256("${path.module}/postgres-compose.yml")
+    password_hash   = sha256(random_password.postgres.result)
+    jwt_secret_hash = sha256(var.gotrue_jwt_secret)
+    resend_key_hash = sha256(var.resend_api_key)
+    site_url_hash   = sha256(var.gotrue_site_url)
+    smtp_email_hash = sha256(var.gotrue_smtp_admin_email)
   }
 
   connection {
@@ -99,7 +103,14 @@ resource "null_resource" "postgres" {
   }
 
   provisioner "file" {
-    content     = "POSTGRES_PASSWORD=${random_password.postgres.result}\n"
+    content     = <<-EOT
+      POSTGRES_PASSWORD=${random_password.postgres.result}
+      GOTRUE_JWT_SECRET=${var.gotrue_jwt_secret}
+      GOTRUE_DB_DATABASE_URL=postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres?search_path=auth
+      GOTRUE_SMTP_PASS=${var.resend_api_key}
+      GOTRUE_SITE_URL=${var.gotrue_site_url}
+      GOTRUE_SMTP_ADMIN_EMAIL=${var.gotrue_smtp_admin_email}
+    EOT
     destination = "/home/deploy/postgres/.env"
   }
 
