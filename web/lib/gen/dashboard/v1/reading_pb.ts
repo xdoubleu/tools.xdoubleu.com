@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file dashboard/v1/reading.proto.
  */
 export const file_dashboard_v1_reading: GenFile = /*@__PURE__*/
-  fileDesc("ChpkYXNoYm9hcmQvdjEvcmVhZGluZy5wcm90bxIMZGFzaGJvYXJkLnYxIigKF0dldFNoYXJlZExpYnJhcnlSZXF1ZXN0Eg0KBXRva2VuGAEgASgJInQKGEdldFNoYXJlZExpYnJhcnlSZXNwb25zZRIqCgdsaWJyYXJ5GAEgASgLMhkuYm9va3MudjEuTGlicmFyeVJlc3BvbnNlEhYKDmxhc3Rfc3luY2VkX2F0GAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSJUCh1HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpkYXRlX3N0YXJ0GAIgASgJEhAKCGRhdGVfZW5kGAMgASgJIlMKHkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRIxCghwcm9ncmVzcxgBIAEoCzIfLmJvb2tzLnYxLkJvb2tzUHJvZ3Jlc3NSZXNwb25zZSItChxHZXRTaGFyZWRGZWVkc1N1bW1hcnlSZXF1ZXN0Eg0KBXRva2VuGAEgASgJIksKEEZlZWRzU3VtbWFyeUl0ZW0SDQoFdGl0bGUYASABKAkSEgoKc291cmNlX3VybBgCIAEoCRIUCgxwdWJsaXNoZWRfYXQYAyABKAkiUwoMRmVlZHNTdW1tYXJ5EhQKDHVucmVhZF9jb3VudBgBIAEoBRItCgVpdGVtcxgCIAMoCzIeLmRhc2hib2FyZC52MS5GZWVkc1N1bW1hcnlJdGVtIkwKHUdldFNoYXJlZEZlZWRzU3VtbWFyeVJlc3BvbnNlEisKB3N1bW1hcnkYASABKAsyGi5kYXNoYm9hcmQudjEuRmVlZHNTdW1tYXJ5MukCCh1QdWJsaWNSZWFkaW5nRGFzaGJvYXJkU2VydmljZRJhChBHZXRTaGFyZWRMaWJyYXJ5EiUuZGFzaGJvYXJkLnYxLkdldFNoYXJlZExpYnJhcnlSZXF1ZXN0GiYuZGFzaGJvYXJkLnYxLkdldFNoYXJlZExpYnJhcnlSZXNwb25zZRJzChZHZXRTaGFyZWRCb29rc1Byb2dyZXNzEisuZGFzaGJvYXJkLnYxLkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXF1ZXN0GiwuZGFzaGJvYXJkLnYxLkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRJwChVHZXRTaGFyZWRGZWVkc1N1bW1hcnkSKi5kYXNoYm9hcmQudjEuR2V0U2hhcmVkRmVlZHNTdW1tYXJ5UmVxdWVzdBorLmRhc2hib2FyZC52MS5HZXRTaGFyZWRGZWVkc1N1bW1hcnlSZXNwb25zZUIxWi90b29scy54ZG91YmxldS5jb20vZ2VuL2Rhc2hib2FyZC92MTtkYXNoYm9hcmR2MWIGcHJvdG8z", [file_books_v1_library]);
+  fileDesc("ChpkYXNoYm9hcmQvdjEvcmVhZGluZy5wcm90bxIMZGFzaGJvYXJkLnYxIigKF0dldFNoYXJlZExpYnJhcnlSZXF1ZXN0Eg0KBXRva2VuGAEgASgJInQKGEdldFNoYXJlZExpYnJhcnlSZXNwb25zZRIqCgdsaWJyYXJ5GAEgASgLMhkuYm9va3MudjEuTGlicmFyeVJlc3BvbnNlEhYKDmxhc3Rfc3luY2VkX2F0GAIgASgJEhQKDGRpc3BsYXlfbmFtZRgDIAEoCSJUCh1HZXRTaGFyZWRCb29rc1Byb2dyZXNzUmVxdWVzdBINCgV0b2tlbhgBIAEoCRISCgpkYXRlX3N0YXJ0GAIgASgJEhAKCGRhdGVfZW5kGAMgASgJIlMKHkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3NSZXNwb25zZRIxCghwcm9ncmVzcxgBIAEoCzIfLmJvb2tzLnYxLkJvb2tzUHJvZ3Jlc3NSZXNwb25zZSItChxHZXRTaGFyZWRGZWVkc1N1bW1hcnlSZXF1ZXN0Eg0KBXRva2VuGAEgASgJIigKClNoYXJlZEZlZWQSDQoFdGl0bGUYASABKAkSCwoDdXJsGAIgASgJIkgKHUdldFNoYXJlZEZlZWRzU3VtbWFyeVJlc3BvbnNlEicKBWZlZWRzGAEgAygLMhguZGFzaGJvYXJkLnYxLlNoYXJlZEZlZWQy6QIKHVB1YmxpY1JlYWRpbmdEYXNoYm9hcmRTZXJ2aWNlEmEKEEdldFNoYXJlZExpYnJhcnkSJS5kYXNoYm9hcmQudjEuR2V0U2hhcmVkTGlicmFyeVJlcXVlc3QaJi5kYXNoYm9hcmQudjEuR2V0U2hhcmVkTGlicmFyeVJlc3BvbnNlEnMKFkdldFNoYXJlZEJvb2tzUHJvZ3Jlc3MSKy5kYXNoYm9hcmQudjEuR2V0U2hhcmVkQm9va3NQcm9ncmVzc1JlcXVlc3QaLC5kYXNoYm9hcmQudjEuR2V0U2hhcmVkQm9va3NQcm9ncmVzc1Jlc3BvbnNlEnAKFUdldFNoYXJlZEZlZWRzU3VtbWFyeRIqLmRhc2hib2FyZC52MS5HZXRTaGFyZWRGZWVkc1N1bW1hcnlSZXF1ZXN0GisuZGFzaGJvYXJkLnYxLkdldFNoYXJlZEZlZWRzU3VtbWFyeVJlc3BvbnNlQjFaL3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vZGFzaGJvYXJkL3YxO2Rhc2hib2FyZHYxYgZwcm90bzM", [file_books_v1_library]);
 
 /**
  * @generated from message dashboard.v1.GetSharedLibraryRequest
@@ -125,66 +125,43 @@ export const GetSharedFeedsSummaryRequestSchema: GenMessage<GetSharedFeedsSummar
   messageDesc(file_dashboard_v1_reading, 4);
 
 /**
- * FeedsSummaryItem is a lightweight, read-only projection of one feeds.v1.Item
- * for the reading dashboard's feeds widget — no read/dismissed/bookmarked
- * state, which is not meaningful to a visitor of a shared profile.
+ * SharedFeed is a lightweight, read-only projection of one feeds.v1.Feed for
+ * the reading dashboard's feeds widget — just the subscription's name and
+ * public URL, not read state or any of feeds.v1.Feed's private fields
+ * (last_error, notified_at, inbound_address, ...), which are not meaningful
+ * to a visitor of a shared profile.
  *
- * @generated from message dashboard.v1.FeedsSummaryItem
+ * @generated from message dashboard.v1.SharedFeed
  */
-export type FeedsSummaryItem = Message<"dashboard.v1.FeedsSummaryItem"> & {
+export type SharedFeed = Message<"dashboard.v1.SharedFeed"> & {
   /**
    * @generated from field: string title = 1;
    */
   title: string;
 
   /**
-   * @generated from field: string source_url = 2;
+   * Empty for feed kinds with no public URL (e.g. email).
+   *
+   * @generated from field: string url = 2;
    */
-  sourceUrl: string;
-
-  /**
-   * @generated from field: string published_at = 3;
-   */
-  publishedAt: string;
+  url: string;
 };
 
 /**
- * Describes the message dashboard.v1.FeedsSummaryItem.
- * Use `create(FeedsSummaryItemSchema)` to create a new message.
+ * Describes the message dashboard.v1.SharedFeed.
+ * Use `create(SharedFeedSchema)` to create a new message.
  */
-export const FeedsSummaryItemSchema: GenMessage<FeedsSummaryItem> = /*@__PURE__*/
+export const SharedFeedSchema: GenMessage<SharedFeed> = /*@__PURE__*/
   messageDesc(file_dashboard_v1_reading, 5);
-
-/**
- * @generated from message dashboard.v1.FeedsSummary
- */
-export type FeedsSummary = Message<"dashboard.v1.FeedsSummary"> & {
-  /**
-   * @generated from field: int32 unread_count = 1;
-   */
-  unreadCount: number;
-
-  /**
-   * @generated from field: repeated dashboard.v1.FeedsSummaryItem items = 2;
-   */
-  items: FeedsSummaryItem[];
-};
-
-/**
- * Describes the message dashboard.v1.FeedsSummary.
- * Use `create(FeedsSummarySchema)` to create a new message.
- */
-export const FeedsSummarySchema: GenMessage<FeedsSummary> = /*@__PURE__*/
-  messageDesc(file_dashboard_v1_reading, 6);
 
 /**
  * @generated from message dashboard.v1.GetSharedFeedsSummaryResponse
  */
 export type GetSharedFeedsSummaryResponse = Message<"dashboard.v1.GetSharedFeedsSummaryResponse"> & {
   /**
-   * @generated from field: dashboard.v1.FeedsSummary summary = 1;
+   * @generated from field: repeated dashboard.v1.SharedFeed feeds = 1;
    */
-  summary?: FeedsSummary | undefined;
+  feeds: SharedFeed[];
 };
 
 /**
@@ -192,7 +169,7 @@ export type GetSharedFeedsSummaryResponse = Message<"dashboard.v1.GetSharedFeeds
  * Use `create(GetSharedFeedsSummaryResponseSchema)` to create a new message.
  */
 export const GetSharedFeedsSummaryResponseSchema: GenMessage<GetSharedFeedsSummaryResponse> = /*@__PURE__*/
-  messageDesc(file_dashboard_v1_reading, 7);
+  messageDesc(file_dashboard_v1_reading, 6);
 
 /**
  * PublicReadingDashboardService serves the read-only shareable reading

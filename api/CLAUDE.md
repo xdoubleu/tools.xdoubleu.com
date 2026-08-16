@@ -159,7 +159,7 @@ opaque share token (`global.profile_shares`, keyed by `(user_id, app)` where
 handlers must never read the user-context key, since no middleware sets it.
 Each handler resolves the token, then delegates to an exported method on the
 live `*games.Games`/`*books.Books`/`*feeds.Feeds` reference `dashboard` was
-constructed with (`BuildSharedSteam`, `BuildSharedLibrary`, `BuildSummary`,
+constructed with (`BuildSharedSteam`, `BuildSharedLibrary`, `BuildSharedFeeds`,
 ...) rather than duplicating any business logic — see the Apps list above
 for why this is exported methods, not direct schema reads.
 

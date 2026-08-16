@@ -117,24 +117,16 @@ func seedPublicBook(t *testing.T, title string) string {
 	return bookID
 }
 
-// seedPublicFeedItem inserts an unread feed item directly via SQL for
+// seedPublicFeed inserts a feed subscription directly via SQL for
 // publicReadingUserID.
-func seedPublicFeedItem(t *testing.T, title string) {
+func seedPublicFeed(t *testing.T, title, url string) {
 	t.Helper()
 	ctx := context.Background()
 
-	var feedID string
-	require.NoError(t, testDB.QueryRow(ctx, `
-		INSERT INTO feeds.feeds (user_id, url, title) VALUES ($1, $2, 'Test Feed')
-		ON CONFLICT (user_id, url) DO UPDATE SET title = EXCLUDED.title
-		RETURNING id
-	`, publicReadingUserID, "https://example.com/feed-"+title).Scan(&feedID))
-
 	_, err := testDB.Exec(ctx, `
-		INSERT INTO feeds.items (feed_id, guid, title, source_url, read_at)
-		VALUES ($1, $2, $3, 'https://example.com/item', NULL)
-		ON CONFLICT (feed_id, guid) DO UPDATE SET read_at = NULL
-	`, feedID, title, title)
+		INSERT INTO feeds.feeds (user_id, url, title) VALUES ($1, $2, $3)
+		ON CONFLICT (user_id, url) DO UPDATE SET title = EXCLUDED.title
+	`, publicReadingUserID, url, title)
 	require.NoError(t, err)
 }
 
@@ -403,7 +395,7 @@ func TestGetSharedBooksProgress_UnknownToken(t *testing.T) {
 
 func TestGetSharedFeedsSummary_Success(t *testing.T) {
 	ensureProfileShare(t)
-	seedPublicFeedItem(t, "Dashboard Test Feed Item")
+	seedPublicFeed(t, "Dashboard Test Feed", "https://example.com/dashboard-test-feed")
 
 	client := newPublicReadingClient(t)
 	resp, err := client.GetSharedFeedsSummary(
@@ -413,16 +405,15 @@ func TestGetSharedFeedsSummary_Success(t *testing.T) {
 		}),
 	)
 	require.NoError(t, err)
-	require.NotNil(t, resp.Msg.Summary)
-	assert.Positive(t, resp.Msg.Summary.UnreadCount)
 
 	var found bool
-	for _, item := range resp.Msg.Summary.Items {
-		if item.Title == "Dashboard Test Feed Item" {
+	for _, feed := range resp.Msg.Feeds {
+		if feed.Title == "Dashboard Test Feed" &&
+			feed.Url == "https://example.com/dashboard-test-feed" {
 			found = true
 		}
 	}
-	assert.True(t, found, "seeded item should be in the feeds summary")
+	assert.True(t, found, "seeded feed should be in the shared feeds list")
 }
 
 func TestGetSharedFeedsSummary_UnknownToken(t *testing.T) {
