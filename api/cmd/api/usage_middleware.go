@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"net"
 	"net/http"
 	"strings"
 
@@ -25,11 +27,55 @@ func (app *Application) usageMiddleware(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if appName, endpoint, ok := usageLabels(r, appNames); ok {
-			app.usage.Record(appName, endpoint)
+		appName, endpoint, ok := usageLabels(r, appNames)
+		if !ok {
+			next.ServeHTTP(w, r)
+			return
 		}
-		next.ServeHTTP(w, r)
+
+		counter := &countingResponseWriter{ResponseWriter: w}
+		next.ServeHTTP(counter, r)
+		app.usage.Record(appName, endpoint, counter.written)
 	})
+}
+
+// countingResponseWriter totals the response body bytes a handler writes, so
+// usage_daily can show which endpoints move the most data and not just which
+// are called most (issue #1027).
+//
+// It forwards Flush and Hijack rather than swallowing them: the api has one
+// server-streaming RPC (GetDeployLogs) and WebSocket upgrades
+// (internal/progressws), both of which break if the wrapper hides those
+// interfaces from the underlying writer.
+type countingResponseWriter struct {
+	http.ResponseWriter
+	written int64
+}
+
+func (w *countingResponseWriter) Write(b []byte) (int, error) {
+	n, err := w.ResponseWriter.Write(b)
+	w.written += int64(n)
+	return n, err
+}
+
+func (w *countingResponseWriter) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (w *countingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	return h.Hijack()
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer for any
+// capability not forwarded explicitly above.
+func (w *countingResponseWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 // usageLabels derives the (app, endpoint) counter labels for a request.

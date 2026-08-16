@@ -57,7 +57,7 @@ func newTestRecorder(store usageStore) *UsageRecorder {
 	return &UsageRecorder{
 		logger: logging.NewNopLogger(),
 		repo:   store,
-		counts: make(map[usageKey]int64),
+		counts: make(map[usageKey]usageCounter),
 	}
 }
 
@@ -65,26 +65,31 @@ func TestUsageRecorderAccumulatesAndFlushes(t *testing.T) {
 	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
-	rec.Record("books", "LibraryService/ListBooks")
-	rec.Record("books", "LibraryService/ListBooks")
-	rec.Record("games", "GamesService/ListGames")
+	rec.Record("books", "LibraryService/ListBooks", 100)
+	rec.Record("books", "LibraryService/ListBooks", 250)
+	rec.Record("games", "GamesService/ListGames", 40)
 
 	require.NoError(t, rec.Flush(t.Context()))
 
 	require.Len(t, store.flushed, 2)
 	counts := map[string]int64{}
+	bytes := map[string]int64{}
 	for _, e := range store.flushed {
 		counts[e.App+":"+e.Endpoint] = e.Count
+		bytes[e.App+":"+e.Endpoint] = e.Bytes
 	}
 	assert.Equal(t, int64(2), counts["books:LibraryService/ListBooks"])
 	assert.Equal(t, int64(1), counts["games:GamesService/ListGames"])
+	// Bytes accumulate per bucket alongside the request count.
+	assert.Equal(t, int64(350), bytes["books:LibraryService/ListBooks"])
+	assert.Equal(t, int64(40), bytes["games:GamesService/ListGames"])
 }
 
 func TestUsageRecorderFlushClearsCounts(t *testing.T) {
 	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
-	rec.Record("todos", "root")
+	rec.Record("todos", "root", 0)
 	require.NoError(t, rec.Flush(t.Context()))
 	require.Len(t, store.flushed, 1)
 
@@ -99,7 +104,7 @@ func TestUsageRecorderRestoresBatchOnFlushError(t *testing.T) {
 	store.flushErr = errors.New("db down")
 	rec := newTestRecorder(store)
 
-	rec.Record("books", "root")
+	rec.Record("books", "root", 0)
 	require.Error(t, rec.Flush(t.Context()))
 
 	// Recover the store and flush again; the count must survive.
@@ -125,7 +130,7 @@ func TestUsageRecorderFlushTickLogsErrorAndSurvives(t *testing.T) {
 	store.flushErr = errors.New("db down")
 	rec := newTestRecorder(store)
 
-	rec.Record("books", "root")
+	rec.Record("books", "root", 0)
 	// flushTick must swallow the flush error (logged, not panicked).
 	rec.flushTick(t.Context())
 
@@ -138,7 +143,7 @@ func TestUsageRecorderFlushTickLogsErrorAndSurvives(t *testing.T) {
 func TestUsageRecorderStartFlushesOnContextCancel(t *testing.T) {
 	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
-	rec.Record("books", "root")
+	rec.Record("books", "root", 0)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	rec.Start(ctx, time.Hour)

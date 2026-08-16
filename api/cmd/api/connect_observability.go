@@ -133,6 +133,7 @@ func (h *obsConnectHandler) usageStats(
 			App:      e.App,
 			Endpoint: e.Endpoint,
 			Count:    e.Count,
+			Bytes:    e.Bytes,
 		}
 	}
 

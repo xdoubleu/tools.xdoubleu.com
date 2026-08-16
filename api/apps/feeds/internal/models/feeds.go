@@ -55,12 +55,19 @@ type Feed struct {
 // ever belong to one user, so there is no per-user junction table — read/
 // bookmarked/dismissed state lives directly as columns here.
 type Item struct {
-	ID          uuid.UUID
-	FeedID      uuid.UUID
-	GUID        string
-	Title       string
-	SourceURL   string
+	ID        uuid.UUID
+	FeedID    uuid.UUID
+	GUID      string
+	Title     string
+	SourceURL string
+	// ContentHTML is the extracted article body. It is only populated by the
+	// single-item read (GetByIDForUser) — list and update queries leave it
+	// empty and set HasContent instead, so a page of items never drags every
+	// article body out of the database (issue #1027).
 	ContentHTML string
+	// HasContent reports whether ContentHTML is non-empty, without reading
+	// it. Only set by the queries using itemListColumns.
+	HasContent bool
 	// PublishedAt is the item's true publish date from the feed/email, used
 	// for ordering instead of ingest time.
 	PublishedAt time.Time

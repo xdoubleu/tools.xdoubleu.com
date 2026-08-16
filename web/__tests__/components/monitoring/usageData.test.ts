@@ -2,8 +2,14 @@ import { create } from '@bufbuild/protobuf'
 import { UsageDaySchema } from '@/lib/gen/observability/v1/observability_pb'
 import { aggregateUsage, OTHER_LABEL, MAX_SERIES } from '@/components/monitoring/usageData'
 
-function day(d: string, app: string, endpoint: string, count: number) {
-  return create(UsageDaySchema, { day: d, app, endpoint, count: BigInt(count) })
+function day(d: string, app: string, endpoint: string, count: number, bytes = 0) {
+  return create(UsageDaySchema, {
+    day: d,
+    app,
+    endpoint,
+    count: BigInt(count),
+    bytes: BigInt(bytes)
+  })
 }
 
 describe('aggregateUsage', () => {
@@ -44,8 +50,29 @@ describe('aggregateUsage', () => {
       day('2026-01-02', 'books', 'big', 50)
     ])
 
-    expect(endpoints[0]).toEqual({ app: 'books', endpoint: 'big', count: 150 })
-    expect(endpoints[1]).toEqual({ app: 'books', endpoint: 'small', count: 1 })
+    expect(endpoints[0]).toEqual({ app: 'books', endpoint: 'big', count: 150, bytes: 0 })
+    expect(endpoints[1]).toEqual({ app: 'books', endpoint: 'small', count: 1, bytes: 0 })
+  })
+
+  it('accumulates response bytes per endpoint alongside counts', () => {
+    const { endpoints } = aggregateUsage([
+      day('2026-01-01', 'feeds', 'FeedService/ListFeedItems', 10, 5_000),
+      day('2026-01-02', 'feeds', 'FeedService/ListFeedItems', 5, 2_500),
+      day('2026-01-01', 'feeds', 'FeedService/ListFeeds', 100, 400)
+    ])
+
+    const items = endpoints.find((e) => e.endpoint === 'FeedService/ListFeedItems')
+    const feeds = endpoints.find((e) => e.endpoint === 'FeedService/ListFeeds')
+    expect(items).toEqual({
+      app: 'feeds',
+      endpoint: 'FeedService/ListFeedItems',
+      count: 15,
+      bytes: 7_500
+    })
+    // The point of tracking bytes: the endpoint called far more often is not
+    // the one moving the most data.
+    expect(feeds?.count).toBeGreaterThan(items!.count)
+    expect(feeds?.bytes).toBeLessThan(items!.bytes)
   })
 
   it('handles empty input', () => {

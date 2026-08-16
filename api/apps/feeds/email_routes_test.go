@@ -172,7 +172,10 @@ func TestEmailInbound_ValidSignature_IngestsItem(t *testing.T) {
 	item := itemBySourceURL(t, client, sourceURL)
 	require.NotNil(t, item)
 	assert.Equal(t, "This week's issue", item.Title)
-	assert.Contains(t, item.ContentHtml, "Fresh newsletter content")
+	assert.True(t, item.HasContent)
+	assert.Contains(
+		t, fetchItemContent(t, client, item.Id), "Fresh newsletter content",
+	)
 }
 
 // TestEmailInbound_BlankSubject_DefaultsTitle proves a whitespace-only

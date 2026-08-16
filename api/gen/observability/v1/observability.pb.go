@@ -270,11 +270,15 @@ func (x *GetJobStatsResponse) GetRecentRuns() []*JobRun {
 }
 
 type UsageDay struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Day           string                 `protobuf:"bytes,1,opt,name=day,proto3" json:"day,omitempty"` // YYYY-MM-DD
-	App           string                 `protobuf:"bytes,2,opt,name=app,proto3" json:"app,omitempty"`
-	Endpoint      string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	Count         int64                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Day      string                 `protobuf:"bytes,1,opt,name=day,proto3" json:"day,omitempty"` // YYYY-MM-DD
+	App      string                 `protobuf:"bytes,2,opt,name=app,proto3" json:"app,omitempty"`
+	Endpoint string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	Count    int64                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	// Total response body bytes served by these requests. Measures what left
+	// the api, a proxy for what it read out of the database rather than a
+	// direct measure of database egress (issue #1027).
+	Bytes         int64 `protobuf:"varint,5,opt,name=bytes,proto3" json:"bytes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -333,6 +337,13 @@ func (x *UsageDay) GetEndpoint() string {
 func (x *UsageDay) GetCount() int64 {
 	if x != nil {
 		return x.Count
+	}
+	return 0
+}
+
+func (x *UsageDay) GetBytes() int64 {
+	if x != nil {
+		return x.Bytes
 	}
 	return 0
 }
@@ -2859,12 +2870,13 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x13GetJobStatsResponse\x12/\n" +
 	"\x05stats\x18\x01 \x03(\v2\x19.observability.v1.JobStatR\x05stats\x129\n" +
 	"\vrecent_runs\x18\x02 \x03(\v2\x18.observability.v1.JobRunR\n" +
-	"recentRuns\"`\n" +
+	"recentRuns\"v\n" +
 	"\bUsageDay\x12\x10\n" +
 	"\x03day\x18\x01 \x01(\tR\x03day\x12\x10\n" +
 	"\x03app\x18\x02 \x01(\tR\x03app\x12\x1a\n" +
 	"\bendpoint\x18\x03 \x01(\tR\bendpoint\x12\x14\n" +
-	"\x05count\x18\x04 \x01(\x03R\x05count\"7\n" +
+	"\x05count\x18\x04 \x01(\x03R\x05count\x12\x14\n" +
+	"\x05bytes\x18\x05 \x01(\x03R\x05bytes\"7\n" +
 	"\x14GetUsageStatsRequest\x12\x1f\n" +
 	"\vwindow_days\x18\x01 \x01(\x05R\n" +
 	"windowDays\"M\n" +

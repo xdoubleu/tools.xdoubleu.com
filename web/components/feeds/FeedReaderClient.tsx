@@ -166,7 +166,7 @@ function FeedReaderCard({
   onSettled
 }: FeedReaderCardProps) {
   const [readerOpen, setReaderOpen] = useState(false)
-  const noContent = !item.contentHtml
+  const noContent = !item.hasContent
   const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
 
   // Settling while the reader is open would drop the item from the unread

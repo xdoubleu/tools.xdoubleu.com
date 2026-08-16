@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file feeds/v1/feeds.proto.
  */
 export const file_feeds_v1_feeds: GenFile = /*@__PURE__*/
-  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEi9QEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJEgwKBGV0YWcYCSABKAkSFQoNbGFzdF9tb2RpZmllZBgKIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgLIAEoBRITCgtub3RpZmllZF9hdBgMIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjIKEUxpc3RGZWVkc1Jlc3BvbnNlEh0KBWZlZWRzGAEgAygLMg4uZmVlZHMudjEuRmVlZCJRChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSIAoEa2luZBgCIAEoDjISLmZlZWRzLnYxLkZlZWRLaW5kEg0KBXRpdGxlGAMgASgJIjIKEkNyZWF0ZUZlZWRSZXNwb25zZRIcCgRmZWVkGAEgASgLMg4uZmVlZHMudjEuRmVlZCIzChFVcGRhdGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIu8BCgRJdGVtEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc291cmNlX3VybBgEIAEoCRIUCgxjb250ZW50X2h0bWwYBSABKAkSFAoMcHVibGlzaGVkX2F0GAYgASgJEg8KB3JlYWRfYXQYByABKAkSEQoJZGlzbWlzc2VkGAggASgIEhIKCmJvb2ttYXJrZWQYCSABKAgSFAoMaW5nZXN0X2Vycm9yGAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAkSGQoRcmVhZF9wcm9ncmVzc19wY3QYDCABKAUiswEKFExpc3RGZWVkSXRlbXNSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEg4KBm9mZnNldBgCIAEoBRIYCgt1bnJlYWRfb25seRgDIAEoCEgAiAEBEhQKB2ZlZWRfaWQYBCABKAlIAYgBARIcCg9ib29rbWFya2VkX29ubHkYBSABKAhIAogBAUIOCgxfdW5yZWFkX29ubHlCCgoIX2ZlZWRfaWRCEgoQX2Jvb2ttYXJrZWRfb25seSJIChVMaXN0RmVlZEl0ZW1zUmVzcG9uc2USHQoFaXRlbXMYASADKAsyDi5mZWVkcy52MS5JdGVtEhAKCGhhc19tb3JlGAIgASgIIsQBChFVcGRhdGVJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJEhEKBHJlYWQYAiABKAhIAIgBARIWCglkaXNtaXNzZWQYAyABKAhIAYgBARIXCgpib29rbWFya2VkGAQgASgISAKIAQESHgoRcmVhZF9wcm9ncmVzc19wY3QYBSABKAVIA4gBAUIHCgVfcmVhZEIMCgpfZGlzbWlzc2VkQg0KC19ib29rbWFya2VkQhQKEl9yZWFkX3Byb2dyZXNzX3BjdCIyChJVcGRhdGVJdGVtUmVzcG9uc2USHAoEaXRlbRgBIAEoCzIOLmZlZWRzLnYxLkl0ZW0ikgEKCUZlZWRTdGF0cxIPCgdmZWVkX2lkGAEgASgJEhIKCmZlZWRfdGl0bGUYAiABKAkSEgoKaXRlbV9jb3VudBgDIAEoBRIaChJhdmdfaW50ZXJ2YWxfaG91cnMYBCABKAESEQoJcmVhZF9yYXRlGAUgASgBEh0KFWF2Z19yZWFkX3Byb2dyZXNzX3BjdBgGIAEoASImCghEYXlDb3VudBILCgNkYXkYASABKAkSDQoFY291bnQYAiABKAUiFQoTR2V0RmVlZFN0YXRzUmVxdWVzdCJlChRHZXRGZWVkU3RhdHNSZXNwb25zZRIiCgVzdGF0cxgBIAMoCzITLmZlZWRzLnYxLkZlZWRTdGF0cxIpCg1pdGVtc19wZXJfZGF5GAIgAygLMhIuZmVlZHMudjEuRGF5Q291bnQqYwoIRmVlZEtpbmQSGQoVRkVFRF9LSU5EX1VOU1BFQ0lGSUVEEAASEQoNRkVFRF9LSU5EX1JTUxABEhMKD0ZFRURfS0lORF9FTUFJTBACEhQKEEZFRURfS0lORF9TQ1JBUEUQAzLkBAoLRmVlZFNlcnZpY2USRAoJTGlzdEZlZWRzEhouZmVlZHMudjEuTGlzdEZlZWRzUmVxdWVzdBobLmZlZWRzLnYxLkxpc3RGZWVkc1Jlc3BvbnNlEkcKCkNyZWF0ZUZlZWQSGy5mZWVkcy52MS5DcmVhdGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLkNyZWF0ZUZlZWRSZXNwb25zZRJHCgpVcGRhdGVGZWVkEhsuZmVlZHMudjEuVXBkYXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5VcGRhdGVGZWVkUmVzcG9uc2USRwoKRGVsZXRlRmVlZBIbLmZlZWRzLnYxLkRlbGV0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuRGVsZXRlRmVlZFJlc3BvbnNlEkoKC1JlZnJlc2hGZWVkEhwuZmVlZHMudjEuUmVmcmVzaEZlZWRSZXF1ZXN0Gh0uZmVlZHMudjEuUmVmcmVzaEZlZWRSZXNwb25zZRJQCg1MaXN0RmVlZEl0ZW1zEh4uZmVlZHMudjEuTGlzdEZlZWRJdGVtc1JlcXVlc3QaHy5mZWVkcy52MS5MaXN0RmVlZEl0ZW1zUmVzcG9uc2USRwoKVXBkYXRlSXRlbRIbLmZlZWRzLnYxLlVwZGF0ZUl0ZW1SZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlSXRlbVJlc3BvbnNlEk0KDEdldEZlZWRTdGF0cxIdLmZlZWRzLnYxLkdldEZlZWRTdGF0c1JlcXVlc3QaHi5mZWVkcy52MS5HZXRGZWVkU3RhdHNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2ZlZWRzL3YxO2ZlZWRzdjFiBnByb3RvMw");
+  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEi9QEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJEgwKBGV0YWcYCSABKAkSFQoNbGFzdF9tb2RpZmllZBgKIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgLIAEoBRITCgtub3RpZmllZF9hdBgMIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjIKEUxpc3RGZWVkc1Jlc3BvbnNlEh0KBWZlZWRzGAEgAygLMg4uZmVlZHMudjEuRmVlZCJRChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSIAoEa2luZBgCIAEoDjISLmZlZWRzLnYxLkZlZWRLaW5kEg0KBXRpdGxlGAMgASgJIjIKEkNyZWF0ZUZlZWRSZXNwb25zZRIcCgRmZWVkGAEgASgLMg4uZmVlZHMudjEuRmVlZCIzChFVcGRhdGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIoQCCgRJdGVtEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc291cmNlX3VybBgEIAEoCRIUCgxjb250ZW50X2h0bWwYBSABKAkSFAoMcHVibGlzaGVkX2F0GAYgASgJEg8KB3JlYWRfYXQYByABKAkSEQoJZGlzbWlzc2VkGAggASgIEhIKCmJvb2ttYXJrZWQYCSABKAgSFAoMaW5nZXN0X2Vycm9yGAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAkSGQoRcmVhZF9wcm9ncmVzc19wY3QYDCABKAUSEwoLaGFzX2NvbnRlbnQYDSABKAgiswEKFExpc3RGZWVkSXRlbXNSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEg4KBm9mZnNldBgCIAEoBRIYCgt1bnJlYWRfb25seRgDIAEoCEgAiAEBEhQKB2ZlZWRfaWQYBCABKAlIAYgBARIcCg9ib29rbWFya2VkX29ubHkYBSABKAhIAogBAUIOCgxfdW5yZWFkX29ubHlCCgoIX2ZlZWRfaWRCEgoQX2Jvb2ttYXJrZWRfb25seSJIChVMaXN0RmVlZEl0ZW1zUmVzcG9uc2USHQoFaXRlbXMYASADKAsyDi5mZWVkcy52MS5JdGVtEhAKCGhhc19tb3JlGAIgASgIIiUKEkdldEZlZWRJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJIjMKE0dldEZlZWRJdGVtUmVzcG9uc2USHAoEaXRlbRgBIAEoCzIOLmZlZWRzLnYxLkl0ZW0ixAEKEVVwZGF0ZUl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSEQoEcmVhZBgCIAEoCEgAiAEBEhYKCWRpc21pc3NlZBgDIAEoCEgBiAEBEhcKCmJvb2ttYXJrZWQYBCABKAhIAogBARIeChFyZWFkX3Byb2dyZXNzX3BjdBgFIAEoBUgDiAEBQgcKBV9yZWFkQgwKCl9kaXNtaXNzZWRCDQoLX2Jvb2ttYXJrZWRCFAoSX3JlYWRfcHJvZ3Jlc3NfcGN0IjIKElVwZGF0ZUl0ZW1SZXNwb25zZRIcCgRpdGVtGAEgASgLMg4uZmVlZHMudjEuSXRlbSKSAQoJRmVlZFN0YXRzEg8KB2ZlZWRfaWQYASABKAkSEgoKZmVlZF90aXRsZRgCIAEoCRISCgppdGVtX2NvdW50GAMgASgFEhoKEmF2Z19pbnRlcnZhbF9ob3VycxgEIAEoARIRCglyZWFkX3JhdGUYBSABKAESHQoVYXZnX3JlYWRfcHJvZ3Jlc3NfcGN0GAYgASgBIiYKCERheUNvdW50EgsKA2RheRgBIAEoCRINCgVjb3VudBgCIAEoBSIVChNHZXRGZWVkU3RhdHNSZXF1ZXN0ImUKFEdldEZlZWRTdGF0c1Jlc3BvbnNlEiIKBXN0YXRzGAEgAygLMhMuZmVlZHMudjEuRmVlZFN0YXRzEikKDWl0ZW1zX3Blcl9kYXkYAiADKAsyEi5mZWVkcy52MS5EYXlDb3VudCpjCghGZWVkS2luZBIZChVGRUVEX0tJTkRfVU5TUEVDSUZJRUQQABIRCg1GRUVEX0tJTkRfUlNTEAESEwoPRkVFRF9LSU5EX0VNQUlMEAISFAoQRkVFRF9LSU5EX1NDUkFQRRADMrAFCgtGZWVkU2VydmljZRJECglMaXN0RmVlZHMSGi5mZWVkcy52MS5MaXN0RmVlZHNSZXF1ZXN0GhsuZmVlZHMudjEuTGlzdEZlZWRzUmVzcG9uc2USRwoKQ3JlYXRlRmVlZBIbLmZlZWRzLnYxLkNyZWF0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuQ3JlYXRlRmVlZFJlc3BvbnNlEkcKClVwZGF0ZUZlZWQSGy5mZWVkcy52MS5VcGRhdGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLlVwZGF0ZUZlZWRSZXNwb25zZRJHCgpEZWxldGVGZWVkEhsuZmVlZHMudjEuRGVsZXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5EZWxldGVGZWVkUmVzcG9uc2USSgoLUmVmcmVzaEZlZWQSHC5mZWVkcy52MS5SZWZyZXNoRmVlZFJlcXVlc3QaHS5mZWVkcy52MS5SZWZyZXNoRmVlZFJlc3BvbnNlElAKDUxpc3RGZWVkSXRlbXMSHi5mZWVkcy52MS5MaXN0RmVlZEl0ZW1zUmVxdWVzdBofLmZlZWRzLnYxLkxpc3RGZWVkSXRlbXNSZXNwb25zZRJKCgtHZXRGZWVkSXRlbRIcLmZlZWRzLnYxLkdldEZlZWRJdGVtUmVxdWVzdBodLmZlZWRzLnYxLkdldEZlZWRJdGVtUmVzcG9uc2USRwoKVXBkYXRlSXRlbRIbLmZlZWRzLnYxLlVwZGF0ZUl0ZW1SZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlSXRlbVJlc3BvbnNlEk0KDEdldEZlZWRTdGF0cxIdLmZlZWRzLnYxLkdldEZlZWRTdGF0c1JlcXVlc3QaHi5mZWVkcy52MS5HZXRGZWVkU3RhdHNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2ZlZWRzL3YxO2ZlZWRzdjFiBnByb3RvMw");
 
 /**
  * Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
@@ -329,6 +329,10 @@ export type Item = Message<"feeds.v1.Item"> & {
   sourceUrl: string;
 
   /**
+   * Only populated by GetFeedItem. ListFeedItems and UpdateItem leave it
+   * empty and set has_content instead — a page of article bodies was the
+   * single largest source of database egress (issue #1027).
+   *
    * @generated from field: string content_html = 5;
    */
   contentHtml: string;
@@ -377,6 +381,15 @@ export type Item = Message<"feeds.v1.Item"> & {
    * @generated from field: int32 read_progress_pct = 12;
    */
   readProgressPct: number;
+
+  /**
+   * Whether the item has an extracted article body, without carrying it.
+   * Set by every RPC returning an Item; lets a list distinguish "no content"
+   * from "content not loaded yet".
+   *
+   * @generated from field: bool has_content = 13;
+   */
+  hasContent: boolean;
 };
 
 /**
@@ -455,6 +468,44 @@ export const ListFeedItemsResponseSchema: GenMessage<ListFeedItemsResponse> = /*
   messageDesc(file_feeds_v1_feeds, 13);
 
 /**
+ * GetFeedItem returns one item with its content_html populated — the only
+ * RPC that reads the article body. The reader calls it when opening an
+ * article, so a list read never pays for fifty bodies (issue #1027).
+ *
+ * @generated from message feeds.v1.GetFeedItemRequest
+ */
+export type GetFeedItemRequest = Message<"feeds.v1.GetFeedItemRequest"> & {
+  /**
+   * @generated from field: string item_id = 1;
+   */
+  itemId: string;
+};
+
+/**
+ * Describes the message feeds.v1.GetFeedItemRequest.
+ * Use `create(GetFeedItemRequestSchema)` to create a new message.
+ */
+export const GetFeedItemRequestSchema: GenMessage<GetFeedItemRequest> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 14);
+
+/**
+ * @generated from message feeds.v1.GetFeedItemResponse
+ */
+export type GetFeedItemResponse = Message<"feeds.v1.GetFeedItemResponse"> & {
+  /**
+   * @generated from field: feeds.v1.Item item = 1;
+   */
+  item?: Item | undefined;
+};
+
+/**
+ * Describes the message feeds.v1.GetFeedItemResponse.
+ * Use `create(GetFeedItemResponseSchema)` to create a new message.
+ */
+export const GetFeedItemResponseSchema: GenMessage<GetFeedItemResponse> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 15);
+
+/**
  * UpdateItem partially updates an item's read/dismissed/bookmarked/
  * read-progress state — only fields explicitly set are applied; unset
  * fields are left unchanged. read sets read_at to now() when true, clears
@@ -495,7 +546,7 @@ export type UpdateItemRequest = Message<"feeds.v1.UpdateItemRequest"> & {
  * Use `create(UpdateItemRequestSchema)` to create a new message.
  */
 export const UpdateItemRequestSchema: GenMessage<UpdateItemRequest> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 14);
+  messageDesc(file_feeds_v1_feeds, 16);
 
 /**
  * @generated from message feeds.v1.UpdateItemResponse
@@ -512,7 +563,7 @@ export type UpdateItemResponse = Message<"feeds.v1.UpdateItemResponse"> & {
  * Use `create(UpdateItemResponseSchema)` to create a new message.
  */
 export const UpdateItemResponseSchema: GenMessage<UpdateItemResponse> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 15);
+  messageDesc(file_feeds_v1_feeds, 17);
 
 /**
  * FeedStats aggregates one feed's posting cadence and read/completion
@@ -564,7 +615,7 @@ export type FeedStats = Message<"feeds.v1.FeedStats"> & {
  * Use `create(FeedStatsSchema)` to create a new message.
  */
 export const FeedStatsSchema: GenMessage<FeedStats> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 16);
+  messageDesc(file_feeds_v1_feeds, 18);
 
 /**
  * One day's ingested-item count, for the "when do new items appear"
@@ -591,7 +642,7 @@ export type DayCount = Message<"feeds.v1.DayCount"> & {
  * Use `create(DayCountSchema)` to create a new message.
  */
 export const DayCountSchema: GenMessage<DayCount> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 17);
+  messageDesc(file_feeds_v1_feeds, 19);
 
 /**
  * @generated from message feeds.v1.GetFeedStatsRequest
@@ -604,7 +655,7 @@ export type GetFeedStatsRequest = Message<"feeds.v1.GetFeedStatsRequest"> & {
  * Use `create(GetFeedStatsRequestSchema)` to create a new message.
  */
 export const GetFeedStatsRequestSchema: GenMessage<GetFeedStatsRequest> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 18);
+  messageDesc(file_feeds_v1_feeds, 20);
 
 /**
  * @generated from message feeds.v1.GetFeedStatsResponse
@@ -628,7 +679,7 @@ export type GetFeedStatsResponse = Message<"feeds.v1.GetFeedStatsResponse"> & {
  * Use `create(GetFeedStatsResponseSchema)` to create a new message.
  */
 export const GetFeedStatsResponseSchema: GenMessage<GetFeedStatsResponse> = /*@__PURE__*/
-  messageDesc(file_feeds_v1_feeds, 19);
+  messageDesc(file_feeds_v1_feeds, 21);
 
 /**
  * @generated from enum feeds.v1.FeedKind
@@ -714,6 +765,14 @@ export const FeedService: GenService<{
     methodKind: "unary";
     input: typeof ListFeedItemsRequestSchema;
     output: typeof ListFeedItemsResponseSchema;
+  },
+  /**
+   * @generated from rpc feeds.v1.FeedService.GetFeedItem
+   */
+  getFeedItem: {
+    methodKind: "unary";
+    input: typeof GetFeedItemRequestSchema;
+    output: typeof GetFeedItemResponseSchema;
   },
   /**
    * @generated from rpc feeds.v1.FeedService.UpdateItem

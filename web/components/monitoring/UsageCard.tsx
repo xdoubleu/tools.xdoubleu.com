@@ -16,6 +16,7 @@ import {
   CATEGORICAL_PALETTE,
   OTHER_COLOR,
   chartTooltipStyle,
+  formatBytes,
   formatCount
 } from '@/lib/observability'
 import { aggregateUsage, OTHER_LABEL } from './usageData'
@@ -74,7 +75,8 @@ export default function UsageCard({ data }: { data?: GetUsageStatsResponse }) {
                 <tr>
                   <th className="py-2 pr-3 font-semibold text-subtle">App</th>
                   <th className="py-2 pr-3 font-semibold text-subtle">Endpoint</th>
-                  <th className="py-2 text-right font-semibold text-subtle">Requests</th>
+                  <th className="py-2 pr-3 text-right font-semibold text-subtle">Requests</th>
+                  <th className="py-2 text-right font-semibold text-subtle">Served</th>
                 </tr>
               </thead>
               <tbody>
@@ -85,7 +87,8 @@ export default function UsageCard({ data }: { data?: GetUsageStatsResponse }) {
                   >
                     <td className="py-2 pr-3 text-fg">{e.app}</td>
                     <td className="py-2 pr-3 font-mono text-xs text-fg">{e.endpoint}</td>
-                    <td className="py-2 text-right text-fg">{formatCount(e.count)}</td>
+                    <td className="py-2 pr-3 text-right text-fg">{formatCount(e.count)}</td>
+                    <td className="py-2 text-right text-fg">{formatBytes(e.bytes)}</td>
                   </tr>
                 ))}
               </tbody>

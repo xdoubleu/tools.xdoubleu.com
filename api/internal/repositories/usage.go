@@ -23,11 +23,12 @@ func (r *UsageRepository) Flush(
 ) error {
 	for _, e := range entries {
 		if _, err := r.db.Exec(ctx, `
-			INSERT INTO global.usage_daily (day, app, endpoint, count)
-			VALUES ($1, $2, $3, $4)
+			INSERT INTO global.usage_daily (day, app, endpoint, count, bytes)
+			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT (day, app, endpoint)
-			DO UPDATE SET count = usage_daily.count + EXCLUDED.count
-		`, e.Day, e.App, e.Endpoint, e.Count); err != nil {
+			DO UPDATE SET count = usage_daily.count + EXCLUDED.count,
+			              bytes = usage_daily.bytes + EXCLUDED.bytes
+		`, e.Day, e.App, e.Endpoint, e.Count, e.Bytes); err != nil {
 			return err
 		}
 	}
@@ -39,7 +40,7 @@ func (r *UsageRepository) GetDaily(
 	since time.Time,
 ) ([]models.UsageEntry, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT day, app, endpoint, count
+		SELECT day, app, endpoint, count, bytes
 		FROM global.usage_daily
 		WHERE day >= $1
 		ORDER BY day, app, endpoint
@@ -52,7 +53,7 @@ func (r *UsageRepository) GetDaily(
 	var entries []models.UsageEntry
 	for rows.Next() {
 		var e models.UsageEntry
-		if err = rows.Scan(&e.Day, &e.App, &e.Endpoint, &e.Count); err != nil {
+		if err = rows.Scan(&e.Day, &e.App, &e.Endpoint, &e.Count, &e.Bytes); err != nil {
 			return nil, err
 		}
 		entries = append(entries, e)

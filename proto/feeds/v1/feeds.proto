@@ -85,6 +85,9 @@ message Item {
   string feed_id = 2;
   string title = 3;
   string source_url = 4;
+  // Only populated by GetFeedItem. ListFeedItems and UpdateItem leave it
+  // empty and set has_content instead — a page of article bodies was the
+  // single largest source of database egress (issue #1027).
   string content_html = 5;
   // RFC3339; the item's true publish date from the feed/email, not ingest
   // time.
@@ -99,6 +102,10 @@ message Item {
   // Furthest scroll position reached in the reader, 0-100. Monotonic:
   // re-opening and scrolling less never lowers it.
   int32 read_progress_pct = 12;
+  // Whether the item has an extracted article body, without carrying it.
+  // Set by every RPC returning an Item; lets a list distinguish "no content"
+  // from "content not loaded yet".
+  bool has_content = 13;
 }
 
 message ListFeedItemsRequest {
@@ -118,6 +125,12 @@ message ListFeedItemsResponse {
   repeated Item items = 1;
   bool has_more = 2;
 }
+
+// GetFeedItem returns one item with its content_html populated — the only
+// RPC that reads the article body. The reader calls it when opening an
+// article, so a list read never pays for fifty bodies (issue #1027).
+message GetFeedItemRequest { string item_id = 1; }
+message GetFeedItemResponse { Item item = 1; }
 
 // UpdateItem partially updates an item's read/dismissed/bookmarked/
 // read-progress state — only fields explicitly set are applied; unset
@@ -170,6 +183,7 @@ service FeedService {
   rpc DeleteFeed(DeleteFeedRequest) returns (DeleteFeedResponse);
   rpc RefreshFeed(RefreshFeedRequest) returns (RefreshFeedResponse);
   rpc ListFeedItems(ListFeedItemsRequest) returns (ListFeedItemsResponse);
+  rpc GetFeedItem(GetFeedItemRequest) returns (GetFeedItemResponse);
   rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
   rpc GetFeedStats(GetFeedStatsRequest) returns (GetFeedStatsResponse);
 }

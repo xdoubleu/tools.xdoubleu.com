@@ -127,6 +127,17 @@ func (s *FeedService) ListItems(
 	)
 }
 
+// GetItem returns one of the user's items with its article body populated.
+// Items from ListItems deliberately carry no body (issue #1027), so the
+// reader calls this when opening an article.
+func (s *FeedService) GetItem(
+	ctx context.Context,
+	userID string,
+	itemID uuid.UUID,
+) (*models.Item, error) {
+	return s.items.GetByIDForUser(ctx, userID, itemID)
+}
+
 // CountUnread returns the number of unread items across any of the user's
 // feeds — backs the reading dashboard's feeds summary widget.
 func (s *FeedService) CountUnread(ctx context.Context, userID string) (int, error) {

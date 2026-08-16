@@ -29,7 +29,15 @@ func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
 		"The user's RSS/Atom and email-newsletter feed subscriptions.",
 		h.mcpListFeeds)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_items",
-		"Items ingested by any of the user's feeds.", h.mcpListItems)
+		"Items ingested by any of the user's feeds. Article bodies are "+
+			"omitted — use feeds_get_item for one item's content.",
+		h.mcpListItems)
+	mcptools.AddReadTool(srv, mcpAppName, "feeds_get_item",
+		"One feed item including its extracted article body.", h.mcpGetItem)
+}
+
+type mcpGetItemArgs struct {
+	ItemID string `json:"item_id" jsonschema:"the item's id"`
 }
 
 func (h *feedsConnectHandler) mcpListFeeds(
@@ -52,4 +60,12 @@ func (h *feedsConnectHandler) mcpListItems(
 		req.FeedId = proto.String(args.FeedID)
 	}
 	return mcptools.Unwrap(h.ListFeedItems(ctx, connect.NewRequest(req)))
+}
+
+func (h *feedsConnectHandler) mcpGetItem(
+	ctx context.Context, args mcpGetItemArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetFeedItem(ctx, connect.NewRequest(
+		&feedsv1.GetFeedItemRequest{ItemId: args.ItemID},
+	)))
 }

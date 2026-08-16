@@ -67,6 +67,10 @@ message UsageDay {
   string app = 2;
   string endpoint = 3;
   int64 count = 4;
+  // Total response body bytes served by these requests. Measures what left
+  // the api, a proxy for what it read out of the database rather than a
+  // direct measure of database egress (issue #1027).
+  int64 bytes = 5;
 }
 
 message GetUsageStatsRequest {

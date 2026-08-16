@@ -46,6 +46,8 @@ const (
 	// FeedServiceListFeedItemsProcedure is the fully-qualified name of the FeedService's ListFeedItems
 	// RPC.
 	FeedServiceListFeedItemsProcedure = "/feeds.v1.FeedService/ListFeedItems"
+	// FeedServiceGetFeedItemProcedure is the fully-qualified name of the FeedService's GetFeedItem RPC.
+	FeedServiceGetFeedItemProcedure = "/feeds.v1.FeedService/GetFeedItem"
 	// FeedServiceUpdateItemProcedure is the fully-qualified name of the FeedService's UpdateItem RPC.
 	FeedServiceUpdateItemProcedure = "/feeds.v1.FeedService/UpdateItem"
 	// FeedServiceGetFeedStatsProcedure is the fully-qualified name of the FeedService's GetFeedStats
@@ -61,6 +63,7 @@ type FeedServiceClient interface {
 	DeleteFeed(context.Context, *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error)
 	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
 	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
+	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 }
@@ -112,6 +115,12 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("ListFeedItems")),
 			connect.WithClientOptions(opts...),
 		),
+		getFeedItem: connect.NewClient[v1.GetFeedItemRequest, v1.GetFeedItemResponse](
+			httpClient,
+			baseURL+FeedServiceGetFeedItemProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("GetFeedItem")),
+			connect.WithClientOptions(opts...),
+		),
 		updateItem: connect.NewClient[v1.UpdateItemRequest, v1.UpdateItemResponse](
 			httpClient,
 			baseURL+FeedServiceUpdateItemProcedure,
@@ -135,6 +144,7 @@ type feedServiceClient struct {
 	deleteFeed    *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
 	refreshFeed   *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
 	listFeedItems *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
+	getFeedItem   *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
 	updateItem    *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
 	getFeedStats  *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
 }
@@ -169,6 +179,11 @@ func (c *feedServiceClient) ListFeedItems(ctx context.Context, req *connect.Requ
 	return c.listFeedItems.CallUnary(ctx, req)
 }
 
+// GetFeedItem calls feeds.v1.FeedService.GetFeedItem.
+func (c *feedServiceClient) GetFeedItem(ctx context.Context, req *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error) {
+	return c.getFeedItem.CallUnary(ctx, req)
+}
+
 // UpdateItem calls feeds.v1.FeedService.UpdateItem.
 func (c *feedServiceClient) UpdateItem(ctx context.Context, req *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error) {
 	return c.updateItem.CallUnary(ctx, req)
@@ -187,6 +202,7 @@ type FeedServiceHandler interface {
 	DeleteFeed(context.Context, *connect.Request[v1.DeleteFeedRequest]) (*connect.Response[v1.DeleteFeedResponse], error)
 	RefreshFeed(context.Context, *connect.Request[v1.RefreshFeedRequest]) (*connect.Response[v1.RefreshFeedResponse], error)
 	ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error)
+	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 }
@@ -234,6 +250,12 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("ListFeedItems")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceGetFeedItemHandler := connect.NewUnaryHandler(
+		FeedServiceGetFeedItemProcedure,
+		svc.GetFeedItem,
+		connect.WithSchema(feedServiceMethods.ByName("GetFeedItem")),
+		connect.WithHandlerOptions(opts...),
+	)
 	feedServiceUpdateItemHandler := connect.NewUnaryHandler(
 		FeedServiceUpdateItemProcedure,
 		svc.UpdateItem,
@@ -260,6 +282,8 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceRefreshFeedHandler.ServeHTTP(w, r)
 		case FeedServiceListFeedItemsProcedure:
 			feedServiceListFeedItemsHandler.ServeHTTP(w, r)
+		case FeedServiceGetFeedItemProcedure:
+			feedServiceGetFeedItemHandler.ServeHTTP(w, r)
 		case FeedServiceUpdateItemProcedure:
 			feedServiceUpdateItemHandler.ServeHTTP(w, r)
 		case FeedServiceGetFeedStatsProcedure:
@@ -295,6 +319,10 @@ func (UnimplementedFeedServiceHandler) RefreshFeed(context.Context, *connect.Req
 
 func (UnimplementedFeedServiceHandler) ListFeedItems(context.Context, *connect.Request[v1.ListFeedItemsRequest]) (*connect.Response[v1.ListFeedItemsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.ListFeedItems is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFeedItem is not implemented"))
 }
 
 func (UnimplementedFeedServiceHandler) UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error) {
