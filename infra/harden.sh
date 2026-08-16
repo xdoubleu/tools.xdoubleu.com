@@ -17,6 +17,12 @@ grep -qxF "$DEPLOY_PUBLIC_KEY" "$AUTH_KEYS" || echo "$DEPLOY_PUBLIC_KEY" >>"$AUT
 chmod 600 "$AUTH_KEYS"
 chown deploy:deploy "$AUTH_KEYS"
 
+# deploy has no password (SSH is key-only, and useradd leaves the account
+# locked), so sudo needs to be passwordless or it's simply unusable.
+echo "deploy ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/deploy
+chmod 440 /etc/sudoers.d/deploy
+visudo -cf /etc/sudoers.d/deploy
+
 # --- Docker ------------------------------------------------------------
 if ! command -v docker &>/dev/null; then
   curl -fsSL https://get.docker.com | sh
