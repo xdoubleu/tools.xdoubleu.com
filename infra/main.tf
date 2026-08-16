@@ -39,10 +39,10 @@ resource "null_resource" "harden" {
   }
 
   connection {
-    type        = "ssh"
-    host        = var.server_ip
-    user        = "root"
-    private_key = file(var.ssh_private_key_path)
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "root"
+    agent = true # picks up SSH_AUTH_SOCK; file(private_key) can't handle a passphrase-protected key
   }
 
   provisioner "file" {

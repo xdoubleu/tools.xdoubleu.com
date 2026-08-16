@@ -14,11 +14,6 @@ variable "server_ip" {
   type        = string
 }
 
-variable "ssh_private_key_path" {
-  description = "Path to the local SSH private key authorized on the server, used by the harden.sh provisioner to connect as root."
-  type        = string
-}
-
 variable "deploy_ssh_public_key" {
   description = "SSH public key to authorize on the new non-root deploy user."
   type        = string

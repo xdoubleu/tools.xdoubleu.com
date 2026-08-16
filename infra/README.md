@@ -12,13 +12,18 @@ recurring deploy.
 
 1. **Create the server** in the [Hetzner Console](https://console.hetzner.cloud/):
    New server → location `Falkenstein (fsn1)` → image `Ubuntu 24.04` → type
-   `CX22` → paste your SSH public key under "SSH keys" (needed so this
-   config's hardening step can SSH in as root before the `deploy` user
-   exists) → create. Note the server ID and public IPv4 shown after creation.
+   `CX23` (2 vCPU / 4 GB, same tier as `CX22` — use whichever of the two is
+   available in your region) → paste your SSH public key under "SSH keys"
+   (needed so this config's hardening step can SSH in as root before the
+   `deploy` user exists) → create. Note the server ID and public IPv4 shown
+   after creation.
 2. **Get an API token**: Hetzner Console → Security → API Tokens → generate
    (read+write).
 3. Install OpenTofu (`brew install opentofu` or see
    [opentofu.org](https://opentofu.org/docs/intro/install/)).
+4. **Load your SSH key into `ssh-agent`** — the hardening provisioner
+   connects via the agent (`ssh-add --apple-use-keychain ~/.ssh/<key>`),
+   since it can't read a passphrase-protected key file directly.
 
 ## Apply
 
@@ -30,7 +35,6 @@ tofu plan \
   -var hcloud_token="$HCLOUD_TOKEN" \
   -var server_id=<id> \
   -var server_ip=<ip> \
-  -var ssh_private_key_path=~/.ssh/<key> \
   -var deploy_ssh_public_key="$(cat ~/.ssh/<key>.pub)"
 tofu apply <same -var flags as plan>
 ```
