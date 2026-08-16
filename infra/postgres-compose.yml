@@ -1,16 +1,19 @@
 services:
   postgres:
-    # supabase/postgres, not vanilla postgres: a full dump of the Supabase-
-    # managed source DB references Supabase-specific extensions/roles
-    # (pgsodium, pgjwt, pgcrypto, pg_net, etc.) that only this image ships.
-    # This must stay pinned to the source Supabase project's actual
-    # Postgres version (Dashboard → Settings → Infrastructure) — a mismatch
-    # here isn't cosmetic: the image bootstraps its own auth/storage/
-    # realtime schemas on first start, and an older/newer build has a
-    # different column set than the live dump expects, which breaks COPY
-    # mid-restore (issue #1031, confirmed the hard way against a real
-    # restore attempt with the wrong tag).
-    image: supabase/postgres:17.6.1.063
+    # Vanilla postgres, not supabase/postgres (issue #1031): the
+    # Supabase-managed image bootstraps its own generic auth/storage/
+    # realtime schemas on first start, which collide with — and don't
+    # match the column set of — a real dump restored from a live Supabase
+    # project (that image's baseline is a starter schema, not a live
+    # mirror of any project's actual migration history, and its `postgres`
+    # role isn't a real superuser, blocking DROP SCHEMA/ownership fixes
+    # too). Confirmed the hard way across several failed restore attempts.
+    # A handful of Supabase-specific extension objects (pgsodium/vault
+    # encryption, pg_net webhooks, some realtime internals) are lost, but
+    # none of that matters until GoTrue/Storage/Realtime actually run
+    # against this DB — a separate future sub-issue, which should use
+    # Supabase's own self-hosting stack rather than this image anyway.
+    image: postgres:17
     restart: unless-stopped
     env_file: .env
     ports:

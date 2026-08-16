@@ -53,9 +53,14 @@ no changes at all) is safe.
 The same `tofu apply` above also creates `null_resource.postgres`, which
 uploads `postgres-compose.yml` and a generated `.env` (a Tofu-managed
 `random_password`) to `/home/deploy/postgres/` and runs
-`docker compose up -d` as the `deploy` user (issue #1031). Before the first
-apply, confirm the image tag pinned in `postgres-compose.yml` matches the
-source Supabase project's actual Postgres version (Dashboard → Database).
+`docker compose up -d` as the `deploy` user (issue #1031). Runs plain
+`postgres:17` — not the `supabase/postgres` image — since the latter's
+built-in `auth`/`storage`/`realtime` schemas are a generic starter
+baseline that doesn't match a real project's actual migration history,
+and its `postgres` role isn't a true superuser, which blocks fixing that
+mismatch by hand. See the image comment in `postgres-compose.yml` for the
+full reasoning; this only matters again once self-hosted GoTrue/Storage
+are actually in scope (a separate future sub-issue).
 
 Postgres is **not** exposed publicly — it's bound to `127.0.0.1:5432` on the
 VPS only. Retrieve the generated password with:
@@ -68,12 +73,9 @@ Re-running `apply` after editing `postgres-compose.yml` redeploys it;
 rotating the password (`tofu apply -replace=random_password.postgres <same
 -var flags>`) also forces a redeploy so the running container picks it up.
 
-**Changing the pinned image tag on an already-running instance** doesn't
-re-bootstrap the `auth`/`storage`/`realtime` schemas in the existing data
-volume — those are only created on a container's first start. If the tag
-changes (e.g. to fix a version mismatch discovered during migration, see
-below), wipe the volume and let it re-bootstrap clean before restoring
-again:
+**Changing the image on an already-running instance** doesn't reset an
+existing data volume. If you need a clean slate (e.g. retrying a
+migration), wipe the volume and let it start fresh:
 
 ```bash
 ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
@@ -82,15 +84,26 @@ ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
 ## Migrate data from Supabase (one-time)
 
 Run once, after `tofu apply` has stood up Postgres, against an existing
-`pg_dump --format=custom` of the source database (including Supabase's
-`auth` schema, not just the app schemas). Streams straight into `pg_restore`
-on the VPS via SSH — the file never touches disk on the VPS:
+plain-SQL `pg_dump` of the source database (including Supabase's `auth`
+schema, not just the app schemas). Streams straight into `psql` on the VPS
+via SSH — the file never touches disk on the VPS:
 
 ```bash
 ssh deploy@<ip> docker ps   # confirm the postgres container's name
 
-ssh deploy@<ip> "docker exec -i <container> pg_restore --no-owner --no-privileges --username=postgres --dbname=postgres --verbose" \
+ssh deploy@<ip> "docker exec -i <container> psql --username=postgres --dbname=postgres" \
   <path-to-dump-file>
+```
+
+If the dump was produced by a newer `pg_dump` (PostgreSQL 17+), it may be
+wrapped in `\restrict <token>` / `\unrestrict <token>` lines — a safety
+feature that, once triggered, blocks every other backslash command in the
+file (including version-conditional `\if`/`\endif` guards pg_dump itself
+inserts), silently skipping whatever they guard. Strip both lines before
+restoring if so:
+
+```bash
+sed -i '' '/^\\restrict /d; /^\\unrestrict /d' <path-to-dump-file>
 ```
 
 Supabase's own database is untouched throughout, so this is safe to re-run.
