@@ -16,21 +16,39 @@ jest.mock('@/components/feeds/FeedItemMarkReadButton', () => ({
     return <div data-testid="mark-read-button" />
   })
 }))
+// The reader now fetches the article body itself — list items only carry
+// hasContent (issue #1027). readerItem() registers the body this stub serves.
+let mockBody = ''
+let mockLoading = false
 jest.mock('@/hooks/useFeeds', () => ({
-  useUpdateItem: () => updateItem
+  useUpdateItem: () => updateItem,
+  useFeedItem: (id: string | null) => ({
+    data: id && mockBody ? { item: { contentHtml: mockBody } } : undefined,
+    isLoading: mockLoading
+  })
 }))
 
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
+
+// readerItem builds an Item as a list response would return it: hasContent
+// set, contentHtml empty, with the body handed to the useFeedItem stub.
+function readerItem(fields: Record<string, unknown> & { contentHtml?: string }) {
+  const { contentHtml = '', ...rest } = fields
+  mockBody = contentHtml
+  return create(ItemSchema, { ...rest, hasContent: contentHtml !== '' })
+}
 
 describe('ArticleReaderDialog', () => {
   beforeEach(() => {
     markRead.mockReset()
     updateItem.mockReset()
     updateItem.mockResolvedValue({})
+    mockBody = ''
+    mockLoading = false
   })
 
   it('auto-marks the item read once scrolled to the end of the content', () => {
-    const item = create(ItemSchema, {
+    const item = readerItem({
       id: 'item-1',
       title: 'Long Article',
       contentHtml: '<p>Body</p>'
@@ -64,7 +82,7 @@ describe('ArticleReaderDialog', () => {
       .spyOn(HTMLElement.prototype, 'scrollHeight', 'get')
       .mockReturnValue(200)
 
-    const item = create(ItemSchema, { id: 'item-1', title: 'Short', contentHtml: '<p>Body</p>' })
+    const item = readerItem({ id: 'item-1', title: 'Short', contentHtml: '<p>Body</p>' })
     render(
       <ArticleReaderDialog
         item={item}
@@ -82,7 +100,7 @@ describe('ArticleReaderDialog', () => {
   })
 
   it('renders the title and sanitized content', () => {
-    const item = create(ItemSchema, {
+    const item = readerItem({
       id: 'item-1',
       title: 'Hello World',
       contentHtml: '<p>Body <script>alert(1)</script></p>',
@@ -109,7 +127,7 @@ describe('ArticleReaderDialog', () => {
   })
 
   it('shows a fallback message when there is no stored content', () => {
-    const item = create(ItemSchema, {
+    const item = readerItem({
       id: 'item-1',
       title: 'No Content',
       contentHtml: '',
@@ -128,8 +146,43 @@ describe('ArticleReaderDialog', () => {
     expect(screen.getByText(/No in-app content stored/)).toBeInTheDocument()
   })
 
+  it('shows a loading state while the article body is still being fetched', () => {
+    const item = readerItem({ id: 'item-1', title: 'Fetching', contentHtml: '<p>Body</p>' })
+    // The body has not arrived yet, so the fetch is still in flight.
+    mockBody = ''
+    mockLoading = true
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    // hasContent is true, so the "nothing stored" fallback must stay hidden.
+    expect(screen.queryByText(/No in-app content stored/)).not.toBeInTheDocument()
+  })
+
+  it('fetches nothing while the dialog is closed', () => {
+    const item = readerItem({ id: 'item-1', title: 'Closed', contentHtml: '<p>Body</p>' })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open={false}
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(screen.queryByText('Body')).not.toBeInTheDocument()
+  })
+
   it('omits the "View original" link when there is no source URL', () => {
-    const item = create(ItemSchema, {
+    const item = readerItem({
       id: 'item-1',
       title: 'No Source',
       contentHtml: '<p>Body</p>',
@@ -151,7 +204,7 @@ describe('ArticleReaderDialog', () => {
   it('persists the furthest scroll percentage after the debounce window', () => {
     jest.useFakeTimers()
     try {
-      const item = create(ItemSchema, {
+      const item = readerItem({
         id: 'item-1',
         title: 'Long Article',
         contentHtml: '<p>Body</p>'
@@ -183,7 +236,7 @@ describe('ArticleReaderDialog', () => {
   it('flushes read progress on unmount without waiting for the debounce', () => {
     jest.useFakeTimers()
     try {
-      const item = create(ItemSchema, {
+      const item = readerItem({
         id: 'item-1',
         title: 'Long Article',
         contentHtml: '<p>Body</p>'
@@ -213,7 +266,7 @@ describe('ArticleReaderDialog', () => {
   })
 
   it('opens an enlarged pop-up when an article image is clicked', () => {
-    const item = create(ItemSchema, {
+    const item = readerItem({
       id: 'item-1',
       title: 'Article',
       contentHtml:
@@ -241,7 +294,7 @@ describe('ArticleReaderDialog', () => {
   })
 
   it('ignores clicks on non-image article content', () => {
-    const item = create(ItemSchema, { id: 'item-1', title: 'Article', contentHtml: '<p>Body</p>' })
+    const item = readerItem({ id: 'item-1', title: 'Article', contentHtml: '<p>Body</p>' })
     render(
       <ArticleReaderDialog
         item={item}

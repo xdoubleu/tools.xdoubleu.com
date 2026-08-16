@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
@@ -77,6 +79,23 @@ func countSeenRows(t *testing.T, feedID string) int {
 	return count
 }
 
+// fetchItemContent pulls one item's article body through GetFeedItem. List
+// responses deliberately omit content_html (issue #1027), so any assertion
+// about an item's body has to go through this.
+func fetchItemContent(
+	t *testing.T,
+	client feedsv1connect.FeedServiceClient,
+	itemID string,
+) string {
+	t.Helper()
+	resp, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: itemID}),
+	)
+	require.NoError(t, err)
+	return resp.Msg.Item.ContentHtml
+}
+
 // waitForFeedImport polls ListFeedItems until the feed's background import
 // (kicked off by CreateFeed) has landed at least one item, or fails the test
 // after a timeout.
@@ -141,7 +160,10 @@ func TestCreateFeed_RSS_Success(t *testing.T) {
 		if item.SourceUrl == base+"/one" {
 			found = true
 			assert.Equal(t, "Post One", item.Title)
-			assert.Contains(t, item.ContentHtml, "Lorem ipsum")
+			// The list carries only the flag; the body comes from GetFeedItem.
+			assert.True(t, item.HasContent)
+			assert.Empty(t, item.ContentHtml)
+			assert.Contains(t, fetchItemContent(t, client, item.Id), "Lorem ipsum")
 		}
 	}
 	assert.True(t, found, "imported item should be listed")
@@ -197,7 +219,8 @@ func TestCreateFeed_FetchesLinkedPageWhenNoEmbeddedContent(t *testing.T) {
 		}
 	}
 	require.NotNil(t, found)
-	assert.Contains(t, found.ContentHtml, "Lorem ipsum")
+	assert.True(t, found.HasContent)
+	assert.Contains(t, fetchItemContent(t, client, found.Id), "Lorem ipsum")
 }
 
 func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
@@ -295,7 +318,8 @@ func TestCreateFeed_Scrape_Success(t *testing.T) {
 	for _, item := range items.Msg.Items {
 		if item.SourceUrl == postURL {
 			found = true
-			assert.Contains(t, item.ContentHtml, "Lorem ipsum")
+			assert.True(t, item.HasContent)
+			assert.Contains(t, fetchItemContent(t, client, item.Id), "Lorem ipsum")
 		}
 	}
 	assert.True(t, found, "discovered post should be imported")
@@ -1336,4 +1360,137 @@ func TestRefreshFeed_EmailFeed_NoOp(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, int32(0), resp.Msg.Ingested)
+}
+
+// ── Article bodies stay out of multi-row reads (issue #1027) ────────────────
+
+// listFeedWithBody creates a one-item RSS feed whose article body is large
+// enough that shipping it in a list response would be obvious, and returns
+// the imported item.
+func listFeedWithBody(t *testing.T, body string) (
+	feedsv1connect.FeedServiceClient, *feedsv1.Item,
+) {
+	t.Helper()
+	base := uniqueBlogBase()
+	feedURL := base + "/feed-body.xml"
+	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML(
+		"Body Blog", rssItem{"Big Post", base + "/big", uuid.NewString(), body},
+	)))
+
+	client := newFeedsClient(t)
+	created, err := client.CreateFeed(
+		context.Background(),
+		connect.NewRequest(&feedsv1.CreateFeedRequest{Url: feedURL}),
+	)
+	require.NoError(t, err)
+	waitForFeedImport(t, client, created.Msg.Feed.Id)
+
+	items, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+			FeedId: proto.String(created.Msg.Feed.Id),
+		}),
+	)
+	require.NoError(t, err)
+	require.Len(t, items.Msg.Items, 1)
+	return client, items.Msg.Items[0]
+}
+
+// This is the regression guard for the Supabase egress overage: a list read
+// must never carry content_html, or every page of items drags every article
+// body out of Postgres.
+func TestListFeedItems_OmitsArticleBody(t *testing.T) {
+	body := "<p>" + strings.Repeat("egress ", 5000) + "</p>"
+	client, item := listFeedWithBody(t, body)
+
+	assert.Empty(t, item.ContentHtml, "list responses must not carry the body")
+	assert.True(t, item.HasContent, "but must still report that a body exists")
+
+	// GetFeedItem is where the body actually comes from.
+	full, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: item.Id}),
+	)
+	require.NoError(t, err)
+	assert.Contains(t, full.Msg.Item.ContentHtml, "egress")
+	assert.True(t, full.Msg.Item.HasContent)
+}
+
+// UpdateItem fires on every debounced scroll tick in the reader, so its
+// response must not carry the body either.
+func TestUpdateItem_OmitsArticleBody(t *testing.T) {
+	client, item := listFeedWithBody(t, "<p>"+strings.Repeat("scroll ", 2000)+"</p>")
+
+	updated, err := client.UpdateItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.UpdateItemRequest{
+			ItemId:          item.Id,
+			ReadProgressPct: proto.Int32(42),
+		}),
+	)
+	require.NoError(t, err)
+	assert.Empty(t, updated.Msg.Item.ContentHtml)
+	assert.True(t, updated.Msg.Item.HasContent)
+	assert.Equal(t, int32(42), updated.Msg.Item.ReadProgressPct)
+}
+
+// An item with no stored body reports HasContent=false, which is what lets
+// the reader distinguish "nothing stored" from "not loaded yet" now that an
+// empty content_html in a list response no longer means either.
+func TestFeedItem_NoBodyReportsHasContentFalse(t *testing.T) {
+	client, seeded := listFeedWithBody(t, "<p>seed</p>")
+
+	// Insert a body-less item directly: the ingest paths that produce one
+	// mark it with an ingest_error, which ListFeedItems filters out.
+	var itemID string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO feeds.items (feed_id, guid, title, source_url, content_html)
+		VALUES ($1, $2, 'Bodyless Post', 'https://example.com/bodyless', '')
+		RETURNING id
+	`, seeded.FeedId, uuid.NewString()).Scan(&itemID)
+	require.NoError(t, err)
+
+	items, err := client.ListFeedItems(
+		context.Background(),
+		connect.NewRequest(&feedsv1.ListFeedItemsRequest{
+			FeedId: proto.String(seeded.FeedId),
+		}),
+	)
+	require.NoError(t, err)
+	var listed *feedsv1.Item
+	for _, item := range items.Msg.Items {
+		if item.Id == itemID {
+			listed = item
+		}
+	}
+	require.NotNil(t, listed)
+	assert.False(t, listed.HasContent)
+
+	full, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: itemID}),
+	)
+	require.NoError(t, err)
+	assert.Empty(t, full.Msg.Item.ContentHtml)
+	assert.False(t, full.Msg.Item.HasContent)
+}
+
+func TestGetFeedItem_InvalidID(t *testing.T) {
+	client := newFeedsClient(t)
+	_, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: "not-a-uuid"}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestGetFeedItem_UnknownItem_NotFound(t *testing.T) {
+	client := newFeedsClient(t)
+	_, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }

@@ -38,7 +38,7 @@ var appsToolNames = []string{
 	"books_find_duplicates", "books_get_book_file", "books_get_kepub_status",
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
 	// feeds (2)
-	"feeds_list_feeds", "feeds_list_items",
+	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
 	// recipes (3)
 	"recipes_list_recipes", "recipes_get_recipe", "recipes_list_recipe_book_shares",
 	// mealplans (3)

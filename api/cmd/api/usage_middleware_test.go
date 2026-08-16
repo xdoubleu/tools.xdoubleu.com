@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUsageLabels(t *testing.T) {
@@ -105,4 +106,46 @@ func TestUsageLabels(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCountingResponseWriterTotalsBody(t *testing.T) {
+	rec := httptest.NewRecorder()
+	w := &countingResponseWriter{ResponseWriter: rec, written: 0}
+
+	_, err := w.Write([]byte("hello "))
+	require.NoError(t, err)
+	_, err = w.Write([]byte("world"))
+	require.NoError(t, err)
+
+	assert.Equal(t, int64(11), w.written)
+	assert.Equal(t, "hello world", rec.Body.String())
+}
+
+// The api has one server-streaming RPC (GetDeployLogs) and WebSocket
+// upgrades (internal/progressws). Both break if the usage wrapper hides
+// Flusher/Hijacker from the underlying writer, so assert it forwards them.
+func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
+	w := &countingResponseWriter{ResponseWriter: httptest.NewRecorder(), written: 0}
+
+	_, isFlusher := any(w).(http.Flusher)
+	assert.True(t, isFlusher, "must expose http.Flusher for streaming responses")
+	_, isHijacker := any(w).(http.Hijacker)
+	assert.True(t, isHijacker, "must expose http.Hijacker for WebSocket upgrades")
+
+	// Flush must reach the wrapped writer rather than being swallowed.
+	rec := httptest.NewRecorder()
+	flushing := &countingResponseWriter{ResponseWriter: rec, written: 0}
+	flushing.Flush()
+	assert.True(t, rec.Flushed)
+
+	// httptest.ResponseRecorder is not a Hijacker, so the wrapper reports
+	// that rather than panicking.
+	_, _, err := w.Hijack()
+	require.ErrorIs(t, err, http.ErrNotSupported)
+}
+
+func TestCountingResponseWriterUnwraps(t *testing.T) {
+	rec := httptest.NewRecorder()
+	w := &countingResponseWriter{ResponseWriter: rec, written: 0}
+	assert.Same(t, rec, w.Unwrap())
 }

@@ -66,6 +66,11 @@ export const swrKeys = {
   feeds: '/feeds',
   feedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
+  // One item's article body, fetched only when the reader opens it — list
+  // responses no longer carry content_html (issue #1027). Deliberately
+  // singular so mutateFeedItems' '/feeds/items' prefix sweep doesn't also
+  // drop every cached body.
+  feedItem: (id: string) => `/feeds/item/${id}`,
   feedStats: '/feeds/stats',
   // Owner's own reading dashboard feeds widget — a handful of unread items
   // via the authenticated FeedService, separate from the public

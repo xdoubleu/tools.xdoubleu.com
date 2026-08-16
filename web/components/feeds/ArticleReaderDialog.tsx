@@ -12,7 +12,7 @@ import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
-import { useUpdateItem } from '@/hooks/useFeeds'
+import { useFeedItem, useUpdateItem } from '@/hooks/useFeeds'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
@@ -34,8 +34,9 @@ interface ArticleReaderDialogProps {
   onSettled: (itemId: string) => void
 }
 
-// Item now carries its own content_html (no more library lookup) — the
-// reader renders it directly, no separate content fetch needed.
+// List responses carry only item.hasContent, never the body (issue #1027),
+// so the reader fetches the article itself once the dialog opens — which is
+// also the only moment a body is actually needed.
 export default function ArticleReaderDialog({
   item,
   open,
@@ -43,7 +44,8 @@ export default function ArticleReaderDialog({
   onMarkRead,
   onSettled
 }: ArticleReaderDialogProps) {
-  const html = item.contentHtml
+  const { data: itemData, isLoading } = useFeedItem(open && item.hasContent ? item.id : null)
+  const html = itemData?.item?.contentHtml ?? ''
   const [zoomedSrc, setZoomedSrc] = useState<string | null>(null)
   const markReadRef = useRef<FeedItemMarkReadHandle>(null)
   const updateItem = useUpdateItem()
@@ -132,12 +134,14 @@ export default function ArticleReaderDialog({
           ref={checkAutoRead}
           onScroll={(e) => checkAutoRead(e.currentTarget)}
         >
-          {!html && (
+          {!item.hasContent && (
             <p className="text-sm text-muted p-4">
               No in-app content stored for this item.
               {item.sourceUrl && ' Use "View original" above instead.'}
             </p>
           )}
+
+          {item.hasContent && isLoading && <p className="text-muted p-4">Loading…</p>}
 
           {html && (
             <div

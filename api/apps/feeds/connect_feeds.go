@@ -89,7 +89,20 @@ func protoItem(item models.Item) *feedsv1.Item {
 		IngestError:     ingestError,
 		CreatedAt:       item.CreatedAt.Format(time.RFC3339),
 		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
+		HasContent:      item.HasContent,
 	}
+}
+
+// parseItemID mirrors parseFeedID for the item-scoped RPCs.
+func parseItemID(id string) (uuid.UUID, *connect.Error) {
+	itemID, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid item ID"),
+		)
+	}
+	return itemID, nil
 }
 
 // feedUser resolves the authenticated user for feed RPCs.
@@ -309,6 +322,30 @@ func (h *feedsConnectHandler) ListFeedItems(
 	}), nil
 }
 
+// GetFeedItem is the only RPC returning an item's article body — see
+// protoItem/itemListColumns for why the list RPCs no longer carry it.
+func (h *feedsConnectHandler) GetFeedItem(
+	ctx context.Context,
+	req *connect.Request[feedsv1.GetFeedItemRequest],
+) (*connect.Response[feedsv1.GetFeedItemResponse], error) {
+	user, cerr := feedUser(ctx)
+	if cerr != nil {
+		return nil, cerr
+	}
+	itemID, cerr := parseItemID(req.Msg.ItemId)
+	if cerr != nil {
+		return nil, cerr
+	}
+
+	item, err := h.app.Services.Feeds.GetItem(ctx, user.ID, itemID)
+	if err != nil {
+		return nil, feedErrorToConnect(err)
+	}
+	return connect.NewResponse(&feedsv1.GetFeedItemResponse{
+		Item: protoItem(*item),
+	}), nil
+}
+
 func (h *feedsConnectHandler) UpdateItem(
 	ctx context.Context,
 	req *connect.Request[feedsv1.UpdateItemRequest],
@@ -317,12 +354,9 @@ func (h *feedsConnectHandler) UpdateItem(
 	if cerr != nil {
 		return nil, cerr
 	}
-	itemID, err := uuid.Parse(req.Msg.ItemId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			errors.New("invalid item ID"),
-		)
+	itemID, cerr := parseItemID(req.Msg.ItemId)
+	if cerr != nil {
+		return nil, cerr
 	}
 
 	item, err := h.app.Services.Feeds.UpdateItem(

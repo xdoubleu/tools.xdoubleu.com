@@ -5,8 +5,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-
 	"tools.xdoubleu.com/apps/todos/internal/repositories"
 )
 
@@ -27,17 +25,12 @@ func (j ArchiveJob) RunEvery() time.Duration {
 }
 
 func (j ArchiveJob) Run(ctx context.Context, logger *slog.Logger) error {
-	tasks, err := j.repo.ListDoneForArchiving(ctx)
+	ids, err := j.repo.ListDoneForArchiving(ctx)
 	if err != nil {
 		return err
 	}
-	if len(tasks) == 0 {
+	if len(ids) == 0 {
 		return nil
-	}
-
-	ids := make([]uuid.UUID, len(tasks))
-	for i, t := range tasks {
-		ids[i] = t.ID
 	}
 
 	logger.InfoContext(ctx, "archiving completed tasks", "count", len(ids))

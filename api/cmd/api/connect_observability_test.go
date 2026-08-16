@@ -99,7 +99,7 @@ func TestObservabilityGetUsageStats_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 
 	require.NoError(t, testApp.usageRepo.Flush(ctx, []models.UsageEntry{
-		{Day: time.Now(), App: "books", Endpoint: "root", Count: 3},
+		{Day: time.Now(), App: "books", Endpoint: "root", Count: 3, Bytes: 300},
 	}))
 
 	client := observabilityClient(t)

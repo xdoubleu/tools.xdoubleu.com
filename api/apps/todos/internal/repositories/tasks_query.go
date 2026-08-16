@@ -207,30 +207,35 @@ func (r *TasksRepository) SearchByLinkURL(
 	return scanTasks(rows)
 }
 
+// ListDoneForArchiving returns the ids of every user's done-and-expired
+// tasks for the hourly archive job. Ids only: the job feeds them straight to
+// ArchiveBatch, so selecting whole rows (descriptions included) across all
+// users just moved bytes out of the database for nothing (issue #1027).
 func (r *TasksRepository) ListDoneForArchiving(
 	ctx context.Context,
-) ([]models.Task, error) {
+) ([]uuid.UUID, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT t.id, t.owner_user_id, t.title, t.description,
-		       t.labels, t.status, t.priority, t.sort_order,
-		       t.completed_at, t.archived_at, t.due_date, t.deadline,
-		       t.created_at, t.updated_at, t.section_id, t.workspace_id,
-		       t.recur_days, t.recur_rule,
-		       COUNT(s.id) FILTER (WHERE s.done)  AS subtask_done,
-		       COUNT(s.id)                         AS subtask_total
+		SELECT t.id
 		FROM todos.tasks t
 		JOIN todos.archive_settings a ON a.user_id = t.owner_user_id
-		LEFT JOIN todos.subtasks s ON s.task_id = t.id
 		WHERE t.status = 'done'
 		  AND a.archive_after_hours > 0
-		  AND t.completed_at < now() - (a.archive_after_hours * interval '1 hour')
-		GROUP BY t.id`,
+		  AND t.completed_at < now() - (a.archive_after_hours * interval '1 hour')`,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	return scanTasks(rows)
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if scanErr := rows.Scan(&id); scanErr != nil {
+			return nil, scanErr
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
 }
 
 func (r *TasksRepository) ArchiveBatch(

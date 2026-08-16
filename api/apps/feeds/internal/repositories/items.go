@@ -19,11 +19,47 @@ type ItemsRepository struct {
 	db postgres.DB
 }
 
+// itemColumns reads the full row including the article body. Only
+// GetByIDForUser uses it — the body is the single widest column in the
+// schema, so anything returning more than one row must use itemListColumns
+// instead (issue #1027).
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at`
 
+// itemListColumns is itemColumns with the article body replaced by a
+// boolean saying whether there is one, mirroring books' bookColumns
+// (apps/books/internal/repositories/books_scan.go). Every multi-row read and
+// every RETURNING clause uses this: a 50-item page carried tens of MB of
+// extracted HTML out of Postgres on each request otherwise, which is what
+// exhausted the egress quota in issue #1027.
+const itemListColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
+	i.content_html <> '', i.published_at, i.read_at, i.dismissed, i.bookmarked,
+	i.read_progress_pct, i.ingest_error, i.created_at`
+
+// scanItem scans a row selected with itemColumns (body included), deriving
+// HasContent so callers see the same field set either way.
 func scanItem(row pgx.Row) (*models.Item, error) {
+	item, err := scanItemInto(row, func(i *models.Item) any { return &i.ContentHTML })
+	if err != nil {
+		return nil, err
+	}
+	item.HasContent = item.ContentHTML != ""
+	return item, nil
+}
+
+// scanListItem scans a row selected with itemListColumns (body replaced by
+// the has-content boolean), leaving ContentHTML empty.
+func scanListItem(row pgx.Row) (*models.Item, error) {
+	return scanItemInto(row, func(i *models.Item) any { return &i.HasContent })
+}
+
+// scanItemInto holds the column order shared by both column lists, which
+// differ only in what the sixth column is.
+func scanItemInto(
+	row pgx.Row,
+	contentTarget func(*models.Item) any,
+) (*models.Item, error) {
 	var item models.Item
 	err := row.Scan(
 		&item.ID,
@@ -31,7 +67,7 @@ func scanItem(row pgx.Row) (*models.Item, error) {
 		&item.GUID,
 		&item.Title,
 		&item.SourceURL,
-		&item.ContentHTML,
+		contentTarget(&item),
 		&item.PublishedAt,
 		&item.ReadAt,
 		&item.Dismissed,
@@ -145,10 +181,34 @@ func (repo *ItemsRepository) Update(
 		    )
 		FROM feeds.feeds f
 		WHERE i.feed_id = f.id AND f.user_id = $1 AND i.id = $2
-		RETURNING ` + itemColumns
-	item, err := scanItem(repo.db.QueryRow(
+		RETURNING ` + itemListColumns
+	item, err := scanListItem(repo.db.QueryRow(
 		ctx, query, userID, itemID, read, dismissed, bookmarked, readProgressPct,
 	))
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return item, nil
+}
+
+// GetByIDForUser returns one item including its article body, scoped to the
+// owning user via the same join on feeds.feeds the other queries use. This
+// is the only read that touches content_html, so the reader pays for one
+// body when it opens an article instead of every list read paying for fifty
+// (issue #1027). Returns database.ErrResourceNotFound when no item matches
+// (unknown id or owned by another user).
+func (repo *ItemsRepository) GetByIDForUser(
+	ctx context.Context,
+	userID string,
+	itemID uuid.UUID,
+) (*models.Item, error) {
+	query := `
+		SELECT ` + itemColumns + `
+		FROM feeds.items i
+		JOIN feeds.feeds f ON f.id = i.feed_id
+		WHERE f.user_id = $1 AND i.id = $2
+	`
+	item, err := scanItem(repo.db.QueryRow(ctx, query, userID, itemID))
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -173,7 +233,7 @@ func (repo *ItemsRepository) ListByUser(
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	query := `
-		SELECT ` + itemColumns + `
+		SELECT ` + itemListColumns + `
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
@@ -193,7 +253,7 @@ func (repo *ItemsRepository) ListByUser(
 
 	var out []models.Item
 	for rows.Next() {
-		item, scanErr := scanItem(rows)
+		item, scanErr := scanListItem(rows)
 		if scanErr != nil {
 			return nil, false, postgres.PgxErrorToHTTPError(scanErr)
 		}

@@ -21,12 +21,19 @@ type JobStats struct {
 	LastRunAt     time.Time
 }
 
-// UsageEntry is one (day, app, endpoint) request counter.
+// UsageEntry is one (day, app, endpoint) request counter, with the response
+// bytes those requests served.
 type UsageEntry struct {
 	Day      time.Time
 	App      string
 	Endpoint string
 	Count    int64
+	// Bytes is the total response body size served for this counter. It
+	// measures what left the api, which is a proxy for what the api pulled
+	// out of Postgres, not a direct measure of database egress — for
+	// passthrough list endpoints the two track closely, which is the case
+	// that matters (issue #1027).
+	Bytes int64
 }
 
 // PrefixStat aggregates object-store usage under one top-level key prefix.

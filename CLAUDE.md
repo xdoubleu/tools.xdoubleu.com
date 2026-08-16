@@ -21,6 +21,8 @@ A largely read-only **MCP server** at `/apps/mcp` (MCP OAuth 2.1, Supabase as th
 
 **MCP coverage gaps:** if the user describes a production issue and there's no MCP tool that surfaces it, or an existing tool returns wrong/incomplete data, fix that gap first (add/correct the tool) before investigating the issue itself — otherwise the same blind spot just recurs next time. Note the gap and fix in this file when it happens.
 
+- *Issue #1027* — Supabase restricted the whole project for blowing its monthly egress quota, and nothing could say which endpoint caused it: `get_usage_stats` counted **requests** per endpoint but never bytes, so an endpoint returning 2 MB a call looked identical to one returning 200 B. `global.usage_daily` gained a `bytes` column and `get_usage_stats` now reports it. The database is reached over a transaction-mode pooler and billed per byte returned, so "which endpoint moves the most data" is the question that matters — see `api/CLAUDE.md`'s Database Conventions for the query rule this exists to enforce.
+
 ## Code Navigation (ast-grep)
 
 **Prefer `ast-grep` over `grep`/`rg` for code searches** — it understands syntax trees, so results are exact (no false positives from comments/strings). Reserve `grep`/`rg` for non-code files (logs, configs, docs).

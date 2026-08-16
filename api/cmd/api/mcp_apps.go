@@ -116,7 +116,10 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			return h.jobStats(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_usage_stats",
-		"Per-day request counts by app and endpoint (global.usage_daily).",
+		"Per-day request counts and response bytes by app and endpoint "+
+			"(global.usage_daily). Bytes measure what left the api, a proxy "+
+			"for what it read out of the database — sort by it to find the "+
+			"endpoints driving database egress.",
 		func(ctx context.Context, a windowArgs) (proto.Message, error) {
 			return h.usageStats(ctx, a.WindowDays)
 		})

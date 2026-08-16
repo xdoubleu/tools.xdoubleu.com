@@ -13,7 +13,8 @@ const clientMocks = {
   createFeed: jest.fn().mockResolvedValue({}),
   deleteFeed: jest.fn().mockResolvedValue({}),
   refreshFeed: jest.fn().mockResolvedValue({ ingested: 0 }),
-  updateItem: jest.fn().mockResolvedValue({}),
+  updateItem: jest.fn().mockResolvedValue({ item: { id: 'item-1', readAt: 'now' } }),
+  getFeedItem: jest.fn().mockResolvedValue({ item: { id: 'item-1', contentHtml: '<p>hi</p>' } }),
   getFeedStats: jest.fn().mockResolvedValue({ stats: [], itemsPerDay: [] })
 }
 
@@ -29,6 +30,7 @@ import useSWR from 'swr'
 import {
   useFeeds,
   useFeedItems,
+  useFeedItem,
   useFetchFeedItemsPage,
   useCreateFeed,
   useDeleteFeed,
@@ -62,6 +64,32 @@ describe('useFeeds', () => {
     expect(key).toBe(swrKeys.feedItems(true))
     await fetcher!()
     expect(clientMocks.listFeedItems).toHaveBeenCalledWith({ limit: 50, unreadOnly: true })
+  })
+
+  it('useFeedItem fetches one item body under its own key', async () => {
+    renderHook(() => useFeedItem('item-1'))
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe(swrKeys.feedItem('item-1'))
+    await fetcher!()
+    expect(clientMocks.getFeedItem).toHaveBeenCalledWith({ itemId: 'item-1' })
+  })
+
+  it('useFeedItem stays idle with a null id so a closed reader fetches nothing', () => {
+    renderHook(() => useFeedItem(null))
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBeNull()
+    // A null fetcher alongside the null key: nothing can fire by accident.
+    expect(fetcher).toBeNull()
+    expect(clientMocks.getFeedItem).not.toHaveBeenCalled()
+  })
+
+  it('feed list hooks opt out of focus and reconnect revalidation', () => {
+    renderHook(() => useFeedItems(true))
+    const [, , options] = mockUseSWR.mock.calls[0]!
+    expect(options).toMatchObject({
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false
+    })
   })
 
   it('useFeedItems threads an optional feedId into the key and request', async () => {
@@ -154,19 +182,52 @@ describe('useFeeds', () => {
     expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
   })
 
-  it('useUpdateItem partially updates an item and invalidates items', async () => {
+  it('useUpdateItem patches cached pages in place instead of refetching them', async () => {
     const { result } = renderHook(() => useUpdateItem())
     await result.current('item-1', { read: true })
     expect(clientMocks.updateItem).toHaveBeenCalledWith({ itemId: 'item-1', read: true })
-    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
 
-    // The invalidation matcher must catch both unread-only and all-items
-    // page keys, since a mutation doesn't know which variant is on-screen.
+    // revalidate:false is the point — UpdateItem already returned the new
+    // row, so refetching a whole page of items to learn it would re-pull
+    // every article in the page (issue #1027).
+    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), {
+      revalidate: false
+    })
+
+    // The matcher must catch both unread-only and all-items page keys, since
+    // a mutation doesn't know which variant is on-screen.
     const matcher = mutateMock.mock.calls[0]![0]
     if (typeof matcher !== 'function') throw new Error('expected a matcher function')
     expect(matcher(swrKeys.feedItems(true))).toBe(true)
     expect(matcher(swrKeys.feedItems(false))).toBe(true)
     expect(matcher(swrKeys.feeds)).toBe(false)
+    // Single-item bodies are keyed separately so they survive the patch.
+    expect(matcher(swrKeys.feedItem('item-1'))).toBe(false)
+  })
+
+  it('useUpdateItem replaces only the changed item in a cached page', async () => {
+    const { result } = renderHook(() => useUpdateItem())
+    await result.current('item-1', { read: true })
+
+    const updater = mutateMock.mock.calls[0]![1]
+    if (typeof updater !== 'function') throw new Error('expected an updater function')
+
+    const page = { items: [{ id: 'item-1', readAt: '' }, { id: 'item-2' }], hasMore: false }
+    expect(updater(page)).toEqual({
+      items: [{ id: 'item-1', readAt: 'now' }, { id: 'item-2' }],
+      hasMore: false
+    })
+    // A page that doesn't hold the item is returned untouched.
+    const other = { items: [{ id: 'item-9' }], hasMore: false }
+    expect(updater(other)).toBe(other)
+    expect(updater(undefined)).toBeUndefined()
+  })
+
+  it('useUpdateItem touches no cache when the server returns no item', async () => {
+    clientMocks.updateItem.mockResolvedValueOnce({})
+    const { result } = renderHook(() => useUpdateItem())
+    await result.current('item-1', { read: true })
+    expect(mutateMock).not.toHaveBeenCalled()
   })
 
   it('useUpdateItem passes readProgressPct through', async () => {

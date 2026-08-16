@@ -32,15 +32,21 @@ type usageStore interface {
 	PruneOlderThan(ctx context.Context, cutoff time.Time) error
 }
 
-// UsageRecorder counts requests per (day, app, endpoint) in memory and
-// periodically flushes the counts into global.usage_daily. Losing at most
-// one flush interval of counts on shutdown is an accepted trade-off for
+// usageCounter accumulates one (day, app, endpoint) bucket.
+type usageCounter struct {
+	count int64
+	bytes int64
+}
+
+// UsageRecorder counts requests and response bytes per (day, app, endpoint)
+// in memory and periodically flushes them into global.usage_daily. Losing at
+// most one flush interval of counts on shutdown is an accepted trade-off for
 // keeping request handling free of DB writes.
 type UsageRecorder struct {
 	logger    *slog.Logger
 	repo      usageStore
 	mu        sync.Mutex
-	counts    map[usageKey]int64
+	counts    map[usageKey]usageCounter
 	lastPrune time.Time
 }
 
@@ -49,12 +55,13 @@ func NewUsageRecorder(logger *slog.Logger, db postgres.DB) *UsageRecorder {
 	return &UsageRecorder{
 		logger: logger,
 		repo:   repositories.NewUsageRepository(db),
-		counts: make(map[usageKey]int64),
+		counts: make(map[usageKey]usageCounter),
 	}
 }
 
-// Record counts one request. Safe for concurrent use.
-func (u *UsageRecorder) Record(app, endpoint string) {
+// Record counts one request and the response bytes it served. Safe for
+// concurrent use.
+func (u *UsageRecorder) Record(app, endpoint string, bytes int64) {
 	key := usageKey{
 		day:      time.Now().UTC().Format(dayFormat),
 		app:      app,
@@ -62,7 +69,10 @@ func (u *UsageRecorder) Record(app, endpoint string) {
 	}
 
 	u.mu.Lock()
-	u.counts[key]++
+	entry := u.counts[key]
+	entry.count++
+	entry.bytes += bytes
+	u.counts[key] = entry
 	u.mu.Unlock()
 }
 
@@ -110,12 +120,12 @@ func (u *UsageRecorder) flushTick(ctx context.Context) {
 func (u *UsageRecorder) Flush(ctx context.Context) error {
 	u.mu.Lock()
 	batch := u.counts
-	u.counts = make(map[usageKey]int64)
+	u.counts = make(map[usageKey]usageCounter)
 	u.mu.Unlock()
 
 	if len(batch) > 0 {
 		entries := make([]models.UsageEntry, 0, len(batch))
-		for key, count := range batch {
+		for key, counter := range batch {
 			day, err := time.Parse(dayFormat, key.day)
 			if err != nil {
 				continue
@@ -124,14 +134,18 @@ func (u *UsageRecorder) Flush(ctx context.Context) error {
 				Day:      day,
 				App:      key.app,
 				Endpoint: key.endpoint,
-				Count:    count,
+				Count:    counter.count,
+				Bytes:    counter.bytes,
 			})
 		}
 
 		if err := u.repo.Flush(ctx, entries); err != nil {
 			u.mu.Lock()
-			for key, count := range batch {
-				u.counts[key] += count
+			for key, counter := range batch {
+				merged := u.counts[key]
+				merged.count += counter.count
+				merged.bytes += counter.bytes
+				u.counts[key] = merged
 			}
 			u.mu.Unlock()
 			return err
