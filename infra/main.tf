@@ -57,3 +57,56 @@ resource "null_resource" "harden" {
     ]
   }
 }
+
+# Postgres superuser password. Kept in local Tofu state (never committed,
+# never used in CI, same trust boundary as the rest of infra/) rather than
+# passed in externally — retrieve it with `tofu output -raw postgres_password`.
+resource "random_password" "postgres" {
+  length  = 32
+  special = false # avoid shell-quoting issues in .env / remote-exec
+}
+
+output "postgres_password" {
+  value     = random_password.postgres.result
+  sensitive = true
+}
+
+# Stands up self-hosted Postgres (issue #1031) via Docker Compose, following
+# the same file+remote-exec pattern as null_resource.harden above. Runs as
+# `deploy`, not root, since harden.sh already put it in the docker group.
+resource "null_resource" "postgres" {
+  depends_on = [null_resource.harden]
+
+  triggers = {
+    compose_hash  = filesha256("${path.module}/postgres-compose.yml")
+    password_hash = sha256(random_password.postgres.result)
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = ["mkdir -p /home/deploy/postgres"]
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/postgres-compose.yml"
+    destination = "/home/deploy/postgres/docker-compose.yml"
+  }
+
+  provisioner "file" {
+    content     = "POSTGRES_PASSWORD=${random_password.postgres.result}\n"
+    destination = "/home/deploy/postgres/.env"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/deploy/postgres/.env",
+      "cd /home/deploy/postgres && docker compose up -d",
+    ]
+  }
+}
