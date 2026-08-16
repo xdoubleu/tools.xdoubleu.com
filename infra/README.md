@@ -68,6 +68,17 @@ Re-running `apply` after editing `postgres-compose.yml` redeploys it;
 rotating the password (`tofu apply -replace=random_password.postgres <same
 -var flags>`) also forces a redeploy so the running container picks it up.
 
+**Changing the pinned image tag on an already-running instance** doesn't
+re-bootstrap the `auth`/`storage`/`realtime` schemas in the existing data
+volume — those are only created on a container's first start. If the tag
+changes (e.g. to fix a version mismatch discovered during migration, see
+below), wipe the volume and let it re-bootstrap clean before restoring
+again:
+
+```bash
+ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
+```
+
 ## Migrate data from Supabase (one-time)
 
 Run once, after `tofu apply` has stood up Postgres, against an existing
