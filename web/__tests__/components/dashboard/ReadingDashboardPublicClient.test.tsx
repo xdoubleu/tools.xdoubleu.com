@@ -155,21 +155,28 @@ describe('ReadingDashboardPublicClient', () => {
     expect(screen.getByLabelText('To')).toBeInTheDocument()
   })
 
-  it('renders the feeds summary widget without a /feeds link (visitor has no access)', () => {
+  it('renders the subscribed feeds list, linking feeds with a public URL', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     mockUseSharedFeedsSummary.mockReturnValue({
-      data: { summary: { unreadCount: 3, items: [] } }
+      data: {
+        feeds: [
+          { title: 'RSS Feed', url: 'https://example.com/rss' },
+          { title: 'Email Feed', url: '' }
+        ]
+      }
     })
     render(<ReadingDashboardPublicClient token="tok-1" />)
 
-    expect(screen.getByText('3 unread')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Feeds' })).not.toBeInTheDocument()
+    const rssLink = screen.getByRole('link', { name: 'RSS Feed' })
+    expect(rssLink).toHaveAttribute('href', 'https://example.com/rss')
+    expect(screen.getByText('Email Feed')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Email Feed' })).not.toBeInTheDocument()
   })
 
-  it('omits the feeds widget while the summary has not loaded', () => {
+  it('omits the feeds widget while the feed list has not loaded', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ReadingDashboardPublicClient token="tok-1" />)
 
-    expect(screen.queryByText(/unread/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
   })
 })

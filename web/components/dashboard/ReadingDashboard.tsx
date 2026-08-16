@@ -8,6 +8,7 @@ import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
+import ReadingFeedsSummaryCard from '@/components/dashboard/ReadingFeedsSummaryCard'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
@@ -69,8 +70,7 @@ export default function ReadingDashboard() {
       chart={chart}
       allTimeChartData={allTimeChartData}
       renderReadingCard={(ub) => <ReadingBookCard userBook={ub} />}
-      feedsSummary={feedsSummary}
-      feedsHref="/feeds"
+      feedsCard={<ReadingFeedsSummaryCard summary={feedsSummary} href="/feeds" />}
       actions={
         <>
           <div className="mr-auto w-full max-w-md">

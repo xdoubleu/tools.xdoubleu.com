@@ -34,16 +34,14 @@ message GetSharedBooksProgressResponse { books.v1.BooksProgressResponse progress
 
 message GetSharedFeedsSummaryRequest { string token = 1; }
 
-// FeedsSummaryItem is a lightweight, read-only projection of one feeds.v1.Item
-// for the reading dashboard's feeds widget — no read/dismissed/bookmarked
-// state, which is not meaningful to a visitor of a shared profile.
-message FeedsSummaryItem {
+// SharedFeed is a lightweight, read-only projection of one feeds.v1.Feed for
+// the reading dashboard's feeds widget — just the subscription's name and
+// public URL, not read state or any of feeds.v1.Feed's private fields
+// (last_error, notified_at, inbound_address, ...), which are not meaningful
+// to a visitor of a shared profile.
+message SharedFeed {
   string title = 1;
-  string source_url = 2;
-  string published_at = 3;
+  // Empty for feed kinds with no public URL (e.g. email).
+  string url = 2;
 }
-message FeedsSummary {
-  int32 unread_count = 1;
-  repeated FeedsSummaryItem items = 2;
-}
-message GetSharedFeedsSummaryResponse { FeedsSummary summary = 1; }
+message GetSharedFeedsSummaryResponse { repeated SharedFeed feeds = 1; }

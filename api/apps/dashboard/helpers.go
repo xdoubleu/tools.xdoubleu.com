@@ -28,19 +28,13 @@ func parseDateRangeFromStrings(dateStart, dateEnd string) (time.Time, time.Time)
 	return start, end
 }
 
-func protoFeedsSummary(summary *feeds.Summary) *dashboardv1.FeedsSummary {
-	items := make([]*dashboardv1.FeedsSummaryItem, 0, len(summary.Items))
-	for _, item := range summary.Items {
-		items = append(items, &dashboardv1.FeedsSummaryItem{
-			Title:       item.Title,
-			SourceUrl:   item.SourceURL,
-			PublishedAt: item.PublishedAt.Format(time.RFC3339),
+func protoSharedFeeds(sharedFeeds []feeds.SharedFeed) []*dashboardv1.SharedFeed {
+	proto := make([]*dashboardv1.SharedFeed, 0, len(sharedFeeds))
+	for _, f := range sharedFeeds {
+		proto = append(proto, &dashboardv1.SharedFeed{
+			Title: f.Title,
+			Url:   f.URL,
 		})
 	}
-
-	//nolint:gosec // unread_count is a small domain count, never near int32 overflow
-	return &dashboardv1.FeedsSummary{
-		UnreadCount: int32(summary.UnreadCount),
-		Items:       items,
-	}
+	return proto
 }

@@ -9,6 +9,7 @@ import {
 import type { GetSharedLibraryResponse } from '@/lib/gen/dashboard/v1/reading_pb'
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
+import SharedFeedsCard from '@/components/dashboard/SharedFeedsCard'
 import { Button } from '@/components/ui/button'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
@@ -50,7 +51,7 @@ export default function ReadingDashboardPublicClient({
           <DashboardBookCard userBook={ub} />
         </div>
       )}
-      feedsSummary={feedsSummaryData?.summary}
+      feedsCard={<SharedFeedsCard feeds={feedsSummaryData?.feeds} />}
       actions={
         <>
           {data?.lastSyncedAt ? (

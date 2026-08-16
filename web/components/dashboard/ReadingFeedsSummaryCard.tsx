@@ -2,12 +2,11 @@ import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import type { FeedsSummary } from '@/hooks/useFeeds'
 
-// ReadingFeedsSummaryCard is the reading dashboard's read-only feeds widget
-// (issue #737) — an unread count plus a few recent items, linking out to the
-// full /feeds app. href is omitted on the public dashboard: a visitor's
-// share token has no access to the owner's authenticated /feeds app.
-// The public dashboard's own dashboardv1.FeedsSummary proto message is
-// structurally identical, so it satisfies this type too.
+// ReadingFeedsSummaryCard is the private (owner) reading dashboard's feeds
+// widget (issue #737) — an unread count plus a few recent items, linking out
+// to the full /feeds app. The public dashboard uses SharedFeedsCard instead,
+// since a visitor gets no read state and no href into the authenticated
+// /feeds app.
 export default function ReadingFeedsSummaryCard({
   summary,
   href

@@ -277,32 +277,34 @@ func (x *GetSharedFeedsSummaryRequest) GetToken() string {
 	return ""
 }
 
-// FeedsSummaryItem is a lightweight, read-only projection of one feeds.v1.Item
-// for the reading dashboard's feeds widget — no read/dismissed/bookmarked
-// state, which is not meaningful to a visitor of a shared profile.
-type FeedsSummaryItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	SourceUrl     string                 `protobuf:"bytes,2,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	PublishedAt   string                 `protobuf:"bytes,3,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
+// SharedFeed is a lightweight, read-only projection of one feeds.v1.Feed for
+// the reading dashboard's feeds widget — just the subscription's name and
+// public URL, not read state or any of feeds.v1.Feed's private fields
+// (last_error, notified_at, inbound_address, ...), which are not meaningful
+// to a visitor of a shared profile.
+type SharedFeed struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Title string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	// Empty for feed kinds with no public URL (e.g. email).
+	Url           string `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *FeedsSummaryItem) Reset() {
-	*x = FeedsSummaryItem{}
+func (x *SharedFeed) Reset() {
+	*x = SharedFeed{}
 	mi := &file_dashboard_v1_reading_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *FeedsSummaryItem) String() string {
+func (x *SharedFeed) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*FeedsSummaryItem) ProtoMessage() {}
+func (*SharedFeed) ProtoMessage() {}
 
-func (x *FeedsSummaryItem) ProtoReflect() protoreflect.Message {
+func (x *SharedFeed) ProtoReflect() protoreflect.Message {
 	mi := &file_dashboard_v1_reading_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -314,94 +316,35 @@ func (x *FeedsSummaryItem) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use FeedsSummaryItem.ProtoReflect.Descriptor instead.
-func (*FeedsSummaryItem) Descriptor() ([]byte, []int) {
+// Deprecated: Use SharedFeed.ProtoReflect.Descriptor instead.
+func (*SharedFeed) Descriptor() ([]byte, []int) {
 	return file_dashboard_v1_reading_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *FeedsSummaryItem) GetTitle() string {
+func (x *SharedFeed) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *FeedsSummaryItem) GetSourceUrl() string {
+func (x *SharedFeed) GetUrl() string {
 	if x != nil {
-		return x.SourceUrl
+		return x.Url
 	}
 	return ""
-}
-
-func (x *FeedsSummaryItem) GetPublishedAt() string {
-	if x != nil {
-		return x.PublishedAt
-	}
-	return ""
-}
-
-type FeedsSummary struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UnreadCount   int32                  `protobuf:"varint,1,opt,name=unread_count,json=unreadCount,proto3" json:"unread_count,omitempty"`
-	Items         []*FeedsSummaryItem    `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *FeedsSummary) Reset() {
-	*x = FeedsSummary{}
-	mi := &file_dashboard_v1_reading_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *FeedsSummary) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*FeedsSummary) ProtoMessage() {}
-
-func (x *FeedsSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_v1_reading_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use FeedsSummary.ProtoReflect.Descriptor instead.
-func (*FeedsSummary) Descriptor() ([]byte, []int) {
-	return file_dashboard_v1_reading_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *FeedsSummary) GetUnreadCount() int32 {
-	if x != nil {
-		return x.UnreadCount
-	}
-	return 0
-}
-
-func (x *FeedsSummary) GetItems() []*FeedsSummaryItem {
-	if x != nil {
-		return x.Items
-	}
-	return nil
 }
 
 type GetSharedFeedsSummaryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Summary       *FeedsSummary          `protobuf:"bytes,1,opt,name=summary,proto3" json:"summary,omitempty"`
+	Feeds         []*SharedFeed          `protobuf:"bytes,1,rep,name=feeds,proto3" json:"feeds,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetSharedFeedsSummaryResponse) Reset() {
 	*x = GetSharedFeedsSummaryResponse{}
-	mi := &file_dashboard_v1_reading_proto_msgTypes[7]
+	mi := &file_dashboard_v1_reading_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -413,7 +356,7 @@ func (x *GetSharedFeedsSummaryResponse) String() string {
 func (*GetSharedFeedsSummaryResponse) ProtoMessage() {}
 
 func (x *GetSharedFeedsSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_dashboard_v1_reading_proto_msgTypes[7]
+	mi := &file_dashboard_v1_reading_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -426,12 +369,12 @@ func (x *GetSharedFeedsSummaryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSharedFeedsSummaryResponse.ProtoReflect.Descriptor instead.
 func (*GetSharedFeedsSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_dashboard_v1_reading_proto_rawDescGZIP(), []int{7}
+	return file_dashboard_v1_reading_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetSharedFeedsSummaryResponse) GetSummary() *FeedsSummary {
+func (x *GetSharedFeedsSummaryResponse) GetFeeds() []*SharedFeed {
 	if x != nil {
-		return x.Summary
+		return x.Feeds
 	}
 	return nil
 }
@@ -455,17 +398,13 @@ const file_dashboard_v1_reading_proto_rawDesc = "" +
 	"\x1eGetSharedBooksProgressResponse\x12;\n" +
 	"\bprogress\x18\x01 \x01(\v2\x1f.books.v1.BooksProgressResponseR\bprogress\"4\n" +
 	"\x1cGetSharedFeedsSummaryRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\"j\n" +
-	"\x10FeedsSummaryItem\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\x1d\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"4\n" +
 	"\n" +
-	"source_url\x18\x02 \x01(\tR\tsourceUrl\x12!\n" +
-	"\fpublished_at\x18\x03 \x01(\tR\vpublishedAt\"g\n" +
-	"\fFeedsSummary\x12!\n" +
-	"\funread_count\x18\x01 \x01(\x05R\vunreadCount\x124\n" +
-	"\x05items\x18\x02 \x03(\v2\x1e.dashboard.v1.FeedsSummaryItemR\x05items\"U\n" +
-	"\x1dGetSharedFeedsSummaryResponse\x124\n" +
-	"\asummary\x18\x01 \x01(\v2\x1a.dashboard.v1.FeedsSummaryR\asummary2\xe9\x02\n" +
+	"SharedFeed\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\"O\n" +
+	"\x1dGetSharedFeedsSummaryResponse\x12.\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x18.dashboard.v1.SharedFeedR\x05feeds2\xe9\x02\n" +
 	"\x1dPublicReadingDashboardService\x12a\n" +
 	"\x10GetSharedLibrary\x12%.dashboard.v1.GetSharedLibraryRequest\x1a&.dashboard.v1.GetSharedLibraryResponse\x12s\n" +
 	"\x16GetSharedBooksProgress\x12+.dashboard.v1.GetSharedBooksProgressRequest\x1a,.dashboard.v1.GetSharedBooksProgressResponse\x12p\n" +
@@ -483,35 +422,33 @@ func file_dashboard_v1_reading_proto_rawDescGZIP() []byte {
 	return file_dashboard_v1_reading_proto_rawDescData
 }
 
-var file_dashboard_v1_reading_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_dashboard_v1_reading_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_dashboard_v1_reading_proto_goTypes = []any{
 	(*GetSharedLibraryRequest)(nil),        // 0: dashboard.v1.GetSharedLibraryRequest
 	(*GetSharedLibraryResponse)(nil),       // 1: dashboard.v1.GetSharedLibraryResponse
 	(*GetSharedBooksProgressRequest)(nil),  // 2: dashboard.v1.GetSharedBooksProgressRequest
 	(*GetSharedBooksProgressResponse)(nil), // 3: dashboard.v1.GetSharedBooksProgressResponse
 	(*GetSharedFeedsSummaryRequest)(nil),   // 4: dashboard.v1.GetSharedFeedsSummaryRequest
-	(*FeedsSummaryItem)(nil),               // 5: dashboard.v1.FeedsSummaryItem
-	(*FeedsSummary)(nil),                   // 6: dashboard.v1.FeedsSummary
-	(*GetSharedFeedsSummaryResponse)(nil),  // 7: dashboard.v1.GetSharedFeedsSummaryResponse
-	(*v1.LibraryResponse)(nil),             // 8: books.v1.LibraryResponse
-	(*v1.BooksProgressResponse)(nil),       // 9: books.v1.BooksProgressResponse
+	(*SharedFeed)(nil),                     // 5: dashboard.v1.SharedFeed
+	(*GetSharedFeedsSummaryResponse)(nil),  // 6: dashboard.v1.GetSharedFeedsSummaryResponse
+	(*v1.LibraryResponse)(nil),             // 7: books.v1.LibraryResponse
+	(*v1.BooksProgressResponse)(nil),       // 8: books.v1.BooksProgressResponse
 }
 var file_dashboard_v1_reading_proto_depIdxs = []int32{
-	8, // 0: dashboard.v1.GetSharedLibraryResponse.library:type_name -> books.v1.LibraryResponse
-	9, // 1: dashboard.v1.GetSharedBooksProgressResponse.progress:type_name -> books.v1.BooksProgressResponse
-	5, // 2: dashboard.v1.FeedsSummary.items:type_name -> dashboard.v1.FeedsSummaryItem
-	6, // 3: dashboard.v1.GetSharedFeedsSummaryResponse.summary:type_name -> dashboard.v1.FeedsSummary
-	0, // 4: dashboard.v1.PublicReadingDashboardService.GetSharedLibrary:input_type -> dashboard.v1.GetSharedLibraryRequest
-	2, // 5: dashboard.v1.PublicReadingDashboardService.GetSharedBooksProgress:input_type -> dashboard.v1.GetSharedBooksProgressRequest
-	4, // 6: dashboard.v1.PublicReadingDashboardService.GetSharedFeedsSummary:input_type -> dashboard.v1.GetSharedFeedsSummaryRequest
-	1, // 7: dashboard.v1.PublicReadingDashboardService.GetSharedLibrary:output_type -> dashboard.v1.GetSharedLibraryResponse
-	3, // 8: dashboard.v1.PublicReadingDashboardService.GetSharedBooksProgress:output_type -> dashboard.v1.GetSharedBooksProgressResponse
-	7, // 9: dashboard.v1.PublicReadingDashboardService.GetSharedFeedsSummary:output_type -> dashboard.v1.GetSharedFeedsSummaryResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 0: dashboard.v1.GetSharedLibraryResponse.library:type_name -> books.v1.LibraryResponse
+	8, // 1: dashboard.v1.GetSharedBooksProgressResponse.progress:type_name -> books.v1.BooksProgressResponse
+	5, // 2: dashboard.v1.GetSharedFeedsSummaryResponse.feeds:type_name -> dashboard.v1.SharedFeed
+	0, // 3: dashboard.v1.PublicReadingDashboardService.GetSharedLibrary:input_type -> dashboard.v1.GetSharedLibraryRequest
+	2, // 4: dashboard.v1.PublicReadingDashboardService.GetSharedBooksProgress:input_type -> dashboard.v1.GetSharedBooksProgressRequest
+	4, // 5: dashboard.v1.PublicReadingDashboardService.GetSharedFeedsSummary:input_type -> dashboard.v1.GetSharedFeedsSummaryRequest
+	1, // 6: dashboard.v1.PublicReadingDashboardService.GetSharedLibrary:output_type -> dashboard.v1.GetSharedLibraryResponse
+	3, // 7: dashboard.v1.PublicReadingDashboardService.GetSharedBooksProgress:output_type -> dashboard.v1.GetSharedBooksProgressResponse
+	6, // 8: dashboard.v1.PublicReadingDashboardService.GetSharedFeedsSummary:output_type -> dashboard.v1.GetSharedFeedsSummaryResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_dashboard_v1_reading_proto_init() }
@@ -525,7 +462,7 @@ func file_dashboard_v1_reading_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_dashboard_v1_reading_proto_rawDesc), len(file_dashboard_v1_reading_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

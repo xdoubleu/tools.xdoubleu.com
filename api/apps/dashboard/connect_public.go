@@ -193,13 +193,12 @@ func (h *publicConnectHandler) GetSharedFeedsSummary(
 		return nil, err
 	}
 
-	const recentItemsLimit = 5
-	summary, err := h.app.feeds.BuildSummary(ctx, userID, recentItemsLimit)
+	sharedFeeds, err := h.app.feeds.BuildSharedFeeds(ctx, userID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&dashboardv1.GetSharedFeedsSummaryResponse{
-		Summary: protoFeedsSummary(summary),
+		Feeds: protoSharedFeeds(sharedFeeds),
 	}), nil
 }

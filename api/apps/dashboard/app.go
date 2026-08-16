@@ -4,7 +4,7 @@
 // framework exists yet, so there is nothing to persist beyond the tokens
 // already stored in global.profile_shares — and reaches games/books/feeds
 // only through the exported methods those apps expose (BuildSharedSteam,
-// BuildSharedLibrary, BuildSummary, ...), never their internal packages or
+// BuildSharedLibrary, BuildSharedFeeds, ...), never their internal packages or
 // schemas directly.
 package dashboard
 
