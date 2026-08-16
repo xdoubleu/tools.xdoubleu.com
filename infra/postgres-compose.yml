@@ -3,10 +3,14 @@ services:
     # supabase/postgres, not vanilla postgres: a full dump of the Supabase-
     # managed source DB references Supabase-specific extensions/roles
     # (pgsodium, pgjwt, pgcrypto, pg_net, etc.) that only this image ships.
-    # Pin this to match the source Supabase project's actual Postgres
-    # version (Dashboard → Database) before running migrate-db.sh against
-    # it — confirm/update the tag below, don't trust this default blindly.
-    image: supabase/postgres:15.8.1.060
+    # This must stay pinned to the source Supabase project's actual
+    # Postgres version (Dashboard → Settings → Infrastructure) — a mismatch
+    # here isn't cosmetic: the image bootstraps its own auth/storage/
+    # realtime schemas on first start, and an older/newer build has a
+    # different column set than the live dump expects, which breaks COPY
+    # mid-restore (issue #1031, confirmed the hard way against a real
+    # restore attempt with the wrong tag).
+    image: supabase/postgres:17.6.1.063
     restart: unless-stopped
     env_file: .env
     ports:
