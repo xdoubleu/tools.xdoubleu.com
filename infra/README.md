@@ -50,10 +50,10 @@ no changes at all) is safe.
 ## Verify
 
 ```bash
-ssh deploy@<ip>              # should work, key auth only
-ssh root@<ip>                # should be rejected
-ufw status                   # on the box: only 22/80/443 open
-fail2ban-client status sshd  # jail active
+ssh deploy@<ip>                    # should work, key auth only
+ssh root@<ip>                      # should be rejected
+sudo ufw status                    # on the box: only 22/80/443 open (deploy is sudo, not root)
+sudo fail2ban-client status sshd   # jail active
 ```
 
 ## Destroy
