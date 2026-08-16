@@ -47,9 +47,18 @@ ufw allow 443/tcp
 ufw --force enable
 
 # --- sshd hardening ------------------------------------------------------------
+# Validate before touching the running daemon, and confirm it's still
+# listening after the reload — a bad reload here can permanently lock out
+# every SSH path (root already disabled, deploy not yet trusted).
 SSHD_CONFIG=/etc/ssh/sshd_config.d/99-hardening.conf
 cat >"$SSHD_CONFIG" <<'EOF'
 PasswordAuthentication no
 PermitRootLogin no
 EOF
+sshd -t
 systemctl reload ssh
+sleep 1
+ss -tln | grep -q ':22 ' || {
+  echo "sshd not listening on :22 after reload, aborting" >&2
+  exit 1
+}
