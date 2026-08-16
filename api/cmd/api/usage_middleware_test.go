@@ -110,7 +110,7 @@ func TestUsageLabels(t *testing.T) {
 
 func TestCountingResponseWriterTotalsBody(t *testing.T) {
 	rec := httptest.NewRecorder()
-	w := &countingResponseWriter{ResponseWriter: rec}
+	w := &countingResponseWriter{ResponseWriter: rec, written: 0}
 
 	_, err := w.Write([]byte("hello "))
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestCountingResponseWriterTotalsBody(t *testing.T) {
 // upgrades (internal/progressws). Both break if the usage wrapper hides
 // Flusher/Hijacker from the underlying writer, so assert it forwards them.
 func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
-	w := &countingResponseWriter{ResponseWriter: httptest.NewRecorder()}
+	w := &countingResponseWriter{ResponseWriter: httptest.NewRecorder(), written: 0}
 
 	_, isFlusher := any(w).(http.Flusher)
 	assert.True(t, isFlusher, "must expose http.Flusher for streaming responses")
@@ -134,7 +134,7 @@ func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
 
 	// Flush must reach the wrapped writer rather than being swallowed.
 	rec := httptest.NewRecorder()
-	flushing := &countingResponseWriter{ResponseWriter: rec}
+	flushing := &countingResponseWriter{ResponseWriter: rec, written: 0}
 	flushing.Flush()
 	assert.True(t, rec.Flushed)
 
@@ -146,6 +146,6 @@ func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
 
 func TestCountingResponseWriterUnwraps(t *testing.T) {
 	rec := httptest.NewRecorder()
-	w := &countingResponseWriter{ResponseWriter: rec}
+	w := &countingResponseWriter{ResponseWriter: rec, written: 0}
 	assert.Same(t, rec, w.Unwrap())
 }

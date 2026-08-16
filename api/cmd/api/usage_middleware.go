@@ -33,7 +33,7 @@ func (app *Application) usageMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		counter := &countingResponseWriter{ResponseWriter: w}
+		counter := &countingResponseWriter{ResponseWriter: w, written: 0}
 		next.ServeHTTP(counter, r)
 		app.usage.Record(appName, endpoint, counter.written)
 	})

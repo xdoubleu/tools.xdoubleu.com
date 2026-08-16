@@ -57,7 +57,7 @@ func TestUsagePruneOlderThan(t *testing.T) {
 	`)
 	require.NoError(t, err)
 	require.NoError(t, repo.Flush(t.Context(), []models.UsageEntry{
-		{Day: time.Now(), App: "books", Endpoint: "fresh", Count: 1},
+		{Day: time.Now(), App: "books", Endpoint: "fresh", Count: 1, Bytes: 0},
 	}))
 
 	require.NoError(t, repo.PruneOlderThan(t.Context(), time.Now().AddDate(0, 0, -400)))
