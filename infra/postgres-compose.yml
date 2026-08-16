@@ -1,0 +1,21 @@
+services:
+  postgres:
+    # supabase/postgres, not vanilla postgres: a full dump of the Supabase-
+    # managed source DB references Supabase-specific extensions/roles
+    # (pgsodium, pgjwt, pgcrypto, pg_net, etc.) that only this image ships.
+    # Pin this to match the source Supabase project's actual Postgres
+    # version (Dashboard → Database) before running migrate-db.sh against
+    # it — confirm/update the tag below, don't trust this default blindly.
+    image: supabase/postgres:15.8.1.060
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Loopback only — never exposed publicly. Reach it via an SSH tunnel
+      # (see infra/README.md) for debugging, or via this compose network
+      # once the app is deployed here (future sub-issue).
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
