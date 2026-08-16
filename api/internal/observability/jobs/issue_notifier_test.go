@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"sync"
 	"testing"
 	"time"
 
@@ -151,19 +152,29 @@ func (f *fakeMailer) SendTo(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
+// fakeNotifiedRepo.keys is read from the test goroutine (Exists, called
+// synchronously in notifyGithub's per-PR loop) and written from the
+// notifications.Service background worker (Insert, via the async
+// OnResult callback) whenever a test's job.Run processes more than one PR
+// without a WaitUntilDone between them -- a plain map races there.
 type fakeNotifiedRepo struct {
+	mu   sync.Mutex
 	keys map[string]bool
 }
 
 func newFakeNotifiedRepo() *fakeNotifiedRepo {
-	return &fakeNotifiedRepo{keys: map[string]bool{}}
+	return &fakeNotifiedRepo{mu: sync.Mutex{}, keys: map[string]bool{}}
 }
 
 func (f *fakeNotifiedRepo) Exists(_ context.Context, key string) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return f.keys[key], nil
 }
 
 func (f *fakeNotifiedRepo) Insert(_ context.Context, key string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.keys[key] = true
 	return nil
 }
