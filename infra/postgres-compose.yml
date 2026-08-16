@@ -24,5 +24,28 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  # Self-hosted GoTrue (issue #1032), pointed at the restored `auth` schema
+  # above via the compose network hostname `postgres` (not 127.0.0.1) —
+  # GOTRUE_DB_DATABASE_URL/GOTRUE_JWT_SECRET/GOTRUE_SMTP_PASS live in .env.
+  gotrue:
+    image: supabase/gotrue:v2.195.0
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file: .env
+    ports:
+      # Loopback only, same convention as Postgres — reach it via an SSH
+      # tunnel (see infra/README.md) for the sign-in smoke test.
+      - "127.0.0.1:9999:9999"
+    environment:
+      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL come from .env (env_file
+      # above) since they're already keyed under those exact names there.
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: "9999"
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_SMTP_HOST: smtp.resend.com
+      GOTRUE_SMTP_PORT: "465"
+      GOTRUE_SMTP_USER: resend
+
 volumes:
   postgres_data:
