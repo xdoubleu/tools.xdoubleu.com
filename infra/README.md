@@ -40,9 +40,9 @@ tofu apply <same -var flags as plan>
 ```
 
 This attaches the firewall (22/80/443 only) and runs `harden.sh` over SSH:
-creates a non-root `deploy` user (sudo + docker groups, your public key
-authorized), installs Docker, enables `fail2ban`, configures `ufw`, and
-disables root/password SSH login.
+creates a non-root `deploy` user (passwordless sudo + docker groups, your
+public key authorized), installs Docker, enables `fail2ban`, configures
+`ufw`, and disables root/password SSH login.
 
 `harden.sh` is idempotent — re-running `tofu apply` after editing it (or with
 no changes at all) is safe.
