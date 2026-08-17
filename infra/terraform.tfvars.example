@@ -4,7 +4,10 @@
 hcloud_token           = ""
 server_id              = ""
 server_ip              = ""
-deploy_ssh_public_key  = ""
+# Your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent
+# in CI can't unlock a passphrase-protected key) — see README.md's "Automate
+# Kamal deploys in CI" section for generating the CI-only key.
+deploy_ssh_public_keys = ["", ""]
 
 # GoTrue (issue #1032) — see README.md's "Stand up GoTrue" section.
 gotrue_jwt_secret       = ""

@@ -51,7 +51,7 @@ tofu plan \
   -var hcloud_token="$HCLOUD_TOKEN" \
   -var server_id=<id> \
   -var server_ip=<ip> \
-  -var deploy_ssh_public_key="$(cat ~/.ssh/<key>.pub)" \
+  -var 'deploy_ssh_public_keys=["'"$(cat ~/.ssh/<key>.pub)"'", "'"$(cat ~/.ssh/kamal_ci_deploy.pub)"'"]' \
   -var gotrue_jwt_secret=<...> \
   -var resend_api_key=<...> \
   -var gotrue_site_url=<...> \
@@ -213,6 +213,17 @@ already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
 the local `tofu apply` path, just with the key coming from a repo secret
 instead of whatever's already loaded in your own agent.
 
+`webfactory/ssh-agent` runs headless in CI and can't unlock a
+passphrase-protected key, so don't reuse your own key here — generate a
+dedicated, unencrypted CI deploy key, add its public half to
+`deploy_ssh_public_keys` in `terraform.tfvars` (alongside your own key) and
+re-`tofu apply` so `harden.sh` authorizes it on the VPS, then store the
+private half as `KAMAL_SSH_KEY` below:
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
+gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> < ~/.ssh/kamal_ci_deploy
+```
+
 **One-time setup**, GitHub repo Settings → Secrets and variables → Actions,
 Secrets tab. All of these — including `KAMAL_SERVER_IP` and
 `KAMAL_REGISTRY_USERNAME` — are Secrets, not Variables: this repo is
@@ -226,8 +237,9 @@ is unaffected, only the GitHub-side secret name changes):
 ```
 KAMAL_SERVER_IP              (same value as server_ip in terraform.tfvars)
 KAMAL_REGISTRY_USERNAME      (same value as kamal_registry_username)
-KAMAL_SSH_KEY                (the deploy user's private key — matches
-                              deploy_ssh_public_key in terraform.tfvars)
+KAMAL_SSH_KEY                (the dedicated CI deploy key's private half —
+                              its public half is one entry in
+                              deploy_ssh_public_keys in terraform.tfvars)
 KAMAL_DB_DSN                 (same DB_DSN null_resource.kamal_deploy
                               computes locally — postgres://postgres:<tofu
                               output -raw postgres_password>@postgres:5432/postgres)

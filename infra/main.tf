@@ -36,6 +36,7 @@ resource "hcloud_firewall_attachment" "vps" {
 resource "null_resource" "harden" {
   triggers = {
     script_hash = filesha256("${path.module}/harden.sh")
+    keys_hash   = sha256(join("\n", var.deploy_ssh_public_keys))
   }
 
   connection {
@@ -53,7 +54,7 @@ resource "null_resource" "harden" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /root/harden.sh",
-      "/root/harden.sh '${var.deploy_ssh_public_key}'",
+      "/root/harden.sh '${join("\n", var.deploy_ssh_public_keys)}'",
     ]
   }
 }
