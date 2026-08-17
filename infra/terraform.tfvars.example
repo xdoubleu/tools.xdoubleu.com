@@ -15,6 +15,9 @@ gotrue_smtp_admin_email = ""
 # App secrets for the Kamal deploy (issue #1033) — same values as
 # do-app.yaml's SECRET list (today's DO App Platform deploy). See
 # README.md's "Deploy the app via Kamal" section.
+# supabase_proj_ref/supabase_url/supabase_anon_key/supabase_api_key can be
+# dummy values if Supabase isn't in use at all — see the comment above
+# these four in infra/variables.tf for why (MCP OAuth sign-in only).
 supabase_proj_ref          = ""
 supabase_api_key           = ""
 steam_api_key              = ""

@@ -70,12 +70,14 @@ env:
     # http://gotrue:9999 — same network, also set by null_resource.kamal_deploy.
     # Makes api/cmd/api/main.go call WithCustomAuthURL, pointing sign-in at
     # self-hosted GoTrue instead of Supabase-hosted GoTrue.
-    # SUPABASE_PROJ_REF/SUPABASE_API_KEY stay set too (auth-go still wants
-    # non-empty values) but are otherwise unused once this is set; the MCP
-    # OAuth authorization-server issuer (api/cmd/api/mcp.go) is a deliberate
-    # exception that stays pointed at Supabase — see #1032's own scoping
-    # note, closed properly by the future "retire GoTrue entirely" issue
-    # (#1039), not here.
+    # SUPABASE_PROJ_REF/SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_API_KEY stay
+    # set too but are otherwise unused once this is set — they only ever
+    # mattered for the MCP OAuth authorization-server issuer
+    # (api/cmd/api/mcp.go), a deliberate exception that stays pointed at
+    # Supabase per #1032's own scoping note. If Supabase isn't in use at
+    # all, dummy values are fine (see infra/variables.tf's comment) — MCP
+    # sign-in just stays broken until the future "retire GoTrue entirely"
+    # issue (#1039) replaces that flow properly.
     - GOTRUE_URL
     # Everything below is a sensitive tfvar (infra/variables.tf), set in
     # terraform.tfvars same as gotrue_jwt_secret/resend_api_key above — same
