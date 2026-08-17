@@ -42,3 +42,14 @@ variable "gotrue_smtp_admin_email" {
   description = "GOTRUE_SMTP_ADMIN_EMAIL — the From address for GoTrue's own auth emails."
   type        = string
 }
+
+# Kamal (issue #1033) — see infra/README.md's "Deploy the app via Kamal"
+# section. Only the GHCR username is a tfvar (needed inside the rendered
+# config/deploy.yml itself); every other Kamal/app secret (KAMAL_REGISTRY_
+# PASSWORD, the full do-app.yaml SECRET list) is exported by hand in the
+# shell running `tofu apply`, same convention as HCLOUD_TOKEN — not
+# duplicated here as tfvars.
+variable "kamal_registry_username" {
+  description = "GHCR username Kamal authenticates as to pull ghcr.io/xdoubleu/tools.xdoubleu.com/app."
+  type        = string
+}

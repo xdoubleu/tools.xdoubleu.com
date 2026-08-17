@@ -136,53 +136,52 @@ closed properly by the future "retire GoTrue entirely" work instead.
 
 ## Deploy the app via Kamal (issue #1033)
 
-`config/deploy.yml` + `.kamal/secrets` (repo root) deploy the merged `app`
-image to this same VPS, over its raw IP — DNS cutover to the real domain is a
-separate later step (#1034). Postgres and GoTrue stay exactly as OpenTofu
-already manages them above (**not** Kamal accessories) — the app container
-Kamal starts reaches them over a shared Docker network instead.
+Fully Tofu-managed, same as everything else above: `tofu apply` is the one
+command that provisions the VPS, stands up Postgres/GoTrue, **and** deploys
+the app via Kamal — no separate manual `kamal setup`/`kamal deploy` step.
+`config/deploy.yml` is generated (gitignored) from
+`infra/templates/deploy.yml.tftpl` by `local_file.kamal_deploy_config`;
+`infra/main.tf`'s `null_resource.kamal_deploy` shells out to `kamal setup`
+locally via a `local-exec` provisioner. Deploys over the VPS's raw IP — DNS
+cutover to the real domain is a separate later step (#1034). Postgres and
+GoTrue stay exactly as OpenTofu already manages them above (**not** Kamal
+accessories) — the app container Kamal starts reaches them over the shared
+`kamal` Docker network `null_resource.kamal_network` creates before Postgres
+comes up (see that resource's comment in `infra/main.tf` for why the
+ordering matters).
 
-1. Install Kamal (Ruby gem, run locally like `tofu`, not from CI):
+1. Install Kamal (Ruby gem, run locally like `tofu` itself — `local-exec`
+   invokes the `kamal` binary on your machine, not on the VPS or in CI):
    `gem install kamal` (needs Ruby 3.0+).
-2. **One-time**: create the Docker network Kamal's app container and the
-   OpenTofu-managed Postgres/GoTrue containers both join, so the app can
-   resolve them by container name instead of a host port (both stay
-   loopback-only bound — see `infra/postgres-compose.yml`'s comment):
-   ```bash
-   ssh deploy@<ip> docker network create kamal
+2. Add `kamal_registry_username` (a GHCR username, not secret — needed
+   inside the rendered `config/deploy.yml` itself) to your
+   `terraform.tfvars`, alongside the vars from the sections above.
+3. Export every other secret `config/deploy.yml` references in the same
+   shell you'll run `tofu apply` from — same convention as `HCLOUD_TOKEN`:
+   the full `do-app.yaml` `SECRET` list (values unchanged — same source as
+   today's DO App Platform deploy) and `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT
+   with read:packages>`. `RELEASE`/`DB_DSN`/`GOTRUE_URL` are **not**
+   exported by hand — Tofu computes/injects those itself
+   (`null_resource.kamal_deploy` in `infra/main.tf`).
+4. ```bash
+   cd infra
+   tofu apply   # same -var flags / terraform.tfvars as before
    ```
-   `kamal` is the network name Kamal itself uses for proxy↔app connectivity
-   — `docker network create` is a no-op if Kamal (via `kamal setup`) already
-   created it first; either order works. If a future Kamal version names it
-   differently, confirm with `docker network ls` after the first
-   `kamal setup` and update this network name in `postgres-compose.yml` to
-   match. Then re-run `tofu apply` (same `-var` flags as before) so
-   `null_resource.postgres` picks up `postgres-compose.yml`'s updated
-   `networks:` block and reconnects the already-running Postgres/GoTrue
-   containers onto it — no data loss, no downtime for either.
-3. Export every secret `config/deploy.yml`/`.kamal/secrets` reference:
-   the `do-app.yaml` `SECRET` list (values unchanged — same source as
-   today's DO App Platform deploy), plus `RELEASE=$(git rev-parse HEAD)`,
-   `DB_DSN=postgres://postgres:<tofu output -raw postgres_password>@postgres:5432/postgres`,
-   `GOTRUE_URL=http://gotrue:9999`, and `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT
-   with read:packages>`. Postgres/GoTrue's own secrets stay entirely on the
-   OpenTofu side (`infra/terraform.tfvars`) — nothing accessory-shaped to
-   export here.
-4. Replace the two `<VPS_IP>`/`<GHCR_USERNAME>` placeholders in
-   `config/deploy.yml` with real values, then:
-   ```bash
-   kamal setup   # first run only
-   kamal deploy
-   ```
+   This is idempotent: re-running with no new commit and an unchanged
+   `config/deploy.yml` skips the Kamal step entirely (its `triggers` didn't
+   change); after a new commit whose image `docker.yml`'s CI already pushed
+   to GHCR, `tofu apply` redeploys automatically.
 5. Verify: `curl http://<ip>/health`, sign in with a migrated account through
    the app itself (not just GoTrue directly — this is the first end-to-end
    test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
    smoke test).
-6. **Mandatory rollback test**: redeploy with `DB_DSN` pointed at an
-   unreachable address (`kamal deploy` with that one secret temporarily
-   changed) and confirm Kamal refuses to cut traffic to the new, failing
-   container — `/health` fails its readiness probe, the previous container
-   keeps serving. Restore the real `DB_DSN` and redeploy to finish.
+6. **Mandatory rollback test**: temporarily export a broken `DB_DSN`
+   (pointed at an unreachable address), `tofu apply` again — its trigger
+   (`git_sha`) won't have changed, so force it with
+   `tofu apply -replace=null_resource.kamal_deploy` — and confirm Kamal
+   refuses to cut traffic to the new, failing container: `/health` fails its
+   readiness probe, the previous container keeps serving. Restore the real
+   `DB_DSN` and re-apply (same `-replace`) to finish.
 
 ## Migrate data from Supabase (one-time)
 
