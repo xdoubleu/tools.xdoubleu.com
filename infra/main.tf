@@ -159,8 +159,7 @@ data "external" "git_sha" {
 resource "local_file" "kamal_deploy_config" {
   filename = "${path.module}/../config/deploy.yml"
   content = templatefile("${path.module}/templates/deploy.yml.tftpl", {
-    server_ip     = var.server_ip
-    ghcr_username = var.kamal_registry_username
+    server_ip = var.server_ip
   })
 }
 
@@ -175,13 +174,12 @@ resource "local_file" "kamal_deploy_config" {
 # missing, otherwise just deploys), so it's used uniformly instead of
 # branching between `setup` (first run) and `deploy` (later runs).
 #
-# DB_DSN/GOTRUE_URL/RELEASE are the only Kamal secrets Tofu injects directly
-# (values it uniquely knows or computes) — every other secret
-# config/deploy.yml references (the do-app.yaml SECRET list,
-# KAMAL_REGISTRY_PASSWORD) is exported by hand in the shell running
-# `tofu apply`, same convention as HCLOUD_TOKEN; local-exec inherits the
-# parent process's environment, so `.kamal/secrets`' `VAR=$VAR` lines
-# resolve those without Tofu needing to duplicate them as tfvars.
+# Every secret config/deploy.yml references is a sensitive tfvar
+# (infra/variables.tf), same convention as gotrue_jwt_secret/resend_api_key
+# above — set once in terraform.tfvars, not re-exported by hand each time.
+# DB_DSN/GOTRUE_URL/RELEASE are the only three Tofu computes itself rather
+# than taking as a var (values it uniquely knows: the Postgres password it
+# generated, the fixed in-network GoTrue URL, and the current git commit).
 #
 # Kamal's own build-vs-pull behavior for an externally CI-pushed image
 # (config/deploy.yml has no explicit image tag) isn't fully pinned down
@@ -193,6 +191,17 @@ resource "null_resource" "kamal_deploy" {
   triggers = {
     deploy_config_hash = local_file.kamal_deploy_config.content_sha256
     git_sha            = data.external.git_sha.result.sha
+    secrets_hash = sha256(join("", [
+      var.supabase_proj_ref, var.supabase_api_key, var.steam_api_key,
+      var.hardcover_api_key, var.r2_account_id, var.r2_access_key_id,
+      var.r2_secret_access_key, var.r2_bucket, var.sentry_dsn,
+      var.sentry_dsn_web, var.supabase_url, var.supabase_anon_key,
+      var.github_oauth_client_id, var.github_oauth_client_secret,
+      var.sentry_oauth_client_id, var.sentry_oauth_client_secret,
+      var.do_oauth_client_id, var.do_oauth_client_secret,
+      var.encryption_key, var.email_from, var.notify_email_to,
+      var.email_inbound_domain, var.email_inbound_secret,
+    ]))
   }
 
   provisioner "local-exec" {
@@ -202,6 +211,31 @@ resource "null_resource" "kamal_deploy" {
       RELEASE    = data.external.git_sha.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
       GOTRUE_URL = "http://gotrue:9999"
+
+      SUPABASE_PROJ_REF          = var.supabase_proj_ref
+      SUPABASE_API_KEY           = var.supabase_api_key
+      STEAM_API_KEY              = var.steam_api_key
+      HARDCOVER_API_KEY          = var.hardcover_api_key
+      R2_ACCOUNT_ID              = var.r2_account_id
+      R2_ACCESS_KEY_ID           = var.r2_access_key_id
+      R2_SECRET_ACCESS_KEY       = var.r2_secret_access_key
+      R2_BUCKET                  = var.r2_bucket
+      SENTRY_DSN                 = var.sentry_dsn
+      SENTRY_DSN_WEB             = var.sentry_dsn_web
+      SUPABASE_URL               = var.supabase_url
+      SUPABASE_ANON_KEY          = var.supabase_anon_key
+      GITHUB_OAUTH_CLIENT_ID     = var.github_oauth_client_id
+      GITHUB_OAUTH_CLIENT_SECRET = var.github_oauth_client_secret
+      SENTRY_OAUTH_CLIENT_ID     = var.sentry_oauth_client_id
+      SENTRY_OAUTH_CLIENT_SECRET = var.sentry_oauth_client_secret
+      DO_OAUTH_CLIENT_ID         = var.do_oauth_client_id
+      DO_OAUTH_CLIENT_SECRET     = var.do_oauth_client_secret
+      ENCRYPTION_KEY             = var.encryption_key
+      RESEND_API_KEY             = var.resend_api_key
+      EMAIL_FROM                 = var.email_from
+      NOTIFY_EMAIL_TO            = var.notify_email_to
+      EMAIL_INBOUND_DOMAIN       = var.email_inbound_domain
+      EMAIL_INBOUND_SECRET       = var.email_inbound_secret
     }
   }
 }

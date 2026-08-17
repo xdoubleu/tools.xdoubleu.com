@@ -156,35 +156,40 @@ ordering matters).
    itself doesn't need a separate install step: `null_resource.kamal_deploy`
    runs `gem install kamal --conservative` (no-op if already installed)
    before every `kamal setup`.
-2. Add `kamal_registry_username` (a GHCR username, not secret — needed
-   inside the rendered `config/deploy.yml` itself) to your
-   `terraform.tfvars`, alongside the vars from the sections above.
-3. Export every other secret `config/deploy.yml` references in the same
-   shell you'll run `tofu apply` from — same convention as `HCLOUD_TOKEN`:
-   the full `do-app.yaml` `SECRET` list (values unchanged — same source as
-   today's DO App Platform deploy) and `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT
-   with read:packages>`. `RELEASE`/`DB_DSN`/`GOTRUE_URL` are **not**
-   exported by hand — Tofu computes/injects those itself
-   (`null_resource.kamal_deploy` in `infra/main.tf`).
-4. ```bash
+2. Add every app secret `config/deploy.yml` references to your
+   `terraform.tfvars`, alongside the vars from the sections above — same
+   `sensitive` tfvar convention as `gotrue_jwt_secret`/`resend_api_key`, same
+   values as today's DO App Platform deploy (`do-app.yaml`'s `SECRET` list).
+   See `infra/terraform.tfvars.example` for the full set of names.
+   `RELEASE`/`DB_DSN`/`GOTRUE_URL` aren't tfvars — Tofu computes/injects
+   those three itself (`null_resource.kamal_deploy` in `infra/main.tf`), and
+   there's no GHCR registry credential to set either:
+   `ghcr.io/xdoubleu/tools.xdoubleu.com/app` is a public package, pulled by
+   DO App Platform today with no registry auth configured, so Kamal needs
+   none either.
+3. ```bash
    cd infra
    tofu apply   # same -var flags / terraform.tfvars as before
    ```
-   This is idempotent: re-running with no new commit and an unchanged
-   `config/deploy.yml` skips the Kamal step entirely (its `triggers` didn't
-   change); after a new commit whose image `docker.yml`'s CI already pushed
-   to GHCR, `tofu apply` redeploys automatically.
-5. Verify: `curl http://<ip>/health`, sign in with a migrated account through
+   This is idempotent: re-running with no new commit and unchanged
+   secrets/`config/deploy.yml` skips the Kamal step entirely (its
+   `triggers` didn't change); after a new commit whose image `docker.yml`'s
+   CI already pushed to GHCR, `tofu apply` redeploys automatically.
+4. Verify: `curl http://<ip>/health`, sign in with a migrated account through
    the app itself (not just GoTrue directly — this is the first end-to-end
    test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
    smoke test).
-6. **Mandatory rollback test**: temporarily export a broken `DB_DSN`
-   (pointed at an unreachable address), `tofu apply` again — its trigger
-   (`git_sha`) won't have changed, so force it with
-   `tofu apply -replace=null_resource.kamal_deploy` — and confirm Kamal
-   refuses to cut traffic to the new, failing container: `/health` fails its
-   readiness probe, the previous container keeps serving. Restore the real
-   `DB_DSN` and re-apply (same `-replace`) to finish.
+5. **Mandatory rollback test**: `DB_DSN` is computed by Tofu, not a tfvar, so
+   temporarily break it directly in `infra/main.tf`'s `null_resource.kamal_deploy`
+   (point the `DB_DSN` line at an unreachable address instead of
+   `random_password.postgres.result`), then:
+   ```bash
+   tofu apply -replace=null_resource.kamal_deploy
+   ```
+   Confirm Kamal refuses to cut traffic to the new, failing container:
+   `/health` fails its readiness probe, the previous container keeps
+   serving. Revert the `DB_DSN` line and re-apply (same `-replace`) to
+   finish.
 
 ## Migrate data from Supabase (one-time)
 
