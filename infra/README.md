@@ -156,6 +156,14 @@ ordering matters).
    itself doesn't need a separate install step: `null_resource.kamal_deploy`
    runs `gem install kamal --conservative` (no-op if already installed)
    before every `kamal setup`.
+   **On macOS, the system Ruby at `/usr/bin/ruby` doesn't qualify** (stuck
+   on 2.6, and its gem directory is root-owned, so `gem install` fails with
+   a `Gem::FilePermissionError` even if the version were new enough).
+   Install a real one instead — `brew install ruby`, then put it ahead of
+   the system one on `PATH` (`echo 'export
+   PATH="/opt/homebrew/opt/ruby/bin:$PATH"' >> ~/.zshrc && source
+   ~/.zshrc` on Apple Silicon, `/usr/local/opt/ruby/bin` on Intel) — before
+   running `tofu apply`.
 2. Add every app secret `config/deploy.yml` references to your
    `terraform.tfvars`, alongside the vars from the sections above — same
    `sensitive` tfvar convention as `gotrue_jwt_secret`/`resend_api_key`, same
