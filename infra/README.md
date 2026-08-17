@@ -167,14 +167,14 @@ ordering matters).
 2. Add every app secret `config/deploy.yml` references to your
    `terraform.tfvars`, alongside the vars from the sections above — same
    `sensitive` tfvar convention as `gotrue_jwt_secret`/`resend_api_key`, same
-   values as today's DO App Platform deploy (`do-app.yaml`'s `SECRET` list).
-   See `infra/terraform.tfvars.example` for the full set of names.
+   values as today's DO App Platform deploy (`do-app.yaml`'s `SECRET` list),
+   plus `kamal_registry_username`/`kamal_registry_password` (a GHCR PAT with
+   `read:packages` scope — required by Kamal's own config schema even
+   though `ghcr.io/xdoubleu/tools.xdoubleu.com/app` is a public package
+   needing no auth to actually pull, confirmed via `kamal config`). See
+   `infra/terraform.tfvars.example` for the full set of names.
    `RELEASE`/`DB_DSN`/`GOTRUE_URL` aren't tfvars — Tofu computes/injects
-   those three itself (`null_resource.kamal_deploy` in `infra/main.tf`), and
-   there's no GHCR registry credential to set either:
-   `ghcr.io/xdoubleu/tools.xdoubleu.com/app` is a public package, pulled by
-   DO App Platform today with no registry auth configured, so Kamal needs
-   none either.
+   those three itself (`null_resource.kamal_deploy` in `infra/main.tf`).
 3. ```bash
    cd infra
    tofu apply   # same -var flags / terraform.tfvars as before
@@ -198,6 +198,72 @@ ordering matters).
    `/health` fails its readiness probe, the previous container keeps
    serving. Revert the `DB_DSN` line and re-apply (same `-replace`) to
    finish.
+
+## Automate Kamal deploys in CI (issue #1036)
+
+Once the steps above have bootstrapped the host at least once (kamal-proxy
+installed, first deploy done), `.github/workflows/main.yml`'s
+`deploy-kamal` job takes over routine deploys on every push to `main` —
+runs in parallel with the existing `deploy` job (DO App Platform), and its
+own failure doesn't fail the whole workflow (`continue-on-error: true`) or
+block anything else, since DO stays the traffic-serving deploy until
+Cutover (#1034). It runs `kamal deploy` (not `setup`) against the
+already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
+(`webfactory/ssh-agent`, loading `KAMAL_SSH_KEY`) — same auth mechanism as
+the local `tofu apply` path, just with the key coming from a repo secret
+instead of whatever's already loaded in your own agent.
+
+**One-time setup**, GitHub repo Settings → Secrets and variables → Actions:
+
+Variables tab (not secret — repo Variables, non-sensitive):
+- `KAMAL_SERVER_IP` — same value as `server_ip` in `terraform.tfvars`.
+- `KAMAL_REGISTRY_USERNAME` — same value as `kamal_registry_username`.
+
+Secrets tab — same values as the matching `terraform.tfvars` entries above,
+under these exact names (two are prefixed since GitHub Actions rejects
+secret names starting with `GITHUB_`; the app-level env var Kamal actually
+sets on the container is unaffected, only the GitHub-side secret name
+changes):
+```
+KAMAL_SSH_KEY               (the deploy user's private key — matches
+                              deploy_ssh_public_key in terraform.tfvars)
+KAMAL_DB_DSN                 (same DB_DSN null_resource.kamal_deploy
+                              computes locally — postgres://postgres:<tofu
+                              output -raw postgres_password>@postgres:5432/postgres)
+KAMAL_REGISTRY_PASSWORD
+SUPABASE_PROJ_REF
+SUPABASE_API_KEY
+STEAM_API_KEY
+HARDCOVER_API_KEY
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET
+SENTRY_DSN
+SENTRY_DSN_WEB
+SUPABASE_URL
+SUPABASE_ANON_KEY
+KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
+KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
+SENTRY_OAUTH_CLIENT_ID
+SENTRY_OAUTH_CLIENT_SECRET
+DO_OAUTH_CLIENT_ID
+DO_OAUTH_CLIENT_SECRET
+ENCRYPTION_KEY
+RESEND_API_KEY
+EMAIL_FROM
+NOTIFY_EMAIL_TO
+EMAIL_INBOUND_DOMAIN
+EMAIL_INBOUND_SECRET
+```
+
+**Verify**: push a trivial change to `main`, confirm `deploy-kamal` runs and
+succeeds in the Actions tab, then `curl http://<ip>/health`.
+
+**External uptime monitoring** (also part of #1036, not automatable from
+here — a manual account-setup step): an UptimeRobot free-tier monitor, 5
+minute interval, against `/health` on the VPS. Do this once cutover (#1034)
+happens and there's a real domain to point it at.
 
 ## Migrate data from Supabase (one-time)
 

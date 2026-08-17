@@ -3,7 +3,7 @@
 #   - Locally: `tofu apply` (infra/main.tf's local_file.kamal_deploy_config,
 #     via Terraform's templatefile()), for one-off/manual deploys.
 #   - CI: .github/workflows/main.yml's deploy-kamal job, via `envsubst` (this
-#     template's only interpolation, ${server_ip}/${ghcr_username}, is
+#     template's only interpolations, $${server_ip}/$${ghcr_username}, use
 #     plain shell-compatible syntax, so both tools render it identically —
 #     confirmed byte-for-byte via `tofu console`).
 #
@@ -39,6 +39,11 @@ servers:
       # this validation deploy.
       traefik.enable: "false"
 
+# No ssh.key_data here — both deploy paths authenticate via ssh-agent
+# instead (the operator's own agent locally; .github/workflows/main.yml's
+# deploy-kamal CI job loads KAMAL_SSH_KEY into a real agent via
+# webfactory/ssh-agent), so this one shared template needs no per-path
+# branching for SSH auth.
 ssh:
   user: deploy
 
