@@ -71,11 +71,34 @@ output "postgres_password" {
   sensitive = true
 }
 
+# Shared Docker network (issue #1033) between Postgres/GoTrue and the
+# Kamal-deployed app — postgres-compose.yml declares it `external: true`, so
+# it must exist before `docker compose up` runs there. Created here (not left
+# for `kamal setup` to create) to break that circular dependency: Postgres
+# needs this network before it can start, but Kamal's own deploy needs
+# Postgres reachable for its health check before it can run.
+resource "null_resource" "kamal_network" {
+  depends_on = [null_resource.harden]
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    # Idempotent — `kamal setup` also creates this network if it doesn't
+    # find one, so re-running either side is safe regardless of order.
+    inline = ["docker network create kamal || true"]
+  }
+}
+
 # Stands up self-hosted Postgres (issue #1031) via Docker Compose, following
 # the same file+remote-exec pattern as null_resource.harden above. Runs as
 # `deploy`, not root, since harden.sh already put it in the docker group.
 resource "null_resource" "postgres" {
-  depends_on = [null_resource.harden]
+  depends_on = [null_resource.harden, null_resource.kamal_network]
 
   triggers = {
     compose_hash    = filesha256("${path.module}/postgres-compose.yml")
@@ -120,5 +143,61 @@ resource "null_resource" "postgres" {
       "chmod 600 /home/deploy/postgres/.env",
       "cd /home/deploy/postgres && docker compose up -d",
     ]
+  }
+}
+
+# Current git commit — deployed as RELEASE (issue #1033), and used as a
+# redeploy trigger below so `tofu apply` after a new commit (whose image
+# docker.yml's CI already pushed to GHCR) redeploys automatically, while
+# re-applying with no new commit is a no-op.
+data "external" "git_sha" {
+  program = ["sh", "-c", "printf '{\"sha\":\"%s\"}' \"$(git -C ${path.module} rev-parse HEAD)\""]
+}
+
+# Renders config/deploy.yml (repo root, gitignored) from the committed
+# template — see infra/templates/deploy.yml.tftpl's own header comment.
+resource "local_file" "kamal_deploy_config" {
+  filename = "${path.module}/../config/deploy.yml"
+  content = templatefile("${path.module}/templates/deploy.yml.tftpl", {
+    server_ip     = var.server_ip
+    ghcr_username = var.kamal_registry_username
+  })
+}
+
+# Drives the actual app deploy (issue #1033) — `tofu apply` is the single
+# entrypoint for the whole stack, so this shells out to `kamal setup`
+# locally rather than requiring a separate manual `kamal deploy` step.
+# `kamal setup` is idempotent/safe to re-run (installs kamal-proxy only if
+# missing, otherwise just deploys), so it's used uniformly instead of
+# branching between `setup` (first run) and `deploy` (later runs).
+#
+# DB_DSN/GOTRUE_URL/RELEASE are the only Kamal secrets Tofu injects directly
+# (values it uniquely knows or computes) — every other secret
+# config/deploy.yml references (the do-app.yaml SECRET list,
+# KAMAL_REGISTRY_PASSWORD) is exported by hand in the shell running
+# `tofu apply`, same convention as HCLOUD_TOKEN; local-exec inherits the
+# parent process's environment, so `.kamal/secrets`' `VAR=$VAR` lines
+# resolve those without Tofu needing to duplicate them as tfvars.
+#
+# Kamal's own build-vs-pull behavior for an externally CI-pushed image
+# (config/deploy.yml has no explicit image tag) isn't fully pinned down
+# here — worth confirming during the first real deploy; #1036 (automate
+# Kamal deploys in CI) is the natural place to nail that down for good.
+resource "null_resource" "kamal_deploy" {
+  depends_on = [null_resource.postgres, local_file.kamal_deploy_config]
+
+  triggers = {
+    deploy_config_hash = local_file.kamal_deploy_config.content_sha256
+    git_sha            = data.external.git_sha.result.sha
+  }
+
+  provisioner "local-exec" {
+    working_dir = "${path.module}/.."
+    command     = "kamal setup"
+    environment = {
+      RELEASE    = data.external.git_sha.result.sha
+      DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
+      GOTRUE_URL = "http://gotrue:9999"
+    }
   }
 }
