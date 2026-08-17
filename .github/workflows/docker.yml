@@ -97,6 +97,12 @@ jobs:
           file: Dockerfile
           push: ${{ inputs.push }}
           tags: ${{ steps.meta.outputs.tags }}
+          # Kamal's `validate_image` step (kamal build/deploy) rejects any
+          # image pulled without this exact label — it normally stamps it
+          # itself via `kamal build`, but we build via buildx directly and
+          # deploy with --skip-push. Must match `service:` in
+          # infra/templates/deploy.yml.tftpl.
+          labels: service=tools-xdoubleu-com
           cache-from: type=gha,scope=app
           cache-to: type=gha,scope=app,mode=max
           build-args: |
