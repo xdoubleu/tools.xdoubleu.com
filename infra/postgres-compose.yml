@@ -38,9 +38,14 @@ services:
       # tunnel (see infra/README.md) for the sign-in smoke test.
       - "127.0.0.1:9999:9999"
     environment:
-      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL/GOTRUE_API_EXTERNAL_URL
-      # (required by GoTrue, currently == GOTRUE_SITE_URL since GoTrue isn't
-      # proxied publicly yet) come from .env (env_file above).
+      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL come from .env (env_file
+      # above), as does the required API_EXTERNAL_URL — deliberately bare,
+      # no GOTRUE_ prefix: GoTrue's envconfig nesting derives GOTRUE_API as
+      # the struct prefix, and the field's own envconfig:"API_EXTERNAL_URL"
+      # tag gets appended to that verbatim, so GOTRUE_API_EXTERNAL_URL is
+      # never read — matches the official supabase/supabase self-hosting
+      # compose file. Currently == GOTRUE_SITE_URL since GoTrue isn't
+      # proxied publicly yet.
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
