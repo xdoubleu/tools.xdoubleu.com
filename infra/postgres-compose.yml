@@ -49,6 +49,13 @@ services:
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
+      # Required for sign-in against migrated rows: GoTrue filters its user
+      # lookup by aud, which has no default (empty string) unless set here.
+      # Every migrated auth.users row has aud='authenticated' (Supabase's
+      # standard convention, confirmed against the restored data) — without
+      # this, the lookup query matches zero rows and GoTrue reports a
+      # generic "Invalid login credentials" regardless of a correct password.
+      GOTRUE_JWT_AUD: authenticated
       GOTRUE_SMTP_HOST: smtp.resend.com
       GOTRUE_SMTP_PORT: "465"
       GOTRUE_SMTP_USER: resend
