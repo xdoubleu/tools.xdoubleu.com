@@ -470,3 +470,94 @@ jobs:
             fi
             sleep 15
           done
+
+  # Parallel deploy to the Hetzner VPS via Kamal (issue #1036), alongside
+  # the DO deploy above — DO stays the traffic-serving deploy until the
+  # Cutover issue (#1034), so this job's own failure doesn't fail the whole
+  # workflow (continue-on-error) and isn't a dependency of anything else.
+  # Requires infra/'s null_resource.kamal_deploy (or a manual `kamal setup`)
+  # to have bootstrapped the host at least once already — this job runs
+  # `kamal deploy`, not `kamal setup`, and assumes kamal-proxy is already
+  # installed.
+  deploy-kamal:
+    needs: [docker]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.docker.result == 'success' &&
+      needs.docker.outputs.app_built == 'true'
+    name: Deploy to Hetzner via Kamal
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      # Ubuntu runners generally ship gettext-base already, but don't rely
+      # on it — apt-get is fast and idempotent either way.
+      - name: Install envsubst
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+
+      - name: Load the deploy SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.KAMAL_SSH_KEY }}
+
+      - name: Trust the VPS host key
+        run: mkdir -p ~/.ssh && ssh-keyscan -H "${{ vars.KAMAL_SERVER_IP }}" >> ~/.ssh/known_hosts
+
+      # Same template infra/main.tf's local_file.kamal_deploy_config renders
+      # via Terraform's templatefile() — see that template's own header
+      # comment for why envsubst produces an identical result here.
+      - name: Render config/deploy.yml
+        env:
+          server_ip: ${{ vars.KAMAL_SERVER_IP }}
+          ghcr_username: ${{ vars.KAMAL_REGISTRY_USERNAME }}
+        run: envsubst < infra/templates/deploy.yml.tftpl > config/deploy.yml
+
+      - name: Deploy via Kamal
+        env:
+          # docker.yml's docker/metadata-action step tags images
+          # `type=sha,prefix=`, which defaults to a 7-character short SHA —
+          # confirmed via `kamal config`'s absolute_image output (see
+          # infra/main.tf's null_resource.kamal_deploy, the local
+          # equivalent of this step).
+          KAMAL_VERSION: ${{ github.sha }}
+          RELEASE: ${{ github.sha }}
+          DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
+          GOTRUE_URL: http://gotrue:9999
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SUPABASE_PROJ_REF: ${{ secrets.SUPABASE_PROJ_REF }}
+          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Not GITHUB_OAUTH_CLIENT_*: GitHub Actions rejects secret names
+          # starting with GITHUB_. The app-level env var name Kamal sets on
+          # the container is unaffected — only this secret's storage name
+          # needed the prefix.
+          GITHUB_OAUTH_CLIENT_ID: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_ID }}
+          GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_SECRET }}
+          SENTRY_OAUTH_CLIENT_ID: ${{ secrets.SENTRY_OAUTH_CLIENT_ID }}
+          SENTRY_OAUTH_CLIENT_SECRET: ${{ secrets.SENTRY_OAUTH_CLIENT_SECRET }}
+          DO_OAUTH_CLIENT_ID: ${{ secrets.DO_OAUTH_CLIENT_ID }}
+          DO_OAUTH_CLIENT_SECRET: ${{ secrets.DO_OAUTH_CLIENT_SECRET }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
+          EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
+          EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
+        run: bundle exec kamal deploy --skip-push --version="${KAMAL_VERSION:0:7}"
