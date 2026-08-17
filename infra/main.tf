@@ -217,7 +217,17 @@ resource "null_resource" "kamal_deploy" {
     # `type=sha,prefix=`, which defaults to a 7-character short SHA — not
     # the full 40-character git_sha this resource otherwise uses for
     # RELEASE, confirmed via `kamal config`'s `absolute_image` output.
-    command = "gem install kamal --no-document --conservative && kamal setup --skip-push --version=${substr(data.external.git_sha.result.sha, 0, 7)}"
+    #
+    # `PATH="$(ruby -e ...):$PATH"` is required, not cosmetic: `gem install`
+    # (without --user-install) drops the kamal executable into Ruby's own
+    # gem bin dir (Gem.bindir — e.g. /opt/homebrew/lib/ruby/gems/4.0.0/bin
+    # for Homebrew Ruby, a caveat easy to miss at install time), which
+    # isn't on PATH by default. Worse, local-exec runs via a bare, non-
+    # interactive /bin/sh, so a PATH fix in ~/.zshrc/~/.bash_profile
+    # wouldn't be inherited even if the operator added one — confirmed live
+    # (`kamal: command not found`, exit 127) on the first real deploy
+    # attempt. Resolving Gem.bindir at run time sidesteps both issues.
+    command = "gem install kamal --no-document --conservative && PATH=\"$(ruby -e 'print Gem.bindir'):$PATH\" kamal setup --skip-push --version=${substr(data.external.git_sha.result.sha, 0, 7)}"
     environment = {
       RELEASE    = data.external.git_sha.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
