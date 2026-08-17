@@ -110,6 +110,7 @@ resource "null_resource" "postgres" {
       GOTRUE_SMTP_PASS=${var.resend_api_key}
       GOTRUE_SITE_URL=${var.gotrue_site_url}
       GOTRUE_SMTP_ADMIN_EMAIL=${var.gotrue_smtp_admin_email}
+      GOTRUE_API_EXTERNAL_URL=${var.gotrue_site_url}
     EOT
     destination = "/home/deploy/postgres/.env"
   }
