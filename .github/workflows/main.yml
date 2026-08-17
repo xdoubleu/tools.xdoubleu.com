@@ -495,7 +495,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.3"
+          ruby-version: "4.0.6"
           bundler-cache: true
 
       # Ubuntu runners generally ship gettext-base already, but don't rely
