@@ -36,11 +36,10 @@ servers:
 ssh:
   user: deploy
 
-registry:
-  server: ghcr.io
-  username: ${ghcr_username}
-  password:
-    - KAMAL_REGISTRY_PASSWORD
+# No registry block — ghcr.io/xdoubleu/tools.xdoubleu.com/app is a public
+# GHCR package (do-app.yaml pulls it with zero registry credentials
+# configured anywhere, same as api/gateway/web's own public GHCR repos —
+# see root CLAUDE.md's CI section), so Kamal needs no auth to pull it either.
 
 proxy:
   app_port: 8000
@@ -78,10 +77,9 @@ env:
     # note, closed properly by the future "retire GoTrue entirely" issue
     # (#1039), not here.
     - GOTRUE_URL
-    # Everything below is exported by hand in the shell running `tofu
-    # apply` (same convention as HCLOUD_TOKEN) — infra/README.md's "Deploy
-    # the app via Kamal" section lists the full set, same values as
-    # do-app.yaml's SECRET list (today's DO App Platform deploy).
+    # Everything below is a sensitive tfvar (infra/variables.tf), set in
+    # terraform.tfvars same as gotrue_jwt_secret/resend_api_key above — same
+    # values as do-app.yaml's SECRET list (today's DO App Platform deploy).
     - SUPABASE_PROJ_REF
     - SUPABASE_API_KEY
     - STEAM_API_KEY
