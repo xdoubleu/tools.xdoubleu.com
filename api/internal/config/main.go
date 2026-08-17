@@ -37,6 +37,11 @@ type Config struct {
 	Release         string
 	SupabaseProjRef string
 	SupabaseAPIKey  string
+	// GoTrueURL overrides auth-go's default Supabase-hosted URL
+	// (https://<SupabaseProjRef>.supabase.co/auth/v1) via WithCustomAuthURL,
+	// pointing sign-in at self-hosted GoTrue instead. Empty keeps the
+	// Supabase-hosted default.
+	GoTrueURL       string
 	SteamAPIKey     string
 	HardcoverAPIKey string
 	R2AccountID     string
@@ -211,6 +216,7 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")
 	cfg.SupabaseAPIKey = p.envSecret("SUPABASE_API_KEY", "")
+	cfg.GoTrueURL = p.envStr("GOTRUE_URL", "")
 
 	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")

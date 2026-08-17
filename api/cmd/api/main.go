@@ -129,12 +129,7 @@ func main() {
 	}
 	defer db.Close()
 
-	supabase := gotrue.New(
-		cfg.SupabaseProjRef,
-		cfg.SupabaseAPIKey,
-	)
-
-	app := NewApplication(logger, cfg, db, supabase)
+	app := NewApplication(logger, cfg, db, newSupabaseClient(cfg))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -147,6 +142,21 @@ func main() {
 	if err != nil {
 		logger.Error("failed to serve server", essentialogger.ErrAttr(err))
 	}
+}
+
+// newSupabaseClient builds the GoTrue client, pointed at self-hosted GoTrue
+// via WithCustomAuthURL when cfg.GoTrueURL is set, or Supabase-hosted GoTrue
+// (the auth-go default, derived from cfg.SupabaseProjRef) otherwise.
+func newSupabaseClient(cfg config.Config) gotrue.Client {
+	supabase := gotrue.New(
+		cfg.SupabaseProjRef,
+		cfg.SupabaseAPIKey,
+	)
+	if cfg.GoTrueURL != "" {
+		supabase = supabase.WithCustomAuthURL(cfg.GoTrueURL)
+	}
+
+	return supabase
 }
 
 // newOAuthSealer builds the AES-GCM sealer used to encrypt stored OAuth
