@@ -522,6 +522,12 @@ jobs:
 
       - name: Deploy via Kamal
         env:
+          # docker.yml's docker/metadata-action step tags images
+          # `type=sha,prefix=`, which defaults to a 7-character short SHA —
+          # confirmed via `kamal config`'s absolute_image output (see
+          # infra/main.tf's null_resource.kamal_deploy, the local
+          # equivalent of this step).
+          KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
           GOTRUE_URL: http://gotrue:9999
@@ -554,14 +560,4 @@ jobs:
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
-        # No --version pin: an earlier version used github.sha's short form
-        # to match docker.yml's tag, but that's fragile (depends on
-        # docker/metadata-action's default format staying 7 chars) for no
-        # real benefit. No --version falls back to Kamal's own "latest"
-        # tag, which docker.yml always pushes right before this job runs —
-        # and reusing that name across deploys doesn't skip the
-        # health-gated blue-green swap (Kamal renames a same-named existing
-        # container aside first — see infra/main.tf's
-        # null_resource.kamal_deploy for the full explanation, verified by
-        # reading Kamal::Cli::App::Boot's source).
-        run: bundle exec kamal deploy --skip-push
+        run: bundle exec kamal deploy --skip-push --version="${KAMAL_VERSION:0:7}"
