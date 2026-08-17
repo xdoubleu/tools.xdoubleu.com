@@ -212,25 +212,11 @@ resource "null_resource" "kamal_deploy" {
     # --skip-push: the image is already built and pushed to GHCR by
     # docker.yml's CI job — kamal setup must not try to build it locally
     # (needs Docker + amd64 cross-build, and would deploy a locally-built
-    # image instead of what CI actually tested).
-    #
-    # No --version pin: an earlier version pinned it to a short git sha,
-    # but that tag only exists in GHCR for commits where docker.yml's
-    # build_app condition actually fired (api/web/proto/etc. changed) — an
-    # infra-only commit (like most of this deploy pipeline's own history)
-    # has no matching image tag at all, and `kamal setup` failed live with
-    # "not found" pulling it. Kamal's own default (no --version given)
-    # falls back to its `latest_tag` ("latest" — see
-    # Kamal::Configuration#latest_tag), which docker.yml always pushes
-    # alongside the sha tag, so it always exists. Reusing "latest" across
-    # deploys does NOT skip the health-gated blue-green swap this whole
-    # issue exists to verify — confirmed by reading
-    # Kamal::Cli::App::Boot#old_version_renamed_if_clashing: a
-    # same-named existing container gets renamed aside first, the new one
-    # boots and is health-checked under the original name, and only the
-    # renamed-aside old one is stopped afterward. RELEASE below still
-    # carries the real git commit for Sentry/footer display, independent
-    # of this.
+    # image instead of what CI actually tested). --version pins the exact
+    # tag to pull: docker.yml's docker/metadata-action step tags images
+    # `type=sha,prefix=`, which defaults to a 7-character short SHA — not
+    # the full 40-character git_sha this resource otherwise uses for
+    # RELEASE, confirmed via `kamal config`'s `absolute_image` output.
     #
     # `PATH="$(ruby -e ...):$PATH"` is required, not cosmetic: `gem install`
     # (without --user-install) drops the kamal executable into Ruby's own
@@ -239,9 +225,9 @@ resource "null_resource" "kamal_deploy" {
     # isn't on PATH by default. Worse, local-exec runs via a bare, non-
     # interactive /bin/sh, so a PATH fix in ~/.zshrc/~/.bash_profile
     # wouldn't be inherited even if the operator added one — confirmed live
-    # (`kamal: command not found`, exit 127) on an earlier deploy attempt.
-    # Resolving Gem.bindir at run time sidesteps both issues.
-    command = "gem install kamal --no-document --conservative && PATH=\"$(ruby -e 'print Gem.bindir'):$PATH\" kamal setup --skip-push"
+    # (`kamal: command not found`, exit 127) on the first real deploy
+    # attempt. Resolving Gem.bindir at run time sidesteps both issues.
+    command = "gem install kamal --no-document --conservative && PATH=\"$(ruby -e 'print Gem.bindir'):$PATH\" kamal setup --skip-push --version=${substr(data.external.git_sha.result.sha, 0, 7)}"
     environment = {
       RELEASE    = data.external.git_sha.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
