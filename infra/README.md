@@ -137,29 +137,37 @@ closed properly by the future "retire GoTrue entirely" work instead.
 ## Deploy the app via Kamal (issue #1033)
 
 `config/deploy.yml` + `.kamal/secrets` (repo root) deploy the merged `app`
-image plus Postgres/GoTrue as Kamal accessories to this same VPS, over its
-raw IP — DNS cutover to the real domain is a separate later step (#1034).
+image to this same VPS, over its raw IP — DNS cutover to the real domain is a
+separate later step (#1034). Postgres and GoTrue stay exactly as OpenTofu
+already manages them above (**not** Kamal accessories) — the app container
+Kamal starts reaches them over a shared Docker network instead.
 
 1. Install Kamal (Ruby gem, run locally like `tofu`, not from CI):
    `gem install kamal` (needs Ruby 3.0+).
-2. **One-time**: stop the manually-provisioned compose stack from "Stand up
-   Postgres"/"Stand up GoTrue" above, so Kamal's own accessory containers
-   don't collide with it on the same ports/volume:
+2. **One-time**: create the Docker network Kamal's app container and the
+   OpenTofu-managed Postgres/GoTrue containers both join, so the app can
+   resolve them by container name instead of a host port (both stay
+   loopback-only bound — see `infra/postgres-compose.yml`'s comment):
    ```bash
-   ssh deploy@<ip> "cd postgres && docker compose down"
+   ssh deploy@<ip> docker network create kamal
    ```
-   The named volume (`postgres_data`) is untouched by `down` (no `-v`), so
-   the migrated data survives — Kamal's `postgres` accessory reuses it via
-   the same `/var/lib/postgresql/data` mount path.
+   `kamal` is the network name Kamal itself uses for proxy↔app connectivity
+   — `docker network create` is a no-op if Kamal (via `kamal setup`) already
+   created it first; either order works. If a future Kamal version names it
+   differently, confirm with `docker network ls` after the first
+   `kamal setup` and update this network name in `postgres-compose.yml` to
+   match. Then re-run `tofu apply` (same `-var` flags as before) so
+   `null_resource.postgres` picks up `postgres-compose.yml`'s updated
+   `networks:` block and reconnects the already-running Postgres/GoTrue
+   containers onto it — no data loss, no downtime for either.
 3. Export every secret `config/deploy.yml`/`.kamal/secrets` reference:
    the `do-app.yaml` `SECRET` list (values unchanged — same source as
    today's DO App Platform deploy), plus `RELEASE=$(git rev-parse HEAD)`,
    `DB_DSN=postgres://postgres:<tofu output -raw postgres_password>@postgres:5432/postgres`,
-   `GOTRUE_URL=http://gotrue:9999`, `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT with
-   read:packages>`, and the same Postgres/GoTrue accessory secrets already in
-   the VPS's `/home/deploy/postgres/.env` (`POSTGRES_PASSWORD`,
-   `GOTRUE_JWT_SECRET`, `GOTRUE_DB_DATABASE_URL`, `GOTRUE_SMTP_PASS`,
-   `GOTRUE_SITE_URL`, `GOTRUE_SMTP_ADMIN_EMAIL`, `API_EXTERNAL_URL`).
+   `GOTRUE_URL=http://gotrue:9999`, and `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT
+   with read:packages>`. Postgres/GoTrue's own secrets stay entirely on the
+   OpenTofu side (`infra/terraform.tfvars`) — nothing accessory-shaped to
+   export here.
 4. Replace the two `<VPS_IP>`/`<GHCR_USERNAME>` placeholders in
    `config/deploy.yml` with real values, then:
    ```bash

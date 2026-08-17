@@ -18,11 +18,20 @@ services:
     env_file: .env
     ports:
       # Loopback only — never exposed publicly. Reach it via an SSH tunnel
-      # (see infra/README.md) for debugging, or via this compose network
-      # once the app is deployed here (future sub-issue).
+      # (see infra/README.md) for debugging.
       - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - default
+      # Shared with the Kamal-deployed app (issue #1033) so it can reach
+      # Postgres by container name (`postgres:5432`) instead of a host port
+      # — loopback-only binding above means a container on a different
+      # Docker network can't reach it at all, and widening the port bind to
+      # 0.0.0.0 would risk bypassing ufw (Docker manipulates iptables
+      # directly). See infra/README.md's "Deploy the app via Kamal" section
+      # for the one-time `docker network create kamal` step this depends on.
+      - kamal
 
   # Self-hosted GoTrue (issue #1032), pointed at the restored `auth` schema
   # above via the compose network hostname `postgres` (not 127.0.0.1) —
@@ -59,6 +68,19 @@ services:
       GOTRUE_SMTP_HOST: smtp.resend.com
       GOTRUE_SMTP_PORT: "465"
       GOTRUE_SMTP_USER: resend
+    networks:
+      - default
+      # Same reasoning as postgres's `kamal` network entry above.
+      - kamal
 
 volumes:
   postgres_data:
+
+networks:
+  default: {}
+  # Pre-created once via `docker network create kamal` (see
+  # infra/README.md) — declared external here since Kamal itself also
+  # creates/uses this network for its own app+proxy containers, and this
+  # compose file must never race it or try to recreate it.
+  kamal:
+    external: true
