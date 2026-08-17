@@ -167,6 +167,10 @@ resource "local_file" "kamal_deploy_config" {
 # Drives the actual app deploy (issue #1033) — `tofu apply` is the single
 # entrypoint for the whole stack, so this shells out to `kamal setup`
 # locally rather than requiring a separate manual `kamal deploy` step.
+# `gem install --conservative` (no-op if a satisfying version is already
+# installed) means the operator doesn't need to install the Kamal gem by
+# hand either — the only prerequisite left on the machine running
+# `tofu apply` is Ruby 3.0+ itself, which Tofu can't install for you.
 # `kamal setup` is idempotent/safe to re-run (installs kamal-proxy only if
 # missing, otherwise just deploys), so it's used uniformly instead of
 # branching between `setup` (first run) and `deploy` (later runs).
@@ -193,7 +197,7 @@ resource "null_resource" "kamal_deploy" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "kamal setup"
+    command     = "gem install kamal --no-document --conservative && kamal setup"
     environment = {
       RELEASE    = data.external.git_sha.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"

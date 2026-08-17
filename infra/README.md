@@ -150,9 +150,12 @@ accessories) — the app container Kamal starts reaches them over the shared
 comes up (see that resource's comment in `infra/main.tf` for why the
 ordering matters).
 
-1. Install Kamal (Ruby gem, run locally like `tofu` itself — `local-exec`
-   invokes the `kamal` binary on your machine, not on the VPS or in CI):
-   `gem install kamal` (needs Ruby 3.0+).
+1. Make sure Ruby 3.0+ is on the machine you'll run `tofu apply` from
+   (`local-exec` invokes the `kamal` binary there, not on the VPS or in
+   CI) — that's the one thing Tofu can't install for you. The `kamal` gem
+   itself doesn't need a separate install step: `null_resource.kamal_deploy`
+   runs `gem install kamal --conservative` (no-op if already installed)
+   before every `kamal setup`.
 2. Add `kamal_registry_username` (a GHCR username, not secret — needed
    inside the rendered `config/deploy.yml` itself) to your
    `terraform.tfvars`, alongside the vars from the sections above.
