@@ -38,8 +38,9 @@ services:
       # tunnel (see infra/README.md) for the sign-in smoke test.
       - "127.0.0.1:9999:9999"
     environment:
-      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL come from .env (env_file
-      # above) since they're already keyed under those exact names there.
+      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL/GOTRUE_API_EXTERNAL_URL
+      # (required by GoTrue, currently == GOTRUE_SITE_URL since GoTrue isn't
+      # proxied publicly yet) come from .env (env_file above).
       GOTRUE_API_HOST: 0.0.0.0
       GOTRUE_API_PORT: "9999"
       GOTRUE_DB_DRIVER: postgres
