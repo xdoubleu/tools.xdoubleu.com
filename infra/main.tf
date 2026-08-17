@@ -33,10 +33,17 @@ resource "hcloud_firewall_attachment" "vps" {
 # OS-level hardening: cloud-init can't be used since the server is created
 # manually (it only runs on first boot), so this SSHes in as root once to run
 # an idempotent script. Re-runs automatically whenever harden.sh changes.
+#
+# Deliberately NOT triggered by deploy_ssh_public_keys: harden.sh's own last
+# step sets PermitRootLogin no, so root SSH only ever works on the server's
+# very first hardening run. Triggering a re-run off the key list (as a past
+# version of this resource briefly did) makes it try to reconnect as root
+# forever after that point, which is now permanently impossible — every
+# retry fails auth and just hangs. See null_resource.deploy_keys below for
+# how key-list changes are actually applied post-bootstrap.
 resource "null_resource" "harden" {
   triggers = {
     script_hash = filesha256("${path.module}/harden.sh")
-    keys_hash   = sha256(join("\n", var.deploy_ssh_public_keys))
   }
 
   connection {
@@ -55,6 +62,37 @@ resource "null_resource" "harden" {
     inline = [
       "chmod +x /root/harden.sh",
       "/root/harden.sh '${join("\n", var.deploy_ssh_public_keys)}'",
+    ]
+  }
+}
+
+# Authorizes new/changed keys after the initial bootstrap above — connects
+# as `deploy` (already trusted once null_resource.harden has run once),
+# never root, so this can safely re-run any time deploy_ssh_public_keys
+# changes without hitting the permanent root-lockout problem described above.
+resource "null_resource" "deploy_keys" {
+  depends_on = [null_resource.harden]
+
+  triggers = {
+    keys_hash = sha256(join("\n", var.deploy_ssh_public_keys))
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      <<-EOT
+        AUTH_KEYS=/home/deploy/.ssh/authorized_keys
+        while IFS= read -r key; do
+          [ -z "$key" ] && continue
+          grep -qxF "$key" "$AUTH_KEYS" || echo "$key" >>"$AUTH_KEYS"
+        done <<<'${join("\n", var.deploy_ssh_public_keys)}'
+      EOT
     ]
   }
 }
