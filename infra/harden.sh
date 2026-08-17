@@ -3,6 +3,13 @@
 # the null_resource remote-exec provisioner in main.tf; safe to re-run.
 set -euo pipefail
 
+# Ubuntu's needrestart pops an interactive whiptail dialog after any apt-get
+# install that touches a running service — that blocks forever over this
+# non-interactive SSH remote-exec, since nothing can answer the prompt.
+# NEEDRESTART_MODE=a auto-restarts services instead of asking.
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+
 DEPLOY_PUBLIC_KEYS="$1"
 
 # --- deploy user -----------------------------------------------------------
