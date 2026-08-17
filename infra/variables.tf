@@ -50,8 +50,24 @@ variable "gotrue_smtp_admin_email" {
 # each value (same sources as today's DO App Platform deploy).
 # RESEND_API_KEY isn't repeated here — it reuses var.resend_api_key above
 # (same Resend account/key, already required for GoTrue's SMTP password).
-# No GHCR registry credential var: ghcr.io/xdoubleu/tools.xdoubleu.com/app
-# is a public package (do-app.yaml pulls it with none configured either).
+#
+# kamal_registry_username/kamal_registry_password ARE required, even though
+# ghcr.io/xdoubleu/tools.xdoubleu.com/app is a public package needing no
+# auth to actually pull — confirmed via `kamal config`, which hard-errors
+# without both regardless of image visibility; Kamal's config schema simply
+# requires a registry block unconditionally. A GHCR PAT with read:packages
+# scope works fine against a public package.
+variable "kamal_registry_username" {
+  description = "GHCR username Kamal authenticates as. Required by Kamal's own config schema even though the app image is a public package."
+  type        = string
+}
+
+variable "kamal_registry_password" {
+  description = "A GHCR PAT with read:packages scope. Required by Kamal's own config schema even though the app image is a public package (no docker login actually needed to pull it)."
+  type        = string
+  sensitive   = true
+}
+
 # SUPABASE_PROJ_REF/SUPABASE_URL/SUPABASE_ANON_KEY only ever mattered for
 # two things: the now-bypassed default GoTrue client (WithCustomAuthURL
 # overrides it, see api/cmd/api/main.go) and the MCP OAuth 2.1 authorization-

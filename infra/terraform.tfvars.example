@@ -15,6 +15,11 @@ gotrue_smtp_admin_email = ""
 # App secrets for the Kamal deploy (issue #1033) — same values as
 # do-app.yaml's SECRET list (today's DO App Platform deploy). See
 # README.md's "Deploy the app via Kamal" section.
+# kamal_registry_username/kamal_registry_password: required by Kamal's own
+# config schema even though the image is a public GHCR package — see the
+# comment above these two in infra/variables.tf.
+kamal_registry_username     = ""
+kamal_registry_password     = ""
 # supabase_proj_ref/supabase_url/supabase_anon_key/supabase_api_key can be
 # dummy values if Supabase isn't in use at all — see the comment above
 # these four in infra/variables.tf for why (MCP OAuth sign-in only).

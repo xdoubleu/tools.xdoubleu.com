@@ -159,7 +159,8 @@ data "external" "git_sha" {
 resource "local_file" "kamal_deploy_config" {
   filename = "${path.module}/../config/deploy.yml"
   content = templatefile("${path.module}/templates/deploy.yml.tftpl", {
-    server_ip = var.server_ip
+    server_ip     = var.server_ip
+    ghcr_username = var.kamal_registry_username
   })
 }
 
@@ -181,10 +182,11 @@ resource "local_file" "kamal_deploy_config" {
 # than taking as a var (values it uniquely knows: the Postgres password it
 # generated, the fixed in-network GoTrue URL, and the current git commit).
 #
-# Kamal's own build-vs-pull behavior for an externally CI-pushed image
-# (config/deploy.yml has no explicit image tag) isn't fully pinned down
-# here — worth confirming during the first real deploy; #1036 (automate
-# Kamal deploys in CI) is the natural place to nail that down for good.
+# This coexists with the deploy-kamal CI job (.github/workflows/main.yml,
+# issue #1036) — that job handles routine push-to-main deploys once this
+# resource has bootstrapped the host at least once (kamal-proxy installed,
+# accessories-free setup done); this resource stays useful for one-off
+# local deploys, secret rotations, and the rollback test below.
 resource "null_resource" "kamal_deploy" {
   depends_on = [null_resource.postgres, local_file.kamal_deploy_config]
 
@@ -192,6 +194,7 @@ resource "null_resource" "kamal_deploy" {
     deploy_config_hash = local_file.kamal_deploy_config.content_sha256
     git_sha            = data.external.git_sha.result.sha
     secrets_hash = sha256(join("", [
+      var.kamal_registry_password,
       var.supabase_proj_ref, var.supabase_api_key, var.steam_api_key,
       var.hardcover_api_key, var.r2_account_id, var.r2_access_key_id,
       var.r2_secret_access_key, var.r2_bucket, var.sentry_dsn,
@@ -206,11 +209,21 @@ resource "null_resource" "kamal_deploy" {
 
   provisioner "local-exec" {
     working_dir = "${path.module}/.."
-    command     = "gem install kamal --no-document --conservative && kamal setup"
+    # --skip-push: the image is already built and pushed to GHCR by
+    # docker.yml's CI job — kamal setup must not try to build it locally
+    # (needs Docker + amd64 cross-build, and would deploy a locally-built
+    # image instead of what CI actually tested). --version pins the exact
+    # tag to pull: docker.yml's docker/metadata-action step tags images
+    # `type=sha,prefix=`, which defaults to a 7-character short SHA — not
+    # the full 40-character git_sha this resource otherwise uses for
+    # RELEASE, confirmed via `kamal config`'s `absolute_image` output.
+    command = "gem install kamal --no-document --conservative && kamal setup --skip-push --version=${substr(data.external.git_sha.result.sha, 0, 7)}"
     environment = {
       RELEASE    = data.external.git_sha.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
       GOTRUE_URL = "http://gotrue:9999"
+
+      KAMAL_REGISTRY_PASSWORD = var.kamal_registry_password
 
       SUPABASE_PROJ_REF          = var.supabase_proj_ref
       SUPABASE_API_KEY           = var.supabase_api_key
