@@ -31,16 +31,24 @@ resource "hcloud_firewall_attachment" "vps" {
 }
 
 # OS-level hardening: cloud-init can't be used since the server is created
-# manually (it only runs on first boot), so this SSHes in as root once to run
-# an idempotent script. Re-runs automatically whenever harden.sh changes.
+# manually (it only runs on first boot), so this connects as `deploy` (which
+# harden.sh's own first run already created, with passwordless sudo) and
+# runs the idempotent script via `sudo`. Re-runs automatically whenever
+# harden.sh changes.
 #
-# Deliberately NOT triggered by deploy_ssh_public_keys: harden.sh's own last
-# step sets PermitRootLogin no, so root SSH only ever works on the server's
-# very first hardening run. Triggering a re-run off the key list (as a past
-# version of this resource briefly did) makes it try to reconnect as root
-# forever after that point, which is now permanently impossible — every
-# retry fails auth and just hangs. See null_resource.deploy_keys below for
-# how key-list changes are actually applied post-bootstrap.
+# NOT root, deliberately: harden.sh's own last step sets PermitRootLogin no,
+# so root SSH only ever works on a server's very first-ever hardening run,
+# before that line takes effect. Any resource that keeps trying to reconnect
+# as root after that (a past version of this one did, twice — first via a
+# keys_hash trigger, then simply because harden.sh's own content changed)
+# fails auth forever and just hangs/retries. Since every server this repo
+# manages has already been through that first bootstrap, deploy+sudo is
+# always available going forward and root never needs to work again.
+#
+# Bootstrapping a genuinely new server from scratch (deploy doesn't exist
+# yet) needs a one-time manual step first, outside Tofu: SSH in as root
+# using the key set at server-creation time and run harden.sh by hand once
+# — see infra/README.md's server-creation section.
 resource "null_resource" "harden" {
   triggers = {
     script_hash = filesha256("${path.module}/harden.sh")
@@ -49,19 +57,19 @@ resource "null_resource" "harden" {
   connection {
     type  = "ssh"
     host  = var.server_ip
-    user  = "root"
+    user  = "deploy"
     agent = true # picks up SSH_AUTH_SOCK; file(private_key) can't handle a passphrase-protected key
   }
 
   provisioner "file" {
     source      = "${path.module}/harden.sh"
-    destination = "/root/harden.sh"
+    destination = "/tmp/harden.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod +x /root/harden.sh",
-      "/root/harden.sh '${join("\n", var.deploy_ssh_public_keys)}'",
+      "chmod +x /tmp/harden.sh",
+      "sudo /tmp/harden.sh '${join("\n", var.deploy_ssh_public_keys)}'",
     ]
   }
 }

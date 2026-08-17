@@ -15,9 +15,16 @@ recurring deploy.
    New server → location `Falkenstein (fsn1)` → image `Ubuntu 24.04` → type
    `CX23` (2 vCPU / 4 GB, same tier as `CX22` — use whichever of the two is
    available in your region) → paste your SSH public key under "SSH keys"
-   (needed so this config's hardening step can SSH in as root before the
-   `deploy` user exists) → create. Note the server ID and public IPv4 shown
-   after creation.
+   → create. Note the server ID and public IPv4 shown after creation.
+   Hetzner adds that key to root's `authorized_keys`, which is needed for
+   exactly one thing: `null_resource.harden`'s very first run, which creates
+   the `deploy` user and then permanently disables root SSH
+   (`PermitRootLogin no`). Every run after that — including re-running
+   `harden.sh` itself when it changes — connects as `deploy` (with
+   passwordless sudo) instead, since root never works again past that
+   first run. If you're bootstrapping a brand-new server and something
+   goes wrong before that first run completes, SSH in as root manually and
+   run `harden.sh` by hand to get `deploy` set up, then let Tofu take over.
 2. **Get an API token**: Hetzner Console → Security → API Tokens → generate
    (read+write).
 3. Install OpenTofu (`brew install opentofu` or see
