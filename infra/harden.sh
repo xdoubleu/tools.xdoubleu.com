@@ -3,7 +3,7 @@
 # the null_resource remote-exec provisioner in main.tf; safe to re-run.
 set -euo pipefail
 
-DEPLOY_PUBLIC_KEY="$1"
+DEPLOY_PUBLIC_KEYS="$1"
 
 # --- deploy user -----------------------------------------------------------
 if ! id deploy &>/dev/null; then
@@ -13,7 +13,10 @@ fi
 install -d -m 700 -o deploy -g deploy /home/deploy/.ssh
 AUTH_KEYS=/home/deploy/.ssh/authorized_keys
 touch "$AUTH_KEYS"
-grep -qxF "$DEPLOY_PUBLIC_KEY" "$AUTH_KEYS" || echo "$DEPLOY_PUBLIC_KEY" >>"$AUTH_KEYS"
+while IFS= read -r key; do
+  [ -z "$key" ] && continue
+  grep -qxF "$key" "$AUTH_KEYS" || echo "$key" >>"$AUTH_KEYS"
+done <<<"$DEPLOY_PUBLIC_KEYS"
 chmod 600 "$AUTH_KEYS"
 chown deploy:deploy "$AUTH_KEYS"
 

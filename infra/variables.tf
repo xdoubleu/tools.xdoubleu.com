@@ -14,9 +14,9 @@ variable "server_ip" {
   type        = string
 }
 
-variable "deploy_ssh_public_key" {
-  description = "SSH public key to authorize on the new non-root deploy user."
-  type        = string
+variable "deploy_ssh_public_keys" {
+  description = "SSH public keys to authorize on the new non-root deploy user — your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent runs headless and can't unlock a passphrase-protected key, so CI needs its own)."
+  type        = list(string)
 }
 
 # GoTrue (issue #1032) — see infra/README.md's "Stand up GoTrue" section for
