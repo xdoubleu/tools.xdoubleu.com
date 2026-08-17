@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (gitignored) and fill in real values, then run
+# `tofu plan`/`tofu apply` with no -var flags needed.
+
+hcloud_token           = ""
+server_id              = ""
+server_ip              = ""
+deploy_ssh_public_key  = ""
+
+# GoTrue (issue #1032) — see README.md's "Stand up GoTrue" section.
+gotrue_jwt_secret       = ""
+resend_api_key          = ""
+gotrue_site_url         = ""
+gotrue_smtp_admin_email = ""

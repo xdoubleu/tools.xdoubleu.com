@@ -28,15 +28,34 @@ recurring deploy.
 
 ## Apply
 
+Tofu doesn't persist `-var` values between runs, so passing them on every
+`plan`/`apply` gets old fast. Copy `terraform.tfvars.example` to
+`terraform.tfvars` (gitignored — never commit it) and fill in real values;
+Tofu auto-loads it, so `plan`/`apply` need no `-var` flags at all:
+
+```bash
+cd infra
+cp terraform.tfvars.example terraform.tfvars
+$EDITOR terraform.tfvars   # fill in real values
+tofu init
+tofu plan
+tofu apply
+```
+
+Or, without a `terraform.tfvars` file, pass everything explicitly each time:
+
 ```bash
 cd infra
 export HCLOUD_TOKEN=<your token>
-tofu init
 tofu plan \
   -var hcloud_token="$HCLOUD_TOKEN" \
   -var server_id=<id> \
   -var server_ip=<ip> \
-  -var deploy_ssh_public_key="$(cat ~/.ssh/<key>.pub)"
+  -var deploy_ssh_public_key="$(cat ~/.ssh/<key>.pub)" \
+  -var gotrue_jwt_secret=<...> \
+  -var resend_api_key=<...> \
+  -var gotrue_site_url=<...> \
+  -var gotrue_smtp_admin_email=<...>
 tofu apply <same -var flags as plan>
 ```
 
