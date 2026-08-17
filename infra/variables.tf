@@ -52,11 +52,24 @@ variable "gotrue_smtp_admin_email" {
 # (same Resend account/key, already required for GoTrue's SMTP password).
 # No GHCR registry credential var: ghcr.io/xdoubleu/tools.xdoubleu.com/app
 # is a public package (do-app.yaml pulls it with none configured either).
+# SUPABASE_PROJ_REF/SUPABASE_URL/SUPABASE_ANON_KEY only ever mattered for
+# two things: the now-bypassed default GoTrue client (WithCustomAuthURL
+# overrides it, see api/cmd/api/main.go) and the MCP OAuth 2.1 authorization-
+# server issuer (api/cmd/api/mcp.go), which #1032 deliberately left pointed
+# at Supabase rather than fixing GoTrue's missing dynamic-client-registration
+# support. If Supabase isn't in the picture at all anymore, dummy values are
+# fine here — MCP sign-in just stays broken until a future issue (#1039,
+# "retire GoTrue entirely") replaces that flow properly; nothing else in the
+# app depends on these three.
 variable "supabase_proj_ref" {
   type      = string
   sensitive = true
 }
 
+# Not required even with a real Supabase project: auth-go sends this as a
+# plain `apiKey` header on every request, but that's a Supabase-Kong-gateway
+# concept — bare self-hosted GoTrue (no Kong in front, see
+# infra/postgres-compose.yml) never validates it.
 variable "supabase_api_key" {
   type      = string
   sensitive = true
