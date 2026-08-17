@@ -134,6 +134,48 @@ callback endpoint first, or that sign-in method breaks silently. Also note
 client-registration feature the MCP flow (`api/cmd/api/mcp.go`) relies on —
 closed properly by the future "retire GoTrue entirely" work instead.
 
+## Deploy the app via Kamal (issue #1033)
+
+`config/deploy.yml` + `.kamal/secrets` (repo root) deploy the merged `app`
+image plus Postgres/GoTrue as Kamal accessories to this same VPS, over its
+raw IP — DNS cutover to the real domain is a separate later step (#1034).
+
+1. Install Kamal (Ruby gem, run locally like `tofu`, not from CI):
+   `gem install kamal` (needs Ruby 3.0+).
+2. **One-time**: stop the manually-provisioned compose stack from "Stand up
+   Postgres"/"Stand up GoTrue" above, so Kamal's own accessory containers
+   don't collide with it on the same ports/volume:
+   ```bash
+   ssh deploy@<ip> "cd postgres && docker compose down"
+   ```
+   The named volume (`postgres_data`) is untouched by `down` (no `-v`), so
+   the migrated data survives — Kamal's `postgres` accessory reuses it via
+   the same `/var/lib/postgresql/data` mount path.
+3. Export every secret `config/deploy.yml`/`.kamal/secrets` reference:
+   the `do-app.yaml` `SECRET` list (values unchanged — same source as
+   today's DO App Platform deploy), plus `RELEASE=$(git rev-parse HEAD)`,
+   `DB_DSN=postgres://postgres:<tofu output -raw postgres_password>@postgres:5432/postgres`,
+   `GOTRUE_URL=http://gotrue:9999`, `KAMAL_REGISTRY_PASSWORD=<a GHCR PAT with
+   read:packages>`, and the same Postgres/GoTrue accessory secrets already in
+   the VPS's `/home/deploy/postgres/.env` (`POSTGRES_PASSWORD`,
+   `GOTRUE_JWT_SECRET`, `GOTRUE_DB_DATABASE_URL`, `GOTRUE_SMTP_PASS`,
+   `GOTRUE_SITE_URL`, `GOTRUE_SMTP_ADMIN_EMAIL`, `API_EXTERNAL_URL`).
+4. Replace the two `<VPS_IP>`/`<GHCR_USERNAME>` placeholders in
+   `config/deploy.yml` with real values, then:
+   ```bash
+   kamal setup   # first run only
+   kamal deploy
+   ```
+5. Verify: `curl http://<ip>/health`, sign in with a migrated account through
+   the app itself (not just GoTrue directly — this is the first end-to-end
+   test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
+   smoke test).
+6. **Mandatory rollback test**: redeploy with `DB_DSN` pointed at an
+   unreachable address (`kamal deploy` with that one secret temporarily
+   changed) and confirm Kamal refuses to cut traffic to the new, failing
+   container — `/health` fails its readiness probe, the previous container
+   keeps serving. Restore the real `DB_DSN` and redeploy to finish.
+
 ## Migrate data from Supabase (one-time)
 
 Run once, after `tofu apply` has stood up Postgres, against an existing

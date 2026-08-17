@@ -1,0 +1,126 @@
+# Kamal deploy config for issue #1033 — one real deploy of the merged `app`
+# image plus self-hosted Postgres/GoTrue, on the Hetzner VPS (infra/), all as
+# one host. Run locally, same trust boundary as `infra/` (see infra/README.md)
+# — not wired into CI here (that's #1036).
+#
+# Deliberately raw-IP only: `proxy.host` (the real domain) isn't set, since
+# kamal-proxy's automatic Let's Encrypt issuance needs DNS already pointing at
+# this box, which hasn't happened yet (that's the Cutover issue, #1034).
+#
+# Postgres and GoTrue used to run as a manually-provisioned docker-compose
+# stack (infra/postgres-compose.yml, uploaded by OpenTofu's
+# null_resource.postgres). Kamal's accessories below take over running those
+# same two containers — `docker compose down` the old stack on the VPS once,
+# before the first `kamal deploy`, so the port bindings and volume don't
+# collide with what Kamal starts.
+
+service: tools-xdoubleu-com
+image: ghcr.io/xdoubleu/tools.xdoubleu.com/app
+
+servers:
+  web:
+    hosts:
+      - <VPS_IP>
+    labels:
+      # No proxy.host/TLS yet — reach the app over the raw IP/port during
+      # this validation deploy.
+      traefik.enable: "false"
+
+ssh:
+  user: deploy
+
+registry:
+  server: ghcr.io
+  username: <GHCR_USERNAME>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+proxy:
+  app_port: 8000
+  healthcheck:
+    path: /health
+    interval: 10
+    timeout: 5
+
+env:
+  clear:
+    ENV: production
+    WEB_URL: http://<VPS_IP>
+    API_URL: http://<VPS_IP>/api
+    GOMEMLIMIT: 300MiB
+  secret:
+    # Deploy-time SHA — DO App Platform used to inject this itself; Kamal
+    # doesn't, so it's set explicitly per deploy (see README "Deploy" section).
+    # Feeds Sentry release tagging and web/components/Footer.tsx's version
+    # display (forwarded to the web child by gateway/internal/gateway/children.go).
+    - RELEASE
+    # Self-hosted Postgres — points at the postgres accessory below, not
+    # Supabase.
+    - DB_DSN
+    # Self-hosted GoTrue — new: makes api/cmd/api/main.go call
+    # WithCustomAuthURL, pointing sign-in at the gotrue accessory below
+    # instead of Supabase-hosted GoTrue. SUPABASE_PROJ_REF/SUPABASE_API_KEY
+    # stay set too (auth-go still wants non-empty values) but are otherwise
+    # unused once this is set; the MCP OAuth authorization-server issuer
+    # (api/cmd/api/mcp.go) is a deliberate exception that stays pointed at
+    # Supabase — see #1032's own scoping note, closed properly by the future
+    # "retire GoTrue entirely" issue (#1039), not here.
+    - GOTRUE_URL
+    - SUPABASE_PROJ_REF
+    - SUPABASE_API_KEY
+    - STEAM_API_KEY
+    - HARDCOVER_API_KEY
+    - R2_ACCOUNT_ID
+    - R2_ACCESS_KEY_ID
+    - R2_SECRET_ACCESS_KEY
+    - R2_BUCKET
+    - SENTRY_DSN
+    - SENTRY_DSN_WEB
+    - SUPABASE_URL
+    - SUPABASE_ANON_KEY
+    - GITHUB_OAUTH_CLIENT_ID
+    - GITHUB_OAUTH_CLIENT_SECRET
+    - SENTRY_OAUTH_CLIENT_ID
+    - SENTRY_OAUTH_CLIENT_SECRET
+    - DO_OAUTH_CLIENT_ID
+    - DO_OAUTH_CLIENT_SECRET
+    - ENCRYPTION_KEY
+    - RESEND_API_KEY
+    - EMAIL_FROM
+    - NOTIFY_EMAIL_TO
+    - EMAIL_INBOUND_DOMAIN
+    - EMAIL_INBOUND_SECRET
+
+accessories:
+  postgres:
+    image: postgres:17
+    host: <VPS_IP>
+    port: "127.0.0.1:5432:5432"
+    env:
+      secret:
+        - POSTGRES_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data
+
+  gotrue:
+    image: supabase/gotrue:v2.195.0
+    host: <VPS_IP>
+    port: "127.0.0.1:9999:9999"
+    env:
+      clear:
+        GOTRUE_API_HOST: 0.0.0.0
+        GOTRUE_API_PORT: "9999"
+        GOTRUE_DB_DRIVER: postgres
+        # Required for sign-in against migrated rows — see
+        # infra/postgres-compose.yml's comment for the full reasoning.
+        GOTRUE_JWT_AUD: authenticated
+        GOTRUE_SMTP_HOST: smtp.resend.com
+        GOTRUE_SMTP_PORT: "465"
+        GOTRUE_SMTP_USER: resend
+      secret:
+        - GOTRUE_JWT_SECRET
+        - GOTRUE_DB_DATABASE_URL
+        - GOTRUE_SMTP_PASS
+        - GOTRUE_SITE_URL
+        - GOTRUE_SMTP_ADMIN_EMAIL
+        - API_EXTERNAL_URL

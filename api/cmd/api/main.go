@@ -133,6 +133,9 @@ func main() {
 		cfg.SupabaseProjRef,
 		cfg.SupabaseAPIKey,
 	)
+	if cfg.GoTrueURL != "" {
+		supabase = supabase.WithCustomAuthURL(cfg.GoTrueURL)
+	}
 
 	app := NewApplication(logger, cfg, db, supabase)
 
