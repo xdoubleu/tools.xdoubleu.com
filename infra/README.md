@@ -213,19 +213,20 @@ already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
 the local `tofu apply` path, just with the key coming from a repo secret
 instead of whatever's already loaded in your own agent.
 
-**One-time setup**, GitHub repo Settings → Secrets and variables → Actions:
-
-Variables tab (not secret — repo Variables, non-sensitive):
-- `KAMAL_SERVER_IP` — same value as `server_ip` in `terraform.tfvars`.
-- `KAMAL_REGISTRY_USERNAME` — same value as `kamal_registry_username`.
-
-Secrets tab — same values as the matching `terraform.tfvars` entries above,
-under these exact names (two are prefixed since GitHub Actions rejects
-secret names starting with `GITHUB_`; the app-level env var Kamal actually
-sets on the container is unaffected, only the GitHub-side secret name
-changes):
+**One-time setup**, GitHub repo Settings → Secrets and variables → Actions,
+Secrets tab. All of these — including `KAMAL_SERVER_IP` and
+`KAMAL_REGISTRY_USERNAME` — are Secrets, not Variables: this repo is
+public, and GitHub only masks Secrets from workflow logs, not Variables,
+and `KAMAL_SERVER_IP` in particular gets echoed into a `ssh-keyscan`
+command, so a Variable would leak the VPS's IP into a public log. Same
+values as the matching `terraform.tfvars` entries below, under these exact
+names (two are prefixed since GitHub Actions rejects secret names starting
+with `GITHUB_`; the app-level env var Kamal actually sets on the container
+is unaffected, only the GitHub-side secret name changes):
 ```
-KAMAL_SSH_KEY               (the deploy user's private key — matches
+KAMAL_SERVER_IP              (same value as server_ip in terraform.tfvars)
+KAMAL_REGISTRY_USERNAME      (same value as kamal_registry_username)
+KAMAL_SSH_KEY                (the deploy user's private key — matches
                               deploy_ssh_public_key in terraform.tfvars)
 KAMAL_DB_DSN                 (same DB_DSN null_resource.kamal_deploy
                               computes locally — postgres://postgres:<tofu
