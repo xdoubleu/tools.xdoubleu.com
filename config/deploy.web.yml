@@ -27,9 +27,13 @@ builder:
 
 proxy:
   # Same host as deploy.api.yml — the two services share one kamal-proxy
-  # instance and one Let's Encrypt cert for the domain (api deploys first
-  # and ends up owning issuance in practice). No path_prefix here: web is
-  # the catch-all, matching gateway/'s old "everything else" rule.
+  # instance and one Let's Encrypt cert for the domain. No path_prefix
+  # here: web is the root/catch-all service (matching gateway/'s old
+  # "everything else" rule), which is why `ssl` is declared here and not
+  # in deploy.api.yml — kamal-proxy requires TLS on the root path service,
+  # and a path-prefixed service declaring its own gets rejected (issue
+  # #1132). web deploys first (see .github/workflows/main.yml's
+  # deploy-kamal job) so it's the one that ends up owning cert issuance.
   host: tools.xdoubleu.com
   ssl: true
   app_port: 3000

@@ -429,16 +429,35 @@ jobs:
       # with the full commit SHA (not a short one), so --version matches
       # that exactly.
       #
-      # api deploys first: it owns /api,/.well-known under kamal-proxy's
-      # path-based routing and, in practice, ends up owning this shared
-      # host's Let's Encrypt cert issuance; deploying it first also means a
-      # bad api rollout never puts a healthy, already-serving web deploy at
-      # risk (not true in the reverse order).
-      # Only when build-api actually ran: a skipped build-api means api/'s
-      # subtree didn't change, so no fresh ghcr.io/.../api:<sha> tag exists
-      # to deploy — unlike the old merged image, api and web no longer share
+      # web deploys first: it's the root/catch-all path service, and
+      # kamal-proxy requires TLS to be established by the root path service
+      # before a path-prefixed service (api) can register for the same
+      # host — deploying api first gets rejected outright if api also
+      # declares TLS, or (if it doesn't) locks the shared host as non-TLS
+      # and makes this web deploy fail instead with "host settings
+      # conflict with another service" (issue #1132). Only when
+      # build-web actually ran: a skipped build-web means web/'s subtree
+      # didn't change, so no fresh ghcr.io/.../web:<sha> tag exists to
+      # deploy — unlike the old merged image, api and web no longer share
       # one artifact that always gets rebuilt (and re-tagged with this
       # commit's SHA) whenever anything relevant changes.
+      - name: Deploy web via Kamal
+        if: needs.build-web.result == 'success'
+        env:
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+          KAMAL_VERSION: ${{ github.sha }}
+          RELEASE: ${{ github.sha }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
+
+      # Deploys after web (see reasoning above) so the shared host's TLS is
+      # already established by the time api's path-prefixed registration
+      # (/api,/.well-known) runs. Same build-gating reasoning as the web
+      # step above, for api's own tag.
       - name: Deploy api via Kamal
         if: needs.build-api.result == 'success'
         env:
@@ -475,20 +494,6 @@ jobs:
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
-
-      # Same reasoning as the api step above, for web's own tag.
-      - name: Deploy web via Kamal
-        if: needs.build-web.result == 'success'
-        env:
-          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
-          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-          KAMAL_VERSION: ${{ github.sha }}
-          RELEASE: ${{ github.sha }}
-          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres/GoTrue) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
