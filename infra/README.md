@@ -231,7 +231,7 @@ re-`tofu apply` so `harden.sh` authorizes it on the VPS, then store the
 private half as `KAMAL_SSH_KEY` below:
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
-gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> < ~/.ssh/kamal_ci_deploy
+gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> --env production < ~/.ssh/kamal_ci_deploy
 ```
 
 Set it from the file like that rather than pasting into the web UI — the UI
@@ -251,12 +251,16 @@ so that entry would be appended to the VPS's `authorized_keys` as that exact
 string — sshd then ignores the unparsable line and the key never works.
 `variables.tf` has a `validation` block rejecting it at plan time.
 
-**One-time setup**, GitHub repo Settings → Secrets and variables → Actions,
-Secrets tab. All of these — including `KAMAL_SERVER_IP` and
-`KAMAL_REGISTRY_USERNAME` — are Secrets, not Variables: this repo is
-public, and GitHub only masks Secrets from workflow logs, not Variables,
-and `KAMAL_SERVER_IP` in particular gets echoed into a `ssh-keyscan`
-command, so a Variable would leak the VPS's IP into a public log. Same
+**One-time setup**, GitHub repo Settings → Environments → `production` →
+Environment secrets (not the repo-level Secrets tab — the `deploy-kamal`
+job runs with `environment: production`, an Environment branch-restricted
+to `main` with no required reviewers, so only a push to `main` can ever
+populate its `secrets.*` context). All of these — including
+`KAMAL_SERVER_IP` and `KAMAL_REGISTRY_USERNAME` — are Secrets, not
+Variables: this repo is public, and GitHub only masks Secrets from
+workflow logs, not Variables, and `KAMAL_SERVER_IP` in particular gets
+echoed into a `ssh-keyscan` command, so a Variable would leak the VPS's IP
+into a public log. Same
 values as the matching `terraform.tfvars` entries below, under these exact
 names (two are prefixed since GitHub Actions rejects secret names starting
 with `GITHUB_`; the app-level env var Kamal actually sets on the container
