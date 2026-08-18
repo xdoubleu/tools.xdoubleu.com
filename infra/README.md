@@ -189,7 +189,11 @@ ordering matters).
    This is idempotent: re-running with no new commit and unchanged
    secrets/`config/deploy.yml` skips the Kamal step entirely (its
    `triggers` didn't change); after a new commit whose image `docker.yml`'s
-   CI already pushed to GHCR, `tofu apply` redeploys automatically.
+   CI already pushed to GHCR, `tofu apply` redeploys automatically. It always
+   deploys the newest commit at-or-below `HEAD` that *has* an image
+   (`infra/deployable-image.sh`), so an infra-only or docs-only `HEAD` — which
+   `docker.yml` never builds — is a no-op rather than a deploy of a tag that
+   doesn't exist.
 4. Verify: `curl http://<ip>/health`, sign in with a migrated account through
    the app itself (not just GoTrue directly — this is the first end-to-end
    test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
@@ -230,6 +234,14 @@ private half as `KAMAL_SSH_KEY` below:
 ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
 gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> < ~/.ssh/kamal_ci_deploy
 ```
+
+Paste the public key's **literal text** into `deploy_ssh_public_keys`. Unlike
+the `-var 'deploy_ssh_public_keys=["'"$(cat ...)"'"]'` form above (where your
+shell expands `$(cat ...)` before Tofu ever sees it), a `.tfvars` file is not
+shell-interpolated: a `"$(cat ~/.ssh/kamal_ci_deploy.pub)"` entry is stored,
+and appended to the VPS's `authorized_keys`, as that exact string — sshd then
+ignores the unparsable line and the key never works. `variables.tf` has a
+`validation` block rejecting this at plan time.
 
 **One-time setup**, GitHub repo Settings → Secrets and variables → Actions,
 Secrets tab. All of these — including `KAMAL_SERVER_IP` and

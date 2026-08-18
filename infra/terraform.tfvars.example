@@ -6,7 +6,9 @@ server_id              = ""
 server_ip              = ""
 # Your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent
 # in CI can't unlock a passphrase-protected key) — see README.md's "Automate
-# Kamal deploys in CI" section for generating the CI-only key.
+# Kamal deploys in CI" section for generating the CI-only key. Paste each key's
+# literal text — .tfvars is not shell-interpolated, so "$(cat ~/.ssh/x.pub)"
+# would be stored (and authorized) as that exact string.
 deploy_ssh_public_keys = ["", ""]
 
 # GoTrue (issue #1032) — see README.md's "Stand up GoTrue" section.
