@@ -1,3 +1,13 @@
+# Entries that aren't literal key text are paths to .pub files — read them
+# here so terraform.tfvars can hold `~/.ssh/id.pub` instead of a key blob
+# (.tfvars isn't shell-interpolated, so `$(cat ...)` can't do this).
+locals {
+  deploy_ssh_public_keys = [
+    for key in var.deploy_ssh_public_keys :
+    can(regex("^(ssh-|ecdsa-)", key)) ? key : trimspace(file(pathexpand(key)))
+  ]
+}
+
 # Network firewall: a real Tofu-managed resource, attached to the manually
 # created server by ID. See infra/README.md for the manual server-creation step.
 resource "hcloud_firewall" "vps" {
@@ -69,7 +79,7 @@ resource "null_resource" "harden" {
   provisioner "remote-exec" {
     inline = [
       "chmod +x /tmp/harden.sh",
-      "sudo /tmp/harden.sh '${join("\n", var.deploy_ssh_public_keys)}'",
+      "sudo /tmp/harden.sh '${join("\n", local.deploy_ssh_public_keys)}'",
     ]
   }
 }
@@ -82,7 +92,7 @@ resource "null_resource" "deploy_keys" {
   depends_on = [null_resource.harden]
 
   triggers = {
-    keys_hash = sha256(join("\n", var.deploy_ssh_public_keys))
+    keys_hash = sha256(join("\n", local.deploy_ssh_public_keys))
   }
 
   connection {
@@ -99,7 +109,7 @@ resource "null_resource" "deploy_keys" {
         while IFS= read -r key; do
           [ -z "$key" ] && continue
           grep -qxF "$key" "$AUTH_KEYS" || echo "$key" >>"$AUTH_KEYS"
-        done <<<'${join("\n", var.deploy_ssh_public_keys)}'
+        done <<<'${join("\n", local.deploy_ssh_public_keys)}'
       EOT
     ]
   }
