@@ -104,12 +104,14 @@ resource "null_resource" "deploy_keys" {
 
   provisioner "remote-exec" {
     inline = [
+      # POSIX sh only: remote-exec runs this with /bin/sh (dash on Ubuntu),
+      # so no herestrings (`<<<`) — dash exits 2 on those.
       <<-EOT
         AUTH_KEYS=/home/deploy/.ssh/authorized_keys
-        while IFS= read -r key; do
+        echo '${join("\n", local.deploy_ssh_public_keys)}' | while IFS= read -r key; do
           [ -z "$key" ] && continue
           grep -qxF "$key" "$AUTH_KEYS" || echo "$key" >>"$AUTH_KEYS"
-        done <<<'${join("\n", local.deploy_ssh_public_keys)}'
+        done
       EOT
     ]
   }
