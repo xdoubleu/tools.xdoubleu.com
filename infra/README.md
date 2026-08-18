@@ -1,13 +1,17 @@
 # infra
 
-OpenTofu config for the Hetzner VPS (issue #1030) that will host the
-self-hosted stack (app + Postgres + GoTrue, replacing DO App Platform +
-Supabase — see #1029). Manages the firewall, OS-level hardening, and
-self-hosted Postgres (issue #1031) and GoTrue (issue #1032); the server
-itself is created manually.
+OpenTofu config for the Hetzner VPS (issue #1030) that hosts the self-hosted
+stack (app + Postgres + GoTrue — see #1029, which replaced DO App Platform +
+Supabase). Manages the firewall, OS-level hardening, and self-hosted Postgres
+(issue #1031) and GoTrue (issue #1032); the server itself is created
+manually.
 
-Tofu is run locally, not in CI — this is one-time/rare provisioning, not a
-recurring deploy.
+**Tofu provisions the host; it does not deploy the app.** Tofu is run
+locally, and only for one-time/rare provisioning. The app is deployed by
+`.github/workflows/main.yml`'s `deploy-kamal` job on every push to `main`,
+which is also where every app secret lives (as repo Secrets) — see "Deploy
+the app via Kamal" below. Tofu used to run `kamal setup` itself and carry a
+duplicate copy of all 25 app secrets as tfvars; that was removed in #1113.
 
 ## One-time setup
 
@@ -143,86 +147,75 @@ closed properly by the future "retire GoTrue entirely" work instead.
 
 ## Deploy the app via Kamal (issue #1033)
 
-Fully Tofu-managed, same as everything else above: `tofu apply` is the one
-command that provisions the VPS, stands up Postgres/GoTrue, **and** deploys
-the app via Kamal — no separate manual `kamal setup`/`kamal deploy` step.
-`config/deploy.yml` is generated (gitignored) from
-`infra/templates/deploy.yml.tftpl` by `local_file.kamal_deploy_config`;
-`infra/main.tf`'s `null_resource.kamal_deploy` shells out to `kamal setup`
-locally via a `local-exec` provisioner. Since cutover (#1034) it deploys on
-the real domain, not the raw IP: `deploy.yml.tftpl` sets `proxy.host:
-tools.xdoubleu.com` + `proxy.ssl: true`, so kamal-proxy obtains and renews a
-Let's Encrypt cert itself over the HTTP-01 challenge (port 80, already open
-in `hcloud_firewall.vps`) — nothing to configure per deploy. Postgres and
-GoTrue stay exactly as OpenTofu already manages them above (**not** Kamal
-accessories) — the app container Kamal starts reaches them over the shared
-`kamal` Docker network `null_resource.kamal_network` creates before Postgres
-comes up (see that resource's comment in `infra/main.tf` for why the
-ordering matters).
+**Deploys happen in CI, not here** — see the next section. Tofu stops at the
+host; nothing under `infra/` runs Kamal. This section covers the one-time
+bootstrap and the manual escape hatch.
 
-1. Make sure Ruby 3.0+ is on the machine you'll run `tofu apply` from
-   (`local-exec` invokes the `kamal` binary there, not on the VPS or in
-   CI) — that's the one thing Tofu can't install for you. The `kamal` gem
-   itself doesn't need a separate install step: `null_resource.kamal_deploy`
-   runs `gem install kamal --conservative` (no-op if already installed)
-   before every `kamal setup`.
-   **On macOS, the system Ruby at `/usr/bin/ruby` doesn't qualify** (stuck
-   on 2.6, and its gem directory is root-owned, so `gem install` fails with
-   a `Gem::FilePermissionError` even if the version were new enough).
-   Install a real one instead — `brew install ruby`, then put it ahead of
-   the system one on `PATH` (`echo 'export
-   PATH="/opt/homebrew/opt/ruby/bin:$PATH"' >> ~/.zshrc && source
-   ~/.zshrc` on Apple Silicon, `/usr/local/opt/ruby/bin` on Intel) — before
-   running `tofu apply`.
-2. Add every app secret `config/deploy.yml` references to your
-   `terraform.tfvars`, alongside the vars from the sections above — same
-   `sensitive` tfvar convention as `gotrue_jwt_secret`/`resend_api_key`, same
-   values as today's DO App Platform deploy (`do-app.yaml`'s `SECRET` list),
-   plus `kamal_registry_username`/`kamal_registry_password` (a GHCR PAT with
-   `read:packages` scope — required by Kamal's own config schema even
-   though `ghcr.io/xdoubleu/tools.xdoubleu.com/app` is a public package
-   needing no auth to actually pull, confirmed via `kamal config`). See
-   `infra/terraform.tfvars.example` for the full set of names.
-   `RELEASE`/`DB_DSN`/`GOTRUE_URL` aren't tfvars — Tofu computes/injects
-   those three itself (`null_resource.kamal_deploy` in `infra/main.tf`).
-3. ```bash
-   cd infra
-   tofu apply   # same -var flags / terraform.tfvars as before
-   ```
-   This is idempotent: re-running with no new commit and unchanged
-   secrets/`config/deploy.yml` skips the Kamal step entirely (its
-   `triggers` didn't change); after a new commit whose image `docker.yml`'s
-   CI already pushed to GHCR, `tofu apply` redeploys automatically. It always
-   deploys the newest commit at-or-below `HEAD` that *has* an image
-   (`infra/deployable-image.sh`), so an infra-only or docs-only `HEAD` — which
-   `docker.yml` never builds — is a no-op rather than a deploy of a tag that
-   doesn't exist.
-4. Verify: `curl https://tools.xdoubleu.com/health`, sign in with a migrated account through
-   the app itself (not just GoTrue directly — this is the first end-to-end
-   test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
-   smoke test).
-5. **Mandatory rollback test**: `DB_DSN` is computed by Tofu, not a tfvar, so
-   temporarily break it directly in `infra/main.tf`'s `null_resource.kamal_deploy`
-   (point the `DB_DSN` line at an unreachable address instead of
-   `random_password.postgres.result`), then:
-   ```bash
-   tofu apply -replace=null_resource.kamal_deploy
-   ```
-   Confirm Kamal refuses to cut traffic to the new, failing container:
-   `/health` fails its readiness probe, the previous container keeps
-   serving. Revert the `DB_DSN` line and re-apply (same `-replace`) to
-   finish.
+Since cutover (#1034) the app is served on the real domain, not the raw IP:
+`config/deploy.yml` sets `proxy.host: tools.xdoubleu.com` + `proxy.ssl:
+true`, so kamal-proxy obtains and renews a Let's Encrypt cert itself over the
+HTTP-01 challenge (port 80, already open in `hcloud_firewall.vps`) — nothing
+to configure per deploy. Postgres and GoTrue stay exactly as OpenTofu manages
+them above (**not** Kamal accessories) — the app container Kamal starts
+reaches them over the shared `kamal` Docker network
+`null_resource.kamal_network` creates before Postgres comes up (see that
+resource's comment in `infra/main.tf` for why the ordering matters).
+
+### One-time bootstrap
+
+The CI job runs `kamal deploy`, which assumes kamal-proxy is already
+installed on the host. A fresh host needs `kamal setup` once, by hand. This
+has already been done for the current VPS — you only need it if you rebuild
+the box.
+
+### Manual deploy or rollback
+
+Also how you'd deploy if CI is down. Needs Ruby 3.0+ and `bundle install`
+(the repo's `Gemfile` pins the Kamal version CI uses — don't `gem install
+kamal` separately and drift). **On macOS the system Ruby at `/usr/bin/ruby`
+doesn't qualify** (stuck on 2.6, root-owned gem dir); `brew install ruby` and
+put it ahead of the system one on `PATH`.
+
+`config/deploy.yml` is committed and read as-is — Kamal evaluates it as ERB,
+so there is no render step; it just needs the right environment.
+
+```bash
+# 1. The two values config/deploy.yml reads via ERB
+export KAMAL_SERVER_IP=<vps ip> KAMAL_REGISTRY_USERNAME=<ghcr user>
+
+# 2. Every name .kamal/secrets references — same values as the repo Secrets
+#    in the CI job's env: block, which is where they actually live.
+export RELEASE=<full sha> DB_DSN=... KAMAL_REGISTRY_PASSWORD=...   # etc.
+
+# 3. Deploy a specific already-built image (--skip-push: CI built and pushed
+#    it; the tag is a 7-char short SHA, per docker.yml's metadata-action)
+bundle exec kamal deploy --skip-push --version=<short-sha>
+```
+
+`bundle exec kamal config` renders everything without deploying — use it to
+check the environment is complete before a real run.
+
+To roll back, pass an earlier `--version` (or `bundle exec kamal rollback`).
+Kamal will not cut traffic to a container that fails its `/health` readiness
+probe — a bad deploy leaves the previous container serving rather than taking
+the site down.
+
+Verify with `curl https://tools.xdoubleu.com/health` plus a real sign-in
+through the app (not just GoTrue directly — that exercises
+`WithCustomAuthURL` end to end, which #1032's isolated GoTrue smoke test does
+not).
 
 ## Automate Kamal deploys in CI (issue #1036)
 
-Once the steps above have bootstrapped the host at least once (kamal-proxy
-installed, first deploy done), `.github/workflows/main.yml`'s
-`deploy-kamal` job takes over routine deploys on every push to `main`.
-Since cutover (#1034) it's the production deploy, so a failure there fails
-the workflow — no `continue-on-error`. The old `deploy` job (DO App
-Platform) still runs alongside it but is the one marked
-`continue-on-error: true` now: DNS no longer points at DO, and it's kept
-only so that component stays on a current image as a warm rollback target.
+`.github/workflows/main.yml`'s `deploy-kamal` job is **the** deploy: it runs
+on every push to `main`, and since cutover (#1034) DNS resolves to this VPS,
+so a failure there means `main` didn't ship and fails the workflow — no
+`continue-on-error`. The DigitalOcean App Platform `deploy` job that used to
+run alongside it was removed in #1113, together with `do-app.yaml` and the
+`DO_ACCESS_TOKEN`/`DO_APP_ID` secrets.
+
+The repo Secrets listed below are the **single source of truth** for every
+app secret — they are deliberately not duplicated as tfvars.
 It runs `kamal deploy` (not `setup`) against the
 already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
 (started by the job's own "Load the deploy SSH key" step, loading
@@ -267,16 +260,22 @@ command, so a Variable would leak the VPS's IP into a public log. Same
 values as the matching `terraform.tfvars` entries below, under these exact
 names (two are prefixed since GitHub Actions rejects secret names starting
 with `GITHUB_`; the app-level env var Kamal actually sets on the container
-is unaffected, only the GitHub-side secret name changes):
+is unaffected, only the GitHub-side secret name changes). `KAMAL_SERVER_IP`
+and `KAMAL_REGISTRY_USERNAME` match `server_ip`/the GHCR user; the rest are
+app secrets that exist **only** here — they are not tfvars:
 ```
 KAMAL_SERVER_IP              (same value as server_ip in terraform.tfvars)
-KAMAL_REGISTRY_USERNAME      (same value as kamal_registry_username)
+KAMAL_REGISTRY_USERNAME      (GHCR username; required by Kamal's config
+                              schema even though the app image is a public
+                              package needing no auth to pull)
 KAMAL_SSH_KEY                (the dedicated CI deploy key's private half —
                               its public half is one entry in
                               deploy_ssh_public_keys in terraform.tfvars)
-KAMAL_DB_DSN                 (same DB_DSN null_resource.kamal_deploy
-                              computes locally — postgres://postgres:<tofu
-                              output -raw postgres_password>@postgres:5432/postgres)
+KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
+                              postgres_password>@postgres:5432/postgres —
+                              Tofu generates the password but nothing outside
+                              its state can read it, so copy it in once here;
+                              rotating it means updating both)
 KAMAL_REGISTRY_PASSWORD
 SUPABASE_PROJ_REF
 SUPABASE_API_KEY
@@ -318,18 +317,25 @@ For the record, all it took was:
 
 1. Point Cloudflare's A/AAAA records for the apex at the VPS's IP, leaving
    every other record (Resend's SPF/DKIM/DMARC in particular) untouched.
-2. `proxy.host`/`proxy.ssl` in `infra/templates/deploy.yml.tftpl`, plus
+2. `proxy.host`/`proxy.ssl` in `config/deploy.yml`, plus
    `WEB_URL`/`API_URL` moved off the raw IP onto `https://tools.xdoubleu.com`
-   — then any deploy (a push to `main`, or `tofu apply`) picks it up and
-   kamal-proxy issues the cert on its next boot. Watch it happen with
+   — then the next deploy picks it up and kamal-proxy issues the cert on its
+   next boot. Watch it happen with
    `ssh deploy@<ip> docker logs kamal-proxy -f`; a stuck challenge shows up
    there rather than in the app's own logs.
 3. Set `gotrue_site_url` in `terraform.tfvars` to `https://tools.xdoubleu.com`
    if it wasn't already, so GoTrue's auth emails link at the real domain, and
    re-`tofu apply`.
 
-The DO App Platform component and the Supabase project are left dormant, not
-deleted — see the `deploy` job's comment in `.github/workflows/main.yml`.
+**DigitalOcean is decommissioned** (#1113): the `deploy` job, `do-app.yaml`,
+and the `DO_ACCESS_TOKEN`/`DO_APP_ID` secrets are gone, and the App Platform
+app itself can be deleted. Unrelated to `DO_OAUTH_CLIENT_ID`/`SECRET`, which
+stay — those belong to the app's DigitalOcean monitoring *feature*
+(`api/internal/digitalocean`), not to hosting.
+
+The Supabase project is still referenced, but only as the MCP OAuth
+authorization-server issuer (`api/cmd/api/mcp.go`) — see #1039 ("retire
+GoTrue entirely"), which is what finally removes `SUPABASE_*`.
 
 ## Migrate data from Supabase (one-time)
 

@@ -422,70 +422,15 @@ jobs:
       build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
-  # Dormant since cutover (#1034): DNS points at the Hetzner VPS, so nothing
-  # reaches this deploy. It's kept running purely so the DO App Platform
-  # component stays on a current image and remains a warm target if DNS ever
-  # has to be flipped back — hence continue-on-error, a stack nobody is
-  # serving from must not fail the workflow. Delete this job (and do-app.yaml)
-  # when DO is actually decommissioned.
-  deploy:
-    needs: [docker]
-    if: |
-      always() &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.docker.result == 'success' &&
-      needs.docker.outputs.app_built == 'true'
-    name: Deploy to Digital Ocean
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Trigger Digital Ocean deployment and wait for it to finish
-        env:
-          DO_ACCESS_TOKEN: ${{ secrets.DO_ACCESS_TOKEN }}
-          DO_APP_ID: ${{ secrets.DO_APP_ID }}
-        run: |
-          deployment=$(curl -sf -X POST \
-            -H "Authorization: Bearer $DO_ACCESS_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.digitalocean.com/v2/apps/$DO_APP_ID/deployments")
-          deployment_id=$(echo "$deployment" | jq -r '.deployment.id')
-          echo "Triggered deployment $deployment_id"
-
-          # Poll until the deployment reaches a terminal phase so a failed
-          # rollout fails this job instead of only firing a DO alert.
-          deadline=$(( $(date +%s) + 1200 ))
-          while true; do
-            phase=$(curl -sf \
-              -H "Authorization: Bearer $DO_ACCESS_TOKEN" \
-              "https://api.digitalocean.com/v2/apps/$DO_APP_ID/deployments/$deployment_id" \
-              | jq -r '.deployment.phase')
-            echo "Deployment phase: $phase"
-            case "$phase" in
-              ACTIVE|SUPERSEDED)
-                echo "Deployment finished."
-                exit 0
-                ;;
-              ERROR|CANCELED)
-                echo "Deployment failed with phase $phase."
-                exit 1
-                ;;
-            esac
-            if [[ $(date +%s) -ge $deadline ]]; then
-              echo "Timed out waiting for deployment to finish."
-              exit 1
-            fi
-            sleep 15
-          done
-
   # Deploy to the Hetzner VPS via Kamal (issue #1036). Since cutover (#1034)
-  # this is *the* production deploy — DNS resolves here — so unlike the DO
-  # job above it has no continue-on-error: a failure here means main didn't
-  # ship and must be loud.
-  # Requires infra/'s null_resource.kamal_deploy (or a manual `kamal setup`)
-  # to have bootstrapped the host at least once already — this job runs
-  # `kamal deploy`, not `kamal setup`, and assumes kamal-proxy is already
-  # installed.
+  # this is the *only* production deploy — DNS resolves here — so it carries
+  # no continue-on-error: a failure here means main didn't ship and must be
+  # loud. (The DigitalOcean App Platform deploy this replaced was removed in
+  # #1113, along with do-app.yaml and the DO_ACCESS_TOKEN/DO_APP_ID secrets.)
+  # Requires the host to have been bootstrapped once by a manual
+  # `kamal setup` — this job runs `kamal deploy`, not `kamal setup`, and
+  # assumes kamal-proxy is already installed. See infra/README.md's "Deploy
+  # the app via Kamal" section for that one-time bootstrap.
   deploy-kamal:
     needs: [docker]
     if: |
@@ -503,11 +448,6 @@ jobs:
         with:
           ruby-version: "4.0.6"
           bundler-cache: true
-
-      # Ubuntu runners generally ship gettext-base already, but don't rely
-      # on it — apt-get is fast and idempotent either way.
-      - name: Install envsubst
-        run: sudo apt-get update && sudo apt-get install -y gettext-base
 
       # Not webfactory/ssh-agent: it pipes the secret into `ssh-add -`
       # verbatim, and a secret stored without its trailing newline (GitHub's
@@ -533,8 +473,9 @@ jobs:
 
       # KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME are repo Secrets, not
       # Variables — this repo is public, and GitHub only masks Secrets from
-      # workflow logs, not Variables. Both steps below route the values
-      # through `env:` (never inline `${{ }}` in `run:`) so the mask holds.
+      # workflow logs, not Variables. Every step routes them through `env:`
+      # (never inline `${{ }}` in `run:`) so the mask holds; config/deploy.yml
+      # reads them from that same environment via ERB.
       # No `-H`: ssh-keyscan salts every hashed line separately, and SSHKit's
       # own known_hosts parser (sshkit/backends/netssh/known_hosts.rb, used
       # instead of net-ssh's) returns the keys of the *first* hashed line
@@ -548,25 +489,16 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
-      # Same template infra/main.tf's local_file.kamal_deploy_config renders
-      # via Terraform's templatefile() — see that template's own header
-      # comment for why envsubst produces an identical result here.
-      - name: Render config/deploy.yml
-        env:
-          server_ip: ${{ secrets.KAMAL_SERVER_IP }}
-          ghcr_username: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-        # mkdir: /config/deploy.yml is gitignored and config/ holds no other
-        # tracked file, so the directory doesn't exist on a fresh checkout —
-        # the local Tofu path never hits this since local_file creates it.
-        run: mkdir -p config && envsubst < infra/templates/deploy.yml.tftpl > config/deploy.yml
-
+      # No render step: config/deploy.yml is committed as-is and Kamal
+      # evaluates it as ERB itself, pulling the two non-committable values
+      # (KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME) from the env below.
       - name: Deploy via Kamal
         env:
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
           # docker.yml's docker/metadata-action step tags images
           # `type=sha,prefix=`, which defaults to a 7-character short SHA —
-          # confirmed via `kamal config`'s absolute_image output (see
-          # infra/main.tf's null_resource.kamal_deploy, the local
-          # equivalent of this step).
+          # confirmed via `kamal config`'s absolute_image output.
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}

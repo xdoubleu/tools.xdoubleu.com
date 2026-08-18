@@ -38,8 +38,8 @@ type Client interface {
 	// called once per component/type pair as soon as it resolves, instead of
 	// the caller waiting for every component to finish before seeing anything.
 	// Used by the GetDeployLogs Connect handler so the first byte reaches the
-	// client well before DigitalOcean App Platform's edge request timeout,
-	// regardless of how long the slowest component takes.
+	// client well before the edge proxy's response timeout, regardless of how
+	// long the slowest component takes.
 	DeploymentLogsStream(
 		ctx context.Context,
 		deploymentID string,

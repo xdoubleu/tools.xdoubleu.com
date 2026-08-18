@@ -316,9 +316,9 @@ func (h *obsConnectHandler) GetDeployLogs(
 // BUILD/DEPLOY/RUN/RUN_RESTARTED component logs to the client as soon as it
 // resolves, rather than assembling one response after every component
 // finishes (issue #672, second pass — see routes.go's deployLogsCtxTimeout
-// comment for why: DigitalOcean App Platform's edge resets the connection
-// ~25s after the request starts if no byte has been written yet, a ceiling
-// no server-side deadline above it can beat). Streaming means the first
+// comment for why: the edge proxy resets the connection once its response
+// timeout elapses with no byte written yet, a ceiling no server-side
+// deadline above it can beat). Streaming means the first
 // component's log reaches the client well under that, regardless of how long
 // slower components take. Guards its source the same way deployStatus does:
 // an unset token ends the stream with nothing sent, and an upstream failure

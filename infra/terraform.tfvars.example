@@ -4,9 +4,9 @@
 hcloud_token           = ""
 server_id              = ""
 server_ip              = ""
-# Your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent
-# in CI can't unlock a passphrase-protected key) — see README.md's "Automate
-# Kamal deploys in CI" section for generating the CI-only key. Each entry is
+# Your own key plus a dedicated, unencrypted CI deploy key (the CI ssh-agent
+# runs headless and can't unlock a passphrase-protected key) — see README.md's
+# "Automate Kamal deploys in CI" section for generating it. Each entry is
 # either a path to a .pub file (Tofu reads it) or the key's literal text.
 # .tfvars is not shell-interpolated, so "$(cat ~/.ssh/x.pub)" does NOT work —
 # write the plain path instead.
@@ -18,37 +18,8 @@ resend_api_key          = ""
 gotrue_site_url         = ""
 gotrue_smtp_admin_email = ""
 
-# App secrets for the Kamal deploy (issue #1033) — same values as
-# do-app.yaml's SECRET list (today's DO App Platform deploy). See
-# README.md's "Deploy the app via Kamal" section.
-# kamal_registry_username/kamal_registry_password: required by Kamal's own
-# config schema even though the image is a public GHCR package — see the
-# comment above these two in infra/variables.tf.
-kamal_registry_username     = ""
-kamal_registry_password     = ""
-# supabase_proj_ref/supabase_url/supabase_anon_key/supabase_api_key can be
-# dummy values if Supabase isn't in use at all — see the comment above
-# these four in infra/variables.tf for why (MCP OAuth sign-in only).
-supabase_proj_ref          = ""
-supabase_api_key           = ""
-steam_api_key              = ""
-hardcover_api_key          = ""
-r2_account_id               = ""
-r2_access_key_id            = ""
-r2_secret_access_key        = ""
-r2_bucket                   = ""
-sentry_dsn                  = ""
-sentry_dsn_web              = ""
-supabase_url                = ""
-supabase_anon_key           = ""
-github_oauth_client_id      = ""
-github_oauth_client_secret  = ""
-sentry_oauth_client_id      = ""
-sentry_oauth_client_secret  = ""
-do_oauth_client_id          = ""
-do_oauth_client_secret      = ""
-encryption_key               = ""
-email_from                   = ""
-notify_email_to              = ""
-email_inbound_domain         = ""
-email_inbound_secret         = ""
+# That's everything. The app's own secrets (DB_DSN, SUPABASE_*, R2_*,
+# SENTRY_*, the OAuth client pairs, ENCRYPTION_KEY, EMAIL_*, ...) are NOT
+# tfvars — Tofu only provisions the host. They live solely in repo Secrets,
+# read by .github/workflows/main.yml's deploy-kamal job; see README.md's
+# "Automate Kamal deploys in CI" section for the full list.

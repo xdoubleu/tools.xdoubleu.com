@@ -1,8 +1,8 @@
 # gateway/ — routing + process supervision
 
 The merged single-container deploy shape (issue #558; split into its own
-binary in #904) puts three processes in one Docker image / one DO App
-Platform component: this `gateway` binary is PID 1, and spawns `api` and the
+binary in #904) puts three processes in one Docker image / one container:
+this `gateway` binary is PID 1, and spawns `api` and the
 Next.js standalone `web` server as supervised children, reverse-proxying
 every request between them. It's a **separate Go module**
 (`module tools.xdoubleu.com/gateway`, its own `go.sum`) — deliberately not
@@ -70,11 +70,13 @@ reason (`build-gateway.yml`).
 
 ## Routing (`proxy.go`)
 
-Replicates the two DO App Platform ingress rules the separate api/web
-components got for free before #558 merged them into one billed component:
+Replicates the two ingress rules the separate api/web components got for free
+before #558 merged them into one (they were DO App Platform components then;
+kamal-proxy fronts the single container now):
 
-- `GET /health` → api child, unstripped (DO's health check hits the
-  container port directly; web has no health route).
+- `GET /health` → api child, unstripped (the health check hits the container
+  port directly — `proxy.healthcheck.path` in `config/deploy.yml`; web has no
+  health route).
 - `GET /gateway/version` → answered directly by gateway itself (not
   proxied), `{"release": cfg.Release}` — same unproxied shape as `/health`.
   Consumed by `web/components/Footer.tsx` to show gateway's own release

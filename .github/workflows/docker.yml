@@ -101,7 +101,7 @@ jobs:
           # image pulled without this exact label — it normally stamps it
           # itself via `kamal build`, but we build via buildx directly and
           # deploy with --skip-push. Must match `service:` in
-          # infra/templates/deploy.yml.tftpl.
+          # config/deploy.yml.
           labels: service=tools-xdoubleu-com
           cache-from: type=gha,scope=app
           cache-to: type=gha,scope=app,mode=max
