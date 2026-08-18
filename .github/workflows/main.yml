@@ -441,6 +441,7 @@ jobs:
       needs.docker.outputs.app_built == 'true'
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v7
 
