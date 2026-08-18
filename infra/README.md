@@ -149,8 +149,11 @@ the app via Kamal — no separate manual `kamal setup`/`kamal deploy` step.
 `config/deploy.yml` is generated (gitignored) from
 `infra/templates/deploy.yml.tftpl` by `local_file.kamal_deploy_config`;
 `infra/main.tf`'s `null_resource.kamal_deploy` shells out to `kamal setup`
-locally via a `local-exec` provisioner. Deploys over the VPS's raw IP — DNS
-cutover to the real domain is a separate later step (#1034). Postgres and
+locally via a `local-exec` provisioner. Since cutover (#1034) it deploys on
+the real domain, not the raw IP: `deploy.yml.tftpl` sets `proxy.host:
+tools.xdoubleu.com` + `proxy.ssl: true`, so kamal-proxy obtains and renews a
+Let's Encrypt cert itself over the HTTP-01 challenge (port 80, already open
+in `hcloud_firewall.vps`) — nothing to configure per deploy. Postgres and
 GoTrue stay exactly as OpenTofu already manages them above (**not** Kamal
 accessories) — the app container Kamal starts reaches them over the shared
 `kamal` Docker network `null_resource.kamal_network` creates before Postgres
@@ -194,7 +197,7 @@ ordering matters).
    (`infra/deployable-image.sh`), so an infra-only or docs-only `HEAD` — which
    `docker.yml` never builds — is a no-op rather than a deploy of a tag that
    doesn't exist.
-4. Verify: `curl http://<ip>/health`, sign in with a migrated account through
+4. Verify: `curl https://tools.xdoubleu.com/health`, sign in with a migrated account through
    the app itself (not just GoTrue directly — this is the first end-to-end
    test of `WithCustomAuthURL` repointing, not just #1032's isolated GoTrue
    smoke test).
@@ -214,11 +217,13 @@ ordering matters).
 
 Once the steps above have bootstrapped the host at least once (kamal-proxy
 installed, first deploy done), `.github/workflows/main.yml`'s
-`deploy-kamal` job takes over routine deploys on every push to `main` —
-runs in parallel with the existing `deploy` job (DO App Platform), and its
-own failure doesn't fail the whole workflow (`continue-on-error: true`) or
-block anything else, since DO stays the traffic-serving deploy until
-Cutover (#1034). It runs `kamal deploy` (not `setup`) against the
+`deploy-kamal` job takes over routine deploys on every push to `main`.
+Since cutover (#1034) it's the production deploy, so a failure there fails
+the workflow — no `continue-on-error`. The old `deploy` job (DO App
+Platform) still runs alongside it but is the one marked
+`continue-on-error: true` now: DNS no longer points at DO, and it's kept
+only so that component stays on a current image as a warm rollback target.
+It runs `kamal deploy` (not `setup`) against the
 already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
 (`webfactory/ssh-agent`, loading `KAMAL_SSH_KEY`) — same auth mechanism as
 the local `tofu apply` path, just with the key coming from a repo secret
@@ -292,12 +297,31 @@ EMAIL_INBOUND_SECRET
 ```
 
 **Verify**: push a trivial change to `main`, confirm `deploy-kamal` runs and
-succeeds in the Actions tab, then `curl http://<ip>/health`.
+succeeds in the Actions tab, then `curl https://tools.xdoubleu.com/health`.
 
 **External uptime monitoring** (also part of #1036, not automatable from
 here — a manual account-setup step): an UptimeRobot free-tier monitor, 5
-minute interval, against `/health` on the VPS. Do this once cutover (#1034)
-happens and there's a real domain to point it at.
+minute interval, against `https://tools.xdoubleu.com/health`.
+
+## Cutover (issue #1034)
+
+Done — `tools.xdoubleu.com` resolves to the VPS and the app serves from it.
+For the record, all it took was:
+
+1. Point Cloudflare's A/AAAA records for the apex at the VPS's IP, leaving
+   every other record (Resend's SPF/DKIM/DMARC in particular) untouched.
+2. `proxy.host`/`proxy.ssl` in `infra/templates/deploy.yml.tftpl`, plus
+   `WEB_URL`/`API_URL` moved off the raw IP onto `https://tools.xdoubleu.com`
+   — then any deploy (a push to `main`, or `tofu apply`) picks it up and
+   kamal-proxy issues the cert on its next boot. Watch it happen with
+   `ssh deploy@<ip> docker logs kamal-proxy -f`; a stuck challenge shows up
+   there rather than in the app's own logs.
+3. Set `gotrue_site_url` in `terraform.tfvars` to `https://tools.xdoubleu.com`
+   if it wasn't already, so GoTrue's auth emails link at the real domain, and
+   re-`tofu apply`.
+
+The DO App Platform component and the Supabase project are left dormant, not
+deleted — see the `deploy` job's comment in `.github/workflows/main.yml`.
 
 ## Migrate data from Supabase (one-time)
 
