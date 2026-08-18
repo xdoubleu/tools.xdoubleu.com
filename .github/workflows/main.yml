@@ -535,10 +535,18 @@ jobs:
       # Variables — this repo is public, and GitHub only masks Secrets from
       # workflow logs, not Variables. Both steps below route the values
       # through `env:` (never inline `${{ }}` in `run:`) so the mask holds.
+      # No `-H`: ssh-keyscan salts every hashed line separately, and SSHKit's
+      # own known_hosts parser (sshkit/backends/netssh/known_hosts.rb, used
+      # instead of net-ssh's) returns the keys of the *first* hashed line
+      # whose HMAC matches and stops there — so of keyscan's three lines only
+      # ssh-rsa is ever "known", and the ed25519 key the server actually
+      # presents fails verification with Net::SSH::HostKeyMismatch. Unhashed
+      # entries take the other branch, which unions all keys for the host.
+      # Hashing buys nothing on a throwaway runner anyway.
       - name: Trust the VPS host key
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
-        run: mkdir -p ~/.ssh && ssh-keyscan -H "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
+        run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
       # Same template infra/main.tf's local_file.kamal_deploy_config renders
       # via Terraform's templatefile() — see that template's own header
