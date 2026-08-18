@@ -23,6 +23,8 @@ jobs:
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
       sentrytools: ${{ steps.filter.outputs.sentrytools }}
       infra: ${{ steps.filter.outputs.infra }}
+      config_api: ${{ steps.filter.outputs.config_api }}
+      config_web: ${{ steps.filter.outputs.config_web }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -62,6 +64,16 @@ jobs:
             infra:
               - 'infra/**'
               - '!infra/**/*.md'
+            # Kamal deploys are pinned to an image tag that must exist in
+            # GHCR, so a config-only change can't just redeploy the existing
+            # image — it needs build-api/build-web to actually run so a fresh
+            # :<sha> image gets pushed for deploy-kamal to deploy (#1128:
+            # bf0829fe's SSL removal here matched no filter at all, so
+            # build-api was skipped and nothing redeployed).
+            config_api:
+              - 'config/deploy.api.yml'
+            config_web:
+              - 'config/deploy.web.yml'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
@@ -101,6 +113,7 @@ jobs:
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.sentrytools == 'true' ||
+      needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
@@ -119,6 +132,7 @@ jobs:
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.config_web == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
