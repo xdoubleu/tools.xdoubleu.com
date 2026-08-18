@@ -558,7 +558,7 @@ jobs:
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.infra == 'true'
+      (needs.changes.outputs.infra == 'true' || needs.changes.outputs.workflows == 'true')
     name: Apply Infra via OpenTofu
     runs-on: ubuntu-latest
     environment: production
