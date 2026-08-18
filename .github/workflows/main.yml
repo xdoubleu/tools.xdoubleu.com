@@ -637,6 +637,12 @@ jobs:
 
       - name: tofu apply
         env:
+          # apply re-reads/locks state itself — it doesn't inherit the init
+          # step's env, so the R2 backend credentials have to be repeated
+          # here too (bit us once already: apply failed with "No valid
+          # credential sources found" before this was added).
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_R2_SECRET_ACCESS_KEY }}
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
           TF_VAR_server_id: ${{ secrets.INFRA_SERVER_ID }}
           TF_VAR_server_ip: ${{ secrets.KAMAL_SERVER_IP }}
