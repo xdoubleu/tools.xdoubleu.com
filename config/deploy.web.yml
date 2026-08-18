@@ -1,0 +1,58 @@
+# Kamal's deploy config for the web service. Read directly by `kamal` via
+# `-c config/deploy.web.yml` — see config/deploy.api.yml for the shared
+# header comment on why this is ERB, why the two env vars below can't be
+# committed literally, and the overall #1038 two-service split this file is
+# one half of.
+
+service: tools-xdoubleu-com-web
+image: xdoubleu/tools.xdoubleu.com/web
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+
+ssh:
+  user: deploy
+
+registry:
+  server: ghcr.io
+  username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch:
+    - amd64
+
+proxy:
+  # Same host as deploy.api.yml — the two services share one kamal-proxy
+  # instance and one Let's Encrypt cert for the domain (api deploys first
+  # and ends up owning issuance in practice). No path_prefix here: web is
+  # the catch-all, matching gateway/'s old "everything else" rule.
+  host: tools.xdoubleu.com
+  ssl: true
+  app_port: 3000
+  healthcheck:
+    # web/app/health/route.ts — deliberately not `/` (Next's default
+    # healthcheck path is `/up`, which doesn't exist here either): the
+    # homepage does SSR data fetches against api, so using it would couple
+    # web's own deploy-cutover healthcheck to api's momentary availability
+    # during api's *own* independent rolling deploy.
+    path: /health
+    interval: 10
+    timeout: 5
+
+env:
+  clear:
+    ENV: production
+    WEB_URL: https://tools.xdoubleu.com
+    API_URL: https://tools.xdoubleu.com/api
+  secret:
+    # Deploy-time SHA — Kamal doesn't inject one, so the deploy-kamal CI job
+    # passes github.sha explicitly (export it yourself for a manual
+    # deploy). Feeds web/components/Footer.tsx's version display.
+    - RELEASE
+    - SENTRY_DSN_WEB
+    - SUPABASE_URL
+    - SUPABASE_ANON_KEY

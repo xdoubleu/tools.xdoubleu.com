@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getApiUrl, getRelease } from '@/lib/env'
 
-// api/gateway builds are cacheable and only recompile when their own source
-// changes (see build-api.yml/build-gateway.yml), so each component can
-// legitimately be a different commit than this web build — show all three
-// instead of one potentially-misleading badge.
+// api and web builds are cacheable and only recompile when their own source
+// changes (see build-api.yml/build-web.yml), so each component can
+// legitimately be a different commit — show both instead of one
+// potentially-misleading badge.
 async function fetchRelease(url: string): Promise<string> {
   try {
     const res = await fetch(url)
@@ -31,12 +31,10 @@ function ReleaseBadge({ label, release }: { label: string; release: string }) {
 export default function Footer() {
   const [webRelease, setWebRelease] = useState<string>('')
   const [apiRelease, setApiRelease] = useState<string>('')
-  const [gatewayRelease, setGatewayRelease] = useState<string>('')
 
   useEffect(() => {
     setWebRelease(getRelease())
     fetchRelease(`${getApiUrl()}/api/version`).then(setApiRelease)
-    fetchRelease('/gateway/version').then(setGatewayRelease)
   }, [])
 
   const year = new Date().getFullYear()
@@ -53,7 +51,6 @@ export default function Footer() {
 
         <ReleaseBadge label="web" release={webRelease} />
         <ReleaseBadge label="api" release={apiRelease} />
-        <ReleaseBadge label="gateway" release={gatewayRelease} />
       </div>
     </footer>
   )

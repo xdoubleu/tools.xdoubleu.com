@@ -20,7 +20,6 @@ beforeEach(() => {
   mockGetRelease.mockReturnValue('')
   mockFetch.mockImplementation((url: string) => {
     if (url.endsWith('/api/version')) return Promise.resolve(jsonResponse(''))
-    if (url === '/gateway/version') return Promise.resolve(jsonResponse(''))
     return Promise.reject(new Error(`unexpected fetch: ${url}`))
   })
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
@@ -82,19 +81,6 @@ describe('Footer', () => {
     })
   })
 
-  it('renders the gateway release fetched from /gateway/version', async () => {
-    mockFetch.mockImplementation((url: string) => {
-      if (url === '/gateway/version') return Promise.resolve(jsonResponse('789ghi012jkl'))
-      return Promise.resolve(jsonResponse(''))
-    })
-
-    render(<Footer />)
-
-    await waitFor(() => {
-      expect(screen.getByText('gateway 789ghi0')).toBeInTheDocument()
-    })
-  })
-
   it('does not render a release badge when a release is empty', async () => {
     mockGetRelease.mockReturnValue('')
 
@@ -104,7 +90,7 @@ describe('Footer', () => {
       expect(screen.getByText(/xdoubleu/)).toBeInTheDocument()
     })
 
-    expect(screen.queryByText(/^(web|api|gateway) /)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^(web|api) /)).not.toBeInTheDocument()
   })
 
   it('does not render a badge when its fetch fails', async () => {

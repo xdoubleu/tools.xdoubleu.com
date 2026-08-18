@@ -1,7 +1,8 @@
-# Kamal's deploy config. Read directly by `kamal` — there is no render step:
-# Kamal evaluates this file as ERB before parsing the YAML
-# (Kamal::Configuration.load_config_file), so the two values that can't be
-# committed literally are pulled straight from the environment below.
+# Kamal's deploy config for the api service. Read directly by `kamal` via
+# `-c config/deploy.api.yml` — there is no render step: Kamal evaluates this
+# file as ERB before parsing the YAML (Kamal::Configuration.load_config_file),
+# so the two values that can't be committed literally are pulled straight
+# from the environment below.
 #
 # They're env vars rather than hardcoded because this repo is public and
 # GitHub masks only Secrets: KAMAL_SERVER_IP in particular is echoed into an
@@ -9,16 +10,17 @@
 # deploy-kamal job supplies both from repo Secrets; export them yourself for
 # a manual deploy.
 #
-# This file used to be infra/templates/deploy.yml.tftpl, rendered by both
-# Tofu's templatefile() and CI's envsubst. #1113 removed the Tofu deploy
-# path, and ERB made the remaining envsubst step redundant.
-#
-# Kamal deploy config for issue #1033/#1036 — deploys the merged `app` image
-# to the Hetzner VPS (infra/). Since cutover (#1034) this serves production
-# traffic on the real domain: `proxy.host`/`proxy.ssl` below let kamal-proxy
-# run Let's Encrypt's HTTP-01 challenge and terminate TLS itself, which only
-# works because Cloudflare's A/AAAA records for that name already resolve to
-# this box.
+# api and web deploy as two fully independent Kamal apps (#1038, replacing
+# the single merged gateway+api+web image from issue #558/#1033/#1036) —
+# see config/deploy.web.yml for the other half and root CLAUDE.md's Deploy
+# shape section for why. Both share the same kamal-proxy instance and
+# domain on the Hetzner VPS (infra/), routed by kamal-proxy's own
+# path-based routing (proxy.path_prefix below) instead of a hand-rolled
+# gateway/ process. Since cutover (#1034) this serves production traffic on
+# the real domain: `proxy.host`/`proxy.ssl` below let kamal-proxy run Let's
+# Encrypt's HTTP-01 challenge and terminate TLS itself, which only works
+# because Cloudflare's A/AAAA records for that name already resolve to this
+# box.
 #
 # Postgres and GoTrue stay exactly as OpenTofu already manages them
 # (infra/postgres-compose.yml, issues #1031/#1032) — plain docker-compose
@@ -31,11 +33,11 @@
 # GOTRUE_URL below use the container names (`postgres`/`gotrue`) as
 # hostnames, exactly like GOTRUE_DB_DATABASE_URL already does internally.
 
-service: tools-xdoubleu-com
+service: tools-xdoubleu-com-api
 # No `ghcr.io/` prefix here — registry.server below already supplies it.
 # Kamal concatenates registry.server + image itself; including it in both
 # places doubles up into ghcr.io/ghcr.io/... (confirmed via `kamal config`).
-image: xdoubleu/tools.xdoubleu.com/app
+image: xdoubleu/tools.xdoubleu.com/api
 
 servers:
   web:
@@ -51,7 +53,7 @@ servers:
 ssh:
   user: deploy
 
-# Required even though ghcr.io/xdoubleu/tools.xdoubleu.com/app is a public
+# Required even though ghcr.io/xdoubleu/tools.xdoubleu.com/api is a public
 # package (no docker login needed to actually pull it) — Kamal's own config
 # schema unconditionally requires registry.username/password, confirmed via
 # `kamal config` erroring without them regardless of image visibility. A
@@ -71,15 +73,30 @@ builder:
 
 proxy:
   # Hardcoded, not an interpolation: this repo deploys exactly one domain
-  # (`service:` above already spells it out), and keeping it literal means
-  # neither render path needs a third variable. `ssl: true` is what makes
+  # (shared with deploy.web.yml), and keeping it literal means neither
+  # render path needs a third variable. `ssl: true` is what makes
   # kamal-proxy request/renew the Let's Encrypt cert — it needs port 80
   # reachable from the internet for the HTTP-01 challenge, which
-  # hcloud_firewall.vps already allows.
+  # hcloud_firewall.vps already allows. api deploys first (see
+  # .github/workflows/main.yml's deploy-kamal job) so it's the one that
+  # ends up owning initial cert issuance for the shared host.
   host: tools.xdoubleu.com
   ssl: true
   app_port: 8000
+  # /api/* and /.well-known/* both route here — everything else falls
+  # through to web's catch-all registration (deploy.web.yml). Unstripped:
+  # kamal-proxy can't strip only one of several prefixes on a single
+  # service, and /.well-known/* (RFC 9728/8414 OAuth discovery) must reach
+  # api unmodified — so api/cmd/api/kamal_proxy_shim.go does the /api
+  # stripping in Go instead, replicating what gateway/'s proxy.go used to
+  # do before it was retired (#1038).
+  path_prefix: "/api,/.well-known"
+  strip_path_prefix: false
   healthcheck:
+    # Checked directly against this container over the internal Docker
+    # network, bypassing the public path_prefix routing entirely — so this
+    # keeps working unchanged regardless of path_prefix/strip_path_prefix
+    # above.
     path: /health
     interval: 10
     timeout: 5
@@ -87,15 +104,23 @@ proxy:
 env:
   clear:
     ENV: production
+    # api's own CORS allowedOrigins and mailer/contacts links
+    # (config.WebURL) need this even though api never serves web's UI.
     WEB_URL: https://tools.xdoubleu.com
     API_URL: https://tools.xdoubleu.com/api
+    # Leftover from when api shared one container's memory with the Node
+    # web child (pre-#1038) — sized to leave the Node child headroom, which
+    # no longer applies now that api runs in its own container. Carried
+    # over unchanged rather than re-tuned; see root README.md's Deploy
+    # Notes section.
     GOMEMLIMIT: 300MiB
   secret:
     # Deploy-time SHA — Kamal doesn't inject one, so the deploy-kamal CI job
-    # passes github.sha explicitly (export it yourself for a manual deploy).
-    # Feeds Sentry release tagging and web/components/Footer.tsx's version
-    # display (forwarded to the web child by
-    # gateway/internal/gateway/children.go).
+    # passes github.sha explicitly (export it yourself for a manual
+    # deploy). Feeds Sentry release tagging and web/components/Footer.tsx's
+    # version display (web has its own RELEASE, set in deploy.web.yml —
+    # each image bakes it in independently now, no cross-process
+    # forwarding needed).
     - RELEASE
     # postgres://postgres:<password>@postgres:5432/postgres — same
     # OpenTofu-managed Postgres from infra/postgres-compose.yml, reached
@@ -110,14 +135,13 @@ env:
     # WithCustomAuthURL, pointing sign-in at self-hosted GoTrue instead of
     # Supabase-hosted GoTrue. Static, not a secret — hardcoded by the
     # deploy-kamal job.
-    # SUPABASE_PROJ_REF/SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_API_KEY stay
-    # set too but are otherwise unused once this is set — they only ever
-    # mattered for the MCP OAuth authorization-server issuer
-    # (api/cmd/api/mcp.go), a deliberate exception that stays pointed at
-    # Supabase per #1032's own scoping note. If Supabase isn't in use at
-    # all, dummy values are fine — MCP sign-in just stays broken until the
-    # future "retire GoTrue entirely" issue (#1039) replaces that flow
-    # properly.
+    # SUPABASE_PROJ_REF/SUPABASE_API_KEY stay set too but are otherwise
+    # unused once this is set — they only ever mattered for the MCP OAuth
+    # authorization-server issuer (api/cmd/api/mcp.go), a deliberate
+    # exception that stays pointed at Supabase per #1032's own scoping
+    # note. If Supabase isn't in use at all, dummy values are fine — MCP
+    # sign-in just stays broken until the future "retire GoTrue entirely"
+    # issue (#1039) replaces that flow properly.
     - GOTRUE_URL
     # Everything below is a repo Secret read by .github/workflows/main.yml's
     # deploy-kamal job (export the same names by hand for a manual deploy).
@@ -132,9 +156,6 @@ env:
     - R2_SECRET_ACCESS_KEY
     - R2_BUCKET
     - SENTRY_DSN
-    - SENTRY_DSN_WEB
-    - SUPABASE_URL
-    - SUPABASE_ANON_KEY
     - GITHUB_OAUTH_CLIENT_ID
     - GITHUB_OAUTH_CLIENT_SECRET
     - SENTRY_OAUTH_CLIENT_ID

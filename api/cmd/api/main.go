@@ -133,7 +133,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      app.Routes(),
+		Handler:      stripAPIPathPrefix(app.Routes()),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  httpReadTimeout,
 		WriteTimeout: httpWriteTimeout,

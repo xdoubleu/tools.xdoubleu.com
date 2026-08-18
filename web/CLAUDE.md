@@ -55,7 +55,7 @@ Client for the local kobo-gateway macOS menu-bar helper (`https://127.0.0.1:4113
 
 ## Static Downloads
 
-`web/public/` does not exist in the repo — it's assembled at Docker build time. The kobo-gateway `.dmg` and raw binary are built on macOS by `build-kobo-gateway.yml` and downloaded by `docker.yml` into `web/public/downloads/` before `docker build` runs; the root `Dockerfile` just `COPY`s them from there. Next standalone only serves `public/` assembled that way, so the download route 404s under `npm run dev` unless you build `kobo-gateway/` locally first and copy the artifacts in yourself.
+`web/public/` does not exist in the repo — it's assembled at Docker build time. The kobo-gateway `.dmg` and raw binary are built on macOS by `build-kobo-gateway.yml` and staged into `web/public/downloads/` by `build-web.yml` itself before `docker build` runs (moved there from the now-deleted `docker.yml` merged-image assembly job in #1038); `web/Dockerfile` just `COPY`s them from there. Next standalone only serves `public/` assembled that way, so the download route 404s under `npm run dev` unless you build `kobo-gateway/` locally first and copy the artifacts in yourself.
 
 ## OAuth Consent Screen (`app/oauth/consent/`)
 
