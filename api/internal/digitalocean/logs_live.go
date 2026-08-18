@@ -14,11 +14,13 @@ import (
 // closes the socket itself once it has replayed tail_lines (follow is off),
 // but a socket that never closes must not hold a Connect request open.
 //
-// Kept well under DigitalOcean App Platform's own ~25s edge request timeout
-// (issue #672): a running component's live sockets that DO doesn't promptly
-// close were hitting the old 20s fallback, pushing total wall-clock past the
-// edge, which then reset the upstream connection (503 UC) before any byte was
-// written — a silent failure with no log line or Sentry event. The read
+// Kept well under the edge proxy's response timeout (issue #672): a running
+// component's live sockets that DO doesn't promptly close were hitting the
+// old 20s fallback, pushing total wall-clock past the edge — then DigitalOcean
+// App Platform's fixed ~25s — which reset the upstream connection (503 UC)
+// before any byte was written, a silent failure with no log line or Sentry
+// event. That edge is kamal-proxy now (30s default, see routes.go's
+// deployLogsCtxTimeout comment); 8s clears either. The read
 // still degrades to whatever text arrived before the deadline, so a lower
 // bound only costs a stuck socket, never a healthy one (DO replays the
 // backlog immediately on connect). A var, not a const, so tests can drive the

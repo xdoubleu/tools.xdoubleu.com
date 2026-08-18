@@ -1410,8 +1410,8 @@ export const ObservabilityService: GenService<{
   /**
    * Server-streaming: each component's log is sent as soon as it resolves,
    * rather than one response after every component finishes, so the first
-   * byte reaches the client well under DigitalOcean App Platform's ~25s edge
-   * request timeout regardless of how long the slowest component takes
+   * byte reaches the client well under the edge proxy's response timeout
+   * regardless of how long the slowest component takes
    * (issue #672 — see api/cmd/api/routes.go).
    *
    * @generated from rpc observability.v1.ObservabilityService.GetDeployLogs

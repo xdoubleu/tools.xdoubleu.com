@@ -1,11 +1,17 @@
-# Rendered into config/deploy.yml (gitignored) by two independent paths that
-# share this one template — do not edit config/deploy.yml directly:
-#   - Locally: `tofu apply` (infra/main.tf's local_file.kamal_deploy_config,
-#     via Terraform's templatefile()), for one-off/manual deploys.
-#   - CI: .github/workflows/main.yml's deploy-kamal job, via `envsubst` (this
-#     template's only interpolations, $${server_ip}/$${ghcr_username}, use
-#     plain shell-compatible syntax, so both tools render it identically —
-#     confirmed byte-for-byte via `tofu console`).
+# Kamal's deploy config. Read directly by `kamal` — there is no render step:
+# Kamal evaluates this file as ERB before parsing the YAML
+# (Kamal::Configuration.load_config_file), so the two values that can't be
+# committed literally are pulled straight from the environment below.
+#
+# They're env vars rather than hardcoded because this repo is public and
+# GitHub masks only Secrets: KAMAL_SERVER_IP in particular is echoed into an
+# ssh-keyscan command, so leaking it into a log is a real concern. CI's
+# deploy-kamal job supplies both from repo Secrets; export them yourself for
+# a manual deploy.
+#
+# This file used to be infra/templates/deploy.yml.tftpl, rendered by both
+# Tofu's templatefile() and CI's envsubst. #1113 removed the Tofu deploy
+# path, and ERB made the remaining envsubst step redundant.
 #
 # Kamal deploy config for issue #1033/#1036 — deploys the merged `app` image
 # to the Hetzner VPS (infra/). Since cutover (#1034) this serves production
@@ -16,8 +22,9 @@
 #
 # Postgres and GoTrue stay exactly as OpenTofu already manages them
 # (infra/postgres-compose.yml, issues #1031/#1032) — plain docker-compose
-# containers, no Kamal accessories here. Both are bound to 127.0.0.1 only on
-# the host (never exposed publicly) and reachable from the Kamal-deployed app
+# containers, no Kamal accessories here. This is the one part of the stack
+# Tofu still owns end to end. Both are bound to 127.0.0.1 only on the host
+# (never exposed publicly) and reachable from the Kamal-deployed app
 # container by joining the same `kamal` Docker network (created by
 # null_resource.kamal_network in infra/main.tf before Postgres/GoTrue come
 # up, since postgres-compose.yml declares it `external: true`) — DB_DSN/
@@ -33,13 +40,14 @@ image: xdoubleu/tools.xdoubleu.com/app
 servers:
   web:
     hosts:
-      - ${server_ip}
+      - <%= ENV.fetch("KAMAL_SERVER_IP") %>
 
-# No ssh.key_data here — both deploy paths authenticate via ssh-agent
-# instead (the operator's own agent locally; .github/workflows/main.yml's
-# deploy-kamal CI job loads KAMAL_SSH_KEY into a real agent via
-# webfactory/ssh-agent), so this one shared template needs no per-path
-# branching for SSH auth.
+# No ssh.key_data here — authentication goes through ssh-agent instead: the
+# operator's own agent for a manual deploy, and in CI an agent the
+# deploy-kamal job starts itself, loading KAMAL_SSH_KEY with
+# `printf '%s\n' | ssh-add -` (issue #1106 — webfactory/ssh-agent fed the
+# secret to ssh-add verbatim, and a secret stored without its trailing
+# newline is an unparsable PEM).
 ssh:
   user: deploy
 
@@ -50,7 +58,7 @@ ssh:
 # GHCR PAT with read:packages works fine even against a public package.
 registry:
   server: ghcr.io
-  username: ${ghcr_username}
+  username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>
   password:
     - KAMAL_REGISTRY_PASSWORD
 
@@ -83,37 +91,38 @@ env:
     API_URL: https://tools.xdoubleu.com/api
     GOMEMLIMIT: 300MiB
   secret:
-    # Deploy-time SHA — DO App Platform used to inject this itself; Kamal
-    # doesn't. Set by whichever path is deploying: null_resource.kamal_deploy
-    # (current git HEAD) locally, or the deploy-kamal CI job (github.sha)
-    # remotely. Feeds Sentry release tagging and web/components/Footer.tsx's
-    # version display (forwarded to the web child by
+    # Deploy-time SHA — Kamal doesn't inject one, so the deploy-kamal CI job
+    # passes github.sha explicitly (export it yourself for a manual deploy).
+    # Feeds Sentry release tagging and web/components/Footer.tsx's version
+    # display (forwarded to the web child by
     # gateway/internal/gateway/children.go).
     - RELEASE
     # postgres://postgres:<password>@postgres:5432/postgres — same
     # OpenTofu-managed Postgres from infra/postgres-compose.yml, reached
     # over the shared `kamal` Docker network (see file header), not
-    # Supabase. Set locally from random_password.postgres.result; CI has no
-    # access to local Tofu state, so it comes from a KAMAL_DB_DSN repo
-    # secret there instead (same value, `tofu output -raw postgres_password`
-    # copied in once).
+    # Supabase. Comes from the KAMAL_DB_DSN repo secret — Tofu generates the
+    # password (random_password.postgres) but nothing outside Tofu can read
+    # its state, so the value was copied into that secret once via
+    # `tofu output -raw postgres_password`. Rotating the password means
+    # updating both.
     - DB_DSN
     # http://gotrue:9999 — same network. Makes api/cmd/api/main.go call
     # WithCustomAuthURL, pointing sign-in at self-hosted GoTrue instead of
-    # Supabase-hosted GoTrue. Static, not a secret — hardcoded by both
-    # deploy paths.
+    # Supabase-hosted GoTrue. Static, not a secret — hardcoded by the
+    # deploy-kamal job.
     # SUPABASE_PROJ_REF/SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_API_KEY stay
     # set too but are otherwise unused once this is set — they only ever
     # mattered for the MCP OAuth authorization-server issuer
     # (api/cmd/api/mcp.go), a deliberate exception that stays pointed at
     # Supabase per #1032's own scoping note. If Supabase isn't in use at
-    # all, dummy values are fine (see infra/variables.tf's comment) — MCP
-    # sign-in just stays broken until the future "retire GoTrue entirely"
-    # issue (#1039) replaces that flow properly.
+    # all, dummy values are fine — MCP sign-in just stays broken until the
+    # future "retire GoTrue entirely" issue (#1039) replaces that flow
+    # properly.
     - GOTRUE_URL
-    # Everything below is a sensitive tfvar (infra/variables.tf), set in
-    # terraform.tfvars same as gotrue_jwt_secret/resend_api_key above — same
-    # values as do-app.yaml's SECRET list (today's DO App Platform deploy).
+    # Everything below is a repo Secret read by .github/workflows/main.yml's
+    # deploy-kamal job (export the same names by hand for a manual deploy).
+    # They are deliberately NOT tfvars: Tofu provisions the host, it doesn't
+    # deploy the app, so there's exactly one place to rotate each value.
     - SUPABASE_PROJ_REF
     - SUPABASE_API_KEY
     - STEAM_API_KEY

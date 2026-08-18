@@ -104,8 +104,8 @@ func (c *client) DeploymentLogs(
 // DeploymentLogsStream is DeploymentLogs' incremental counterpart: yield is
 // called once per component/type pair as soon as it resolves, rather than
 // collecting everything before returning. It exists so a caller like a
-// Connect server stream can flush data to its client long before
-// DigitalOcean's edge timeout, instead of racing a single slow response
+// Connect server stream can flush data to its client long before the edge
+// proxy's response timeout, instead of racing a single slow response
 // against it (issue #672, second pass). yield is never called concurrently.
 // A yield error aborts any fetches still in flight and is returned as-is;
 // callers that only want the main scope's failures to be fatal should treat

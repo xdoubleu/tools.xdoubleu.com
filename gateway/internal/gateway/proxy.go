@@ -40,10 +40,11 @@ const versionPath = "/gateway/version"
 const upstreamResponseHeaderTimeout = 15 * time.Second
 
 // NewHandler front-doors every request in the merged single-container
-// deploy shape (issue #558), replicating the two DO App Platform ingress
-// rules the separate api/web components used to get for free:
+// deploy shape (issue #558), replicating the two ingress rules the separate
+// api/web components used to get for free (they were DO App Platform
+// components then; kamal-proxy fronts the single container now):
 //
-//   - GET /health goes to the api child directly, unstripped — DO's health
+//   - GET /health goes to the api child directly, unstripped — the health
 //     check hits the container port directly and web/app has no health
 //     route.
 //   - GET /gateway/version answers gateway's own release directly, same

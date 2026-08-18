@@ -91,14 +91,15 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
 **Deploy shape:** `api`, `web`, and `gateway` build into one Docker image
-(root `Dockerfile`) and run as a single DigitalOcean App Platform component
-(issue #558 — App Platform bills per component, and api/web both used to
-run on separate smallest-tier instances; split into 3 processes in #904).
+(root `Dockerfile`) and run as a single container, deployed by Kamal to a
+Hetzner VPS (issue #558 merged them into one image back when the target was
+DigitalOcean App Platform, which bills per component and had api/web on
+separate smallest-tier instances; split into 3 processes in #904).
 `gateway` (`gateway/`, its own Go module) is PID 1; it spawns both `api` and
 the Next.js standalone server as supervised children and reverse-proxies
 every request between them, stripping `/api` for the api child and routing
-everything else to the web child — the same split the two-component DO
-ingress used to provide. `api` itself has no awareness of any of this.
+everything else to the web child — the same split the two-component ingress
+used to provide. `api` itself has no awareness of any of this.
 `api` and `gateway` both pull their slog→Sentry logging glue from a third,
 tiny Go module, `sentrytools/` (own `go.mod`, no deployable artifact of its
 own), via a local `replace` directive rather than duplicating it.
@@ -141,10 +142,11 @@ signed-in user to be an **admin**.
 **One-time Supabase setup** (dashboard → **Authentication → OAuth Server**):
 enable the OAuth 2.1 server, set the **Authorization Path** to `/oauth/consent`,
 enable **dynamic client registration**, and confirm the **Site URL** is
-`https://tools.xdoubleu.com`. Set the web component's `SUPABASE_URL`
-(`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` (see
-[`do-app.yaml`](do-app.yaml)). Until this is configured the endpoint returns a
-401 challenge but the flow cannot complete.
+`https://tools.xdoubleu.com`. Set `SUPABASE_URL`
+(`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` as repo Secrets
+(see [`config/deploy.yml`](config/deploy.yml) for the full env list). Until
+this is configured the endpoint returns a 401 challenge but the flow cannot
+complete.
 
 ## Adding a New Tool
 
@@ -169,23 +171,28 @@ After scaffolding:
 
 ## Deploy Notes
 
+**Where deploys happen:** every push to `main` builds one merged `app` image
+and `.github/workflows/main.yml`'s `deploy-kamal` job ships it to the Hetzner
+VPS with Kamal. [`config/deploy.yml`](config/deploy.yml) is the deploy config
+(committed, read as-is — Kamal evaluates it as ERB), and every app secret is
+a **repo Secret**; see [`infra/README.md`](infra/README.md) for the full list,
+the one-time host bootstrap, and how to deploy or roll back by hand.
+OpenTofu under `infra/` provisions the host only — it does not deploy the app.
+DigitalOcean App Platform, which hosted this before #1029/#1034, was
+decommissioned in #1113.
+
 **Merged single-component deploy (issue #558, split into 3 processes in
-#904):** the api/web/gateway env vars all live on one `app` component in
-[`do-app.yaml`](do-app.yaml). `gateway` (`gateway/`) is PID 1 and spawns
-both `api` and the Next.js child; env vars only needed for local debugging
-(not set in production, defaults match): `WEB_PORT`/`WEB_NODE_BIN`/
-`WEB_SERVER_JS` (`3000`/`node`/`/app/web/server.js`) for the web child, and
-`API_PORT`/`API_BIN_PATH` (`8001`/`/app/bin/api`) for the api child.
-`GOMEMLIMIT=300MiB` is a soft ceiling so the Go GC(s) don't crowd out the
-Node child's `NODE_OPTIONS=--max-old-space-size=192` inside the shared
-512 MB instance — not yet re-tuned for the extra Go runtime #904 added, so
-watch `docker stats` after that deploy specifically. The merge is only
-cost-neutral-or-better if peak memory (steady-state plus a PDF→EPUB
-conversion) stays under the 512 MB instance; if `docker stats` on the
-deployed image shows it running close to that ceiling, move `do-app.yaml`'s
-`app` component to the 1 GB tier rather than let it OOM — at that point the
-~$5/mo saving from merging is gone and the two-component shape (revert this
-change) is no worse.
+#904):** api/web/gateway ship in one image and one container. `gateway`
+(`gateway/`) is PID 1 and spawns both `api` and the Next.js child; env vars
+only needed for local debugging (not set in production, defaults match):
+`WEB_PORT`/`WEB_NODE_BIN`/`WEB_SERVER_JS` (`3000`/`node`/`/app/web/server.js`)
+for the web child, and `API_PORT`/`API_BIN_PATH` (`8001`/`/app/bin/api`) for
+the api child. `GOMEMLIMIT=300MiB` is a soft ceiling so the Go GC(s) don't
+crowd out the Node child's `NODE_OPTIONS=--max-old-space-size=192` — sized
+for the 512 MB DO instance this originally targeted and not re-tuned for the
+extra Go runtime #904 added, nor for the VPS it now runs on (a CX22/23 with
+4 GB, so the pressure that motivated it is largely gone). Watch
+`docker stats` on the VPS before changing it.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin
@@ -197,14 +204,16 @@ re-applied if a bucket is recreated.
 provider needs its own OAuth App registered once, with callback URL
 `https://tools.xdoubleu.com/api/admin/oauth/{provider}/callback` (`github`, `sentry`,
 `digitalocean`). The resulting client id/secret pairs, plus a generated
-`ENCRYPTION_KEY` (`openssl rand -base64 32`), are declared as `SECRET`
-placeholders in [`do-app.yaml`](do-app.yaml) but must be pushed to the *live* DO App
-explicitly — editing `do-app.yaml` alone doesn't update a running app:
+`ENCRYPTION_KEY` (`openssl rand -base64 32`), are set as repo Secrets and
+listed in [`config/deploy.yml`](config/deploy.yml)'s `env.secret`:
 
 ```bash
-doctl apps update <DO_APP_ID> --spec do-app.yaml
-# then set each secret's value via `doctl apps update --env` or the DO dashboard
+gh secret set SENTRY_OAUTH_CLIENT_ID   # etc. — see infra/README.md for all names
 ```
+
+They take effect on the next deploy to `main`. Note the `digitalocean`
+provider is a *monitoring integration* and is unrelated to where this app is
+hosted — it survived DO's decommissioning as a host (#1113).
 
 Until all six vars are set, the api logs a startup warning per missing provider and
 its "Connect" button on `/monitoring` fails with a provider-side error instead of
@@ -214,8 +223,8 @@ mechanics.
 **New-issue notification emails (issue #561):** a background job (`notify-new-issues`,
 runs every 5 minutes) emails an admin the first time a new unresolved Sentry issue or a
 failed DigitalOcean deployment is seen, via the [Resend](https://resend.com) API (free
-tier). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `NOTIFY_EMAIL_TO` (also `SECRET`
-placeholders in [`do-app.yaml`](do-app.yaml), pushed the same way as above). Any unset
+tier). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `NOTIFY_EMAIL_TO` (repo Secrets,
+same as above). Any unset
 var makes the job a no-op — it still runs and records nothing, rather than failing.
 
 **Email-relay newsletter feeds (issue #595):** lets a user subscribe a newsletter that
@@ -229,8 +238,8 @@ not a new provider) — one-time setup:
 2. Register an inbound webhook endpoint (`https://tools.xdoubleu.com/api/feeds/email/inbound`)
    subscribed to the `email.received` event; copy its signing secret into
    `EMAIL_INBOUND_SECRET`.
-3. Set `EMAIL_INBOUND_DOMAIN` to the receiving domain from step 1 (also `SECRET`
-   placeholders in [`do-app.yaml`](do-app.yaml), pushed the same way as above).
+3. Set `EMAIL_INBOUND_DOMAIN` to the receiving domain from step 1 (repo Secrets,
+   same as above).
 
 Either var unset disables the feature: `CreateFeed(kind=EMAIL)` refuses to mint an
 address, and the webhook endpoint rejects every request rather than accepting unsigned

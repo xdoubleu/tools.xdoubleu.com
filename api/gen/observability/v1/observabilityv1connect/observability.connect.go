@@ -97,8 +97,8 @@ type ObservabilityServiceClient interface {
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	// Server-streaming: each component's log is sent as soon as it resolves,
 	// rather than one response after every component finishes, so the first
-	// byte reaches the client well under DigitalOcean App Platform's ~25s edge
-	// request timeout regardless of how long the slowest component takes
+	// byte reaches the client well under the edge proxy's response timeout
+	// regardless of how long the slowest component takes
 	// (issue #672 — see api/cmd/api/routes.go).
 	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest]) (*connect.ServerStreamForClient[v1.ObservabilityServiceGetDeployLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
@@ -333,8 +333,8 @@ type ObservabilityServiceHandler interface {
 	GetDeployStatus(context.Context, *connect.Request[v1.GetDeployStatusRequest]) (*connect.Response[v1.GetDeployStatusResponse], error)
 	// Server-streaming: each component's log is sent as soon as it resolves,
 	// rather than one response after every component finishes, so the first
-	// byte reaches the client well under DigitalOcean App Platform's ~25s edge
-	// request timeout regardless of how long the slowest component takes
+	// byte reaches the client well under the edge proxy's response timeout
+	// regardless of how long the slowest component takes
 	// (issue #672 — see api/cmd/api/routes.go).
 	GetDeployLogs(context.Context, *connect.Request[v1.GetDeployLogsRequest], *connect.ServerStream[v1.ObservabilityServiceGetDeployLogsResponse]) error
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)

@@ -172,8 +172,9 @@ func TestDeploymentLogs_LiveDialFailureDegrades(t *testing.T) {
 // A live socket that DigitalOcean never closes (it kept streaming, or ignored
 // follow=false) must not hold the request open past liveLogDeadline — the
 // production hang behind issue #672, where concurrent live reads ran the full
-// fallback and pushed total wall-clock past DO's ~25s edge timeout, silently
-// resetting the connection. The read is bounded and returns what arrived,
+// fallback and pushed total wall-clock past the edge proxy's response timeout
+// (DO's fixed ~25s then), silently resetting the connection. The read is
+// bounded and returns what arrived,
 // flagged truncated.
 func TestDeploymentLogs_LiveNeverClosesIsBounded(t *testing.T) {
 	restore := digitalocean.SetLiveLogDeadline(300 * time.Millisecond)

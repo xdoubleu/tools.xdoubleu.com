@@ -37,11 +37,14 @@ import (
 // expires at the same instant the context does, so the eventual write
 // silently fails just like the original global-10s-timeout case.
 //
-// deployLogsCtxTimeout must also stay under DigitalOcean App Platform's own
-// ~25s edge request timeout (issue #672, second pass): at 50s the edge reset
-// the upstream connection (503 UC) at ~25s before the context deadline ever
-// fired, which is a silent failure — no log line, no Sentry event. Firing
-// first turns that into a logged, Sentry-reported error. The healthy path
+// deployLogsCtxTimeout must also stay under the edge proxy's response
+// timeout (issue #672, second pass): at 50s, DigitalOcean App Platform's
+// then-fixed ~25s edge reset the upstream connection (503 UC) before the
+// context deadline ever fired, which is a silent failure — no log line, no
+// Sentry event. Firing first turns that into a logged, Sentry-reported
+// error. The edge is kamal-proxy since #1113 and the ceiling is 30s (its
+// default; config/deploy.yml leaves proxy.response_timeout unset), so 20s
+// still clears it — but raising this means raising that too. The healthy path
 // completes in well under this (live reads are bounded by liveLogDeadline),
 // so it only bites a genuinely stuck call.
 const (
