@@ -225,11 +225,12 @@ Platform) still runs alongside it but is the one marked
 only so that component stays on a current image as a warm rollback target.
 It runs `kamal deploy` (not `setup`) against the
 already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
-(`webfactory/ssh-agent`, loading `KAMAL_SSH_KEY`) — same auth mechanism as
-the local `tofu apply` path, just with the key coming from a repo secret
-instead of whatever's already loaded in your own agent.
+(started by the job's own "Load the deploy SSH key" step, loading
+`KAMAL_SSH_KEY`) — same auth mechanism as the local `tofu apply` path, just
+with the key coming from a repo secret instead of whatever's already loaded
+in your own agent.
 
-`webfactory/ssh-agent` runs headless in CI and can't unlock a
+That agent runs headless in CI and can't unlock a
 passphrase-protected key, so don't reuse your own key here — generate a
 dedicated, unencrypted CI deploy key, add its public half to
 `deploy_ssh_public_keys` in `terraform.tfvars` (alongside your own key) and
@@ -239,6 +240,13 @@ private half as `KAMAL_SSH_KEY` below:
 ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
 gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> < ~/.ssh/kamal_ci_deploy
 ```
+
+Set it from the file like that rather than pasting into the web UI — the UI
+strips the key's trailing newline, and OpenSSH rejects the resulting PEM with
+`Error loading key "(stdin)": error in libcrypto` (issue #1106). The workflow
+now re-adds the newline defensively, but a key pasted with other damage
+(passphrase-protected, the `.pub` half, a PuTTY `.ppk`) still fails — the
+`deploy-kamal` job says so explicitly when it does.
 
 In `terraform.tfvars`, write each entry as either a **path** to the `.pub`
 file (`"~/.ssh/kamal_ci_deploy.pub"` — `main.tf`'s `local.deploy_ssh_public_keys`
