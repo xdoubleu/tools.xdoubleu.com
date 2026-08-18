@@ -235,13 +235,15 @@ ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
 gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> < ~/.ssh/kamal_ci_deploy
 ```
 
-Paste the public key's **literal text** into `deploy_ssh_public_keys`. Unlike
-the `-var 'deploy_ssh_public_keys=["'"$(cat ...)"'"]'` form above (where your
-shell expands `$(cat ...)` before Tofu ever sees it), a `.tfvars` file is not
-shell-interpolated: a `"$(cat ~/.ssh/kamal_ci_deploy.pub)"` entry is stored,
-and appended to the VPS's `authorized_keys`, as that exact string — sshd then
-ignores the unparsable line and the key never works. `variables.tf` has a
-`validation` block rejecting this at plan time.
+In `terraform.tfvars`, write each entry as either a **path** to the `.pub`
+file (`"~/.ssh/kamal_ci_deploy.pub"` — `main.tf`'s `local.deploy_ssh_public_keys`
+reads it) or the key's literal text. What does *not* work is
+`"$(cat ~/.ssh/kamal_ci_deploy.pub)"`: unlike the
+`-var 'deploy_ssh_public_keys=["'"$(cat ...)"'"]'` form above (where your shell
+expands it before Tofu ever sees it), a `.tfvars` file is not shell-interpolated,
+so that entry would be appended to the VPS's `authorized_keys` as that exact
+string — sshd then ignores the unparsable line and the key never works.
+`variables.tf` has a `validation` block rejecting it at plan time.
 
 **One-time setup**, GitHub repo Settings → Secrets and variables → Actions,
 Secrets tab. All of these — including `KAMAL_SERVER_IP` and
