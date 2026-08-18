@@ -81,7 +81,6 @@ proxy:
   # .github/workflows/main.yml's deploy-kamal job) so it's the one that
   # ends up owning initial cert issuance for the shared host.
   host: tools.xdoubleu.com
-  ssl: true
   app_port: 8000
   # /api/* and /.well-known/* both route here — everything else falls
   # through to web's catch-all registration (deploy.web.yml). Unstripped:
