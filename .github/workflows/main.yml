@@ -23,6 +23,7 @@ jobs:
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
       gateway: ${{ steps.filter.outputs.gateway }}
       sentrytools: ${{ steps.filter.outputs.sentrytools }}
+      infra: ${{ steps.filter.outputs.infra }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -66,6 +67,9 @@ jobs:
             sentrytools:
               - 'sentrytools/**'
               - '!sentrytools/**/*.md'
+            infra:
+              - 'infra/**'
+              - '!infra/**/*.md'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
@@ -534,3 +538,142 @@ jobs:
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
         run: bundle exec kamal deploy --skip-push --version="${KAMAL_VERSION:0:7}"
+
+  # Applies infra/ (firewall, OS hardening, self-hosted Postgres/GoTrue) on
+  # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
+  # state lives remotely in Cloudflare R2 (infra/versions.tf's backend
+  # block), not on any one laptop. Unlike deploy-kamal above, there's no
+  # "swap the container tag back" undo for what this applies: harden.sh and
+  # null_resource.postgres SSH into the box and mutate it in place. So this
+  # snapshots the VPS via the Hetzner API immediately before applying and,
+  # if the apply fails, rebuilds the server from that snapshot automatically
+  # — a real but lossy rollback (a few minutes of downtime, and anything
+  # written to Postgres between the snapshot and the failure is gone) rather
+  # than a "fix forward" model, which can't cleanly undo a broken SSH
+  # provisioner run. No manual approval gate: the snapshot/restore is the
+  # safety net, not a human click.
+  infra-apply:
+    needs: changes
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.changes.outputs.infra == 'true'
+    name: Apply Infra via OpenTofu
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: infra
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: opentofu/setup-opentofu@v1
+
+      # Same key/mechanism deploy-kamal uses above — it's already one of the
+      # authorized deploy_ssh_public_keys entries, so no separate key is
+      # needed for Tofu's own SSH provisioners.
+      - name: Load the deploy SSH key
+        env:
+          KAMAL_SSH_KEY: ${{ secrets.KAMAL_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          if ! printf '%s\n' "$KAMAL_SSH_KEY" | tr -d '\r' | ssh-add -; then
+            echo "::error::KAMAL_SSH_KEY is not a loadable unencrypted private key."
+            exit 1
+          fi
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
+
+      - name: Trust the VPS host key
+        env:
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+        run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
+
+      # endpoints.s3 embeds the Cloudflare account ID, which isn't hardcoded
+      # in the committed backend block (infra/versions.tf) — see
+      # infra/backend.hcl.example.
+      - name: tofu init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_R2_SECRET_ACCESS_KEY }}
+          TF_STATE_R2_ENDPOINT: ${{ secrets.TF_STATE_R2_ENDPOINT }}
+        run: |
+          cat > backend.hcl <<EOF
+          endpoints = { s3 = "$TF_STATE_R2_ENDPOINT" }
+          EOF
+          tofu init -backend-config=backend.hcl
+
+      # Async: create_image returns immediately with the action still
+      # running, and a rebuild later needs the image to actually be ready —
+      # so this polls the action instead of assuming it's done. Labeled so
+      # the prune step below only ever touches snapshots this job created.
+      - name: Snapshot the VPS before applying
+        id: snapshot
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          INFRA_SERVER_ID: ${{ secrets.INFRA_SERVER_ID }}
+        run: |
+          response=$(curl -sf -X POST "https://api.hetzner.cloud/v1/servers/$INFRA_SERVER_ID/actions/create_image" \
+            -H "Authorization: Bearer $HCLOUD_TOKEN" -H "Content-Type: application/json" \
+            -d '{"type":"snapshot","description":"ci-pre-apply","labels":{"purpose":"ci-pre-apply"}}')
+          image_id=$(echo "$response" | jq -r '.image.id')
+          action_id=$(echo "$response" | jq -r '.action.id')
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
+
+          deadline=$(( $(date +%s) + 300 ))
+          while true; do
+            status=$(curl -sf "https://api.hetzner.cloud/v1/actions/$action_id" \
+              -H "Authorization: Bearer $HCLOUD_TOKEN" | jq -r '.action.status')
+            [[ "$status" == "success" ]] && break
+            if [[ "$status" == "error" || $(date +%s) -ge $deadline ]]; then
+              echo "::error::Pre-apply snapshot did not complete (status: $status). Refusing to apply without a rollback point."
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: tofu apply
+        env:
+          TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+          TF_VAR_server_id: ${{ secrets.INFRA_SERVER_ID }}
+          TF_VAR_server_ip: ${{ secrets.KAMAL_SERVER_IP }}
+          TF_VAR_deploy_ssh_public_keys: ${{ vars.INFRA_DEPLOY_SSH_PUBLIC_KEYS }}
+          TF_VAR_gotrue_jwt_secret: ${{ secrets.GOTRUE_JWT_SECRET }}
+          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_gotrue_site_url: ${{ vars.GOTRUE_SITE_URL }}
+          TF_VAR_gotrue_smtp_admin_email: ${{ secrets.GOTRUE_SMTP_ADMIN_EMAIL }}
+        run: tofu apply -auto-approve -input=false
+
+      # The apply step above already failed the job; this restores the box
+      # and stays failed rather than trying to turn the run green.
+      - name: Restore snapshot on failure
+        if: failure() && steps.snapshot.outputs.image_id != ''
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          INFRA_SERVER_ID: ${{ secrets.INFRA_SERVER_ID }}
+          IMAGE_ID: ${{ steps.snapshot.outputs.image_id }}
+        run: |
+          echo "::error::tofu apply failed — rebuilding the VPS from the pre-apply snapshot ($IMAGE_ID). This is a lossy restore: a few minutes of downtime, and anything written since the snapshot is gone."
+          curl -sf -X POST "https://api.hetzner.cloud/v1/servers/$INFRA_SERVER_ID/actions/rebuild" \
+            -H "Authorization: Bearer $HCLOUD_TOKEN" -H "Content-Type: application/json" \
+            -d "{\"image\":$IMAGE_ID}"
+
+      # Keeps the newest 5 CI-generated snapshots (label_selector scopes
+      # this to ones this job created, never a manual snapshot taken outside
+      # CI) so storage cost doesn't grow unbounded. Runs regardless of
+      # whether apply succeeded or a restore just happened.
+      - name: Prune old CI snapshots
+        if: always()
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+        run: |
+          curl -sf "https://api.hetzner.cloud/v1/images?type=snapshot&label_selector=purpose=ci-pre-apply&sort=created:desc" \
+            -H "Authorization: Bearer $HCLOUD_TOKEN" \
+            | jq -r '.images[5:] | .[].id' \
+            | while read -r id; do
+                curl -sf -X DELETE "https://api.hetzner.cloud/v1/images/$id" \
+                  -H "Authorization: Bearer $HCLOUD_TOKEN"
+              done

@@ -1,0 +1,7 @@
+# Copy to backend.hcl (gitignored) and fill in your Cloudflare account ID.
+# `tofu init -backend-config=backend.hcl` reads it — the endpoint embeds the
+# account ID, which isn't something to hand-copy into a committed file (see
+# versions.tf's backend block for the rest of the config).
+endpoints = {
+  s3 = "https://<account-id>.r2.cloudflarestorage.com"
+}

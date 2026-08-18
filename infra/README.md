@@ -6,12 +6,60 @@ Supabase). Manages the firewall, OS-level hardening, and self-hosted Postgres
 (issue #1031) and GoTrue (issue #1032); the server itself is created
 manually.
 
-**Tofu provisions the host; it does not deploy the app.** Tofu is run
-locally, and only for one-time/rare provisioning. The app is deployed by
-`.github/workflows/main.yml`'s `deploy-kamal` job on every push to `main`,
-which is also where every app secret lives (as repo Secrets) — see "Deploy
-the app via Kamal" below. Tofu used to run `kamal setup` itself and carry a
-duplicate copy of all 25 app secrets as tfvars; that was removed in #1113.
+**Tofu provisions the host; it does not deploy the app.** The app is
+deployed by `.github/workflows/main.yml`'s `deploy-kamal` job on every push
+to `main`, which is also where every app secret lives (as repo Secrets) —
+see "Deploy the app via Kamal" below. Tofu used to run `kamal setup` itself
+and carry a duplicate copy of all 25 app secrets as tfvars; that was removed
+in #1113.
+
+**Tofu applies automatically in CI, same as the app deploy** (issues
+#1053/#1057/#1058/#1060). State lives in Cloudflare R2, not on any one
+laptop — see "Remote state" below — and `.github/workflows/main.yml`'s
+`infra-apply` job runs `tofu apply` on every push to `main` that touches
+`infra/**`, with no manual approval step. Local `tofu plan`/`apply` still
+work (see "Apply" below) for iterating on a change before opening a PR, or
+as the manual escape hatch if CI is down — same relationship local Kamal
+commands have to `deploy-kamal`.
+
+## Remote state
+
+State is stored in a dedicated Cloudflare R2 bucket (S3-compatible), not
+the app's own `R2_BUCKET` — a separate bucket and a separate, narrowly
+scoped API token, so a leaked credential for one doesn't imply access to
+the other. `infra/versions.tf`'s `backend "s3"` block holds everything
+that isn't account-specific (bucket name, `use_lockfile` for locking — R2
+has no DynamoDB-equivalent, so this relies on OpenTofu 1.10+'s native
+S3-backend lockfile locking — and the `skip_*` flags R2's API needs since
+it isn't a full AWS S3 implementation). The endpoint URL embeds your
+Cloudflare account ID, which isn't hardcoded into a committed file; it's
+supplied at `tofu init` time via `-backend-config`.
+
+**One-time setup:**
+
+1. Cloudflare dashboard → R2 → create a bucket (e.g.
+   `tools-xdoubleu-com-tfstate`), matching the `bucket` name in
+   `infra/versions.tf`.
+2. R2 → Manage API tokens → create a token scoped to **only** that bucket,
+   Object Read & Write. Note the Access Key ID/Secret Access Key pair R2
+   gives you (its S3-compatible credentials, not the Cloudflare API token
+   itself) and your account's R2 endpoint
+   (`https://<account-id>.r2.cloudflarestorage.com`).
+3. `cp infra/backend.hcl.example infra/backend.hcl` (gitignored) and fill in
+   the endpoint.
+4. Migrate the existing local state up:
+   ```bash
+   cd infra
+   export AWS_ACCESS_KEY_ID=<r2 access key id>
+   export AWS_SECRET_ACCESS_KEY=<r2 secret access key>
+   tofu init -backend-config=backend.hcl -migrate-state
+   ```
+   Confirm `tofu plan` shows no diff afterward — that proves the migrated
+   state matches reality, not just that the migration command succeeded.
+
+Every local `tofu` command from then on needs those same two env vars set
+(and `-backend-config=backend.hcl` on `init`, once per checkout/`.terraform`
+directory) — `tofu plan`/`apply` themselves take no extra flags for this.
 
 ## One-time setup
 
@@ -42,13 +90,16 @@ duplicate copy of all 25 app secrets as tfvars; that was removed in #1113.
 Tofu doesn't persist `-var` values between runs, so passing them on every
 `plan`/`apply` gets old fast. Copy `terraform.tfvars.example` to
 `terraform.tfvars` (gitignored — never commit it) and fill in real values;
-Tofu auto-loads it, so `plan`/`apply` need no `-var` flags at all:
+Tofu auto-loads it, so `plan`/`apply` need no `-var` flags at all. `init`
+needs the R2 backend credentials from "Remote state" above and
+`-backend-config=backend.hcl` (once per checkout/`.terraform` directory):
 
 ```bash
 cd infra
 cp terraform.tfvars.example terraform.tfvars
 $EDITOR terraform.tfvars   # fill in real values
-tofu init
+export AWS_ACCESS_KEY_ID=<r2 access key id> AWS_SECRET_ACCESS_KEY=<r2 secret access key>
+tofu init -backend-config=backend.hcl
 tofu plan
 tofu apply
 ```
@@ -313,6 +364,83 @@ succeeds in the Actions tab, then `curl https://tools.xdoubleu.com/health`.
 **External uptime monitoring** (also part of #1036, not automatable from
 here — a manual account-setup step): an UptimeRobot free-tier monitor, 5
 minute interval, against `https://tools.xdoubleu.com/health`.
+
+## Automate infra apply in CI (issues #1053/#1057/#1058/#1060)
+
+`.github/workflows/main.yml`'s `infra-apply` job runs on every push to
+`main` that touches `infra/**` (`environment: production`, the same
+branch-restricted Environment `deploy-kamal` uses — only a push to `main`
+can populate its secrets). It:
+
+1. Loads the same `KAMAL_SSH_KEY` deploy-kamal uses (already one of the
+   authorized `deploy_ssh_public_keys` entries) and trusts the VPS host
+   key, same steps as `deploy-kamal`.
+2. `tofu init`s against the R2 backend.
+3. **Snapshots the VPS** via the Hetzner API
+   (`POST /servers/{id}/actions/create_image`) and polls until the snapshot
+   is actually ready, labeled `purpose=ci-pre-apply` so later steps (and a
+   human browsing the Hetzner console) can tell CI's snapshots apart from
+   any you take by hand.
+4. `tofu apply -auto-approve`.
+5. **On failure**, calls the Hetzner API to rebuild the server from that
+   snapshot (`POST /servers/{id}/actions/rebuild`) automatically, then lets
+   the job stay failed. This is a real but lossy rollback: rebuilding from a
+   snapshot causes a few minutes of downtime and discards anything written
+   (including to Postgres) between the snapshot and the failure — accepted
+   because there's no clean "fix forward" undo for a broken `harden.sh` or
+   `postgres-compose.yml` mutation applied over SSH, unlike the app's own
+   deploy (Kamal already won't cut traffic to a container that fails its
+   health check).
+6. **Always** prunes old CI snapshots, keeping only the newest 5.
+
+There is deliberately **no manual approval gate** — not even scoped to the
+Postgres-touching resources — and deliberately no PR-time `tofu plan`
+check either: running `tofu plan` against the real remote state from a
+`pull_request` trigger would need the same credentials as `apply`
+(including `HCLOUD_TOKEN` and the R2 write key), but `production`'s branch
+restriction — the whole point of putting these secrets there instead of
+plain repo Secrets — means a PR run can't reach them without either
+duplicating the credentials outside that Environment (undoing the
+protection) or accepting that a PR could read them. The automatic
+snapshot/restore above is the safety net instead.
+
+**If the auto-restore step itself doesn't run** (e.g. the job was
+cancelled mid-apply, before reaching that step): restore manually from the
+Hetzner console (Servers → the VPS → Snapshots → find the newest
+`ci-pre-apply`-labeled one → Rebuild from Image) or via the same API call
+the workflow uses, with `$HCLOUD_TOKEN` and the image ID from either the
+console or `curl https://api.hetzner.cloud/v1/images?type=snapshot&label_selector=purpose=ci-pre-apply`.
+
+**One-time setup**, GitHub repo Settings → Environments → `production` →
+Environment secrets, alongside `deploy-kamal`'s existing ones:
+```
+HCLOUD_TOKEN                   (Hetzner Cloud API token, read+write)
+INFRA_SERVER_ID                (same value as server_id in terraform.tfvars)
+GOTRUE_JWT_SECRET               (same value as gotrue_jwt_secret)
+GOTRUE_SMTP_ADMIN_EMAIL          (same value as gotrue_smtp_admin_email)
+TF_STATE_R2_ACCESS_KEY_ID       (the scoped R2 token's Access Key ID)
+TF_STATE_R2_SECRET_ACCESS_KEY   (the scoped R2 token's Secret Access Key)
+TF_STATE_R2_ENDPOINT            (same value as in infra/backend.hcl)
+```
+Plus two repo-level Variables (Settings → Secrets and variables → Actions
+→ Variables tab — not Secrets, since neither value is sensitive: public
+keys and the app's own public URL):
+```
+INFRA_DEPLOY_SSH_PUBLIC_KEYS   (JSON array of literal key text, e.g.
+                                '["ssh-ed25519 AAAA... me", "ssh-ed25519 AAAA... kamal-ci-deploy"]' —
+                                same keys as deploy_ssh_public_keys in
+                                terraform.tfvars, but as literal text: the
+                                CI runner has no access to your local
+                                ~/.ssh/*.pub files to read a path from)
+GOTRUE_SITE_URL                (same value as gotrue_site_url)
+```
+`KAMAL_SERVER_IP` and `RESEND_API_KEY` are reused from `deploy-kamal`'s
+existing secrets — no new value needed for either.
+
+**Verify**: push a trivial change to `infra/harden.sh` (a comment edit is
+enough), confirm `infra-apply` runs and succeeds in the Actions tab, and
+that a new snapshot appears in the Hetzner console labeled
+`ci-pre-apply`.
 
 ## Cutover (issue #1034)
 
