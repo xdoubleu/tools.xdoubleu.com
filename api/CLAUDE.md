@@ -96,7 +96,7 @@ apps/<name>/
 - **`auth`** — see above.
 - **`config`** — centralized config, loaded from `.env`/environment variables.
 - **`connecttools`** — `MapError`, shared by any app's ConnectRPC handlers to translate `database.ErrResourceNotFound`/`ErrResourceConflict` and `iapp.HTTPError` into the matching Connect error code, so recipes/mealplans/shoppinglist (and any future app with the same DB/HTTPError-to-Connect mapping needs) don't each reimplement it.
-- **`sentrytools`** — `Middleware` (Connect/HTTP request-scoped Sentry hub) and `GoRoutineWrapper` (background-goroutine Sentry tracing). The slog→Sentry `LogHandler` and startup `Init` used to live here too but moved to the repo-root `sentrytools/` module (its own `go.mod`) once `gateway` turned out to need a byte-for-byte copy — see root `CLAUDE.md`'s CI section.
+- **`sentrytools`** — `Middleware` (Connect/HTTP request-scoped Sentry hub) and `GoRoutineWrapper` (background-goroutine Sentry tracing). The slog→Sentry `LogHandler` and startup `Init` used to live here too but moved to the repo-root `sentrytools/` module (its own `go.mod`) once a second consumer needed the exact same byte-for-byte logic (issue #926) — see root `CLAUDE.md`'s CI section.
 - **`contacts`** — contact management (editable display names) shared by recipes/mealplans/shoppinglist sharing. `AddByEmail` emails the recipient after the request is persisted; a send failure is logged, never fails the request.
 - **`crypto`** — AES-256-GCM `Sealer`, used to encrypt OAuth tokens at rest.
 - **`mailer`** — thin Resend HTTP client (no SDK). `Send` (fixed recipient) and `SendTo` (arbitrary recipient) share `ErrNotConfigured` degrade-gracefully semantics when the API key/from/to is unset.

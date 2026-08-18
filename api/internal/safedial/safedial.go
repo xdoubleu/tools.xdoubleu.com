@@ -1,7 +1,7 @@
 // Package safedial builds http.Clients that refuse to connect to non-public
 // IP addresses, so a user-supplied URL can't be turned into a request against
-// the container's own network (SSRF): cloud metadata (169.254.169.254), the
-// api/gateway on loopback, or anything on an internal RFC1918 range.
+// the container's own network (SSRF): cloud metadata (169.254.169.254), api
+// itself on loopback, or anything on an internal RFC1918 range.
 //
 // The check runs in [net.Dialer.Control], i.e. on the resolved IP of every
 // connection attempt. That covers redirect hops and DNS rebinding for free —

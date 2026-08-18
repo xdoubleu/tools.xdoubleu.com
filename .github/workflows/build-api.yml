@@ -37,5 +37,11 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/api:latest
             ghcr.io/${{ github.repository }}/api:${{ github.sha }}
+          # Kamal's `validate_image` step (kamal build/deploy) rejects any
+          # image pulled without this exact label — it normally stamps it
+          # itself via `kamal build`, but we build via buildx directly and
+          # deploy with --skip-push. Must match `service:` in
+          # config/deploy.api.yml.
+          labels: service=tools-xdoubleu-com-api
           cache-from: type=gha,scope=api
           cache-to: type=gha,scope=api,mode=max

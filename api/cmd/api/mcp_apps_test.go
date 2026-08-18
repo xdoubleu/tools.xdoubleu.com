@@ -176,12 +176,13 @@ func TestAppsMCPInvalidToken(t *testing.T) {
 }
 
 // TestAppsMCPHandlerAllowsNonLoopbackHost is issue #944's actual regression:
-// gateway always proxies to api over 127.0.0.1 (see gateway/internal/gateway/
-// proxy.go) while preserving the original external Host header, so the
-// go-sdk's default DNS-rebinding guard (loopback local address + non-loopback
-// Host) 403'd every real request regardless of how valid the caller's Bearer
-// token was. Asserts DisableLocalhostProtection actually took effect by
-// hitting a real listener (loopback local address) with a non-loopback Host.
+// a proxy in front of api that preserves the original external Host header
+// while itself reaching api over a loopback address (the once-retired
+// gateway/ module did exactly this) trips the go-sdk's default
+// DNS-rebinding guard (loopback local address + non-loopback Host), 403ing
+// every real request regardless of how valid the caller's Bearer token was.
+// Asserts DisableLocalhostProtection actually took effect by hitting a real
+// listener (loopback local address) with a non-loopback Host.
 func TestAppsMCPHandlerAllowsNonLoopbackHost(t *testing.T) {
 	ts := httptest.NewServer(testApp.appsMCPHandler())
 	t.Cleanup(ts.Close)

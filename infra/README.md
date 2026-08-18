@@ -203,21 +203,28 @@ host; nothing under `infra/` runs Kamal. This section covers the one-time
 bootstrap and the manual escape hatch.
 
 Since cutover (#1034) the app is served on the real domain, not the raw IP:
-`config/deploy.yml` sets `proxy.host: tools.xdoubleu.com` + `proxy.ssl:
-true`, so kamal-proxy obtains and renews a Let's Encrypt cert itself over the
-HTTP-01 challenge (port 80, already open in `hcloud_firewall.vps`) — nothing
-to configure per deploy. Postgres and GoTrue stay exactly as OpenTofu manages
-them above (**not** Kamal accessories) — the app container Kamal starts
-reaches them over the shared `kamal` Docker network
+`config/deploy.api.yml`/`config/deploy.web.yml` both set
+`proxy.host: tools.xdoubleu.com` + `proxy.ssl: true`, so kamal-proxy obtains
+and renews a Let's Encrypt cert itself over the HTTP-01 challenge (port 80,
+already open in `hcloud_firewall.vps`) — nothing to configure per deploy.
+`api` and `web` deploy as two independent Kamal services sharing that one
+kamal-proxy instance and domain (issue #1038) — kamal-proxy routes
+`/api/*`/`/.well-known/*` to `api` (`config/deploy.api.yml`'s
+`proxy.path_prefix`) and everything else to `web`. Postgres and GoTrue stay
+exactly as OpenTofu manages them above (**not** Kamal accessories) — the app
+containers Kamal starts reach them over the shared `kamal` Docker network
 `null_resource.kamal_network` creates before Postgres comes up (see that
 resource's comment in `infra/main.tf` for why the ordering matters).
 
 ### One-time bootstrap
 
-The CI job runs `kamal deploy`, which assumes kamal-proxy is already
-installed on the host. A fresh host needs `kamal setup` once, by hand. This
-has already been done for the current VPS — you only need it if you rebuild
-the box.
+The CI job runs `kamal deploy` for each of `api`/`web`, which assumes
+kamal-proxy is already installed on the host. A fresh host needs
+`kamal setup -c config/deploy.api.yml` **and**
+`kamal setup -c config/deploy.web.yml` once, by hand — each deploys that one
+service for the first time; kamal-proxy itself only actually installs on
+whichever runs first (idempotent on the second). This has already been done
+for the current VPS — you only need it if you rebuild the box.
 
 ### Manual deploy or rollback
 
@@ -227,34 +234,40 @@ kamal` separately and drift). **On macOS the system Ruby at `/usr/bin/ruby`
 doesn't qualify** (stuck on 2.6, root-owned gem dir); `brew install ruby` and
 put it ahead of the system one on `PATH`.
 
-`config/deploy.yml` is committed and read as-is — Kamal evaluates it as ERB,
-so there is no render step; it just needs the right environment.
+`config/deploy.api.yml`/`config/deploy.web.yml` are committed and read
+as-is — Kamal evaluates each as ERB, so there is no render step; each just
+needs the right environment and its own `-c` flag.
 
 ```bash
-# 1. The two values config/deploy.yml reads via ERB
+# 1. The two values config/deploy.api.yml/deploy.web.yml both read via ERB
 export KAMAL_SERVER_IP=<vps ip> KAMAL_REGISTRY_USERNAME=<ghcr user>
 
 # 2. Every name .kamal/secrets references — same values as the repo Secrets
-#    in the CI job's env: block, which is where they actually live.
+#    in the CI job's env: block, which is where they actually live. Both
+#    deploys read from the same .kamal/secrets file; each config's own
+#    env.secret only pulls the names it references.
 export RELEASE=<full sha> DB_DSN=... KAMAL_REGISTRY_PASSWORD=...   # etc.
 
-# 3. Deploy a specific already-built image (--skip-push: CI built and pushed
-#    it; the tag is a 7-char short SHA, per docker.yml's metadata-action)
-bundle exec kamal deploy --skip-push --version=<short-sha>
+# 3. Deploy specific already-built images (--skip-push: CI built and pushed
+#    them; the tag is the full commit SHA, per build-api.yml/build-web.yml)
+bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version=<sha>
+bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version=<sha>
 ```
 
-`bundle exec kamal config` renders everything without deploying — use it to
-check the environment is complete before a real run.
+`bundle exec kamal config -c config/deploy.api.yml` (or `.web.yml`) renders
+everything without deploying — use it to check the environment is complete
+before a real run.
 
-To roll back, pass an earlier `--version` (or `bundle exec kamal rollback`).
-Kamal will not cut traffic to a container that fails its `/health` readiness
-probe — a bad deploy leaves the previous container serving rather than taking
-the site down.
+To roll back, pass an earlier `--version` (or `bundle exec kamal rollback -c
+config/deploy.api.yml`/`.web.yml`) — each service rolls back independently,
+without touching the other. Kamal will not cut traffic to a container that
+fails its `/health` readiness probe — a bad deploy leaves the previous
+container serving rather than taking the site down.
 
-Verify with `curl https://tools.xdoubleu.com/health` plus a real sign-in
-through the app (not just GoTrue directly — that exercises
-`WithCustomAuthURL` end to end, which #1032's isolated GoTrue smoke test does
-not).
+Verify with `curl https://tools.xdoubleu.com/api/version` (api) and
+`curl https://tools.xdoubleu.com/` (web) plus a real sign-in through the app
+(not just GoTrue directly — that exercises `WithCustomAuthURL` end to end,
+which #1032's isolated GoTrue smoke test does not).
 
 ## Automate Kamal deploys in CI (issue #1036)
 
@@ -267,8 +280,10 @@ run alongside it was removed in #1113, together with `do-app.yaml` and the
 
 The repo Secrets listed below are the **single source of truth** for every
 app secret — they are deliberately not duplicated as tfvars.
-It runs `kamal deploy` (not `setup`) against the
-already-bootstrapped host, authenticating over SSH via a real `ssh-agent`
+It runs `kamal deploy` (not `setup`) twice — once against
+`config/deploy.api.yml`, once against `config/deploy.web.yml` (issue
+#1038's two independent-service split) — against the already-bootstrapped
+host, authenticating over SSH via a real `ssh-agent`
 (started by the job's own "Load the deploy SSH key" step, loading
 `KAMAL_SSH_KEY`) — same auth mechanism as the local `tofu apply` path, just
 with the key coming from a repo secret instead of whatever's already loaded
@@ -449,7 +464,8 @@ For the record, all it took was:
 
 1. Point Cloudflare's A/AAAA records for the apex at the VPS's IP, leaving
    every other record (Resend's SPF/DKIM/DMARC in particular) untouched.
-2. `proxy.host`/`proxy.ssl` in `config/deploy.yml`, plus
+2. `proxy.host`/`proxy.ssl` in `config/deploy.yml` (now
+   `config/deploy.api.yml`/`config/deploy.web.yml` post-#1038), plus
    `WEB_URL`/`API_URL` moved off the raw IP onto `https://tools.xdoubleu.com`
    — then the next deploy picks it up and kamal-proxy issues the cert on its
    next boot. Watch it happen with

@@ -10,10 +10,11 @@ import (
 
 const healthCheckTimeout = 5 * time.Second
 
-// healthPath matches the literal gateway/internal/gateway/proxy.go routes
-// unstripped to this api process rather than proxying it to the Next.js
-// child — a routing contract between the two independently deployed
-// binaries, not something shared via Go code across the module boundary.
+// healthPath is checked directly by Kamal's own deploy-time healthcheck
+// (config/deploy.api.yml's proxy.healthcheck.path), which hits this
+// container over the internal Docker network — entirely bypassing
+// kamal-proxy's public path-prefix routing, so it's unaffected by
+// stripAPIPathPrefix (kamal_proxy_shim.go).
 const healthPath = "/health"
 
 func (app *Application) healthHandler(w http.ResponseWriter, r *http.Request) {

@@ -67,14 +67,13 @@ func (app *Application) appsMCPHandler() http.Handler {
 	srv := app.newAppsMCPServer()
 	// DisableLocalhostProtection: the go-sdk's default DNS-rebinding guard
 	// 403s any request whose accepted-connection local address is loopback
-	// but whose Host header isn't — which is every request here, since
-	// gateway always proxies to api over 127.0.0.1 (see gateway/internal/
-	// gateway/proxy.go) while preserving the original external Host header.
-	// That guard protects locally-run dev MCP servers from malicious
-	// websites; it doesn't apply to this deploy shape, where the only
-	// loopback caller is our own trusted gateway process and the real
-	// security boundary is the Bearer-token check in mcpBearerRoute, which
-	// already wraps this handler.
+	// but whose Host header isn't. This deploy never puts api behind a
+	// loopback proxy — kamal-proxy reaches it over the Docker bridge
+	// network (config/deploy.api.yml), not 127.0.0.1 — so the guard
+	// wouldn't fire here regardless of this flag. Disabled anyway rather
+	// than relying on that distinction, since the real security boundary
+	// for this endpoint is the Bearer-token check in mcpBearerRoute, which
+	// already wraps this handler and doesn't care how the request arrived.
 	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
 	return mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return srv },

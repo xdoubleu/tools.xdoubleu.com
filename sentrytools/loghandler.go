@@ -1,6 +1,7 @@
 // Package sentrytools contains tools for wiring Go's slog into Sentry,
-// shared by every component (api, gateway) that wants Error-level log
-// records reported as Sentry events.
+// pulled into a standalone module so any Go component in this repo that
+// wants Error-level log records reported as Sentry events can reuse it via
+// a local `replace` directive without duplicating the logic.
 package sentrytools
 
 import (

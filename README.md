@@ -90,19 +90,18 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 
 Each tool uses its own PostgreSQL schema. Shared Go code lives in `api/internal/` (auth, config, encryption, templates, repositories).
 
-**Deploy shape:** `api`, `web`, and `gateway` build into one Docker image
-(root `Dockerfile`) and run as a single container, deployed by Kamal to a
-Hetzner VPS (issue #558 merged them into one image back when the target was
-DigitalOcean App Platform, which bills per component and had api/web on
-separate smallest-tier instances; split into 3 processes in #904).
-`gateway` (`gateway/`, its own Go module) is PID 1; it spawns both `api` and
-the Next.js standalone server as supervised children and reverse-proxies
-every request between them, stripping `/api` for the api child and routing
-everything else to the web child — the same split the two-component ingress
-used to provide. `api` itself has no awareness of any of this.
-`api` and `gateway` both pull their slog→Sentry logging glue from a third,
-tiny Go module, `sentrytools/` (own `go.mod`, no deployable artifact of its
-own), via a local `replace` directive rather than duplicating it.
+**Deploy shape:** `api` and `web` each build their own Docker image
+(`api/Dockerfile`, `web/Dockerfile`) and deploy as two independent Kamal
+services (`config/deploy.api.yml`, `config/deploy.web.yml`) to a Hetzner VPS,
+sharing one kamal-proxy instance and domain. kamal-proxy routes `/api/*` and
+`/.well-known/*` to `api`, everything else to `web` — replicating the
+ingress split a hand-rolled `gateway/` Go module used to provide as PID 1 in
+a single merged container (issue #558 merged them back when the target was
+DigitalOcean App Platform, which bills per component; DO was decommissioned
+in #1113, and `gateway/` was retired along with the merge in #1038).
+`api` pulls its slog→Sentry logging glue from a second, tiny Go module,
+`sentrytools/` (own `go.mod`, no deployable artifact of its own), via a
+local `replace` directive rather than duplicating it.
 
 ## Apps MCP server
 
@@ -144,9 +143,9 @@ enable the OAuth 2.1 server, set the **Authorization Path** to `/oauth/consent`,
 enable **dynamic client registration**, and confirm the **Site URL** is
 `https://tools.xdoubleu.com`. Set `SUPABASE_URL`
 (`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` as repo Secrets
-(see [`config/deploy.yml`](config/deploy.yml) for the full env list). Until
-this is configured the endpoint returns a 401 challenge but the flow cannot
-complete.
+(see [`config/deploy.api.yml`](config/deploy.api.yml)/[`config/deploy.web.yml`](config/deploy.web.yml)
+for the full env list). Until this is configured the endpoint returns a 401
+challenge but the flow cannot complete.
 
 ## Adding a New Tool
 
@@ -173,26 +172,27 @@ After scaffolding:
 
 **Where deploys happen:** every push to `main` builds one merged `app` image
 and `.github/workflows/main.yml`'s `deploy-kamal` job ships it to the Hetzner
-VPS with Kamal. [`config/deploy.yml`](config/deploy.yml) is the deploy config
-(committed, read as-is — Kamal evaluates it as ERB), and every app secret is
+VPS with Kamal. [`config/deploy.api.yml`](config/deploy.api.yml) and
+[`config/deploy.web.yml`](config/deploy.web.yml) are the deploy configs
+(committed, read as-is — Kamal evaluates each as ERB), and every app secret is
 a **repo Secret**; see [`infra/README.md`](infra/README.md) for the full list,
 the one-time host bootstrap, and how to deploy or roll back by hand.
 OpenTofu under `infra/` provisions the host only — it does not deploy the app.
 DigitalOcean App Platform, which hosted this before #1029/#1034, was
 decommissioned in #1113.
 
-**Merged single-component deploy (issue #558, split into 3 processes in
-#904):** api/web/gateway ship in one image and one container. `gateway`
-(`gateway/`) is PID 1 and spawns both `api` and the Next.js child; env vars
-only needed for local debugging (not set in production, defaults match):
-`WEB_PORT`/`WEB_NODE_BIN`/`WEB_SERVER_JS` (`3000`/`node`/`/app/web/server.js`)
-for the web child, and `API_PORT`/`API_BIN_PATH` (`8001`/`/app/bin/api`) for
-the api child. `GOMEMLIMIT=300MiB` is a soft ceiling so the Go GC(s) don't
-crowd out the Node child's `NODE_OPTIONS=--max-old-space-size=192` — sized
-for the 512 MB DO instance this originally targeted and not re-tuned for the
-extra Go runtime #904 added, nor for the VPS it now runs on (a CX22/23 with
-4 GB, so the pressure that motivated it is largely gone). Watch
-`docker stats` on the VPS before changing it.
+**Two independent services (issue #558, split into 3 processes in #904,
+split back into 2 independent services in #1038):** `api` and `web` deploy
+as two independent Kamal services on the VPS, sharing one kamal-proxy
+instance and domain. kamal-proxy routes `/api/*` and `/.well-known/*` to
+`api` (unstripped — `api/cmd/api/kamal_proxy_shim.go` strips `/api` itself),
+everything else to `web`. This replaces a hand-rolled `gateway/` Go module
+that used to be PID 1 in a single merged container and reverse-proxy
+between `api` and the Next.js child; `GOMEMLIMIT=300MiB` on `api`'s own
+config is a leftover soft ceiling from when it shared a container's memory
+with the Node child — worth re-tuning now that `api` runs in its own
+container, but not re-sized as part of #1038. Watch `docker stats` on the
+VPS before changing it.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin
@@ -205,7 +205,7 @@ provider needs its own OAuth App registered once, with callback URL
 `https://tools.xdoubleu.com/api/admin/oauth/{provider}/callback` (`github`, `sentry`,
 `digitalocean`). The resulting client id/secret pairs, plus a generated
 `ENCRYPTION_KEY` (`openssl rand -base64 32`), are set as repo Secrets and
-listed in [`config/deploy.yml`](config/deploy.yml)'s `env.secret`:
+listed in [`config/deploy.api.yml`](config/deploy.api.yml)'s `env.secret`:
 
 ```bash
 gh secret set SENTRY_OAUTH_CLIENT_ID   # etc. — see infra/README.md for all names

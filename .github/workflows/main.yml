@@ -21,7 +21,6 @@ jobs:
       proto: ${{ steps.proto-workflows.outputs.proto }}
       workflows: ${{ steps.proto-workflows.outputs.workflows }}
       kobo_gateway: ${{ steps.filter.outputs.kobo_gateway }}
-      gateway: ${{ steps.filter.outputs.gateway }}
       sentrytools: ${{ steps.filter.outputs.sentrytools }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
@@ -45,25 +44,18 @@ jobs:
               - 'web/**'
               - '!web/**/*.md'
             # The kobo-gateway binary ships inside the WEB image (served as
-            # a download), so kobo-gateway code changes must rebuild web too.
-            # It's its own Go module (kobo-gateway/) — cgo + AppKit, built
-            # separately on macOS (see build-kobo-gateway.yml), not part of
-            # api/.
+            # a download, staged by build-web.yml itself since #1038), so
+            # kobo-gateway code changes must rebuild web too. It's its own Go
+            # module (kobo-gateway/) — cgo + AppKit, built separately on
+            # macOS (see build-kobo-gateway.yml), not part of api/.
             kobo_gateway:
               - 'kobo-gateway/**'
               - '!kobo-gateway/**/*.md'
-            # gateway/ is an ordinary Go module (routing + process
-            # supervision, no cgo) that builds as a normal Docker stage
-            # alongside api/web — unlike kobo_gateway above, it doesn't need
-            # to feed build-web.
-            gateway:
-              - 'gateway/**'
-              - '!gateway/**/*.md'
             # sentrytools/ is a standalone Go module (own go.mod) with no
-            # deployable artifact of its own — api/ and gateway/ each pull it
-            # in via a local `replace` directive, so a change here can break
-            # either of them even though neither's own subtree changed. See
-            # the api/gateway gates below, which OR this in too.
+            # deployable artifact of its own — api/ pulls it in via a local
+            # `replace` directive, so a change here can break it even though
+            # api/'s own subtree didn't change. See the api gate below,
+            # which ORs this in too.
             sentrytools:
               - 'sentrytools/**'
               - '!sentrytools/**/*.md'
@@ -94,12 +86,12 @@ jobs:
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
-  # Each build-* job is gated on its OWN subtree only (issue #948) — unlike
-  # docker-check/docker below, which still need every job's *result* since
-  # the merged image needs a current binary for all four. A job that's
-  # skipped here just means docker.yml restores that component's binary
-  # straight from its actions/cache entry (same key this workflow writes)
-  # instead of a same-run artifact — see docker.yml's docker-app job.
+  # Each build-* job is gated on its OWN subtree only (issue #948) — api and
+  # web are now independently deployed images (#1038), not stages assembled
+  # into one merged image, so a job skipped here just means deploy-kamal
+  # deploys whatever was pushed last time that component's subtree actually
+  # changed (Kamal pulls the image tag its config points at; a skipped
+  # build-* job doesn't produce a new one).
   build-api:
     needs: [changes, proto-check]
     if: |
@@ -114,9 +106,10 @@ jobs:
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
-  # kobo_gateway is deliberately not in this gate: web's own `npm run
-  # build` has no dependency on kobo-gateway/ source (docker.yml copies the
-  # .dmg into web/public/downloads AFTER build-web.yml already ran).
+  # kobo_gateway is in this gate: build-web.yml stages the kobo-gateway
+  # .dmg/binary into web/public/downloads itself (since #1038) before
+  # building the image, so it must re-run when kobo-gateway/ changes even
+  # if web/ didn't.
   build-web:
     needs: [changes, proto-check]
     if: |
@@ -125,23 +118,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.kobo_gateway == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Web Workflow
     uses: ./.github/workflows/build-web.yml
-    secrets: inherit
-
-  # gateway/ is a standalone Go module with no proto dependency, unlike
-  # api/web — so this doesn't need proto-check as a gate.
-  build-gateway:
-    needs: changes
-    if: |
-      always() &&
-      (github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.gateway == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
-      needs.changes.outputs.workflows == 'true')
-    name: Build Gateway Workflow
-    uses: ./.github/workflows/build-gateway.yml
     secrets: inherit
 
   # Builds/packages kobo-gateway on a macOS runner (cgo + AppKit, can't
@@ -182,18 +162,6 @@ jobs:
     uses: ./.github/workflows/web-lint.yml
     secrets: inherit
 
-  gateway-lint:
-    needs: changes
-    if: |
-      github.event_name != 'push' &&
-      (github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.gateway == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
-      needs.changes.outputs.workflows == 'true')
-    name: Gateway Lint Workflow
-    uses: ./.github/workflows/gateway-lint.yml
-    secrets: inherit
-
   kobo-gateway-lint:
     needs: changes
     if: |
@@ -232,19 +200,6 @@ jobs:
     uses: ./.github/workflows/web-test.yml
     secrets: inherit
 
-  gateway-test:
-    needs: changes
-    # Runs on push to main too (in parallel with docker/deploy, which do not
-    # depend on it) purely to refresh Codecov's default-branch baseline.
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.gateway == 'true' ||
-      needs.changes.outputs.sentrytools == 'true' ||
-      needs.changes.outputs.workflows == 'true'
-    name: Gateway Test Workflow
-    uses: ./.github/workflows/gateway-test.yml
-    secrets: inherit
-
   kobo-gateway-test:
     needs: changes
     # Runs on push to main too (in parallel with docker/deploy, which do not
@@ -259,8 +214,8 @@ jobs:
 
   # sentrytools/ has no deployable artifact of its own (see the `changes`
   # job's sentrytools filter comment) — it's still linted/tested standalone
-  # so a break is caught here, in addition to api-test/gateway-test catching
-  # it transitively through their own `replace` on this module.
+  # so a break is caught here, in addition to api-test catching it
+  # transitively through its own `replace` on this module.
   sentrytools-lint:
     needs: changes
     if: |
@@ -284,45 +239,19 @@ jobs:
     uses: ./.github/workflows/sentrytools-test.yml
     secrets: inherit
 
-  # Build-only (no push) validation of the merged Docker image on PRs, so a
-  # break that only shows up inside the Dockerfile's narrower file set (e.g.
-  # issue #900 — a test file colocated outside the copied dirs) is caught
-  # before merge instead of after, when `docker.yml`'s real push-and-deploy
-  # run is the first thing to build it.
-  docker-check:
-    needs: [changes, build-api, build-web, build-gateway, build-kobo-gateway]
-    if: |
-      always() &&
-      github.event_name == 'pull_request' &&
-      (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true') &&
-      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
-      (needs.build-gateway.result == 'success' || needs.build-gateway.result == 'skipped') &&
-      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
-    name: Docker Build Check Workflow
-    uses: ./.github/workflows/docker.yml
-    with:
-      build_app: true
-      push: false
-    secrets: inherit
-
   ci-pass:
     needs:
       [
         proto-check,
         build-api,
         build-web,
-        build-gateway,
         build-kobo-gateway,
-        docker-check,
         api-lint,
         web-lint,
-        gateway-lint,
         kobo-gateway-lint,
         sentrytools-lint,
         api-test,
         web-test,
-        gateway-test,
         kobo-gateway-test,
         sentrytools-test,
       ]
@@ -353,7 +282,6 @@ jobs:
         if: |
           needs.api-test.result == 'success' ||
           needs.web-test.result == 'success' ||
-          needs.gateway-test.result == 'success' ||
           needs.kobo-gateway-test.result == 'success' ||
           needs.sentrytools-test.result == 'success'
         env:
@@ -407,25 +335,6 @@ jobs:
             sleep 15
           done
 
-  docker:
-    needs: [changes, build-api, build-web, build-gateway, build-kobo-gateway]
-    if: |
-      always() &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
-      (needs.build-gateway.result == 'success' || needs.build-gateway.result == 'skipped') &&
-      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
-    name: Docker Build & Push Workflow
-    uses: ./.github/workflows/docker.yml
-    with:
-      # Union of both former conditions (api ∨ web) — one merged image
-      # (issue #558) means any change that would have rebuilt either
-      # component now rebuilds the single one.
-      build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true' }}
-    secrets: inherit
-
   # Deploy to the Hetzner VPS via Kamal (issue #1036). Since cutover (#1034)
   # this is the *only* production deploy — DNS resolves here — so it carries
   # no continue-on-error: a failure here means main didn't ship and must be
@@ -435,14 +344,19 @@ jobs:
   # `kamal setup` — this job runs `kamal deploy`, not `kamal setup`, and
   # assumes kamal-proxy is already installed. See infra/README.md's "Deploy
   # the app via Kamal" section for that one-time bootstrap.
+  #
+  # api and web deploy as two independent Kamal apps (#1038) — build-api.yml
+  # and build-web.yml already push their own images to GHCR independently on
+  # every push to main, so this job needs only their build result, not a
+  # merged-image assembly step.
   deploy-kamal:
-    needs: [docker]
+    needs: [build-api, build-web]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.docker.result == 'success' &&
-      needs.docker.outputs.app_built == 'true'
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
     environment: production
@@ -494,16 +408,28 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
-      # No render step: config/deploy.yml is committed as-is and Kamal
-      # evaluates it as ERB itself, pulling the two non-committable values
-      # (KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME) from the env below.
-      - name: Deploy via Kamal
+      # No render step: config/deploy.api.yml/deploy.web.yml are committed
+      # as-is and Kamal evaluates each as ERB itself, pulling the two
+      # non-committable values (KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME)
+      # from the env below. build-api.yml/build-web.yml tag their images
+      # with the full commit SHA (not a short one), so --version matches
+      # that exactly.
+      #
+      # api deploys first: it owns /api,/.well-known under kamal-proxy's
+      # path-based routing and, in practice, ends up owning this shared
+      # host's Let's Encrypt cert issuance; deploying it first also means a
+      # bad api rollout never puts a healthy, already-serving web deploy at
+      # risk (not true in the reverse order).
+      # Only when build-api actually ran: a skipped build-api means api/'s
+      # subtree didn't change, so no fresh ghcr.io/.../api:<sha> tag exists
+      # to deploy — unlike the old merged image, api and web no longer share
+      # one artifact that always gets rebuilt (and re-tagged with this
+      # commit's SHA) whenever anything relevant changes.
+      - name: Deploy api via Kamal
+        if: needs.build-api.result == 'success'
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-          # docker.yml's docker/metadata-action step tags images
-          # `type=sha,prefix=`, which defaults to a 7-character short SHA —
-          # confirmed via `kamal config`'s absolute_image output.
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
@@ -518,9 +444,6 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           # Not GITHUB_OAUTH_CLIENT_*: GitHub Actions rejects secret names
           # starting with GITHUB_. The app-level env var name Kamal sets on
           # the container is unaffected — only this secret's storage name
@@ -537,7 +460,21 @@ jobs:
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
-        run: bundle exec kamal deploy --skip-push --version="${KAMAL_VERSION:0:7}"
+        run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
+
+      # Same reasoning as the api step above, for web's own tag.
+      - name: Deploy web via Kamal
+        if: needs.build-web.result == 'success'
+        env:
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+          KAMAL_VERSION: ${{ github.sha }}
+          RELEASE: ${{ github.sha }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres/GoTrue) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —

@@ -211,7 +211,7 @@ func New(logger *slog.Logger) Config {
 	cfg.DBDsn = p.envSecret("DB_DSN", "postgres://postgres@localhost/postgres")
 	// "dev" (not DevEnv/"development") — web's getRelease() and the
 	// kobo-gateway update-check both hardcode this exact literal as the
-	// "no real deploy" sentinel (see gateway/internal/gateway/config.go).
+	// "no real deploy" sentinel (see web/lib/env.ts).
 	cfg.Release = p.envStr("RELEASE", "dev")
 
 	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")

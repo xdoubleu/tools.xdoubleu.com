@@ -1,7 +1,6 @@
-# Builds a standalone image carrying web's `.next/standalone` + `.next/static`
-# output only — never run directly, only used as a `COPY --from=` source by
-# the root Dockerfile, which assembles api/gateway/web into the single
-# merged deploy image. See root CLAUDE.md's CI section and root Dockerfile.
+# Standalone deploy image for the web service (#1038 — deployed
+# independently under Kamal, routed by kamal-proxy alongside api; see
+# config/deploy.web.yml and root CLAUDE.md's Deploy shape section).
 FROM node:24-alpine AS builder
 
 ARG RELEASE=dev
@@ -27,8 +26,34 @@ RUN --mount=type=secret,id=sentry_auth_token,env=SENTRY_AUTH_TOKEN \
 # tree.
 RUN cp -r .next/static .next/standalone/.next/static
 
-# Never executed — just a file carrier for `COPY --from=web` in the root
-# Dockerfile, so `scratch` is sufficient.
-FROM scratch AS server
+FROM node:24-alpine AS server
 
-COPY --from=builder /app/.next/standalone /
+ARG KOBO_GATEWAY_RELEASE=dev
+# The release actually baked into the bundled kobo-gateway .dmg/binary — can
+# lag behind RELEASE when kobo-gateway's own build was cache-skipped
+# (unchanged source). See build-web.yml and lib/env.ts's
+# getKoboGatewayRelease().
+ENV KOBO_GATEWAY_RELEASE=${KOBO_GATEWAY_RELEASE} \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
+
+WORKDIR /app
+
+COPY --from=builder /app/.next/standalone ./
+
+# Next standalone only serves public/ when it sits next to server.js; see
+# this file's "Static Downloads" note in web/CLAUDE.md — web/public does not
+# exist in the repo otherwise. The kobo-gateway .dmg + raw binary are built
+# on macOS by build-kobo-gateway.yml and placed here by build-web.yml before
+# `docker build` runs.
+COPY public/downloads/kobo-gateway-darwin-arm64 \
+     ./public/downloads/kobo-gateway-darwin-arm64
+COPY public/downloads/kobo-gateway.dmg \
+     ./public/downloads/kobo-gateway.dmg
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
+EXPOSE 3000
+
+ENTRYPOINT ["node", "server.js"]
