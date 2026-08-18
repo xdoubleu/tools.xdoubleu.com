@@ -568,7 +568,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: opentofu/setup-opentofu@v1
+      - uses: opentofu/setup-opentofu@v2
 
       # Same key/mechanism deploy-kamal uses above — it's already one of the
       # authorized deploy_ssh_public_keys entries, so no separate key is
