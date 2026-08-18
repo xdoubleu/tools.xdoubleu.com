@@ -547,7 +547,10 @@ jobs:
         env:
           server_ip: ${{ secrets.KAMAL_SERVER_IP }}
           ghcr_username: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
-        run: envsubst < infra/templates/deploy.yml.tftpl > config/deploy.yml
+        # mkdir: /config/deploy.yml is gitignored and config/ holds no other
+        # tracked file, so the directory doesn't exist on a fresh checkout —
+        # the local Tofu path never hits this since local_file creates it.
+        run: mkdir -p config && envsubst < infra/templates/deploy.yml.tftpl > config/deploy.yml
 
       - name: Deploy via Kamal
         env:
