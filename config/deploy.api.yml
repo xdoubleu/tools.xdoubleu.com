@@ -74,14 +74,15 @@ builder:
 proxy:
   # Hardcoded, not an interpolation: this repo deploys exactly one domain
   # (shared with deploy.web.yml), and keeping it literal means neither
-  # render path needs a third variable. `ssl: true` is what makes
-  # kamal-proxy request/renew the Let's Encrypt cert — it needs port 80
-  # reachable from the internet for the HTTP-01 challenge, which
-  # hcloud_firewall.vps already allows. api deploys first (see
-  # .github/workflows/main.yml's deploy-kamal job) so it's the one that
+  # render path needs a third variable. No `ssl` key here on purpose:
+  # kamal-proxy requires TLS to be declared on the root path service only
+  # (deploy.web.yml, no path_prefix) — a path-prefixed service like this one
+  # inherits the host's TLS from the root instead of declaring its own.
+  # Declaring `ssl: true` here again gets rejected with "TLS settings must
+  # be specified on the root path service" (issue #1132). web deploys first
+  # (see .github/workflows/main.yml's deploy-kamal job) so it's the one that
   # ends up owning initial cert issuance for the shared host.
   host: tools.xdoubleu.com
-  ssl: true
   app_port: 8000
   # /api/* and /.well-known/* both route here — everything else falls
   # through to web's catch-all registration (deploy.web.yml). Unstripped:
