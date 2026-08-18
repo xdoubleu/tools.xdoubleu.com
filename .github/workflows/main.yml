@@ -509,10 +509,27 @@ jobs:
       - name: Install envsubst
         run: sudo apt-get update && sudo apt-get install -y gettext-base
 
+      # Not webfactory/ssh-agent: it pipes the secret into `ssh-add -`
+      # verbatim, and a secret stored without its trailing newline (GitHub's
+      # secret UI strips one on paste) is an unparsable PEM — OpenSSH rejects
+      # it with `Error loading key "(stdin)": error in libcrypto` and the
+      # deploy never runs (issue #1106). printf restores the newline, tr
+      # drops CRs from a Windows-pasted key. The agent is started here rather
+      # than dropping the key in ~/.ssh so Kamal's net-ssh never has to parse
+      # an ed25519 key itself; SSH_AUTH_SOCK is exported for later steps.
       - name: Load the deploy SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.KAMAL_SSH_KEY }}
+        env:
+          KAMAL_SSH_KEY: ${{ secrets.KAMAL_SSH_KEY }}
+        run: |
+          eval "$(ssh-agent -s)"
+          if ! printf '%s\n' "$KAMAL_SSH_KEY" | tr -d '\r' | ssh-add -; then
+            echo "::error::KAMAL_SSH_KEY is not a loadable unencrypted private key. Re-set it with: gh secret set KAMAL_SSH_KEY < ~/.ssh/kamal_ci_deploy"
+            exit 1
+          fi
+          {
+            echo "SSH_AUTH_SOCK=$SSH_AUTH_SOCK"
+            echo "SSH_AGENT_PID=$SSH_AGENT_PID"
+          } >> "$GITHUB_ENV"
 
       # KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME are repo Secrets, not
       # Variables — this repo is public, and GitHub only masks Secrets from
