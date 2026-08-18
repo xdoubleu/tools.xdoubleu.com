@@ -422,6 +422,12 @@ jobs:
       build_app: ${{ github.event_name == 'workflow_dispatch' || needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.proto == 'true' || needs.changes.outputs.kobo_gateway == 'true' || needs.changes.outputs.gateway == 'true' || needs.changes.outputs.sentrytools == 'true' || needs.changes.outputs.workflows == 'true' }}
     secrets: inherit
 
+  # Dormant since cutover (#1034): DNS points at the Hetzner VPS, so nothing
+  # reaches this deploy. It's kept running purely so the DO App Platform
+  # component stays on a current image and remains a warm target if DNS ever
+  # has to be flipped back — hence continue-on-error, a stack nobody is
+  # serving from must not fail the workflow. Delete this job (and do-app.yaml)
+  # when DO is actually decommissioned.
   deploy:
     needs: [docker]
     if: |
@@ -432,6 +438,7 @@ jobs:
       needs.docker.outputs.app_built == 'true'
     name: Deploy to Digital Ocean
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Trigger Digital Ocean deployment and wait for it to finish
         env:
@@ -471,10 +478,10 @@ jobs:
             sleep 15
           done
 
-  # Parallel deploy to the Hetzner VPS via Kamal (issue #1036), alongside
-  # the DO deploy above — DO stays the traffic-serving deploy until the
-  # Cutover issue (#1034), so this job's own failure doesn't fail the whole
-  # workflow (continue-on-error) and isn't a dependency of anything else.
+  # Deploy to the Hetzner VPS via Kamal (issue #1036). Since cutover (#1034)
+  # this is *the* production deploy — DNS resolves here — so unlike the DO
+  # job above it has no continue-on-error: a failure here means main didn't
+  # ship and must be loud.
   # Requires infra/'s null_resource.kamal_deploy (or a manual `kamal setup`)
   # to have bootstrapped the host at least once already — this job runs
   # `kamal deploy`, not `kamal setup`, and assumes kamal-proxy is already
@@ -489,7 +496,6 @@ jobs:
       needs.docker.outputs.app_built == 'true'
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
 
