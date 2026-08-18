@@ -17,6 +17,16 @@ variable "server_ip" {
 variable "deploy_ssh_public_keys" {
   description = "SSH public keys to authorize on the new non-root deploy user — your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent runs headless and can't unlock a passphrase-protected key, so CI needs its own)."
   type        = list(string)
+
+  # terraform.tfvars is not shell-interpolated, so an entry written as
+  # "$(cat ~/.ssh/id.pub)" stays that literal string — harden.sh then appends
+  # it to authorized_keys, where sshd silently ignores it and the key it was
+  # meant to authorize simply never works (hit for real on the CI deploy key,
+  # issue #1036). Fail at plan time instead.
+  validation {
+    condition     = alltrue([for key in var.deploy_ssh_public_keys : can(regex("^(ssh-|ecdsa-)", key))])
+    error_message = "Each entry must be the public key's literal text (starting with ssh-/ecdsa-), not a path or a $(cat ...) shell substitution — .tfvars files are not shell-interpolated."
+  }
 }
 
 # GoTrue (issue #1032) — see infra/README.md's "Stand up GoTrue" section for

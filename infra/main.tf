@@ -193,12 +193,16 @@ resource "null_resource" "postgres" {
   }
 }
 
-# Current git commit — deployed as RELEASE (issue #1033), and used as a
-# redeploy trigger below so `tofu apply` after a new commit (whose image
-# docker.yml's CI already pushed to GHCR) redeploys automatically, while
-# re-applying with no new commit is a no-op.
-data "external" "git_sha" {
-  program = ["sh", "-c", "printf '{\"sha\":\"%s\"}' \"$(git -C ${path.module} rev-parse HEAD)\""]
+# The newest commit at-or-below HEAD whose image actually exists in GHCR —
+# deployed as RELEASE (issue #1033), pinned as Kamal's --version, and used as
+# a redeploy trigger below so `tofu apply` after a new *app* commit redeploys
+# automatically while re-applying with nothing newly built is a no-op.
+#
+# Not plain `git rev-parse HEAD`: docker.yml only pushes an image when an app
+# subtree changed, so an infra-only HEAD has no tag of its own and pinning it
+# fails the deploy outright (issue #1036). See deployable-image.sh.
+data "external" "deployable_image" {
+  program = ["sh", "${path.module}/deployable-image.sh"]
 }
 
 # Renders config/deploy.yml (repo root, gitignored) from the committed
@@ -239,7 +243,7 @@ resource "null_resource" "kamal_deploy" {
 
   triggers = {
     deploy_config_hash = local_file.kamal_deploy_config.content_sha256
-    git_sha            = data.external.git_sha.result.sha
+    git_sha            = data.external.deployable_image.result.sha
     secrets_hash = sha256(join("", [
       var.kamal_registry_password,
       var.supabase_proj_ref, var.supabase_api_key, var.steam_api_key,
@@ -262,8 +266,10 @@ resource "null_resource" "kamal_deploy" {
     # image instead of what CI actually tested). --version pins the exact
     # tag to pull: docker.yml's docker/metadata-action step tags images
     # `type=sha,prefix=`, which defaults to a 7-character short SHA — not
-    # the full 40-character git_sha this resource otherwise uses for
-    # RELEASE, confirmed via `kamal config`'s `absolute_image` output.
+    # the full 40-character sha this resource otherwise uses for RELEASE,
+    # confirmed via `kamal config`'s `absolute_image` output. Both come
+    # from data.external.deployable_image (the newest commit that actually
+    # has an image), never HEAD directly — see its comment above.
     #
     # `PATH="$(ruby -e ...):$PATH"` is required, not cosmetic: `gem install`
     # (without --user-install) drops the kamal executable into Ruby's own
@@ -274,9 +280,9 @@ resource "null_resource" "kamal_deploy" {
     # wouldn't be inherited even if the operator added one — confirmed live
     # (`kamal: command not found`, exit 127) on the first real deploy
     # attempt. Resolving Gem.bindir at run time sidesteps both issues.
-    command = "gem install kamal --no-document --conservative && PATH=\"$(ruby -e 'print Gem.bindir'):$PATH\" kamal setup --skip-push --version=${substr(data.external.git_sha.result.sha, 0, 7)}"
+    command = "gem install kamal --no-document --conservative && PATH=\"$(ruby -e 'print Gem.bindir'):$PATH\" kamal setup --skip-push --version=${data.external.deployable_image.result.tag}"
     environment = {
-      RELEASE    = data.external.git_sha.result.sha
+      RELEASE    = data.external.deployable_image.result.sha
       DB_DSN     = "postgres://postgres:${random_password.postgres.result}@postgres:5432/postgres"
       GOTRUE_URL = "http://gotrue:9999"
 
