@@ -35,6 +35,8 @@ ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
 
 `$NAME` matches one node, `$$$` matches zero or more, `$$` matches one complex expression.
 
+**Comments must describe current behavior, not history.** Never write a comment that references removed code, superseded architecture, or frames a landed change as still-pending — a stale claim actively misleads the next reader (human or Claude). If historical context genuinely explains *why* the current code looks the way it does, phrase it so it stays true regardless of when it's read (e.g. "replicating what X used to provide" rather than "X hasn't happened yet") — see `gateway/internal/gateway/proxy.go`'s note on replicating the old DO App Platform ingress split for the pattern to follow.
+
 **Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, RPC signatures, or mock signatures — read the corresponding `.proto` file in `proto/` or the source interface instead; it's smaller and is the source of truth.
 
 ## Commands
