@@ -16,7 +16,11 @@ func TestStripAPIPathPrefix(t *testing.T) {
 	}{
 		{"api prefix stripped", "/api/version", "/version"},
 		{"bare /api becomes root", "/api", "/"},
-		{"well-known left untouched", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource"},
+		{
+			"well-known left untouched",
+			"/.well-known/oauth-protected-resource",
+			"/.well-known/oauth-protected-resource",
+		},
 		{"unrelated path left untouched", "/health", "/health"},
 	}
 
