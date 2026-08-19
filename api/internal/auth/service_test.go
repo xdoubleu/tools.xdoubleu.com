@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"strings"
 	"testing"
 
@@ -15,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -294,4 +296,100 @@ func TestResetPasswordWithToken_InvalidToken(t *testing.T) {
 		context.Background(), "not-a-real-token", "new-password",
 	)
 	require.Error(t, err)
+}
+
+func TestGetUser_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+	_, err := service.GetUser(context.Background(), "not-a-real-token")
+	require.Error(t, err)
+}
+
+// TestSignInWithEmail_MintAccessTokenFails covers mintAccessToken's
+// str2duration.ParseDuration error branch: a malformed AccessExpiry config
+// value fails every subsequent token mint.
+func TestSignInWithEmail_MintAccessTokenFails(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	cfg.AccessExpiry = "not-a-duration"
+	db := testhelper.ConnectTestDB(cfg.DBDsn)
+	t.Cleanup(db.Close)
+
+	noMailer := mailer.New("", "", "")
+	service := auth.NewService(cfg, auth.NewRepository(db), nil, nil, noMailer)
+	userID := seedUser(t, db)
+
+	_, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.Error(t, err)
+}
+
+// TestSignInWithEmail_IssueRefreshTokenFails covers issueRefreshToken's own
+// str2duration.ParseDuration error branch, distinct from the access-token
+// one above.
+func TestSignInWithEmail_IssueRefreshTokenFails(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	cfg.RefreshExpiry = "not-a-duration"
+	db := testhelper.ConnectTestDB(cfg.DBDsn)
+	t.Cleanup(db.Close)
+
+	noMailer := mailer.New("", "", "")
+	service := auth.NewService(cfg, auth.NewRepository(db), nil, nil, noMailer)
+	userID := seedUser(t, db)
+
+	_, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.Error(t, err)
+}
+
+// fakeAppUsersStore is a minimal appUsersStore fake, letting
+// TestGetAllUsers_WithRepoDelegates exercise the non-nil branch of
+// GetAllUsers without a real DB-backed repository.
+type fakeAppUsersStore struct {
+	users []models.User
+	err   error
+}
+
+func (f *fakeAppUsersStore) Upsert(_ context.Context, _, _ string) error { return nil }
+
+// GetByID is unused by TestGetAllUsers_WithRepoDelegates (only GetAll is
+// exercised) but still needs a body satisfying appUsersStore.
+func (f *fakeAppUsersStore) GetByID(_ context.Context, _ string) (*models.User, error) {
+	return nil, errors.New("fakeAppUsersStore: GetByID not implemented")
+}
+
+func (f *fakeAppUsersStore) GetAll(_ context.Context) ([]models.User, error) {
+	return f.users, f.err
+}
+
+func TestGetAllUsers_WithRepoDelegates(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	db := testhelper.ConnectTestDB(cfg.DBDsn)
+	t.Cleanup(db.Close)
+	sealer, err := crypto.New(cfg.EncryptionKey)
+	require.NoError(t, err)
+
+	fake := &fakeAppUsersStore{
+		users: []models.User{{ID: "abc"}}, err: nil, //nolint:exhaustruct //test fixture
+	}
+	noMailer := mailer.New("", "", "")
+	service := auth.NewService(cfg, auth.NewRepository(db), fake, sealer, noMailer)
+
+	users, err := service.GetAllUsers(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, users, 1)
+	assert.Equal(t, "abc", users[0].ID)
+}
+
+func TestCreateCookie_InvalidExpiry(t *testing.T) {
+	service, _ := newTestService(t)
+	_, err := service.CreateCookie(models.AccessScope, "tok", "not-a-duration", false)
+	require.Error(t, err)
+}
+
+func TestGetCookieName_InvalidScopePanics(t *testing.T) {
+	service, _ := newTestService(t)
+	assert.Panics(t, func() {
+		service.GetCookieName(models.Scope(99))
+	})
 }

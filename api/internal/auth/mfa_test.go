@@ -140,6 +140,73 @@ func TestUnenrollTOTP_ClearsFactorAndRecoveryCodes(t *testing.T) {
 	assert.Zero(t, count)
 }
 
+func TestEnrollTOTP_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+	_, err := service.EnrollTOTP(context.Background(), "not-a-real-token")
+	require.Error(t, err)
+}
+
+func TestUnenrollTOTP_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.UnenrollTOTP(
+		context.Background(), "not-a-real-token", uuid.UUID{},
+	)
+	require.Error(t, err)
+}
+
+func TestGenerateRecoveryCodes_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+	_, err := service.GenerateRecoveryCodes(context.Background(), "not-a-real-token")
+	require.Error(t, err)
+}
+
+func TestVerifyMFA_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+	_, _, err := service.VerifyMFA(
+		context.Background(), "not-a-real-token", uuid.New(), uuid.New(), "123456",
+	)
+	require.Error(t, err)
+}
+
+func TestVerifyMFA_UnknownFactorID(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	access, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	_, _, err = service.VerifyMFA(
+		context.Background(), *access, uuid.New(), uuid.New(), "123456",
+	)
+	require.Error(t, err)
+}
+
+func TestVerifyMFA_FactorBelongsToDifferentUser(t *testing.T) {
+	service, db := newTestService(t)
+	ownerID := seedUser(t, db)
+	ownerAccess, _, err := service.SignInWithEmail(
+		context.Background(), ownerID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+	enrollment, err := service.EnrollTOTP(context.Background(), *ownerAccess)
+	require.NoError(t, err)
+
+	otherID := seedUser(t, db)
+	otherAccess, _, err := service.SignInWithEmail(
+		context.Background(), otherID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	// otherAccess belongs to a different user than the factor being
+	// challenged: VerifyMFA must reject it even with a valid TOTP code.
+	_, _, err = service.VerifyMFA(
+		context.Background(), *otherAccess, enrollment.ID, enrollment.ID,
+		totpCode(t, enrollment.Secret),
+	)
+	require.Error(t, err)
+}
+
 func TestChallengeMFA_ReturnsFreshUUIDEachTime(t *testing.T) {
 	service, _ := newTestService(t)
 	c1, err := service.ChallengeMFA(context.Background(), "any", uuid.UUID{})

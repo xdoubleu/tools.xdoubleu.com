@@ -115,6 +115,33 @@ describe('ResetPasswordPage', () => {
     })
   })
 
+  // The token is re-read from searchParams on every render (not just at
+  // mount), so if it goes missing between mount and submit — searchParams
+  // updating out from under the page — handleSubmit's own guard must still
+  // catch it and flip to the invalid state, rather than calling
+  // resetPassword with an empty token.
+  it('flips to the invalid state if the token disappears before submit', async () => {
+    mockGet.mockReturnValue('reset-token')
+    const mockResetPassword = jest.fn()
+    mockUseResetPassword.mockReturnValue(mockResetPassword)
+
+    render(<ResetPasswordPage />)
+
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'password123' } })
+    // Between the field changes above and the submit below, searchParams
+    // stops returning a token.
+    mockGet.mockReturnValue(null)
+    fireEvent.change(screen.getByLabelText('Confirm new password'), {
+      target: { value: 'password123' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: /Update password/ }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Invalid or expired reset link.')).toBeInTheDocument()
+    })
+    expect(mockResetPassword).not.toHaveBeenCalled()
+  })
+
   it('shows a generic error message when resetting the password fails for a non-Connect reason', async () => {
     mockGet.mockReturnValue('reset-token')
     mockUseResetPassword.mockReturnValue(jest.fn().mockRejectedValue(new Error('network down')))

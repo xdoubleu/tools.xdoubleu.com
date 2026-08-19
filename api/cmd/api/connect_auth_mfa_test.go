@@ -270,6 +270,49 @@ func TestMFAEnrollVerify_SettingsFlow_WithAccessToken(t *testing.T) {
 	enrollAndVerify(t, client, http.Cookie{Name: "accessToken", Value: token})
 }
 
+func TestRegenerateRecoveryCodes_NoToken(t *testing.T) {
+	client := mfaClient(t)
+	_, err := client.RegenerateRecoveryCodes(
+		context.Background(),
+		connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{}),
+	)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeUnauthenticated, connectErr.Code())
+}
+
+func TestRegenerateRecoveryCodes_Success(t *testing.T) {
+	client := mfaClient(t)
+	token := freshTestUser(t)
+	accessCookie := http.Cookie{Name: "accessToken", Value: token}
+	enrollAndVerify(t, client, accessCookie)
+
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
+	setCookieOnRequest(req, accessCookie)
+	resp, err := client.RegenerateRecoveryCodes(context.Background(), req)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.RecoveryCodes)
+}
+
+// TestRegenerateRecoveryCodes_ReplacesEarlierCodes covers that a second call
+// invalidates the first batch (GenerateRecoveryCodes deletes-then-recreates),
+// not just that it returns a fresh set.
+func TestRegenerateRecoveryCodes_ReplacesEarlierCodes(t *testing.T) {
+	client := mfaClient(t)
+	token := freshTestUser(t)
+	accessCookie := http.Cookie{Name: "accessToken", Value: token}
+	first := enrollAndVerify(t, client, accessCookie)
+	require.NotEmpty(t, first.Msg.RecoveryCodes)
+
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
+	setCookieOnRequest(req, accessCookie)
+	resp, err := client.RegenerateRecoveryCodes(context.Background(), req)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.Msg.RecoveryCodes)
+	assert.NotEqual(t, first.Msg.RecoveryCodes, resp.Msg.RecoveryCodes)
+}
+
 func TestMFAEnrollVerify_SettingsFlow_PreservesRememberMe(t *testing.T) {
 	client := mfaClient(t)
 	token := freshTestUser(t)

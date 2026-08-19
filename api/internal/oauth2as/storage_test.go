@@ -55,6 +55,20 @@ func TestRegisterClient_Validation(t *testing.T) {
 	assert.NotEmpty(t, client2.ID)
 }
 
+// TestRegisterClient_MalformedRedirectURI covers validateRedirectURI's
+// url.Parse error branch specifically, distinct from a validly-parsed but
+// disallowed-scheme URI.
+func TestRegisterClient_MalformedRedirectURI(t *testing.T) {
+	_, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	_, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"http://[::1"},
+	})
+	require.Error(t, err, "an unparsable redirect_uri must be rejected")
+}
+
 func TestStore_GetClient_RoundTrip(t *testing.T) {
 	store, db := newTestStore(t)
 	ctx := context.Background()
@@ -314,6 +328,18 @@ func TestStore_RevokeAccessToken(t *testing.T) {
 
 	// Revoking an unknown request ID is a no-op, not an error.
 	require.NoError(t, store.RevokeAccessToken(ctx, "does-not-exist"))
+}
+
+// TestStore_ClientAssertionJWT_Stubs covers ClientAssertionJWTValid/
+// SetClientAssertionJWT: no-op stubs backing the private_key_jwt
+// client-auth method, which this public-client-only server never uses, kept
+// only to satisfy fosite's ClientManager interface.
+func TestStore_ClientAssertionJWT_Stubs(t *testing.T) {
+	store, _ := newTestStore(t)
+	ctx := context.Background()
+
+	require.NoError(t, store.ClientAssertionJWTValid(ctx, "any-jti"))
+	require.NoError(t, store.SetClientAssertionJWT(ctx, "any-jti", time.Now()))
 }
 
 func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {
