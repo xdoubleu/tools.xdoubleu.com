@@ -2,9 +2,12 @@ package auth_test
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -176,6 +179,104 @@ func TestForgotPasswordResetPassword_RoundTrip(t *testing.T) {
 	// The reset token is single-use.
 	err = service.ResetPasswordWithToken(
 		context.Background(), token, "another-password",
+	)
+	require.Error(t, err)
+}
+
+func TestGetAllUsers_NilRepoReturnsEmpty(t *testing.T) {
+	service, _ := newTestService(t)
+	users, err := service.GetAllUsers(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, users)
+}
+
+func TestSignInWithRefreshToken_ExpiredToken(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+
+	// Insert an already-expired refresh token directly, bypassing the
+	// service's own expiry TTL so this test doesn't need to sleep.
+	rawToken := "expired-refresh-token-" + uuid.NewString()
+	sum := sha256.Sum256([]byte(rawToken))
+	tokenHash := hex.EncodeToString(sum[:])
+	_, err := db.Exec(context.Background(), `
+		INSERT INTO auth.refresh_tokens (user_id, token_hash, aal, expires_at)
+		VALUES ($1, $2, 'aal1', now() - interval '1 hour')
+	`, userID, tokenHash)
+	require.NoError(t, err)
+
+	_, _, err = service.SignInWithRefreshToken(context.Background(), rawToken)
+	require.Error(t, err)
+
+	// The expired token is deleted as a side effect, so a second attempt
+	// fails with "not found" rather than "expired" but is still an error.
+	_, _, err = service.SignInWithRefreshToken(context.Background(), rawToken)
+	require.Error(t, err)
+}
+
+func TestRefreshSession_Success(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+
+	_, refresh, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	user, accessCookie, refreshCookie, err := service.RefreshSession(
+		context.Background(), *refresh,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	assert.Equal(t, userID, user.ID)
+	assert.NotEmpty(t, accessCookie.Value)
+	assert.NotEmpty(t, refreshCookie.Value)
+	assert.NotEqual(t, *refresh, refreshCookie.Value)
+}
+
+func TestRefreshSession_InvalidToken(t *testing.T) {
+	service, _ := newTestService(t)
+
+	user, accessCookie, refreshCookie, err := service.RefreshSession(
+		context.Background(), "not-a-real-refresh-token",
+	)
+	require.Error(t, err)
+	assert.Nil(t, user)
+	assert.Nil(t, accessCookie)
+	assert.Nil(t, refreshCookie)
+}
+
+func TestUpdatePassword_InvalidAccessToken(t *testing.T) {
+	service, _ := newTestService(t)
+
+	err := service.UpdatePassword(
+		context.Background(), "not-a-real-access-token", "a-new-password",
+	)
+	require.Error(t, err)
+}
+
+func TestResetPasswordWithToken_ExpiredToken(t *testing.T) {
+	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
+	t.Cleanup(db.Close)
+	service := auth.NewService(
+		testhelper.NewTestConfig(), auth.NewRepository(db), nil, nil,
+		mailer.New("", "", ""),
+	)
+	userID := seedUser(t, db)
+
+	// Insert an already-expired reset token directly, bypassing
+	// ForgotPassword's TTL so this test doesn't need to sleep.
+	rawToken := "expired-reset-token-" + uuid.NewString()
+	sum := sha256.Sum256([]byte(rawToken))
+	tokenHash := hex.EncodeToString(sum[:])
+	_, err := db.Exec(context.Background(), `
+		INSERT INTO auth.password_reset_tokens (user_id, token_hash, expires_at)
+		VALUES ($1, $2, now() - interval '1 hour')
+	`, userID, tokenHash)
+	require.NoError(t, err)
+
+	err = service.ResetPasswordWithToken(
+		context.Background(), rawToken, "brand-new-password",
 	)
 	require.Error(t, err)
 }

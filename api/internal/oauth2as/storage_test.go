@@ -174,3 +174,173 @@ func TestStore_AuthorizeCodeSession_Invalidate(t *testing.T) {
 	_, err = store.GetAuthorizeCodeSession(ctx, code, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrInvalidatedAuthorizeCode)
 }
+
+func newTestRequest(
+	t *testing.T, client fosite.Client, requestID string,
+) *fosite.Request {
+	t.Helper()
+	//nolint:exhaustruct //ExpiresAt is unused by these tests
+	session := &fakeSession{Subject: uuid.NewString()}
+	//nolint:exhaustruct //other fosite.Request fields are optional for these tests
+	return &fosite.Request{
+		ID:          requestID,
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+}
+
+func TestStore_RefreshTokenSession_RoundTrip(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	got, err := store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.NoError(t, err)
+	assert.Equal(t, request.Session.GetSubject(), got.GetSession().GetSubject())
+	assert.Equal(t, client.ID, got.GetClient().GetID())
+
+	require.NoError(t, store.DeleteRefreshTokenSession(ctx, signature))
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+}
+
+func TestStore_RotateRefreshToken(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	require.NoError(t, store.RotateRefreshToken(ctx, requestID, signature))
+
+	// A rotated-out refresh token is invalidated (active = false), which
+	// GetRefreshTokenSession surfaces as fosite.ErrInactiveToken — the
+	// sentinel fosite's own RefreshTokenGrantHandler checks for to detect
+	// refresh-token reuse and revoke the whole token family.
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrInactiveToken)
+
+	// Rotating a signature that doesn't match the given requestID is a
+	// silent no-op (matches zero rows, still no error).
+	require.NoError(t, store.RotateRefreshToken(ctx, "does-not-exist", signature))
+}
+
+func TestStore_RevokeRefreshToken(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	require.NoError(t, store.RevokeRefreshToken(ctx, requestID))
+
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+
+	// Revoking an unknown request ID is a no-op, not an error.
+	require.NoError(t, store.RevokeRefreshToken(ctx, "does-not-exist"))
+}
+
+func TestStore_RevokeAccessToken(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	//nolint:exhaustruct //ExpiresAt is set explicitly below via SetExpiresAt
+	session := &fakeSession{Subject: uuid.NewString()}
+	session.SetExpiresAt(fosite.AccessToken, time.Now().Add(time.Hour))
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          requestID,
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+
+	signature := uuid.NewString()
+	require.NoError(t, store.CreateAccessTokenSession(ctx, signature, request))
+
+	require.NoError(t, store.RevokeAccessToken(ctx, requestID))
+
+	//nolint:exhaustruct //populated by GetAccessTokenSession's json.Unmarshal
+	_, err = store.GetAccessTokenSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+
+	// Revoking an unknown request ID is a no-op, not an error.
+	require.NoError(t, store.RevokeAccessToken(ctx, "does-not-exist"))
+}
+
+func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	request := newTestRequest(t, client, uuid.NewString())
+
+	signature := uuid.NewString()
+	require.NoError(t, store.CreatePKCERequestSession(ctx, signature, request))
+
+	//nolint:exhaustruct //populated by GetPKCERequestSession's json.Unmarshal
+	got, err := store.GetPKCERequestSession(ctx, signature, &fakeSession{})
+	require.NoError(t, err)
+	assert.Equal(t, client.ID, got.GetClient().GetID())
+
+	// Re-creating with the same signature upserts rather than conflicting.
+	require.NoError(t, store.CreatePKCERequestSession(ctx, signature, request))
+
+	require.NoError(t, store.DeletePKCERequestSession(ctx, signature))
+	//nolint:exhaustruct //populated by GetPKCERequestSession's json.Unmarshal
+	_, err = store.GetPKCERequestSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+}
