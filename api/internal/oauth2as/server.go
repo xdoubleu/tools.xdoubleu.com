@@ -39,5 +39,12 @@ func NewProvider(cfg config.Config, store fosite.Storage) fosite.OAuth2Provider 
 		compose.OAuth2AuthorizeExplicitFactory,
 		compose.OAuth2RefreshTokenGrantFactory,
 		compose.OAuth2PKCEFactory,
+		// Without this, IntrospectToken has no registered validation
+		// strategy and every call fails with ErrRequestUnauthorized ("no
+		// suitable validation strategy") regardless of the token's
+		// validity — silently breaking resolver.go's ResolveAccessToken,
+		// the only thing that lets this api verify a bearer token it
+		// issued itself as an OAuth 2.1 resource server.
+		compose.OAuth2TokenIntrospectionFactory,
 	)
 }

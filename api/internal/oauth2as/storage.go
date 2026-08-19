@@ -171,8 +171,18 @@ func (s *Store) getRequest(
 	if err != nil {
 		return nil, err
 	}
-	if !active && table == "oauth2_auth_codes" {
-		return requester, fosite.ErrInvalidatedAuthorizeCode
+	if !active {
+		switch table {
+		case "oauth2_auth_codes":
+			return requester, fosite.ErrInvalidatedAuthorizeCode
+		case "oauth2_refresh_tokens":
+			// RotateRefreshToken (below) marks the old row inactive rather
+			// than deleting it — fosite's own RefreshTokenGrantHandler
+			// relies on getting exactly this sentinel back from a
+			// rotated-out refresh token to detect refresh-token reuse
+			// (theft) and revoke the whole token family in response.
+			return requester, fosite.ErrInactiveToken
+		}
 	}
 	return requester, nil
 }

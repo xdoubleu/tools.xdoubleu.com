@@ -56,6 +56,16 @@ func AuthorizeHandler(
 			return
 		}
 
+		// Consent has just been granted for exactly the requested scopes —
+		// without this, GrantedScope stays empty and the token endpoint
+		// never issues a refresh token (canIssueRefreshToken requires
+		// offline_access among the *granted*, not merely requested, scopes),
+		// silently breaking every client despite offline_access being on
+		// the registered client's scope list.
+		for _, scope := range ar.GetRequestedScopes() {
+			ar.GrantScope(scope)
+		}
+
 		//nolint:exhaustruct //other DefaultSession fields are optional
 		session := &fosite.DefaultSession{Subject: userID}
 		resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
