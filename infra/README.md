@@ -124,7 +124,9 @@ tofu apply <same -var flags as plan>
 This attaches the firewall (22/80/443 only) and runs `harden.sh` over SSH:
 creates a non-root `deploy` user (passwordless sudo + docker groups, your
 public key authorized), installs Docker, enables `fail2ban`, configures
-`ufw`, and disables root/password SSH login. It then stands up self-hosted
+`ufw`, configures `unattended-upgrades` for automatic security-only patches
+with a scheduled 04:00 UTC reboot window if a kernel update needs one, and
+disables root/password SSH login. It then stands up self-hosted
 Postgres — see below.
 
 `harden.sh` is idempotent — re-running `tofu apply` after editing it (or with
@@ -519,6 +521,9 @@ ssh deploy@<ip>                    # should work, key auth only
 ssh root@<ip>                      # should be rejected
 sudo ufw status                    # on the box: only 22/80/443 open (deploy is sudo, not root)
 sudo fail2ban-client status sshd   # jail active
+systemctl is-active unattended-upgrades   # active
+cat /etc/apt/apt.conf.d/20auto-upgrades   # both Periodic settings "1"
+sudo unattended-upgrade --dry-run --debug # shows planned actions, no changes made
 
 # Postgres: tunnel in (never exposed publicly) and check the migrated data
 ssh -L 5432:localhost:5432 deploy@<ip>
