@@ -33,12 +33,13 @@
 # uses the container name (`postgres`) as hostname.
 #
 # The `gotrue` container (and its SUPABASE_*/GOTRUE_URL secrets) are gone
-# from api's config as of issue #1039: auth (password sign-in, TOTP MFA, and
-# the MCP OAuth 2.1 authorization server) is now first-party, implemented in
+# entirely as of issue #1039: auth (password sign-in, TOTP MFA, and the MCP
+# OAuth 2.1 authorization server) is now first-party, implemented in
 # api/internal/auth and api/internal/oauth2as against api's own `auth`
-# Postgres schema — see api/CLAUDE.md's Auth section. Tearing the `gotrue`
-# container itself out of infra/ is a separate follow-up once the cutover
-# has been observed stable for a while (see issue #1039's rollout plan).
+# Postgres schema — see api/CLAUDE.md's Auth section. The container itself
+# has been removed from infra/ (infra/postgres-compose.yml) in the same
+# change; the cutover (renaming any legacy schema, copying existing users'
+# data across) is automatic, run by api on boot — no manual step.
 
 service: tools-xdoubleu-com-api
 # No `ghcr.io/` prefix here — registry.server below already supplies it.
