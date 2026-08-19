@@ -466,10 +466,10 @@ jobs:
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
-          GOTRUE_URL: http://gotrue:9999
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SUPABASE_PROJ_REF: ${{ secrets.SUPABASE_PROJ_REF }}
-          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          # First-party auth (issue #1039) — see config/deploy.api.yml.
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OAUTH_HMAC_SECRET: ${{ secrets.OAUTH_HMAC_SECRET }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

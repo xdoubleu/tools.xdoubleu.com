@@ -347,8 +347,11 @@ KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
                               its state can read it, so copy it in once here;
                               rotating it means updating both)
 KAMAL_REGISTRY_PASSWORD
-SUPABASE_PROJ_REF
-SUPABASE_API_KEY
+JWT_SECRET                   (signs api's self-issued session JWTs, issue
+                              #1039 — rotating it signs everyone out)
+OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization
+                              server's token strategy, issue #1039 —
+                              rotating it invalidates every issued MCP token)
 STEAM_API_KEY
 HARDCOVER_API_KEY
 R2_ACCOUNT_ID
@@ -481,9 +484,17 @@ app itself can be deleted. Unrelated to `DO_OAUTH_CLIENT_ID`/`SECRET`, which
 stay — those belong to the app's DigitalOcean monitoring *feature*
 (`api/internal/digitalocean`), not to hosting.
 
-The Supabase project is still referenced, but only as the MCP OAuth
-authorization-server issuer (`api/cmd/api/mcp.go`) — see #1039 ("retire
-GoTrue entirely"), which is what finally removes `SUPABASE_*`.
+**Update (issue #1039):** `api` no longer talks to Supabase or GoTrue at
+all — password auth, TOTP MFA, and the MCP OAuth 2.1 authorization server
+(`api/cmd/api/mcp.go`'s issuer) are now first-party, backed by `api`'s own
+`auth` Postgres schema (`api/internal/auth`, `api/internal/oauth2as`). The
+`SUPABASE_*`/`GOTRUE_URL` secrets have already been removed from
+`config/deploy.api.yml` and this file's secrets list above. What's left is
+the `gotrue` **container** itself (still standing per "Stand up GoTrue"
+above, and the production cutover runbook for migrating existing users'
+password hashes/TOTP factors into the new schema) — tearing those out is a
+deliberate follow-up once the cutover has run and been observed stable for
+a while, not bundled into the same change that landed the new auth code.
 
 ## Migrate data from Supabase (one-time)
 

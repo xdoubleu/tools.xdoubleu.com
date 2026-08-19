@@ -22,16 +22,23 @@
 # because Cloudflare's A/AAAA records for that name already resolve to this
 # box.
 #
-# Postgres and GoTrue stay exactly as OpenTofu already manages them
-# (infra/postgres-compose.yml, issues #1031/#1032) — plain docker-compose
-# containers, no Kamal accessories here. This is the one part of the stack
-# Tofu still owns end to end. Both are bound to 127.0.0.1 only on the host
-# (never exposed publicly) and reachable from the Kamal-deployed app
-# container by joining the same `kamal` Docker network (created by
-# null_resource.kamal_network in infra/main.tf before Postgres/GoTrue come
-# up, since postgres-compose.yml declares it `external: true`) — DB_DSN/
-# GOTRUE_URL below use the container names (`postgres`/`gotrue`) as
-# hostnames, exactly like GOTRUE_DB_DATABASE_URL already does internally.
+# Postgres stays exactly as OpenTofu already manages it
+# (infra/postgres-compose.yml, issues #1031/#1032) — a plain docker-compose
+# container, no Kamal accessory here. This is the one part of the stack Tofu
+# still owns end to end. It's bound to 127.0.0.1 only on the host (never
+# exposed publicly) and reachable from the Kamal-deployed app container by
+# joining the same `kamal` Docker network (created by
+# null_resource.kamal_network in infra/main.tf before Postgres comes up,
+# since postgres-compose.yml declares it `external: true`) — DB_DSN below
+# uses the container name (`postgres`) as hostname.
+#
+# The `gotrue` container (and its SUPABASE_*/GOTRUE_URL secrets) are gone
+# from api's config as of issue #1039: auth (password sign-in, TOTP MFA, and
+# the MCP OAuth 2.1 authorization server) is now first-party, implemented in
+# api/internal/auth and api/internal/oauth2as against api's own `auth`
+# Postgres schema — see api/CLAUDE.md's Auth section. Tearing the `gotrue`
+# container itself out of infra/ is a separate follow-up once the cutover
+# has been observed stable for a while (see issue #1039's rollout plan).
 
 service: tools-xdoubleu-com-api
 # No `ghcr.io/` prefix here — registry.server below already supplies it.
@@ -132,24 +139,20 @@ env:
     # `tofu output -raw postgres_password`. Rotating the password means
     # updating both.
     - DB_DSN
-    # http://gotrue:9999 — same network. Makes api/cmd/api/main.go call
-    # WithCustomAuthURL, pointing sign-in at self-hosted GoTrue instead of
-    # Supabase-hosted GoTrue. Static, not a secret — hardcoded by the
-    # deploy-kamal job.
-    # SUPABASE_PROJ_REF/SUPABASE_API_KEY stay set too but are otherwise
-    # unused once this is set — they only ever mattered for the MCP OAuth
-    # authorization-server issuer (api/cmd/api/mcp.go), a deliberate
-    # exception that stays pointed at Supabase per #1032's own scoping
-    # note. If Supabase isn't in use at all, dummy values are fine — MCP
-    # sign-in just stays broken until the future "retire GoTrue entirely"
-    # issue (#1039) replaces that flow properly.
-    - GOTRUE_URL
+    # Signs/verifies internal/auth's self-issued session JWTs (issue #1039).
+    # Rotating this invalidates every live session — every user must
+    # sign in again.
+    - JWT_SECRET
+    # Keys internal/oauth2as's (ory/fosite) HMAC token strategy for the
+    # embedded MCP OAuth 2.1 authorization server (issue #1039). Kept
+    # separate from JWT_SECRET so a leak of either is contained to one
+    # concern. Rotating this invalidates every issued MCP OAuth token —
+    # connected MCP clients must redo the one-time consent flow.
+    - OAUTH_HMAC_SECRET
     # Everything below is a repo Secret read by .github/workflows/main.yml's
     # deploy-kamal job (export the same names by hand for a manual deploy).
     # They are deliberately NOT tfvars: Tofu provisions the host, it doesn't
     # deploy the app, so there's exactly one place to rotate each value.
-    - SUPABASE_PROJ_REF
-    - SUPABASE_API_KEY
     - STEAM_API_KEY
     - HARDCOVER_API_KEY
     - R2_ACCOUNT_ID
