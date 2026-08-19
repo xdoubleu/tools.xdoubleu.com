@@ -190,7 +190,7 @@ resource "null_resource" "postgres" {
   provisioner "remote-exec" {
     inline = [
       "chmod 600 /home/deploy/postgres/.env",
-      "cd /home/deploy/postgres && docker compose up -d",
+      "cd /home/deploy/postgres && docker compose up -d --remove-orphans",
     ]
   }
 }
