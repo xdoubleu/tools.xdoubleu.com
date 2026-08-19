@@ -43,8 +43,9 @@ func (app *Application) mcpAuthServerIssuer() string {
 }
 
 // mcpResourceMetadataFor builds the RFC 9728 protected-resource metadata for the
-// MCP endpoint at mcpPath: the resource URL, the Supabase authorization server,
-// and a human-readable resource name. Shared by every MCP endpoint.
+// MCP endpoint at mcpPath: the resource URL, the embedded OAuth 2.1
+// authorization server (internal/oauth2as, issue #1039), and a
+// human-readable resource name. Shared by every MCP endpoint.
 func (app *Application) mcpResourceMetadataFor(
 	mcpPath, resourceName string,
 ) *oauthex.ProtectedResourceMetadata {

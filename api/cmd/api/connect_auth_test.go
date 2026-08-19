@@ -130,7 +130,7 @@ func TestIsRelativeURL(t *testing.T) {
 
 func TestSignIn_Success_UsesLaxCookies(t *testing.T) {
 	// #445: session cookies must be SameSite=Lax so they still attach on the
-	// cross-site redirect from Supabase to /oauth/consent.
+	// cross-site redirect from the embedded OAuth 2.1 AS to /oauth/consent.
 	client := authClient(t)
 	resp, err := client.SignIn(
 		context.Background(),

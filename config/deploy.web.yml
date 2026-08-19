@@ -58,5 +58,3 @@ env:
     # deploy). Feeds web/components/Footer.tsx's version display.
     - RELEASE
     - SENTRY_DSN_WEB
-    - SUPABASE_URL
-    - SUPABASE_ANON_KEY

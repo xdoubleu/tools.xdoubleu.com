@@ -450,8 +450,6 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
       # Deploys after web (see reasoning above) so the shared host's TLS is
