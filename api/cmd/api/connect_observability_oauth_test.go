@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -11,7 +12,27 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/oauthconn"
 )
+
+func TestProviderOptionsError_DecryptFailed(t *testing.T) {
+	err := providerOptionsError(models.ErrDecryptFailed)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	assert.NotErrorIs(
+		t, err, models.ErrDecryptFailed,
+		"the client-facing message must not leak the internal sentinel/cause",
+	)
+}
+
+func TestProviderOptionsError_NotConnected(t *testing.T) {
+	err := providerOptionsError(oauthconn.ErrNotConnected)
+	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+}
+
+func TestProviderOptionsError_OtherError(t *testing.T) {
+	err := providerOptionsError(errors.New("boom"))
+	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+}
 
 func clearOAuthConnections(t *testing.T) {
 	t.Helper()

@@ -55,6 +55,20 @@ func TestNewTokenFunc_NotConnected(t *testing.T) {
 	assert.ErrorIs(t, err, oauthconn.ErrNotConnected)
 }
 
+func TestNewTokenFunc_DecryptFailed(t *testing.T) {
+	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
+		getErr: models.ErrDecryptFailed,
+	}
+	fn := oauthconn.NewTokenFunc(
+		store,
+		models.OAuthProviderGithub,
+		&oauth2.Config{}, //nolint:exhaustruct // other fields unused in test
+	)
+
+	_, err := fn(context.Background())
+	assert.ErrorIs(t, err, models.ErrDecryptFailed)
+}
+
 func TestNewTokenFunc_StaleScope_TreatedAsNotConnected(t *testing.T) {
 	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
 		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test

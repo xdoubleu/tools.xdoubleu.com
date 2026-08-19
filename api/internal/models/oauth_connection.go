@@ -2,7 +2,16 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
+)
+
+// ErrDecryptFailed means a stored OAuth token could not be decrypted with the
+// currently configured ENCRYPTION_KEY (e.g. the key was rotated after the
+// connection was authorized). The connection must be reconnected — there is
+// no way to recover the existing encrypted bytes.
+var ErrDecryptFailed = errors.New(
+	"models: stored oauth token could not be decrypted",
 )
 
 // OAuthProvider identifies which external service an OAuth connection
