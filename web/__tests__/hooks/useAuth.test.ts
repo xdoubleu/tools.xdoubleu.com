@@ -8,6 +8,8 @@ jest.mock('@/lib/client', () => ({
     forgotPassword: jest.fn(),
     exchangeToken: jest.fn(),
     updatePassword: jest.fn(),
+    resetPassword: jest.fn(),
+    regenerateRecoveryCodes: jest.fn(),
     mFAChallenge: jest.fn(),
     mFAEnroll: jest.fn(),
     mFAEnrollVerify: jest.fn(),
@@ -30,6 +32,8 @@ import {
   useForgotPassword,
   useExchangeToken,
   useUpdatePassword,
+  useResetPassword,
+  useRegenerateRecoveryCodes,
   useUpdateDisplayName,
   useMFAChallenge,
   useMFAEnroll,
@@ -113,6 +117,37 @@ describe('useUpdatePassword', () => {
     const { result } = renderHook(() => useUpdatePassword())
     result.current('newpass123')
     expect(mockUpdatePassword).toHaveBeenCalledWith({ newPassword: 'newpass123' })
+  })
+})
+
+describe('useResetPassword', () => {
+  it('returns a function that calls client.resetPassword', () => {
+    const mockResetPassword = jest.fn().mockResolvedValue({})
+    mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
+      resetPassword: mockResetPassword
+    })
+
+    const { result } = renderHook(() => useResetPassword())
+    result.current('reset-token', 'newpass123')
+    expect(mockResetPassword).toHaveBeenCalledWith({
+      token: 'reset-token',
+      newPassword: 'newpass123'
+    })
+  })
+})
+
+describe('useRegenerateRecoveryCodes', () => {
+  it('returns a function that calls client.regenerateRecoveryCodes', () => {
+    const mockRegenerateRecoveryCodes = jest.fn().mockResolvedValue({})
+    mockCreateServiceClient.mockReturnValue({
+      // @ts-expect-error -- mock function assigned to typed client method
+      regenerateRecoveryCodes: mockRegenerateRecoveryCodes
+    })
+
+    const { result } = renderHook(() => useRegenerateRecoveryCodes())
+    result.current()
+    expect(mockRegenerateRecoveryCodes).toHaveBeenCalledWith({})
   })
 })
 
