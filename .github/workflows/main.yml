@@ -495,7 +495,7 @@ jobs:
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
-  # Applies infra/ (firewall, OS hardening, self-hosted Postgres/GoTrue) on
+  # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
   # state lives remotely in Cloudflare R2 (infra/versions.tf's backend
   # block), not on any one laptop. Unlike deploy-kamal above, there's no
@@ -603,10 +603,6 @@ jobs:
           TF_VAR_server_id: ${{ secrets.INFRA_SERVER_ID }}
           TF_VAR_server_ip: ${{ secrets.KAMAL_SERVER_IP }}
           TF_VAR_deploy_ssh_public_keys: ${{ vars.INFRA_DEPLOY_SSH_PUBLIC_KEYS }}
-          TF_VAR_gotrue_jwt_secret: ${{ secrets.GOTRUE_JWT_SECRET }}
-          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
-          TF_VAR_gotrue_site_url: ${{ vars.GOTRUE_SITE_URL }}
-          TF_VAR_gotrue_smtp_admin_email: ${{ secrets.GOTRUE_SMTP_ADMIN_EMAIL }}
         run: tofu apply -auto-approve -input=false
 
       # The apply step above already failed the job; this restores the box
