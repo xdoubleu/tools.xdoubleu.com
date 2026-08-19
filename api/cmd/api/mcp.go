@@ -14,8 +14,9 @@ import (
 )
 
 // This file holds the OAuth 2.1 plumbing shared by every MCP endpoint: the api
-// is the resource server (Bearer verification + protected-resource metadata),
-// Supabase is the authorization server. The server construction and tool
+// is both the resource server (Bearer verification + protected-resource
+// metadata) and, since issue #1039, its own authorization server
+// (internal/oauth2as, replacing Supabase). The server construction and tool
 // registration for the single combined MCP server live in mcp_apps.go.
 
 const (
@@ -26,7 +27,7 @@ const (
 	mcpUserExtraKey = "user"
 
 	// mcpTokenTTL is the nominal freshness window reported to the go-sdk bearer
-	// middleware for a token we just validated against Supabase.
+	// middleware for a token we just validated.
 	mcpTokenTTL = time.Hour
 
 	// rootResourceMetadataPath is the RFC 9728 metadata document at the
@@ -34,10 +35,11 @@ const (
 	rootResourceMetadataPath = "/.well-known/oauth-protected-resource"
 )
 
-// mcpAuthServerIssuer is the Supabase OAuth 2.1 authorization-server issuer that
-// clients discover from the protected-resource metadata.
+// mcpAuthServerIssuer is this api's own OAuth 2.1 authorization-server issuer
+// (internal/oauth2as) that clients discover from the protected-resource
+// metadata.
 func (app *Application) mcpAuthServerIssuer() string {
-	return "https://" + app.config.SupabaseProjRef + ".supabase.co/auth/v1"
+	return app.config.AuthIssuer
 }
 
 // mcpResourceMetadataFor builds the RFC 9728 protected-resource metadata for the
@@ -55,9 +57,10 @@ func (app *Application) mcpResourceMetadataFor(
 	}
 }
 
-// mcpTokenVerifier validates a Bearer access token by reusing the same Supabase
-// token resolution + admin-role enrichment as the cookie middleware, and stashes
-// the resolved user for mcpUserContext to promote into the request context.
+// mcpTokenVerifier validates a Bearer access token by reusing the same
+// token resolution + admin-role enrichment as the cookie middleware, and
+// stashes the resolved user for mcpUserContext to promote into the request
+// context.
 func (app *Application) mcpTokenVerifier() mcpauth.TokenVerifier {
 	return func(
 		ctx context.Context,
@@ -68,7 +71,7 @@ func (app *Application) mcpTokenVerifier() mcpauth.TokenVerifier {
 		if err != nil {
 			return nil, fmt.Errorf("%w: %w", mcpauth.ErrInvalidToken, err)
 		}
-		// ResolveToken only succeeds for a token Supabase currently accepts, so
+		// ResolveToken only succeeds for a token currently accepted, so
 		// a nominal near-future expiration satisfies the go-sdk's freshness
 		// check; the token is re-validated on the next cache miss anyway.
 		//nolint:exhaustruct // scopes are not used by this resource

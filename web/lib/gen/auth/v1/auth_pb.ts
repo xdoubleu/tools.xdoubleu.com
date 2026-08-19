@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file auth/v1/auth.proto.
  */
 export const file_auth_v1_auth: GenFile = /*@__PURE__*/
-  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiGQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2UiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIhQKEk1GQVVuZW5yb2xsUmVxdWVzdCIVChNNRkFVbmVucm9sbFJlc3BvbnNlIiMKE01GQUNoYWxsZW5nZVJlcXVlc3QSDAoEY29kZRgBIAEoCSIWChRNRkFDaGFsbGVuZ2VSZXNwb25zZSImChVGb3Jnb3RQYXNzd29yZFJlcXVlc3QSDQoFZW1haWwYASABKAkiGAoWRm9yZ290UGFzc3dvcmRSZXNwb25zZSJDChRFeGNoYW5nZVRva2VuUmVxdWVzdBIUCgxhY2Nlc3NfdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCSIqChVFeGNoYW5nZVRva2VuUmVzcG9uc2USEQoJbmVlZHNfbWZhGAEgASgIIi0KFVVwZGF0ZVBhc3N3b3JkUmVxdWVzdBIUCgxuZXdfcGFzc3dvcmQYASABKAkiGAoWVXBkYXRlUGFzc3dvcmRSZXNwb25zZSIQCg5TaWduT3V0UmVxdWVzdCIRCg9TaWduT3V0UmVzcG9uc2UiFwoVR2V0Q3VycmVudFVzZXJSZXF1ZXN0ImEKFkdldEN1cnJlbnRVc2VyUmVzcG9uc2USDAoEcm9sZRgBIAEoCRISCgphcHBfYWNjZXNzGAIgAygJEg8KB2hhc19tZmEYAyABKAgSFAoMZGlzcGxheV9uYW1lGAQgASgJMtAGCgtBdXRoU2VydmljZRI5CgZTaWduSW4SFi5hdXRoLnYxLlNpZ25JblJlcXVlc3QaFy5hdXRoLnYxLlNpZ25JblJlc3BvbnNlEkIKCU1GQUVucm9sbBIZLmF1dGgudjEuTUZBRW5yb2xsUmVxdWVzdBoaLmF1dGgudjEuTUZBRW5yb2xsUmVzcG9uc2USVAoPTUZBRW5yb2xsVmVyaWZ5Eh8uYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXF1ZXN0GiAuYXV0aC52MS5NRkFFbnJvbGxWZXJpZnlSZXNwb25zZRJOCg1NRkFFbnJvbGxTa2lwEh0uYXV0aC52MS5NRkFFbnJvbGxTa2lwUmVxdWVzdBoeLmF1dGgudjEuTUZBRW5yb2xsU2tpcFJlc3BvbnNlEksKDE1GQUNoYWxsZW5nZRIcLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVxdWVzdBodLmF1dGgudjEuTUZBQ2hhbGxlbmdlUmVzcG9uc2USSAoLTUZBVW5lbnJvbGwSGy5hdXRoLnYxLk1GQVVuZW5yb2xsUmVxdWVzdBocLmF1dGgudjEuTUZBVW5lbnJvbGxSZXNwb25zZRJRCg5Gb3Jnb3RQYXNzd29yZBIeLmF1dGgudjEuRm9yZ290UGFzc3dvcmRSZXF1ZXN0Gh8uYXV0aC52MS5Gb3Jnb3RQYXNzd29yZFJlc3BvbnNlEk4KDUV4Y2hhbmdlVG9rZW4SHS5hdXRoLnYxLkV4Y2hhbmdlVG9rZW5SZXF1ZXN0Gh4uYXV0aC52MS5FeGNoYW5nZVRva2VuUmVzcG9uc2USUQoOVXBkYXRlUGFzc3dvcmQSHi5hdXRoLnYxLlVwZGF0ZVBhc3N3b3JkUmVxdWVzdBofLmF1dGgudjEuVXBkYXRlUGFzc3dvcmRSZXNwb25zZRI8CgdTaWduT3V0EhcuYXV0aC52MS5TaWduT3V0UmVxdWVzdBoYLmF1dGgudjEuU2lnbk91dFJlc3BvbnNlElEKDkdldEN1cnJlbnRVc2VyEh4uYXV0aC52MS5HZXRDdXJyZW50VXNlclJlcXVlc3QaHy5hdXRoLnYxLkdldEN1cnJlbnRVc2VyUmVzcG9uc2VCJ1oldG9vbHMueGRvdWJsZXUuY29tL2dlbi9hdXRoL3YxO2F1dGh2MWIGcHJvdG8z");
+  fileDesc("ChJhdXRoL3YxL2F1dGgucHJvdG8SB2F1dGgudjEiVwoNU2lnbkluUmVxdWVzdBINCgVlbWFpbBgBIAEoCRIQCghwYXNzd29yZBgCIAEoCRITCgtyZW1lbWJlcl9tZRgDIAEoCBIQCghyZWRpcmVjdBgEIAEoCSI3Cg5TaWduSW5SZXNwb25zZRIRCgluZWVkc19tZmEYASABKAgSEgoKZW5yb2xsX21mYRgCIAEoCCISChBNRkFFbnJvbGxSZXF1ZXN0IkYKEU1GQUVucm9sbFJlc3BvbnNlEg4KBnFyX3N2ZxgBIAEoCRIOCgZzZWNyZXQYAiABKAkSEQoJZmFjdG9yX2lkGAMgASgJIjkKFk1GQUVucm9sbFZlcmlmeVJlcXVlc3QSEQoJZmFjdG9yX2lkGAEgASgJEgwKBGNvZGUYAiABKAkiMQoXTUZBRW5yb2xsVmVyaWZ5UmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkiFgoUTUZBRW5yb2xsU2tpcFJlcXVlc3QiFwoVTUZBRW5yb2xsU2tpcFJlc3BvbnNlIhQKEk1GQVVuZW5yb2xsUmVxdWVzdCIVChNNRkFVbmVucm9sbFJlc3BvbnNlIiMKE01GQUNoYWxsZW5nZVJlcXVlc3QSDAoEY29kZRgBIAEoCSIWChRNRkFDaGFsbGVuZ2VSZXNwb25zZSImChVGb3Jnb3RQYXNzd29yZFJlcXVlc3QSDQoFZW1haWwYASABKAkiGAoWRm9yZ290UGFzc3dvcmRSZXNwb25zZSJDChRFeGNoYW5nZVRva2VuUmVxdWVzdBIUCgxhY2Nlc3NfdG9rZW4YASABKAkSFQoNcmVmcmVzaF90b2tlbhgCIAEoCSIqChVFeGNoYW5nZVRva2VuUmVzcG9uc2USEQoJbmVlZHNfbWZhGAEgASgIIi0KFVVwZGF0ZVBhc3N3b3JkUmVxdWVzdBIUCgxuZXdfcGFzc3dvcmQYASABKAkiGAoWVXBkYXRlUGFzc3dvcmRSZXNwb25zZSIQCg5TaWduT3V0UmVxdWVzdCIRCg9TaWduT3V0UmVzcG9uc2UiFwoVR2V0Q3VycmVudFVzZXJSZXF1ZXN0ImEKFkdldEN1cnJlbnRVc2VyUmVzcG9uc2USDAoEcm9sZRgBIAEoCRISCgphcHBfYWNjZXNzGAIgAygJEg8KB2hhc19tZmEYAyABKAgSFAoMZGlzcGxheV9uYW1lGAQgASgJIjsKFFJlc2V0UGFzc3dvcmRSZXF1ZXN0Eg0KBXRva2VuGAEgASgJEhQKDG5ld19wYXNzd29yZBgCIAEoCSIXChVSZXNldFBhc3N3b3JkUmVzcG9uc2UiIAoeUmVnZW5lcmF0ZVJlY292ZXJ5Q29kZXNSZXF1ZXN0IjkKH1JlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2USFgoOcmVjb3ZlcnlfY29kZXMYASADKAkyjggKC0F1dGhTZXJ2aWNlEjkKBlNpZ25JbhIWLmF1dGgudjEuU2lnbkluUmVxdWVzdBoXLmF1dGgudjEuU2lnbkluUmVzcG9uc2USQgoJTUZBRW5yb2xsEhkuYXV0aC52MS5NRkFFbnJvbGxSZXF1ZXN0GhouYXV0aC52MS5NRkFFbnJvbGxSZXNwb25zZRJUCg9NRkFFbnJvbGxWZXJpZnkSHy5hdXRoLnYxLk1GQUVucm9sbFZlcmlmeVJlcXVlc3QaIC5hdXRoLnYxLk1GQUVucm9sbFZlcmlmeVJlc3BvbnNlEk4KDU1GQUVucm9sbFNraXASHS5hdXRoLnYxLk1GQUVucm9sbFNraXBSZXF1ZXN0Gh4uYXV0aC52MS5NRkFFbnJvbGxTa2lwUmVzcG9uc2USSwoMTUZBQ2hhbGxlbmdlEhwuYXV0aC52MS5NRkFDaGFsbGVuZ2VSZXF1ZXN0Gh0uYXV0aC52MS5NRkFDaGFsbGVuZ2VSZXNwb25zZRJICgtNRkFVbmVucm9sbBIbLmF1dGgudjEuTUZBVW5lbnJvbGxSZXF1ZXN0GhwuYXV0aC52MS5NRkFVbmVucm9sbFJlc3BvbnNlElEKDkZvcmdvdFBhc3N3b3JkEh4uYXV0aC52MS5Gb3Jnb3RQYXNzd29yZFJlcXVlc3QaHy5hdXRoLnYxLkZvcmdvdFBhc3N3b3JkUmVzcG9uc2USTgoNRXhjaGFuZ2VUb2tlbhIdLmF1dGgudjEuRXhjaGFuZ2VUb2tlblJlcXVlc3QaHi5hdXRoLnYxLkV4Y2hhbmdlVG9rZW5SZXNwb25zZRJRCg5VcGRhdGVQYXNzd29yZBIeLmF1dGgudjEuVXBkYXRlUGFzc3dvcmRSZXF1ZXN0Gh8uYXV0aC52MS5VcGRhdGVQYXNzd29yZFJlc3BvbnNlEjwKB1NpZ25PdXQSFy5hdXRoLnYxLlNpZ25PdXRSZXF1ZXN0GhguYXV0aC52MS5TaWduT3V0UmVzcG9uc2USUQoOR2V0Q3VycmVudFVzZXISHi5hdXRoLnYxLkdldEN1cnJlbnRVc2VyUmVxdWVzdBofLmF1dGgudjEuR2V0Q3VycmVudFVzZXJSZXNwb25zZRJOCg1SZXNldFBhc3N3b3JkEh0uYXV0aC52MS5SZXNldFBhc3N3b3JkUmVxdWVzdBoeLmF1dGgudjEuUmVzZXRQYXNzd29yZFJlc3BvbnNlEmwKF1JlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzEicuYXV0aC52MS5SZWdlbmVyYXRlUmVjb3ZlcnlDb2Rlc1JlcXVlc3QaKC5hdXRoLnYxLlJlZ2VuZXJhdGVSZWNvdmVyeUNvZGVzUmVzcG9uc2VCJ1oldG9vbHMueGRvdWJsZXUuY29tL2dlbi9hdXRoL3YxO2F1dGh2MWIGcHJvdG8z");
 
 /**
  * @generated from message auth.v1.SignInRequest
@@ -132,6 +132,13 @@ export const MFAEnrollVerifyRequestSchema: GenMessage<MFAEnrollVerifyRequest> = 
  * @generated from message auth.v1.MFAEnrollVerifyResponse
  */
 export type MFAEnrollVerifyResponse = Message<"auth.v1.MFAEnrollVerifyResponse"> & {
+  /**
+   * Set only the first time TOTP enrollment completes — a one-time
+   * opportunity to save these, matching GenerateRecoveryCodes' semantics.
+   *
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
 };
 
 /**
@@ -397,6 +404,71 @@ export const GetCurrentUserResponseSchema: GenMessage<GetCurrentUserResponse> = 
   messageDesc(file_auth_v1_auth, 21);
 
 /**
+ * @generated from message auth.v1.ResetPasswordRequest
+ */
+export type ResetPasswordRequest = Message<"auth.v1.ResetPasswordRequest"> & {
+  /**
+   * @generated from field: string token = 1;
+   */
+  token: string;
+
+  /**
+   * @generated from field: string new_password = 2;
+   */
+  newPassword: string;
+};
+
+/**
+ * Describes the message auth.v1.ResetPasswordRequest.
+ * Use `create(ResetPasswordRequestSchema)` to create a new message.
+ */
+export const ResetPasswordRequestSchema: GenMessage<ResetPasswordRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 22);
+
+/**
+ * @generated from message auth.v1.ResetPasswordResponse
+ */
+export type ResetPasswordResponse = Message<"auth.v1.ResetPasswordResponse"> & {
+};
+
+/**
+ * Describes the message auth.v1.ResetPasswordResponse.
+ * Use `create(ResetPasswordResponseSchema)` to create a new message.
+ */
+export const ResetPasswordResponseSchema: GenMessage<ResetPasswordResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 23);
+
+/**
+ * @generated from message auth.v1.RegenerateRecoveryCodesRequest
+ */
+export type RegenerateRecoveryCodesRequest = Message<"auth.v1.RegenerateRecoveryCodesRequest"> & {
+};
+
+/**
+ * Describes the message auth.v1.RegenerateRecoveryCodesRequest.
+ * Use `create(RegenerateRecoveryCodesRequestSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesRequestSchema: GenMessage<RegenerateRecoveryCodesRequest> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 24);
+
+/**
+ * @generated from message auth.v1.RegenerateRecoveryCodesResponse
+ */
+export type RegenerateRecoveryCodesResponse = Message<"auth.v1.RegenerateRecoveryCodesResponse"> & {
+  /**
+   * @generated from field: repeated string recovery_codes = 1;
+   */
+  recoveryCodes: string[];
+};
+
+/**
+ * Describes the message auth.v1.RegenerateRecoveryCodesResponse.
+ * Use `create(RegenerateRecoveryCodesResponseSchema)` to create a new message.
+ */
+export const RegenerateRecoveryCodesResponseSchema: GenMessage<RegenerateRecoveryCodesResponse> = /*@__PURE__*/
+  messageDesc(file_auth_v1_auth, 25);
+
+/**
  * @generated from service auth.v1.AuthService
  */
 export const AuthService: GenService<{
@@ -487,6 +559,22 @@ export const AuthService: GenService<{
     methodKind: "unary";
     input: typeof GetCurrentUserRequestSchema;
     output: typeof GetCurrentUserResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.ResetPassword
+   */
+  resetPassword: {
+    methodKind: "unary";
+    input: typeof ResetPasswordRequestSchema;
+    output: typeof ResetPasswordResponseSchema;
+  },
+  /**
+   * @generated from rpc auth.v1.AuthService.RegenerateRecoveryCodes
+   */
+  regenerateRecoveryCodes: {
+    methodKind: "unary";
+    input: typeof RegenerateRecoveryCodesRequestSchema;
+    output: typeof RegenerateRecoveryCodesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_auth_v1_auth, 0);

@@ -17,6 +17,7 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/middleware"
+	"tools.xdoubleu.com/internal/oauth2as"
 )
 
 // deployLogsWriteDeadline bounds how long the GetDeployLogs response is
@@ -75,6 +76,7 @@ func withExtendedDeadline(
 	}
 }
 
+//nolint:funlen //route registration: a long list, not complex logic
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
 	scrub := iapp.ScrubInternalErrors(app.logger)
@@ -138,6 +140,31 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(appsResourceMetadataPath, appsPRM)
 	mux.Handle(rootResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
+
+	// Embedded OAuth 2.1 authorization server (issue #1039) backing the MCP
+	// flow above — replaces Supabase as the authorization server.
+	mux.HandleFunc(
+		"GET "+oauth2AuthorizePath,
+		oauth2as.AuthorizeHandler(
+			app.oauth2as.provider, app.config, app.oauth2SessionUserResolver(),
+		),
+	)
+	mux.HandleFunc(
+		"POST "+oauth2AuthorizePath,
+		oauth2as.AuthorizeHandler(
+			app.oauth2as.provider, app.config, app.oauth2SessionUserResolver(),
+		),
+	)
+	mux.HandleFunc(
+		"POST "+oauth2TokenPath, oauth2as.TokenHandler(app.oauth2as.provider),
+	)
+	mux.HandleFunc(
+		"POST "+oauth2RegisterPath, oauth2as.RegisterHandler(app.oauth2as.store),
+	)
+	mux.HandleFunc(
+		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(app.oauth2as.store),
+	)
+	mux.HandleFunc("GET "+oauth2MetadataPath, app.oauth2MetadataHandler())
 
 	// Browser-facing OAuth connect flow for the observability integrations
 	// (issue #440) — plain HTTP because the provider redirect can't carry

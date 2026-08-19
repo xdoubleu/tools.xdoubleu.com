@@ -12,7 +12,6 @@ import (
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
-	"tools.xdoubleu.com/internal/mocks"
 )
 
 // TestDomainMiddleware_PathRewrite verifies that the domainMiddleware rewrites
@@ -213,7 +212,6 @@ func throttledRoutes(t *testing.T) http.Handler {
 		logger,
 		cfg,
 		postgresDB,
-		mocks.NewMockedGoTrueClient(),
 	)
 
 	handler := throttledApp.Routes()

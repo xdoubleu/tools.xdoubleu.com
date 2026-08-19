@@ -89,6 +89,32 @@ func (h *authConnectHandler) ForgotPassword(
 	return connect.NewResponse(&authv1.ForgotPasswordResponse{}), nil
 }
 
+func (h *authConnectHandler) ResetPassword(
+	ctx context.Context,
+	req *connect.Request[authv1.ResetPasswordRequest],
+) (*connect.Response[authv1.ResetPasswordResponse], error) {
+	if req.Msg.Token == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("token is required"),
+		)
+	}
+	if req.Msg.NewPassword == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("new_password is required"),
+		)
+	}
+
+	if err := h.app.auth.ResetPasswordWithToken(
+		ctx, req.Msg.Token, req.Msg.NewPassword,
+	); err != nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	return connect.NewResponse(&authv1.ResetPasswordResponse{}), nil
+}
+
 func (h *authConnectHandler) ExchangeToken(
 	ctx context.Context,
 	req *connect.Request[authv1.ExchangeTokenRequest],

@@ -32,8 +32,8 @@ func (h *authConnectHandler) MFAEnroll(
 	}
 
 	return connect.NewResponse(&authv1.MFAEnrollResponse{
-		QrSvg:    enrollment.TOTP.QRCode,
-		Secret:   enrollment.TOTP.Secret,
+		QrSvg:    enrollment.QRSVG,
+		Secret:   enrollment.Secret,
 		FactorId: enrollment.ID.String(),
 	}), nil
 }
@@ -87,13 +87,44 @@ func (h *authConnectHandler) MFAEnrollVerify(
 		}
 	}
 
-	resp := connect.NewResponse(&authv1.MFAEnrollVerifyResponse{})
+	// Enrollment just completed for the first time — hand the user their
+	// one-time-visible recovery codes now, same as GenerateRecoveryCodes.
+	recoveryCodes, codesErr := h.app.auth.GenerateRecoveryCodes(ctx, *accessToken)
+	if codesErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, codesErr)
+	}
+
+	resp := connect.NewResponse(&authv1.MFAEnrollVerifyResponse{
+		RecoveryCodes: recoveryCodes,
+	})
 	if err = h.completeMFA(
 		resp.Header(), *accessToken, *refreshToken, rememberMe,
 	); err != nil {
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (h *authConnectHandler) RegenerateRecoveryCodes(
+	ctx context.Context,
+	req *connect.Request[authv1.RegenerateRecoveryCodesRequest],
+) (*connect.Response[authv1.RegenerateRecoveryCodesResponse], error) {
+	accessToken, err := h.parseCookie(req.Header(), "accessToken")
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("not signed in"),
+		)
+	}
+
+	codes, err := h.app.auth.GenerateRecoveryCodes(ctx, accessToken.Value)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&authv1.RegenerateRecoveryCodesResponse{
+		RecoveryCodes: codes,
+	}), nil
 }
 
 func (h *authConnectHandler) MFAEnrollSkip(

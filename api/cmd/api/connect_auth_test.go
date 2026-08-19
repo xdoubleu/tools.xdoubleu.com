@@ -12,7 +12,6 @@ import (
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
-	"tools.xdoubleu.com/internal/mocks"
 )
 
 func authClient(t *testing.T) authv1connect.AuthServiceClient {
@@ -36,14 +35,13 @@ func TestSignIn_Success(t *testing.T) {
 }
 
 func TestSignIn_WithMFA(t *testing.T) {
-	// "mfa-access" is the mock token that has a verified TOTP factor.
-	// HasVerifiedTOTP("mfa-access") returns true per the mock.
-	factorID, hasMFA := testApp.auth.HasVerifiedTOTP(
+	// mfaAccessToken belongs to mfaUserID, seeded in TestMain with an
+	// already-verified TOTP factor.
+	_, hasMFA := testApp.auth.HasVerifiedTOTP(
 		context.Background(),
-		"mfa-access",
+		mfaAccessToken.Value,
 	)
 	assert.True(t, hasMFA)
-	assert.Equal(t, mocks.MockedFactorID, factorID)
 }
 
 func TestSignIn_EmptyEmail(t *testing.T) {
@@ -216,20 +214,22 @@ func TestGetCurrentUser_NoToken(t *testing.T) {
 }
 
 func TestGetCurrentUser_WithRefreshToken_Success(t *testing.T) {
+	refresh := freshTestUserWithRefresh(t)
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, http.Cookie{Name: "refreshToken", Value: "refresh"})
+	setCookieOnRequest(req, http.Cookie{Name: "refreshToken", Value: refresh})
 	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Role)
 }
 
 func TestGetCurrentUser_NoAccessToken_FallsBackToRefreshToken(t *testing.T) {
+	refresh := freshTestUserWithRefresh(t)
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
 	setCookieOnRequest(
 		req,
-		http.Cookie{Name: "refreshToken", Value: "refresh"},
+		http.Cookie{Name: "refreshToken", Value: refresh},
 	)
 	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
@@ -293,10 +293,15 @@ func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
 	assert.IsType(t, []string{}, resp.Msg.AppAccess)
 }
 
+// mfaTokenCookie carries a real signed JWT for testUserID (set in TestMain,
+// see seedTestUsers) — MFAEnroll/MFAEnrollVerify/MFAChallenge all verify it
+// cryptographically, unlike MFAEnrollSkip which only relays it into a cookie
+// unchanged.
+//
 //nolint:gochecknoglobals // shared test fixture
 var mfaTokenCookie = http.Cookie{
 	Name:  "mfaToken",
-	Value: "access",
+	Value: "",
 }
 
 //nolint:gochecknoglobals // shared test fixture

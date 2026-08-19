@@ -11,7 +11,7 @@ import (
 
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/constants"
-	"tools.xdoubleu.com/internal/mocks"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -25,7 +25,10 @@ func TestAuthCacheServesAndInvalidates(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	cfg.AuthCacheTTL = 60
 
-	svc := auth.NewService(cfg, mocks.NewMockedGoTrueClient(), testApp.appUsersRepo)
+	svc := auth.NewService(
+		cfg, auth.NewRepository(testApp.db), testApp.appUsersRepo,
+		nil, mailer.New("", "", ""),
+	)
 
 	require.NoError(
 		t,

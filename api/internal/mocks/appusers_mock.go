@@ -7,7 +7,7 @@ import (
 )
 
 // FakeAppUsersStore is a configurable test double for the narrow interface
-// auth.GoTrueService needs from *repositories.AppUsersRepository. It lets
+// auth.LocalService needs from *repositories.AppUsersRepository. It lets
 // tests force Upsert and GetByID to fail independently — something a single
 // canceled context can't isolate, since both real DB calls share one ctx.
 type FakeAppUsersStore struct {

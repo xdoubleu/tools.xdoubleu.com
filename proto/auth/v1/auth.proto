@@ -14,6 +14,8 @@ service AuthService {
   rpc UpdatePassword(UpdatePasswordRequest) returns (UpdatePasswordResponse);
   rpc SignOut(SignOutRequest) returns (SignOutResponse);
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc RegenerateRecoveryCodes(RegenerateRecoveryCodesRequest) returns (RegenerateRecoveryCodesResponse);
 }
 
 message SignInRequest {
@@ -41,7 +43,11 @@ message MFAEnrollVerifyRequest {
   string code = 2;
 }
 
-message MFAEnrollVerifyResponse {}
+message MFAEnrollVerifyResponse {
+  // Set only the first time TOTP enrollment completes — a one-time
+  // opportunity to save these, matching GenerateRecoveryCodes' semantics.
+  repeated string recovery_codes = 1;
+}
 
 message MFAEnrollSkipRequest {}
 
@@ -91,4 +97,17 @@ message GetCurrentUserResponse {
   // Public profile display name; empty when unset (share links require this
   // to be set first, see dashboard.v1.DashboardService).
   string display_name = 4;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {}
+
+message RegenerateRecoveryCodesRequest {}
+
+message RegenerateRecoveryCodesResponse {
+  repeated string recovery_codes = 1;
 }
