@@ -48,6 +48,29 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 	assert.Equal(t, []any{"none"}, out["token_endpoint_auth_methods_supported"])
 }
 
+// TestOAuth2Metadata_PathInsertionAlias covers issue #1141: in production,
+// APIURL (and therefore AuthIssuer, which defaults to it) has a path
+// ("/api"), so RFC 8414/9728 require a discovering client to insert
+// /.well-known/... *before* that path rather than trust the bare path
+// TestOAuth2MetadataHandler above exercises. routes.go registers that "/api"
+// alias unconditionally for both the AS metadata and the protected-resource
+// metadata document, regardless of the configured APIURL/AuthIssuer shape.
+func TestOAuth2Metadata_PathInsertionAlias(t *testing.T) {
+	ts := connectServer(t)
+
+	resp, err := http.Get(ts.URL + "/.well-known/oauth-authorization-server/api")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	resp2, err := http.Get(
+		ts.URL + "/.well-known/oauth-protected-resource/api/apps/mcp",
+	)
+	require.NoError(t, err)
+	defer resp2.Body.Close()
+	assert.Equal(t, http.StatusOK, resp2.StatusCode)
+}
+
 // oauth2asRegisterTestClient registers a fresh dynamic client against the
 // real /oauth2/register route (wired via app.oauth2as.store in routes.go)
 // and returns its client ID and redirect URI.

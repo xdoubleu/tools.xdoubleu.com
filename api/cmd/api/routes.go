@@ -140,6 +140,14 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(appsResourceMetadataPath, appsPRM)
 	mux.Handle(rootResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
+	// RFC 9728 requires clients discovering metadata for a resource URL with
+	// a path (APIURL's "/api" in production) to insert /.well-known/...
+	// before that path rather than trust the bare path above — register
+	// that alias too, so real client discovery libraries (which compute
+	// this URL themselves rather than trusting the bare one) don't 404.
+	mux.Handle(
+		"/.well-known/oauth-protected-resource/api"+appsMCPPath, appsPRM,
+	)
 
 	// Embedded OAuth 2.1 authorization server (issue #1039) backing the MCP
 	// flow above — replaces Supabase as the authorization server.
@@ -165,6 +173,11 @@ func (app *Application) Routes() http.Handler {
 		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(app.oauth2as.store),
 	)
 	mux.HandleFunc("GET "+oauth2MetadataPath, app.oauth2MetadataHandler())
+	// Same RFC 8414 path-insertion alias as above, for AuthIssuer's own path
+	// (defaults to APIURL's "/api").
+	mux.HandleFunc(
+		"GET "+oauth2MetadataPath+"/api", app.oauth2MetadataHandler(),
+	)
 
 	// Browser-facing OAuth connect flow for the observability integrations
 	// (issue #440) — plain HTTP because the provider redirect can't carry
