@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import ConsentPage from '@/app/oauth/consent/page'
-import { createOAuthServerClient } from '@/lib/supabase/oauthServer'
+import { getConsentInfo } from '@/lib/oauth2as/consentClient'
 
 jest.mock('next/headers', () => ({ cookies: jest.fn() }))
 jest.mock('next/navigation', () => ({
@@ -10,7 +10,7 @@ jest.mock('next/navigation', () => ({
     throw new Error(`REDIRECT:${url}`)
   })
 }))
-jest.mock('@/lib/supabase/oauthServer', () => ({ createOAuthServerClient: jest.fn() }))
+jest.mock('@/lib/oauth2as/consentClient', () => ({ getConsentInfo: jest.fn() }))
 
 function withCookies(map: Record<string, string>) {
   const store = {
@@ -20,67 +20,50 @@ function withCookies(map: Record<string, string>) {
   jest.mocked(cookies).mockResolvedValue(store)
 }
 
-function supabaseReturning(result: unknown) {
-  const getAuthorizationDetails = jest.fn().mockResolvedValue(result)
-  const client = { auth: { oauth: { getAuthorizationDetails } } }
-  // @ts-expect-error -- partial supabase client exposing only the oauth namespace
-  jest.mocked(createOAuthServerClient).mockResolvedValue(client)
-}
-
-async function renderPage(authorizationId?: string) {
-  const ui = await ConsentPage({
-    searchParams: Promise.resolve(authorizationId ? { authorization_id: authorizationId } : {})
-  })
+async function renderPage(params?: Record<string, string | string[] | undefined>) {
+  const ui = await ConsentPage({ searchParams: Promise.resolve(params ?? {}) })
   render(ui)
 }
 
 describe('ConsentPage', () => {
   beforeEach(() => jest.clearAllMocks())
 
-  it('redirects home without an authorization id', async () => {
+  it('redirects home without a client_id', async () => {
     await expect(renderPage()).rejects.toThrow('REDIRECT:/')
   })
 
   it('redirects to sign-in when not authenticated', async () => {
     withCookies({})
-    await expect(renderPage('auth-1')).rejects.toThrow('REDIRECT:/auth/sign-in')
+    await expect(renderPage({ client_id: 'c1' })).rejects.toThrow('REDIRECT:/auth/sign-in')
     expect(redirect).toHaveBeenCalledWith(
-      expect.stringContaining(encodeURIComponent('/oauth/consent?authorization_id=auth-1'))
+      expect.stringContaining(encodeURIComponent('/oauth/consent?client_id=c1'))
     )
-  })
-
-  it('renders a config error when the client is unavailable', async () => {
-    withCookies({ accessToken: 'at' })
-    jest.mocked(createOAuthServerClient).mockResolvedValue(null)
-    await renderPage('auth-1')
-    expect(screen.getByText('OAuth server is not configured.')).toBeInTheDocument()
   })
 
   it('renders an error when the authorization is invalid', async () => {
     withCookies({ accessToken: 'at' })
-    supabaseReturning({ error: { message: 'bad' } })
-    await renderPage('auth-1')
+    jest.mocked(getConsentInfo).mockResolvedValue(null)
+    await renderPage({ client_id: 'c1' })
     expect(
       screen.getByText('This authorization request is invalid or has expired.')
     ).toBeInTheDocument()
   })
 
-  it('redirects immediately when consent already granted', async () => {
-    withCookies({ accessToken: 'at' })
-    supabaseReturning({ data: { redirect_url: 'https://cb?code=1' } })
-    await expect(renderPage('auth-1')).rejects.toThrow('REDIRECT:https://cb?code=1')
-  })
-
   it('renders the consent form with client details', async () => {
     withCookies({ accessToken: 'at' })
-    supabaseReturning({
-      data: {
-        authorization_id: 'auth-1',
-        client: { name: 'Claude CLI' },
-        scope: 'openid email'
-      }
-    })
-    await renderPage('auth-1')
+    jest
+      .mocked(getConsentInfo)
+      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid email' })
+    await renderPage({ client_id: 'c1', scope: 'openid email', state: 's1' })
     expect(screen.getByText('Authorize Claude CLI')).toBeInTheDocument()
+  })
+
+  it('takes the first value of a repeated query param', async () => {
+    withCookies({ accessToken: 'at' })
+    jest
+      .mocked(getConsentInfo)
+      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid' })
+    await renderPage({ client_id: ['c1', 'c2'], scope: undefined })
+    expect(getConsentInfo).toHaveBeenCalledWith(new URLSearchParams('client_id=c1'))
   })
 })

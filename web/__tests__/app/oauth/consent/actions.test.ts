@@ -1,49 +1,61 @@
+import { cookies } from 'next/headers'
 import { approveAuthorization, denyAuthorization } from '@/app/oauth/consent/actions'
-import { createOAuthServerClient } from '@/lib/supabase/oauthServer'
+import { decideAuthorization } from '@/lib/oauth2as/consentClient'
 
-jest.mock('@/lib/supabase/oauthServer', () => ({
-  createOAuthServerClient: jest.fn()
+jest.mock('next/headers', () => ({ cookies: jest.fn() }))
+jest.mock('@/lib/oauth2as/consentClient', () => ({
+  decideAuthorization: jest.fn()
 }))
-
 jest.mock('next/navigation', () => ({
   redirect: jest.fn((url: string) => {
     throw new Error(`REDIRECT:${url}`)
   })
 }))
 
-function mockClient(oauth: Record<string, unknown>) {
-  const client = { auth: { oauth } }
-  // @ts-expect-error -- partial supabase client for the oauth namespace only
-  jest.mocked(createOAuthServerClient).mockResolvedValue(client)
+function mockCookies(map: Record<string, string>) {
+  const store = {
+    getAll: () => Object.entries(map).map(([name, value]) => ({ name, value }))
+  }
+  // @ts-expect-error -- partial cookie store exposing only getAll()
+  jest.mocked(cookies).mockResolvedValue(store)
 }
 
 describe('consent server actions', () => {
   beforeEach(() => jest.clearAllMocks())
 
   it('approves and redirects to the returned url', async () => {
-    const approve = jest.fn().mockResolvedValue({ data: { redirect_url: 'https://cb?code=1' } })
-    mockClient({ approveAuthorization: approve })
+    mockCookies({ accessToken: 'at' })
+    jest.mocked(decideAuthorization).mockResolvedValue('https://cb?code=1')
 
-    await expect(approveAuthorization('auth-1')).rejects.toThrow('REDIRECT:https://cb?code=1')
-    expect(approve).toHaveBeenCalledWith('auth-1', { skipBrowserRedirect: true })
+    await expect(approveAuthorization('client_id=c1&state=s1')).rejects.toThrow(
+      'REDIRECT:https://cb?code=1'
+    )
+    expect(decideAuthorization).toHaveBeenCalledWith(
+      new URLSearchParams('client_id=c1&state=s1'),
+      'allow',
+      'accessToken=at'
+    )
   })
 
   it('denies and redirects to the returned url', async () => {
-    const deny = jest.fn().mockResolvedValue({ data: { redirect_url: 'https://cb?error=denied' } })
-    mockClient({ denyAuthorization: deny })
+    mockCookies({ accessToken: 'at' })
+    jest.mocked(decideAuthorization).mockResolvedValue('https://cb?error=access_denied')
 
-    await expect(denyAuthorization('auth-1')).rejects.toThrow('REDIRECT:https://cb?error=denied')
-    expect(deny).toHaveBeenCalledWith('auth-1', { skipBrowserRedirect: true })
+    await expect(denyAuthorization('client_id=c1')).rejects.toThrow(
+      'REDIRECT:https://cb?error=access_denied'
+    )
+    expect(decideAuthorization).toHaveBeenCalledWith(
+      new URLSearchParams('client_id=c1'),
+      'deny',
+      'accessToken=at'
+    )
   })
 
-  it('throws when the client is not configured', async () => {
-    jest.mocked(createOAuthServerClient).mockResolvedValue(null)
-    await expect(approveAuthorization('auth-1')).rejects.toThrow('not configured')
-  })
-
-  it('throws when Supabase returns an error', async () => {
-    const approve = jest.fn().mockResolvedValue({ error: { message: 'nope' } })
-    mockClient({ approveAuthorization: approve })
-    await expect(approveAuthorization('auth-1')).rejects.toThrow('nope')
+  it('throws when the api does not return a redirect location', async () => {
+    mockCookies({ accessToken: 'at' })
+    jest.mocked(decideAuthorization).mockRejectedValue(new Error('Failed to approve authorization'))
+    await expect(approveAuthorization('client_id=c1')).rejects.toThrow(
+      'Failed to approve authorization'
+    )
   })
 })

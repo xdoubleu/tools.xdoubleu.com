@@ -1,37 +1,34 @@
 'use server'
 
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createOAuthServerClient } from '@/lib/supabase/oauthServer'
+import { decideAuthorization } from '@/lib/oauth2as/consentClient'
 
-// Server actions backing the OAuth consent screen. Each resolves the requesting
-// user's Supabase session from cookies, records the consent decision, and sends
-// the browser back to the OAuth client's redirect URL (carrying the
-// authorization code on approval, or an access_denied error on denial).
+// Server actions backing the OAuth consent screen. Each forwards the
+// signed-in user's session cookie, records the consent decision by POSTing
+// back to /oauth2/authorize with the original authorization-request query
+// params, and sends the browser to the URL fosite responds with (carrying
+// the authorization code on approval, or an access_denied error on denial).
 
-export async function approveAuthorization(authorizationId: string): Promise<void> {
-  const supabase = await createOAuthServerClient()
-  if (!supabase) throw new Error('OAuth server is not configured')
+async function decide(requestQuery: string, decision: 'allow' | 'deny'): Promise<void> {
+  const store = await cookies()
+  const cookieHeader = store
+    .getAll()
+    .map((c) => `${c.name}=${c.value}`)
+    .join('; ')
 
-  const { data, error } = await supabase.auth.oauth.approveAuthorization(authorizationId, {
-    skipBrowserRedirect: true
-  })
-  if (error || !data) {
-    throw new Error(error?.message ?? 'Failed to approve authorization')
-  }
-
-  redirect(data.redirect_url)
+  const location = await decideAuthorization(
+    new URLSearchParams(requestQuery),
+    decision,
+    cookieHeader
+  )
+  redirect(location)
 }
 
-export async function denyAuthorization(authorizationId: string): Promise<void> {
-  const supabase = await createOAuthServerClient()
-  if (!supabase) throw new Error('OAuth server is not configured')
+export async function approveAuthorization(requestQuery: string): Promise<void> {
+  await decide(requestQuery, 'allow')
+}
 
-  const { data, error } = await supabase.auth.oauth.denyAuthorization(authorizationId, {
-    skipBrowserRedirect: true
-  })
-  if (error || !data) {
-    throw new Error(error?.message ?? 'Failed to deny authorization')
-  }
-
-  redirect(data.redirect_url)
+export async function denyAuthorization(requestQuery: string): Promise<void> {
+  await decide(requestQuery, 'deny')
 }
