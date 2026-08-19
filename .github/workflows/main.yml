@@ -363,14 +363,22 @@ jobs:
   # and build-web.yml already push their own images to GHCR independently on
   # every push to main, so this job needs only their build result, not a
   # merged-image assembly step.
+  #
+  # Also needs infra-apply (issue #1137): infra-apply itself needs every
+  # build/test job, so this transitively waits for CI to finish before
+  # infra-apply resolves, and only then deploys — never in parallel with
+  # either. success-or-skipped for the same reason as build-api/build-web:
+  # infra-apply skips itself (see its own if:) when infra/ didn't change,
+  # which must not block a deploy that has nothing to do with infra.
   deploy-kamal:
-    needs: [build-api, build-web]
+    needs: [build-api, build-web, infra-apply]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
-      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped')
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
     environment: production
@@ -506,13 +514,35 @@ jobs:
   # than a "fix forward" model, which can't cleanly undo a broken SSH
   # provisioner run. No manual approval gate: the snapshot/restore is the
   # safety net, not a human click.
+  #
+  # Gated on every build/test job that runs on push (issue #1137) so this
+  # never touches the VPS ahead of CI actually passing — it used to run in
+  # parallel with them, gated only by the path filter below, which meant a
+  # red test job wouldn't have stopped tofu apply from proceeding.
   infra-apply:
-    needs: changes
+    needs:
+      [
+        changes,
+        build-api,
+        build-web,
+        build-kobo-gateway,
+        api-test,
+        web-test,
+        kobo-gateway-test,
+        sentrytools-test,
+      ]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      (needs.changes.outputs.infra == 'true' || needs.changes.outputs.workflows == 'true')
+      (needs.changes.outputs.infra == 'true' || needs.changes.outputs.workflows == 'true') &&
+      (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
+      (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped') &&
+      (needs.api-test.result == 'success' || needs.api-test.result == 'skipped') &&
+      (needs.web-test.result == 'success' || needs.web-test.result == 'skipped') &&
+      (needs.kobo-gateway-test.result == 'success' || needs.kobo-gateway-test.result == 'skipped') &&
+      (needs.sentrytools-test.result == 'success' || needs.sentrytools-test.result == 'skipped')
     name: Apply Infra via OpenTofu
     runs-on: ubuntu-latest
     environment: production
