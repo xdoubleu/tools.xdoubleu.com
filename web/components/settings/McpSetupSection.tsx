@@ -18,14 +18,7 @@ const APPS_MCP: McpCommand = {
   command: 'claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp'
 }
 
-const MONITORING_MCP: McpCommand = {
-  key: 'monitoring',
-  title: 'Monitoring MCP',
-  description: 'Read-only admin observability signals (jobs, usage, storage, database, deploys).',
-  command: 'claude mcp add --transport http tools-obs https://tools.xdoubleu.com/api/monitoring/mcp'
-}
-
-export function McpSetupSection({ role }: { role: string }) {
+export function McpSetupSection() {
   const [copiedKey, setCopiedKey] = useState('')
 
   const handleCopy = async (cmd: McpCommand) => {
@@ -34,7 +27,7 @@ export function McpSetupSection({ role }: { role: string }) {
     setTimeout(() => setCopiedKey(''), 2000)
   }
 
-  const commands = role === 'admin' ? [APPS_MCP, MONITORING_MCP] : [APPS_MCP]
+  const commands = [APPS_MCP]
 
   return (
     <section>

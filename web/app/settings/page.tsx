@@ -378,7 +378,7 @@ export default function SettingsPage() {
 
       <AppearanceSection />
 
-      <McpSetupSection role={data.role} />
+      <McpSetupSection />
 
       {recoveryCodes && (
         <RecoveryCodesDialog codes={recoveryCodes} onDismiss={() => setRecoveryCodes(null)} />
