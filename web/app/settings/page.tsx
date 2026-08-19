@@ -9,7 +9,8 @@ import {
   useUpdateDisplayName,
   useMFAEnroll,
   useMFAEnrollVerify,
-  useMFAUnenroll
+  useMFAUnenroll,
+  useRegenerateRecoveryCodes
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { McpSetupSection } from '@/components/settings/McpSetupSection'
 import { AppearanceSection } from '@/components/settings/AppearanceSection'
+import RecoveryCodesDialog from '@/components/settings/RecoveryCodesDialog'
 
 type MFAEnrollState = 'idle' | 'qr' | 'done'
 
@@ -28,6 +30,7 @@ export default function SettingsPage() {
   const mfaEnroll = useMFAEnroll()
   const mfaEnrollVerify = useMFAEnrollVerify()
   const mfaUnenroll = useMFAUnenroll()
+  const regenerateRecoveryCodes = useRegenerateRecoveryCodes()
 
   // Display name section
   const [displayName, setDisplayName] = useState('')
@@ -54,6 +57,8 @@ export default function SettingsPage() {
   const [mfaCode, setMfaCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
   const [mfaError, setMfaMfaError] = useState('')
+  const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
+  const [recoveryCodesError, setRecoveryCodesError] = useState('')
 
   if (isLoading || !data) {
     return <p className="py-16 text-center text-sm text-muted">Loading…</p>
@@ -135,14 +140,32 @@ export default function SettingsPage() {
     setMfaBusy(true)
     setMfaMfaError('')
     try {
-      await mfaEnrollVerify(mfaFactorId, mfaCode)
+      const res = await mfaEnrollVerify(mfaFactorId, mfaCode)
       await mutate(swrKeys.currentUser)
       setMfaState('done')
+      if (res.recoveryCodes.length > 0) setRecoveryCodes(res.recoveryCodes)
     } catch (err) {
       if (err instanceof ConnectError) {
         setMfaMfaError(err.message)
       } else {
         setMfaMfaError('Invalid code. Please try again.')
+      }
+    } finally {
+      setMfaBusy(false)
+    }
+  }
+
+  async function handleRegenerateRecoveryCodes() {
+    setMfaBusy(true)
+    setRecoveryCodesError('')
+    try {
+      const res = await regenerateRecoveryCodes()
+      setRecoveryCodes(res.recoveryCodes)
+    } catch (err) {
+      if (err instanceof ConnectError) {
+        setRecoveryCodesError(err.message)
+      } else {
+        setRecoveryCodesError('Failed to regenerate recovery codes.')
       }
     } finally {
       setMfaBusy(false)
@@ -283,9 +306,24 @@ export default function SettingsPage() {
             <p className="text-sm text-subtle">
               Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
             </p>
-            <Button variant="destructive" size="sm" onClick={handleMFADisable} disabled={mfaBusy}>
-              {mfaBusy ? 'Disabling…' : 'Disable MFA'}
-            </Button>
+            {recoveryCodesError && (
+              <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+                {recoveryCodesError}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleRegenerateRecoveryCodes}
+                disabled={mfaBusy}
+              >
+                {mfaBusy ? 'Generating…' : 'Regenerate recovery codes'}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleMFADisable} disabled={mfaBusy}>
+                {mfaBusy ? 'Disabling…' : 'Disable MFA'}
+              </Button>
+            </div>
           </div>
         ) : mfaState === 'qr' ? (
           <div className="space-y-4">
@@ -341,6 +379,10 @@ export default function SettingsPage() {
       <AppearanceSection />
 
       <McpSetupSection role={data.role} />
+
+      {recoveryCodes && (
+        <RecoveryCodesDialog codes={recoveryCodes} onDismiss={() => setRecoveryCodes(null)} />
+      )}
     </PageContainer>
   )
 }
