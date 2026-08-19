@@ -25,6 +25,7 @@ import (
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/legacyauth"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
@@ -47,6 +48,7 @@ type Application struct {
 	config                        config.Config
 	db                            *pgxpool.Pool
 	auth                          *auth.LocalService
+	authSealer                    *crypto.Sealer
 	oauth2as                      *oauth2asWiring
 	contacts                      contacts.Service
 	apps                          *Apps
@@ -392,11 +394,12 @@ func NewApplication(
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
-		ctx:    ctx,
-		logger: logger,
-		config: config,
-		db:     db,
-		auth:   authSvc,
+		ctx:        ctx,
+		logger:     logger,
+		config:     config,
+		db:         db,
+		auth:       authSvc,
+		authSealer: authSealer,
 		// wired below, after migrations create the auth schema
 		oauth2as:                      nil,
 		contacts:                      contactsSvc,
@@ -486,6 +489,16 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	if err = app.applyGlobalMigrations(db); err != nil {
 		return err
 	}
+
+	// Copies any legacy GoTrue auth data (renamed to auth_gotrue_legacy by
+	// the migration above, on the one production database that has it) into
+	// the new auth schema. Idempotent and a no-op everywhere else — still
+	// runs under this same lock so concurrently-starting replicas can't
+	// race each other copying the same rows (issue #1039).
+	if err = legacyauth.Migrate(app.ctx, app.logger, db, app.authSealer); err != nil {
+		return err
+	}
+
 	return app.apps.ApplyMigrations(app.ctx, db)
 }
 

@@ -2,10 +2,26 @@
 -- +goose StatementBegin
 -- Self-hosted auth (issue #1039), replacing the Supabase GoTrue-backed
 -- implementation. Production Postgres already has an `auth` schema owned by
--- GoTrue (restored from Supabase) — renaming that schema out of the way is a
--- manual, production-only step documented separately, not part of this
--- migration, since dev/CI databases never have it and this must apply
--- cleanly to a bare DB.
+-- GoTrue (restored from Supabase), containing GoTrue's own tables under the
+-- same names this migration wants (`auth.users`, `auth.refresh_tokens`,
+-- ...). Detect that schema — via `auth.instances`, a GoTrue/Supabase-only
+-- table name that can't collide with anything else — and rename it out of
+-- the way automatically, so this migration is self-contained: it applies
+-- cleanly to a bare dev/CI database (no `auth` schema at all, this block is
+-- a no-op) and also to production (renames the legacy schema first, then
+-- creates the new one fresh). The renamed schema is never dropped by this
+-- migration or by anything else — api/internal/legacyauth copies rows out
+-- of it at boot, and it's left in place afterward as a rollback fallback.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'auth' AND table_name = 'instances'
+    ) THEN
+        ALTER SCHEMA auth RENAME TO auth_gotrue_legacy;
+    END IF;
+END $$;
+
 CREATE SCHEMA IF NOT EXISTS auth;
 
 CREATE TABLE IF NOT EXISTS auth.users (
@@ -65,6 +81,12 @@ CREATE TABLE IF NOT EXISTS auth.password_reset_tokens (
 
 -- +goose Down
 -- +goose StatementBegin
+-- Does not restore a renamed `auth_gotrue_legacy` schema back to `auth` —
+-- doing that safely requires knowing whether anything already wrote into
+-- the new tables being dropped here, which this migration can't know. If a
+-- true rollback to GoTrue is ever needed in production, that rename is a
+-- manual step: `ALTER SCHEMA auth_gotrue_legacy RENAME TO auth;` after this
+-- Down has run.
 DROP TABLE IF EXISTS auth.password_reset_tokens;
 DROP TABLE IF EXISTS auth.refresh_tokens;
 DROP TABLE IF EXISTS auth.recovery_codes;
