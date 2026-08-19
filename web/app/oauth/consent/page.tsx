@@ -1,40 +1,45 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { PageContainer } from '@/components/ui/page-container'
-import { createOAuthServerClient } from '@/lib/supabase/oauthServer'
+import { getConsentInfo } from '@/lib/oauth2as/consentClient'
 import ConsentForm from './ConsentForm'
 
-// OAuth 2.1 consent screen. Supabase (the authorization server) redirects the
-// browser here with an `authorization_id` after a client — e.g. a local Claude
-// CLI — begins the authorization-code flow against the observability MCP server.
-// This page runs server-side so it can read the HttpOnly session cookie and
-// drive the Supabase consent endpoints on the user's behalf.
+// OAuth 2.1 consent screen. The api's own embedded fosite authorization
+// server (issue #1039, replacing Supabase) redirects the browser here with
+// the pending authorization request's own query params (client_id, scope,
+// state, redirect_uri, code_challenge, ...) — see AuthorizeHandler in
+// api/internal/oauth2as/handlers.go. This page runs server-side so it can
+// read the HttpOnly session cookie and, on approval, echo those same params
+// back to /oauth2/authorize alongside the user's decision.
 
 interface ConsentPageProps {
-  searchParams: Promise<{ authorization_id?: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+function toQueryString(params: Record<string, string | string[] | undefined>): string {
+  const query = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === 'string') query.set(key, value)
+    else if (Array.isArray(value) && value[0] !== undefined) query.set(key, value[0])
+  }
+  return query.toString()
 }
 
 export default async function ConsentPage({ searchParams }: ConsentPageProps) {
-  const { authorization_id: authorizationId } = await searchParams
-  if (!authorizationId) redirect('/')
+  const rawParams = await searchParams
+  const query = toQueryString(rawParams)
+  const params = new URLSearchParams(query)
+
+  if (!params.get('client_id')) redirect('/')
 
   const store = await cookies()
   if (!store.get('accessToken')) {
-    const next = `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`
+    const next = `/oauth/consent?${query}`
     redirect(`/auth/sign-in?next=${encodeURIComponent(next)}`)
   }
 
-  const supabase = await createOAuthServerClient()
-  if (!supabase) {
-    return (
-      <PageContainer size="narrow" className="p-6">
-        <p className="text-danger">OAuth server is not configured.</p>
-      </PageContainer>
-    )
-  }
-
-  const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(authorizationId)
-  if (error || !data) {
+  const info = await getConsentInfo(params)
+  if (!info) {
     return (
       <PageContainer size="narrow" className="p-6">
         <p className="text-danger">This authorization request is invalid or has expired.</p>
@@ -42,18 +47,9 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
     )
   }
 
-  // Already consented for these scopes — Supabase returns the redirect directly.
-  if (!('authorization_id' in data)) {
-    redirect(data.redirect_url)
-  }
-
   return (
     <PageContainer size="narrow" className="p-6">
-      <ConsentForm
-        authorizationId={authorizationId}
-        clientName={data.client.name}
-        scope={data.scope}
-      />
+      <ConsentForm requestQuery={query} clientName={info.clientName} scope={info.scope} />
     </PageContainer>
   )
 }

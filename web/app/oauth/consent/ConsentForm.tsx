@@ -6,20 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { approveAuthorization, denyAuthorization } from './actions'
 
 interface ConsentFormProps {
-  authorizationId: string
+  requestQuery: string
   clientName: string
   scope: string
 }
 
-// Human-readable labels for the standard OAuth scopes Supabase issues. Unknown
-// scopes fall back to their raw value so nothing is silently hidden.
+// Human-readable labels for the standard OAuth scopes this server issues.
+// Unknown scopes fall back to their raw value so nothing is silently hidden.
 const scopeLabels: Record<string, string> = {
   openid: 'Verify your identity',
   email: 'Read your email address',
   profile: 'Read your basic profile'
 }
 
-export default function ConsentForm({ authorizationId, clientName, scope }: ConsentFormProps) {
+export default function ConsentForm({ requestQuery, clientName, scope }: ConsentFormProps) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -29,7 +29,7 @@ export default function ConsentForm({ authorizationId, clientName, scope }: Cons
     setError(null)
     startTransition(async () => {
       try {
-        await action(authorizationId)
+        await action(requestQuery)
       } catch {
         setError('Something went wrong. Please try again.')
       }

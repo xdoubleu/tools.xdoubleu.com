@@ -14,7 +14,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
-	gotrue "github.com/supabase-community/auth-go"
 
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/internal/auth"
@@ -26,10 +25,12 @@ import (
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
+	"tools.xdoubleu.com/internal/legacyauth"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/observability/jobs"
@@ -46,7 +47,9 @@ type Application struct {
 	logger                        *slog.Logger
 	config                        config.Config
 	db                            *pgxpool.Pool
-	auth                          *auth.GoTrueService
+	auth                          *auth.LocalService
+	authSealer                    *crypto.Sealer
+	oauth2as                      *oauth2asWiring
 	contacts                      contacts.Service
 	apps                          *Apps
 	booksApp                      storageScanRunner
@@ -129,7 +132,7 @@ func main() {
 	}
 	defer db.Close()
 
-	app := NewApplication(logger, cfg, db, newSupabaseClient(cfg))
+	app := NewApplication(logger, cfg, db)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
@@ -144,30 +147,16 @@ func main() {
 	}
 }
 
-// newSupabaseClient builds the GoTrue client, pointed at self-hosted GoTrue
-// via WithCustomAuthURL when cfg.GoTrueURL is set, or Supabase-hosted GoTrue
-// (the auth-go default, derived from cfg.SupabaseProjRef) otherwise.
-func newSupabaseClient(cfg config.Config) gotrue.Client {
-	supabase := gotrue.New(
-		cfg.SupabaseProjRef,
-		cfg.SupabaseAPIKey,
-	)
-	if cfg.GoTrueURL != "" {
-		supabase = supabase.WithCustomAuthURL(cfg.GoTrueURL)
-	}
-
-	return supabase
-}
-
 // newOAuthSealer builds the AES-GCM sealer used to encrypt stored OAuth
-// tokens (issue #440). Returns nil if ENCRYPTION_KEY isn't set — the
-// observability integrations then simply can't be connected until it is; the
-// rest of the app still starts.
+// tokens (issue #440) and TOTP secrets (issue #1039). Returns nil if
+// ENCRYPTION_KEY isn't set — the observability integrations and TOTP
+// enrollment then simply can't be used until it is; the rest of the app
+// still starts.
 func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	if config.EncryptionKey == "" {
 		logger.Warn(
-			"ENCRYPTION_KEY not set — GitHub/Sentry/DigitalOcean " +
-				"OAuth connections cannot be stored",
+			"ENCRYPTION_KEY not set — GitHub/Sentry/DigitalOcean OAuth " +
+				"connections and TOTP enrollment cannot be stored",
 		)
 		return nil
 	}
@@ -352,11 +341,11 @@ func startCrossAppJobs(app *Application) error {
 	)
 }
 
+//nolint:funlen //composition root: wiring every dependency, not complex logic
 func NewApplication(
 	logger *slog.Logger,
 	config config.Config,
 	db *pgxpool.Pool,
-	supabaseClient gotrue.Client,
 ) *Application {
 	ctx := context.Background()
 
@@ -377,7 +366,14 @@ func NewApplication(
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	contactsRepo := repositories.NewContactsRepository(db)
-	authSvc := auth.NewService(config, supabaseClient, appUsersRepo)
+	authSealer := newOAuthSealer(logger, config)
+	authRepo := auth.NewRepository(db)
+	authMailer := mailer.New(
+		config.ResendAPIKey,
+		config.EmailFrom,
+		config.NotifyEmailTo,
+	)
+	authSvc := auth.NewService(config, authRepo, appUsersRepo, authSealer, authMailer)
 	authSvc.SignInRenderer = func(
 		w http.ResponseWriter, _ *http.Request, _ string,
 	) {
@@ -388,9 +384,7 @@ func NewApplication(
 		ctx, logger, config, contactsRepo, authSvc,
 	)
 
-	oauthConnRepo := repositories.NewOAuthConnectionsRepository(
-		db, newOAuthSealer(logger, config),
-	)
+	oauthConnRepo := repositories.NewOAuthConnectionsRepository(db, authSealer)
 	githubClient, sentryClient, doClient := newObservabilityClients(
 		logger, config, oauthConnRepo,
 	)
@@ -400,11 +394,14 @@ func NewApplication(
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
-		ctx:                           ctx,
-		logger:                        logger,
-		config:                        config,
-		db:                            db,
-		auth:                          authSvc,
+		ctx:        ctx,
+		logger:     logger,
+		config:     config,
+		db:         db,
+		auth:       authSvc,
+		authSealer: authSealer,
+		// wired below, after migrations create the auth schema
+		oauth2as:                      nil,
 		contacts:                      contactsSvc,
 		appUsersRepo:                  appUsersRepo,
 		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
@@ -440,6 +437,11 @@ func NewApplication(
 	if err != nil {
 		panic(err)
 	}
+
+	oauth2Store := oauth2as.NewStore(spanDB)
+	oauth2Provider := oauth2as.NewProvider(config, oauth2Store)
+	app.oauth2as = &oauth2asWiring{store: oauth2Store, provider: oauth2Provider}
+	app.auth.OAuth2TokenResolver = oauth2as.NewTokenResolver(oauth2Provider)
 
 	// Flush accumulated request counts to global.usage_daily periodically;
 	// the loop lives for the process lifetime (ctx is context.Background).
@@ -487,6 +489,16 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	if err = app.applyGlobalMigrations(db); err != nil {
 		return err
 	}
+
+	// Copies any legacy GoTrue auth data (renamed to auth_gotrue_legacy by
+	// the migration above, on the one production database that has it) into
+	// the new auth schema. Idempotent and a no-op everywhere else — still
+	// runs under this same lock so concurrently-starting replicas can't
+	// race each other copying the same rows (issue #1039).
+	if err = legacyauth.Migrate(app.ctx, app.logger, db, app.authSealer); err != nil {
+		return err
+	}
+
 	return app.apps.ApplyMigrations(app.ctx, db)
 }
 

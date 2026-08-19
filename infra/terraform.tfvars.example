@@ -12,14 +12,9 @@ server_ip              = ""
 # write the plain path instead.
 deploy_ssh_public_keys = ["~/.ssh/id_ed25519.pub", "~/.ssh/kamal_ci_deploy.pub"]
 
-# GoTrue (issue #1032) — see README.md's "Stand up GoTrue" section.
-gotrue_jwt_secret       = ""
-resend_api_key          = ""
-gotrue_site_url         = ""
-gotrue_smtp_admin_email = ""
-
-# That's everything. The app's own secrets (DB_DSN, SUPABASE_*, R2_*,
-# SENTRY_*, the OAuth client pairs, ENCRYPTION_KEY, EMAIL_*, ...) are NOT
-# tfvars — Tofu only provisions the host. They live solely in repo Secrets,
-# read by .github/workflows/main.yml's deploy-kamal job; see README.md's
-# "Automate Kamal deploys in CI" section for the full list.
+# That's everything. The app's own secrets (DB_DSN, JWT_SECRET,
+# OAUTH_HMAC_SECRET, R2_*, SENTRY_*, the OAuth client pairs, ENCRYPTION_KEY,
+# EMAIL_*, ...) are NOT tfvars — Tofu only provisions the host. They live
+# solely in repo Secrets, read by .github/workflows/main.yml's deploy-kamal
+# job; see README.md's "Automate Kamal deploys in CI" section for the full
+# list.

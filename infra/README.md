@@ -1,10 +1,12 @@
 # infra
 
 OpenTofu config for the Hetzner VPS (issue #1030) that hosts the self-hosted
-stack (app + Postgres + GoTrue — see #1029, which replaced DO App Platform +
+stack (app + Postgres — see #1029, which replaced DO App Platform +
 Supabase). Manages the firewall, OS-level hardening, and self-hosted Postgres
-(issue #1031) and GoTrue (issue #1032); the server itself is created
-manually.
+(issue #1031); the server itself is created manually. Self-hosted GoTrue
+(issue #1032) used to be part of this stack too — issue #1039 replaced it
+with a first-party implementation in `api` itself, so it's gone from here
+entirely (see "GoTrue is gone" below).
 
 **Tofu provisions the host; it does not deploy the app.** The app is
 deployed by `.github/workflows/main.yml`'s `deploy-kamal` job on every push
@@ -113,11 +115,7 @@ tofu plan \
   -var hcloud_token="$HCLOUD_TOKEN" \
   -var server_id=<id> \
   -var server_ip=<ip> \
-  -var 'deploy_ssh_public_keys=["'"$(cat ~/.ssh/<key>.pub)"'", "'"$(cat ~/.ssh/kamal_ci_deploy.pub)"'"]' \
-  -var gotrue_jwt_secret=<...> \
-  -var resend_api_key=<...> \
-  -var gotrue_site_url=<...> \
-  -var gotrue_smtp_admin_email=<...>
+  -var 'deploy_ssh_public_keys=["'"$(cat ~/.ssh/<key>.pub)"'", "'"$(cat ~/.ssh/kamal_ci_deploy.pub)"'"]'
 tofu apply <same -var flags as plan>
 ```
 
@@ -143,8 +141,8 @@ built-in `auth`/`storage`/`realtime` schemas are a generic starter
 baseline that doesn't match a real project's actual migration history,
 and its `postgres` role isn't a true superuser, which blocks fixing that
 mismatch by hand. See the image comment in `postgres-compose.yml` for the
-full reasoning; this only matters again once self-hosted GoTrue/Storage
-are actually in scope (a separate future sub-issue).
+full reasoning — moot for GoTrue now that it's gone for good (issue #1039),
+but still relevant if self-hosted Storage/Realtime are ever in scope.
 
 Postgres is **not** exposed publicly — it's bound to `127.0.0.1:5432` on the
 VPS only. Retrieve the generated password with:
@@ -165,38 +163,33 @@ migration), wipe the volume and let it start fresh:
 ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
 ```
 
-## Stand up GoTrue
+## GoTrue is gone (issue #1039)
 
-The same `tofu apply` also creates a `gotrue` service in
-`postgres-compose.yml` (issue #1032), pointed at the restored `auth` schema
-above via `GOTRUE_DB_DATABASE_URL` (compose network hostname `postgres`, not
-`127.0.0.1`). It runs `supabase/gotrue:v2.195.0` — pinned, not `latest`, for
-reproducibility — and lets GoTrue apply its own internal migrations against
-that schema on first boot; watch `docker logs` for migration errors when
-first applying.
+This section used to describe standing up a self-hosted `gotrue` service in
+`postgres-compose.yml` (issue #1032). As of issue #1039, auth (password
+sign-in, TOTP MFA, and the MCP OAuth 2.1 authorization server) is entirely
+first-party — `api/internal/auth` and `api/internal/oauth2as` against
+`api`'s own `auth` Postgres schema — and `api` never talks to a `gotrue`
+container at all. The `gotrue` service has been removed from
+`postgres-compose.yml`, and its `gotrue_*`/`resend_api_key` Tofu variables
+are gone from `variables.tf`/`main.tf`.
 
-Pass four extra `-var` flags alongside the ones above:
+The one-time cutover this used to require by hand (renaming the
+Supabase-restored `auth` schema out of the way, running a standalone
+migration script) is now **fully automatic**: `api/cmd/api/migrations/
+00017_auth_schema.sql` detects a GoTrue-shaped `auth` schema (via the
+presence of `auth.instances`, a table name only GoTrue/Supabase ever
+creates) and renames it to `auth_gotrue_legacy` before creating the new
+tables; `api/internal/legacyauth` then copies existing users' bcrypt
+password hashes and verified TOTP factors across, idempotently, every time
+`api` boots. A normal deploy of this change is the entire cutover — no
+maintenance window, no manual `psql`/script step.
 
-- `gotrue_jwt_secret` — pull the **actual** value from the Supabase
-  dashboard (Project Settings → API), not a freshly generated one, so
-  already-issued client JWTs keep validating post-cutover instead of forcing
-  every signed-in user to re-authenticate.
-- `resend_api_key` — same Resend account already used by
-  `api/internal/mailer`; used as the password for GoTrue's SMTP relay
-  (`smtp.resend.com:465`).
-- `gotrue_site_url` — the app's public URL.
-- `gotrue_smtp_admin_email` — the From address for GoTrue's own auth emails.
-
-Like Postgres, GoTrue is bound to `127.0.0.1:9999` — not exposed publicly.
-
-Before flipping DNS over to self-hosted GoTrue (not part of this smoke test):
-check the Supabase dashboard's Auth → Providers page for any enabled
-third-party providers (Google, GitHub, etc.) beyond email/password — their
-redirect URIs need updating at the provider to point at self-hosted GoTrue's
-callback endpoint first, or that sign-in method breaks silently. Also note
-(don't patch) whether self-hosted OSS GoTrue lacks the OAuth-server/dynamic-
-client-registration feature the MCP flow (`api/cmd/api/mcp.go`) relies on —
-closed properly by the future "retire GoTrue entirely" work instead.
+`auth_gotrue_legacy` itself is never dropped by any of this — it's left in
+place in Postgres as a rollback fallback. If a rollback is ever needed:
+redeploy the previous `api`/`web` images, then manually
+`ALTER SCHEMA auth_gotrue_legacy RENAME TO auth;` (undoing that migration's
+`DROP TABLE`s on the new schema first, via `goose down`, if it already ran).
 
 ## Deploy the app via Kamal (issue #1033)
 
@@ -212,9 +205,9 @@ already open in `hcloud_firewall.vps`) — nothing to configure per deploy.
 `api` and `web` deploy as two independent Kamal services sharing that one
 kamal-proxy instance and domain (issue #1038) — kamal-proxy routes
 `/api/*`/`/.well-known/*` to `api` (`config/deploy.api.yml`'s
-`proxy.path_prefix`) and everything else to `web`. Postgres and GoTrue stay
-exactly as OpenTofu manages them above (**not** Kamal accessories) — the app
-containers Kamal starts reach them over the shared `kamal` Docker network
+`proxy.path_prefix`) and everything else to `web`. Postgres stays exactly as
+OpenTofu manages it above (**not** a Kamal accessory) — the app containers
+Kamal starts reach it over the shared `kamal` Docker network
 `null_resource.kamal_network` creates before Postgres comes up (see that
 resource's comment in `infra/main.tf` for why the ordering matters).
 
@@ -267,9 +260,7 @@ fails its `/health` readiness probe — a bad deploy leaves the previous
 container serving rather than taking the site down.
 
 Verify with `curl https://tools.xdoubleu.com/api/version` (api) and
-`curl https://tools.xdoubleu.com/` (web) plus a real sign-in through the app
-(not just GoTrue directly — that exercises `WithCustomAuthURL` end to end,
-which #1032's isolated GoTrue smoke test does not).
+`curl https://tools.xdoubleu.com/` (web) plus a real sign-in through the app.
 
 ## Automate Kamal deploys in CI (issue #1036)
 
@@ -349,8 +340,11 @@ KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
                               its state can read it, so copy it in once here;
                               rotating it means updating both)
 KAMAL_REGISTRY_PASSWORD
-SUPABASE_PROJ_REF
-SUPABASE_API_KEY
+JWT_SECRET                   (signs api's self-issued session JWTs, issue
+                              #1039 — rotating it signs everyone out)
+OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization
+                              server's token strategy, issue #1039 —
+                              rotating it invalidates every issued MCP token)
 STEAM_API_KEY
 HARDCOVER_API_KEY
 R2_ACCOUNT_ID
@@ -359,8 +353,6 @@ R2_SECRET_ACCESS_KEY
 R2_BUCKET
 SENTRY_DSN
 SENTRY_DSN_WEB
-SUPABASE_URL
-SUPABASE_ANON_KEY
 KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
 KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
@@ -433,8 +425,6 @@ Environment secrets, alongside `deploy-kamal`'s existing ones:
 ```
 HCLOUD_TOKEN                   (Hetzner Cloud API token, read+write)
 INFRA_SERVER_ID                (same value as server_id in terraform.tfvars)
-GOTRUE_JWT_SECRET               (same value as gotrue_jwt_secret)
-GOTRUE_SMTP_ADMIN_EMAIL          (same value as gotrue_smtp_admin_email)
 TF_STATE_R2_ACCESS_KEY_ID       (the scoped R2 token's Access Key ID)
 TF_STATE_R2_SECRET_ACCESS_KEY   (the scoped R2 token's Secret Access Key)
 TF_STATE_R2_ENDPOINT            (same value as in infra/backend.hcl)
@@ -449,10 +439,9 @@ INFRA_DEPLOY_SSH_PUBLIC_KEYS   (JSON array of literal key text, e.g.
                                 terraform.tfvars, but as literal text: the
                                 CI runner has no access to your local
                                 ~/.ssh/*.pub files to read a path from)
-GOTRUE_SITE_URL                (same value as gotrue_site_url)
 ```
-`KAMAL_SERVER_IP` and `RESEND_API_KEY` are reused from `deploy-kamal`'s
-existing secrets — no new value needed for either.
+`KAMAL_SERVER_IP` is reused from `deploy-kamal`'s existing secrets — no new
+value needed.
 
 **Verify**: push a trivial change to `infra/harden.sh` (a comment edit is
 enough), confirm `infra-apply` runs and succeeds in the Actions tab, and
@@ -473,9 +462,6 @@ For the record, all it took was:
    next boot. Watch it happen with
    `ssh deploy@<ip> docker logs kamal-proxy -f`; a stuck challenge shows up
    there rather than in the app's own logs.
-3. Set `gotrue_site_url` in `terraform.tfvars` to `https://tools.xdoubleu.com`
-   if it wasn't already, so GoTrue's auth emails link at the real domain, and
-   re-`tofu apply`.
 
 **DigitalOcean is decommissioned** (#1113): the `deploy` job, `do-app.yaml`,
 and the `DO_ACCESS_TOKEN`/`DO_APP_ID` secrets are gone, and the App Platform
@@ -483,9 +469,16 @@ app itself can be deleted. Unrelated to `DO_OAUTH_CLIENT_ID`/`SECRET`, which
 stay — those belong to the app's DigitalOcean monitoring *feature*
 (`api/internal/digitalocean`), not to hosting.
 
-The Supabase project is still referenced, but only as the MCP OAuth
-authorization-server issuer (`api/cmd/api/mcp.go`) — see #1039 ("retire
-GoTrue entirely"), which is what finally removes `SUPABASE_*`.
+**Update (issue #1039):** `api` no longer talks to Supabase or GoTrue at
+all — password auth, TOTP MFA, and the MCP OAuth 2.1 authorization server
+(`api/cmd/api/mcp.go`'s issuer) are now first-party, backed by `api`'s own
+`auth` Postgres schema (`api/internal/auth`, `api/internal/oauth2as`). The
+`SUPABASE_*`/`GOTRUE_URL` secrets have been removed from
+`config/deploy.api.yml`, and the `gotrue` **container** itself has been
+removed from `infra/` entirely — see "GoTrue is gone" above. The cutover
+(renaming the legacy schema, copying existing users' password hashes/TOTP
+factors) is automatic, run by `api` on every boot; there is no separate
+follow-up step left to do.
 
 ## Migrate data from Supabase (one-time)
 
@@ -529,16 +522,16 @@ sudo unattended-upgrade --dry-run --debug # shows planned actions, no changes ma
 ssh -L 5432:localhost:5432 deploy@<ip>
 # in another shell, using the password from `tofu output -raw postgres_password`:
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dt auth.*'
-psql "postgres://postgres:<password>@localhost:5432/postgres" -c 'select * from goose_db_version'
+psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dn'
+# after the first api deploy post-#1039: auth_gotrue_legacy should now exist
+# alongside a freshly populated auth schema — confirms the automatic cutover
+# ran (see "GoTrue is gone" above).
 
-# GoTrue: tunnel in and sign in with an existing migrated account
-ssh -L 9999:localhost:9999 deploy@<ip>
-# in another shell:
-curl -X POST 'http://localhost:9999/token?grant_type=password' \
+# Auth (first-party as of #1039, no separate service to tunnel to — go
+# through the app itself): sign in with an existing migrated account
+curl -X POST https://tools.xdoubleu.com/api/auth.v1.AuthService/SignIn \
   -H 'Content-Type: application/json' \
   -d '{"email":"<existing-account-email>","password":"<...>"}'
-# then, with the access_token from the response:
-curl http://localhost:9999/user -H 'Authorization: Bearer <access_token>'
 ```
 
 ## Destroy

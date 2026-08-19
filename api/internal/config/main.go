@@ -22,26 +22,30 @@ const TestEnv string = "test"
 const DevEnv string = "development"
 
 type Config struct {
-	Env             string
-	Port            int
-	Throttle        bool
-	WebURL          string
-	APIURL          string
-	SentryDsn       string
-	SentryDsnWeb    string
-	SampleRate      float64
-	AccessExpiry    string
-	RefreshExpiry   string
-	AuthCacheTTL    int // seconds; 0 disables the per-token user cache
-	DBDsn           string
-	Release         string
-	SupabaseProjRef string
-	SupabaseAPIKey  string
-	// GoTrueURL overrides auth-go's default Supabase-hosted URL
-	// (https://<SupabaseProjRef>.supabase.co/auth/v1) via WithCustomAuthURL,
-	// pointing sign-in at self-hosted GoTrue instead. Empty keeps the
-	// Supabase-hosted default.
-	GoTrueURL       string
+	Env           string
+	Port          int
+	Throttle      bool
+	WebURL        string
+	APIURL        string
+	SentryDsn     string
+	SentryDsnWeb  string
+	SampleRate    float64
+	AccessExpiry  string
+	RefreshExpiry string
+	AuthCacheTTL  int // seconds; 0 disables the per-token user cache
+	DBDsn         string
+	Release       string
+	// JWTSecret signs the local access-token JWTs issued by internal/auth's
+	// self-hosted implementation (issue #1039).
+	JWTSecret string
+	// OAuthHMACSecret keys the embedded OAuth 2.1 authorization server's
+	// (internal/oauth2as, via ory/fosite) HMAC token strategy.
+	OAuthHMACSecret string
+	// AuthIssuer is this api's own OAuth 2.1 authorization-server issuer URL,
+	// exposed via /.well-known/oauth-authorization-server and used as the
+	// resource-server metadata's authorization server (issue #1039). Defaults
+	// to APIURL.
+	AuthIssuer      string
 	SteamAPIKey     string
 	HardcoverAPIKey string
 	R2AccountID     string
@@ -214,9 +218,12 @@ func New(logger *slog.Logger) Config {
 	// "no real deploy" sentinel (see web/lib/env.ts).
 	cfg.Release = p.envStr("RELEASE", "dev")
 
-	cfg.SupabaseProjRef = p.envStr("SUPABASE_PROJ_REF", "")
-	cfg.SupabaseAPIKey = p.envSecret("SUPABASE_API_KEY", "")
-	cfg.GoTrueURL = p.envStr("GOTRUE_URL", "")
+	cfg.JWTSecret = p.envSecret("JWT_SECRET", "")
+	cfg.OAuthHMACSecret = p.envSecret("OAUTH_HMAC_SECRET", "")
+	cfg.AuthIssuer = p.envStr("AUTH_ISSUER", "")
+	if cfg.AuthIssuer == "" {
+		cfg.AuthIssuer = cfg.APIURL
+	}
 
 	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")

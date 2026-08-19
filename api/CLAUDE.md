@@ -81,14 +81,39 @@ apps/<name>/
 
 ### Auth (`internal/auth`)
 
-`Service`/`GoTrueService` (Supabase, via `supabase-community/auth-go`) live in
-`internal/auth/service.go`. Key points:
+Auth is first-party as of issue #1039 — no external Auth provider. `Service`/
+`LocalService` live in `internal/auth/service.go`, backed by `api`'s own
+`auth` Postgres schema (`api/cmd/api/migrations/00017_auth_schema.sql`,
+`00018_auth_oauth2.sql`), replacing the previous Supabase GoTrue-backed
+implementation (`supabase-community/auth-go`, now removed). Key points:
 
-- auth-go has no context support, so request-context propagation stops at the GoTrue boundary; the DB enrichment queries and the cache do consume it.
-- A per-token TTL cache (`AUTH_CACHE_TTL` seconds, default 60, `0` disables — tests use 0 via `testhelper.NewTestConfig`) sits in front of every resolution; a hit skips the GoTrue round-trip and both enrichment queries, so role/app-access changes can lag by up to the TTL.
-- `enrichUser` overlays the DB-managed `Role`/`AppAccess` onto the raw GoTrue user, which on its own always resolves to `RoleUser` with no app access. A DB failure here is **returned, not swallowed** — silently falling back to the unenriched user would be indistinguishable from "no access" to `AdminAccess`/`AppAccess`, and would get cached for the rest of the TTL instead of retrying next request.
+- **Password auth**: bcrypt (`golang.org/x/crypto/bcrypt`) hashes stored in
+  `auth.users`. `ForgotPassword`/`ResetPasswordWithToken` deliver a one-time
+  reset link via `internal/mailer` (Resend), reusing its `ErrNotConfigured`
+  degrade-gracefully semantics rather than adding a second email path.
+- **Sessions**: self-issued HS256 JWT access tokens (`JWT_SECRET`, verified
+  locally — no more network round trip) carrying `sub`/`aal`/`exp`, plus
+  opaque refresh tokens stored SHA-256-hashed in `auth.refresh_tokens` and
+  **rotated on every use** (old row deleted, new one inserted) so sign-out/
+  password-change/MFA-unenroll can actually revoke a session — a stateless
+  JWT alone can't be revoked without a blocklist.
+- **2FA**: TOTP via `pquerna/otp` (`internal/auth/mfa.go`), secrets encrypted
+  at rest via the existing `internal/crypto.Sealer`. `ChallengeMFA` is a thin
+  stub returning a synthetic challenge ID purely to preserve the existing
+  two-step `ChallengeMFA`→`VerifyMFA` call shape — pquerna/otp is stateless,
+  unlike GoTrue's old server-side challenge object; `totp.Validate` is what
+  actually verifies. **Recovery codes** (`auth.recovery_codes`, bcrypt-hashed,
+  single-use) are net-new — GoTrue never had these — generated on first TOTP
+  enrollment and via `RegenerateRecoveryCodes`.
+- **MCP OAuth 2.1 authorization server**: see "Apps MCP Server" below —
+  `ResolveToken` tries local session-JWT verification first, then falls back
+  to an injected `OAuth2TokenResolver` for fosite-issued opaque tokens
+  (avoids an import cycle between `internal/auth` and `internal/oauth2as`).
+- A per-token TTL cache (`AUTH_CACHE_TTL` seconds, default 60, `0` disables — tests use 0 via `testhelper.NewTestConfig`) still sits in front of every resolution; a hit skips both enrichment queries, so role/app-access changes can lag by up to the TTL.
+- `enrichUser` overlays the DB-managed `Role`/`AppAccess` onto the raw auth user, which on its own always resolves to `RoleUser` with no app access. A DB failure here is **returned, not swallowed** — silently falling back to the unenriched user would be indistinguishable from "no access" to `AdminAccess`/`AppAccess`, and would get cached for the rest of the TTL instead of retrying next request.
 - Tokens are evicted on SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP; anything mutating *another* session's role/app-access (admin `SetRole`/`SetAppAccess`) must call `InvalidateUserCache()` (clear-all) afterwards.
-- `GetCurrentUser` (`cmd/api/connect_auth_handlers.go`) is the two-layer pattern any Connect handler needing DB-enriched attributes should follow: resolve the session via `auth.GetUser` (GoTrue role), then look up `appUsersRepo.GetByID` and prefer the DB role/app-access/display-name when that lookup succeeds, falling back to the bare GoTrue values otherwise.
+- `GetCurrentUser` (`cmd/api/connect_auth_handlers.go`) is the two-layer pattern any Connect handler needing DB-enriched attributes should follow: resolve the session via `auth.GetUser`, then look up `appUsersRepo.GetByID` and prefer the DB role/app-access/display-name when that lookup succeeds, falling back to the bare auth-schema values otherwise.
+- The production cutover is fully automatic, not a manual runbook: migration `00017_auth_schema.sql` detects a GoTrue-shaped legacy `auth` schema (via `auth.instances`, a table name only GoTrue/Supabase ever creates) and renames it to `auth_gotrue_legacy` before creating the new tables; `internal/legacyauth.Migrate` then copies existing users' bcrypt password hashes and verified TOTP factors across, idempotently, every time `api` boots (wired into `ApplyMigrations` under the same advisory lock, `cmd/api/main.go`). `auth_gotrue_legacy` itself is never dropped — left in place as a rollback fallback. The `gotrue` container has been removed from `infra/` entirely (issue #1039) — `api` never talks to it.
 
 ### Shared Internal Packages (`internal/`)
 
@@ -142,10 +167,17 @@ adds the 10 unprefixed admin-gated observability tools on top, sharing the
 exact same internal methods the Connect handlers use — 9 are read, plus
 `resolve_sentry_issue`, the one deliberate mutation (marks a Sentry issue
 resolved via `sentryapi.Client.ResolveIssue`), letting an admin-authenticated
-agent close out an issue it just filed a fix for. Auth is MCP OAuth
-2.1: the api is the resource server (`auth.RequireBearerToken` verifies a
-Supabase access token), Supabase is the authorization server, and the web
-`/oauth/consent` page drives the approval. See root `README.md` for setup.
+agent close out an issue it just filed a fix for. Auth is MCP OAuth 2.1,
+entirely first-party as of issue #1039: the api is both the resource server
+(`ResolveToken` verifies the bearer token) **and** the authorization server —
+`internal/oauth2as` embeds `ory/fosite` (PKCE-enforced, RFC 7591 dynamic
+client registration, RFC 8414 metadata at
+`/.well-known/oauth-authorization-server`), wired up in `cmd/api/oauth2as.go`
+and `cmd/api/mcp.go` (`mcpAuthServerIssuer` now points at `cfg.AuthIssuer`,
+which defaults to `cfg.APIURL`, instead of a hardcoded Supabase Cloud URL).
+The web `/oauth/consent` page drives the approval, calling the api's own
+`/oauth2/*` endpoints directly — no external Auth provider involved. See root
+`README.md` for the client-setup command.
 
 ### Public Dashboard Sharing
 
@@ -178,7 +210,7 @@ two public services above.
 | HTTP | `net/http` + `justinas/alice` |
 | RPC | `connectrpc.com/connect` |
 | Database | `jackc/pgx/v5` + `pressly/goose/v3` |
-| Auth | `supabase-community/auth-go` |
+| Auth | `golang.org/x/crypto/bcrypt` + `pquerna/otp` (TOTP) + `golang-jwt/jwt/v5` (sessions) + `ory/fosite` (embedded MCP OAuth 2.1 AS) |
 | WebSocket | `coder/websocket` |
 | Error tracking | `getsentry/sentry-go` |
 | Job queue | `internal/threading` (WorkerPool) + `internal/jobqueue` (scheduling) |

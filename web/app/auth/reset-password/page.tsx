@@ -1,68 +1,33 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { ConnectError } from '@connectrpc/connect'
-import { useExchangeToken, useMFAChallenge, useUpdatePassword } from '@/hooks/useAuth'
+import { useResetPassword } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-type State = 'loading' | 'mfa' | 'form' | 'done' | 'invalid'
+type State = 'form' | 'done' | 'invalid'
 
 export default function ResetPasswordPage() {
-  const exchangeToken = useExchangeToken()
-  const mFAChallenge = useMFAChallenge()
-  const updatePassword = useUpdatePassword()
+  const resetPassword = useResetPassword()
+  const searchParams = useSearchParams()
+  const token = searchParams.get('token')
 
-  const [state, setState] = useState<State>('loading')
+  const [state, setState] = useState<State>(token ? 'form' : 'invalid')
   const [error, setError] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [mfaCode, setMfaCode] = useState('')
-  const [mfaSubmitting, setMfaSubmitting] = useState(false)
-
-  useEffect(() => {
-    const hash = window.location.hash.slice(1)
-    const params = new URLSearchParams(hash)
-    const accessToken = params.get('access_token')
-    const refreshToken = params.get('refresh_token')
-    const type = params.get('type')
-
-    if (!accessToken || !refreshToken || type !== 'recovery') {
-      setState('invalid')
-      return
-    }
-
-    exchangeToken(accessToken, refreshToken)
-      .then((res) => setState(res.needsMfa ? 'mfa' : 'form'))
-      .catch(() => {
-        setState('invalid')
-        setError('This reset link has expired. Please request a new one.')
-      })
-  }, [exchangeToken])
-
-  const handleMfaSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setMfaSubmitting(true)
-    try {
-      await mFAChallenge(mfaCode)
-      setState('form')
-    } catch (err) {
-      if (err instanceof ConnectError) {
-        setError(err.message)
-      } else {
-        setError('Verification failed. Please try again.')
-      }
-    } finally {
-      setMfaSubmitting(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (!token) {
+      setState('invalid')
+      return
+    }
     if (newPassword !== confirmPassword) {
       setError('Passwords do not match.')
       return
@@ -73,9 +38,8 @@ export default function ResetPasswordPage() {
     }
     setSubmitting(true)
     try {
-      await updatePassword(newPassword)
+      await resetPassword(token, newPassword)
       setState('done')
-      window.location.href = '/'
     } catch (err) {
       if (err instanceof ConnectError) {
         setError(err.message)
@@ -92,8 +56,6 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-fg">Set new password</h2>
-
-          {state === 'loading' && <p className="mt-6 text-sm text-muted">Verifying reset link…</p>}
 
           {state === 'invalid' && (
             <div className="mt-6 space-y-4">
@@ -114,42 +76,6 @@ export default function ResetPasswordPage() {
                 Continue to app
               </Link>
             </div>
-          )}
-
-          {state === 'mfa' && (
-            <form onSubmit={handleMfaSubmit} className="mt-6 space-y-4">
-              <p className="text-sm text-subtle">
-                Enter the code from your authenticator app to continue.
-              </p>
-              <div>
-                <label htmlFor="mfa_code" className="block text-sm font-medium text-subtle">
-                  Authenticator code
-                </label>
-                <Input
-                  id="mfa_code"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={mfaCode}
-                  onChange={(e) => setMfaCode(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger"
-                >
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" disabled={mfaSubmitting} className="w-full">
-                {mfaSubmitting ? 'Verifying…' : 'Verify'}
-              </Button>
-            </form>
           )}
 
           {state === 'form' && (

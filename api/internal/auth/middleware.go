@@ -20,7 +20,7 @@ import (
 // expired) so a session left idle past the access-token TTL recovers
 // transparently via the still-valid refresh-token cookie instead of every
 // API call 401ing until the browser is reloaded (issue #809).
-func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
+func (service *LocalService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := service.getCurrentUser(r)
 		if user == nil {
@@ -37,7 +37,7 @@ func (service *GoTrueService) Access(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func (service *GoTrueService) TemplateAccess(
+func (service *LocalService) TemplateAccess(
 	next http.HandlerFunc,
 ) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +59,7 @@ func (service *GoTrueService) TemplateAccess(
 	})
 }
 
-func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
+func (service *LocalService) getCurrentUser(r *http.Request) *models.User {
 	accessToken, err := r.Cookie("accessToken")
 	if err != nil {
 		return nil
@@ -75,22 +75,56 @@ func (service *GoTrueService) getCurrentUser(r *http.Request) *models.User {
 
 // ResolveToken validates a bearer access token and returns the DB-enriched
 // user, reusing the same TTL cache and admin-role enrichment as the cookie
-// middleware. It is the entry point for the observability MCP server acting as
-// an OAuth resource server: an OAuth-issued Supabase access token resolves
-// exactly like the cookie token.
-func (service *GoTrueService) ResolveToken(
+// middleware. It is the entry point for the observability MCP server acting
+// as an OAuth resource server: a local session JWT is tried first, falling
+// back to resolving the token as a fosite-issued opaque OAuth 2.1 access
+// token (internal/oauth2as) when local verification fails.
+func (service *LocalService) ResolveToken(
 	ctx context.Context,
 	accessToken string,
 ) (*models.User, error) {
-	return service.resolveUser(ctx, accessToken)
+	user, err := service.resolveUser(ctx, accessToken)
+	if err == nil {
+		return user, nil
+	}
+	if service.OAuth2TokenResolver == nil {
+		return nil, err
+	}
+
+	userID, resolveErr := service.OAuth2TokenResolver.ResolveAccessToken(
+		ctx,
+		accessToken,
+	)
+	if resolveErr != nil {
+		return nil, err
+	}
+
+	row, err := service.usersStore.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	_, hasMFA := service.HasVerifiedTOTP(ctx, accessToken)
+	oauthUser := models.User{
+		ID:          row.ID,
+		Email:       row.Email,
+		Role:        models.RoleUser,
+		AppAccess:   []string{},
+		HasMFA:      hasMFA,
+		DisplayName: "",
+	}
+	enriched, err := service.enrichUser(ctx, oauthUser)
+	if err != nil {
+		return nil, err
+	}
+	return &enriched, nil
 }
 
 // resolveUser returns the DB-enriched user for an access token, consulting
-// the TTL cache first so repeated requests skip the GoTrue round-trip and
+// the TTL cache first so repeated requests skip re-verifying the JWT and
 // the enrichment queries. Cache misses for the same token are coalesced via
 // resolveGroup so concurrent requests (e.g. several tabs opened at once)
-// share one GoTrue round trip instead of each firing their own.
-func (service *GoTrueService) resolveUser(
+// share one verification instead of each firing their own.
+func (service *LocalService) resolveUser(
 	ctx context.Context,
 	accessToken string,
 ) (*models.User, error) {
@@ -123,12 +157,12 @@ func (service *GoTrueService) resolveUser(
 
 // enrichUser records the user in global.app_users and overlays the DB role
 // and app access. A DB failure is returned rather than swallowed: the
-// unenriched GoTrue user always carries Role: RoleUser and no AppAccess (see
-// models.UserFromTypesUser), so silently falling back to it would look
+// unenriched user always carries Role: RoleUser and no AppAccess (see
+// LocalService.GetUser), so silently falling back to it would look
 // indistinguishable from "this user genuinely has no access" to callers like
 // AdminAccess/AppAccess — and resolveUser/refreshTokens would then cache that
 // wrong identity for the full TTL instead of retrying on the next request.
-func (service *GoTrueService) enrichUser(
+func (service *LocalService) enrichUser(
 	ctx context.Context,
 	user models.User,
 ) (models.User, error) {
@@ -150,7 +184,7 @@ func (service *GoTrueService) enrichUser(
 	return *enriched, nil
 }
 
-func (service *GoTrueService) refreshTokens(
+func (service *LocalService) refreshTokens(
 	w http.ResponseWriter,
 	r *http.Request,
 ) *models.User {
@@ -185,7 +219,7 @@ func (service *GoTrueService) refreshTokens(
 
 // contextSetUser stores an already-resolved user on the request context and
 // tags the Sentry scope; enrichment happens earlier in resolveUser.
-func (service *GoTrueService) contextSetUser(
+func (service *LocalService) contextSetUser(
 	ctx context.Context,
 	user models.User,
 ) context.Context {
@@ -200,7 +234,7 @@ func (service *GoTrueService) contextSetUser(
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
 
-func (service *GoTrueService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
+func (service *LocalService) AdminAccess(next http.HandlerFunc) http.HandlerFunc {
 	return service.TemplateAccess(func(w http.ResponseWriter, r *http.Request) {
 		user, ok := r.Context().Value(constants.UserContextKey).(models.User)
 		if !ok || user.Role != models.RoleAdmin {
@@ -216,7 +250,7 @@ func (service *GoTrueService) AdminAccess(next http.HandlerFunc) http.HandlerFun
 // a plain 403 rather than AdminAccess's redirect: a fetch()-based RPC client
 // follows a 30x transparently to "/" and fails opaquely instead of surfacing
 // a clean error.
-func (service *GoTrueService) AppAccess(
+func (service *LocalService) AppAccess(
 	appName string,
 	next http.HandlerFunc,
 ) http.HandlerFunc {

@@ -1,7 +1,5 @@
 package models
 
-import "github.com/supabase-community/auth-go/types"
-
 type Scope int
 
 const (
@@ -23,22 +21,4 @@ type User struct {
 	AppAccess   []string `json:"app_access"`
 	HasMFA      bool     `json:"has_mfa"`
 	DisplayName string   `json:"display_name"`
-}
-
-func UserFromTypesUser(user types.User) User {
-	hasMFA := false
-	for _, f := range user.Factors {
-		if f.FactorType == "totp" && f.Status == "verified" {
-			hasMFA = true
-			break
-		}
-	}
-	return User{
-		ID:          user.ID.String(),
-		Email:       user.Email,
-		Role:        RoleUser,
-		AppAccess:   []string{},
-		HasMFA:      hasMFA,
-		DisplayName: "",
-	}
 }

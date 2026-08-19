@@ -18,8 +18,9 @@ import (
 // (requireAdmin). Every app-provided tool wraps a read handler; the one
 // exception is resolve_sentry_issue, an admin-gated mutation letting an
 // agent close out a Sentry issue it just filed a fix for. Every tool reuses
-// the same OAuth 2.1 resource-server plumbing: the api is the resource
-// server, Supabase is the authorization server.
+// the same OAuth 2.1 resource-server plumbing: the api is both the resource
+// server and, via the embedded internal/oauth2as provider (issue #1039),
+// the authorization server — no external Auth provider involved.
 
 const (
 	appsMCPServerName = "tools-apps"

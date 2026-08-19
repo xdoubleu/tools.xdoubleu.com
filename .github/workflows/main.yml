@@ -450,8 +450,6 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
       # Deploys after web (see reasoning above) so the shared host's TLS is
@@ -466,10 +464,10 @@ jobs:
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
-          GOTRUE_URL: http://gotrue:9999
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SUPABASE_PROJ_REF: ${{ secrets.SUPABASE_PROJ_REF }}
-          SUPABASE_API_KEY: ${{ secrets.SUPABASE_API_KEY }}
+          # First-party auth (issue #1039) — see config/deploy.api.yml.
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OAUTH_HMAC_SECRET: ${{ secrets.OAUTH_HMAC_SECRET }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
@@ -495,7 +493,7 @@ jobs:
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
-  # Applies infra/ (firewall, OS hardening, self-hosted Postgres/GoTrue) on
+  # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
   # state lives remotely in Cloudflare R2 (infra/versions.tf's backend
   # block), not on any one laptop. Unlike deploy-kamal above, there's no
@@ -603,10 +601,6 @@ jobs:
           TF_VAR_server_id: ${{ secrets.INFRA_SERVER_ID }}
           TF_VAR_server_ip: ${{ secrets.KAMAL_SERVER_IP }}
           TF_VAR_deploy_ssh_public_keys: ${{ vars.INFRA_DEPLOY_SSH_PUBLIC_KEYS }}
-          TF_VAR_gotrue_jwt_secret: ${{ secrets.GOTRUE_JWT_SECRET }}
-          TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
-          TF_VAR_gotrue_site_url: ${{ vars.GOTRUE_SITE_URL }}
-          TF_VAR_gotrue_smtp_admin_email: ${{ secrets.GOTRUE_SMTP_ADMIN_EMAIL }}
         run: tofu apply -auto-approve -input=false
 
       # The apply step above already failed the job; this restores the box

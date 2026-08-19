@@ -8,7 +8,7 @@ server.js`). Run all `npm` commands from this directory.
 
 - `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `books/`, `feeds/`, `recipes/`, `mealplans/`, `shoppinglist/`, `todos/`, `watchparty/`, plus `auth/`, `contacts/`, `monitoring/`, `dashboard/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`). `dashboard/{games,reading}/` holds both the private (owner) and public (token-shared) Games/Reading dashboards (issue #737) — `games/`/`books/` no longer have a dashboard-shaped route of their own, only library/detail/settings pages.
 - `components/` — shared cross-app components at the root (`Navbar.tsx`, `HomeClient.tsx`, `SWRFallback.tsx`, `SWRProvider.tsx`, …) plus one subfolder per domain mirroring `app/`, and `components/ui/` for shadcn-style primitives.
-- `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`books/`, `recipes/`, `games/`, `todos/`, `watchparty/`, `supabase/`).
+- `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`books/`, `recipes/`, `games/`, `todos/`, `watchparty/`, `oauth2as/`).
 - `hooks/` — one SWR data-fetching hook file per domain.
 
 ## Data Flow (RSC + SWR)
@@ -59,7 +59,7 @@ Client for the local kobo-gateway macOS menu-bar helper (`https://127.0.0.1:4113
 
 ## OAuth Consent Screen (`app/oauth/consent/`)
 
-Server-rendered OAuth 2.1 consent screen for the apps MCP server (`/apps/mcp` on the api). Supabase (the authorization server) redirects here with an `authorization_id`; the page reads the `accessToken` cookie server-side, calls `supabase.auth.oauth.getAuthorizationDetails`, and the `approve`/`deny` server actions (`skipBrowserRedirect: true`) record the decision and redirect back with the resulting code or error. Needs `SUPABASE_URL`/`SUPABASE_ANON_KEY` — see root `README.md` for the one-time Supabase OAuth-server setup.
+Server-rendered OAuth 2.1 consent screen for the apps MCP server (`/apps/mcp` on the api), driving the api's own embedded fosite authorization server directly (issue #1039 — no external Auth provider). The api's `AuthorizeHandler` (`api/internal/oauth2as/handlers.go`) redirects here with the pending authorization request's own query params (`client_id`, `scope`, `state`, `redirect_uri`, `code_challenge`, ...) echoed verbatim; the page reads the `accessToken` cookie server-side, calls `GET /oauth2/consent-info` (`lib/oauth2as/consentClient.ts`) for the client name/scope to display, and the `approveAuthorization`/`denyAuthorization` server actions (`app/oauth/consent/actions.ts`) POST the same query params plus `consent=allow|deny` back to `/oauth2/authorize`, forwarding the session cookie, then `redirect()` the browser to whatever `Location` fosite responds with (the OAuth client's own redirect_uri, carrying a code or an `access_denied` error). No env config needed beyond the existing `API_URL`.
 
 ## File Size & Splits
 

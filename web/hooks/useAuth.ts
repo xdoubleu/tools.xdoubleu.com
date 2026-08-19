@@ -31,6 +31,16 @@ export function useUpdatePassword() {
   return (newPassword: string) => client.updatePassword({ newPassword })
 }
 
+export function useResetPassword() {
+  const client = createServiceClient(AuthService)
+  return (token: string, newPassword: string) => client.resetPassword({ token, newPassword })
+}
+
+export function useRegenerateRecoveryCodes() {
+  const client = createServiceClient(AuthService)
+  return () => client.regenerateRecoveryCodes({})
+}
+
 export function useUpdateDisplayName() {
   const client = createServiceClient(DashboardService)
   return (displayName: string) => client.setDisplayName({ displayName })

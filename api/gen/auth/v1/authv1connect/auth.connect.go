@@ -62,6 +62,12 @@ const (
 	// AuthServiceGetCurrentUserProcedure is the fully-qualified name of the AuthService's
 	// GetCurrentUser RPC.
 	AuthServiceGetCurrentUserProcedure = "/auth.v1.AuthService/GetCurrentUser"
+	// AuthServiceResetPasswordProcedure is the fully-qualified name of the AuthService's ResetPassword
+	// RPC.
+	AuthServiceResetPasswordProcedure = "/auth.v1.AuthService/ResetPassword"
+	// AuthServiceRegenerateRecoveryCodesProcedure is the fully-qualified name of the AuthService's
+	// RegenerateRecoveryCodes RPC.
+	AuthServiceRegenerateRecoveryCodesProcedure = "/auth.v1.AuthService/RegenerateRecoveryCodes"
 )
 
 // AuthServiceClient is a client for the auth.v1.AuthService service.
@@ -77,6 +83,8 @@ type AuthServiceClient interface {
 	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
+	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
 }
 
 // NewAuthServiceClient constructs a client for the auth.v1.AuthService service. By default, it uses
@@ -156,22 +164,36 @@ func NewAuthServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
 			connect.WithClientOptions(opts...),
 		),
+		resetPassword: connect.NewClient[v1.ResetPasswordRequest, v1.ResetPasswordResponse](
+			httpClient,
+			baseURL+AuthServiceResetPasswordProcedure,
+			connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
+			connect.WithClientOptions(opts...),
+		),
+		regenerateRecoveryCodes: connect.NewClient[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse](
+			httpClient,
+			baseURL+AuthServiceRegenerateRecoveryCodesProcedure,
+			connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // authServiceClient implements AuthServiceClient.
 type authServiceClient struct {
-	signIn          *connect.Client[v1.SignInRequest, v1.SignInResponse]
-	mFAEnroll       *connect.Client[v1.MFAEnrollRequest, v1.MFAEnrollResponse]
-	mFAEnrollVerify *connect.Client[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse]
-	mFAEnrollSkip   *connect.Client[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse]
-	mFAChallenge    *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
-	mFAUnenroll     *connect.Client[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse]
-	forgotPassword  *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
-	exchangeToken   *connect.Client[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse]
-	updatePassword  *connect.Client[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse]
-	signOut         *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
-	getCurrentUser  *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
+	signIn                  *connect.Client[v1.SignInRequest, v1.SignInResponse]
+	mFAEnroll               *connect.Client[v1.MFAEnrollRequest, v1.MFAEnrollResponse]
+	mFAEnrollVerify         *connect.Client[v1.MFAEnrollVerifyRequest, v1.MFAEnrollVerifyResponse]
+	mFAEnrollSkip           *connect.Client[v1.MFAEnrollSkipRequest, v1.MFAEnrollSkipResponse]
+	mFAChallenge            *connect.Client[v1.MFAChallengeRequest, v1.MFAChallengeResponse]
+	mFAUnenroll             *connect.Client[v1.MFAUnenrollRequest, v1.MFAUnenrollResponse]
+	forgotPassword          *connect.Client[v1.ForgotPasswordRequest, v1.ForgotPasswordResponse]
+	exchangeToken           *connect.Client[v1.ExchangeTokenRequest, v1.ExchangeTokenResponse]
+	updatePassword          *connect.Client[v1.UpdatePasswordRequest, v1.UpdatePasswordResponse]
+	signOut                 *connect.Client[v1.SignOutRequest, v1.SignOutResponse]
+	getCurrentUser          *connect.Client[v1.GetCurrentUserRequest, v1.GetCurrentUserResponse]
+	resetPassword           *connect.Client[v1.ResetPasswordRequest, v1.ResetPasswordResponse]
+	regenerateRecoveryCodes *connect.Client[v1.RegenerateRecoveryCodesRequest, v1.RegenerateRecoveryCodesResponse]
 }
 
 // SignIn calls auth.v1.AuthService.SignIn.
@@ -229,6 +251,16 @@ func (c *authServiceClient) GetCurrentUser(ctx context.Context, req *connect.Req
 	return c.getCurrentUser.CallUnary(ctx, req)
 }
 
+// ResetPassword calls auth.v1.AuthService.ResetPassword.
+func (c *authServiceClient) ResetPassword(ctx context.Context, req *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
+	return c.resetPassword.CallUnary(ctx, req)
+}
+
+// RegenerateRecoveryCodes calls auth.v1.AuthService.RegenerateRecoveryCodes.
+func (c *authServiceClient) RegenerateRecoveryCodes(ctx context.Context, req *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
+	return c.regenerateRecoveryCodes.CallUnary(ctx, req)
+}
+
 // AuthServiceHandler is an implementation of the auth.v1.AuthService service.
 type AuthServiceHandler interface {
 	SignIn(context.Context, *connect.Request[v1.SignInRequest]) (*connect.Response[v1.SignInResponse], error)
@@ -242,6 +274,8 @@ type AuthServiceHandler interface {
 	UpdatePassword(context.Context, *connect.Request[v1.UpdatePasswordRequest]) (*connect.Response[v1.UpdatePasswordResponse], error)
 	SignOut(context.Context, *connect.Request[v1.SignOutRequest]) (*connect.Response[v1.SignOutResponse], error)
 	GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error)
+	ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error)
+	RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error)
 }
 
 // NewAuthServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -317,6 +351,18 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(authServiceMethods.ByName("GetCurrentUser")),
 		connect.WithHandlerOptions(opts...),
 	)
+	authServiceResetPasswordHandler := connect.NewUnaryHandler(
+		AuthServiceResetPasswordProcedure,
+		svc.ResetPassword,
+		connect.WithSchema(authServiceMethods.ByName("ResetPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	authServiceRegenerateRecoveryCodesHandler := connect.NewUnaryHandler(
+		AuthServiceRegenerateRecoveryCodesProcedure,
+		svc.RegenerateRecoveryCodes,
+		connect.WithSchema(authServiceMethods.ByName("RegenerateRecoveryCodes")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/auth.v1.AuthService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AuthServiceSignInProcedure:
@@ -341,6 +387,10 @@ func NewAuthServiceHandler(svc AuthServiceHandler, opts ...connect.HandlerOption
 			authServiceSignOutHandler.ServeHTTP(w, r)
 		case AuthServiceGetCurrentUserProcedure:
 			authServiceGetCurrentUserHandler.ServeHTTP(w, r)
+		case AuthServiceResetPasswordProcedure:
+			authServiceResetPasswordHandler.ServeHTTP(w, r)
+		case AuthServiceRegenerateRecoveryCodesProcedure:
+			authServiceRegenerateRecoveryCodesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -392,4 +442,12 @@ func (UnimplementedAuthServiceHandler) SignOut(context.Context, *connect.Request
 
 func (UnimplementedAuthServiceHandler) GetCurrentUser(context.Context, *connect.Request[v1.GetCurrentUserRequest]) (*connect.Response[v1.GetCurrentUserResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.GetCurrentUser is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) ResetPassword(context.Context, *connect.Request[v1.ResetPasswordRequest]) (*connect.Response[v1.ResetPasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.ResetPassword is not implemented"))
+}
+
+func (UnimplementedAuthServiceHandler) RegenerateRecoveryCodes(context.Context, *connect.Request[v1.RegenerateRecoveryCodesRequest]) (*connect.Response[v1.RegenerateRecoveryCodesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("auth.v1.AuthService.RegenerateRecoveryCodes is not implemented"))
 }

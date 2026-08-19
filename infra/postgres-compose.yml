@@ -33,45 +33,16 @@ services:
       # for the one-time `docker network create kamal` step this depends on.
       - kamal
 
-  # Self-hosted GoTrue (issue #1032), pointed at the restored `auth` schema
-  # above via the compose network hostname `postgres` (not 127.0.0.1) —
-  # GOTRUE_DB_DATABASE_URL/GOTRUE_JWT_SECRET/GOTRUE_SMTP_PASS live in .env.
-  gotrue:
-    image: supabase/gotrue:v2.195.0
-    restart: unless-stopped
-    depends_on:
-      - postgres
-    env_file: .env
-    ports:
-      # Loopback only, same convention as Postgres — reach it via an SSH
-      # tunnel (see infra/README.md) for the sign-in smoke test.
-      - "127.0.0.1:9999:9999"
-    environment:
-      # GOTRUE_SITE_URL/GOTRUE_SMTP_ADMIN_EMAIL come from .env (env_file
-      # above), as does the required API_EXTERNAL_URL — deliberately bare,
-      # no GOTRUE_ prefix: GoTrue's envconfig nesting derives GOTRUE_API as
-      # the struct prefix, and the field's own envconfig:"API_EXTERNAL_URL"
-      # tag gets appended to that verbatim, so GOTRUE_API_EXTERNAL_URL is
-      # never read — matches the official supabase/supabase self-hosting
-      # compose file. Currently == GOTRUE_SITE_URL since GoTrue isn't
-      # proxied publicly yet.
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: "9999"
-      GOTRUE_DB_DRIVER: postgres
-      # Required for sign-in against migrated rows: GoTrue filters its user
-      # lookup by aud, which has no default (empty string) unless set here.
-      # Every migrated auth.users row has aud='authenticated' (Supabase's
-      # standard convention, confirmed against the restored data) — without
-      # this, the lookup query matches zero rows and GoTrue reports a
-      # generic "Invalid login credentials" regardless of a correct password.
-      GOTRUE_JWT_AUD: authenticated
-      GOTRUE_SMTP_HOST: smtp.resend.com
-      GOTRUE_SMTP_PORT: "465"
-      GOTRUE_SMTP_USER: resend
-    networks:
-      - default
-      # Same reasoning as postgres's `kamal` network entry above.
-      - kamal
+  # The self-hosted GoTrue service that used to run here (issue #1032) is
+  # gone as of issue #1039: auth (password sign-in, TOTP MFA, and the MCP
+  # OAuth 2.1 authorization server) is now first-party, implemented in
+  # api/internal/auth and api/internal/oauth2as against api's own `auth`
+  # Postgres schema below — api never talks to a gotrue container at all.
+  # The one-time cutover (renaming the GoTrue-restored `auth` schema to
+  # auth_gotrue_legacy and copying its rows into the new tables) is fully
+  # automatic, run by api itself on boot — see
+  # api/cmd/api/migrations/00017_auth_schema.sql and
+  # api/internal/legacyauth. No manual step, no maintenance window.
 
 volumes:
   postgres_data:

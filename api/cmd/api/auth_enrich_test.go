@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/mocks"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/testhelper"
@@ -27,7 +28,10 @@ func TestResolveToken_EnrichmentFailureNotCached(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	cfg.AuthCacheTTL = 60
 
-	svc := auth.NewService(cfg, mocks.NewMockedGoTrueClient(), testApp.appUsersRepo)
+	svc := auth.NewService(
+		cfg, auth.NewRepository(testApp.db), testApp.appUsersRepo,
+		nil, mailer.New("", "", ""),
+	)
 
 	require.NoError(
 		t,
@@ -100,8 +104,10 @@ func TestTemplateAccess_RefreshEnrichmentFailure(t *testing.T) {
 func TestResolveToken_NoAppUsersRepo(t *testing.T) {
 	svc := auth.NewService(
 		testhelper.NewTestConfig(),
-		mocks.NewMockedGoTrueClient(),
+		auth.NewRepository(testApp.db),
 		nil,
+		nil,
+		mailer.New("", "", ""),
 	)
 
 	user, err := svc.ResolveToken(context.Background(), accessToken.Value)
@@ -120,8 +126,10 @@ func TestResolveToken_GetByIDFailure(t *testing.T) {
 	}
 	svc := auth.NewService(
 		testhelper.NewTestConfig(),
-		mocks.NewMockedGoTrueClient(),
+		auth.NewRepository(testApp.db),
 		store,
+		nil,
+		mailer.New("", "", ""),
 	)
 
 	_, err := svc.ResolveToken(context.Background(), accessToken.Value)
@@ -142,8 +150,10 @@ func TestFakeAppUsersStore_SuccessPaths(t *testing.T) {
 	}
 	svc := auth.NewService(
 		testhelper.NewTestConfig(),
-		mocks.NewMockedGoTrueClient(),
+		auth.NewRepository(testApp.db),
 		store,
+		nil,
+		mailer.New("", "", ""),
 	)
 
 	user, err := svc.ResolveToken(context.Background(), accessToken.Value)

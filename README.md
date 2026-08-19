@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/xdoubleu/tools.xdoubleu.com/graph/badge.svg)](https://codecov.io/gh/xdoubleu/tools.xdoubleu.com)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
-A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL, and Supabase authentication. The frontend is built with Next.js 16, React 19, and TypeScript.
+A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL, and first-party authentication (bcrypt + TOTP). The frontend is built with Next.js 16, React 19, and TypeScript.
 
 ## Tools
 
@@ -84,7 +84,7 @@ All tools are registered in `api/cmd/api/apps.go` and share a single HTTP mux ro
 - **HTTP**: `net/http` + `justinas/alice` middleware
 - **RPC**: `connectrpc.com/connect` — proto definitions in `proto/<app>/v1/`; Go stubs committed to `api/gen/`; TypeScript clients generated to `web/lib/gen/` (rebuilt in CI)
 - **Database**: `jackc/pgx/v5` + `pressly/goose/v3` migrations
-- **Authentication**: Supabase GoTrue
+- **Authentication**: first-party (bcrypt password hashing, TOTP MFA via `pquerna/otp`, self-issued JWT sessions) — `api/internal/auth`
 - **Job queue**: `api/internal/threading` + `api/internal/jobqueue` for background work
 - **Frontend**: Next.js 16, React 19, TypeScript, Tailwind + shadcn/ui
 
@@ -127,25 +127,24 @@ Point a local Claude Code at it (OAuth is handled automatically — no header):
 claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp
 ```
 
-Auth is **MCP OAuth 2.1**: the api is the OAuth resource server (it verifies the
-Bearer token and advertises protected-resource metadata), **Supabase Auth is the
-authorization server**, and the `/oauth/consent` page (web) shows the approval
-screen. On first use Claude Code discovers the metadata, dynamically registers,
-runs the PKCE flow against Supabase (a browser consent screen opens), and then
-calls the server with the issued token. Authorization differs per tool: the app
-tools are gated by the **caller's own per-app access** (admin, or the app in
-their app-access list) and return only that signed-in user's own data, exactly
-what they can already see over HTTP; the observability tools require the
-signed-in user to be an **admin**.
+Auth is **MCP OAuth 2.1**, entirely first-party as of issue #1039: the api is
+both the OAuth resource server (it verifies the Bearer token and advertises
+protected-resource metadata) **and** the authorization server — an embedded
+`ory/fosite`-backed AS (`api/internal/oauth2as`) serving RFC 7591 dynamic
+client registration and RFC 8414 metadata directly, with no external Auth
+provider involved. The `/oauth/consent` page (web) shows the approval screen,
+calling the api's own `/oauth2/*` endpoints. On first use Claude Code
+discovers the metadata, dynamically registers, runs the PKCE flow against
+the api (a browser consent screen opens), and then calls the server with the
+issued token. Authorization differs per tool: the app tools are gated by the
+**caller's own per-app access** (admin, or the app in their app-access list)
+and return only that signed-in user's own data, exactly what they can
+already see over HTTP; the observability tools require the signed-in user to
+be an **admin**.
 
-**One-time Supabase setup** (dashboard → **Authentication → OAuth Server**):
-enable the OAuth 2.1 server, set the **Authorization Path** to `/oauth/consent`,
-enable **dynamic client registration**, and confirm the **Site URL** is
-`https://tools.xdoubleu.com`. Set `SUPABASE_URL`
-(`https://<project-ref>.supabase.co`) and `SUPABASE_ANON_KEY` as repo Secrets
-(see [`config/deploy.api.yml`](config/deploy.api.yml)/[`config/deploy.web.yml`](config/deploy.web.yml)
-for the full env list). Until this is configured the endpoint returns a 401
-challenge but the flow cannot complete.
+No external setup is required — `JWT_SECRET` and `OAUTH_HMAC_SECRET` are the
+only auth-related secrets (see
+[`config/deploy.api.yml`](config/deploy.api.yml) for the full env list).
 
 ## Adding a New Tool
 
