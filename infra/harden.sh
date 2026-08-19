@@ -56,6 +56,32 @@ ufw allow 80/tcp
 ufw allow 443/tcp
 ufw --force enable
 
+# --- unattended-upgrades ------------------------------------------------------------
+if ! dpkg -s unattended-upgrades &>/dev/null; then
+  apt-get update -y
+  apt-get install -y unattended-upgrades
+fi
+
+cat >/etc/apt/apt.conf.d/50unattended-upgrades <<'EOF'
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "${distro_id}ESMApps:${distro_codename}-apps-security";
+    "${distro_id}ESM:${distro_codename}-infra-security";
+};
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:00";
+EOF
+
+cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+systemctl enable --now unattended-upgrades
+
 # --- sshd hardening ------------------------------------------------------------
 # Validate before touching the running daemon, and confirm it's still
 # listening after the reload — a bad reload here can permanently lock out
