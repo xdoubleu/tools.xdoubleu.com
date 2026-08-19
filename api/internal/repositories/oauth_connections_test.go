@@ -240,6 +240,32 @@ func TestOAuthConnectionsSetConfigRejectsInvalidJSON(t *testing.T) {
 	assert.ErrorIs(t, err, repositories.ErrInvalidConfig)
 }
 
+func TestOAuthConnectionsRepository_DecryptFailedOnKeyMismatch(t *testing.T) {
+	clearOAuthConnections(t)
+	writeRepo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+
+	require.NoError(t, writeRepo.Upsert(
+		t.Context(),
+		models.OAuthProviderGithub,
+		&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+			AccessToken: "gh-token",
+		},
+		"admin",
+	))
+
+	otherKey := make([]byte, 32)
+	otherKey[0] = 1
+	otherSealer, err := crypto.New(base64.StdEncoding.EncodeToString(otherKey))
+	require.NoError(t, err)
+	readRepo := repositories.NewOAuthConnectionsRepository(testDB, otherSealer)
+
+	_, _, err = readRepo.Get(t.Context(), models.OAuthProviderGithub)
+	assert.ErrorIs(
+		t, err, models.ErrDecryptFailed,
+		"a token encrypted under a different key must fail with ErrDecryptFailed",
+	)
+}
+
 func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 	clearOAuthConnections(t)
 	repo := repositories.NewOAuthConnectionsRepository(testDB, nil)

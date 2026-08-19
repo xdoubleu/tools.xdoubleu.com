@@ -47,6 +47,9 @@ func NewTokenFunc(
 		if errors.Is(err, database.ErrResourceNotFound) {
 			return "", ErrNotConnected
 		}
+		if errors.Is(err, models.ErrDecryptFailed) {
+			return "", models.ErrDecryptFailed
+		}
 		if err != nil {
 			return "", err
 		}

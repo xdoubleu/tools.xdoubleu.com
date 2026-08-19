@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -231,14 +232,14 @@ func (r *OAuthConnectionsRepository) decryptToken(
 
 	access, err := r.sealer.Decrypt(row.accessToken)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, err)
 	}
 
 	var refresh string
 	if len(row.refreshToken) > 0 {
 		refreshBytes, decErr := r.sealer.Decrypt(row.refreshToken)
 		if decErr != nil {
-			return nil, decErr
+			return nil, fmt.Errorf("%w: %w", models.ErrDecryptFailed, decErr)
 		}
 		refresh = string(refreshBytes)
 	}

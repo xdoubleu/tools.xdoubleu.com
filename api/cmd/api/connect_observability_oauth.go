@@ -289,6 +289,11 @@ func providerOptionsError(err error) error {
 	if errors.Is(err, oauthconn.ErrNotConnected) {
 		return connect.NewError(connect.CodeFailedPrecondition, err)
 	}
+	if errors.Is(err, models.ErrDecryptFailed) {
+		return connect.NewError(connect.CodeFailedPrecondition, errors.New(
+			"this connection can no longer be decrypted and must be reconnected",
+		))
+	}
 	return connect.NewError(connect.CodeInternal, err)
 }
 
