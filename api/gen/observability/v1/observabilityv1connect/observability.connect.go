@@ -51,6 +51,9 @@ const (
 	// ObservabilityServiceGetFailingPullRequestsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetFailingPullRequests RPC.
 	ObservabilityServiceGetFailingPullRequestsProcedure = "/observability.v1.ObservabilityService/GetFailingPullRequests"
+	// ObservabilityServiceGetSecurityAlertsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetSecurityAlerts RPC.
+	ObservabilityServiceGetSecurityAlertsProcedure = "/observability.v1.ObservabilityService/GetSecurityAlerts"
 	// ObservabilityServiceGetSentryIssuesProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSentryIssues RPC.
 	ObservabilityServiceGetSentryIssuesProcedure = "/observability.v1.ObservabilityService/GetSentryIssues"
@@ -91,6 +94,7 @@ type ObservabilityServiceClient interface {
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
+	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
@@ -153,6 +157,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetFailingPullRequestsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetFailingPullRequests")),
+			connect.WithClientOptions(opts...),
+		),
+		getSecurityAlerts: connect.NewClient[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetSecurityAlertsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetSecurityAlerts")),
 			connect.WithClientOptions(opts...),
 		),
 		getSentryIssues: connect.NewClient[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse](
@@ -226,6 +236,7 @@ type observabilityServiceClient struct {
 	triggerStorageScan        *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
 	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
+	getSecurityAlerts         *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	resolveSentryIssue        *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
 	getSlowTransactions       *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
@@ -266,6 +277,11 @@ func (c *observabilityServiceClient) GetDatabaseStats(ctx context.Context, req *
 // GetFailingPullRequests calls observability.v1.ObservabilityService.GetFailingPullRequests.
 func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context, req *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
 	return c.getFailingPullRequests.CallUnary(ctx, req)
+}
+
+// GetSecurityAlerts calls observability.v1.ObservabilityService.GetSecurityAlerts.
+func (c *observabilityServiceClient) GetSecurityAlerts(ctx context.Context, req *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {
+	return c.getSecurityAlerts.CallUnary(ctx, req)
 }
 
 // GetSentryIssues calls observability.v1.ObservabilityService.GetSentryIssues.
@@ -327,6 +343,7 @@ type ObservabilityServiceHandler interface {
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
+	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
@@ -385,6 +402,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetFailingPullRequestsProcedure,
 		svc.GetFailingPullRequests,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetFailingPullRequests")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceGetSecurityAlertsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetSecurityAlertsProcedure,
+		svc.GetSecurityAlerts,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetSecurityAlerts")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetSentryIssuesHandler := connect.NewUnaryHandler(
@@ -461,6 +484,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetFailingPullRequestsProcedure:
 			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetSecurityAlertsProcedure:
+			observabilityServiceGetSecurityAlertsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSentryIssuesProcedure:
 			observabilityServiceGetSentryIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceResolveSentryIssueProcedure:
@@ -512,6 +537,10 @@ func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context
 
 func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetFailingPullRequests is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetSecurityAlerts is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error) {

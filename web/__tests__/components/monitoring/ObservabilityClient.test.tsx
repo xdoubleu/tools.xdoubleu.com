@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetDeployStatusResponseSchema,
@@ -19,6 +20,7 @@ const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseFailingPullRequests = jest.fn()
+const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseDeployStatus = jest.fn()
@@ -31,6 +33,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
   useFailingPullRequests: () => mockUseFailingPullRequests(),
+  useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useDeployStatus: () => mockUseDeployStatus(),
@@ -87,6 +90,14 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
+  mockUseSecurityAlerts.mockReturnValue({
+    data: create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 0,
+      alerts: []
+    }),
+    mutate: mockMutate
+  })
   mockUseSentryIssues.mockReturnValue({
     data: create(GetSentryIssuesResponseSchema, {
       configured: true,
@@ -132,6 +143,9 @@ describe('ObservabilityClient', () => {
     mockUseFailingPullRequests.mockReturnValue({
       data: create(GetFailingPullRequestsResponseSchema, { configured: false })
     })
+    mockUseSecurityAlerts.mockReturnValue({
+      data: create(GetSecurityAlertsResponseSchema, { configured: false })
+    })
     mockUseSentryIssues.mockReturnValue({
       data: create(GetSentryIssuesResponseSchema, { configured: false })
     })
@@ -140,8 +154,9 @@ describe('ObservabilityClient', () => {
     })
 
     render(<ObservabilityClient />)
-    // Failing PRs / Unresolved errors / Deploy tiles all fall back to a dash.
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
+    // Failing PRs / Security alerts / Unresolved errors / Deploy tiles all
+    // fall back to a dash.
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(4)
   })
 
   it('refetches job/usage stats when the window changes', () => {
@@ -160,8 +175,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 8 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(8)
+    // instead of a plain mutate(), so mockMutate covers the other 9 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(9)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

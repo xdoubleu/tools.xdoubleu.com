@@ -12,6 +12,7 @@ import type {
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
   GetFailingPullRequestsResponse,
+  GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
   GetDeployStatusResponse,
@@ -67,6 +68,13 @@ export function useFailingPullRequests() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetFailingPullRequestsResponse, Error>(swrKeys.monitoringFailingPullRequests, () =>
     client.getFailingPullRequests({})
+  )
+}
+
+export function useSecurityAlerts() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetSecurityAlertsResponse, Error>(swrKeys.monitoringSecurityAlerts, () =>
+    client.getSecurityAlerts({})
   )
 }
 
@@ -151,13 +159,13 @@ export function useDisconnectOAuthConnection() {
   )
 }
 
-// PROVIDER_DATA_KEYS maps a provider to the SWR key holding the data it
-// unlocks, so useSetProviderConfig can flip that card to "configured"
-// immediately instead of waiting for its own poll/revalidation.
-const PROVIDER_DATA_KEYS: Record<string, string> = {
-  github: swrKeys.monitoringFailingPullRequests,
-  sentry: swrKeys.monitoringSentryIssues,
-  digitalocean: swrKeys.monitoringDeployStatus
+// PROVIDER_DATA_KEYS maps a provider to the SWR key(s) holding the data it
+// unlocks, so useSetProviderConfig can flip those cards to "configured"
+// immediately instead of waiting for their own poll/revalidation.
+const PROVIDER_DATA_KEYS: Record<string, string[]> = {
+  github: [swrKeys.monitoringFailingPullRequests, swrKeys.monitoringSecurityAlerts],
+  sentry: [swrKeys.monitoringSentryIssues],
+  digitalocean: [swrKeys.monitoringDeployStatus]
 }
 
 // useProviderOptions is fetched on demand (when the config picker dialog
@@ -178,8 +186,8 @@ export function useSetProviderConfig() {
     async (provider: string, config: ProviderConfigInput) => {
       await client.setProviderConfig({ provider, config })
       await mutate(swrKeys.monitoringOAuthConnections)
-      const dataKey = PROVIDER_DATA_KEYS[provider]
-      if (dataKey) await mutate(dataKey)
+      const dataKeys = PROVIDER_DATA_KEYS[provider] ?? []
+      await Promise.all(dataKeys.map((key) => mutate(key)))
     },
     [client]
   )

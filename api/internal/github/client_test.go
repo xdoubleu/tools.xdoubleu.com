@@ -302,6 +302,80 @@ func TestIsTransientAPIError_ServerError(t *testing.T) {
 	assert.False(t, github.IsTransientAPIError(err))
 }
 
+func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			if r.URL.Path == "/repos/"+testRepo+"/dependabot/alerts" {
+				_, _ = w.Write([]byte(`[
+					{"number":83,"html_url":"https://gh/security/dependabot/83",
+					 "created_at":"2026-08-19T16:34:44Z",
+					 "dependency":{"package":{"name":"otel","ecosystem":"go"}},
+					 "security_advisory":{"summary":"unbounded body read"},
+					 "security_vulnerability":{"severity":"medium"}}
+				]`))
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		}))
+	defer cleanup()
+
+	alerts, err := newClient().ListSecurityAlerts(context.Background())
+	require.NoError(t, err)
+	require.Len(t, alerts, 1)
+	assert.Equal(t, int64(83), alerts[0].Number)
+	assert.Equal(t, "otel", alerts[0].PackageName)
+	assert.Equal(t, "go", alerts[0].Ecosystem)
+	assert.Equal(t, "medium", alerts[0].Severity)
+	assert.Equal(t, "unbounded body read", alerts[0].Summary)
+	assert.Equal(t, "https://gh/security/dependabot/83", alerts[0].URL)
+}
+
+func TestListSecurityAlerts_NotConfigured_NoConnection(t *testing.T) {
+	// resolveRepo fails before tokenFn is ever consulted, so the token value
+	// here is irrelevant — a distinct literal from newClient()'s just avoids
+	// an unparam false positive on stubToken.
+	c := github.New(logging.NewNopLogger(), stubToken("unused"), configNotConnected())
+	_, err := c.ListSecurityAlerts(context.Background())
+	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListSecurityAlerts_CachesResult(t *testing.T) {
+	requests := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			if r.URL.Path == "/repos/"+testRepo+"/dependabot/alerts" {
+				_, _ = w.Write([]byte(`[]`))
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		}))
+	defer cleanup()
+
+	c := newClient()
+	_, err := c.ListSecurityAlerts(context.Background())
+	require.NoError(t, err)
+	_, err = c.ListSecurityAlerts(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 1, requests, "second call must be served from cache")
+}
+
+func TestListSecurityAlerts_ServerError_Retries(t *testing.T) {
+	attempts := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListSecurityAlerts(context.Background())
+	require.Error(t, err)
+	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
+}
+
 func jsonHandler(status int, body string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

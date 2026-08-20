@@ -36,6 +36,17 @@ func (pr PullRequest) HasLabel(name string) bool {
 	return false
 }
 
+// SecurityAlert is a single open Dependabot alert on the repo's dependencies.
+type SecurityAlert struct {
+	Number      int64
+	PackageName string
+	Ecosystem   string
+	Severity    string
+	Summary     string
+	URL         string
+	CreatedAt   time.Time
+}
+
 // prWire is the subset of the GitHub pulls API payload that is decoded.
 type prWire struct {
 	Number    int64     `json:"number"`
@@ -66,6 +77,26 @@ type checkRunWire struct {
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion"`
 	HTMLURL    string `json:"html_url"`
+}
+
+// securityAlertWire is the subset of the GitHub Dependabot alerts API
+// payload that is decoded.
+type securityAlertWire struct {
+	Number     int64     `json:"number"`
+	HTMLURL    string    `json:"html_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	Dependency struct {
+		Package struct {
+			Name      string `json:"name"`
+			Ecosystem string `json:"ecosystem"`
+		} `json:"package"`
+	} `json:"dependency"`
+	SecurityAdvisory struct {
+		Summary string `json:"summary"`
+	} `json:"security_advisory"`
+	SecurityVulnerability struct {
+		Severity string `json:"severity"`
+	} `json:"security_vulnerability"`
 }
 
 // failingConclusions are the check-run conclusions treated as "failing" for

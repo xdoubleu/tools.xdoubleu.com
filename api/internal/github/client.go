@@ -58,9 +58,11 @@ type client struct {
 	tokenFn    oauthconn.TokenFunc
 	configRepo configStore
 
-	mu         sync.Mutex
-	cachedPRs  []PullRequest
-	cachedPRAt time.Time
+	mu            sync.Mutex
+	cachedPRs     []PullRequest
+	cachedPRAt    time.Time
+	cachedAlerts  []SecurityAlert
+	cachedAlertAt time.Time
 }
 
 // New creates a GitHub client. tokenFn resolves a live OAuth bearer token
@@ -105,6 +107,33 @@ func (c *client) ListFailingPullRequests(ctx context.Context) ([]PullRequest, er
 	return prs, nil
 }
 
+func (c *client) ListSecurityAlerts(ctx context.Context) ([]SecurityAlert, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached, ok := c.cachedSecurityAlerts(); ok {
+		return cached, nil
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	alerts, err := c.fetchSecurityAlerts(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	c.storeSecurityAlerts(alerts)
+	return alerts, nil
+}
+
 // resolveRepo reads the admin-picked repo from the stored connection config.
 // Returns ErrNotConfigured when the provider isn't connected or no repo has
 // been picked yet.
@@ -144,6 +173,48 @@ func (c *client) storePullRequests(prs []PullRequest) {
 	defer c.mu.Unlock()
 	c.cachedPRs = prs
 	c.cachedPRAt = time.Now()
+}
+
+func (c *client) cachedSecurityAlerts() ([]SecurityAlert, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cachedAlerts != nil && time.Since(c.cachedAlertAt) < cacheTTL {
+		return c.cachedAlerts, true
+	}
+	return nil, false
+}
+
+func (c *client) storeSecurityAlerts(alerts []SecurityAlert) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedAlerts = alerts
+	c.cachedAlertAt = time.Now()
+}
+
+// fetchSecurityAlerts lists the repo's open Dependabot security alerts.
+func (c *client) fetchSecurityAlerts(
+	ctx context.Context, token, repo string,
+) ([]SecurityAlert, error) {
+	endpoint := fmt.Sprintf("%s/repos/%s/dependabot/alerts?state=open", baseURL, repo)
+
+	var wires []securityAlertWire
+	if err := c.get(ctx, endpoint, token, &wires); err != nil {
+		return nil, err
+	}
+
+	alerts := make([]SecurityAlert, len(wires))
+	for i, w := range wires {
+		alerts[i] = SecurityAlert{
+			Number:      w.Number,
+			PackageName: w.Dependency.Package.Name,
+			Ecosystem:   w.Dependency.Package.Ecosystem,
+			Severity:    w.SecurityVulnerability.Severity,
+			Summary:     w.SecurityAdvisory.Summary,
+			URL:         w.HTMLURL,
+			CreatedAt:   w.CreatedAt,
+		}
+	}
+	return alerts, nil
 }
 
 // fetchFailingPullRequests lists the repo's open pull requests and, for each,

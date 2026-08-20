@@ -51,10 +51,11 @@ var appsToolNames = []string{
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
 	// todos (4)
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
-	// observability (10, admin-gated)
+	// observability (11, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
-	"get_failing_pull_requests", "get_sentry_issues", "resolve_sentry_issue",
-	"get_deploy_status", "get_deploy_logs", "get_slow_transactions",
+	"get_failing_pull_requests", "get_security_alerts", "get_sentry_issues",
+	"resolve_sentry_issue", "get_deploy_status", "get_deploy_logs",
+	"get_slow_transactions",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -66,6 +67,7 @@ var appsNetworkTools = map[string]bool{
 	"books_get_external_book":   true,
 	"books_get_book_sources":    true,
 	"get_failing_pull_requests": true,
+	"get_security_alerts":       true,
 	"get_sentry_issues":         true,
 	"get_deploy_status":         true,
 	"get_deploy_logs":           true,
@@ -249,8 +251,8 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"shoppinglist_list_accessible_lists", "todos_list_tasks",
 		"get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
-		"get_failing_pull_requests", "get_sentry_issues", "get_deploy_status",
-		"get_deploy_logs", "get_slow_transactions",
+		"get_failing_pull_requests", "get_security_alerts", "get_sentry_issues",
+		"get_deploy_status", "get_deploy_logs", "get_slow_transactions",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it

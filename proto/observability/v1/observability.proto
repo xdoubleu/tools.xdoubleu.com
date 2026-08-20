@@ -12,6 +12,8 @@ service ObservabilityService {
       returns (GetDatabaseStatsResponse);
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
+  rpc GetSecurityAlerts(GetSecurityAlertsRequest)
+      returns (GetSecurityAlertsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
@@ -149,6 +151,28 @@ message GetFailingPullRequestsResponse {
   repeated FailingPullRequest pull_requests = 1;
   bool configured = 2;
   int32 failing_count = 3;
+}
+
+// SecurityAlert is a single open Dependabot alert on the repo's dependencies.
+message SecurityAlert {
+  int64 number = 1;
+  string package_name = 2;
+  string ecosystem = 3;
+  string severity = 4;  // "low" | "medium" | "high" | "critical"
+  string summary = 5;
+  string url = 6;
+  string created_at = 7;  // RFC3339
+}
+
+message GetSecurityAlertsRequest {}
+
+// GetSecurityAlertsResponse carries the open Dependabot alerts. configured is
+// false when no GitHub token/repo is set — the section is degraded, not
+// failed.
+message GetSecurityAlertsResponse {
+  repeated SecurityAlert alerts = 1;
+  bool configured = 2;
+  int32 alert_count = 3;
 }
 
 // SentryIssue is a single unresolved issue on one of the configured
