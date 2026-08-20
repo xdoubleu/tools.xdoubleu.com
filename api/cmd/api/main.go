@@ -25,7 +25,6 @@ import (
 	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
-	"tools.xdoubleu.com/internal/legacyauth"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
@@ -487,15 +486,6 @@ func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
 	}()
 
 	if err = app.applyGlobalMigrations(db); err != nil {
-		return err
-	}
-
-	// Copies any legacy GoTrue auth data (renamed to auth_gotrue_legacy by
-	// the migration above, on the one production database that has it) into
-	// the new auth schema. Idempotent and a no-op everywhere else — still
-	// runs under this same lock so concurrently-starting replicas can't
-	// race each other copying the same rows (issue #1039).
-	if err = legacyauth.Migrate(app.ctx, app.logger, db, app.authSealer); err != nil {
 		return err
 	}
 
