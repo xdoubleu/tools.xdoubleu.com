@@ -523,9 +523,9 @@ ssh -L 5432:localhost:5432 deploy@<ip>
 # in another shell, using the password from `tofu output -raw postgres_password`:
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dt auth.*'
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dn'
-# after the first api deploy post-#1039: auth_gotrue_legacy should now exist
-# alongside a freshly populated auth schema — confirms the automatic cutover
-# ran (see "GoTrue is gone" above).
+# auth_gotrue_legacy (the one-time GoTrue rollback fallback, see "GoTrue is
+# gone" above) was dropped by 00019_drop_auth_gotrue_legacy.sql and should
+# no longer appear in \dn's output.
 
 # Auth (first-party as of #1039, no separate service to tunnel to — go
 # through the app itself): sign in with an existing migrated account

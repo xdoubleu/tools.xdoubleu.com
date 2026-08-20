@@ -33,16 +33,8 @@ services:
       # for the one-time `docker network create kamal` step this depends on.
       - kamal
 
-  # The self-hosted GoTrue service that used to run here (issue #1032) is
-  # gone as of issue #1039: auth (password sign-in, TOTP MFA, and the MCP
-  # OAuth 2.1 authorization server) is now first-party, implemented in
-  # api/internal/auth and api/internal/oauth2as against api's own `auth`
-  # Postgres schema below — api never talks to a gotrue container at all.
-  # The one-time cutover (renaming the GoTrue-restored `auth` schema to
-  # auth_gotrue_legacy and copying its rows into the new tables) is fully
-  # automatic, run by api itself on boot — see
-  # api/cmd/api/migrations/00017_auth_schema.sql and
-  # api/internal/legacyauth. No manual step, no maintenance window.
+  # A self-hosted GoTrue service used to run here — see infra/README.md's
+  # "GoTrue is gone" section for the full history.
 
 volumes:
   postgres_data:
