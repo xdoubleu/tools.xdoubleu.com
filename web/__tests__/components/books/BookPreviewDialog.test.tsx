@@ -319,4 +319,139 @@ describe('BookPreviewDialog', () => {
       expect(mockUseKEPUBStatus).toHaveBeenCalledWith(null)
     })
   })
+
+  describe('unmount-during-fetch race guard (#1158)', () => {
+    // Assert against the registered listener directly rather than dispatching a real
+    // 'unhandledrejection' event on `window` — the guard's cleanup delays real removal by
+    // 10s (see component), which would otherwise leak a listener across tests.
+    function getRegisteredHandler(addSpy: jest.SpiedFunction<typeof window.addEventListener>) {
+      const call = addSpy.mock.calls.find(([type]) => type === 'unhandledrejection')
+      return call?.[1]
+    }
+
+    function makeRejectionEvent(reason: unknown) {
+      const event = new Event('unhandledrejection')
+      Object.defineProperty(event, 'reason', { value: reason })
+      return event
+    }
+
+    function invokeHandler(handler: EventListenerOrEventListenerObject | undefined, event: Event) {
+      if (!handler) throw new Error('unhandledrejection listener not registered')
+      if (typeof handler === 'function') handler(event)
+      else handler.handleEvent(event)
+    }
+
+    afterEach(() => jest.restoreAllMocks())
+
+    it('suppresses the known "Connection closed." race after an epub reader mounts', () => {
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.epub' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="epub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      const handler = getRegisteredHandler(addSpy)
+      const event = makeRejectionEvent(new Error('Connection closed.'))
+      const preventDefault = jest.spyOn(event, 'preventDefault')
+      invokeHandler(handler, event)
+      expect(preventDefault).toHaveBeenCalled()
+    })
+
+    it('suppresses the known epub.js book.package TypeError race', () => {
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.epub' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="epub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      const handler = getRegisteredHandler(addSpy)
+      const event = makeRejectionEvent(
+        new TypeError("undefined is not an object (evaluating 'this.book.package')")
+      )
+      const preventDefault = jest.spyOn(event, 'preventDefault')
+      invokeHandler(handler, event)
+      expect(preventDefault).toHaveBeenCalled()
+    })
+
+    it('leaves unrelated rejections alone', () => {
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.epub' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="epub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      const handler = getRegisteredHandler(addSpy)
+      const event = makeRejectionEvent(new Error('something unrelated'))
+      const preventDefault = jest.spyOn(event, 'preventDefault')
+      invokeHandler(handler, event)
+      expect(preventDefault).not.toHaveBeenCalled()
+    })
+
+    it('does not install the guard for the PDF preview path', () => {
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.pdf' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="pdf"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      expect(getRegisteredHandler(addSpy)).toBeUndefined()
+    })
+
+    it('keeps the guard active briefly after the dialog unmounts, then removes it', () => {
+      jest.useFakeTimers()
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.epub' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      const removeSpy = jest.spyOn(window, 'removeEventListener')
+      const { unmount } = render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="epub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      const handler = getRegisteredHandler(addSpy)
+      unmount()
+      expect(removeSpy).not.toHaveBeenCalledWith('unhandledrejection', handler)
+      jest.advanceTimersByTime(10000)
+      expect(removeSpy).toHaveBeenCalledWith('unhandledrejection', handler)
+      jest.useRealTimers()
+    })
+  })
 })

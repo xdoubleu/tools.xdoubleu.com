@@ -68,6 +68,26 @@ export default function BookPreviewDialog({
   const fileFormat = isKepub ? (kepubReady ? 'kepub' : null) : open ? format : null
   const { data, error } = useGetBookFile(fileBookId, fileFormat)
 
+  // react-reader/epub.js has no cancellation for its in-flight archive fetch/parse chain:
+  // closing the dialog while it's still loading destroys the underlying book but the pending
+  // promise chain runs on regardless and throws reading the now-cleared state, surfacing as an
+  // unhandled rejection well after unmount (issue #1158) rather than a catchable render error.
+  // Swallow only these two known-benign signatures; keep the guard alive briefly past unmount
+  // since the rejection can land after this effect's own cleanup has already run.
+  useEffect(() => {
+    if (!data || isPDF) return
+    const isKnownReaderRace = (message: string) =>
+      message === 'Connection closed.' || message.includes("evaluating 'this.book.package'")
+    const onRejection = (event: PromiseRejectionEvent) => {
+      const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
+      if (isKnownReaderRace(message)) event.preventDefault()
+    }
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      setTimeout(() => window.removeEventListener('unhandledrejection', onRejection), 10000)
+    }
+  }, [data, isPDF])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
