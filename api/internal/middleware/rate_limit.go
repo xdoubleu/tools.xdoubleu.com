@@ -1,19 +1,23 @@
 package middleware
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"sync"
 	"time"
 
+	"connectrpc.com/connect"
 	"golang.org/x/time/rate"
 
 	"tools.xdoubleu.com/internal/communication/httptools"
+	"tools.xdoubleu.com/internal/errortools"
 )
 
-var cleanerActive bool                 //nolint: gochecknoglobals //need this
-var mu sync.RWMutex                    //nolint: gochecknoglobals //need this
-var clients = make(map[string]*client) //nolint: gochecknoglobals //need this
+var cleanerActive bool                   //nolint: gochecknoglobals //need this
+var mu sync.RWMutex                      //nolint: gochecknoglobals //need this
+var clients = make(map[string]*client)   //nolint: gochecknoglobals //need this
+var errWriter = connect.NewErrorWriter() //nolint: gochecknoglobals //need this
 
 type client struct {
 	limiter  *rate.Limiter
@@ -84,6 +88,20 @@ func rateLimit(
 
 		if !clients[ip].limiter.Allow() {
 			mu.Unlock()
+
+			// ponytail: GET is only classified as a Connect request when a
+			// service opts into idempotency_level, which no proto in this repo
+			// does — restricting to POST keeps plain GET endpoints (health,
+			// version, oauth callback) on the REST error path.
+			if r.Method == http.MethodPost && errWriter.IsSupported(r) {
+				connectErr := connect.NewError(
+					connect.CodeResourceExhausted,
+					errors.New(errortools.MessageTooManyRequests),
+				)
+				_ = errWriter.Write(w, r, connectErr)
+				return
+			}
+
 			httptools.RateLimitExceededResponse(w, r)
 			return
 		}
