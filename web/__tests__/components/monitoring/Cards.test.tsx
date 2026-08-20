@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema,
   DeployComponentLogSchema
@@ -14,6 +15,7 @@ import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
 import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
+import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
 
@@ -186,6 +188,49 @@ describe('FailingPullRequestsCard', () => {
 
   it('shows a loading state without data', () => {
     render(<FailingPullRequestsCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('SecurityAlertsCard', () => {
+  it('renders open security alerts with severity badge', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [
+        {
+          number: 83n,
+          packageName: 'otel',
+          ecosystem: 'go',
+          severity: 'high',
+          summary: 'unbounded body read',
+          url: 'https://github.com/x/y/security/dependabot/83',
+          createdAt: '2026-08-19T16:34:44Z'
+        }
+      ]
+    })
+
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('otel')).toBeInTheDocument()
+    expect(screen.getByText('#83')).toBeInTheDocument()
+    expect(screen.getByText('unbounded body read')).toBeInTheDocument()
+    expect(screen.getByText('high')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetSecurityAlertsResponseSchema, { configured: false })
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no alerts', () => {
+    const data = create(GetSecurityAlertsResponseSchema, { configured: true, alertCount: 0 })
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('No open security alerts.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<SecurityAlertsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })

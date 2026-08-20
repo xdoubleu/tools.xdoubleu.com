@@ -171,6 +171,96 @@ func callFailingPullRequests(
 	return observabilityClient(t).GetFailingPullRequests(context.Background(), req)
 }
 
+// --- Security alerts ---
+
+func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Path {
+			case "/repos/o/r/dependabot/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":83,"html_url":"u",
+					 "created_at":"2026-08-19T16:34:44Z",
+					 "dependency":{"package":{"name":"otel","ecosystem":"go"}},
+					 "security_advisory":{"summary":"unbounded body read"},
+					 "security_vulnerability":{"severity":"medium"}}
+				]`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callSecurityAlerts(t)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	require.Len(t, resp.Msg.Alerts, 1)
+	assert.Equal(t, int64(83), resp.Msg.Alerts[0].Number)
+	assert.Equal(t, "otel", resp.Msg.Alerts[0].PackageName)
+	assert.Equal(t, "medium", resp.Msg.Alerts[0].Severity)
+	assert.Equal(t, int32(1), resp.Msg.AlertCount)
+}
+
+func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	resp, err := callSecurityAlerts(t)
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Alerts)
+}
+
+func TestObservabilityGetSecurityAlerts_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusInternalServerError, ``)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callSecurityAlerts(t)
+	require.NoError(t, err) // degraded, never a failed response
+	assert.True(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Alerts)
+}
+
+func TestObservabilityGetSecurityAlerts_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callSecurityAlerts(t)
+	requirePermissionDenied(t, err)
+}
+
+func callSecurityAlerts(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetSecurityAlertsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetSecurityAlertsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetSecurityAlerts(context.Background(), req)
+}
+
 // --- Sentry ---
 
 func TestObservabilityGetSentryIssues_AsAdmin(t *testing.T) {

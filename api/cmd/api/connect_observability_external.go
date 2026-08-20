@@ -79,6 +79,53 @@ func (h *obsConnectHandler) failingPullRequests(
 	return resp
 }
 
+func (h *obsConnectHandler) GetSecurityAlerts(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetSecurityAlertsRequest],
+) (*connect.Response[observabilityv1.GetSecurityAlertsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.securityAlerts(ctx)), nil
+}
+
+func (h *obsConnectHandler) securityAlerts(
+	ctx context.Context,
+) *observabilityv1.GetSecurityAlertsResponse {
+	resp := &observabilityv1.GetSecurityAlertsResponse{
+		Alerts:     []*observabilityv1.SecurityAlert{},
+		Configured: true,
+		AlertCount: 0,
+	}
+
+	alerts, err := h.app.githubClient.ListSecurityAlerts(ctx)
+	if err != nil {
+		if errors.Is(err, github.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "security alerts unavailable",
+				slog.Any("error", err))
+		}
+		return resp
+	}
+
+	protoAlerts := make([]*observabilityv1.SecurityAlert, len(alerts))
+	for i, a := range alerts {
+		protoAlerts[i] = &observabilityv1.SecurityAlert{
+			Number:      a.Number,
+			PackageName: a.PackageName,
+			Ecosystem:   a.Ecosystem,
+			Severity:    a.Severity,
+			Summary:     a.Summary,
+			Url:         a.URL,
+			CreatedAt:   a.CreatedAt.Format(time.RFC3339),
+		}
+	}
+	resp.Alerts = protoAlerts
+	resp.AlertCount = int32(len(alerts)) //nolint:gosec // count fits int32
+	return resp
+}
+
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

@@ -11,6 +11,7 @@ import {
   useTriggerStorageScan,
   useDatabaseStats,
   useFailingPullRequests,
+  useSecurityAlerts,
   useSentryIssues,
   useSlowTransactions,
   useDeployStatus,
@@ -23,6 +24,7 @@ import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
+import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
 import DeployCard from './DeployCard'
@@ -40,6 +42,7 @@ export default function ObservabilityClient() {
   const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats()
   const failingPullRequests = useFailingPullRequests()
+  const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
   const slowTransactions = useSlowTransactions()
   const deployStatus = useDeployStatus()
@@ -53,6 +56,7 @@ export default function ObservabilityClient() {
       triggerStorageScan(),
       databaseStats.mutate(),
       failingPullRequests.mutate(),
+      securityAlerts.mutate(),
       sentryIssues.mutate(),
       slowTransactions.mutate(),
       deployStatus.mutate(),
@@ -65,9 +69,11 @@ export default function ObservabilityClient() {
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
 
   const failingPRs = failingPullRequests.data
+  const alerts = securityAlerts.data
   const sentry = sentryIssues.data
   const deploy = deployStatus.data
   const failingCount = failingPRs?.configured ? failingPRs.failingCount : 0
+  const alertCount = alerts?.configured ? alerts.alertCount : 0
   const unresolvedErrors = sentry?.configured ? sentry.unresolvedCount : 0
   const deployPhase = deploy?.configured ? deploy.phase : ''
 
@@ -94,6 +100,11 @@ export default function ObservabilityClient() {
       label: 'Failing PRs',
       value: failingPRs?.configured ? formatCount(failingCount) : '—',
       tone: failingCount > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Security alerts',
+      value: alerts?.configured ? formatCount(alertCount) : '—',
+      tone: alertCount > 0 ? ('danger' as const) : ('default' as const)
     },
     {
       label: 'Unresolved errors',
@@ -141,6 +152,7 @@ export default function ObservabilityClient() {
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
         <FailingPullRequestsCard data={failingPullRequests.data} />
+        <SecurityAlertsCard data={securityAlerts.data} />
         <SentryCard data={sentryIssues.data} />
         <SlowTransactionsCard data={slowTransactions.data} />
         <DeployCard data={deployStatus.data} />
