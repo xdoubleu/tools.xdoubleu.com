@@ -120,6 +120,10 @@ func endpointLabel(segments []string) string {
 		return truncate(service, maxEndpointLen)
 	}
 
+	if first == "oauth2" && len(segments) > 1 {
+		return truncate("oauth2/"+segments[1], maxEndpointLen)
+	}
+
 	if _, err := uuid.Parse(first); err == nil ||
 		len(first) > maxPlainSegmentLen {
 		return usageIDPlaceholder
