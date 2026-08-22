@@ -50,7 +50,6 @@ make lint                  # golangci-lint + sqlfluff + buf lint
 make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
-make scaffold NAME=x [DB=true] [JOBS=true]   # generate a new app skeleton
 docker-compose down
 
 # Web (from web/)
@@ -76,14 +75,6 @@ Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are
 **Prefer the commands above over ad-hoc equivalents.** If a check/build/verification isn't covered by an existing `make`/`npm run` target, add one to the relevant `Makefile`/`package.json` rather than improvising it with raw tool invocations, and if an existing target doesn't do quite what's needed, fix the target itself. This file documents *what* a command does and *why*, never *how* — re-deriving a command's mechanics in prose here is exactly what let a stale claim (a false ordering requirement between `make proto/generate` and `make lint/fix`) drift out of sync between this file and `api/CLAUDE.md` until `make proto/check`/`npm run generate:check` replaced both explanations with one command.
 
 Run a single Go test: `go test ./apps/books/internal/services/... -run TestName -v` (from `api/`). Single Jest test: `npx jest path/to/file.test.ts -t "test name"` (from `web/`).
-
-## Adding a New Tool
-
-```bash
-cd api && make scaffold NAME=mytool [DB=true] [JOBS=true]
-```
-
-The scaffold does **not** auto-register the app — after scaffolding: register it in `api/cmd/api/apps.go`, implement handlers/routes in `api/apps/mytool/routes.go`, add domain logic under `api/apps/mytool/internal/`, edit the initial migration if `DB=true`, then `make build` to verify.
 
 ## Starting a Task
 

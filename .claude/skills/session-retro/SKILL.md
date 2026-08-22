@@ -114,6 +114,21 @@ codebase, not other sessions) for these patterns:
      new targets that run the exact regenerate-then-diff CI does — with
      both CLAUDE.md files trimmed to just name the command instead of
      re-explaining it.
+   - The other direction of the same failure mode: a documented command can
+     stop existing (or stop working) after a refactor, and nothing catches
+     it if nobody actually runs it. Before pointing to a `make`/`npm run`
+     command in a fix — or trusting one already documented — actually run
+     it once rather than assuming a command mentioned in CLAUDE.md still
+     works. Worked example from this repo: `make scaffold NAME=x
+     [DB=true] [JOBS=true]` was documented in root `CLAUDE.md`,
+     `api/CLAUDE.md`, and `README.md` as the way to add a new app — the
+     entire `cmd/scaffold/` generator it called had been deleted three
+     months earlier in a `Makefile` → `api/Makefile` reorg (`git log
+     --diff-filter=D` found the deleting commit), and running `make
+     scaffold` failed immediately with "No rule to make target". The fix
+     was deleting the dead references outright (per this repo's own
+     decision, not rebuilding a replacement) from all three files, not
+     just the first one found.
 
 ## Steps
 

@@ -21,7 +21,6 @@ make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
 make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 make lint/proto                    # buf lint — also part of make lint / lint/fix
-make scaffold NAME=x [DB=true] [JOBS=true]   # generate a new app skeleton
 
 go test ./apps/books/... -run TestFunctionName   # single test
 ```
