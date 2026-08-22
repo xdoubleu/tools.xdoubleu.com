@@ -234,6 +234,70 @@ func TestStore_RefreshTokenSession_RoundTrip(t *testing.T) {
 	require.ErrorIs(t, err, fosite.ErrNotFound)
 }
 
+func TestStore_GetRefreshTokenSession_UnmarshalError(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	// A JSON value that isn't the expected object shape still parses as
+	// JSON, so it reaches json.Unmarshal into persistedRequest, which fails.
+	_, err = db.Exec(ctx, `
+		UPDATE auth.oauth2_refresh_tokens SET request = '"not-an-object"'::jsonb
+		WHERE signature = $1
+	`, signature)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.Error(t, err)
+}
+
+func TestStore_GetRefreshTokenSession_UnknownClient(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+
+	// The embedded request JSON references a client_id that no longer
+	// exists — fromPersisted's GetClient lookup fails and that error must
+	// propagate out of GetRefreshTokenSession.
+	_, err = db.Exec(ctx, `
+		UPDATE auth.oauth2_refresh_tokens
+		SET request = jsonb_set(request, '{client_id}', '"does-not-exist"')
+		WHERE signature = $1
+	`, signature)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.ErrorIs(t, err, fosite.ErrNotFound)
+}
+
 func TestStore_RotateRefreshToken(t *testing.T) {
 	store, db := newTestStore(t)
 	ctx := context.Background()
@@ -254,10 +318,16 @@ func TestStore_RotateRefreshToken(t *testing.T) {
 
 	require.NoError(t, store.RotateRefreshToken(ctx, requestID, signature))
 
-	// A rotated-out refresh token is invalidated (active = false), which
-	// GetRefreshTokenSession surfaces as fosite.ErrInactiveToken — the
+	// A rotated-out refresh token is invalidated (active = false) and
+	// stamped with rotated_at = now(). Reused well outside the reuse grace
+	// period, GetRefreshTokenSession surfaces fosite.ErrInactiveToken — the
 	// sentinel fosite's own RefreshTokenGrantHandler checks for to detect
 	// refresh-token reuse and revoke the whole token family.
+	_, err = db.Exec(ctx, `
+		UPDATE auth.oauth2_refresh_tokens
+		SET rotated_at = now() - interval '1 minute' WHERE signature = $1
+	`, signature)
+	require.NoError(t, err)
 	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
 	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrInactiveToken)
@@ -265,6 +335,34 @@ func TestStore_RotateRefreshToken(t *testing.T) {
 	// Rotating a signature that doesn't match the given requestID is a
 	// silent no-op (matches zero rows, still no error).
 	require.NoError(t, store.RotateRefreshToken(ctx, "does-not-exist", signature))
+}
+
+func TestStore_RefreshTokenSession_ReuseGracePeriod(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	requestID := uuid.NewString()
+	request := newTestRequest(t, client, requestID)
+
+	signature := uuid.NewString()
+	require.NoError(
+		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
+	)
+	require.NoError(t, store.RotateRefreshToken(ctx, requestID, signature))
+
+	// Reused immediately after rotation (a client retrying a request whose
+	// response it never saw), the token is still accepted as if active —
+	// no fosite.ErrInactiveToken, no theft-response revocation.
+	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
+	got, err := store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
+	require.NoError(t, err)
+	assert.Equal(t, requestID, got.GetID())
 }
 
 func TestStore_RevokeRefreshToken(t *testing.T) {
