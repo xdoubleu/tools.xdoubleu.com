@@ -33,12 +33,40 @@ enforced **only** by `next build`, not `tsc --noEmit`, ESLint, or Jest — lint
 and coverage passing does not mean the build passes. Put constants shared
 across the boundary in a plain `lib/` module with no React imports.
 
-## 4. Open the PR yourself — don't wait to be asked
+## 4. Rebase on latest main, then open the PR yourself — don't wait to be asked
+
+Before opening the PR — not on every later push, see the note below — bring
+the branch up to date with `main`:
 
 ```bash
-git push -u origin HEAD
+git fetch origin main
+git rebase origin/main
+```
+
+If the rebase reports conflicts, resolve them the normal way (fix the
+files, `git add`, `git rebase --continue`) — never `git rebase --abort` and
+skip this step. If the rebase actually replayed any upstream commits (check
+`git log --oneline origin/main..HEAD` before and after — a no-op rebase
+changes nothing there), re-run whichever of steps 1–3 apply before pushing,
+since the rebase can shift line numbers or interact with this task's own
+changes.
+
+Then push and open the PR:
+
+```bash
+git push -u origin HEAD --force-with-lease
 gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
 ```
+
+`--force-with-lease` (not `-f`) is safe here — this is this task's own
+feature branch, not `main`, and it refuses to overwrite anything if someone
+else pushed to the same branch since your last fetch. On a brand-new branch
+(nothing pushed yet) it behaves like a normal push.
+
+Only rebase+force-push right before the PR is first created. Once a PR is
+open and under review (step 5's fix-and-repush loop), just push normally —
+rebasing an already-reviewed branch rewrites commits a reviewer may have
+already looked at.
 
 Never push to `main` directly; never open as `--draft`. Reference the
 tracking issue from `start-task` in the PR body using a closing keyword

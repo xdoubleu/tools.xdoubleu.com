@@ -12,7 +12,13 @@ these steps *before* the first edit, not after.
 
 `git checkout main && git pull` from the repo root, or `git fetch origin
 main` — don't explore or plan against a stale checkout, since another
-session or the user may have merged changes since.
+session or the user may have merged changes since. A `SessionStart` hook in
+`.claude/settings.json` already runs `git fetch origin main` once at the
+start of every session as a backstop (this step had been skipped often
+enough in practice that relying on it being followed wasn't reliable) — but
+that only covers freshness as of session start, not a long session that
+keeps exploring for hours, so still treat this as an explicit step, not
+something to assume already happened.
 
 ## 2. Create a completely fresh worktree off up-to-date main
 
