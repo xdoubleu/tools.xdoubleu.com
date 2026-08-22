@@ -9,6 +9,10 @@ The closing half of every task in this repo, paired with `start-task`. Run
 these steps in order — don't skip ahead to opening the PR before lint/coverage
 pass, and don't stop at "CI is running" as if that were done.
 
+This repo layers its own lint/coverage/build steps and auto-merge threshold
+on top of the generic `ship-pr` skill from the `git-task-flow` plugin
+(`xdoubleu/claude-plugins` marketplace).
+
 ## 1. Lint
 
 - `cd api && make lint/fix` and/or `cd web && npm run lint` — whichever area changed.
@@ -33,54 +37,17 @@ enforced **only** by `next build`, not `tsc --noEmit`, ESLint, or Jest — lint
 and coverage passing does not mean the build passes. Put constants shared
 across the boundary in a plain `lib/` module with no React imports.
 
-## 4. Rebase on latest main, then open the PR yourself — don't wait to be asked
+## 4. Ship it via `ship-pr`
 
-Before opening the PR — not on every later push, see the note below — bring
-the branch up to date with `main`:
-
-```bash
-git fetch origin main
-git rebase origin/main
-```
-
-If the rebase reports conflicts, resolve them the normal way (fix the
-files, `git add`, `git rebase --continue`) — never `git rebase --abort` and
-skip this step. If the rebase actually replayed any upstream commits (check
-`git log --oneline origin/main..HEAD` before and after — a no-op rebase
-changes nothing there), re-run whichever of steps 1–3 apply before pushing,
-since the rebase can shift line numbers or interact with this task's own
-changes.
-
-Then push and open the PR:
-
-```bash
-git push -u origin HEAD --force-with-lease
-gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
-```
-
-`--force-with-lease` (not `-f`) is safe here — this is this task's own
-feature branch, not `main`, and it refuses to overwrite anything if someone
-else pushed to the same branch since your last fetch. On a brand-new branch
-(nothing pushed yet) it behaves like a normal push.
-
-Only rebase+force-push right before the PR is first created. Once a PR is
-open and under review (step 5's fix-and-repush loop), just push normally —
-rebasing an already-reviewed branch rewrites commits a reviewer may have
-already looked at.
-
-Never push to `main` directly; never open as `--draft`. Reference the
-tracking issue from `start-task` in the PR body using a closing keyword
-(`Fixes #123`, `Closes #123`) so it auto-closes on merge — a bare `#123` or
-"Related to #123" leaves it open even after merge (this happened with issue
-#727 / PR #728).
-
-Then decide on auto-merge:
+Run `ship-pr` for the rebase-on-main → push → open-PR → CI-watch mechanics
+(force-with-lease reasoning, never `--draft`, issue closing-keyword
+requirement, etc. all live there — don't re-derive them here). Give it this
+repo's own auto-merge rule instead of its generic default:
 
 - **Small, code-only changes** — no `CLAUDE.md`, Makefile/npm-script, lint
   config, CI workflow, or script edits, AND none of the "larger/architectural"
   signals below apply: enable auto-merge right away, in the same breath as
-  creating the PR — `gh pr merge --auto --squash` only merges once checks
-  pass, so there's no reason to wait for green first:
+  creating the PR:
   ```bash
   gh pr create --fill --base main && gh pr merge --auto --squash
   ```
@@ -96,29 +63,32 @@ Then decide on auto-merge:
   than one app under `api/apps/*` or `web/`; or any `go.mod`/`package.json`
   dependency addition, removal, or version bump.
 
-## 5. Monitor CI until green, fixing it yourself if it isn't
+Reference the tracking issue from `start-task` in the PR body using a
+closing keyword (`Fixes #123`, `Closes #123`) — `ship-pr` already covers the
+mechanics of this, this is just a reminder it applies here too (this
+happened to get missed once: issue #727 / PR #728 used a bare `#123`, which
+doesn't auto-close on merge).
 
-```bash
-gh pr checks --watch
-gh pr view --json mergeable,mergeStateStatus,statusCheckRollup
-```
+## 5. Resolve linked Sentry issues once merged
 
-A red PR or non-`MERGEABLE` state is not "done" — diagnose the actual failure
-(don't just re-run blindly) and repeat from step 1. Once green + mergeable,
-report the PR URL. Auto-merge was already armed in step 4 for small
-code-only changes; for tooling/harness or larger/architectural changes, stop
-here and wait for review.
+Once `ship-pr` reports the PR merged, check the tracking issue's body for
+Sentry permalinks (`https://xdoubleu.sentry.io/issues/<id>/`) — issues filed
+by `sentry-triage` or `refine-issue` often list them under a "Sentry
+permalinks" heading. For each one found, mark it resolved with the
+`resolve_sentry_issue` MCP tool (`issue_id` = the numeric id from the
+permalink). Closing the GitHub issue does not resolve Sentry on its own —
+this step is easy to forget and was missed for issues #770 and #775.
 
 ## 6. Run the session retro
 
-Once CI is green, always run the `session-retro` skill. It reviews this
-session's own tool-call/commit/CI history for concrete inefficiencies
-(redundant reads, avoidable CI back-and-forth, a missing or under-triggered
-skill/MCP tool, a doc gap) and, only when something concrete turned up,
-ships the fix as its own tracking issue and independent PR via
-`start-task`/`finish-task` — never stacked on this PR. Running the analysis
-is mandatory every time; most runs should find nothing worth acting on, and
-that's expected.
+Once CI is green, always run the `session-retro` skill (from the
+`session-retro` plugin). It reviews this session's own tool-call/commit/CI
+history for concrete inefficiencies (redundant reads, avoidable CI
+back-and-forth, a missing or under-triggered skill/MCP tool, a doc gap) and,
+only when something concrete turned up, ships the fix as its own tracking
+issue and independent PR via `start-task`/`finish-task` — never stacked on
+this PR. Running the analysis is mandatory every time; most runs should find
+nothing worth acting on, and that's expected.
 
 ## Notes
 

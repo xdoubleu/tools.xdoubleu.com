@@ -1,0 +1,14 @@
+{
+  "repo": "xdoubleu/tools.xdoubleu.com",
+  "project": {
+    "owner": "xdoubleu",
+    "number": 8
+  },
+  "labels": {
+    "types": ["bug", "enhancement", "feature", "chore", "documentation"],
+    "scopes": ["reading", "games", "recipes", "mealplans", "shoppinglist", "todos", "platform", "infra"],
+    "fallbackScope": "platform"
+  },
+  "priorityRule": "P0 = fixes or restores something that already works today but is currently broken. P1 = improves existing, working functionality. P2 = brand-new features that don't exist yet. A shiny new feature never outranks a broken thing. When an issue is ambiguous, ask which bucket it means rather than guessing.",
+  "markerLabel": "triaged"
+}
