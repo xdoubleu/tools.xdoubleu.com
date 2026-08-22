@@ -13,7 +13,8 @@
     "git-task-flow@claude-plugins": true,
     "session-retro@claude-plugins": true,
     "git-cleanup@claude-plugins": true,
-    "github-issue-triage@claude-plugins": true
+    "github-issue-triage@claude-plugins": true,
+    "skill-lifecycle@claude-plugins": true
   },
   "permissions": {
     "defaultMode": "plan",
