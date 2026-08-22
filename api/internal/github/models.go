@@ -36,15 +36,35 @@ func (pr PullRequest) HasLabel(name string) bool {
 	return false
 }
 
-// SecurityAlert is a single open Dependabot alert on the repo's dependencies.
+// SecurityAlertType distinguishes which GitHub alert source a SecurityAlert
+// came from — the three fields below it are populated only for the
+// corresponding type.
+type SecurityAlertType string
+
+const (
+	SecurityAlertTypeDependabot     SecurityAlertType = "dependabot"
+	SecurityAlertTypeCodeScanning   SecurityAlertType = "code_scanning"
+	SecurityAlertTypeSecretScanning SecurityAlertType = "secret_scanning"
+)
+
+// SecurityAlert is a single open Dependabot, code-scanning, or
+// secret-scanning alert on the repo. PackageName/Ecosystem are populated only
+// for Type == SecurityAlertTypeDependabot; RuleID/FilePath/Line only for
+// SecurityAlertTypeCodeScanning; SecretTypeDisplayName only for
+// SecurityAlertTypeSecretScanning.
 type SecurityAlert struct {
-	Number      int64
-	PackageName string
-	Ecosystem   string
-	Severity    string
-	Summary     string
-	URL         string
-	CreatedAt   time.Time
+	Type                  SecurityAlertType
+	Number                int64
+	PackageName           string
+	Ecosystem             string
+	Severity              string
+	Summary               string
+	URL                   string
+	CreatedAt             time.Time
+	RuleID                string
+	FilePath              string
+	Line                  int64
+	SecretTypeDisplayName string
 }
 
 // prWire is the subset of the GitHub pulls API payload that is decoded.
@@ -97,6 +117,34 @@ type securityAlertWire struct {
 	SecurityVulnerability struct {
 		Severity string `json:"severity"`
 	} `json:"security_vulnerability"`
+}
+
+// codeScanningAlertWire is the subset of the GitHub code scanning alerts API
+// payload that is decoded.
+type codeScanningAlertWire struct {
+	Number    int64     `json:"number"`
+	HTMLURL   string    `json:"html_url"`
+	CreatedAt time.Time `json:"created_at"`
+	Rule      struct {
+		ID                    string `json:"id"`
+		Description           string `json:"description"`
+		SecuritySeverityLevel string `json:"security_severity_level"`
+	} `json:"rule"`
+	MostRecentInstance struct {
+		Location struct {
+			Path      string `json:"path"`
+			StartLine int64  `json:"start_line"`
+		} `json:"location"`
+	} `json:"most_recent_instance"`
+}
+
+// secretScanningAlertWire is the subset of the GitHub secret scanning alerts
+// API payload that is decoded.
+type secretScanningAlertWire struct {
+	Number                int64     `json:"number"`
+	HTMLURL               string    `json:"html_url"`
+	CreatedAt             time.Time `json:"created_at"`
+	SecretTypeDisplayName string    `json:"secret_type_display_name"`
 }
 
 // failingConclusions are the check-run conclusions treated as "failing" for

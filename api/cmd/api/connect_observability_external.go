@@ -119,11 +119,33 @@ func (h *obsConnectHandler) securityAlerts(
 			Summary:     a.Summary,
 			Url:         a.URL,
 			CreatedAt:   a.CreatedAt.Format(time.RFC3339),
+			AlertType:   securityAlertTypeToProto(a.Type),
+			RuleId:      a.RuleID,
+			FilePath:    a.FilePath,
+			Line:        int32(a.Line), //nolint:gosec // line numbers fit int32
+			SecretType:  a.SecretTypeDisplayName,
 		}
 	}
 	resp.Alerts = protoAlerts
 	resp.AlertCount = int32(len(alerts)) //nolint:gosec // count fits int32
 	return resp
+}
+
+// securityAlertTypeToProto maps a github.SecurityAlertType to its proto enum
+// value, defaulting to unspecified for an unrecognized/zero-value type.
+func securityAlertTypeToProto(
+	t github.SecurityAlertType,
+) observabilityv1.SecurityAlertType {
+	switch t {
+	case github.SecurityAlertTypeDependabot:
+		return observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_DEPENDABOT
+	case github.SecurityAlertTypeCodeScanning:
+		return observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING
+	case github.SecurityAlertTypeSecretScanning:
+		return observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_SECRET_SCANNING
+	default:
+		return observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_UNSPECIFIED
+	}
 }
 
 func (h *obsConnectHandler) GetSentryIssues(

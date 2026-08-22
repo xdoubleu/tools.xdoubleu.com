@@ -30,6 +30,10 @@ var backoffCap = 30 * time.Second
 
 const apiTimeout = 15 * time.Second
 
+// errNotFound wraps a 404 response from get, so getAllowingNotFound can
+// distinguish "endpoint not enabled for this repo" from a real failure.
+var errNotFound = errors.New("github: not found")
+
 const (
 	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
@@ -191,20 +195,52 @@ func (c *client) storeSecurityAlerts(alerts []SecurityAlert) {
 	c.cachedAlertAt = time.Now()
 }
 
-// fetchSecurityAlerts lists the repo's open Dependabot security alerts.
+// fetchSecurityAlerts lists the repo's open Dependabot, code-scanning, and
+// secret-scanning alerts. GitHub Advanced Security features (code scanning,
+// secret scanning) return 404 on a repo where they aren't enabled — that's
+// treated as "no alerts of that type" rather than an error, since Dependabot
+// alerts alone are still a useful degraded result.
 func (c *client) fetchSecurityAlerts(
+	ctx context.Context, token, repo string,
+) ([]SecurityAlert, error) {
+	dependabot, err := c.fetchDependabotAlerts(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+	codeScanning, err := c.fetchCodeScanningAlerts(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+	secretScanning, err := c.fetchSecretScanningAlerts(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	alerts := make(
+		[]SecurityAlert,
+		0,
+		len(dependabot)+len(codeScanning)+len(secretScanning),
+	)
+	alerts = append(alerts, dependabot...)
+	alerts = append(alerts, codeScanning...)
+	alerts = append(alerts, secretScanning...)
+	return alerts, nil
+}
+
+func (c *client) fetchDependabotAlerts(
 	ctx context.Context, token, repo string,
 ) ([]SecurityAlert, error) {
 	endpoint := fmt.Sprintf("%s/repos/%s/dependabot/alerts?state=open", baseURL, repo)
 
 	var wires []securityAlertWire
-	if err := c.get(ctx, endpoint, token, &wires); err != nil {
+	if err := c.getAllowingNotFound(ctx, endpoint, token, &wires); err != nil {
 		return nil, err
 	}
 
 	alerts := make([]SecurityAlert, len(wires))
 	for i, w := range wires {
-		alerts[i] = SecurityAlert{
+		alerts[i] = SecurityAlert{ //nolint:exhaustruct // type-specific fields left zero
+			Type:        SecurityAlertTypeDependabot,
 			Number:      w.Number,
 			PackageName: w.Dependency.Package.Name,
 			Ecosystem:   w.Dependency.Package.Ecosystem,
@@ -212,6 +248,64 @@ func (c *client) fetchSecurityAlerts(
 			Summary:     w.SecurityAdvisory.Summary,
 			URL:         w.HTMLURL,
 			CreatedAt:   w.CreatedAt,
+		}
+	}
+	return alerts, nil
+}
+
+func (c *client) fetchCodeScanningAlerts(
+	ctx context.Context, token, repo string,
+) ([]SecurityAlert, error) {
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/code-scanning/alerts?state=open",
+		baseURL,
+		repo,
+	)
+
+	var wires []codeScanningAlertWire
+	if err := c.getAllowingNotFound(ctx, endpoint, token, &wires); err != nil {
+		return nil, err
+	}
+
+	alerts := make([]SecurityAlert, len(wires))
+	for i, w := range wires {
+		alerts[i] = SecurityAlert{ //nolint:exhaustruct // type-specific fields left zero
+			Type:      SecurityAlertTypeCodeScanning,
+			Number:    w.Number,
+			Severity:  w.Rule.SecuritySeverityLevel,
+			Summary:   w.Rule.Description,
+			URL:       w.HTMLURL,
+			CreatedAt: w.CreatedAt,
+			RuleID:    w.Rule.ID,
+			FilePath:  w.MostRecentInstance.Location.Path,
+			Line:      w.MostRecentInstance.Location.StartLine,
+		}
+	}
+	return alerts, nil
+}
+
+func (c *client) fetchSecretScanningAlerts(
+	ctx context.Context, token, repo string,
+) ([]SecurityAlert, error) {
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/secret-scanning/alerts?state=open",
+		baseURL,
+		repo,
+	)
+
+	var wires []secretScanningAlertWire
+	if err := c.getAllowingNotFound(ctx, endpoint, token, &wires); err != nil {
+		return nil, err
+	}
+
+	alerts := make([]SecurityAlert, len(wires))
+	for i, w := range wires {
+		alerts[i] = SecurityAlert{ //nolint:exhaustruct // type-specific fields left zero
+			Type:                  SecurityAlertTypeSecretScanning,
+			Number:                w.Number,
+			URL:                   w.HTMLURL,
+			CreatedAt:             w.CreatedAt,
+			SecretTypeDisplayName: w.SecretTypeDisplayName,
 		}
 	}
 	return alerts, nil
@@ -286,6 +380,21 @@ func (c *client) fetchFailingChecks(
 	return checks, nil
 }
 
+// getAllowingNotFound behaves like get, except a 404 response leaves dst
+// untouched (its zero value — an empty slice for the callers above) instead
+// of returning an error. GitHub 404s the code-scanning/secret-scanning
+// alerts endpoints on a repo where that GHAS feature isn't enabled, which is
+// a valid "no alerts of this type" state, not a failure.
+func (c *client) getAllowingNotFound(
+	ctx context.Context, endpoint, token string, dst any,
+) error {
+	err := c.get(ctx, endpoint, token, dst)
+	if errors.Is(err, errNotFound) {
+		return nil
+	}
+	return err
+}
+
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
 	return c.doWithRetry(ctx, func() (bool, error) {
 		req, reqErr := http.NewRequestWithContext(
@@ -307,6 +416,13 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 			raw, _ := io.ReadAll(resp.Body)
 			return true, fmt.Errorf(
 				"github API returned %d: %s", resp.StatusCode, string(raw),
+			)
+		}
+
+		if resp.StatusCode == http.StatusNotFound {
+			raw, _ := io.ReadAll(resp.Body)
+			return false, fmt.Errorf(
+				"%w: %s", errNotFound, string(raw),
 			)
 		}
 
