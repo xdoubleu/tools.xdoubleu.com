@@ -52,18 +52,6 @@
     ]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "git fetch origin main --quiet 2>/dev/null || true",
-            "timeout": 15,
-            "statusMessage": "Fetching latest main..."
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
