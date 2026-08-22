@@ -3,6 +3,7 @@ package oauth2as
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/ory/fosite"
 
@@ -65,6 +66,7 @@ func AuthorizeHandler(
 		for _, scope := range ar.GetRequestedScopes() {
 			ar.GrantScope(scope)
 		}
+		grantOfflineAccess(ar)
 
 		//nolint:exhaustruct //other DefaultSession fields are optional
 		session := &fosite.DefaultSession{Subject: userID}
@@ -116,6 +118,10 @@ type registerResponse struct {
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
 	GrantTypes              []string `json:"grant_types"`
 	ResponseTypes           []string `json:"response_types"`
+	// Scope is the space-delimited scope the server assigned this client
+	// (RFC 7591 §3.2.1). Echoing it is what tells a client to ask for
+	// offline_access, and so to be issued a refresh token.
+	Scope string `json:"scope"`
 }
 
 // RegisterHandler implements RFC 7591 dynamic client registration at
@@ -143,14 +149,15 @@ func RegisterHandler(store *Store) http.HandlerFunc {
 			TokenEndpointAuthMethod: "none",
 			GrantTypes:              client.GrantTypes,
 			ResponseTypes:           client.ResponseTypes,
+			Scope:                   strings.Join(client.Scopes, " "),
 		})
 	}
 }
 
 // ConsentInfoHandler implements GET /oauth2/consent-info: echoes back the
-// pending authorization request's client name and requested scope, for the
-// web consent page to display before it POSTs the user's decision back to
-// /oauth2/authorize.
+// pending authorization request's client name and the scope that approving it
+// will actually grant, for the web consent page to display before it POSTs
+// the user's decision back to /oauth2/authorize.
 func ConsentInfoHandler(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientID := r.URL.Query().Get("client_id")
@@ -160,10 +167,18 @@ func ConsentInfoHandler(store *Store) http.HandlerFunc {
 			return
 		}
 
+		// The scope shown is the one that will actually be granted, not the
+		// raw request parameter — AuthorizeHandler adds offline_access on top
+		// of whatever the client asked for.
+		var clientScopes []string
+		if client, cErr := store.GetClient(r.Context(), clientID); cErr == nil {
+			clientScopes = client.GetScopes()
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"client_name": name,
-			"scope":       r.URL.Query().Get("scope"),
+			"scope":       effectiveScope(r.URL.Query().Get("scope"), clientScopes),
 			"client_id":   clientID,
 		})
 	}

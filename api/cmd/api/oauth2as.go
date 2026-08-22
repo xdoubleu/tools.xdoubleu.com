@@ -61,6 +61,13 @@ func (app *Application) oauth2MetadataHandler() http.HandlerFunc {
 				"authorization_code",
 				"refresh_token",
 			},
+			// offline_access is the only scope this server supports, and
+			// advertising it is what makes a client request it — without it
+			// no refresh token is issued and the client has to
+			// re-authenticate interactively every hour.
+			"scopes_supported": []string{
+				oauth2as.OfflineAccessScope,
+			},
 			"code_challenge_methods_supported":      []string{"S256"},
 			"token_endpoint_auth_methods_supported": []string{"none"},
 		})

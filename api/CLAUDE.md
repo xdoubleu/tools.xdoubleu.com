@@ -175,8 +175,16 @@ client registration, RFC 8414 metadata at
 `/.well-known/oauth-authorization-server`), wired up in `cmd/api/oauth2as.go`
 and `cmd/api/mcp.go` (`mcpAuthServerIssuer` now points at `cfg.AuthIssuer`,
 which defaults to `cfg.APIURL`, instead of a hardcoded Supabase Cloud URL).
-The web `/oauth/consent` page drives the approval, calling the api's own
-`/oauth2/*` endpoints directly — no external Auth provider involved. See root
+`offline_access` is the only scope this server supports and the sole gate on
+whether fosite issues a refresh token — so it's advertised in both metadata
+documents and echoed in the RFC 7591 registration response, *and*
+`AuthorizeHandler` grants it on top of whatever the client actually requested
+(`grantOfflineAccess`, `internal/oauth2as/scopes.go`). The server-side grant is
+what matters: MCP clients routinely send no `scope` parameter, and without it
+they get an access token with no refresh token and a forced interactive
+re-authentication every hour (issue #1177). The web `/oauth/consent` page
+drives the approval, calling the api's own `/oauth2/*` endpoints directly — no
+external Auth provider involved. See root
 `README.md` for the client-setup command.
 
 ### Public Dashboard Sharing

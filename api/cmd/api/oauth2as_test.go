@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/oauth2as"
 )
 
 const (
@@ -46,6 +48,10 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 		out["code_challenge_methods_supported"],
 	)
 	assert.Equal(t, []any{"none"}, out["token_endpoint_auth_methods_supported"])
+	// Issue #1177: without this advertised, a client never requests
+	// offline_access, so no refresh token is issued and it has to
+	// re-authenticate interactively once the access token expires.
+	assert.Equal(t, []any{oauth2as.OfflineAccessScope}, out["scopes_supported"])
 }
 
 // TestOAuth2Metadata_PathInsertionAlias covers issue #1141: in production,
