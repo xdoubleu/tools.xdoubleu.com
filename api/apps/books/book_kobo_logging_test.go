@@ -104,16 +104,22 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var found bool
-	for _, e := range testApp.Services.KoboLog.List(deviceID) {
-		if e.Method == http.MethodPut &&
-			strings.Contains(e.RequestBody, "ProgressPercent") {
-			assert.Contains(t, e.RequestBody, "chap-2")
-			assert.Equal(t, http.StatusOK, e.Status)
-			found = true
+	// The append happens in the request-handling goroutine after the
+	// response has already been written, so it can race the client having
+	// received it; poll instead of asserting immediately.
+	var entry services.KoboLogEntry
+	require.Eventually(t, func() bool {
+		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+			if e.Method == http.MethodPut &&
+				strings.Contains(e.RequestBody, "ProgressPercent") {
+				entry = e
+				return true
+			}
 		}
-	}
-	assert.True(t, found, "PUT state request body must be captured")
+		return false
+	}, time.Second, 10*time.Millisecond, "PUT state request body must be captured")
+	assert.Contains(t, entry.RequestBody, "chap-2")
+	assert.Equal(t, http.StatusOK, entry.Status)
 }
 
 // TestKoboLogging_BodyCaptureCapped verifies the captured request body is
@@ -144,17 +150,23 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
+	// The append happens in the request-handling goroutine after the
+	// response has already been written, so it can race the client having
+	// received it; poll instead of asserting immediately.
 	const cap64KiB = 64 * 1024
-	var found bool
-	for _, e := range testApp.Services.KoboLog.List(deviceID) {
-		if e.Method == http.MethodPut {
-			found = true
-			assert.LessOrEqual(t, len(e.RequestBody), cap64KiB,
-				"captured request body must be capped")
-			assert.NotEmpty(t, e.RequestBody)
+	var entry services.KoboLogEntry
+	require.Eventually(t, func() bool {
+		for _, e := range testApp.Services.KoboLog.List(deviceID) {
+			if e.Method == http.MethodPut {
+				entry = e
+				return true
+			}
 		}
-	}
-	assert.True(t, found, "PUT must be captured")
+		return false
+	}, time.Second, 10*time.Millisecond, "PUT must be captured")
+	assert.LessOrEqual(t, len(entry.RequestBody), cap64KiB,
+		"captured request body must be capped")
+	assert.NotEmpty(t, entry.RequestBody)
 }
 
 // --- Connect RPCs ---
