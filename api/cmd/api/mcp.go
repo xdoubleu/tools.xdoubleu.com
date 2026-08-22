@@ -11,6 +11,7 @@ import (
 
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/oauth2as"
 )
 
 // This file holds the OAuth 2.1 plumbing shared by every MCP endpoint: the api
@@ -55,6 +56,10 @@ func (app *Application) mcpResourceMetadataFor(
 		AuthorizationServers:   []string{app.mcpAuthServerIssuer()},
 		BearerMethodsSupported: []string{"header"},
 		ResourceName:           resourceName,
+		// Advertising offline_access is what makes a client request it, and
+		// so be issued a refresh token instead of an access token that
+		// forces an interactive re-authentication once it expires.
+		ScopesSupported: []string{oauth2as.OfflineAccessScope},
 	}
 }
 

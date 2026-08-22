@@ -112,10 +112,14 @@ func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient 
 		TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
 		GrantTypes              []string `json:"grant_types"`
 		ResponseTypes           []string `json:"response_types"`
+		Scope                   string   `json:"scope"`
 	}
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
 	assert.Equal(t, "none", out.TokenEndpointAuthMethod)
 	assert.NotEmpty(t, out.ClientID)
+	// RFC 7591: the server echoes the scope it assigned, which is what tells
+	// a client to request offline_access and so be issued a refresh token.
+	assert.Equal(t, "offline_access", out.Scope)
 
 	//nolint:exhaustruct //Secret/RotatedSecrets/Audience are unused by these tests
 	return &fosite.DefaultClient{
@@ -142,6 +146,18 @@ func (s *oauth2asTestServer) authorizeAndGetCode(
 	t *testing.T, client *fosite.DefaultClient, challenge, state string,
 ) string {
 	t.Helper()
+	return s.authorizeAndGetCodeWithScope(
+		t, client, challenge, state, "offline_access",
+	)
+}
+
+// authorizeAndGetCodeWithScope is authorizeAndGetCode with control over the
+// requested scope, so a test can drive the flow the way an MCP client that
+// sends no scope parameter at all does (scope == "").
+func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
+	t *testing.T, client *fosite.DefaultClient, challenge, state, scope string,
+) string {
+	t.Helper()
 	client2 := noRedirectClient()
 
 	q := url.Values{
@@ -150,8 +166,10 @@ func (s *oauth2asTestServer) authorizeAndGetCode(
 		"redirect_uri":          {client.RedirectURIs[0]},
 		"code_challenge":        {challenge},
 		"code_challenge_method": {"S256"},
-		"scope":                 {"offline_access"},
 		"state":                 {state},
+	}
+	if scope != "" {
+		q.Set("scope", scope)
 	}
 
 	// First hit: no consent decision yet -> redirected to the web consent
