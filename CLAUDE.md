@@ -87,7 +87,7 @@ Before exploring, reading code, or making any change, use the `start-task` skill
 
 ## Finishing a Task
 
-Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and reflecting on doc/tooling gaps.
+Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and the mandatory `session-retro` that follows.
 
 ## CI
 

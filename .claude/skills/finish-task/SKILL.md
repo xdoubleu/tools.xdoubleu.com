@@ -81,25 +81,16 @@ report the PR URL. Auto-merge was already armed in step 4 for small
 code-only changes; for tooling/harness or larger/architectural changes, stop
 here and wait for review.
 
-## 6. Reflect on whether this change exposed a doc/tooling gap
+## 6. Run the session retro
 
-Once CI is green, look back at the commit range for this task and ask:
-
-- Would a CLAUDE.md addition/correction, a new Make/npm target, a lint rule,
-  a CI workflow tweak, or a script have made this specific change faster or
-  safer to implement?
-- Did the PR need more than one push to go green (check `gh pr
-  checks`/`gh run list` and the commit log for fixup commits), and if so,
-  what local check would have caught the failure before pushing?
-
-Only flag something concrete tied to what actually happened — not
-speculative "would be nice" additions. If nothing is worth flagging, stop
-here.
-
-If something is worth flagging: in a **separate** fresh worktree off `main`
-(via `start-task`), open a tracking issue, edit only `CLAUDE.md`/tooling
-files, and open an independent, non-draft PR referencing it — never stacked
-on the original PR. Follow this same skill's checklist for that PR too.
+Once CI is green, always run the `session-retro` skill. It reviews this
+session's own tool-call/commit/CI history for concrete inefficiencies
+(redundant reads, avoidable CI back-and-forth, a missing or under-triggered
+skill/MCP tool, a doc gap) and, only when something concrete turned up,
+ships the fix as its own tracking issue and independent PR via
+`start-task`/`finish-task` — never stacked on this PR. Running the analysis
+is mandatory every time; most runs should find nothing worth acting on, and
+that's expected.
 
 ## Notes
 
