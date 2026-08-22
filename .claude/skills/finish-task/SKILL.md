@@ -11,7 +11,7 @@ pass, and don't stop at "CI is running" as if that were done.
 
 This repo layers its own lint/coverage/build steps and auto-merge threshold
 on top of the generic `ship-pr` skill from the `git-task-flow` plugin
-(`xdoubleu/claude-plugins` marketplace).
+(`xdoubleu/xdoubleu-claude-plugins` marketplace).
 
 ## 1. Lint
 
