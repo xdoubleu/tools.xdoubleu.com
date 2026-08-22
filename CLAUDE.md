@@ -86,7 +86,7 @@ Before exploring, reading code, or making any change, use the `start-task` skill
 
 Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and the mandatory `session-retro` that follows.
 
-`start-task`/`finish-task` are thin, project-specific wrappers around generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`) published from the `xdoubleu/claude-plugins` marketplace repo — declared in `.claude/settings.json`'s `extraKnownMarketplaces`/`enabledPlugins` so any contributor gets them automatically. `refine-issue`/`issue-triage`'s repo/project-board/label config lives in `.claude/github-triage.config.json`, not in the skill files themselves — edit that file, not the plugin, when this repo's board/labels change.
+`start-task`/`finish-task` are thin, project-specific wrappers around generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins` marketplace repo — declared in `.claude/settings.json`'s `extraKnownMarketplaces`/`enabledPlugins` so any contributor gets them automatically. `refine-issue`/`issue-triage`'s repo/project-board/label config lives in `.claude/github-triage.config.json`, not in the skill files themselves — edit that file, not the plugin, when this repo's board/labels change.
 
 ## CI
 

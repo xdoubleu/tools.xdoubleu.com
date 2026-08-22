@@ -2,19 +2,19 @@
   "model": "sonnet",
   "autoMemoryEnabled": false,
   "extraKnownMarketplaces": {
-    "claude-plugins": {
+    "xdoubleu-claude-plugins": {
       "source": {
         "source": "github",
-        "repo": "xdoubleu/claude-plugins"
+        "repo": "xdoubleu/xdoubleu-claude-plugins"
       }
     }
   },
   "enabledPlugins": {
-    "git-task-flow@claude-plugins": true,
-    "session-retro@claude-plugins": true,
-    "git-cleanup@claude-plugins": true,
-    "github-issue-triage@claude-plugins": true,
-    "skill-lifecycle@claude-plugins": true
+    "git-task-flow@xdoubleu-claude-plugins": true,
+    "session-retro@xdoubleu-claude-plugins": true,
+    "git-cleanup@xdoubleu-claude-plugins": true,
+    "github-issue-triage@xdoubleu-claude-plugins": true,
+    "skill-lifecycle@xdoubleu-claude-plugins": true
   },
   "permissions": {
     "defaultMode": "plan",

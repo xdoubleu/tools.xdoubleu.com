@@ -8,7 +8,7 @@ description: Set up a fresh worktree off up-to-date main and create/refine the G
 The opening half of every task in this repo, paired with `finish-task`. This
 repo layers one project-specific step (a tracking issue) on top of the
 generic `task-worktree` skill from the `git-task-flow` plugin
-(`xdoubleu/claude-plugins` marketplace — see root `CLAUDE.md`'s "Docs
+(`xdoubleu/xdoubleu-claude-plugins` marketplace — see root `CLAUDE.md`'s "Docs
 Impact" note if that plugin isn't installed yet).
 
 ## 1. Fresh worktree off up-to-date main
