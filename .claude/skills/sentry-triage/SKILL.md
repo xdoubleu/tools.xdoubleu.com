@@ -35,7 +35,8 @@ this skill closes the loop by calling `mcp__tools-apps__resolve_sentry_issue`
    (use `ast-grep`, not `grep`, per CLAUDE.md), and identify the real root cause —
    don't paraphrase the Sentry title as the issue body.
 
-4. **File or update a GitHub issue via `refine-issue`** (`.claude/skills/refine-issue/SKILL.md`)
+4. **File or update a GitHub issue via `refine-issue`** (config for this repo
+   lives in `.claude/github-triage.config.json`)
    for each one, so labels/Priority/Status/project-board placement stay
    consistent with every other issue in this repo. Body must include:
    - the Sentry permalink (so it's traceable back and dedup works next run)
