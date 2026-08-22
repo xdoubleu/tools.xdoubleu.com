@@ -125,8 +125,12 @@ that's expected.
 - Never skip hooks (`--no-verify`) or bypass signing (`--no-gpg-sign`) unless
   the user has explicitly asked for it. If a hook fails, investigate and fix
   the underlying issue.
-- If a `.proto` file changed this session, regenerate both stubs
-  (`cd api && make proto/generate`, `cd web && npm run generate`) and commit
-  the result — order relative to this skill's lint step doesn't matter,
-  since `api/gen`/`web/lib/gen` are fully excluded from every lint/fix tool
-  in this repo (see root CLAUDE.md's Commands section).
+- If a `.proto` file changed this session, run `cd api && make proto/check`
+  and `cd web && npm run generate:check` and commit the result — order
+  relative to this skill's lint step doesn't matter, since `api/gen`/
+  `web/lib/gen` are fully excluded from every lint/fix tool in this repo
+  (see root CLAUDE.md's Commands section).
+- Prefer an existing `make`/`npm run` target over an ad-hoc equivalent for
+  any of the checks in this skill. If the exact check needed doesn't have
+  one, add it to the Makefile/`package.json` rather than improvising it
+  inline — see `session-retro`'s "ad-hoc commands" category.

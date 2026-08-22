@@ -1,6 +1,6 @@
 ---
 name: session-retro
-description: Analyze the current session's own tool calls, retries, and CI runs for concrete inefficiencies (redundant reads, avoidable back-and-forth, a missing or under-triggered skill/MCP tool, a doc gap, an inherited workaround rule that's gone stale) and, only when something real turns up, verify the actual root cause and ship the smallest fix as its own tracking issue and independent PR. Always run as the mandatory last step of finish-task; also use standalone when the user asks to "reflect on this session", "run a retro", or "how could this have been done more efficiently".
+description: Analyze the current session's own tool calls, retries, and CI runs for concrete inefficiencies (redundant reads, avoidable back-and-forth, a missing or under-triggered skill/MCP tool, a doc gap, an inherited workaround rule that's gone stale, an ad-hoc command that should be a Makefile/npm-script target) and, only when something real turns up, verify the actual root cause and ship the smallest fix as its own tracking issue and independent PR. Always run as the mandatory last step of finish-task; also use standalone when the user asks to "reflect on this session", "run a retro", or "how could this have been done more efficiently".
 ---
 
 # Session Retro
@@ -87,11 +87,39 @@ codebase, not other sessions) for these patterns:
      entirely rather than carried forward, since the constraint it worked
      around didn't exist anymore.
 
+7. **Ad-hoc commands that belong in the Makefile/npm scripts, not prose**
+   - This repo's own standing rule: always use the commands already defined
+     in `api/Makefile`, `web/package.json` (or `kobo-gateway/Makefile`,
+     `sentrytools/Makefile`) instead of improvising an equivalent with raw
+     `go`/`buf`/`git`/etc. invocations — and never let a CLAUDE.md file
+     (root or per-directory) describe *how* a check works in prose instead
+     of just naming the command that runs it. If a needed command doesn't
+     exist yet, add it to the Makefile/`package.json`; if an existing
+     target doesn't do quite what's needed (wrong flags, missing a step,
+     doesn't match what CI actually runs), fix the target itself.
+   - Two symptoms to watch for: (a) this session ran an ad-hoc shell
+     one-liner to verify or check something instead of using (or adding) a
+     Makefile/npm target; (b) a CLAUDE.md file re-explains a command's
+     internal mechanics (flags, exclusion config, tool behavior) rather
+     than naming the command and its purpose — prose like that is
+     duplicated knowledge waiting to drift, since nothing keeps two
+     CLAUDE.md files' explanations of the same mechanics in sync.
+   - Worked example from this repo: the proto-generate root-cause fix
+     (category 6's example) first landed as CLAUDE.md prose explaining the
+     exclusion config, written into root CLAUDE.md only — its duplicate
+     paragraph in `api/CLAUDE.md`'s Linting section was missed entirely and
+     kept asserting the false ordering rule for a full extra round, caught
+     only because the fix wasn't codified as a command in the first place.
+     The actual fix was `make proto/check` / `npm run generate:check` — two
+     new targets that run the exact regenerate-then-diff CI does — with
+     both CLAUDE.md files trimmed to just name the command instead of
+     re-explaining it.
+
 ## Steps
 
 1. **Scan this session's own history** — the tool calls actually made, the
    commits on this branch, and (if a PR was opened) `gh pr checks`/`gh run
-   list` for that PR — against the six categories above.
+   list` for that PR — against the seven categories above.
 2. **Decide if anything is concrete enough to act on.** A single minor
    inefficiency with no clear fix isn't worth an issue. A repeated pattern,
    a CI failure with an obvious local check that would've caught it, or a
@@ -106,11 +134,15 @@ codebase, not other sessions) for these patterns:
    whether a tool/config change could eliminate the problem outright. A fix
    that removes the need for a rule always beats a fix that documents the
    rule more thoroughly or automates following it. Once the root cause is
-   confirmed, pick the smallest fix that addresses it — a new/edited skill,
-   a Make/npm target, a lint rule, a CLAUDE.md correction, an MCP tool
-   addition/fix. Don't bundle unrelated findings into one fix if they'd
-   naturally ship as separate PRs (same judgment call `issue-triage` uses
-   for splitting issues).
+   confirmed, pick the smallest fix that addresses it — **prefer adding or
+   fixing a Make/npm-script target over writing new CLAUDE.md prose
+   whenever the finding is about how to run or verify something**; a
+   CLAUDE.md edit should name the command and say why it matters, not
+   reproduce its mechanics (that's what drifts out of sync across multiple
+   CLAUDE.md files — see category 7). Other fix types: a new/edited skill,
+   a lint rule, an MCP tool addition/fix. Don't bundle unrelated findings
+   into one fix if they'd naturally ship as separate PRs (same judgment call
+   `issue-triage` uses for splitting issues).
 5. **Ship each fix exactly like any other task, in its own lane — never
    stacked on the work item's own branch/PR**:
    - Use `start-task` for a completely fresh worktree off `main` and a new

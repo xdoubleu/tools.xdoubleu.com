@@ -36,6 +36,7 @@ npm test                                    # jest
 npm run test:cov                            # jest --coverage
 npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
+npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 ```
 
 ## UI Standards

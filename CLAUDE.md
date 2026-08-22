@@ -67,9 +67,13 @@ make build / make dist / make test / make lint/fix
 # Proto (when any .proto file changes, run BOTH generators)
 cd api && make proto/generate   # regenerates api/gen/
 cd web && npm run generate      # regenerates web/lib/gen/
+cd api && make proto/check      # regenerate + fail if that changed anything uncommitted (mirrors CI)
+cd web && npm run generate:check
 ```
 
-Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`) — verified empirically: a full `make lint/fix` on an unmodified checkout produces zero diff under `api/gen/`. So there's no ordering dependency between regenerating and running lint/fix; run them in either order. CI's proto-staleness check (`proto-check.yml`) just re-runs a plain `buf generate` in `api/` and `web/` and diffs it against what's committed, so the only way to fail it is forgetting to regenerate after a `.proto` edit — run `make lint/proto` locally to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.
+Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`), so there's no ordering dependency between regenerating and running lint/fix — run them in either order. `make proto/check` / `npm run generate:check` run the exact same regenerate-then-diff CI's proto-staleness check (`proto-check.yml`) does, so use those to verify locally rather than reasoning about the exclusion config by hand. Run `make lint/proto` to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.
+
+**Prefer the commands above over ad-hoc equivalents.** If a check/build/verification isn't covered by an existing `make`/`npm run` target, add one to the relevant `Makefile`/`package.json` rather than improvising it with raw tool invocations, and if an existing target doesn't do quite what's needed, fix the target itself. This file documents *what* a command does and *why*, never *how* — re-deriving a command's mechanics in prose here is exactly what let a stale claim (a false ordering requirement between `make proto/generate` and `make lint/fix`) drift out of sync between this file and `api/CLAUDE.md` until `make proto/check`/`npm run generate:check` replaced both explanations with one command.
 
 Run a single Go test: `go test ./apps/books/internal/services/... -run TestName -v` (from `api/`). Single Jest test: `npx jest path/to/file.test.ts -t "test name"` (from `web/`).
 
