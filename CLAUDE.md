@@ -23,7 +23,7 @@ A largely read-only **MCP server** at `/apps/mcp` (MCP OAuth 2.1, entirely first
 
 - *Issue #1027* — Supabase restricted the whole project for blowing its monthly egress quota, and nothing could say which endpoint caused it: `get_usage_stats` counted **requests** per endpoint but never bytes, so an endpoint returning 2 MB a call looked identical to one returning 200 B. `global.usage_daily` gained a `bytes` column and `get_usage_stats` now reports it. The database is reached over a transaction-mode pooler and billed per byte returned, so "which endpoint moves the most data" is the question that matters — see `api/CLAUDE.md`'s Database Conventions for the query rule this exists to enforce.
 
-## Code Navigation (ast-grep)
+## Code Navigation (ast-grep, LSP)
 
 **Prefer `ast-grep` over `grep`/`rg` for code searches** — it understands syntax trees, so results are exact (no false positives from comments/strings). Reserve `grep`/`rg` for non-code files (logs, configs, docs).
 
@@ -34,6 +34,8 @@ ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
 ```
 
 `$NAME` matches one node, `$$$` matches zero or more, `$$` matches one complex expression.
+
+**Once you have a concrete symbol, prefer the `LSP` tool's go-to-definition/find-references over `ast-grep`** — LSP resolves interfaces, generics, and shadowing correctly (gopls/typescript-language-server understand bindings), which ast-grep's pure syntax matching can't guarantee: a structural pattern can over- or under-match without semantic resolution. The two aren't interchangeable, though — `ast-grep` is for structural pattern search with no starting symbol ("find every call shaped like X across the tree," "find every struct matching this field pattern"), which LSP has no equivalent for. Use LSP when navigating from a known symbol; use `ast-grep` when searching by shape.
 
 **Comments must describe current behavior, not history.** Never write a comment that references removed code, superseded architecture, or frames a landed change as still-pending — a stale claim actively misleads the next reader (human or Claude). If historical context genuinely explains *why* the current code looks the way it does, phrase it so it stays true regardless of when it's read (e.g. "replicating what X used to provide" rather than "X hasn't happened yet") — see `api/cmd/api/kamal_proxy_shim.go`'s note on replicating what the now-retired `gateway/` module used to provide for the pattern to follow.
 
