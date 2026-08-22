@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sort"
 	"time"
 
 	"connectrpc.com/connect"
@@ -138,8 +139,29 @@ func (h *obsConnectHandler) usageStats(
 	}
 
 	return &observabilityv1.GetUsageStatsResponse{
-		Entries: protoEntries,
+		Entries:    protoEntries,
+		UnusedApps: h.unusedApps(entries),
 	}, nil
+}
+
+// unusedApps returns the registered apps that logged no usage rows in the
+// window, so an app nobody has touched doesn't just disappear from the
+// response (issue #442).
+func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
+	used := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		used[e.App] = true
+	}
+
+	unused := make([]string, 0, len(*h.app.apps))
+	for _, a := range *h.app.apps {
+		if !used[a.GetName()] {
+			unused = append(unused, a.GetName())
+		}
+	}
+	sort.Strings(unused)
+
+	return unused
 }
 
 func (h *obsConnectHandler) GetStorageStats(

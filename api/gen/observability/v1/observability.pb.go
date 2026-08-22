@@ -445,8 +445,10 @@ func (x *GetUsageStatsRequest) GetWindowDays() int32 {
 }
 
 type GetUsageStatsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Entries       []*UsageDay            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Entries []*UsageDay            `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Registered apps with no usage rows in the requested window.
+	UnusedApps    []string `protobuf:"bytes,2,rep,name=unused_apps,json=unusedApps,proto3" json:"unused_apps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -484,6 +486,13 @@ func (*GetUsageStatsResponse) Descriptor() ([]byte, []int) {
 func (x *GetUsageStatsResponse) GetEntries() []*UsageDay {
 	if x != nil {
 		return x.Entries
+	}
+	return nil
+}
+
+func (x *GetUsageStatsResponse) GetUnusedApps() []string {
+	if x != nil {
+		return x.UnusedApps
 	}
 	return nil
 }
@@ -3167,9 +3176,11 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x05bytes\x18\x05 \x01(\x03R\x05bytes\"7\n" +
 	"\x14GetUsageStatsRequest\x12\x1f\n" +
 	"\vwindow_days\x18\x01 \x01(\x05R\n" +
-	"windowDays\"M\n" +
+	"windowDays\"n\n" +
 	"\x15GetUsageStatsResponse\x124\n" +
-	"\aentries\x18\x01 \x03(\v2\x1a.observability.v1.UsageDayR\aentries\"Y\n" +
+	"\aentries\x18\x01 \x03(\v2\x1a.observability.v1.UsageDayR\aentries\x12\x1f\n" +
+	"\vunused_apps\x18\x02 \x03(\tR\n" +
+	"unusedApps\"Y\n" +
 	"\n" +
 	"PrefixStat\x12\x16\n" +
 	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12\x1d\n" +

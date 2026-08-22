@@ -108,6 +108,8 @@ func TestObservabilityGetUsageStats_AsAdmin(t *testing.T) {
 	resp, err := client.GetUsageStats(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Entries)
+	assert.NotContains(t, resp.Msg.UnusedApps, "books")
+	assert.Contains(t, resp.Msg.UnusedApps, "watchparty")
 }
 
 func TestObservabilityGetUsageStats_NonAdmin(t *testing.T) {

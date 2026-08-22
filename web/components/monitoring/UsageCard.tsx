@@ -28,6 +28,7 @@ function seriesColor(app: string, index: number): string {
 
 export default function UsageCard({ data }: { data?: GetUsageStatsResponse }) {
   const { rows, apps, endpoints } = aggregateUsage(data?.entries ?? [])
+  const unusedApps = data?.unusedApps ?? []
 
   return (
     <Card>
@@ -94,6 +95,10 @@ export default function UsageCard({ data }: { data?: GetUsageStatsResponse }) {
               </tbody>
             </table>
           </div>
+        )}
+
+        {unusedApps.length > 0 && (
+          <p className="mt-4 text-sm text-muted">Unused in this window: {unusedApps.join(', ')}</p>
         )}
       </CardContent>
     </Card>

@@ -81,6 +81,8 @@ message GetUsageStatsRequest {
 
 message GetUsageStatsResponse {
   repeated UsageDay entries = 1;
+  // Registered apps with no usage rows in the requested window.
+  repeated string unused_apps = 2;
 }
 
 message PrefixStat {

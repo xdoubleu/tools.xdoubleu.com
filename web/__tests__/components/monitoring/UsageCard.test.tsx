@@ -32,4 +32,24 @@ describe('UsageCard', () => {
     render(<UsageCard data={undefined} />)
     expect(screen.getByText('No usage recorded yet.')).toBeInTheDocument()
   })
+
+  it('lists unused apps when present', () => {
+    const data = create(GetUsageStatsResponseSchema, {
+      entries: [{ day: '2026-01-01', app: 'books', endpoint: 'LibraryService/List', count: 12n }],
+      unusedApps: ['watchparty']
+    })
+
+    render(<UsageCard data={data} />)
+    expect(screen.getByText(/Unused in this window: watchparty/)).toBeInTheDocument()
+  })
+
+  it('omits the unused apps line when none are unused', () => {
+    const data = create(GetUsageStatsResponseSchema, {
+      entries: [{ day: '2026-01-01', app: 'books', endpoint: 'LibraryService/List', count: 12n }],
+      unusedApps: []
+    })
+
+    render(<UsageCard data={data} />)
+    expect(screen.queryByText(/Unused in this window/)).not.toBeInTheDocument()
+  })
 })
