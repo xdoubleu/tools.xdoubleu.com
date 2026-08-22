@@ -34,6 +34,16 @@ func TestHasScopes(t *testing.T) {
 			required: nil,
 			want:     true,
 		},
+		"granted is comma-separated (GitHub's format) and covers required": {
+			granted:  "repo,security_events",
+			required: []string{"repo", "security_events"},
+			want:     true,
+		},
+		"granted is comma-separated and missing a required scope": {
+			granted:  "repo",
+			required: []string{"repo", "security_events"},
+			want:     false,
+		},
 	}
 
 	for name, tc := range tests {
