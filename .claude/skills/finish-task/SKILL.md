@@ -97,7 +97,8 @@ that's expected.
 - Never skip hooks (`--no-verify`) or bypass signing (`--no-gpg-sign`) unless
   the user has explicitly asked for it. If a hook fails, investigate and fix
   the underlying issue.
-- If a `.proto` file changed this session, use the `proto-generate` skill
-  before this one's lint step — `make proto/generate` must be the last thing
-  touching `api/gen`/`web/lib/gen` before committing, and `make lint/fix`
-  above would re-stale it if run after.
+- If a `.proto` file changed this session, regenerate both stubs
+  (`cd api && make proto/generate`, `cd web && npm run generate`) and commit
+  the result — order relative to this skill's lint step doesn't matter,
+  since `api/gen`/`web/lib/gen` are fully excluded from every lint/fix tool
+  in this repo (see root CLAUDE.md's Commands section).

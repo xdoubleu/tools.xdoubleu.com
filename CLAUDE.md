@@ -69,7 +69,7 @@ cd api && make proto/generate   # regenerates api/gen/
 cd web && npm run generate      # regenerates web/lib/gen/
 ```
 
-Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. When any `.proto` file changes, use the `proto-generate` skill — it covers both generators and an ordering pitfall with `make lint/fix` that fails CI's proto-staleness check if missed.
+Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`) — verified empirically: a full `make lint/fix` on an unmodified checkout produces zero diff under `api/gen/`. So there's no ordering dependency between regenerating and running lint/fix; run them in either order. CI's proto-staleness check (`proto-check.yml`) just re-runs a plain `buf generate` in `api/` and `web/` and diffs it against what's committed, so the only way to fail it is forgetting to regenerate after a `.proto` edit — run `make lint/proto` locally to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.
 
 Run a single Go test: `go test ./apps/books/internal/services/... -run TestName -v` (from `api/`). Single Jest test: `npx jest path/to/file.test.ts -t "test name"` (from `web/`).
 
