@@ -19,6 +19,6 @@ func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
 		RedirectURL: apiURL + "/admin/oauth/github/callback",
-		Scopes:      []string{"repo"},
+		Scopes:      []string{"repo", "security_events"},
 	}
 }

@@ -306,7 +306,8 @@ func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			if r.URL.Path == "/repos/"+testRepo+"/dependabot/alerts" {
+			switch r.URL.Path {
+			case "/repos/" + testRepo + "/dependabot/alerts":
 				_, _ = w.Write([]byte(`[
 					{"number":83,"html_url":"https://gh/security/dependabot/83",
 					 "created_at":"2026-08-19T16:34:44Z",
@@ -314,21 +315,78 @@ func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
 					 "security_advisory":{"summary":"unbounded body read"},
 					 "security_vulnerability":{"severity":"medium"}}
 				]`))
+			case "/repos/" + testRepo + "/code-scanning/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":12,"html_url":"https://gh/security/code-scanning/12",
+					 "created_at":"2026-08-20T10:00:00Z",
+					 "rule":{"id":"go/sql-injection","description":"SQL injection",
+					         "security_severity_level":"high"},
+					 "most_recent_instance":{"location":{"path":"api/foo.go","start_line":42}}}
+				]`))
+			case "/repos/" + testRepo + "/secret-scanning/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":7,"html_url":"https://gh/security/secret-scanning/7",
+					 "created_at":"2026-08-21T09:00:00Z",
+					 "secret_type_display_name":"AWS Access Key"}
+				]`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	defer cleanup()
+
+	alerts, err := newClient().ListSecurityAlerts(context.Background())
+	require.NoError(t, err)
+	require.Len(t, alerts, 3)
+
+	dependabot := alerts[0]
+	assert.Equal(t, github.SecurityAlertTypeDependabot, dependabot.Type)
+	assert.Equal(t, int64(83), dependabot.Number)
+	assert.Equal(t, "otel", dependabot.PackageName)
+	assert.Equal(t, "go", dependabot.Ecosystem)
+	assert.Equal(t, "medium", dependabot.Severity)
+	assert.Equal(t, "unbounded body read", dependabot.Summary)
+	assert.Equal(t, "https://gh/security/dependabot/83", dependabot.URL)
+
+	codeScanning := alerts[1]
+	assert.Equal(t, github.SecurityAlertTypeCodeScanning, codeScanning.Type)
+	assert.Equal(t, int64(12), codeScanning.Number)
+	assert.Equal(t, "go/sql-injection", codeScanning.RuleID)
+	assert.Equal(t, "SQL injection", codeScanning.Summary)
+	assert.Equal(t, "high", codeScanning.Severity)
+	assert.Equal(t, "api/foo.go", codeScanning.FilePath)
+	assert.Equal(t, int64(42), codeScanning.Line)
+
+	secretScanning := alerts[2]
+	assert.Equal(t, github.SecurityAlertTypeSecretScanning, secretScanning.Type)
+	assert.Equal(t, int64(7), secretScanning.Number)
+	assert.Equal(t, "AWS Access Key", secretScanning.SecretTypeDisplayName)
+}
+
+func TestListSecurityAlerts_GHASNotEnabled_OnlyDependabot(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/repos/"+testRepo+"/dependabot/alerts" {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`[
+					{"number":1,"html_url":"https://gh/security/dependabot/1",
+					 "created_at":"2026-08-19T16:34:44Z",
+					 "dependency":{"package":{"name":"lodash","ecosystem":"npm"}},
+					 "security_advisory":{"summary":"prototype pollution"},
+					 "security_vulnerability":{"severity":"high"}}
+				]`))
 				return
 			}
+			// code-scanning/secret-scanning 404 when GHAS isn't enabled.
 			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"message":"no analysis found"}`))
 		}))
 	defer cleanup()
 
 	alerts, err := newClient().ListSecurityAlerts(context.Background())
 	require.NoError(t, err)
 	require.Len(t, alerts, 1)
-	assert.Equal(t, int64(83), alerts[0].Number)
-	assert.Equal(t, "otel", alerts[0].PackageName)
-	assert.Equal(t, "go", alerts[0].Ecosystem)
-	assert.Equal(t, "medium", alerts[0].Severity)
-	assert.Equal(t, "unbounded body read", alerts[0].Summary)
-	assert.Equal(t, "https://gh/security/dependabot/83", alerts[0].URL)
+	assert.Equal(t, github.SecurityAlertTypeDependabot, alerts[0].Type)
 }
 
 func TestListSecurityAlerts_NotConfigured_NoConnection(t *testing.T) {
@@ -359,7 +417,7 @@ func TestListSecurityAlerts_CachesResult(t *testing.T) {
 	require.NoError(t, err)
 	_, err = c.ListSecurityAlerts(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, 1, requests, "second call must be served from cache")
+	assert.Equal(t, 3, requests, "second call must be served from cache")
 }
 
 func TestListSecurityAlerts_ServerError_Retries(t *testing.T) {

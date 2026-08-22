@@ -139,7 +139,9 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			return h.failingPullRequests(ctx), nil
 		})
 	addObsTool(srv, "get_security_alerts",
-		"Open GitHub Dependabot security alerts on the repo's dependencies.",
+		"Open GitHub security alerts: Dependabot (dependencies), code "+
+			"scanning (CodeQL/SARIF findings), and secret scanning (leaked "+
+			"credentials).",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.securityAlerts(ctx), nil
 		})

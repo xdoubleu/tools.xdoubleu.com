@@ -9,7 +9,8 @@ import {
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema,
-  DeployComponentLogSchema
+  DeployComponentLogSchema,
+  SecurityAlertType
 } from '@/lib/gen/observability/v1/observability_pb'
 import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
@@ -200,9 +201,10 @@ describe('SecurityAlertsCard', () => {
       alerts: [
         {
           number: 83n,
+          alertType: SecurityAlertType.DEPENDABOT,
           packageName: 'otel',
           ecosystem: 'go',
-          severity: 'high',
+          severity: 'unmapped-severity',
           summary: 'unbounded body read',
           url: 'https://github.com/x/y/security/dependabot/83',
           createdAt: '2026-08-19T16:34:44Z'
@@ -214,7 +216,92 @@ describe('SecurityAlertsCard', () => {
     expect(screen.getByText('otel')).toBeInTheDocument()
     expect(screen.getByText('#83')).toBeInTheDocument()
     expect(screen.getByText('unbounded body read')).toBeInTheDocument()
-    expect(screen.getByText('high')).toBeInTheDocument()
+    expect(screen.getByText('go ·', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('unmapped-severity')).toBeInTheDocument()
+  })
+
+  it('renders a code scanning alert with file location', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [
+        {
+          number: 12n,
+          alertType: SecurityAlertType.CODE_SCANNING,
+          ruleId: 'go/sql-injection',
+          filePath: 'api/foo.go',
+          line: 42,
+          severity: 'high',
+          summary: 'SQL injection',
+          url: 'https://github.com/x/y/security/code-scanning/12',
+          createdAt: '2026-08-20T10:00:00Z'
+        }
+      ]
+    })
+
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('api/foo.go:42')).toBeInTheDocument()
+    expect(screen.getByText('Code scanning')).toBeInTheDocument()
+  })
+
+  it('falls back to the rule id when a code scanning alert has no file path', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [
+        {
+          number: 13n,
+          alertType: SecurityAlertType.CODE_SCANNING,
+          ruleId: 'go/sql-injection',
+          severity: 'medium',
+          url: 'https://github.com/x/y/security/code-scanning/13',
+          createdAt: '2026-08-20T10:00:00Z'
+        }
+      ]
+    })
+
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('go/sql-injection')).toBeInTheDocument()
+    expect(screen.getByText('medium')).toBeInTheDocument()
+  })
+
+  it('renders a secret scanning alert with its secret type', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [
+        {
+          number: 7n,
+          alertType: SecurityAlertType.SECRET_SCANNING,
+          secretType: 'AWS Access Key',
+          url: 'https://github.com/x/y/security/secret-scanning/7',
+          createdAt: '2026-08-21T09:00:00Z'
+        }
+      ]
+    })
+
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('AWS Access Key')).toBeInTheDocument()
+    expect(screen.getByText('Secret scanning')).toBeInTheDocument()
+  })
+
+  it('omits the ecosystem prefix when a dependabot alert has none', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [
+        {
+          number: 99n,
+          packageName: 'lodash',
+          url: 'https://github.com/x/y/security/dependabot/99',
+          createdAt: '2026-08-19T16:34:44Z'
+        }
+      ]
+    })
+
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('lodash')).toBeInTheDocument()
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument()
   })
 
   it('degrades when not configured', () => {

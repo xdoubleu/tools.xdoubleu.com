@@ -153,7 +153,18 @@ message GetFailingPullRequestsResponse {
   int32 failing_count = 3;
 }
 
-// SecurityAlert is a single open Dependabot alert on the repo's dependencies.
+enum SecurityAlertType {
+  SECURITY_ALERT_TYPE_UNSPECIFIED = 0;
+  SECURITY_ALERT_TYPE_DEPENDABOT = 1;
+  SECURITY_ALERT_TYPE_CODE_SCANNING = 2;
+  SECURITY_ALERT_TYPE_SECRET_SCANNING = 3;
+}
+
+// SecurityAlert is a single open Dependabot, code-scanning, or
+// secret-scanning alert on the repo. package_name/ecosystem are set only for
+// alert_type == SECURITY_ALERT_TYPE_DEPENDABOT; rule_id/file_path/line only
+// for SECURITY_ALERT_TYPE_CODE_SCANNING; secret_type only for
+// SECURITY_ALERT_TYPE_SECRET_SCANNING.
 message SecurityAlert {
   int64 number = 1;
   string package_name = 2;
@@ -162,13 +173,18 @@ message SecurityAlert {
   string summary = 5;
   string url = 6;
   string created_at = 7;  // RFC3339
+  SecurityAlertType alert_type = 8;
+  string rule_id = 9;
+  string file_path = 10;
+  int32 line = 11;
+  string secret_type = 12;
 }
 
 message GetSecurityAlertsRequest {}
 
-// GetSecurityAlertsResponse carries the open Dependabot alerts. configured is
-// false when no GitHub token/repo is set — the section is degraded, not
-// failed.
+// GetSecurityAlertsResponse carries the open Dependabot, code-scanning, and
+// secret-scanning alerts. configured is false when no GitHub token/repo is
+// set — the section is degraded, not failed.
 message GetSecurityAlertsResponse {
   repeated SecurityAlert alerts = 1;
   bool configured = 2;

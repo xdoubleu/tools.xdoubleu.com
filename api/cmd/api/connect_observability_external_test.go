@@ -189,6 +189,14 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 					 "security_advisory":{"summary":"unbounded body read"},
 					 "security_vulnerability":{"severity":"medium"}}
 				]`))
+			case "/repos/o/r/code-scanning/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":12,"html_url":"u2",
+					 "created_at":"2026-08-20T10:00:00Z",
+					 "rule":{"id":"go/sql-injection","description":"SQL injection",
+					         "security_severity_level":"high"},
+					 "most_recent_instance":{"location":{"path":"api/foo.go","start_line":42}}}
+				]`))
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -205,11 +213,26 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Alerts, 1)
+	require.Len(t, resp.Msg.Alerts, 2)
 	assert.Equal(t, int64(83), resp.Msg.Alerts[0].Number)
 	assert.Equal(t, "otel", resp.Msg.Alerts[0].PackageName)
 	assert.Equal(t, "medium", resp.Msg.Alerts[0].Severity)
-	assert.Equal(t, int32(1), resp.Msg.AlertCount)
+	assert.Equal(
+		t,
+		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_DEPENDABOT,
+		resp.Msg.Alerts[0].AlertType,
+	)
+
+	assert.Equal(t, int64(12), resp.Msg.Alerts[1].Number)
+	assert.Equal(t, "go/sql-injection", resp.Msg.Alerts[1].RuleId)
+	assert.Equal(t, "api/foo.go", resp.Msg.Alerts[1].FilePath)
+	assert.Equal(t, int32(42), resp.Msg.Alerts[1].Line)
+	assert.Equal(
+		t,
+		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING,
+		resp.Msg.Alerts[1].AlertType,
+	)
+	assert.Equal(t, int32(2), resp.Msg.AlertCount)
 }
 
 func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {
