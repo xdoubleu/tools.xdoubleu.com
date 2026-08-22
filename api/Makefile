@@ -57,8 +57,16 @@ lint/go/ci:
 lint/sql/ci:
 	sqlfluff lint --dialect postgres .
 
-proto/generate:
+proto/generate: tools/proto
 	buf generate
+
+# Mirrors what CI's proto-staleness check does: regenerate, then fail loudly
+# if that changed anything under gen/ that wasn't already committed. Also
+# doubles as local proof that lint/fix never touches gen/ — see gci's
+# --skip-generated flag and .golangci.yml's formatters.exclusions.paths
+# above; there is no ordering dependency between this and make lint/fix.
+proto/check: proto/generate
+	git diff --exit-code gen/ || (echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." && exit 1)
 
 build:
 	go build -o=./bin/api ./cmd/api

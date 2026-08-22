@@ -23,7 +23,7 @@ A largely read-only **MCP server** at `/apps/mcp` (MCP OAuth 2.1, entirely first
 
 - *Issue #1027* — Supabase restricted the whole project for blowing its monthly egress quota, and nothing could say which endpoint caused it: `get_usage_stats` counted **requests** per endpoint but never bytes, so an endpoint returning 2 MB a call looked identical to one returning 200 B. `global.usage_daily` gained a `bytes` column and `get_usage_stats` now reports it. The database is reached over a transaction-mode pooler and billed per byte returned, so "which endpoint moves the most data" is the question that matters — see `api/CLAUDE.md`'s Database Conventions for the query rule this exists to enforce.
 
-## Code Navigation (ast-grep)
+## Code Navigation (ast-grep, LSP)
 
 **Prefer `ast-grep` over `grep`/`rg` for code searches** — it understands syntax trees, so results are exact (no false positives from comments/strings). Reserve `grep`/`rg` for non-code files (logs, configs, docs).
 
@@ -34,6 +34,8 @@ ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
 ```
 
 `$NAME` matches one node, `$$$` matches zero or more, `$$` matches one complex expression.
+
+**Once you have a concrete symbol, prefer the `LSP` tool's go-to-definition/find-references over `ast-grep`** — LSP resolves interfaces, generics, and shadowing correctly (gopls/typescript-language-server understand bindings), which ast-grep's pure syntax matching can't guarantee: a structural pattern can over- or under-match without semantic resolution. The two aren't interchangeable, though — `ast-grep` is for structural pattern search with no starting symbol ("find every call shaped like X across the tree," "find every struct matching this field pattern"), which LSP has no equivalent for. Use LSP when navigating from a known symbol; use `ast-grep` when searching by shape.
 
 **Comments must describe current behavior, not history.** Never write a comment that references removed code, superseded architecture, or frames a landed change as still-pending — a stale claim actively misleads the next reader (human or Claude). If historical context genuinely explains *why* the current code looks the way it does, phrase it so it stays true regardless of when it's read (e.g. "replicating what X used to provide" rather than "X hasn't happened yet") — see `api/cmd/api/kamal_proxy_shim.go`'s note on replicating what the now-retired `gateway/` module used to provide for the pattern to follow.
 
@@ -50,7 +52,6 @@ make lint                  # golangci-lint + sqlfluff + buf lint
 make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
-make scaffold NAME=x [DB=true] [JOBS=true]   # generate a new app skeleton
 docker-compose down
 
 # Web (from web/)
@@ -67,55 +68,23 @@ make build / make dist / make test / make lint/fix
 # Proto (when any .proto file changes, run BOTH generators)
 cd api && make proto/generate   # regenerates api/gen/
 cd web && npm run generate      # regenerates web/lib/gen/
+cd api && make proto/check      # regenerate + fail if that changed anything uncommitted (mirrors CI)
+cd web && npm run generate:check
 ```
 
-Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed; CI's proto-staleness check also runs `buf lint` (e.g. RPC response types must be named `<Method>Response`) — run `make lint/proto` locally first. **`make proto/generate` must be the last step touching `api/gen/` before committing** — `make lint/fix`'s `gci` pass runs across the whole repo (including generated files) and reorders their import groups, which CI's proto-staleness check flags as stale since it diffs a raw `buf generate` (never gci'd) against the committed files. If `make lint/fix` ran after (or in the same session as) `make proto/generate` for any reason, re-run `make proto/generate` afterward and `git diff api/gen web/lib/gen` should show nothing before committing.
+Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`), so there's no ordering dependency between regenerating and running lint/fix — run them in either order. `make proto/check` / `npm run generate:check` run the exact same regenerate-then-diff CI's proto-staleness check (`proto-check.yml`) does, so use those to verify locally rather than reasoning about the exclusion config by hand. Run `make lint/proto` to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.
+
+**Prefer the commands above over ad-hoc equivalents.** If a check/build/verification isn't covered by an existing `make`/`npm run` target, add one to the relevant `Makefile`/`package.json` rather than improvising it with raw tool invocations, and if an existing target doesn't do quite what's needed, fix the target itself. This file documents *what* a command does and *why*, never *how* — re-deriving a command's mechanics in prose here is exactly what let a stale claim (a false ordering requirement between `make proto/generate` and `make lint/fix`) drift out of sync between this file and `api/CLAUDE.md` until `make proto/check`/`npm run generate:check` replaced both explanations with one command.
 
 Run a single Go test: `go test ./apps/books/internal/services/... -run TestName -v` (from `api/`). Single Jest test: `npx jest path/to/file.test.ts -t "test name"` (from `web/`).
 
-## Adding a New Tool
-
-```bash
-cd api && make scaffold NAME=mytool [DB=true] [JOBS=true]
-```
-
-The scaffold does **not** auto-register the app — after scaffolding: register it in `api/cmd/api/apps.go`, implement handlers/routes in `api/apps/mytool/routes.go`, add domain logic under `api/apps/mytool/internal/`, edit the initial migration if `DB=true`, then `make build` to verify.
-
 ## Starting a Task
 
-Before exploring or reading code for a task, always pull the latest `main` first (`git checkout main && git pull` from the repo root, or `git fetch origin main`) — don't explore against a stale checkout, since another session or the user may have merged changes since.
+Before exploring, reading code, or making any change, use the `start-task` skill — it pulls latest `main`, creates a completely fresh worktree (never edit in the main checkout or reuse an existing branch/worktree), and creates/refines the GitHub tracking issue via `refine-issue` before the first edit.
 
-Before making any changes, always create a completely fresh worktree off up-to-date `main` — never edit in the main checkout or reuse an existing branch/worktree, even one from earlier in this same task; it may already be merged or based on a stale `main`. Prefer the `EnterWorktree` tool; if unavailable, fall back to:
+## Finishing a Task
 
-```bash
-git checkout main && git pull
-git worktree add ../<descriptive-branch-name> -b <descriptive-branch-name> main
-```
-
-**After `EnterWorktree` (or the fallback) returns, every subsequent Read/Edit/Write absolute path must be rebased onto the new worktree directory it reports** — do not keep reusing an absolute path prefix from earlier in the session (e.g. the original checkout, or a prior worktree). Nothing rewrites old paths for you: a stale prefix silently edits the wrong checkout, and since a Bash `cd` doesn't persist between tool calls either, `pwd` alone won't catch it. If this happens, recover by diffing the wrongly-edited files (`git diff --cached`/`git diff`), restoring that checkout to clean, and applying the diff (`git apply`) in the correct worktree — don't just re-run the edits from memory, since that risks drift from what was actually tested.
-
-Before editing, always create a tracking GitHub issue for the work via the `refine-issue` skill (not a bare `gh issue create`), so Priority/Status/labels get set — do this even for work that wasn't explicitly requested as an "issue", e.g. tooling/doc changes. If a finalized plan exists (from plan mode or otherwise), record it in the issue's `## Plan` section before the first edit, and move Status to "In progress" at that point.
-
-## Finishing a Task — Required Final Steps
-
-1. **Lint** — `cd api && make lint/fix` and/or `cd web && npm run lint` (whichever area changed); `cd kobo-gateway && make lint/fix` for kobo-gateway changes; `cd sentrytools && make lint/fix` for sentrytools changes (and re-run `go mod tidy` in `api` if its public API changed, since `api` depends on it via a local `replace`).
-2. **Coverage** — target ≥80% on changed code. API: `cd api && docker-compose up -d && make test/cov/report && docker-compose down` (always stop the DB after). Web: `cd web && npm run test:cov`.
-3. **Build** (web changes only) — `cd web && npm run build`. Next.js's server/client boundary check (a Server Component importing anything from a file that pulls in client-only hooks) is enforced **only** by `next build`, not `tsc --noEmit`, ESLint, or Jest — lint/coverage passing does not mean the build passes. Put constants shared across the boundary in a plain `lib/` module with no React imports.
-4. **Open the PR yourself** — don't wait to be asked:
-   ```bash
-   git push -u origin HEAD
-   gh pr view --json number >/dev/null 2>&1 || gh pr create --fill --base main
-   ```
-   Never push to `main` directly; never open as `--draft`. Reference the tracking issue from "Starting a Task" in the PR body using a closing keyword (e.g. `Fixes #123`, `Closes #123`) so the issue auto-closes on merge — a bare `#123` or "Related to #123" leaves the issue open even after merge (this happened with issue #727 / PR #728).
-   - **Small, code-only changes**: no `CLAUDE.md`, `Makefile`/npm-script, lint config, CI workflow, or script edits, AND none of the "larger/architectural" signals below apply — enable auto-merge right away, in the same breath as creating the PR — `gh pr merge --auto --squash` only merges once checks pass, so there's no reason to wait for green first: `gh pr create --fill --base main && gh pr merge --auto --squash`.
-   - **Tooling/harness changes, or larger/architectural code changes**: do **not** enable auto-merge — open a normal (non-draft) PR and wait for the user's own review. Tooling/harness means anything touching `CLAUDE.md`, Makefile targets, lint config, `.github/workflows/*`, scripts, or hooks. Larger/architectural means any of: a diff of roughly >150–200 changed lines or >8 files (check `git diff --stat` against `main` before opening the PR); a new/changed public interface, edits under a shared `api/internal/*` package, a new/modified DB migration, a new app registered in `api/cmd/api/apps.go`, a new/changed proto RPC, or changes spanning more than one app under `api/apps/*` or `web/`; or any `go.mod`/`package.json` dependency addition, removal, or version bump.
-5. **Monitor CI until green, fixing it yourself if it isn't**:
-   ```bash
-   gh pr checks --watch
-   gh pr view --json mergeable,mergeStateStatus,statusCheckRollup
-   ```
-   A red PR or non-`MERGEABLE` state is not "done" — diagnose the actual failure (don't just re-run blindly) and repeat from step 1. Once green + mergeable, report the PR URL (auto-merge was already armed in step 4 for small code-only changes; for tooling/harness or larger/architectural changes, stop here and wait for review).
-6. **Reflect on whether this change exposed a doc/tooling gap** — once CI is green, look back at the commit range for this task and ask: (a) would a CLAUDE.md addition/correction, a new Make/npm target, a lint rule, a CI workflow tweak, or a script have made this specific change faster or safer to implement; (b) did the PR need more than one push to go green (check `gh pr checks`/`gh run list` and the commit log for fixup commits), and if so, what local check would have caught the failure before pushing. Only flag something concrete tied to what actually happened — not speculative "would be nice" additions. If nothing is worth flagging, stop here. If something is: in a **separate** fresh worktree off `main`, open a tracking issue, edit only `CLAUDE.md`/tooling files, and open an independent, non-draft PR referencing it (never stacked on the original PR) — following this same checklist for that PR too.
+Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and the mandatory `session-retro` that follows.
 
 ## CI
 

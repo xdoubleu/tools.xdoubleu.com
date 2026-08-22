@@ -54,7 +54,6 @@ cd api && docker-compose down
 | `make test/cov/per-pkg` | Per-package coverage with merged summary |
 | `make lint` | Run all linters (Go + SQL) |
 | `make lint/fix` | Auto-fix linting issues |
-| `make scaffold NAME=myapp [DB=true] [JOBS=true]` | Generate new app |
 
 ## Kobo Gateway Commands (`kobo-gateway/`, macOS only)
 
@@ -145,27 +144,6 @@ be an **admin**.
 No external setup is required — `JWT_SECRET` and `OAUTH_HMAC_SECRET` are the
 only auth-related secrets (see
 [`config/deploy.api.yml`](config/deploy.api.yml) for the full env list).
-
-## Adding a New Tool
-
-```bash
-# Minimal tool (no DB, no background jobs)
-cd api && make scaffold NAME=mytool
-
-# Tool with database
-cd api && make scaffold NAME=mytool DB=true
-
-# Tool with database and background jobs
-cd api && make scaffold NAME=mytool DB=true JOBS=true
-```
-
-After scaffolding:
-
-1. Register the new app in `api/cmd/api/apps.go` (the scaffold command does not auto-register it)
-2. Implement handlers and register routes in `api/apps/mytool/routes.go`
-3. Add domain logic to `api/apps/mytool/internal/`
-4. If using DB, edit `api/apps/mytool/migrations/00001_init.sql`
-5. Run `cd api && make build` to verify
 
 ## Deploy Notes
 

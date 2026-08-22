@@ -19,8 +19,8 @@ make lint                          # golangci-lint + sqlfluff + buf lint
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
+make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 make lint/proto                    # buf lint — also part of make lint / lint/fix
-make scaffold NAME=x [DB=true] [JOBS=true]   # generate a new app skeleton
 
 go test ./apps/books/... -run TestFunctionName   # single test
 ```
@@ -220,7 +220,7 @@ two public services above.
 
 ## Linting
 
-`golangci-lint` (40+ linters), configured by the repo-root `.golangci.yml` — not `api/.golangci.yml`, which moved there so `gateway/` and `kobo-gateway/` share the exact same config (golangci-lint's config search walks up from the working directory to find it). Key constraints: max line length 88 (`golines`), import order standard → default → `prefix(tools.xdoubleu.com)` (`gci`), max function length 100 lines/50 statements (`funlen`), max cyclomatic complexity 30 (`cyclop`). `nolintlint` requires an explanation on every `//nolint` except `funlen`/`gocognit`/`lll`. Always run `make lint/fix` as the final step; fix anything the auto-fixer can't resolve manually. Exception: if a `.proto` file changed this session, `make proto/generate` must run *after* `make lint/fix` — `gci` reformats generated files' import grouping too, which then fails CI's proto-staleness check (see root `CLAUDE.md`). `GOLANGCI_LINT_CACHE` is set in the Makefile to a `.golangci-cache/` directory local to the checkout, so concurrent worktrees (which otherwise share the same Go module path and, by default, a single global cache) don't bleed each other's file paths into lint output.
+`golangci-lint` (40+ linters), configured by the repo-root `.golangci.yml` — not `api/.golangci.yml`, which moved there so `gateway/` and `kobo-gateway/` share the exact same config (golangci-lint's config search walks up from the working directory to find it). Key constraints: max line length 88 (`golines`), import order standard → default → `prefix(tools.xdoubleu.com)` (`gci`), max function length 100 lines/50 statements (`funlen`), max cyclomatic complexity 30 (`cyclop`). `nolintlint` requires an explanation on every `//nolint` except `funlen`/`gocognit`/`lll`. Always run `make lint/fix` as the final step; fix anything the auto-fixer can't resolve manually. If a `.proto` file changed this session, order relative to `lint/fix` doesn't matter — run `make proto/check` (or `make proto/generate` in `api/` and `npm run generate` in `web/`) whenever it's convenient and commit the result; see root `CLAUDE.md`'s Commands section for why there's no ordering dependency. `GOLANGCI_LINT_CACHE` is set in the Makefile to a `.golangci-cache/` directory local to the checkout, so concurrent worktrees (which otherwise share the same Go module path and, by default, a single global cache) don't bleed each other's file paths into lint output.
 
 ## Testing Notes
 
