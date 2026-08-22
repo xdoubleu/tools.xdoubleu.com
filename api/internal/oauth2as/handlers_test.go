@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/fosite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,13 +50,14 @@ func pkcePair(t *testing.T) (string, string) {
 type oauth2asTestServer struct {
 	ts       *httptest.Server
 	store    *oauth2as.Store
+	db       *pgxpool.Pool
 	provider fosite.OAuth2Provider
 	userID   string
 }
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	t.Helper()
-	store, _ := newTestStore(t)
+	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
 	provider := oauth2as.NewProvider(cfg, store)
 	userID := uuid.NewString()
@@ -76,7 +78,7 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	t.Cleanup(ts.Close)
 
 	return &oauth2asTestServer{
-		ts: ts, store: store, provider: provider, userID: userID,
+		ts: ts, store: store, db: db, provider: provider, userID: userID,
 	}
 }
 
@@ -254,7 +256,32 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, srv.userID, gotUserID2)
 
-	// The rotated-out (old) refresh token can no longer be used.
+	// Reused immediately, the rotated-out (old) refresh token is still
+	// accepted — within the reuse grace period this is treated as a
+	// legitimate retry rather than theft (see storage.go's
+	// refreshTokenReuseGracePeriod).
+	graceResp, graceOut := srv.exchangeToken(t, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {out.RefreshToken},
+		"client_id":     {client.ID},
+	})
+	require.Equal(t, http.StatusOK, graceResp.StatusCode)
+	require.NotEmpty(t, graceOut.RefreshToken)
+
+	// Past the grace period, reuse of a rotated-out refresh token is
+	// rejected and revokes the whole token family. fosite's HMAC token
+	// strategy formats tokens as "<id>.<signature>" (hmacsha.go's own
+	// Signature method), so the DB row's signature is the part after the
+	// dot — no need to reach into the provider to recompute it.
+	tokenParts := strings.SplitN(out.RefreshToken, ".", 2)
+	require.Len(t, tokenParts, 2, "fosite HMAC token must be id.signature")
+	_, err = srv.db.Exec(context.Background(), `
+		UPDATE auth.oauth2_refresh_tokens
+		SET rotated_at = now() - interval '1 minute'
+		WHERE signature = $1
+	`, tokenParts[1])
+	require.NoError(t, err)
+
 	staleResp, _ := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken},

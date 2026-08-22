@@ -171,18 +171,8 @@ func (s *Store) getRequest(
 	if err != nil {
 		return nil, err
 	}
-	if !active {
-		switch table {
-		case "oauth2_auth_codes":
-			return requester, fosite.ErrInvalidatedAuthorizeCode
-		case "oauth2_refresh_tokens":
-			// RotateRefreshToken (below) marks the old row inactive rather
-			// than deleting it — fosite's own RefreshTokenGrantHandler
-			// relies on getting exactly this sentinel back from a
-			// rotated-out refresh token to detect refresh-token reuse
-			// (theft) and revoke the whole token family in response.
-			return requester, fosite.ErrInactiveToken
-		}
+	if !active && table == "oauth2_auth_codes" {
+		return requester, fosite.ErrInvalidatedAuthorizeCode
 	}
 	return requester, nil
 }
@@ -252,10 +242,53 @@ func (s *Store) CreateRefreshTokenSession(
 	)
 }
 
+// refreshTokenReuseGracePeriod bounds how long a rotated-out refresh token
+// is still accepted as if active. A completely legitimate client can replay
+// its old refresh token — a network timeout after the server already
+// completed rotation but before the client saw the response, or two local
+// processes racing on the same cached token — which is otherwise
+// indistinguishable from an attacker replaying a stolen token: fosite's
+// RefreshTokenGrantHandler treats any reuse of an inactive token as theft
+// and revokes the *entire* token family (every access/refresh token issued
+// under the original grant, not just the reused one), forcing a full
+// interactive reauth for something that was never actually compromised.
+// Within this window a reuse is treated as a redundant-but-legitimate
+// refresh instead; past it, reuse still triggers the normal theft response.
+const refreshTokenReuseGracePeriod = 30 * time.Second
+
 func (s *Store) GetRefreshTokenSession(
 	ctx context.Context, signature string, session fosite.Session,
 ) (fosite.Requester, error) {
-	return s.getRequest(ctx, "oauth2_refresh_tokens", signature, session)
+	var raw []byte
+	var active bool
+	var rotatedAt *time.Time
+
+	err := s.db.QueryRow(ctx, `
+		SELECT request, active, rotated_at FROM auth.oauth2_refresh_tokens
+		WHERE signature = $1
+	`, signature).Scan(&raw, &active, &rotatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fosite.ErrNotFound
+		}
+		return nil, err
+	}
+
+	var pr persistedRequest
+	if err = json.Unmarshal(raw, &pr); err != nil {
+		return nil, err
+	}
+	requester, err := s.fromPersisted(ctx, &pr, session)
+	if err != nil {
+		return nil, err
+	}
+	if !active {
+		if rotatedAt != nil && time.Since(*rotatedAt) < refreshTokenReuseGracePeriod {
+			return requester, nil
+		}
+		return requester, fosite.ErrInactiveToken
+	}
+	return requester, nil
 }
 
 func (s *Store) DeleteRefreshTokenSession(ctx context.Context, signature string) error {
@@ -266,7 +299,7 @@ func (s *Store) RotateRefreshToken(
 	ctx context.Context, requestID string, refreshTokenSignature string,
 ) error {
 	_, err := s.db.Exec(ctx, `
-		UPDATE auth.oauth2_refresh_tokens SET active = false
+		UPDATE auth.oauth2_refresh_tokens SET active = false, rotated_at = now()
 		WHERE signature = $1 AND request->>'id' = $2
 	`, refreshTokenSignature, requestID)
 	return err
