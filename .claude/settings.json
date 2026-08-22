@@ -7,6 +7,12 @@
         "source": "github",
         "repo": "xdoubleu/xdoubleu-claude-plugins"
       }
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
     }
   },
   "enabledPlugins": {
@@ -14,7 +20,8 @@
     "session-retro@xdoubleu-claude-plugins": true,
     "git-cleanup@xdoubleu-claude-plugins": true,
     "github-issue-triage@xdoubleu-claude-plugins": true,
-    "skill-lifecycle@xdoubleu-claude-plugins": true
+    "skill-lifecycle@xdoubleu-claude-plugins": true,
+    "claude-md-management@claude-plugins-official": true
   },
   "permissions": {
     "defaultMode": "plan",

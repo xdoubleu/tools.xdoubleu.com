@@ -46,11 +46,9 @@ repo's own auto-merge rule instead of its generic default:
 
 - **Small, code-only changes** — no `CLAUDE.md`, Makefile/npm-script, lint
   config, CI workflow, or script edits, AND none of the "larger/architectural"
-  signals below apply: enable auto-merge right away, in the same breath as
-  creating the PR:
-  ```bash
-  gh pr create --fill --base main && gh pr merge --auto --squash
-  ```
+  signals below apply: tell `ship-pr` this is a small, self-contained change
+  — its own Step 2 already covers enabling auto-merge in the same breath as
+  creating the PR, so there's no need to re-run those `gh` commands here.
 - **Tooling/harness changes, or larger/architectural changes** — do **not**
   enable auto-merge. Open a normal (non-draft) PR and wait for the user's own
   review. Tooling/harness means anything touching `CLAUDE.md`, Makefile
