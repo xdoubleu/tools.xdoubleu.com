@@ -191,6 +191,27 @@ migration), wipe the volume and let it start fresh:
 ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
 ```
 
+## Stand up node_exporter (issue #1040)
+
+The same `tofu apply` above also creates `null_resource.node_exporter`,
+which uploads `node-exporter-compose.yml` to `/home/deploy/node-exporter/`
+and runs `docker compose up -d` as the `deploy` user — this is the piece
+the observability app's `get_host_metrics` MCP tool/RPC reads from. `api`
+scrapes it every 60s over the shared `kamal` Docker network at
+`node-exporter:9100` (`NODE_EXPORTER_URL`'s default, see
+`api/internal/config/main.go`), so nothing needs configuring per deploy.
+
+Like Postgres, it has no publicly exposed port — reachable only from
+containers on the `kamal` network. Unlike Postgres, it takes no secrets
+(no `.env` provisioner). Re-running `apply` after editing
+`node-exporter-compose.yml` redeploys it.
+
+If `get_host_metrics` is returning empty history, check `global.job_runs`
+for repeated `host-metrics-snapshot` failures first — that means either
+this resource was never applied, or the container isn't reachable on the
+`kamal` network: `ssh deploy@<ip> docker ps` should show `node-exporter`
+running.
+
 ## GoTrue is gone (issue #1039)
 
 This section used to describe standing up a self-hosted `gotrue` service in
