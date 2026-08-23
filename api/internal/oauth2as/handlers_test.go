@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -53,6 +54,10 @@ type oauth2asTestServer struct {
 	db       *pgxpool.Pool
 	provider fosite.OAuth2Provider
 	userID   string
+	// logs captures every record the handlers emit, so observe_test.go can
+	// assert on the severity of a rejection and on what it did (and didn't)
+	// put in its attributes.
+	logs *recordCapture
 }
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
@@ -66,19 +71,24 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 		return userID, true
 	}
 
+	logs := newRecordCapture()
+	logger := slog.New(logs)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc(
-		"/oauth2/authorize", oauth2as.AuthorizeHandler(provider, cfg, resolveUser),
+		"/oauth2/authorize",
+		oauth2as.AuthorizeHandler(provider, cfg, resolveUser, logger),
 	)
-	mux.HandleFunc("/oauth2/token", oauth2as.TokenHandler(provider))
-	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store))
+	mux.HandleFunc("/oauth2/token", oauth2as.TokenHandler(provider, logger))
+	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store, logger))
 	mux.HandleFunc("/oauth2/consent-info", oauth2as.ConsentInfoHandler(store))
 
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 
 	return &oauth2asTestServer{
-		ts: ts, store: store, db: db, provider: provider, userID: userID,
+		ts: ts, store: store, db: db, provider: provider,
+		userID: userID, logs: logs,
 	}
 }
 

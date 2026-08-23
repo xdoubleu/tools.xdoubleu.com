@@ -2,6 +2,8 @@ package oauth2as
 
 import (
 	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -25,6 +27,7 @@ func AuthorizeHandler(
 	provider fosite.OAuth2Provider,
 	cfg config.Config,
 	resolveUser SessionUserResolver,
+	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -42,17 +45,27 @@ func AuthorizeHandler(
 
 		ar, err := provider.NewAuthorizeRequest(ctx, r)
 		if err != nil {
+			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
 			provider.WriteAuthorizeError(ctx, w, ar, err)
 			return
 		}
 
 		if consent == "deny" {
+			// A user declining is a normal outcome, not a failure — logged
+			// (at Warn, since it carries no grant_type) only so the consent
+			// leg's rejections are as visible as the token leg's.
+			logOAuthError(
+				ctx, logger, endpointAuthorize, ar, fosite.ErrAccessDenied,
+			)
 			provider.WriteAuthorizeError(ctx, w, ar, fosite.ErrAccessDenied)
 			return
 		}
 
 		userID, ok := resolveUser(r)
 		if !ok {
+			logOAuthError(
+				ctx, logger, endpointAuthorize, ar, fosite.ErrRequestUnauthorized,
+			)
 			provider.WriteAuthorizeError(ctx, w, ar, fosite.ErrRequestUnauthorized)
 			return
 		}
@@ -72,6 +85,7 @@ func AuthorizeHandler(
 		session := &fosite.DefaultSession{Subject: userID}
 		resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
 		if err != nil {
+			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
 			provider.WriteAuthorizeError(ctx, w, ar, err)
 			return
 		}
@@ -82,7 +96,10 @@ func AuthorizeHandler(
 
 // TokenHandler implements the /oauth2/token endpoint (authorization_code and
 // refresh_token grants).
-func TokenHandler(provider fosite.OAuth2Provider) http.HandlerFunc {
+func TokenHandler(
+	provider fosite.OAuth2Provider,
+	logger *slog.Logger,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -90,12 +107,14 @@ func TokenHandler(provider fosite.OAuth2Provider) http.HandlerFunc {
 		session := &fosite.DefaultSession{}
 		ar, err := provider.NewAccessRequest(ctx, r, session)
 		if err != nil {
+			logOAuthError(ctx, logger, endpointToken, ar, err)
 			provider.WriteAccessError(ctx, w, ar, err)
 			return
 		}
 
 		resp, err := provider.NewAccessResponse(ctx, ar)
 		if err != nil {
+			logOAuthError(ctx, logger, endpointToken, ar, err)
 			provider.WriteAccessError(ctx, w, ar, err)
 			return
 		}
@@ -126,16 +145,22 @@ type registerResponse struct {
 
 // RegisterHandler implements RFC 7591 dynamic client registration at
 // /oauth2/register.
-func RegisterHandler(store *Store) http.HandlerFunc {
+func RegisterHandler(store *Store, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
 		var req registerRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			logRegisterError(
+				ctx, logger, errors.New("malformed registration body"),
+			)
 			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 
-		client, err := RegisterClient(r.Context(), store.db, ClientMetadata(req))
+		client, err := RegisterClient(ctx, store.db, ClientMetadata(req))
 		if err != nil {
+			logRegisterError(ctx, logger, err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

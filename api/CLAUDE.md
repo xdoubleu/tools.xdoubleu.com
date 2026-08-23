@@ -182,7 +182,20 @@ documents and echoed in the RFC 7591 registration response, *and*
 (`grantOfflineAccess`, `internal/oauth2as/scopes.go`). The server-side grant is
 what matters: MCP clients routinely send no `scope` parameter, and without it
 they get an access token with no refresh token and a forced interactive
-re-authentication every hour (issue #1177). The web `/oauth/consent` page
+re-authentication every hour (issue #1177). Every rejection from
+`/oauth2/authorize`, `/oauth2/token` and `/oauth2/register` is logged by
+`internal/oauth2as/observe.go` — fosite writes its errors straight into the
+HTTP response and never through slog, and `usage_daily` counts `oauth2/token`
+hits regardless of outcome, so before this nothing server-side distinguished a
+failed token exchange from a successful one and #1177 stayed invisible until a
+user reported it. A **failed `refresh_token` grant logs at Error** (so the root
+`sentrytools` `LogHandler` reports it) even though it's a 400: unlike any other
+4xx there it takes a refresh token this server itself issued, so it always
+means a working client just lost its session. Every other 4xx — expired code,
+bad PKCE verifier, denied consent, scanners probing `/oauth2/*` — stays at Warn
+so it can't bury that signal. Credentials must never be logged; the request
+form carries the code, the PKCE verifier and the refresh token, and
+`TestObserve_NeverLogsCredentials` is the guard. The web `/oauth/consent` page
 drives the approval, calling the api's own `/oauth2/*` endpoints directly — no
 external Auth provider involved. See root
 `README.md` for the client-setup command.
