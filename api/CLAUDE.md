@@ -16,7 +16,7 @@ make test/race                    # with race detector
 make test/cov/report               # coverage report (HTML, excludes mocks/gen)
 make test/cov/per-pkg              # per-package coverage, merged
 make lint                          # golangci-lint + sqlfluff + buf lint + lint/migrations
-make lint/migrations               # fail on two migrations sharing a version number — goose skips the duplicate silently
+make lint/migrations               # fail on two migrations sharing a version number (goose skips the duplicate silently), or a new migration numbered below the existing max in its directory
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)

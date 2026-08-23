@@ -41,3 +41,16 @@ jobs:
       - name: Run sqlfluff
         run: sqlfluff lint --dialect postgres .
         working-directory: './api'
+
+  lint-migrations:
+    name: API Migration Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Fetch main
+        run: git fetch origin main
+      - name: Check migration versions
+        run: make lint/migrations
+        working-directory: './api'
