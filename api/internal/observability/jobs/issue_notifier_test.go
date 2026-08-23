@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
@@ -61,43 +60,6 @@ func sentryIssue(id, title string) sentryapi.Issue {
 		LastSeen:  time.Time{},
 		Level:     "",
 		Project:   "",
-	}
-}
-
-type fakeDOClient struct {
-	deployment *digitalocean.Deployment
-	err        error
-}
-
-func (f fakeDOClient) LatestDeployment(
-	_ context.Context,
-) (*digitalocean.Deployment, error) {
-	return f.deployment, f.err
-}
-
-func (f fakeDOClient) ListApps(_ context.Context) ([]digitalocean.App, error) {
-	return nil, nil
-}
-
-func (f fakeDOClient) DeploymentLogs(
-	_ context.Context, _ string, _ int,
-) ([]digitalocean.ComponentLog, error) {
-	return nil, nil
-}
-
-func (f fakeDOClient) DeploymentLogsStream(
-	_ context.Context, _ string, _ int, _ func(digitalocean.ComponentLog) error,
-) error {
-	return nil
-}
-
-func doDeployment(id, phase string) *digitalocean.Deployment {
-	return &digitalocean.Deployment{
-		ID:        id,
-		Phase:     phase,
-		Cause:     "",
-		CreatedAt: time.Time{},
-		UpdatedAt: time.Time{},
 	}
 }
 
@@ -215,13 +177,12 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -234,63 +195,13 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["sentry:1"] = true
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Empty(t, mail.sent)
-}
-
-func TestIssueNotifierSentryNotConfiguredDoesNotBlockDO(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: sentryapi.ErrNotConfigured}
-	do := fakeDOClient{deployment: doDeployment("d1", "ERROR"), err: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Len(t, mail.sent, 1)
-	assert.True(t, notified.keys["digitalocean:d1"])
-}
-
-func TestIssueNotifierDOIgnoresNonErrorPhase(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: doDeployment("d1", "ACTIVE"), err: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Empty(t, mail.sent)
-}
-
-func TestIssueNotifierDONotConfiguredSkipsSilently(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: digitalocean.ErrNotConfigured}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -302,13 +213,12 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: mailer.ErrNotConfigured}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -316,51 +226,15 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	assert.False(t, notified.keys["sentry:1"])
 }
 
-func TestIssueNotifierLogsWarnForTransientDOError(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: context.DeadlineExceeded}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	logger, buf := testLoggerWithBuf()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
-	)
-	require.NoError(t, job.Run(t.Context(), logger))
-	notifSvc.WaitUntilDone()
-
-	assert.Contains(t, buf.String(), "level=WARN")
-	assert.NotContains(t, buf.String(), "level=ERROR")
-}
-
-func TestIssueNotifierLogsErrorForNonTransientDOError(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: assert.AnError}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	logger, buf := testLoggerWithBuf()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
-	)
-	require.NoError(t, job.Run(t.Context(), logger))
-	notifSvc.WaitUntilDone()
-
-	assert.Contains(t, buf.String(), "level=ERROR")
-}
-
 func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: context.DeadlineExceeded}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -371,14 +245,13 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 
 func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: assert.AnError}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -389,7 +262,6 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 	job := jobs.NewIssueNotifierJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
@@ -402,13 +274,12 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("42", "kaboom")}, err: nil,
 	}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := &erroringNotifiedRepo{err: assert.AnError}
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -420,13 +291,12 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	do := fakeDOClient{deployment: nil, err: nil}
 	mail := &fakeMailer{sent: nil, err: assert.AnError}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, do, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -436,7 +306,6 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 
 func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 	}
@@ -444,7 +313,7 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -454,13 +323,12 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 
 func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{prs: []github.PullRequest{}, err: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -469,7 +337,6 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 
 func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{
 			failingPRNumbered(1, "sha1", "bug"),
@@ -482,7 +349,7 @@ func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -494,7 +361,6 @@ func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
 
 func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "bug")}, err: nil,
 	}
@@ -502,7 +368,7 @@ func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -511,7 +377,6 @@ func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
 
 func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 	}
@@ -520,7 +385,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -529,7 +394,6 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 
 func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha2", "dependencies")}, err: nil,
 	}
@@ -538,7 +402,7 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -551,7 +415,6 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 // failed dedup lookup must abort the run instead of being swallowed.
 func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 	}
@@ -559,28 +422,7 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 	notified := &erroringNotifiedRepo{err: assert.AnError}
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
-	err := job.Run(t.Context(), testLogger())
-
-	require.ErrorIs(t, err, assert.AnError)
-	assert.Empty(t, mail.sent)
-}
-
-// TestIssueNotifierDOErrorStopsRunBeforeGithub asserts Run now short-circuits
-// on a genuine (non-degraded) notifyDigitalOcean error instead of falling
-// through to notifyGithub — the DO and github steps used to be a single
-// tail return, so this branch didn't exist before notifyGithub was added.
-func TestIssueNotifierDOErrorStopsRunBeforeGithub(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: doDeployment("d1", "ERROR"), err: nil}
-	gh := fakeGithubClient{
-		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
-	}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := &erroringNotifiedRepo{err: assert.AnError}
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	err := job.Run(t.Context(), testLogger())
 
 	require.ErrorIs(t, err, assert.AnError)
@@ -589,13 +431,12 @@ func TestIssueNotifierDOErrorStopsRunBeforeGithub(t *testing.T) {
 
 func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: github.ErrNotConfigured}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -604,14 +445,13 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 
 func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: context.DeadlineExceeded}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
 
@@ -621,14 +461,13 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 
 func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	do := fakeDOClient{deployment: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: assert.AnError}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, do, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
 

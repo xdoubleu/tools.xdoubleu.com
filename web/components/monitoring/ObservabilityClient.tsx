@@ -16,7 +16,7 @@ import {
   useSecurityAlerts,
   useSentryIssues,
   useSlowTransactions,
-  useDeployStatus,
+  useHostMetrics,
   useOAuthConnections
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
@@ -30,7 +30,8 @@ import WorkflowRunsCard from './WorkflowRunsCard'
 import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
-import DeployCard from './DeployCard'
+import HostMetricsCard from './HostMetricsCard'
+import LogsCard from './LogsCard'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
@@ -55,7 +56,7 @@ export default function ObservabilityClient() {
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
   const slowTransactions = useSlowTransactions()
-  const deployStatus = useDeployStatus()
+  const hostMetrics = useHostMetrics()
   const oauthConnections = useOAuthConnections()
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export default function ObservabilityClient() {
       securityAlerts.mutate(),
       sentryIssues.mutate(),
       slowTransactions.mutate(),
-      deployStatus.mutate(),
+      hostMetrics.mutate(),
       oauthConnections.mutate()
     ])
     setIsRefreshing(false)
@@ -105,11 +106,9 @@ export default function ObservabilityClient() {
   const failingPRs = failingPullRequests.data
   const alerts = securityAlerts.data
   const sentry = sentryIssues.data
-  const deploy = deployStatus.data
   const failingCount = failingPRs?.configured ? failingPRs.failingCount : 0
   const alertCount = alerts?.configured ? alerts.alertCount : 0
   const unresolvedErrors = sentry?.configured ? sentry.unresolvedCount : 0
-  const deployPhase = deploy?.configured ? deploy.phase : ''
 
   const tiles = [
     {
@@ -146,12 +145,12 @@ export default function ObservabilityClient() {
       tone: unresolvedErrors > 0 ? ('danger' as const) : ('default' as const)
     },
     {
-      label: 'Deploy',
-      value: deployPhase || '—',
-      tone:
-        deployPhase === 'ERROR' || deployPhase === 'CANCELED'
-          ? ('danger' as const)
-          : ('default' as const)
+      label: 'CPU',
+      value: hostMetrics.data ? `${hostMetrics.data.cpuPercent.toFixed(1)}%` : '—'
+    },
+    {
+      label: 'Memory',
+      value: hostMetrics.data ? `${hostMetrics.data.memoryPercent.toFixed(1)}%` : '—'
     }
   ]
 
@@ -198,7 +197,8 @@ export default function ObservabilityClient() {
         <SecurityAlertsCard data={securityAlerts.data} />
         <SentryCard data={sentryIssues.data} />
         <SlowTransactionsCard data={slowTransactions.data} />
-        <DeployCard data={deployStatus.data} />
+        <HostMetricsCard data={hostMetrics.data} />
+        <LogsCard />
         <OAuthConnectionsCard data={oauthConnections.data} />
       </div>
     </PageContainer>

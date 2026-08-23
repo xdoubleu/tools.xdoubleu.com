@@ -382,14 +382,17 @@ KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
 KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
-DO_OAUTH_CLIENT_ID
-DO_OAUTH_CLIENT_SECRET
 ENCRYPTION_KEY
 RESEND_API_KEY
 EMAIL_FROM
 NOTIFY_EMAIL_TO
 EMAIL_INBOUND_DOMAIN
 EMAIL_INBOUND_SECRET
+OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
+                              /api/observability/logs, the plain-HTTP
+                              endpoint web forwards its own logs through,
+                              issue #1040 — web holds no admin session to
+                              authenticate a Connect call with)
 ```
 
 **Verify**: push a trivial change to `main`, confirm `deploy-kamal` runs and
@@ -490,9 +493,10 @@ For the record, all it took was:
 
 **DigitalOcean is decommissioned** (#1113): the `deploy` job, `do-app.yaml`,
 and the `DO_ACCESS_TOKEN`/`DO_APP_ID` secrets are gone, and the App Platform
-app itself can be deleted. Unrelated to `DO_OAUTH_CLIENT_ID`/`SECRET`, which
-stay — those belong to the app's DigitalOcean monitoring *feature*
-(`api/internal/digitalocean`), not to hosting.
+app itself can be deleted. The separate DigitalOcean monitoring *feature*
+(`api/internal/digitalocean`, `DO_OAUTH_CLIENT_ID`/`SECRET`) was removed
+later, in issue #1040, once host metrics moved to scraping node_exporter
+directly.
 
 **Update (issue #1039):** `api` no longer talks to Supabase or GoTrue at
 all — password auth, TOTP MFA, and the MCP OAuth 2.1 authorization server

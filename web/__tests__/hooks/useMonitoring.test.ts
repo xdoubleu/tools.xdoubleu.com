@@ -7,7 +7,6 @@ const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockResolveSentryIssue = jest.fn()
-const mockGetDeployLogs = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -26,8 +25,8 @@ jest.mock('@/lib/client', () => ({
     getSentryIssues: jest.fn(),
     getSlowTransactions: jest.fn(),
     resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
-    getDeployStatus: jest.fn(),
-    getDeployLogs: (...args: unknown[]) => mockGetDeployLogs(...args),
+    getHostMetrics: jest.fn(),
+    getLogs: jest.fn(),
     listOAuthConnections: jest.fn(),
     disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
     getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
@@ -50,8 +49,8 @@ import {
   useSentryIssues,
   useSlowTransactions,
   useResolveSentryIssue,
-  useDeployStatus,
-  useDeployLogs,
+  useHostMetrics,
+  useLogs,
   useOAuthConnections,
   useDisconnectOAuthConnection,
   useProviderOptions,
@@ -116,9 +115,17 @@ describe('useMonitoring', () => {
     )
   })
 
-  it('keys deploy status statically', () => {
-    renderHook(() => useDeployStatus())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDeployStatus, expect.any(Function))
+  it('keys host metrics statically', () => {
+    renderHook(() => useHostMetrics())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringHostMetrics, expect.any(Function))
+  })
+
+  it('keys logs by source and min level', () => {
+    renderHook(() => useLogs('api', 'warn'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringLogs('api', 'warn'),
+      expect.any(Function)
+    )
   })
 
   it('keys oauth connections statically', () => {
@@ -175,53 +182,6 @@ describe('useDisconnectOAuthConnection', () => {
 
     expect(mockDisconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
-  })
-})
-
-// emptyStream stands in for the async iterable GetDeployLogs' streaming
-// client returns — the hook just forwards it, so an empty stream is enough
-// to exercise the call.
-function emptyStream() {
-  return {
-    async *[Symbol.asyncIterator]() {}
-  }
-}
-
-describe('useDeployLogs', () => {
-  it('fetches logs for the latest deployment when no id is given', () => {
-    mockGetDeployLogs.mockReturnValue(emptyStream())
-    const { result } = renderHook(() => useDeployLogs())
-
-    act(() => {
-      result.current()
-    })
-
-    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: '', tailLines: 0 })
-  })
-
-  it('fetches logs for an explicit deployment id', () => {
-    mockGetDeployLogs.mockReturnValue(emptyStream())
-    const { result } = renderHook(() => useDeployLogs())
-
-    act(() => {
-      result.current('deploy-123')
-    })
-
-    expect(mockGetDeployLogs).toHaveBeenCalledWith({ deploymentId: 'deploy-123', tailLines: 0 })
-  })
-
-  it('forwards an explicit tail size', () => {
-    mockGetDeployLogs.mockReturnValue(emptyStream())
-    const { result } = renderHook(() => useDeployLogs())
-
-    act(() => {
-      result.current('deploy-123', 2000)
-    })
-
-    expect(mockGetDeployLogs).toHaveBeenCalledWith({
-      deploymentId: 'deploy-123',
-      tailLines: 2000
-    })
   })
 })
 

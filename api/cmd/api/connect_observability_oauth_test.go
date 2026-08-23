@@ -58,7 +58,7 @@ func TestListOAuthConnections_AsAdmin_NoneConnected(t *testing.T) {
 	resp, err := observabilityClient(t).ListOAuthConnections(context.Background(), req)
 	require.NoError(t, err)
 
-	require.Len(t, resp.Msg.Connections, 3)
+	require.Len(t, resp.Msg.Connections, 2)
 	for _, c := range resp.Msg.Connections {
 		assert.False(t, c.Connected)
 		assert.Empty(t, c.ConnectedBy)

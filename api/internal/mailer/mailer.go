@@ -1,6 +1,6 @@
 // Package mailer sends notification emails via the Resend HTTP API
 // (https://resend.com), used by the issue-notifier job (issue #561) to alert
-// an admin when a new Sentry issue or failed DigitalOcean deployment appears.
+// an admin when a new Sentry issue or failing dependency pull request appears.
 package mailer
 
 import (

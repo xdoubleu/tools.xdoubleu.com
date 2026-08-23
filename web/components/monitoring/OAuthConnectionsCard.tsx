@@ -12,8 +12,7 @@ import ProviderConfigDialog from '@/components/monitoring/ProviderConfigDialog'
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
-  sentry: 'Sentry',
-  digitalocean: 'DigitalOcean'
+  sentry: 'Sentry'
 }
 
 export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnectionsResponse }) {
@@ -25,7 +24,7 @@ export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnect
       <CardHeader>
         <CardTitle>Integrations</CardTitle>
         <CardDescription>
-          Connect GitHub, Sentry, and DigitalOcean via OAuth so this dashboard can read their data.
+          Connect GitHub and Sentry via OAuth so this dashboard can read their data.
         </CardDescription>
       </CardHeader>
       <CardContent>

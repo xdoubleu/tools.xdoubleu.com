@@ -11,7 +11,6 @@ import (
 	"golang.org/x/oauth2"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
@@ -32,11 +31,6 @@ func TestProtoProviderConfig(t *testing.T) {
 		t, protoProviderConfig(models.OAuthProviderSentry, []byte(`{"org":""}`)),
 		"empty org degrades to unset",
 	)
-	assert.Nil(
-		t,
-		protoProviderConfig(models.OAuthProviderDigitalOcean, []byte(`{"app_id":""}`)),
-		"empty app_id degrades to unset",
-	)
 	assert.Nil(t, protoProviderConfig("unknown", []byte(`{}`)), "unknown provider")
 
 	cfg := protoProviderConfig(
@@ -45,12 +39,6 @@ func TestProtoProviderConfig(t *testing.T) {
 	require.NotNil(t, cfg)
 	assert.Equal(t, "o", cfg.GetSentry().GetOrg())
 	assert.Equal(t, []string{"a", "b"}, cfg.GetSentry().GetProjects())
-
-	cfg = protoProviderConfig(
-		models.OAuthProviderDigitalOcean, []byte(`{"app_id":"app-1"}`),
-	)
-	require.NotNil(t, cfg)
-	assert.Equal(t, "app-1", cfg.GetDigitalocean().GetAppId())
 }
 
 func TestGetProviderOptions_Github(t *testing.T) {
@@ -143,46 +131,6 @@ func TestGetProviderOptions_SentryProjectsError(t *testing.T) {
 	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
 		Provider:  string(models.OAuthProviderSentry),
 		SentryOrg: "org-a",
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
-}
-
-func TestGetProviderOptions_DigitalOcean(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-
-	srv := jsonServer(
-		t,
-		http.StatusOK,
-		`{"apps":[{"id":"id-1","spec":{"name":"app-one"}}]}`,
-	)
-	digitalocean.SetBaseURL(srv.URL)
-	t.Cleanup(func() { digitalocean.SetBaseURL("https://api.digitalocean.com") })
-	testApp.doClient = digitalocean.New(
-		logging.NewNopLogger(), stubTok("tok"), configNotConnected(),
-	)
-
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
-		Provider: string(models.OAuthProviderDigitalOcean),
-	})
-	setCookieOnRequest(req, accessToken)
-	resp, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
-	require.NoError(t, err)
-	assert.Equal(t, []string{"id-1 — app-one"}, resp.Msg.Apps)
-}
-
-func TestGetProviderOptions_DigitalOceanError(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-	testApp.doClient = digitalocean.New(
-		logging.NewNopLogger(), stubTok(""), configNotConnected(),
-	)
-
-	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
-		Provider: string(models.OAuthProviderDigitalOcean),
 	})
 	setCookieOnRequest(req, accessToken)
 	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
@@ -309,43 +257,6 @@ func TestSetProviderConfig_Sentry(t *testing.T) {
 	_, conn, err := testApp.oauthConnRepo.Get(t.Context(), models.OAuthProviderSentry)
 	require.NoError(t, err)
 	assert.JSONEq(t, `{"org":"org-a","projects":["p1","p2"]}`, string(conn.Config))
-}
-
-func TestSetProviderConfig_DigitalOcean_ParsesFriendlyOption(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-	clearOAuthConnections(t)
-
-	require.NoError(t, testApp.oauthConnRepo.Upsert(
-		t.Context(),
-		models.OAuthProviderDigitalOcean,
-		&oauth2.Token{ //nolint:exhaustruct // other token fields unused in test
-			AccessToken: "tok",
-		},
-		testUserID,
-		nil,
-	))
-
-	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
-		Provider: string(models.OAuthProviderDigitalOcean),
-		Config: &observabilityv1.ProviderConfig{
-			Config: &observabilityv1.ProviderConfig_Digitalocean{
-				Digitalocean: &observabilityv1.DigitalOceanConfig{
-					AppId: "id-1 — app-one",
-				},
-			},
-		},
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
-	require.NoError(t, err)
-
-	_, conn, err := testApp.oauthConnRepo.Get(
-		t.Context(),
-		models.OAuthProviderDigitalOcean,
-	)
-	require.NoError(t, err)
-	assert.JSONEq(t, `{"app_id":"id-1"}`, string(conn.Config))
 }
 
 func TestSetProviderConfig_MissingFields(t *testing.T) {

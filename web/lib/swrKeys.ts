@@ -17,7 +17,9 @@ export const swrKeys = {
   monitoringSecurityAlerts: '/monitoring/security-alerts',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringSlowTransactions: '/monitoring/slow-transactions',
-  monitoringDeployStatus: '/monitoring/deploy-status',
+  monitoringHostMetrics: '/monitoring/host-metrics',
+  monitoringLogs: (source: string, minLevel: string) =>
+    ['/monitoring/logs', source, minLevel] as const,
   monitoringOAuthConnections: '/monitoring/oauth-connections',
   contacts: '/contacts',
   // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
