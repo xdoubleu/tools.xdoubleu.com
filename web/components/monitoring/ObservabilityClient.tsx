@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { Select } from '@/components/ui/select'
@@ -33,8 +34,14 @@ import OAuthConnectionsCard from './OAuthConnectionsCard'
 const WINDOW_OPTIONS = [7, 30, 90]
 
 export default function ObservabilityClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [windowDays, setWindowDays] = useState(30)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [oauthMessage, setOAuthMessage] = useState<{
+    tone: 'success' | 'danger'
+    text: string
+  } | null>(null)
 
   const jobStats = useJobStats(windowDays)
   const usageStats = useUsageStats(windowDays)
@@ -47,6 +54,29 @@ export default function ObservabilityClient() {
   const slowTransactions = useSlowTransactions()
   const deployStatus = useDeployStatus()
   const oauthConnections = useOAuthConnections()
+
+  useEffect(() => {
+    const connected = searchParams.get('oauth_connected')
+    const errored = searchParams.get('oauth_error')
+    if (!connected && !errored) return
+
+    if (connected) {
+      setOAuthMessage({ tone: 'success', text: `Connected ${connected}.` })
+      void oauthConnections.mutate()
+    } else if (errored) {
+      setOAuthMessage({
+        tone: 'danger',
+        text: `Failed to connect ${errored}. Check the server logs for details.`
+      })
+    }
+
+    const params = new URLSearchParams(searchParams)
+    params.delete('oauth_connected')
+    params.delete('oauth_error')
+    router.replace(params.size > 0 ? `/monitoring?${params}` : '/monitoring')
+    // oauthConnections/router deliberately excluded: this should run once per
+    // incoming URL, not on every SWR/router identity change.
+  }, [searchParams])
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -143,6 +173,14 @@ export default function ObservabilityClient() {
           </Select>
         </div>
       </div>
+
+      {oauthMessage && (
+        <p
+          className={`mb-6 text-sm ${oauthMessage.tone === 'success' ? 'text-success' : 'text-danger'}`}
+        >
+          {oauthMessage.text}
+        </p>
+      )}
 
       <StatTiles tiles={tiles} />
 

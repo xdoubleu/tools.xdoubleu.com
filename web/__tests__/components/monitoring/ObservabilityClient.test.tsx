@@ -26,6 +26,14 @@ const mockUseSlowTransactions = jest.fn()
 const mockUseDeployStatus = jest.fn()
 const mockUseOAuthConnections = jest.fn()
 
+const mockRouterReplace = jest.fn()
+let mockSearchParams = new URLSearchParams()
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockRouterReplace }),
+  useSearchParams: () => mockSearchParams
+}))
+
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
   useUsageStats: (d: number) => mockUseUsageStats(d),
@@ -55,6 +63,7 @@ const mockMutate = jest.fn()
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockSearchParams = new URLSearchParams()
   mockMutate.mockResolvedValue(undefined)
   mockTriggerStorageScan.mockResolvedValue(undefined)
   mockUseJobStats.mockReturnValue({
@@ -180,5 +189,34 @@ describe('ObservabilityClient', () => {
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
+  })
+
+  it('shows a success banner and revalidates connections on oauth_connected', async () => {
+    mockSearchParams = new URLSearchParams('oauth_connected=github')
+
+    render(<ObservabilityClient />)
+
+    expect(await screen.findByText('Connected github.')).toBeInTheDocument()
+    expect(mockMutate).toHaveBeenCalled()
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring')
+  })
+
+  it('shows an error banner on oauth_error without revalidating', async () => {
+    mockSearchParams = new URLSearchParams('oauth_error=github')
+
+    render(<ObservabilityClient />)
+
+    expect(
+      await screen.findByText('Failed to connect github. Check the server logs for details.')
+    ).toBeInTheDocument()
+    expect(mockMutate).not.toHaveBeenCalled()
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring')
+  })
+
+  it('shows no banner and does not touch the URL when neither param is present', () => {
+    render(<ObservabilityClient />)
+
+    expect(screen.queryByText(/Connected|Failed to connect/)).not.toBeInTheDocument()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
   })
 })
