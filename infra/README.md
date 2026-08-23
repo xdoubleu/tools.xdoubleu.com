@@ -130,6 +130,18 @@ Postgres — see below.
 `harden.sh` is idempotent — re-running `tofu apply` after editing it (or with
 no changes at all) is safe.
 
+**Getting notified of a new Ubuntu LTS release (issue #1134):** `unattended-upgrades`
+only ever patches within the current release — it deliberately never runs
+`do-release-upgrade`, since automating a full OS release upgrade on a
+single-instance box with no HA is too risky. Since the box owner rarely SSHes
+in (so the SSH login MOTD's "New release available" banner would go unseen),
+`api/internal/observability/jobs/ubuntu_release.go`'s `UbuntuReleaseJob` polls
+Canonical's meta-release feed once a day and emails `NOTIFY_EMAIL_TO` the
+first time it lists a newer LTS than the job's hardcoded
+`currentUbuntuLTSVersion` constant. **After actually running a
+`do-release-upgrade` on the VPS, bump that constant to the new version** —
+otherwise the job keeps alerting on the release you just upgraded to.
+
 ## Stand up Postgres
 
 The same `tofu apply` above also creates `null_resource.postgres`, which
