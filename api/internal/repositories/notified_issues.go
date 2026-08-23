@@ -6,8 +6,8 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// NotifiedIssuesRepository tracks which Sentry issues / DigitalOcean failed
-// deployments have already triggered a notification email, so a restart or a
+// NotifiedIssuesRepository tracks which Sentry issues / failing pull
+// requests have already triggered a notification email, so a restart or a
 // repeated job run doesn't re-send one already sent (issue #561).
 type NotifiedIssuesRepository struct {
 	db postgres.DB

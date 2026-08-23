@@ -10,7 +10,8 @@ import {
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetSlowTransactionsResponseSchema,
-  GetDeployStatusResponseSchema,
+  GetHostMetricsResponseSchema,
+  GetLogsResponseSchema,
   ListOAuthConnectionsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
@@ -25,7 +26,8 @@ const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
-const mockUseDeployStatus = jest.fn()
+const mockUseHostMetrics = jest.fn()
+const mockUseLogs = jest.fn()
 const mockUseOAuthConnections = jest.fn()
 
 const mockRouterReplace = jest.fn()
@@ -47,7 +49,8 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
   useSlowTransactions: () => mockUseSlowTransactions(),
-  useDeployStatus: () => mockUseDeployStatus(),
+  useHostMetrics: () => mockUseHostMetrics(),
+  useLogs: () => mockUseLogs(),
   useOAuthConnections: () => mockUseOAuthConnections(),
   useDisconnectOAuthConnection: () => jest.fn()
 }))
@@ -130,9 +133,17 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
-  mockUseDeployStatus.mockReturnValue({
-    data: create(GetDeployStatusResponseSchema, { configured: true, phase: 'ACTIVE' }),
+  mockUseHostMetrics.mockReturnValue({
+    data: create(GetHostMetricsResponseSchema, {
+      cpuPercent: 12.3,
+      memoryPercent: 45.6,
+      diskPercent: 78.9
+    }),
     mutate: mockMutate
+  })
+  mockUseLogs.mockReturnValue({
+    data: create(GetLogsResponseSchema, { entries: [] }),
+    isLoading: false
   })
   mockUseOAuthConnections.mockReturnValue({
     data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
@@ -151,8 +162,8 @@ describe('ObservabilityClient', () => {
     // External-signal tiles render from their hook data.
     expect(screen.getByText('Failing PRs')).toBeInTheDocument()
     expect(screen.getByText('Unresolved errors')).toBeInTheDocument()
-    expect(screen.getByText('Deploy')).toBeInTheDocument()
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
+    expect(screen.getAllByText('CPU').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('12.3%').length).toBeGreaterThan(0)
   })
 
   it('degrades external tiles when their sources are unconfigured', () => {
@@ -165,14 +176,11 @@ describe('ObservabilityClient', () => {
     mockUseSentryIssues.mockReturnValue({
       data: create(GetSentryIssuesResponseSchema, { configured: false })
     })
-    mockUseDeployStatus.mockReturnValue({
-      data: create(GetDeployStatusResponseSchema, { configured: false })
-    })
 
     render(<ObservabilityClient />)
-    // Failing PRs / Security alerts / Unresolved errors / Deploy tiles all
-    // fall back to a dash.
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(4)
+    // Failing PRs / Security alerts / Unresolved errors tiles all fall back
+    // to a dash.
+    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
   })
 
   it('refetches job/usage stats when the window changes', () => {

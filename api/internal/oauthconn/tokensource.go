@@ -1,7 +1,7 @@
 // Package oauthconn provides the shared "fetch a live token, refreshing
 // transparently" and CSRF-state plumbing used by every OAuth-connected
-// external provider (GitHub, Sentry, DigitalOcean). Provider-specific
-// endpoints/scopes live next to each provider's client instead of here.
+// external provider (GitHub, Sentry). Provider-specific endpoints/scopes
+// live next to each provider's client instead of here.
 package oauthconn
 
 import (

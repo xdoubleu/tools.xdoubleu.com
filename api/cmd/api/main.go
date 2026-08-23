@@ -22,7 +22,6 @@ import (
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
 	essentialogger "tools.xdoubleu.com/internal/logging"
@@ -59,15 +58,17 @@ type Application struct {
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
 	dbStatsRepo                   *repositories.DBStatsRepository
+	hostMetricsRepo               *repositories.HostMetricsRepository
+	logsRepo                      *repositories.LogsRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
-	doClient                      digitalocean.Client
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueNotifierJob              *jobs.IssueNotifierJob
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
+	hostMetricsSnapshotJob        *jobs.HostMetricsSnapshotJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -96,6 +97,8 @@ const (
 	// transaction-latency snapshot, issue #848).
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
+	// hostMetricsScrapeTimeout bounds one node_exporter HTTP scrape.
+	hostMetricsScrapeTimeout = 5 * time.Second
 )
 
 // migrationLockTimeout bounds how long a starting replica waits for the
@@ -120,16 +123,24 @@ func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
 func main() {
 	cfg := config.New(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 
-	logger := slog.New(sentrytools.NewLogHandler(cfg.Env,
+	bootLogger := slog.New(sentrytools.NewLogHandler(cfg.Env,
 		slog.NewTextHandler(os.Stdout, nil)))
-	// Code that can't receive the injected logger falls back to
-	// slog.Default(); route it through the Sentry handler too.
-	slog.SetDefault(logger)
-	db, err := newDBPool(logger, cfg.DBDsn)
+	db, err := newDBPool(bootLogger, cfg.DBDsn)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+
+	// The DB pool needs to exist before a handler can tee logs into
+	// global.log_entries, so this handler chain is built after it, rather
+	// than alongside bootLogger above.
+	logger := slog.New(observability.NewLogRepoHandler(
+		sentrytools.NewLogHandler(cfg.Env, slog.NewTextHandler(os.Stdout, nil)),
+		repositories.NewLogsRepository(db),
+	))
+	// Code that can't receive the injected logger falls back to
+	// slog.Default(); route it through the same handler chain too.
+	slog.SetDefault(logger)
 
 	app := NewApplication(logger, cfg, db)
 
@@ -154,8 +165,8 @@ func main() {
 func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	if config.EncryptionKey == "" {
 		logger.Warn(
-			"ENCRYPTION_KEY not set — GitHub/Sentry/DigitalOcean OAuth " +
-				"connections and TOTP enrollment cannot be stored",
+			"ENCRYPTION_KEY not set — GitHub/Sentry OAuth connections and " +
+				"TOTP enrollment cannot be stored",
 		)
 		return nil
 	}
@@ -189,14 +200,14 @@ func newContactsService(
 		notificationsSvc
 }
 
-// newObservabilityClients builds the three external observability clients,
+// newObservabilityClients builds the two external observability clients,
 // each resolving its bearer token from oauthConnRepo via oauthconn.TokenFunc
 // instead of a static config value (issue #440).
 func newObservabilityClients(
 	logger *slog.Logger,
 	config config.Config,
 	oauthConnRepo *repositories.OAuthConnectionsRepository,
-) (github.Client, sentryapi.Client, digitalocean.Client) {
+) (github.Client, sentryapi.Client) {
 	if config.GithubOAuthClientID == "" || config.GithubOAuthClientSecret == "" {
 		logger.Warn(
 			"GITHUB_OAUTH_CLIENT_ID/SECRET not set — GitHub OAuth connect will fail",
@@ -229,23 +240,7 @@ func newObservabilityClients(
 		),
 		oauthConnRepo,
 	)
-	if config.DOOAuthClientID == "" || config.DOOAuthClientSecret == "" {
-		logger.Warn(
-			"DO_OAUTH_CLIENT_ID/SECRET not set — DigitalOcean OAuth connect will fail",
-		)
-	}
-	doClient := digitalocean.New(
-		logger,
-		oauthconn.NewTokenFunc(
-			oauthConnRepo, models.OAuthProviderDigitalOcean,
-			digitalocean.OAuthConfig(
-				config.DOOAuthClientID, config.DOOAuthClientSecret,
-				config.APIURL,
-			),
-		),
-		oauthConnRepo,
-	)
-	return githubClient, sentryClient, doClient
+	return githubClient, sentryClient
 }
 
 // newCrossAppJobs builds the jobs registered directly on
@@ -256,7 +251,6 @@ func newObservabilityClients(
 func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
-	doClient digitalocean.Client,
 	githubClient github.Client,
 	notificationsSvc *notifications.Service,
 ) (
@@ -266,7 +260,7 @@ func newCrossAppJobs(
 ) {
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, doClient, githubClient, notificationsSvc, notifiedIssuesRepo,
+		sentryClient, githubClient, notificationsSvc, notifiedIssuesRepo,
 	)
 
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
@@ -308,13 +302,12 @@ func (a feedsHealthAdapter) ListUnhealthy(
 
 func newWeeklyDigestJob(
 	sentryClient sentryapi.Client,
-	doClient digitalocean.Client,
 	githubClient github.Client,
 	feedsApp *feeds.Feeds,
 	notificationsSvc *notifications.Service,
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
-		sentryClient, doClient, githubClient,
+		sentryClient, githubClient,
 		feedsHealthAdapter{feeds: feedsApp}, notificationsSvc,
 	)
 }
@@ -335,8 +328,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.hostMetricsSnapshotJob, app.db), noopCallback,
 	)
 }
 
@@ -384,7 +382,7 @@ func NewApplication(
 	)
 
 	oauthConnRepo := repositories.NewOAuthConnectionsRepository(db, authSealer)
-	githubClient, sentryClient, doClient := newObservabilityClients(
+	githubClient, sentryClient := newObservabilityClients(
 		logger, config, oauthConnRepo,
 	)
 
@@ -392,10 +390,18 @@ func NewApplication(
 		newCrossAppJobs(
 			db,
 			sentryClient,
-			doClient,
 			githubClient,
 			notificationsSvc,
 		)
+
+	hostMetricsRepo := repositories.NewHostMetricsRepository(db)
+	logsRepo := repositories.NewLogsRepository(db)
+	hostMetricsScraper := observability.NewHostMetricsScraper(
+		config.NodeExporterURL, hostMetricsScrapeTimeout,
+	)
+	hostMetricsSnapshotJob := jobs.NewHostMetricsSnapshotJob(
+		hostMetricsScraper, hostMetricsRepo, logsRepo,
+	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
@@ -415,14 +421,16 @@ func NewApplication(
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   repositories.NewStorageSnapshotsRepository(db),
 		dbStatsRepo:                   repositories.NewDBStatsRepository(db),
+		hostMetricsRepo:               hostMetricsRepo,
+		logsRepo:                      logsRepo,
 		oauthConnRepo:                 oauthConnRepo,
 		oauthState:                    oauthconn.NewStateStore(),
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
-		doClient:                      doClient,
 		issueNotifierJob:              issueNotifierJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
+		hostMetricsSnapshotJob:        hostMetricsSnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),
@@ -435,7 +443,7 @@ func NewApplication(
 		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 	)
 	app.weeklyDigestJob = newWeeklyDigestJob(
-		sentryClient, doClient, githubClient, feedsApp, notificationsSvc,
+		sentryClient, githubClient, feedsApp, notificationsSvc,
 	)
 
 	err = app.ApplyMigrations(db)

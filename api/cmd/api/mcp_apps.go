@@ -47,11 +47,17 @@ type resolveSentryIssueArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
 }
 
-// deployLogsArgs is the input for get_deploy_logs. DeploymentID empty means
-// "the latest deployment"; TailLines 0 takes the server's default backlog.
-type deployLogsArgs struct {
-	DeploymentID string `json:"deployment_id,omitempty" jsonschema:"optional, latest"`
-	TailLines    int    `json:"tail_lines,omitempty"    jsonschema:"optional, 1000"`
+// hostMetricsArgs is the input for get_host_metrics. Since empty defaults to
+// the server's own retention window.
+type hostMetricsArgs struct {
+	Since string `json:"since,omitempty" jsonschema:"RFC3339, optional"`
+}
+
+// logsArgs is the input for get_logs. Source/MinLevel empty means "any".
+type logsArgs struct {
+	Source   string `json:"source,omitempty"    jsonschema:"api or web, optional"`
+	MinLevel string `json:"min_level,omitempty" jsonschema:"optional"`
+	Since    string `json:"since,omitempty"     jsonschema:"RFC3339, optional"`
 }
 
 func (app *Application) appsResourceMetadataURL() string {
@@ -176,20 +182,18 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
-	addObsTool(srv, "get_deploy_status",
-		"Phase and health of the latest DigitalOcean deployment.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.deployStatus(ctx), nil
+	addObsTool(srv, "get_host_metrics",
+		"Host CPU/memory/disk usage, scraped from node_exporter, plus history "+
+			"for graphing.",
+		func(ctx context.Context, a hostMetricsArgs) (proto.Message, error) {
+			return h.hostMetrics(ctx, a.Since)
 		})
-	addObsTool(
-		srv,
-		"get_deploy_logs",
-		"Build/deploy/runtime log text for a DigitalOcean deployment (default: "+
-			"the latest). Runtime logs come from the app's active deployment.",
-		func(ctx context.Context, a deployLogsArgs) (proto.Message, error) {
-			return h.deployLogs(ctx, a.DeploymentID, a.TailLines), nil
-		},
-	)
+	addObsTool(srv, "get_logs",
+		"Application logs forwarded from api and web, optionally filtered by "+
+			"source/level.",
+		func(ctx context.Context, a logsArgs) (proto.Message, error) {
+			return h.logs(ctx, a.Source, a.MinLevel, a.Since)
+		})
 }
 
 // addObsTool registers one read-only observability tool. It applies the admin

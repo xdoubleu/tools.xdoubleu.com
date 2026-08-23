@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
@@ -25,15 +24,8 @@ import (
 // that.
 const dependenciesLabel = "dependencies"
 
-// deploymentErrorPhase is the DigitalOcean deployment phase treated as the
-// DO equivalent of a "new issue" — there is no issue tracker on that side,
-// so a failed deployment is what DeployCard.tsx already flags as an error
-// state.
-const deploymentErrorPhase = "ERROR"
-
-// runEvery matches the ~45s in-memory cache on the Sentry/DigitalOcean
-// clients with margin; "realtime" here means "within a few minutes", not
-// sub-second.
+// runEvery matches the ~45s in-memory cache on the Sentry client with
+// margin; "realtime" here means "within a few minutes", not sub-second.
 const runEvery = 5 * time.Minute
 
 // notifiedRepo is the subset of *repositories.NotifiedIssuesRepository this
@@ -49,17 +41,15 @@ type failingPRLister interface {
 }
 
 // IssueNotifierJob emails an admin (via notifications.Service) the first
-// time a Sentry issue, a failed DigitalOcean deployment (issue #561), or a
-// failing "dependencies"-labeled pull request (issue #915) is seen. Any
-// provider being unconfigured degrades that part silently instead of
-// failing the whole run, matching how the /monitoring dashboard already
-// treats sentryapi.ErrNotConfigured/digitalocean.ErrNotConfigured/
-// github.ErrNotConfigured. The actual email delivery is queued on
-// notifications rather than sent inline, so a slow/rate-limited Resend call
-// never blocks this job's worker (issue #923).
+// time a Sentry issue or a failing "dependencies"-labeled pull request
+// (issue #915) is seen. Any provider being unconfigured degrades that part
+// silently instead of failing the whole run, matching how the /monitoring
+// dashboard already treats sentryapi.ErrNotConfigured/github.ErrNotConfigured.
+// The actual email delivery is queued on notifications rather than sent
+// inline, so a slow/rate-limited Resend call never blocks this job's worker
+// (issue #923).
 type IssueNotifierJob struct {
 	sentry        sentryapi.Client
-	do            digitalocean.Client
 	gh            failingPRLister
 	notifications *notifications.Service
 	notified      notifiedRepo
@@ -67,14 +57,12 @@ type IssueNotifierJob struct {
 
 func NewIssueNotifierJob(
 	sentry sentryapi.Client,
-	do digitalocean.Client,
 	gh failingPRLister,
 	notifications *notifications.Service,
 	notified notifiedRepo,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
 		sentry:        sentry,
-		do:            do,
 		gh:            gh,
 		notifications: notifications,
 		notified:      notified,
@@ -91,9 +79,6 @@ func (j *IssueNotifierJob) RunEvery() time.Duration {
 
 func (j *IssueNotifierJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if err := j.notifySentry(ctx, logger); err != nil {
-		return err
-	}
-	if err := j.notifyDigitalOcean(ctx, logger); err != nil {
 		return err
 	}
 	return j.notifyGithub(ctx, logger)
@@ -127,39 +112,12 @@ func (j *IssueNotifierJob) notifySentry(
 	return nil
 }
 
-func (j *IssueNotifierJob) notifyDigitalOcean(
-	ctx context.Context,
-	logger *slog.Logger,
-) error {
-	deployment, err := j.do.LatestDeployment(ctx)
-	if errors.Is(err, digitalocean.ErrNotConfigured) {
-		return nil
-	}
-	if err != nil {
-		logAPIErr(ctx, logger, "issue-notifier: failed to get latest deployment",
-			err, digitalocean.IsTransientAPIError(err))
-		return nil
-	}
-	if deployment == nil || deployment.Phase != deploymentErrorPhase {
-		return nil
-	}
-
-	key := "digitalocean:" + deployment.ID
-	subject := "[DigitalOcean] Deployment failed"
-	body := fmt.Sprintf(
-		"Deployment %s failed.\nCause: %s",
-		deployment.ID,
-		deployment.Cause,
-	)
-	return j.notifyOnce(ctx, key, subject, body)
-}
-
 // notifyGithub emails an admin the first time a "dependencies"-labeled pull
 // request is seen with a failing CI check on its current head commit. The
 // dedup key includes the head SHA (not just the PR number) so a re-push —
 // Renovate rebasing, or a fix landing and then failing differently — is
-// notified again, mirroring how notifyDigitalOcean keys on deployment ID
-// rather than a static "the deploy failed" key.
+// notified again, mirroring how notifySentry keys on issue ID rather than a
+// static "there's a new issue" key.
 func (j *IssueNotifierJob) notifyGithub(
 	ctx context.Context,
 	logger *slog.Logger,

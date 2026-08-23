@@ -8,14 +8,13 @@ import (
 
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // The browser-facing legs of the OAuth connect flow for the observability
-// integrations (GitHub/Sentry/DigitalOcean, issue #440). These are plain HTTP
+// integrations (GitHub/Sentry, issue #440). These are plain HTTP
 // routes, not ConnectRPC: the start leg must issue a 302 redirect to the
 // provider's authorize URL, and the callback leg is invoked directly by the
 // provider's own browser redirect (?code=&state=) — neither fits Connect's
@@ -49,16 +48,6 @@ var oauthProviders = map[string]oauthProviderDef{
 			return sentryapi.OAuthConfig(
 				app.config.SentryOAuthClientID,
 				app.config.SentryOAuthClientSecret,
-				app.config.APIURL,
-			)
-		},
-	},
-	"digitalocean": {
-		provider: models.OAuthProviderDigitalOcean,
-		conf: func(app *Application) *oauth2.Config {
-			return digitalocean.OAuthConfig(
-				app.config.DOOAuthClientID,
-				app.config.DOOAuthClientSecret,
 				app.config.APIURL,
 			)
 		},

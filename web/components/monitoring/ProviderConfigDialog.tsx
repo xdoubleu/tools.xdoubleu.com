@@ -16,8 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
-  sentry: 'Sentry',
-  digitalocean: 'DigitalOcean'
+  sentry: 'Sentry'
 }
 
 interface ProviderConfigDialogProps {
@@ -41,9 +40,6 @@ export default function ProviderConfigDialog({
   const [repos, setRepos] = useState<string[]>([])
   const [repo, setRepo] = useState('')
 
-  const [apps, setApps] = useState<string[]>([])
-  const [app, setApp] = useState('')
-
   const [orgs, setOrgs] = useState<string[]>([])
   const [org, setOrg] = useState('')
   const [projects, setProjects] = useState<string[]>([])
@@ -53,7 +49,6 @@ export default function ProviderConfigDialog({
     if (!open) return
     setError('')
     setRepo('')
-    setApp('')
     setOrg('')
     setProjects([])
     setSelectedProjects([])
@@ -62,7 +57,6 @@ export default function ProviderConfigDialog({
     fetchOptions(provider)
       .then((resp) => {
         setRepos(resp.repos)
-        setApps(resp.apps)
         setOrgs(resp.sentryOrgs)
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load options.'))
@@ -88,19 +82,12 @@ export default function ProviderConfigDialog({
     )
   }
 
-  const canSave =
-    provider === 'github'
-      ? repo !== ''
-      : provider === 'digitalocean'
-        ? app !== ''
-        : org !== '' && selectedProjects.length > 0
+  const canSave = provider === 'github' ? repo !== '' : org !== '' && selectedProjects.length > 0
 
   const handleSave = async () => {
     let config: ProviderConfigInput
     if (provider === 'github') {
       config = { config: { case: 'github', value: { repo } } }
-    } else if (provider === 'digitalocean') {
-      config = { config: { case: 'digitalocean', value: { appId: app } } }
     } else {
       config = {
         config: { case: 'sentry', value: { org, projects: selectedProjects } }
@@ -139,20 +126,6 @@ export default function ProviderConfigDialog({
                   {repos.map((r) => (
                     <option key={r} value={r}>
                       {r}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-            )}
-
-            {provider === 'digitalocean' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-fg">App</label>
-                <Select value={app} onChange={(e) => setApp(e.target.value)}>
-                  <option value="">Select an app…</option>
-                  {apps.map((a) => (
-                    <option key={a} value={a}>
-                      {a}
                     </option>
                   ))}
                 </Select>

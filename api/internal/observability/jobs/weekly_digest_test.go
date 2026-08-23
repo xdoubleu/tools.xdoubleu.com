@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/sentryapi"
@@ -31,7 +30,6 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -51,7 +49,6 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		sentry,
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -69,7 +66,6 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: []jobs.UnhealthyFeed{
 			{
@@ -91,7 +87,6 @@ func TestWeeklyDigestSentryNotConfiguredDoesNotBlockOthers(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
-		fakeDOClient{deployment: doDeployment("d2", "ERROR"), err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -108,7 +103,6 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: []github.PullRequest{
 			failingPR("sha1"),
 		}, err: nil},
@@ -127,26 +121,8 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
-		notifSvc,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Len(t, mail.sent, 1)
-}
-
-func TestWeeklyDigestDOIgnoresNonErrorPhase(t *testing.T) {
-	mail := &fakeMailer{sent: nil, err: nil}
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewWeeklyDigestJob(
-		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: doDeployment("d1", "ACTIVE"), err: nil},
-		fakeGithubClient{prs: nil, err: nil},
-		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
@@ -161,7 +137,6 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: github.ErrNotConfigured},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -178,41 +153,6 @@ func TestWeeklyDigestSentryGenericErrorSkipsSilently(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: assert.AnError},
-		fakeDOClient{deployment: nil, err: nil},
-		fakeGithubClient{prs: nil, err: nil},
-		fakeFeedsLister{unhealthy: nil, err: nil},
-		notifSvc,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Len(t, mail.sent, 1)
-}
-
-func TestWeeklyDigestDONotConfiguredSkipsSilently(t *testing.T) {
-	mail := &fakeMailer{sent: nil, err: nil}
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewWeeklyDigestJob(
-		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: digitalocean.ErrNotConfigured},
-		fakeGithubClient{prs: nil, err: nil},
-		fakeFeedsLister{unhealthy: nil, err: nil},
-		notifSvc,
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Len(t, mail.sent, 1)
-}
-
-func TestWeeklyDigestDOGenericErrorSkipsSilently(t *testing.T) {
-	mail := &fakeMailer{sent: nil, err: nil}
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewWeeklyDigestJob(
-		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: assert.AnError},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -229,7 +169,6 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: assert.AnError},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
@@ -246,7 +185,6 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: []github.PullRequest{
 			failingPR("sha1", "not-dependencies"),
 		}, err: nil},
@@ -262,7 +200,6 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 func TestWeeklyDigestID(t *testing.T) {
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeDOClient{deployment: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),

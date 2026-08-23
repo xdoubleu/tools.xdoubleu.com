@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/justinas/alice"
 	mcpauth "github.com/modelcontextprotocol/go-sdk/auth"
@@ -19,62 +18,6 @@ import (
 	"tools.xdoubleu.com/internal/middleware"
 	"tools.xdoubleu.com/internal/oauth2as"
 )
-
-// deployLogsWriteDeadline bounds how long the GetDeployLogs response is
-// allowed to take. It fetches BUILD/DEPLOY/RUN/RUN_RESTARTED logs per
-// service component from DigitalOcean and routinely exceeds the server's
-// global 10s httpWriteTimeout (main.go): that timeout doesn't cancel the
-// handler, it just makes the eventual response write silently fail once the
-// deadline has passed, so the request looked "successful but slow" while
-// producing no error, no log line, and no Sentry event. This route gets its
-// own longer write deadline and a shorter context timeout so a genuinely
-// stuck upstream call fails loudly instead of hanging past it.
-//
-// deployLogsCtxTimeout must stay below deployLogsWriteDeadline by a real
-// margin (issue #672): the context deadline is what aborts the slow
-// DigitalOcean calls, but the handler still needs time afterward to unwind,
-// marshal a degraded/error response, and write it. Setting both to the same
-// value reproduces the exact bug this pair fixes — the write deadline
-// expires at the same instant the context does, so the eventual write
-// silently fails just like the original global-10s-timeout case.
-//
-// deployLogsCtxTimeout must also stay under the edge proxy's response
-// timeout (issue #672, second pass): at 50s, DigitalOcean App Platform's
-// then-fixed ~25s edge reset the upstream connection (503 UC) before the
-// context deadline ever fired, which is a silent failure — no log line, no
-// Sentry event. Firing first turns that into a logged, Sentry-reported
-// error. The edge is kamal-proxy since #1113 and the ceiling is 30s (its
-// default; config/deploy.yml leaves proxy.response_timeout unset), so 20s
-// still clears it — but raising this means raising that too. The healthy path
-// completes in well under this (live reads are bounded by liveLogDeadline),
-// so it only bites a genuinely stuck call.
-const (
-	deployLogsWriteDeadline = 60 * time.Second
-	deployLogsCtxTimeout    = 20 * time.Second
-)
-
-// withExtendedDeadline raises the response write deadline (net/http's
-// ResponseController) and gives the request context its own, shorter
-// timeout, for one slow route — without touching the server-wide
-// httpWriteTimeout that every other (fast) route relies on.
-func withExtendedDeadline(
-	writeDeadline, ctxTimeout time.Duration, next http.HandlerFunc,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := http.NewResponseController(w).SetWriteDeadline(
-			time.Now().Add(writeDeadline),
-		); err != nil {
-			// Not all ResponseWriters support deadlines (e.g. in tests using
-			// httptest.ResponseRecorder) — fall back to the ambient deadline.
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(r.Context(), ctxTimeout)
-		defer cancel()
-		next.ServeHTTP(w, r.WithContext(ctx))
-	}
-}
 
 //nolint:funlen //route registration: a long list, not complex logic
 func (app *Application) Routes() http.Handler {
@@ -101,15 +44,10 @@ func (app *Application) Routes() http.Handler {
 		"POST "+obsPath,
 		app.auth.Access(obsHandler.ServeHTTP),
 	)
-	// More specific than the prefix registration above, so net/http's mux
-	// routes this one procedure through the extended deadline instead.
+
 	mux.Handle(
-		"POST "+observabilityv1connect.ObservabilityServiceGetDeployLogsProcedure,
-		app.auth.Access(
-			withExtendedDeadline(
-				deployLogsWriteDeadline, deployLogsCtxTimeout, obsHandler.ServeHTTP,
-			),
-		),
+		"POST "+observabilityLogsIngestPath,
+		app.observabilityIngestRoute(),
 	)
 
 	contactsPath, contactsHandler := contactsv1connect.NewContactsServiceHandler(
