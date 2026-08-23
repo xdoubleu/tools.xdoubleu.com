@@ -1,6 +1,7 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
+import { formatDateTime } from '@/lib/dates'
 import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
@@ -19,7 +20,12 @@ import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequests
 import WorkflowRunsCard from '@/components/monitoring/WorkflowRunsCard'
 import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
-import HostMetricsCard from '@/components/monitoring/HostMetricsCard'
+import HostMetricsCard, {
+  xAxisTickFormatter,
+  yAxisTickFormatter,
+  tooltipLabelFormatter,
+  tooltipValueFormatter
+} from '@/components/monitoring/HostMetricsCard'
 
 const mockResolveSentryIssue = jest.fn()
 jest.mock('@/hooks/useMonitoring', () => ({
@@ -480,5 +486,39 @@ describe('HostMetricsCard', () => {
   it('shows a loading state without data', () => {
     render(<HostMetricsCard data={undefined} />)
     expect(screen.getAllByText('—').length).toBe(3)
+  })
+
+  it('shows a placeholder when a metric has no history yet', () => {
+    const data = create(GetHostMetricsResponseSchema, {
+      cpuPercent: 1,
+      memoryPercent: 2,
+      diskPercent: 3,
+      cpuHistory: [],
+      memoryHistory: [],
+      diskHistory: []
+    })
+
+    render(<HostMetricsCard data={data} />)
+    expect(screen.getAllByText('No history yet.').length).toBe(3)
+  })
+})
+
+describe('HostMetricsCard chart formatters', () => {
+  it('formats the x-axis tick as a time', () => {
+    expect(xAxisTickFormatter('2026-01-01T13:45:00Z')).not.toBe('2026-01-01T13:45:00Z')
+    expect(xAxisTickFormatter('not-a-date')).toBe('not-a-date')
+  })
+
+  it('formats the y-axis tick as a percentage', () => {
+    expect(yAxisTickFormatter(42)).toBe('42%')
+  })
+
+  it('formats the tooltip label from a string timestamp', () => {
+    expect(tooltipLabelFormatter('2026-01-01T13:45:00Z')).not.toBe('')
+    expect(tooltipLabelFormatter(123)).toBe(formatDateTime(''))
+  })
+
+  it('formats the tooltip value as a percentage with its label', () => {
+    expect(tooltipValueFormatter(12.34, 'CPU')).toEqual(['12.3%', 'CPU'])
   })
 })

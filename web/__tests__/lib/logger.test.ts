@@ -67,4 +67,28 @@ describe('logger (server)', () => {
     expect(mockFetch).not.toHaveBeenCalled()
     errorSpy.mockRestore()
   })
+
+  it('swallows a failed upstream fetch', async () => {
+    mockFetch.mockRejectedValue(new Error('network down'))
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+
+    logger.warn('uh oh')
+    jest.advanceTimersByTime(2000)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    expect(mockFetch).toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
+
+  it('flushes immediately once the batch reaches its max size', () => {
+    const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {})
+
+    for (let i = 0; i < 25; i++) {
+      logger.debug(`entry ${i}`)
+    }
+
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    debugSpy.mockRestore()
+  })
 })
