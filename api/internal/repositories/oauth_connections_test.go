@@ -52,6 +52,7 @@ func TestOAuthConnectionsRoundTrip(t *testing.T) {
 				Expiry:       expiry,
 			},
 			"admin-user",
+			nil,
 		),
 	)
 
@@ -101,7 +102,7 @@ func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
 	}).WithExtra(map[string]any{"scope": "org:read project:read"})
 	require.NoError(
 		t,
-		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok, "admin"),
+		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok, "admin", nil),
 	)
 
 	_, conn, err := repo.Get(t.Context(), models.OAuthProviderSentry)
@@ -115,12 +116,49 @@ func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
 	}).WithExtra(map[string]any{"scope": "org:read project:read event:write"})
 	require.NoError(
 		t,
-		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok2, "admin"),
+		repo.Upsert(t.Context(), models.OAuthProviderSentry, tok2, "admin", nil),
 	)
 
 	_, conn, err = repo.Get(t.Context(), models.OAuthProviderSentry)
 	require.NoError(t, err)
 	assert.Equal(t, "org:read project:read event:write", conn.GrantedScope)
+}
+
+func TestOAuthConnectionsUpsertStoresRequestedScope(t *testing.T) {
+	clearOAuthConnections(t)
+	repo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
+
+	// GitHub echoes back only `repo`, having dropped the `security_events`
+	// its own scope subsumes — what was asked for is stored separately so a
+	// staleness check never has to trust that echo.
+	tok := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+		AccessToken: "access-1",
+	}).WithExtra(map[string]any{"scope": "repo"})
+	require.NoError(t, repo.Upsert(
+		t.Context(), models.OAuthProviderGithub, tok, "admin",
+		[]string{"repo", "security_events"},
+	))
+
+	_, conn, err := repo.Get(t.Context(), models.OAuthProviderGithub)
+	require.NoError(t, err)
+	assert.Equal(t, "repo security_events", conn.RequestedScope)
+	assert.Equal(t, "repo", conn.GrantedScope)
+
+	list, err := repo.List(t.Context())
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "repo security_events", list[0].RequestedScope)
+
+	// A reconnect with a narrower set overwrites rather than merges, so a
+	// downgrade is visible instead of masked by the previous value.
+	require.NoError(t, repo.Upsert(
+		t.Context(), models.OAuthProviderGithub, tok, "admin",
+		[]string{"repo"},
+	))
+
+	_, conn, err = repo.Get(t.Context(), models.OAuthProviderGithub)
+	require.NoError(t, err)
+	assert.Equal(t, "repo", conn.RequestedScope)
 }
 
 func TestOAuthConnectionsIndependentPerProvider(t *testing.T) {
@@ -134,6 +172,7 @@ func TestOAuthConnectionsIndependentPerProvider(t *testing.T) {
 			AccessToken: "gh-token",
 		},
 		"admin",
+		nil,
 	))
 	require.NoError(t, repo.Upsert(
 		t.Context(),
@@ -142,6 +181,7 @@ func TestOAuthConnectionsIndependentPerProvider(t *testing.T) {
 			AccessToken: "sentry-token",
 		},
 		"admin",
+		nil,
 	))
 
 	require.NoError(t, repo.Delete(t.Context(), models.OAuthProviderGithub))
@@ -173,6 +213,7 @@ func TestOAuthConnectionsSetConfig(t *testing.T) {
 			AccessToken: "gh-token",
 		},
 		"admin",
+		nil,
 	))
 
 	_, conn, err := repo.Get(t.Context(), models.OAuthProviderGithub)
@@ -201,6 +242,7 @@ func TestOAuthConnectionsSetConfig(t *testing.T) {
 			AccessToken: "sentry-token",
 		},
 		"admin",
+		nil,
 	))
 	require.NoError(t, repo.SetConfig(
 		t.Context(),
@@ -224,6 +266,7 @@ func TestOAuthConnectionsSetConfigRejectsInvalidJSON(t *testing.T) {
 			AccessToken: "gh-token",
 		},
 		"admin",
+		nil,
 	))
 
 	// Postgres would otherwise reject this with a raw SQLSTATE 22P02
@@ -251,6 +294,7 @@ func TestOAuthConnectionsRepository_DecryptFailedOnKeyMismatch(t *testing.T) {
 			AccessToken: "gh-token",
 		},
 		"admin",
+		nil,
 	))
 
 	otherKey := make([]byte, 32)
@@ -277,6 +321,7 @@ func TestOAuthConnectionsRepository_EncryptionNotConfigured(t *testing.T) {
 			AccessToken: "x",
 		},
 		"admin",
+		nil,
 	)
 	assert.ErrorIs(t, err, repositories.ErrEncryptionNotConfigured)
 }

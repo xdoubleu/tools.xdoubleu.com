@@ -37,9 +37,17 @@ type OAuthConnection struct {
 	// opaque JSON — nil means "connected but not yet configured". Parsing
 	// into a provider-specific shape happens at the client/handler layer.
 	Config json.RawMessage
-	// GrantedScope is the space-separated `scope` the provider returned with
-	// the token (empty if the provider didn't echo one back). Compared
-	// against a provider's currently configured oauth2.Config.Scopes to
-	// detect a connection authorized before a required scope was added.
+	// GrantedScope is the `scope` the provider returned with the token (empty
+	// if the provider didn't echo one back). It is the provider's own
+	// normalized view, not a faithful echo of what was asked for — GitHub
+	// drops scopes a broader one already subsumes, returning just `repo` for
+	// a `repo security_events` authorization — so it is diagnostic only and
+	// must never decide whether a connection covers what a provider needs.
 	GrantedScope string
+	// RequestedScope is the space-separated set of scopes this connection was
+	// authorized with, recorded from oauth2.Config.Scopes at connect time.
+	// Compared against a provider's currently configured scopes to detect a
+	// connection authorized before a required scope was added. Empty for rows
+	// written before it was recorded; those fall back to GrantedScope.
+	RequestedScope string
 }

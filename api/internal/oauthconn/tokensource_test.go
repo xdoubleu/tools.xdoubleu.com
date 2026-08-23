@@ -91,6 +91,29 @@ func TestNewTokenFunc_StaleScope_TreatedAsNotConnected(t *testing.T) {
 	)
 }
 
+// A GitHub connection authorized with every required scope must be usable
+// even though GitHub echoes back only `repo`, having dropped the
+// `security_events` that `repo` subsumes.
+func TestNewTokenFunc_NormalizedGrantedScope_StillConnected(t *testing.T) {
+	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
+		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test
+			AccessToken: "abc",
+		},
+		conn: &models.OAuthConnection{ //nolint:exhaustruct // other fields unused in test
+			RequestedScope: "repo security_events",
+			GrantedScope:   "repo",
+		},
+	}
+	conf := &oauth2.Config{ //nolint:exhaustruct // other fields unused in test
+		Scopes: []string{"repo", "security_events"},
+	}
+	fn := oauthconn.NewTokenFunc(store, models.OAuthProviderGithub, conf)
+
+	token, err := fn(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "abc", token)
+}
+
 func TestNewTokenFunc_NonExpiringToken_NoRefreshCall(t *testing.T) {
 	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
 		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test
