@@ -153,6 +153,55 @@ resource "null_resource" "kamal_network" {
   }
 }
 
+# Uploads the release-upgrade-check script and its env file (issue #1194),
+# then (re)starts the timer harden.sh already enabled — the timer unit
+# exists after harden.sh runs, but the script/env it depends on lives here
+# so editing either doesn't require touching harden.sh's own trigger hash.
+# Runs as `deploy`, using sudo for the root-owned destinations, same as the
+# other post-harden resources here.
+resource "null_resource" "release_upgrade_check" {
+  depends_on = [null_resource.harden]
+
+  triggers = {
+    script_hash = filesha256("${path.module}/release-upgrade-check.sh")
+    env_hash = sha256(join("\n", [
+      var.release_check_resend_api_key, var.release_check_email_from, var.release_check_email_to
+    ]))
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/release-upgrade-check.sh"
+    destination = "/tmp/release-upgrade-check.sh"
+  }
+
+  provisioner "file" {
+    content     = <<-EOT
+      RESEND_API_KEY=${var.release_check_resend_api_key}
+      NOTIFY_EMAIL_FROM=${var.release_check_email_from}
+      NOTIFY_EMAIL_TO=${var.release_check_email_to}
+    EOT
+    destination = "/tmp/release-upgrade-check.env"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mv /tmp/release-upgrade-check.sh /usr/local/bin/release-upgrade-check.sh",
+      "sudo chmod +x /usr/local/bin/release-upgrade-check.sh",
+      "sudo mv /tmp/release-upgrade-check.env /etc/release-upgrade-check.env",
+      "sudo chown root:root /etc/release-upgrade-check.env",
+      "sudo chmod 600 /etc/release-upgrade-check.env",
+      "sudo systemctl restart release-upgrade-check.timer",
+    ]
+  }
+}
+
 # Stands up self-hosted Postgres (issue #1031) via Docker Compose, following
 # the same file+remote-exec pattern as null_resource.harden above. Runs as
 # `deploy`, not root, since harden.sh already put it in the docker group.

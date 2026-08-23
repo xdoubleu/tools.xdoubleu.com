@@ -12,7 +12,15 @@ server_ip              = ""
 # write the plain path instead.
 deploy_ssh_public_keys = ["~/.ssh/id_ed25519.pub", "~/.ssh/kamal_ci_deploy.pub"]
 
-# That's everything. The app's own secrets (DB_DSN, JWT_SECRET,
+# Host-level tooling secret for the VPS-local release-upgrade-check systemd
+# timer (issue #1194) — NOT api/web's own RESEND_API_KEY repo Secret, which
+# is unrelated. See README.md's "Getting notified of a new Ubuntu LTS
+# release" section.
+release_check_resend_api_key = ""
+release_check_email_from     = ""
+release_check_email_to       = ""
+
+# That's everything else. The app's own secrets (DB_DSN, JWT_SECRET,
 # OAUTH_HMAC_SECRET, R2_*, SENTRY_*, the OAuth client pairs, ENCRYPTION_KEY,
 # EMAIL_*, ...) are NOT tfvars — Tofu only provisions the host. They live
 # solely in repo Secrets, read by .github/workflows/main.yml's deploy-kamal
