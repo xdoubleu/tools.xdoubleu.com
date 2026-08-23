@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -43,14 +44,15 @@ func NewOAuthConnectionsRepository(
 }
 
 type oauthConnectionRow struct {
-	accessToken  []byte
-	refreshToken []byte
-	expiresAt    *time.Time
-	connectedBy  string
-	connectedAt  time.Time
-	updatedAt    time.Time
-	config       []byte
-	scope        *string
+	accessToken    []byte
+	refreshToken   []byte
+	expiresAt      *time.Time
+	connectedBy    string
+	connectedAt    time.Time
+	updatedAt      time.Time
+	config         []byte
+	scope          *string
+	requestedScope *string
 }
 
 // Get returns the decrypted token plus connection metadata for provider, or
@@ -61,13 +63,13 @@ func (r *OAuthConnectionsRepository) Get(
 	var row oauthConnectionRow
 	err := r.db.QueryRow(ctx, `
 		SELECT access_token, refresh_token, expires_at, connected_by,
-		       connected_at, updated_at, config, scope
+		       connected_at, updated_at, config, scope, requested_scope
 		FROM global.oauth_connections
 		WHERE provider = $1
 	`, provider).Scan(
 		&row.accessToken, &row.refreshToken, &row.expiresAt,
 		&row.connectedBy, &row.connectedAt, &row.updatedAt, &row.config,
-		&row.scope,
+		&row.scope, &row.requestedScope,
 	)
 	if err != nil {
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
@@ -82,12 +84,16 @@ func (r *OAuthConnectionsRepository) Get(
 }
 
 // Upsert stores a fresh token for provider, replacing any existing connection
-// and recording connectedBy as the admin who authorized it.
+// and recording connectedBy as the admin who authorized it. requestedScopes is
+// the oauth2.Config.Scopes the authorization was started with — stored
+// verbatim because a provider's echoed `scope` is its own normalized view and
+// can omit scopes a broader one subsumes.
 func (r *OAuthConnectionsRepository) Upsert(
 	ctx context.Context,
 	provider models.OAuthProvider,
 	tok *oauth2.Token,
 	connectedBy string,
+	requestedScopes []string,
 ) error {
 	access, refresh, err := r.encryptToken(tok)
 	if err != nil {
@@ -98,17 +104,20 @@ func (r *OAuthConnectionsRepository) Upsert(
 
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO global.oauth_connections
-			(provider, access_token, refresh_token, expires_at, connected_by, scope)
-		VALUES ($1, $2, $3, $4, $5, $6)
+			(provider, access_token, refresh_token, expires_at, connected_by,
+			 scope, requested_scope)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (provider) DO UPDATE SET
-			access_token  = EXCLUDED.access_token,
-			refresh_token = EXCLUDED.refresh_token,
-			expires_at    = EXCLUDED.expires_at,
-			connected_by  = EXCLUDED.connected_by,
-			connected_at  = now(),
-			updated_at    = now(),
-			scope         = EXCLUDED.scope
-	`, provider, access, refresh, expiryPtr(tok), connectedBy, nullIfEmpty(scope))
+			access_token    = EXCLUDED.access_token,
+			refresh_token   = EXCLUDED.refresh_token,
+			expires_at      = EXCLUDED.expires_at,
+			connected_by    = EXCLUDED.connected_by,
+			connected_at    = now(),
+			updated_at      = now(),
+			scope           = EXCLUDED.scope,
+			requested_scope = EXCLUDED.requested_scope
+	`, provider, access, refresh, expiryPtr(tok), connectedBy,
+		nullIfEmpty(scope), nullIfEmpty(strings.Join(requestedScopes, " ")))
 	return err
 }
 
@@ -175,7 +184,7 @@ func (r *OAuthConnectionsRepository) List(
 ) ([]models.OAuthConnection, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT provider, expires_at, connected_by, connected_at, updated_at,
-		       config, scope
+		       config, scope, requested_scope
 		FROM global.oauth_connections
 		ORDER BY provider
 	`)
@@ -193,6 +202,7 @@ func (r *OAuthConnectionsRepository) List(
 		if scanErr := rows.Scan(
 			&provider, &row.expiresAt, &row.connectedBy,
 			&row.connectedAt, &row.updatedAt, &row.config, &row.scope,
+			&row.requestedScope,
 		); scanErr != nil {
 			return nil, scanErr
 		}
@@ -262,14 +272,20 @@ func rowToConnection(
 		scope = *row.scope
 	}
 
+	var requestedScope string
+	if row.requestedScope != nil {
+		requestedScope = *row.requestedScope
+	}
+
 	return &models.OAuthConnection{
-		Provider:     provider,
-		ConnectedBy:  row.connectedBy,
-		ConnectedAt:  row.connectedAt,
-		UpdatedAt:    row.updatedAt,
-		ExpiresAt:    row.expiresAt,
-		Config:       row.config,
-		GrantedScope: scope,
+		Provider:       provider,
+		ConnectedBy:    row.connectedBy,
+		ConnectedAt:    row.connectedAt,
+		UpdatedAt:      row.updatedAt,
+		ExpiresAt:      row.expiresAt,
+		Config:         row.config,
+		GrantedScope:   scope,
+		RequestedScope: requestedScope,
 	}
 }
 

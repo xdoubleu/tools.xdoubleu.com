@@ -2888,15 +2888,23 @@ func (*ProviderConfig_Digitalocean) isProviderConfig_Config() {}
 // OAuthConnectionStatus is the admin-facing status of one provider's OAuth
 // connection (issue #440) — never the token itself.
 type OAuthConnectionStatus struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"` // "github" | "sentry" | "digitalocean"
-	Connected     bool                   `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
-	ConnectedBy   string                 `protobuf:"bytes,3,opt,name=connected_by,json=connectedBy,proto3" json:"connected_by,omitempty"` // email, empty if not connected
-	ConnectedAt   string                 `protobuf:"bytes,4,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at,omitempty"` // RFC3339, empty if not connected
-	ExpiresAt     string                 `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`       // RFC3339, empty if non-expiring or not connected
-	Config        *ProviderConfig        `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`                              // unset if connected but not yet configured
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Provider    string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"` // "github" | "sentry" | "digitalocean"
+	Connected   bool                   `protobuf:"varint,2,opt,name=connected,proto3" json:"connected,omitempty"`
+	ConnectedBy string                 `protobuf:"bytes,3,opt,name=connected_by,json=connectedBy,proto3" json:"connected_by,omitempty"` // email, empty if not connected
+	ConnectedAt string                 `protobuf:"bytes,4,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at,omitempty"` // RFC3339, empty if not connected
+	ExpiresAt   string                 `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`       // RFC3339, empty if non-expiring or not connected
+	Config      *ProviderConfig        `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`                              // unset if connected but not yet configured
+	// Scope diagnostics, always populated — including for a provider reported
+	// not connected, which is exactly when they explain why. requested_scope is
+	// what the connection was authorized with and what `connected` is judged
+	// against; granted_scope is the provider's own normalized echo, which can
+	// legitimately omit scopes a broader one subsumes.
+	RequestedScope string `protobuf:"bytes,7,opt,name=requested_scope,json=requestedScope,proto3" json:"requested_scope,omitempty"` // space-separated, empty if never recorded
+	GrantedScope   string `protobuf:"bytes,8,opt,name=granted_scope,json=grantedScope,proto3" json:"granted_scope,omitempty"`       // as returned by the provider, empty if none
+	RequiredScope  string `protobuf:"bytes,9,opt,name=required_scope,json=requiredScope,proto3" json:"required_scope,omitempty"`    // space-separated, what is asked for today
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *OAuthConnectionStatus) Reset() {
@@ -2969,6 +2977,27 @@ func (x *OAuthConnectionStatus) GetConfig() *ProviderConfig {
 		return x.Config
 	}
 	return nil
+}
+
+func (x *OAuthConnectionStatus) GetRequestedScope() string {
+	if x != nil {
+		return x.RequestedScope
+	}
+	return ""
+}
+
+func (x *OAuthConnectionStatus) GetGrantedScope() string {
+	if x != nil {
+		return x.GrantedScope
+	}
+	return ""
+}
+
+func (x *OAuthConnectionStatus) GetRequiredScope() string {
+	if x != nil {
+		return x.RequiredScope
+	}
+	return ""
 }
 
 type ListOAuthConnectionsRequest struct {
@@ -3565,7 +3594,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x06github\x18\x01 \x01(\v2\x1e.observability.v1.GithubConfigH\x00R\x06github\x128\n" +
 	"\x06sentry\x18\x02 \x01(\v2\x1e.observability.v1.SentryConfigH\x00R\x06sentry\x12J\n" +
 	"\fdigitalocean\x18\x03 \x01(\v2$.observability.v1.DigitalOceanConfigH\x00R\fdigitaloceanB\b\n" +
-	"\x06config\"\xf0\x01\n" +
+	"\x06config\"\xe5\x02\n" +
 	"\x15OAuthConnectionStatus\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1c\n" +
 	"\tconnected\x18\x02 \x01(\bR\tconnected\x12!\n" +
@@ -3573,7 +3602,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\fconnected_at\x18\x04 \x01(\tR\vconnectedAt\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\x05 \x01(\tR\texpiresAt\x128\n" +
-	"\x06config\x18\x06 \x01(\v2 .observability.v1.ProviderConfigR\x06config\"\x1d\n" +
+	"\x06config\x18\x06 \x01(\v2 .observability.v1.ProviderConfigR\x06config\x12'\n" +
+	"\x0frequested_scope\x18\a \x01(\tR\x0erequestedScope\x12#\n" +
+	"\rgranted_scope\x18\b \x01(\tR\fgrantedScope\x12%\n" +
+	"\x0erequired_scope\x18\t \x01(\tR\rrequiredScope\"\x1d\n" +
 	"\x1bListOAuthConnectionsRequest\"i\n" +
 	"\x1cListOAuthConnectionsResponse\x12I\n" +
 	"\vconnections\x18\x01 \x03(\v2'.observability.v1.OAuthConnectionStatusR\vconnections\">\n" +

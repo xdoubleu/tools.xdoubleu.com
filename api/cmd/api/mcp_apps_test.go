@@ -51,11 +51,11 @@ var appsToolNames = []string{
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
 	// todos (4)
 	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
-	// observability (12, admin-gated)
+	// observability (13, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
 	"get_sentry_issues", "resolve_sentry_issue", "get_deploy_status", "get_deploy_logs",
-	"get_slow_transactions",
+	"get_slow_transactions", "get_oauth_connections",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -254,6 +254,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
 		"get_sentry_issues", "get_deploy_status", "get_deploy_logs", "get_slow_transactions",
+		"get_oauth_connections",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it

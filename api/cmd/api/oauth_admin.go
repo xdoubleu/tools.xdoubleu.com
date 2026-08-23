@@ -98,8 +98,9 @@ func (app *Application) oauthCallbackRoute() http.HandlerFunc {
 			return
 		}
 
+		conf := def.conf(app)
 		code := r.URL.Query().Get("code")
-		tok, err := def.conf(app).Exchange(r.Context(), code)
+		tok, err := conf.Exchange(r.Context(), code)
 		if err != nil {
 			app.logger.ErrorContext(r.Context(), "oauth exchange failed",
 				slog.String("provider", name), slog.Any("error", err))
@@ -111,7 +112,7 @@ func (app *Application) oauthCallbackRoute() http.HandlerFunc {
 		}
 
 		if storeErr := app.oauthConnRepo.Upsert(
-			r.Context(), def.provider, tok, userID,
+			r.Context(), def.provider, tok, userID, conf.Scopes,
 		); storeErr != nil {
 			app.logger.ErrorContext(r.Context(), "failed to store oauth connection",
 				slog.String("provider", name), slog.Any("error", storeErr))

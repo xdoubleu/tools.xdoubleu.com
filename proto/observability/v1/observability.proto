@@ -380,6 +380,14 @@ message OAuthConnectionStatus {
   string connected_at = 4;  // RFC3339, empty if not connected
   string expires_at = 5;    // RFC3339, empty if non-expiring or not connected
   ProviderConfig config = 6;  // unset if connected but not yet configured
+  // Scope diagnostics, always populated — including for a provider reported
+  // not connected, which is exactly when they explain why. requested_scope is
+  // what the connection was authorized with and what `connected` is judged
+  // against; granted_scope is the provider's own normalized echo, which can
+  // legitimately omit scopes a broader one subsumes.
+  string requested_scope = 7;  // space-separated, empty if never recorded
+  string granted_scope = 8;    // as returned by the provider, empty if none
+  string required_scope = 9;   // space-separated, what is asked for today
 }
 
 message ListOAuthConnectionsRequest {}

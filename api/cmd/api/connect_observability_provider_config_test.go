@@ -244,6 +244,7 @@ func TestSetProviderConfig_Github(t *testing.T) {
 			AccessToken: "tok",
 		},
 		testUserID,
+		nil,
 	))
 
 	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
@@ -288,6 +289,7 @@ func TestSetProviderConfig_Sentry(t *testing.T) {
 			AccessToken: "tok",
 		},
 		testUserID,
+		nil,
 	))
 
 	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
@@ -321,6 +323,7 @@ func TestSetProviderConfig_DigitalOcean_ParsesFriendlyOption(t *testing.T) {
 			AccessToken: "tok",
 		},
 		testUserID,
+		nil,
 	))
 
 	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{

@@ -53,12 +53,13 @@ func NewTokenFunc(
 		if err != nil {
 			return "", err
 		}
-		if !HasScopes(conn.GrantedScope, conf.Scopes) {
-			// The stored token predates a scope conf now requires. A refresh
-			// grant can't add scopes Sentry/GitHub/DO didn't already grant,
-			// so this only clears once an admin re-authorizes via the
-			// existing Connect flow (oauth_admin.go), which overwrites the
-			// connection with a fresh, fully-scoped token.
+		if ScopesAreStale(conn, conf.Scopes) {
+			// The stored token was authorized before a scope conf now
+			// requires. A refresh grant can't add scopes Sentry/GitHub/DO
+			// didn't already grant, so this only clears once an admin
+			// re-authorizes via the existing Connect flow (oauth_admin.go),
+			// which overwrites the connection with a fresh, fully-scoped
+			// token.
 			return "", ErrNotConnected
 		}
 

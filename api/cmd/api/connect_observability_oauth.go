@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"connectrpc.com/connect"
@@ -33,6 +34,18 @@ func (h *obsConnectHandler) ListOAuthConnections(
 		return nil, err
 	}
 
+	res, err := h.oauthConnections(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(res), nil
+}
+
+// oauthConnections builds every provider's admin-facing status. Shared by the
+// Connect handler above and the get_oauth_connections MCP tool.
+func (h *obsConnectHandler) oauthConnections(
+	ctx context.Context,
+) (*observabilityv1.ListOAuthConnectionsResponse, error) {
 	connections, err := h.app.oauthConnRepo.List(ctx)
 	if err != nil {
 		return nil, err
@@ -48,42 +61,61 @@ func (h *obsConnectHandler) ListOAuthConnections(
 
 	statuses := make([]*observabilityv1.OAuthConnectionStatus, len(allOAuthProviders))
 	for i, provider := range allOAuthProviders {
+		required := strings.Join(h.requiredScopes(provider), " ")
+
 		conn, ok := byProvider[provider]
-		if !ok || h.scopeIsStale(provider, conn.GrantedScope) {
-			statuses[i] = &observabilityv1.OAuthConnectionStatus{
-				Provider:  string(provider),
-				Connected: false,
+		if !ok || h.scopeIsStale(&conn) {
+			status := &observabilityv1.OAuthConnectionStatus{
+				Provider:      string(provider),
+				Connected:     false,
+				RequiredScope: required,
 			}
+			if ok {
+				// Stale rather than absent: report what it was authorized
+				// with, so the mismatch is visible without database access.
+				status.RequestedScope = conn.RequestedScope
+				status.GrantedScope = conn.GrantedScope
+			}
+			statuses[i] = status
 			continue
 		}
 		statuses[i] = &observabilityv1.OAuthConnectionStatus{
-			Provider:    string(provider),
-			Connected:   true,
-			ConnectedBy: h.resolveConnectedBy(ctx, conn.ConnectedBy),
-			ConnectedAt: conn.ConnectedAt.Format(time.RFC3339),
-			ExpiresAt:   formatExpiresAt(conn.ExpiresAt),
-			Config:      protoProviderConfig(provider, conn.Config),
+			Provider:       string(provider),
+			Connected:      true,
+			ConnectedBy:    h.resolveConnectedBy(ctx, conn.ConnectedBy),
+			ConnectedAt:    conn.ConnectedAt.Format(time.RFC3339),
+			ExpiresAt:      formatExpiresAt(conn.ExpiresAt),
+			Config:         protoProviderConfig(provider, conn.Config),
+			RequestedScope: conn.RequestedScope,
+			GrantedScope:   conn.GrantedScope,
+			RequiredScope:  required,
 		}
 	}
 
-	return connect.NewResponse(&observabilityv1.ListOAuthConnectionsResponse{
+	return &observabilityv1.ListOAuthConnectionsResponse{
 		Connections: statuses,
-	}), nil
+	}, nil
 }
 
-// scopeIsStale reports whether a stored connection's granted scope no longer
-// covers what provider's oauth2.Config currently requires — e.g. an admin
+// scopeIsStale reports whether a stored connection was authorized with less
+// than what provider's oauth2.Config currently requires — e.g. an admin
 // connected before a required scope was added. Such a connection is shown as
 // not-connected so the existing "Connect" button in the admin UI is the
 // reconnect path, rather than the admin discovering it via a runtime 403.
-func (h *obsConnectHandler) scopeIsStale(
-	provider models.OAuthProvider, grantedScope string,
-) bool {
+func (h *obsConnectHandler) scopeIsStale(conn *models.OAuthConnection) bool {
+	return oauthconn.ScopesAreStale(conn, h.requiredScopes(conn.Provider))
+}
+
+// requiredScopes is what provider's oauth2.Config asks for today, or nil for
+// a provider with no OAuth config (which can never be stale).
+func (h *obsConnectHandler) requiredScopes(
+	provider models.OAuthProvider,
+) []string {
 	def, ok := oauthProviders[string(provider)]
 	if !ok {
-		return false
+		return nil
 	}
-	return !oauthconn.HasScopes(grantedScope, def.conf(h.app).Scopes)
+	return def.conf(h.app).Scopes
 }
 
 // resolveConnectedBy maps a stored user ID to their email, falling back to
