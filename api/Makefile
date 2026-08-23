@@ -5,6 +5,15 @@ UNAME_S := $(shell uname -s)
 # file paths into lint output. Scoping it under CURDIR isolates each worktree.
 export GOLANGCI_LINT_CACHE := $(CURDIR)/.golangci-cache
 
+# Recreates the local Postgres volume from scratch. Repeated local test runs
+# against the same volume can leave state (rows, schema drift) that breaks a
+# later run in ways unrelated to whatever's actually being changed — CI never
+# sees this since every job gets a fresh container. Run this before a rerun if
+# a failure looks like test-order pollution rather than a real regression.
+db/reset:
+	docker-compose down -v
+	docker-compose up -d
+
 tools: tools/lint tools/proto
 
 tools/lint: tools/lint/go tools/lint/sql
