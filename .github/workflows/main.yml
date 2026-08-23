@@ -122,12 +122,21 @@ jobs:
   # kobo_gateway is in this gate: build-web.yml stages the kobo-gateway
   # .dmg/binary into web/public/downloads itself (since #1038) before
   # building the image, so it must re-run when kobo-gateway/ changes even
-  # if web/ didn't.
+  # if web/ didn't. build-kobo-gateway is also a `needs:` (not just gated the
+  # same way) because it's the same trigger condition that changes the
+  # kobo-gateway build-cache key (hashFiles('kobo-gateway/**') in
+  # build-kobo-gateway.yml) — that job only writes the new cache entry in its
+  # post-job step, at the very end of its run, while build-web's own
+  # cache-restore step fires almost immediately. Running them in parallel let
+  # build-web's restore race ahead of build-kobo-gateway's save and hit a
+  # false cache-miss failure even though build-kobo-gateway succeeded later
+  # in the same run (issue #1192, first seen on PR #1186).
   build-web:
-    needs: [changes, proto-check]
+    needs: [changes, proto-check, build-kobo-gateway]
     if: |
       always() &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
+      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped') &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
