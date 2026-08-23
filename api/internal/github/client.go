@@ -67,6 +67,8 @@ type client struct {
 	cachedPRAt    time.Time
 	cachedAlerts  []SecurityAlert
 	cachedAlertAt time.Time
+	cachedRuns    []WorkflowRun
+	cachedRunAt   time.Time
 }
 
 // New creates a GitHub client. tokenFn resolves a live OAuth bearer token
@@ -138,6 +140,33 @@ func (c *client) ListSecurityAlerts(ctx context.Context) ([]SecurityAlert, error
 	return alerts, nil
 }
 
+func (c *client) ListFailingMainRuns(ctx context.Context) ([]WorkflowRun, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached, ok := c.cachedFailingMainRuns(); ok {
+		return cached, nil
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	runs, err := c.fetchFailingMainRuns(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	c.storeFailingMainRuns(runs)
+	return runs, nil
+}
+
 // resolveRepo reads the admin-picked repo from the stored connection config.
 // Returns ErrNotConfigured when the provider isn't connected or no repo has
 // been picked yet.
@@ -193,6 +222,22 @@ func (c *client) storeSecurityAlerts(alerts []SecurityAlert) {
 	defer c.mu.Unlock()
 	c.cachedAlerts = alerts
 	c.cachedAlertAt = time.Now()
+}
+
+func (c *client) cachedFailingMainRuns() ([]WorkflowRun, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cachedRuns != nil && time.Since(c.cachedRunAt) < cacheTTL {
+		return c.cachedRuns, true
+	}
+	return nil, false
+}
+
+func (c *client) storeFailingMainRuns(runs []WorkflowRun) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedRuns = runs
+	c.cachedRunAt = time.Now()
 }
 
 // fetchSecurityAlerts lists the repo's open Dependabot, code-scanning, and
@@ -345,6 +390,39 @@ func (c *client) fetchFailingPullRequests(
 		})
 	}
 	return prs, nil
+}
+
+// fetchFailingMainRuns lists the repo's completed workflow runs on main and
+// keeps only the ones whose conclusion is non-passing.
+func (c *client) fetchFailingMainRuns(
+	ctx context.Context, token, repo string,
+) ([]WorkflowRun, error) {
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/actions/runs?branch=main&status=completed&per_page=20",
+		baseURL,
+		repo,
+	)
+
+	var wire workflowRunsWire
+	if err := c.get(ctx, endpoint, token, &wire); err != nil {
+		return nil, err
+	}
+
+	runs := make([]WorkflowRun, 0, len(wire.WorkflowRuns))
+	for _, w := range wire.WorkflowRuns {
+		if !failingConclusions[w.Conclusion] {
+			continue
+		}
+		runs = append(runs, WorkflowRun{
+			ID:           w.ID,
+			WorkflowName: w.Name,
+			URL:          w.HTMLURL,
+			Conclusion:   w.Conclusion,
+			HeadSHA:      w.HeadSHA,
+			UpdatedAt:    w.UpdatedAt,
+		})
+	}
+	return runs, nil
 }
 
 func labelNames(labels []labelWire) []string {

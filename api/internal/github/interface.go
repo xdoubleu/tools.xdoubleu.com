@@ -22,6 +22,10 @@ type Client interface {
 	// and secret-scanning alerts. Returns ErrNotConfigured when no
 	// token/repo is set.
 	ListSecurityAlerts(ctx context.Context) ([]SecurityAlert, error)
+	// ListFailingMainRuns returns the repo's completed GitHub Actions runs on
+	// main that have a non-passing conclusion. Returns ErrNotConfigured when
+	// no token/repo is set.
+	ListFailingMainRuns(ctx context.Context) ([]WorkflowRun, error)
 	// ListRepos returns the repositories visible to the connected account,
 	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
 	// token is set — discovery must work before a repo is picked.

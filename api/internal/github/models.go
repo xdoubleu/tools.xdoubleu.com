@@ -36,6 +36,17 @@ func (pr PullRequest) HasLabel(name string) bool {
 	return false
 }
 
+// WorkflowRun is a completed GitHub Actions run on main with a non-passing
+// conclusion.
+type WorkflowRun struct {
+	ID           int64
+	WorkflowName string
+	URL          string
+	Conclusion   string
+	HeadSHA      string
+	UpdatedAt    time.Time
+}
+
 // SecurityAlertType distinguishes which GitHub alert source a SecurityAlert
 // came from — the three fields below it are populated only for the
 // corresponding type.
@@ -85,6 +96,21 @@ type prWire struct {
 // labelWire is a single entry in a pull request's "labels" array.
 type labelWire struct {
 	Name string `json:"name"`
+}
+
+// workflowRunsWire is the GitHub "list workflow runs for a repository"
+// response.
+type workflowRunsWire struct {
+	WorkflowRuns []workflowRunWire `json:"workflow_runs"`
+}
+
+type workflowRunWire struct {
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	HTMLURL    string    `json:"html_url"`
+	Conclusion string    `json:"conclusion"`
+	HeadSHA    string    `json:"head_sha"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // checkRunsWire is the GitHub "list check runs for a ref" response.

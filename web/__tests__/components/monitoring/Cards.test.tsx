@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetFailingMainRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema,
@@ -16,6 +17,7 @@ import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
 import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
+import FailingMainRunsCard from '@/components/monitoring/FailingMainRunsCard'
 import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
@@ -189,6 +191,49 @@ describe('FailingPullRequestsCard', () => {
 
   it('shows a loading state without data', () => {
     render(<FailingPullRequestsCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('FailingMainRunsCard', () => {
+  it('renders failing main-branch runs', () => {
+    const data = create(GetFailingMainRunsResponseSchema, {
+      configured: true,
+      failingCount: 1,
+      runs: [
+        {
+          id: 7n,
+          workflowName: 'CI',
+          url: 'https://github.com/x/y/actions/runs/7',
+          conclusion: 'failure',
+          headSha: 'sha1',
+          updatedAt: '2026-01-01T00:00:00Z'
+        }
+      ]
+    })
+
+    render(<FailingMainRunsCard data={data} />)
+    expect(screen.getByText('CI')).toBeInTheDocument()
+    expect(screen.getByText('failure')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetFailingMainRunsResponseSchema, { configured: false })
+    render(<FailingMainRunsCard data={data} />)
+    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no failing runs', () => {
+    const data = create(GetFailingMainRunsResponseSchema, {
+      configured: true,
+      failingCount: 0
+    })
+    render(<FailingMainRunsCard data={data} />)
+    expect(screen.getByText('No failing runs on main.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<FailingMainRunsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })

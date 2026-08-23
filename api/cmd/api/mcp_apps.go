@@ -103,8 +103,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 11 admin observability tools —
-// 10 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 12 admin observability tools —
+// 11 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -144,6 +144,11 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"credentials).",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.securityAlerts(ctx), nil
+		})
+	addObsTool(srv, "get_failing_main_runs",
+		"Completed GitHub Actions runs on main with a non-passing conclusion.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.failingMainRuns(ctx), nil
 		})
 	addObsTool(srv, "get_sentry_issues",
 		"Unresolved Sentry issues for the project.",

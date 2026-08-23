@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetFailingMainRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetSlowTransactionsResponseSchema,
@@ -20,6 +21,7 @@ const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseFailingPullRequests = jest.fn()
+const mockUseFailingMainRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
@@ -33,6 +35,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
   useFailingPullRequests: () => mockUseFailingPullRequests(),
+  useFailingMainRuns: () => mockUseFailingMainRuns(),
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
   useSlowTransactions: () => mockUseSlowTransactions(),
@@ -90,6 +93,14 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
+  mockUseFailingMainRuns.mockReturnValue({
+    data: create(GetFailingMainRunsResponseSchema, {
+      configured: true,
+      failingCount: 0,
+      runs: []
+    }),
+    mutate: mockMutate
+  })
   mockUseSecurityAlerts.mockReturnValue({
     data: create(GetSecurityAlertsResponseSchema, {
       configured: true,
@@ -143,6 +154,9 @@ describe('ObservabilityClient', () => {
     mockUseFailingPullRequests.mockReturnValue({
       data: create(GetFailingPullRequestsResponseSchema, { configured: false })
     })
+    mockUseFailingMainRuns.mockReturnValue({
+      data: create(GetFailingMainRunsResponseSchema, { configured: false })
+    })
     mockUseSecurityAlerts.mockReturnValue({
       data: create(GetSecurityAlertsResponseSchema, { configured: false })
     })
@@ -175,8 +189,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 9 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(9)
+    // instead of a plain mutate(), so mockMutate covers the other 10 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(10)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

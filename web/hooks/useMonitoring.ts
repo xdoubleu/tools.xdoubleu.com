@@ -12,6 +12,7 @@ import type {
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
   GetFailingPullRequestsResponse,
+  GetFailingMainRunsResponse,
   GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
@@ -68,6 +69,13 @@ export function useFailingPullRequests() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetFailingPullRequestsResponse, Error>(swrKeys.monitoringFailingPullRequests, () =>
     client.getFailingPullRequests({})
+  )
+}
+
+export function useFailingMainRuns() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetFailingMainRunsResponse, Error>(swrKeys.monitoringFailingMainRuns, () =>
+    client.getFailingMainRuns({})
   )
 }
 
@@ -163,7 +171,11 @@ export function useDisconnectOAuthConnection() {
 // unlocks, so useSetProviderConfig can flip those cards to "configured"
 // immediately instead of waiting for their own poll/revalidation.
 const PROVIDER_DATA_KEYS: Record<string, string[]> = {
-  github: [swrKeys.monitoringFailingPullRequests, swrKeys.monitoringSecurityAlerts],
+  github: [
+    swrKeys.monitoringFailingPullRequests,
+    swrKeys.monitoringSecurityAlerts,
+    swrKeys.monitoringFailingMainRuns
+  ],
   sentry: [swrKeys.monitoringSentryIssues],
   digitalocean: [swrKeys.monitoringDeployStatus]
 }

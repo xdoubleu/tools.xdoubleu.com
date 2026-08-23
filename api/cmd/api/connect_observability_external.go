@@ -148,6 +148,52 @@ func securityAlertTypeToProto(
 	}
 }
 
+func (h *obsConnectHandler) GetFailingMainRuns(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetFailingMainRunsRequest],
+) (*connect.Response[observabilityv1.GetFailingMainRunsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.failingMainRuns(ctx)), nil
+}
+
+func (h *obsConnectHandler) failingMainRuns(
+	ctx context.Context,
+) *observabilityv1.GetFailingMainRunsResponse {
+	resp := &observabilityv1.GetFailingMainRunsResponse{
+		Runs:         []*observabilityv1.FailingMainRun{},
+		Configured:   true,
+		FailingCount: 0,
+	}
+
+	runs, err := h.app.githubClient.ListFailingMainRuns(ctx)
+	if err != nil {
+		if errors.Is(err, github.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "failing main runs unavailable",
+				slog.Any("error", err))
+		}
+		return resp
+	}
+
+	protoRuns := make([]*observabilityv1.FailingMainRun, len(runs))
+	for i, run := range runs {
+		protoRuns[i] = &observabilityv1.FailingMainRun{
+			Id:           run.ID,
+			WorkflowName: run.WorkflowName,
+			Url:          run.URL,
+			Conclusion:   run.Conclusion,
+			HeadSha:      run.HeadSHA,
+			UpdatedAt:    run.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+	resp.Runs = protoRuns
+	resp.FailingCount = int32(len(runs)) //nolint:gosec // count fits int32
+	return resp
+}
+
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

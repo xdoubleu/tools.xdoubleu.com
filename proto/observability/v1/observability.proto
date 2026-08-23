@@ -14,6 +14,8 @@ service ObservabilityService {
       returns (GetFailingPullRequestsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
+  rpc GetFailingMainRuns(GetFailingMainRunsRequest)
+      returns (GetFailingMainRunsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
@@ -151,6 +153,28 @@ message GetFailingPullRequestsRequest {}
 // failed.
 message GetFailingPullRequestsResponse {
   repeated FailingPullRequest pull_requests = 1;
+  bool configured = 2;
+  int32 failing_count = 3;
+}
+
+// FailingMainRun is one completed GitHub Actions run on main with a
+// non-passing conclusion.
+message FailingMainRun {
+  int64 id = 1;
+  string workflow_name = 2;
+  string url = 3;
+  string conclusion = 4;  // "failure" | "timed_out" | "cancelled" | "action_required"
+  string head_sha = 5;
+  string updated_at = 6;  // RFC3339
+}
+
+message GetFailingMainRunsRequest {}
+
+// GetFailingMainRunsResponse carries the repo's completed, non-passing
+// Actions runs on main. configured is false when no GitHub token/repo is
+// set — the section is degraded, not failed.
+message GetFailingMainRunsResponse {
+  repeated FailingMainRun runs = 1;
   bool configured = 2;
   int32 failing_count = 3;
 }
