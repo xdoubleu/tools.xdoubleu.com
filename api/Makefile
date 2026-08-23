@@ -45,10 +45,14 @@ tools/proto:
 lint/proto: tools/proto
 	cd ../proto && buf lint
 
+lint/migrations:
+	./scripts/check_migration_versions.sh
+
 lint: tools/lint
 	golangci-lint run
 	make lint/sql
 	make lint/proto
+	make lint/migrations
 
 lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
