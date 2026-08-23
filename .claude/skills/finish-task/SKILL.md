@@ -25,8 +25,12 @@ on top of the generic `ship-pr` skill from the `git-task-flow` plugin
 
 Target ≥80% on changed code.
 
-- API: `cd api && docker-compose up -d && make test/cov/report && docker-compose down`
-  — always stop the DB after, even if the run fails.
+- API: `cd api && docker-compose up -d && make test/cov/report`. **Leave the
+  container running** — do not `docker-compose down` afterwards. Every
+  worktree shares one Postgres container (see `api/CLAUDE.md`'s Testing
+  Notes), so stopping it kills the database any concurrent session is
+  mid-test against, which surfaces as unrelated failures in whatever suite
+  that session happened to be running (issue #1205).
 - Web: `cd web && npm run test:cov`.
 
 ## 3. Build (web changes only)
