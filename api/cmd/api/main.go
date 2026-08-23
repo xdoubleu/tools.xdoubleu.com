@@ -68,6 +68,7 @@ type Application struct {
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
+	ubuntuReleaseJob              *jobs.UbuntuReleaseJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -263,6 +264,7 @@ func newCrossAppJobs(
 	*jobs.IssueNotifierJob,
 	*repositories.TransactionLatencyRepository,
 	*jobs.TransactionLatencySnapshotJob,
+	*jobs.UbuntuReleaseJob,
 ) {
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
@@ -274,7 +276,10 @@ func newCrossAppJobs(
 		sentryClient, transactionLatencyRepo,
 	)
 
-	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
+	ubuntuReleaseJob := jobs.NewUbuntuReleaseJob(notificationsSvc, notifiedIssuesRepo)
+
+	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob,
+		ubuntuReleaseJob
 }
 
 // feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
@@ -335,8 +340,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.ubuntuReleaseJob, app.db), noopCallback,
 	)
 }
 
@@ -388,8 +398,14 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
-	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
-		newCrossAppJobs(db, sentryClient, doClient, githubClient, notificationsSvc)
+	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob,
+		ubuntuReleaseJob := newCrossAppJobs(
+		db,
+		sentryClient,
+		doClient,
+		githubClient,
+		notificationsSvc,
+	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
@@ -417,6 +433,7 @@ func NewApplication(
 		issueNotifierJob:              issueNotifierJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
+		ubuntuReleaseJob:              ubuntuReleaseJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),
