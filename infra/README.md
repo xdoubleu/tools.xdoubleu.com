@@ -146,10 +146,15 @@ in `main.tf`) run **locally on the VPS itself**, weekly, calling
 actually thinks, with no hardcoded baseline to drift and no external system
 needing to SSH in just to check. When (and only when) a release genuinely
 is available, the script emails `release_check_email_to` via Resend's HTTP API
-using `release_check_resend_api_key`/`release_check_email_from` (new `terraform.tfvars`
-entries — see `terraform.tfvars.example`; a host-level secret, not one of
-`api`/`web`'s own repo Secrets, since nothing here goes through
-`deploy-kamal`). To confirm the timer is scheduled:
+using `release_check_resend_api_key`/`release_check_email_from` (Tofu
+variables — see `terraform.tfvars.example` for local `tofu`/`plan` runs, or
+the `infra-apply` CI job, which feeds them in as `TF_VAR_*` from the same
+`RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` environment secrets
+`deploy-kamal` already uses for `api`/`web` — see that section below;
+delivered to the VPS as a file by a Tofu provisioner rather than passed to
+a container, since nothing here goes through `deploy-kamal` itself, but
+there's no reason for a second Resend key/account). To confirm the
+timer is scheduled:
 `systemctl list-timers release-upgrade-check.timer` on the VPS; to trigger
 it manually: `sudo systemctl start release-upgrade-check.service`.
 
@@ -457,6 +462,10 @@ TF_STATE_R2_ACCESS_KEY_ID       (the scoped R2 token's Access Key ID)
 TF_STATE_R2_SECRET_ACCESS_KEY   (the scoped R2 token's Secret Access Key)
 TF_STATE_R2_ENDPOINT            (same value as in infra/backend.hcl)
 ```
+`RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` are reused from
+`deploy-kamal`'s existing secrets (→ `TF_VAR_release_check_resend_api_key`/
+`_email_from`/`_email_to` — see the release-upgrade-check section above) —
+no new values needed.
 Plus two repo-level Variables (Settings → Secrets and variables → Actions
 → Variables tab — not Secrets, since neither value is sensitive: public
 keys and the app's own public URL):
