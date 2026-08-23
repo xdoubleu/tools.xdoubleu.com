@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/sentryapi"
@@ -54,7 +53,7 @@ var appsToolNames = []string{
 	// observability (13, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
-	"get_sentry_issues", "resolve_sentry_issue", "get_deploy_status", "get_deploy_logs",
+	"get_sentry_issues", "resolve_sentry_issue", "get_host_metrics", "get_logs",
 	"get_slow_transactions", "get_oauth_connections",
 }
 
@@ -70,8 +69,6 @@ var appsNetworkTools = map[string]bool{
 	"get_workflow_runs":         true,
 	"get_security_alerts":       true,
 	"get_sentry_issues":         true,
-	"get_deploy_status":         true,
-	"get_deploy_logs":           true,
 	"get_slow_transactions":     true,
 }
 
@@ -241,9 +238,6 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	testApp.sentryClient = sentryapi.New(
 		logging.NewNopLogger(), stubTok(""), configNotConnected(),
 	)
-	testApp.doClient = digitalocean.New(
-		logging.NewNopLogger(), stubTok(""), configNotConnected(),
-	)
 
 	session := appsMCPSession(t, accessToken.Value)
 	tools := []string{
@@ -253,7 +247,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
-		"get_sentry_issues", "get_deploy_status", "get_deploy_logs", "get_slow_transactions",
+		"get_sentry_issues", "get_host_metrics", "get_logs", "get_slow_transactions",
 		"get_oauth_connections",
 	}
 	for _, name := range tools {

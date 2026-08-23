@@ -10,8 +10,8 @@ import (
 	"connectrpc.com/connect"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -364,202 +364,123 @@ func protoSlowTransactions(
 	return protoStats
 }
 
-func (h *obsConnectHandler) GetDeployStatus(
+// hostMetricsHistoryPoint is the shared shape behind cpu/memory/disk_history
+// — factored out so protoHostMetricsResponse doesn't repeat itself building
+// three near-identical slices.
+type hostMetricPointSource func(models.HostMetricSample) float64
+
+func (h *obsConnectHandler) GetHostMetrics(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetDeployStatusRequest],
-) (*connect.Response[observabilityv1.GetDeployStatusResponse], error) {
+	req *connect.Request[observabilityv1.GetHostMetricsRequest],
+) (*connect.Response[observabilityv1.GetHostMetricsResponse], error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(h.deployStatus(ctx)), nil
-}
 
-func (h *obsConnectHandler) deployStatus(
-	ctx context.Context,
-) *observabilityv1.GetDeployStatusResponse {
-	resp := &observabilityv1.GetDeployStatusResponse{
-		Configured:   true,
-		Phase:        "",
-		Cause:        "",
-		CreatedAt:    "",
-		UpdatedAt:    "",
-		DeploymentId: "",
-	}
-
-	deployment, err := h.app.doClient.LatestDeployment(ctx)
+	resp, err := h.hostMetrics(ctx, req.Msg.GetSince())
 	if err != nil {
-		if errors.Is(err, digitalocean.ErrNotConfigured) {
-			resp.Configured = false
-		} else {
-			h.app.logger.WarnContext(ctx, "deploy status unavailable",
-				slog.Any("error", err))
-		}
-		return resp
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-
-	if deployment == nil {
-		return resp // configured, but no deployment yet
-	}
-
-	resp.Phase = deployment.Phase
-	resp.Cause = deployment.Cause
-	resp.CreatedAt = deployment.CreatedAt.Format(time.RFC3339)
-	resp.UpdatedAt = deployment.UpdatedAt.Format(time.RFC3339)
-	resp.DeploymentId = deployment.ID
-	return resp
+	return connect.NewResponse(resp), nil
 }
 
-// deployLogsMsg is a short alias for the long name buf's standard naming
-// lint forces on GetDeployLogs' streamed message (observability.proto),
-// purely to keep parameter lines under the linter's line length.
-type deployLogsMsg = observabilityv1.ObservabilityServiceGetDeployLogsResponse
+func (h *obsConnectHandler) hostMetrics(
+	ctx context.Context, since string,
+) (*observabilityv1.GetHostMetricsResponse, error) {
+	sinceTime := time.Now().Add(-defaultWindowDays * 24 * time.Hour)
+	if since != "" {
+		if parsed, err := time.Parse(time.RFC3339, since); err == nil {
+			sinceTime = parsed
+		}
+	}
 
-func (h *obsConnectHandler) GetDeployLogs(
+	samples, err := h.app.hostMetricsRepo.Since(ctx, sinceTime)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &observabilityv1.GetHostMetricsResponse{
+		CpuHistory: hostMetricHistory(samples, func(s models.HostMetricSample) float64 {
+			return s.CPUPercent
+		}),
+		MemoryHistory: hostMetricHistory(
+			samples,
+			func(s models.HostMetricSample) float64 {
+				return s.MemoryPercent
+			},
+		),
+		DiskHistory: hostMetricHistory(
+			samples,
+			func(s models.HostMetricSample) float64 {
+				return s.DiskPercent
+			},
+		),
+	}
+	if len(samples) > 0 {
+		latest := samples[len(samples)-1]
+		resp.CpuPercent = latest.CPUPercent
+		resp.MemoryPercent = latest.MemoryPercent
+		resp.DiskPercent = latest.DiskPercent
+	}
+	return resp, nil
+}
+
+func hostMetricHistory(
+	samples []models.HostMetricSample, value hostMetricPointSource,
+) []*observabilityv1.HostMetricPoint {
+	points := make([]*observabilityv1.HostMetricPoint, len(samples))
+	for i, s := range samples {
+		points[i] = &observabilityv1.HostMetricPoint{
+			Timestamp: s.SampledAt.Format(time.RFC3339),
+			Value:     value(s),
+		}
+	}
+	return points
+}
+
+func (h *obsConnectHandler) GetLogs(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetDeployLogsRequest],
-	stream *connect.ServerStream[deployLogsMsg],
-) error {
+	req *connect.Request[observabilityv1.GetLogsRequest],
+) (*connect.Response[observabilityv1.GetLogsResponse], error) {
 	if err := requireAdmin(ctx); err != nil {
-		return err
-	}
-	return h.deployLogsStream(
-		ctx, req.Msg.GetDeploymentId(), int(req.Msg.GetTailLines()), stream,
-	)
-}
-
-// deployLogsStream is GetDeployLogs' handler body: it resolves deploymentID
-// to the latest deployment when empty, then streams each of its
-// BUILD/DEPLOY/RUN/RUN_RESTARTED component logs to the client as soon as it
-// resolves, rather than assembling one response after every component
-// finishes (issue #672, second pass — see routes.go's deployLogsCtxTimeout
-// comment for why: the edge proxy resets the connection once its response
-// timeout elapses with no byte written yet, a ceiling no server-side
-// deadline above it can beat). Streaming means the first
-// component's log reaches the client well under that, regardless of how long
-// slower components take. Guards its source the same way deployStatus does:
-// an unset token ends the stream with nothing sent, and an upstream failure
-// is logged and the stream ends with whatever was already sent — never a
-// hard RPC error, so one broken source never breaks the dialog.
-func (h *obsConnectHandler) deployLogsStream(
-	ctx context.Context,
-	deploymentID string,
-	tailLines int,
-	stream *connect.ServerStream[deployLogsMsg],
-) error {
-	if deploymentID == "" {
-		latest, err := h.app.doClient.LatestDeployment(ctx)
-		if err != nil {
-			h.logDeployLogsErr(ctx, err)
-			return nil
-		}
-		if latest == nil {
-			return nil // configured, but no deployment yet
-		}
-		deploymentID = latest.ID
+		return nil, err
 	}
 
-	err := h.app.doClient.DeploymentLogsStream(ctx, deploymentID, tailLines,
-		func(log digitalocean.ComponentLog) error {
-			return stream.Send(&deployLogsMsg{
-				Log: &observabilityv1.DeployComponentLog{
-					Component:    log.Component,
-					LogType:      string(log.Type),
-					DeploymentId: log.DeploymentID,
-					Content:      log.Content,
-					Truncated:    log.Truncated,
-				},
-			})
-		},
+	resp, err := h.logs(
+		ctx, req.Msg.GetSource(), req.Msg.GetMinLevel(), req.Msg.GetSince(),
 	)
 	if err != nil {
-		h.logDeployLogsErr(ctx, err)
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	return nil
+	return connect.NewResponse(resp), nil
 }
 
-// logDeployLogsErr logs a genuine upstream failure, mirroring
-// degradeDeployLogs's convention. An unset token is a normal degraded state,
-// not something worth logging.
-func (h *obsConnectHandler) logDeployLogsErr(ctx context.Context, err error) {
-	if errors.Is(err, digitalocean.ErrNotConfigured) {
-		return
-	}
-	h.app.logger.ErrorContext(ctx, "deploy logs unavailable", slog.Any("error", err))
-}
-
-// deployLogs resolves deploymentID to the latest deployment when empty, then
-// fetches its BUILD/DEPLOY/RUN/RUN_RESTARTED component logs — plus the
-// runtime logs of the app's active deployment when that is a different one.
-// tailLines bounds the live backlog replayed per component; 0 takes the
-// client's default. Guards its source the same way deployStatus does: an
-// unset token yields configured=false and an upstream failure is logged and
-// downgraded to an empty section.
-func (h *obsConnectHandler) deployLogs(
-	ctx context.Context, deploymentID string, tailLines int,
-) *observabilityv1.GetDeployLogsResponse {
-	resp := &observabilityv1.GetDeployLogsResponse{
-		Configured:   true,
-		DeploymentId: deploymentID,
-		Logs:         []*observabilityv1.DeployComponentLog{},
-	}
-
-	if deploymentID == "" {
-		resolved, ok := h.resolveLatestDeploymentID(ctx, resp)
-		if !ok {
-			return resp
-		}
-		deploymentID = resolved
-		resp.DeploymentId = deploymentID
-	}
-
-	logs, err := h.app.doClient.DeploymentLogs(ctx, deploymentID, tailLines)
-	if err != nil {
-		h.degradeDeployLogs(ctx, resp, err)
-		return resp
-	}
-
-	protoLogs := make([]*observabilityv1.DeployComponentLog, len(logs))
-	for i, l := range logs {
-		protoLogs[i] = &observabilityv1.DeployComponentLog{
-			Component:    l.Component,
-			LogType:      string(l.Type),
-			DeploymentId: l.DeploymentID,
-			Content:      l.Content,
-			Truncated:    l.Truncated,
+func (h *obsConnectHandler) logs(
+	ctx context.Context, source, minLevel, since string,
+) (*observabilityv1.GetLogsResponse, error) {
+	sinceTime := time.Now().Add(-defaultWindowDays * 24 * time.Hour)
+	if since != "" {
+		if parsed, err := time.Parse(time.RFC3339, since); err == nil {
+			sinceTime = parsed
 		}
 	}
-	resp.Logs = protoLogs
-	return resp
-}
 
-// resolveLatestDeploymentID looks up the latest deployment's ID for a
-// deploymentID-less GetDeployLogs call. ok is false when resp has already
-// been finalized — either degraded (upstream error) or left at its
-// zero-logs default (configured, but no deployment yet).
-func (h *obsConnectHandler) resolveLatestDeploymentID(
-	ctx context.Context, resp *observabilityv1.GetDeployLogsResponse,
-) (string, bool) {
-	latest, err := h.app.doClient.LatestDeployment(ctx)
+	entries, err := h.app.logsRepo.Query(ctx, sinceTime, source, minLevel)
 	if err != nil {
-		h.degradeDeployLogs(ctx, resp, err)
-		return "", false
+		return nil, err
 	}
-	if latest == nil {
-		return "", false // configured, but no deployment yet
-	}
-	return latest.ID, true
-}
 
-// degradeDeployLogs downgrades resp on an upstream digitalocean error,
-// mirroring deployStatus's degrade-independently convention.
-func (h *obsConnectHandler) degradeDeployLogs(
-	ctx context.Context, resp *observabilityv1.GetDeployLogsResponse, err error,
-) {
-	if errors.Is(err, digitalocean.ErrNotConfigured) {
-		resp.Configured = false
-		return
+	protoEntries := make([]*observabilityv1.LogEntry, len(entries))
+	for i, e := range entries {
+		protoEntries[i] = &observabilityv1.LogEntry{
+			OccurredAt: e.OccurredAt.Format(time.RFC3339),
+			Source:     e.Source,
+			Level:      e.Level,
+			Message:    e.Message,
+			AttrsJson:  string(e.AttrsJSON),
+		}
 	}
-	h.logDeployLogsErr(ctx, err)
+	return &observabilityv1.GetLogsResponse{Entries: protoEntries}, nil
 }
 
 func (h *obsConnectHandler) GetHealthOverview(
@@ -572,6 +493,5 @@ func (h *obsConnectHandler) GetHealthOverview(
 
 	return connect.NewResponse(&observabilityv1.GetHealthOverviewResponse{
 		Sentry: h.sentryIssues(ctx),
-		Deploy: h.deployStatus(ctx),
 	}), nil
 }

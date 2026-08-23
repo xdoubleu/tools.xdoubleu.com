@@ -12,17 +12,17 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// withStubProvider temporarily points the "digitalocean" provider entry at a
+// withStubProvider temporarily points the "sentry" provider entry at a
 // fixed oauth2.Config (e.g. an httptest server), restoring the real one
 // afterwards, so callback-exchange tests never hit the real network.
 func withStubProvider(t *testing.T, conf *oauth2.Config) {
 	t.Helper()
-	original := oauthProviders["digitalocean"]
-	oauthProviders["digitalocean"] = oauthProviderDef{
+	original := oauthProviders["sentry"]
+	oauthProviders["sentry"] = oauthProviderDef{
 		provider: original.provider,
 		conf:     func(*Application) *oauth2.Config { return conf },
 	}
-	t.Cleanup(func() { oauthProviders["digitalocean"] = original })
+	t.Cleanup(func() { oauthProviders["sentry"] = original })
 }
 
 func TestOAuthStartRoute_UnknownProvider(t *testing.T) {
@@ -62,7 +62,7 @@ func TestOAuthStartRoute_AsAdmin(t *testing.T) {
 	rr := doInProcess(
 		t,
 		http.MethodGet,
-		"/admin/oauth/digitalocean/start",
+		"/admin/oauth/sentry/start",
 		"",
 		"",
 		&accessToken,
@@ -71,13 +71,13 @@ func TestOAuthStartRoute_AsAdmin(t *testing.T) {
 
 	loc, err := rr.Result().Location()
 	require.NoError(t, err)
-	assert.Equal(t, "cloud.digitalocean.com", loc.Host)
+	assert.Equal(t, "sentry.io", loc.Host)
 
 	state := loc.Query().Get("state")
 	require.NotEmpty(t, state)
 	provider, userID, ok := testApp.oauthState.Consume(state)
 	require.True(t, ok)
-	assert.Equal(t, models.OAuthProviderDigitalOcean, provider)
+	assert.Equal(t, models.OAuthProviderSentry, provider)
 	assert.Equal(t, testUserID, userID)
 }
 
@@ -115,7 +115,7 @@ func TestOAuthCallbackRoute_ProviderMismatch(t *testing.T) {
 	state := testApp.oauthState.New(models.OAuthProviderGithub, testUserID)
 	rr := doInProcess(
 		t, http.MethodGet,
-		"/admin/oauth/digitalocean/callback?state="+state+"&code=x",
+		"/admin/oauth/sentry/callback?state="+state+"&code=x",
 		"", "", &accessToken,
 	)
 	assert.Equal(t, http.StatusBadRequest, rr.Code)
@@ -141,20 +141,20 @@ func TestOAuthCallbackRoute_ExchangeFailure(t *testing.T) {
 		},
 	)
 
-	state := testApp.oauthState.New(models.OAuthProviderDigitalOcean, testUserID)
+	state := testApp.oauthState.New(models.OAuthProviderSentry, testUserID)
 	rr := doInProcess(
 		t, http.MethodGet,
-		"/admin/oauth/digitalocean/callback?state="+state+"&code=bad-code",
+		"/admin/oauth/sentry/callback?state="+state+"&code=bad-code",
 		"", "", &accessToken,
 	)
 	require.Equal(t, http.StatusFound, rr.Code)
 	loc, err := rr.Result().Location()
 	require.NoError(t, err)
-	assert.Contains(t, loc.RawQuery, "oauth_error=digitalocean")
+	assert.Contains(t, loc.RawQuery, "oauth_error=sentry")
 
 	_, _, getErr := testApp.oauthConnRepo.Get(
 		t.Context(),
-		models.OAuthProviderDigitalOcean,
+		models.OAuthProviderSentry,
 	)
 	assert.Error(t, getErr, "a failed exchange must not store a connection")
 }
@@ -182,20 +182,20 @@ func TestOAuthCallbackRoute_Success(t *testing.T) {
 		},
 	)
 
-	state := testApp.oauthState.New(models.OAuthProviderDigitalOcean, testUserID)
+	state := testApp.oauthState.New(models.OAuthProviderSentry, testUserID)
 	rr := doInProcess(
 		t, http.MethodGet,
-		"/admin/oauth/digitalocean/callback?state="+state+"&code=good-code",
+		"/admin/oauth/sentry/callback?state="+state+"&code=good-code",
 		"", "", &accessToken,
 	)
 	require.Equal(t, http.StatusFound, rr.Code)
 	loc, err := rr.Result().Location()
 	require.NoError(t, err)
-	assert.Contains(t, loc.RawQuery, "oauth_connected=digitalocean")
+	assert.Contains(t, loc.RawQuery, "oauth_connected=sentry")
 
 	tok, _, getErr := testApp.oauthConnRepo.Get(
 		t.Context(),
-		models.OAuthProviderDigitalOcean,
+		models.OAuthProviderSentry,
 	)
 	require.NoError(t, getErr)
 	assert.Equal(t, "new-token", tok.AccessToken)

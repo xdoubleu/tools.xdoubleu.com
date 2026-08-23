@@ -19,9 +19,8 @@ var ErrDecryptFailed = errors.New(
 type OAuthProvider string
 
 const (
-	OAuthProviderGithub       OAuthProvider = "github"
-	OAuthProviderSentry       OAuthProvider = "sentry"
-	OAuthProviderDigitalOcean OAuthProvider = "digitalocean"
+	OAuthProviderGithub OAuthProvider = "github"
+	OAuthProviderSentry OAuthProvider = "sentry"
 )
 
 // OAuthConnection is the admin-facing status of a provider's stored OAuth

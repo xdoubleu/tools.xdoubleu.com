@@ -62,6 +62,27 @@ type SchemaStats struct {
 	TableCount int64
 }
 
+// HostMetricSample is one point-in-time reading of host resource usage,
+// scraped from node_exporter (issue #1040).
+type HostMetricSample struct {
+	SampledAt     time.Time
+	CPUPercent    float64
+	MemoryPercent float64
+	DiskPercent   float64
+}
+
+// LogEntry is one application log line forwarded from api (in-process) or
+// web (HTTP ingest) into global.log_entries.
+type LogEntry struct {
+	OccurredAt time.Time
+	Source     string // "api" | "web"
+	Level      string
+	Message    string
+	// AttrsJSON is the log record's structured attributes, stored as opaque
+	// JSON — nil when there were none.
+	AttrsJSON []byte
+}
+
 // TransactionTrend flags a transaction (API endpoint or frontend page)
 // whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
 // global.transaction_latency_daily rows over two adjacent windows, and

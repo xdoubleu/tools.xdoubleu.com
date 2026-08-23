@@ -20,14 +20,8 @@ service ObservabilityService {
       returns (ResolveSentryIssueResponse);
   rpc GetSlowTransactions(GetSlowTransactionsRequest)
       returns (GetSlowTransactionsResponse);
-  rpc GetDeployStatus(GetDeployStatusRequest) returns (GetDeployStatusResponse);
-  // Server-streaming: each component's log is sent as soon as it resolves,
-  // rather than one response after every component finishes, so the first
-  // byte reaches the client well under the edge proxy's response timeout
-  // regardless of how long the slowest component takes
-  // (issue #672 — see api/cmd/api/routes.go).
-  rpc GetDeployLogs(GetDeployLogsRequest)
-      returns (stream ObservabilityServiceGetDeployLogsResponse);
+  rpc GetHostMetrics(GetHostMetricsRequest) returns (GetHostMetricsResponse);
+  rpc GetLogs(GetLogsRequest) returns (GetLogsResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
   rpc ListOAuthConnections(ListOAuthConnectionsRequest)
@@ -282,61 +276,49 @@ message GetSlowTransactionsResponse {
   repeated TransactionTrend trending = 3;
 }
 
-message GetDeployStatusRequest {}
-
-// GetDeployStatusResponse carries the latest deployment. configured is false
-// when no DigitalOcean token/app ID is set — the section is degraded. All
-// deployment fields are empty when configured is false or no deployment exists.
-message GetDeployStatusResponse {
-  bool configured = 1;
-  string phase = 2;
-  string cause = 3;
-  string created_at = 4;  // RFC3339
-  string updated_at = 5;  // RFC3339
-  string deployment_id = 6;
+// HostMetricPoint is one host_metric_samples row's value at a point in time.
+message HostMetricPoint {
+  string timestamp = 1;  // RFC3339
+  double value = 2;
 }
 
-// GetDeployLogsRequest fetches logs for one deployment. deployment_id empty
-// means "the latest deployment". tail_lines bounds how much of a running
-// component's live log backlog is replayed; 0 means the server default.
-message GetDeployLogsRequest {
-  string deployment_id = 1;
-  int32 tail_lines = 2;
+// GetHostMetricsRequest requests host CPU/memory/disk usage. since bounds how
+// far back the history series go; the zero value defaults to the server's
+// own retention window.
+message GetHostMetricsRequest {
+  string since = 1;  // RFC3339
 }
 
-// DeployComponentLog is one component's log text for one phase. deployment_id
-// says which deployment it came from: runtime logs are sourced from the app's
-// *active* deployment, which differs from the requested one when the latest
-// deploy failed and the previous one is still serving traffic.
-message DeployComponentLog {
-  string component = 1;
-  string log_type = 2;  // "BUILD" | "DEPLOY" | "RUN" | "RUN_RESTARTED"
-  string content = 3;
-  bool truncated = 4;
-  string deployment_id = 5;
+// GetHostMetricsResponse carries the latest reading plus history series for
+// graphing, scraped from node_exporter (issue #1040).
+message GetHostMetricsResponse {
+  double cpu_percent = 1;
+  double memory_percent = 2;
+  double disk_percent = 3;
+  repeated HostMetricPoint cpu_history = 4;
+  repeated HostMetricPoint memory_history = 5;
+  repeated HostMetricPoint disk_history = 6;
 }
 
-// ObservabilityServiceGetDeployLogsResponse is one message of the
-// GetDeployLogs stream, wrapping a single DeployComponentLog — the wrapper
-// (rather than streaming DeployComponentLog directly) exists only so the
-// RPC's response type satisfies buf's standard naming lint; the
-// service-qualified name is needed because GetDeployLogsResponse below is
-// already taken by an unrelated, non-streamed message.
-message ObservabilityServiceGetDeployLogsResponse {
-  DeployComponentLog log = 1;
+// LogEntry is one application log line forwarded from api or web.
+message LogEntry {
+  string occurred_at = 1;  // RFC3339
+  string source = 2;       // "api" | "web"
+  string level = 3;
+  string message = 4;
+  string attrs_json = 5;  // opaque JSON, empty if there were no attrs
 }
 
-// GetDeployLogsResponse carries per-component build/deploy/runtime log text
-// for one deployment. Not the GetDeployLogs RPC's wire type (that streams
-// ObservabilityServiceGetDeployLogsResponse) — used internally to hand the
-// same aggregated data to the get_deploy_logs MCP tool, which needs one JSON
-// result rather than a stream. configured is false when no DigitalOcean
-// token/app ID is set — the section is degraded. logs is empty when
-// configured is false or the deployment has no logs yet for any phase.
-message GetDeployLogsResponse {
-  bool configured = 1;
-  string deployment_id = 2;
-  repeated DeployComponentLog logs = 3;
+// GetLogsRequest filters global.log_entries. source/min_level empty means
+// "any"; since bounds how far back to look.
+message GetLogsRequest {
+  string source = 1;
+  string min_level = 2;
+  string since = 3;  // RFC3339
+}
+
+message GetLogsResponse {
+  repeated LogEntry entries = 1;
 }
 
 message GetHealthOverviewRequest {}
@@ -345,7 +327,6 @@ message GetHealthOverviewRequest {}
 // section degrading independently.
 message GetHealthOverviewResponse {
   GetSentryIssuesResponse sentry = 2;
-  GetDeployStatusResponse deploy = 3;
 }
 
 message GithubConfig {
@@ -357,24 +338,19 @@ message SentryConfig {
   repeated string projects = 2;
 }
 
-message DigitalOceanConfig {
-  string app_id = 1;
-}
-
 // ProviderConfig is the admin-picked identifier(s) for a connected provider
 // (issue #440 follow-up: picked interactively instead of a static env var).
 message ProviderConfig {
   oneof config {
     GithubConfig github = 1;
     SentryConfig sentry = 2;
-    DigitalOceanConfig digitalocean = 3;
   }
 }
 
 // OAuthConnectionStatus is the admin-facing status of one provider's OAuth
 // connection (issue #440) — never the token itself.
 message OAuthConnectionStatus {
-  string provider = 1;  // "github" | "sentry" | "digitalocean"
+  string provider = 1;  // "github" | "sentry"
   bool connected = 2;
   string connected_by = 3;  // email, empty if not connected
   string connected_at = 4;  // RFC3339, empty if not connected
@@ -414,7 +390,6 @@ message GetProviderOptionsResponse {
   repeated string repos = 1;
   repeated string sentry_orgs = 2;
   repeated string sentry_projects = 3;
-  repeated string apps = 4;
 }
 
 message SetProviderConfigRequest {

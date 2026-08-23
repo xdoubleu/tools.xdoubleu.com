@@ -1,6 +1,6 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
@@ -9,8 +9,7 @@ import {
   GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
-  GetDeployStatusResponseSchema,
-  DeployComponentLogSchema,
+  GetHostMetricsResponseSchema,
   SecurityAlertType
 } from '@/lib/gen/observability/v1/observability_pb'
 import JobsCard from '@/components/monitoring/JobsCard'
@@ -20,17 +19,14 @@ import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequests
 import WorkflowRunsCard from '@/components/monitoring/WorkflowRunsCard'
 import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
-import DeployCard from '@/components/monitoring/DeployCard'
+import HostMetricsCard from '@/components/monitoring/HostMetricsCard'
 
-const mockGetDeployLogs = jest.fn()
 const mockResolveSentryIssue = jest.fn()
 jest.mock('@/hooks/useMonitoring', () => ({
-  useDeployLogs: () => mockGetDeployLogs,
   useResolveSentryIssue: () => mockResolveSentryIssue
 }))
 
 beforeEach(() => {
-  mockGetDeployLogs.mockReset()
   mockResolveSentryIssue.mockReset()
   mockResolveSentryIssue.mockResolvedValue(undefined)
 })
@@ -464,82 +460,25 @@ describe('SentryCard', () => {
   })
 })
 
-describe('DeployCard', () => {
-  it('renders the latest deployment', () => {
-    const data = create(GetDeployStatusResponseSchema, {
-      configured: true,
-      phase: 'ACTIVE',
-      cause: 'manual deploy',
-      createdAt: '2026-01-01T00:00:00Z',
-      updatedAt: '2026-01-01T00:05:00Z',
-      deploymentId: 'deploy-123'
+describe('HostMetricsCard', () => {
+  it('renders headline tiles and history charts', () => {
+    const data = create(GetHostMetricsResponseSchema, {
+      cpuPercent: 12.3,
+      memoryPercent: 45.6,
+      diskPercent: 78.9,
+      cpuHistory: [{ timestamp: '2026-01-01T00:00:00Z', value: 10 }],
+      memoryHistory: [{ timestamp: '2026-01-01T00:00:00Z', value: 40 }],
+      diskHistory: [{ timestamp: '2026-01-01T00:00:00Z', value: 70 }]
     })
 
-    render(<DeployCard data={data} />)
-    expect(screen.getByText('ACTIVE')).toBeInTheDocument()
-    expect(screen.getByText('manual deploy')).toBeInTheDocument()
-    expect(screen.getByText('deploy-123')).toBeInTheDocument()
-  })
-
-  it('flags a failed deployment phase', () => {
-    const data = create(GetDeployStatusResponseSchema, {
-      configured: true,
-      phase: 'ERROR',
-      deploymentId: 'deploy-err'
-    })
-    render(<DeployCard data={data} />)
-    expect(screen.getByText('ERROR')).toBeInTheDocument()
-  })
-
-  it('renders an in-progress deployment phase', () => {
-    const data = create(GetDeployStatusResponseSchema, {
-      configured: true,
-      phase: 'BUILDING',
-      deploymentId: 'deploy-wip'
-    })
-    render(<DeployCard data={data} />)
-    expect(screen.getByText('BUILDING')).toBeInTheDocument()
-  })
-
-  it('degrades when not configured', () => {
-    const data = create(GetDeployStatusResponseSchema, { configured: false })
-    render(<DeployCard data={data} />)
-    expect(screen.getByText('DigitalOcean is not configured.')).toBeInTheDocument()
-  })
-
-  it('shows an empty state when configured without a deployment', () => {
-    const data = create(GetDeployStatusResponseSchema, { configured: true, deploymentId: '' })
-    render(<DeployCard data={data} />)
-    expect(screen.getByText('No deployment recorded.')).toBeInTheDocument()
+    render(<HostMetricsCard data={data} />)
+    expect(screen.getByText('12.3%')).toBeInTheDocument()
+    expect(screen.getByText('45.6%')).toBeInTheDocument()
+    expect(screen.getByText('78.9%')).toBeInTheDocument()
   })
 
   it('shows a loading state without data', () => {
-    render(<DeployCard data={undefined} />)
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
-  })
-
-  it('opens the logs dialog and fetches logs for the deployment', async () => {
-    mockGetDeployLogs.mockReturnValue({
-      async *[Symbol.asyncIterator]() {
-        yield create(DeployComponentLogSchema, {
-          component: 'api',
-          logType: 'BUILD',
-          content: 'building api\n',
-          truncated: false
-        })
-      }
-    })
-    const data = create(GetDeployStatusResponseSchema, {
-      configured: true,
-      phase: 'ACTIVE',
-      deploymentId: 'deploy-123'
-    })
-
-    render(<DeployCard data={data} />)
-    fireEvent.click(screen.getByRole('button', { name: 'View logs' }))
-
-    expect(mockGetDeployLogs).toHaveBeenCalledWith('deploy-123')
-    await waitFor(() => expect(screen.getByText('building api')).toBeInTheDocument())
-    expect(screen.getByText('BUILD')).toBeInTheDocument()
+    render(<HostMetricsCard data={undefined} />)
+    expect(screen.getAllByText('—').length).toBe(3)
   })
 })

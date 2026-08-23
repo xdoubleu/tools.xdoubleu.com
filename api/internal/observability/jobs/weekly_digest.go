@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
@@ -45,7 +44,6 @@ type unhealthyFeedLister interface {
 // running rather than being indistinguishable from "nothing to report".
 type WeeklyDigestJob struct {
 	sentry        sentryapi.Client
-	do            digitalocean.Client
 	gh            failingPRLister
 	feeds         unhealthyFeedLister
 	notifications *notifications.Service
@@ -53,14 +51,12 @@ type WeeklyDigestJob struct {
 
 func NewWeeklyDigestJob(
 	sentry sentryapi.Client,
-	do digitalocean.Client,
 	gh failingPRLister,
 	feeds unhealthyFeedLister,
 	notifications *notifications.Service,
 ) *WeeklyDigestJob {
 	return &WeeklyDigestJob{
 		sentry:        sentry,
-		do:            do,
 		gh:            gh,
 		feeds:         feeds,
 		notifications: notifications,
@@ -79,9 +75,6 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	var sections []string
 
 	if s := j.sentrySection(ctx, logger); s != "" {
-		sections = append(sections, s)
-	}
-	if s := j.deploymentSection(ctx, logger); s != "" {
 		sections = append(sections, s)
 	}
 	if s := j.githubSection(ctx, logger); s != "" {
@@ -134,28 +127,6 @@ func (j *WeeklyDigestJob) sentrySection(
 	}
 	return fmt.Sprintf("Sentry — %d unresolved issue(s):\n%s",
 		len(issues), strings.Join(lines, "\n"))
-}
-
-func (j *WeeklyDigestJob) deploymentSection(
-	ctx context.Context, logger *slog.Logger,
-) string {
-	deployment, err := j.do.LatestDeployment(ctx)
-	if errors.Is(err, digitalocean.ErrNotConfigured) {
-		return ""
-	}
-	if err != nil {
-		logAPIErr(ctx, logger, "weekly-digest: failed to get latest deployment",
-			err, digitalocean.IsTransientAPIError(err))
-		return ""
-	}
-	if deployment == nil || deployment.Phase != deploymentErrorPhase {
-		return ""
-	}
-
-	return fmt.Sprintf(
-		"DigitalOcean — latest deployment %s failed:\n- Cause: %s",
-		deployment.ID, deployment.Cause,
-	)
 }
 
 func (j *WeeklyDigestJob) githubSection(

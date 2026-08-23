@@ -11,7 +11,6 @@ import (
 	"connectrpc.com/connect"
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
-	"tools.xdoubleu.com/internal/digitalocean"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/oauthconn"
 )
@@ -23,7 +22,6 @@ import (
 var allOAuthProviders = []models.OAuthProvider{
 	models.OAuthProviderGithub,
 	models.OAuthProviderSentry,
-	models.OAuthProviderDigitalOcean,
 }
 
 func (h *obsConnectHandler) ListOAuthConnections(
@@ -158,11 +156,11 @@ func (h *obsConnectHandler) DisconnectOAuthConnection(
 	), nil
 }
 
-// githubConfigJSON/sentryConfigJSON/doConfigJSON mirror the private JSON
-// shapes each provider client unmarshals from global.oauth_connections.config
-// (see internal/{github,sentryapi,digitalocean}/client.go) — kept in sync
-// deliberately rather than exported, so the wire shape stays an
-// implementation detail of the storage format.
+// githubConfigJSON/sentryConfigJSON mirror the private JSON shapes each
+// provider client unmarshals from global.oauth_connections.config (see
+// internal/{github,sentryapi}/client.go) — kept in sync deliberately rather
+// than exported, so the wire shape stays an implementation detail of the
+// storage format.
 type githubConfigJSON struct {
 	Repo string `json:"repo"`
 }
@@ -170,10 +168,6 @@ type githubConfigJSON struct {
 type sentryConfigJSON struct {
 	Org      string   `json:"org"`
 	Projects []string `json:"projects"`
-}
-
-type doConfigJSON struct {
-	AppID string `json:"app_id"`
 }
 
 // protoProviderConfig decodes the stored config JSON into the proto oneof
@@ -209,16 +203,6 @@ func protoProviderConfig(
 				},
 			},
 		}
-	case models.OAuthProviderDigitalOcean:
-		var cfg doConfigJSON
-		if json.Unmarshal(raw, &cfg) != nil || cfg.AppID == "" {
-			return nil
-		}
-		return &observabilityv1.ProviderConfig{
-			Config: &observabilityv1.ProviderConfig_Digitalocean{
-				Digitalocean: &observabilityv1.DigitalOceanConfig{AppId: cfg.AppID},
-			},
-		}
 	default:
 		return nil
 	}
@@ -245,8 +229,6 @@ func (h *obsConnectHandler) GetProviderOptions(
 		resp, err = h.githubOptions(ctx)
 	case models.OAuthProviderSentry:
 		resp, err = h.sentryOptions(ctx, req.Msg.GetSentryOrg())
-	case models.OAuthProviderDigitalOcean:
-		resp, err = h.digitalOceanOptions(ctx)
 	default:
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument, errors.New("unknown provider"),
@@ -296,21 +278,6 @@ func (h *obsConnectHandler) sentryOptions(
 	}
 	for _, p := range projects {
 		resp.SentryProjects = append(resp.SentryProjects, p.Slug)
-	}
-	return resp, nil
-}
-
-func (h *obsConnectHandler) digitalOceanOptions(
-	ctx context.Context,
-) (*observabilityv1.GetProviderOptionsResponse, error) {
-	apps, err := h.app.doClient.ListApps(ctx)
-	if err != nil {
-		return nil, providerOptionsError(err)
-	}
-
-	resp := &observabilityv1.GetProviderOptionsResponse{}
-	for _, a := range apps {
-		resp.Apps = append(resp.Apps, a.Option())
 	}
 	return resp, nil
 }
@@ -374,14 +341,6 @@ func configJSON(
 		}
 		return json.Marshal(
 			sentryConfigJSON{Org: s.GetOrg(), Projects: s.GetProjects()},
-		)
-	case models.OAuthProviderDigitalOcean:
-		do := cfg.GetDigitalocean()
-		if do == nil || do.GetAppId() == "" {
-			return nil, errors.New("app_id is required")
-		}
-		return json.Marshal(
-			doConfigJSON{AppID: digitalocean.AppIDFromOption(do.GetAppId())},
 		)
 	default:
 		return nil, errors.New("unknown provider")

@@ -33,10 +33,10 @@ func TestNotifiedIssuesInsertIsIdempotent(t *testing.T) {
 	clearNotifiedIssues(t)
 	repo := repositories.NewNotifiedIssuesRepository(testDB)
 
-	require.NoError(t, repo.Insert(t.Context(), "digitalocean:abc"))
-	require.NoError(t, repo.Insert(t.Context(), "digitalocean:abc"))
+	require.NoError(t, repo.Insert(t.Context(), "sentry:abc"))
+	require.NoError(t, repo.Insert(t.Context(), "sentry:abc"))
 
-	exists, err := repo.Exists(t.Context(), "digitalocean:abc")
+	exists, err := repo.Exists(t.Context(), "sentry:abc")
 	require.NoError(t, err)
 	require.True(t, exists)
 }

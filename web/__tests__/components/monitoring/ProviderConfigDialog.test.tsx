@@ -21,7 +21,7 @@ describe('ProviderConfigDialog', () => {
   })
 
   it('loads and picks a github repo, then saves', async () => {
-    mockFetchOptions.mockResolvedValue({ repos: ['o/a', 'o/b'], apps: [], sentryOrgs: [] })
+    mockFetchOptions.mockResolvedValue({ repos: ['o/a', 'o/b'], sentryOrgs: [] })
     mockSetProviderConfig.mockResolvedValue(undefined)
     const onOpenChange = jest.fn()
 
@@ -46,31 +46,10 @@ describe('ProviderConfigDialog', () => {
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
   })
 
-  it('loads and picks a digitalocean app, then saves', async () => {
-    mockFetchOptions.mockResolvedValue({
-      repos: [],
-      apps: ['id-1 — app-one'],
-      sentryOrgs: []
-    })
-    mockSetProviderConfig.mockResolvedValue(undefined)
-
-    render(<ProviderConfigDialog provider="digitalocean" open={true} onOpenChange={jest.fn()} />)
-
-    await waitFor(() => expect(screen.getByText('id-1 — app-one')).toBeInTheDocument())
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'id-1 — app-one' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-
-    await waitFor(() =>
-      expect(mockSetProviderConfig).toHaveBeenCalledWith('digitalocean', {
-        config: { case: 'digitalocean', value: { appId: 'id-1 — app-one' } }
-      })
-    )
-  })
-
   it('picks a sentry org then multiple projects, then saves', async () => {
     mockFetchOptions.mockImplementation((provider: string, org?: string) => {
-      if (org) return Promise.resolve({ repos: [], apps: [], sentryProjects: ['p1', 'p2'] })
-      return Promise.resolve({ repos: [], apps: [], sentryOrgs: ['org-a'] })
+      if (org) return Promise.resolve({ repos: [], sentryProjects: ['p1', 'p2'] })
+      return Promise.resolve({ repos: [], sentryOrgs: ['org-a'] })
     })
     mockSetProviderConfig.mockResolvedValue(undefined)
 
@@ -109,7 +88,7 @@ describe('ProviderConfigDialog', () => {
   })
 
   it('calls onOpenChange(false) on cancel', async () => {
-    mockFetchOptions.mockResolvedValue({ repos: [], apps: [], sentryOrgs: [] })
+    mockFetchOptions.mockResolvedValue({ repos: [], sentryOrgs: [] })
     const onOpenChange = jest.fn()
 
     render(<ProviderConfigDialog provider="github" open={true} onOpenChange={onOpenChange} />)

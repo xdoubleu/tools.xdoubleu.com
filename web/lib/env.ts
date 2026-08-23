@@ -35,3 +35,15 @@ export function getKoboGatewayRelease(): string {
   }
   return process.env.KOBO_GATEWAY_RELEASE ?? 'dev'
 }
+
+// getObservabilityIngestSecret authenticates web's own server-side POSTs to
+// the api's shared-secret log ingest endpoint (OBSERVABILITY_INGEST_SECRET,
+// see api/cmd/api/observability_ingest.go). Deliberately has no window.__ENV__
+// fallback, unlike every other getter here — this must never reach the
+// browser bundle. Callers on the client must instead route through
+// app/logs/route.ts, which calls this server-side and attaches the header
+// itself (lib/logger.ts does exactly this).
+export function getObservabilityIngestSecret(): string {
+  if (typeof window !== 'undefined') return ''
+  return process.env.OBSERVABILITY_INGEST_SECRET ?? ''
+}

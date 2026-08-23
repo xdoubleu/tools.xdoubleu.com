@@ -16,9 +16,8 @@ import type {
   GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
-  GetDeployStatusResponse,
-  DeployComponentLog,
-  ObservabilityServiceGetDeployLogsResponse,
+  GetHostMetricsResponse,
+  GetLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -111,42 +110,23 @@ export function useSlowTransactions() {
   )
 }
 
-export function useDeployStatus() {
+// useHostMetrics polls the host's CPU/memory/disk usage, scraped from
+// node_exporter (issue #1040). since bounds how far back the history series
+// go; empty defaults to the server's own retention window.
+export function useHostMetrics(since = '') {
   const client = createServiceClient(ObservabilityService)
-  return useSWR<GetDeployStatusResponse, Error>(swrKeys.monitoringDeployStatus, () =>
-    client.getDeployStatus({})
+  return useSWR<GetHostMetricsResponse, Error>(swrKeys.monitoringHostMetrics, () =>
+    client.getHostMetrics({ since })
   )
 }
 
-// useDeployLogs fetches on demand (not via SWR): logs are only pulled when
-// the admin asks, not polled alongside the rest of the dashboard. tailLines
-// bounds the live backlog replayed per component; 0 takes the server
-// default. GetDeployLogs is server-streaming (issue #672, second pass): each
-// component's log arrives as soon as it resolves rather than the caller
-// waiting for a single response assembled after every component finishes.
-// The wire type wraps each DeployComponentLog in a response envelope only to
-// satisfy a proto lint rule (see the .proto file) — unwrapped here so
-// callers just iterate DeployComponentLog directly.
-export function useDeployLogs() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    (deploymentId?: string, tailLines = 0): AsyncIterable<DeployComponentLog> => {
-      // Calling getDeployLogs here (not inside unwrapDeployLogs) starts the
-      // request as soon as this function is invoked, same as the unary call
-      // it replaced — an async generator's body doesn't run until iterated.
-      const stream = client.getDeployLogs({ deploymentId: deploymentId ?? '', tailLines })
-      return unwrapDeployLogs(stream)
-    },
-    [client]
+// useLogs reads recent application logs forwarded from both api and web
+// (global.log_entries, issue #1040). source/minLevel empty means "any".
+export function useLogs(source = '', minLevel = '', since = '') {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetLogsResponse, Error>(swrKeys.monitoringLogs(source, minLevel), () =>
+    client.getLogs({ source, minLevel, since })
   )
-}
-
-async function* unwrapDeployLogs(
-  stream: AsyncIterable<ObservabilityServiceGetDeployLogsResponse>
-): AsyncGenerator<DeployComponentLog> {
-  for await (const resp of stream) {
-    if (resp.log) yield resp.log
-  }
 }
 
 export function useOAuthConnections() {
@@ -172,8 +152,7 @@ export function useDisconnectOAuthConnection() {
 // immediately instead of waiting for their own poll/revalidation.
 const PROVIDER_DATA_KEYS: Record<string, string[]> = {
   github: [swrKeys.monitoringFailingPullRequests, swrKeys.monitoringSecurityAlerts],
-  sentry: [swrKeys.monitoringSentryIssues],
-  digitalocean: [swrKeys.monitoringDeployStatus]
+  sentry: [swrKeys.monitoringSentryIssues]
 }
 
 // useProviderOptions is fetched on demand (when the config picker dialog
