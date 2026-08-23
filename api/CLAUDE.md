@@ -235,6 +235,7 @@ two public services above.
 - Mock injection for unit tests; mocks live in `internal/mocks/` or an app's own `internal/mocks/`.
 - Integration tests hit a real database — `docker-compose up -d` before running locally.
 - Target ≥80% coverage on changed code (`make test/cov/report`); generated files and `_mock.go` are excluded.
+- Repeated local test runs against the same Postgres volume can leave state that breaks a later run with failures unrelated to what's actually being changed (e.g. `relation ... does not exist`, `resource conflicts with existing resource`) — CI never hits this since every job gets a fresh container. `make db/reset` recreates the volume; run it if a failure looks like leftover state rather than a real regression.
 - Write a failing test first when fixing a bug.
 
 ## File Size & Splits
