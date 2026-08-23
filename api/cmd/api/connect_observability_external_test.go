@@ -171,6 +171,95 @@ func callFailingPullRequests(
 	return observabilityClient(t).GetFailingPullRequests(context.Background(), req)
 }
 
+// --- Workflow runs ---
+
+func TestObservabilityGetWorkflowRuns_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Query().Get("event") {
+			case "pull_request":
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":1,"name":"CI","event":"pull_request","head_branch":"feat",
+					 "status":"completed","conclusion":"success","html_url":"u1",
+					 "run_started_at":"2026-07-01T10:00:00Z",
+					 "updated_at":"2026-07-01T10:05:00Z"}
+				]}`))
+			case "push":
+				_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Configured)
+	require.Len(t, resp.Msg.Runs, 1)
+	assert.Equal(t, "pull_request", resp.Msg.Runs[0].Event)
+	assert.Equal(t, int64(5*60*1000), resp.Msg.Runs[0].DurationMs)
+}
+
+func TestObservabilityGetWorkflowRuns_NotConfigured(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		configNotConnected(),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err)
+	assert.False(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Runs)
+}
+
+func TestObservabilityGetWorkflowRuns_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := jsonServer(t, http.StatusInternalServerError, ``)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err) // degraded, never a failed response
+	assert.True(t, resp.Msg.Configured)
+	assert.Empty(t, resp.Msg.Runs)
+}
+
+func TestObservabilityGetWorkflowRuns_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callWorkflowRuns(t)
+	requirePermissionDenied(t, err)
+}
+
+func callWorkflowRuns(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetWorkflowRunsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetWorkflowRunsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetWorkflowRuns(context.Background(), req)
+}
+
 // --- Security alerts ---
 
 func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {

@@ -434,6 +434,67 @@ func TestListSecurityAlerts_ServerError_Retries(t *testing.T) {
 	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
 }
 
+func TestListWorkflowRuns_ComputesDurationForCompletedRuns(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Query().Get("event") {
+			case "pull_request":
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":1,"name":"CI","event":"pull_request","head_branch":"feat",
+					 "status":"completed","conclusion":"success",
+					 "html_url":"https://gh/run/1",
+					 "run_started_at":"2026-07-01T10:00:00Z",
+					 "updated_at":"2026-07-01T10:05:00Z"}
+				]}`))
+			case "push":
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":2,"name":"CI","event":"push","head_branch":"main",
+					 "status":"in_progress","conclusion":"",
+					 "html_url":"https://gh/run/2",
+					 "run_started_at":"2026-07-01T11:00:00Z",
+					 "updated_at":"2026-07-01T11:00:00Z"}
+				]}`))
+			}
+		}))
+	defer cleanup()
+
+	runs, err := newClient().ListWorkflowRuns(context.Background())
+	require.NoError(t, err)
+	require.Len(t, runs, 2)
+
+	assert.Equal(t, "pull_request", runs[0].Event)
+	assert.Equal(t, int64(5*60*1000), runs[0].DurationMs)
+
+	assert.Equal(t, "push", runs[1].Event)
+	assert.Equal(t, "in_progress", runs[1].Status)
+	assert.Equal(t, int64(0), runs[1].DurationMs)
+}
+
+func TestListWorkflowRuns_NotConfigured_NoConnection(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("unused"), configNotConnected())
+	_, err := c.ListWorkflowRuns(context.Background())
+	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListWorkflowRuns_CachesResult(t *testing.T) {
+	requests := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			requests++
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+		}))
+	defer cleanup()
+
+	c := newClient()
+	_, err := c.ListWorkflowRuns(context.Background())
+	require.NoError(t, err)
+	_, err = c.ListWorkflowRuns(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, 2, requests, "second call must be served from cache")
+}
+
 func jsonHandler(status int, body string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

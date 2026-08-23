@@ -79,6 +79,53 @@ func (h *obsConnectHandler) failingPullRequests(
 	return resp
 }
 
+func (h *obsConnectHandler) GetWorkflowRuns(
+	ctx context.Context,
+	_ *connect.Request[observabilityv1.GetWorkflowRunsRequest],
+) (*connect.Response[observabilityv1.GetWorkflowRunsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(h.workflowRuns(ctx)), nil
+}
+
+func (h *obsConnectHandler) workflowRuns(
+	ctx context.Context,
+) *observabilityv1.GetWorkflowRunsResponse {
+	resp := &observabilityv1.GetWorkflowRunsResponse{
+		Runs:       []*observabilityv1.WorkflowRun{},
+		Configured: true,
+	}
+
+	runs, err := h.app.githubClient.ListWorkflowRuns(ctx)
+	if err != nil {
+		if errors.Is(err, github.ErrNotConfigured) {
+			resp.Configured = false
+		} else {
+			h.app.logger.WarnContext(ctx, "workflow runs unavailable",
+				slog.Any("error", err))
+		}
+		return resp
+	}
+
+	protoRuns := make([]*observabilityv1.WorkflowRun, len(runs))
+	for i, run := range runs {
+		protoRuns[i] = &observabilityv1.WorkflowRun{
+			Id:         run.ID,
+			Name:       run.Name,
+			Event:      run.Event,
+			Branch:     run.Branch,
+			Status:     run.Status,
+			Conclusion: run.Conclusion,
+			Url:        run.URL,
+			StartedAt:  run.StartedAt.Format(time.RFC3339),
+			DurationMs: run.DurationMs,
+		}
+	}
+	resp.Runs = protoRuns
+	return resp
+}
+
 func (h *obsConnectHandler) GetSecurityAlerts(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSecurityAlertsRequest],

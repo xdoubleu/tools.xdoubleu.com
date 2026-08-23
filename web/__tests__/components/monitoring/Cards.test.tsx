@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetDeployStatusResponseSchema,
@@ -16,6 +17,7 @@ import JobsCard from '@/components/monitoring/JobsCard'
 import StorageCard from '@/components/monitoring/StorageCard'
 import DatabaseCard from '@/components/monitoring/DatabaseCard'
 import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequestsCard'
+import WorkflowRunsCard from '@/components/monitoring/WorkflowRunsCard'
 import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
 import DeployCard from '@/components/monitoring/DeployCard'
@@ -189,6 +191,74 @@ describe('FailingPullRequestsCard', () => {
 
   it('shows a loading state without data', () => {
     render(<FailingPullRequestsCard data={undefined} />)
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('WorkflowRunsCard', () => {
+  it('renders completed and in-progress runs with duration', () => {
+    const data = create(GetWorkflowRunsResponseSchema, {
+      configured: true,
+      runs: [
+        {
+          id: 1n,
+          name: 'CI',
+          event: 'pull_request',
+          branch: 'feat/x',
+          status: 'completed',
+          conclusion: 'success',
+          url: 'https://github.com/x/y/actions/runs/1',
+          startedAt: '2026-01-01T10:00:00Z',
+          durationMs: 300000n
+        },
+        {
+          id: 2n,
+          name: 'CI',
+          event: 'push',
+          branch: 'release-branch',
+          status: 'in_progress',
+          conclusion: '',
+          url: 'https://github.com/x/y/actions/runs/2',
+          startedAt: '2026-01-01T11:00:00Z',
+          durationMs: 0n
+        },
+        {
+          id: 3n,
+          name: 'CI',
+          event: 'push',
+          branch: 'main',
+          status: 'completed',
+          conclusion: 'failure',
+          url: 'https://github.com/x/y/actions/runs/3',
+          startedAt: '2026-01-01T12:00:00Z',
+          durationMs: 60000n
+        }
+      ]
+    })
+
+    render(<WorkflowRunsCard data={data} />)
+    expect(screen.getByText('PR')).toBeInTheDocument()
+    expect(screen.getByText('release-branch')).toBeInTheDocument()
+    expect(screen.getByText('5.0 min')).toBeInTheDocument()
+    expect(screen.getByText('in_progress')).toBeInTheDocument()
+    expect(screen.getByText('failure')).toBeInTheDocument()
+    expect(screen.getByText('1.0 min')).toBeInTheDocument()
+  })
+
+  it('degrades when not configured', () => {
+    const data = create(GetWorkflowRunsResponseSchema, { configured: false })
+    render(<WorkflowRunsCard data={data} />)
+    expect(screen.getByText('GitHub is not configured.')).toBeInTheDocument()
+  })
+
+  it('shows an empty state when configured with no runs', () => {
+    const data = create(GetWorkflowRunsResponseSchema, { configured: true, runs: [] })
+    render(<WorkflowRunsCard data={data} />)
+    expect(screen.getByText('No workflow runs.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<WorkflowRunsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 })

@@ -163,8 +163,8 @@ Claude CLI over a largely read-only MCP server at `/apps/mcp`
 (`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`) — each implementing
 app has its own `apps/<name>/mcp.go` wrapping only its **read** Connect
 handlers, so no per-app tool is ever mutating. `registerObservabilityMCPTools`
-adds the 11 unprefixed admin-gated observability tools on top, sharing the
-exact same internal methods the Connect handlers use — 10 are read, plus
+adds the 12 unprefixed admin-gated observability tools on top, sharing the
+exact same internal methods the Connect handlers use — 11 are read, plus
 `resolve_sentry_issue`, the one deliberate mutation (marks a Sentry issue
 resolved via `sentryapi.Client.ResolveIssue`), letting an admin-authenticated
 agent close out an issue it just filed a fix for. Auth is MCP OAuth 2.1,

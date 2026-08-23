@@ -84,7 +84,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (10 tools, which include the one mutating
+// tools registered directly below (11 tools, which include the one mutating
 // tool, resolve_sentry_issue — see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
@@ -103,8 +103,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 11 admin observability tools —
-// 10 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 12 admin observability tools —
+// 11 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -137,6 +137,12 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		"Open pull requests with at least one failing CI check.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.failingPullRequests(ctx), nil
+		})
+	addObsTool(srv, "get_workflow_runs",
+		"Recent pull-request and push (main branch) GitHub Actions workflow "+
+			"runs, with duration for each completed run.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.workflowRuns(ctx), nil
 		})
 	addObsTool(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+

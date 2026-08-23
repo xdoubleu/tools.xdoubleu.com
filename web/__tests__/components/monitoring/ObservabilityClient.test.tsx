@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetFailingPullRequestsResponseSchema,
+  GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetSlowTransactionsResponseSchema,
@@ -20,6 +21,7 @@ const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseFailingPullRequests = jest.fn()
+const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
@@ -41,6 +43,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
   useFailingPullRequests: () => mockUseFailingPullRequests(),
+  useWorkflowRuns: () => mockUseWorkflowRuns(),
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
   useSlowTransactions: () => mockUseSlowTransactions(),
@@ -97,6 +100,10 @@ beforeEach(() => {
       failingCount: 2,
       pullRequests: []
     }),
+    mutate: mockMutate
+  })
+  mockUseWorkflowRuns.mockReturnValue({
+    data: create(GetWorkflowRunsResponseSchema, { configured: true, runs: [] }),
     mutate: mockMutate
   })
   mockUseSecurityAlerts.mockReturnValue({
@@ -184,8 +191,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 9 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(9)
+    // instead of a plain mutate(), so mockMutate covers the other 10 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(10)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

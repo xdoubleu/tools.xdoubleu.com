@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file observability/v1/observability.proto.
  */
 export const file_observability_v1_observability: GenFile = /*@__PURE__*/
-  fileDesc("CiRvYnNlcnZhYmlsaXR5L3YxL29ic2VydmFiaWxpdHkucHJvdG8SEG9ic2VydmFiaWxpdHkudjEicAoHSm9iU3RhdBIOCgZqb2JfaWQYASABKAkSEgoKdG90YWxfcnVucxgCIAEoAxITCgtmYWlsZWRfcnVucxgDIAEoAxIXCg9hdmdfZHVyYXRpb25fbXMYBCABKAMSEwoLbGFzdF9ydW5fYXQYBSABKAkiYQoGSm9iUnVuEg4KBmpvYl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhMKC2R1cmF0aW9uX21zGAMgASgDEg8KB3N1Y2Nlc3MYBCABKAgSDQoFZXJyb3IYBSABKAkiKQoSR2V0Sm9iU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIm4KE0dldEpvYlN0YXRzUmVzcG9uc2USKAoFc3RhdHMYASADKAsyGS5vYnNlcnZhYmlsaXR5LnYxLkpvYlN0YXQSLQoLcmVjZW50X3J1bnMYAiADKAsyGC5vYnNlcnZhYmlsaXR5LnYxLkpvYlJ1biJUCghVc2FnZURheRILCgNkYXkYASABKAkSCwoDYXBwGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBWNvdW50GAQgASgDEg0KBWJ5dGVzGAUgASgDIisKFEdldFVzYWdlU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIlkKFUdldFVzYWdlU3RhdHNSZXNwb25zZRIrCgdlbnRyaWVzGAEgAygLMhoub2JzZXJ2YWJpbGl0eS52MS5Vc2FnZURheRITCgt1bnVzZWRfYXBwcxgCIAMoCSI/CgpQcmVmaXhTdGF0Eg4KBnByZWZpeBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg0KBWNvdW50GAMgASgDIvsBCg9TdG9yYWdlU25hcHNob3QSEgoKc2Nhbm5lZF9hdBgBIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAIgASgDEhQKDG9iamVjdF9jb3VudBgDIAEoAxIZChFvcnBoYW5fc2l6ZV9ieXRlcxgEIAEoAxIUCgxvcnBoYW5fY291bnQYBSABKAMSHwoXc3RhbGVfdXBsb2FkX3NpemVfYnl0ZXMYBiABKAMSGgoSc3RhbGVfdXBsb2FkX2NvdW50GAcgASgDEjYKEHByZWZpeF9icmVha2Rvd24YCCADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlByZWZpeFN0YXQiGAoWR2V0U3RvcmFnZVN0YXRzUmVxdWVzdCKAAQoXR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USMQoGbGF0ZXN0GAEgASgLMiEub2JzZXJ2YWJpbGl0eS52MS5TdG9yYWdlU25hcHNob3QSMgoHaGlzdG9yeRgCIAMoCzIhLm9ic2VydmFiaWxpdHkudjEuU3RvcmFnZVNuYXBzaG90IhsKGVRyaWdnZXJTdG9yYWdlU2NhblJlcXVlc3QiHAoaVHJpZ2dlclN0b3JhZ2VTY2FuUmVzcG9uc2UiQwoKU2NoZW1hU3RhdBIMCgRuYW1lGAEgASgJEhIKCnNpemVfYnl0ZXMYAiABKAMSEwoLdGFibGVfY291bnQYAyABKAMiGQoXR2V0RGF0YWJhc2VTdGF0c1JlcXVlc3QiYwoYR2V0RGF0YWJhc2VTdGF0c1Jlc3BvbnNlEhgKEHRvdGFsX3NpemVfYnl0ZXMYASABKAMSLQoHc2NoZW1hcxgCIAMoCzIcLm9ic2VydmFiaWxpdHkudjEuU2NoZW1hU3RhdCI9CgxGYWlsaW5nQ2hlY2sSDAoEbmFtZRgBIAEoCRISCgpjb25jbHVzaW9uGAIgASgJEgsKA3VybBgDIAEoCSKcAQoSRmFpbGluZ1B1bGxSZXF1ZXN0Eg4KBm51bWJlchgBIAEoAxINCgV0aXRsZRgCIAEoCRILCgN1cmwYAyABKAkSDgoGYXV0aG9yGAQgASgJEhIKCnVwZGF0ZWRfYXQYBSABKAkSNgoOZmFpbGluZ19jaGVja3MYBiADKAsyHi5vYnNlcnZhYmlsaXR5LnYxLkZhaWxpbmdDaGVjayIfCh1HZXRGYWlsaW5nUHVsbFJlcXVlc3RzUmVxdWVzdCKIAQoeR2V0RmFpbGluZ1B1bGxSZXF1ZXN0c1Jlc3BvbnNlEjsKDXB1bGxfcmVxdWVzdHMYASADKAsyJC5vYnNlcnZhYmlsaXR5LnYxLkZhaWxpbmdQdWxsUmVxdWVzdBISCgpjb25maWd1cmVkGAIgASgIEhUKDWZhaWxpbmdfY291bnQYAyABKAUijAIKDVNlY3VyaXR5QWxlcnQSDgoGbnVtYmVyGAEgASgDEhQKDHBhY2thZ2VfbmFtZRgCIAEoCRIRCgllY29zeXN0ZW0YAyABKAkSEAoIc2V2ZXJpdHkYBCABKAkSDwoHc3VtbWFyeRgFIAEoCRILCgN1cmwYBiABKAkSEgoKY3JlYXRlZF9hdBgHIAEoCRI3CgphbGVydF90eXBlGAggASgOMiMub2JzZXJ2YWJpbGl0eS52MS5TZWN1cml0eUFsZXJ0VHlwZRIPCgdydWxlX2lkGAkgASgJEhEKCWZpbGVfcGF0aBgKIAEoCRIMCgRsaW5lGAsgASgFEhMKC3NlY3JldF90eXBlGAwgASgJIhoKGEdldFNlY3VyaXR5QWxlcnRzUmVxdWVzdCJ1ChlHZXRTZWN1cml0eUFsZXJ0c1Jlc3BvbnNlEi8KBmFsZXJ0cxgBIAMoCzIfLm9ic2VydmFiaWxpdHkudjEuU2VjdXJpdHlBbGVydBISCgpjb25maWd1cmVkGAIgASgIEhMKC2FsZXJ0X2NvdW50GAMgASgFIo4BCgtTZW50cnlJc3N1ZRIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRIPCgdjdWxwcml0GAMgASgJEhEKCXBlcm1hbGluaxgEIAEoCRINCgVjb3VudBgFIAEoAxIRCglsYXN0X3NlZW4YBiABKAkSDQoFbGV2ZWwYByABKAkSDwoHcHJvamVjdBgIIAEoCSIYChZHZXRTZW50cnlJc3N1ZXNSZXF1ZXN0InYKF0dldFNlbnRyeUlzc3Vlc1Jlc3BvbnNlEi0KBmlzc3VlcxgBIAMoCzIdLm9ic2VydmFiaWxpdHkudjEuU2VudHJ5SXNzdWUSEgoKY29uZmlndXJlZBgCIAEoCBIYChB1bnJlc29sdmVkX2NvdW50GAMgASgFIi0KGVJlc29sdmVTZW50cnlJc3N1ZVJlcXVlc3QSEAoIaXNzdWVfaWQYASABKAkiHAoaUmVzb2x2ZVNlbnRyeUlzc3VlUmVzcG9uc2UiZwoPU2xvd1RyYW5zYWN0aW9uEhMKC3RyYW5zYWN0aW9uGAEgASgJEg8KB3Byb2plY3QYAiABKAkSFwoPcDk1X2R1cmF0aW9uX21zGAMgASgBEhUKDXJlcXVlc3RfY291bnQYBCABKAMigQEKEFRyYW5zYWN0aW9uVHJlbmQSEwoLdHJhbnNhY3Rpb24YASABKAkSDwoHcHJvamVjdBgCIAEoCRIYChBwcmlvcl9hdmdfcDk1X21zGAMgASgBEhkKEXJlY2VudF9hdmdfcDk1X21zGAQgASgBEhIKCnBjdF9jaGFuZ2UYBSABKAEiHAoaR2V0U2xvd1RyYW5zYWN0aW9uc1JlcXVlc3QimwEKG0dldFNsb3dUcmFuc2FjdGlvbnNSZXNwb25zZRIyCgdjdXJyZW50GAEgAygLMiEub2JzZXJ2YWJpbGl0eS52MS5TbG93VHJhbnNhY3Rpb24SEgoKY29uZmlndXJlZBgCIAEoCBI0Cgh0cmVuZGluZxgDIAMoCzIiLm9ic2VydmFiaWxpdHkudjEuVHJhbnNhY3Rpb25UcmVuZCIYChZHZXREZXBsb3lTdGF0dXNSZXF1ZXN0IooBChdHZXREZXBsb3lTdGF0dXNSZXNwb25zZRISCgpjb25maWd1cmVkGAEgASgIEg0KBXBoYXNlGAIgASgJEg0KBWNhdXNlGAMgASgJEhIKCmNyZWF0ZWRfYXQYBCABKAkSEgoKdXBkYXRlZF9hdBgFIAEoCRIVCg1kZXBsb3ltZW50X2lkGAYgASgJIkEKFEdldERlcGxveUxvZ3NSZXF1ZXN0EhUKDWRlcGxveW1lbnRfaWQYASABKAkSEgoKdGFpbF9saW5lcxgCIAEoBSJ0ChJEZXBsb3lDb21wb25lbnRMb2cSEQoJY29tcG9uZW50GAEgASgJEhAKCGxvZ190eXBlGAIgASgJEg8KB2NvbnRlbnQYAyABKAkSEQoJdHJ1bmNhdGVkGAQgASgIEhUKDWRlcGxveW1lbnRfaWQYBSABKAkiXgopT2JzZXJ2YWJpbGl0eVNlcnZpY2VHZXREZXBsb3lMb2dzUmVzcG9uc2USMQoDbG9nGAEgASgLMiQub2JzZXJ2YWJpbGl0eS52MS5EZXBsb3lDb21wb25lbnRMb2cidgoVR2V0RGVwbG95TG9nc1Jlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSFQoNZGVwbG95bWVudF9pZBgCIAEoCRIyCgRsb2dzGAMgAygLMiQub2JzZXJ2YWJpbGl0eS52MS5EZXBsb3lDb21wb25lbnRMb2ciGgoYR2V0SGVhbHRoT3ZlcnZpZXdSZXF1ZXN0IpEBChlHZXRIZWFsdGhPdmVydmlld1Jlc3BvbnNlEjkKBnNlbnRyeRgCIAEoCzIpLm9ic2VydmFiaWxpdHkudjEuR2V0U2VudHJ5SXNzdWVzUmVzcG9uc2USOQoGZGVwbG95GAMgASgLMikub2JzZXJ2YWJpbGl0eS52MS5HZXREZXBsb3lTdGF0dXNSZXNwb25zZSIcCgxHaXRodWJDb25maWcSDAoEcmVwbxgBIAEoCSItCgxTZW50cnlDb25maWcSCwoDb3JnGAEgASgJEhAKCHByb2plY3RzGAIgAygJIiQKEkRpZ2l0YWxPY2VhbkNvbmZpZxIOCgZhcHBfaWQYASABKAkivAEKDlByb3ZpZGVyQ29uZmlnEjAKBmdpdGh1YhgBIAEoCzIeLm9ic2VydmFiaWxpdHkudjEuR2l0aHViQ29uZmlnSAASMAoGc2VudHJ5GAIgASgLMh4ub2JzZXJ2YWJpbGl0eS52MS5TZW50cnlDb25maWdIABI8CgxkaWdpdGFsb2NlYW4YAyABKAsyJC5vYnNlcnZhYmlsaXR5LnYxLkRpZ2l0YWxPY2VhbkNvbmZpZ0gAQggKBmNvbmZpZyKuAQoVT0F1dGhDb25uZWN0aW9uU3RhdHVzEhAKCHByb3ZpZGVyGAEgASgJEhEKCWNvbm5lY3RlZBgCIAEoCBIUCgxjb25uZWN0ZWRfYnkYAyABKAkSFAoMY29ubmVjdGVkX2F0GAQgASgJEhIKCmV4cGlyZXNfYXQYBSABKAkSMAoGY29uZmlnGAYgASgLMiAub2JzZXJ2YWJpbGl0eS52MS5Qcm92aWRlckNvbmZpZyIdChtMaXN0T0F1dGhDb25uZWN0aW9uc1JlcXVlc3QiXAocTGlzdE9BdXRoQ29ubmVjdGlvbnNSZXNwb25zZRI8Cgtjb25uZWN0aW9ucxgBIAMoCzInLm9ic2VydmFiaWxpdHkudjEuT0F1dGhDb25uZWN0aW9uU3RhdHVzIjQKIERpc2Nvbm5lY3RPQXV0aENvbm5lY3Rpb25SZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJIiMKIURpc2Nvbm5lY3RPQXV0aENvbm5lY3Rpb25SZXNwb25zZSJBChlHZXRQcm92aWRlck9wdGlvbnNSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEhIKCnNlbnRyeV9vcmcYAiABKAkiZwoaR2V0UHJvdmlkZXJPcHRpb25zUmVzcG9uc2USDQoFcmVwb3MYASADKAkSEwoLc2VudHJ5X29yZ3MYAiADKAkSFwoPc2VudHJ5X3Byb2plY3RzGAMgAygJEgwKBGFwcHMYBCADKAkiXgoYU2V0UHJvdmlkZXJDb25maWdSZXF1ZXN0EhAKCHByb3ZpZGVyGAEgASgJEjAKBmNvbmZpZxgCIAEoCzIgLm9ic2VydmFiaWxpdHkudjEuUHJvdmlkZXJDb25maWciGwoZU2V0UHJvdmlkZXJDb25maWdSZXNwb25zZSqsAQoRU2VjdXJpdHlBbGVydFR5cGUSIwofU0VDVVJJVFlfQUxFUlRfVFlQRV9VTlNQRUNJRklFRBAAEiIKHlNFQ1VSSVRZX0FMRVJUX1RZUEVfREVQRU5EQUJPVBABEiUKIVNFQ1VSSVRZX0FMRVJUX1RZUEVfQ09ERV9TQ0FOTklORxACEicKI1NFQ1VSSVRZX0FMRVJUX1RZUEVfU0VDUkVUX1NDQU5OSU5HEAMy+w4KFE9ic2VydmFiaWxpdHlTZXJ2aWNlEloKC0dldEpvYlN0YXRzEiQub2JzZXJ2YWJpbGl0eS52MS5HZXRKb2JTdGF0c1JlcXVlc3QaJS5vYnNlcnZhYmlsaXR5LnYxLkdldEpvYlN0YXRzUmVzcG9uc2USYAoNR2V0VXNhZ2VTdGF0cxImLm9ic2VydmFiaWxpdHkudjEuR2V0VXNhZ2VTdGF0c1JlcXVlc3QaJy5vYnNlcnZhYmlsaXR5LnYxLkdldFVzYWdlU3RhdHNSZXNwb25zZRJmCg9HZXRTdG9yYWdlU3RhdHMSKC5vYnNlcnZhYmlsaXR5LnYxLkdldFN0b3JhZ2VTdGF0c1JlcXVlc3QaKS5vYnNlcnZhYmlsaXR5LnYxLkdldFN0b3JhZ2VTdGF0c1Jlc3BvbnNlEm8KElRyaWdnZXJTdG9yYWdlU2NhbhIrLm9ic2VydmFiaWxpdHkudjEuVHJpZ2dlclN0b3JhZ2VTY2FuUmVxdWVzdBosLm9ic2VydmFiaWxpdHkudjEuVHJpZ2dlclN0b3JhZ2VTY2FuUmVzcG9uc2USaQoQR2V0RGF0YWJhc2VTdGF0cxIpLm9ic2VydmFiaWxpdHkudjEuR2V0RGF0YWJhc2VTdGF0c1JlcXVlc3QaKi5vYnNlcnZhYmlsaXR5LnYxLkdldERhdGFiYXNlU3RhdHNSZXNwb25zZRJ7ChZHZXRGYWlsaW5nUHVsbFJlcXVlc3RzEi8ub2JzZXJ2YWJpbGl0eS52MS5HZXRGYWlsaW5nUHVsbFJlcXVlc3RzUmVxdWVzdBowLm9ic2VydmFiaWxpdHkudjEuR2V0RmFpbGluZ1B1bGxSZXF1ZXN0c1Jlc3BvbnNlEmwKEUdldFNlY3VyaXR5QWxlcnRzEioub2JzZXJ2YWJpbGl0eS52MS5HZXRTZWN1cml0eUFsZXJ0c1JlcXVlc3QaKy5vYnNlcnZhYmlsaXR5LnYxLkdldFNlY3VyaXR5QWxlcnRzUmVzcG9uc2USZgoPR2V0U2VudHJ5SXNzdWVzEigub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXF1ZXN0Gikub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXNwb25zZRJvChJSZXNvbHZlU2VudHJ5SXNzdWUSKy5vYnNlcnZhYmlsaXR5LnYxLlJlc29sdmVTZW50cnlJc3N1ZVJlcXVlc3QaLC5vYnNlcnZhYmlsaXR5LnYxLlJlc29sdmVTZW50cnlJc3N1ZVJlc3BvbnNlEnIKE0dldFNsb3dUcmFuc2FjdGlvbnMSLC5vYnNlcnZhYmlsaXR5LnYxLkdldFNsb3dUcmFuc2FjdGlvbnNSZXF1ZXN0Gi0ub2JzZXJ2YWJpbGl0eS52MS5HZXRTbG93VHJhbnNhY3Rpb25zUmVzcG9uc2USZgoPR2V0RGVwbG95U3RhdHVzEigub2JzZXJ2YWJpbGl0eS52MS5HZXREZXBsb3lTdGF0dXNSZXF1ZXN0Gikub2JzZXJ2YWJpbGl0eS52MS5HZXREZXBsb3lTdGF0dXNSZXNwb25zZRJ2Cg1HZXREZXBsb3lMb2dzEiYub2JzZXJ2YWJpbGl0eS52MS5HZXREZXBsb3lMb2dzUmVxdWVzdBo7Lm9ic2VydmFiaWxpdHkudjEuT2JzZXJ2YWJpbGl0eVNlcnZpY2VHZXREZXBsb3lMb2dzUmVzcG9uc2UwARJsChFHZXRIZWFsdGhPdmVydmlldxIqLm9ic2VydmFiaWxpdHkudjEuR2V0SGVhbHRoT3ZlcnZpZXdSZXF1ZXN0Gisub2JzZXJ2YWJpbGl0eS52MS5HZXRIZWFsdGhPdmVydmlld1Jlc3BvbnNlEnUKFExpc3RPQXV0aENvbm5lY3Rpb25zEi0ub2JzZXJ2YWJpbGl0eS52MS5MaXN0T0F1dGhDb25uZWN0aW9uc1JlcXVlc3QaLi5vYnNlcnZhYmlsaXR5LnYxLkxpc3RPQXV0aENvbm5lY3Rpb25zUmVzcG9uc2UShAEKGURpc2Nvbm5lY3RPQXV0aENvbm5lY3Rpb24SMi5vYnNlcnZhYmlsaXR5LnYxLkRpc2Nvbm5lY3RPQXV0aENvbm5lY3Rpb25SZXF1ZXN0GjMub2JzZXJ2YWJpbGl0eS52MS5EaXNjb25uZWN0T0F1dGhDb25uZWN0aW9uUmVzcG9uc2USbwoSR2V0UHJvdmlkZXJPcHRpb25zEisub2JzZXJ2YWJpbGl0eS52MS5HZXRQcm92aWRlck9wdGlvbnNSZXF1ZXN0Giwub2JzZXJ2YWJpbGl0eS52MS5HZXRQcm92aWRlck9wdGlvbnNSZXNwb25zZRJsChFTZXRQcm92aWRlckNvbmZpZxIqLm9ic2VydmFiaWxpdHkudjEuU2V0UHJvdmlkZXJDb25maWdSZXF1ZXN0Gisub2JzZXJ2YWJpbGl0eS52MS5TZXRQcm92aWRlckNvbmZpZ1Jlc3BvbnNlQjlaN3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vb2JzZXJ2YWJpbGl0eS92MTtvYnNlcnZhYmlsaXR5djFiBnByb3RvMw");
+  fileDesc("CiRvYnNlcnZhYmlsaXR5L3YxL29ic2VydmFiaWxpdHkucHJvdG8SEG9ic2VydmFiaWxpdHkudjEicAoHSm9iU3RhdBIOCgZqb2JfaWQYASABKAkSEgoKdG90YWxfcnVucxgCIAEoAxITCgtmYWlsZWRfcnVucxgDIAEoAxIXCg9hdmdfZHVyYXRpb25fbXMYBCABKAMSEwoLbGFzdF9ydW5fYXQYBSABKAkiYQoGSm9iUnVuEg4KBmpvYl9pZBgBIAEoCRISCgpzdGFydGVkX2F0GAIgASgJEhMKC2R1cmF0aW9uX21zGAMgASgDEg8KB3N1Y2Nlc3MYBCABKAgSDQoFZXJyb3IYBSABKAkiKQoSR2V0Sm9iU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIm4KE0dldEpvYlN0YXRzUmVzcG9uc2USKAoFc3RhdHMYASADKAsyGS5vYnNlcnZhYmlsaXR5LnYxLkpvYlN0YXQSLQoLcmVjZW50X3J1bnMYAiADKAsyGC5vYnNlcnZhYmlsaXR5LnYxLkpvYlJ1biJUCghVc2FnZURheRILCgNkYXkYASABKAkSCwoDYXBwGAIgASgJEhAKCGVuZHBvaW50GAMgASgJEg0KBWNvdW50GAQgASgDEg0KBWJ5dGVzGAUgASgDIisKFEdldFVzYWdlU3RhdHNSZXF1ZXN0EhMKC3dpbmRvd19kYXlzGAEgASgFIlkKFUdldFVzYWdlU3RhdHNSZXNwb25zZRIrCgdlbnRyaWVzGAEgAygLMhoub2JzZXJ2YWJpbGl0eS52MS5Vc2FnZURheRITCgt1bnVzZWRfYXBwcxgCIAMoCSI/CgpQcmVmaXhTdGF0Eg4KBnByZWZpeBgBIAEoCRISCgpzaXplX2J5dGVzGAIgASgDEg0KBWNvdW50GAMgASgDIvsBCg9TdG9yYWdlU25hcHNob3QSEgoKc2Nhbm5lZF9hdBgBIAEoCRIYChB0b3RhbF9zaXplX2J5dGVzGAIgASgDEhQKDG9iamVjdF9jb3VudBgDIAEoAxIZChFvcnBoYW5fc2l6ZV9ieXRlcxgEIAEoAxIUCgxvcnBoYW5fY291bnQYBSABKAMSHwoXc3RhbGVfdXBsb2FkX3NpemVfYnl0ZXMYBiABKAMSGgoSc3RhbGVfdXBsb2FkX2NvdW50GAcgASgDEjYKEHByZWZpeF9icmVha2Rvd24YCCADKAsyHC5vYnNlcnZhYmlsaXR5LnYxLlByZWZpeFN0YXQiGAoWR2V0U3RvcmFnZVN0YXRzUmVxdWVzdCKAAQoXR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USMQoGbGF0ZXN0GAEgASgLMiEub2JzZXJ2YWJpbGl0eS52MS5TdG9yYWdlU25hcHNob3QSMgoHaGlzdG9yeRgCIAMoCzIhLm9ic2VydmFiaWxpdHkudjEuU3RvcmFnZVNuYXBzaG90IhsKGVRyaWdnZXJTdG9yYWdlU2NhblJlcXVlc3QiHAoaVHJpZ2dlclN0b3JhZ2VTY2FuUmVzcG9uc2UiQwoKU2NoZW1hU3RhdBIMCgRuYW1lGAEgASgJEhIKCnNpemVfYnl0ZXMYAiABKAMSEwoLdGFibGVfY291bnQYAyABKAMiGQoXR2V0RGF0YWJhc2VTdGF0c1JlcXVlc3QiYwoYR2V0RGF0YWJhc2VTdGF0c1Jlc3BvbnNlEhgKEHRvdGFsX3NpemVfYnl0ZXMYASABKAMSLQoHc2NoZW1hcxgCIAMoCzIcLm9ic2VydmFiaWxpdHkudjEuU2NoZW1hU3RhdCI9CgxGYWlsaW5nQ2hlY2sSDAoEbmFtZRgBIAEoCRISCgpjb25jbHVzaW9uGAIgASgJEgsKA3VybBgDIAEoCSKcAQoSRmFpbGluZ1B1bGxSZXF1ZXN0Eg4KBm51bWJlchgBIAEoAxINCgV0aXRsZRgCIAEoCRILCgN1cmwYAyABKAkSDgoGYXV0aG9yGAQgASgJEhIKCnVwZGF0ZWRfYXQYBSABKAkSNgoOZmFpbGluZ19jaGVja3MYBiADKAsyHi5vYnNlcnZhYmlsaXR5LnYxLkZhaWxpbmdDaGVjayIfCh1HZXRGYWlsaW5nUHVsbFJlcXVlc3RzUmVxdWVzdCKIAQoeR2V0RmFpbGluZ1B1bGxSZXF1ZXN0c1Jlc3BvbnNlEjsKDXB1bGxfcmVxdWVzdHMYASADKAsyJC5vYnNlcnZhYmlsaXR5LnYxLkZhaWxpbmdQdWxsUmVxdWVzdBISCgpjb25maWd1cmVkGAIgASgIEhUKDWZhaWxpbmdfY291bnQYAyABKAUioAEKC1dvcmtmbG93UnVuEgoKAmlkGAEgASgDEgwKBG5hbWUYAiABKAkSDQoFZXZlbnQYAyABKAkSDgoGYnJhbmNoGAQgASgJEg4KBnN0YXR1cxgFIAEoCRISCgpjb25jbHVzaW9uGAYgASgJEgsKA3VybBgHIAEoCRISCgpzdGFydGVkX2F0GAggASgJEhMKC2R1cmF0aW9uX21zGAkgASgDIhgKFkdldFdvcmtmbG93UnVuc1JlcXVlc3QiWgoXR2V0V29ya2Zsb3dSdW5zUmVzcG9uc2USKwoEcnVucxgBIAMoCzIdLm9ic2VydmFiaWxpdHkudjEuV29ya2Zsb3dSdW4SEgoKY29uZmlndXJlZBgCIAEoCCKMAgoNU2VjdXJpdHlBbGVydBIOCgZudW1iZXIYASABKAMSFAoMcGFja2FnZV9uYW1lGAIgASgJEhEKCWVjb3N5c3RlbRgDIAEoCRIQCghzZXZlcml0eRgEIAEoCRIPCgdzdW1tYXJ5GAUgASgJEgsKA3VybBgGIAEoCRISCgpjcmVhdGVkX2F0GAcgASgJEjcKCmFsZXJ0X3R5cGUYCCABKA4yIy5vYnNlcnZhYmlsaXR5LnYxLlNlY3VyaXR5QWxlcnRUeXBlEg8KB3J1bGVfaWQYCSABKAkSEQoJZmlsZV9wYXRoGAogASgJEgwKBGxpbmUYCyABKAUSEwoLc2VjcmV0X3R5cGUYDCABKAkiGgoYR2V0U2VjdXJpdHlBbGVydHNSZXF1ZXN0InUKGUdldFNlY3VyaXR5QWxlcnRzUmVzcG9uc2USLwoGYWxlcnRzGAEgAygLMh8ub2JzZXJ2YWJpbGl0eS52MS5TZWN1cml0eUFsZXJ0EhIKCmNvbmZpZ3VyZWQYAiABKAgSEwoLYWxlcnRfY291bnQYAyABKAUijgEKC1NlbnRyeUlzc3VlEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEg8KB2N1bHByaXQYAyABKAkSEQoJcGVybWFsaW5rGAQgASgJEg0KBWNvdW50GAUgASgDEhEKCWxhc3Rfc2VlbhgGIAEoCRINCgVsZXZlbBgHIAEoCRIPCgdwcm9qZWN0GAggASgJIhgKFkdldFNlbnRyeUlzc3Vlc1JlcXVlc3QidgoXR2V0U2VudHJ5SXNzdWVzUmVzcG9uc2USLQoGaXNzdWVzGAEgAygLMh0ub2JzZXJ2YWJpbGl0eS52MS5TZW50cnlJc3N1ZRISCgpjb25maWd1cmVkGAIgASgIEhgKEHVucmVzb2x2ZWRfY291bnQYAyABKAUiLQoZUmVzb2x2ZVNlbnRyeUlzc3VlUmVxdWVzdBIQCghpc3N1ZV9pZBgBIAEoCSIcChpSZXNvbHZlU2VudHJ5SXNzdWVSZXNwb25zZSJnCg9TbG93VHJhbnNhY3Rpb24SEwoLdHJhbnNhY3Rpb24YASABKAkSDwoHcHJvamVjdBgCIAEoCRIXCg9wOTVfZHVyYXRpb25fbXMYAyABKAESFQoNcmVxdWVzdF9jb3VudBgEIAEoAyKBAQoQVHJhbnNhY3Rpb25UcmVuZBITCgt0cmFuc2FjdGlvbhgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEhgKEHByaW9yX2F2Z19wOTVfbXMYAyABKAESGQoRcmVjZW50X2F2Z19wOTVfbXMYBCABKAESEgoKcGN0X2NoYW5nZRgFIAEoASIcChpHZXRTbG93VHJhbnNhY3Rpb25zUmVxdWVzdCKbAQobR2V0U2xvd1RyYW5zYWN0aW9uc1Jlc3BvbnNlEjIKB2N1cnJlbnQYASADKAsyIS5vYnNlcnZhYmlsaXR5LnYxLlNsb3dUcmFuc2FjdGlvbhISCgpjb25maWd1cmVkGAIgASgIEjQKCHRyZW5kaW5nGAMgAygLMiIub2JzZXJ2YWJpbGl0eS52MS5UcmFuc2FjdGlvblRyZW5kIhgKFkdldERlcGxveVN0YXR1c1JlcXVlc3QiigEKF0dldERlcGxveVN0YXR1c1Jlc3BvbnNlEhIKCmNvbmZpZ3VyZWQYASABKAgSDQoFcGhhc2UYAiABKAkSDQoFY2F1c2UYAyABKAkSEgoKY3JlYXRlZF9hdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJEhUKDWRlcGxveW1lbnRfaWQYBiABKAkiQQoUR2V0RGVwbG95TG9nc1JlcXVlc3QSFQoNZGVwbG95bWVudF9pZBgBIAEoCRISCgp0YWlsX2xpbmVzGAIgASgFInQKEkRlcGxveUNvbXBvbmVudExvZxIRCgljb21wb25lbnQYASABKAkSEAoIbG9nX3R5cGUYAiABKAkSDwoHY29udGVudBgDIAEoCRIRCgl0cnVuY2F0ZWQYBCABKAgSFQoNZGVwbG95bWVudF9pZBgFIAEoCSJeCilPYnNlcnZhYmlsaXR5U2VydmljZUdldERlcGxveUxvZ3NSZXNwb25zZRIxCgNsb2cYASABKAsyJC5vYnNlcnZhYmlsaXR5LnYxLkRlcGxveUNvbXBvbmVudExvZyJ2ChVHZXREZXBsb3lMb2dzUmVzcG9uc2USEgoKY29uZmlndXJlZBgBIAEoCBIVCg1kZXBsb3ltZW50X2lkGAIgASgJEjIKBGxvZ3MYAyADKAsyJC5vYnNlcnZhYmlsaXR5LnYxLkRlcGxveUNvbXBvbmVudExvZyIaChhHZXRIZWFsdGhPdmVydmlld1JlcXVlc3QikQEKGUdldEhlYWx0aE92ZXJ2aWV3UmVzcG9uc2USOQoGc2VudHJ5GAIgASgLMikub2JzZXJ2YWJpbGl0eS52MS5HZXRTZW50cnlJc3N1ZXNSZXNwb25zZRI5CgZkZXBsb3kYAyABKAsyKS5vYnNlcnZhYmlsaXR5LnYxLkdldERlcGxveVN0YXR1c1Jlc3BvbnNlIhwKDEdpdGh1YkNvbmZpZxIMCgRyZXBvGAEgASgJIi0KDFNlbnRyeUNvbmZpZxILCgNvcmcYASABKAkSEAoIcHJvamVjdHMYAiADKAkiJAoSRGlnaXRhbE9jZWFuQ29uZmlnEg4KBmFwcF9pZBgBIAEoCSK8AQoOUHJvdmlkZXJDb25maWcSMAoGZ2l0aHViGAEgASgLMh4ub2JzZXJ2YWJpbGl0eS52MS5HaXRodWJDb25maWdIABIwCgZzZW50cnkYAiABKAsyHi5vYnNlcnZhYmlsaXR5LnYxLlNlbnRyeUNvbmZpZ0gAEjwKDGRpZ2l0YWxvY2VhbhgDIAEoCzIkLm9ic2VydmFiaWxpdHkudjEuRGlnaXRhbE9jZWFuQ29uZmlnSABCCAoGY29uZmlnIq4BChVPQXV0aENvbm5lY3Rpb25TdGF0dXMSEAoIcHJvdmlkZXIYASABKAkSEQoJY29ubmVjdGVkGAIgASgIEhQKDGNvbm5lY3RlZF9ieRgDIAEoCRIUCgxjb25uZWN0ZWRfYXQYBCABKAkSEgoKZXhwaXJlc19hdBgFIAEoCRIwCgZjb25maWcYBiABKAsyIC5vYnNlcnZhYmlsaXR5LnYxLlByb3ZpZGVyQ29uZmlnIh0KG0xpc3RPQXV0aENvbm5lY3Rpb25zUmVxdWVzdCJcChxMaXN0T0F1dGhDb25uZWN0aW9uc1Jlc3BvbnNlEjwKC2Nvbm5lY3Rpb25zGAEgAygLMicub2JzZXJ2YWJpbGl0eS52MS5PQXV0aENvbm5lY3Rpb25TdGF0dXMiNAogRGlzY29ubmVjdE9BdXRoQ29ubmVjdGlvblJlcXVlc3QSEAoIcHJvdmlkZXIYASABKAkiIwohRGlzY29ubmVjdE9BdXRoQ29ubmVjdGlvblJlc3BvbnNlIkEKGUdldFByb3ZpZGVyT3B0aW9uc1JlcXVlc3QSEAoIcHJvdmlkZXIYASABKAkSEgoKc2VudHJ5X29yZxgCIAEoCSJnChpHZXRQcm92aWRlck9wdGlvbnNSZXNwb25zZRINCgVyZXBvcxgBIAMoCRITCgtzZW50cnlfb3JncxgCIAMoCRIXCg9zZW50cnlfcHJvamVjdHMYAyADKAkSDAoEYXBwcxgEIAMoCSJeChhTZXRQcm92aWRlckNvbmZpZ1JlcXVlc3QSEAoIcHJvdmlkZXIYASABKAkSMAoGY29uZmlnGAIgASgLMiAub2JzZXJ2YWJpbGl0eS52MS5Qcm92aWRlckNvbmZpZyIbChlTZXRQcm92aWRlckNvbmZpZ1Jlc3BvbnNlKqwBChFTZWN1cml0eUFsZXJ0VHlwZRIjCh9TRUNVUklUWV9BTEVSVF9UWVBFX1VOU1BFQ0lGSUVEEAASIgoeU0VDVVJJVFlfQUxFUlRfVFlQRV9ERVBFTkRBQk9UEAESJQohU0VDVVJJVFlfQUxFUlRfVFlQRV9DT0RFX1NDQU5OSU5HEAISJwojU0VDVVJJVFlfQUxFUlRfVFlQRV9TRUNSRVRfU0NBTk5JTkcQAzLjDwoUT2JzZXJ2YWJpbGl0eVNlcnZpY2USWgoLR2V0Sm9iU3RhdHMSJC5vYnNlcnZhYmlsaXR5LnYxLkdldEpvYlN0YXRzUmVxdWVzdBolLm9ic2VydmFiaWxpdHkudjEuR2V0Sm9iU3RhdHNSZXNwb25zZRJgCg1HZXRVc2FnZVN0YXRzEiYub2JzZXJ2YWJpbGl0eS52MS5HZXRVc2FnZVN0YXRzUmVxdWVzdBonLm9ic2VydmFiaWxpdHkudjEuR2V0VXNhZ2VTdGF0c1Jlc3BvbnNlEmYKD0dldFN0b3JhZ2VTdGF0cxIoLm9ic2VydmFiaWxpdHkudjEuR2V0U3RvcmFnZVN0YXRzUmVxdWVzdBopLm9ic2VydmFiaWxpdHkudjEuR2V0U3RvcmFnZVN0YXRzUmVzcG9uc2USbwoSVHJpZ2dlclN0b3JhZ2VTY2FuEisub2JzZXJ2YWJpbGl0eS52MS5UcmlnZ2VyU3RvcmFnZVNjYW5SZXF1ZXN0Giwub2JzZXJ2YWJpbGl0eS52MS5UcmlnZ2VyU3RvcmFnZVNjYW5SZXNwb25zZRJpChBHZXREYXRhYmFzZVN0YXRzEikub2JzZXJ2YWJpbGl0eS52MS5HZXREYXRhYmFzZVN0YXRzUmVxdWVzdBoqLm9ic2VydmFiaWxpdHkudjEuR2V0RGF0YWJhc2VTdGF0c1Jlc3BvbnNlEnsKFkdldEZhaWxpbmdQdWxsUmVxdWVzdHMSLy5vYnNlcnZhYmlsaXR5LnYxLkdldEZhaWxpbmdQdWxsUmVxdWVzdHNSZXF1ZXN0GjAub2JzZXJ2YWJpbGl0eS52MS5HZXRGYWlsaW5nUHVsbFJlcXVlc3RzUmVzcG9uc2USZgoPR2V0V29ya2Zsb3dSdW5zEigub2JzZXJ2YWJpbGl0eS52MS5HZXRXb3JrZmxvd1J1bnNSZXF1ZXN0Gikub2JzZXJ2YWJpbGl0eS52MS5HZXRXb3JrZmxvd1J1bnNSZXNwb25zZRJsChFHZXRTZWN1cml0eUFsZXJ0cxIqLm9ic2VydmFiaWxpdHkudjEuR2V0U2VjdXJpdHlBbGVydHNSZXF1ZXN0Gisub2JzZXJ2YWJpbGl0eS52MS5HZXRTZWN1cml0eUFsZXJ0c1Jlc3BvbnNlEmYKD0dldFNlbnRyeUlzc3VlcxIoLm9ic2VydmFiaWxpdHkudjEuR2V0U2VudHJ5SXNzdWVzUmVxdWVzdBopLm9ic2VydmFiaWxpdHkudjEuR2V0U2VudHJ5SXNzdWVzUmVzcG9uc2USbwoSUmVzb2x2ZVNlbnRyeUlzc3VlEisub2JzZXJ2YWJpbGl0eS52MS5SZXNvbHZlU2VudHJ5SXNzdWVSZXF1ZXN0Giwub2JzZXJ2YWJpbGl0eS52MS5SZXNvbHZlU2VudHJ5SXNzdWVSZXNwb25zZRJyChNHZXRTbG93VHJhbnNhY3Rpb25zEiwub2JzZXJ2YWJpbGl0eS52MS5HZXRTbG93VHJhbnNhY3Rpb25zUmVxdWVzdBotLm9ic2VydmFiaWxpdHkudjEuR2V0U2xvd1RyYW5zYWN0aW9uc1Jlc3BvbnNlEmYKD0dldERlcGxveVN0YXR1cxIoLm9ic2VydmFiaWxpdHkudjEuR2V0RGVwbG95U3RhdHVzUmVxdWVzdBopLm9ic2VydmFiaWxpdHkudjEuR2V0RGVwbG95U3RhdHVzUmVzcG9uc2USdgoNR2V0RGVwbG95TG9ncxImLm9ic2VydmFiaWxpdHkudjEuR2V0RGVwbG95TG9nc1JlcXVlc3QaOy5vYnNlcnZhYmlsaXR5LnYxLk9ic2VydmFiaWxpdHlTZXJ2aWNlR2V0RGVwbG95TG9nc1Jlc3BvbnNlMAESbAoRR2V0SGVhbHRoT3ZlcnZpZXcSKi5vYnNlcnZhYmlsaXR5LnYxLkdldEhlYWx0aE92ZXJ2aWV3UmVxdWVzdBorLm9ic2VydmFiaWxpdHkudjEuR2V0SGVhbHRoT3ZlcnZpZXdSZXNwb25zZRJ1ChRMaXN0T0F1dGhDb25uZWN0aW9ucxItLm9ic2VydmFiaWxpdHkudjEuTGlzdE9BdXRoQ29ubmVjdGlvbnNSZXF1ZXN0Gi4ub2JzZXJ2YWJpbGl0eS52MS5MaXN0T0F1dGhDb25uZWN0aW9uc1Jlc3BvbnNlEoQBChlEaXNjb25uZWN0T0F1dGhDb25uZWN0aW9uEjIub2JzZXJ2YWJpbGl0eS52MS5EaXNjb25uZWN0T0F1dGhDb25uZWN0aW9uUmVxdWVzdBozLm9ic2VydmFiaWxpdHkudjEuRGlzY29ubmVjdE9BdXRoQ29ubmVjdGlvblJlc3BvbnNlEm8KEkdldFByb3ZpZGVyT3B0aW9ucxIrLm9ic2VydmFiaWxpdHkudjEuR2V0UHJvdmlkZXJPcHRpb25zUmVxdWVzdBosLm9ic2VydmFiaWxpdHkudjEuR2V0UHJvdmlkZXJPcHRpb25zUmVzcG9uc2USbAoRU2V0UHJvdmlkZXJDb25maWcSKi5vYnNlcnZhYmlsaXR5LnYxLlNldFByb3ZpZGVyQ29uZmlnUmVxdWVzdBorLm9ic2VydmFiaWxpdHkudjEuU2V0UHJvdmlkZXJDb25maWdSZXNwb25zZUI5Wjd0b29scy54ZG91YmxldS5jb20vZ2VuL29ic2VydmFiaWxpdHkvdjE7b2JzZXJ2YWJpbGl0eXYxYgZwcm90bzM");
 
 /**
  * @generated from message observability.v1.JobStat
@@ -540,6 +540,110 @@ export const GetFailingPullRequestsResponseSchema: GenMessage<GetFailingPullRequ
   messageDesc(file_observability_v1_observability, 19);
 
 /**
+ * WorkflowRun is a single GitHub Actions workflow run, either from a pull
+ * request or a push to the default branch. duration_ms is only meaningful
+ * once status == "completed" — zero for runs still in progress.
+ *
+ * @generated from message observability.v1.WorkflowRun
+ */
+export type WorkflowRun = Message<"observability.v1.WorkflowRun"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * "pull_request" | "push"
+   *
+   * @generated from field: string event = 3;
+   */
+  event: string;
+
+  /**
+   * @generated from field: string branch = 4;
+   */
+  branch: string;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string conclusion = 6;
+   */
+  conclusion: string;
+
+  /**
+   * @generated from field: string url = 7;
+   */
+  url: string;
+
+  /**
+   * RFC3339
+   *
+   * @generated from field: string started_at = 8;
+   */
+  startedAt: string;
+
+  /**
+   * @generated from field: int64 duration_ms = 9;
+   */
+  durationMs: bigint;
+};
+
+/**
+ * Describes the message observability.v1.WorkflowRun.
+ * Use `create(WorkflowRunSchema)` to create a new message.
+ */
+export const WorkflowRunSchema: GenMessage<WorkflowRun> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 20);
+
+/**
+ * @generated from message observability.v1.GetWorkflowRunsRequest
+ */
+export type GetWorkflowRunsRequest = Message<"observability.v1.GetWorkflowRunsRequest"> & {
+};
+
+/**
+ * Describes the message observability.v1.GetWorkflowRunsRequest.
+ * Use `create(GetWorkflowRunsRequestSchema)` to create a new message.
+ */
+export const GetWorkflowRunsRequestSchema: GenMessage<GetWorkflowRunsRequest> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 21);
+
+/**
+ * GetWorkflowRunsResponse carries the most recent pull-request and push
+ * workflow runs. configured is false when no GitHub token/repo is set — the
+ * section is degraded, not failed.
+ *
+ * @generated from message observability.v1.GetWorkflowRunsResponse
+ */
+export type GetWorkflowRunsResponse = Message<"observability.v1.GetWorkflowRunsResponse"> & {
+  /**
+   * @generated from field: repeated observability.v1.WorkflowRun runs = 1;
+   */
+  runs: WorkflowRun[];
+
+  /**
+   * @generated from field: bool configured = 2;
+   */
+  configured: boolean;
+};
+
+/**
+ * Describes the message observability.v1.GetWorkflowRunsResponse.
+ * Use `create(GetWorkflowRunsResponseSchema)` to create a new message.
+ */
+export const GetWorkflowRunsResponseSchema: GenMessage<GetWorkflowRunsResponse> = /*@__PURE__*/
+  messageDesc(file_observability_v1_observability, 22);
+
+/**
  * SecurityAlert is a single open Dependabot, code-scanning, or
  * secret-scanning alert on the repo. package_name/ecosystem are set only for
  * alert_type == SECURITY_ALERT_TYPE_DEPENDABOT; rule_id/file_path/line only
@@ -619,7 +723,7 @@ export type SecurityAlert = Message<"observability.v1.SecurityAlert"> & {
  * Use `create(SecurityAlertSchema)` to create a new message.
  */
 export const SecurityAlertSchema: GenMessage<SecurityAlert> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 20);
+  messageDesc(file_observability_v1_observability, 23);
 
 /**
  * @generated from message observability.v1.GetSecurityAlertsRequest
@@ -632,7 +736,7 @@ export type GetSecurityAlertsRequest = Message<"observability.v1.GetSecurityAler
  * Use `create(GetSecurityAlertsRequestSchema)` to create a new message.
  */
 export const GetSecurityAlertsRequestSchema: GenMessage<GetSecurityAlertsRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 21);
+  messageDesc(file_observability_v1_observability, 24);
 
 /**
  * GetSecurityAlertsResponse carries the open Dependabot, code-scanning, and
@@ -663,7 +767,7 @@ export type GetSecurityAlertsResponse = Message<"observability.v1.GetSecurityAle
  * Use `create(GetSecurityAlertsResponseSchema)` to create a new message.
  */
 export const GetSecurityAlertsResponseSchema: GenMessage<GetSecurityAlertsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 22);
+  messageDesc(file_observability_v1_observability, 25);
 
 /**
  * SentryIssue is a single unresolved issue on one of the configured
@@ -724,7 +828,7 @@ export type SentryIssue = Message<"observability.v1.SentryIssue"> & {
  * Use `create(SentryIssueSchema)` to create a new message.
  */
 export const SentryIssueSchema: GenMessage<SentryIssue> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 23);
+  messageDesc(file_observability_v1_observability, 26);
 
 /**
  * @generated from message observability.v1.GetSentryIssuesRequest
@@ -737,7 +841,7 @@ export type GetSentryIssuesRequest = Message<"observability.v1.GetSentryIssuesRe
  * Use `create(GetSentryIssuesRequestSchema)` to create a new message.
  */
 export const GetSentryIssuesRequestSchema: GenMessage<GetSentryIssuesRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 24);
+  messageDesc(file_observability_v1_observability, 27);
 
 /**
  * GetSentryIssuesResponse carries the unresolved issues. configured is false
@@ -767,7 +871,7 @@ export type GetSentryIssuesResponse = Message<"observability.v1.GetSentryIssuesR
  * Use `create(GetSentryIssuesResponseSchema)` to create a new message.
  */
 export const GetSentryIssuesResponseSchema: GenMessage<GetSentryIssuesResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 25);
+  messageDesc(file_observability_v1_observability, 28);
 
 /**
  * @generated from message observability.v1.ResolveSentryIssueRequest
@@ -784,7 +888,7 @@ export type ResolveSentryIssueRequest = Message<"observability.v1.ResolveSentryI
  * Use `create(ResolveSentryIssueRequestSchema)` to create a new message.
  */
 export const ResolveSentryIssueRequestSchema: GenMessage<ResolveSentryIssueRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 26);
+  messageDesc(file_observability_v1_observability, 29);
 
 /**
  * @generated from message observability.v1.ResolveSentryIssueResponse
@@ -797,7 +901,7 @@ export type ResolveSentryIssueResponse = Message<"observability.v1.ResolveSentry
  * Use `create(ResolveSentryIssueResponseSchema)` to create a new message.
  */
 export const ResolveSentryIssueResponseSchema: GenMessage<ResolveSentryIssueResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 27);
+  messageDesc(file_observability_v1_observability, 30);
 
 /**
  * SlowTransaction is one transaction's (an API endpoint or a frontend
@@ -833,7 +937,7 @@ export type SlowTransaction = Message<"observability.v1.SlowTransaction"> & {
  * Use `create(SlowTransactionSchema)` to create a new message.
  */
 export const SlowTransactionSchema: GenMessage<SlowTransaction> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 28);
+  messageDesc(file_observability_v1_observability, 31);
 
 /**
  * TransactionTrend flags a transaction whose p95 duration is regressing:
@@ -874,7 +978,7 @@ export type TransactionTrend = Message<"observability.v1.TransactionTrend"> & {
  * Use `create(TransactionTrendSchema)` to create a new message.
  */
 export const TransactionTrendSchema: GenMessage<TransactionTrend> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 29);
+  messageDesc(file_observability_v1_observability, 32);
 
 /**
  * @generated from message observability.v1.GetSlowTransactionsRequest
@@ -887,7 +991,7 @@ export type GetSlowTransactionsRequest = Message<"observability.v1.GetSlowTransa
  * Use `create(GetSlowTransactionsRequestSchema)` to create a new message.
  */
 export const GetSlowTransactionsRequestSchema: GenMessage<GetSlowTransactionsRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 30);
+  messageDesc(file_observability_v1_observability, 33);
 
 /**
  * GetSlowTransactionsResponse carries both views: current is live from
@@ -920,7 +1024,7 @@ export type GetSlowTransactionsResponse = Message<"observability.v1.GetSlowTrans
  * Use `create(GetSlowTransactionsResponseSchema)` to create a new message.
  */
 export const GetSlowTransactionsResponseSchema: GenMessage<GetSlowTransactionsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 31);
+  messageDesc(file_observability_v1_observability, 34);
 
 /**
  * @generated from message observability.v1.GetDeployStatusRequest
@@ -933,7 +1037,7 @@ export type GetDeployStatusRequest = Message<"observability.v1.GetDeployStatusRe
  * Use `create(GetDeployStatusRequestSchema)` to create a new message.
  */
 export const GetDeployStatusRequestSchema: GenMessage<GetDeployStatusRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 32);
+  messageDesc(file_observability_v1_observability, 35);
 
 /**
  * GetDeployStatusResponse carries the latest deployment. configured is false
@@ -983,7 +1087,7 @@ export type GetDeployStatusResponse = Message<"observability.v1.GetDeployStatusR
  * Use `create(GetDeployStatusResponseSchema)` to create a new message.
  */
 export const GetDeployStatusResponseSchema: GenMessage<GetDeployStatusResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 33);
+  messageDesc(file_observability_v1_observability, 36);
 
 /**
  * GetDeployLogsRequest fetches logs for one deployment. deployment_id empty
@@ -1009,7 +1113,7 @@ export type GetDeployLogsRequest = Message<"observability.v1.GetDeployLogsReques
  * Use `create(GetDeployLogsRequestSchema)` to create a new message.
  */
 export const GetDeployLogsRequestSchema: GenMessage<GetDeployLogsRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 34);
+  messageDesc(file_observability_v1_observability, 37);
 
 /**
  * DeployComponentLog is one component's log text for one phase. deployment_id
@@ -1053,7 +1157,7 @@ export type DeployComponentLog = Message<"observability.v1.DeployComponentLog"> 
  * Use `create(DeployComponentLogSchema)` to create a new message.
  */
 export const DeployComponentLogSchema: GenMessage<DeployComponentLog> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 35);
+  messageDesc(file_observability_v1_observability, 38);
 
 /**
  * ObservabilityServiceGetDeployLogsResponse is one message of the
@@ -1077,7 +1181,7 @@ export type ObservabilityServiceGetDeployLogsResponse = Message<"observability.v
  * Use `create(ObservabilityServiceGetDeployLogsResponseSchema)` to create a new message.
  */
 export const ObservabilityServiceGetDeployLogsResponseSchema: GenMessage<ObservabilityServiceGetDeployLogsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 36);
+  messageDesc(file_observability_v1_observability, 39);
 
 /**
  * GetDeployLogsResponse carries per-component build/deploy/runtime log text
@@ -1112,7 +1216,7 @@ export type GetDeployLogsResponse = Message<"observability.v1.GetDeployLogsRespo
  * Use `create(GetDeployLogsResponseSchema)` to create a new message.
  */
 export const GetDeployLogsResponseSchema: GenMessage<GetDeployLogsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 37);
+  messageDesc(file_observability_v1_observability, 40);
 
 /**
  * @generated from message observability.v1.GetHealthOverviewRequest
@@ -1125,7 +1229,7 @@ export type GetHealthOverviewRequest = Message<"observability.v1.GetHealthOvervi
  * Use `create(GetHealthOverviewRequestSchema)` to create a new message.
  */
 export const GetHealthOverviewRequestSchema: GenMessage<GetHealthOverviewRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 38);
+  messageDesc(file_observability_v1_observability, 41);
 
 /**
  * GetHealthOverviewResponse rolls up external signals into one call, each
@@ -1150,7 +1254,7 @@ export type GetHealthOverviewResponse = Message<"observability.v1.GetHealthOverv
  * Use `create(GetHealthOverviewResponseSchema)` to create a new message.
  */
 export const GetHealthOverviewResponseSchema: GenMessage<GetHealthOverviewResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 39);
+  messageDesc(file_observability_v1_observability, 42);
 
 /**
  * @generated from message observability.v1.GithubConfig
@@ -1169,7 +1273,7 @@ export type GithubConfig = Message<"observability.v1.GithubConfig"> & {
  * Use `create(GithubConfigSchema)` to create a new message.
  */
 export const GithubConfigSchema: GenMessage<GithubConfig> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 40);
+  messageDesc(file_observability_v1_observability, 43);
 
 /**
  * @generated from message observability.v1.SentryConfig
@@ -1191,7 +1295,7 @@ export type SentryConfig = Message<"observability.v1.SentryConfig"> & {
  * Use `create(SentryConfigSchema)` to create a new message.
  */
 export const SentryConfigSchema: GenMessage<SentryConfig> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 41);
+  messageDesc(file_observability_v1_observability, 44);
 
 /**
  * @generated from message observability.v1.DigitalOceanConfig
@@ -1208,7 +1312,7 @@ export type DigitalOceanConfig = Message<"observability.v1.DigitalOceanConfig"> 
  * Use `create(DigitalOceanConfigSchema)` to create a new message.
  */
 export const DigitalOceanConfigSchema: GenMessage<DigitalOceanConfig> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 42);
+  messageDesc(file_observability_v1_observability, 45);
 
 /**
  * ProviderConfig is the admin-picked identifier(s) for a connected provider
@@ -1246,7 +1350,7 @@ export type ProviderConfig = Message<"observability.v1.ProviderConfig"> & {
  * Use `create(ProviderConfigSchema)` to create a new message.
  */
 export const ProviderConfigSchema: GenMessage<ProviderConfig> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 43);
+  messageDesc(file_observability_v1_observability, 46);
 
 /**
  * OAuthConnectionStatus is the admin-facing status of one provider's OAuth
@@ -1301,7 +1405,7 @@ export type OAuthConnectionStatus = Message<"observability.v1.OAuthConnectionSta
  * Use `create(OAuthConnectionStatusSchema)` to create a new message.
  */
 export const OAuthConnectionStatusSchema: GenMessage<OAuthConnectionStatus> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 44);
+  messageDesc(file_observability_v1_observability, 47);
 
 /**
  * @generated from message observability.v1.ListOAuthConnectionsRequest
@@ -1314,7 +1418,7 @@ export type ListOAuthConnectionsRequest = Message<"observability.v1.ListOAuthCon
  * Use `create(ListOAuthConnectionsRequestSchema)` to create a new message.
  */
 export const ListOAuthConnectionsRequestSchema: GenMessage<ListOAuthConnectionsRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 45);
+  messageDesc(file_observability_v1_observability, 48);
 
 /**
  * @generated from message observability.v1.ListOAuthConnectionsResponse
@@ -1331,7 +1435,7 @@ export type ListOAuthConnectionsResponse = Message<"observability.v1.ListOAuthCo
  * Use `create(ListOAuthConnectionsResponseSchema)` to create a new message.
  */
 export const ListOAuthConnectionsResponseSchema: GenMessage<ListOAuthConnectionsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 46);
+  messageDesc(file_observability_v1_observability, 49);
 
 /**
  * @generated from message observability.v1.DisconnectOAuthConnectionRequest
@@ -1348,7 +1452,7 @@ export type DisconnectOAuthConnectionRequest = Message<"observability.v1.Disconn
  * Use `create(DisconnectOAuthConnectionRequestSchema)` to create a new message.
  */
 export const DisconnectOAuthConnectionRequestSchema: GenMessage<DisconnectOAuthConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 47);
+  messageDesc(file_observability_v1_observability, 50);
 
 /**
  * @generated from message observability.v1.DisconnectOAuthConnectionResponse
@@ -1361,7 +1465,7 @@ export type DisconnectOAuthConnectionResponse = Message<"observability.v1.Discon
  * Use `create(DisconnectOAuthConnectionResponseSchema)` to create a new message.
  */
 export const DisconnectOAuthConnectionResponseSchema: GenMessage<DisconnectOAuthConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 48);
+  messageDesc(file_observability_v1_observability, 51);
 
 /**
  * GetProviderOptionsRequest asks a connected provider what identifiers are
@@ -1387,7 +1491,7 @@ export type GetProviderOptionsRequest = Message<"observability.v1.GetProviderOpt
  * Use `create(GetProviderOptionsRequestSchema)` to create a new message.
  */
 export const GetProviderOptionsRequestSchema: GenMessage<GetProviderOptionsRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 49);
+  messageDesc(file_observability_v1_observability, 52);
 
 /**
  * @generated from message observability.v1.GetProviderOptionsResponse
@@ -1419,7 +1523,7 @@ export type GetProviderOptionsResponse = Message<"observability.v1.GetProviderOp
  * Use `create(GetProviderOptionsResponseSchema)` to create a new message.
  */
 export const GetProviderOptionsResponseSchema: GenMessage<GetProviderOptionsResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 50);
+  messageDesc(file_observability_v1_observability, 53);
 
 /**
  * @generated from message observability.v1.SetProviderConfigRequest
@@ -1441,7 +1545,7 @@ export type SetProviderConfigRequest = Message<"observability.v1.SetProviderConf
  * Use `create(SetProviderConfigRequestSchema)` to create a new message.
  */
 export const SetProviderConfigRequestSchema: GenMessage<SetProviderConfigRequest> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 51);
+  messageDesc(file_observability_v1_observability, 54);
 
 /**
  * @generated from message observability.v1.SetProviderConfigResponse
@@ -1454,7 +1558,7 @@ export type SetProviderConfigResponse = Message<"observability.v1.SetProviderCon
  * Use `create(SetProviderConfigResponseSchema)` to create a new message.
  */
 export const SetProviderConfigResponseSchema: GenMessage<SetProviderConfigResponse> = /*@__PURE__*/
-  messageDesc(file_observability_v1_observability, 52);
+  messageDesc(file_observability_v1_observability, 55);
 
 /**
  * @generated from enum observability.v1.SecurityAlertType
@@ -1538,6 +1642,14 @@ export const ObservabilityService: GenService<{
     methodKind: "unary";
     input: typeof GetFailingPullRequestsRequestSchema;
     output: typeof GetFailingPullRequestsResponseSchema;
+  },
+  /**
+   * @generated from rpc observability.v1.ObservabilityService.GetWorkflowRuns
+   */
+  getWorkflowRuns: {
+    methodKind: "unary";
+    input: typeof GetWorkflowRunsRequestSchema;
+    output: typeof GetWorkflowRunsResponseSchema;
   },
   /**
    * @generated from rpc observability.v1.ObservabilityService.GetSecurityAlerts
