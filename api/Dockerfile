@@ -8,7 +8,7 @@
 # tools.xdoubleu.com/sentrytools => ../sentrytools` directive needs that
 # sibling module inside the build context too, so paths below are
 # repo-root-relative until WORKDIR switches to /app/api.
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /app
 
