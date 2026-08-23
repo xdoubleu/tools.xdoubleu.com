@@ -26,4 +26,8 @@ type Client interface {
 	// for the admin config picker. Returns oauthconn.ErrNotConnected when no
 	// token is set — discovery must work before a repo is picked.
 	ListRepos(ctx context.Context) ([]Repo, error)
+	// ListWorkflowRuns returns the most recent pull-request and push (main
+	// branch) GitHub Actions workflow runs on the configured repository.
+	// Returns ErrNotConfigured when no token/repo is set.
+	ListWorkflowRuns(ctx context.Context) ([]WorkflowRun, error)
 }

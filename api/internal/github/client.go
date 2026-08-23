@@ -67,6 +67,8 @@ type client struct {
 	cachedPRAt    time.Time
 	cachedAlerts  []SecurityAlert
 	cachedAlertAt time.Time
+	cachedRuns    []WorkflowRun
+	cachedRunAt   time.Time
 }
 
 // New creates a GitHub client. tokenFn resolves a live OAuth bearer token
@@ -138,6 +140,33 @@ func (c *client) ListSecurityAlerts(ctx context.Context) ([]SecurityAlert, error
 	return alerts, nil
 }
 
+func (c *client) ListWorkflowRuns(ctx context.Context) ([]WorkflowRun, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached, ok := c.cachedWorkflowRuns(); ok {
+		return cached, nil
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	runs, err := c.fetchWorkflowRuns(ctx, token, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	c.storeWorkflowRuns(runs)
+	return runs, nil
+}
+
 // resolveRepo reads the admin-picked repo from the stored connection config.
 // Returns ErrNotConfigured when the provider isn't connected or no repo has
 // been picked yet.
@@ -193,6 +222,22 @@ func (c *client) storeSecurityAlerts(alerts []SecurityAlert) {
 	defer c.mu.Unlock()
 	c.cachedAlerts = alerts
 	c.cachedAlertAt = time.Now()
+}
+
+func (c *client) cachedWorkflowRuns() ([]WorkflowRun, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cachedRuns != nil && time.Since(c.cachedRunAt) < cacheTTL {
+		return c.cachedRuns, true
+	}
+	return nil, false
+}
+
+func (c *client) storeWorkflowRuns(runs []WorkflowRun) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.cachedRuns = runs
+	c.cachedRunAt = time.Now()
 }
 
 // fetchSecurityAlerts lists the repo's open Dependabot, code-scanning, and
@@ -378,6 +423,66 @@ func (c *client) fetchFailingChecks(
 		})
 	}
 	return checks, nil
+}
+
+// runsPerEvent is how many recent runs of each event (pull_request, push) to
+// fetch — enough to show a useful recent trend without over-fetching.
+const runsPerEvent = 20
+
+// fetchWorkflowRuns lists the repo's most recent pull-request and push
+// (main branch) GitHub Actions workflow runs, in two separate requests so
+// each kind gets its own recency window instead of one competing for the
+// same page.
+func (c *client) fetchWorkflowRuns(
+	ctx context.Context, token, repo string,
+) ([]WorkflowRun, error) {
+	prRuns, err := c.fetchWorkflowRunsByEvent(ctx, token, repo, "pull_request")
+	if err != nil {
+		return nil, err
+	}
+	pushRuns, err := c.fetchWorkflowRunsByEvent(ctx, token, repo, "push")
+	if err != nil {
+		return nil, err
+	}
+
+	runs := make([]WorkflowRun, 0, len(prRuns)+len(pushRuns))
+	runs = append(runs, prRuns...)
+	runs = append(runs, pushRuns...)
+	return runs, nil
+}
+
+func (c *client) fetchWorkflowRunsByEvent(
+	ctx context.Context, token, repo, event string,
+) ([]WorkflowRun, error) {
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/actions/runs?event=%s&per_page=%d",
+		baseURL, repo, event, runsPerEvent,
+	)
+
+	var wire workflowRunsWire
+	if err := c.get(ctx, endpoint, token, &wire); err != nil {
+		return nil, err
+	}
+
+	runs := make([]WorkflowRun, 0, len(wire.WorkflowRuns))
+	for _, w := range wire.WorkflowRuns {
+		run := WorkflowRun{
+			ID:         w.ID,
+			Name:       w.Name,
+			Event:      w.Event,
+			Branch:     w.HeadBranch,
+			Status:     w.Status,
+			Conclusion: w.Conclusion,
+			URL:        w.HTMLURL,
+			StartedAt:  w.RunStartedAt,
+			DurationMs: 0,
+		}
+		if w.Status == "completed" {
+			run.DurationMs = w.UpdatedAt.Sub(w.RunStartedAt).Milliseconds()
+		}
+		runs = append(runs, run)
+	}
+	return runs, nil
 }
 
 // getAllowingNotFound behaves like get, except a 404 response leaves dst

@@ -99,6 +99,39 @@ type checkRunWire struct {
 	HTMLURL    string `json:"html_url"`
 }
 
+// WorkflowRun is a single GitHub Actions workflow run, either from a pull
+// request or a push to the default branch. DurationMs is only meaningful
+// once Status is "completed" — zero for runs still in progress.
+type WorkflowRun struct {
+	ID         int64
+	Name       string
+	Event      string // "pull_request" | "push"
+	Branch     string
+	Status     string
+	Conclusion string
+	URL        string
+	StartedAt  time.Time
+	DurationMs int64
+}
+
+// workflowRunsWire is the GitHub "list workflow runs for a repository"
+// response.
+type workflowRunsWire struct {
+	WorkflowRuns []workflowRunWire `json:"workflow_runs"`
+}
+
+type workflowRunWire struct {
+	ID           int64     `json:"id"`
+	Name         string    `json:"name"`
+	Event        string    `json:"event"`
+	HeadBranch   string    `json:"head_branch"`
+	Status       string    `json:"status"`
+	Conclusion   string    `json:"conclusion"`
+	HTMLURL      string    `json:"html_url"`
+	RunStartedAt time.Time `json:"run_started_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
 // securityAlertWire is the subset of the GitHub Dependabot alerts API
 // payload that is decoded.
 type securityAlertWire struct {

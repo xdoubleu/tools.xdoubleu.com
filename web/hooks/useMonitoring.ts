@@ -12,6 +12,7 @@ import type {
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
   GetFailingPullRequestsResponse,
+  GetWorkflowRunsResponse,
   GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
@@ -68,6 +69,13 @@ export function useFailingPullRequests() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetFailingPullRequestsResponse, Error>(swrKeys.monitoringFailingPullRequests, () =>
     client.getFailingPullRequests({})
+  )
+}
+
+export function useWorkflowRuns() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetWorkflowRunsResponse, Error>(swrKeys.monitoringWorkflowRuns, () =>
+    client.getWorkflowRuns({})
   )
 }
 

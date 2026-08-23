@@ -11,6 +11,7 @@ import {
   useTriggerStorageScan,
   useDatabaseStats,
   useFailingPullRequests,
+  useWorkflowRuns,
   useSecurityAlerts,
   useSentryIssues,
   useSlowTransactions,
@@ -24,6 +25,7 @@ import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
+import WorkflowRunsCard from './WorkflowRunsCard'
 import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
@@ -42,6 +44,7 @@ export default function ObservabilityClient() {
   const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats()
   const failingPullRequests = useFailingPullRequests()
+  const workflowRuns = useWorkflowRuns()
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
   const slowTransactions = useSlowTransactions()
@@ -56,6 +59,7 @@ export default function ObservabilityClient() {
       triggerStorageScan(),
       databaseStats.mutate(),
       failingPullRequests.mutate(),
+      workflowRuns.mutate(),
       securityAlerts.mutate(),
       sentryIssues.mutate(),
       slowTransactions.mutate(),
@@ -152,6 +156,7 @@ export default function ObservabilityClient() {
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
         <FailingPullRequestsCard data={failingPullRequests.data} />
+        <WorkflowRunsCard data={workflowRuns.data} />
         <SecurityAlertsCard data={securityAlerts.data} />
         <SentryCard data={sentryIssues.data} />
         <SlowTransactionsCard data={slowTransactions.data} />
