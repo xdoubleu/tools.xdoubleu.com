@@ -629,6 +629,9 @@ jobs:
           TF_VAR_server_id: ${{ secrets.INFRA_SERVER_ID }}
           TF_VAR_server_ip: ${{ secrets.KAMAL_SERVER_IP }}
           TF_VAR_deploy_ssh_public_keys: ${{ vars.INFRA_DEPLOY_SSH_PUBLIC_KEYS }}
+          TF_VAR_release_check_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+          TF_VAR_release_check_email_from: ${{ secrets.EMAIL_FROM }}
+          TF_VAR_release_check_email_to: ${{ secrets.NOTIFY_EMAIL_TO }}
         run: tofu apply -auto-approve -input=false
 
       # The apply step above already failed the job; this restores the box

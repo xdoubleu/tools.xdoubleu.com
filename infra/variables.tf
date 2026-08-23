@@ -31,7 +31,7 @@ variable "deploy_ssh_public_keys" {
 }
 
 variable "release_check_resend_api_key" {
-  description = "Resend API key used by the VPS-local release-upgrade-check systemd timer to email a notification when a new Ubuntu LTS is available. Not an app secret — api/web's own RESEND_API_KEY lives in repo Secrets and is unrelated; this one is host-level tooling, delivered the same way the Postgres password is (written to a file on the VPS by a Tofu provisioner, never touched by CI)."
+  description = "Resend API key used by the VPS-local release-upgrade-check systemd timer to email a notification when a new Ubuntu LTS is available. Reuses api/web's own RESEND_API_KEY environment secret (same Resend account, no reason for a second key) — host-level tooling, written to a file on the VPS by a Tofu provisioner rather than passed to the container. Supplied in the infra-apply CI job as TF_VAR_release_check_resend_api_key from that same RESEND_API_KEY secret — see infra/README.md."
   type        = string
   sensitive   = true
 }
