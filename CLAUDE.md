@@ -48,7 +48,7 @@ ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
 docker-compose up -d       # start Postgres (needed before running/testing)
 make run                   # go run ./cmd/api
 make test                  # go test -p 1 ./...
-make lint                  # golangci-lint + sqlfluff + buf lint
+make lint                  # golangci-lint + sqlfluff + buf lint + duplicate-migration-version check
 make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
