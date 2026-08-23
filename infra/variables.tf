@@ -30,8 +30,25 @@ variable "deploy_ssh_public_keys" {
   }
 }
 
-# No app secrets here. Tofu provisions the host (firewall, hardening, deploy
-# keys, Postgres) and nothing else — the app itself is deployed only
+variable "release_check_resend_api_key" {
+  description = "Resend API key used by the VPS-local release-upgrade-check systemd timer to email a notification when a new Ubuntu LTS is available. Not an app secret — api/web's own RESEND_API_KEY lives in repo Secrets and is unrelated; this one is host-level tooling, delivered the same way the Postgres password is (written to a file on the VPS by a Tofu provisioner, never touched by CI)."
+  type        = string
+  sensitive   = true
+}
+
+variable "release_check_email_from" {
+  description = "From address for the release-upgrade-check timer's notification email."
+  type        = string
+}
+
+variable "release_check_email_to" {
+  description = "Recipient address for the release-upgrade-check timer's notification email."
+  type        = string
+}
+
+# No *app* secrets here. Tofu provisions the host (firewall, hardening,
+# deploy keys, Postgres, and — see above — the release-upgrade-check timer)
+# and nothing else — the app itself is deployed only
 # by .github/workflows/main.yml's deploy-kamal job, which reads every app
 # secret from repo Secrets (see infra/README.md's CI section). They used to
 # be duplicated here to feed a local `kamal setup`, which meant rotating any

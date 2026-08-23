@@ -82,6 +82,41 @@ EOF
 
 systemctl enable --now unattended-upgrades
 
+# --- release-upgrade-check timer ------------------------------------------------------------
+# unattended-upgrades above deliberately never runs do-release-upgrade — a
+# full OS release upgrade is too risky to automate unattended on a
+# single-instance box with no HA — so nothing else would ever notice a new
+# LTS becoming available. This checks locally, on the box itself, on a
+# timer, so no external system ever needs to SSH in just to ask (issue
+# #1194 — replaces a prior api-side job that polled Canonical's feed
+# against a hardcoded, never-updated baseline and fired stale alerts).
+# release-upgrade-check.sh itself is uploaded by Tofu's own file
+# provisioner (see main.tf) since it isn't part of this repo-checkout-free
+# script; only the systemd units live here.
+cat >/etc/systemd/system/release-upgrade-check.service <<'EOF'
+[Unit]
+Description=Check for a new Ubuntu LTS release and email if one is available
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/release-upgrade-check.sh
+EOF
+
+cat >/etc/systemd/system/release-upgrade-check.timer <<'EOF'
+[Unit]
+Description=Weekly Ubuntu release-upgrade check
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now release-upgrade-check.timer
+
 # --- sshd hardening ------------------------------------------------------------
 # Validate before touching the running daemon, and confirm it's still
 # listening after the reload — a bad reload here can permanently lock out

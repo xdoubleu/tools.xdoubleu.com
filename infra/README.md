@@ -66,7 +66,7 @@ directory) — `tofu plan`/`apply` themselves take no extra flags for this.
 ## One-time setup
 
 1. **Create the server** in the [Hetzner Console](https://console.hetzner.cloud/):
-   New server → location `Falkenstein (fsn1)` → image `Ubuntu 24.04` → type
+   New server → location `Falkenstein (fsn1)` → image `Ubuntu 26.04` → type
    `CX23` (2 vCPU / 4 GB, same tier as `CX22` — use whichever of the two is
    available in your region) → paste your SSH public key under "SSH keys"
    → create. Note the server ID and public IPv4 shown after creation.
@@ -130,17 +130,28 @@ Postgres — see below.
 `harden.sh` is idempotent — re-running `tofu apply` after editing it (or with
 no changes at all) is safe.
 
-**Getting notified of a new Ubuntu LTS release (issue #1134):** `unattended-upgrades`
-only ever patches within the current release — it deliberately never runs
-`do-release-upgrade`, since automating a full OS release upgrade on a
-single-instance box with no HA is too risky. Since the box owner rarely SSHes
-in (so the SSH login MOTD's "New release available" banner would go unseen),
-`api/internal/observability/jobs/ubuntu_release.go`'s `UbuntuReleaseJob` polls
-Canonical's meta-release feed once a day and emails `NOTIFY_EMAIL_TO` the
-first time it lists a newer LTS than the job's hardcoded
-`currentUbuntuLTSVersion` constant. **After actually running a
-`do-release-upgrade` on the VPS, bump that constant to the new version** —
-otherwise the job keeps alerting on the release you just upgraded to.
+**Getting notified of a new Ubuntu LTS release (issue #1194, replacing the
+prior #1134 attempt):** `unattended-upgrades` only ever patches within the
+current release — it deliberately never runs `do-release-upgrade`, since
+automating a full OS release upgrade on a single-instance box with no HA is
+too risky. A first attempt (`UbuntuReleaseJob`, issue #1134) polled
+Canonical's meta-release feed from the `api` process and compared it
+against a hardcoded baseline constant that had to be bumped by hand after
+every real upgrade — nobody did, so it fired a stale/wrong alert. It was
+removed. Instead, `release-upgrade-check.sh` + the
+`release-upgrade-check.timer`/`.service` systemd units (installed by
+`harden.sh`, uploaded/configured by `null_resource.release_upgrade_check`
+in `main.tf`) run **locally on the VPS itself**, weekly, calling
+`do-release-upgrade -c` directly — so it always reflects whatever the box
+actually thinks, with no hardcoded baseline to drift and no external system
+needing to SSH in just to check. When (and only when) a release genuinely
+is available, the script emails `release_check_email_to` via Resend's HTTP API
+using `release_check_resend_api_key`/`release_check_email_from` (new `terraform.tfvars`
+entries — see `terraform.tfvars.example`; a host-level secret, not one of
+`api`/`web`'s own repo Secrets, since nothing here goes through
+`deploy-kamal`). To confirm the timer is scheduled:
+`systemctl list-timers release-upgrade-check.timer` on the VPS; to trigger
+it manually: `sudo systemctl start release-upgrade-check.service`.
 
 ## Stand up Postgres
 
@@ -184,7 +195,9 @@ first-party — `api/internal/auth` and `api/internal/oauth2as` against
 `api`'s own `auth` Postgres schema — and `api` never talks to a `gotrue`
 container at all. The `gotrue` service has been removed from
 `postgres-compose.yml`, and its `gotrue_*`/`resend_api_key` Tofu variables
-are gone from `variables.tf`/`main.tf`.
+were removed from `variables.tf`/`main.tf` at the time (a differently-named
+`release_check_resend_api_key` variable exists again as of issue #1194, for
+the unrelated release-upgrade-check timer below — see that section).
 
 The one-time cutover this used to require by hand (renaming the
 Supabase-restored `auth` schema out of the way, running a standalone
