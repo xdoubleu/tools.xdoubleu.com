@@ -154,20 +154,24 @@ func (app *Application) Routes() http.Handler {
 	mux.HandleFunc(
 		"GET "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
-			app.oauth2as.provider, app.config, app.oauth2SessionUserResolver(),
+			app.oauth2as.provider, app.config,
+			app.oauth2SessionUserResolver(), app.logger,
 		),
 	)
 	mux.HandleFunc(
 		"POST "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
-			app.oauth2as.provider, app.config, app.oauth2SessionUserResolver(),
+			app.oauth2as.provider, app.config,
+			app.oauth2SessionUserResolver(), app.logger,
 		),
 	)
 	mux.HandleFunc(
-		"POST "+oauth2TokenPath, oauth2as.TokenHandler(app.oauth2as.provider),
+		"POST "+oauth2TokenPath,
+		oauth2as.TokenHandler(app.oauth2as.provider, app.logger),
 	)
 	mux.HandleFunc(
-		"POST "+oauth2RegisterPath, oauth2as.RegisterHandler(app.oauth2as.store),
+		"POST "+oauth2RegisterPath,
+		oauth2as.RegisterHandler(app.oauth2as.store, app.logger),
 	)
 	mux.HandleFunc(
 		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(app.oauth2as.store),

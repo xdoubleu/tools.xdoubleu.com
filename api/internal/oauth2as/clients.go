@@ -49,7 +49,7 @@ func RegisterClient(
 		Secret:         nil,
 		RotatedSecrets: nil,
 		RedirectURIs:   metadata.RedirectURIs,
-		GrantTypes:     []string{"authorization_code", "refresh_token"},
+		GrantTypes:     []string{authorizationCodeGrant, refreshTokenGrant},
 		ResponseTypes:  []string{"code"},
 		Scopes:         []string{OfflineAccessScope},
 		Audience:       nil,
