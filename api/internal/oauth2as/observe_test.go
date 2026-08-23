@@ -153,6 +153,63 @@ func TestObserve_AuthorizationCodeFailureLogsAtWarn(t *testing.T) {
 	assert.Equal(t, "authorization_code", attrs(records[0])["grant_type"])
 }
 
+// TestObserve_ConsentDeniedLogsAtWarn covers the authorize leg: a user
+// declining is a normal outcome, so it must be visible but never alerting.
+func TestObserve_ConsentDeniedLogsAtWarn(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+
+	_, challenge := pkcePair(t)
+	srv.logs.reset()
+
+	q := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {client.ID},
+		"redirect_uri":          {client.RedirectURIs[0]},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"state":                 {"observe-deny-1234"},
+		"scope":                 {"offline_access"},
+		"consent":               {"deny"},
+	}
+	resp, err := noRedirectClient().Get(s(srv) + "/oauth2/authorize?" + q.Encode())
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	records := srv.logs.all()
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelWarn, records[0].Level)
+
+	gotAttrs := attrs(records[0])
+	assert.Equal(t, "/oauth2/authorize", gotAttrs["endpoint"])
+	assert.Equal(t, "access_denied", gotAttrs["oauth_error"])
+	assert.Empty(t, gotAttrs["grant_type"], "the authorize leg has no grant_type")
+}
+
+// TestObserve_MalformedRegistrationLogsAtWarn covers the registration leg,
+// which never reaches fosite and so carries a plain error rather than an
+// RFC6749Error.
+func TestObserve_MalformedRegistrationLogsAtWarn(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	srv.logs.reset()
+
+	resp, err := http.Post(
+		s(srv)+"/oauth2/register", "application/json",
+		strings.NewReader("not json at all"),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	records := srv.logs.all()
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelWarn, records[0].Level)
+	assert.Equal(t, "/oauth2/register", attrs(records[0])["endpoint"])
+}
+
+// s is shorthand for the test server's base URL.
+func s(srv *oauth2asTestServer) string { return srv.ts.URL }
+
 // TestObserve_NeverLogsCredentials is the regression guard that matters most:
 // the token endpoint's request form carries the authorization code, the PKCE
 // verifier and the refresh token, and none of them may ever reach a log line.

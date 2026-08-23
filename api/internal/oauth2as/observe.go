@@ -17,9 +17,13 @@ const (
 	endpointRegister  = "/oauth2/register"
 )
 
-// refreshTokenGrant is the grant_type whose rejection always means a client
-// that previously held a working session just lost it — see oauthErrorLevel.
-const refreshTokenGrant = "refresh_token"
+// The two grant types this server registers every client for.
+// refreshTokenGrant is the one whose rejection always means a client that
+// previously held a working session just lost it — see oauthErrorLevel.
+const (
+	authorizationCodeGrant = "authorization_code"
+	refreshTokenGrant      = "refresh_token"
+)
 
 // logOAuthError records a rejection from /oauth2/authorize or /oauth2/token.
 // fosite writes its errors straight into the HTTP response and never through
