@@ -243,3 +243,37 @@ resource "null_resource" "postgres" {
     ]
   }
 }
+
+# Stands up node_exporter (issue #1040) for the observability app's host
+# metrics, following the same file+remote-exec pattern as null_resource.
+# postgres above. No secrets involved, so unlike postgres there's no .env
+# file provisioner.
+resource "null_resource" "node_exporter" {
+  depends_on = [null_resource.harden, null_resource.kamal_network]
+
+  triggers = {
+    compose_hash = filesha256("${path.module}/node-exporter-compose.yml")
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = ["mkdir -p /home/deploy/node-exporter"]
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/node-exporter-compose.yml"
+    destination = "/home/deploy/node-exporter/docker-compose.yml"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "cd /home/deploy/node-exporter && docker compose up -d --remove-orphans",
+    ]
+  }
+}

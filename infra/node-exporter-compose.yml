@@ -1,0 +1,29 @@
+services:
+  node-exporter:
+    # Host metrics for the observability app (issue #1040/#1197) — api
+    # scrapes this over the shared kamal network at node-exporter:9100
+    # (see NODE_EXPORTER_URL's default in api/internal/config/main.go).
+    image: prom/node-exporter:v1.8.2
+    restart: unless-stopped
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/host/root"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    networks:
+      # No published port — reachable only from the api container over the
+      # kamal network, same as Postgres (see postgres-compose.yml). Never
+      # bind a host port here: node_exporter has no auth of its own.
+      - kamal
+
+networks:
+  # Pre-created once via `docker network create kamal` (see
+  # infra/README.md) — declared external here since Kamal itself also
+  # creates/uses this network for its own app+proxy containers, and this
+  # compose file must never race it or try to recreate it.
+  kamal:
+    external: true
