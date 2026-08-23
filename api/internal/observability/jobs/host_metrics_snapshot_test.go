@@ -86,6 +86,54 @@ func TestHostMetricsSnapshotJob_ScrapeErrorPropagates(t *testing.T) {
 	assert.Zero(t, metrics.pruneCalls)
 }
 
+func TestHostMetricsSnapshotJob_InsertErrorPropagates(t *testing.T) {
+	scraper := stubScraper{ //nolint:exhaustruct // fixture
+		sample: observability.HostSample{
+			CPUPercent: 10, MemoryPercent: 20, DiskPercent: 30,
+		},
+	}
+	//nolint:exhaustruct // fixture
+	metrics := &fakeHostMetricsInserter{insertErr: assert.AnError}
+	logs := &fakeLogsPruner{} //nolint:exhaustruct // fixture
+
+	job := jobs.NewHostMetricsSnapshotJob(scraper, metrics, logs)
+	err := job.Run(t.Context(), logging.NewNopLogger())
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Zero(t, metrics.pruneCalls)
+	assert.Zero(t, logs.pruneCalls)
+}
+
+func TestHostMetricsSnapshotJob_MetricsPruneErrorPropagates(t *testing.T) {
+	scraper := stubScraper{ //nolint:exhaustruct // fixture
+		sample: observability.HostSample{
+			CPUPercent: 10, MemoryPercent: 20, DiskPercent: 30,
+		},
+	}
+	//nolint:exhaustruct // fixture
+	metrics := &fakeHostMetricsInserter{pruneErr: assert.AnError}
+	logs := &fakeLogsPruner{} //nolint:exhaustruct // fixture
+
+	job := jobs.NewHostMetricsSnapshotJob(scraper, metrics, logs)
+	err := job.Run(t.Context(), logging.NewNopLogger())
+	require.ErrorIs(t, err, assert.AnError)
+	assert.Zero(t, logs.pruneCalls)
+}
+
+func TestHostMetricsSnapshotJob_LogsPruneErrorPropagates(t *testing.T) {
+	scraper := stubScraper{ //nolint:exhaustruct // fixture
+		sample: observability.HostSample{
+			CPUPercent: 10, MemoryPercent: 20, DiskPercent: 30,
+		},
+	}
+	metrics := &fakeHostMetricsInserter{} //nolint:exhaustruct // fixture
+	//nolint:exhaustruct // fixture
+	logs := &fakeLogsPruner{pruneErr: assert.AnError}
+
+	job := jobs.NewHostMetricsSnapshotJob(scraper, metrics, logs)
+	err := job.Run(t.Context(), logging.NewNopLogger())
+	require.ErrorIs(t, err, assert.AnError)
+}
+
 func TestHostMetricsSnapshotJob_IDAndSchedule(t *testing.T) {
 	job := jobs.NewHostMetricsSnapshotJob(
 		stubScraper{},              //nolint:exhaustruct // fixture

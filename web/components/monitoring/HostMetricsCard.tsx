@@ -26,6 +26,26 @@ function toChartData(points: HostMetricPoint[]): { timestamp: string; value: num
   return points.map((p) => ({ timestamp: p.timestamp, value: p.value }))
 }
 
+// Extracted (rather than inlined as chart-prop closures) so they're directly
+// unit-testable: recharts' <ResponsiveContainer> never actually invokes its
+// children's formatter callbacks under jsdom, since it measures zero layout
+// width/height there and skips rendering the chart body entirely.
+export function xAxisTickFormatter(value: string): string {
+  return formatDateTime(value).split(',')[1]?.trim() ?? value
+}
+
+export function yAxisTickFormatter(value: number): string {
+  return `${value}%`
+}
+
+export function tooltipLabelFormatter(value: unknown): string {
+  return formatDateTime(typeof value === 'string' ? value : '')
+}
+
+export function tooltipValueFormatter(value: unknown, label: string): [string, string] {
+  return [formatPercent(Number(value)), label]
+}
+
 function HistoryChart({
   label,
   points,
@@ -51,19 +71,15 @@ function HistoryChart({
                 dataKey="timestamp"
                 tick={{ fontSize: 11 }}
                 minTickGap={32}
-                tickFormatter={(v: string) => formatDateTime(v).split(',')[1]?.trim() ?? v}
+                tickFormatter={xAxisTickFormatter}
               />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 11 }}
-                tickFormatter={(v: number) => `${v}%`}
-              />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={yAxisTickFormatter} />
               <Tooltip
                 contentStyle={chartTooltipStyle}
                 labelStyle={{ color: 'var(--color-fg)' }}
                 itemStyle={{ color: 'var(--color-fg)' }}
-                labelFormatter={(v) => formatDateTime(typeof v === 'string' ? v : '')}
-                formatter={(value) => [formatPercent(Number(value)), label]}
+                labelFormatter={tooltipLabelFormatter}
+                formatter={(value) => tooltipValueFormatter(value, label)}
               />
               <Line
                 type="monotone"
