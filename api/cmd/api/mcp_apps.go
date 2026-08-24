@@ -109,8 +109,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 14 admin observability tools —
-// 13 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 15 admin observability tools —
+// 14 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -202,6 +202,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"source/level.",
 		func(ctx context.Context, a logsArgs) (proto.Message, error) {
 			return h.logs(ctx, a.Source, a.MinLevel, a.Since)
+		})
+	addObsTool(srv, "get_notification_settings",
+		"Per-source enabled/disabled state of the email notifications "+
+			"IssueNotifierJob/WeeklyDigestJob send (sentry_issues, "+
+			"failing_dependency_prs, unhealthy_feeds) — explains why an "+
+			"expected notification email didn't go out.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.notificationSettings(ctx)
 		})
 }
 

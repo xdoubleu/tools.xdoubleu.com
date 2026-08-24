@@ -12,7 +12,8 @@ import {
   GetSlowTransactionsResponseSchema,
   GetHostMetricsResponseSchema,
   GetLogsResponseSchema,
-  ListOAuthConnectionsResponseSchema
+  ListOAuthConnectionsResponseSchema,
+  GetNotificationSettingsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -29,6 +30,7 @@ const mockUseSlowTransactions = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
 const mockUseOAuthConnections = jest.fn()
+const mockUseNotificationSettings = jest.fn()
 
 const mockRouterReplace = jest.fn()
 let mockSearchParams = new URLSearchParams()
@@ -52,7 +54,9 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useHostMetrics: () => mockUseHostMetrics(),
   useLogs: () => mockUseLogs(),
   useOAuthConnections: () => mockUseOAuthConnections(),
-  useDisconnectOAuthConnection: () => jest.fn()
+  useDisconnectOAuthConnection: () => jest.fn(),
+  useNotificationSettings: () => mockUseNotificationSettings(),
+  useUpdateNotificationSettings: () => jest.fn()
 }))
 
 jest.mock('recharts', () => {
@@ -149,6 +153,16 @@ beforeEach(() => {
     data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
     mutate: mockMutate
   })
+  mockUseNotificationSettings.mockReturnValue({
+    data: create(GetNotificationSettingsResponseSchema, {
+      settings: [
+        { sourceKey: 'sentry_issues', enabled: true },
+        { sourceKey: 'failing_dependency_prs', enabled: true },
+        { sourceKey: 'unhealthy_feeds', enabled: true }
+      ]
+    }),
+    mutate: mockMutate
+  })
 })
 
 describe('ObservabilityClient', () => {
@@ -199,8 +213,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 10 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(10)
+    // instead of a plain mutate(), so mockMutate covers the other 11 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(11)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

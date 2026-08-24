@@ -34,6 +34,10 @@ service ObservabilityService {
       returns (GetProviderOptionsResponse);
   rpc SetProviderConfig(SetProviderConfigRequest)
       returns (SetProviderConfigResponse);
+  rpc GetNotificationSettings(GetNotificationSettingsRequest)
+      returns (GetNotificationSettingsResponse);
+  rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest)
+      returns (UpdateNotificationSettingsResponse);
 }
 
 message JobStat {
@@ -447,3 +451,24 @@ message SetProviderConfigRequest {
 }
 
 message SetProviderConfigResponse {}
+
+// NotificationSetting is one email-notifying source (Sentry issues, failing
+// dependency PRs, unhealthy feeds) and whether it's currently allowed to
+// email an admin (issue #1214).
+message NotificationSetting {
+  string source_key = 1;
+  bool enabled = 2;
+}
+
+message GetNotificationSettingsRequest {}
+
+message GetNotificationSettingsResponse {
+  repeated NotificationSetting settings = 1;
+}
+
+message UpdateNotificationSettingsRequest {
+  string source_key = 1;
+  bool enabled = 2;
+}
+
+message UpdateNotificationSettingsResponse {}

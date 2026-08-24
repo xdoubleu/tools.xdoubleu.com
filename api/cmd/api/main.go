@@ -60,6 +60,7 @@ type Application struct {
 	dbStatsRepo                   *repositories.DBStatsRepository
 	hostMetricsRepo               *repositories.HostMetricsRepository
 	logsRepo                      *repositories.LogsRepository
+	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
@@ -255,6 +256,7 @@ func newCrossAppJobs(
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
 	notificationsSvc *notifications.Service,
+	notificationSettingsRepo *repositories.NotificationSettingsRepository,
 ) (
 	*jobs.IssueNotifierJob,
 	*repositories.TransactionLatencyRepository,
@@ -263,6 +265,7 @@ func newCrossAppJobs(
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
 		sentryClient, githubClient, notificationsSvc, notifiedIssuesRepo,
+		notificationSettingsRepo,
 	)
 
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
@@ -323,10 +326,12 @@ func newWeeklyDigestJob(
 	githubClient github.Client,
 	feedsApp *feeds.Feeds,
 	notificationsSvc *notifications.Service,
+	notificationSettingsRepo *repositories.NotificationSettingsRepository,
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
 		sentryClient, githubClient,
 		feedsHealthAdapter{feeds: feedsApp}, notificationsSvc,
+		notificationSettingsRepo,
 	)
 }
 
@@ -409,12 +414,14 @@ func NewApplication(
 		logger, config, oauthConnRepo,
 	)
 
+	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
 		newCrossAppJobs(
 			db,
 			sentryClient,
 			githubClient,
 			notificationsSvc,
+			notificationSettingsRepo,
 		)
 
 	hostMetricsRepo := repositories.NewHostMetricsRepository(db)
@@ -450,6 +457,7 @@ func NewApplication(
 		dbStatsRepo:                   repositories.NewDBStatsRepository(db),
 		hostMetricsRepo:               hostMetricsRepo,
 		logsRepo:                      logsRepo,
+		notificationSettingsRepo:      notificationSettingsRepo,
 		oauthConnRepo:                 oauthConnRepo,
 		oauthState:                    oauthconn.NewStateStore(),
 		githubClient:                  githubClient,
@@ -473,6 +481,7 @@ func NewApplication(
 	)
 	app.weeklyDigestJob = newWeeklyDigestJob(
 		sentryClient, githubClient, feedsApp, notificationsSvc,
+		notificationSettingsRepo,
 	)
 
 	err = app.ApplyMigrations(db)

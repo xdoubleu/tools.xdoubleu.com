@@ -16,6 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -141,6 +142,17 @@ func (f *fakeNotifiedRepo) Insert(_ context.Context, key string) error {
 	return nil
 }
 
+// alwaysEnabledSettings makes every notification source enabled, for tests
+// that aren't exercising the settings gate itself.
+type alwaysEnabledSettings struct{}
+
+func (alwaysEnabledSettings) IsEnabled(
+	_ context.Context,
+	_ repositories.NotificationSource,
+) (bool, error) {
+	return true, nil
+}
+
 // erroringNotifiedRepo makes Exists always fail, for
 // TestIssueNotifierNotifiedExistsErrorPropagates.
 type erroringNotifiedRepo struct {
@@ -182,7 +194,11 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -201,7 +217,11 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -218,7 +238,11 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -234,7 +258,11 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -251,7 +279,11 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -265,6 +297,7 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
+		alwaysEnabledSettings{},
 	)
 	assert.Equal(t, "notify-new-issues", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -279,7 +312,11 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -296,7 +333,11 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified,
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -313,7 +354,13 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -328,7 +375,13 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -349,7 +402,13 @@ func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -368,7 +427,13 @@ func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -385,7 +450,13 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -402,7 +473,13 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -422,7 +499,13 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 	notified := &erroringNotifiedRepo{err: assert.AnError}
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	err := job.Run(t.Context(), testLogger())
 
 	require.ErrorIs(t, err, assert.AnError)
@@ -436,7 +519,13 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -451,7 +540,13 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
 
@@ -467,9 +562,72 @@ func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
 
 	assert.Contains(t, buf.String(), "level=ERROR")
+}
+
+// disabledSourceSettings reports every source as disabled except those
+// listed, for tests exercising the per-source settings gate.
+type disabledSourceSettings struct {
+	enabled map[repositories.NotificationSource]bool
+}
+
+func (d disabledSourceSettings) IsEnabled(
+	_ context.Context,
+	source repositories.NotificationSource,
+) (bool, error) {
+	return d.enabled[source], nil
+}
+
+func TestIssueNotifierSkipsSentryWhenSourceDisabled(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{},
+	}
+
+	job := jobs.NewIssueNotifierJob(
+		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified, settings,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["sentry:1"])
+}
+
+func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only sentry_issues needs to be listed as enabled here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues: true,
+		},
+	}
+
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["github:pr:42:sha1"])
 }

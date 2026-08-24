@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -47,6 +48,7 @@ type WeeklyDigestJob struct {
 	gh            failingPRLister
 	feeds         unhealthyFeedLister
 	notifications *notifications.Service
+	settings      notificationSettingsRepo
 }
 
 func NewWeeklyDigestJob(
@@ -54,12 +56,14 @@ func NewWeeklyDigestJob(
 	gh failingPRLister,
 	feeds unhealthyFeedLister,
 	notifications *notifications.Service,
+	settings notificationSettingsRepo,
 ) *WeeklyDigestJob {
 	return &WeeklyDigestJob{
 		sentry:        sentry,
 		gh:            gh,
 		feeds:         feeds,
 		notifications: notifications,
+		settings:      settings,
 	}
 }
 
@@ -105,6 +109,19 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 func (j *WeeklyDigestJob) sentrySection(
 	ctx context.Context, logger *slog.Logger,
 ) string {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSentryIssues,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx, "weekly-digest: failed to read sentry_issues setting",
+			"error", err)
+		return ""
+	}
+	if !enabled {
+		return ""
+	}
+
 	issues, err := j.sentry.ListUnresolvedIssues(ctx)
 	if errors.Is(err, sentryapi.ErrNotConfigured) {
 		return ""
@@ -132,6 +149,20 @@ func (j *WeeklyDigestJob) sentrySection(
 func (j *WeeklyDigestJob) githubSection(
 	ctx context.Context, logger *slog.Logger,
 ) string {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceFailingDependencyPRs,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to read failing_dependency_prs setting",
+			"error", err)
+		return ""
+	}
+	if !enabled {
+		return ""
+	}
+
 	prs, err := j.gh.ListFailingPullRequests(ctx)
 	if errors.Is(err, github.ErrNotConfigured) {
 		return ""
@@ -163,6 +194,23 @@ func (j *WeeklyDigestJob) githubSection(
 func (j *WeeklyDigestJob) feedsSection(
 	ctx context.Context, logger *slog.Logger,
 ) string {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceUnhealthyFeeds,
+	)
+	if err != nil {
+		logger.ErrorContext(
+			ctx,
+			"weekly-digest: failed to read unhealthy_feeds setting",
+			"error",
+			err,
+		)
+		return ""
+	}
+	if !enabled {
+		return ""
+	}
+
 	unhealthy, err := j.feeds.ListUnhealthy(ctx)
 	if err != nil {
 		logger.ErrorContext(ctx, "weekly-digest: failed to list unhealthy feeds",

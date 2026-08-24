@@ -33,6 +33,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -52,6 +53,7 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	require.NoError(t, job.Run(t.Context(), testLogger()))
@@ -74,6 +76,7 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 			},
 		}, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -90,6 +93,7 @@ func TestWeeklyDigestSentryNotConfiguredDoesNotBlockOthers(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -108,6 +112,7 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 		}, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -124,6 +129,7 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -140,6 +146,7 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: github.ErrNotConfigured},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -156,6 +163,7 @@ func TestWeeklyDigestSentryGenericErrorSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -172,6 +180,7 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: assert.AnError},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -190,6 +199,7 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 		}, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -203,6 +213,7 @@ func TestWeeklyDigestID(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
+		alwaysEnabledSettings{},
 	)
 	assert.Equal(t, "weekly-digest", job.ID())
 	assert.Equal(t, 7*24*time.Hour, job.RunEvery())

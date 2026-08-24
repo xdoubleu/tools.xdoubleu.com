@@ -94,14 +94,27 @@ function IssueRow({
   )
 }
 
-export default function SentryCard({ data }: { data?: GetSentryIssuesResponse }) {
+export default function SentryCard({
+  data,
+  emailEnabled
+}: {
+  data?: GetSentryIssuesResponse
+  emailEnabled?: boolean
+}) {
   const issues = data?.issues ?? []
   const [reauthRequired, setReauthRequired] = useState(false)
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sentry errors</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Sentry errors</CardTitle>
+          {emailEnabled !== undefined && (
+            <Badge variant={emailEnabled ? 'default' : 'secondary'}>
+              {emailEnabled ? 'Emails admin' : 'Notifications off'}
+            </Badge>
+          )}
+        </div>
         <CardDescription>
           {data ? `${formatCount(data.unresolvedCount)} unresolved.` : 'Loading…'}
         </CardDescription>

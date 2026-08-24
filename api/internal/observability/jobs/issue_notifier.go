@@ -14,6 +14,7 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -40,6 +41,15 @@ type failingPRLister interface {
 	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
 }
 
+// notificationSettingsRepo is the subset of
+// *repositories.NotificationSettingsRepository this job needs.
+type notificationSettingsRepo interface {
+	IsEnabled(
+		ctx context.Context,
+		source repositories.NotificationSource,
+	) (bool, error)
+}
+
 // IssueNotifierJob emails an admin (via notifications.Service) the first
 // time a Sentry issue or a failing "dependencies"-labeled pull request
 // (issue #915) is seen. Any provider being unconfigured degrades that part
@@ -53,6 +63,7 @@ type IssueNotifierJob struct {
 	gh            failingPRLister
 	notifications *notifications.Service
 	notified      notifiedRepo
+	settings      notificationSettingsRepo
 }
 
 func NewIssueNotifierJob(
@@ -60,12 +71,14 @@ func NewIssueNotifierJob(
 	gh failingPRLister,
 	notifications *notifications.Service,
 	notified notifiedRepo,
+	settings notificationSettingsRepo,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
 		sentry:        sentry,
 		gh:            gh,
 		notifications: notifications,
 		notified:      notified,
+		settings:      settings,
 	}
 }
 
@@ -88,6 +101,17 @@ func (j *IssueNotifierJob) notifySentry(
 	ctx context.Context,
 	logger *slog.Logger,
 ) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSentryIssues,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
 	issues, err := j.sentry.ListUnresolvedIssues(ctx)
 	if errors.Is(err, sentryapi.ErrNotConfigured) {
 		return nil
@@ -122,6 +146,17 @@ func (j *IssueNotifierJob) notifyGithub(
 	ctx context.Context,
 	logger *slog.Logger,
 ) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceFailingDependencyPRs,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
 	prs, err := j.gh.ListFailingPullRequests(ctx)
 	if errors.Is(err, github.ErrNotConfigured) {
 		return nil
