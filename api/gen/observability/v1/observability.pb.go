@@ -567,8 +567,11 @@ type StorageSnapshot struct {
 	StaleUploadSizeBytes int64                  `protobuf:"varint,6,opt,name=stale_upload_size_bytes,json=staleUploadSizeBytes,proto3" json:"stale_upload_size_bytes,omitempty"`
 	StaleUploadCount     int64                  `protobuf:"varint,7,opt,name=stale_upload_count,json=staleUploadCount,proto3" json:"stale_upload_count,omitempty"`
 	PrefixBreakdown      []*PrefixStat          `protobuf:"bytes,8,rep,name=prefix_breakdown,json=prefixBreakdown,proto3" json:"prefix_breakdown,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// orphan_keys is a capped sample of the orphaned object keys; orphan_count
+	// tallies every orphan found even when this list is truncated.
+	OrphanKeys    []string `protobuf:"bytes,9,rep,name=orphan_keys,json=orphanKeys,proto3" json:"orphan_keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StorageSnapshot) Reset() {
@@ -653,6 +656,13 @@ func (x *StorageSnapshot) GetStaleUploadCount() int64 {
 func (x *StorageSnapshot) GetPrefixBreakdown() []*PrefixStat {
 	if x != nil {
 		return x.PrefixBreakdown
+	}
+	return nil
+}
+
+func (x *StorageSnapshot) GetOrphanKeys() []string {
+	if x != nil {
+		return x.OrphanKeys
 	}
 	return nil
 }
@@ -3335,7 +3345,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x02 \x01(\x03R\tsizeBytes\x12\x14\n" +
-	"\x05count\x18\x03 \x01(\x03R\x05count\"\xfa\x02\n" +
+	"\x05count\x18\x03 \x01(\x03R\x05count\"\x9b\x03\n" +
 	"\x0fStorageSnapshot\x12\x1d\n" +
 	"\n" +
 	"scanned_at\x18\x01 \x01(\tR\tscannedAt\x12(\n" +
@@ -3345,7 +3355,9 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\forphan_count\x18\x05 \x01(\x03R\vorphanCount\x125\n" +
 	"\x17stale_upload_size_bytes\x18\x06 \x01(\x03R\x14staleUploadSizeBytes\x12,\n" +
 	"\x12stale_upload_count\x18\a \x01(\x03R\x10staleUploadCount\x12G\n" +
-	"\x10prefix_breakdown\x18\b \x03(\v2\x1c.observability.v1.PrefixStatR\x0fprefixBreakdown\"\x18\n" +
+	"\x10prefix_breakdown\x18\b \x03(\v2\x1c.observability.v1.PrefixStatR\x0fprefixBreakdown\x12\x1f\n" +
+	"\vorphan_keys\x18\t \x03(\tR\n" +
+	"orphanKeys\"\x18\n" +
 	"\x16GetStorageStatsRequest\"\x91\x01\n" +
 	"\x17GetStorageStatsResponse\x129\n" +
 	"\x06latest\x18\x01 \x01(\v2!.observability.v1.StorageSnapshotR\x06latest\x12;\n" +

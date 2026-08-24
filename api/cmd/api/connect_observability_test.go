@@ -137,6 +137,7 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 		PrefixBreakdown: []models.PrefixStat{
 			{Prefix: "books", SizeBytes: 1234, Count: 5},
 		},
+		OrphanKeys: []string{"books/b1/orphan.epub"},
 	}))
 
 	client := observabilityClient(t)
@@ -147,6 +148,7 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	require.NotNil(t, resp.Msg.Latest)
 	assert.Equal(t, int64(1234), resp.Msg.Latest.TotalSizeBytes)
 	assert.NotEmpty(t, resp.Msg.Latest.PrefixBreakdown)
+	assert.Equal(t, []string{"books/b1/orphan.epub"}, resp.Msg.Latest.OrphanKeys)
 }
 
 // TestRunStorageScanNow_Success covers Books.RunStorageScanNow itself

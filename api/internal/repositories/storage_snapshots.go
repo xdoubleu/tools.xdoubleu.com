@@ -26,9 +26,14 @@ func (r *StorageSnapshotsRepository) Insert(
 	snap models.StorageSnapshot,
 ) error {
 	breakdown, err := json.Marshal(snap.PrefixBreakdown)
+	var orphanKeys []byte
+	if err == nil {
+		orphanKeys, err = json.Marshal(snap.OrphanKeys)
+	}
 	if err != nil {
 		return err
 	}
+
 	// Bind as string, not []byte: under the simple query protocol (used by the
 	// production connection pooler) a []byte is encoded as bytea hex, which a
 	// JSONB column rejects with "invalid input syntax for type json".
@@ -36,12 +41,14 @@ func (r *StorageSnapshotsRepository) Insert(
 		INSERT INTO global.storage_snapshots (
 			scanned_at, total_size_bytes, object_count,
 			orphan_size_bytes, orphan_count,
-			stale_upload_size_bytes, stale_upload_count, prefix_breakdown
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
+			orphan_keys
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`,
 		snap.ScannedAt, snap.TotalSizeBytes, snap.ObjectCount,
 		snap.OrphanSizeBytes, snap.OrphanCount,
 		snap.StaleUploadSizeBytes, snap.StaleUploadCount, string(breakdown),
+		string(orphanKeys),
 	)
 	if err != nil {
 		return err
@@ -60,7 +67,8 @@ func (r *StorageSnapshotsRepository) Latest(
 	snap, err := scanSnapshot(r.db.QueryRow(ctx, `
 		SELECT scanned_at, total_size_bytes, object_count,
 		       orphan_size_bytes, orphan_count,
-		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown
+		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
+		       orphan_keys
 		FROM global.storage_snapshots
 		ORDER BY scanned_at DESC
 		LIMIT 1
@@ -80,7 +88,8 @@ func (r *StorageSnapshotsRepository) History(
 	rows, err := r.db.Query(ctx, `
 		SELECT scanned_at, total_size_bytes, object_count,
 		       orphan_size_bytes, orphan_count,
-		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown
+		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
+		       orphan_keys
 		FROM global.storage_snapshots
 		WHERE scanned_at >= $1
 		ORDER BY scanned_at
@@ -109,19 +118,26 @@ type rowScanner interface {
 
 func scanSnapshot(row rowScanner) (*models.StorageSnapshot, error) {
 	var (
-		snap      models.StorageSnapshot
-		breakdown []byte
+		snap       models.StorageSnapshot
+		breakdown  []byte
+		orphanKeys []byte
 	)
 	if err := row.Scan(
 		&snap.ScannedAt, &snap.TotalSizeBytes, &snap.ObjectCount,
 		&snap.OrphanSizeBytes, &snap.OrphanCount,
 		&snap.StaleUploadSizeBytes, &snap.StaleUploadCount, &breakdown,
+		&orphanKeys,
 	); err != nil {
 		return nil, err
 	}
 
-	if err := json.Unmarshal(breakdown, &snap.PrefixBreakdown); err != nil {
-		return nil, err
+	unmarshalErr := json.Unmarshal(breakdown, &snap.PrefixBreakdown)
+	if unmarshalErr == nil {
+		unmarshalErr = json.Unmarshal(orphanKeys, &snap.OrphanKeys)
 	}
+	if unmarshalErr != nil {
+		return nil, unmarshalErr
+	}
+
 	return &snap, nil
 }

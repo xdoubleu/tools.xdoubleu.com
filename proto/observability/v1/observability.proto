@@ -95,6 +95,9 @@ message StorageSnapshot {
   int64 stale_upload_size_bytes = 6;
   int64 stale_upload_count = 7;
   repeated PrefixStat prefix_breakdown = 8;
+  // orphan_keys is a capped sample of the orphaned object keys; orphan_count
+  // tallies every orphan found even when this list is truncated.
+  repeated string orphan_keys = 9;
 }
 
 message GetStorageStatsRequest {}

@@ -53,6 +53,10 @@ type StorageSnapshot struct {
 	StaleUploadSizeBytes int64
 	StaleUploadCount     int64
 	PrefixBreakdown      []PrefixStat
+	// OrphanKeys is a capped sample of the orphaned object keys — see
+	// maxOrphanKeys in apps/books/internal/jobs/storage_scan.go. OrphanCount
+	// tallies every orphan found even when this list is truncated.
+	OrphanKeys []string
 }
 
 // SchemaStats is the on-disk size of one database schema.

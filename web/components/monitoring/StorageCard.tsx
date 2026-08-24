@@ -125,6 +125,31 @@ export default function StorageCard({ data }: { data?: GetStorageStatsResponse }
             </table>
           </div>
         )}
+
+        {latest && latest.orphanKeys.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="border-b border-border">
+                <tr>
+                  <th className="py-2 font-semibold text-subtle">Orphaned object key</th>
+                </tr>
+              </thead>
+              <tbody>
+                {latest.orphanKeys.map((key) => (
+                  <tr key={key} className="border-b border-border last:border-0">
+                    <td className="py-2 font-mono text-xs text-fg">{key}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {Number(latest.orphanCount) > latest.orphanKeys.length && (
+              <p className="mt-1 text-xs text-subtle">
+                Showing first {latest.orphanKeys.length} of {formatCount(latest.orphanCount)}{' '}
+                orphaned objects.
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

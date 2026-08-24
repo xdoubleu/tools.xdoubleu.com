@@ -33,6 +33,7 @@ func sampleSnapshot(scannedAt time.Time) models.StorageSnapshot {
 			{Prefix: "books", SizeBytes: 900, Count: 8},
 			{Prefix: "users", SizeBytes: 100, Count: 2},
 		},
+		OrphanKeys: []string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
 	}
 }
 
@@ -53,6 +54,11 @@ func TestStorageSnapshotsInsertAndLatest(t *testing.T) {
 	assert.Equal(t, int64(2), got.OrphanCount)
 	require.Len(t, got.PrefixBreakdown, 2)
 	assert.Equal(t, "books", got.PrefixBreakdown[0].Prefix)
+	assert.Equal(
+		t,
+		[]string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
+		got.OrphanKeys,
+	)
 }
 
 // TestStorageSnapshotsInsertSimpleProtocol reproduces the production path.
@@ -83,6 +89,29 @@ func TestStorageSnapshotsInsertSimpleProtocol(t *testing.T) {
 	require.NotNil(t, got)
 	require.Len(t, got.PrefixBreakdown, 2)
 	assert.Equal(t, "books", got.PrefixBreakdown[0].Prefix)
+}
+
+// TestStorageSnapshotsLatestOrphanKeysTypeMismatch covers scanSnapshot's
+// unmarshal-error path. json.Marshal on a []string can't realistically fail,
+// and JSONB itself rejects syntactically invalid JSON at INSERT time, so a
+// value that's valid JSON but the wrong shape (an object instead of a string
+// array) is the only way to reach a Go-level json.Unmarshal error here.
+func TestStorageSnapshotsLatestOrphanKeysTypeMismatch(t *testing.T) {
+	clearSnapshots(t)
+	repo := repositories.NewStorageSnapshotsRepository(testDB)
+
+	_, err := testDB.Exec(t.Context(), `
+		INSERT INTO global.storage_snapshots (
+			scanned_at, total_size_bytes, object_count,
+			orphan_size_bytes, orphan_count,
+			stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
+			orphan_keys
+		) VALUES (now(), 0, 0, 0, 0, 0, 0, '[]', '{"not":"an array"}')
+	`)
+	require.NoError(t, err)
+
+	_, err = repo.Latest(t.Context())
+	assert.Error(t, err)
 }
 
 func TestStorageSnapshotsHistory(t *testing.T) {

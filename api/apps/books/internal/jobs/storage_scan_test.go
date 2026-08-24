@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"bytes"
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -82,6 +83,7 @@ func TestStorageScanClassifiesObjects(t *testing.T) {
 	// Only books/b3/orphan.epub is an orphan.
 	assert.Equal(t, int64(1), snap.OrphanCount)
 	assert.Equal(t, int64(len("leaked")), snap.OrphanSizeBytes)
+	assert.Equal(t, []string{"books/b3/orphan.epub"}, snap.OrphanKeys)
 	// Only the stale upload counts.
 	assert.Equal(t, int64(1), snap.StaleUploadCount)
 	assert.Equal(t, int64(len("staledata")), snap.StaleUploadSizeBytes)
@@ -103,6 +105,27 @@ func TestStorageScanIDAndSchedule(t *testing.T) {
 	)
 	assert.Equal(t, "books-storage-scan", job.ID())
 	assert.Equal(t, 24*time.Hour, job.RunEvery())
+}
+
+func TestStorageScanOrphanKeysCapped(t *testing.T) {
+	store := objectstore.NewFake()
+	for i := range 60 {
+		put(t, store, "books/b/"+strconv.Itoa(i)+".epub", "leaked")
+	}
+
+	snapStore := &fakeSnapshotStore{saved: nil, err: nil}
+	job := jobs.NewStorageScanJob(
+		store,
+		fakeKeyLister{keys: nil, err: nil},
+		snapStore,
+	)
+
+	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
+	snap := snapStore.saved
+	require.NotNil(t, snap)
+	// Every orphan is counted, but the retained key list is capped.
+	assert.Equal(t, int64(60), snap.OrphanCount)
+	assert.Len(t, snap.OrphanKeys, 50)
 }
 
 func TestStorageScanEmptyBucket(t *testing.T) {
