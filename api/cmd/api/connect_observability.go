@@ -155,6 +155,12 @@ func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
 
 	unused := make([]string, 0, len(*h.app.apps))
 	for _, a := range *h.app.apps {
+		// dashboard owns no schema or routes of its own — it only ever
+		// serves through games/books/feeds' exported methods — so it never
+		// logs usage under its own name and would always show as unused.
+		if a.GetName() == "dashboard" {
+			continue
+		}
 		if !used[a.GetName()] {
 			unused = append(unused, a.GetName())
 		}
