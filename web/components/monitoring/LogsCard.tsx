@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { useLogs } from '@/hooks/useMonitoring'
 import { formatDateTime } from '@/lib/dates'
@@ -10,16 +9,16 @@ import { formatDateTime } from '@/lib/dates'
 const SOURCE_OPTIONS = ['', 'api', 'web']
 const LEVEL_OPTIONS = ['', 'debug', 'info', 'warn', 'error']
 
-function levelVariant(level: string): 'default' | 'secondary' | 'warn' | 'danger' {
+function levelColor(level: string): string {
   switch (level.toLowerCase()) {
     case 'error':
-      return 'danger'
+      return 'text-red-400'
     case 'warn':
-      return 'warn'
+      return 'text-amber-400'
     case 'debug':
-      return 'secondary'
+      return 'text-neutral-500'
     default:
-      return 'default'
+      return 'text-sky-400'
   }
 }
 
@@ -71,23 +70,16 @@ export default function LogsCard() {
         ) : entries.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No logs found.</p>
         ) : (
-          <div className="max-h-96 space-y-2 overflow-auto">
+          <div className="max-h-96 overflow-auto rounded-lg border border-border bg-neutral-950 p-3 font-mono text-xs leading-relaxed">
             {entries.map((entry, i) => (
-              <div
-                key={`${entry.occurredAt}-${i}`}
-                className="rounded-lg border border-border bg-surface p-3 text-sm"
-              >
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <Badge variant={levelVariant(entry.level)}>{entry.level || 'info'}</Badge>
-                  <Badge variant="secondary">{entry.source}</Badge>
-                  <span className="text-xs text-muted">{formatDateTime(entry.occurredAt)}</span>
-                </div>
-                <p className="break-words text-fg">{entry.message}</p>
-                {entry.attrsJson && (
-                  <pre className="mt-1 overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-muted">
-                    {entry.attrsJson}
-                  </pre>
-                )}
+              <div key={`${entry.occurredAt}-${i}`} className="whitespace-pre-wrap break-words">
+                <span className="text-neutral-500">{formatDateTime(entry.occurredAt)}</span>{' '}
+                <span className={levelColor(entry.level)}>
+                  [{(entry.level || 'info').toUpperCase()}]
+                </span>{' '}
+                <span className="text-neutral-500">{entry.source}</span>{' '}
+                <span className="text-neutral-100">{entry.message}</span>
+                {entry.attrsJson && <div className="pl-4 text-neutral-500">{entry.attrsJson}</div>}
               </div>
             ))}
           </div>
