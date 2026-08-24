@@ -258,6 +258,32 @@ func callWorkflowRuns(
 	return observabilityClient(t).GetWorkflowRuns(context.Background(), req)
 }
 
+// --- Workflow run stats ---
+
+func TestObservabilityGetWorkflowRunStats_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	resp, err := callWorkflowRunStats(t)
+	require.NoError(t, err)
+	assert.NotNil(t, resp.Msg)
+}
+
+func TestObservabilityGetWorkflowRunStats_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callWorkflowRunStats(t)
+	requirePermissionDenied(t, err)
+}
+
+func callWorkflowRunStats(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetWorkflowRunStatsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetWorkflowRunStatsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetWorkflowRunStats(context.Background(), req)
+}
+
 // --- Security alerts ---
 
 func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {

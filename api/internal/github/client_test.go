@@ -495,6 +495,46 @@ func TestListWorkflowRuns_CachesResult(t *testing.T) {
 	assert.Equal(t, 2, requests, "second call must be served from cache")
 }
 
+func TestListWorkflowRunJobs_ComputesDurationForCompletedJobs(t *testing.T) {
+	cleanup := buildServer(jsonHandler(http.StatusOK, `{"jobs":[
+		{"name":"test","status":"completed","conclusion":"success",
+		 "started_at":"2026-07-01T10:00:00Z","completed_at":"2026-07-01T10:05:00Z"},
+		{"name":"lint","status":"in_progress","conclusion":"",
+		 "started_at":"2026-07-01T10:00:00Z","completed_at":"0001-01-01T00:00:00Z"}
+	]}`))
+	defer cleanup()
+
+	jobs, err := newClient().ListWorkflowRunJobs(context.Background(), 1)
+	require.NoError(t, err)
+	require.Len(t, jobs, 2)
+
+	assert.Equal(t, "test", jobs[0].Name)
+	assert.Equal(t, int64(5*60*1000), jobs[0].DurationMs)
+
+	assert.Equal(t, "lint", jobs[1].Name)
+	assert.Equal(t, int64(0), jobs[1].DurationMs)
+}
+
+func TestListWorkflowRunJobs_NotConfigured_NoConnection(t *testing.T) {
+	c := github.New(logging.NewNopLogger(), stubToken("unused"), configNotConnected())
+	_, err := c.ListWorkflowRunJobs(context.Background(), 1)
+	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestListWorkflowRunJobs_ServerError_Retries(t *testing.T) {
+	attempts := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusServiceUnavailable)
+		}))
+	defer cleanup()
+
+	_, err := newClient().ListWorkflowRunJobs(context.Background(), 1)
+	require.Error(t, err)
+	assert.Equal(t, 4, attempts, "5xx must retry up to maxAttempts")
+}
+
 func jsonHandler(status int, body string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

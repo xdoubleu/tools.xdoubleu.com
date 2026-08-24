@@ -30,6 +30,9 @@ var backoffCap = 30 * time.Second
 
 const apiTimeout = 15 * time.Second
 
+// statusCompleted is the GitHub Actions "completed" run/job status.
+const statusCompleted = "completed"
+
 // errNotFound wraps a 404 response from get, so getAllowingNotFound can
 // distinguish "endpoint not enabled for this repo" from a real failure.
 var errNotFound = errors.New("github: not found")
@@ -165,6 +168,49 @@ func (c *client) ListWorkflowRuns(ctx context.Context) ([]WorkflowRun, error) {
 
 	c.storeWorkflowRuns(runs)
 	return runs, nil
+}
+
+func (c *client) ListWorkflowRunJobs(
+	ctx context.Context, runID int64,
+) ([]WorkflowJob, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	endpoint := fmt.Sprintf(
+		"%s/repos/%s/actions/runs/%d/jobs", baseURL, repo, runID,
+	)
+
+	var wire workflowJobsWire
+	if err = c.get(ctx, endpoint, token, &wire); err != nil {
+		return nil, err
+	}
+
+	jobs := make([]WorkflowJob, 0, len(wire.Jobs))
+	for _, w := range wire.Jobs {
+		job := WorkflowJob{
+			Name:        w.Name,
+			Status:      w.Status,
+			Conclusion:  w.Conclusion,
+			StartedAt:   w.StartedAt,
+			CompletedAt: w.CompletedAt,
+			DurationMs:  0,
+		}
+		if w.Status == statusCompleted {
+			job.DurationMs = w.CompletedAt.Sub(w.StartedAt).Milliseconds()
+		}
+		jobs = append(jobs, job)
+	}
+	return jobs, nil
 }
 
 // resolveRepo reads the admin-picked repo from the stored connection config.
@@ -413,7 +459,7 @@ func (c *client) fetchFailingChecks(
 
 	checks := make([]FailingCheck, 0, len(wire.CheckRuns))
 	for _, run := range wire.CheckRuns {
-		if run.Status != "completed" || !failingConclusions[run.Conclusion] {
+		if run.Status != statusCompleted || !failingConclusions[run.Conclusion] {
 			continue
 		}
 		checks = append(checks, FailingCheck{
@@ -477,7 +523,7 @@ func (c *client) fetchWorkflowRunsByEvent(
 			StartedAt:  w.RunStartedAt,
 			DurationMs: 0,
 		}
-		if w.Status == "completed" {
+		if w.Status == statusCompleted {
 			run.DurationMs = w.UpdatedAt.Sub(w.RunStartedAt).Milliseconds()
 		}
 		runs = append(runs, run)

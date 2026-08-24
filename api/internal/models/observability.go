@@ -87,6 +87,50 @@ type LogEntry struct {
 	AttrsJSON []byte
 }
 
+// WorkflowRunSample is one recorded GitHub Actions workflow run, persisted so
+// duration/failure history survives past github.Client's 45s in-memory
+// cache (issue #1217).
+type WorkflowRunSample struct {
+	RunID        int64
+	WorkflowName string
+	Branch       string
+	Event        string
+	Conclusion   string
+	URL          string
+	DurationMs   int64
+	StartedAt    time.Time
+	CompletedAt  time.Time
+}
+
+// WorkflowJobSample is one job within a recorded workflow run — the
+// "specific actions" duration breakdown.
+type WorkflowJobSample struct {
+	RunID       int64
+	JobName     string
+	Conclusion  string
+	DurationMs  int64
+	StartedAt   time.Time
+	CompletedAt time.Time
+}
+
+// WorkflowDurationStat aggregates a workflow's recorded run durations over
+// the retention window.
+type WorkflowDurationStat struct {
+	WorkflowName  string
+	AvgDurationMs float64
+	P95DurationMs float64
+	RunCount      int64
+}
+
+// JobDurationStat aggregates one job name's recorded durations across every
+// workflow run over the retention window — the per-action breakdown.
+type JobDurationStat struct {
+	JobName       string
+	AvgDurationMs float64
+	P95DurationMs float64
+	RunCount      int64
+}
+
 // TransactionTrend flags a transaction (API endpoint or frontend page)
 // whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
 // global.transaction_latency_daily rows over two adjacent windows, and

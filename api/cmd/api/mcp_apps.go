@@ -90,7 +90,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (11 tools, which include the one mutating
+// tools registered directly below (14 tools, which include the one mutating
 // tool, resolve_sentry_issue — see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
@@ -109,8 +109,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 13 admin observability tools —
-// 12 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 14 admin observability tools —
+// 13 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -149,6 +149,15 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"runs, with duration for each completed run.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.workflowRuns(ctx), nil
+		})
+	addObsTool(srv, "get_workflow_run_stats",
+		"Aggregated CI history, not a raw run list: main-branch failures "+
+			"(should always be empty — main deploys straight off a passing "+
+			"push, so any entry here is an incident), avg/p95 duration per "+
+			"workflow, and avg/p95 duration per job (the specific-actions "+
+			"breakdown).",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.workflowRunStats(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+

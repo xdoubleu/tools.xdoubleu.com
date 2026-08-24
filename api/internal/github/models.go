@@ -132,6 +132,30 @@ type workflowRunWire struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 }
 
+// WorkflowJob is a single job within a GitHub Actions workflow run —
+// DurationMs is only meaningful once Status is "completed".
+type WorkflowJob struct {
+	Name        string
+	Status      string
+	Conclusion  string
+	StartedAt   time.Time
+	CompletedAt time.Time
+	DurationMs  int64
+}
+
+// workflowJobsWire is the GitHub "list jobs for a workflow run" response.
+type workflowJobsWire struct {
+	Jobs []workflowJobWire `json:"jobs"`
+}
+
+type workflowJobWire struct {
+	Name        string    `json:"name"`
+	Status      string    `json:"status"`
+	Conclusion  string    `json:"conclusion"`
+	StartedAt   time.Time `json:"started_at"`
+	CompletedAt time.Time `json:"completed_at"`
+}
+
 // securityAlertWire is the subset of the GitHub Dependabot alerts API
 // payload that is decoded.
 type securityAlertWire struct {
