@@ -37,6 +37,18 @@ func TestUsageLabels(t *testing.T) {
 			wantOK:       true,
 		},
 		{
+			// ConnectRPC handlers are mounted at their bare generated
+			// service path, not under a literal /<appName>/ prefix
+			// (api/apps/*/routes.go) — the app name has to be recovered
+			// from the dotted proto package instead.
+			name:         "unprefixed connectrpc path",
+			method:       http.MethodPost,
+			path:         "/books.v1.BooksService/ListBooks",
+			wantApp:      "books",
+			wantEndpoint: "BooksService/ListBooks",
+			wantOK:       true,
+		},
+		{
 			name:         "kobo token masked",
 			method:       http.MethodGet,
 			path:         "/books/kobo/9f8b2c1d4e5a6b7c8d9e0f1a2b3c4d5e/sync",

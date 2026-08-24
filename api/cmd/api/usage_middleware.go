@@ -98,6 +98,13 @@ func usageLabels(
 	if appNames[segments[0]] {
 		appName = segments[0]
 		segments = segments[1:]
+	} else if pkg, _, found := strings.Cut(segments[0], "."); found &&
+		appNames[pkg] {
+		// ConnectRPC handlers are mounted at their bare generated service
+		// path (e.g. /recipes.v1.RecipesService/ListRecipes), never under a
+		// literal /<appName>/ prefix, so the app name has to be recovered
+		// from the proto package instead of the path segment itself.
+		appName = pkg
 	}
 
 	return appName, endpointLabel(segments), true
