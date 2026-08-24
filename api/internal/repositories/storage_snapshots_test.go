@@ -33,6 +33,7 @@ func sampleSnapshot(scannedAt time.Time) models.StorageSnapshot {
 			{Prefix: "books", SizeBytes: 900, Count: 8},
 			{Prefix: "users", SizeBytes: 100, Count: 2},
 		},
+		OrphanKeys: []string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
 	}
 }
 
@@ -53,6 +54,11 @@ func TestStorageSnapshotsInsertAndLatest(t *testing.T) {
 	assert.Equal(t, int64(2), got.OrphanCount)
 	require.Len(t, got.PrefixBreakdown, 2)
 	assert.Equal(t, "books", got.PrefixBreakdown[0].Prefix)
+	assert.Equal(
+		t,
+		[]string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
+		got.OrphanKeys,
+	)
 }
 
 // TestStorageSnapshotsInsertSimpleProtocol reproduces the production path.

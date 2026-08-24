@@ -20,6 +20,9 @@ const (
 	uploadsMarker  = "/uploads/"
 	coverSuffix    = "/cover.jpg"
 	coverMissing   = "/cover.missing"
+	// maxOrphanKeys caps how many orphaned keys a snapshot retains — OrphanCount
+	// still tallies every orphan found, only the sample list truncates.
+	maxOrphanKeys = 50
 )
 
 // objectLister is the slice of objectstore.Client the scan needs.
@@ -106,6 +109,7 @@ func buildSnapshot(
 		StaleUploadSizeBytes: 0,
 		StaleUploadCount:     0,
 		PrefixBreakdown:      nil,
+		OrphanKeys:           nil,
 	}
 
 	for _, obj := range objects {
@@ -124,6 +128,9 @@ func buildSnapshot(
 		if isOrphan(obj.Key, referenced) {
 			snap.OrphanSizeBytes += obj.Size
 			snap.OrphanCount++
+			if len(snap.OrphanKeys) < maxOrphanKeys {
+				snap.OrphanKeys = append(snap.OrphanKeys, obj.Key)
+			}
 		}
 		if isStaleUpload(obj, now) {
 			snap.StaleUploadSizeBytes += obj.Size

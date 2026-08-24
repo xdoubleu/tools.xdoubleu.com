@@ -253,6 +253,7 @@ func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSna
 		StaleUploadSizeBytes: s.StaleUploadSizeBytes,
 		StaleUploadCount:     s.StaleUploadCount,
 		PrefixBreakdown:      breakdown,
+		OrphanKeys:           s.OrphanKeys,
 	}
 }
 

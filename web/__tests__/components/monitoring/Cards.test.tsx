@@ -95,7 +95,8 @@ describe('StorageCard', () => {
         orphanCount: 1n,
         staleUploadSizeBytes: 0n,
         staleUploadCount: 0n,
-        prefixBreakdown: [{ prefix: 'books', sizeBytes: 1048576n, count: 3n }]
+        prefixBreakdown: [{ prefix: 'books', sizeBytes: 1048576n, count: 3n }],
+        orphanKeys: ['books/b1/orphan.epub']
       },
       history: [
         {
@@ -114,6 +115,7 @@ describe('StorageCard', () => {
     render(<StorageCard data={data} />)
     expect(screen.getByText(/orphaned/)).toBeInTheDocument()
     expect(screen.getByText('books')).toBeInTheDocument()
+    expect(screen.getByText('books/b1/orphan.epub')).toBeInTheDocument()
   })
 
   it('shows no-cleanup badge when clean', () => {

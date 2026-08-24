@@ -24,9 +24,10 @@ func TestMain(m *testing.M) {
 	testDB = postgresDB
 
 	// Mirrors cmd/api/migrations/00001_init.sql, 00005_observability.sql,
-	// 00007_profile_shares_per_app.sql (as amended by 00015), and
-	// 00016_usage_bytes.sql so these tests can run before the cmd/api
-	// package has applied the global migrations.
+	// 00007_profile_shares_per_app.sql (as amended by 00015),
+	// 00016_usage_bytes.sql, and 00025_storage_snapshot_orphan_keys.sql so
+	// these tests can run before the cmd/api package has applied the global
+	// migrations.
 	ctx := context.Background()
 	stmts := []string{
 		"CREATE SCHEMA IF NOT EXISTS global",
@@ -69,8 +70,14 @@ func TestMain(m *testing.M) {
 			orphan_count BIGINT NOT NULL,
 			stale_upload_size_bytes BIGINT NOT NULL,
 			stale_upload_count BIGINT NOT NULL,
-			prefix_breakdown JSONB NOT NULL
+			prefix_breakdown JSONB NOT NULL,
+			orphan_keys JSONB NOT NULL DEFAULT '[]'::jsonb
 		)`,
+		// storage_snapshots may already exist (shared DB across worktrees)
+		// without this column — CREATE TABLE IF NOT EXISTS above wouldn't add
+		// it to an existing table.
+		`ALTER TABLE global.storage_snapshots
+			ADD COLUMN IF NOT EXISTS orphan_keys JSONB NOT NULL DEFAULT '[]'::jsonb`,
 		// Mirrors cmd/api/migrations/00009_oauth_connections.sql,
 		// 00010_oauth_connections_config.sql, and
 		// 00013_oauth_connections_scope.sql.
