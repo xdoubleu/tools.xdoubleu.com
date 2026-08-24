@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/observability/jobs"
 )
@@ -47,6 +48,7 @@ type fakeWorkflowRunStore struct {
 	pruneCalls int
 	insertErr  error
 	pruneErr   error
+	existsErr  error
 }
 
 func newFakeWorkflowRunStore(existing ...int64) *fakeWorkflowRunStore {
@@ -65,6 +67,9 @@ func (f *fakeWorkflowRunStore) Exists(
 ) (bool, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.existsErr != nil {
+		return false, f.existsErr
+	}
 	return f.existing[runID], nil
 }
 
@@ -279,6 +284,88 @@ func TestWorkflowRunsSnapshotJob_PruneErrorPropagates(t *testing.T) {
 	)
 	err := job.Run(t.Context(), testLogger())
 	require.ErrorIs(t, err, assert.AnError)
+}
+
+func TestWorkflowRunsSnapshotJob_ExistsErrorPropagates(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "success")},
+	}
+	store := newFakeWorkflowRunStore()
+	store.existsErr = assert.AnError
+	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
+
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(),
+	)
+	err := job.Run(t.Context(), testLogger())
+	require.ErrorIs(t, err, assert.AnError)
+}
+
+func TestWorkflowRunsSnapshotJob_JobsListErrorDoesNotFailRun(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs:    []github.WorkflowRun{completedRun("main", "success")},
+		jobsErr: assert.AnError,
+	}
+	store := newFakeWorkflowRunStore()
+	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
+
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(),
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, store.inserted, 1)
+	assert.Empty(t, store.jobsByRun)
+}
+
+func TestWorkflowRunsSnapshotJob_JobsNotConfiguredSkipsSilently(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs:    []github.WorkflowRun{completedRun("main", "success")},
+		jobsErr: github.ErrNotConfigured,
+	}
+	store := newFakeWorkflowRunStore()
+	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
+
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(),
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, store.inserted, 1)
+	assert.Empty(t, store.jobsByRun)
+}
+
+func TestWorkflowRunsSnapshotJob_NotifyExistsErrorPropagates(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "failure")},
+	}
+	store := newFakeWorkflowRunStore()
+	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
+
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, &erroringNotifiedRepo{err: assert.AnError},
+	)
+	err := job.Run(t.Context(), testLogger())
+	require.ErrorIs(t, err, assert.AnError)
+}
+
+func TestWorkflowRunsSnapshotJob_MailerNotConfiguredDoesNotMarkNotified(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "failure")},
+	}
+	store := newFakeWorkflowRunStore()
+	mail := &fakeMailer{sent: nil, err: mailer.ErrNotConfigured}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["workflow_run:main_failure:1"])
 }
 
 func TestWorkflowRunsSnapshotJob_IDAndSchedule(t *testing.T) {
