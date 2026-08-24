@@ -3,7 +3,7 @@ import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
 
 const mockApps: AppLink[] = [
   { name: 'backlog', label: 'Backlog', href: '/backlog', description: 'Goals tracker' },
-  { name: 'todos', label: 'Todos', href: '/todos', description: 'Task management' }
+  { name: 'recipes', label: 'Recipes', href: '/recipes', description: 'Recipe management' }
 ]
 
 const mockSections: AppSection[] = [
@@ -21,7 +21,7 @@ describe('AppGrid', () => {
   it('renders provided app links', () => {
     render(<AppGrid apps={mockApps} />)
     expect(screen.getByText('Backlog')).toBeInTheDocument()
-    expect(screen.getByText('Todos')).toBeInTheDocument()
+    expect(screen.getByText('Recipes')).toBeInTheDocument()
   })
 
   it('renders descriptions', () => {

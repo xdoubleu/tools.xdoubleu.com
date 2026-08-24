@@ -13,7 +13,6 @@ const APPS = [
   'games',
   'books',
   'feeds',
-  'todos',
   'recipes',
   'mealplans',
   'shoppinglist',

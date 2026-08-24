@@ -26,8 +26,6 @@ describe('swrKeys', () => {
     expect(swrKeys.itemNames).toBe('/shoppinglist/item-names')
     expect(swrKeys.itemCategories).toBe('/shoppinglist/item-categories')
     expect(swrKeys.planIngredientGroupsAll).toBe('/shoppinglist/groups/all')
-    expect(swrKeys.todos).toBe('/todos')
-    expect(swrKeys.todoSettings).toBe('/todos/settings')
   })
 
   it('dynamic keys match their historical shapes', () => {
@@ -51,8 +49,6 @@ describe('swrKeys', () => {
     expect(swrKeys.planIngredientGroups('p1')).toBe('/shoppinglist/groups/p1')
     expect(swrKeys.shoppingCategories('u1')).toBe('/shoppinglist/categories?owner=u1')
     expect(swrKeys.storeCategories('s1')).toBe('/shoppinglist/stores/s1/categories')
-    expect(swrKeys.todosFiltered({ workspaceId: 'w' })).toEqual(['/todos', { workspaceId: 'w' }])
-    expect(swrKeys.todoTask('t1')).toBe('/todos/tasks/t1')
   })
 
   it('does not mutate the excludedGroups argument', () => {

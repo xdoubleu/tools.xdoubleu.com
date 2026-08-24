@@ -13,7 +13,6 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, store-ordered export (group items by the aisle order of the store you're visiting), and full-list sharing with contacts (switch between your own and shared lists).
-- **todos** — Task management with sections, workspaces, subtasks, policies, archive, and search.
 
 Books and games can also be shared publicly: a revocable token link (managed from the Sharing page) exposes read-only profile pages at `/profile/<token>` with the same dashboards, libraries, and backlogs — no account needed.
 
@@ -109,9 +108,9 @@ exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
 server at `/apps/mcp`, so production domain data and system health can be
 pulled in as context for testing/verifying changes. Every app tool wraps an
 existing **read** RPC of an app (games, books, recipes, mealplans,
-shoppinglist, todos) — no per-app tool ever mutates. App tools are
+shoppinglist) — no per-app tool ever mutates. App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
-`todos_list_tasks`); the 12 observability tools are unprefixed
+`recipes_list_recipes`); the 12 observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_workflow_runs`,
 `get_security_alerts`, `get_sentry_issues`, `resolve_sentry_issue`,

@@ -157,7 +157,7 @@ func TestJobRunsStats(t *testing.T) {
 			errMsg = "boom"
 		}
 		require.NoError(t, repo.Insert(t.Context(), models.JobRun{
-			JobID:      "todos-archive",
+			JobID:      "feeds-poll",
 			StartedAt:  now.Add(time.Duration(-i) * time.Hour),
 			DurationMs: int64(100 * (i + 1)),
 			Success:    ok,
@@ -168,7 +168,7 @@ func TestJobRunsStats(t *testing.T) {
 	stats, err := repo.Stats(t.Context(), now.Add(-24*time.Hour))
 	require.NoError(t, err)
 	require.Len(t, stats, 1)
-	assert.Equal(t, "todos-archive", stats[0].JobID)
+	assert.Equal(t, "feeds-poll", stats[0].JobID)
 	assert.Equal(t, int64(3), stats[0].TotalRuns)
 	assert.Equal(t, int64(1), stats[0].FailedRuns)
 	assert.Equal(t, int64(200), stats[0].AvgDurationMs)

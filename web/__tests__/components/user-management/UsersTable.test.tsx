@@ -23,13 +23,13 @@ describe('UsersTable', () => {
       id: '1',
       email: 'admin@example.com',
       role: 'admin',
-      appAccess: ['backlog', 'todos', 'recipes']
+      appAccess: ['backlog', 'recipes']
     }),
     create(AppUserSchema, {
       id: '2',
       email: 'user@example.com',
       role: 'user',
-      appAccess: ['todos']
+      appAccess: ['recipes']
     })
   ]
 
@@ -55,7 +55,6 @@ describe('UsersTable', () => {
     render(<UsersTable users={mockUsers} />)
     expect(screen.getByText('games')).toBeInTheDocument()
     expect(screen.getByText('books')).toBeInTheDocument()
-    expect(screen.getByText('todos')).toBeInTheDocument()
     expect(screen.getByText('mealplans')).toBeInTheDocument()
     expect(screen.getByText('shoppinglist')).toBeInTheDocument()
     expect(screen.getByText('recipes')).toBeInTheDocument()

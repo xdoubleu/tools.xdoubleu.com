@@ -89,7 +89,7 @@ func TestUsageRecorderFlushClearsCounts(t *testing.T) {
 	store := newFakeUsageStore()
 	rec := newTestRecorder(store)
 
-	rec.Record("todos", "root", 0)
+	rec.Record("recipes", "root", 0)
 	require.NoError(t, rec.Flush(t.Context()))
 	require.Len(t, store.flushed, 1)
 

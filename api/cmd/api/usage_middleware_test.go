@@ -10,7 +10,7 @@ import (
 )
 
 func TestUsageLabels(t *testing.T) {
-	appNames := map[string]bool{"books": true, "games": true, "todos": true}
+	appNames := map[string]bool{"books": true, "games": true, "recipes": true}
 
 	tests := []struct {
 		name         string
@@ -23,9 +23,9 @@ func TestUsageLabels(t *testing.T) {
 		{
 			name:         "connectrpc path",
 			method:       http.MethodPost,
-			path:         "/todos/todos.v1.TaskService/ListTasks",
-			wantApp:      "todos",
-			wantEndpoint: "TaskService/ListTasks",
+			path:         "/recipes/recipes.v1.RecipesService/ListRecipes",
+			wantApp:      "recipes",
+			wantEndpoint: "RecipesService/ListRecipes",
 			wantOK:       true,
 		},
 		{
@@ -115,7 +115,7 @@ func TestUsageLabels(t *testing.T) {
 		{
 			name:         "preflight skipped",
 			method:       http.MethodOptions,
-			path:         "/books/todos.v1.TaskService/ListTasks",
+			path:         "/books/recipes.v1.RecipesService/ListRecipes",
 			wantApp:      "",
 			wantEndpoint: "",
 			wantOK:       false,
