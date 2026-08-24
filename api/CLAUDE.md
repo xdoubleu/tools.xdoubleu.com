@@ -63,7 +63,7 @@ Each app lives in `apps/<name>/`:
 ```
 apps/<name>/
 ├── app.go              # struct embedding app.Base (logger/config/auth), implements App
-│                       # games/books/todos/watchparty export Services/Repositories
+│                       # games/books/watchparty export Services/Repositories
 │                       # (not private) so integration tests can seed data through
 │                       # the real service layer
 ├── routes.go           # registers the ConnectRPC handler, wrapped in the app's own
@@ -145,14 +145,13 @@ implementation (`supabase-community/auth-go`, now removed). Key points:
 - **recipes** — recipe management: fraction parsing, iCal export, whole-recipe-book sharing. Schema `recipes`.
 - **mealplans** — weekly meal planning with per-plan iCal feeds and sharing. Schema `mealplans` (its `plans` tables were adopted from `recipes` via `ALTER TABLE ... SET SCHEMA`).
 - **shoppinglist** — custom items plus meal-plan ingredient aggregation, categories, store-ordered export, sharing. Stores themselves stay private per-user even when the rest of the list is shared. Schema `shoppinglist`.
-- **todos** — task management: sections, workspaces, subtasks, policies, archive, search. Background archive job.
 - **dashboard** — centralizes the public Games and Reading (books+feeds) dashboards, both private/owner and public/shared views, plus the share-token lifecycle (issue #737). No DB, no jobs, like `watchparty`; registers last in `apps.go` since it holds live references to the already-constructed `games`/`books`/`feeds` apps. See "Public Dashboard Sharing" below.
 
 ### Database Conventions
 
 - Each app owns its own Postgres schema, migrated via Goose SQL files in `apps/<name>/migrations/`.
 - Cross-cutting tables live in schema `global`, migrations embedded in `cmd/api/migrations/`.
-- **Never put a wide TEXT column in a list query's column list.** The deployed database is reached over a transaction-mode pooler and billed per byte returned, so a page of rows carrying a large column is billed egress on every request. `feeds`' `itemColumns`/`itemListColumns` split (`apps/feeds/internal/repositories/items.go`) and `books`' `bookColumns` (`apps/books/internal/repositories/books_scan.go`) show the pattern: multi-row reads and `RETURNING` clauses select `<col> IS NOT NULL AND <col> <> ''` as a boolean, and a dedicated single-row read is the only query selecting the column itself. Getting this wrong on `feeds.items.content_html` exhausted the whole monthly egress quota and took the site down (issue #1027). The same applies to any query whose result the caller then throws away — the hourly `todos-archive` job selects only ids for exactly this reason.
+- **Never put a wide TEXT column in a list query's column list.** The deployed database is reached over a transaction-mode pooler and billed per byte returned, so a page of rows carrying a large column is billed egress on every request. `feeds`' `itemColumns`/`itemListColumns` split (`apps/feeds/internal/repositories/items.go`) and `books`' `bookColumns` (`apps/books/internal/repositories/books_scan.go`) show the pattern: multi-row reads and `RETURNING` clauses select `<col> IS NOT NULL AND <col> <> ''` as a boolean, and a dedicated single-row read is the only query selecting the column itself. Getting this wrong on `feeds.items.content_html` exhausted the whole monthly egress quota and took the site down (issue #1027). The same applies to any query whose result the caller then throws away — a job that only needs to know which rows exist should select ids only, not the columns it's about to discard.
 - Downstream apps may **read** an upstream app's schema directly in SQL instead of going through an internal API — the allowed dependency direction is acyclic: `recipes ← mealplans ← shoppinglist`. `mealplans` joins `recipes.recipes`; `shoppinglist`'s export/item-name-catalog features join both `mealplans.*` and `recipes.*`. Reads only, never the reverse direction, and each app's migrations touch only its own schema — grep downstream repositories before changing an upstream schema.
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking.
 

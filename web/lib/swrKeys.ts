@@ -104,11 +104,5 @@ export const swrKeys = {
   stores: '/shoppinglist/stores',
   storeCategories: (storeId: string) => `/shoppinglist/stores/${storeId}/categories`,
   itemNames: '/shoppinglist/item-names',
-  itemCategories: '/shoppinglist/item-categories',
-
-  todos: '/todos',
-  todosFiltered: (queryParams: { workspaceId?: string; sectionId?: string; status?: string }) =>
-    ['/todos', queryParams] as const,
-  todoTask: (id: string) => `/todos/tasks/${id}`,
-  todoSettings: '/todos/settings'
+  itemCategories: '/shoppinglist/item-categories'
 } as const

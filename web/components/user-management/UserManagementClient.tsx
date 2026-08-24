@@ -8,16 +8,7 @@ import { Select } from '@/components/ui/select'
 import { PageContainer } from '@/components/ui/page-container'
 import { swrKeys } from '@/lib/swrKeys'
 
-const APP_NAMES = [
-  'games',
-  'books',
-  'feeds',
-  'mealplans',
-  'recipes',
-  'shoppinglist',
-  'todos',
-  'watchparty'
-]
+const APP_NAMES = ['games', 'books', 'feeds', 'mealplans', 'recipes', 'shoppinglist', 'watchparty']
 
 function UserRow({ user }: { user: AppUser }) {
   const setRole = useSetRole()

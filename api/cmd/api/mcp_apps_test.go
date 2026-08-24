@@ -48,8 +48,6 @@ var appsToolNames = []string{
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
-	// todos (4)
-	"todos_list_tasks", "todos_get_task", "todos_search_tasks", "todos_get_settings",
 	// observability (13, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
@@ -243,7 +241,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	tools := []string{
 		"games_get_recently_active_games", "books_get_library",
 		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
-		"shoppinglist_list_accessible_lists", "todos_list_tasks",
+		"shoppinglist_list_accessible_lists",
 		"get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
@@ -296,8 +294,6 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"shoppinglist_get_plan_ingredient_groups": map[string]any{"plan_id": uid},
 		"shoppinglist_get_store_categories":       map[string]any{"store_id": uid},
 		"resolve_sentry_issue":                    map[string]any{"issue_id": uid},
-		"todos_get_task":                          map[string]any{"id": uid},
-		"todos_search_tasks":                      map[string]any{"query": "x"},
 	}
 
 	session := appsMCPSession(t, accessToken.Value)
@@ -335,7 +331,7 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, allowed.IsError, "user with games access was denied")
 
-	for _, name := range []string{"books_get_library", "todos_list_tasks"} {
+	for _, name := range []string{"books_get_library", "recipes_list_recipes"} {
 		//nolint:exhaustruct // only the tool name is required to call it
 		res, callErr := session.CallTool(ctx, &mcp.CallToolParams{Name: name})
 		assert.Containsf(t, strings.ToLower(toolMessage(res, callErr)),

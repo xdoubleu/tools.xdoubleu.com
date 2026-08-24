@@ -5,7 +5,6 @@ const ROUTES = [
   'games',
   'books',
   'feeds',
-  'todos',
   'recipes/list',
   'mealplans',
   'shoppinglist',

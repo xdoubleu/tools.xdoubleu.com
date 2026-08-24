@@ -57,7 +57,7 @@ func TestAppAccess_AdminGrantedPath(t *testing.T) {
 	rr := doInProcess(
 		t,
 		http.MethodPost,
-		"/todos.v1.TaskService/ListTasks",
+		"/recipes.v1.RecipesService/ListRecipes",
 		"{}",
 		"application/json",
 		&accessToken,
@@ -73,12 +73,12 @@ func TestAppAccess_AdminGrantedPath(t *testing.T) {
 // a usable error (issue #673).
 func TestAppAccess_DeniedReturns403(t *testing.T) {
 	demoteToUser(t)
-	revokeAppAccess(t, testUserID, "todos")
+	revokeAppAccess(t, testUserID, "recipes")
 
 	rr := doInProcess(
 		t,
 		http.MethodPost,
-		"/todos.v1.TaskService/ListTasks",
+		"/recipes.v1.RecipesService/ListRecipes",
 		"{}",
 		"application/json",
 		&accessToken,

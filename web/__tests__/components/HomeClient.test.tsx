@@ -58,7 +58,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Recipes')).toBeInTheDocument()
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
-      expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
@@ -75,7 +74,6 @@ describe('HomeClient', () => {
       'href',
       '/shoppinglist'
     )
-    expect(screen.getByRole('link', { name: /Todos/ })).toHaveAttribute('href', '/todos')
     expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
     expect(screen.getByRole('link', { name: /Contacts/ })).toHaveAttribute('href', '/contacts')
     expect(screen.getByRole('link', { name: /User management/ })).toHaveAttribute(
@@ -267,7 +265,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Unread RSS and newsletter articles.')).toBeInTheDocument()
       expect(screen.getByText('WebRTC screen sharing')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
-      expect(screen.getByText('Task management')).toBeInTheDocument()
       expect(screen.getByText('User preferences')).toBeInTheDocument()
       expect(screen.getByText('Manage contacts')).toBeInTheDocument()
     })
@@ -278,7 +275,7 @@ describe('HomeClient', () => {
     mockUseSettings.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, {
         role: 'user',
-        appAccess: ['games', 'books', 'feeds', 'todos']
+        appAccess: ['games', 'books', 'feeds']
       }),
       isLoading: false,
       error: undefined
@@ -292,7 +289,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Games')).toBeInTheDocument()
       expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
-      expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
@@ -323,7 +319,6 @@ describe('HomeClient', () => {
 
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
     expect(screen.queryByText('Games')).not.toBeInTheDocument()
-    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
   })
 
   it('shows Feeds for a non-admin user granted feeds access independently', async () => {
@@ -369,7 +364,6 @@ describe('HomeClient', () => {
       expect(screen.getByText('Recipes')).toBeInTheDocument()
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
-      expect(screen.getByText('Todos')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
       expect(screen.getByText('Contacts')).toBeInTheDocument()
     })
@@ -395,7 +389,6 @@ describe('HomeClient', () => {
     expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
-    expect(screen.queryByText('Todos')).not.toBeInTheDocument()
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 

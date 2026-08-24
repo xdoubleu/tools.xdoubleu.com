@@ -15,7 +15,6 @@ import (
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
-	"tools.xdoubleu.com/apps/todos"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -74,7 +73,6 @@ func NewApps(
 	apps.addApp(recipes.New(authService, logger, cfg, db))
 	apps.addApp(mealplans.New(authService, logger, cfg, db))
 	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
-	apps.addApp(todos.New(authService, logger, cfg, db))
 	apps.addApp(
 		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)
