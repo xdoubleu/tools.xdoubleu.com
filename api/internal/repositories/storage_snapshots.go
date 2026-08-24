@@ -26,13 +26,14 @@ func (r *StorageSnapshotsRepository) Insert(
 	snap models.StorageSnapshot,
 ) error {
 	breakdown, err := json.Marshal(snap.PrefixBreakdown)
+	var orphanKeys []byte
+	if err == nil {
+		orphanKeys, err = json.Marshal(snap.OrphanKeys)
+	}
 	if err != nil {
 		return err
 	}
-	orphanKeys, err := json.Marshal(snap.OrphanKeys)
-	if err != nil {
-		return err
-	}
+
 	// Bind as string, not []byte: under the simple query protocol (used by the
 	// production connection pooler) a []byte is encoded as bytea hex, which a
 	// JSONB column rejects with "invalid input syntax for type json".
@@ -130,11 +131,13 @@ func scanSnapshot(row rowScanner) (*models.StorageSnapshot, error) {
 		return nil, err
 	}
 
-	if err := json.Unmarshal(breakdown, &snap.PrefixBreakdown); err != nil {
-		return nil, err
+	unmarshalErr := json.Unmarshal(breakdown, &snap.PrefixBreakdown)
+	if unmarshalErr == nil {
+		unmarshalErr = json.Unmarshal(orphanKeys, &snap.OrphanKeys)
 	}
-	if err := json.Unmarshal(orphanKeys, &snap.OrphanKeys); err != nil {
-		return nil, err
+	if unmarshalErr != nil {
+		return nil, unmarshalErr
 	}
+
 	return &snap, nil
 }
