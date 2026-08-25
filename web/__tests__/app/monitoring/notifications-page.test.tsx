@@ -1,0 +1,38 @@
+import React from 'react'
+import { render, screen } from '@testing-library/react'
+
+jest.mock('@/components/monitoring/NotificationSettingsClient', () => () => (
+  <div data-testid="notification-settings-client" />
+))
+
+jest.mock('@/lib/server/client', () => ({
+  createServerClient: jest.fn(async () => ({
+    getNotificationSettings: jest.fn(async () => ({}))
+  }))
+}))
+
+jest.mock('@/lib/server/fetchers', () => ({
+  fetchOrNull: jest.fn(async () => null)
+}))
+
+jest.mock('@/components/SWRFallback', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
+}))
+
+import MonitoringNotificationsPage from '@/app/monitoring/notifications/page'
+
+describe('MonitoringNotificationsPage', () => {
+  it('renders the notification settings client', async () => {
+    render(await MonitoringNotificationsPage())
+    expect(screen.getByTestId('notification-settings-client')).toBeInTheDocument()
+  })
+
+  it('links back to /monitoring', async () => {
+    render(await MonitoringNotificationsPage())
+    expect(screen.getByRole('link', { name: 'Back to monitoring' })).toHaveAttribute(
+      'href',
+      '/monitoring'
+    )
+  })
+})
