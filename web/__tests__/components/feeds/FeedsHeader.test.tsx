@@ -36,6 +36,14 @@ describe('FeedsHeader', () => {
     expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')
   })
 
+  it('links to the feed settings page', () => {
+    render(<FeedsHeader />)
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/feeds/settings'
+    )
+  })
+
   it('starts collapsed when the user already has feeds', () => {
     render(<FeedsHeader />)
     expect(screen.queryByTestId('feed-manager')).not.toBeInTheDocument()

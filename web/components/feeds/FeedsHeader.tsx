@@ -33,6 +33,12 @@ export default function FeedsHeader() {
           >
             Stats
           </Link>
+          <Link
+            href="/feeds/settings"
+            className="text-sm text-accent underline-offset-4 hover:underline"
+          >
+            Settings
+          </Link>
           <Button
             variant="secondary"
             size="sm"

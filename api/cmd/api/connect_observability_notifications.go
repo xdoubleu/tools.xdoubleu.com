@@ -9,19 +9,19 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// GetNotificationSettings and UpdateNotificationSettings let an admin see
-// and toggle which sources (Sentry issues, failing dependency PRs, unhealthy
-// feeds) are currently allowed to email an admin, via
-// jobs.IssueNotifierJob/jobs.WeeklyDigestJob (issue #1214).
+// GetNotificationSettings and UpdateNotificationSettings let any
+// authenticated user see and toggle which sources (Sentry issues, failing
+// dependency PRs, unhealthy feeds) are currently allowed to email an admin,
+// via jobs.IssueNotifierJob/jobs.WeeklyDigestJob (issue #1214) — deliberately
+// not gated by requireAdmin like the rest of ObservabilityService, since the
+// unhealthy-feeds toggle is surfaced from the feeds app rather than
+// monitoring and shouldn't require admin access to reach (issue #1228),
+// mirroring dashboard.v1.DashboardService's own normal-Access carve-out.
 
 func (h *obsConnectHandler) GetNotificationSettings(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetNotificationSettingsRequest],
 ) (*connect.Response[observabilityv1.GetNotificationSettingsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
 	resp, err := h.notificationSettings(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
@@ -56,10 +56,6 @@ func (h *obsConnectHandler) UpdateNotificationSettings(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.UpdateNotificationSettingsRequest],
 ) (*connect.Response[observabilityv1.UpdateNotificationSettingsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
 	source := repositories.NotificationSource(req.Msg.GetSourceKey())
 	if err := h.app.notificationSettingsRepo.SetEnabled(
 		ctx, source, req.Msg.GetEnabled(),
