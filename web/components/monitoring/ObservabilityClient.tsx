@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -34,7 +35,6 @@ import SlowTransactionsCard from './SlowTransactionsCard'
 import HostMetricsCard from './HostMetricsCard'
 import LogsCard from './LogsCard'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
-import NotificationSettingsCard from './NotificationSettingsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -163,6 +163,9 @@ export default function ObservabilityClient() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Observability</h1>
         <div className="flex items-center gap-3">
+          <Button variant="secondary" asChild>
+            <Link href="/monitoring/notifications">Notifications</Link>
+          </Button>
           <Button variant="secondary" onClick={refreshAll} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
@@ -191,23 +194,12 @@ export default function ObservabilityClient() {
 
       <StatTiles tiles={tiles} />
 
-      <div className="mt-6">
-        <NotificationSettingsCard data={notificationSettings.data} />
-      </div>
-
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <StorageCard data={storageStats.data} />
         <DatabaseCard data={databaseStats.data} />
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
-        <FailingPullRequestsCard
-          data={failingPullRequests.data}
-          emailEnabled={
-            notificationSettings.data?.settings.find(
-              (s) => s.sourceKey === 'failing_dependency_prs'
-            )?.enabled
-          }
-        />
+        <FailingPullRequestsCard data={failingPullRequests.data} />
         <WorkflowRunsCard data={workflowRuns.data} />
         <SecurityAlertsCard data={securityAlerts.data} />
         <SentryCard

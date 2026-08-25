@@ -206,6 +206,14 @@ describe('ObservabilityClient', () => {
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
   })
 
+  it('links to the notification settings subpage', () => {
+    render(<ObservabilityClient />)
+    expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
+      'href',
+      '/monitoring/notifications'
+    )
+  })
+
   it('revalidates every data source when Refresh is clicked', async () => {
     render(<ObservabilityClient />)
 

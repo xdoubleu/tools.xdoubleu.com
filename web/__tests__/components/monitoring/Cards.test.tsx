@@ -197,21 +197,6 @@ describe('FailingPullRequestsCard', () => {
     render(<FailingPullRequestsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
-
-  it('shows an "emails admin" badge when notifications are enabled', () => {
-    const data = create(GetFailingPullRequestsResponseSchema, { configured: true, failingCount: 0 })
-    render(<FailingPullRequestsCard data={data} emailEnabled={true} />)
-    expect(screen.getByText('Emails admin')).toBeInTheDocument()
-    expect(
-      screen.getByText('Only dependency (Renovate) pull requests trigger email.')
-    ).toBeInTheDocument()
-  })
-
-  it('shows a "notifications off" badge when notifications are disabled', () => {
-    const data = create(GetFailingPullRequestsResponseSchema, { configured: true, failingCount: 0 })
-    render(<FailingPullRequestsCard data={data} emailEnabled={false} />)
-    expect(screen.getByText('Notifications off')).toBeInTheDocument()
-  })
 })
 
 describe('WorkflowRunsCard', () => {

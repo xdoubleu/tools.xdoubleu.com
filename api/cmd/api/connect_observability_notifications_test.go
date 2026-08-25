@@ -31,12 +31,17 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	assert.Contains(t, got, "unhealthy_feeds")
 }
 
-func TestGetNotificationSettings_AsNonAdmin_Denied(t *testing.T) {
+// GetNotificationSettings/UpdateNotificationSettings are deliberately not
+// admin-gated (issue #1228) — any authenticated user can see and toggle
+// them, since the unhealthy-feeds toggle is surfaced from the feeds app.
+func TestGetNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
 	req := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
 	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(t).GetNotificationSettings(context.Background(), req)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	resp, err := observabilityClient(
+		t,
+	).GetNotificationSettings(context.Background(), req)
+	require.NoError(t, err)
+	assert.NotEmpty(t, resp.Msg.Settings)
 }
 
 func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
@@ -77,15 +82,25 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	}
 }
 
-func TestUpdateNotificationSettings_AsNonAdmin_Denied(t *testing.T) {
+func TestUpdateNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
+	t.Cleanup(func() {
+		req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
+			SourceKey: "unhealthy_feeds",
+			Enabled:   true,
+		})
+		setCookieOnRequest(req, accessToken)
+		_, _ = observabilityClient(
+			t,
+		).UpdateNotificationSettings(context.Background(), req)
+	})
+
 	req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
-		SourceKey: "sentry_issues",
+		SourceKey: "unhealthy_feeds",
 		Enabled:   false,
 	})
 	setCookieOnRequest(req, accessToken)
 	_, err := observabilityClient(
 		t,
 	).UpdateNotificationSettings(context.Background(), req)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+	require.NoError(t, err)
 }
