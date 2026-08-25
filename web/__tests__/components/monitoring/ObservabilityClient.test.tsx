@@ -12,7 +12,6 @@ import {
   GetSlowTransactionsResponseSchema,
   GetHostMetricsResponseSchema,
   GetLogsResponseSchema,
-  ListOAuthConnectionsResponseSchema,
   GetNotificationSettingsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
@@ -29,16 +28,7 @@ const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
-const mockUseOAuthConnections = jest.fn()
 const mockUseNotificationSettings = jest.fn()
-
-const mockRouterReplace = jest.fn()
-let mockSearchParams = new URLSearchParams()
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mockRouterReplace }),
-  useSearchParams: () => mockSearchParams
-}))
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
@@ -53,8 +43,6 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useSlowTransactions: () => mockUseSlowTransactions(),
   useHostMetrics: () => mockUseHostMetrics(),
   useLogs: () => mockUseLogs(),
-  useOAuthConnections: () => mockUseOAuthConnections(),
-  useDisconnectOAuthConnection: () => jest.fn(),
   useNotificationSettings: () => mockUseNotificationSettings(),
   useUpdateNotificationSettings: () => jest.fn()
 }))
@@ -73,7 +61,6 @@ const mockMutate = jest.fn()
 
 beforeEach(() => {
   jest.clearAllMocks()
-  mockSearchParams = new URLSearchParams()
   mockMutate.mockResolvedValue(undefined)
   mockTriggerStorageScan.mockResolvedValue(undefined)
   mockUseJobStats.mockReturnValue({
@@ -149,10 +136,6 @@ beforeEach(() => {
     data: create(GetLogsResponseSchema, { entries: [] }),
     isLoading: false
   })
-  mockUseOAuthConnections.mockReturnValue({
-    data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
-    mutate: mockMutate
-  })
   mockUseNotificationSettings.mockReturnValue({
     data: create(GetNotificationSettingsResponseSchema, {
       settings: [
@@ -206,11 +189,11 @@ describe('ObservabilityClient', () => {
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
   })
 
-  it('links to the notification settings subpage', () => {
+  it('links to the monitoring settings page', () => {
     render(<ObservabilityClient />)
-    expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
-      '/monitoring/notifications'
+      '/monitoring/settings'
     )
   })
 
@@ -221,39 +204,10 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 11 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(11)
+    // instead of a plain mutate(), so mockMutate covers the other 10 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(10)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
-  })
-
-  it('shows a success banner and revalidates connections on oauth_connected', async () => {
-    mockSearchParams = new URLSearchParams('oauth_connected=github')
-
-    render(<ObservabilityClient />)
-
-    expect(await screen.findByText('Connected github.')).toBeInTheDocument()
-    expect(mockMutate).toHaveBeenCalled()
-    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring')
-  })
-
-  it('shows an error banner on oauth_error without revalidating', async () => {
-    mockSearchParams = new URLSearchParams('oauth_error=github')
-
-    render(<ObservabilityClient />)
-
-    expect(
-      await screen.findByText('Failed to connect github. Check the server logs for details.')
-    ).toBeInTheDocument()
-    expect(mockMutate).not.toHaveBeenCalled()
-    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring')
-  })
-
-  it('shows no banner and does not touch the URL when neither param is present', () => {
-    render(<ObservabilityClient />)
-
-    expect(screen.queryByText(/Connected|Failed to connect/)).not.toBeInTheDocument()
-    expect(mockRouterReplace).not.toHaveBeenCalled()
   })
 })

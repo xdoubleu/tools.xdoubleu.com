@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { Select } from '@/components/ui/select'
@@ -18,7 +17,6 @@ import {
   useSentryIssues,
   useSlowTransactions,
   useHostMetrics,
-  useOAuthConnections,
   useNotificationSettings
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
@@ -34,19 +32,12 @@ import SentryCard from './SentryCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
 import HostMetricsCard from './HostMetricsCard'
 import LogsCard from './LogsCard'
-import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
 export default function ObservabilityClient() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const [windowDays, setWindowDays] = useState(30)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [oauthMessage, setOAuthMessage] = useState<{
-    tone: 'success' | 'danger'
-    text: string
-  } | null>(null)
 
   const jobStats = useJobStats(windowDays)
   const usageStats = useUsageStats(windowDays)
@@ -59,31 +50,7 @@ export default function ObservabilityClient() {
   const sentryIssues = useSentryIssues()
   const slowTransactions = useSlowTransactions()
   const hostMetrics = useHostMetrics()
-  const oauthConnections = useOAuthConnections()
   const notificationSettings = useNotificationSettings()
-
-  useEffect(() => {
-    const connected = searchParams.get('oauth_connected')
-    const errored = searchParams.get('oauth_error')
-    if (!connected && !errored) return
-
-    if (connected) {
-      setOAuthMessage({ tone: 'success', text: `Connected ${connected}.` })
-      void oauthConnections.mutate()
-    } else if (errored) {
-      setOAuthMessage({
-        tone: 'danger',
-        text: `Failed to connect ${errored}. Check the server logs for details.`
-      })
-    }
-
-    const params = new URLSearchParams(searchParams)
-    params.delete('oauth_connected')
-    params.delete('oauth_error')
-    router.replace(params.size > 0 ? `/monitoring?${params}` : '/monitoring')
-    // oauthConnections/router deliberately excluded: this should run once per
-    // incoming URL, not on every SWR/router identity change.
-  }, [searchParams])
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -98,7 +65,6 @@ export default function ObservabilityClient() {
       sentryIssues.mutate(),
       slowTransactions.mutate(),
       hostMetrics.mutate(),
-      oauthConnections.mutate(),
       notificationSettings.mutate()
     ])
     setIsRefreshing(false)
@@ -164,7 +130,7 @@ export default function ObservabilityClient() {
         <h1 className="text-3xl font-bold">Observability</h1>
         <div className="flex items-center gap-3">
           <Button variant="secondary" asChild>
-            <Link href="/monitoring/notifications">Notifications</Link>
+            <Link href="/monitoring/settings">Settings</Link>
           </Button>
           <Button variant="secondary" onClick={refreshAll} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing…' : 'Refresh'}
@@ -183,14 +149,6 @@ export default function ObservabilityClient() {
           </Select>
         </div>
       </div>
-
-      {oauthMessage && (
-        <p
-          className={`mb-6 text-sm ${oauthMessage.tone === 'success' ? 'text-success' : 'text-danger'}`}
-        >
-          {oauthMessage.text}
-        </p>
-      )}
 
       <StatTiles tiles={tiles} />
 
@@ -212,7 +170,6 @@ export default function ObservabilityClient() {
         <SlowTransactionsCard data={slowTransactions.data} />
         <HostMetricsCard data={hostMetrics.data} />
         <LogsCard />
-        <OAuthConnectionsCard data={oauthConnections.data} />
       </div>
     </PageContainer>
   )

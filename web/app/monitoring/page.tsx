@@ -19,8 +19,7 @@ export default async function MonitoringPage() {
     databaseStats,
     securityAlerts,
     sentryIssues,
-    hostMetrics,
-    oauthConnections
+    hostMetrics
   ] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
@@ -28,8 +27,7 @@ export default async function MonitoringPage() {
     fetchOrNull(() => client.getDatabaseStats({})),
     fetchOrNull(() => client.getSecurityAlerts({})),
     fetchOrNull(() => client.getSentryIssues({})),
-    fetchOrNull(() => client.getHostMetrics({})),
-    fetchOrNull(() => client.listOAuthConnections({}))
+    fetchOrNull(() => client.getHostMetrics({}))
   ])
 
   const fallback: Record<string, unknown> = {}
@@ -38,7 +36,6 @@ export default async function MonitoringPage() {
   if (securityAlerts) fallback[swrKeys.monitoringSecurityAlerts] = securityAlerts
   if (sentryIssues) fallback[swrKeys.monitoringSentryIssues] = sentryIssues
   if (hostMetrics) fallback[swrKeys.monitoringHostMetrics] = hostMetrics
-  if (oauthConnections) fallback[swrKeys.monitoringOAuthConnections] = oauthConnections
 
   const keyed: [readonly unknown[], unknown][] = []
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])
