@@ -140,11 +140,15 @@ describe('IssuesClient', () => {
     expect(screen.getAllByText('5').length).toBeGreaterThan(0)
   })
 
-  it('links back to /monitoring', () => {
+  it('links to the observability and monitoring settings pages', () => {
     render(<IssuesClient />)
-    expect(screen.getByRole('link', { name: 'Back to monitoring' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Observability' })).toHaveAttribute(
       'href',
-      '/monitoring'
+      '/monitoring/observability'
+    )
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/monitoring/settings'
     )
   })
 

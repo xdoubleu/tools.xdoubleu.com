@@ -77,15 +77,15 @@ export default function IssuesClient() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Issues</h1>
         <div className="flex items-center gap-3">
+          <Button variant="secondary" asChild>
+            <Link href="/monitoring/observability">Observability</Link>
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link href="/monitoring/settings">Settings</Link>
+          </Button>
           <Button variant="secondary" onClick={refreshAll} disabled={isRefreshing}>
             {isRefreshing ? 'Refreshing…' : 'Refresh'}
           </Button>
-          <Link
-            href="/monitoring"
-            className="text-sm text-accent underline-offset-4 hover:underline"
-          >
-            Back to monitoring
-          </Link>
         </div>
       </div>
 

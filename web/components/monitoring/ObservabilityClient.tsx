@@ -89,9 +89,6 @@ export default function ObservabilityClient() {
         <h1 className="text-3xl font-bold">Observability</h1>
         <div className="flex items-center gap-3">
           <Button variant="secondary" asChild>
-            <Link href="/monitoring/issues">Issues</Link>
-          </Button>
-          <Button variant="secondary" asChild>
             <Link href="/monitoring/settings">Settings</Link>
           </Button>
           <Button variant="secondary" onClick={refreshAll} disabled={isRefreshing}>
@@ -109,6 +106,12 @@ export default function ObservabilityClient() {
               </option>
             ))}
           </Select>
+          <Link
+            href="/monitoring"
+            className="text-sm text-accent underline-offset-4 hover:underline"
+          >
+            Back to monitoring
+          </Link>
         </div>
       </div>
 

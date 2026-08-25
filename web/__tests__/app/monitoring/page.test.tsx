@@ -1,24 +1,19 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-jest.mock('@/components/monitoring/ObservabilityClient', () => () => (
-  <div data-testid="observability-client" />
-))
-
-const mockClient = {
-  getJobStats: jest.fn(async () => ({})),
-  getUsageStats: jest.fn(async () => ({})),
-  getStorageStats: jest.fn(async () => ({})),
-  getDatabaseStats: jest.fn(async () => ({})),
-  getHostMetrics: jest.fn(async () => ({}))
-}
+jest.mock('@/components/monitoring/IssuesClient', () => () => <div data-testid="issues-client" />)
 
 jest.mock('@/lib/server/client', () => ({
-  createServerClient: jest.fn(async () => mockClient)
+  createServerClient: jest.fn(async () => ({
+    getFailingPullRequests: jest.fn(async () => ({})),
+    getWorkflowRuns: jest.fn(async () => ({})),
+    getSecurityAlerts: jest.fn(async () => ({})),
+    getSentryIssues: jest.fn(async () => ({}))
+  }))
 }))
 
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: jest.fn(async (fn: () => unknown) => fn())
+  fetchOrNull: jest.fn(async () => null)
 }))
 
 jest.mock('@/components/SWRFallback', () => ({
@@ -29,16 +24,16 @@ jest.mock('@/components/SWRFallback', () => ({
 import MonitoringPage from '@/app/monitoring/page'
 
 describe('MonitoringPage', () => {
-  it('renders the observability client', async () => {
+  it('renders the issues client', async () => {
     render(await MonitoringPage())
-    expect(screen.getByTestId('observability-client')).toBeInTheDocument()
+    expect(screen.getByTestId('issues-client')).toBeInTheDocument()
   })
 
-  it('renders when prefetching returns nothing', async () => {
+  it('passes prefetched data as SWR fallback when available', async () => {
     const { fetchOrNull } = jest.requireMock('@/lib/server/fetchers')
-    fetchOrNull.mockImplementationOnce(async () => null)
+    fetchOrNull.mockImplementation((fn: () => unknown) => fn())
 
     render(await MonitoringPage())
-    expect(screen.getByTestId('observability-client')).toBeInTheDocument()
+    expect(screen.getByTestId('issues-client')).toBeInTheDocument()
   })
 })
