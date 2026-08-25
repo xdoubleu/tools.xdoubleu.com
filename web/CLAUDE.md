@@ -34,6 +34,7 @@ npm run lint                                # eslint → tsc --noEmit → pretti
 npm run lint:fix                            # eslint --fix + prettier --write
 npm test                                    # jest
 npm run test:cov                            # jest --coverage
+npm run test:cov:diff                        # jest --coverage, then scope the report to files changed vs origin/main
 npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
@@ -72,9 +73,7 @@ TypeScript/TSX files over ~300 lines need a split before adding more code:
 
 ## Testing
 
-Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`, `hooks/` (`lib/gen/` excluded). Run `npm run test:cov` for the report.
-
-CI's `codecov/patch` check enforces branch coverage on changed lines, not just statement coverage. `npm run test:cov`'s text-summary "Uncovered Line #s" column only lists lines with 0% statement coverage — a changed line can show up as covered there while an `if`/ternary branch on it is never taken, which still fails `codecov/patch` remotely. Check the per-file "% Branch" column too for any file you touched, not just the line list.
+Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`, `hooks/` (`lib/gen/` excluded). Run `npm run test:cov` for the full report, or `npm run test:cov:diff` to scope it to just the files changed vs `origin/main` (line + branch %, matching what CI's `codecov/patch` check gates on) — run this before pushing. It exits non-zero on any changed file under 80% line/branch coverage or with no coverage data at all (e.g. a new file nothing imports yet, exactly the gap that used to only surface in CI). It's `tools/diff_coverage.py` at the repo root, a plain-Python lcov parser sitting alongside `tools/merge_coverage.py` (the equivalent for `api`'s Go coverage profiles); it only covers files matched by `collectCoverageFrom` in `jest.config.js`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -177,7 +177,7 @@ test/cov/per-pkg:
 	go test ./internal/format \
 		-coverpkg=./internal/format \
 		-covermode=set -count=1 -coverprofile=cov_internal_format.out
-	python3 tools/merge_coverage.py \
+	python3 ../tools/merge_coverage.py \
 		cov_todos_pkg.out cov_todos_internal.out \
 		cov_games_pkg.out cov_games_internal.out \
 		cov_books_pkg.out cov_books_internal.out \
