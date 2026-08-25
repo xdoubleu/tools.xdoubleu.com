@@ -80,6 +80,29 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"REMINDER: approving a plan does NOT start the task. Run the start-task skill now - a fresh worktree off latest main, plus a tracking issue with this approved plan recorded in its ## Plan section - BEFORE the first edit. When the work is done, run finish-task (lint, coverage, build, PR, CI). Opening the PR is standing pre-authorized workflow here and does not need to be requested.\"}}'",
+            "statusMessage": "Reminding to run start-task..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); stop_active=$(printf '%s' \"$input\" | jq -r '.stop_hook_active // false'); if [ \"$stop_active\" = \"true\" ]; then exit 0; fi; cwd=$(printf '%s' \"$input\" | jq -r '.cwd // empty'); if [ -z \"$cwd\" ]; then exit 0; fi; case \"$cwd\" in */.claude/worktrees/*) ;; *) exit 0 ;; esac; branch=$(git -C \"$cwd\" rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0; if [ \"$branch\" = \"main\" ] || [ \"$branch\" = \"HEAD\" ]; then exit 0; fi; ahead=$(git -C \"$cwd\" rev-list --count origin/main..HEAD 2>/dev/null || echo 0); dirty=$(git -C \"$cwd\" status --porcelain 2>/dev/null | head -1); if [ \"$ahead\" = \"0\" ] && [ -z \"$dirty\" ]; then exit 0; fi; if [ -n \"$dirty\" ]; then state=dirty; else state=clean; fi; prs=$(cd \"$cwd\" && gh pr list --head \"$branch\" --state all --json number --jq length 2>/dev/null || echo 0); if [ \"$prs\" != \"0\" ]; then exit 0; fi; common=$(git -C \"$cwd\" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || exit 0; head_sha=$(git -C \"$cwd\" rev-parse HEAD 2>/dev/null) || exit 0; sd=\"$common/claude-finish-task\"; mkdir -p \"$sd\"; sf=\"$sd/$(printf '%s' \"$branch\" | tr '/' '-')\"; last=\"\"; [ -f \"$sf\" ] && last=$(cat \"$sf\"); key=\"$head_sha-$state\"; if [ \"$last\" = \"$key\" ]; then exit 0; fi; printf '%s' \"$key\" > \"$sf\"; jq -n --arg b \"$branch\" '{\"decision\":\"block\",\"reason\":(\"Branch \\($b) has finished work that was never shipped: commits ahead of origin/main (or uncommitted changes), and no pull request for it. Run the finish-task skill now - lint, coverage, the web build, then ship-pr to open the PR and watch CI to green, then session-retro. Opening the PR is standing pre-authorized workflow for this repo: do NOT wait to be asked, and do NOT stop at having pushed the branch. If the work genuinely is not finished, say what is left and stop - this hook will not fire again for the same commit.\")}'",
+            "statusMessage": "Checking for unshipped work..."
+          }
+        ]
+      }
     ]
   }
 }
