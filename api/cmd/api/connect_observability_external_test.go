@@ -269,10 +269,63 @@ func TestObservabilityGetWorkflowRunStats_AsAdmin(t *testing.T) {
 	assert.NotNil(t, resp.Msg)
 }
 
+// TestObservabilityGetWorkflowRunStats_ReportsRecordedHistory seeds real
+// run/job samples so the aggregation loops (main-branch failures, per-
+// workflow and per-job duration stats) actually run over non-empty data.
+func TestObservabilityGetWorkflowRunStats_ReportsRecordedHistory(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	ctx := context.Background()
+	_, _ = testApp.db.Exec(ctx, "DELETE FROM global.workflow_job_samples")
+	_, _ = testApp.db.Exec(ctx, "DELETE FROM global.workflow_run_samples")
+	t.Cleanup(func() {
+		_, _ = testApp.db.Exec(ctx, "DELETE FROM global.workflow_job_samples")
+		_, _ = testApp.db.Exec(ctx, "DELETE FROM global.workflow_run_samples")
+	})
+
+	now := time.Now()
+	require.NoError(t, testApp.workflowRunsRepo.InsertRun(ctx, models.WorkflowRunSample{
+		RunID: 9001, WorkflowName: "CI", Branch: "main", Event: "push",
+		Conclusion: "failure", URL: "https://github.com/x/y/actions/runs/9001",
+		DurationMs: 60_000, StartedAt: now.Add(-time.Minute), CompletedAt: now,
+	}))
+	require.NoError(t, testApp.workflowRunsRepo.InsertJobs(
+		ctx, []models.WorkflowJobSample{
+			{
+				RunID: 9001, JobName: "build", Conclusion: "failure",
+				DurationMs: 30_000, StartedAt: now.Add(-time.Minute), CompletedAt: now,
+			},
+		},
+	))
+
+	resp, err := callWorkflowRunStats(t)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.GetMainFailures(), 1)
+	assert.Equal(t, int64(9001), resp.Msg.GetMainFailures()[0].GetRunId())
+	require.Len(t, resp.Msg.GetWorkflowDurationStats(), 1)
+	assert.Equal(t, "CI", resp.Msg.GetWorkflowDurationStats()[0].GetWorkflowName())
+	require.Len(t, resp.Msg.GetJobDurationStats(), 1)
+	assert.Equal(t, "build", resp.Msg.GetJobDurationStats()[0].GetJobName())
+}
+
 func TestObservabilityGetWorkflowRunStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	_, err := callWorkflowRunStats(t)
 	requirePermissionDenied(t, err)
+}
+
+// TestObservabilityWorkflowRunStats_QueryErrorPropagates exercises
+// workflowRunStats' error-propagation branches directly (bypassing the
+// Connect handler) by passing an already-canceled context, so the
+// underlying repository query fails immediately.
+func TestObservabilityWorkflowRunStats_QueryErrorPropagates(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	h := &obsConnectHandler{app: testApp}
+	_, err := h.workflowRunStats(ctx, 0)
+	require.Error(t, err)
 }
 
 func callWorkflowRunStats(
