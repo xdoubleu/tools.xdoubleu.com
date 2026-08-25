@@ -94,7 +94,7 @@ func (app *Application) oauthCallbackRoute() http.HandlerFunc {
 			app.logger.ErrorContext(r.Context(), "oauth exchange failed",
 				slog.String("provider", name), slog.Any("error", err))
 			http.Redirect(
-				w, r, app.config.WebURL+"/monitoring?oauth_error="+name,
+				w, r, app.config.WebURL+"/monitoring/settings?oauth_error="+name,
 				http.StatusFound,
 			)
 			return
@@ -110,7 +110,7 @@ func (app *Application) oauthCallbackRoute() http.HandlerFunc {
 		}
 
 		http.Redirect(
-			w, r, app.config.WebURL+"/monitoring?oauth_connected="+name,
+			w, r, app.config.WebURL+"/monitoring/settings?oauth_connected="+name,
 			http.StatusFound,
 		)
 	})
