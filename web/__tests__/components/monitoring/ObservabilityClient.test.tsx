@@ -5,14 +5,9 @@ import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
-  GetFailingPullRequestsResponseSchema,
-  GetWorkflowRunsResponseSchema,
-  GetSecurityAlertsResponseSchema,
-  GetSentryIssuesResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetHostMetricsResponseSchema,
-  GetLogsResponseSchema,
-  GetNotificationSettingsResponseSchema
+  GetLogsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -21,14 +16,9 @@ const mockUseUsageStats = jest.fn()
 const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
-const mockUseFailingPullRequests = jest.fn()
-const mockUseWorkflowRuns = jest.fn()
-const mockUseSecurityAlerts = jest.fn()
-const mockUseSentryIssues = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
-const mockUseNotificationSettings = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
@@ -36,15 +26,9 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: () => mockUseDatabaseStats(),
-  useFailingPullRequests: () => mockUseFailingPullRequests(),
-  useWorkflowRuns: () => mockUseWorkflowRuns(),
-  useSecurityAlerts: () => mockUseSecurityAlerts(),
-  useSentryIssues: () => mockUseSentryIssues(),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useHostMetrics: () => mockUseHostMetrics(),
-  useLogs: () => mockUseLogs(),
-  useNotificationSettings: () => mockUseNotificationSettings(),
-  useUpdateNotificationSettings: () => jest.fn()
+  useLogs: () => mockUseLogs()
 }))
 
 jest.mock('recharts', () => {
@@ -88,34 +72,6 @@ beforeEach(() => {
     data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] }),
     mutate: mockMutate
   })
-  mockUseFailingPullRequests.mockReturnValue({
-    data: create(GetFailingPullRequestsResponseSchema, {
-      configured: true,
-      failingCount: 2,
-      pullRequests: []
-    }),
-    mutate: mockMutate
-  })
-  mockUseWorkflowRuns.mockReturnValue({
-    data: create(GetWorkflowRunsResponseSchema, { configured: true, runs: [] }),
-    mutate: mockMutate
-  })
-  mockUseSecurityAlerts.mockReturnValue({
-    data: create(GetSecurityAlertsResponseSchema, {
-      configured: true,
-      alertCount: 0,
-      alerts: []
-    }),
-    mutate: mockMutate
-  })
-  mockUseSentryIssues.mockReturnValue({
-    data: create(GetSentryIssuesResponseSchema, {
-      configured: true,
-      unresolvedCount: 0,
-      issues: []
-    }),
-    mutate: mockMutate
-  })
   mockUseSlowTransactions.mockReturnValue({
     data: create(GetSlowTransactionsResponseSchema, {
       configured: true,
@@ -136,16 +92,6 @@ beforeEach(() => {
     data: create(GetLogsResponseSchema, { entries: [] }),
     isLoading: false
   })
-  mockUseNotificationSettings.mockReturnValue({
-    data: create(GetNotificationSettingsResponseSchema, {
-      settings: [
-        { sourceKey: 'sentry_issues', enabled: true },
-        { sourceKey: 'failing_dependency_prs', enabled: true },
-        { sourceKey: 'unhealthy_feeds', enabled: true }
-      ]
-    }),
-    mutate: mockMutate
-  })
 })
 
 describe('ObservabilityClient', () => {
@@ -156,28 +102,8 @@ describe('ObservabilityClient', () => {
     expect(screen.getByText('Database')).toBeInTheDocument()
     // Orphaned bytes tile reflects the snapshot.
     expect(screen.getByText('2.0 KB')).toBeInTheDocument()
-    // External-signal tiles render from their hook data.
-    expect(screen.getByText('Failing PRs')).toBeInTheDocument()
-    expect(screen.getByText('Unresolved errors')).toBeInTheDocument()
     expect(screen.getAllByText('CPU').length).toBeGreaterThan(0)
     expect(screen.getAllByText('12.3%').length).toBeGreaterThan(0)
-  })
-
-  it('degrades external tiles when their sources are unconfigured', () => {
-    mockUseFailingPullRequests.mockReturnValue({
-      data: create(GetFailingPullRequestsResponseSchema, { configured: false })
-    })
-    mockUseSecurityAlerts.mockReturnValue({
-      data: create(GetSecurityAlertsResponseSchema, { configured: false })
-    })
-    mockUseSentryIssues.mockReturnValue({
-      data: create(GetSentryIssuesResponseSchema, { configured: false })
-    })
-
-    render(<ObservabilityClient />)
-    // Failing PRs / Security alerts / Unresolved errors tiles all fall back
-    // to a dash.
-    expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3)
   })
 
   it('refetches job/usage stats when the window changes', () => {
@@ -189,8 +115,12 @@ describe('ObservabilityClient', () => {
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
   })
 
-  it('links to the monitoring settings page', () => {
+  it('links to the issues and monitoring settings pages', () => {
     render(<ObservabilityClient />)
+    expect(screen.getByRole('link', { name: 'Issues' })).toHaveAttribute(
+      'href',
+      '/monitoring/issues'
+    )
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/monitoring/settings'
@@ -204,8 +134,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 10 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(10)
+    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(5)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

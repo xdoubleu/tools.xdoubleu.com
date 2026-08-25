@@ -16,15 +16,23 @@ function conclusionVariant(conclusion: string): 'success' | 'danger' | 'secondar
   return 'danger'
 }
 
-export default function WorkflowRunsCard({ data }: { data?: GetWorkflowRunsResponse }) {
+export default function WorkflowRunsCard({
+  data,
+  title = 'CI run duration',
+  description
+}: {
+  data?: GetWorkflowRunsResponse
+  title?: string
+  description?: string
+}) {
   const runs = data?.runs ?? []
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>CI run duration</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          {data ? 'Recent PR and main GitHub Actions run times.' : 'Loading…'}
+          {data ? (description ?? 'Recent PR and main GitHub Actions run times.') : 'Loading…'}
         </CardDescription>
       </CardHeader>
       <CardContent>
