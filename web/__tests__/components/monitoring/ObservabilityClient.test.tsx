@@ -131,15 +131,15 @@ describe('ObservabilityClient', () => {
     expect(mockUseUsageStats).toHaveBeenCalledWith(7)
   })
 
-  it('links to the issues and monitoring settings pages', () => {
+  it('links to the monitoring settings page and back to issues', () => {
     render(<ObservabilityClient />)
-    expect(screen.getByRole('link', { name: 'Issues' })).toHaveAttribute(
-      'href',
-      '/monitoring/issues'
-    )
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/monitoring/settings'
+    )
+    expect(screen.getByRole('link', { name: 'Back to monitoring' })).toHaveAttribute(
+      'href',
+      '/monitoring'
     )
   })
 
