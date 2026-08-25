@@ -65,6 +65,25 @@ repo's own auto-merge rule instead of its generic default:
   than one app under `api/apps/*` or `web/`; or any `go.mod`/`package.json`
   dependency addition, removal, or version bump.
 
+  Whenever this branch applies, once `ship-pr` has opened the PR, append a
+  `## Manual review needed` section to its body (fetch the existing
+  `--fill`-generated body first with `gh pr view --json body -q .body` and
+  append to it via `gh pr edit <number> --body "$(cat <<EOF
+  ...
+  EOF
+  )"` — never overwrite it) naming every specific signal that triggered
+  manual review (e.g. "touches `.github/workflows/main.yml`", "diff is 312
+  lines / 11 files", "adds a new DB migration under
+  `api/apps/feeds/migrations`", "spans both `api/apps/feeds` and `web/`")
+  and a short, signal-specific "what to double check" line for each (a CI
+  workflow change: verify it doesn't break `ci-pass`'s required-check
+  gating; a migration: confirm it's backward-compatible with the
+  currently-deployed code; a dependency bump: check the changelog for
+  breaking changes; a multi-app/`api/internal/*` change: confirm the
+  affected apps/packages stay consistent with each other). List every
+  triggered signal, not just the first match — a generic disclaimer with no
+  named signal isn't good enough.
+
 Reference the tracking issue from `start-task` in the PR body using a
 closing keyword (`Fixes #123`, `Closes #123`) — `ship-pr` already covers the
 mechanics of this, this is just a reminder it applies here too (this
