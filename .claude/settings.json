@@ -65,7 +65,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -Eq '(^|[^a-zA-Z])(grep|rg)([^a-zA-Z]|$)' && ! echo \"$cmd\" | grep -q 'ast-grep'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md rule - prefer ast-grep over grep/rg for code searches. Only use grep/rg for non-code files (logs, configs, docs).\"}}'; fi",
+            "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -Eq '(^|[^a-zA-Z])(grep|rg)([^a-zA-Z]|$)' && ! echo \"$cmd\" | grep -q 'ast-grep' && ! echo \"$cmd\" | grep -Eiq '\\.(md|json|ya?ml|txt|log)([^a-zA-Z]|$)' && ! echo \"$cmd\" | grep -Eq '\\|[[:space:]]*(sudo[[:space:]]+)?(grep|rg)([^a-zA-Z]|$)'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: CLAUDE.md rule - prefer ast-grep over grep/rg for code searches. Only use grep/rg for non-code files (logs, configs, docs).\"}}'; fi",
             "statusMessage": "Checking for grep/rg usage..."
           }
         ]
