@@ -90,6 +90,12 @@ const (
 	// ObservabilityServiceSetProviderConfigProcedure is the fully-qualified name of the
 	// ObservabilityService's SetProviderConfig RPC.
 	ObservabilityServiceSetProviderConfigProcedure = "/observability.v1.ObservabilityService/SetProviderConfig"
+	// ObservabilityServiceGetNotificationSettingsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetNotificationSettings RPC.
+	ObservabilityServiceGetNotificationSettingsProcedure = "/observability.v1.ObservabilityService/GetNotificationSettings"
+	// ObservabilityServiceUpdateNotificationSettingsProcedure is the fully-qualified name of the
+	// ObservabilityService's UpdateNotificationSettings RPC.
+	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -113,6 +119,8 @@ type ObservabilityServiceClient interface {
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
 	GetProviderOptions(context.Context, *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error)
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
+	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
+	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -240,30 +248,44 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("SetProviderConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		getNotificationSettings: connect.NewClient[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetNotificationSettingsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetNotificationSettings")),
+			connect.WithClientOptions(opts...),
+		),
+		updateNotificationSettings: connect.NewClient[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceUpdateNotificationSettingsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // observabilityServiceClient implements ObservabilityServiceClient.
 type observabilityServiceClient struct {
-	getJobStats               *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
-	getUsageStats             *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
-	getStorageStats           *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
-	triggerStorageScan        *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
-	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
-	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
-	getWorkflowRuns           *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
-	getWorkflowRunStats       *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
-	getSecurityAlerts         *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
-	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
-	resolveSentryIssue        *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
-	getSlowTransactions       *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
-	getHostMetrics            *connect.Client[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse]
-	getLogs                   *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
-	getHealthOverview         *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
-	listOAuthConnections      *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
-	disconnectOAuthConnection *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
-	getProviderOptions        *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
-	setProviderConfig         *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
+	getJobStats                *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
+	getUsageStats              *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
+	getStorageStats            *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	triggerStorageScan         *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
+	getDatabaseStats           *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
+	getFailingPullRequests     *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
+	getWorkflowRuns            *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
+	getWorkflowRunStats        *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
+	getSecurityAlerts          *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
+	getSentryIssues            *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
+	resolveSentryIssue         *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
+	getSlowTransactions        *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
+	getHostMetrics             *connect.Client[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse]
+	getLogs                    *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
+	getHealthOverview          *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
+	listOAuthConnections       *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
+	disconnectOAuthConnection  *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
+	getProviderOptions         *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
+	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
+	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
+	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -361,6 +383,17 @@ func (c *observabilityServiceClient) SetProviderConfig(ctx context.Context, req 
 	return c.setProviderConfig.CallUnary(ctx, req)
 }
 
+// GetNotificationSettings calls observability.v1.ObservabilityService.GetNotificationSettings.
+func (c *observabilityServiceClient) GetNotificationSettings(ctx context.Context, req *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error) {
+	return c.getNotificationSettings.CallUnary(ctx, req)
+}
+
+// UpdateNotificationSettings calls
+// observability.v1.ObservabilityService.UpdateNotificationSettings.
+func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Context, req *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
+	return c.updateNotificationSettings.CallUnary(ctx, req)
+}
+
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -383,6 +416,8 @@ type ObservabilityServiceHandler interface {
 	DisconnectOAuthConnection(context.Context, *connect.Request[v1.DisconnectOAuthConnectionRequest]) (*connect.Response[v1.DisconnectOAuthConnectionResponse], error)
 	GetProviderOptions(context.Context, *connect.Request[v1.GetProviderOptionsRequest]) (*connect.Response[v1.GetProviderOptionsResponse], error)
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
+	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
+	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -506,6 +541,18 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("SetProviderConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetNotificationSettingsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetNotificationSettingsProcedure,
+		svc.GetNotificationSettings,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetNotificationSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceUpdateNotificationSettingsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceUpdateNotificationSettingsProcedure,
+		svc.UpdateNotificationSettings,
+		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -546,6 +593,10 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetProviderOptionsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceSetProviderConfigProcedure:
 			observabilityServiceSetProviderConfigHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetNotificationSettingsProcedure:
+			observabilityServiceGetNotificationSettingsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceUpdateNotificationSettingsProcedure:
+			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -629,4 +680,12 @@ func (UnimplementedObservabilityServiceHandler) GetProviderOptions(context.Conte
 
 func (UnimplementedObservabilityServiceHandler) SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.SetProviderConfig is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetNotificationSettings is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented"))
 }

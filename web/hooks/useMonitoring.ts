@@ -19,7 +19,8 @@ import type {
   GetHostMetricsResponse,
   GetLogsResponse,
   ListOAuthConnectionsResponse,
-  GetProviderOptionsResponse
+  GetProviderOptionsResponse,
+  GetNotificationSettingsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -163,6 +164,28 @@ export function useProviderOptions() {
   return useCallback(
     (provider: string, sentryOrg?: string): Promise<GetProviderOptionsResponse> =>
       client.getProviderOptions({ provider, sentryOrg: sentryOrg ?? '' }),
+    [client]
+  )
+}
+
+// useNotificationSettings reads which sources (Sentry issues, failing
+// dependency PRs, unhealthy feeds) are currently allowed to email an admin
+// (issue #1214).
+export function useNotificationSettings() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetNotificationSettingsResponse, Error>(
+    swrKeys.monitoringNotificationSettings,
+    () => client.getNotificationSettings({})
+  )
+}
+
+export function useUpdateNotificationSettings() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (sourceKey: string, enabled: boolean) => {
+      await client.updateNotificationSettings({ sourceKey, enabled })
+      await mutate(swrKeys.monitoringNotificationSettings)
+    },
     [client]
   )
 }

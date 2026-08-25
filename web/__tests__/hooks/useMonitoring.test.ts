@@ -7,6 +7,8 @@ const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockResolveSentryIssue = jest.fn()
+const mockGetNotificationSettings = jest.fn()
+const mockUpdateNotificationSettings = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -30,7 +32,9 @@ jest.mock('@/lib/client', () => ({
     listOAuthConnections: jest.fn(),
     disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
     getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
-    setProviderConfig: (...args: unknown[]) => mockSetProviderConfig(...args)
+    setProviderConfig: (...args: unknown[]) => mockSetProviderConfig(...args),
+    getNotificationSettings: (...args: unknown[]) => mockGetNotificationSettings(...args),
+    updateNotificationSettings: (...args: unknown[]) => mockUpdateNotificationSettings(...args)
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -54,7 +58,9 @@ import {
   useOAuthConnections,
   useDisconnectOAuthConnection,
   useProviderOptions,
-  useSetProviderConfig
+  useSetProviderConfig,
+  useNotificationSettings,
+  useUpdateNotificationSettings
 } from '@/hooks/useMonitoring'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -140,6 +146,31 @@ describe('useMonitoring', () => {
     expect(unstable_serialize(swrKeys.monitoringJobStats(7))).not.toBe(
       unstable_serialize(swrKeys.monitoringJobStats(30))
     )
+  })
+
+  it('keys notification settings statically', () => {
+    renderHook(() => useNotificationSettings())
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringNotificationSettings,
+      expect.any(Function)
+    )
+  })
+})
+
+describe('useUpdateNotificationSettings', () => {
+  it('updates a source and revalidates notification settings', async () => {
+    mockUpdateNotificationSettings.mockResolvedValue({})
+    const { result } = renderHook(() => useUpdateNotificationSettings())
+
+    await act(async () => {
+      await result.current('sentry_issues', false)
+    })
+
+    expect(mockUpdateNotificationSettings).toHaveBeenCalledWith({
+      sourceKey: 'sentry_issues',
+      enabled: false
+    })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringNotificationSettings)
   })
 })
 

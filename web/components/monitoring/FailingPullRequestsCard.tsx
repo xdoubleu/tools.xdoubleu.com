@@ -7,19 +7,31 @@ import { formatCount } from '@/lib/observability'
 import { formatDate } from '@/lib/dates'
 
 export default function FailingPullRequestsCard({
-  data
+  data,
+  emailEnabled
 }: {
   data?: GetFailingPullRequestsResponse
+  emailEnabled?: boolean
 }) {
   const pullRequests = data?.pullRequests ?? []
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Failing pull requests</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Failing pull requests</CardTitle>
+          {emailEnabled !== undefined && (
+            <Badge variant={emailEnabled ? 'default' : 'secondary'}>
+              {emailEnabled ? 'Emails admin' : 'Notifications off'}
+            </Badge>
+          )}
+        </div>
         <CardDescription>
           {data ? `${formatCount(data.failingCount)} with a failing check.` : 'Loading…'}
         </CardDescription>
+        {emailEnabled !== undefined && (
+          <CardDescription>Only dependency (Renovate) pull requests trigger email.</CardDescription>
+        )}
       </CardHeader>
       <CardContent>
         {data && !data.configured ? (

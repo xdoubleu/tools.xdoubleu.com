@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -33,6 +34,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -52,6 +54,7 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	require.NoError(t, job.Run(t.Context(), testLogger()))
@@ -74,6 +77,7 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 			},
 		}, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -90,6 +94,7 @@ func TestWeeklyDigestSentryNotConfiguredDoesNotBlockOthers(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -108,6 +113,7 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 		}, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -124,6 +130,7 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -140,6 +147,7 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: github.ErrNotConfigured},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -156,6 +164,7 @@ func TestWeeklyDigestSentryGenericErrorSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -172,6 +181,7 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 		fakeGithubClient{prs: nil, err: assert.AnError},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -190,11 +200,75 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 		}, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
+		alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestOmitsSectionsForDisabledSources(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	feeds := fakeFeedsLister{unhealthy: []jobs.UnhealthyFeed{
+		{
+			Title: "My Feed", URL: "https://example.com/feed",
+			LastError: "timeout", ConsecutiveFailures: 4,
+		},
+	}, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{},
+	}
+
+	job := jobs.NewWeeklyDigestJob(sentry, gh, feeds, notifSvc, settings)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "boom")
+	assert.NotContains(t, mail.sent[0], "sha1")
+	assert.NotContains(t, mail.sent[0], "My Feed")
+}
+
+func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		settingsErrFake{err: assert.AnError},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "boom")
+}
+
+// settingsErrFake makes every IsEnabled call fail, for tests exercising the
+// settings-lookup-error path.
+type settingsErrFake struct {
+	err error
+}
+
+func (s settingsErrFake) IsEnabled(
+	_ context.Context,
+	_ repositories.NotificationSource,
+) (bool, error) {
+	return false, s.err
 }
 
 func TestWeeklyDigestID(t *testing.T) {
@@ -203,6 +277,7 @@ func TestWeeklyDigestID(t *testing.T) {
 		fakeGithubClient{prs: nil, err: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
+		alwaysEnabledSettings{},
 	)
 	assert.Equal(t, "weekly-digest", job.ID())
 	assert.Equal(t, 7*24*time.Hour, job.RunEvery())

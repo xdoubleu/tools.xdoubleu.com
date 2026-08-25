@@ -17,7 +17,8 @@ import {
   useSentryIssues,
   useSlowTransactions,
   useHostMetrics,
-  useOAuthConnections
+  useOAuthConnections,
+  useNotificationSettings
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -33,6 +34,7 @@ import SlowTransactionsCard from './SlowTransactionsCard'
 import HostMetricsCard from './HostMetricsCard'
 import LogsCard from './LogsCard'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
+import NotificationSettingsCard from './NotificationSettingsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -58,6 +60,7 @@ export default function ObservabilityClient() {
   const slowTransactions = useSlowTransactions()
   const hostMetrics = useHostMetrics()
   const oauthConnections = useOAuthConnections()
+  const notificationSettings = useNotificationSettings()
 
   useEffect(() => {
     const connected = searchParams.get('oauth_connected')
@@ -95,7 +98,8 @@ export default function ObservabilityClient() {
       sentryIssues.mutate(),
       slowTransactions.mutate(),
       hostMetrics.mutate(),
-      oauthConnections.mutate()
+      oauthConnections.mutate(),
+      notificationSettings.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -187,15 +191,32 @@ export default function ObservabilityClient() {
 
       <StatTiles tiles={tiles} />
 
+      <div className="mt-6">
+        <NotificationSettingsCard data={notificationSettings.data} />
+      </div>
+
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <StorageCard data={storageStats.data} />
         <DatabaseCard data={databaseStats.data} />
         <JobsCard data={jobStats.data} />
         <UsageCard data={usageStats.data} />
-        <FailingPullRequestsCard data={failingPullRequests.data} />
+        <FailingPullRequestsCard
+          data={failingPullRequests.data}
+          emailEnabled={
+            notificationSettings.data?.settings.find(
+              (s) => s.sourceKey === 'failing_dependency_prs'
+            )?.enabled
+          }
+        />
         <WorkflowRunsCard data={workflowRuns.data} />
         <SecurityAlertsCard data={securityAlerts.data} />
-        <SentryCard data={sentryIssues.data} />
+        <SentryCard
+          data={sentryIssues.data}
+          emailEnabled={
+            notificationSettings.data?.settings.find((s) => s.sourceKey === 'sentry_issues')
+              ?.enabled
+          }
+        />
         <SlowTransactionsCard data={slowTransactions.data} />
         <HostMetricsCard data={hostMetrics.data} />
         <LogsCard />

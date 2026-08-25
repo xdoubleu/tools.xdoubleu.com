@@ -47,6 +47,7 @@ func (r *ContactsRepository) List(
 	ctx context.Context,
 	ownerUserID string,
 ) ([]models.Contact, error) {
+	//nolint:sqlclosecheck // closed by scan()'s own defer rows.Close()
 	rows, err := r.db.Query(ctx,
 		selectContacts+` WHERE owner_user_id = $1 AND status = 'accepted'
 		ORDER BY display_name`,
@@ -63,6 +64,7 @@ func (r *ContactsRepository) ListPending(
 	ctx context.Context,
 	ownerUserID string,
 ) ([]models.Contact, error) {
+	//nolint:sqlclosecheck // closed by scan()'s own defer rows.Close()
 	rows, err := r.db.Query(ctx,
 		selectContacts+` WHERE owner_user_id = $1 AND status = 'pending'
 		ORDER BY display_name`,
@@ -79,6 +81,7 @@ func (r *ContactsRepository) ListIncoming(
 	ctx context.Context,
 	userID string,
 ) ([]models.Contact, error) {
+	//nolint:sqlclosecheck // closed by scan()'s own defer rows.Close()
 	rows, err := r.db.Query(ctx,
 		selectContacts+` WHERE contact_user_id = $1 AND status = 'pending'
 		ORDER BY display_name`,
