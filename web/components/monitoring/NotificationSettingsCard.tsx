@@ -17,7 +17,11 @@ export default function NotificationSettingsCard({
     <Card>
       <CardHeader>
         <CardTitle>Email notifications</CardTitle>
-        <CardDescription>Which monitoring sources are allowed to email an admin.</CardDescription>
+        <CardDescription>
+          {data?.adminEmail
+            ? `Which monitoring sources are allowed to email ${data.adminEmail}.`
+            : 'Which monitoring sources are allowed to email an admin.'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <NotificationToggleList data={data} sourceKeys={MONITORING_SOURCE_KEYS} />

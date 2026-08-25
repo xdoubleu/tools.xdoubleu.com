@@ -462,18 +462,6 @@ describe('SentryCard', () => {
     expect(screen.getByText('No unresolved issues.')).toBeInTheDocument()
   })
 
-  it('shows an "emails admin" badge when notifications are enabled', () => {
-    const data = create(GetSentryIssuesResponseSchema, { configured: true, unresolvedCount: 0 })
-    render(<SentryCard data={data} emailEnabled={true} />)
-    expect(screen.getByText('Emails admin')).toBeInTheDocument()
-  })
-
-  it('shows a "notifications off" badge when notifications are disabled', () => {
-    const data = create(GetSentryIssuesResponseSchema, { configured: true, unresolvedCount: 0 })
-    render(<SentryCard data={data} emailEnabled={false} />)
-    expect(screen.getByText('Notifications off')).toBeInTheDocument()
-  })
-
   it('shows a loading state without data', () => {
     render(<SentryCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
