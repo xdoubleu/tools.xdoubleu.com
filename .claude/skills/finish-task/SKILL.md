@@ -1,6 +1,6 @@
 ---
 name: finish-task
-description: Run the required final steps to ship a code change on tools.xdoubleu.com — lint, coverage, build, open the PR (with the right auto-merge call), watch CI to green, and reflect on doc/tooling gaps. Use when a task's code changes are complete and ready to commit, or when asked to "finish up", "wrap this up", "open a PR", "ship this".
+description: Run the required final steps to ship a code change on tools.xdoubleu.com — lint, coverage, build, open the PR (with the right auto-merge call), watch CI to green, and reflect on doc/tooling gaps. Use whenever code changes in this repo are complete — committed, or ready to commit — whether or not the user asked for a PR; also when asked to "finish up", "wrap this up", "open a PR", "ship this". Always prefer this over calling `ship-pr` directly: this skill wraps it with the repo's own lint/coverage/build steps and auto-merge rule.
 ---
 
 # Finish Task
@@ -8,6 +8,12 @@ description: Run the required final steps to ship a code change on tools.xdouble
 The closing half of every task in this repo, paired with `start-task`. Run
 these steps in order — don't skip ahead to opening the PR before lint/coverage
 pass, and don't stop at "CI is running" as if that were done.
+
+**Opening the PR is standing pre-authorized workflow here — it is not an
+outward-facing action to hold back on pending a request.** Run this skill when
+the code is done, whether or not the user asked for a PR; pushing the branch
+and reporting it "ready for a PR" is not a finished task. Sessions that did
+that are the reason issue #1236 exists.
 
 This repo layers its own lint/coverage/build steps and auto-merge threshold
 on top of the generic `ship-pr` skill from the `git-task-flow` plugin
