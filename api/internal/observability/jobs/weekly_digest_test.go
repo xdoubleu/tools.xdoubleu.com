@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -205,6 +206,69 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestOmitsSectionsForDisabledSources(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	feeds := fakeFeedsLister{unhealthy: []jobs.UnhealthyFeed{
+		{
+			Title: "My Feed", URL: "https://example.com/feed",
+			LastError: "timeout", ConsecutiveFailures: 4,
+		},
+	}, err: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{},
+	}
+
+	job := jobs.NewWeeklyDigestJob(sentry, gh, feeds, notifSvc, settings)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "boom")
+	assert.NotContains(t, mail.sent[0], "sha1")
+	assert.NotContains(t, mail.sent[0], "My Feed")
+}
+
+func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		sentry,
+		fakeGithubClient{prs: nil, err: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		settingsErrFake{err: assert.AnError},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "boom")
+}
+
+// settingsErrFake makes every IsEnabled call fail, for tests exercising the
+// settings-lookup-error path.
+type settingsErrFake struct {
+	err error
+}
+
+func (s settingsErrFake) IsEnabled(
+	_ context.Context,
+	_ repositories.NotificationSource,
+) (bool, error) {
+	return false, s.err
 }
 
 func TestWeeklyDigestID(t *testing.T) {
