@@ -48,7 +48,8 @@ func (h *obsConnectHandler) notificationSettings(
 	}
 
 	return &observabilityv1.GetNotificationSettingsResponse{
-		Settings: protoSettings,
+		Settings:   protoSettings,
+		AdminEmail: h.app.config.NotifyEmailTo,
 	}, nil
 }
 

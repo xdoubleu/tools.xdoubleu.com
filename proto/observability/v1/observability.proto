@@ -464,6 +464,7 @@ message GetNotificationSettingsRequest {}
 
 message GetNotificationSettingsResponse {
   repeated NotificationSetting settings = 1;
+  string admin_email = 2;
 }
 
 message UpdateNotificationSettingsRequest {

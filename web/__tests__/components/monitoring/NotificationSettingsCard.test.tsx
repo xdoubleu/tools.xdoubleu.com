@@ -27,4 +27,25 @@ describe('NotificationSettingsCard', () => {
     render(<NotificationSettingsCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
+
+  it('shows the admin email in the description when present', () => {
+    const data = create(GetNotificationSettingsResponseSchema, {
+      settings: [{ sourceKey: 'sentry_issues', enabled: true }],
+      adminEmail: 'admin@example.com'
+    })
+    render(<NotificationSettingsCard data={data} />)
+
+    expect(screen.getByText(/admin@example\.com/)).toBeInTheDocument()
+  })
+
+  it('falls back to a generic description without an admin email', () => {
+    const data = create(GetNotificationSettingsResponseSchema, {
+      settings: [{ sourceKey: 'sentry_issues', enabled: true }]
+    })
+    render(<NotificationSettingsCard data={data} />)
+
+    expect(
+      screen.getByText('Which monitoring sources are allowed to email an admin.')
+    ).toBeInTheDocument()
+  })
 })

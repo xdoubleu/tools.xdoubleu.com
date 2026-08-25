@@ -5,8 +5,7 @@ import {
   GetFailingPullRequestsResponseSchema,
   GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
-  GetSentryIssuesResponseSchema,
-  GetNotificationSettingsResponseSchema
+  GetSentryIssuesResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
@@ -14,14 +13,12 @@ const mockUseFailingPullRequests = jest.fn()
 const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
-const mockUseNotificationSettings = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useFailingPullRequests: () => mockUseFailingPullRequests(),
   useWorkflowRuns: () => mockUseWorkflowRuns(),
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
-  useNotificationSettings: () => mockUseNotificationSettings(),
   useResolveSentryIssue: () => jest.fn()
 }))
 
@@ -81,12 +78,6 @@ beforeEach(() => {
       configured: true,
       unresolvedCount: 0,
       issues: []
-    }),
-    mutate: mockMutate
-  })
-  mockUseNotificationSettings.mockReturnValue({
-    data: create(GetNotificationSettingsResponseSchema, {
-      settings: [{ sourceKey: 'sentry_issues', enabled: true }]
     }),
     mutate: mockMutate
   })

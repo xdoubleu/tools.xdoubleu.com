@@ -29,6 +29,7 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	assert.Contains(t, got, "sentry_issues")
 	assert.Contains(t, got, "failing_dependency_prs")
 	assert.Contains(t, got, "unhealthy_feeds")
+	assert.Equal(t, testApp.config.NotifyEmailTo, resp.Msg.AdminEmail)
 }
 
 // GetNotificationSettings/UpdateNotificationSettings are deliberately not

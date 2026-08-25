@@ -3714,6 +3714,7 @@ func (*GetNotificationSettingsRequest) Descriptor() ([]byte, []int) {
 type GetNotificationSettingsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Settings      []*NotificationSetting `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	AdminEmail    string                 `protobuf:"bytes,2,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3753,6 +3754,13 @@ func (x *GetNotificationSettingsResponse) GetSettings() []*NotificationSetting {
 		return x.Settings
 	}
 	return nil
+}
+
+func (x *GetNotificationSettingsResponse) GetAdminEmail() string {
+	if x != nil {
+		return x.AdminEmail
+	}
+	return ""
 }
 
 type UpdateNotificationSettingsRequest struct {
@@ -4119,9 +4127,11 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\" \n" +
-	"\x1eGetNotificationSettingsRequest\"d\n" +
+	"\x1eGetNotificationSettingsRequest\"\x85\x01\n" +
 	"\x1fGetNotificationSettingsResponse\x12A\n" +
-	"\bsettings\x18\x01 \x03(\v2%.observability.v1.NotificationSettingR\bsettings\"\\\n" +
+	"\bsettings\x18\x01 \x03(\v2%.observability.v1.NotificationSettingR\bsettings\x12\x1f\n" +
+	"\vadmin_email\x18\x02 \x01(\tR\n" +
+	"adminEmail\"\\\n" +
 	"!UpdateNotificationSettingsRequest\x12\x1d\n" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +

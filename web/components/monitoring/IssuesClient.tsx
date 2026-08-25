@@ -8,8 +8,7 @@ import {
   useFailingPullRequests,
   useWorkflowRuns,
   useSecurityAlerts,
-  useSentryIssues,
-  useNotificationSettings
+  useSentryIssues
 } from '@/hooks/useMonitoring'
 import { formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -25,7 +24,6 @@ export default function IssuesClient() {
   const workflowRuns = useWorkflowRuns()
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
-  const notificationSettings = useNotificationSettings()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -101,13 +99,7 @@ export default function IssuesClient() {
           title="Failing runs on main"
           description="GitHub Actions runs on main with a failing conclusion."
         />
-        <SentryCard
-          data={sentryIssues.data}
-          emailEnabled={
-            notificationSettings.data?.settings.find((s) => s.sourceKey === 'sentry_issues')
-              ?.enabled
-          }
-        />
+        <SentryCard data={sentryIssues.data} />
       </div>
     </PageContainer>
   )
