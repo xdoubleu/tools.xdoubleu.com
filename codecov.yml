@@ -25,8 +25,20 @@ comment:
 # session under go test (see kobo-gateway/CLAUDE.md) — it's exercised
 # manually, not by go test, so it's permanently 0% and shouldn't count
 # against patch coverage on every kobo-gateway PR that touches it.
+#
+# api/gen and web/lib/gen are buf-generated ConnectRPC stubs — root CLAUDE.md
+# already excludes them from every lint/fix tool and tells contributors not
+# to even read them. Their protoc-gen-go accessor methods (GetFoo() sugar
+# around the real reflection-based marshal/unmarshal path) are essentially
+# never called directly by test code, so they sit at a permanent ~0%; a PR
+# that adds enough new proto fields can single-handedly sink patch coverage
+# below threshold for reasons unrelated to its own hand-written code (found
+# while shipping issue #1217 — a new response message's getters alone
+# dropped patch coverage from ~78% to ~74%).
 ignore:
   - "kobo-gateway/cmd/kobo-gateway/menubar_darwin.go"
+  - "api/gen/**"
+  - "web/lib/gen/**"
 
 flags:
   api:

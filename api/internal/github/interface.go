@@ -30,4 +30,7 @@ type Client interface {
 	// branch) GitHub Actions workflow runs on the configured repository.
 	// Returns ErrNotConfigured when no token/repo is set.
 	ListWorkflowRuns(ctx context.Context) ([]WorkflowRun, error)
+	// ListWorkflowRunJobs returns the per-job breakdown of a single workflow
+	// run. Returns ErrNotConfigured when no token/repo is set.
+	ListWorkflowRunJobs(ctx context.Context, runID int64) ([]WorkflowJob, error)
 }

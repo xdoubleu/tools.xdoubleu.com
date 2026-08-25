@@ -54,6 +54,9 @@ const (
 	// ObservabilityServiceGetWorkflowRunsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetWorkflowRuns RPC.
 	ObservabilityServiceGetWorkflowRunsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRuns"
+	// ObservabilityServiceGetWorkflowRunStatsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetWorkflowRunStats RPC.
+	ObservabilityServiceGetWorkflowRunStatsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRunStats"
 	// ObservabilityServiceGetSecurityAlertsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSecurityAlerts RPC.
 	ObservabilityServiceGetSecurityAlertsProcedure = "/observability.v1.ObservabilityService/GetSecurityAlerts"
@@ -98,6 +101,7 @@ type ObservabilityServiceClient interface {
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
+	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
@@ -162,6 +166,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetWorkflowRunsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRuns")),
+			connect.WithClientOptions(opts...),
+		),
+		getWorkflowRunStats: connect.NewClient[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetWorkflowRunStatsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRunStats")),
 			connect.WithClientOptions(opts...),
 		),
 		getSecurityAlerts: connect.NewClient[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse](
@@ -242,6 +252,7 @@ type observabilityServiceClient struct {
 	getDatabaseStats          *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
 	getFailingPullRequests    *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getWorkflowRuns           *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
+	getWorkflowRunStats       *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
 	getSecurityAlerts         *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
 	getSentryIssues           *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	resolveSentryIssue        *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
@@ -288,6 +299,11 @@ func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context,
 // GetWorkflowRuns calls observability.v1.ObservabilityService.GetWorkflowRuns.
 func (c *observabilityServiceClient) GetWorkflowRuns(ctx context.Context, req *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error) {
 	return c.getWorkflowRuns.CallUnary(ctx, req)
+}
+
+// GetWorkflowRunStats calls observability.v1.ObservabilityService.GetWorkflowRunStats.
+func (c *observabilityServiceClient) GetWorkflowRunStats(ctx context.Context, req *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error) {
+	return c.getWorkflowRunStats.CallUnary(ctx, req)
 }
 
 // GetSecurityAlerts calls observability.v1.ObservabilityService.GetSecurityAlerts.
@@ -355,6 +371,7 @@ type ObservabilityServiceHandler interface {
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
+	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
@@ -415,6 +432,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetWorkflowRunsProcedure,
 		svc.GetWorkflowRuns,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceGetWorkflowRunStatsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetWorkflowRunStatsProcedure,
+		svc.GetWorkflowRunStats,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRunStats")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetSecurityAlertsHandler := connect.NewUnaryHandler(
@@ -499,6 +522,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetWorkflowRunsProcedure:
 			observabilityServiceGetWorkflowRunsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetWorkflowRunStatsProcedure:
+			observabilityServiceGetWorkflowRunStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSecurityAlertsProcedure:
 			observabilityServiceGetSecurityAlertsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSentryIssuesProcedure:
@@ -556,6 +581,10 @@ func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.C
 
 func (UnimplementedObservabilityServiceHandler) GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetWorkflowRuns is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetWorkflowRunStats is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {

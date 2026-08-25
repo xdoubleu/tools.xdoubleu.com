@@ -13,6 +13,8 @@ service ObservabilityService {
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsResponse);
+  rpc GetWorkflowRunStats(GetWorkflowRunStatsRequest)
+      returns (GetWorkflowRunStatsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
@@ -176,6 +178,50 @@ message GetWorkflowRunsRequest {}
 message GetWorkflowRunsResponse {
   repeated WorkflowRun runs = 1;
   bool configured = 2;
+}
+
+// MainBranchFailure is one recorded workflow run on main that failed —
+// deploys run straight off a passing push, so this should never happen and
+// its presence is itself the alert-worthy signal.
+message MainBranchFailure {
+  int64 run_id = 1;
+  string workflow_name = 2;
+  string url = 3;
+  string completed_at = 4;  // RFC3339
+}
+
+// WorkflowDurationStat aggregates one workflow's recorded run durations over
+// the stats window.
+message WorkflowDurationStat {
+  string workflow_name = 1;
+  double avg_duration_ms = 2;
+  double p95_duration_ms = 3;
+  int64 run_count = 4;
+}
+
+// JobDurationStat aggregates one job name's recorded durations across every
+// workflow run over the stats window — the per-action breakdown.
+message JobDurationStat {
+  string job_name = 1;
+  double avg_duration_ms = 2;
+  double p95_duration_ms = 3;
+  int64 run_count = 4;
+}
+
+message GetWorkflowRunStatsRequest {
+  int32 window_days = 1;
+}
+
+// GetWorkflowRunStatsResponse is aggregated CI duration/failure history from
+// global.workflow_run_samples/global.workflow_job_samples (issue #1217) —
+// deliberately stats, not a raw run list: main_failures is expected to be
+// empty, and workflow_duration_stats/job_duration_stats answer "how long
+// does CI normally take" and "which specific job is slow", not "show me
+// every run".
+message GetWorkflowRunStatsResponse {
+  repeated MainBranchFailure main_failures = 1;
+  repeated WorkflowDurationStat workflow_duration_stats = 2;
+  repeated JobDurationStat job_duration_stats = 3;
 }
 
 enum SecurityAlertType {

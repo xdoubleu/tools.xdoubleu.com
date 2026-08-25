@@ -69,6 +69,8 @@ type Application struct {
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
 	hostMetricsSnapshotJob        *jobs.HostMetricsSnapshotJob
+	workflowRunsRepo              *repositories.WorkflowRunsRepository
+	workflowRunsSnapshotJob       *jobs.WorkflowRunsSnapshotJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -271,6 +273,22 @@ func newCrossAppJobs(
 	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
 }
 
+// newWorkflowRunsSnapshotJob builds the workflow-run history job (issue
+// #1217), reusing the same notifiedIssuesRepo dedup table IssueNotifierJob
+// uses for its own main-branch-failure alert.
+func newWorkflowRunsSnapshotJob(
+	db *pgxpool.Pool,
+	githubClient github.Client,
+	notificationsSvc *notifications.Service,
+) (*repositories.WorkflowRunsRepository, *jobs.WorkflowRunsSnapshotJob) {
+	workflowRunsRepo := repositories.NewWorkflowRunsRepository(db)
+	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
+	workflowRunsSnapshotJob := jobs.NewWorkflowRunsSnapshotJob(
+		githubClient, workflowRunsRepo, notificationsSvc, notifiedIssuesRepo,
+	)
+	return workflowRunsRepo, workflowRunsSnapshotJob
+}
+
 // feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
 // WeeklyDigestJob (internal/observability/jobs) never imports apps/feeds
 // directly — feeds.UnhealthyFeed and jobs.UnhealthyFeed are structurally
@@ -333,8 +351,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.hostMetricsSnapshotJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.workflowRunsSnapshotJob, app.db), noopCallback,
 	)
 }
 
@@ -403,6 +426,10 @@ func NewApplication(
 		hostMetricsScraper, hostMetricsRepo, logsRepo,
 	)
 
+	workflowRunsRepo, workflowRunsSnapshotJob := newWorkflowRunsSnapshotJob(
+		db, githubClient, notificationsSvc,
+	)
+
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
 		ctx:        ctx,
@@ -431,6 +458,8 @@ func NewApplication(
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
 		hostMetricsSnapshotJob:        hostMetricsSnapshotJob,
+		workflowRunsRepo:              workflowRunsRepo,
+		workflowRunsSnapshotJob:       workflowRunsSnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),

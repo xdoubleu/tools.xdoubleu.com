@@ -126,6 +126,84 @@ func (h *obsConnectHandler) workflowRuns(
 	return resp
 }
 
+func (h *obsConnectHandler) GetWorkflowRunStats(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.GetWorkflowRunStatsRequest],
+) (*connect.Response[observabilityv1.GetWorkflowRunStatsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.workflowRunStats(ctx, req.Msg.GetWindowDays())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// workflowRunStats reports aggregated CI duration/failure history rather
+// than a raw run list (issue #1217): main_failures should always be empty —
+// deploys run straight off a passing push to main — and the two duration
+// breakdowns answer "how long does CI normally take" and "which job is
+// slow" without dumping every recorded run.
+func (h *obsConnectHandler) workflowRunStats(
+	ctx context.Context, windowDays int32,
+) (*observabilityv1.GetWorkflowRunStatsResponse, error) {
+	if windowDays <= 0 {
+		windowDays = defaultWindowDays
+	}
+	since := time.Now().Add(-time.Duration(windowDays) * 24 * time.Hour)
+
+	failures, err := h.app.workflowRunsRepo.MainFailures(ctx, "main", "failure", since)
+	if err != nil {
+		return nil, err
+	}
+	protoFailures := make([]*observabilityv1.MainBranchFailure, len(failures))
+	for i, f := range failures {
+		protoFailures[i] = &observabilityv1.MainBranchFailure{
+			RunId:        f.RunID,
+			WorkflowName: f.WorkflowName,
+			Url:          f.URL,
+			CompletedAt:  f.CompletedAt.Format(time.RFC3339),
+		}
+	}
+
+	workflowStats, err := h.app.workflowRunsRepo.WorkflowDurationStats(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	protoWorkflowStats := make(
+		[]*observabilityv1.WorkflowDurationStat, len(workflowStats),
+	)
+	for i, s := range workflowStats {
+		protoWorkflowStats[i] = &observabilityv1.WorkflowDurationStat{
+			WorkflowName:  s.WorkflowName,
+			AvgDurationMs: s.AvgDurationMs,
+			P95DurationMs: s.P95DurationMs,
+			RunCount:      s.RunCount,
+		}
+	}
+
+	jobStats, err := h.app.workflowRunsRepo.JobDurationStats(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	protoJobStats := make([]*observabilityv1.JobDurationStat, len(jobStats))
+	for i, s := range jobStats {
+		protoJobStats[i] = &observabilityv1.JobDurationStat{
+			JobName:       s.JobName,
+			AvgDurationMs: s.AvgDurationMs,
+			P95DurationMs: s.P95DurationMs,
+			RunCount:      s.RunCount,
+		}
+	}
+
+	return &observabilityv1.GetWorkflowRunStatsResponse{
+		MainFailures:          protoFailures,
+		WorkflowDurationStats: protoWorkflowStats,
+		JobDurationStats:      protoJobStats,
+	}, nil
+}
+
 func (h *obsConnectHandler) GetSecurityAlerts(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSecurityAlertsRequest],
