@@ -36,4 +36,12 @@ describe('MonitoringSettingsPage', () => {
       '/monitoring'
     )
   })
+
+  it('passes prefetched data as SWR fallback when available', async () => {
+    const { fetchOrNull } = jest.requireMock('@/lib/server/fetchers')
+    fetchOrNull.mockImplementation((fn: () => unknown) => fn())
+
+    render(await MonitoringSettingsPage())
+    expect(screen.getByTestId('monitoring-settings-client')).toBeInTheDocument()
+  })
 })

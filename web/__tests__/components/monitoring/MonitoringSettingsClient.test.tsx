@@ -61,6 +61,15 @@ describe('MonitoringSettingsClient', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings')
   })
 
+  it('preserves other query params when clearing the oauth params', async () => {
+    mockSearchParams = new URLSearchParams('oauth_connected=github&foo=bar')
+
+    render(<MonitoringSettingsClient />)
+
+    await screen.findByText('Connected github.')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings?foo=bar')
+  })
+
   it('shows an error banner on oauth_error without revalidating', async () => {
     mockSearchParams = new URLSearchParams('oauth_error=github')
 
