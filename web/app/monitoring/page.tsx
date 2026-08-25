@@ -12,29 +12,17 @@ const DEFAULT_WINDOW_DAYS = 30
 export default async function MonitoringPage() {
   const client = await createServerClient(ObservabilityService)
 
-  const [
-    jobStats,
-    usageStats,
-    storageStats,
-    databaseStats,
-    securityAlerts,
-    sentryIssues,
-    hostMetrics
-  ] = await Promise.all([
+  const [jobStats, usageStats, storageStats, databaseStats, hostMetrics] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getStorageStats({})),
     fetchOrNull(() => client.getDatabaseStats({})),
-    fetchOrNull(() => client.getSecurityAlerts({})),
-    fetchOrNull(() => client.getSentryIssues({})),
     fetchOrNull(() => client.getHostMetrics({}))
   ])
 
   const fallback: Record<string, unknown> = {}
   if (storageStats) fallback[swrKeys.monitoringStorageStats] = storageStats
   if (databaseStats) fallback[swrKeys.monitoringDatabaseStats] = databaseStats
-  if (securityAlerts) fallback[swrKeys.monitoringSecurityAlerts] = securityAlerts
-  if (sentryIssues) fallback[swrKeys.monitoringSentryIssues] = sentryIssues
   if (hostMetrics) fallback[swrKeys.monitoringHostMetrics] = hostMetrics
 
   const keyed: [readonly unknown[], unknown][] = []

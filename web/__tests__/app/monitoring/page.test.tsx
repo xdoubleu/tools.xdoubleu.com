@@ -10,8 +10,6 @@ const mockClient = {
   getUsageStats: jest.fn(async () => ({})),
   getStorageStats: jest.fn(async () => ({})),
   getDatabaseStats: jest.fn(async () => ({})),
-  getSecurityAlerts: jest.fn(async () => ({})),
-  getSentryIssues: jest.fn(async () => ({})),
   getHostMetrics: jest.fn(async () => ({}))
 }
 
