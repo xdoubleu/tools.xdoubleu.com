@@ -111,6 +111,35 @@ describe('IssuesClient', () => {
     expect(screen.getAllByText('main').length).toBeGreaterThan(0)
   })
 
+  it('degrades tiles when unconfigured and flags danger tones when counts are positive', () => {
+    mockUseFailingPullRequests.mockReturnValue({
+      data: create(GetFailingPullRequestsResponseSchema, { configured: false }),
+      mutate: mockMutate
+    })
+    mockUseSecurityAlerts.mockReturnValue({
+      data: create(GetSecurityAlertsResponseSchema, {
+        configured: true,
+        alertCount: 3,
+        alerts: []
+      }),
+      mutate: mockMutate
+    })
+    mockUseSentryIssues.mockReturnValue({
+      data: create(GetSentryIssuesResponseSchema, {
+        configured: true,
+        unresolvedCount: 5,
+        issues: []
+      }),
+      mutate: mockMutate
+    })
+    mockUseWorkflowRuns.mockReturnValue({ data: undefined, mutate: mockMutate })
+
+    render(<IssuesClient />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('3').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('5').length).toBeGreaterThan(0)
+  })
+
   it('links back to /monitoring', () => {
     render(<IssuesClient />)
     expect(screen.getByRole('link', { name: 'Back to monitoring' })).toHaveAttribute(

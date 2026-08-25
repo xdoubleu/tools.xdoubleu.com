@@ -106,6 +106,22 @@ describe('ObservabilityClient', () => {
     expect(screen.getAllByText('12.3%').length).toBeGreaterThan(0)
   })
 
+  it('falls back to a dash when storage/database/host data is missing, and flags failing jobs', () => {
+    mockUseStorageStats.mockReturnValue({ data: undefined, mutate: mockMutate })
+    mockUseDatabaseStats.mockReturnValue({ data: undefined, mutate: mockMutate })
+    mockUseHostMetrics.mockReturnValue({ data: undefined, mutate: mockMutate })
+    mockUseJobStats.mockReturnValue({
+      data: create(GetJobStatsResponseSchema, {
+        stats: [{ jobId: 'steam', totalRuns: 5n, failedRuns: 1n, avgDurationMs: 100n }],
+        recentRuns: []
+      }),
+      mutate: mockMutate
+    })
+
+    render(<ObservabilityClient />)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
   it('refetches job/usage stats when the window changes', () => {
     render(<ObservabilityClient />)
     expect(mockUseJobStats).toHaveBeenCalledWith(30)
