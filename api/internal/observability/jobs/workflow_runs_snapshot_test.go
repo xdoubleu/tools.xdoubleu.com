@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/observability/jobs"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 type fakeWorkflowRunLister struct {
@@ -128,7 +129,9 @@ func TestWorkflowRunsSnapshotJob_RecordsNewCompletedRuns(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, notified, alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -145,7 +148,9 @@ func TestWorkflowRunsSnapshotJob_SkipsAlreadyRecordedRuns(t *testing.T) {
 	store := newFakeWorkflowRunStore(1)
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, newFakeNotifiedRepo())
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -160,7 +165,9 @@ func TestWorkflowRunsSnapshotJob_SkipsInProgressRuns(t *testing.T) {
 	store := newFakeWorkflowRunStore()
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, newFakeNotifiedRepo())
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -185,7 +192,9 @@ func TestWorkflowRunsSnapshotJob_RecordsJobBreakdown(t *testing.T) {
 	store := newFakeWorkflowRunStore()
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, newFakeNotifiedRepo())
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -202,12 +211,34 @@ func TestWorkflowRunsSnapshotJob_AlertsOnMainFailure(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, notified, alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
 	assert.True(t, notified.keys["workflow_run:main_failure:1"])
+}
+
+func TestWorkflowRunsSnapshotJob_SkipsAlertWhenSourceDisabled(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "failure")},
+	}
+	store := newFakeWorkflowRunStore()
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{},
+	}
+
+	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified, settings)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["workflow_run:main_failure:1"])
 }
 
 func TestWorkflowRunsSnapshotJob_DoesNotAlertOnNonMainFailure(t *testing.T) {
@@ -219,7 +250,7 @@ func TestWorkflowRunsSnapshotJob_DoesNotAlertOnNonMainFailure(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -233,7 +264,7 @@ func TestWorkflowRunsSnapshotJob_ListErrorDoesNotFailRun(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -248,7 +279,7 @@ func TestWorkflowRunsSnapshotJob_NotConfiguredIsNotAnError(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -265,7 +296,7 @@ func TestWorkflowRunsSnapshotJob_InsertErrorPropagates(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	err := job.Run(t.Context(), testLogger())
 	require.ErrorIs(t, err, assert.AnError)
@@ -280,7 +311,7 @@ func TestWorkflowRunsSnapshotJob_PruneErrorPropagates(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	err := job.Run(t.Context(), testLogger())
 	require.ErrorIs(t, err, assert.AnError)
@@ -295,7 +326,7 @@ func TestWorkflowRunsSnapshotJob_ExistsErrorPropagates(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	err := job.Run(t.Context(), testLogger())
 	require.ErrorIs(t, err, assert.AnError)
@@ -310,7 +341,7 @@ func TestWorkflowRunsSnapshotJob_JobsListErrorDoesNotFailRun(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -328,7 +359,7 @@ func TestWorkflowRunsSnapshotJob_JobsNotConfiguredSkipsSilently(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -345,7 +376,11 @@ func TestWorkflowRunsSnapshotJob_NotifyExistsErrorPropagates(t *testing.T) {
 	notifSvc := testNotifications(t, &fakeMailer{sent: nil, err: nil})
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, &erroringNotifiedRepo{err: assert.AnError},
+		gh,
+		store,
+		notifSvc,
+		&erroringNotifiedRepo{err: assert.AnError},
+		alwaysEnabledSettings{},
 	)
 	err := job.Run(t.Context(), testLogger())
 	require.ErrorIs(t, err, assert.AnError)
@@ -360,7 +395,9 @@ func TestWorkflowRunsSnapshotJob_MailerNotConfiguredDoesNotMarkNotified(t *testi
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, notified, alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -430,6 +467,7 @@ func TestWorkflowRunsSnapshotJob_IDAndSchedule(t *testing.T) {
 		newFakeWorkflowRunStore(),
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
+		alwaysEnabledSettings{},
 	)
 	assert.Equal(t, "workflow-runs-snapshot", job.ID())
 	assert.Equal(t, 5*time.Minute, job.RunEvery())

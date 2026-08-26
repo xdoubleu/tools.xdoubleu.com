@@ -283,11 +283,16 @@ func newWorkflowRunsSnapshotJob(
 	db *pgxpool.Pool,
 	githubClient github.Client,
 	notificationsSvc *notifications.Service,
+	notificationSettingsRepo *repositories.NotificationSettingsRepository,
 ) (*repositories.WorkflowRunsRepository, *jobs.WorkflowRunsSnapshotJob) {
 	workflowRunsRepo := repositories.NewWorkflowRunsRepository(db)
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	workflowRunsSnapshotJob := jobs.NewWorkflowRunsSnapshotJob(
-		githubClient, workflowRunsRepo, notificationsSvc, notifiedIssuesRepo,
+		githubClient,
+		workflowRunsRepo,
+		notificationsSvc,
+		notifiedIssuesRepo,
+		notificationSettingsRepo,
 	)
 	return workflowRunsRepo, workflowRunsSnapshotJob
 }
@@ -434,7 +439,7 @@ func NewApplication(
 	)
 
 	workflowRunsRepo, workflowRunsSnapshotJob := newWorkflowRunsSnapshotJob(
-		db, githubClient, notificationsSvc,
+		db, githubClient, notificationsSvc, notificationSettingsRepo,
 	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below

@@ -11,6 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
+	"tools.xdoubleu.com/internal/repositories"
 )
 
 // workflowRunsSnapshotRunEvery matches IssueNotifierJob's cadence, so a
@@ -58,12 +59,15 @@ type workflowRunStore interface {
 // minutes, persists newly-completed ones (plus their per-job breakdown) into
 // global.workflow_run_samples/global.workflow_job_samples, and emails an
 // admin the first time a run on mainBranch fails — deduped via the same
-// global.notified_issues mechanism IssueNotifierJob uses (issue #1217).
+// global.notified_issues mechanism IssueNotifierJob uses (issue #1217), and
+// gated by NotificationSourceFailingMainCI in global.notification_settings
+// like every other admin notification (issue #1214).
 type WorkflowRunsSnapshotJob struct {
 	gh            workflowRunLister
 	store         workflowRunStore
 	notifications *notifications.Service
 	notified      notifiedRepo
+	settings      notificationSettingsRepo
 }
 
 func NewWorkflowRunsSnapshotJob(
@@ -71,12 +75,14 @@ func NewWorkflowRunsSnapshotJob(
 	store workflowRunStore,
 	notifications *notifications.Service,
 	notified notifiedRepo,
+	settings notificationSettingsRepo,
 ) *WorkflowRunsSnapshotJob {
 	return &WorkflowRunsSnapshotJob{
 		gh:            gh,
 		store:         store,
 		notifications: notifications,
 		notified:      notified,
+		settings:      settings,
 	}
 }
 
@@ -185,6 +191,17 @@ func (j *WorkflowRunsSnapshotJob) recordJobs(
 func (j *WorkflowRunsSnapshotJob) notifyMainFailure(
 	ctx context.Context, run github.WorkflowRun,
 ) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceFailingMainCI,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
 	key := fmt.Sprintf("workflow_run:main_failure:%d", run.ID)
 
 	exists, err := j.notified.Exists(ctx, key)

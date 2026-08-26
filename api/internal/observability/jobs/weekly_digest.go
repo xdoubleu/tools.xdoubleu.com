@@ -39,10 +39,13 @@ type unhealthyFeedLister interface {
 // IssueNotifierJob already alerted on at least once but that may still be
 // open — a real-time alert fires only the first time an issue is seen, so
 // this restates anything still unresolved a week later, plus feeds
-// currently failing to poll. Unlike IssueNotifierJob there is no dedup:
-// every run sends, including a short "all clear" email when nothing is
-// wrong, so a missing weekly email is itself a signal the job stopped
-// running rather than being indistinguishable from "nothing to report".
+// currently failing to poll. Unlike IssueNotifierJob there is no per-item
+// dedup: every run sends, including a short "all clear" email when a source
+// is enabled but has nothing to report, so a missing weekly email is itself
+// a signal the job stopped running rather than being indistinguishable from
+// "nothing to report". The one case that does suppress the send entirely is
+// every source being disabled in global.notification_settings — an admin
+// who turned everything off shouldn't still get an empty digest every week.
 type WeeklyDigestJob struct {
 	sentry        sentryapi.Client
 	gh            failingPRLister
@@ -77,15 +80,28 @@ func (j *WeeklyDigestJob) RunEvery() time.Duration {
 
 func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	var sections []string
+	var anyEnabled bool
 
-	if s := j.sentrySection(ctx, logger); s != "" {
+	s, enabled := j.sentrySection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
 		sections = append(sections, s)
 	}
-	if s := j.githubSection(ctx, logger); s != "" {
+
+	s, enabled = j.githubSection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
 		sections = append(sections, s)
 	}
-	if s := j.feedsSection(ctx, logger); s != "" {
+
+	s, enabled = j.feedsSection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
 		sections = append(sections, s)
+	}
+
+	if !anyEnabled {
+		return nil
 	}
 
 	body := "No open issues this week."
@@ -106,9 +122,13 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	return nil
 }
 
+// sentrySection returns the section's rendered text (empty when there's
+// nothing to report) and whether the source is enabled — enabled is what
+// Run uses to decide whether the weekly email should send at all, since an
+// empty section is ambiguous between "healthy" and "disabled".
 func (j *WeeklyDigestJob) sentrySection(
 	ctx context.Context, logger *slog.Logger,
-) string {
+) (string, bool) {
 	enabled, err := j.settings.IsEnabled(
 		ctx,
 		repositories.NotificationSourceSentryIssues,
@@ -116,23 +136,23 @@ func (j *WeeklyDigestJob) sentrySection(
 	if err != nil {
 		logger.ErrorContext(ctx, "weekly-digest: failed to read sentry_issues setting",
 			"error", err)
-		return ""
+		return "", true
 	}
 	if !enabled {
-		return ""
+		return "", false
 	}
 
 	issues, err := j.sentry.ListUnresolvedIssues(ctx)
 	if errors.Is(err, sentryapi.ErrNotConfigured) {
-		return ""
+		return "", true
 	}
 	if err != nil {
 		logAPIErr(ctx, logger, "weekly-digest: failed to list sentry issues",
 			err, sentryapi.IsTransientAPIError(err))
-		return ""
+		return "", true
 	}
 	if len(issues) == 0 {
-		return ""
+		return "", true
 	}
 
 	lines := make([]string, len(issues))
@@ -143,12 +163,13 @@ func (j *WeeklyDigestJob) sentrySection(
 		)
 	}
 	return fmt.Sprintf("Sentry — %d unresolved issue(s):\n%s",
-		len(issues), strings.Join(lines, "\n"))
+		len(issues), strings.Join(lines, "\n")), true
 }
 
+// githubSection follows sentrySection's (text, enabled) contract.
 func (j *WeeklyDigestJob) githubSection(
 	ctx context.Context, logger *slog.Logger,
-) string {
+) (string, bool) {
 	enabled, err := j.settings.IsEnabled(
 		ctx,
 		repositories.NotificationSourceFailingDependencyPRs,
@@ -157,20 +178,20 @@ func (j *WeeklyDigestJob) githubSection(
 		logger.ErrorContext(ctx,
 			"weekly-digest: failed to read failing_dependency_prs setting",
 			"error", err)
-		return ""
+		return "", true
 	}
 	if !enabled {
-		return ""
+		return "", false
 	}
 
 	prs, err := j.gh.ListFailingPullRequests(ctx)
 	if errors.Is(err, github.ErrNotConfigured) {
-		return ""
+		return "", true
 	}
 	if err != nil {
 		logAPIErr(ctx, logger, "weekly-digest: failed to list failing pull requests",
 			err, github.IsTransientAPIError(err))
-		return ""
+		return "", true
 	}
 
 	var lines []string
@@ -181,16 +202,17 @@ func (j *WeeklyDigestJob) githubSection(
 		))
 	}
 	if len(lines) == 0 {
-		return ""
+		return "", true
 	}
 
 	return fmt.Sprintf("GitHub — %d dependency PR(s) failing CI:\n%s",
-		len(lines), strings.Join(lines, "\n"))
+		len(lines), strings.Join(lines, "\n")), true
 }
 
+// feedsSection follows sentrySection's (text, enabled) contract.
 func (j *WeeklyDigestJob) feedsSection(
 	ctx context.Context, logger *slog.Logger,
-) string {
+) (string, bool) {
 	enabled, err := j.settings.IsEnabled(
 		ctx,
 		repositories.NotificationSourceUnhealthyFeeds,
@@ -202,20 +224,20 @@ func (j *WeeklyDigestJob) feedsSection(
 			"error",
 			err,
 		)
-		return ""
+		return "", true
 	}
 	if !enabled {
-		return ""
+		return "", false
 	}
 
 	unhealthy, err := j.feeds.ListUnhealthy(ctx)
 	if err != nil {
 		logger.ErrorContext(ctx, "weekly-digest: failed to list unhealthy feeds",
 			"error", err)
-		return ""
+		return "", true
 	}
 	if len(unhealthy) == 0 {
-		return ""
+		return "", true
 	}
 
 	lines := make([]string, len(unhealthy))
@@ -226,5 +248,5 @@ func (j *WeeklyDigestJob) feedsSection(
 		)
 	}
 	return fmt.Sprintf("Feeds — %d feed(s) failing to poll:\n%s",
-		len(unhealthy), strings.Join(lines, "\n"))
+		len(unhealthy), strings.Join(lines, "\n")), true
 }

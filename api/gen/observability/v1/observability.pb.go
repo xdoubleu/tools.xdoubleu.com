@@ -3621,8 +3621,8 @@ func (*SetProviderConfigResponse) Descriptor() ([]byte, []int) {
 }
 
 // NotificationSetting is one email-notifying source (Sentry issues, failing
-// dependency PRs, unhealthy feeds) and whether it's currently allowed to
-// email an admin (issue #1214).
+// dependency PRs, unhealthy feeds, failing main-branch CI runs) and whether
+// it's currently allowed to email an admin (issue #1214).
 type NotificationSetting struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SourceKey     string                 `protobuf:"bytes,1,opt,name=source_key,json=sourceKey,proto3" json:"source_key,omitempty"`

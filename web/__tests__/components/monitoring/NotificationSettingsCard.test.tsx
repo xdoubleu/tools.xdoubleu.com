@@ -13,13 +13,15 @@ describe('NotificationSettingsCard', () => {
       settings: [
         { sourceKey: 'sentry_issues', enabled: true },
         { sourceKey: 'failing_dependency_prs', enabled: false },
-        { sourceKey: 'unhealthy_feeds', enabled: true }
+        { sourceKey: 'unhealthy_feeds', enabled: true },
+        { sourceKey: 'failing_main_ci', enabled: true }
       ]
     })
     render(<NotificationSettingsCard data={data} />)
 
     expect(screen.getByText('Sentry issues')).toBeInTheDocument()
     expect(screen.getByText('Failing dependency PRs')).toBeInTheDocument()
+    expect(screen.getByText('Failing PRs on main')).toBeInTheDocument()
     expect(screen.queryByText('Unhealthy feeds')).not.toBeInTheDocument()
   })
 
