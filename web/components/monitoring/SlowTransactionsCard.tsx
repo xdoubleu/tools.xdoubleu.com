@@ -9,6 +9,16 @@ function formatPctChange(pctChange: number): string {
   return `+${Math.round(pctChange * 100)}%`
 }
 
+// regressionDangerThreshold flags a transaction as a real regression (danger
+// tone) rather than just "trending" (warn tone) once its p95 has grown by
+// more than half — no backend threshold config exists for this (issue
+// #1261).
+export const regressionDangerThreshold = 0.5
+
+function pctChangeVariant(pctChange: number): 'danger' | 'warn' {
+  return pctChange > regressionDangerThreshold ? 'danger' : 'warn'
+}
+
 export default function SlowTransactionsCard({ data }: { data?: GetSlowTransactionsResponse }) {
   const current = data?.current ?? []
   const trending = data?.trending ?? []
@@ -74,7 +84,9 @@ export default function SlowTransactionsCard({ data }: { data?: GetSlowTransacti
                     <span className="break-words font-mono text-xs text-fg">{t.transaction}</span>
                     <div className="flex shrink-0 items-center gap-1">
                       <Badge variant="secondary">{t.project}</Badge>
-                      <Badge variant="danger">{formatPctChange(t.pctChange)}</Badge>
+                      <Badge variant={pctChangeVariant(t.pctChange)}>
+                        {formatPctChange(t.pctChange)}
+                      </Badge>
                     </div>
                   </div>
                   <p className="mt-1 text-xs text-muted">

@@ -7,7 +7,8 @@ import {
   GetDatabaseStatsResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetHostMetricsResponseSchema,
-  GetLogsResponseSchema
+  GetLogsResponseSchema,
+  ListOAuthConnectionsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -19,6 +20,8 @@ const mockUseDatabaseStats = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
+const mockUseOAuthConnections = jest.fn()
+const mockDisconnect = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
@@ -28,7 +31,14 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDatabaseStats: () => mockUseDatabaseStats(),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useHostMetrics: () => mockUseHostMetrics(),
-  useLogs: () => mockUseLogs()
+  useLogs: () => mockUseLogs(),
+  useOAuthConnections: () => mockUseOAuthConnections(),
+  useDisconnectOAuthConnection: () => mockDisconnect
+}))
+
+jest.mock('@/components/monitoring/ProviderConfigDialog', () => ({
+  __esModule: true,
+  default: () => null
 }))
 
 jest.mock('recharts', () => {
@@ -92,6 +102,10 @@ beforeEach(() => {
     data: create(GetLogsResponseSchema, { entries: [] }),
     isLoading: false
   })
+  mockUseOAuthConnections.mockReturnValue({
+    data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
+    mutate: mockMutate
+  })
 })
 
 describe('ObservabilityClient', () => {
@@ -122,6 +136,39 @@ describe('ObservabilityClient', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
+  it('counts only trending transactions over the regression danger threshold', () => {
+    mockUseSlowTransactions.mockReturnValue({
+      data: create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [],
+        trending: [
+          {
+            transaction: 'GET /api/mild',
+            project: 'proj',
+            priorAvgP95Ms: 100,
+            recentAvgP95Ms: 130,
+            pctChange: 0.3
+          },
+          {
+            transaction: 'GET /api/severe',
+            project: 'proj',
+            priorAvgP95Ms: 100,
+            recentAvgP95Ms: 300,
+            pctChange: 2
+          }
+        ]
+      }),
+      mutate: mockMutate
+    })
+
+    render(<ObservabilityClient />)
+    expect(screen.getByText('Regressing')).toBeInTheDocument()
+    // Only the 200% regression exceeds the danger threshold; the 30% one
+    // doesn't count toward this headline tile.
+    const regressingTile = screen.getByText('Regressing').closest('div')
+    expect(regressingTile).toHaveTextContent('1')
+  })
+
   it('refetches job/usage stats when the window changes', () => {
     render(<ObservabilityClient />)
     expect(mockUseJobStats).toHaveBeenCalledWith(30)
@@ -150,8 +197,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(5)
+    // instead of a plain mutate(), so mockMutate covers the other 6 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(6)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

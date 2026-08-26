@@ -48,7 +48,7 @@ type unhealthyFeedLister interface {
 // who turned everything off shouldn't still get an empty digest every week.
 type WeeklyDigestJob struct {
 	sentry        sentryapi.Client
-	gh            failingPRLister
+	gh            issueNotifierGithubClient
 	feeds         unhealthyFeedLister
 	notifications *notifications.Service
 	settings      notificationSettingsRepo
@@ -56,7 +56,7 @@ type WeeklyDigestJob struct {
 
 func NewWeeklyDigestJob(
 	sentry sentryapi.Client,
-	gh failingPRLister,
+	gh issueNotifierGithubClient,
 	feeds unhealthyFeedLister,
 	notifications *notifications.Service,
 	settings notificationSettingsRepo,
@@ -95,6 +95,12 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	s, enabled = j.feedsSection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
+		sections = append(sections, s)
+	}
+
+	s, enabled = j.securityAlertsSection(ctx, logger)
 	anyEnabled = anyEnabled || enabled
 	if s != "" {
 		sections = append(sections, s)
@@ -249,4 +255,46 @@ func (j *WeeklyDigestJob) feedsSection(
 	}
 	return fmt.Sprintf("Feeds — %d feed(s) failing to poll:\n%s",
 		len(unhealthy), strings.Join(lines, "\n")), true
+}
+
+// securityAlertsSection follows sentrySection's (text, enabled) contract.
+func (j *WeeklyDigestJob) securityAlertsSection(
+	ctx context.Context, logger *slog.Logger,
+) (string, bool) {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSecurityAlerts,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to read security_alerts setting",
+			"error", err)
+		return "", true
+	}
+	if !enabled {
+		return "", false
+	}
+
+	alerts, err := j.gh.ListSecurityAlerts(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return "", true
+	}
+	if err != nil {
+		logAPIErr(ctx, logger, "weekly-digest: failed to list security alerts",
+			err, github.IsTransientAPIError(err))
+		return "", true
+	}
+	if len(alerts) == 0 {
+		return "", true
+	}
+
+	lines := make([]string, len(alerts))
+	for i, alert := range alerts {
+		lines[i] = fmt.Sprintf(
+			"- [%s] %s alert #%d — %s — %s",
+			alert.Severity, alert.Type, alert.Number, alert.Summary, alert.URL,
+		)
+	}
+	return fmt.Sprintf("Security — %d open alert(s):\n%s",
+		len(alerts), strings.Join(lines, "\n")), true
 }

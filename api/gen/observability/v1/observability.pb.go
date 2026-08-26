@@ -2082,6 +2082,155 @@ func (x *SentryIssue) GetProject() string {
 	return ""
 }
 
+// UnhealthyFeed is one feed whose most recent poll(s) have been failing.
+type UnhealthyFeed struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Title               string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Url                 string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	LastError           string                 `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	ConsecutiveFailures int32                  `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UnhealthyFeed) Reset() {
+	*x = UnhealthyFeed{}
+	mi := &file_observability_v1_observability_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnhealthyFeed) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnhealthyFeed) ProtoMessage() {}
+
+func (x *UnhealthyFeed) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnhealthyFeed.ProtoReflect.Descriptor instead.
+func (*UnhealthyFeed) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *UnhealthyFeed) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetConsecutiveFailures() int32 {
+	if x != nil {
+		return x.ConsecutiveFailures
+	}
+	return 0
+}
+
+type GetUnhealthyFeedsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUnhealthyFeedsRequest) Reset() {
+	*x = GetUnhealthyFeedsRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUnhealthyFeedsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUnhealthyFeedsRequest) ProtoMessage() {}
+
+func (x *GetUnhealthyFeedsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUnhealthyFeedsRequest.ProtoReflect.Descriptor instead.
+func (*GetUnhealthyFeedsRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{33}
+}
+
+type GetUnhealthyFeedsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Feeds         []*UnhealthyFeed       `protobuf:"bytes,1,rep,name=feeds,proto3" json:"feeds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUnhealthyFeedsResponse) Reset() {
+	*x = GetUnhealthyFeedsResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUnhealthyFeedsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUnhealthyFeedsResponse) ProtoMessage() {}
+
+func (x *GetUnhealthyFeedsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUnhealthyFeedsResponse.ProtoReflect.Descriptor instead.
+func (*GetUnhealthyFeedsResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *GetUnhealthyFeedsResponse) GetFeeds() []*UnhealthyFeed {
+	if x != nil {
+		return x.Feeds
+	}
+	return nil
+}
+
 type GetSentryIssuesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2090,7 +2239,7 @@ type GetSentryIssuesRequest struct {
 
 func (x *GetSentryIssuesRequest) Reset() {
 	*x = GetSentryIssuesRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[32]
+	mi := &file_observability_v1_observability_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2102,7 +2251,7 @@ func (x *GetSentryIssuesRequest) String() string {
 func (*GetSentryIssuesRequest) ProtoMessage() {}
 
 func (x *GetSentryIssuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[32]
+	mi := &file_observability_v1_observability_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2115,7 +2264,7 @@ func (x *GetSentryIssuesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSentryIssuesRequest.ProtoReflect.Descriptor instead.
 func (*GetSentryIssuesRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{32}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{35}
 }
 
 // GetSentryIssuesResponse carries the unresolved issues. configured is false
@@ -2131,7 +2280,7 @@ type GetSentryIssuesResponse struct {
 
 func (x *GetSentryIssuesResponse) Reset() {
 	*x = GetSentryIssuesResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[33]
+	mi := &file_observability_v1_observability_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2143,7 +2292,7 @@ func (x *GetSentryIssuesResponse) String() string {
 func (*GetSentryIssuesResponse) ProtoMessage() {}
 
 func (x *GetSentryIssuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[33]
+	mi := &file_observability_v1_observability_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2156,7 +2305,7 @@ func (x *GetSentryIssuesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSentryIssuesResponse.ProtoReflect.Descriptor instead.
 func (*GetSentryIssuesResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{33}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetSentryIssuesResponse) GetIssues() []*SentryIssue {
@@ -2189,7 +2338,7 @@ type ResolveSentryIssueRequest struct {
 
 func (x *ResolveSentryIssueRequest) Reset() {
 	*x = ResolveSentryIssueRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[34]
+	mi := &file_observability_v1_observability_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2201,7 +2350,7 @@ func (x *ResolveSentryIssueRequest) String() string {
 func (*ResolveSentryIssueRequest) ProtoMessage() {}
 
 func (x *ResolveSentryIssueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[34]
+	mi := &file_observability_v1_observability_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2214,7 +2363,7 @@ func (x *ResolveSentryIssueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveSentryIssueRequest.ProtoReflect.Descriptor instead.
 func (*ResolveSentryIssueRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{34}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ResolveSentryIssueRequest) GetIssueId() string {
@@ -2232,7 +2381,7 @@ type ResolveSentryIssueResponse struct {
 
 func (x *ResolveSentryIssueResponse) Reset() {
 	*x = ResolveSentryIssueResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[35]
+	mi := &file_observability_v1_observability_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2244,7 +2393,7 @@ func (x *ResolveSentryIssueResponse) String() string {
 func (*ResolveSentryIssueResponse) ProtoMessage() {}
 
 func (x *ResolveSentryIssueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[35]
+	mi := &file_observability_v1_observability_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2257,7 +2406,7 @@ func (x *ResolveSentryIssueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResolveSentryIssueResponse.ProtoReflect.Descriptor instead.
 func (*ResolveSentryIssueResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{35}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{38}
 }
 
 // SlowTransaction is one transaction's (an API endpoint or a frontend
@@ -2275,7 +2424,7 @@ type SlowTransaction struct {
 
 func (x *SlowTransaction) Reset() {
 	*x = SlowTransaction{}
-	mi := &file_observability_v1_observability_proto_msgTypes[36]
+	mi := &file_observability_v1_observability_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2287,7 +2436,7 @@ func (x *SlowTransaction) String() string {
 func (*SlowTransaction) ProtoMessage() {}
 
 func (x *SlowTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[36]
+	mi := &file_observability_v1_observability_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2300,7 +2449,7 @@ func (x *SlowTransaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SlowTransaction.ProtoReflect.Descriptor instead.
 func (*SlowTransaction) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{36}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *SlowTransaction) GetTransaction() string {
@@ -2347,7 +2496,7 @@ type TransactionTrend struct {
 
 func (x *TransactionTrend) Reset() {
 	*x = TransactionTrend{}
-	mi := &file_observability_v1_observability_proto_msgTypes[37]
+	mi := &file_observability_v1_observability_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2359,7 +2508,7 @@ func (x *TransactionTrend) String() string {
 func (*TransactionTrend) ProtoMessage() {}
 
 func (x *TransactionTrend) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[37]
+	mi := &file_observability_v1_observability_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2372,7 +2521,7 @@ func (x *TransactionTrend) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionTrend.ProtoReflect.Descriptor instead.
 func (*TransactionTrend) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{37}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *TransactionTrend) GetTransaction() string {
@@ -2418,7 +2567,7 @@ type GetSlowTransactionsRequest struct {
 
 func (x *GetSlowTransactionsRequest) Reset() {
 	*x = GetSlowTransactionsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[38]
+	mi := &file_observability_v1_observability_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2430,7 +2579,7 @@ func (x *GetSlowTransactionsRequest) String() string {
 func (*GetSlowTransactionsRequest) ProtoMessage() {}
 
 func (x *GetSlowTransactionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[38]
+	mi := &file_observability_v1_observability_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2443,7 +2592,7 @@ func (x *GetSlowTransactionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSlowTransactionsRequest.ProtoReflect.Descriptor instead.
 func (*GetSlowTransactionsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{38}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{41}
 }
 
 // GetSlowTransactionsResponse carries both views: current is live from
@@ -2462,7 +2611,7 @@ type GetSlowTransactionsResponse struct {
 
 func (x *GetSlowTransactionsResponse) Reset() {
 	*x = GetSlowTransactionsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[39]
+	mi := &file_observability_v1_observability_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2474,7 +2623,7 @@ func (x *GetSlowTransactionsResponse) String() string {
 func (*GetSlowTransactionsResponse) ProtoMessage() {}
 
 func (x *GetSlowTransactionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[39]
+	mi := &file_observability_v1_observability_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2487,7 +2636,7 @@ func (x *GetSlowTransactionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSlowTransactionsResponse.ProtoReflect.Descriptor instead.
 func (*GetSlowTransactionsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{39}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetSlowTransactionsResponse) GetCurrent() []*SlowTransaction {
@@ -2522,7 +2671,7 @@ type HostMetricPoint struct {
 
 func (x *HostMetricPoint) Reset() {
 	*x = HostMetricPoint{}
-	mi := &file_observability_v1_observability_proto_msgTypes[40]
+	mi := &file_observability_v1_observability_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2534,7 +2683,7 @@ func (x *HostMetricPoint) String() string {
 func (*HostMetricPoint) ProtoMessage() {}
 
 func (x *HostMetricPoint) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[40]
+	mi := &file_observability_v1_observability_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2547,7 +2696,7 @@ func (x *HostMetricPoint) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostMetricPoint.ProtoReflect.Descriptor instead.
 func (*HostMetricPoint) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{40}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *HostMetricPoint) GetTimestamp() string {
@@ -2576,7 +2725,7 @@ type GetHostMetricsRequest struct {
 
 func (x *GetHostMetricsRequest) Reset() {
 	*x = GetHostMetricsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[41]
+	mi := &file_observability_v1_observability_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2588,7 +2737,7 @@ func (x *GetHostMetricsRequest) String() string {
 func (*GetHostMetricsRequest) ProtoMessage() {}
 
 func (x *GetHostMetricsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[41]
+	mi := &file_observability_v1_observability_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2601,7 +2750,7 @@ func (x *GetHostMetricsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostMetricsRequest.ProtoReflect.Descriptor instead.
 func (*GetHostMetricsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{41}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *GetHostMetricsRequest) GetSince() string {
@@ -2627,7 +2776,7 @@ type GetHostMetricsResponse struct {
 
 func (x *GetHostMetricsResponse) Reset() {
 	*x = GetHostMetricsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[42]
+	mi := &file_observability_v1_observability_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2639,7 +2788,7 @@ func (x *GetHostMetricsResponse) String() string {
 func (*GetHostMetricsResponse) ProtoMessage() {}
 
 func (x *GetHostMetricsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[42]
+	mi := &file_observability_v1_observability_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2652,7 +2801,7 @@ func (x *GetHostMetricsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHostMetricsResponse.ProtoReflect.Descriptor instead.
 func (*GetHostMetricsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{42}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetHostMetricsResponse) GetCpuPercent() float64 {
@@ -2711,7 +2860,7 @@ type LogEntry struct {
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_observability_v1_observability_proto_msgTypes[43]
+	mi := &file_observability_v1_observability_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2723,7 +2872,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[43]
+	mi := &file_observability_v1_observability_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2736,7 +2885,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{43}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *LogEntry) GetOccurredAt() string {
@@ -2787,7 +2936,7 @@ type GetLogsRequest struct {
 
 func (x *GetLogsRequest) Reset() {
 	*x = GetLogsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[44]
+	mi := &file_observability_v1_observability_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2799,7 +2948,7 @@ func (x *GetLogsRequest) String() string {
 func (*GetLogsRequest) ProtoMessage() {}
 
 func (x *GetLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[44]
+	mi := &file_observability_v1_observability_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2812,7 +2961,7 @@ func (x *GetLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetLogsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{44}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetLogsRequest) GetSource() string {
@@ -2845,7 +2994,7 @@ type GetLogsResponse struct {
 
 func (x *GetLogsResponse) Reset() {
 	*x = GetLogsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[45]
+	mi := &file_observability_v1_observability_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2857,7 +3006,7 @@ func (x *GetLogsResponse) String() string {
 func (*GetLogsResponse) ProtoMessage() {}
 
 func (x *GetLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[45]
+	mi := &file_observability_v1_observability_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2870,7 +3019,7 @@ func (x *GetLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetLogsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{45}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetLogsResponse) GetEntries() []*LogEntry {
@@ -2888,7 +3037,7 @@ type GetHealthOverviewRequest struct {
 
 func (x *GetHealthOverviewRequest) Reset() {
 	*x = GetHealthOverviewRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[46]
+	mi := &file_observability_v1_observability_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2900,7 +3049,7 @@ func (x *GetHealthOverviewRequest) String() string {
 func (*GetHealthOverviewRequest) ProtoMessage() {}
 
 func (x *GetHealthOverviewRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[46]
+	mi := &file_observability_v1_observability_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2913,7 +3062,7 @@ func (x *GetHealthOverviewRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHealthOverviewRequest.ProtoReflect.Descriptor instead.
 func (*GetHealthOverviewRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{46}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{49}
 }
 
 // GetHealthOverviewResponse rolls up external signals into one call, each
@@ -2927,7 +3076,7 @@ type GetHealthOverviewResponse struct {
 
 func (x *GetHealthOverviewResponse) Reset() {
 	*x = GetHealthOverviewResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[47]
+	mi := &file_observability_v1_observability_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2939,7 +3088,7 @@ func (x *GetHealthOverviewResponse) String() string {
 func (*GetHealthOverviewResponse) ProtoMessage() {}
 
 func (x *GetHealthOverviewResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[47]
+	mi := &file_observability_v1_observability_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2952,7 +3101,7 @@ func (x *GetHealthOverviewResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHealthOverviewResponse.ProtoReflect.Descriptor instead.
 func (*GetHealthOverviewResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{47}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetHealthOverviewResponse) GetSentry() *GetSentryIssuesResponse {
@@ -2971,7 +3120,7 @@ type GithubConfig struct {
 
 func (x *GithubConfig) Reset() {
 	*x = GithubConfig{}
-	mi := &file_observability_v1_observability_proto_msgTypes[48]
+	mi := &file_observability_v1_observability_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2983,7 +3132,7 @@ func (x *GithubConfig) String() string {
 func (*GithubConfig) ProtoMessage() {}
 
 func (x *GithubConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[48]
+	mi := &file_observability_v1_observability_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2996,7 +3145,7 @@ func (x *GithubConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GithubConfig.ProtoReflect.Descriptor instead.
 func (*GithubConfig) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{48}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GithubConfig) GetRepo() string {
@@ -3016,7 +3165,7 @@ type SentryConfig struct {
 
 func (x *SentryConfig) Reset() {
 	*x = SentryConfig{}
-	mi := &file_observability_v1_observability_proto_msgTypes[49]
+	mi := &file_observability_v1_observability_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3028,7 +3177,7 @@ func (x *SentryConfig) String() string {
 func (*SentryConfig) ProtoMessage() {}
 
 func (x *SentryConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[49]
+	mi := &file_observability_v1_observability_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3041,7 +3190,7 @@ func (x *SentryConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SentryConfig.ProtoReflect.Descriptor instead.
 func (*SentryConfig) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{49}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *SentryConfig) GetOrg() string {
@@ -3073,7 +3222,7 @@ type ProviderConfig struct {
 
 func (x *ProviderConfig) Reset() {
 	*x = ProviderConfig{}
-	mi := &file_observability_v1_observability_proto_msgTypes[50]
+	mi := &file_observability_v1_observability_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3085,7 +3234,7 @@ func (x *ProviderConfig) String() string {
 func (*ProviderConfig) ProtoMessage() {}
 
 func (x *ProviderConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[50]
+	mi := &file_observability_v1_observability_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3098,7 +3247,7 @@ func (x *ProviderConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProviderConfig.ProtoReflect.Descriptor instead.
 func (*ProviderConfig) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{50}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ProviderConfig) GetConfig() isProviderConfig_Config {
@@ -3166,7 +3315,7 @@ type OAuthConnectionStatus struct {
 
 func (x *OAuthConnectionStatus) Reset() {
 	*x = OAuthConnectionStatus{}
-	mi := &file_observability_v1_observability_proto_msgTypes[51]
+	mi := &file_observability_v1_observability_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3178,7 +3327,7 @@ func (x *OAuthConnectionStatus) String() string {
 func (*OAuthConnectionStatus) ProtoMessage() {}
 
 func (x *OAuthConnectionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[51]
+	mi := &file_observability_v1_observability_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3191,7 +3340,7 @@ func (x *OAuthConnectionStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OAuthConnectionStatus.ProtoReflect.Descriptor instead.
 func (*OAuthConnectionStatus) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{51}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *OAuthConnectionStatus) GetProvider() string {
@@ -3265,7 +3414,7 @@ type ListOAuthConnectionsRequest struct {
 
 func (x *ListOAuthConnectionsRequest) Reset() {
 	*x = ListOAuthConnectionsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[52]
+	mi := &file_observability_v1_observability_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3277,7 +3426,7 @@ func (x *ListOAuthConnectionsRequest) String() string {
 func (*ListOAuthConnectionsRequest) ProtoMessage() {}
 
 func (x *ListOAuthConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[52]
+	mi := &file_observability_v1_observability_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3290,7 +3439,7 @@ func (x *ListOAuthConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOAuthConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListOAuthConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{52}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{55}
 }
 
 type ListOAuthConnectionsResponse struct {
@@ -3302,7 +3451,7 @@ type ListOAuthConnectionsResponse struct {
 
 func (x *ListOAuthConnectionsResponse) Reset() {
 	*x = ListOAuthConnectionsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[53]
+	mi := &file_observability_v1_observability_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3314,7 +3463,7 @@ func (x *ListOAuthConnectionsResponse) String() string {
 func (*ListOAuthConnectionsResponse) ProtoMessage() {}
 
 func (x *ListOAuthConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[53]
+	mi := &file_observability_v1_observability_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3327,7 +3476,7 @@ func (x *ListOAuthConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOAuthConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListOAuthConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{53}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ListOAuthConnectionsResponse) GetConnections() []*OAuthConnectionStatus {
@@ -3346,7 +3495,7 @@ type DisconnectOAuthConnectionRequest struct {
 
 func (x *DisconnectOAuthConnectionRequest) Reset() {
 	*x = DisconnectOAuthConnectionRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[54]
+	mi := &file_observability_v1_observability_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3358,7 +3507,7 @@ func (x *DisconnectOAuthConnectionRequest) String() string {
 func (*DisconnectOAuthConnectionRequest) ProtoMessage() {}
 
 func (x *DisconnectOAuthConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[54]
+	mi := &file_observability_v1_observability_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3371,7 +3520,7 @@ func (x *DisconnectOAuthConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DisconnectOAuthConnectionRequest.ProtoReflect.Descriptor instead.
 func (*DisconnectOAuthConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{54}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *DisconnectOAuthConnectionRequest) GetProvider() string {
@@ -3389,7 +3538,7 @@ type DisconnectOAuthConnectionResponse struct {
 
 func (x *DisconnectOAuthConnectionResponse) Reset() {
 	*x = DisconnectOAuthConnectionResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[55]
+	mi := &file_observability_v1_observability_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3401,7 +3550,7 @@ func (x *DisconnectOAuthConnectionResponse) String() string {
 func (*DisconnectOAuthConnectionResponse) ProtoMessage() {}
 
 func (x *DisconnectOAuthConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[55]
+	mi := &file_observability_v1_observability_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3414,7 +3563,7 @@ func (x *DisconnectOAuthConnectionResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use DisconnectOAuthConnectionResponse.ProtoReflect.Descriptor instead.
 func (*DisconnectOAuthConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{55}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{58}
 }
 
 // GetProviderOptionsRequest asks a connected provider what identifiers are
@@ -3430,7 +3579,7 @@ type GetProviderOptionsRequest struct {
 
 func (x *GetProviderOptionsRequest) Reset() {
 	*x = GetProviderOptionsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[56]
+	mi := &file_observability_v1_observability_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3442,7 +3591,7 @@ func (x *GetProviderOptionsRequest) String() string {
 func (*GetProviderOptionsRequest) ProtoMessage() {}
 
 func (x *GetProviderOptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[56]
+	mi := &file_observability_v1_observability_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3455,7 +3604,7 @@ func (x *GetProviderOptionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderOptionsRequest.ProtoReflect.Descriptor instead.
 func (*GetProviderOptionsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{56}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *GetProviderOptionsRequest) GetProvider() string {
@@ -3483,7 +3632,7 @@ type GetProviderOptionsResponse struct {
 
 func (x *GetProviderOptionsResponse) Reset() {
 	*x = GetProviderOptionsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[57]
+	mi := &file_observability_v1_observability_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3495,7 +3644,7 @@ func (x *GetProviderOptionsResponse) String() string {
 func (*GetProviderOptionsResponse) ProtoMessage() {}
 
 func (x *GetProviderOptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[57]
+	mi := &file_observability_v1_observability_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3508,7 +3657,7 @@ func (x *GetProviderOptionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetProviderOptionsResponse.ProtoReflect.Descriptor instead.
 func (*GetProviderOptionsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{57}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetProviderOptionsResponse) GetRepos() []string {
@@ -3542,7 +3691,7 @@ type SetProviderConfigRequest struct {
 
 func (x *SetProviderConfigRequest) Reset() {
 	*x = SetProviderConfigRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[58]
+	mi := &file_observability_v1_observability_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3554,7 +3703,7 @@ func (x *SetProviderConfigRequest) String() string {
 func (*SetProviderConfigRequest) ProtoMessage() {}
 
 func (x *SetProviderConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[58]
+	mi := &file_observability_v1_observability_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3567,7 +3716,7 @@ func (x *SetProviderConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProviderConfigRequest.ProtoReflect.Descriptor instead.
 func (*SetProviderConfigRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{58}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *SetProviderConfigRequest) GetProvider() string {
@@ -3592,7 +3741,7 @@ type SetProviderConfigResponse struct {
 
 func (x *SetProviderConfigResponse) Reset() {
 	*x = SetProviderConfigResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[59]
+	mi := &file_observability_v1_observability_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3604,7 +3753,7 @@ func (x *SetProviderConfigResponse) String() string {
 func (*SetProviderConfigResponse) ProtoMessage() {}
 
 func (x *SetProviderConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[59]
+	mi := &file_observability_v1_observability_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3617,7 +3766,7 @@ func (x *SetProviderConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetProviderConfigResponse.ProtoReflect.Descriptor instead.
 func (*SetProviderConfigResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{59}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{62}
 }
 
 // NotificationSetting is one email-notifying source (Sentry issues, failing
@@ -3633,7 +3782,7 @@ type NotificationSetting struct {
 
 func (x *NotificationSetting) Reset() {
 	*x = NotificationSetting{}
-	mi := &file_observability_v1_observability_proto_msgTypes[60]
+	mi := &file_observability_v1_observability_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3645,7 +3794,7 @@ func (x *NotificationSetting) String() string {
 func (*NotificationSetting) ProtoMessage() {}
 
 func (x *NotificationSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[60]
+	mi := &file_observability_v1_observability_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3658,7 +3807,7 @@ func (x *NotificationSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NotificationSetting.ProtoReflect.Descriptor instead.
 func (*NotificationSetting) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{60}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *NotificationSetting) GetSourceKey() string {
@@ -3683,7 +3832,7 @@ type GetNotificationSettingsRequest struct {
 
 func (x *GetNotificationSettingsRequest) Reset() {
 	*x = GetNotificationSettingsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[61]
+	mi := &file_observability_v1_observability_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3695,7 +3844,7 @@ func (x *GetNotificationSettingsRequest) String() string {
 func (*GetNotificationSettingsRequest) ProtoMessage() {}
 
 func (x *GetNotificationSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[61]
+	mi := &file_observability_v1_observability_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3708,7 +3857,7 @@ func (x *GetNotificationSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNotificationSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetNotificationSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{61}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{64}
 }
 
 type GetNotificationSettingsResponse struct {
@@ -3721,7 +3870,7 @@ type GetNotificationSettingsResponse struct {
 
 func (x *GetNotificationSettingsResponse) Reset() {
 	*x = GetNotificationSettingsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[62]
+	mi := &file_observability_v1_observability_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3733,7 +3882,7 @@ func (x *GetNotificationSettingsResponse) String() string {
 func (*GetNotificationSettingsResponse) ProtoMessage() {}
 
 func (x *GetNotificationSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[62]
+	mi := &file_observability_v1_observability_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3746,7 +3895,7 @@ func (x *GetNotificationSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNotificationSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetNotificationSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{62}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetNotificationSettingsResponse) GetSettings() []*NotificationSetting {
@@ -3773,7 +3922,7 @@ type UpdateNotificationSettingsRequest struct {
 
 func (x *UpdateNotificationSettingsRequest) Reset() {
 	*x = UpdateNotificationSettingsRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[63]
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3785,7 +3934,7 @@ func (x *UpdateNotificationSettingsRequest) String() string {
 func (*UpdateNotificationSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateNotificationSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[63]
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3798,7 +3947,7 @@ func (x *UpdateNotificationSettingsRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use UpdateNotificationSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateNotificationSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{63}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *UpdateNotificationSettingsRequest) GetSourceKey() string {
@@ -3823,7 +3972,7 @@ type UpdateNotificationSettingsResponse struct {
 
 func (x *UpdateNotificationSettingsResponse) Reset() {
 	*x = UpdateNotificationSettingsResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[64]
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3835,7 +3984,7 @@ func (x *UpdateNotificationSettingsResponse) String() string {
 func (*UpdateNotificationSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateNotificationSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[64]
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3848,7 +3997,7 @@ func (x *UpdateNotificationSettingsResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use UpdateNotificationSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{64}
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{67}
 }
 
 var File_observability_v1_observability_proto protoreflect.FileDescriptor
@@ -4023,7 +4172,16 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x05count\x18\x05 \x01(\x03R\x05count\x12\x1b\n" +
 	"\tlast_seen\x18\x06 \x01(\tR\blastSeen\x12\x14\n" +
 	"\x05level\x18\a \x01(\tR\x05level\x12\x18\n" +
-	"\aproject\x18\b \x01(\tR\aproject\"\x18\n" +
+	"\aproject\x18\b \x01(\tR\aproject\"\x89\x01\n" +
+	"\rUnhealthyFeed\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\x03 \x01(\tR\tlastError\x121\n" +
+	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\"\x1a\n" +
+	"\x18GetUnhealthyFeedsRequest\"R\n" +
+	"\x19GetUnhealthyFeedsResponse\x125\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x1f.observability.v1.UnhealthyFeedR\x05feeds\"\x18\n" +
 	"\x16GetSentryIssuesRequest\"\x9b\x01\n" +
 	"\x17GetSentryIssuesResponse\x125\n" +
 	"\x06issues\x18\x01 \x03(\v2\x1d.observability.v1.SentryIssueR\x06issues\x12\x1e\n" +
@@ -4141,7 +4299,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x1fSECURITY_ALERT_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eSECURITY_ALERT_TYPE_DEPENDABOT\x10\x01\x12%\n" +
 	"!SECURITY_ALERT_TYPE_CODE_SCANNING\x10\x02\x12'\n" +
-	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xb6\x12\n" +
+	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xa4\x13\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
@@ -4151,7 +4309,8 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x16GetFailingPullRequests\x12/.observability.v1.GetFailingPullRequestsRequest\x1a0.observability.v1.GetFailingPullRequestsResponse\x12f\n" +
 	"\x0fGetWorkflowRuns\x12(.observability.v1.GetWorkflowRunsRequest\x1a).observability.v1.GetWorkflowRunsResponse\x12r\n" +
 	"\x13GetWorkflowRunStats\x12,.observability.v1.GetWorkflowRunStatsRequest\x1a-.observability.v1.GetWorkflowRunStatsResponse\x12l\n" +
-	"\x11GetSecurityAlerts\x12*.observability.v1.GetSecurityAlertsRequest\x1a+.observability.v1.GetSecurityAlertsResponse\x12f\n" +
+	"\x11GetSecurityAlerts\x12*.observability.v1.GetSecurityAlertsRequest\x1a+.observability.v1.GetSecurityAlertsResponse\x12l\n" +
+	"\x11GetUnhealthyFeeds\x12*.observability.v1.GetUnhealthyFeedsRequest\x1a+.observability.v1.GetUnhealthyFeedsResponse\x12f\n" +
 	"\x0fGetSentryIssues\x12(.observability.v1.GetSentryIssuesRequest\x1a).observability.v1.GetSentryIssuesResponse\x12o\n" +
 	"\x12ResolveSentryIssue\x12+.observability.v1.ResolveSentryIssueRequest\x1a,.observability.v1.ResolveSentryIssueResponse\x12r\n" +
 	"\x13GetSlowTransactions\x12,.observability.v1.GetSlowTransactionsRequest\x1a-.observability.v1.GetSlowTransactionsResponse\x12c\n" +
@@ -4178,7 +4337,7 @@ func file_observability_v1_observability_proto_rawDescGZIP() []byte {
 }
 
 var file_observability_v1_observability_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 65)
+var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 68)
 var file_observability_v1_observability_proto_goTypes = []any{
 	(SecurityAlertType)(0),                     // 0: observability.v1.SecurityAlertType
 	(*JobStat)(nil),                            // 1: observability.v1.JobStat
@@ -4213,39 +4372,42 @@ var file_observability_v1_observability_proto_goTypes = []any{
 	(*GetSecurityAlertsRequest)(nil),           // 30: observability.v1.GetSecurityAlertsRequest
 	(*GetSecurityAlertsResponse)(nil),          // 31: observability.v1.GetSecurityAlertsResponse
 	(*SentryIssue)(nil),                        // 32: observability.v1.SentryIssue
-	(*GetSentryIssuesRequest)(nil),             // 33: observability.v1.GetSentryIssuesRequest
-	(*GetSentryIssuesResponse)(nil),            // 34: observability.v1.GetSentryIssuesResponse
-	(*ResolveSentryIssueRequest)(nil),          // 35: observability.v1.ResolveSentryIssueRequest
-	(*ResolveSentryIssueResponse)(nil),         // 36: observability.v1.ResolveSentryIssueResponse
-	(*SlowTransaction)(nil),                    // 37: observability.v1.SlowTransaction
-	(*TransactionTrend)(nil),                   // 38: observability.v1.TransactionTrend
-	(*GetSlowTransactionsRequest)(nil),         // 39: observability.v1.GetSlowTransactionsRequest
-	(*GetSlowTransactionsResponse)(nil),        // 40: observability.v1.GetSlowTransactionsResponse
-	(*HostMetricPoint)(nil),                    // 41: observability.v1.HostMetricPoint
-	(*GetHostMetricsRequest)(nil),              // 42: observability.v1.GetHostMetricsRequest
-	(*GetHostMetricsResponse)(nil),             // 43: observability.v1.GetHostMetricsResponse
-	(*LogEntry)(nil),                           // 44: observability.v1.LogEntry
-	(*GetLogsRequest)(nil),                     // 45: observability.v1.GetLogsRequest
-	(*GetLogsResponse)(nil),                    // 46: observability.v1.GetLogsResponse
-	(*GetHealthOverviewRequest)(nil),           // 47: observability.v1.GetHealthOverviewRequest
-	(*GetHealthOverviewResponse)(nil),          // 48: observability.v1.GetHealthOverviewResponse
-	(*GithubConfig)(nil),                       // 49: observability.v1.GithubConfig
-	(*SentryConfig)(nil),                       // 50: observability.v1.SentryConfig
-	(*ProviderConfig)(nil),                     // 51: observability.v1.ProviderConfig
-	(*OAuthConnectionStatus)(nil),              // 52: observability.v1.OAuthConnectionStatus
-	(*ListOAuthConnectionsRequest)(nil),        // 53: observability.v1.ListOAuthConnectionsRequest
-	(*ListOAuthConnectionsResponse)(nil),       // 54: observability.v1.ListOAuthConnectionsResponse
-	(*DisconnectOAuthConnectionRequest)(nil),   // 55: observability.v1.DisconnectOAuthConnectionRequest
-	(*DisconnectOAuthConnectionResponse)(nil),  // 56: observability.v1.DisconnectOAuthConnectionResponse
-	(*GetProviderOptionsRequest)(nil),          // 57: observability.v1.GetProviderOptionsRequest
-	(*GetProviderOptionsResponse)(nil),         // 58: observability.v1.GetProviderOptionsResponse
-	(*SetProviderConfigRequest)(nil),           // 59: observability.v1.SetProviderConfigRequest
-	(*SetProviderConfigResponse)(nil),          // 60: observability.v1.SetProviderConfigResponse
-	(*NotificationSetting)(nil),                // 61: observability.v1.NotificationSetting
-	(*GetNotificationSettingsRequest)(nil),     // 62: observability.v1.GetNotificationSettingsRequest
-	(*GetNotificationSettingsResponse)(nil),    // 63: observability.v1.GetNotificationSettingsResponse
-	(*UpdateNotificationSettingsRequest)(nil),  // 64: observability.v1.UpdateNotificationSettingsRequest
-	(*UpdateNotificationSettingsResponse)(nil), // 65: observability.v1.UpdateNotificationSettingsResponse
+	(*UnhealthyFeed)(nil),                      // 33: observability.v1.UnhealthyFeed
+	(*GetUnhealthyFeedsRequest)(nil),           // 34: observability.v1.GetUnhealthyFeedsRequest
+	(*GetUnhealthyFeedsResponse)(nil),          // 35: observability.v1.GetUnhealthyFeedsResponse
+	(*GetSentryIssuesRequest)(nil),             // 36: observability.v1.GetSentryIssuesRequest
+	(*GetSentryIssuesResponse)(nil),            // 37: observability.v1.GetSentryIssuesResponse
+	(*ResolveSentryIssueRequest)(nil),          // 38: observability.v1.ResolveSentryIssueRequest
+	(*ResolveSentryIssueResponse)(nil),         // 39: observability.v1.ResolveSentryIssueResponse
+	(*SlowTransaction)(nil),                    // 40: observability.v1.SlowTransaction
+	(*TransactionTrend)(nil),                   // 41: observability.v1.TransactionTrend
+	(*GetSlowTransactionsRequest)(nil),         // 42: observability.v1.GetSlowTransactionsRequest
+	(*GetSlowTransactionsResponse)(nil),        // 43: observability.v1.GetSlowTransactionsResponse
+	(*HostMetricPoint)(nil),                    // 44: observability.v1.HostMetricPoint
+	(*GetHostMetricsRequest)(nil),              // 45: observability.v1.GetHostMetricsRequest
+	(*GetHostMetricsResponse)(nil),             // 46: observability.v1.GetHostMetricsResponse
+	(*LogEntry)(nil),                           // 47: observability.v1.LogEntry
+	(*GetLogsRequest)(nil),                     // 48: observability.v1.GetLogsRequest
+	(*GetLogsResponse)(nil),                    // 49: observability.v1.GetLogsResponse
+	(*GetHealthOverviewRequest)(nil),           // 50: observability.v1.GetHealthOverviewRequest
+	(*GetHealthOverviewResponse)(nil),          // 51: observability.v1.GetHealthOverviewResponse
+	(*GithubConfig)(nil),                       // 52: observability.v1.GithubConfig
+	(*SentryConfig)(nil),                       // 53: observability.v1.SentryConfig
+	(*ProviderConfig)(nil),                     // 54: observability.v1.ProviderConfig
+	(*OAuthConnectionStatus)(nil),              // 55: observability.v1.OAuthConnectionStatus
+	(*ListOAuthConnectionsRequest)(nil),        // 56: observability.v1.ListOAuthConnectionsRequest
+	(*ListOAuthConnectionsResponse)(nil),       // 57: observability.v1.ListOAuthConnectionsResponse
+	(*DisconnectOAuthConnectionRequest)(nil),   // 58: observability.v1.DisconnectOAuthConnectionRequest
+	(*DisconnectOAuthConnectionResponse)(nil),  // 59: observability.v1.DisconnectOAuthConnectionResponse
+	(*GetProviderOptionsRequest)(nil),          // 60: observability.v1.GetProviderOptionsRequest
+	(*GetProviderOptionsResponse)(nil),         // 61: observability.v1.GetProviderOptionsResponse
+	(*SetProviderConfigRequest)(nil),           // 62: observability.v1.SetProviderConfigRequest
+	(*SetProviderConfigResponse)(nil),          // 63: observability.v1.SetProviderConfigResponse
+	(*NotificationSetting)(nil),                // 64: observability.v1.NotificationSetting
+	(*GetNotificationSettingsRequest)(nil),     // 65: observability.v1.GetNotificationSettingsRequest
+	(*GetNotificationSettingsResponse)(nil),    // 66: observability.v1.GetNotificationSettingsResponse
+	(*UpdateNotificationSettingsRequest)(nil),  // 67: observability.v1.UpdateNotificationSettingsRequest
+	(*UpdateNotificationSettingsResponse)(nil), // 68: observability.v1.UpdateNotificationSettingsResponse
 }
 var file_observability_v1_observability_proto_depIdxs = []int32{
 	1,  // 0: observability.v1.GetJobStatsResponse.stats:type_name -> observability.v1.JobStat
@@ -4263,67 +4425,70 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	26, // 12: observability.v1.GetWorkflowRunStatsResponse.job_duration_stats:type_name -> observability.v1.JobDurationStat
 	0,  // 13: observability.v1.SecurityAlert.alert_type:type_name -> observability.v1.SecurityAlertType
 	29, // 14: observability.v1.GetSecurityAlertsResponse.alerts:type_name -> observability.v1.SecurityAlert
-	32, // 15: observability.v1.GetSentryIssuesResponse.issues:type_name -> observability.v1.SentryIssue
-	37, // 16: observability.v1.GetSlowTransactionsResponse.current:type_name -> observability.v1.SlowTransaction
-	38, // 17: observability.v1.GetSlowTransactionsResponse.trending:type_name -> observability.v1.TransactionTrend
-	41, // 18: observability.v1.GetHostMetricsResponse.cpu_history:type_name -> observability.v1.HostMetricPoint
-	41, // 19: observability.v1.GetHostMetricsResponse.memory_history:type_name -> observability.v1.HostMetricPoint
-	41, // 20: observability.v1.GetHostMetricsResponse.disk_history:type_name -> observability.v1.HostMetricPoint
-	44, // 21: observability.v1.GetLogsResponse.entries:type_name -> observability.v1.LogEntry
-	34, // 22: observability.v1.GetHealthOverviewResponse.sentry:type_name -> observability.v1.GetSentryIssuesResponse
-	49, // 23: observability.v1.ProviderConfig.github:type_name -> observability.v1.GithubConfig
-	50, // 24: observability.v1.ProviderConfig.sentry:type_name -> observability.v1.SentryConfig
-	51, // 25: observability.v1.OAuthConnectionStatus.config:type_name -> observability.v1.ProviderConfig
-	52, // 26: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
-	51, // 27: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
-	61, // 28: observability.v1.GetNotificationSettingsResponse.settings:type_name -> observability.v1.NotificationSetting
-	3,  // 29: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
-	6,  // 30: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
-	10, // 31: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
-	12, // 32: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
-	15, // 33: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
-	19, // 34: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
-	22, // 35: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
-	27, // 36: observability.v1.ObservabilityService.GetWorkflowRunStats:input_type -> observability.v1.GetWorkflowRunStatsRequest
-	30, // 37: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
-	33, // 38: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
-	35, // 39: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
-	39, // 40: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
-	42, // 41: observability.v1.ObservabilityService.GetHostMetrics:input_type -> observability.v1.GetHostMetricsRequest
-	45, // 42: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
-	47, // 43: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
-	53, // 44: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
-	55, // 45: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
-	57, // 46: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
-	59, // 47: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
-	62, // 48: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
-	64, // 49: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
-	4,  // 50: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	7,  // 51: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	11, // 52: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	13, // 53: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
-	16, // 54: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	20, // 55: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
-	23, // 56: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
-	28, // 57: observability.v1.ObservabilityService.GetWorkflowRunStats:output_type -> observability.v1.GetWorkflowRunStatsResponse
-	31, // 58: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
-	34, // 59: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
-	36, // 60: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
-	40, // 61: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
-	43, // 62: observability.v1.ObservabilityService.GetHostMetrics:output_type -> observability.v1.GetHostMetricsResponse
-	46, // 63: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
-	48, // 64: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
-	54, // 65: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
-	56, // 66: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
-	58, // 67: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
-	60, // 68: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
-	63, // 69: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
-	65, // 70: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
-	50, // [50:71] is the sub-list for method output_type
-	29, // [29:50] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	33, // 15: observability.v1.GetUnhealthyFeedsResponse.feeds:type_name -> observability.v1.UnhealthyFeed
+	32, // 16: observability.v1.GetSentryIssuesResponse.issues:type_name -> observability.v1.SentryIssue
+	40, // 17: observability.v1.GetSlowTransactionsResponse.current:type_name -> observability.v1.SlowTransaction
+	41, // 18: observability.v1.GetSlowTransactionsResponse.trending:type_name -> observability.v1.TransactionTrend
+	44, // 19: observability.v1.GetHostMetricsResponse.cpu_history:type_name -> observability.v1.HostMetricPoint
+	44, // 20: observability.v1.GetHostMetricsResponse.memory_history:type_name -> observability.v1.HostMetricPoint
+	44, // 21: observability.v1.GetHostMetricsResponse.disk_history:type_name -> observability.v1.HostMetricPoint
+	47, // 22: observability.v1.GetLogsResponse.entries:type_name -> observability.v1.LogEntry
+	37, // 23: observability.v1.GetHealthOverviewResponse.sentry:type_name -> observability.v1.GetSentryIssuesResponse
+	52, // 24: observability.v1.ProviderConfig.github:type_name -> observability.v1.GithubConfig
+	53, // 25: observability.v1.ProviderConfig.sentry:type_name -> observability.v1.SentryConfig
+	54, // 26: observability.v1.OAuthConnectionStatus.config:type_name -> observability.v1.ProviderConfig
+	55, // 27: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
+	54, // 28: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
+	64, // 29: observability.v1.GetNotificationSettingsResponse.settings:type_name -> observability.v1.NotificationSetting
+	3,  // 30: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
+	6,  // 31: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
+	10, // 32: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
+	12, // 33: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
+	15, // 34: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
+	19, // 35: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
+	22, // 36: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
+	27, // 37: observability.v1.ObservabilityService.GetWorkflowRunStats:input_type -> observability.v1.GetWorkflowRunStatsRequest
+	30, // 38: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
+	34, // 39: observability.v1.ObservabilityService.GetUnhealthyFeeds:input_type -> observability.v1.GetUnhealthyFeedsRequest
+	36, // 40: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
+	38, // 41: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
+	42, // 42: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
+	45, // 43: observability.v1.ObservabilityService.GetHostMetrics:input_type -> observability.v1.GetHostMetricsRequest
+	48, // 44: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
+	50, // 45: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
+	56, // 46: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
+	58, // 47: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
+	60, // 48: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
+	62, // 49: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
+	65, // 50: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
+	67, // 51: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
+	4,  // 52: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	7,  // 53: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	11, // 54: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	13, // 55: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
+	16, // 56: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	20, // 57: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
+	23, // 58: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
+	28, // 59: observability.v1.ObservabilityService.GetWorkflowRunStats:output_type -> observability.v1.GetWorkflowRunStatsResponse
+	31, // 60: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
+	35, // 61: observability.v1.ObservabilityService.GetUnhealthyFeeds:output_type -> observability.v1.GetUnhealthyFeedsResponse
+	37, // 62: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	39, // 63: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
+	43, // 64: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
+	46, // 65: observability.v1.ObservabilityService.GetHostMetrics:output_type -> observability.v1.GetHostMetricsResponse
+	49, // 66: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
+	51, // 67: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	57, // 68: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
+	59, // 69: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
+	61, // 70: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
+	63, // 71: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
+	66, // 72: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
+	68, // 73: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
+	52, // [52:74] is the sub-list for method output_type
+	30, // [30:52] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_observability_v1_observability_proto_init() }
@@ -4331,7 +4496,7 @@ func file_observability_v1_observability_proto_init() {
 	if File_observability_v1_observability_proto != nil {
 		return
 	}
-	file_observability_v1_observability_proto_msgTypes[50].OneofWrappers = []any{
+	file_observability_v1_observability_proto_msgTypes[53].OneofWrappers = []any{
 		(*ProviderConfig_Github)(nil),
 		(*ProviderConfig_Sentry)(nil),
 	}
@@ -4341,7 +4506,7 @@ func file_observability_v1_observability_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_observability_v1_observability_proto_rawDesc), len(file_observability_v1_observability_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   65,
+			NumMessages:   68,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

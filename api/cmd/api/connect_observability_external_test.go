@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 
+	"tools.xdoubleu.com/apps/feeds"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
@@ -22,6 +24,28 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
+
+// stubFeedsApp lets GetUnhealthyFeeds tests control the returned feeds
+// without depending on the real feeds app/database.
+type stubFeedsApp struct {
+	feeds []feeds.UnhealthyFeed
+	err   error
+}
+
+func (s stubFeedsApp) ListUnhealthy(
+	_ context.Context,
+) ([]feeds.UnhealthyFeed, error) {
+	return s.feeds, s.err
+}
+
+// withFeedsApp swaps testApp's feeds app for a stub for the duration of the
+// test.
+func withFeedsApp(t *testing.T, app unhealthyFeedLister) {
+	t.Helper()
+	orig := testApp.feedsApp
+	testApp.feedsApp = app
+	t.Cleanup(func() { testApp.feedsApp = orig })
+}
 
 func stubTok(token string) oauthconn.TokenFunc {
 	return func(context.Context) (string, error) {
@@ -364,6 +388,12 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 					         "security_severity_level":"high"},
 					 "most_recent_instance":{"location":{"path":"api/foo.go","start_line":42}}}
 				]`))
+			case "/repos/o/r/secret-scanning/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":7,"html_url":"u3",
+					 "created_at":"2026-08-21T08:00:00Z",
+					 "secret_type_display_name":"AWS Access Key"}
+				]`))
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -380,7 +410,7 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Alerts, 2)
+	require.Len(t, resp.Msg.Alerts, 3)
 	assert.Equal(t, int64(83), resp.Msg.Alerts[0].Number)
 	assert.Equal(t, "otel", resp.Msg.Alerts[0].PackageName)
 	assert.Equal(t, "medium", resp.Msg.Alerts[0].Severity)
@@ -399,7 +429,14 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING,
 		resp.Msg.Alerts[1].AlertType,
 	)
-	assert.Equal(t, int32(2), resp.Msg.AlertCount)
+	assert.Equal(t, int64(7), resp.Msg.Alerts[2].Number)
+	assert.Equal(t, "AWS Access Key", resp.Msg.Alerts[2].SecretType)
+	assert.Equal(
+		t,
+		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_SECRET_SCANNING,
+		resp.Msg.Alerts[2].AlertType,
+	)
+	assert.Equal(t, int32(3), resp.Msg.AlertCount)
 }
 
 func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {
@@ -449,6 +486,66 @@ func callSecurityAlerts(
 	req := connect.NewRequest(&observabilityv1.GetSecurityAlertsRequest{})
 	setCookieOnRequest(req, accessToken)
 	return observabilityClient(t).GetSecurityAlerts(context.Background(), req)
+}
+
+// --- Unhealthy feeds ---
+
+func TestObservabilityGetUnhealthyFeeds_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	withFeedsApp(t, stubFeedsApp{
+		feeds: []feeds.UnhealthyFeed{
+			{
+				Title:               "Broken Feed",
+				URL:                 "https://example.com/feed.xml",
+				LastError:           "timeout",
+				ConsecutiveFailures: 3,
+			},
+		},
+		err: nil,
+	})
+
+	resp, err := callUnhealthyFeeds(t)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Feeds, 1)
+	assert.Equal(t, "Broken Feed", resp.Msg.Feeds[0].Title)
+	assert.Equal(t, "https://example.com/feed.xml", resp.Msg.Feeds[0].Url)
+	assert.Equal(t, "timeout", resp.Msg.Feeds[0].LastError)
+	assert.Equal(t, int32(3), resp.Msg.Feeds[0].ConsecutiveFailures)
+}
+
+func TestObservabilityGetUnhealthyFeeds_Empty(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	withFeedsApp(t, stubFeedsApp{feeds: nil, err: nil})
+
+	resp, err := callUnhealthyFeeds(t)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.Feeds)
+}
+
+func TestObservabilityGetUnhealthyFeeds_Error(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	withFeedsApp(t, stubFeedsApp{feeds: nil, err: errors.New("db down")})
+
+	_, err := callUnhealthyFeeds(t)
+	require.Error(t, err)
+}
+
+func TestObservabilityGetUnhealthyFeeds_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	_, err := callUnhealthyFeeds(t)
+	requirePermissionDenied(t, err)
+}
+
+func callUnhealthyFeeds(
+	t *testing.T,
+) (*connect.Response[observabilityv1.GetUnhealthyFeedsResponse], error) {
+	t.Helper()
+	req := connect.NewRequest(&observabilityv1.GetUnhealthyFeedsRequest{})
+	setCookieOnRequest(req, accessToken)
+	return observabilityClient(t).GetUnhealthyFeeds(context.Background(), req)
 }
 
 // --- Sentry ---

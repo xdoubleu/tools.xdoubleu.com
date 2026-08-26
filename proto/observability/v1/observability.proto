@@ -17,6 +17,8 @@ service ObservabilityService {
       returns (GetWorkflowRunStatsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
+  rpc GetUnhealthyFeeds(GetUnhealthyFeedsRequest)
+      returns (GetUnhealthyFeedsResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
@@ -277,6 +279,20 @@ message SentryIssue {
   string last_seen = 6;  // RFC3339
   string level = 7;
   string project = 8;  // which configured project this issue came from
+}
+
+// UnhealthyFeed is one feed whose most recent poll(s) have been failing.
+message UnhealthyFeed {
+  string title = 1;
+  string url = 2;
+  string last_error = 3;
+  int32 consecutive_failures = 4;
+}
+
+message GetUnhealthyFeedsRequest {}
+
+message GetUnhealthyFeedsResponse {
+  repeated UnhealthyFeed feeds = 1;
 }
 
 message GetSentryIssuesRequest {}

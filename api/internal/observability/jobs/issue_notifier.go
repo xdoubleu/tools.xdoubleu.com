@@ -34,6 +34,11 @@ type failingPRLister interface {
 	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
 }
 
+// securityAlertLister is the subset of github.Client this job needs.
+type securityAlertLister interface {
+	ListSecurityAlerts(ctx context.Context) ([]github.SecurityAlert, error)
+}
+
 // notificationSettingsRepo is the subset of
 // *repositories.NotificationSettingsRepository this job needs.
 type notificationSettingsRepo interface {
@@ -51,9 +56,16 @@ type notificationSettingsRepo interface {
 // The actual email delivery is queued on notifications rather than sent
 // inline, so a slow/rate-limited Resend call never blocks this job's worker
 // (issue #923).
+// issueNotifierGithubClient is the subset of github.Client this job needs,
+// combining the failing-PR and security-alert lookups it notifies about.
+type issueNotifierGithubClient interface {
+	failingPRLister
+	securityAlertLister
+}
+
 type IssueNotifierJob struct {
 	sentry        sentryapi.Client
-	gh            failingPRLister
+	gh            issueNotifierGithubClient
 	notifications *notifications.Service
 	notified      notifiedRepo
 	settings      notificationSettingsRepo
@@ -61,7 +73,7 @@ type IssueNotifierJob struct {
 
 func NewIssueNotifierJob(
 	sentry sentryapi.Client,
-	gh failingPRLister,
+	gh issueNotifierGithubClient,
 	notifications *notifications.Service,
 	notified notifiedRepo,
 	settings notificationSettingsRepo,
@@ -87,7 +99,10 @@ func (j *IssueNotifierJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if err := j.notifySentry(ctx, logger); err != nil {
 		return err
 	}
-	return j.notifyGithub(ctx, logger)
+	if err := j.notifyGithub(ctx, logger); err != nil {
+		return err
+	}
+	return j.notifySecurityAlerts(ctx, logger)
 }
 
 func (j *IssueNotifierJob) notifySentry(
@@ -166,6 +181,49 @@ func (j *IssueNotifierJob) notifyGithub(
 		body := fmt.Sprintf(
 			"%s\n%s\n\nFailing checks: %s",
 			pr.Title, pr.URL, failingCheckNames(pr.FailingChecks),
+		)
+		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// notifySecurityAlerts emails an admin the first time a Dependabot,
+// code-scanning, or secret-scanning alert is seen. The dedup key includes
+// the alert type (not just the number) since alert numbers aren't unique
+// across the three alert sources.
+func (j *IssueNotifierJob) notifySecurityAlerts(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSecurityAlerts,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
+	alerts, err := j.gh.ListSecurityAlerts(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return nil
+	}
+	if err != nil {
+		logAPIErr(ctx, logger, "issue-notifier: failed to list security alerts",
+			err, github.IsTransientAPIError(err))
+		return nil
+	}
+
+	for _, alert := range alerts {
+		key := fmt.Sprintf("security:%s:%d", alert.Type, alert.Number)
+		subject := fmt.Sprintf("[GitHub] %s alert #%d", alert.Type, alert.Number)
+		body := fmt.Sprintf(
+			"Severity: %s\n%s\n\n%s",
+			alert.Severity, alert.Summary, alert.URL,
 		)
 		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
 			return err
