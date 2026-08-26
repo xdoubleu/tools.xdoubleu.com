@@ -368,6 +368,42 @@ func TestWorkflowRunsSnapshotJob_MailerNotConfiguredDoesNotMarkNotified(t *testi
 	assert.False(t, notified.keys["workflow_run:main_failure:1"])
 }
 
+func TestWorkflowRunsSnapshotJob_SendErrorStillMarksNotified(t *testing.T) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "failure")},
+	}
+	store := newFakeWorkflowRunStore()
+	mail := &fakeMailer{sent: nil, err: assert.AnError}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.True(t, notified.keys["workflow_run:main_failure:1"])
+}
+
+func TestWorkflowRunsSnapshotJob_SkipsStaleMainFailure(t *testing.T) {
+	run := completedRun("main", "failure")
+	run.StartedAt = time.Now().Add(-72 * time.Hour)
+	//nolint:exhaustruct // fixture
+	gh := fakeWorkflowRunLister{runs: []github.WorkflowRun{run}}
+	store := newFakeWorkflowRunStore()
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, newFakeNotifiedRepo(),
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, store.inserted, 1)
+	assert.Empty(t, mail.sent)
+}
+
 func TestWorkflowRunsSnapshotJob_IDAndSchedule(t *testing.T) {
 	job := jobs.NewWorkflowRunsSnapshotJob(
 		fakeWorkflowRunLister{}, //nolint:exhaustruct // fixture
