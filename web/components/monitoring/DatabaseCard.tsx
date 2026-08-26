@@ -11,6 +11,7 @@ import {
   Cell
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { CATEGORICAL_PALETTE, chartTooltipStyle, formatBytes } from '@/lib/observability'
 
@@ -25,7 +26,10 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Database usage</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Database usage</CardTitle>
+          <Badge variant="secondary">Supabase</Badge>
+        </div>
         <CardDescription>
           {data ? `${formatBytes(data.totalSizeBytes)} total on disk` : 'Loading…'}
         </CardDescription>

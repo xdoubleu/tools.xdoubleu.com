@@ -41,7 +41,10 @@ export default function SecurityAlertsCard({ data }: { data?: GetSecurityAlertsR
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Security alerts</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Security alerts</CardTitle>
+          <Badge variant="secondary">GitHub</Badge>
+        </div>
         <CardDescription>
           {data ? `${formatCount(data.alertCount)} open security alert(s).` : 'Loading…'}
         </CardDescription>

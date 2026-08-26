@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
 import { useLogs } from '@/hooks/useMonitoring'
 import { formatDateTime } from '@/lib/dates'
@@ -33,7 +34,10 @@ export default function LogsCard() {
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Logs</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>Logs</CardTitle>
+              <Badge variant="secondary">Internal</Badge>
+            </div>
             <CardDescription>Recent application logs from api and web.</CardDescription>
           </div>
           <div className="flex gap-2">

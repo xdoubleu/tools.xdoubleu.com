@@ -10,6 +10,7 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type {
   GetHostMetricsResponse,
   HostMetricPoint
@@ -107,7 +108,10 @@ export default function HostMetricsCard({ data }: { data?: GetHostMetricsRespons
   return (
     <Card className="lg:col-span-2">
       <CardHeader>
-        <CardTitle>Host metrics</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Host metrics</CardTitle>
+          <Badge variant="secondary">Host</Badge>
+        </div>
         <CardDescription>CPU, memory, and disk usage, scraped from node_exporter.</CardDescription>
       </CardHeader>
       <CardContent>

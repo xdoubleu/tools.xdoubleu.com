@@ -30,7 +30,10 @@ export default function WorkflowRunsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>{title}</CardTitle>
+          <Badge variant="secondary">GitHub</Badge>
+        </div>
         <CardDescription>
           {data ? (description ?? 'Recent PR and main GitHub Actions run times.') : 'Loading…'}
         </CardDescription>

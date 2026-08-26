@@ -101,7 +101,10 @@ export default function SentryCard({ data }: { data?: GetSentryIssuesResponse })
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Sentry errors</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Sentry errors</CardTitle>
+          <Badge variant="secondary">Sentry</Badge>
+        </div>
         <CardDescription>
           {data ? `${formatCount(data.unresolvedCount)} unresolved.` : 'Loading…'}
         </CardDescription>
