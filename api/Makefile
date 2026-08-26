@@ -125,6 +125,9 @@ test/cov: test/cov/report
 	go tool cover -html=coverage.out -o=coverage.html
 	make test/cov/open
 
+test/cov/diff: test/cov/report
+	python3 ../tools/diff_coverage_go.py coverage.out
+
 test/cov/open:
 	open ./coverage.html
 
