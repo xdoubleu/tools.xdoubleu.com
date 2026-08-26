@@ -45,6 +45,10 @@ ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
 
 **Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, RPC signatures, or mock signatures — read the corresponding `.proto` file in `proto/` or the source interface instead; it's smaller and is the source of truth.
 
+## Delegating to Subagents
+
+Prefer the `Agent` tool for noisy, multi-step, or bulk data-gathering — a grep sweep across many files, a log/CI trawl, an MCP call whose raw output is large (e.g. `mcp__tools-apps__get_logs`, `get_sentry_issues`), or open-ended codebase exploration for a research question — rather than doing it inline in the main session; have the subagent return only the distilled findings. This is the same principle plan mode already applies via the `Explore` agent type, extended to non-plan-mode work: keep raw, mostly-discarded tool output out of the main context, not just the final answer.
+
 ## Commands
 
 ```bash
