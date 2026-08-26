@@ -3,7 +3,8 @@
 Report line coverage for api/ Go files changed vs origin/main, scoped to
 the changed lines only, from a `go tool cover` profile — approximating
 what CI's codecov/patch check gates on so a locally-missed branch shows up
-before push instead of after a CI round trip.
+before push instead of after a CI round trip. See diff_coverage_ts.py for
+the equivalent over web/'s lcov coverage reports.
 
 Usage:
     python3 ../tools/diff_coverage_go.py coverage.out

@@ -9,7 +9,7 @@
     "lint:fix": "eslint . --fix && prettier --write './**/*.{ts,tsx}'",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "test:cov:diff": "jest --coverage && python3 ../tools/diff_coverage.py coverage/lcov.info",
+    "test:cov:diff": "jest --coverage && python3 ../tools/diff_coverage_ts.py coverage/lcov.info",
     "test:single": "jest",
     "generate": "buf generate",
     "generate:check": "npm run generate && (git diff --exit-code lib/gen/ || (echo \"lib/gen/ is out of date -- run 'npm run generate' (web) and 'make proto/generate' (api), then commit the results.\" && exit 1))"
