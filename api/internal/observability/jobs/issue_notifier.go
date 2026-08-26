@@ -18,13 +18,6 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// dependenciesLabel is the label Renovate sets on every PR it opens (see
-// renovate.json5). Only these are notified on: a PR a user or a Claude Code
-// session opened already has someone actively driving it to green (issue
-// #915) — notifying on every failing PR here would just be noise on top of
-// that.
-const dependenciesLabel = "dependencies"
-
 // runEvery matches the ~45s in-memory cache on the Sentry client with
 // margin; "realtime" here means "within a few minutes", not sub-second.
 const runEvery = 5 * time.Minute
@@ -168,10 +161,6 @@ func (j *IssueNotifierJob) notifyGithub(
 	}
 
 	for _, pr := range prs {
-		if !pr.HasLabel(dependenciesLabel) {
-			continue
-		}
-
 		key := fmt.Sprintf("github:pr:%d:%s", pr.Number, pr.HeadSHA)
 		subject := fmt.Sprintf("[GitHub] Dependency PR #%d failing CI", pr.Number)
 		body := fmt.Sprintf(

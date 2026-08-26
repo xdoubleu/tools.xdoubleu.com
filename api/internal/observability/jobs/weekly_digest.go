@@ -175,9 +175,6 @@ func (j *WeeklyDigestJob) githubSection(
 
 	var lines []string
 	for _, pr := range prs {
-		if !pr.HasLabel(dependenciesLabel) {
-			continue
-		}
 		lines = append(lines, fmt.Sprintf(
 			"- #%d %s — %s — failing: %s",
 			pr.Number, pr.Title, pr.URL, failingCheckNames(pr.FailingChecks),
