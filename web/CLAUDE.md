@@ -73,7 +73,7 @@ TypeScript/TSX files over ~300 lines need a split before adding more code:
 
 ## Testing
 
-Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`, `hooks/` (`lib/gen/` excluded). Run `npm run test:cov` for the full report, or `npm run test:cov:diff` to scope it to just the files changed vs `origin/main` (line + branch %, matching what CI's `codecov/patch` check gates on) — run this before pushing. It exits non-zero on any changed file under 80% line/branch coverage or with no coverage data at all (e.g. a new file nothing imports yet, exactly the gap that used to only surface in CI). It's `tools/diff_coverage.py` at the repo root, a plain-Python lcov parser sitting alongside `tools/merge_coverage.py` (the equivalent for `api`'s Go coverage profiles); it only covers files matched by `collectCoverageFrom` in `jest.config.js`.
+Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`, `hooks/` (`lib/gen/` excluded). Run `npm run test:cov` for the full report, or `npm run test:cov:diff` to scope it to just the files changed vs `origin/main` (line + branch %, matching what CI's `codecov/patch` check gates on) — run this before pushing. It exits non-zero on any changed file under 80% line/branch coverage or with no coverage data at all (e.g. a new file nothing imports yet, exactly the gap that used to only surface in CI). It's `tools/diff_coverage_ts.py` at the repo root, a plain-Python lcov parser sitting alongside `tools/merge_coverage.py` and `tools/diff_coverage_go.py` (the equivalents for `api`'s Go coverage profiles); it only covers files matched by `collectCoverageFrom` in `jest.config.js`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

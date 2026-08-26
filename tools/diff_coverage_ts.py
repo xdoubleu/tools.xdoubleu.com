@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Report line/branch coverage for files changed vs origin/main, scoped from
-an lcov.info report, mirroring what CI's codecov/patch check gates on.
+Report line/branch coverage for web/ TS/TSX files changed vs origin/main,
+scoped from an lcov.info report, mirroring what CI's codecov/patch check
+gates on. See diff_coverage_go.py for the equivalent over api/'s Go
+coverage profiles.
 
 Usage:
-    python3 ../tools/diff_coverage.py coverage/lcov.info
+    python3 ../tools/diff_coverage_ts.py coverage/lcov.info
 
 Run with cwd set to the project directory the lcov paths are relative to
 (e.g. web/), after a coverage run has produced that lcov.info file.
@@ -107,7 +109,7 @@ def pct(covered, total):
 
 def main():
     if len(sys.argv) != 2:
-        print('Usage: python3 diff_coverage.py <path-to-lcov.info>', file=sys.stderr)
+        print('Usage: python3 diff_coverage_ts.py <path-to-lcov.info>', file=sys.stderr)
         sys.exit(1)
 
     lcov_arg = sys.argv[1]
