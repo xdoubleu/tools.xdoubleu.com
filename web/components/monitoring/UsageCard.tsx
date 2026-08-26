@@ -11,6 +11,7 @@ import {
   ResponsiveContainer
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import type { GetUsageStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import {
   CATEGORICAL_PALETTE,
@@ -33,7 +34,10 @@ export default function UsageCard({ data }: { data?: GetUsageStatsResponse }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Feature usage</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Feature usage</CardTitle>
+          <Badge variant="secondary">Internal</Badge>
+        </div>
         <CardDescription>Requests per day by app, across all traffic.</CardDescription>
       </CardHeader>
       <CardContent>

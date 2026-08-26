@@ -16,7 +16,10 @@ export default function FailingPullRequestsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Failing pull requests</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Failing pull requests</CardTitle>
+          <Badge variant="secondary">GitHub</Badge>
+        </div>
         <CardDescription>
           {data ? `${formatCount(data.failingCount)} with a failing check.` : 'Loading…'}
         </CardDescription>

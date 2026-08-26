@@ -16,7 +16,10 @@ export default function SlowTransactionsCard({ data }: { data?: GetSlowTransacti
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Slow transactions</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Slow transactions</CardTitle>
+          <Badge variant="secondary">Sentry</Badge>
+        </div>
         <CardDescription>
           Slowest API endpoints/pages right now, plus ones getting slower over time.
         </CardDescription>

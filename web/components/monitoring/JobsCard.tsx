@@ -17,7 +17,10 @@ export default function JobsCard({ data }: { data?: GetJobStatsResponse }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Background jobs</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Background jobs</CardTitle>
+          <Badge variant="secondary">Internal</Badge>
+        </div>
         <CardDescription>Throughput and failures over the selected window.</CardDescription>
       </CardHeader>
       <CardContent>

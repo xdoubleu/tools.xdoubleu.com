@@ -56,7 +56,10 @@ export default function StorageCard({ data }: { data?: GetStorageStatsResponse }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>R2 object storage</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>R2 object storage</CardTitle>
+          <Badge variant="secondary">R2</Badge>
+        </div>
         <CardDescription>
           {latest
             ? `${formatBytes(latest.totalSizeBytes)} across ${formatCount(latest.objectCount)} objects`
