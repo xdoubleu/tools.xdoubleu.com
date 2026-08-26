@@ -61,5 +61,25 @@ describe('SlowTransactionsCard', () => {
     expect(screen.getByText('GET /api/regressed')).toBeInTheDocument()
     expect(screen.getByText('+150%')).toBeInTheDocument()
     expect(screen.getByText('100 ms → 250 ms')).toBeInTheDocument()
+    expect(screen.getByText('+150%').className).toContain('text-danger')
+  })
+
+  it('tones a trending regression as warn, not danger, below the danger threshold', () => {
+    const data = create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [],
+      trending: [
+        {
+          transaction: 'GET /api/mild',
+          project: 'proj',
+          priorAvgP95Ms: 100,
+          recentAvgP95Ms: 130,
+          pctChange: 0.3
+        }
+      ]
+    })
+    render(<SlowTransactionsCard data={data} />)
+    expect(screen.getByText('+30%')).toBeInTheDocument()
+    expect(screen.getByText('+30%').className).toContain('text-warn')
   })
 })

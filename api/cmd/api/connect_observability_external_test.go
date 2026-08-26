@@ -388,6 +388,12 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 					         "security_severity_level":"high"},
 					 "most_recent_instance":{"location":{"path":"api/foo.go","start_line":42}}}
 				]`))
+			case "/repos/o/r/secret-scanning/alerts":
+				_, _ = w.Write([]byte(`[
+					{"number":7,"html_url":"u3",
+					 "created_at":"2026-08-21T08:00:00Z",
+					 "secret_type_display_name":"AWS Access Key"}
+				]`))
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -404,7 +410,7 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 	resp, err := callSecurityAlerts(t)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
-	require.Len(t, resp.Msg.Alerts, 2)
+	require.Len(t, resp.Msg.Alerts, 3)
 	assert.Equal(t, int64(83), resp.Msg.Alerts[0].Number)
 	assert.Equal(t, "otel", resp.Msg.Alerts[0].PackageName)
 	assert.Equal(t, "medium", resp.Msg.Alerts[0].Severity)
@@ -423,7 +429,14 @@ func TestObservabilityGetSecurityAlerts_AsAdmin(t *testing.T) {
 		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING,
 		resp.Msg.Alerts[1].AlertType,
 	)
-	assert.Equal(t, int32(2), resp.Msg.AlertCount)
+	assert.Equal(t, int64(7), resp.Msg.Alerts[2].Number)
+	assert.Equal(t, "AWS Access Key", resp.Msg.Alerts[2].SecretType)
+	assert.Equal(
+		t,
+		observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_SECRET_SCANNING,
+		resp.Msg.Alerts[2].AlertType,
+	)
+	assert.Equal(t, int32(3), resp.Msg.AlertCount)
 }
 
 func TestObservabilityGetSecurityAlerts_NotConfigured(t *testing.T) {

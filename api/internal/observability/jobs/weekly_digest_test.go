@@ -348,6 +348,28 @@ func TestWeeklyDigestSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 }
 
+// TestWeeklyDigestSecurityAlertsUpstreamErrorSkipsSilently asserts a
+// non-ErrNotConfigured failure from ListSecurityAlerts omits the section
+// (self-heals on the next run) rather than failing the digest send.
+func TestWeeklyDigestSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{
+			prs: nil, err: nil, alerts: nil, alertsErr: assert.AnError,
+		},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+}
+
 func TestWeeklyDigestOmitsSecurityAlertsSectionForDisabledSource(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: nil,

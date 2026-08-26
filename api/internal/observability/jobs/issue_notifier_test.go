@@ -3,6 +3,7 @@ package jobs_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 	"testing"
@@ -733,6 +734,31 @@ func TestIssueNotifierSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: nil, err: nil, alerts: nil, alertsErr: github.ErrNotConfigured,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+// TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently asserts a
+// non-ErrNotConfigured failure from ListSecurityAlerts is logged and
+// swallowed (self-heals on the next poll) rather than failing the run.
+func TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil, alerts: nil, alertsErr: errors.New("upstream down"),
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()

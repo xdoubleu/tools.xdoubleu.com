@@ -136,6 +136,39 @@ describe('ObservabilityClient', () => {
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
+  it('counts only trending transactions over the regression danger threshold', () => {
+    mockUseSlowTransactions.mockReturnValue({
+      data: create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [],
+        trending: [
+          {
+            transaction: 'GET /api/mild',
+            project: 'proj',
+            priorAvgP95Ms: 100,
+            recentAvgP95Ms: 130,
+            pctChange: 0.3
+          },
+          {
+            transaction: 'GET /api/severe',
+            project: 'proj',
+            priorAvgP95Ms: 100,
+            recentAvgP95Ms: 300,
+            pctChange: 2
+          }
+        ]
+      }),
+      mutate: mockMutate
+    })
+
+    render(<ObservabilityClient />)
+    expect(screen.getByText('Regressing')).toBeInTheDocument()
+    // Only the 200% regression exceeds the danger threshold; the 30% one
+    // doesn't count toward this headline tile.
+    const regressingTile = screen.getByText('Regressing').closest('div')
+    expect(regressingTile).toHaveTextContent('1')
+  })
+
   it('refetches job/usage stats when the window changes', () => {
     render(<ObservabilityClient />)
     expect(mockUseJobStats).toHaveBeenCalledWith(30)
