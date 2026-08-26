@@ -30,6 +30,14 @@ const mainBranch = "main"
 // on.
 const failureConclusion = "failure"
 
+// mainFailureMaxAge bounds how old a failing main run can be and still
+// trigger an email. GitHub's runs endpoint has no server-side date filter
+// (ListWorkflowRuns just returns the most recent page per event type), so on
+// a quiet repo a run far older than this cutoff can still show up as
+// "recently seen" for the first time — this stops that from reading as a
+// fresh incident.
+const mainFailureMaxAge = 48 * time.Hour
+
 // workflowRunLister is the subset of github.Client this job needs to fetch
 // recent runs.
 type workflowRunLister interface {
@@ -137,7 +145,8 @@ func (j *WorkflowRunsSnapshotJob) recordRun(
 		return err
 	}
 
-	if run.Branch == mainBranch && run.Conclusion == failureConclusion {
+	isRecent := time.Since(completedAt) <= mainFailureMaxAge
+	if run.Branch == mainBranch && run.Conclusion == failureConclusion && isRecent {
 		return j.notifyMainFailure(ctx, run)
 	}
 	return nil
@@ -196,10 +205,15 @@ func (j *WorkflowRunsSnapshotJob) notifyMainFailure(
 		if errors.Is(err, mailer.ErrNotConfigured) {
 			return nil
 		}
-		if err != nil {
-			return err
+		// Mark the run notified even on a send error: a transient Resend
+		// failure (rate-limit, network blip) must not leave the dedup key
+		// unwritten, or this same run gets retried and re-emailed on every
+		// subsequent 5-minute poll forever. The error is still returned so
+		// the worker pool logs it.
+		if insertErr := j.notified.Insert(ctx, key); insertErr != nil {
+			return insertErr
 		}
-		return j.notified.Insert(ctx, key)
+		return err
 	})
 	return nil
 }
