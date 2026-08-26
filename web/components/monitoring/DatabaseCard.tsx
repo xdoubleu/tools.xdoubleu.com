@@ -28,7 +28,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
       <CardHeader>
         <div className="flex items-center gap-2">
           <CardTitle>Database usage</CardTitle>
-          <Badge variant="secondary">Supabase</Badge>
+          <Badge variant="secondary">PostgreSQL</Badge>
         </div>
         <CardDescription>
           {data ? `${formatBytes(data.totalSizeBytes)} total on disk` : 'Loading…'}
