@@ -414,7 +414,9 @@ func TestWorkflowRunsSnapshotJob_SendErrorStillMarksNotified(t *testing.T) {
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, notified, alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -434,7 +436,9 @@ func TestWorkflowRunsSnapshotJob_NotifyInsertErrorAfterSendErrorPropagates(
 	notified.insertErr = assert.AnError
 	notifSvc := testNotifications(t, mail)
 
-	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	job := jobs.NewWorkflowRunsSnapshotJob(
+		gh, store, notifSvc, notified, alwaysEnabledSettings{},
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -452,7 +456,7 @@ func TestWorkflowRunsSnapshotJob_SkipsStaleMainFailure(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewWorkflowRunsSnapshotJob(
-		gh, store, notifSvc, newFakeNotifiedRepo(),
+		gh, store, notifSvc, newFakeNotifiedRepo(), alwaysEnabledSettings{},
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
