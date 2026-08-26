@@ -385,6 +385,26 @@ func TestWorkflowRunsSnapshotJob_SendErrorStillMarksNotified(t *testing.T) {
 	assert.True(t, notified.keys["workflow_run:main_failure:1"])
 }
 
+func TestWorkflowRunsSnapshotJob_NotifyInsertErrorAfterSendErrorPropagates(
+	t *testing.T,
+) {
+	gh := fakeWorkflowRunLister{ //nolint:exhaustruct // fixture
+		runs: []github.WorkflowRun{completedRun("main", "failure")},
+	}
+	store := newFakeWorkflowRunStore()
+	mail := &fakeMailer{sent: nil, err: assert.AnError}
+	notified := newFakeNotifiedRepo()
+	notified.insertErr = assert.AnError
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWorkflowRunsSnapshotJob(gh, store, notifSvc, notified)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["workflow_run:main_failure:1"])
+}
+
 func TestWorkflowRunsSnapshotJob_SkipsStaleMainFailure(t *testing.T) {
 	run := completedRun("main", "failure")
 	run.StartedAt = time.Now().Add(-72 * time.Hour)
