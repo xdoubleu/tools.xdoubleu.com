@@ -8,14 +8,16 @@ import { useUpdateNotificationSettings } from '@/hooks/useMonitoring'
 const SOURCE_LABELS: Record<string, string> = {
   sentry_issues: 'Sentry issues',
   failing_dependency_prs: 'Failing dependency PRs',
-  unhealthy_feeds: 'Unhealthy feeds'
+  unhealthy_feeds: 'Unhealthy feeds',
+  failing_main_ci: 'Failing PRs on main'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
   sentry_issues: 'Emails an admin the first time a new unresolved Sentry issue appears.',
   failing_dependency_prs:
     'Emails an admin the first time a dependency (Renovate) pull request fails CI.',
-  unhealthy_feeds: 'Includes feeds failing to poll in the weekly digest email.'
+  unhealthy_feeds: 'Includes feeds failing to poll in the weekly digest email.',
+  failing_main_ci: 'Emails an admin the first time a CI run fails on the main branch.'
 }
 
 function sourceLabel(sourceKey: string): string {

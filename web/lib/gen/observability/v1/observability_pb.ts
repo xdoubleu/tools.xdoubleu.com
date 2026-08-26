@@ -1719,8 +1719,8 @@ export const SetProviderConfigResponseSchema: GenMessage<SetProviderConfigRespon
 
 /**
  * NotificationSetting is one email-notifying source (Sentry issues, failing
- * dependency PRs, unhealthy feeds) and whether it's currently allowed to
- * email an admin (issue #1214).
+ * dependency PRs, unhealthy feeds, failing main-branch CI runs) and whether
+ * it's currently allowed to email an admin (issue #1214).
  *
  * @generated from message observability.v1.NotificationSetting
  */

@@ -18,6 +18,7 @@ const (
 	NotificationSourceSentryIssues         NotificationSource = "sentry_issues"
 	NotificationSourceFailingDependencyPRs NotificationSource = "failing_dependency_prs"
 	NotificationSourceUnhealthyFeeds       NotificationSource = "unhealthy_feeds"
+	NotificationSourceFailingMainCI        NotificationSource = "failing_main_ci"
 )
 
 // NotificationSetting is one row of global.notification_settings.

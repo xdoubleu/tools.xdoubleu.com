@@ -453,8 +453,8 @@ message SetProviderConfigRequest {
 message SetProviderConfigResponse {}
 
 // NotificationSetting is one email-notifying source (Sentry issues, failing
-// dependency PRs, unhealthy feeds) and whether it's currently allowed to
-// email an admin (issue #1214).
+// dependency PRs, unhealthy feeds, failing main-branch CI runs) and whether
+// it's currently allowed to email an admin (issue #1214).
 message NotificationSetting {
   string source_key = 1;
   bool enabled = 2;

@@ -189,7 +189,62 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 }
 
-func TestWeeklyDigestOmitsSectionsForDisabledSources(t *testing.T) {
+func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: []github.PullRequest{
+			failingPR("sha1", "not-dependencies"),
+		}, err: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestOmitsSectionForDisabledSource(t *testing.T) {
+	sentry := fakeSentryClient{
+		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+	}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only failing_dependency_prs needs to be enabled here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceFailingDependencyPRs: true,
+		},
+	}
+
+	job := jobs.NewWeeklyDigestJob(
+		sentry,
+		gh,
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		settings,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "boom")
+}
+
+// TestWeeklyDigestSkipsSendWhenAllSourcesDisabled covers the gap in issue
+// #1214's original settings gate: each *Section was already omitted when
+// disabled, but the digest email itself still always sent — even an empty
+// "no open issues" email — regardless of whether every source had been
+// explicitly turned off. An admin who disabled everything shouldn't keep
+// getting a weekly email with nothing in it.
+func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
@@ -212,10 +267,7 @@ func TestWeeklyDigestOmitsSectionsForDisabledSources(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
-	require.Len(t, mail.sent, 1)
-	assert.NotContains(t, mail.sent[0], "boom")
-	assert.NotContains(t, mail.sent[0], "sha1")
-	assert.NotContains(t, mail.sent[0], "My Feed")
+	assert.Empty(t, mail.sent)
 }
 
 func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
