@@ -14,6 +14,7 @@ import type {
   GetFailingPullRequestsResponse,
   GetWorkflowRunsResponse,
   GetSecurityAlertsResponse,
+  GetUnhealthyFeedsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
   GetHostMetricsResponse,
@@ -83,6 +84,13 @@ export function useSecurityAlerts() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSecurityAlertsResponse, Error>(swrKeys.monitoringSecurityAlerts, () =>
     client.getSecurityAlerts({})
+  )
+}
+
+export function useUnhealthyFeeds() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetUnhealthyFeedsResponse, Error>(swrKeys.monitoringUnhealthyFeeds, () =>
+    client.getUnhealthyFeeds({})
   )
 }
 

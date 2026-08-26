@@ -23,6 +23,18 @@ function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`
 }
 
+// hostMetricDangerThreshold/hostMetricWarnThreshold are client-side alerting
+// thresholds for CPU/memory/disk usage — no backend threshold config exists
+// for these raw node_exporter percentages (issue #1261).
+const hostMetricDangerThreshold = 90
+const hostMetricWarnThreshold = 75
+
+export function hostMetricTone(value: number): 'danger' | 'warn' | 'default' {
+  if (value >= hostMetricDangerThreshold) return 'danger'
+  if (value >= hostMetricWarnThreshold) return 'warn'
+  return 'default'
+}
+
 function toChartData(points: HostMetricPoint[]): { timestamp: string; value: number }[] {
   return points.map((p) => ({ timestamp: p.timestamp, value: p.value }))
 }
@@ -100,9 +112,21 @@ function HistoryChart({
 
 export default function HostMetricsCard({ data }: { data?: GetHostMetricsResponse }) {
   const tiles = [
-    { label: 'CPU', value: data ? formatPercent(data.cpuPercent) : '—' },
-    { label: 'Memory', value: data ? formatPercent(data.memoryPercent) : '—' },
-    { label: 'Disk', value: data ? formatPercent(data.diskPercent) : '—' }
+    {
+      label: 'CPU',
+      value: data ? formatPercent(data.cpuPercent) : '—',
+      tone: data ? hostMetricTone(data.cpuPercent) : ('default' as const)
+    },
+    {
+      label: 'Memory',
+      value: data ? formatPercent(data.memoryPercent) : '—',
+      tone: data ? hostMetricTone(data.memoryPercent) : ('default' as const)
+    },
+    {
+      label: 'Disk',
+      value: data ? formatPercent(data.diskPercent) : '—',
+      tone: data ? hostMetricTone(data.diskPercent) : ('default' as const)
+    }
   ]
 
   return (

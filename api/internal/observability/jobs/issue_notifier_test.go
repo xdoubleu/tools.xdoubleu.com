@@ -65,14 +65,22 @@ func sentryIssue(id, title string) sentryapi.Issue {
 }
 
 type fakeGithubClient struct {
-	prs []github.PullRequest
-	err error
+	prs       []github.PullRequest
+	err       error
+	alerts    []github.SecurityAlert
+	alertsErr error
 }
 
 func (f fakeGithubClient) ListFailingPullRequests(
 	_ context.Context,
 ) ([]github.PullRequest, error) {
 	return f.prs, f.err
+}
+
+func (f fakeGithubClient) ListSecurityAlerts(
+	_ context.Context,
+) ([]github.SecurityAlert, error) {
+	return f.alerts, f.alertsErr
 }
 
 func failingPR(headSHA string, labels ...string) github.PullRequest {
@@ -199,7 +207,7 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -222,7 +230,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -243,7 +251,7 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -263,7 +271,7 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -284,7 +292,7 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -298,7 +306,7 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 	job := jobs.NewIssueNotifierJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
 		alwaysEnabledSettings{},
@@ -317,7 +325,7 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -338,7 +346,7 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry,
-		fakeGithubClient{prs: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
@@ -353,6 +361,7 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
@@ -374,7 +383,9 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 
 func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	gh := fakeGithubClient{prs: []github.PullRequest{}, err: nil}
+	gh := fakeGithubClient{
+		prs: []github.PullRequest{}, err: nil, alerts: nil, alertsErr: nil,
+	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
@@ -399,7 +410,7 @@ func TestIssueNotifierGithubHandlesMultiplePRs(t *testing.T) {
 			failingPRNumbered(2, "sha2", "dependencies"),
 			failingPRNumbered(3, "sha3", "dependencies", "go"),
 		},
-		err: nil,
+		err: nil, alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
@@ -424,6 +435,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
@@ -447,6 +459,7 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha2", "dependencies")}, err: nil,
+		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
@@ -474,6 +487,7 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := &erroringNotifiedRepo{err: assert.AnError}
@@ -494,7 +508,9 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 
 func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	gh := fakeGithubClient{prs: nil, err: github.ErrNotConfigured}
+	gh := fakeGithubClient{
+		prs: nil, err: github.ErrNotConfigured, alerts: nil, alertsErr: nil,
+	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
@@ -514,7 +530,9 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 
 func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	gh := fakeGithubClient{prs: nil, err: context.DeadlineExceeded}
+	gh := fakeGithubClient{
+		prs: nil, err: context.DeadlineExceeded, alerts: nil, alertsErr: nil,
+	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
@@ -536,7 +554,7 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 
 func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
-	gh := fakeGithubClient{prs: nil, err: assert.AnError}
+	gh := fakeGithubClient{prs: nil, err: assert.AnError, alerts: nil, alertsErr: nil}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
@@ -579,9 +597,8 @@ func TestIssueNotifierSkipsSentryWhenSourceDisabled(t *testing.T) {
 		enabled: map[repositories.NotificationSource]bool{},
 	}
 
-	job := jobs.NewIssueNotifierJob(
-		sentry, fakeGithubClient{prs: nil, err: nil}, notifSvc, notified, settings,
-	)
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -593,6 +610,7 @@ func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
 	notified := newFakeNotifiedRepo()
@@ -610,4 +628,151 @@ func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
 
 	assert.Empty(t, mail.sent)
 	assert.False(t, notified.keys["github:pr:42:sha1"])
+}
+
+func securityAlert(alertType github.SecurityAlertType) github.SecurityAlert {
+	return github.SecurityAlert{
+		Type:                  alertType,
+		Number:                5,
+		PackageName:           "",
+		Ecosystem:             "",
+		Severity:              "high",
+		Summary:               "vulnerable dependency",
+		URL:                   "https://gh/alert/" + string(alertType),
+		CreatedAt:             time.Time{},
+		RuleID:                "",
+		FilePath:              "",
+		Line:                  0,
+		SecretTypeDisplayName: "",
+	}
+}
+
+func TestIssueNotifierSendsForSecurityAlert(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil,
+		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alertsErr: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+	assert.True(t, notified.keys["security:dependabot:5"])
+}
+
+// TestIssueNotifierSecurityAlertDedupKeyIncludesType asserts two alerts that
+// share a number but differ in type (numbers aren't unique across the three
+// alert sources) both notify, since the dedup key must include the type.
+func TestIssueNotifierSecurityAlertDedupKeyIncludesType(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil,
+		alerts: []github.SecurityAlert{
+			securityAlert(github.SecurityAlertTypeDependabot),
+			securityAlert(github.SecurityAlertTypeCodeScanning),
+		},
+		alertsErr: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 2)
+	assert.True(t, notified.keys["security:dependabot:5"])
+	assert.True(t, notified.keys["security:code_scanning:5"])
+}
+
+func TestIssueNotifierSkipsAlreadyNotifiedSecurityAlert(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil,
+		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alertsErr: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notified.keys["security:dependabot:5"] = true
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil, alerts: nil, alertsErr: github.ErrNotConfigured,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{
+		prs: nil, err: nil,
+		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alertsErr: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only sentry_issues/failing_dependency_prs need to be listed here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues:         true,
+			repositories.NotificationSourceFailingDependencyPRs: true,
+		},
+	}
+
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["security:dependabot:5"])
 }

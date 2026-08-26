@@ -12,7 +12,8 @@ import {
   useTriggerStorageScan,
   useDatabaseStats,
   useSlowTransactions,
-  useHostMetrics
+  useHostMetrics,
+  useOAuthConnections
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -20,9 +21,10 @@ import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
-import SlowTransactionsCard from './SlowTransactionsCard'
-import HostMetricsCard from './HostMetricsCard'
+import SlowTransactionsCard, { regressionDangerThreshold } from './SlowTransactionsCard'
+import HostMetricsCard, { hostMetricTone } from './HostMetricsCard'
 import LogsCard from './LogsCard'
+import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -37,6 +39,7 @@ export default function ObservabilityClient() {
   const databaseStats = useDatabaseStats()
   const slowTransactions = useSlowTransactions()
   const hostMetrics = useHostMetrics()
+  const oauthConnections = useOAuthConnections()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -46,13 +49,25 @@ export default function ObservabilityClient() {
       triggerStorageScan(),
       databaseStats.mutate(),
       slowTransactions.mutate(),
-      hostMetrics.mutate()
+      hostMetrics.mutate(),
+      oauthConnections.mutate()
     ])
     setIsRefreshing(false)
   }
 
   const latest = storageStats.data?.latest
   const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
+
+  const hostMetricValues = hostMetrics.data
+    ? [hostMetrics.data.cpuPercent, hostMetrics.data.memoryPercent, hostMetrics.data.diskPercent]
+    : []
+  const overThresholdMetrics = hostMetricValues.filter(
+    (value) => hostMetricTone(value) !== 'default'
+  ).length
+
+  const regressingTransactions = (slowTransactions.data?.trending ?? []).filter(
+    (t) => t.pctChange > regressionDangerThreshold
+  ).length
 
   const tiles = [
     {
@@ -80,6 +95,16 @@ export default function ObservabilityClient() {
     {
       label: 'Memory',
       value: hostMetrics.data ? `${hostMetrics.data.memoryPercent.toFixed(1)}%` : '—'
+    },
+    {
+      label: 'Over threshold',
+      value: hostMetrics.data ? formatCount(overThresholdMetrics) : '—',
+      tone: overThresholdMetrics > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Regressing',
+      value: slowTransactions.data ? formatCount(regressingTransactions) : '—',
+      tone: regressingTransactions > 0 ? ('danger' as const) : ('default' as const)
     }
   ]
 
@@ -124,6 +149,7 @@ export default function ObservabilityClient() {
         <UsageCard data={usageStats.data} />
         <SlowTransactionsCard data={slowTransactions.data} />
         <HostMetricsCard data={hostMetrics.data} />
+        <OAuthConnectionsCard data={oauthConnections.data} />
         <LogsCard />
       </div>
     </PageContainer>

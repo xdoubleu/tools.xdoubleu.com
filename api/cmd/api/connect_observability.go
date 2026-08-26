@@ -7,6 +7,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"tools.xdoubleu.com/apps/feeds"
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	"tools.xdoubleu.com/internal/models"
@@ -21,6 +22,17 @@ type obsConnectHandler struct {
 // real R2 bucket.
 type storageScanRunner interface {
 	RunStorageScanNow(ctx context.Context) error
+}
+
+// unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs,
+// narrow so tests can substitute a stub. Distinct from
+// jobs.unhealthyFeedLister (different return type — this returns
+// feeds.UnhealthyFeed directly rather than jobs.UnhealthyFeed) since this
+// handler reuses the feeds app's own type instead of going through
+// main.go's feedsHealthAdapter, which exists only to keep the jobs package
+// from importing apps/feeds.
+type unhealthyFeedLister interface {
+	ListUnhealthy(ctx context.Context) ([]feeds.UnhealthyFeed, error)
 }
 
 var _ observabilityv1connect.ObservabilityServiceHandler = (*obsConnectHandler)(nil)

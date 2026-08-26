@@ -5,7 +5,13 @@ import { Card } from '@/components/ui/card'
 interface Tile {
   label: string
   value: string
-  tone?: 'default' | 'danger'
+  tone?: 'default' | 'warn' | 'danger'
+}
+
+const TONE_CLASSES: Record<NonNullable<Tile['tone']>, string> = {
+  default: 'text-fg',
+  warn: 'text-warn',
+  danger: 'text-danger'
 }
 
 export default function StatTiles({ tiles }: { tiles: Tile[] }) {
@@ -14,11 +20,7 @@ export default function StatTiles({ tiles }: { tiles: Tile[] }) {
       {tiles.map((t) => (
         <Card key={t.label} className="p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t.label}</p>
-          <p
-            className={`mt-1 text-xl font-semibold ${
-              t.tone === 'danger' ? 'text-danger' : 'text-fg'
-            }`}
-          >
+          <p className={`mt-1 text-xl font-semibold ${TONE_CLASSES[t.tone ?? 'default']}`}>
             {t.value}
           </p>
         </Card>

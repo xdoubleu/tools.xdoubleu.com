@@ -51,6 +51,7 @@ type Application struct {
 	contacts                      contacts.Service
 	apps                          *Apps
 	booksApp                      storageScanRunner
+	feedsApp                      unhealthyFeedLister
 	appUsersRepo                  *repositories.AppUsersRepository
 	profileSharesRepo             *repositories.ProfileSharesRepository
 	usage                         *observability.UsageRecorder
@@ -484,6 +485,7 @@ func NewApplication(
 	app.apps, app.booksApp, feedsApp = NewApps(
 		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
 	)
+	app.feedsApp = feedsApp
 	app.weeklyDigestJob = newWeeklyDigestJob(
 		sentryClient, githubClient, feedsApp, notificationsSvc,
 		notificationSettingsRepo,
