@@ -1,6 +1,7 @@
 package github
 
 import (
+	"slices"
 	"time"
 )
 
@@ -24,16 +25,14 @@ type PullRequest struct {
 	FailingChecks []FailingCheck
 }
 
-// HasLabel reports whether the pull request carries the given label (e.g.
-// "dependencies", set by Renovate on every PR it opens — see
+// DependenciesLabel is the label Renovate sets on every PR it opens (see
 // renovate.json5).
+const DependenciesLabel = "dependencies"
+
+// HasLabel reports whether the pull request carries the given label (e.g.
+// DependenciesLabel).
 func (pr PullRequest) HasLabel(name string) bool {
-	for _, l := range pr.Labels {
-		if l == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(pr.Labels, name)
 }
 
 // SecurityAlertType distinguishes which GitHub alert source a SecurityAlert

@@ -189,25 +189,6 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 }
 
-func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
-	mail := &fakeMailer{sent: nil, err: nil}
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewWeeklyDigestJob(
-		fakeSentryClient{issues: nil, err: nil},
-		fakeGithubClient{prs: []github.PullRequest{
-			failingPR("sha1", "not-dependencies"),
-		}, err: nil},
-		fakeFeedsLister{unhealthy: nil, err: nil},
-		notifSvc,
-		alwaysEnabledSettings{},
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Len(t, mail.sent, 1)
-}
-
 func TestWeeklyDigestOmitsSectionsForDisabledSources(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,

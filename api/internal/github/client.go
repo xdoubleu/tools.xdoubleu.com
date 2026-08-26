@@ -403,8 +403,10 @@ func (c *client) fetchSecretScanningAlerts(
 }
 
 // fetchFailingPullRequests lists the repo's open pull requests and, for each,
-// fetches the check runs on its head commit. Only pull requests with at least
-// one failing check run are returned.
+// fetches the check runs on its head commit. Only pull requests with at
+// least one failing check run, carrying DependenciesLabel, are returned —
+// a PR a human or Claude Code session opened already has someone actively
+// driving it to green, unlike an unattended Renovate PR.
 func (c *client) fetchFailingPullRequests(
 	ctx context.Context, token, repo string,
 ) ([]PullRequest, error) {
@@ -424,7 +426,7 @@ func (c *client) fetchFailingPullRequests(
 		if len(checks) == 0 {
 			continue
 		}
-		prs = append(prs, PullRequest{
+		pr := PullRequest{
 			Number:        w.Number,
 			Title:         w.Title,
 			URL:           w.HTMLURL,
@@ -433,7 +435,11 @@ func (c *client) fetchFailingPullRequests(
 			HeadSHA:       w.Head.SHA,
 			Labels:        labelNames(w.Labels),
 			FailingChecks: checks,
-		})
+		}
+		if !pr.HasLabel(DependenciesLabel) {
+			continue
+		}
+		prs = append(prs, pr)
 	}
 	return prs, nil
 }

@@ -392,11 +392,10 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 	assert.Empty(t, mail.sent)
 }
 
-func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
+func TestIssueNotifierGithubHandlesMultiplePRs(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{
-			failingPRNumbered(1, "sha1", "bug"),
 			failingPRNumbered(2, "sha2", "dependencies"),
 			failingPRNumbered(3, "sha3", "dependencies", "go"),
 		},
@@ -417,31 +416,8 @@ func TestIssueNotifierGithubHandlesMultiplePRsMixedLabels(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 2)
-	assert.False(t, notified.keys["github:pr:1:sha1"])
 	assert.True(t, notified.keys["github:pr:2:sha2"])
 	assert.True(t, notified.keys["github:pr:3:sha3"])
-}
-
-func TestIssueNotifierIgnoresNonDependencyFailingPR(t *testing.T) {
-	sentry := fakeSentryClient{issues: nil, err: nil}
-	gh := fakeGithubClient{
-		prs: []github.PullRequest{failingPR("sha1", "bug")}, err: nil,
-	}
-	mail := &fakeMailer{sent: nil, err: nil}
-	notified := newFakeNotifiedRepo()
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewIssueNotifierJob(
-		sentry,
-		gh,
-		notifSvc,
-		notified,
-		alwaysEnabledSettings{},
-	)
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Empty(t, mail.sent)
 }
 
 func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {

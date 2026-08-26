@@ -90,7 +90,8 @@ func TestObservabilityGetFailingPullRequests_AsAdmin(t *testing.T) {
 				_, _ = w.Write([]byte(`[
 					{"number":3,"title":"Broken","html_url":"u",
 					 "updated_at":"2026-07-01T00:00:00Z",
-					 "user":{"login":"alice"},"head":{"sha":"sha1"}}
+					 "user":{"login":"alice"},"head":{"sha":"sha1"},
+					 "labels":[{"name":"dependencies"}]}
 				]`))
 			case "/repos/o/r/commits/sha1/check-runs":
 				_, _ = w.Write([]byte(`{"check_runs":[

@@ -84,19 +84,25 @@ func newClient() github.Client {
 	)
 }
 
-func TestListFailingPullRequests_ReturnsOnlyPRsWithFailingChecks(t *testing.T) {
+func TestListFailingPullRequests_ReturnsOnlyDependencyPRsWithFailingChecks(
+	t *testing.T,
+) {
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			switch r.URL.Path {
 			case "/repos/" + testRepo + "/pulls":
 				_, _ = w.Write([]byte(`[
-					{"number":1,"title":"Fix bug","html_url":"https://gh/pr/1",
+					{"number":1,"title":"Bump foo","html_url":"https://gh/pr/1",
 					 "updated_at":"2026-07-01T10:00:00Z",
-					 "user":{"login":"alice"},"head":{"sha":"sha1"}},
+					 "user":{"login":"renovate[bot]"},"head":{"sha":"sha1"},
+					 "labels":[{"name":"dependencies"}]},
 					{"number":2,"title":"Add feature","html_url":"https://gh/pr/2",
 					 "updated_at":"2026-07-02T10:00:00Z",
-					 "user":{"login":"bob"},"head":{"sha":"sha2"}}
+					 "user":{"login":"bob"},"head":{"sha":"sha2"}},
+					{"number":3,"title":"Fix bug","html_url":"https://gh/pr/3",
+					 "updated_at":"2026-07-03T10:00:00Z",
+					 "user":{"login":"alice"},"head":{"sha":"sha3"}}
 				]`))
 			case "/repos/" + testRepo + "/commits/sha1/check-runs":
 				_, _ = w.Write([]byte(`{"check_runs":[
@@ -108,6 +114,11 @@ func TestListFailingPullRequests_ReturnsOnlyPRsWithFailingChecks(t *testing.T) {
 					{"name":"ci-pass","status":"completed","conclusion":"success",
 					 "html_url":"https://gh/checks/2"}
 				]}`))
+			case "/repos/" + testRepo + "/commits/sha3/check-runs":
+				_, _ = w.Write([]byte(`{"check_runs":[
+					{"name":"ci-pass","status":"completed","conclusion":"failure",
+					 "html_url":"https://gh/checks/3"}
+				]}`))
 			default:
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -118,8 +129,8 @@ func TestListFailingPullRequests_ReturnsOnlyPRsWithFailingChecks(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, prs, 1)
 	assert.Equal(t, int64(1), prs[0].Number)
-	assert.Equal(t, "Fix bug", prs[0].Title)
-	assert.Equal(t, "alice", prs[0].Author)
+	assert.Equal(t, "Bump foo", prs[0].Title)
+	assert.Equal(t, "renovate[bot]", prs[0].Author)
 	require.Len(t, prs[0].FailingChecks, 1)
 	assert.Equal(t, "ci-pass", prs[0].FailingChecks[0].Name)
 	assert.Equal(t, "failure", prs[0].FailingChecks[0].Conclusion)
