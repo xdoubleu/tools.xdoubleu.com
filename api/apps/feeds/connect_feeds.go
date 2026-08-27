@@ -409,3 +409,45 @@ func (h *feedsConnectHandler) GetFeedStats(
 		ItemsPerDay: protoDays,
 	}), nil
 }
+
+// requireFeedsAdmin gates GetUnhealthyFeeds, which reports every user's
+// failing feeds rather than just the caller's own — unlike every other RPC
+// in this file, it cannot be scoped by feedUser's per-owner model.
+func requireFeedsAdmin(ctx context.Context) *connect.Error {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil || user.Role != sharedmodels.RoleAdmin {
+		return connect.NewError(
+			connect.CodePermissionDenied,
+			errors.New("admin access required"),
+		)
+	}
+	return nil
+}
+
+func (h *feedsConnectHandler) GetUnhealthyFeeds(
+	ctx context.Context,
+	_ *connect.Request[feedsv1.GetUnhealthyFeedsRequest],
+) (*connect.Response[feedsv1.GetUnhealthyFeedsResponse], error) {
+	if cerr := requireFeedsAdmin(ctx); cerr != nil {
+		return nil, cerr
+	}
+
+	unhealthy, err := h.app.ListUnhealthy(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	protoFeeds := make([]*feedsv1.UnhealthyFeed, len(unhealthy))
+	for i, feed := range unhealthy {
+		protoFeeds[i] = &feedsv1.UnhealthyFeed{
+			Title:     feed.Title,
+			Url:       feed.URL,
+			LastError: feed.LastError,
+			//nolint:gosec // failure counts fit int32
+			ConsecutiveFailures: int32(feed.ConsecutiveFailures),
+		}
+	}
+	return connect.NewResponse(
+		&feedsv1.GetUnhealthyFeedsResponse{Feeds: protoFeeds},
+	), nil
+}

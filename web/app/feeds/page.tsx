@@ -6,6 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
 import FeedsHeader from '@/components/feeds/FeedsHeader'
+import UnhealthyFeedsSection from '@/components/feeds/UnhealthyFeedsSection'
 import { PageContainer } from '@/components/ui/page-container'
 
 export default async function FeedsPage() {
@@ -25,6 +26,7 @@ export default async function FeedsPage() {
         }}
       >
         <FeedsHeader />
+        <UnhealthyFeedsSection />
 
         <Suspense fallback={<p className="text-muted">Loading…</p>}>
           <FeedReaderClient />

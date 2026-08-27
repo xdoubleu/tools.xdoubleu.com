@@ -176,6 +176,21 @@ message GetFeedStatsResponse {
   repeated DayCount items_per_day = 2;
 }
 
+// UnhealthyFeed is one feed whose most recent poll(s) have been failing.
+message UnhealthyFeed {
+  string title = 1;
+  string url = 2;
+  string last_error = 3;
+  int32 consecutive_failures = 4;
+}
+
+// GetUnhealthyFeeds reports every user's currently-failing feeds — admin-only,
+// since it is not scoped to the caller's own feeds.
+message GetUnhealthyFeedsRequest {}
+message GetUnhealthyFeedsResponse {
+  repeated UnhealthyFeed feeds = 1;
+}
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -186,4 +201,6 @@ service FeedService {
   rpc GetFeedItem(GetFeedItemRequest) returns (GetFeedItemResponse);
   rpc UpdateItem(UpdateItemRequest) returns (UpdateItemResponse);
   rpc GetFeedStats(GetFeedStatsRequest) returns (GetFeedStatsResponse);
+  rpc GetUnhealthyFeeds(GetUnhealthyFeedsRequest)
+      returns (GetUnhealthyFeedsResponse);
 }

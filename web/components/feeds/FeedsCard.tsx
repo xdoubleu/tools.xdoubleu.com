@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { GetUnhealthyFeedsResponse } from '@/lib/gen/observability/v1/observability_pb'
+import type { GetUnhealthyFeedsResponse } from '@/lib/gen/feeds/v1/feeds_pb'
 import { formatCount } from '@/lib/observability'
 
 export default function FeedsCard({ data }: { data?: GetUnhealthyFeedsResponse }) {

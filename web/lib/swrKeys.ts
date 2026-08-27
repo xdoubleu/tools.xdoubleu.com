@@ -15,7 +15,6 @@ export const swrKeys = {
   monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringWorkflowRuns: '/monitoring/workflow-runs',
   monitoringSecurityAlerts: '/monitoring/security-alerts',
-  monitoringUnhealthyFeeds: '/monitoring/unhealthy-feeds',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringSlowTransactions: '/monitoring/slow-transactions',
   monitoringHostMetrics: '/monitoring/host-metrics',
@@ -82,6 +81,7 @@ export const swrKeys = {
   // via the authenticated FeedService, separate from the public
   // dashboardFeedsSummary above.
   feedsSummary: '/feeds/summary',
+  unhealthyFeeds: '/feeds/unhealthy',
 
   mealPlans: '/mealplans',
   mealPlan: (id: string, offset: number) => `/mealplans/${id}?offset=${offset}`,

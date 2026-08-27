@@ -1,8 +1,8 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
-import { GetUnhealthyFeedsResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
-import FeedsCard from '@/components/monitoring/FeedsCard'
+import { GetUnhealthyFeedsResponseSchema } from '@/lib/gen/feeds/v1/feeds_pb'
+import FeedsCard from '@/components/feeds/FeedsCard'
 
 describe('FeedsCard', () => {
   it('shows a loading state without data', () => {

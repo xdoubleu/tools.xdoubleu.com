@@ -53,6 +53,9 @@ const (
 	// FeedServiceGetFeedStatsProcedure is the fully-qualified name of the FeedService's GetFeedStats
 	// RPC.
 	FeedServiceGetFeedStatsProcedure = "/feeds.v1.FeedService/GetFeedStats"
+	// FeedServiceGetUnhealthyFeedsProcedure is the fully-qualified name of the FeedService's
+	// GetUnhealthyFeeds RPC.
+	FeedServiceGetUnhealthyFeedsProcedure = "/feeds.v1.FeedService/GetUnhealthyFeeds"
 )
 
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
@@ -66,6 +69,7 @@ type FeedServiceClient interface {
 	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
+	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
 }
 
 // NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
@@ -133,20 +137,27 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
 			connect.WithClientOptions(opts...),
 		),
+		getUnhealthyFeeds: connect.NewClient[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse](
+			httpClient,
+			baseURL+FeedServiceGetUnhealthyFeedsProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // feedServiceClient implements FeedServiceClient.
 type feedServiceClient struct {
-	listFeeds     *connect.Client[v1.ListFeedsRequest, v1.ListFeedsResponse]
-	createFeed    *connect.Client[v1.CreateFeedRequest, v1.CreateFeedResponse]
-	updateFeed    *connect.Client[v1.UpdateFeedRequest, v1.UpdateFeedResponse]
-	deleteFeed    *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
-	refreshFeed   *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
-	listFeedItems *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
-	getFeedItem   *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
-	updateItem    *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
-	getFeedStats  *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
+	listFeeds         *connect.Client[v1.ListFeedsRequest, v1.ListFeedsResponse]
+	createFeed        *connect.Client[v1.CreateFeedRequest, v1.CreateFeedResponse]
+	updateFeed        *connect.Client[v1.UpdateFeedRequest, v1.UpdateFeedResponse]
+	deleteFeed        *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
+	refreshFeed       *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
+	listFeedItems     *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
+	getFeedItem       *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
+	updateItem        *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
+	getFeedStats      *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
+	getUnhealthyFeeds *connect.Client[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse]
 }
 
 // ListFeeds calls feeds.v1.FeedService.ListFeeds.
@@ -194,6 +205,11 @@ func (c *feedServiceClient) GetFeedStats(ctx context.Context, req *connect.Reque
 	return c.getFeedStats.CallUnary(ctx, req)
 }
 
+// GetUnhealthyFeeds calls feeds.v1.FeedService.GetUnhealthyFeeds.
+func (c *feedServiceClient) GetUnhealthyFeeds(ctx context.Context, req *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error) {
+	return c.getUnhealthyFeeds.CallUnary(ctx, req)
+}
+
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
 	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
@@ -205,6 +221,7 @@ type FeedServiceHandler interface {
 	GetFeedItem(context.Context, *connect.Request[v1.GetFeedItemRequest]) (*connect.Response[v1.GetFeedItemResponse], error)
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
+	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
 }
 
 // NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -268,6 +285,12 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("GetFeedStats")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceGetUnhealthyFeedsHandler := connect.NewUnaryHandler(
+		FeedServiceGetUnhealthyFeedsProcedure,
+		svc.GetUnhealthyFeeds,
+		connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FeedServiceListFeedsProcedure:
@@ -288,6 +311,8 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceUpdateItemHandler.ServeHTTP(w, r)
 		case FeedServiceGetFeedStatsProcedure:
 			feedServiceGetFeedStatsHandler.ServeHTTP(w, r)
+		case FeedServiceGetUnhealthyFeedsProcedure:
+			feedServiceGetUnhealthyFeedsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -331,4 +356,8 @@ func (UnimplementedFeedServiceHandler) UpdateItem(context.Context, *connect.Requ
 
 func (UnimplementedFeedServiceHandler) GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFeedStats is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetUnhealthyFeeds is not implemented"))
 }

@@ -652,7 +652,9 @@ func TestIssueNotifierSendsForSecurityAlert(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: nil, err: nil,
-		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alerts: []github.SecurityAlert{
+			securityAlert(github.SecurityAlertTypeDependabot),
+		},
 		alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
@@ -709,7 +711,9 @@ func TestIssueNotifierSkipsAlreadyNotifiedSecurityAlert(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: nil, err: nil,
-		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alerts: []github.SecurityAlert{
+			securityAlert(github.SecurityAlertTypeDependabot),
+		},
 		alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
@@ -781,7 +785,9 @@ func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{
 		prs: nil, err: nil,
-		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alerts: []github.SecurityAlert{
+			securityAlert(github.SecurityAlertTypeDependabot),
+		},
 		alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}
