@@ -8,7 +8,6 @@ import {
 } from '@/lib/gen/observability/v1/observability_pb'
 import type {
   GetJobStatsResponse,
-  GetUsageStatsResponse,
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
   GetFailingPullRequestsResponse,
@@ -30,13 +29,6 @@ export function useJobStats(windowDays: number) {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetJobStatsResponse, Error>(swrKeys.monitoringJobStats(windowDays), () =>
     client.getJobStats({ windowDays })
-  )
-}
-
-export function useUsageStats(windowDays: number) {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetUsageStatsResponse, Error>(swrKeys.monitoringUsageStats(windowDays), () =>
-    client.getUsageStats({ windowDays })
   )
 }
 

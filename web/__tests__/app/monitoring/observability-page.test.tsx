@@ -7,7 +7,6 @@ jest.mock('@/components/monitoring/ObservabilityClient', () => () => (
 
 const mockClient = {
   getJobStats: jest.fn(async () => ({})),
-  getUsageStats: jest.fn(async () => ({})),
   getStorageStats: jest.fn(async () => ({})),
   getDatabaseStats: jest.fn(async () => ({})),
   getHostMetrics: jest.fn(async () => ({}))

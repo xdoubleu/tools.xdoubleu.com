@@ -19,7 +19,6 @@ jest.mock('swr', () => ({
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({
     getJobStats: jest.fn(),
-    getUsageStats: jest.fn(),
     getStorageStats: jest.fn(),
     triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
@@ -45,7 +44,6 @@ jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
 import useSWR from 'swr'
 import {
   useJobStats,
-  useUsageStats,
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
@@ -83,11 +81,6 @@ describe('useMonitoring', () => {
   it('keys job stats by window', () => {
     renderHook(() => useJobStats(7))
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringJobStats(7), expect.any(Function))
-  })
-
-  it('keys usage stats by window', () => {
-    renderHook(() => useUsageStats(30))
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringUsageStats(30), expect.any(Function))
   })
 
   it('keys storage stats statically', () => {

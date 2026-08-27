@@ -7,7 +7,6 @@ import { PageContainer } from '@/components/ui/page-container'
 import { Select } from '@/components/ui/select'
 import {
   useJobStats,
-  useUsageStats,
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
@@ -18,7 +17,6 @@ import CollapsibleSection from './CollapsibleSection'
 import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
-import UsageCard from './UsageCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
 import HostMetricsCard from './HostMetricsCard'
 import LogsCard from './LogsCard'
@@ -30,7 +28,6 @@ export default function ObservabilityClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const jobStats = useJobStats(windowDays)
-  const usageStats = useUsageStats(windowDays)
   const storageStats = useStorageStats()
   const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats()
@@ -41,7 +38,6 @@ export default function ObservabilityClient() {
     setIsRefreshing(true)
     await Promise.all([
       jobStats.mutate(),
-      usageStats.mutate(),
       triggerStorageScan(),
       databaseStats.mutate(),
       slowTransactions.mutate(),
@@ -91,9 +87,6 @@ export default function ObservabilityClient() {
         </CollapsibleSection>
         <CollapsibleSection title="Jobs">
           <JobsCard data={jobStats.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Usage">
-          <UsageCard data={usageStats.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Slow Transactions">
           <SlowTransactionsCard data={slowTransactions.data} />

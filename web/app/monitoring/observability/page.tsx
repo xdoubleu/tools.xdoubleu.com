@@ -12,9 +12,8 @@ const DEFAULT_WINDOW_DAYS = 30
 export default async function MonitoringObservabilityPage() {
   const client = await createServerClient(ObservabilityService)
 
-  const [jobStats, usageStats, storageStats, databaseStats, hostMetrics] = await Promise.all([
+  const [jobStats, storageStats, databaseStats, hostMetrics] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
-    fetchOrNull(() => client.getUsageStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getStorageStats({})),
     fetchOrNull(() => client.getDatabaseStats({})),
     fetchOrNull(() => client.getHostMetrics({}))
@@ -27,7 +26,6 @@ export default async function MonitoringObservabilityPage() {
 
   const keyed: [readonly unknown[], unknown][] = []
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])
-  if (usageStats) keyed.push([swrKeys.monitoringUsageStats(DEFAULT_WINDOW_DAYS), usageStats])
 
   return (
     <SWRFallback fallback={fallback} keyed={keyed}>
