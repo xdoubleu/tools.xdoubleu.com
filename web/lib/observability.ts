@@ -13,9 +13,6 @@ export const CATEGORICAL_PALETTE = [
   '#e87ba4' // magenta
 ] as const
 
-// OTHER_COLOR paints the aggregated "Other" bucket (muted, non-identity).
-export const OTHER_COLOR = '#9aa0a6'
-
 // chartTooltipStyle themes the recharts tooltip with the app's CSS variables
 // so it tracks light/dark mode automatically.
 export const chartTooltipStyle = {
