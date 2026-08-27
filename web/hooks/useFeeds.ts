@@ -10,7 +10,8 @@ import type {
   ListFeedItemsResponse,
   GetFeedItemResponse,
   UpdateItemResponse,
-  GetFeedStatsResponse
+  GetFeedStatsResponse,
+  GetUnhealthyFeedsResponse
 } from '@/lib/gen/feeds/v1/feeds_pb'
 
 // FEEDS_SUMMARY_ITEM_LIMIT bounds the reading dashboard's feeds widget.
@@ -75,6 +76,18 @@ export function useFeeds() {
     swrKeys.feeds,
     () => client.listFeeds({}),
     noAutoRevalidate
+  )
+}
+
+// useUnhealthyFeeds reports every user's feeds currently failing to poll —
+// admin-only server-side, shown on the feeds app's own page rather than
+// monitoring's. enabled gates the fetch on the caller already knowing the
+// viewer is an admin, so a non-admin viewing /feeds never issues (and gets
+// denied) a request it has no use for.
+export function useUnhealthyFeeds(enabled: boolean) {
+  const client = createServiceClient(FeedService)
+  return useSWR<GetUnhealthyFeedsResponse, Error>(enabled ? swrKeys.unhealthyFeeds : null, () =>
+    client.getUnhealthyFeeds({})
   )
 }
 

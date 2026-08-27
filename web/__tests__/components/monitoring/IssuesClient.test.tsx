@@ -5,8 +5,7 @@ import {
   GetFailingPullRequestsResponseSchema,
   GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
-  GetSentryIssuesResponseSchema,
-  GetUnhealthyFeedsResponseSchema
+  GetSentryIssuesResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
@@ -14,15 +13,13 @@ const mockUseFailingPullRequests = jest.fn()
 const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
-const mockUseUnhealthyFeeds = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useFailingPullRequests: () => mockUseFailingPullRequests(),
   useWorkflowRuns: () => mockUseWorkflowRuns(),
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
-  useResolveSentryIssue: () => jest.fn(),
-  useUnhealthyFeeds: () => mockUseUnhealthyFeeds()
+  useResolveSentryIssue: () => jest.fn()
 }))
 
 const mockMutate = jest.fn()
@@ -82,10 +79,6 @@ beforeEach(() => {
       unresolvedCount: 0,
       issues: []
     }),
-    mutate: mockMutate
-  })
-  mockUseUnhealthyFeeds.mockReturnValue({
-    data: create(GetUnhealthyFeedsResponseSchema, { feeds: [] }),
     mutate: mockMutate
   })
 })
@@ -156,7 +149,7 @@ describe('IssuesClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
-    expect(mockMutate).toHaveBeenCalledTimes(5)
+    expect(mockMutate).toHaveBeenCalledTimes(4)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
   })

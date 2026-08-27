@@ -146,7 +146,12 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeGithubClient{prs: nil, err: github.ErrNotConfigured, alerts: nil, alertsErr: nil},
+		fakeGithubClient{
+			prs:       nil,
+			err:       github.ErrNotConfigured,
+			alerts:    nil,
+			alertsErr: nil,
+		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
@@ -318,7 +323,9 @@ func TestWeeklyDigestIncludesSecurityAlerts(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{
 			prs: nil, err: nil,
-			alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+			alerts: []github.SecurityAlert{
+				securityAlert(github.SecurityAlertTypeDependabot),
+			},
 			alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
@@ -337,7 +344,12 @@ func TestWeeklyDigestSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 
 	job := jobs.NewWeeklyDigestJob(
 		fakeSentryClient{issues: nil, err: nil},
-		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: github.ErrNotConfigured},
+		fakeGithubClient{
+			prs:       nil,
+			err:       nil,
+			alerts:    nil,
+			alertsErr: github.ErrNotConfigured,
+		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
@@ -373,7 +385,9 @@ func TestWeeklyDigestSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 func TestWeeklyDigestOmitsSecurityAlertsSectionForDisabledSource(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: nil,
-		alerts:    []github.SecurityAlert{securityAlert(github.SecurityAlertTypeDependabot)},
+		alerts: []github.SecurityAlert{
+			securityAlert(github.SecurityAlertTypeDependabot),
+		},
 		alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}

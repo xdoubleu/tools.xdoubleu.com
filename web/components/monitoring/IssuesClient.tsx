@@ -8,8 +8,7 @@ import {
   useFailingPullRequests,
   useWorkflowRuns,
   useSecurityAlerts,
-  useSentryIssues,
-  useUnhealthyFeeds
+  useSentryIssues
 } from '@/hooks/useMonitoring'
 import { formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -17,7 +16,6 @@ import FailingPullRequestsCard from './FailingPullRequestsCard'
 import WorkflowRunsCard from './WorkflowRunsCard'
 import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
-import FeedsCard from './FeedsCard'
 
 export default function IssuesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -26,7 +24,6 @@ export default function IssuesClient() {
   const workflowRuns = useWorkflowRuns()
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
-  const unhealthyFeeds = useUnhealthyFeeds()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -34,8 +31,7 @@ export default function IssuesClient() {
       failingPullRequests.mutate(),
       workflowRuns.mutate(),
       securityAlerts.mutate(),
-      sentryIssues.mutate(),
-      unhealthyFeeds.mutate()
+      sentryIssues.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -43,7 +39,6 @@ export default function IssuesClient() {
   const failingPRs = failingPullRequests.data
   const alerts = securityAlerts.data
   const sentry = sentryIssues.data
-  const feeds = unhealthyFeeds.data?.feeds ?? []
   const failingCount = failingPRs?.configured ? failingPRs.failingCount : 0
   const alertCount = alerts?.configured ? alerts.alertCount : 0
   const unresolvedErrors = sentry?.configured ? sentry.unresolvedCount : 0
@@ -72,11 +67,6 @@ export default function IssuesClient() {
       label: 'Unresolved errors',
       value: sentry?.configured ? formatCount(unresolvedErrors) : '—',
       tone: unresolvedErrors > 0 ? ('danger' as const) : ('default' as const)
-    },
-    {
-      label: 'Unhealthy feeds',
-      value: unhealthyFeeds.data ? formatCount(feeds.length) : '—',
-      tone: feeds.length > 0 ? ('danger' as const) : ('default' as const)
     }
   ]
 
@@ -110,7 +100,6 @@ export default function IssuesClient() {
           description="GitHub Actions runs on main with a failing conclusion."
         />
         <SentryCard data={sentryIssues.data} />
-        <FeedsCard data={unhealthyFeeds.data} />
       </div>
     </PageContainer>
   )

@@ -15,7 +15,8 @@ const clientMocks = {
   refreshFeed: jest.fn().mockResolvedValue({ ingested: 0 }),
   updateItem: jest.fn().mockResolvedValue({ item: { id: 'item-1', readAt: 'now' } }),
   getFeedItem: jest.fn().mockResolvedValue({ item: { id: 'item-1', contentHtml: '<p>hi</p>' } }),
-  getFeedStats: jest.fn().mockResolvedValue({ stats: [], itemsPerDay: [] })
+  getFeedStats: jest.fn().mockResolvedValue({ stats: [], itemsPerDay: [] }),
+  getUnhealthyFeeds: jest.fn().mockResolvedValue({ feeds: [] })
 }
 
 jest.mock('@/lib/client', () => ({
@@ -37,7 +38,8 @@ import {
   useRefreshFeed,
   useUpdateItem,
   useFeedStats,
-  useFeedsSummary
+  useFeedsSummary,
+  useUnhealthyFeeds
 } from '@/hooks/useFeeds'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -284,5 +286,19 @@ describe('useFeeds', () => {
     const { result } = renderHook(() => useFeedsSummary())
 
     expect(result.current.data).toBeUndefined()
+  })
+
+  it('useUnhealthyFeeds queries the unhealthy-feeds key when enabled', async () => {
+    renderHook(() => useUnhealthyFeeds(true))
+    const [key, fetcher] = mockUseSWR.mock.calls[0]!
+    expect(key).toBe(swrKeys.unhealthyFeeds)
+    await fetcher!()
+    expect(clientMocks.getUnhealthyFeeds).toHaveBeenCalledWith({})
+  })
+
+  it('useUnhealthyFeeds stays idle when disabled, so a non-admin viewer fetches nothing', () => {
+    renderHook(() => useUnhealthyFeeds(false))
+    const [key] = mockUseSWR.mock.calls[0]!
+    expect(key).toBeNull()
   })
 })

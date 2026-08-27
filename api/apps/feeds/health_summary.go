@@ -3,7 +3,8 @@ package feeds
 import "context"
 
 // UnhealthyFeed is a lightweight, read-only projection of one feed
-// currently failing to poll, for the weekly digest job (issue #1014).
+// currently failing to poll, for the weekly digest job (issue #1014) and
+// the GetUnhealthyFeeds Connect RPC.
 type UnhealthyFeed struct {
 	Title               string
 	URL                 string
@@ -13,9 +14,9 @@ type UnhealthyFeed struct {
 
 // ListUnhealthy returns every feed currently failing to poll, across all
 // users. It is the only exported entry point feeds' internal model is
-// reached through from outside this package for this purpose — the
-// weekly digest job (api/internal/observability/jobs) calls this instead
-// of querying feeds.feeds directly.
+// reached through from outside this package for this purpose — the weekly
+// digest job (api/internal/observability/jobs, via main.go's
+// feedsHealthAdapter) calls this instead of querying feeds.feeds directly.
 func (a *Feeds) ListUnhealthy(ctx context.Context) ([]UnhealthyFeed, error) {
 	feeds, err := a.Services.Feeds.ListUnhealthy(ctx)
 	if err != nil {

@@ -273,41 +273,6 @@ func securityAlertTypeToProto(
 	}
 }
 
-func (h *obsConnectHandler) GetUnhealthyFeeds(
-	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetUnhealthyFeedsRequest],
-) (*connect.Response[observabilityv1.GetUnhealthyFeedsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	resp, err := h.unhealthyFeeds(ctx)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(resp), nil
-}
-
-func (h *obsConnectHandler) unhealthyFeeds(
-	ctx context.Context,
-) (*observabilityv1.GetUnhealthyFeedsResponse, error) {
-	unhealthy, err := h.app.feedsApp.ListUnhealthy(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	protoFeeds := make([]*observabilityv1.UnhealthyFeed, len(unhealthy))
-	for i, feed := range unhealthy {
-		protoFeeds[i] = &observabilityv1.UnhealthyFeed{
-			Title:     feed.Title,
-			Url:       feed.URL,
-			LastError: feed.LastError,
-			//nolint:gosec // failure counts fit int32
-			ConsecutiveFailures: int32(feed.ConsecutiveFailures),
-		}
-	}
-	return &observabilityv1.GetUnhealthyFeedsResponse{Feeds: protoFeeds}, nil
-}
-
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

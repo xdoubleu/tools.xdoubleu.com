@@ -1415,6 +1415,157 @@ func (x *GetFeedStatsResponse) GetItemsPerDay() []*DayCount {
 	return nil
 }
 
+// UnhealthyFeed is one feed whose most recent poll(s) have been failing.
+type UnhealthyFeed struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Title               string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Url                 string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	LastError           string                 `protobuf:"bytes,3,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
+	ConsecutiveFailures int32                  `protobuf:"varint,4,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *UnhealthyFeed) Reset() {
+	*x = UnhealthyFeed{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnhealthyFeed) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnhealthyFeed) ProtoMessage() {}
+
+func (x *UnhealthyFeed) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnhealthyFeed.ProtoReflect.Descriptor instead.
+func (*UnhealthyFeed) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UnhealthyFeed) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetLastError() string {
+	if x != nil {
+		return x.LastError
+	}
+	return ""
+}
+
+func (x *UnhealthyFeed) GetConsecutiveFailures() int32 {
+	if x != nil {
+		return x.ConsecutiveFailures
+	}
+	return 0
+}
+
+// GetUnhealthyFeeds reports every user's currently-failing feeds — admin-only,
+// since it is not scoped to the caller's own feeds.
+type GetUnhealthyFeedsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUnhealthyFeedsRequest) Reset() {
+	*x = GetUnhealthyFeedsRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUnhealthyFeedsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUnhealthyFeedsRequest) ProtoMessage() {}
+
+func (x *GetUnhealthyFeedsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUnhealthyFeedsRequest.ProtoReflect.Descriptor instead.
+func (*GetUnhealthyFeedsRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{23}
+}
+
+type GetUnhealthyFeedsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Feeds         []*UnhealthyFeed       `protobuf:"bytes,1,rep,name=feeds,proto3" json:"feeds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetUnhealthyFeedsResponse) Reset() {
+	*x = GetUnhealthyFeedsResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetUnhealthyFeedsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetUnhealthyFeedsResponse) ProtoMessage() {}
+
+func (x *GetUnhealthyFeedsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetUnhealthyFeedsResponse.ProtoReflect.Descriptor instead.
+func (*GetUnhealthyFeedsResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetUnhealthyFeedsResponse) GetFeeds() []*UnhealthyFeed {
+	if x != nil {
+		return x.Feeds
+	}
+	return nil
+}
+
 var File_feeds_v1_feeds_proto protoreflect.FileDescriptor
 
 const file_feeds_v1_feeds_proto_rawDesc = "" +
@@ -1526,12 +1677,21 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x13GetFeedStatsRequest\"y\n" +
 	"\x14GetFeedStatsResponse\x12)\n" +
 	"\x05stats\x18\x01 \x03(\v2\x13.feeds.v1.FeedStatsR\x05stats\x126\n" +
-	"\ritems_per_day\x18\x02 \x03(\v2\x12.feeds.v1.DayCountR\vitemsPerDay*c\n" +
+	"\ritems_per_day\x18\x02 \x03(\v2\x12.feeds.v1.DayCountR\vitemsPerDay\"\x89\x01\n" +
+	"\rUnhealthyFeed\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1d\n" +
+	"\n" +
+	"last_error\x18\x03 \x01(\tR\tlastError\x121\n" +
+	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\"\x1a\n" +
+	"\x18GetUnhealthyFeedsRequest\"J\n" +
+	"\x19GetUnhealthyFeedsResponse\x12-\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x17.feeds.v1.UnhealthyFeedR\x05feeds*c\n" +
 	"\bFeedKind\x12\x19\n" +
 	"\x15FEED_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rFEED_KIND_RSS\x10\x01\x12\x13\n" +
 	"\x0fFEED_KIND_EMAIL\x10\x02\x12\x14\n" +
-	"\x10FEED_KIND_SCRAPE\x10\x032\xb0\x05\n" +
+	"\x10FEED_KIND_SCRAPE\x10\x032\x8e\x06\n" +
 	"\vFeedService\x12D\n" +
 	"\tListFeeds\x12\x1a.feeds.v1.ListFeedsRequest\x1a\x1b.feeds.v1.ListFeedsResponse\x12G\n" +
 	"\n" +
@@ -1545,7 +1705,8 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\vGetFeedItem\x12\x1c.feeds.v1.GetFeedItemRequest\x1a\x1d.feeds.v1.GetFeedItemResponse\x12G\n" +
 	"\n" +
 	"UpdateItem\x12\x1b.feeds.v1.UpdateItemRequest\x1a\x1c.feeds.v1.UpdateItemResponse\x12M\n" +
-	"\fGetFeedStats\x12\x1d.feeds.v1.GetFeedStatsRequest\x1a\x1e.feeds.v1.GetFeedStatsResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
+	"\fGetFeedStats\x12\x1d.feeds.v1.GetFeedStatsRequest\x1a\x1e.feeds.v1.GetFeedStatsResponse\x12\\\n" +
+	"\x11GetUnhealthyFeeds\x12\".feeds.v1.GetUnhealthyFeedsRequest\x1a#.feeds.v1.GetUnhealthyFeedsResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
 
 var (
 	file_feeds_v1_feeds_proto_rawDescOnce sync.Once
@@ -1560,31 +1721,34 @@ func file_feeds_v1_feeds_proto_rawDescGZIP() []byte {
 }
 
 var file_feeds_v1_feeds_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_feeds_v1_feeds_proto_goTypes = []any{
-	(FeedKind)(0),                 // 0: feeds.v1.FeedKind
-	(*Feed)(nil),                  // 1: feeds.v1.Feed
-	(*ListFeedsRequest)(nil),      // 2: feeds.v1.ListFeedsRequest
-	(*ListFeedsResponse)(nil),     // 3: feeds.v1.ListFeedsResponse
-	(*CreateFeedRequest)(nil),     // 4: feeds.v1.CreateFeedRequest
-	(*CreateFeedResponse)(nil),    // 5: feeds.v1.CreateFeedResponse
-	(*UpdateFeedRequest)(nil),     // 6: feeds.v1.UpdateFeedRequest
-	(*UpdateFeedResponse)(nil),    // 7: feeds.v1.UpdateFeedResponse
-	(*DeleteFeedRequest)(nil),     // 8: feeds.v1.DeleteFeedRequest
-	(*DeleteFeedResponse)(nil),    // 9: feeds.v1.DeleteFeedResponse
-	(*RefreshFeedRequest)(nil),    // 10: feeds.v1.RefreshFeedRequest
-	(*RefreshFeedResponse)(nil),   // 11: feeds.v1.RefreshFeedResponse
-	(*Item)(nil),                  // 12: feeds.v1.Item
-	(*ListFeedItemsRequest)(nil),  // 13: feeds.v1.ListFeedItemsRequest
-	(*ListFeedItemsResponse)(nil), // 14: feeds.v1.ListFeedItemsResponse
-	(*GetFeedItemRequest)(nil),    // 15: feeds.v1.GetFeedItemRequest
-	(*GetFeedItemResponse)(nil),   // 16: feeds.v1.GetFeedItemResponse
-	(*UpdateItemRequest)(nil),     // 17: feeds.v1.UpdateItemRequest
-	(*UpdateItemResponse)(nil),    // 18: feeds.v1.UpdateItemResponse
-	(*FeedStats)(nil),             // 19: feeds.v1.FeedStats
-	(*DayCount)(nil),              // 20: feeds.v1.DayCount
-	(*GetFeedStatsRequest)(nil),   // 21: feeds.v1.GetFeedStatsRequest
-	(*GetFeedStatsResponse)(nil),  // 22: feeds.v1.GetFeedStatsResponse
+	(FeedKind)(0),                     // 0: feeds.v1.FeedKind
+	(*Feed)(nil),                      // 1: feeds.v1.Feed
+	(*ListFeedsRequest)(nil),          // 2: feeds.v1.ListFeedsRequest
+	(*ListFeedsResponse)(nil),         // 3: feeds.v1.ListFeedsResponse
+	(*CreateFeedRequest)(nil),         // 4: feeds.v1.CreateFeedRequest
+	(*CreateFeedResponse)(nil),        // 5: feeds.v1.CreateFeedResponse
+	(*UpdateFeedRequest)(nil),         // 6: feeds.v1.UpdateFeedRequest
+	(*UpdateFeedResponse)(nil),        // 7: feeds.v1.UpdateFeedResponse
+	(*DeleteFeedRequest)(nil),         // 8: feeds.v1.DeleteFeedRequest
+	(*DeleteFeedResponse)(nil),        // 9: feeds.v1.DeleteFeedResponse
+	(*RefreshFeedRequest)(nil),        // 10: feeds.v1.RefreshFeedRequest
+	(*RefreshFeedResponse)(nil),       // 11: feeds.v1.RefreshFeedResponse
+	(*Item)(nil),                      // 12: feeds.v1.Item
+	(*ListFeedItemsRequest)(nil),      // 13: feeds.v1.ListFeedItemsRequest
+	(*ListFeedItemsResponse)(nil),     // 14: feeds.v1.ListFeedItemsResponse
+	(*GetFeedItemRequest)(nil),        // 15: feeds.v1.GetFeedItemRequest
+	(*GetFeedItemResponse)(nil),       // 16: feeds.v1.GetFeedItemResponse
+	(*UpdateItemRequest)(nil),         // 17: feeds.v1.UpdateItemRequest
+	(*UpdateItemResponse)(nil),        // 18: feeds.v1.UpdateItemResponse
+	(*FeedStats)(nil),                 // 19: feeds.v1.FeedStats
+	(*DayCount)(nil),                  // 20: feeds.v1.DayCount
+	(*GetFeedStatsRequest)(nil),       // 21: feeds.v1.GetFeedStatsRequest
+	(*GetFeedStatsResponse)(nil),      // 22: feeds.v1.GetFeedStatsResponse
+	(*UnhealthyFeed)(nil),             // 23: feeds.v1.UnhealthyFeed
+	(*GetUnhealthyFeedsRequest)(nil),  // 24: feeds.v1.GetUnhealthyFeedsRequest
+	(*GetUnhealthyFeedsResponse)(nil), // 25: feeds.v1.GetUnhealthyFeedsResponse
 }
 var file_feeds_v1_feeds_proto_depIdxs = []int32{
 	1,  // 0: feeds.v1.ListFeedsResponse.feeds:type_name -> feeds.v1.Feed
@@ -1595,29 +1759,32 @@ var file_feeds_v1_feeds_proto_depIdxs = []int32{
 	12, // 5: feeds.v1.UpdateItemResponse.item:type_name -> feeds.v1.Item
 	19, // 6: feeds.v1.GetFeedStatsResponse.stats:type_name -> feeds.v1.FeedStats
 	20, // 7: feeds.v1.GetFeedStatsResponse.items_per_day:type_name -> feeds.v1.DayCount
-	2,  // 8: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
-	4,  // 9: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
-	6,  // 10: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
-	8,  // 11: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
-	10, // 12: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
-	13, // 13: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
-	15, // 14: feeds.v1.FeedService.GetFeedItem:input_type -> feeds.v1.GetFeedItemRequest
-	17, // 15: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
-	21, // 16: feeds.v1.FeedService.GetFeedStats:input_type -> feeds.v1.GetFeedStatsRequest
-	3,  // 17: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
-	5,  // 18: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
-	7,  // 19: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
-	9,  // 20: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
-	11, // 21: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
-	14, // 22: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
-	16, // 23: feeds.v1.FeedService.GetFeedItem:output_type -> feeds.v1.GetFeedItemResponse
-	18, // 24: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
-	22, // 25: feeds.v1.FeedService.GetFeedStats:output_type -> feeds.v1.GetFeedStatsResponse
-	17, // [17:26] is the sub-list for method output_type
-	8,  // [8:17] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	23, // 8: feeds.v1.GetUnhealthyFeedsResponse.feeds:type_name -> feeds.v1.UnhealthyFeed
+	2,  // 9: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
+	4,  // 10: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
+	6,  // 11: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
+	8,  // 12: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
+	10, // 13: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
+	13, // 14: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
+	15, // 15: feeds.v1.FeedService.GetFeedItem:input_type -> feeds.v1.GetFeedItemRequest
+	17, // 16: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
+	21, // 17: feeds.v1.FeedService.GetFeedStats:input_type -> feeds.v1.GetFeedStatsRequest
+	24, // 18: feeds.v1.FeedService.GetUnhealthyFeeds:input_type -> feeds.v1.GetUnhealthyFeedsRequest
+	3,  // 19: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
+	5,  // 20: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
+	7,  // 21: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
+	9,  // 22: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
+	11, // 23: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
+	14, // 24: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
+	16, // 25: feeds.v1.FeedService.GetFeedItem:output_type -> feeds.v1.GetFeedItemResponse
+	18, // 26: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
+	22, // 27: feeds.v1.FeedService.GetFeedStats:output_type -> feeds.v1.GetFeedStatsResponse
+	25, // 28: feeds.v1.FeedService.GetUnhealthyFeeds:output_type -> feeds.v1.GetUnhealthyFeedsResponse
+	19, // [19:29] is the sub-list for method output_type
+	9,  // [9:19] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_feeds_v1_feeds_proto_init() }
@@ -1633,7 +1800,7 @@ func file_feeds_v1_feeds_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_feeds_v1_feeds_proto_rawDesc), len(file_feeds_v1_feeds_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   22,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
