@@ -108,10 +108,7 @@ describe('ObservabilityClient', () => {
       'Host Metrics',
       'Logs'
     ]) {
-      expect(screen.getByRole('button', { name: title })).toHaveAttribute(
-        'aria-expanded',
-        'false'
-      )
+      expect(screen.getByRole('button', { name: title })).toHaveAttribute('aria-expanded', 'false')
     }
 
     // Content is folded away until a section is expanded.
