@@ -18,14 +18,27 @@ type fakeObject struct {
 
 // FakeClient is an in-memory Client for use in tests.
 type FakeClient struct {
-	mu      sync.RWMutex
-	objects map[string]fakeObject
+	mu          sync.RWMutex
+	objects     map[string]fakeObject
+	failDeletes int
+	deleteErr   error
 }
 
 // NewFake returns a new FakeClient with an empty store.
 func NewFake() *FakeClient {
 	//nolint:exhaustruct //mu is zero-value-ready; only objects needs initialisation
 	return &FakeClient{objects: make(map[string]fakeObject)}
+}
+
+// FailNextDeletes makes the next n calls to Delete return err instead of
+// deleting, for tests exercising a delete-failure path (e.g.
+// RemoveFromLibrary's best-effort R2 cleanup). Deletes after the nth
+// succeed normally.
+func (f *FakeClient) FailNextDeletes(n int, err error) {
+	f.mu.Lock()
+	f.failDeletes = n
+	f.deleteErr = err
+	f.mu.Unlock()
 }
 
 func (f *FakeClient) Put(
@@ -86,8 +99,12 @@ func (f *FakeClient) PresignPut(
 
 func (f *FakeClient) Delete(_ context.Context, key string) error {
 	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.failDeletes > 0 {
+		f.failDeletes--
+		return f.deleteErr
+	}
 	delete(f.objects, key)
-	f.mu.Unlock()
 	return nil
 }
 

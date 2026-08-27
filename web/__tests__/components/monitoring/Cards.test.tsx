@@ -20,6 +20,7 @@ import FailingPullRequestsCard from '@/components/monitoring/FailingPullRequests
 import WorkflowRunsCard from '@/components/monitoring/WorkflowRunsCard'
 import SecurityAlertsCard from '@/components/monitoring/SecurityAlertsCard'
 import SentryCard from '@/components/monitoring/SentryCard'
+import OrphanedStorageCard from '@/components/monitoring/OrphanedStorageCard'
 import HostMetricsCard, {
   xAxisTickFormatter,
   yAxisTickFormatter,
@@ -465,6 +466,60 @@ describe('SentryCard', () => {
   it('shows a loading state without data', () => {
     render(<SentryCard data={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
+  })
+})
+
+describe('OrphanedStorageCard', () => {
+  it('renders orphaned object keys with a truncation note', () => {
+    const data = create(GetStorageStatsResponseSchema, {
+      latest: {
+        scannedAt: '2026-08-27T14:13:28Z',
+        totalSizeBytes: 1999408603n,
+        objectCount: 1049n,
+        orphanSizeBytes: 202671n,
+        orphanCount: 2n,
+        staleUploadSizeBytes: 0n,
+        staleUploadCount: 0n,
+        prefixBreakdown: [],
+        orphanKeys: [
+          'books/210892c5-8e27-4125-89de-935a2849ee6b/3e670514.epub',
+          'books/a72f8384-3e1a-4aa6-8fb5-4e6e29b7d08f/b7abf2a3.epub'
+        ]
+      },
+      history: []
+    })
+
+    render(<OrphanedStorageCard data={data} />)
+    expect(
+      screen.getByText('books/210892c5-8e27-4125-89de-935a2849ee6b/3e670514.epub')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('books/a72f8384-3e1a-4aa6-8fb5-4e6e29b7d08f/b7abf2a3.epub')
+    ).toBeInTheDocument()
+  })
+
+  it('shows an empty state when there are no orphans', () => {
+    const data = create(GetStorageStatsResponseSchema, {
+      latest: {
+        scannedAt: '2026-08-27T14:13:28Z',
+        totalSizeBytes: 100n,
+        objectCount: 1n,
+        orphanSizeBytes: 0n,
+        orphanCount: 0n,
+        staleUploadSizeBytes: 0n,
+        staleUploadCount: 0n,
+        prefixBreakdown: []
+      },
+      history: []
+    })
+
+    render(<OrphanedStorageCard data={data} />)
+    expect(screen.getByText('No orphaned storage objects.')).toBeInTheDocument()
+  })
+
+  it('shows a loading state without data', () => {
+    render(<OrphanedStorageCard data={undefined} />)
+    expect(screen.getByText('No scan recorded yet.')).toBeInTheDocument()
   })
 })
 

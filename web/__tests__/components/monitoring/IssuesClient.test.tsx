@@ -5,7 +5,8 @@ import {
   GetFailingPullRequestsResponseSchema,
   GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
-  GetSentryIssuesResponseSchema
+  GetSentryIssuesResponseSchema,
+  GetStorageStatsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
@@ -13,12 +14,14 @@ const mockUseFailingPullRequests = jest.fn()
 const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
+const mockUseStorageStats = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useFailingPullRequests: () => mockUseFailingPullRequests(),
   useWorkflowRuns: () => mockUseWorkflowRuns(),
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
+  useStorageStats: () => mockUseStorageStats(),
   useResolveSentryIssue: () => jest.fn()
 }))
 
@@ -78,6 +81,23 @@ beforeEach(() => {
       configured: true,
       unresolvedCount: 0,
       issues: []
+    }),
+    mutate: mockMutate
+  })
+  mockUseStorageStats.mockReturnValue({
+    data: create(GetStorageStatsResponseSchema, {
+      latest: {
+        scannedAt: '2026-08-27T14:13:28Z',
+        totalSizeBytes: 100n,
+        objectCount: 10n,
+        orphanSizeBytes: 0n,
+        orphanCount: 0n,
+        staleUploadSizeBytes: 0n,
+        staleUploadCount: 0n,
+        prefixBreakdown: [],
+        orphanKeys: []
+      },
+      history: []
     }),
     mutate: mockMutate
   })
@@ -149,8 +169,35 @@ describe('IssuesClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
-    expect(mockMutate).toHaveBeenCalledTimes(4)
+    expect(mockMutate).toHaveBeenCalledTimes(5)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
+  })
+
+  it('flags orphaned storage danger tone and lists orphan keys', () => {
+    mockUseStorageStats.mockReturnValue({
+      data: create(GetStorageStatsResponseSchema, {
+        latest: {
+          scannedAt: '2026-08-27T14:13:28Z',
+          totalSizeBytes: 100n,
+          objectCount: 10n,
+          orphanSizeBytes: 202671n,
+          orphanCount: 2n,
+          staleUploadSizeBytes: 0n,
+          staleUploadCount: 0n,
+          prefixBreakdown: [],
+          orphanKeys: ['books/x/y.epub', 'books/a/b.epub']
+        },
+        history: []
+      }),
+      mutate: mockMutate
+    })
+
+    render(<IssuesClient />)
+
+    expect(screen.getAllByText('Orphaned storage').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0)
+    expect(screen.getByText('books/x/y.epub')).toBeInTheDocument()
+    expect(screen.getByText('books/a/b.epub')).toBeInTheDocument()
   })
 })

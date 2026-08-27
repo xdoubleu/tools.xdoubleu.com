@@ -10,7 +10,8 @@ const SOURCE_LABELS: Record<string, string> = {
   failing_dependency_prs: 'Failing dependency PRs',
   unhealthy_feeds: 'Unhealthy feeds',
   failing_main_ci: 'Failing PRs on main',
-  security_alerts: 'Security alerts'
+  security_alerts: 'Security alerts',
+  orphaned_storage: 'Orphaned storage'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
@@ -20,7 +21,9 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   unhealthy_feeds: 'Includes feeds failing to poll in the weekly digest email.',
   failing_main_ci: 'Emails an admin the first time a CI run fails on the main branch.',
   security_alerts:
-    'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.'
+    'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.',
+  orphaned_storage:
+    'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.'
 }
 
 function sourceLabel(sourceKey: string): string {

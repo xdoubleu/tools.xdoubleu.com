@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
@@ -37,6 +39,12 @@ type failingPRLister interface {
 // securityAlertLister is the subset of github.Client this job needs.
 type securityAlertLister interface {
 	ListSecurityAlerts(ctx context.Context) ([]github.SecurityAlert, error)
+}
+
+// latestStorageSnapshotGetter is the subset of
+// *repositories.StorageSnapshotsRepository this job needs.
+type latestStorageSnapshotGetter interface {
+	Latest(ctx context.Context) (*models.StorageSnapshot, error)
 }
 
 // notificationSettingsRepo is the subset of
@@ -64,11 +72,12 @@ type issueNotifierGithubClient interface {
 }
 
 type IssueNotifierJob struct {
-	sentry        sentryapi.Client
-	gh            issueNotifierGithubClient
-	notifications *notifications.Service
-	notified      notifiedRepo
-	settings      notificationSettingsRepo
+	sentry          sentryapi.Client
+	gh              issueNotifierGithubClient
+	notifications   *notifications.Service
+	notified        notifiedRepo
+	settings        notificationSettingsRepo
+	storageSnapshot latestStorageSnapshotGetter
 }
 
 func NewIssueNotifierJob(
@@ -77,13 +86,15 @@ func NewIssueNotifierJob(
 	notifications *notifications.Service,
 	notified notifiedRepo,
 	settings notificationSettingsRepo,
+	storageSnapshot latestStorageSnapshotGetter,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
-		sentry:        sentry,
-		gh:            gh,
-		notifications: notifications,
-		notified:      notified,
-		settings:      settings,
+		sentry:          sentry,
+		gh:              gh,
+		notifications:   notifications,
+		notified:        notified,
+		settings:        settings,
+		storageSnapshot: storageSnapshot,
 	}
 }
 
@@ -102,7 +113,10 @@ func (j *IssueNotifierJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if err := j.notifyGithub(ctx, logger); err != nil {
 		return err
 	}
-	return j.notifySecurityAlerts(ctx, logger)
+	if err := j.notifySecurityAlerts(ctx, logger); err != nil {
+		return err
+	}
+	return j.notifyOrphans(ctx, logger)
 }
 
 func (j *IssueNotifierJob) notifySentry(
@@ -226,6 +240,55 @@ func (j *IssueNotifierJob) notifySecurityAlerts(
 			alert.Severity, alert.Summary, alert.URL,
 		)
 		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// notifyOrphans emails an admin the first time an orphaned R2 storage object
+// (books app's daily StorageScanJob, see storage_scan.go) is seen in the
+// latest snapshot. Keyed on the storage key so a still-orphaned object never
+// re-notifies, but one deleted-then-re-orphaned by coincidence would.
+//
+// snap.OrphanKeys is a capped sample (maxOrphanKeys in storage_scan.go) — an
+// orphan count beyond that cap still shows up in OrphanCount everywhere else
+// (get_storage_stats, the Issues page), it just won't get its own email
+// until it's within the sampled set.
+func (j *IssueNotifierJob) notifyOrphans(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceOrphanedStorage,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
+	snap, err := j.storageSnapshot.Latest(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil
+	}
+	if err != nil {
+		logger.ErrorContext(ctx, "issue-notifier: failed to load storage snapshot",
+			essentialogger.ErrAttr(err))
+		return nil
+	}
+
+	for _, key := range snap.OrphanKeys {
+		notifyKey := "orphan:" + key
+		subject := fmt.Sprintf("[Storage] Orphaned object %s", key)
+		body := fmt.Sprintf(
+			"Orphaned R2 object with no matching book_files row.\n\n"+
+				"Key: %s\nDetected as of scan: %s",
+			key, snap.ScannedAt.Format(time.RFC3339),
+		)
+		if err = j.notifyOnce(ctx, notifyKey, subject, body); err != nil {
 			return err
 		}
 	}

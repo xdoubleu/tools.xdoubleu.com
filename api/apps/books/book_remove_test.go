@@ -2,6 +2,7 @@ package books_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -262,6 +264,59 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 	).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 1, count, "other user's library entry must survive")
+}
+
+// TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceeds
+// exercises RemoveFromLibrary's best-effort R2 cleanup: a delete that keeps
+// failing (exhausting objectstore.DeleteWithRetry's attempts) must not fail
+// the overall library removal — the object is left for the daily storage
+// scan to catch, matching a transient R2 failure like the one that produced
+// the two orphans this behavior was fixed for (issue #1274).
+func TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceeds(
+	t *testing.T,
+) {
+	cleanupRemoveBookUser(t)
+	objectstore.SetBackoffBase(time.Millisecond)
+	t.Cleanup(func() { objectstore.SetBackoffBase(500 * time.Millisecond) })
+
+	seedBookInLibrary(
+		t,
+		removeBookUser,
+		"RemoveFileBookDeleteFails",
+		"Remove Author",
+		"9780316769493",
+	)
+
+	data := buildEPUBBytes(
+		"RemoveFileBookDeleteFails",
+		"Remove Author",
+		"9780316769493",
+	)
+	result, err := simulateUpload(
+		context.Background(), t, removeBookUser,
+		"remove-fail-test.epub", "application/epub+zip", data, fakeStore,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	storageKey := result.BookFile.StorageKey
+
+	fakeStore.FailNextDeletes(4, errors.New("transient R2 failure"))
+
+	err = testApp.Services.Books.RemoveFromLibrary(
+		context.Background(), removeBookUser, result.BookFile.BookID,
+	)
+	require.NoError(t, err, "a leaked R2 object must not fail the library removal")
+
+	exists, err := fakeStore.Exists(context.Background(), storageKey)
+	require.NoError(t, err)
+	assert.True(t, exists, "object survives once every retry attempt fails")
+
+	var count int
+	err = testDB.QueryRow(context.Background(),
+		`SELECT COUNT(*) FROM books.book_files WHERE storage_key = $1`, storageKey,
+	).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "the DB row is still deleted despite the R2 failure")
 }
 
 func TestConnectRemoveBook_OK(t *testing.T) {
