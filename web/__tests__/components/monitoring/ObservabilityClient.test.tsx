@@ -95,64 +95,37 @@ beforeEach(() => {
 })
 
 describe('ObservabilityClient', () => {
-  it('renders the headline tiles from hook data', () => {
+  it('renders a collapsed section per data source, with no headline tiles', () => {
     render(<ObservabilityClient />)
     expect(screen.getByText('Observability')).toBeInTheDocument()
-    expect(screen.getByText('R2 storage')).toBeInTheDocument()
-    expect(screen.getByText('Database')).toBeInTheDocument()
-    // Orphaned bytes tile reflects the snapshot.
-    expect(screen.getByText('2.0 KB')).toBeInTheDocument()
-    expect(screen.getAllByText('CPU').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('12.3%').length).toBeGreaterThan(0)
+
+    for (const title of [
+      'Storage',
+      'Database',
+      'Jobs',
+      'Usage',
+      'Slow Transactions',
+      'Host Metrics',
+      'Logs'
+    ]) {
+      expect(screen.getByRole('button', { name: title })).toHaveAttribute('aria-expanded', 'false')
+    }
+
+    // Content is folded away until a section is expanded.
+    expect(screen.queryByText(/orphaned/)).not.toBeInTheDocument()
   })
 
-  it('falls back to a dash when storage/database/host data is missing, and flags failing jobs', () => {
-    mockUseStorageStats.mockReturnValue({ data: undefined, mutate: mockMutate })
-    mockUseDatabaseStats.mockReturnValue({ data: undefined, mutate: mockMutate })
-    mockUseHostMetrics.mockReturnValue({ data: undefined, mutate: mockMutate })
-    mockUseJobStats.mockReturnValue({
-      data: create(GetJobStatsResponseSchema, {
-        stats: [{ jobId: 'steam', totalRuns: 5n, failedRuns: 1n, avgDurationMs: 100n }],
-        recentRuns: []
-      }),
-      mutate: mockMutate
-    })
-
+  it('expands a section to reveal its content and can be collapsed again', () => {
     render(<ObservabilityClient />)
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
-  })
 
-  it('counts only trending transactions over the regression danger threshold', () => {
-    mockUseSlowTransactions.mockReturnValue({
-      data: create(GetSlowTransactionsResponseSchema, {
-        configured: true,
-        current: [],
-        trending: [
-          {
-            transaction: 'GET /api/mild',
-            project: 'proj',
-            priorAvgP95Ms: 100,
-            recentAvgP95Ms: 130,
-            pctChange: 0.3
-          },
-          {
-            transaction: 'GET /api/severe',
-            project: 'proj',
-            priorAvgP95Ms: 100,
-            recentAvgP95Ms: 300,
-            pctChange: 2
-          }
-        ]
-      }),
-      mutate: mockMutate
-    })
+    const storageToggle = screen.getByRole('button', { name: 'Storage' })
+    fireEvent.click(storageToggle)
+    expect(storageToggle).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText(/orphaned/)).toBeInTheDocument()
 
-    render(<ObservabilityClient />)
-    expect(screen.getByText('Regressing')).toBeInTheDocument()
-    // Only the 200% regression exceeds the danger threshold; the 30% one
-    // doesn't count toward this headline tile.
-    const regressingTile = screen.getByText('Regressing').closest('div')
-    expect(regressingTile).toHaveTextContent('1')
+    fireEvent.click(storageToggle)
+    expect(storageToggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText(/orphaned/)).not.toBeInTheDocument()
   })
 
   it('refetches job/usage stats when the window changes', () => {
