@@ -12,8 +12,7 @@ import {
   useTriggerStorageScan,
   useDatabaseStats,
   useSlowTransactions,
-  useHostMetrics,
-  useOAuthConnections
+  useHostMetrics
 } from '@/hooks/useMonitoring'
 import { formatBytes, formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -24,7 +23,6 @@ import UsageCard from './UsageCard'
 import SlowTransactionsCard, { regressionDangerThreshold } from './SlowTransactionsCard'
 import HostMetricsCard, { hostMetricTone } from './HostMetricsCard'
 import LogsCard from './LogsCard'
-import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
 
@@ -39,7 +37,6 @@ export default function ObservabilityClient() {
   const databaseStats = useDatabaseStats()
   const slowTransactions = useSlowTransactions()
   const hostMetrics = useHostMetrics()
-  const oauthConnections = useOAuthConnections()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -49,8 +46,7 @@ export default function ObservabilityClient() {
       triggerStorageScan(),
       databaseStats.mutate(),
       slowTransactions.mutate(),
-      hostMetrics.mutate(),
-      oauthConnections.mutate()
+      hostMetrics.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -149,7 +145,6 @@ export default function ObservabilityClient() {
         <UsageCard data={usageStats.data} />
         <SlowTransactionsCard data={slowTransactions.data} />
         <HostMetricsCard data={hostMetrics.data} />
-        <OAuthConnectionsCard data={oauthConnections.data} />
         <LogsCard />
       </div>
     </PageContainer>
