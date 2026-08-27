@@ -7,8 +7,7 @@ import {
   GetDatabaseStatsResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetHostMetricsResponseSchema,
-  GetLogsResponseSchema,
-  ListOAuthConnectionsResponseSchema
+  GetLogsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -20,8 +19,6 @@ const mockUseDatabaseStats = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
-const mockUseOAuthConnections = jest.fn()
-const mockDisconnect = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
@@ -31,14 +28,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDatabaseStats: () => mockUseDatabaseStats(),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useHostMetrics: () => mockUseHostMetrics(),
-  useLogs: () => mockUseLogs(),
-  useOAuthConnections: () => mockUseOAuthConnections(),
-  useDisconnectOAuthConnection: () => mockDisconnect
-}))
-
-jest.mock('@/components/monitoring/ProviderConfigDialog', () => ({
-  __esModule: true,
-  default: () => null
+  useLogs: () => mockUseLogs()
 }))
 
 jest.mock('recharts', () => {
@@ -101,10 +91,6 @@ beforeEach(() => {
   mockUseLogs.mockReturnValue({
     data: create(GetLogsResponseSchema, { entries: [] }),
     isLoading: false
-  })
-  mockUseOAuthConnections.mockReturnValue({
-    data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
-    mutate: mockMutate
   })
 })
 
@@ -197,8 +183,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 6 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(6)
+    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(5)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
