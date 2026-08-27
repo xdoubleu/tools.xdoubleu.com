@@ -59,6 +59,17 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cwd=$(printf '%s' \"$input\" | jq -r '.cwd // empty'); if [ -z \"$cwd\" ]; then exit 0; fi; git -C \"$cwd\" fetch origin main --quiet 2>/dev/null || exit 0; branch=$(git -C \"$cwd\" rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0; if [ \"$branch\" != \"main\" ]; then exit 0; fi; dirty=$(git -C \"$cwd\" status --porcelain 2>/dev/null | head -1); if [ -n \"$dirty\" ]; then exit 0; fi; git -C \"$cwd\" merge --ff-only origin/main --quiet 2>/dev/null; exit 0",
+            "statusMessage": "Fetching and fast-forwarding main..."
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

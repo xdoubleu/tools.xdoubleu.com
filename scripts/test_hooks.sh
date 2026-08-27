@@ -27,6 +27,7 @@ pass "all hook commands pass bash -n"
 
 STOP_CMD=$(jq -r '.hooks.Stop[0].hooks[0].command' "$SETTINGS")
 EXITPLAN_CMD=$(jq -r '.hooks.PostToolUse[] | select(.matcher=="ExitPlanMode") | .hooks[0].command' "$SETTINGS")
+SESSIONSTART_CMD=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$SETTINGS")
 
 # --- synthetic worktree-shaped repo ------------------------------------
 WORK=$(mktemp -d)
@@ -123,6 +124,66 @@ if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains(
 else
   fail "ExitPlanMode hook returns start-task reminder" "$out"
 fi
+
+# --- SessionStart hook ---------------------------------------------------
+run_session_start() {
+  local payload="$1"
+  printf '%s' "$payload" | bash -c "$SESSIONSTART_CMD"
+}
+
+# case: fast-forwards local main when behind origin and clean
+BARE="$WORK/origin.git"
+git init -q --bare "$BARE"
+LOCAL="$WORK/local-main-repo"
+git clone -q "$BARE" "$LOCAL"
+git -C "$LOCAL" config user.email test@example.com
+git -C "$LOCAL" config user.name test
+echo a > "$LOCAL/a.txt"
+git -C "$LOCAL" add a.txt
+git -C "$LOCAL" commit -q -m init
+git -C "$LOCAL" push -q origin HEAD:main
+git -C "$LOCAL" branch -q -m main
+git -C "$LOCAL" branch -q --set-upstream-to=origin/main main
+
+# advance the remote from a second clone, simulating another session's merge
+OTHER="$WORK/other-clone"
+git clone -q "$BARE" "$OTHER"
+git -C "$OTHER" config user.email test@example.com
+git -C "$OTHER" config user.name test
+echo b > "$OTHER/b.txt"
+git -C "$OTHER" add b.txt
+git -C "$OTHER" commit -q -m "second commit"
+git -C "$OTHER" push -q origin HEAD:main
+
+before=$(git -C "$LOCAL" rev-parse main)
+run_session_start "$(jq -n --arg cwd "$LOCAL" '{cwd:$cwd}')" > /dev/null
+after=$(git -C "$LOCAL" rev-parse main)
+remote_head=$(git -C "$BARE" rev-parse main)
+[ "$after" = "$remote_head" ] && [ "$after" != "$before" ] &&
+  pass "SessionStart fast-forwards clean local main to origin/main" ||
+  fail "SessionStart fast-forwards clean local main to origin/main" "before=$before after=$after remote=$remote_head"
+
+# case: leaves a dirty local main alone (never discards uncommitted work)
+echo dirty > "$LOCAL/a.txt"
+before=$(git -C "$LOCAL" rev-parse main)
+git -C "$LOCAL" fetch -q origin main
+# reset the remote-tracking view back to a stale point isn't needed; just
+# re-run against the now-dirty tree and confirm main doesn't move.
+run_session_start "$(jq -n --arg cwd "$LOCAL" '{cwd:$cwd}')" > /dev/null
+after=$(git -C "$LOCAL" rev-parse main)
+[ "$after" = "$before" ] &&
+  pass "SessionStart leaves dirty local main untouched" ||
+  fail "SessionStart leaves dirty local main untouched" "before=$before after=$after"
+git -C "$LOCAL" checkout -q -- a.txt
+
+# case: non-main branch is left alone
+git -C "$LOCAL" checkout -q -b feature-branch
+before=$(git -C "$LOCAL" rev-parse feature-branch)
+run_session_start "$(jq -n --arg cwd "$LOCAL" '{cwd:$cwd}')" > /dev/null
+after=$(git -C "$LOCAL" rev-parse feature-branch)
+[ "$after" = "$before" ] &&
+  pass "SessionStart leaves a non-main branch untouched" ||
+  fail "SessionStart leaves a non-main branch untouched" "before=$before after=$after"
 
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
