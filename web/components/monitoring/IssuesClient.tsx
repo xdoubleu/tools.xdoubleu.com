@@ -8,7 +8,8 @@ import {
   useFailingPullRequests,
   useWorkflowRuns,
   useSecurityAlerts,
-  useSentryIssues
+  useSentryIssues,
+  useStorageStats
 } from '@/hooks/useMonitoring'
 import { formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -16,6 +17,7 @@ import FailingPullRequestsCard from './FailingPullRequestsCard'
 import WorkflowRunsCard from './WorkflowRunsCard'
 import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
+import OrphanedStorageCard from './OrphanedStorageCard'
 
 export default function IssuesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -24,6 +26,7 @@ export default function IssuesClient() {
   const workflowRuns = useWorkflowRuns()
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
+  const storageStats = useStorageStats()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -31,7 +34,8 @@ export default function IssuesClient() {
       failingPullRequests.mutate(),
       workflowRuns.mutate(),
       securityAlerts.mutate(),
-      sentryIssues.mutate()
+      sentryIssues.mutate(),
+      storageStats.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -46,6 +50,8 @@ export default function IssuesClient() {
   const mainFailingRuns = (workflowRuns.data?.runs ?? []).filter(
     (run) => run.event === 'push' && run.branch === 'main' && run.conclusion === 'failure'
   )
+
+  const orphanCount = storageStats.data?.latest ? Number(storageStats.data.latest.orphanCount) : 0
 
   const tiles = [
     {
@@ -67,6 +73,11 @@ export default function IssuesClient() {
       label: 'Unresolved errors',
       value: sentry?.configured ? formatCount(unresolvedErrors) : '—',
       tone: unresolvedErrors > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Orphaned storage',
+      value: storageStats.data?.latest ? formatCount(orphanCount) : '—',
+      tone: orphanCount > 0 ? ('danger' as const) : ('default' as const)
     }
   ]
 
@@ -100,6 +111,7 @@ export default function IssuesClient() {
           description="GitHub Actions runs on main with a failing conclusion."
         />
         <SentryCard data={sentryIssues.data} />
+        <OrphanedStorageCard data={storageStats.data} />
       </div>
     </PageContainer>
   )

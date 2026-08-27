@@ -899,8 +899,9 @@ func (s *BookService) RemoveFromLibrary(
 		if remaining > 0 {
 			continue
 		}
-		if delErr := s.objectStore.Delete(ctx, f.StorageKey); delErr != nil {
-			s.logger.Warn("failed to delete book file from object store",
+		delErr := objectstore.DeleteWithRetry(ctx, s.objectStore, f.StorageKey)
+		if delErr != nil {
+			s.logger.Error("failed to delete book file from object store",
 				"key", f.StorageKey, "err", delErr)
 		}
 	}
@@ -919,8 +920,8 @@ func (s *BookService) RemoveFromLibrary(
 	}
 	if deleted {
 		for _, key := range []string{bookCoverKey(bookID), bookCoverMissingKey(bookID)} {
-			if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
-				s.logger.Warn("failed to delete book cover from object store",
+			if delErr := objectstore.DeleteWithRetry(ctx, s.objectStore, key); delErr != nil {
+				s.logger.Error("failed to delete book cover from object store",
 					"key", key, "err", delErr)
 			}
 		}
@@ -1195,8 +1196,8 @@ func (s *BookService) MergeBooks(
 		if remaining > 0 {
 			continue
 		}
-		if delErr := s.objectStore.Delete(ctx, key); delErr != nil {
-			s.logger.Warn("failed to delete book file from object store",
+		if delErr := objectstore.DeleteWithRetry(ctx, s.objectStore, key); delErr != nil {
+			s.logger.Error("failed to delete book file from object store",
 				"key", key, "err", delErr)
 		}
 	}

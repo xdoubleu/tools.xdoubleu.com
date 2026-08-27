@@ -258,6 +258,7 @@ func newCrossAppJobs(
 	githubClient github.Client,
 	notificationsSvc *notifications.Service,
 	notificationSettingsRepo *repositories.NotificationSettingsRepository,
+	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
 ) (
 	*jobs.IssueNotifierJob,
 	*repositories.TransactionLatencyRepository,
@@ -266,7 +267,7 @@ func newCrossAppJobs(
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
 		sentryClient, githubClient, notificationsSvc, notifiedIssuesRepo,
-		notificationSettingsRepo,
+		notificationSettingsRepo, storageSnapshotsRepo,
 	)
 
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
@@ -421,6 +422,7 @@ func NewApplication(
 	)
 
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
+	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
 	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
 		newCrossAppJobs(
 			db,
@@ -428,6 +430,7 @@ func NewApplication(
 			githubClient,
 			notificationsSvc,
 			notificationSettingsRepo,
+			storageSnapshotsRepo,
 		)
 
 	hostMetricsRepo := repositories.NewHostMetricsRepository(db)
@@ -459,7 +462,7 @@ func NewApplication(
 		usage:                         observability.NewUsageRecorder(logger, db),
 		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
 		usageRepo:                     repositories.NewUsageRepository(db),
-		storageRepo:                   repositories.NewStorageSnapshotsRepository(db),
+		storageRepo:                   storageSnapshotsRepo,
 		dbStatsRepo:                   repositories.NewDBStatsRepository(db),
 		hostMetricsRepo:               hostMetricsRepo,
 		logsRepo:                      logsRepo,

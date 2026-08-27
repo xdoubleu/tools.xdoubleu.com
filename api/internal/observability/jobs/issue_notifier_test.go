@@ -12,9 +12,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
@@ -166,6 +168,27 @@ func (alwaysEnabledSettings) IsEnabled(
 	return true, nil
 }
 
+// fakeStorageSnapshotGetter is a test double for
+// *repositories.StorageSnapshotsRepository's Latest method.
+type fakeStorageSnapshotGetter struct {
+	snap *models.StorageSnapshot
+	err  error
+}
+
+func (f fakeStorageSnapshotGetter) Latest(
+	_ context.Context,
+) (*models.StorageSnapshot, error) {
+	return f.snap, f.err
+}
+
+// noSnapshotGetter mirrors an empty global.storage_snapshots table, used by
+// every test not exercising notifyOrphans itself.
+//
+//nolint:gochecknoglobals // read-only test fixture, mirrors alwaysEnabledSettings{}
+var noSnapshotGetter = fakeStorageSnapshotGetter{
+	snap: nil, err: database.ErrResourceNotFound,
+}
+
 // erroringNotifiedRepo makes Exists always fail, for
 // TestIssueNotifierNotifiedExistsErrorPropagates.
 type erroringNotifiedRepo struct {
@@ -212,6 +235,7 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -235,6 +259,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -256,6 +281,7 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -276,6 +302,7 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -297,6 +324,7 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -311,6 +339,7 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		newFakeNotifiedRepo(),
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	assert.Equal(t, "notify-new-issues", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -330,6 +359,7 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -351,6 +381,7 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -374,6 +405,7 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -397,6 +429,7 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -423,6 +456,7 @@ func TestIssueNotifierGithubHandlesMultiplePRs(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -449,6 +483,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -473,6 +508,7 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -500,6 +536,7 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -522,6 +559,7 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -545,6 +583,7 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -567,6 +606,7 @@ func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -599,7 +639,14 @@ func TestIssueNotifierSkipsSentryWhenSourceDisabled(t *testing.T) {
 	}
 
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		settings,
+		noSnapshotGetter,
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -623,7 +670,14 @@ func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
 		},
 	}
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		settings,
+		noSnapshotGetter,
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -667,6 +721,7 @@ func TestIssueNotifierSendsForSecurityAlert(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -698,6 +753,7 @@ func TestIssueNotifierSecurityAlertDedupKeyIncludesType(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -727,6 +783,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedSecurityAlert(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -749,6 +806,7 @@ func TestIssueNotifierSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -774,11 +832,143 @@ func TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 		notifSvc,
 		notified,
 		alwaysEnabledSettings{},
+		noSnapshotGetter,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierSendsForNewOrphan(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	storage := fakeStorageSnapshotGetter{
+		//nolint:exhaustruct //only fields notifyOrphans reads are needed
+		snap: &models.StorageSnapshot{
+			ScannedAt:  time.Now(),
+			OrphanKeys: []string{"books/abc/def.epub"},
+		},
+		err: nil,
+	}
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		storage,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+	assert.True(t, notified.keys["orphan:books/abc/def.epub"])
+}
+
+func TestIssueNotifierSkipsAlreadyNotifiedOrphan(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notified.keys["orphan:books/abc/def.epub"] = true
+	notifSvc := testNotifications(t, mail)
+	storage := fakeStorageSnapshotGetter{
+		//nolint:exhaustruct //only fields notifyOrphans reads are needed
+		snap: &models.StorageSnapshot{
+			ScannedAt:  time.Now(),
+			OrphanKeys: []string{"books/abc/def.epub"},
+		},
+		err: nil,
+	}
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		storage,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierNoSnapshotYetSkipsSilently(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		sentry, gh, notifSvc, notified, alwaysEnabledSettings{}, noSnapshotGetter,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierOrphanSnapshotErrorLogsErrorAndSkipsSilently(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	logger, buf := testLoggerWithBuf()
+	storage := fakeStorageSnapshotGetter{snap: nil, err: assert.AnError}
+
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		storage,
+	)
+	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.Contains(t, buf.String(), "level=ERROR")
+}
+
+func TestIssueNotifierSkipsOrphansWhenSourceDisabled(t *testing.T) {
+	sentry := fakeSentryClient{issues: nil, err: nil}
+	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	storage := fakeStorageSnapshotGetter{
+		//nolint:exhaustruct //only fields notifyOrphans reads are needed
+		snap: &models.StorageSnapshot{
+			ScannedAt:  time.Now(),
+			OrphanKeys: []string{"books/abc/def.epub"},
+		},
+		err: nil,
+	}
+	//nolint:exhaustive //only enabled sources need to be listed here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues:         true,
+			repositories.NotificationSourceFailingDependencyPRs: true,
+			repositories.NotificationSourceSecurityAlerts:       true,
+		},
+	}
+
+	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings, storage)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["orphan:books/abc/def.epub"])
 }
 
 func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
@@ -801,7 +991,14 @@ func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
 		},
 	}
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings)
+	job := jobs.NewIssueNotifierJob(
+		sentry,
+		gh,
+		notifSvc,
+		notified,
+		settings,
+		noSnapshotGetter,
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 

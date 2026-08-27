@@ -20,6 +20,7 @@ const (
 	NotificationSourceUnhealthyFeeds       NotificationSource = "unhealthy_feeds"
 	NotificationSourceFailingMainCI        NotificationSource = "failing_main_ci"
 	NotificationSourceSecurityAlerts       NotificationSource = "security_alerts"
+	NotificationSourceOrphanedStorage      NotificationSource = "orphaned_storage"
 )
 
 // NotificationSetting is one row of global.notification_settings.

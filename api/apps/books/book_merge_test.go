@@ -2,6 +2,7 @@ package books_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/services"
+	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -52,19 +54,21 @@ func addMergeBook(
 	return ub
 }
 
+// insertBookFile seeds an "epub" book_files row for mergeTestUser — every
+// caller in this file merges within that one test user, so those two values
+// are hardcoded rather than threaded through as always-constant parameters.
 func insertBookFile(
 	t *testing.T,
-	userID string,
 	bookID uuid.UUID,
-	format, storageKey, checksum string,
+	storageKey, checksum string,
 ) {
 	t.Helper()
 	_, err := testDB.Exec(context.Background(), `
 		INSERT INTO books.book_files
 		    (book_id, user_id, format, storage_key, size_bytes, checksum,
 		     original_filename, status)
-		VALUES ($1, $2, $3, $4, 100, $5, 'test.epub', 'ready')
-	`, bookID, userID, format, storageKey, checksum)
+		VALUES ($1, $2, 'epub', $3, 100, $4, 'test.epub', 'ready')
+	`, bookID, mergeTestUser, storageKey, checksum)
 	require.NoError(t, err)
 }
 
@@ -207,9 +211,7 @@ func TestMergeBooks_RepointsBookFiles(t *testing.T) {
 
 	insertBookFile(
 		t,
-		mergeTestUser,
 		loser.BookID,
-		"epub",
 		"users/merge/loser.epub",
 		"abc123",
 	)
@@ -254,17 +256,13 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 	// Same format + checksum on both — the loser file is a duplicate.
 	insertBookFile(
 		t,
-		mergeTestUser,
 		winner.BookID,
-		"epub",
 		"users/merge/winner.epub",
 		"dupchk",
 	)
 	insertBookFile(
 		t,
-		mergeTestUser,
 		loser.BookID,
-		"epub",
 		"users/merge/loser-dup.epub",
 		"dupchk",
 	)
@@ -285,6 +283,44 @@ func TestMergeBooks_DeduplicatesIdenticalFiles(t *testing.T) {
 	).Scan(&fileCount)
 	require.NoError(t, err)
 	assert.Equal(t, 1, fileCount)
+}
+
+// TestMergeBooks_R2DeleteFailsAfterRetries_LogsErrorButSucceeds mirrors
+// TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceeds
+// for the merge path's own refcount-safe R2 cleanup: a delete that keeps
+// failing must not fail the merge (issue #1274) — the object is left for
+// the daily storage scan to catch.
+func TestMergeBooks_R2DeleteFailsAfterRetries_LogsErrorButSucceeds(t *testing.T) {
+	cleanupMergeUser(t)
+	objectstore.SetBackoffBase(time.Millisecond)
+	t.Cleanup(func() { objectstore.SetBackoffBase(500 * time.Millisecond) })
+
+	isbn1 := "9780005555551"
+	isbn2 := "9780005555552"
+	winner := addMergeBook(
+		t,
+		"MergeDeleteFailA",
+		isbn1,
+		models.StatusToRead,
+		[]string{},
+	)
+	loser := addMergeBook(t, "MergeDeleteFailB", isbn2, models.StatusToRead, []string{})
+
+	const loserKey = "users/merge/delete-fails-loser.epub"
+	fakeStore.PutAt(loserKey, []byte("loser content"), time.Now())
+	insertBookFile(t, loser.BookID, loserKey, "delfailchk")
+
+	fakeStore.FailNextDeletes(4, errors.New("transient R2 failure"))
+
+	_, _, err := testApp.Services.Books.MergeBooks(
+		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
+		nil, nil, nil,
+	)
+	require.NoError(t, err, "a leaked R2 object must not fail the merge")
+
+	exists, err := fakeStore.Exists(context.Background(), loserKey)
+	require.NoError(t, err)
+	assert.True(t, exists, "object survives once every retry attempt fails")
 }
 
 func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
