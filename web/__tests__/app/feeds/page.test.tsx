@@ -5,16 +5,15 @@ jest.mock('@/components/feeds/FeedReaderClient', () => () => <div data-testid="f
 
 jest.mock('@/components/feeds/FeedsHeader', () => () => <div data-testid="feeds-header" />)
 
-jest.mock(
-  '@/components/feeds/UnhealthyFeedsSection',
-  () => () => <div data-testid="unhealthy-feeds-section" />
-)
+jest.mock('@/components/feeds/UnhealthyFeedsSection', () => () => (
+  <div data-testid="unhealthy-feeds-section" />
+))
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
 }))
 
-const mockFetchOrNull = jest.fn(async () => null)
+const mockFetchOrNull = jest.fn<Promise<unknown>, [() => unknown]>(async () => null)
 jest.mock('@/lib/server/fetchers', () => ({
   fetchOrNull: (fn: () => unknown) => mockFetchOrNull(fn)
 }))
@@ -52,9 +51,7 @@ describe('FeedsPage', () => {
   })
 
   it('renders when the server prefetch returns data for both feed items and feeds', async () => {
-    mockFetchOrNull
-      .mockResolvedValueOnce({ items: [] })
-      .mockResolvedValueOnce({ feeds: [] })
+    mockFetchOrNull.mockResolvedValueOnce({ items: [] }).mockResolvedValueOnce({ feeds: [] })
     render(await FeedsPage())
     expect(screen.getByTestId('feed-reader')).toBeInTheDocument()
   })
