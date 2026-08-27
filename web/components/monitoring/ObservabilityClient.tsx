@@ -14,14 +14,13 @@ import {
   useSlowTransactions,
   useHostMetrics
 } from '@/hooks/useMonitoring'
-import { formatBytes, formatCount } from '@/lib/observability'
-import StatTiles from './StatTiles'
+import CollapsibleSection from './CollapsibleSection'
 import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
 import UsageCard from './UsageCard'
-import SlowTransactionsCard, { regressionDangerThreshold } from './SlowTransactionsCard'
-import HostMetricsCard, { hostMetricTone } from './HostMetricsCard'
+import SlowTransactionsCard from './SlowTransactionsCard'
+import HostMetricsCard from './HostMetricsCard'
 import LogsCard from './LogsCard'
 
 const WINDOW_OPTIONS = [7, 30, 90]
@@ -50,59 +49,6 @@ export default function ObservabilityClient() {
     ])
     setIsRefreshing(false)
   }
-
-  const latest = storageStats.data?.latest
-  const failingJobs = (jobStats.data?.stats ?? []).filter((s) => Number(s.failedRuns) > 0).length
-
-  const hostMetricValues = hostMetrics.data
-    ? [hostMetrics.data.cpuPercent, hostMetrics.data.memoryPercent, hostMetrics.data.diskPercent]
-    : []
-  const overThresholdMetrics = hostMetricValues.filter(
-    (value) => hostMetricTone(value) !== 'default'
-  ).length
-
-  const regressingTransactions = (slowTransactions.data?.trending ?? []).filter(
-    (t) => t.pctChange > regressionDangerThreshold
-  ).length
-
-  const tiles = [
-    {
-      label: 'R2 storage',
-      value: latest ? formatBytes(latest.totalSizeBytes) : '—'
-    },
-    {
-      label: 'Database',
-      value: databaseStats.data ? formatBytes(databaseStats.data.totalSizeBytes) : '—'
-    },
-    {
-      label: 'Orphaned',
-      value: latest ? formatBytes(latest.orphanSizeBytes) : '—',
-      tone: latest && Number(latest.orphanCount) > 0 ? ('danger' as const) : ('default' as const)
-    },
-    {
-      label: 'Jobs failing',
-      value: formatCount(failingJobs),
-      tone: failingJobs > 0 ? ('danger' as const) : ('default' as const)
-    },
-    {
-      label: 'CPU',
-      value: hostMetrics.data ? `${hostMetrics.data.cpuPercent.toFixed(1)}%` : '—'
-    },
-    {
-      label: 'Memory',
-      value: hostMetrics.data ? `${hostMetrics.data.memoryPercent.toFixed(1)}%` : '—'
-    },
-    {
-      label: 'Over threshold',
-      value: hostMetrics.data ? formatCount(overThresholdMetrics) : '—',
-      tone: overThresholdMetrics > 0 ? ('danger' as const) : ('default' as const)
-    },
-    {
-      label: 'Regressing',
-      value: slowTransactions.data ? formatCount(regressingTransactions) : '—',
-      tone: regressingTransactions > 0 ? ('danger' as const) : ('default' as const)
-    }
-  ]
 
   return (
     <PageContainer className="p-6">
@@ -136,16 +82,28 @@ export default function ObservabilityClient() {
         </div>
       </div>
 
-      <StatTiles tiles={tiles} />
-
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <StorageCard data={storageStats.data} />
-        <DatabaseCard data={databaseStats.data} />
-        <JobsCard data={jobStats.data} />
-        <UsageCard data={usageStats.data} />
-        <SlowTransactionsCard data={slowTransactions.data} />
-        <HostMetricsCard data={hostMetrics.data} />
-        <LogsCard />
+      <div className="mt-6 space-y-4">
+        <CollapsibleSection title="Storage">
+          <StorageCard data={storageStats.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Database">
+          <DatabaseCard data={databaseStats.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Jobs">
+          <JobsCard data={jobStats.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Usage">
+          <UsageCard data={usageStats.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Slow Transactions">
+          <SlowTransactionsCard data={slowTransactions.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Host Metrics">
+          <HostMetricsCard data={hostMetrics.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Logs">
+          <LogsCard />
+        </CollapsibleSection>
       </div>
     </PageContainer>
   )
