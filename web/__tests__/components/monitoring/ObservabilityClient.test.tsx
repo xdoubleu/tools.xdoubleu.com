@@ -23,7 +23,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useJobStats: (d: number) => mockUseJobStats(d),
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
-  useDatabaseStats: () => mockUseDatabaseStats(),
+  useDatabaseStats: (d: number) => mockUseDatabaseStats(d),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useHostMetrics: () => mockUseHostMetrics(),
   useLogs: () => mockUseLogs()
@@ -124,12 +124,14 @@ describe('ObservabilityClient', () => {
     expect(screen.queryByText(/orphaned/)).not.toBeInTheDocument()
   })
 
-  it('refetches job stats when the window changes', () => {
+  it('refetches job and database stats when the window changes', () => {
     render(<ObservabilityClient />)
     expect(mockUseJobStats).toHaveBeenCalledWith(30)
+    expect(mockUseDatabaseStats).toHaveBeenCalledWith(30)
 
     fireEvent.change(screen.getByLabelText('Time window'), { target: { value: '7' } })
     expect(mockUseJobStats).toHaveBeenCalledWith(7)
+    expect(mockUseDatabaseStats).toHaveBeenCalledWith(7)
   })
 
   it('links to the monitoring settings page and back to issues', () => {

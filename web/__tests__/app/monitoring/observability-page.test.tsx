@@ -40,4 +40,12 @@ describe('MonitoringObservabilityPage', () => {
     render(await MonitoringObservabilityPage())
     expect(screen.getByTestId('observability-client')).toBeInTheDocument()
   })
+
+  it('renders when every prefetch returns nothing', async () => {
+    const { fetchOrNull } = jest.requireMock('@/lib/server/fetchers')
+    fetchOrNull.mockImplementation(async () => null)
+
+    render(await MonitoringObservabilityPage())
+    expect(screen.getByTestId('observability-client')).toBeInTheDocument()
+  })
 })

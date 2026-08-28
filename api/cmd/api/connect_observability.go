@@ -271,13 +271,13 @@ func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSna
 
 func (h *obsConnectHandler) GetDatabaseStats(
 	ctx context.Context,
-	_ *connect.Request[observabilityv1.GetDatabaseStatsRequest],
+	req *connect.Request[observabilityv1.GetDatabaseStatsRequest],
 ) (*connect.Response[observabilityv1.GetDatabaseStatsResponse], error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	resp, err := h.databaseStats(ctx)
+	resp, err := h.databaseStats(ctx, req.Msg.GetWindowDays())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -287,12 +287,17 @@ func (h *obsConnectHandler) GetDatabaseStats(
 
 func (h *obsConnectHandler) databaseStats(
 	ctx context.Context,
+	windowDays int32,
 ) (*observabilityv1.GetDatabaseStatsResponse, error) {
 	total, err := h.app.dbStatsRepo.TotalSize(ctx)
 	if err != nil {
 		return nil, err
 	}
 	schemas, err := h.app.dbStatsRepo.SchemaSizes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	growth, err := h.app.dbSizeSamplesRepo.Growth(ctx, windowSince(windowDays))
 	if err != nil {
 		return nil, err
 	}
@@ -306,8 +311,20 @@ func (h *obsConnectHandler) databaseStats(
 		}
 	}
 
+	protoGrowth := make([]*observabilityv1.TableGrowth, len(growth))
+	for i, g := range growth {
+		protoGrowth[i] = &observabilityv1.TableGrowth{
+			SchemaName:       g.SchemaName,
+			TableName:        g.TableName,
+			CurrentSizeBytes: g.CurrentSizeBytes,
+			DeltaBytes:       g.DeltaBytes,
+			PctChange:        g.PctChange,
+		}
+	}
+
 	return &observabilityv1.GetDatabaseStatsResponse{
 		TotalSizeBytes: total,
 		Schemas:        protoSchemas,
+		TableGrowth:    protoGrowth,
 	}, nil
 }

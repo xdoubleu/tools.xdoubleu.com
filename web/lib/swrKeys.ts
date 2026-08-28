@@ -10,7 +10,8 @@ export const swrKeys = {
   userManagementUsers: '/user-management/users',
   monitoringJobStats: (windowDays: number) => ['/monitoring/job-stats', windowDays] as const,
   monitoringStorageStats: '/monitoring/storage-stats',
-  monitoringDatabaseStats: '/monitoring/database-stats',
+  monitoringDatabaseStats: (windowDays: number) =>
+    ['/monitoring/database-stats', windowDays] as const,
   monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringWorkflowRuns: '/monitoring/workflow-runs',
   monitoringSecurityAlerts: '/monitoring/security-alerts',

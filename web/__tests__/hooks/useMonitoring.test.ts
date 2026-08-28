@@ -88,9 +88,12 @@ describe('useMonitoring', () => {
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringStorageStats, expect.any(Function))
   })
 
-  it('keys database stats statically', () => {
-    renderHook(() => useDatabaseStats())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDatabaseStats, expect.any(Function))
+  it('keys database stats by window', () => {
+    renderHook(() => useDatabaseStats(30))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringDatabaseStats(30),
+      expect.any(Function)
+    )
   })
 
   it('keys failing pull requests statically', () => {

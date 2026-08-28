@@ -234,6 +234,45 @@ func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
 	assert.True(t, hasGlobal)
 }
 
+func TestObservabilityGetDatabaseStats_ReportsGrowth(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	_, err := testApp.db.Exec(
+		context.Background(), "DELETE FROM global.db_size_samples",
+	)
+	require.NoError(t, err)
+	now := time.Now()
+	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
+		context.Background(), now.Add(-time.Hour),
+		[]models.TableSizeSample{
+			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1000},
+		},
+	))
+	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
+		context.Background(), now,
+		[]models.TableSizeSample{
+			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1500},
+		},
+	))
+
+	client := observabilityClient(t)
+	req := connect.NewRequest(&observabilityv1.GetDatabaseStatsRequest{WindowDays: 1})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetDatabaseStats(context.Background(), req)
+	require.NoError(t, err)
+
+	var found bool
+	for _, g := range resp.Msg.TableGrowth {
+		if g.SchemaName == "global" && g.TableName == "job_runs" {
+			found = true
+			assert.EqualValues(t, 1500, g.CurrentSizeBytes)
+			assert.EqualValues(t, 500, g.DeltaBytes)
+		}
+	}
+	assert.True(t, found)
+}
+
 func TestObservabilityGetDatabaseStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)

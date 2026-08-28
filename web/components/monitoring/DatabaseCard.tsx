@@ -15,8 +15,14 @@ import { Badge } from '@/components/ui/badge'
 import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { CATEGORICAL_PALETTE, chartTooltipStyle, formatBytes } from '@/lib/observability'
 
+function formatPctChange(pctChange: number): string {
+  const sign = pctChange >= 0 ? '+' : ''
+  return `${sign}${Math.round(pctChange * 100)}%`
+}
+
 export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse }) {
   const schemas = data?.schemas ?? []
+  const growth = data?.tableGrowth ?? []
   const chartData = schemas.map((s) => ({
     name: s.name,
     size: Number(s.sizeBytes),
@@ -85,6 +91,44 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
               </table>
             </div>
           </>
+        )}
+
+        {growth.length > 0 && (
+          <div className="mt-5">
+            <h4 className="mb-2 text-sm font-semibold text-subtle">Growing tables</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-border">
+                  <tr>
+                    <th className="py-2 pr-3 font-semibold text-subtle">Table</th>
+                    <th className="py-2 pr-3 text-right font-semibold text-subtle">Size</th>
+                    <th className="py-2 pr-3 text-right font-semibold text-subtle">Change</th>
+                    <th className="py-2 text-right font-semibold text-subtle">Δ%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {growth.map((g) => (
+                    <tr
+                      key={`${g.schemaName}.${g.tableName}`}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="py-2 pr-3 font-mono text-xs text-fg">
+                        {g.schemaName}.{g.tableName}
+                      </td>
+                      <td className="py-2 pr-3 text-right text-fg">
+                        {formatBytes(g.currentSizeBytes)}
+                      </td>
+                      <td className="py-2 pr-3 text-right text-fg">
+                        {g.deltaBytes >= 0 ? '+' : '-'}
+                        {formatBytes(Math.abs(Number(g.deltaBytes)))}
+                      </td>
+                      <td className="py-2 text-right text-fg">{formatPctChange(g.pctChange)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

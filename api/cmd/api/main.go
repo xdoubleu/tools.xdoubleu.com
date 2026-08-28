@@ -59,6 +59,8 @@ type Application struct {
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
 	dbStatsRepo                   *repositories.DBStatsRepository
+	dbSizeSamplesRepo             *repositories.DBSizeSamplesRepository
+	dbSizeSnapshotJob             *jobs.DBSizeSnapshotJob
 	hostMetricsRepo               *repositories.HostMetricsRepository
 	logsRepo                      *repositories.LogsRepository
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
@@ -375,6 +377,11 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
+	if err := app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.dbSizeSnapshotJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
 	return app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.thresholdAlertJob, app.db), noopCallback,
 	)
@@ -453,6 +460,10 @@ func NewApplication(
 		db, githubClient, notificationsSvc, notificationSettingsRepo,
 	)
 
+	dbStatsRepo := repositories.NewDBStatsRepository(db)
+	dbSizeSamplesRepo := repositories.NewDBSizeSamplesRepository(db)
+	dbSizeSnapshotJob := jobs.NewDBSizeSnapshotJob(dbStatsRepo, dbSizeSamplesRepo)
+
 	alertStatesRepo := repositories.NewAlertStatesRepository(db)
 	thresholdAlertJob := jobs.NewThresholdAlertJob(
 		hostMetricsRepo, storageSnapshotsRepo, workflowRunsRepo,
@@ -476,7 +487,9 @@ func NewApplication(
 		jobRunsRepo:                   repositories.NewJobRunsRepository(db),
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
-		dbStatsRepo:                   repositories.NewDBStatsRepository(db),
+		dbStatsRepo:                   dbStatsRepo,
+		dbSizeSamplesRepo:             dbSizeSamplesRepo,
+		dbSizeSnapshotJob:             dbSizeSnapshotJob,
 		hostMetricsRepo:               hostMetricsRepo,
 		logsRepo:                      logsRepo,
 		notificationSettingsRepo:      notificationSettingsRepo,

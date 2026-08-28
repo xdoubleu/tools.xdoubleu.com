@@ -15,17 +15,19 @@ export default async function MonitoringObservabilityPage() {
   const [jobStats, storageStats, databaseStats, hostMetrics] = await Promise.all([
     fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getStorageStats({})),
-    fetchOrNull(() => client.getDatabaseStats({})),
+    fetchOrNull(() => client.getDatabaseStats({ windowDays: DEFAULT_WINDOW_DAYS })),
     fetchOrNull(() => client.getHostMetrics({}))
   ])
 
   const fallback: Record<string, unknown> = {}
   if (storageStats) fallback[swrKeys.monitoringStorageStats] = storageStats
-  if (databaseStats) fallback[swrKeys.monitoringDatabaseStats] = databaseStats
   if (hostMetrics) fallback[swrKeys.monitoringHostMetrics] = hostMetrics
 
   const keyed: [readonly unknown[], unknown][] = []
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])
+  if (databaseStats) {
+    keyed.push([swrKeys.monitoringDatabaseStats(DEFAULT_WINDOW_DAYS), databaseStats])
+  }
 
   return (
     <SWRFallback fallback={fallback} keyed={keyed}>

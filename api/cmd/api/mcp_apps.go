@@ -135,9 +135,11 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			return h.storageStats(ctx)
 		})
 	addObsTool(srv, "get_database_stats",
-		"Total database size and per-schema sizes (live pg_* queries).",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.databaseStats(ctx)
+		"Total database size and per-schema sizes (live pg_* queries), plus "+
+			"per-table growth over the requested window (global.db_size_samples) "+
+			"— sort by delta_bytes to find which table is growing fastest.",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.databaseStats(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_failing_pull_requests",
 		"Open pull requests with at least one failing CI check.",
@@ -203,6 +205,13 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, a logsArgs) (proto.Message, error) {
 			return h.logs(ctx, a.Source, a.MinLevel, a.Since)
 		})
+	registerAlertMCPTools(srv, h)
+}
+
+// registerAlertMCPTools registers get_notification_settings and
+// get_alert_states, split out of registerObservabilityMCPTools to keep that
+// function under the repo's function-length lint limit.
+func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_notification_settings",
 		"Per-source enabled/disabled state of the email notifications "+
 			"IssueNotifierJob/WeeklyDigestJob send (sentry_issues, "+
@@ -211,14 +220,6 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.notificationSettings(ctx)
 		})
-
-	registerAlertMCPTools(srv, h)
-}
-
-// registerAlertMCPTools registers the threshold-alert observability tool,
-// split out of registerObservabilityMCPTools to keep that function under
-// the repo's function-length lint limit.
-func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_alert_states",
 		"Current breach/recovery state of each threshold alert rule (host "+
 			"CPU/memory/disk, R2 usage, CI duration) — its configured "+
