@@ -30,7 +30,7 @@ export default function ObservabilityClient() {
   const jobStats = useJobStats(windowDays)
   const storageStats = useStorageStats()
   const triggerStorageScan = useTriggerStorageScan()
-  const databaseStats = useDatabaseStats()
+  const databaseStats = useDatabaseStats(windowDays)
   const slowTransactions = useSlowTransactions()
   const hostMetrics = useHostMetrics()
 

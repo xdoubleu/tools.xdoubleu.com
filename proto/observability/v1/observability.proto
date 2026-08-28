@@ -123,11 +123,26 @@ message SchemaStat {
   int64 table_count = 3;
 }
 
-message GetDatabaseStatsRequest {}
+message GetDatabaseStatsRequest {
+  int32 window_days = 1;
+}
+
+// TableGrowth compares one table's current on-disk size against its
+// earliest sampled size within the requested window (global.db_size_samples,
+// issue #1282). A table with fewer than two samples in the window is
+// omitted rather than reported as a false zero delta.
+message TableGrowth {
+  string schema_name = 1;
+  string table_name = 2;
+  int64 current_size_bytes = 3;
+  int64 delta_bytes = 4;
+  double pct_change = 5;
+}
 
 message GetDatabaseStatsResponse {
   int64 total_size_bytes = 1;
   repeated SchemaStat schemas = 2;
+  repeated TableGrowth table_growth = 3;
 }
 
 // FailingCheck is a single non-passing CI check run on a pull request's head

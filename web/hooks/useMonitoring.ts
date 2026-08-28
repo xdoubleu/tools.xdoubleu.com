@@ -50,10 +50,10 @@ export function useTriggerStorageScan() {
   }, [client])
 }
 
-export function useDatabaseStats() {
+export function useDatabaseStats(windowDays: number) {
   const client = createServiceClient(ObservabilityService)
-  return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats, () =>
-    client.getDatabaseStats({})
+  return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats(windowDays), () =>
+    client.getDatabaseStats({ windowDays })
   )
 }
 

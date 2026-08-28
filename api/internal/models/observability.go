@@ -142,3 +142,23 @@ type TransactionTrend struct {
 	RecentAvgP95Ms float64
 	PctChange      float64
 }
+
+// TableSizeSample is one table's on-disk size at sampling time, scraped live
+// from pg_total_relation_size by DBSizeSnapshotJob (issue #1282).
+type TableSizeSample struct {
+	SchemaName string
+	TableName  string
+	SizeBytes  int64
+}
+
+// TableSizeGrowth compares one table's current size against its earliest
+// recorded size within a requested window: DeltaBytes/PctChange is the
+// growth from EarliestSizeBytes to CurrentSizeBytes.
+type TableSizeGrowth struct {
+	SchemaName        string
+	TableName         string
+	CurrentSizeBytes  int64
+	EarliestSizeBytes int64
+	DeltaBytes        int64
+	PctChange         float64
+}
