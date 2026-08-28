@@ -61,7 +61,7 @@ func (r *DBSizeSamplesRepository) Growth(
 			ORDER BY schema_name, table_name, sampled_at DESC
 		), earliest AS (
 			SELECT DISTINCT ON (schema_name, table_name)
-				schema_name, table_name, size_bytes
+				schema_name, table_name, size_bytes, sampled_at
 			FROM global.db_size_samples
 			WHERE sampled_at >= $1
 			ORDER BY schema_name, table_name, sampled_at ASC
