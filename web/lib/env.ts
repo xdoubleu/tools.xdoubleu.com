@@ -2,7 +2,7 @@ declare global {
   interface Window {
     __ENV__: {
       API_URL: string
-      SENTRY_DSN: string
+      SENTRY_DSN_WEB: string
       RELEASE: string
       KOBO_GATEWAY_RELEASE: string
     }
@@ -15,8 +15,8 @@ export function getApiUrl(): string {
 }
 
 export function getSentryDsn(): string {
-  if (typeof window !== 'undefined') return window.__ENV__?.SENTRY_DSN ?? ''
-  return process.env.SENTRY_DSN ?? ''
+  if (typeof window !== 'undefined') return window.__ENV__?.SENTRY_DSN_WEB ?? ''
+  return process.env.SENTRY_DSN_WEB ?? ''
 }
 
 export function getRelease(): string {

@@ -17,7 +17,7 @@ describe('sentry.server.config', () => {
   })
 
   it('initializes sentry with config', () => {
-    process.env.SENTRY_DSN = 'https://example@sentry.io/123'
+    process.env.SENTRY_DSN_WEB = 'https://example@sentry.io/123'
     process.env.NEXT_PUBLIC_RELEASE = 'v1.0.0'
 
     require('../sentry.server.config')

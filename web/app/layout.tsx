@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="mask-icon" href="/icon.svg" color="#7c3aed" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN: process.env.SENTRY_DSN ?? '', RELEASE: process.env.RELEASE ?? 'dev', KOBO_GATEWAY_RELEASE: process.env.KOBO_GATEWAY_RELEASE ?? 'dev' })}`
+            __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN_WEB: process.env.SENTRY_DSN_WEB ?? '', RELEASE: process.env.RELEASE ?? 'dev', KOBO_GATEWAY_RELEASE: process.env.KOBO_GATEWAY_RELEASE ?? 'dev' })}`
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
