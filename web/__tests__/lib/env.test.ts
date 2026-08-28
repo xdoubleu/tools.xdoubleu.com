@@ -13,7 +13,7 @@ describe('getRelease', () => {
     process.env = { ...originalEnv }
     // Reset window.__ENV__ for each test
     if (typeof window !== 'undefined') {
-      window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+      window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
     }
   })
 
@@ -25,7 +25,7 @@ describe('getRelease', () => {
   it('returns window.__ENV__.RELEASE when available', () => {
     window.__ENV__ = {
       API_URL: '',
-      SENTRY_DSN: '',
+      SENTRY_DSN_WEB: '',
       RELEASE: 'abc123def456',
       KOBO_GATEWAY_RELEASE: ''
     }
@@ -35,14 +35,14 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when window.__ENV__.RELEASE is not set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
 
     const release = getRelease()
     expect(release).toBe('')
   })
 
   it('returns empty string when window.__ENV__ is not defined', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
 
     const release = getRelease()
     expect(release).toBe('')
@@ -51,7 +51,7 @@ describe('getRelease', () => {
   it('prefers window.__ENV__.RELEASE over process.env.RELEASE in browser', () => {
     window.__ENV__ = {
       API_URL: '',
-      SENTRY_DSN: '',
+      SENTRY_DSN_WEB: '',
       RELEASE: 'browser-release',
       KOBO_GATEWAY_RELEASE: ''
     }
@@ -62,7 +62,7 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when neither is set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
     delete process.env.RELEASE
 
     const release = getRelease()
@@ -87,7 +87,7 @@ describe('getKoboGatewayRelease', () => {
   it('returns window.__ENV__.KOBO_GATEWAY_RELEASE when available', () => {
     window.__ENV__ = {
       API_URL: '',
-      SENTRY_DSN: '',
+      SENTRY_DSN_WEB: '',
       RELEASE: '',
       KOBO_GATEWAY_RELEASE: 'def789abc012'
     }
@@ -96,7 +96,7 @@ describe('getKoboGatewayRelease', () => {
   })
 
   it('defaults to dev when window.__ENV__.KOBO_GATEWAY_RELEASE is not set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
 
     expect(getKoboGatewayRelease()).toBe('')
   })
@@ -117,7 +117,7 @@ describe('getApiUrl', () => {
   it('returns window.__ENV__.API_URL when available', () => {
     window.__ENV__ = {
       API_URL: 'https://api.example.com',
-      SENTRY_DSN: '',
+      SENTRY_DSN_WEB: '',
       RELEASE: '',
       KOBO_GATEWAY_RELEASE: ''
     }
@@ -132,10 +132,10 @@ describe('getSentryDsn', () => {
     jest.resetModules()
   })
 
-  it('returns window.__ENV__.SENTRY_DSN when available', () => {
+  it('returns window.__ENV__.SENTRY_DSN_WEB when available', () => {
     window.__ENV__ = {
       API_URL: '',
-      SENTRY_DSN: 'https://sentry.example.com/dsn',
+      SENTRY_DSN_WEB: 'https://sentry.example.com/dsn',
       RELEASE: '',
       KOBO_GATEWAY_RELEASE: ''
     }

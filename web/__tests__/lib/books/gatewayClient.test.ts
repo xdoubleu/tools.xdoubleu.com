@@ -162,7 +162,7 @@ describe('gatewayNeedsUpdate', () => {
   function withEnv(koboGatewayRelease: string) {
     window.__ENV__ = {
       API_URL: '',
-      SENTRY_DSN: '',
+      SENTRY_DSN_WEB: '',
       RELEASE: '',
       KOBO_GATEWAY_RELEASE: koboGatewayRelease
     }

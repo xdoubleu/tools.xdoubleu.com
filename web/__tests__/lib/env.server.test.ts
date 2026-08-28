@@ -25,8 +25,8 @@ it('getApiUrl reads process.env.API_URL on the server', () => {
   expect(getApiUrl()).toBe('https://api.example.com')
 })
 
-it('getSentryDsn reads process.env.SENTRY_DSN on the server', () => {
-  process.env.SENTRY_DSN = 'https://sentry.example.com/dsn'
+it('getSentryDsn reads process.env.SENTRY_DSN_WEB on the server', () => {
+  process.env.SENTRY_DSN_WEB = 'https://sentry.example.com/dsn'
   expect(getSentryDsn()).toBe('https://sentry.example.com/dsn')
 })
 

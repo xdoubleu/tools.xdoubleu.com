@@ -28,7 +28,6 @@ type Config struct {
 	WebURL        string
 	APIURL        string
 	SentryDsn     string
-	SentryDsnWeb  string
 	SampleRate    float64
 	AccessExpiry  string
 	RefreshExpiry string
@@ -219,7 +218,6 @@ func New(logger *slog.Logger) Config {
 	cfg.WebURL = p.envStr("WEB_URL", "http://localhost:3000")
 	cfg.APIURL = p.envStr("API_URL", "http://localhost:8000")
 	cfg.SentryDsn = p.envSecret("SENTRY_DSN", "")
-	cfg.SentryDsnWeb = p.envSecret("SENTRY_DSN_WEB", "")
 	cfg.SampleRate = p.envFloat("SAMPLE_RATE", 1.0)
 	cfg.AccessExpiry = p.envStr("ACCESS_EXPIRY", "1h")
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
