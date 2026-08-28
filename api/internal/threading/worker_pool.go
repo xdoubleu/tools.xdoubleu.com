@@ -2,7 +2,6 @@ package threading
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"sync"
 
@@ -77,10 +76,9 @@ func (pool *WorkerPool) IsDoingWork() bool {
 // Start starts [Worker]s of a [WorkerPool] if they weren't active yet.
 func (pool *WorkerPool) Start() {
 	for i := range pool.workers {
-		go sentrytools.GoRoutineWrapper(
+		go sentrytools.SetupGoRoutineHub(
 			pool.ctx,
 			pool.logger,
-			fmt.Sprintf("Worker %d", i),
 			pool.workers[i].Run,
 		)
 	}

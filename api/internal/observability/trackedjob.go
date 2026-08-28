@@ -7,7 +7,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
+
+	"github.com/getsentry/sentry-go"
 
 	"tools.xdoubleu.com/internal/database/postgres"
 	essentialogger "tools.xdoubleu.com/internal/logging"
@@ -56,9 +59,24 @@ func (j *TrackedJob) ID() string {
 func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
 	start := time.Now()
 
+	// One transaction per run, not per worker: a worker loop lives for the
+	// process lifetime, so a transaction started there would never finish
+	// and every job's spans would pile up underneath it unbounded.
+	transaction := sentry.StartTransaction(
+		ctx,
+		j.inner.ID(),
+		sentry.WithOpName("job.run"),
+	)
+	transaction.Status = sentry.HTTPtoSpanStatus(http.StatusOK)
+	ctx = transaction.Context()
+	defer transaction.Finish()
+
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("job panicked: %v", r)
+		}
+		if err != nil {
+			transaction.Status = sentry.HTTPtoSpanStatus(http.StatusInternalServerError)
 		}
 		j.record(ctx, logger, start, err)
 	}()
