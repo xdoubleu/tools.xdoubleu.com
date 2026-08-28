@@ -7,13 +7,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/sentrytools"
 	"tools.xdoubleu.com/internal/threading"
 )
+
+// newSentryTestCtx returns a context carrying a hub whose transport captures
+// every finished transaction event, and the transport to read them back
+// from. TracesSampleRate/EnableTracing must both be set or sentry-go drops
+// transactions before they ever reach the transport (see Span.sample).
+func newSentryTestCtx(t *testing.T) (context.Context, *sentry.Hub) {
+	t.Helper()
+
+	client, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:              "http://whatever@example.com/1337",
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+		Transport:        sentrytools.MockedSentryClientOptions().Transport,
+	})
+	require.NoError(t, err)
+
+	hub := sentry.NewHub(client, sentry.NewScope())
+	return sentry.SetHubOnContext(t.Context(), hub), hub
+}
 
 type fakeInserter struct {
 	runs      []models.JobRun
@@ -112,6 +133,38 @@ func TestTrackedJobRecoversPanic(t *testing.T) {
 	require.Len(t, repo.runs, 1)
 	assert.False(t, repo.runs[0].Success)
 	assert.Contains(t, repo.runs[0].Error, "kaboom")
+}
+
+func TestTrackedJobRun_StartsAndFinishesTransactionNamedForJobOnSuccess(t *testing.T) {
+	ctx, hub := newSentryTestCtx(t)
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: nil, panics: false}, repo)
+
+	err := job.Run(ctx, logging.NewNopLogger())
+	require.NoError(t, err)
+
+	events := sentrytools.MockedHubEvents(hub)
+	require.Len(t, events, 1)
+	assert.Equal(t, "fake", events[0].Transaction)
+	trace, ok := events[0].Contexts["trace"]
+	require.True(t, ok)
+	assert.Equal(t, sentry.SpanStatusOK, trace["status"])
+}
+
+func TestTrackedJobRun_StartsAndFinishesTransactionNamedForJobOnFailure(t *testing.T) {
+	ctx, hub := newSentryTestCtx(t)
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: errors.New("boom"), panics: false}, repo)
+
+	err := job.Run(ctx, logging.NewNopLogger())
+	require.EqualError(t, err, "boom")
+
+	events := sentrytools.MockedHubEvents(hub)
+	require.Len(t, events, 1)
+	assert.Equal(t, "fake", events[0].Transaction)
+	trace, ok := events[0].Contexts["trace"]
+	require.True(t, ok)
+	assert.Equal(t, sentry.SpanStatusInternalError, trace["status"])
 }
 
 func TestTrackedJobInsertFailureDoesNotFailJob(t *testing.T) {
