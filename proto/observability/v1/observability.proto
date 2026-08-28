@@ -38,6 +38,7 @@ service ObservabilityService {
       returns (GetNotificationSettingsResponse);
   rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest)
       returns (UpdateNotificationSettingsResponse);
+  rpc GetAlertStates(GetAlertStatesRequest) returns (GetAlertStatesResponse);
 }
 
 message JobStat {
@@ -488,3 +489,21 @@ message UpdateNotificationSettingsRequest {
 }
 
 message UpdateNotificationSettingsResponse {}
+
+// AlertState is one threshold rule's breach/recovery state
+// (jobs.ThresholdAlertJob, issue #1283) — current_value/threshold are
+// refreshed on every evaluation, not just on a breach/recovery transition.
+message AlertState {
+  string rule_key = 1;
+  bool breaching = 2;
+  string since = 3;             // RFC3339, empty if not breaching
+  string last_notified_at = 4;  // RFC3339, empty if never notified
+  double current_value = 5;
+  double threshold = 6;
+}
+
+message GetAlertStatesRequest {}
+
+message GetAlertStatesResponse {
+  repeated AlertState states = 1;
+}

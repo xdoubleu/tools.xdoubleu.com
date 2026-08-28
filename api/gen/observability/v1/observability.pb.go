@@ -3947,6 +3947,173 @@ func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{65}
 }
 
+// AlertState is one threshold rule's breach/recovery state
+// (jobs.ThresholdAlertJob, issue #1283) — current_value/threshold are
+// refreshed on every evaluation, not just on a breach/recovery transition.
+type AlertState struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	RuleKey        string                 `protobuf:"bytes,1,opt,name=rule_key,json=ruleKey,proto3" json:"rule_key,omitempty"`
+	Breaching      bool                   `protobuf:"varint,2,opt,name=breaching,proto3" json:"breaching,omitempty"`
+	Since          string                 `protobuf:"bytes,3,opt,name=since,proto3" json:"since,omitempty"`                                           // RFC3339, empty if not breaching
+	LastNotifiedAt string                 `protobuf:"bytes,4,opt,name=last_notified_at,json=lastNotifiedAt,proto3" json:"last_notified_at,omitempty"` // RFC3339, empty if never notified
+	CurrentValue   float64                `protobuf:"fixed64,5,opt,name=current_value,json=currentValue,proto3" json:"current_value,omitempty"`
+	Threshold      float64                `protobuf:"fixed64,6,opt,name=threshold,proto3" json:"threshold,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AlertState) Reset() {
+	*x = AlertState{}
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AlertState) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AlertState) ProtoMessage() {}
+
+func (x *AlertState) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AlertState.ProtoReflect.Descriptor instead.
+func (*AlertState) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{66}
+}
+
+func (x *AlertState) GetRuleKey() string {
+	if x != nil {
+		return x.RuleKey
+	}
+	return ""
+}
+
+func (x *AlertState) GetBreaching() bool {
+	if x != nil {
+		return x.Breaching
+	}
+	return false
+}
+
+func (x *AlertState) GetSince() string {
+	if x != nil {
+		return x.Since
+	}
+	return ""
+}
+
+func (x *AlertState) GetLastNotifiedAt() string {
+	if x != nil {
+		return x.LastNotifiedAt
+	}
+	return ""
+}
+
+func (x *AlertState) GetCurrentValue() float64 {
+	if x != nil {
+		return x.CurrentValue
+	}
+	return 0
+}
+
+func (x *AlertState) GetThreshold() float64 {
+	if x != nil {
+		return x.Threshold
+	}
+	return 0
+}
+
+type GetAlertStatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAlertStatesRequest) Reset() {
+	*x = GetAlertStatesRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAlertStatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAlertStatesRequest) ProtoMessage() {}
+
+func (x *GetAlertStatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAlertStatesRequest.ProtoReflect.Descriptor instead.
+func (*GetAlertStatesRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{67}
+}
+
+type GetAlertStatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	States        []*AlertState          `protobuf:"bytes,1,rep,name=states,proto3" json:"states,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAlertStatesResponse) Reset() {
+	*x = GetAlertStatesResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAlertStatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAlertStatesResponse) ProtoMessage() {}
+
+func (x *GetAlertStatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAlertStatesResponse.ProtoReflect.Descriptor instead.
+func (*GetAlertStatesResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *GetAlertStatesResponse) GetStates() []*AlertState {
+	if x != nil {
+		return x.States
+	}
+	return nil
+}
+
 var File_observability_v1_observability_proto protoreflect.FileDescriptor
 
 const file_observability_v1_observability_proto_rawDesc = "" +
@@ -4245,12 +4412,23 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"$\n" +
-	"\"UpdateNotificationSettingsResponse*\xac\x01\n" +
+	"\"UpdateNotificationSettingsResponse\"\xc8\x01\n" +
+	"\n" +
+	"AlertState\x12\x19\n" +
+	"\brule_key\x18\x01 \x01(\tR\aruleKey\x12\x1c\n" +
+	"\tbreaching\x18\x02 \x01(\bR\tbreaching\x12\x14\n" +
+	"\x05since\x18\x03 \x01(\tR\x05since\x12(\n" +
+	"\x10last_notified_at\x18\x04 \x01(\tR\x0elastNotifiedAt\x12#\n" +
+	"\rcurrent_value\x18\x05 \x01(\x01R\fcurrentValue\x12\x1c\n" +
+	"\tthreshold\x18\x06 \x01(\x01R\tthreshold\"\x17\n" +
+	"\x15GetAlertStatesRequest\"N\n" +
+	"\x16GetAlertStatesResponse\x124\n" +
+	"\x06states\x18\x01 \x03(\v2\x1c.observability.v1.AlertStateR\x06states*\xac\x01\n" +
 	"\x11SecurityAlertType\x12#\n" +
 	"\x1fSECURITY_ALERT_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eSECURITY_ALERT_TYPE_DEPENDABOT\x10\x01\x12%\n" +
 	"!SECURITY_ALERT_TYPE_CODE_SCANNING\x10\x02\x12'\n" +
-	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xb6\x12\n" +
+	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\x9b\x13\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
@@ -4272,7 +4450,8 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12GetProviderOptions\x12+.observability.v1.GetProviderOptionsRequest\x1a,.observability.v1.GetProviderOptionsResponse\x12l\n" +
 	"\x11SetProviderConfig\x12*.observability.v1.SetProviderConfigRequest\x1a+.observability.v1.SetProviderConfigResponse\x12~\n" +
 	"\x17GetNotificationSettings\x120.observability.v1.GetNotificationSettingsRequest\x1a1.observability.v1.GetNotificationSettingsResponse\x12\x87\x01\n" +
-	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
+	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponse\x12c\n" +
+	"\x0eGetAlertStates\x12'.observability.v1.GetAlertStatesRequest\x1a(.observability.v1.GetAlertStatesResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
 
 var (
 	file_observability_v1_observability_proto_rawDescOnce sync.Once
@@ -4287,7 +4466,7 @@ func file_observability_v1_observability_proto_rawDescGZIP() []byte {
 }
 
 var file_observability_v1_observability_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 66)
+var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_observability_v1_observability_proto_goTypes = []any{
 	(SecurityAlertType)(0),                     // 0: observability.v1.SecurityAlertType
 	(*JobStat)(nil),                            // 1: observability.v1.JobStat
@@ -4356,6 +4535,9 @@ var file_observability_v1_observability_proto_goTypes = []any{
 	(*GetNotificationSettingsResponse)(nil),    // 64: observability.v1.GetNotificationSettingsResponse
 	(*UpdateNotificationSettingsRequest)(nil),  // 65: observability.v1.UpdateNotificationSettingsRequest
 	(*UpdateNotificationSettingsResponse)(nil), // 66: observability.v1.UpdateNotificationSettingsResponse
+	(*AlertState)(nil),                         // 67: observability.v1.AlertState
+	(*GetAlertStatesRequest)(nil),              // 68: observability.v1.GetAlertStatesRequest
+	(*GetAlertStatesResponse)(nil),             // 69: observability.v1.GetAlertStatesResponse
 }
 var file_observability_v1_observability_proto_depIdxs = []int32{
 	1,  // 0: observability.v1.GetJobStatsResponse.stats:type_name -> observability.v1.JobStat
@@ -4388,53 +4570,56 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	53, // 27: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
 	52, // 28: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
 	62, // 29: observability.v1.GetNotificationSettingsResponse.settings:type_name -> observability.v1.NotificationSetting
-	3,  // 30: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
-	6,  // 31: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
-	10, // 32: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
-	12, // 33: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
-	15, // 34: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
-	20, // 35: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
-	23, // 36: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
-	28, // 37: observability.v1.ObservabilityService.GetWorkflowRunStats:input_type -> observability.v1.GetWorkflowRunStatsRequest
-	31, // 38: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
-	34, // 39: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
-	36, // 40: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
-	40, // 41: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
-	43, // 42: observability.v1.ObservabilityService.GetHostMetrics:input_type -> observability.v1.GetHostMetricsRequest
-	46, // 43: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
-	48, // 44: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
-	54, // 45: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
-	56, // 46: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
-	58, // 47: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
-	60, // 48: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
-	63, // 49: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
-	65, // 50: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
-	4,  // 51: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	7,  // 52: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	11, // 53: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	13, // 54: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
-	17, // 55: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	21, // 56: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
-	24, // 57: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
-	29, // 58: observability.v1.ObservabilityService.GetWorkflowRunStats:output_type -> observability.v1.GetWorkflowRunStatsResponse
-	32, // 59: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
-	35, // 60: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
-	37, // 61: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
-	41, // 62: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
-	44, // 63: observability.v1.ObservabilityService.GetHostMetrics:output_type -> observability.v1.GetHostMetricsResponse
-	47, // 64: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
-	49, // 65: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
-	55, // 66: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
-	57, // 67: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
-	59, // 68: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
-	61, // 69: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
-	64, // 70: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
-	66, // 71: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
-	51, // [51:72] is the sub-list for method output_type
-	30, // [30:51] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	67, // 30: observability.v1.GetAlertStatesResponse.states:type_name -> observability.v1.AlertState
+	3,  // 31: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
+	6,  // 32: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
+	10, // 33: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
+	12, // 34: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
+	15, // 35: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
+	20, // 36: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
+	23, // 37: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
+	28, // 38: observability.v1.ObservabilityService.GetWorkflowRunStats:input_type -> observability.v1.GetWorkflowRunStatsRequest
+	31, // 39: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
+	34, // 40: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
+	36, // 41: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
+	40, // 42: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
+	43, // 43: observability.v1.ObservabilityService.GetHostMetrics:input_type -> observability.v1.GetHostMetricsRequest
+	46, // 44: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
+	48, // 45: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
+	54, // 46: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
+	56, // 47: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
+	58, // 48: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
+	60, // 49: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
+	63, // 50: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
+	65, // 51: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
+	68, // 52: observability.v1.ObservabilityService.GetAlertStates:input_type -> observability.v1.GetAlertStatesRequest
+	4,  // 53: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	7,  // 54: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	11, // 55: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	13, // 56: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
+	17, // 57: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	21, // 58: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
+	24, // 59: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
+	29, // 60: observability.v1.ObservabilityService.GetWorkflowRunStats:output_type -> observability.v1.GetWorkflowRunStatsResponse
+	32, // 61: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
+	35, // 62: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	37, // 63: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
+	41, // 64: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
+	44, // 65: observability.v1.ObservabilityService.GetHostMetrics:output_type -> observability.v1.GetHostMetricsResponse
+	47, // 66: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
+	49, // 67: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	55, // 68: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
+	57, // 69: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
+	59, // 70: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
+	61, // 71: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
+	64, // 72: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
+	66, // 73: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
+	69, // 74: observability.v1.ObservabilityService.GetAlertStates:output_type -> observability.v1.GetAlertStatesResponse
+	53, // [53:75] is the sub-list for method output_type
+	31, // [31:53] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_observability_v1_observability_proto_init() }
@@ -4452,7 +4637,7 @@ func file_observability_v1_observability_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_observability_v1_observability_proto_rawDesc), len(file_observability_v1_observability_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   66,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -131,6 +131,21 @@ type JobDurationStat struct {
 	RunCount      int64
 }
 
+// AlertState is one threshold rule's breach/recovery state
+// (jobs.ThresholdAlertJob, issue #1283). Unlike the one-shot dedup
+// global.notified_issues uses, a rule re-arms on recovery: Breaching flips
+// back to false and Since is cleared, so a second incident notifies again.
+// CurrentValue/Threshold are refreshed on every evaluation, not just on a
+// breach/recovery transition, so a read always reflects the latest sample.
+type AlertState struct {
+	RuleKey        string
+	Breaching      bool
+	Since          *time.Time
+	LastNotifiedAt *time.Time
+	CurrentValue   float64
+	Threshold      float64
+}
+
 // TransactionTrend flags a transaction (API endpoint or frontend page)
 // whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
 // global.transaction_latency_daily rows over two adjacent windows, and
