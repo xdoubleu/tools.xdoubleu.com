@@ -73,6 +73,8 @@ type Application struct {
 	hostMetricsSnapshotJob        *jobs.HostMetricsSnapshotJob
 	workflowRunsRepo              *repositories.WorkflowRunsRepository
 	workflowRunsSnapshotJob       *jobs.WorkflowRunsSnapshotJob
+	alertStatesRepo               *repositories.AlertStatesRepository
+	thresholdAlertJob             *jobs.ThresholdAlertJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -368,8 +370,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.workflowRunsSnapshotJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.thresholdAlertJob, app.db), noopCallback,
 	)
 }
 
@@ -446,6 +453,12 @@ func NewApplication(
 		db, githubClient, notificationsSvc, notificationSettingsRepo,
 	)
 
+	alertStatesRepo := repositories.NewAlertStatesRepository(db)
+	thresholdAlertJob := jobs.NewThresholdAlertJob(
+		hostMetricsRepo, storageSnapshotsRepo, workflowRunsRepo,
+		notificationSettingsRepo, alertStatesRepo, notificationsSvc,
+	)
+
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
 		ctx:        ctx,
@@ -477,6 +490,8 @@ func NewApplication(
 		hostMetricsSnapshotJob:        hostMetricsSnapshotJob,
 		workflowRunsRepo:              workflowRunsRepo,
 		workflowRunsSnapshotJob:       workflowRunsSnapshotJob,
+		alertStatesRepo:               alertStatesRepo,
+		thresholdAlertJob:             thresholdAlertJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),

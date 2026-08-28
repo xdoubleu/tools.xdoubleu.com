@@ -5,14 +5,20 @@ import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
 // Monitoring owns sentry_issues/failing_dependency_prs/failing_main_ci/
-// security_alerts/orphaned_storage — unhealthy_feeds is surfaced from the
-// feeds app instead (issue #1228).
+// security_alerts/orphaned_storage, plus the threshold alert rules
+// (issue #1283) — unhealthy_feeds is surfaced from the feeds app instead
+// (issue #1228).
 const MONITORING_SOURCE_KEYS = [
   'sentry_issues',
   'failing_dependency_prs',
   'failing_main_ci',
   'security_alerts',
-  'orphaned_storage'
+  'orphaned_storage',
+  'host_cpu_high',
+  'host_memory_high',
+  'host_disk_high',
+  'r2_usage_high',
+  'ci_duration_high'
 ]
 
 export default function NotificationSettingsCard({

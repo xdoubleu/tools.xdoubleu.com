@@ -90,7 +90,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (14 tools, which include the one mutating
+// tools registered directly below (15 tools, which include the one mutating
 // tool, resolve_sentry_issue — see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
@@ -109,8 +109,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 15 admin observability tools —
-// 14 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 16 admin observability tools —
+// 15 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -210,6 +210,24 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"expected notification email didn't go out.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.notificationSettings(ctx)
+		})
+
+	registerAlertMCPTools(srv, h)
+}
+
+// registerAlertMCPTools registers the threshold-alert observability tool,
+// split out of registerObservabilityMCPTools to keep that function under
+// the repo's function-length lint limit.
+func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
+	addObsTool(srv, "get_alert_states",
+		"Current breach/recovery state of each threshold alert rule (host "+
+			"CPU/memory/disk, R2 usage, CI duration) — its configured "+
+			"threshold, latest evaluated value, when it entered breach, and "+
+			"when it last emailed. Explains a missing/unexpected alert email "+
+			"the way get_notification_settings explains a missing "+
+			"notification-source email.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.alertStates(ctx)
 		})
 }
 
