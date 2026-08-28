@@ -143,4 +143,11 @@ describe('getSentryDsn', () => {
     const sentryDsn = getSentryDsn()
     expect(sentryDsn).toBe('https://sentry.example.com/dsn')
   })
+
+  it('returns empty string when window.__ENV__ itself is undefined', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    window.__ENV__ = undefined as any
+
+    expect(getSentryDsn()).toBe('')
+  })
 })

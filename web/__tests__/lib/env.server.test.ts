@@ -25,9 +25,12 @@ it('getApiUrl reads process.env.API_URL on the server', () => {
   expect(getApiUrl()).toBe('https://api.example.com')
 })
 
-it('getSentryDsn reads process.env.SENTRY_DSN_WEB on the server', () => {
+it('getSentryDsn reads process.env.SENTRY_DSN_WEB on the server, defaulting to empty string', () => {
   process.env.SENTRY_DSN_WEB = 'https://sentry.example.com/dsn'
   expect(getSentryDsn()).toBe('https://sentry.example.com/dsn')
+
+  delete process.env.SENTRY_DSN_WEB
+  expect(getSentryDsn()).toBe('')
 })
 
 it('getRelease reads process.env.RELEASE on the server, defaulting to dev', () => {
