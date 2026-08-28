@@ -21,6 +21,11 @@ const (
 	NotificationSourceFailingMainCI        NotificationSource = "failing_main_ci"
 	NotificationSourceSecurityAlerts       NotificationSource = "security_alerts"
 	NotificationSourceOrphanedStorage      NotificationSource = "orphaned_storage"
+	NotificationSourceHostCPUHigh          NotificationSource = "host_cpu_high"
+	NotificationSourceHostMemoryHigh       NotificationSource = "host_memory_high"
+	NotificationSourceHostDiskHigh         NotificationSource = "host_disk_high"
+	NotificationSourceR2UsageHigh          NotificationSource = "r2_usage_high"
+	NotificationSourceCIDurationHigh       NotificationSource = "ci_duration_high"
 )
 
 // NotificationSetting is one row of global.notification_settings.

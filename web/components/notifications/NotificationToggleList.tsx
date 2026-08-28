@@ -11,7 +11,12 @@ const SOURCE_LABELS: Record<string, string> = {
   unhealthy_feeds: 'Unhealthy feeds',
   failing_main_ci: 'Failing PRs on main',
   security_alerts: 'Security alerts',
-  orphaned_storage: 'Orphaned storage'
+  orphaned_storage: 'Orphaned storage',
+  host_cpu_high: 'Host CPU high',
+  host_memory_high: 'Host memory high',
+  host_disk_high: 'Host disk high',
+  r2_usage_high: 'R2 storage usage high',
+  ci_duration_high: 'CI workflow duration high'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
@@ -23,7 +28,17 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   security_alerts:
     'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.',
   orphaned_storage:
-    'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.'
+    'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.',
+  host_cpu_high:
+    'Emails an admin when host CPU usage stays above threshold for 15 minutes, and again on recovery.',
+  host_memory_high:
+    'Emails an admin when host memory usage stays above threshold for 15 minutes, and again on recovery.',
+  host_disk_high:
+    'Emails an admin when host disk usage goes above threshold, and again on recovery.',
+  r2_usage_high:
+    'Emails an admin when total R2 storage usage goes above threshold, and again on recovery.',
+  ci_duration_high:
+    "Emails an admin when a workflow's CI duration (p95) goes above threshold, and again on recovery."
 }
 
 function sourceLabel(sourceKey: string): string {

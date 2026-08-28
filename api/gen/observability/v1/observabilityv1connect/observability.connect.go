@@ -96,6 +96,9 @@ const (
 	// ObservabilityServiceUpdateNotificationSettingsProcedure is the fully-qualified name of the
 	// ObservabilityService's UpdateNotificationSettings RPC.
 	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
+	// ObservabilityServiceGetAlertStatesProcedure is the fully-qualified name of the
+	// ObservabilityService's GetAlertStates RPC.
+	ObservabilityServiceGetAlertStatesProcedure = "/observability.v1.ObservabilityService/GetAlertStates"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -121,6 +124,7 @@ type ObservabilityServiceClient interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -260,6 +264,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		getAlertStates: connect.NewClient[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetAlertStatesProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetAlertStates")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -286,6 +296,7 @@ type observabilityServiceClient struct {
 	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
 	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
 	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
+	getAlertStates             *connect.Client[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -394,6 +405,11 @@ func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Cont
 	return c.updateNotificationSettings.CallUnary(ctx, req)
 }
 
+// GetAlertStates calls observability.v1.ObservabilityService.GetAlertStates.
+func (c *observabilityServiceClient) GetAlertStates(ctx context.Context, req *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {
+	return c.getAlertStates.CallUnary(ctx, req)
+}
+
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -418,6 +434,7 @@ type ObservabilityServiceHandler interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -553,6 +570,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetAlertStatesHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetAlertStatesProcedure,
+		svc.GetAlertStates,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetAlertStates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -597,6 +620,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetNotificationSettingsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceUpdateNotificationSettingsProcedure:
 			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetAlertStatesProcedure:
+			observabilityServiceGetAlertStatesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -688,4 +713,8 @@ func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetAlertStates is not implemented"))
 }
