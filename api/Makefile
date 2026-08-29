@@ -22,7 +22,7 @@ tools/lint/go:
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
 	go install github.com/segmentio/golines@v0.13.0
 	go install github.com/daixiang0/gci@v0.14.0
-	go install github.com/securego/gosec/v2/cmd/gosec@v2.28.0
+	go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
 # Keep this pin in step with Homebrew's sqlfluff, which macOS gets below and
 # cannot pin (PEP 668 rules out a bare `pip install` there). LT01's opinion on
