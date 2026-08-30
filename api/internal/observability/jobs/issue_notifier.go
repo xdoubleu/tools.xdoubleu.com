@@ -302,7 +302,8 @@ func (j *IssueNotifierJob) notifyOrphans(
 }
 
 // notifySlowTransactions emails an admin about transactions currently
-// crossing slowTransactionP95ThresholdMs. The dedup key includes an ISO
+// crossing their class's threshold (thresholdMsForClass, issue #1310). The
+// dedup key includes an ISO
 // week bucket (year-week, e.g. "2026-W35") rather than being permanent: a
 // permanently-deduped key would mean a transaction that gets fixed and
 // later regresses again never alerts a second time, since Trends() keeps
@@ -341,7 +342,7 @@ func (j *IssueNotifierJob) notifySlowTransactions(
 		body := fmt.Sprintf(
 			"p95 duration: %.0fms (was %.0fms, +%.0f%%)\nThreshold: %.0fms",
 			t.RecentAvgP95Ms, t.PriorAvgP95Ms, t.PctChange*pctChangeToPercent,
-			slowTransactionP95ThresholdMs,
+			thresholdMsForClass(classifyTransaction(t.Transaction)),
 		)
 		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
 			return err

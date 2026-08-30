@@ -467,7 +467,7 @@ func NewApplication(
 
 	alertStatesRepo := repositories.NewAlertStatesRepository(db)
 	thresholdAlertJob := jobs.NewThresholdAlertJob(
-		hostMetricsRepo, storageSnapshotsRepo, workflowRunsRepo,
+		hostMetricsRepo, storageSnapshotsRepo, workflowRunsRepo, sentryClient,
 		notificationSettingsRepo, alertStatesRepo, notificationsSvc,
 	)
 

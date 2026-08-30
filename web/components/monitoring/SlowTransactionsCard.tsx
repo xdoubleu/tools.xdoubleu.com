@@ -2,8 +2,16 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { GetSlowTransactionsResponse } from '@/lib/gen/observability/v1/observability_pb'
-import { formatCount, formatDuration } from '@/lib/observability'
+import type {
+  GetSlowTransactionsResponse,
+  GetAlertStatesResponse
+} from '@/lib/gen/observability/v1/observability_pb'
+import {
+  formatCount,
+  formatDuration,
+  slowTransactionThresholds,
+  isSlowTransaction
+} from '@/lib/observability'
 
 function formatPctChange(pctChange: number): string {
   return `+${Math.round(pctChange * 100)}%`
@@ -21,22 +29,24 @@ function pctChangeVariant(pctChange: number): 'danger' | 'warn' {
 
 export default function SlowTransactionsCard({
   data,
-  filterThresholdMs
+  alertStates,
+  filtered = false
 }: {
   data?: GetSlowTransactionsResponse
-  // filterThresholdMs restricts `current` to rows at or above this p95, and
-  // hides the "Getting slower" trending section entirely — used on the
-  // Issues page (issue #1308), which shows only what currently needs
-  // attention, unlike the unfiltered exhaustive view on
-  // /monitoring/observability.
-  filterThresholdMs?: number
+  alertStates?: GetAlertStatesResponse
+  // filtered restricts `current` to rows currently breaching their class's
+  // threshold, and hides the "Getting slower" trending section entirely —
+  // used on the Issues page (issue #1308), which shows only what currently
+  // needs attention, unlike the unfiltered exhaustive view (with a "Slow"
+  // badge per row instead) on /monitoring/observability.
+  filtered?: boolean
 }) {
+  const thresholds = slowTransactionThresholds(alertStates)
   const allCurrent = data?.current ?? []
-  const current =
-    filterThresholdMs === undefined
-      ? allCurrent
-      : allCurrent.filter((t) => t.p95DurationMs >= filterThresholdMs)
-  const trending = filterThresholdMs === undefined ? (data?.trending ?? []) : []
+  const current = filtered
+    ? allCurrent.filter((t) => isSlowTransaction(t.transaction, t.p95DurationMs, thresholds))
+    : allCurrent
+  const trending = filtered ? [] : (data?.trending ?? [])
 
   return (
     <Card>
@@ -46,9 +56,9 @@ export default function SlowTransactionsCard({
           <Badge variant="secondary">Sentry</Badge>
         </div>
         <CardDescription>
-          {filterThresholdMs === undefined
-            ? 'Slowest API endpoints/pages right now, plus ones getting slower over time.'
-            : `Transactions currently over ${formatDuration(filterThresholdMs)} p95.`}
+          {filtered
+            ? 'Transactions currently over their class threshold.'
+            : 'Slowest API endpoints/pages right now, plus ones getting slower over time.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -56,9 +66,9 @@ export default function SlowTransactionsCard({
           <p className="py-8 text-center text-sm text-muted">Sentry is not configured.</p>
         ) : current.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">
-            {filterThresholdMs === undefined
-              ? 'No transactions recorded yet.'
-              : `No transactions currently over ${formatDuration(filterThresholdMs)}.`}
+            {filtered
+              ? 'No transactions currently over threshold.'
+              : 'No transactions recorded yet.'}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -72,21 +82,27 @@ export default function SlowTransactionsCard({
                 </tr>
               </thead>
               <tbody>
-                {current.map((t) => (
-                  <tr
-                    key={`${t.project}-${t.transaction}`}
-                    className="border-b border-border last:border-0"
-                  >
-                    <td className="py-2 pr-3 font-mono text-xs text-fg">{t.transaction}</td>
-                    <td className="py-2 pr-3">
-                      <Badge variant="secondary">{t.project}</Badge>
-                    </td>
-                    <td className="py-2 pr-3 text-right text-fg">
-                      {formatDuration(t.p95DurationMs)}
-                    </td>
-                    <td className="py-2 text-right text-fg">{formatCount(t.requestCount)}</td>
-                  </tr>
-                ))}
+                {current.map((t) => {
+                  const isSlow = isSlowTransaction(t.transaction, t.p95DurationMs, thresholds)
+                  return (
+                    <tr
+                      key={`${t.project}-${t.transaction}`}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="py-2 pr-3 font-mono text-xs text-fg">{t.transaction}</td>
+                      <td className="py-2 pr-3">
+                        <Badge variant="secondary">{t.project}</Badge>
+                      </td>
+                      <td className="py-2 pr-3 text-right text-fg">
+                        <span className="inline-flex items-center gap-1.5">
+                          {formatDuration(t.p95DurationMs)}
+                          {!filtered && isSlow && <Badge variant="danger">Slow</Badge>}
+                        </span>
+                      </td>
+                      <td className="py-2 text-right text-fg">{formatCount(t.requestCount)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

@@ -16,7 +16,10 @@ const SOURCE_LABELS: Record<string, string> = {
   host_memory_high: 'Host memory high',
   host_disk_high: 'Host disk high',
   r2_usage_high: 'R2 storage usage high',
-  ci_duration_high: 'CI workflow duration high'
+  ci_duration_high: 'CI workflow duration high',
+  slow_transaction_http_high: 'Slow HTTP handlers',
+  slow_transaction_job_high: 'Slow background jobs',
+  slow_transaction_frontend_high: 'Slow frontend transactions'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
@@ -38,7 +41,13 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   r2_usage_high:
     'Emails an admin when total R2 storage usage goes above threshold, and again on recovery.',
   ci_duration_high:
-    "Emails an admin when a workflow's CI duration (p95) goes above threshold, and again on recovery."
+    "Emails an admin when a workflow's CI duration (p95) goes above threshold, and again on recovery.",
+  slow_transaction_http_high:
+    "Emails an admin when an HTTP handler's p95 duration goes above threshold, and again on recovery.",
+  slow_transaction_job_high:
+    "Emails an admin when a background job's p95 duration goes above threshold, and again on recovery.",
+  slow_transaction_frontend_high:
+    "Emails an admin when a frontend transaction's p95 duration goes above threshold, and again on recovery."
 }
 
 function sourceLabel(sourceKey: string): string {

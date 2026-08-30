@@ -1,7 +1,10 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
-import { GetSlowTransactionsResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
+import {
+  GetSlowTransactionsResponseSchema,
+  GetAlertStatesResponseSchema
+} from '@/lib/gen/observability/v1/observability_pb'
 import SlowTransactionsCard from '@/components/monitoring/SlowTransactionsCard'
 
 describe('SlowTransactionsCard', () => {
@@ -83,8 +86,19 @@ describe('SlowTransactionsCard', () => {
     expect(screen.getByText('+30%').className).toContain('text-warn')
   })
 
-  describe('filterThresholdMs', () => {
-    it('shows only rows at or above the threshold and omits the trending section', () => {
+  describe('filtered', () => {
+    const alertStates = create(GetAlertStatesResponseSchema, {
+      states: [
+        {
+          ruleKey: 'slow_transaction_http_high',
+          breaching: true,
+          currentValue: 6000,
+          threshold: 5000
+        }
+      ]
+    })
+
+    it('shows only rows breaching their class threshold and omits the trending section', () => {
       const data = create(GetSlowTransactionsResponseSchema, {
         configured: true,
         current: [
@@ -101,13 +115,13 @@ describe('SlowTransactionsCard', () => {
           }
         ]
       })
-      render(<SlowTransactionsCard data={data} filterThresholdMs={5000} />)
+      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
       expect(screen.getByText('GET /slow')).toBeInTheDocument()
       expect(screen.queryByText('GET /fast')).not.toBeInTheDocument()
       expect(screen.queryByText('Getting slower')).not.toBeInTheDocument()
     })
 
-    it('shows a threshold-specific empty state when nothing is over the threshold', () => {
+    it('shows a threshold-specific empty state when nothing is over threshold', () => {
       const data = create(GetSlowTransactionsResponseSchema, {
         configured: true,
         current: [
@@ -115,8 +129,92 @@ describe('SlowTransactionsCard', () => {
         ],
         trending: []
       })
-      render(<SlowTransactionsCard data={data} filterThresholdMs={5000} />)
-      expect(screen.getByText('No transactions currently over 5.0 s.')).toBeInTheDocument()
+      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
+      expect(screen.getByText('No transactions currently over threshold.')).toBeInTheDocument()
     })
+
+    it('never shows the Slow badge in filtered mode', () => {
+      const data = create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [
+          { transaction: 'GET /slow', project: 'proj', p95DurationMs: 6000, requestCount: 5n }
+        ],
+        trending: []
+      })
+      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
+      expect(screen.getByText('GET /slow')).toBeInTheDocument()
+      expect(screen.queryByText('Slow')).not.toBeInTheDocument()
+    })
+  })
+
+  it('badges a current transaction that breaches its class threshold', () => {
+    const data = create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [
+        {
+          transaction: 'GET /games/api/progress',
+          project: 'tools-api',
+          p95DurationMs: 144000,
+          requestCount: 35n
+        }
+      ],
+      trending: []
+    })
+    const alertStates = create(GetAlertStatesResponseSchema, {
+      states: [
+        {
+          ruleKey: 'slow_transaction_http_high',
+          breaching: true,
+          currentValue: 144000,
+          threshold: 5000
+        }
+      ]
+    })
+    render(<SlowTransactionsCard data={data} alertStates={alertStates} />)
+    expect(screen.getByText('Slow')).toBeInTheDocument()
+  })
+
+  it('does not badge a current transaction under its class threshold', () => {
+    const data = create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [
+        {
+          transaction: 'steam',
+          project: 'tools-api',
+          p95DurationMs: 24000,
+          requestCount: 2n
+        }
+      ],
+      trending: []
+    })
+    const alertStates = create(GetAlertStatesResponseSchema, {
+      states: [
+        {
+          ruleKey: 'slow_transaction_job_high',
+          breaching: false,
+          currentValue: 24000,
+          threshold: 60000
+        }
+      ]
+    })
+    render(<SlowTransactionsCard data={data} alertStates={alertStates} />)
+    expect(screen.queryByText('Slow')).not.toBeInTheDocument()
+  })
+
+  it('does not badge anything when no alert states are loaded yet', () => {
+    const data = create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [
+        {
+          transaction: 'GET /games/api/progress',
+          project: 'tools-api',
+          p95DurationMs: 144000,
+          requestCount: 35n
+        }
+      ],
+      trending: []
+    })
+    render(<SlowTransactionsCard data={data} alertStates={undefined} />)
+    expect(screen.queryByText('Slow')).not.toBeInTheDocument()
   })
 })

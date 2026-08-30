@@ -8,7 +8,8 @@ import {
   GetSlowTransactionsResponseSchema,
   GetTransactionLatencyHistoryResponseSchema,
   GetHostMetricsResponseSchema,
-  GetLogsResponseSchema
+  GetLogsResponseSchema,
+  GetAlertStatesResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
@@ -19,6 +20,7 @@ const mockUseDatabaseStats = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseTransactionLatencyHistory = jest.fn()
 const mockUseHostMetrics = jest.fn()
+const mockUseAlertStates = jest.fn()
 const mockUseLogs = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
@@ -29,6 +31,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useSlowTransactions: () => mockUseSlowTransactions(),
   useTransactionLatencyHistory: (d: number) => mockUseTransactionLatencyHistory(d),
   useHostMetrics: () => mockUseHostMetrics(),
+  useAlertStates: () => mockUseAlertStates(),
   useLogs: () => mockUseLogs()
 }))
 
@@ -90,6 +93,10 @@ beforeEach(() => {
       memoryPercent: 45.6,
       diskPercent: 78.9
     }),
+    mutate: mockMutate
+  })
+  mockUseAlertStates.mockReturnValue({
+    data: create(GetAlertStatesResponseSchema, { states: [] }),
     mutate: mockMutate
   })
   mockUseLogs.mockReturnValue({
@@ -161,8 +168,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(5)
+    // instead of a plain mutate(), so mockMutate covers the other 6 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(6)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
