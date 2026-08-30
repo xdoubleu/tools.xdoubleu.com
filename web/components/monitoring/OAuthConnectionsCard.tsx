@@ -87,7 +87,7 @@ export default function OAuthConnectionsCard({
       {configuringProvider && (
         <ProviderConfigDialog
           provider={configuringProvider}
-          open={configuringProvider !== null}
+          open
           onOpenChange={(open) => {
             if (!open) onConfiguringProviderChange(null)
           }}

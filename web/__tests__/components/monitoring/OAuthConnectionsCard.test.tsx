@@ -25,6 +25,7 @@ jest.mock('@/components/monitoring/ProviderConfigDialog', () => ({
       <div data-testid="provider-config-dialog">
         Configuring {provider}
         <button onClick={() => onOpenChange(false)}>Close</button>
+        <button onClick={() => onOpenChange(true)}>Reopen</button>
       </div>
     ) : null
 }))
@@ -109,6 +110,9 @@ describe('OAuthConnectionsCard', () => {
 
     renderCard({ data, configuringProvider: 'sentry' })
     expect(screen.getByTestId('provider-config-dialog')).toHaveTextContent('Configuring sentry')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen' }))
+    expect(mockOnConfiguringProviderChange).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(mockOnConfiguringProviderChange).toHaveBeenCalledWith(null)
