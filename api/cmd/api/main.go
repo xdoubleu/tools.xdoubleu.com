@@ -269,12 +269,12 @@ func newCrossAppJobs(
 	*jobs.TransactionLatencySnapshotJob,
 ) {
 	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
+	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 	issueNotifierJob := jobs.NewIssueNotifierJob(
 		sentryClient, githubClient, notificationsSvc, notifiedIssuesRepo,
-		notificationSettingsRepo, storageSnapshotsRepo,
+		notificationSettingsRepo, storageSnapshotsRepo, transactionLatencyRepo,
 	)
 
-	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
 		sentryClient, transactionLatencyRepo,
 	)
@@ -338,11 +338,12 @@ func newWeeklyDigestJob(
 	feedsApp *feeds.Feeds,
 	notificationsSvc *notifications.Service,
 	notificationSettingsRepo *repositories.NotificationSettingsRepository,
+	transactionLatencyRepo *repositories.TransactionLatencyRepository,
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
 		sentryClient, githubClient,
 		feedsHealthAdapter{feeds: feedsApp}, notificationsSvc,
-		notificationSettingsRepo,
+		notificationSettingsRepo, transactionLatencyRepo,
 	)
 }
 
@@ -519,7 +520,7 @@ func NewApplication(
 	app.feedsApp = feedsApp
 	app.weeklyDigestJob = newWeeklyDigestJob(
 		sentryClient, githubClient, feedsApp, notificationsSvc,
-		notificationSettingsRepo,
+		notificationSettingsRepo, transactionLatencyRepo,
 	)
 
 	err = app.ApplyMigrations(db)

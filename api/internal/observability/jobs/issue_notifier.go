@@ -72,12 +72,13 @@ type issueNotifierGithubClient interface {
 }
 
 type IssueNotifierJob struct {
-	sentry          sentryapi.Client
-	gh              issueNotifierGithubClient
-	notifications   *notifications.Service
-	notified        notifiedRepo
-	settings        notificationSettingsRepo
-	storageSnapshot latestStorageSnapshotGetter
+	sentry             sentryapi.Client
+	gh                 issueNotifierGithubClient
+	notifications      *notifications.Service
+	notified           notifiedRepo
+	settings           notificationSettingsRepo
+	storageSnapshot    latestStorageSnapshotGetter
+	transactionLatency slowTransactionsRepo
 }
 
 func NewIssueNotifierJob(
@@ -87,14 +88,16 @@ func NewIssueNotifierJob(
 	notified notifiedRepo,
 	settings notificationSettingsRepo,
 	storageSnapshot latestStorageSnapshotGetter,
+	transactionLatency slowTransactionsRepo,
 ) *IssueNotifierJob {
 	return &IssueNotifierJob{
-		sentry:          sentry,
-		gh:              gh,
-		notifications:   notifications,
-		notified:        notified,
-		settings:        settings,
-		storageSnapshot: storageSnapshot,
+		sentry:             sentry,
+		gh:                 gh,
+		notifications:      notifications,
+		notified:           notified,
+		settings:           settings,
+		storageSnapshot:    storageSnapshot,
+		transactionLatency: transactionLatency,
 	}
 }
 
@@ -116,7 +119,10 @@ func (j *IssueNotifierJob) Run(ctx context.Context, logger *slog.Logger) error {
 	if err := j.notifySecurityAlerts(ctx, logger); err != nil {
 		return err
 	}
-	return j.notifyOrphans(ctx, logger)
+	if err := j.notifyOrphans(ctx, logger); err != nil {
+		return err
+	}
+	return j.notifySlowTransactions(ctx, logger)
 }
 
 func (j *IssueNotifierJob) notifySentry(
@@ -289,6 +295,55 @@ func (j *IssueNotifierJob) notifyOrphans(
 			key, snap.ScannedAt.Format(time.RFC3339),
 		)
 		if err = j.notifyOnce(ctx, notifyKey, subject, body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// notifySlowTransactions emails an admin about transactions currently
+// crossing slowTransactionP95ThresholdMs. The dedup key includes an ISO
+// week bucket (year-week, e.g. "2026-W35") rather than being permanent: a
+// permanently-deduped key would mean a transaction that gets fixed and
+// later regresses again never alerts a second time, since Trends() keeps
+// reporting it as long as it stays slow. Bucketing by week bounds re-alerts
+// to at most once per calendar week per transaction while still catching a
+// return to slowness, without needing an expiring dedup entry or a
+// severity-bucketed key.
+func (j *IssueNotifierJob) notifySlowTransactions(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSlowTransactions,
+	)
+	if err != nil {
+		return err
+	}
+	if !enabled {
+		return nil
+	}
+
+	slow, err := currentlySlowTransactions(ctx, j.transactionLatency)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-notifier: failed to load transaction trends",
+			essentialogger.ErrAttr(err))
+		return nil
+	}
+
+	year, week := time.Now().ISOWeek()
+	for _, t := range slow {
+		key := fmt.Sprintf("slow_transaction:%s:%s:%d-W%02d",
+			t.Project, t.Transaction, year, week)
+		subject := fmt.Sprintf("[Slow] %s (%s)", t.Transaction, t.Project)
+		body := fmt.Sprintf(
+			"p95 duration: %.0fms (was %.0fms, +%.0f%%)\nThreshold: %.0fms",
+			t.RecentAvgP95Ms, t.PriorAvgP95Ms, t.PctChange*pctChangeToPercent,
+			slowTransactionP95ThresholdMs,
+		)
+		if err = j.notifyOnce(ctx, key, subject, body); err != nil {
 			return err
 		}
 	}

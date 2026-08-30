@@ -82,4 +82,41 @@ describe('SlowTransactionsCard', () => {
     expect(screen.getByText('+30%')).toBeInTheDocument()
     expect(screen.getByText('+30%').className).toContain('text-warn')
   })
+
+  describe('filterThresholdMs', () => {
+    it('shows only rows at or above the threshold and omits the trending section', () => {
+      const data = create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [
+          { transaction: 'GET /fast', project: 'proj', p95DurationMs: 500, requestCount: 10n },
+          { transaction: 'GET /slow', project: 'proj', p95DurationMs: 6000, requestCount: 5n }
+        ],
+        trending: [
+          {
+            transaction: 'GET /regressed',
+            project: 'proj',
+            priorAvgP95Ms: 100,
+            recentAvgP95Ms: 250,
+            pctChange: 1.5
+          }
+        ]
+      })
+      render(<SlowTransactionsCard data={data} filterThresholdMs={5000} />)
+      expect(screen.getByText('GET /slow')).toBeInTheDocument()
+      expect(screen.queryByText('GET /fast')).not.toBeInTheDocument()
+      expect(screen.queryByText('Getting slower')).not.toBeInTheDocument()
+    })
+
+    it('shows a threshold-specific empty state when nothing is over the threshold', () => {
+      const data = create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [
+          { transaction: 'GET /fast', project: 'proj', p95DurationMs: 500, requestCount: 10n }
+        ],
+        trending: []
+      })
+      render(<SlowTransactionsCard data={data} filterThresholdMs={5000} />)
+      expect(screen.getByText('No transactions currently over 5.0 s.')).toBeInTheDocument()
+    })
+  })
 })
