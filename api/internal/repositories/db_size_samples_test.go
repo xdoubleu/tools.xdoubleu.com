@@ -1,6 +1,7 @@
 package repositories_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -96,6 +97,16 @@ func TestDBSizeSamplesHistory(t *testing.T) {
 	assert.EqualValues(t, 1500, history[0].TotalSizeBytes)
 	assert.EqualValues(t, 2000, history[1].TotalSizeBytes)
 	assert.True(t, history[0].SampledAt.Before(history[1].SampledAt))
+}
+
+func TestDBSizeSamplesHistory_QueryError(t *testing.T) {
+	repo := repositories.NewDBSizeSamplesRepository(testDB)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, err := repo.History(ctx, time.Now())
+	require.Error(t, err)
 }
 
 func TestDBSizeSamplesGrowth_ExcludesOutsideWindow(t *testing.T) {
