@@ -342,3 +342,43 @@ func (h *obsConnectHandler) databaseStats(
 		History:        protoHistory,
 	}, nil
 }
+
+func (h *obsConnectHandler) GetDatabaseSizeHistory(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.GetDatabaseSizeHistoryRequest],
+) (*connect.Response[observabilityv1.GetDatabaseSizeHistoryResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.databaseSizeHistory(ctx, req.Msg.GetWindowDays())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// databaseSizeHistory returns every stored (schema, table) series over the
+// window flat and unfiltered — the client pivots, sums a schema's tables for
+// the schema-level view, and picks which series to plot.
+func (h *obsConnectHandler) databaseSizeHistory(
+	ctx context.Context,
+	windowDays int32,
+) (*observabilityv1.GetDatabaseSizeHistoryResponse, error) {
+	points, err := h.app.dbSizeSamplesRepo.PerTableHistory(ctx, windowSince(windowDays))
+	if err != nil {
+		return nil, err
+	}
+
+	protoPoints := make([]*observabilityv1.DBSizeHistoryPoint, len(points))
+	for i, p := range points {
+		protoPoints[i] = &observabilityv1.DBSizeHistoryPoint{
+			Day:        p.Day.Format("2006-01-02"),
+			SchemaName: p.SchemaName,
+			TableName:  p.TableName,
+			SizeBytes:  p.SizeBytes,
+		}
+	}
+	return &observabilityv1.GetDatabaseSizeHistoryResponse{
+		Points: protoPoints,
+	}, nil
+}

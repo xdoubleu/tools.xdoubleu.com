@@ -109,6 +109,66 @@ func TestDBSizeSamplesHistory_QueryError(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestDBSizeSamplesPerTableHistoryReturnsRowsSinceOrdered(t *testing.T) {
+	clearDBSizeSamples(t)
+	repo := repositories.NewDBSizeSamplesRepository(testDB)
+	now := time.Now()
+
+	require.NoError(
+		t,
+		repo.InsertBatch(t.Context(), now.AddDate(0, 0, -40), []models.TableSizeSample{
+			{SchemaName: "public", TableName: "old", SizeBytes: 100},
+		}),
+	)
+	require.NoError(
+		t,
+		repo.InsertBatch(
+			t.Context(),
+			now.Add(-2*24*time.Hour),
+			[]models.TableSizeSample{
+				{SchemaName: "public", TableName: "a", SizeBytes: 1000},
+				{SchemaName: "reading", TableName: "b", SizeBytes: 500},
+			},
+		),
+	)
+	require.NoError(
+		t,
+		repo.InsertBatch(
+			t.Context(),
+			now.Add(-1*24*time.Hour),
+			[]models.TableSizeSample{
+				{SchemaName: "public", TableName: "a", SizeBytes: 1200},
+			},
+		),
+	)
+
+	points, err := repo.PerTableHistory(t.Context(), now.Add(-10*24*time.Hour))
+	require.NoError(t, err)
+	require.Len(t, points, 3)
+	assert.Equal(t, "public", points[0].SchemaName)
+	assert.Equal(t, "a", points[0].TableName)
+	assert.EqualValues(t, 1000, points[0].SizeBytes)
+	assert.Equal(t, "reading", points[1].SchemaName)
+	assert.Equal(t, "b", points[1].TableName)
+	assert.EqualValues(t, 500, points[1].SizeBytes)
+	assert.Equal(t, "a", points[2].TableName)
+	assert.EqualValues(t, 1200, points[2].SizeBytes)
+	assert.True(
+		t,
+		points[0].Day.Before(points[2].Day) || points[0].Day.Equal(points[2].Day),
+	)
+}
+
+func TestDBSizeSamplesPerTableHistory_QueryError(t *testing.T) {
+	repo := repositories.NewDBSizeSamplesRepository(testDB)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, err := repo.PerTableHistory(ctx, time.Now())
+	require.Error(t, err)
+}
+
 func TestDBSizeSamplesGrowth_ExcludesOutsideWindow(t *testing.T) {
 	clearDBSizeSamples(t)
 	repo := repositories.NewDBSizeSamplesRepository(testDB)

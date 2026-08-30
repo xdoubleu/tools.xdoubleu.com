@@ -109,8 +109,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 17 admin observability tools —
-// 16 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 18 admin observability tools —
+// 17 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -140,6 +140,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"— sort by delta_bytes to find which table is growing fastest.",
 		func(ctx context.Context, a windowArgs) (proto.Message, error) {
 			return h.databaseStats(ctx, a.WindowDays)
+		})
+	addObsTool(srv, "get_database_size_history",
+		"Daily per-(schema, table) on-disk size over the requested window "+
+			"(global.db_size_samples) — the raw time series behind "+
+			"get_database_stats' growth summary, for plotting or deeper "+
+			"analysis of one table's growth.",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.databaseSizeHistory(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_failing_pull_requests",
 		"Open pull requests with at least one failing CI check.",
@@ -201,6 +209,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
+	registerAlertMCPTools(srv, h)
+}
+
+// registerAlertMCPTools registers get_host_metrics, get_logs,
+// get_notification_settings, and get_alert_states, split out of
+// registerObservabilityMCPTools to keep that function under the repo's
+// function-length lint limit.
+func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_host_metrics",
 		"Host CPU/memory/disk usage, scraped from node_exporter, plus history "+
 			"for graphing.",
@@ -213,13 +229,6 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, a logsArgs) (proto.Message, error) {
 			return h.logs(ctx, a.Source, a.MinLevel, a.Since)
 		})
-	registerAlertMCPTools(srv, h)
-}
-
-// registerAlertMCPTools registers get_notification_settings and
-// get_alert_states, split out of registerObservabilityMCPTools to keep that
-// function under the repo's function-length lint limit.
-func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_notification_settings",
 		"Per-source enabled/disabled state of the email notifications "+
 			"IssueNotifierJob/WeeklyDigestJob send (sentry_issues, "+

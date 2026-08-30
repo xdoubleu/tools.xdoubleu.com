@@ -48,8 +48,9 @@ var appsToolNames = []string{
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
-	// observability (17, admin-gated)
+	// observability (18, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
+	"get_database_size_history",
 	"get_failing_pull_requests", "get_workflow_runs", "get_workflow_run_stats",
 	"get_security_alerts",
 	"get_sentry_issues", "resolve_sentry_issue", "get_host_metrics", "get_logs",

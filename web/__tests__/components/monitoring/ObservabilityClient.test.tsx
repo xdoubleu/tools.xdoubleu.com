@@ -5,6 +5,7 @@ import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
+  GetDatabaseSizeHistoryResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetTransactionLatencyHistoryResponseSchema,
   GetHostMetricsResponseSchema,
@@ -16,6 +17,7 @@ const mockUseJobStats = jest.fn()
 const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
+const mockUseDatabaseSizeHistory = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseTransactionLatencyHistory = jest.fn()
 const mockUseHostMetrics = jest.fn()
@@ -26,6 +28,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: (d: number) => mockUseDatabaseStats(d),
+  useDatabaseSizeHistory: (d: number) => mockUseDatabaseSizeHistory(d),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useTransactionLatencyHistory: (d: number) => mockUseTransactionLatencyHistory(d),
   useHostMetrics: () => mockUseHostMetrics(),
@@ -72,6 +75,10 @@ beforeEach(() => {
     data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] }),
     mutate: mockMutate
   })
+  mockUseDatabaseSizeHistory.mockReturnValue({
+    data: create(GetDatabaseSizeHistoryResponseSchema, { points: [] }),
+    mutate: mockMutate
+  })
   mockUseSlowTransactions.mockReturnValue({
     data: create(GetSlowTransactionsResponseSchema, {
       configured: true,
@@ -106,6 +113,7 @@ describe('ObservabilityClient', () => {
     for (const title of [
       'Storage',
       'Database',
+      'Database Size History',
       'Jobs',
       'Slow Transactions',
       'Transaction Latency History',
@@ -161,8 +169,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(5)
+    // instead of a plain mutate(), so mockMutate covers the other 6 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(6)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

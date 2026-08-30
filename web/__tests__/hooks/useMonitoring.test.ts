@@ -22,6 +22,7 @@ jest.mock('@/lib/client', () => ({
     getStorageStats: jest.fn(),
     triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
+    getDatabaseSizeHistory: jest.fn(),
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
     getSlowTransactions: jest.fn(),
@@ -49,6 +50,7 @@ import {
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
+  useDatabaseSizeHistory,
   useFailingPullRequests,
   useSentryIssues,
   useSlowTransactions,
@@ -96,6 +98,14 @@ describe('useMonitoring', () => {
     renderHook(() => useDatabaseStats(30))
     expect(mockUseSWR).toHaveBeenCalledWith(
       swrKeys.monitoringDatabaseStats(30),
+      expect.any(Function)
+    )
+  })
+
+  it('keys database size history by window', () => {
+    renderHook(() => useDatabaseSizeHistory(30))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringDatabaseSizeHistory(30),
       expect.any(Function)
     )
   })
