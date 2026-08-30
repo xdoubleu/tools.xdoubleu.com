@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
 Report line/branch coverage for web/ TS/TSX files changed vs origin/main,
-scoped from an lcov.info report, mirroring what CI's codecov/patch check
-gates on. See diff_coverage_go.py for the equivalent over api/'s Go
-coverage profiles.
+scoped to the changed lines only, from an lcov.info report -- mirroring
+what CI's codecov/patch check gates on so a locally-missed branch shows up
+before push instead of after a CI round trip. See diff_coverage_go.py for
+the equivalent over api/'s Go coverage profiles.
+
+Scoping to changed lines is what keeps this honest: scoring a changed
+file's entire line set instead would fail a one-line edit to a file with
+pre-existing gaps, while codecov/patch -- which only ever looks at the
+diff -- passes it (issue #1301).
 
 Usage:
     python3 ../tools/diff_coverage_ts.py coverage/lcov.info
@@ -13,6 +19,7 @@ Run with cwd set to the project directory the lcov paths are relative to
 """
 
 import os
+import re
 import subprocess
 import sys
 
@@ -53,32 +60,69 @@ def is_relevant(path):
     return True
 
 
-def get_changed_files(repo_root, project_dir):
+# ALL_LINES marks a file whose every covered line counts as changed --
+# an untracked file is new in its entirety, so there's no hunk to scope to.
+ALL_LINES = 'all'
+
+
+def get_changed_lines(repo_root, project_dir):
+    """Returns {relative_path: set(changed_line_numbers) | ALL_LINES} for
+    coverage-relevant web/ files changed vs origin/main, based on unified
+    diff hunk headers."""
     merge_base_out = run_git(
         ['merge-base', 'origin/main', 'HEAD'], repo_root
     )
     base_ref = merge_base_out.strip() if merge_base_out else 'origin/main'
 
-    diff_out = run_git(['diff', '--name-only', base_ref], repo_root) or ''
+    project_prefix = project_dir.rstrip('/') + '/'
+    diff_out = run_git(
+        ['diff', '-U0', base_ref, '--', project_dir], repo_root
+    ) or ''
+
+    changed = {}
+    current_file = None
+    hunk_re = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@')
+
+    for line in diff_out.splitlines():
+        if line.startswith('+++ b/'):
+            f = line[len('+++ b/'):]
+            current_file = (
+                f[len(project_prefix):] if f.startswith(project_prefix) else None
+            )
+            continue
+        match = hunk_re.match(line)
+        if match and current_file and is_relevant(current_file):
+            start = int(match.group(1))
+            count = int(match.group(2)) if match.group(2) is not None else 1
+            # A pure deletion hunk (+n,0) adds no lines to score.
+            if count == 0:
+                continue
+            changed.setdefault(current_file, set()).update(
+                range(start, start + count)
+            )
+
     untracked_out = run_git(
         ['ls-files', '--others', '--exclude-standard'], repo_root
     ) or ''
-
-    all_files = set(diff_out.splitlines()) | set(untracked_out.splitlines())
-
-    project_prefix = project_dir.rstrip('/') + '/'
-    relevant = []
-    for f in all_files:
+    for f in untracked_out.splitlines():
         if not f.startswith(project_prefix):
             continue
         rel = f[len(project_prefix):]
         if is_relevant(rel):
-            relevant.append(rel)
+            changed[rel] = ALL_LINES
 
-    return sorted(relevant)
+    return changed
 
 
 def parse_lcov(lcov_path):
+    """Returns {relative_path: {'lines': {lineno: hits},
+    'branches': {lineno: [hits, ...]}}}.
+
+    Line numbers are kept so coverage can be scoped to the diff -- an
+    lcov DA: record is `DA:<line>,<hits>` and a BRDA: record is
+    `BRDA:<line>,<block>,<branch>,<taken>`, where taken is `-` when the
+    branch was never reached at all.
+    """
     files = {}
     current = None
 
@@ -87,14 +131,21 @@ def parse_lcov(lcov_path):
             line = line.strip()
             if line.startswith('SF:'):
                 current = line[3:]
-                files[current] = {'lines': [], 'branches': []}
+                files[current] = {'lines': {}, 'branches': {}}
             elif line.startswith('DA:') and current:
-                _, hits = line[3:].split(',', 1)
-                files[current]['lines'].append(int(hits))
+                lineno, hits = line[3:].split(',', 1)
+                # Jest can emit the same line twice; keep the best hit count.
+                lineno = int(lineno)
+                hits = int(hits.split(',')[0])
+                prev = files[current]['lines'].get(lineno, 0)
+                files[current]['lines'][lineno] = max(prev, hits)
             elif line.startswith('BRDA:') and current:
                 parts = line[5:].split(',')
+                lineno = int(parts[0])
                 hits = parts[3]
-                files[current]['branches'].append(0 if hits == '-' else int(hits))
+                files[current]['branches'].setdefault(lineno, []).append(
+                    0 if hits == '-' else int(hits)
+                )
             elif line == 'end_of_record':
                 current = None
 
@@ -129,9 +180,9 @@ def main():
     repo_root = repo_root_out.strip()
 
     project_rel = os.path.relpath(project_dir, repo_root)
-    changed_files = get_changed_files(repo_root, project_rel)
+    changed_lines = get_changed_lines(repo_root, project_rel)
 
-    if not changed_files:
+    if not changed_lines:
         print('No coverage-relevant files changed.')
         sys.exit(0)
 
@@ -139,9 +190,10 @@ def main():
 
     flagged = 0
     print(
-        f'Diff coverage check (changed files vs origin/main, threshold {THRESHOLD}%)\n'
+        f'Diff coverage check (changed lines vs origin/main, threshold {THRESHOLD}%)\n'
     )
 
+    changed_files = sorted(changed_lines)
     for path in changed_files:
         data = lcov_files.get(path)
         if data is None:
@@ -149,9 +201,31 @@ def main():
             flagged += 1
             continue
 
-        line_pct = pct(sum(1 for h in data['lines'] if h > 0), len(data['lines']))
+        wanted = changed_lines[path]
+
+        def in_diff(lineno):
+            return wanted == ALL_LINES or lineno in wanted
+
+        scoped_lines = [
+            hits for lineno, hits in data['lines'].items() if in_diff(lineno)
+        ]
+        scoped_branches = [
+            hits
+            for lineno, hit_list in data['branches'].items()
+            if in_diff(lineno)
+            for hits in hit_list
+        ]
+
+        # Only lines Jest actually instrumented count toward the
+        # denominator -- comments, imports, and type-only lines never get a
+        # DA:/BRDA: record, so a diff touching just those scopes to nothing.
+        if not scoped_lines and not scoped_branches:
+            print(f'  -  {path:<50} no instrumented lines changed')
+            continue
+
+        line_pct = pct(sum(1 for h in scoped_lines if h > 0), len(scoped_lines))
         branch_pct = pct(
-            sum(1 for h in data['branches'] if h > 0), len(data['branches'])
+            sum(1 for h in scoped_branches if h > 0), len(scoped_branches)
         )
 
         line_str = f'{line_pct:5.1f}% lines' if line_pct is not None else '  --  lines'
@@ -160,22 +234,30 @@ def main():
         )
 
         is_flagged = (
-            line_pct is None
-            or line_pct < THRESHOLD
+            (line_pct is not None and line_pct < THRESHOLD)
             or (branch_pct is not None and branch_pct < THRESHOLD)
         )
         mark = '✗' if is_flagged else '✓'
         if is_flagged:
             flagged += 1
 
-        print(f'  {mark} {path:<50} {line_str}, {branch_str}')
+        print(
+            f'  {mark} {path:<50} {line_str}, {branch_str} '
+            f'({len(scoped_lines)} changed lines)'
+        )
 
     print()
     if flagged:
-        print(f'{flagged}/{len(changed_files)} file(s) below {THRESHOLD}% threshold.')
+        print(
+            f'{flagged}/{len(changed_files)} file(s) below {THRESHOLD}% '
+            'threshold on changed lines.'
+        )
         sys.exit(1)
 
-    print(f'All {len(changed_files)} changed file(s) meet the {THRESHOLD}% threshold.')
+    print(
+        f'All {len(changed_files)} changed file(s) meet the {THRESHOLD}% '
+        'threshold on changed lines.'
+    )
     sys.exit(0)
 
 
