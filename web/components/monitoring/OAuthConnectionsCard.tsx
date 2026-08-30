@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,9 +14,18 @@ const PROVIDER_LABELS: Record<string, string> = {
   sentry: 'Sentry'
 }
 
-export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnectionsResponse }) {
+interface OAuthConnectionsCardProps {
+  data?: ListOAuthConnectionsResponse
+  configuringProvider: string | null
+  onConfiguringProviderChange: (provider: string | null) => void
+}
+
+export default function OAuthConnectionsCard({
+  data,
+  configuringProvider,
+  onConfiguringProviderChange
+}: OAuthConnectionsCardProps) {
   const disconnect = useDisconnectOAuthConnection()
-  const [configuring, setConfiguring] = useState<string | null>(null)
 
   return (
     <Card>
@@ -57,7 +65,7 @@ export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnect
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setConfiguring(c.provider)}
+                      onClick={() => onConfiguringProviderChange(c.provider)}
                     >
                       Configure
                     </Button>
@@ -76,12 +84,12 @@ export default function OAuthConnectionsCard({ data }: { data?: ListOAuthConnect
         )}
       </CardContent>
 
-      {configuring && (
+      {configuringProvider && (
         <ProviderConfigDialog
-          provider={configuring}
-          open={configuring !== null}
+          provider={configuringProvider}
+          open
           onOpenChange={(open) => {
-            if (!open) setConfiguring(null)
+            if (!open) onConfiguringProviderChange(null)
           }}
         />
       )}
