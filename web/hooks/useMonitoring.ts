@@ -19,7 +19,8 @@ import type {
   GetLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse,
-  GetNotificationSettingsResponse
+  GetNotificationSettingsResponse,
+  GetAlertStatesResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -75,6 +76,17 @@ export function useSecurityAlerts() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSecurityAlertsResponse, Error>(swrKeys.monitoringSecurityAlerts, () =>
     client.getSecurityAlerts({})
+  )
+}
+
+// useAlertStates reads the current breach state of every threshold alert
+// rule (jobs.ThresholdAlertJob, issue #1283). current_value/threshold are
+// refreshed on every evaluation, not just on a breach/recovery transition,
+// so a non-breaching rule still reports a meaningful current value.
+export function useAlertStates() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetAlertStatesResponse, Error>(swrKeys.monitoringAlertStates, () =>
+    client.getAlertStates({})
   )
 }
 

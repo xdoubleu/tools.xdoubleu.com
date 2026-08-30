@@ -8,7 +8,8 @@ jest.mock('@/lib/server/client', () => ({
     getFailingPullRequests: jest.fn(async () => ({})),
     getWorkflowRuns: jest.fn(async () => ({})),
     getSecurityAlerts: jest.fn(async () => ({})),
-    getSentryIssues: jest.fn(async () => ({}))
+    getSentryIssues: jest.fn(async () => ({})),
+    getAlertStates: jest.fn(async () => ({}))
   }))
 }))
 
