@@ -63,11 +63,11 @@ type TransactionStat struct {
 }
 
 // transactionStatWire is the subset of one row of Sentry's Discover
-// events payload that is decoded — see client.go's transactionStatsFields.
+// events payload that is decoded — see client.go's transactionStatsQuery.
 type transactionStatWire struct {
 	Transaction string  `json:"transaction"`
 	Project     string  `json:"project"`
-	P95Duration float64 `json:"p95(transaction.duration)"`
+	P95Duration float64 `json:"p95(span.duration)"`
 	Count       float64 `json:"count()"`
 }
 

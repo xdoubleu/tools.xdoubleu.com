@@ -314,16 +314,19 @@ func (c *client) fetchTransactionStats(
 
 // transactionStatsQuery builds the Discover query string: p95 duration and
 // request count per transaction, sorted slowest-first, over the last 24h.
+// Queries the spans dataset — Sentry deprecated the legacy transactions
+// dataset in favor of spans (targeted for removal ~Nov 2025).
 func transactionStatsQuery() string {
 	params := url.Values{
+		"dataset": {"spans"},
 		"field": {
 			"transaction",
 			"project",
-			"p95(transaction.duration)",
+			"p95(span.duration)",
 			"count()",
 		},
-		"query":       {"event.type:transaction"},
-		"sort":        {"-p95(transaction.duration)"},
+		"query":       {"is_transaction:true"},
+		"sort":        {"-p95(span.duration)"},
 		"statsPeriod": {"24h"},
 		"per_page":    {strconv.Itoa(transactionStatsPerPage)},
 	}

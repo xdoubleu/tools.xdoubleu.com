@@ -664,9 +664,9 @@ func TestObservabilityGetSlowTransactions_AsAdmin(t *testing.T) {
 
 	srv := jsonServer(t, http.StatusOK, `{"data": [
 		{"transaction":"GET /api/slow","project":"proj",
-		 "p95(transaction.duration)":900,"count()":3},
+		 "p95(span.duration)":900,"count()":3},
 		{"transaction":"GET /api/fast","project":"proj",
-		 "p95(transaction.duration)":50,"count()":30}
+		 "p95(span.duration)":50,"count()":30}
 	]}`)
 	sentryapi.SetBaseURL(srv.URL)
 	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
@@ -707,6 +707,24 @@ func TestObservabilityGetSlowTransactions_NotConfiguredStillReportsTrending(
 		"trending must still be reported when Sentry itself is unconfigured")
 	assert.Equal(t, "GET /api/regressed", resp.Msg.Trending[0].Transaction)
 	assert.InEpsilon(t, 2.0, resp.Msg.Trending[0].PctChange, 0.001)
+}
+
+func TestObservabilityGetSlowTransactions_UpstreamError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	clearTransactionLatencyDaily(t)
+
+	srv := jsonServer(t, http.StatusInternalServerError, `{}`)
+	sentryapi.SetBaseURL(srv.URL)
+	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })
+	testApp.sentryClient = sentryapi.New(
+		logging.NewNopLogger(), stubTok("tok"),
+		testConfigJSON(t, map[string]any{"org": "org", "projects": []string{"proj"}}),
+	)
+
+	_, err := callSlowTransactions(t)
+	require.Error(t, err,
+		"an upstream Sentry failure must surface as an error, not a quiet empty result")
 }
 
 func TestObservabilityGetSlowTransactions_NonAdmin(t *testing.T) {
