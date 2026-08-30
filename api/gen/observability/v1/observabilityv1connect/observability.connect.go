@@ -69,6 +69,9 @@ const (
 	// ObservabilityServiceGetSlowTransactionsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSlowTransactions RPC.
 	ObservabilityServiceGetSlowTransactionsProcedure = "/observability.v1.ObservabilityService/GetSlowTransactions"
+	// ObservabilityServiceGetTransactionLatencyHistoryProcedure is the fully-qualified name of the
+	// ObservabilityService's GetTransactionLatencyHistory RPC.
+	ObservabilityServiceGetTransactionLatencyHistoryProcedure = "/observability.v1.ObservabilityService/GetTransactionLatencyHistory"
 	// ObservabilityServiceGetHostMetricsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetHostMetrics RPC.
 	ObservabilityServiceGetHostMetricsProcedure = "/observability.v1.ObservabilityService/GetHostMetrics"
@@ -115,6 +118,7 @@ type ObservabilityServiceClient interface {
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
+	GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error)
 	GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
@@ -210,6 +214,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
 			connect.WithClientOptions(opts...),
 		),
+		getTransactionLatencyHistory: connect.NewClient[v1.GetTransactionLatencyHistoryRequest, v1.GetTransactionLatencyHistoryResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetTransactionLatencyHistoryProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetTransactionLatencyHistory")),
+			connect.WithClientOptions(opts...),
+		),
 		getHostMetrics: connect.NewClient[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetHostMetricsProcedure,
@@ -275,28 +285,29 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 
 // observabilityServiceClient implements ObservabilityServiceClient.
 type observabilityServiceClient struct {
-	getJobStats                *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
-	getUsageStats              *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
-	getStorageStats            *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
-	triggerStorageScan         *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
-	getDatabaseStats           *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
-	getFailingPullRequests     *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
-	getWorkflowRuns            *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
-	getWorkflowRunStats        *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
-	getSecurityAlerts          *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
-	getSentryIssues            *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
-	resolveSentryIssue         *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
-	getSlowTransactions        *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
-	getHostMetrics             *connect.Client[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse]
-	getLogs                    *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
-	getHealthOverview          *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
-	listOAuthConnections       *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
-	disconnectOAuthConnection  *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
-	getProviderOptions         *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
-	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
-	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
-	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
-	getAlertStates             *connect.Client[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse]
+	getJobStats                  *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
+	getUsageStats                *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
+	getStorageStats              *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	triggerStorageScan           *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
+	getDatabaseStats             *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
+	getFailingPullRequests       *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
+	getWorkflowRuns              *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
+	getWorkflowRunStats          *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
+	getSecurityAlerts            *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
+	getSentryIssues              *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
+	resolveSentryIssue           *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
+	getSlowTransactions          *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
+	getTransactionLatencyHistory *connect.Client[v1.GetTransactionLatencyHistoryRequest, v1.GetTransactionLatencyHistoryResponse]
+	getHostMetrics               *connect.Client[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse]
+	getLogs                      *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
+	getHealthOverview            *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
+	listOAuthConnections         *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
+	disconnectOAuthConnection    *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
+	getProviderOptions           *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
+	setProviderConfig            *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
+	getNotificationSettings      *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
+	updateNotificationSettings   *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
+	getAlertStates               *connect.Client[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -357,6 +368,12 @@ func (c *observabilityServiceClient) ResolveSentryIssue(ctx context.Context, req
 // GetSlowTransactions calls observability.v1.ObservabilityService.GetSlowTransactions.
 func (c *observabilityServiceClient) GetSlowTransactions(ctx context.Context, req *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
 	return c.getSlowTransactions.CallUnary(ctx, req)
+}
+
+// GetTransactionLatencyHistory calls
+// observability.v1.ObservabilityService.GetTransactionLatencyHistory.
+func (c *observabilityServiceClient) GetTransactionLatencyHistory(ctx context.Context, req *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error) {
+	return c.getTransactionLatencyHistory.CallUnary(ctx, req)
 }
 
 // GetHostMetrics calls observability.v1.ObservabilityService.GetHostMetrics.
@@ -425,6 +442,7 @@ type ObservabilityServiceHandler interface {
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
+	GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error)
 	GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
@@ -516,6 +534,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceGetTransactionLatencyHistoryHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetTransactionLatencyHistoryProcedure,
+		svc.GetTransactionLatencyHistory,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetTransactionLatencyHistory")),
+		connect.WithHandlerOptions(opts...),
+	)
 	observabilityServiceGetHostMetricsHandler := connect.NewUnaryHandler(
 		ObservabilityServiceGetHostMetricsProcedure,
 		svc.GetHostMetrics,
@@ -602,6 +626,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceResolveSentryIssueHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSlowTransactionsProcedure:
 			observabilityServiceGetSlowTransactionsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetTransactionLatencyHistoryProcedure:
+			observabilityServiceGetTransactionLatencyHistoryHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetHostMetricsProcedure:
 			observabilityServiceGetHostMetricsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetLogsProcedure:
@@ -677,6 +703,10 @@ func (UnimplementedObservabilityServiceHandler) ResolveSentryIssue(context.Conte
 
 func (UnimplementedObservabilityServiceHandler) GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetSlowTransactions is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetTransactionLatencyHistory is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error) {

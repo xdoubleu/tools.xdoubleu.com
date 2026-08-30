@@ -6,6 +6,7 @@ import {
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
   GetSlowTransactionsResponseSchema,
+  GetTransactionLatencyHistoryResponseSchema,
   GetHostMetricsResponseSchema,
   GetLogsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
@@ -16,6 +17,7 @@ const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
 const mockUseSlowTransactions = jest.fn()
+const mockUseTransactionLatencyHistory = jest.fn()
 const mockUseHostMetrics = jest.fn()
 const mockUseLogs = jest.fn()
 
@@ -25,6 +27,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: (d: number) => mockUseDatabaseStats(d),
   useSlowTransactions: () => mockUseSlowTransactions(),
+  useTransactionLatencyHistory: (d: number) => mockUseTransactionLatencyHistory(d),
   useHostMetrics: () => mockUseHostMetrics(),
   useLogs: () => mockUseLogs()
 }))
@@ -77,6 +80,10 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
+  mockUseTransactionLatencyHistory.mockReturnValue({
+    data: create(GetTransactionLatencyHistoryResponseSchema, { points: [] }),
+    mutate: mockMutate
+  })
   mockUseHostMetrics.mockReturnValue({
     data: create(GetHostMetricsResponseSchema, {
       cpuPercent: 12.3,
@@ -101,6 +108,7 @@ describe('ObservabilityClient', () => {
       'Database',
       'Jobs',
       'Slow Transactions',
+      'Transaction Latency History',
       'Host Metrics',
       'Logs'
     ]) {
@@ -153,8 +161,8 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 4 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(4)
+    // instead of a plain mutate(), so mockMutate covers the other 5 sources.
+    expect(mockMutate).toHaveBeenCalledTimes(5)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())

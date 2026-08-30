@@ -757,6 +757,42 @@ func callSlowTransactions(
 	return observabilityClient(t).GetSlowTransactions(context.Background(), req)
 }
 
+// --- Transaction latency history ---
+
+func TestObservabilityGetTransactionLatencyHistory_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	clearTransactionLatencyDaily(t)
+
+	now := time.Now()
+	seedTransactionLatencyDay(t, now.Add(-2*24*time.Hour), "GET /api/a", 100)
+	seedTransactionLatencyDay(t, now.Add(-1*24*time.Hour), "GET /api/b", 200)
+
+	req := connect.NewRequest(&observabilityv1.GetTransactionLatencyHistoryRequest{
+		WindowDays: 30,
+	})
+	setCookieOnRequest(req, accessToken)
+	resp, err := observabilityClient(t).GetTransactionLatencyHistory(
+		context.Background(), req,
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Points, 2)
+	assert.Equal(t, "GET /api/a", resp.Msg.Points[0].Transaction)
+	assert.Equal(t, "proj", resp.Msg.Points[0].Project)
+	assert.InEpsilon(t, 100.0, resp.Msg.Points[0].P95DurationMs, 0.001)
+	assert.Equal(t, "GET /api/b", resp.Msg.Points[1].Transaction)
+}
+
+func TestObservabilityGetTransactionLatencyHistory_NonAdmin(t *testing.T) {
+	demoteToUser(t)
+	req := connect.NewRequest(&observabilityv1.GetTransactionLatencyHistoryRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).GetTransactionLatencyHistory(
+		context.Background(), req,
+	)
+	requirePermissionDenied(t, err)
+}
+
 // --- Host metrics ---
 
 func TestObservabilityGetHostMetrics_AsAdmin(t *testing.T) {
