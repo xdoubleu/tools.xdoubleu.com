@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { GetStorageStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
@@ -45,13 +44,6 @@ export default function OrphanedStorageCard({ data }: { data?: GetStorageStatsRe
                 objects.
               </p>
             )}
-            <p className="mt-2 text-xs text-subtle">
-              See{' '}
-              <Link href="/monitoring/observability" className="text-accent hover:underline">
-                Observability
-              </Link>{' '}
-              for size history and prefix breakdown.
-            </p>
           </>
         )}
       </CardContent>
