@@ -6,7 +6,8 @@ import {
   GetWorkflowRunsResponseSchema,
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
-  GetStorageStatsResponseSchema
+  GetStorageStatsResponseSchema,
+  GetAlertStatesResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
@@ -15,6 +16,7 @@ const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseStorageStats = jest.fn()
+const mockUseAlertStates = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useFailingPullRequests: () => mockUseFailingPullRequests(),
@@ -22,6 +24,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useSecurityAlerts: () => mockUseSecurityAlerts(),
   useSentryIssues: () => mockUseSentryIssues(),
   useStorageStats: () => mockUseStorageStats(),
+  useAlertStates: () => mockUseAlertStates(),
   useResolveSentryIssue: () => jest.fn()
 }))
 
@@ -101,6 +104,15 @@ beforeEach(() => {
     }),
     mutate: mockMutate
   })
+  mockUseAlertStates.mockReturnValue({
+    data: create(GetAlertStatesResponseSchema, {
+      states: [
+        { ruleKey: 'host_cpu_high', breaching: false, currentValue: 12, threshold: 80 },
+        { ruleKey: 'host_disk_high', breaching: true, currentValue: 91, threshold: 85 }
+      ]
+    }),
+    mutate: mockMutate
+  })
 })
 
 describe('IssuesClient', () => {
@@ -109,6 +121,8 @@ describe('IssuesClient', () => {
     expect(screen.getByText('Issues')).toBeInTheDocument()
     expect(screen.getByText('Failing dependency PRs')).toBeInTheDocument()
     expect(screen.getByText('Unresolved errors')).toBeInTheDocument()
+    expect(screen.getByText('Breaching alerts')).toBeInTheDocument()
+    expect(screen.getByText('Threshold alerts')).toBeInTheDocument()
   })
 
   it('only counts push runs on main with a failing conclusion', () => {
@@ -151,6 +165,30 @@ describe('IssuesClient', () => {
     expect(screen.getAllByText('5').length).toBeGreaterThan(0)
   })
 
+  it('shows a placeholder breaching-alerts tile until alert states load', () => {
+    mockUseAlertStates.mockReturnValue({ data: undefined, mutate: mockMutate })
+
+    render(<IssuesClient />)
+    expect(screen.getByText('Breaching alerts')).toBeInTheDocument()
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('counts every breaching rule in the breaching-alerts tile', () => {
+    mockUseAlertStates.mockReturnValue({
+      data: create(GetAlertStatesResponseSchema, {
+        states: [
+          { ruleKey: 'host_cpu_high', breaching: true, currentValue: 95, threshold: 80 },
+          { ruleKey: 'host_memory_high', breaching: true, currentValue: 92, threshold: 85 },
+          { ruleKey: 'host_disk_high', breaching: false, currentValue: 12, threshold: 85 }
+        ]
+      }),
+      mutate: mockMutate
+    })
+
+    render(<IssuesClient />)
+    expect(screen.getByText('2 breaching')).toBeInTheDocument()
+  })
+
   it('links to the observability and monitoring settings pages', () => {
     render(<IssuesClient />)
     expect(screen.getByRole('link', { name: 'Observability' })).toHaveAttribute(
@@ -169,7 +207,7 @@ describe('IssuesClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
-    expect(mockMutate).toHaveBeenCalledTimes(5)
+    expect(mockMutate).toHaveBeenCalledTimes(6)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
   })

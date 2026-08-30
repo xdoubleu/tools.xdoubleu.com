@@ -9,7 +9,8 @@ import {
   useWorkflowRuns,
   useSecurityAlerts,
   useSentryIssues,
-  useStorageStats
+  useStorageStats,
+  useAlertStates
 } from '@/hooks/useMonitoring'
 import { formatCount } from '@/lib/observability'
 import StatTiles from './StatTiles'
@@ -18,6 +19,7 @@ import WorkflowRunsCard from './WorkflowRunsCard'
 import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
 import OrphanedStorageCard from './OrphanedStorageCard'
+import AlertStatesCard from './AlertStatesCard'
 
 export default function IssuesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -27,6 +29,7 @@ export default function IssuesClient() {
   const securityAlerts = useSecurityAlerts()
   const sentryIssues = useSentryIssues()
   const storageStats = useStorageStats()
+  const alertStates = useAlertStates()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -35,7 +38,8 @@ export default function IssuesClient() {
       workflowRuns.mutate(),
       securityAlerts.mutate(),
       sentryIssues.mutate(),
-      storageStats.mutate()
+      storageStats.mutate(),
+      alertStates.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -52,6 +56,8 @@ export default function IssuesClient() {
   )
 
   const orphanCount = storageStats.data?.latest ? Number(storageStats.data.latest.orphanCount) : 0
+
+  const breachingAlerts = (alertStates.data?.states ?? []).filter((state) => state.breaching)
 
   const tiles = [
     {
@@ -78,6 +84,11 @@ export default function IssuesClient() {
       label: 'Orphaned storage',
       value: storageStats.data?.latest ? formatCount(orphanCount) : '—',
       tone: orphanCount > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Breaching alerts',
+      value: alertStates.data ? formatCount(breachingAlerts.length) : '—',
+      tone: breachingAlerts.length > 0 ? ('danger' as const) : ('default' as const)
     }
   ]
 
@@ -101,6 +112,7 @@ export default function IssuesClient() {
       <StatTiles tiles={tiles} />
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <AlertStatesCard data={alertStates.data} />
         <SecurityAlertsCard data={securityAlerts.data} />
         <FailingPullRequestsCard data={failingPullRequests.data} />
         <WorkflowRunsCard

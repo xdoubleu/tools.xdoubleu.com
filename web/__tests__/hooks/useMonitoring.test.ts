@@ -27,6 +27,7 @@ jest.mock('@/lib/client', () => ({
     getSlowTransactions: jest.fn(),
     resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
     getHostMetrics: jest.fn(),
+    getAlertStates: jest.fn(),
     getLogs: jest.fn(),
     listOAuthConnections: jest.fn(),
     disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
@@ -52,6 +53,7 @@ import {
   useSlowTransactions,
   useResolveSentryIssue,
   useHostMetrics,
+  useAlertStates,
   useLogs,
   useOAuthConnections,
   useDisconnectOAuthConnection,
@@ -120,6 +122,11 @@ describe('useMonitoring', () => {
   it('keys host metrics statically', () => {
     renderHook(() => useHostMetrics())
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringHostMetrics, expect.any(Function))
+  })
+
+  it('keys alert states statically', () => {
+    renderHook(() => useAlertStates())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringAlertStates, expect.any(Function))
   })
 
   it('keys logs by source and min level', () => {
