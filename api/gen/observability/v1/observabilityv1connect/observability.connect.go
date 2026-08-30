@@ -48,6 +48,9 @@ const (
 	// ObservabilityServiceGetDatabaseStatsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDatabaseStats RPC.
 	ObservabilityServiceGetDatabaseStatsProcedure = "/observability.v1.ObservabilityService/GetDatabaseStats"
+	// ObservabilityServiceGetDatabaseSizeHistoryProcedure is the fully-qualified name of the
+	// ObservabilityService's GetDatabaseSizeHistory RPC.
+	ObservabilityServiceGetDatabaseSizeHistoryProcedure = "/observability.v1.ObservabilityService/GetDatabaseSizeHistory"
 	// ObservabilityServiceGetFailingPullRequestsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetFailingPullRequests RPC.
 	ObservabilityServiceGetFailingPullRequestsProcedure = "/observability.v1.ObservabilityService/GetFailingPullRequests"
@@ -111,6 +114,7 @@ type ObservabilityServiceClient interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
+	GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
 	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
@@ -170,6 +174,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetDatabaseStatsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
+			connect.WithClientOptions(opts...),
+		),
+		getDatabaseSizeHistory: connect.NewClient[v1.GetDatabaseSizeHistoryRequest, v1.GetDatabaseSizeHistoryResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetDatabaseSizeHistoryProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseSizeHistory")),
 			connect.WithClientOptions(opts...),
 		),
 		getFailingPullRequests: connect.NewClient[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse](
@@ -290,6 +300,7 @@ type observabilityServiceClient struct {
 	getStorageStats              *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
 	triggerStorageScan           *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
 	getDatabaseStats             *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
+	getDatabaseSizeHistory       *connect.Client[v1.GetDatabaseSizeHistoryRequest, v1.GetDatabaseSizeHistoryResponse]
 	getFailingPullRequests       *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
 	getWorkflowRuns              *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
 	getWorkflowRunStats          *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
@@ -333,6 +344,11 @@ func (c *observabilityServiceClient) TriggerStorageScan(ctx context.Context, req
 // GetDatabaseStats calls observability.v1.ObservabilityService.GetDatabaseStats.
 func (c *observabilityServiceClient) GetDatabaseStats(ctx context.Context, req *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
 	return c.getDatabaseStats.CallUnary(ctx, req)
+}
+
+// GetDatabaseSizeHistory calls observability.v1.ObservabilityService.GetDatabaseSizeHistory.
+func (c *observabilityServiceClient) GetDatabaseSizeHistory(ctx context.Context, req *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error) {
+	return c.getDatabaseSizeHistory.CallUnary(ctx, req)
 }
 
 // GetFailingPullRequests calls observability.v1.ObservabilityService.GetFailingPullRequests.
@@ -435,6 +451,7 @@ type ObservabilityServiceHandler interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
+	GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
 	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
@@ -490,6 +507,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetDatabaseStatsProcedure,
 		svc.GetDatabaseStats,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceGetDatabaseSizeHistoryHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetDatabaseSizeHistoryProcedure,
+		svc.GetDatabaseSizeHistory,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseSizeHistory")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetFailingPullRequestsHandler := connect.NewUnaryHandler(
@@ -612,6 +635,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceTriggerStorageScanHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDatabaseStatsProcedure:
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetDatabaseSizeHistoryProcedure:
+			observabilityServiceGetDatabaseSizeHistoryHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetFailingPullRequestsProcedure:
 			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetWorkflowRunsProcedure:
@@ -675,6 +700,10 @@ func (UnimplementedObservabilityServiceHandler) TriggerStorageScan(context.Conte
 
 func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDatabaseStats is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDatabaseSizeHistory is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {

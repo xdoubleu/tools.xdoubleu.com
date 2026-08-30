@@ -10,6 +10,7 @@ import type {
   GetJobStatsResponse,
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
+  GetDatabaseSizeHistoryResponse,
   GetFailingPullRequestsResponse,
   GetWorkflowRunsResponse,
   GetSecurityAlertsResponse,
@@ -56,6 +57,14 @@ export function useDatabaseStats(windowDays: number) {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats(windowDays), () =>
     client.getDatabaseStats({ windowDays })
+  )
+}
+
+export function useDatabaseSizeHistory(windowDays: number) {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetDatabaseSizeHistoryResponse, Error>(
+    swrKeys.monitoringDatabaseSizeHistory(windowDays),
+    () => client.getDatabaseSizeHistory({ windowDays })
   )
 }
 

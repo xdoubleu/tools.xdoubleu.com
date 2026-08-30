@@ -195,3 +195,13 @@ type DBSizeSnapshot struct {
 	SampledAt      time.Time
 	TotalSizeBytes int64
 }
+
+// TableSizeHistoryPoint is one global.db_size_samples row, returned flat for
+// GetDatabaseSizeHistory — the client pivots and selects series for its
+// multi-line chart, same shape as TransactionLatencyPoint.
+type TableSizeHistoryPoint struct {
+	Day        time.Time
+	SchemaName string
+	TableName  string
+	SizeBytes  int64
+}

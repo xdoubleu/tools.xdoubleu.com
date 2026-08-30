@@ -10,6 +10,8 @@ service ObservabilityService {
       returns (TriggerStorageScanResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
+  rpc GetDatabaseSizeHistory(GetDatabaseSizeHistoryRequest)
+      returns (GetDatabaseSizeHistoryResponse);
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsResponse);
@@ -154,6 +156,25 @@ message GetDatabaseStatsResponse {
   repeated SchemaStat schemas = 2;
   repeated TableGrowth table_growth = 3;
   repeated DBSizeSnapshot history = 4;
+}
+
+// DBSizeHistoryPoint is one global.db_size_samples row.
+message DBSizeHistoryPoint {
+  string day = 1;  // YYYY-MM-DD
+  string schema_name = 2;
+  string table_name = 3;
+  int64 size_bytes = 4;
+}
+
+message GetDatabaseSizeHistoryRequest {
+  int32 window_days = 1;
+}
+
+// GetDatabaseSizeHistoryResponse carries every stored (schema, table) series
+// over the window, flat and unfiltered — schema-level totals are a
+// client-side sum of their tables' rows, avoiding a second query.
+message GetDatabaseSizeHistoryResponse {
+  repeated DBSizeHistoryPoint points = 1;
 }
 
 // FailingCheck is a single non-passing CI check run on a pull request's head

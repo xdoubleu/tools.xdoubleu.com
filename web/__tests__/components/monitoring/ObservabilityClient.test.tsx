@@ -5,6 +5,7 @@ import {
   GetJobStatsResponseSchema,
   GetStorageStatsResponseSchema,
   GetDatabaseStatsResponseSchema,
+  GetDatabaseSizeHistoryResponseSchema,
   GetSlowTransactionsResponseSchema,
   GetTransactionLatencyHistoryResponseSchema,
   GetHostMetricsResponseSchema,
@@ -17,6 +18,7 @@ const mockUseJobStats = jest.fn()
 const mockUseStorageStats = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockUseDatabaseStats = jest.fn()
+const mockUseDatabaseSizeHistory = jest.fn()
 const mockUseSlowTransactions = jest.fn()
 const mockUseTransactionLatencyHistory = jest.fn()
 const mockUseHostMetrics = jest.fn()
@@ -28,6 +30,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useStorageStats: () => mockUseStorageStats(),
   useTriggerStorageScan: () => mockTriggerStorageScan,
   useDatabaseStats: (d: number) => mockUseDatabaseStats(d),
+  useDatabaseSizeHistory: (d: number) => mockUseDatabaseSizeHistory(d),
   useSlowTransactions: () => mockUseSlowTransactions(),
   useTransactionLatencyHistory: (d: number) => mockUseTransactionLatencyHistory(d),
   useHostMetrics: () => mockUseHostMetrics(),
@@ -75,6 +78,10 @@ beforeEach(() => {
     data: create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 2097152n, schemas: [] }),
     mutate: mockMutate
   })
+  mockUseDatabaseSizeHistory.mockReturnValue({
+    data: create(GetDatabaseSizeHistoryResponseSchema, { points: [] }),
+    mutate: mockMutate
+  })
   mockUseSlowTransactions.mockReturnValue({
     data: create(GetSlowTransactionsResponseSchema, {
       configured: true,
@@ -113,6 +120,7 @@ describe('ObservabilityClient', () => {
     for (const title of [
       'Storage',
       'Database',
+      'Database Size History',
       'Jobs',
       'Slow Transactions',
       'Transaction Latency History',

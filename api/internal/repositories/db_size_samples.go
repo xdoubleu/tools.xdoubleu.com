@@ -77,6 +77,39 @@ func (r *DBSizeSamplesRepository) History(
 	return history, rows.Err()
 }
 
+// PerTableHistory returns every (day, schema, table) row on or after since,
+// oldest first — the flat series GetDatabaseSizeHistory returns as-is; the
+// client pivots and selects which series to plot, summing a schema's tables
+// client-side for the schema-level view rather than a second query.
+func (r *DBSizeSamplesRepository) PerTableHistory(
+	ctx context.Context,
+	since time.Time,
+) ([]models.TableSizeHistoryPoint, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT sampled_at::date, schema_name, table_name, size_bytes
+		FROM global.db_size_samples
+		WHERE sampled_at >= $1
+		ORDER BY sampled_at
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var points []models.TableSizeHistoryPoint
+	for rows.Next() {
+		var p models.TableSizeHistoryPoint
+		if err = rows.Scan(
+			&p.Day, &p.SchemaName, &p.TableName, &p.SizeBytes,
+		); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+
+	return points, rows.Err()
+}
+
 // Growth compares each table's most recent sampled size against its
 // earliest size recorded at or after since, returning the fastest-growing
 // tables first. A table sampled only once within the window (no growth to

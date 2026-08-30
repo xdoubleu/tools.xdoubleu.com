@@ -12,6 +12,8 @@ export const swrKeys = {
   monitoringStorageStats: '/monitoring/storage-stats',
   monitoringDatabaseStats: (windowDays: number) =>
     ['/monitoring/database-stats', windowDays] as const,
+  monitoringDatabaseSizeHistory: (windowDays: number) =>
+    ['/monitoring/database-size-history', windowDays] as const,
   monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringWorkflowRuns: '/monitoring/workflow-runs',
   monitoringSecurityAlerts: '/monitoring/security-alerts',

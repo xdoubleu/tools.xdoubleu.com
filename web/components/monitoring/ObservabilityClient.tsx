@@ -10,6 +10,7 @@ import {
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
+  useDatabaseSizeHistory,
   useSlowTransactions,
   useTransactionLatencyHistory,
   useHostMetrics,
@@ -18,6 +19,7 @@ import {
 import CollapsibleSection from './CollapsibleSection'
 import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
+import DatabaseSizeHistoryCard from './DatabaseSizeHistoryCard'
 import JobsCard from './JobsCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
 import TransactionLatencyHistoryCard from './TransactionLatencyHistoryCard'
@@ -34,6 +36,7 @@ export default function ObservabilityClient() {
   const storageStats = useStorageStats()
   const triggerStorageScan = useTriggerStorageScan()
   const databaseStats = useDatabaseStats(windowDays)
+  const databaseSizeHistory = useDatabaseSizeHistory(windowDays)
   const slowTransactions = useSlowTransactions()
   const transactionLatencyHistory = useTransactionLatencyHistory(windowDays)
   const hostMetrics = useHostMetrics()
@@ -45,6 +48,7 @@ export default function ObservabilityClient() {
       jobStats.mutate(),
       triggerStorageScan(),
       databaseStats.mutate(),
+      databaseSizeHistory.mutate(),
       slowTransactions.mutate(),
       transactionLatencyHistory.mutate(),
       hostMetrics.mutate(),
@@ -91,6 +95,9 @@ export default function ObservabilityClient() {
         </CollapsibleSection>
         <CollapsibleSection title="Database">
           <DatabaseCard data={databaseStats.data} />
+        </CollapsibleSection>
+        <CollapsibleSection title="Database Size History">
+          <DatabaseSizeHistoryCard data={databaseSizeHistory.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Jobs">
           <JobsCard data={jobStats.data} />
