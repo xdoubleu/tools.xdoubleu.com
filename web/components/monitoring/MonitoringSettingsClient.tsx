@@ -15,6 +15,7 @@ export default function MonitoringSettingsClient() {
     tone: 'success' | 'danger'
     text: string
   } | null>(null)
+  const [configuringProvider, setConfiguringProvider] = useState<string | null>(null)
 
   useEffect(() => {
     const connected = searchParams.get('oauth_connected')
@@ -24,6 +25,7 @@ export default function MonitoringSettingsClient() {
     if (connected) {
       setOAuthMessage({ tone: 'success', text: `Connected ${connected}.` })
       void oauthConnections.mutate()
+      setConfiguringProvider(connected)
     } else if (errored) {
       setOAuthMessage({
         tone: 'danger',
@@ -49,7 +51,11 @@ export default function MonitoringSettingsClient() {
         </p>
       )}
       <NotificationSettingsCard data={notificationSettings.data} />
-      <OAuthConnectionsCard data={oauthConnections.data} />
+      <OAuthConnectionsCard
+        data={oauthConnections.data}
+        configuringProvider={configuringProvider}
+        onConfiguringProviderChange={setConfiguringProvider}
+      />
     </div>
   )
 }

@@ -25,6 +25,12 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useDisconnectOAuthConnection: () => jest.fn()
 }))
 
+jest.mock('@/components/monitoring/ProviderConfigDialog', () => ({
+  __esModule: true,
+  default: ({ provider, open }: { provider: string; open: boolean }) =>
+    open ? <div data-testid="provider-config-dialog">Configuring {provider}</div> : null
+}))
+
 beforeEach(() => {
   jest.clearAllMocks()
   mockSearchParams = new URLSearchParams()
@@ -59,6 +65,16 @@ describe('MonitoringSettingsClient', () => {
     expect(await screen.findByText('Connected github.')).toBeInTheDocument()
     expect(mockMutate).toHaveBeenCalled()
     expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings')
+  })
+
+  it('auto-opens the config dialog for the just-connected provider', async () => {
+    mockSearchParams = new URLSearchParams('oauth_connected=sentry')
+
+    render(<MonitoringSettingsClient />)
+
+    expect(await screen.findByTestId('provider-config-dialog')).toHaveTextContent(
+      'Configuring sentry'
+    )
   })
 
   it('preserves other query params when clearing the oauth params', async () => {
