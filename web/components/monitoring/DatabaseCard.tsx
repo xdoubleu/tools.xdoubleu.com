@@ -15,7 +15,12 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
-import { CATEGORICAL_PALETTE, chartTooltipStyle, formatBytes } from '@/lib/observability'
+import {
+  bytesTooltipFormatter,
+  CATEGORICAL_PALETTE,
+  chartTooltipStyle,
+  formatBytes
+} from '@/lib/observability'
 
 function formatPctChange(pctChange: number): string {
   const sign = pctChange >= 0 ? '+' : ''
@@ -65,7 +70,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={24} />
                   <YAxis tickFormatter={(v: number) => formatBytes(v)} tick={{ fontSize: 11 }} />
                   <Tooltip
-                    formatter={(value) => [formatBytes(Number(value)), 'Total size']}
+                    formatter={bytesTooltipFormatter('Total size')}
                     contentStyle={chartTooltipStyle}
                     labelStyle={{ color: 'var(--color-fg)' }}
                     itemStyle={{ color: 'var(--color-fg)' }}
@@ -98,7 +103,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
                   />
                   <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value) => [formatBytes(Number(value)), 'Size']}
+                    formatter={bytesTooltipFormatter('Size')}
                     cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
                     contentStyle={chartTooltipStyle}
                     labelStyle={{ color: 'var(--color-fg)' }}
