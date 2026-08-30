@@ -1,12 +1,51 @@
+import type { GetAlertStatesResponse } from '@/lib/gen/observability/v1/observability_pb'
+
 // Shared helpers for the admin observability dashboard.
 
-// SLOW_TRANSACTION_THRESHOLD_MS is a provisional, single global "slow"
-// cutoff, matching slowTransactionP95ThresholdMs in
-// api/internal/observability/jobs/slow_transactions.go. Issue #1310 will
-// replace this with per-class thresholds surfaced via AlertState; until
-// then it's the single conservative constant #1310 itself calls out as an
-// acceptable fallback.
-export const SLOW_TRANSACTION_THRESHOLD_MS = 5000
+// TransactionClass mirrors the three slow-transaction alert rule keys
+// (jobs.ThresholdAlertJob, issue #1310).
+type TransactionClass =
+  'slow_transaction_http_high' | 'slow_transaction_job_high' | 'slow_transaction_frontend_high'
+
+// classifyTransaction mirrors classifyTransaction in
+// api/internal/observability/jobs/threshold_alert_slow_transactions.go — the
+// transaction name shape is the only stable classification signal, since
+// Sentry project names are admin-configured free text. Keep both sides in
+// sync.
+function classifyTransaction(transaction: string): TransactionClass {
+  if (/^(GET|POST|PUT|PATCH|DELETE) /.test(transaction)) {
+    return 'slow_transaction_http_high'
+  }
+  if (transaction.startsWith('/') || transaction.includes('.')) {
+    return 'slow_transaction_frontend_high'
+  }
+  return 'slow_transaction_job_high'
+}
+
+// slowTransactionThresholds looks up each slow-transaction rule's threshold
+// from the shared AlertState list rather than duplicating the numbers here —
+// the backend (jobs.ThresholdAlertJob) is the source of truth.
+export function slowTransactionThresholds(
+  alertStates?: GetAlertStatesResponse
+): Record<string, number> {
+  const thresholds: Record<string, number> = {}
+  for (const state of alertStates?.states ?? []) {
+    thresholds[state.ruleKey] = state.threshold
+  }
+  return thresholds
+}
+
+// isSlowTransaction reports whether a transaction's p95 exceeds its class's
+// threshold. Returns false (not true) when the threshold isn't loaded yet,
+// so a still-loading AlertState list doesn't flag everything as slow.
+export function isSlowTransaction(
+  transaction: string,
+  p95DurationMs: number,
+  thresholds: Record<string, number>
+): boolean {
+  const threshold = thresholds[classifyTransaction(transaction)]
+  return threshold !== undefined && p95DurationMs > threshold
+}
 
 // CATEGORICAL_PALETTE is a CVD-safe ordered hue set (validated with the
 // dataviz palette validator). Series colours are assigned by fixed index —

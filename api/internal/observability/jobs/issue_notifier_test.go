@@ -1101,9 +1101,39 @@ func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 	assert.True(t, notified.keys[key])
 }
 
+// TestIssueNotifierSkipsExcludedTransaction asserts a known non-representative
+// transaction (slowTransactionExcluded) never notifies even at a very high
+// p95 -- currentlySlowTransactions excludes it the same way
+// ThresholdAlertJob's own evaluator does (issue #1310).
+func TestIssueNotifierSkipsExcludedTransaction(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-web", "NextNodeServer.clientComponentLoading", 61000),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
 // TestIssueNotifierSkipsTransactionBelowThreshold asserts a regression that
-// hasn't crossed slowTransactionP95ThresholdMs (only relatively slower, not
-// absolutely slow) doesn't notify.
+// hasn't crossed its class's threshold (thresholdMsForClass, only relatively
+// slower, not absolutely slow) doesn't notify.
 func TestIssueNotifierSkipsTransactionBelowThreshold(t *testing.T) {
 	slow := fakeSlowTransactionsRepo{
 		trends: []models.TransactionTrend{slowTrend("tools-web", "/dashboard", 1500)},
@@ -1129,8 +1159,11 @@ func TestIssueNotifierSkipsTransactionBelowThreshold(t *testing.T) {
 }
 
 func TestIssueNotifierSkipsSlowTransactionsWhenSourceDisabled(t *testing.T) {
+	// 65000ms is above the background-job class threshold (60s) so this
+	// transaction genuinely qualifies as slow -- the test exercises the
+	// disabled-source skip, not "not actually slow".
 	slow := fakeSlowTransactionsRepo{
-		trends: []models.TransactionTrend{slowTrend("tools-api", "steam", 24000)},
+		trends: []models.TransactionTrend{slowTrend("tools-api", "steam", 65000)},
 		err:    nil,
 	}
 	mail := &fakeMailer{sent: nil, err: nil}

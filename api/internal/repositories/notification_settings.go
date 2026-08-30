@@ -29,6 +29,15 @@ const (
 	NotificationSourceSlowTransactions     NotificationSource = "slow_transactions"
 )
 
+// Per-class slow-transaction threshold sources (issue #1310) — kept in
+// their own const block so gofmt's column alignment doesn't widen every
+// other source's line past the lll limit.
+const (
+	NotificationSourceSlowHTTPHigh NotificationSource = "slow_transaction_http_high"
+	NotificationSourceSlowJobHigh  NotificationSource = "slow_transaction_job_high"
+	NotificationSourceSlowFEHigh   NotificationSource = "slow_transaction_frontend_high"
+)
+
 // NotificationSetting is one row of global.notification_settings.
 type NotificationSetting struct {
 	SourceKey NotificationSource

@@ -35,6 +35,24 @@ describe('AlertStatesCard', () => {
               breaching: false,
               currentValue: 60_000,
               threshold: 900_000
+            },
+            {
+              ruleKey: 'slow_transaction_http_high',
+              breaching: false,
+              currentValue: 1200,
+              threshold: 5000
+            },
+            {
+              ruleKey: 'slow_transaction_job_high',
+              breaching: false,
+              currentValue: 24_000,
+              threshold: 60_000
+            },
+            {
+              ruleKey: 'slow_transaction_frontend_high',
+              breaching: false,
+              currentValue: 1500,
+              threshold: 5000
             }
           ]
         })}
@@ -46,6 +64,12 @@ describe('AlertStatesCard', () => {
     // bytes and ms go through the shared observability formatters
     expect(screen.getByText(/1\.0 GB of 50\.0 GB threshold/)).toBeInTheDocument()
     expect(screen.getByText(/1\.0 min of 15\.0 min threshold/)).toBeInTheDocument()
+    expect(screen.getByText(/1\.2 s of 5\.0 s threshold/)).toBeInTheDocument()
+    expect(screen.getByText(/24\.0 s of 1\.0 min threshold/)).toBeInTheDocument()
+    expect(screen.getByText(/1\.5 s of 5\.0 s threshold/)).toBeInTheDocument()
+    expect(screen.getByText('Slow HTTP handlers (p95)')).toBeInTheDocument()
+    expect(screen.getByText('Slow background jobs (p95)')).toBeInTheDocument()
+    expect(screen.getByText('Slow frontend transactions (p95)')).toBeInTheDocument()
   })
 
   it('marks a breaching rule, shows its since timestamp, and counts it in the header', () => {

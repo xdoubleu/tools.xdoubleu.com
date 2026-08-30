@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // r2UsageAboveThreshold/ciDurationAboveThresholdMs mirror the unexported
@@ -178,6 +179,7 @@ func TestThresholdAlertJob_IDAndSchedule(t *testing.T) {
 		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
 		noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		disabledSettings{},
 		newFakeAlertStateRepo(),
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -197,6 +199,7 @@ func TestThresholdAlertJob_HostCPUSustainedBreach_SendsBreachEmail(t *testing.T)
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states, notifSvc,
 	)
@@ -227,6 +230,7 @@ func TestThresholdAlertJob_HostCPUNotSustained_NoBreach(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states, notifSvc,
 	)
@@ -250,6 +254,7 @@ func TestThresholdAlertJob_HostCPUNoSamples_NoBreachNoError(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states, notifSvc,
 	)
@@ -277,6 +282,7 @@ func TestThresholdAlertJob_HostDiskInstant_BreachesOnLatestSampleOnly(t *testing
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostDiskHigh},
 		states, notifSvc,
 	)
@@ -305,6 +311,7 @@ func TestThresholdAlertJob_R2UsageHigh_Breach(t *testing.T) {
 		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
 		storage,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceR2UsageHigh},
 		states, notifSvc,
 	)
@@ -337,6 +344,7 @@ func TestThresholdAlertJob_CIDurationHigh_Breach(t *testing.T) {
 		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
 		noSnapshotGetter,
 		workflowRuns,
+		stubStatsLister{}, //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceCIDurationHigh},
 		states, notifSvc,
 	)
@@ -366,6 +374,7 @@ func TestThresholdAlertJob_ReArmEmailsTwice(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states, notifSvc,
 	)
@@ -403,6 +412,7 @@ func TestThresholdAlertJob_DisabledSource_SkipsWithoutWritingState(t *testing.T)
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		disabledSettings{},
 		states, notifSvc,
 	)
@@ -419,6 +429,7 @@ func TestThresholdAlertJob_SettingsErrorPropagates(t *testing.T) {
 		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
 		noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		erroringSettings{err: assert.AnError},
 		newFakeAlertStateRepo(),
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -438,6 +449,7 @@ func TestThresholdAlertJob_EvaluateErrorLogsAndContinues(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states,
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -458,6 +470,7 @@ func TestThresholdAlertJob_StatesGetErrorPropagates(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states,
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -478,6 +491,7 @@ func TestThresholdAlertJob_MailerNotConfigured_RetriesNextRun(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
 		hostMetrics, noSnapshotGetter,
 		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stubStatsLister{},               //nolint:exhaustruct // fixture
 		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
 		states, notifSvc,
 	)
@@ -490,4 +504,180 @@ func TestThresholdAlertJob_MailerNotConfigured_RetriesNextRun(t *testing.T) {
 	// silently marked handled.
 	_, ok := states.get("host_cpu_high")
 	assert.False(t, ok)
+}
+
+func TestThresholdAlertJob_SlowTransactionHTTPHigh_Breach(t *testing.T) {
+	stats := stubStatsLister{ //nolint:exhaustruct // fixture
+		stats: []sentryapi.TransactionStat{
+			{
+				Transaction:   "GET /games/api/progress",
+				Project:       "tools-api",
+				P95DurationMs: 144000,
+				RequestCount:  35,
+			},
+			{
+				Transaction:   "steam",
+				Project:       "tools-api",
+				P95DurationMs: 24000,
+				RequestCount:  2,
+			},
+			{
+				Transaction:   "/dashboard/games",
+				Project:       "tools-web",
+				P95DurationMs: 4000,
+				RequestCount:  8,
+			},
+		},
+	}
+	states := newFakeAlertStateRepo()
+	mail := &fakeMailer{} //nolint:exhaustruct // fixture
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewThresholdAlertJob(
+		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
+		noSnapshotGetter,
+		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stats,
+		onlyEnabledSettings{
+			allowed: repositories.NotificationSourceSlowHTTPHigh,
+		},
+		states,
+		notifSvc,
+	)
+
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	state, ok := states.get("slow_transaction_http_high")
+	require.True(t, ok)
+	assert.True(t, state.Breaching)
+	assert.InDelta(t, 144000, state.CurrentValue, 0.01)
+}
+
+func TestThresholdAlertJob_SlowTransactionJobHigh_NotBreachingBelowThreshold(
+	t *testing.T,
+) {
+	// steam at 24s is a legitimate long-running background job, well under
+	// the 60s job threshold -- it must not breach on its own.
+	stats := stubStatsLister{ //nolint:exhaustruct // fixture
+		stats: []sentryapi.TransactionStat{
+			{
+				Transaction:   "steam",
+				Project:       "tools-api",
+				P95DurationMs: 24000,
+				RequestCount:  2,
+			},
+			{
+				Transaction:   "GET /games/api/progress",
+				Project:       "tools-api",
+				P95DurationMs: 144000,
+				RequestCount:  35,
+			},
+		},
+	}
+	states := newFakeAlertStateRepo()
+	mail := &fakeMailer{} //nolint:exhaustruct // fixture
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewThresholdAlertJob(
+		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
+		noSnapshotGetter,
+		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stats,
+		onlyEnabledSettings{
+			allowed: repositories.NotificationSourceSlowJobHigh,
+		},
+		states,
+		notifSvc,
+	)
+
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	state, ok := states.get("slow_transaction_job_high")
+	require.True(t, ok)
+	assert.False(t, state.Breaching)
+	assert.InDelta(t, 24000, state.CurrentValue, 0.01)
+}
+
+func TestThresholdAlertJob_SlowTransactionFrontendHigh_ExcludedTransactionIgnored(
+	t *testing.T,
+) {
+	// NextNodeServer.clientComponentLoading is a known Next.js-internal
+	// transaction, not a real page load -- it must never breach the
+	// frontend rule even at 61s.
+	stats := stubStatsLister{ //nolint:exhaustruct // fixture
+		stats: []sentryapi.TransactionStat{
+			{
+				Transaction:   "NextNodeServer.clientComponentLoading",
+				Project:       "tools-web",
+				P95DurationMs: 61000,
+				RequestCount:  548,
+			},
+			{
+				Transaction:   "/dashboard/games",
+				Project:       "tools-web",
+				P95DurationMs: 2000,
+				RequestCount:  8,
+			},
+		},
+	}
+	states := newFakeAlertStateRepo()
+	mail := &fakeMailer{} //nolint:exhaustruct // fixture
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewThresholdAlertJob(
+		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
+		noSnapshotGetter,
+		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stats,
+		onlyEnabledSettings{
+			allowed: repositories.NotificationSourceSlowFEHigh,
+		},
+		states,
+		notifSvc,
+	)
+
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	state, ok := states.get("slow_transaction_frontend_high")
+	require.True(t, ok)
+	assert.False(t, state.Breaching)
+	assert.InDelta(t, 2000, state.CurrentValue, 0.01)
+}
+
+func TestThresholdAlertJob_SlowTransactionHigh_NotConfigured_NoBreachNoError(
+	t *testing.T,
+) {
+	stats := stubStatsLister{ //nolint:exhaustruct // fixture
+		err: sentryapi.ErrNotConfigured,
+	}
+	states := newFakeAlertStateRepo()
+	mail := &fakeMailer{} //nolint:exhaustruct // fixture
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewThresholdAlertJob(
+		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
+		noSnapshotGetter,
+		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stats,
+		onlyEnabledSettings{
+			allowed: repositories.NotificationSourceSlowHTTPHigh,
+		},
+		states,
+		notifSvc,
+	)
+
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	state, ok := states.get("slow_transaction_http_high")
+	require.True(t, ok)
+	assert.False(t, state.Breaching)
+	assert.Zero(t, state.CurrentValue)
 }

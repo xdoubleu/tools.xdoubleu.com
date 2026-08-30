@@ -13,7 +13,7 @@ import {
   useAlertStates,
   useSlowTransactions
 } from '@/hooks/useMonitoring'
-import { formatCount, SLOW_TRANSACTION_THRESHOLD_MS } from '@/lib/observability'
+import { formatCount, slowTransactionThresholds, isSlowTransaction } from '@/lib/observability'
 import StatTiles from './StatTiles'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
 import WorkflowRunsCard from './WorkflowRunsCard'
@@ -63,8 +63,9 @@ export default function IssuesClient() {
 
   const breachingAlerts = (alertStates.data?.states ?? []).filter((state) => state.breaching)
 
-  const currentlySlowTransactions = (slowTransactions.data?.current ?? []).filter(
-    (t) => t.p95DurationMs >= SLOW_TRANSACTION_THRESHOLD_MS
+  const slowTransactionThresholdsByRuleKey = slowTransactionThresholds(alertStates.data)
+  const currentlySlowTransactions = (slowTransactions.data?.current ?? []).filter((t) =>
+    isSlowTransaction(t.transaction, t.p95DurationMs, slowTransactionThresholdsByRuleKey)
   )
 
   const tiles = [
@@ -139,7 +140,8 @@ export default function IssuesClient() {
         <OrphanedStorageCard data={storageStats.data} />
         <SlowTransactionsCard
           data={slowTransactions.data}
-          filterThresholdMs={SLOW_TRANSACTION_THRESHOLD_MS}
+          alertStates={alertStates.data}
+          filtered
         />
       </div>
     </PageContainer>

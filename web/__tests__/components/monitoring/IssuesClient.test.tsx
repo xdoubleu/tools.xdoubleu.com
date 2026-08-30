@@ -111,7 +111,13 @@ beforeEach(() => {
     data: create(GetAlertStatesResponseSchema, {
       states: [
         { ruleKey: 'host_cpu_high', breaching: false, currentValue: 12, threshold: 80 },
-        { ruleKey: 'host_disk_high', breaching: true, currentValue: 91, threshold: 85 }
+        { ruleKey: 'host_disk_high', breaching: true, currentValue: 91, threshold: 85 },
+        {
+          ruleKey: 'slow_transaction_http_high',
+          breaching: false,
+          currentValue: 500,
+          threshold: 5000
+        }
       ]
     }),
     mutate: mockMutate

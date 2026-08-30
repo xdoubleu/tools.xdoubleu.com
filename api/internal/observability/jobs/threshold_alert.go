@@ -105,12 +105,15 @@ func NewThresholdAlertJob(
 	hostMetrics hostMetricsSinceRepo,
 	storage latestStorageSnapshotGetter,
 	workflowRuns workflowDurationStatsRepo,
+	transactionStats transactionStatsLister,
 	settings notificationSettingsRepo,
 	states alertStateRepo,
 	notificationsSvc *notifications.Service,
 ) *ThresholdAlertJob {
 	return &ThresholdAlertJob{
-		rules:         buildAlertRules(hostMetrics, storage, workflowRuns),
+		rules: buildAlertRules(
+			hostMetrics, storage, workflowRuns, transactionStats,
+		),
 		settings:      settings,
 		states:        states,
 		notifications: notificationsSvc,
@@ -121,6 +124,7 @@ func buildAlertRules(
 	hostMetrics hostMetricsSinceRepo,
 	storage latestStorageSnapshotGetter,
 	workflowRuns workflowDurationStatsRepo,
+	transactionStats transactionStatsLister,
 ) []alertRule {
 	return []alertRule{
 		{
@@ -171,6 +175,42 @@ func buildAlertRules(
 			threshold: ciDurationThresholdMs,
 			unit:      unitMillis,
 			evaluate:  ciDurationEvaluator(workflowRuns, ciDurationThresholdMs),
+		},
+		{
+			key:       "slow_transaction_http_high",
+			label:     "Slow HTTP handlers (p95)",
+			source:    repositories.NotificationSourceSlowHTTPHigh,
+			threshold: slowTransactionHTTPThresholdMs,
+			unit:      unitMillis,
+			evaluate: slowTransactionEvaluator(
+				transactionStats,
+				transactionClassHTTPHandler,
+				slowTransactionHTTPThresholdMs,
+			),
+		},
+		{
+			key:       "slow_transaction_job_high",
+			label:     "Slow background jobs (p95)",
+			source:    repositories.NotificationSourceSlowJobHigh,
+			threshold: slowTransactionJobThresholdMs,
+			unit:      unitMillis,
+			evaluate: slowTransactionEvaluator(
+				transactionStats,
+				transactionClassBackgroundJob,
+				slowTransactionJobThresholdMs,
+			),
+		},
+		{
+			key:       "slow_transaction_frontend_high",
+			label:     "Slow frontend transactions (p95)",
+			source:    repositories.NotificationSourceSlowFEHigh,
+			threshold: slowTransactionFrontendThresholdMs,
+			unit:      unitMillis,
+			evaluate: slowTransactionEvaluator(
+				transactionStats,
+				transactionClassFrontend,
+				slowTransactionFrontendThresholdMs,
+			),
 		},
 	}
 }

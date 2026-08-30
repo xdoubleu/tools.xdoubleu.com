@@ -19,7 +19,10 @@ const RULE_LABELS: Record<string, string> = {
   host_memory_high: 'Host memory usage',
   host_disk_high: 'Host disk usage',
   r2_usage_high: 'R2 storage usage',
-  ci_duration_high: 'CI workflow duration (p95)'
+  ci_duration_high: 'CI workflow duration (p95)',
+  slow_transaction_http_high: 'Slow HTTP handlers (p95)',
+  slow_transaction_job_high: 'Slow background jobs (p95)',
+  slow_transaction_frontend_high: 'Slow frontend transactions (p95)'
 }
 
 const RULE_FORMATTERS: Record<string, (value: number) => string> = {
@@ -27,7 +30,10 @@ const RULE_FORMATTERS: Record<string, (value: number) => string> = {
   host_memory_high: formatPercent,
   host_disk_high: formatPercent,
   r2_usage_high: (value) => formatBytes(value),
-  ci_duration_high: (value) => formatDuration(value)
+  ci_duration_high: (value) => formatDuration(value),
+  slow_transaction_http_high: (value) => formatDuration(value),
+  slow_transaction_job_high: (value) => formatDuration(value),
+  slow_transaction_frontend_high: (value) => formatDuration(value)
 }
 
 function formatPercent(value: number): string {

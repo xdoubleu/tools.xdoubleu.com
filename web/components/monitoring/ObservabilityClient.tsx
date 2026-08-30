@@ -12,7 +12,8 @@ import {
   useDatabaseStats,
   useSlowTransactions,
   useTransactionLatencyHistory,
-  useHostMetrics
+  useHostMetrics,
+  useAlertStates
 } from '@/hooks/useMonitoring'
 import CollapsibleSection from './CollapsibleSection'
 import StorageCard from './StorageCard'
@@ -36,6 +37,7 @@ export default function ObservabilityClient() {
   const slowTransactions = useSlowTransactions()
   const transactionLatencyHistory = useTransactionLatencyHistory(windowDays)
   const hostMetrics = useHostMetrics()
+  const alertStates = useAlertStates()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -45,7 +47,8 @@ export default function ObservabilityClient() {
       databaseStats.mutate(),
       slowTransactions.mutate(),
       transactionLatencyHistory.mutate(),
-      hostMetrics.mutate()
+      hostMetrics.mutate(),
+      alertStates.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -93,7 +96,7 @@ export default function ObservabilityClient() {
           <JobsCard data={jobStats.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Slow Transactions">
-          <SlowTransactionsCard data={slowTransactions.data} />
+          <SlowTransactionsCard data={slowTransactions.data} alertStates={alertStates.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Transaction Latency History">
           <TransactionLatencyHistoryCard data={transactionLatencyHistory.data} />

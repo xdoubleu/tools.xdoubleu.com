@@ -18,7 +18,10 @@ const MONITORING_SOURCE_KEYS = [
   'host_memory_high',
   'host_disk_high',
   'r2_usage_high',
-  'ci_duration_high'
+  'ci_duration_high',
+  'slow_transaction_http_high',
+  'slow_transaction_job_high',
+  'slow_transaction_frontend_high'
 ]
 
 export default function NotificationSettingsCard({
