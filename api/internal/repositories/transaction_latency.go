@@ -122,3 +122,37 @@ func (r *TransactionLatencyRepository) Trends(
 
 	return trends, rows.Err()
 }
+
+// History returns every (day, project, transaction) row on or after since,
+// oldest first — the flat series GetTransactionLatencyHistory returns as-is;
+// the client pivots and selects which series to plot. since is caller-bounded
+// by windowSince; rows are already pruned to transactionLatencyRetention on
+// every Insert, so a since older than that simply returns whatever's stored.
+func (r *TransactionLatencyRepository) History(
+	ctx context.Context,
+	since time.Time,
+) ([]models.TransactionLatencyPoint, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT day, project, transaction_name, p95_duration_ms, request_count
+		FROM global.transaction_latency_daily
+		WHERE day >= $1
+		ORDER BY day
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var points []models.TransactionLatencyPoint
+	for rows.Next() {
+		var p models.TransactionLatencyPoint
+		if err = rows.Scan(
+			&p.Day, &p.Project, &p.Transaction, &p.P95DurationMs, &p.RequestCount,
+		); err != nil {
+			return nil, err
+		}
+		points = append(points, p)
+	}
+
+	return points, rows.Err()
+}

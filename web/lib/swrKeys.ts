@@ -17,6 +17,8 @@ export const swrKeys = {
   monitoringSecurityAlerts: '/monitoring/security-alerts',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringSlowTransactions: '/monitoring/slow-transactions',
+  monitoringTransactionLatencyHistory: (windowDays: number) =>
+    ['/monitoring/transaction-latency-history', windowDays] as const,
   monitoringHostMetrics: '/monitoring/host-metrics',
   monitoringAlertStates: '/monitoring/alert-states',
   monitoringLogs: (source: string, minLevel: string) =>

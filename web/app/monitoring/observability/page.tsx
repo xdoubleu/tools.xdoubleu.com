@@ -12,12 +12,14 @@ const DEFAULT_WINDOW_DAYS = 30
 export default async function MonitoringObservabilityPage() {
   const client = await createServerClient(ObservabilityService)
 
-  const [jobStats, storageStats, databaseStats, hostMetrics] = await Promise.all([
-    fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
-    fetchOrNull(() => client.getStorageStats({})),
-    fetchOrNull(() => client.getDatabaseStats({ windowDays: DEFAULT_WINDOW_DAYS })),
-    fetchOrNull(() => client.getHostMetrics({}))
-  ])
+  const [jobStats, storageStats, databaseStats, hostMetrics, transactionLatencyHistory] =
+    await Promise.all([
+      fetchOrNull(() => client.getJobStats({ windowDays: DEFAULT_WINDOW_DAYS })),
+      fetchOrNull(() => client.getStorageStats({})),
+      fetchOrNull(() => client.getDatabaseStats({ windowDays: DEFAULT_WINDOW_DAYS })),
+      fetchOrNull(() => client.getHostMetrics({})),
+      fetchOrNull(() => client.getTransactionLatencyHistory({ windowDays: DEFAULT_WINDOW_DAYS }))
+    ])
 
   const fallback: Record<string, unknown> = {}
   if (storageStats) fallback[swrKeys.monitoringStorageStats] = storageStats
@@ -27,6 +29,12 @@ export default async function MonitoringObservabilityPage() {
   if (jobStats) keyed.push([swrKeys.monitoringJobStats(DEFAULT_WINDOW_DAYS), jobStats])
   if (databaseStats) {
     keyed.push([swrKeys.monitoringDatabaseStats(DEFAULT_WINDOW_DAYS), databaseStats])
+  }
+  if (transactionLatencyHistory) {
+    keyed.push([
+      swrKeys.monitoringTransactionLatencyHistory(DEFAULT_WINDOW_DAYS),
+      transactionLatencyHistory
+    ])
   }
 
   return (

@@ -158,6 +158,17 @@ type TransactionTrend struct {
 	PctChange      float64
 }
 
+// TransactionLatencyPoint is one global.transaction_latency_daily row,
+// returned flat for GetTransactionLatencyHistory — the client pivots and
+// selects series for its multi-line chart.
+type TransactionLatencyPoint struct {
+	Day           time.Time
+	Project       string
+	Transaction   string
+	P95DurationMs float64
+	RequestCount  int64
+}
+
 // TableSizeSample is one table's on-disk size at sampling time, scraped live
 // from pg_total_relation_size by DBSizeSnapshotJob (issue #1282).
 type TableSizeSample struct {

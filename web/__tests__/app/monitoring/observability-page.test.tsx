@@ -9,7 +9,8 @@ const mockClient = {
   getJobStats: jest.fn(async () => ({})),
   getStorageStats: jest.fn(async () => ({})),
   getDatabaseStats: jest.fn(async () => ({})),
-  getHostMetrics: jest.fn(async () => ({}))
+  getHostMetrics: jest.fn(async () => ({})),
+  getTransactionLatencyHistory: jest.fn(async () => ({}))
 }
 
 jest.mock('@/lib/server/client', () => ({

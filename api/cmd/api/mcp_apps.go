@@ -109,8 +109,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 16 admin observability tools —
-// 15 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
+// registerObservabilityMCPTools registers the 17 admin observability tools —
+// 16 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -187,6 +187,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"Sentry) plus ones regressing over time (from stored history).",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.slowTransactions(ctx)
+		})
+	addObsTool(srv, "get_transaction_latency_history",
+		"Daily p95 duration + request count per (project, transaction) over "+
+			"the requested window (global.transaction_latency_daily) — the raw "+
+			"time series behind get_slow_transactions' trending summary, for "+
+			"plotting or deeper analysis of one transaction's history.",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.transactionLatencyHistory(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "resolve_sentry_issue",
 		"Marks a Sentry issue as resolved. The one mutating observability tool.",

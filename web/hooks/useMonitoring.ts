@@ -15,6 +15,7 @@ import type {
   GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
+  GetTransactionLatencyHistoryResponse,
   GetHostMetricsResponse,
   GetLogsResponse,
   ListOAuthConnectionsResponse,
@@ -112,6 +113,17 @@ export function useSlowTransactions() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSlowTransactionsResponse, Error>(swrKeys.monitoringSlowTransactions, () =>
     client.getSlowTransactions({})
+  )
+}
+
+// useTransactionLatencyHistory reads every stored (project, transaction)
+// daily p95 series over the window, flat — the chart pivots and selects
+// which series to plot.
+export function useTransactionLatencyHistory(windowDays: number) {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetTransactionLatencyHistoryResponse, Error>(
+    swrKeys.monitoringTransactionLatencyHistory(windowDays),
+    () => client.getTransactionLatencyHistory({ windowDays })
   )
 }
 

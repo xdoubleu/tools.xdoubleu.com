@@ -25,6 +25,7 @@ jest.mock('@/lib/client', () => ({
     getFailingPullRequests: jest.fn(),
     getSentryIssues: jest.fn(),
     getSlowTransactions: jest.fn(),
+    getTransactionLatencyHistory: jest.fn(),
     resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
     getHostMetrics: jest.fn(),
     getAlertStates: jest.fn(),
@@ -51,6 +52,7 @@ import {
   useFailingPullRequests,
   useSentryIssues,
   useSlowTransactions,
+  useTransactionLatencyHistory,
   useResolveSentryIssue,
   useHostMetrics,
   useAlertStates,
@@ -115,6 +117,14 @@ describe('useMonitoring', () => {
     renderHook(() => useSlowTransactions())
     expect(mockUseSWR).toHaveBeenCalledWith(
       swrKeys.monitoringSlowTransactions,
+      expect.any(Function)
+    )
+  })
+
+  it('keys transaction latency history by window', () => {
+    renderHook(() => useTransactionLatencyHistory(30))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      swrKeys.monitoringTransactionLatencyHistory(30),
       expect.any(Function)
     )
   })

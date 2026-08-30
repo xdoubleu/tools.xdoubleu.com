@@ -111,6 +111,25 @@ func TestTransactionLatencyTrendsFlagsRegression(t *testing.T) {
 	assert.InEpsilon(t, 1.0, trends[0].PctChange, 0.001)
 }
 
+func TestTransactionLatencyHistoryReturnsRowsSinceOrdered(t *testing.T) {
+	clearTransactionLatency(t)
+	repo := repositories.NewTransactionLatencyRepository(testDB)
+	now := time.Now()
+
+	seedDay(t, now.Add(-40*24*time.Hour), "GET /old", 50)
+	seedDay(t, now.Add(-2*24*time.Hour), "GET /recent-a", 100)
+	seedDay(t, now.Add(-1*24*time.Hour), "GET /recent-b", 150)
+
+	points, err := repo.History(t.Context(), now.Add(-10*24*time.Hour))
+	require.NoError(t, err)
+	require.Len(t, points, 2)
+	assert.Equal(t, "GET /recent-a", points[0].Transaction)
+	assert.Equal(t, "GET /recent-b", points[1].Transaction)
+	assert.Equal(t, "proj", points[0].Project)
+	assert.InEpsilon(t, 100.0, points[0].P95DurationMs, 0.001)
+	assert.Equal(t, int64(1), points[0].RequestCount)
+}
+
 func seedDay(t *testing.T, day time.Time, transaction string, p95Ms float64) {
 	t.Helper()
 	_, err := testDB.Exec(t.Context(), `

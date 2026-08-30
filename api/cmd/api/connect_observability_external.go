@@ -413,6 +413,47 @@ func (h *obsConnectHandler) slowTransactions(
 	return resp, nil
 }
 
+func (h *obsConnectHandler) GetTransactionLatencyHistory(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.GetTransactionLatencyHistoryRequest],
+) (*connect.Response[observabilityv1.GetTransactionLatencyHistoryResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.transactionLatencyHistory(ctx, req.Msg.GetWindowDays())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// transactionLatencyHistory returns every stored (project, transaction)
+// series over the window flat and unfiltered — the client pivots and picks
+// which series to plot.
+func (h *obsConnectHandler) transactionLatencyHistory(
+	ctx context.Context,
+	windowDays int32,
+) (*observabilityv1.GetTransactionLatencyHistoryResponse, error) {
+	points, err := h.app.transactionLatencyRepo.History(ctx, windowSince(windowDays))
+	if err != nil {
+		return nil, err
+	}
+
+	protoPoints := make([]*observabilityv1.TransactionLatencyPoint, len(points))
+	for i, p := range points {
+		protoPoints[i] = &observabilityv1.TransactionLatencyPoint{
+			Day:           p.Day.Format("2006-01-02"),
+			Project:       p.Project,
+			Transaction:   p.Transaction,
+			P95DurationMs: p.P95DurationMs,
+			RequestCount:  p.RequestCount,
+		}
+	}
+	return &observabilityv1.GetTransactionLatencyHistoryResponse{
+		Points: protoPoints,
+	}, nil
+}
+
 // protoSlowTransactions sorts stats slowest-first and caps it to
 // currentSlowTransactionsLimit — ListTransactionStats returns a broad
 // sample (not necessarily pre-sorted after project filtering), this is the

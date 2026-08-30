@@ -22,6 +22,8 @@ service ObservabilityService {
       returns (ResolveSentryIssueResponse);
   rpc GetSlowTransactions(GetSlowTransactionsRequest)
       returns (GetSlowTransactionsResponse);
+  rpc GetTransactionLatencyHistory(GetTransactionLatencyHistoryRequest)
+      returns (GetTransactionLatencyHistoryResponse);
   rpc GetHostMetrics(GetHostMetricsRequest) returns (GetHostMetricsResponse);
   rpc GetLogs(GetLogsRequest) returns (GetLogsResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
@@ -351,6 +353,26 @@ message GetSlowTransactionsResponse {
   repeated SlowTransaction current = 1;
   bool configured = 2;
   repeated TransactionTrend trending = 3;
+}
+
+// TransactionLatencyPoint is one global.transaction_latency_daily row.
+message TransactionLatencyPoint {
+  string day = 1;  // YYYY-MM-DD
+  string project = 2;
+  string transaction = 3;
+  double p95_duration_ms = 4;
+  int64 request_count = 5;
+}
+
+message GetTransactionLatencyHistoryRequest {
+  int32 window_days = 1;
+}
+
+// GetTransactionLatencyHistoryResponse carries every stored
+// (project, transaction) series over the window, flat and unfiltered —
+// selection happens client-side since the transaction list is small.
+message GetTransactionLatencyHistoryResponse {
+  repeated TransactionLatencyPoint points = 1;
 }
 
 // HostMetricPoint is one host_metric_samples row's value at a point in time.
