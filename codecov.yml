@@ -17,6 +17,17 @@ coverage:
         # PRs that don't touch product code. patch stays strict below, so newly
         # added/changed lines must still be covered.
         threshold: 1%
+    patch:
+      default:
+        # Pinned to match the 80% threshold `tools/diff_coverage_go.py`/
+        # `tools/diff_coverage_ts.py` enforce locally (see root/api/web
+        # CLAUDE.md's "run before pushing" guidance). Without an explicit
+        # target here, Codecov falls back to "auto" — current project
+        # coverage — which floats independently of the documented 80% and
+        # silently makes this check stricter than what passes locally
+        # (issue #1303: a PR passed the local check at 83% patch coverage
+        # but failed codecov/patch, which required 85.5%).
+        target: 80%
 
 comment:
   require_changes: true
