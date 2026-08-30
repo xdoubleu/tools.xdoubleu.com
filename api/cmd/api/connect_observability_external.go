@@ -387,8 +387,7 @@ func (h *obsConnectHandler) slowTransactions(
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
 			resp.Configured = false
 		} else {
-			h.app.logger.WarnContext(ctx, "slow transactions unavailable",
-				slog.Any("error", err))
+			return nil, err
 		}
 	} else {
 		resp.Current = protoSlowTransactions(stats)

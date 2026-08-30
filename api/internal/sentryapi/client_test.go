@@ -299,9 +299,9 @@ func TestIsTransientAPIError_Timeout(t *testing.T) {
 func TestListTransactionStats_ParsesPayload(t *testing.T) {
 	body := `{"data": [
 		{"transaction":"GET /api/books","project":"proj",
-		 "p95(transaction.duration)":123.4,"count()":42},
+		 "p95(span.duration)":123.4,"count()":42},
 		{"transaction":"GET /api/other-project","project":"other",
-		 "p95(transaction.duration)":999,"count()":5}
+		 "p95(span.duration)":999,"count()":5}
 	]}`
 
 	var gotPath, authHeader string
@@ -324,7 +324,8 @@ func TestListTransactionStats_ParsesPayload(t *testing.T) {
 	assert.InEpsilon(t, 123.4, stats[0].P95DurationMs, 0.001)
 	assert.Equal(t, int64(42), stats[0].RequestCount)
 	assert.True(t, strings.HasSuffix(gotPath, "/api/0/organizations/org/events/"))
-	assert.Equal(t, "event.type:transaction", gotQuery.Get("query"))
+	assert.Equal(t, "spans", gotQuery.Get("dataset"))
+	assert.Equal(t, "is_transaction:true", gotQuery.Get("query"))
 	assert.Equal(t, "24h", gotQuery.Get("statsPeriod"))
 	assert.Equal(t, "Bearer token", authHeader)
 }

@@ -1,7 +1,9 @@
 package jobs_test
 
 import (
+	"bytes"
 	"context"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -101,6 +103,21 @@ func TestTransactionLatencySnapshotJob_InsertErrorPropagates(t *testing.T) {
 
 	err := job.Run(t.Context(), logging.NewNopLogger())
 	require.ErrorIs(t, err, assert.AnError)
+}
+
+func TestTransactionLatencySnapshotJob_ZeroStatsWarns(t *testing.T) {
+	inserter := &fakeLatencyInserter{} //nolint:exhaustruct // zero values are the fixture
+	job := jobs.NewTransactionLatencySnapshotJob(
+		stubStatsLister{}, //nolint:exhaustruct // zero values are the fixture
+		inserter,
+	)
+
+	var buf bytes.Buffer
+	logger := slog.New(logging.NewBufLogHandler(&buf, nil))
+
+	require.NoError(t, job.Run(t.Context(), logger))
+	assert.Equal(t, 1, inserter.calls)
+	assert.Contains(t, buf.String(), "transaction latency snapshot got zero stats")
 }
 
 func TestTransactionLatencySnapshotJob_IDAndSchedule(t *testing.T) {

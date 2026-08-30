@@ -57,13 +57,20 @@ func (j *TransactionLatencySnapshotJob) RunEvery() time.Duration {
 // admin connects it. Any other error propagates so TrackedJob records the
 // failure in global.job_runs and logs it at Error (reaching Sentry), which
 // is the signal an admin needs for "the daily snapshot didn't happen".
-func (j *TransactionLatencySnapshotJob) Run(ctx context.Context, _ *slog.Logger) error {
+func (j *TransactionLatencySnapshotJob) Run(
+	ctx context.Context,
+	logger *slog.Logger,
+) error {
 	stats, err := j.sentry.ListTransactionStats(ctx)
 	if errors.Is(err, sentryapi.ErrNotConfigured) {
 		return nil
 	}
 	if err != nil {
 		return err
+	}
+	if len(stats) == 0 {
+		logger.WarnContext(ctx,
+			"transaction latency snapshot got zero stats from Sentry")
 	}
 
 	return j.repo.Insert(ctx, time.Now(), stats)
