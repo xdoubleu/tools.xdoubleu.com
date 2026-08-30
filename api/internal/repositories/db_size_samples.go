@@ -45,6 +45,38 @@ func (r *DBSizeSamplesRepository) PruneOlderThan(
 	return err
 }
 
+// History returns the total sampled database size per snapshot batch, oldest
+// first, for batches taken at or after since. InsertBatch writes every table of
+// one snapshot under a single sampled_at, so grouping by it yields exactly one
+// row per snapshot.
+func (r *DBSizeSamplesRepository) History(
+	ctx context.Context,
+	since time.Time,
+) ([]models.DBSizeSnapshot, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT sampled_at, SUM(size_bytes)::bigint
+		FROM global.db_size_samples
+		WHERE sampled_at >= $1
+		GROUP BY sampled_at
+		ORDER BY sampled_at ASC
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var history []models.DBSizeSnapshot
+	for rows.Next() {
+		var s models.DBSizeSnapshot
+		if err = rows.Scan(&s.SampledAt, &s.TotalSizeBytes); err != nil {
+			return nil, err
+		}
+		history = append(history, s)
+	}
+
+	return history, rows.Err()
+}
+
 // Growth compares each table's most recent sampled size against its
 // earliest size recorded at or after since, returning the fastest-growing
 // tables first. A table sampled only once within the window (no growth to

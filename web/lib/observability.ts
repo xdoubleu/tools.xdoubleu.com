@@ -34,6 +34,12 @@ export function formatBytes(bytes: number | bigint): string {
   return `${value.toFixed(decimals)} ${units[exp]}`
 }
 
+// bytesTooltipFormatter builds a recharts tooltip formatter that renders the
+// hovered value as a byte size under the given series label.
+export function bytesTooltipFormatter(label: string): (value: unknown) => [string, string] {
+  return (value: unknown) => [formatBytes(Number(value)), label]
+}
+
 // formatCount renders an integer count (number or bigint) with thousands
 // separators.
 export function formatCount(count: number | bigint): string {

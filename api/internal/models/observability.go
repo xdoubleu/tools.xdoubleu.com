@@ -177,3 +177,10 @@ type TableSizeGrowth struct {
 	DeltaBytes        int64
 	PctChange         float64
 }
+
+// DBSizeSnapshot is one snapshot batch's total size, summed across every table
+// sampled at that instant.
+type DBSizeSnapshot struct {
+	SampledAt      time.Time
+	TotalSizeBytes int64
+}

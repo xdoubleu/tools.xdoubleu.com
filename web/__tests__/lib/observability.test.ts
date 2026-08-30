@@ -1,4 +1,10 @@
-import { formatBytes, formatCount, formatDuration, successRate } from '@/lib/observability'
+import {
+  bytesTooltipFormatter,
+  formatBytes,
+  formatCount,
+  formatDuration,
+  successRate
+} from '@/lib/observability'
 
 describe('observability formatters', () => {
   it('formats bytes across units', () => {
@@ -8,6 +14,11 @@ describe('observability formatters', () => {
     expect(formatBytes(1536)).toBe('1.5 KB')
     expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
     expect(formatBytes(3n * 1024n * 1024n * 1024n)).toBe('3.0 GB')
+  })
+
+  it('builds a byte tooltip formatter carrying its series label', () => {
+    expect(bytesTooltipFormatter('Total size')(1536)).toEqual(['1.5 KB', 'Total size'])
+    expect(bytesTooltipFormatter('Size')('2048')).toEqual(['2.0 KB', 'Size'])
   })
 
   it('formats counts with separators', () => {

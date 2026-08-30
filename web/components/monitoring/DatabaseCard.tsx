@@ -1,6 +1,8 @@
 'use client'
 
 import {
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -13,7 +15,12 @@ import {
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
-import { CATEGORICAL_PALETTE, chartTooltipStyle, formatBytes } from '@/lib/observability'
+import {
+  bytesTooltipFormatter,
+  CATEGORICAL_PALETTE,
+  chartTooltipStyle,
+  formatBytes
+} from '@/lib/observability'
 
 function formatPctChange(pctChange: number): string {
   const sign = pctChange >= 0 ? '+' : ''
@@ -23,6 +30,10 @@ function formatPctChange(pctChange: number): string {
 export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse }) {
   const schemas = data?.schemas ?? []
   const growth = data?.tableGrowth ?? []
+  const historyData = (data?.history ?? []).map((s) => ({
+    date: s.sampledAt.slice(0, 10),
+    size: Number(s.totalSizeBytes)
+  }))
   const chartData = schemas.map((s) => ({
     name: s.name,
     size: Number(s.sizeBytes),
@@ -41,6 +52,42 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
         </CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-5">
+          <h4 className="mb-2 text-sm font-semibold text-subtle">Size over time</h4>
+          {historyData.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">No snapshot history.</p>
+          ) : (
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={historyData} margin={{ left: 8, right: 16 }}>
+                  <defs>
+                    <linearGradient id="databaseFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CATEGORICAL_PALETTE[0]} stopOpacity={0.4} />
+                      <stop offset="100%" stopColor={CATEGORICAL_PALETTE[0]} stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={24} />
+                  <YAxis tickFormatter={(v: number) => formatBytes(v)} tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={bytesTooltipFormatter('Total size')}
+                    contentStyle={chartTooltipStyle}
+                    labelStyle={{ color: 'var(--color-fg)' }}
+                    itemStyle={{ color: 'var(--color-fg)' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="size"
+                    stroke={CATEGORICAL_PALETTE[0]}
+                    strokeWidth={2}
+                    fill="url(#databaseFill)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
         {chartData.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No schema data.</p>
         ) : (
@@ -56,7 +103,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
                   />
                   <YAxis type="category" dataKey="name" width={96} tick={{ fontSize: 12 }} />
                   <Tooltip
-                    formatter={(value) => [formatBytes(Number(value)), 'Size']}
+                    formatter={bytesTooltipFormatter('Size')}
                     cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
                     contentStyle={chartTooltipStyle}
                     labelStyle={{ color: 'var(--color-fg)' }}
