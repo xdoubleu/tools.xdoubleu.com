@@ -297,7 +297,12 @@ func (h *obsConnectHandler) databaseStats(
 	if err != nil {
 		return nil, err
 	}
-	growth, err := h.app.dbSizeSamplesRepo.Growth(ctx, windowSince(windowDays))
+	since := windowSince(windowDays)
+	growth, err := h.app.dbSizeSamplesRepo.Growth(ctx, since)
+	if err != nil {
+		return nil, err
+	}
+	history, err := h.app.dbSizeSamplesRepo.History(ctx, since)
 	if err != nil {
 		return nil, err
 	}
@@ -322,9 +327,18 @@ func (h *obsConnectHandler) databaseStats(
 		}
 	}
 
+	protoHistory := make([]*observabilityv1.DBSizeSnapshot, len(history))
+	for i, s := range history {
+		protoHistory[i] = &observabilityv1.DBSizeSnapshot{
+			SampledAt:      s.SampledAt.Format(time.RFC3339),
+			TotalSizeBytes: s.TotalSizeBytes,
+		}
+	}
+
 	return &observabilityv1.GetDatabaseStatsResponse{
 		TotalSizeBytes: total,
 		Schemas:        protoSchemas,
 		TableGrowth:    protoGrowth,
+		History:        protoHistory,
 	}, nil
 }

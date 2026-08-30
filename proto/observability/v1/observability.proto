@@ -140,10 +140,18 @@ message TableGrowth {
   double pct_change = 5;
 }
 
+// DBSizeSnapshot is one snapshot batch's total on-disk size, summed across
+// every table sampled at that instant (global.db_size_samples, issue #1282).
+message DBSizeSnapshot {
+  string sampled_at = 1;  // RFC3339
+  int64 total_size_bytes = 2;
+}
+
 message GetDatabaseStatsResponse {
   int64 total_size_bytes = 1;
   repeated SchemaStat schemas = 2;
   repeated TableGrowth table_growth = 3;
+  repeated DBSizeSnapshot history = 4;
 }
 
 // FailingCheck is a single non-passing CI check run on a pull request's head

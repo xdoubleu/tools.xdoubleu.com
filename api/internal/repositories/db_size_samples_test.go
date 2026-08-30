@@ -67,6 +67,37 @@ func TestDBSizeSamplesGrowth(t *testing.T) {
 	assert.InDelta(t, 0.5, growth[0].PctChange, 0.001)
 }
 
+func TestDBSizeSamplesHistory(t *testing.T) {
+	clearDBSizeSamples(t)
+	repo := repositories.NewDBSizeSamplesRepository(testDB)
+	now := time.Now()
+
+	require.NoError(
+		t,
+		repo.InsertBatch(t.Context(), now.AddDate(0, 0, -10), []models.TableSizeSample{
+			{SchemaName: "public", TableName: "outside_window", SizeBytes: 1},
+		}),
+	)
+	require.NoError(
+		t,
+		repo.InsertBatch(t.Context(), now.Add(-time.Hour), []models.TableSizeSample{
+			{SchemaName: "public", TableName: "a", SizeBytes: 1000},
+			{SchemaName: "public", TableName: "b", SizeBytes: 500},
+		}),
+	)
+	require.NoError(t, repo.InsertBatch(t.Context(), now, []models.TableSizeSample{
+		{SchemaName: "public", TableName: "a", SizeBytes: 1200},
+		{SchemaName: "public", TableName: "b", SizeBytes: 800},
+	}))
+
+	history, err := repo.History(t.Context(), now.Add(-2*time.Hour))
+	require.NoError(t, err)
+	require.Len(t, history, 2)
+	assert.EqualValues(t, 1500, history[0].TotalSizeBytes)
+	assert.EqualValues(t, 2000, history[1].TotalSizeBytes)
+	assert.True(t, history[0].SampledAt.Before(history[1].SampledAt))
+}
+
 func TestDBSizeSamplesGrowth_ExcludesOutsideWindow(t *testing.T) {
 	clearDBSizeSamples(t)
 	repo := repositories.NewDBSizeSamplesRepository(testDB)

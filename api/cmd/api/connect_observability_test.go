@@ -271,6 +271,14 @@ func TestObservabilityGetDatabaseStats_ReportsGrowth(t *testing.T) {
 		}
 	}
 	assert.True(t, found)
+
+	require.Len(t, resp.Msg.History, 2)
+	assert.EqualValues(t, 1000, resp.Msg.History[0].TotalSizeBytes)
+	assert.EqualValues(t, 1500, resp.Msg.History[1].TotalSizeBytes)
+	for _, s := range resp.Msg.History {
+		_, parseErr := time.Parse(time.RFC3339, s.SampledAt)
+		assert.NoError(t, parseErr)
+	}
 }
 
 func TestObservabilityGetDatabaseStats_NonAdmin(t *testing.T) {
