@@ -26,6 +26,7 @@ const (
 	NotificationSourceHostDiskHigh         NotificationSource = "host_disk_high"
 	NotificationSourceR2UsageHigh          NotificationSource = "r2_usage_high"
 	NotificationSourceCIDurationHigh       NotificationSource = "ci_duration_high"
+	NotificationSourceSlowTransactions     NotificationSource = "slow_transactions"
 )
 
 // NotificationSetting is one row of global.notification_settings.

@@ -19,9 +19,24 @@ function pctChangeVariant(pctChange: number): 'danger' | 'warn' {
   return pctChange > regressionDangerThreshold ? 'danger' : 'warn'
 }
 
-export default function SlowTransactionsCard({ data }: { data?: GetSlowTransactionsResponse }) {
-  const current = data?.current ?? []
-  const trending = data?.trending ?? []
+export default function SlowTransactionsCard({
+  data,
+  filterThresholdMs
+}: {
+  data?: GetSlowTransactionsResponse
+  // filterThresholdMs restricts `current` to rows at or above this p95, and
+  // hides the "Getting slower" trending section entirely — used on the
+  // Issues page (issue #1308), which shows only what currently needs
+  // attention, unlike the unfiltered exhaustive view on
+  // /monitoring/observability.
+  filterThresholdMs?: number
+}) {
+  const allCurrent = data?.current ?? []
+  const current =
+    filterThresholdMs === undefined
+      ? allCurrent
+      : allCurrent.filter((t) => t.p95DurationMs >= filterThresholdMs)
+  const trending = filterThresholdMs === undefined ? (data?.trending ?? []) : []
 
   return (
     <Card>
@@ -31,14 +46,20 @@ export default function SlowTransactionsCard({ data }: { data?: GetSlowTransacti
           <Badge variant="secondary">Sentry</Badge>
         </div>
         <CardDescription>
-          Slowest API endpoints/pages right now, plus ones getting slower over time.
+          {filterThresholdMs === undefined
+            ? 'Slowest API endpoints/pages right now, plus ones getting slower over time.'
+            : `Transactions currently over ${formatDuration(filterThresholdMs)} p95.`}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {data && !data.configured ? (
           <p className="py-8 text-center text-sm text-muted">Sentry is not configured.</p>
         ) : current.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">No transactions recorded yet.</p>
+          <p className="py-8 text-center text-sm text-muted">
+            {filterThresholdMs === undefined
+              ? 'No transactions recorded yet.'
+              : `No transactions currently over ${formatDuration(filterThresholdMs)}.`}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">

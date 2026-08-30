@@ -10,9 +10,10 @@ import {
   useSecurityAlerts,
   useSentryIssues,
   useStorageStats,
-  useAlertStates
+  useAlertStates,
+  useSlowTransactions
 } from '@/hooks/useMonitoring'
-import { formatCount } from '@/lib/observability'
+import { formatCount, SLOW_TRANSACTION_THRESHOLD_MS } from '@/lib/observability'
 import StatTiles from './StatTiles'
 import FailingPullRequestsCard from './FailingPullRequestsCard'
 import WorkflowRunsCard from './WorkflowRunsCard'
@@ -20,6 +21,7 @@ import SecurityAlertsCard from './SecurityAlertsCard'
 import SentryCard from './SentryCard'
 import OrphanedStorageCard from './OrphanedStorageCard'
 import AlertStatesCard from './AlertStatesCard'
+import SlowTransactionsCard from './SlowTransactionsCard'
 
 export default function IssuesClient() {
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -30,6 +32,7 @@ export default function IssuesClient() {
   const sentryIssues = useSentryIssues()
   const storageStats = useStorageStats()
   const alertStates = useAlertStates()
+  const slowTransactions = useSlowTransactions()
 
   const refreshAll = async () => {
     setIsRefreshing(true)
@@ -39,7 +42,8 @@ export default function IssuesClient() {
       securityAlerts.mutate(),
       sentryIssues.mutate(),
       storageStats.mutate(),
-      alertStates.mutate()
+      alertStates.mutate(),
+      slowTransactions.mutate()
     ])
     setIsRefreshing(false)
   }
@@ -58,6 +62,10 @@ export default function IssuesClient() {
   const orphanCount = storageStats.data?.latest ? Number(storageStats.data.latest.orphanCount) : 0
 
   const breachingAlerts = (alertStates.data?.states ?? []).filter((state) => state.breaching)
+
+  const currentlySlowTransactions = (slowTransactions.data?.current ?? []).filter(
+    (t) => t.p95DurationMs >= SLOW_TRANSACTION_THRESHOLD_MS
+  )
 
   const tiles = [
     {
@@ -89,6 +97,11 @@ export default function IssuesClient() {
       label: 'Breaching alerts',
       value: alertStates.data ? formatCount(breachingAlerts.length) : '—',
       tone: breachingAlerts.length > 0 ? ('danger' as const) : ('default' as const)
+    },
+    {
+      label: 'Slow transactions',
+      value: slowTransactions.data ? formatCount(currentlySlowTransactions.length) : '—',
+      tone: currentlySlowTransactions.length > 0 ? ('danger' as const) : ('default' as const)
     }
   ]
 
@@ -124,6 +137,10 @@ export default function IssuesClient() {
         />
         <SentryCard data={sentryIssues.data} />
         <OrphanedStorageCard data={storageStats.data} />
+        <SlowTransactionsCard
+          data={slowTransactions.data}
+          filterThresholdMs={SLOW_TRANSACTION_THRESHOLD_MS}
+        />
       </div>
     </PageContainer>
   )

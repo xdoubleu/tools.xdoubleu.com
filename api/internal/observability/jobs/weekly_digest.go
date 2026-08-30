@@ -47,11 +47,12 @@ type unhealthyFeedLister interface {
 // every source being disabled in global.notification_settings — an admin
 // who turned everything off shouldn't still get an empty digest every week.
 type WeeklyDigestJob struct {
-	sentry        sentryapi.Client
-	gh            issueNotifierGithubClient
-	feeds         unhealthyFeedLister
-	notifications *notifications.Service
-	settings      notificationSettingsRepo
+	sentry             sentryapi.Client
+	gh                 issueNotifierGithubClient
+	feeds              unhealthyFeedLister
+	notifications      *notifications.Service
+	settings           notificationSettingsRepo
+	transactionLatency slowTransactionsRepo
 }
 
 func NewWeeklyDigestJob(
@@ -60,13 +61,15 @@ func NewWeeklyDigestJob(
 	feeds unhealthyFeedLister,
 	notifications *notifications.Service,
 	settings notificationSettingsRepo,
+	transactionLatency slowTransactionsRepo,
 ) *WeeklyDigestJob {
 	return &WeeklyDigestJob{
-		sentry:        sentry,
-		gh:            gh,
-		feeds:         feeds,
-		notifications: notifications,
-		settings:      settings,
+		sentry:             sentry,
+		gh:                 gh,
+		feeds:              feeds,
+		notifications:      notifications,
+		settings:           settings,
+		transactionLatency: transactionLatency,
 	}
 }
 
@@ -101,6 +104,12 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	s, enabled = j.securityAlertsSection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
+		sections = append(sections, s)
+	}
+
+	s, enabled = j.slowTransactionsSection(ctx, logger)
 	anyEnabled = anyEnabled || enabled
 	if s != "" {
 		sections = append(sections, s)
@@ -297,4 +306,51 @@ func (j *WeeklyDigestJob) securityAlertsSection(
 	}
 	return fmt.Sprintf("Security — %d open alert(s):\n%s",
 		len(alerts), strings.Join(lines, "\n")), true
+}
+
+// slowTransactionsSection follows sentrySection's (text, enabled) contract.
+// Unlike IssueNotifierJob's per-item dedup, this reports every currently
+// slow transaction on every run — the digest restates current state, it
+// doesn't track "seen before".
+func (j *WeeklyDigestJob) slowTransactionsSection(
+	ctx context.Context, logger *slog.Logger,
+) (string, bool) {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceSlowTransactions,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to read slow_transactions setting",
+			"error", err)
+		return "", true
+	}
+	if !enabled {
+		return "", false
+	}
+
+	slow, err := currentlySlowTransactions(ctx, j.transactionLatency)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to load transaction trends",
+			"error", err)
+		return "", true
+	}
+	if len(slow) == 0 {
+		return "", true
+	}
+
+	lines := make([]string, len(slow))
+	for i, t := range slow {
+		lines[i] = fmt.Sprintf(
+			"- %s (%s) — %.0fms p95 (was %.0fms, +%.0f%%)",
+			t.Transaction,
+			t.Project,
+			t.RecentAvgP95Ms,
+			t.PriorAvgP95Ms,
+			t.PctChange*pctChangeToPercent,
+		)
+	}
+	return fmt.Sprintf("Slow transactions — %d over threshold:\n%s",
+		len(slow), strings.Join(lines, "\n")), true
 }

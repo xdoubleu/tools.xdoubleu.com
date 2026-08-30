@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
 	"testing"
@@ -189,6 +190,25 @@ var noSnapshotGetter = fakeStorageSnapshotGetter{
 	snap: nil, err: database.ErrResourceNotFound,
 }
 
+// fakeSlowTransactionsRepo is a test double for
+// *repositories.TransactionLatencyRepository's Trends method.
+type fakeSlowTransactionsRepo struct {
+	trends []models.TransactionTrend
+	err    error
+}
+
+func (f fakeSlowTransactionsRepo) Trends(
+	_ context.Context,
+) ([]models.TransactionTrend, error) {
+	return f.trends, f.err
+}
+
+// noSlowTransactions mirrors an empty regression list, used by every test
+// not exercising notifySlowTransactions/slowTransactionsSection itself.
+//
+//nolint:gochecknoglobals // read-only test fixture, mirrors noSnapshotGetter
+var noSlowTransactions = fakeSlowTransactionsRepo{trends: nil, err: nil}
+
 // erroringNotifiedRepo makes Exists always fail, for
 // TestIssueNotifierNotifiedExistsErrorPropagates.
 type erroringNotifiedRepo struct {
@@ -236,6 +256,7 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -260,6 +281,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -282,6 +304,7 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -303,6 +326,7 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -325,6 +349,7 @@ func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -340,6 +365,7 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 		newFakeNotifiedRepo(),
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	assert.Equal(t, "notify-new-issues", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -360,6 +386,7 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -382,6 +409,7 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -406,6 +434,7 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -430,6 +459,7 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -457,6 +487,7 @@ func TestIssueNotifierGithubHandlesMultiplePRs(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -484,6 +515,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -509,6 +541,7 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -537,6 +570,7 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	err := job.Run(t.Context(), testLogger())
 
@@ -560,6 +594,7 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -584,6 +619,7 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -607,6 +643,7 @@ func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -646,6 +683,7 @@ func TestIssueNotifierSkipsSentryWhenSourceDisabled(t *testing.T) {
 		notified,
 		settings,
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -677,6 +715,7 @@ func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
 		notified,
 		settings,
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -722,6 +761,7 @@ func TestIssueNotifierSendsForSecurityAlert(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -754,6 +794,7 @@ func TestIssueNotifierSecurityAlertDedupKeyIncludesType(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -784,6 +825,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedSecurityAlert(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -807,6 +849,7 @@ func TestIssueNotifierSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -833,6 +876,7 @@ func TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -862,6 +906,7 @@ func TestIssueNotifierSendsForNewOrphan(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		storage,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -893,6 +938,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedOrphan(t *testing.T) {
 		notified,
 		alwaysEnabledSettings{},
 		storage,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -909,6 +955,7 @@ func TestIssueNotifierNoSnapshotYetSkipsSilently(t *testing.T) {
 
 	job := jobs.NewIssueNotifierJob(
 		sentry, gh, notifSvc, notified, alwaysEnabledSettings{}, noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -932,6 +979,7 @@ func TestIssueNotifierOrphanSnapshotErrorLogsErrorAndSkipsSilently(t *testing.T)
 		notified,
 		alwaysEnabledSettings{},
 		storage,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), logger))
 	notifSvc.WaitUntilDone()
@@ -963,7 +1011,9 @@ func TestIssueNotifierSkipsOrphansWhenSourceDisabled(t *testing.T) {
 		},
 	}
 
-	job := jobs.NewIssueNotifierJob(sentry, gh, notifSvc, notified, settings, storage)
+	job := jobs.NewIssueNotifierJob(
+		sentry, gh, notifSvc, notified, settings, storage, noSlowTransactions,
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -998,10 +1048,136 @@ func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
 		notified,
 		settings,
 		noSnapshotGetter,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	assert.Empty(t, mail.sent)
 	assert.False(t, notified.keys["security:dependabot:5"])
+}
+
+func slowTrend(
+	project, transaction string,
+	recentP95Ms float64,
+) models.TransactionTrend {
+	return models.TransactionTrend{
+		Transaction:    transaction,
+		Project:        project,
+		PriorAvgP95Ms:  1000,
+		RecentAvgP95Ms: recentP95Ms,
+		PctChange:      (recentP95Ms - 1000) / 1000,
+	}
+}
+
+func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-api", "GET /games/api/progress", 6000),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+	year, week := time.Now().ISOWeek()
+	key := fmt.Sprintf(
+		"slow_transaction:tools-api:GET /games/api/progress:%d-W%02d", year, week,
+	)
+	assert.True(t, notified.keys[key])
+}
+
+// TestIssueNotifierSkipsTransactionBelowThreshold asserts a regression that
+// hasn't crossed slowTransactionP95ThresholdMs (only relatively slower, not
+// absolutely slow) doesn't notify.
+func TestIssueNotifierSkipsTransactionBelowThreshold(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{slowTrend("tools-web", "/dashboard", 1500)},
+		err:    nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+}
+
+func TestIssueNotifierSkipsSlowTransactionsWhenSourceDisabled(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{slowTrend("tools-api", "steam", 24000)},
+		err:    nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only sentry_issues needs to be listed here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues: true,
+		},
+	}
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		settings,
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	assert.False(t, notified.keys["slow_transaction:tools-api:steam"])
+}
+
+func TestIssueNotifierSlowTransactionsErrorLogsAndContinues(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{trends: nil, err: assert.AnError}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+	logger, buf := testLoggerWithBuf()
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), logger))
+	notifSvc.WaitUntilDone()
+
+	assert.Contains(t, buf.String(), "level=ERROR")
+	assert.Empty(t, mail.sent)
 }

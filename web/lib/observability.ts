@@ -1,5 +1,13 @@
 // Shared helpers for the admin observability dashboard.
 
+// SLOW_TRANSACTION_THRESHOLD_MS is a provisional, single global "slow"
+// cutoff, matching slowTransactionP95ThresholdMs in
+// api/internal/observability/jobs/slow_transactions.go. Issue #1310 will
+// replace this with per-class thresholds surfaced via AlertState; until
+// then it's the single conservative constant #1310 itself calls out as an
+// acceptable fallback.
+export const SLOW_TRANSACTION_THRESHOLD_MS = 5000
+
 // CATEGORICAL_PALETTE is a CVD-safe ordered hue set (validated with the
 // dataviz palette validator). Series colours are assigned by fixed index —
 // never cycled — and a 7th+ series folds into an "Other" bucket upstream.

@@ -7,7 +7,8 @@ import {
   GetSecurityAlertsResponseSchema,
   GetSentryIssuesResponseSchema,
   GetStorageStatsResponseSchema,
-  GetAlertStatesResponseSchema
+  GetAlertStatesResponseSchema,
+  GetSlowTransactionsResponseSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
@@ -17,6 +18,7 @@ const mockUseSecurityAlerts = jest.fn()
 const mockUseSentryIssues = jest.fn()
 const mockUseStorageStats = jest.fn()
 const mockUseAlertStates = jest.fn()
+const mockUseSlowTransactions = jest.fn()
 
 jest.mock('@/hooks/useMonitoring', () => ({
   useFailingPullRequests: () => mockUseFailingPullRequests(),
@@ -25,6 +27,7 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useSentryIssues: () => mockUseSentryIssues(),
   useStorageStats: () => mockUseStorageStats(),
   useAlertStates: () => mockUseAlertStates(),
+  useSlowTransactions: () => mockUseSlowTransactions(),
   useResolveSentryIssue: () => jest.fn()
 }))
 
@@ -110,6 +113,14 @@ beforeEach(() => {
         { ruleKey: 'host_cpu_high', breaching: false, currentValue: 12, threshold: 80 },
         { ruleKey: 'host_disk_high', breaching: true, currentValue: 91, threshold: 85 }
       ]
+    }),
+    mutate: mockMutate
+  })
+  mockUseSlowTransactions.mockReturnValue({
+    data: create(GetSlowTransactionsResponseSchema, {
+      configured: true,
+      current: [],
+      trending: []
     }),
     mutate: mockMutate
   })
@@ -207,7 +218,7 @@ describe('IssuesClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
-    expect(mockMutate).toHaveBeenCalledTimes(6)
+    expect(mockMutate).toHaveBeenCalledTimes(7)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
   })
@@ -237,5 +248,33 @@ describe('IssuesClient', () => {
     expect(screen.getAllByText('2').length).toBeGreaterThan(0)
     expect(screen.getByText('books/x/y.epub')).toBeInTheDocument()
     expect(screen.getByText('books/a/b.epub')).toBeInTheDocument()
+  })
+
+  it('shows a placeholder slow-transactions tile until data loads', () => {
+    mockUseSlowTransactions.mockReturnValue({ data: undefined, mutate: mockMutate })
+
+    render(<IssuesClient />)
+    expect(screen.getAllByText('Slow transactions').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('—').length).toBeGreaterThan(0)
+  })
+
+  it('shows only over-threshold transactions in the slow-transactions tile and card', () => {
+    mockUseSlowTransactions.mockReturnValue({
+      data: create(GetSlowTransactionsResponseSchema, {
+        configured: true,
+        current: [
+          { transaction: 'GET /fast', project: 'proj', p95DurationMs: 500, requestCount: 10n },
+          { transaction: 'GET /slow', project: 'proj', p95DurationMs: 6000, requestCount: 5n }
+        ],
+        trending: []
+      }),
+      mutate: mockMutate
+    })
+
+    render(<IssuesClient />)
+
+    expect(screen.getAllByText('Slow transactions').length).toBeGreaterThan(0)
+    expect(screen.getByText('GET /slow')).toBeInTheDocument()
+    expect(screen.queryByText('GET /fast')).not.toBeInTheDocument()
   })
 })

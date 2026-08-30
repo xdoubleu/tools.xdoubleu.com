@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/github"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
@@ -35,6 +36,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -55,6 +57,7 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	require.NoError(t, job.Run(t.Context(), testLogger()))
@@ -78,6 +81,7 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 		}, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -95,6 +99,7 @@ func TestWeeklyDigestSentryNotConfiguredDoesNotBlockOthers(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -116,6 +121,7 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -133,6 +139,7 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -155,6 +162,7 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -172,6 +180,7 @@ func TestWeeklyDigestSentryGenericErrorSkipsSilently(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -189,6 +198,7 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -210,6 +220,7 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -240,6 +251,7 @@ func TestWeeklyDigestOmitsSectionForDisabledSource(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		settings,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -274,7 +286,14 @@ func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 		enabled: map[repositories.NotificationSource]bool{},
 	}
 
-	job := jobs.NewWeeklyDigestJob(sentry, gh, feeds, notifSvc, settings)
+	job := jobs.NewWeeklyDigestJob(
+		sentry,
+		gh,
+		feeds,
+		notifSvc,
+		settings,
+		noSlowTransactions,
+	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
@@ -294,6 +313,7 @@ func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		settingsErrFake{err: assert.AnError},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -331,6 +351,7 @@ func TestWeeklyDigestIncludesSecurityAlerts(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -353,6 +374,7 @@ func TestWeeklyDigestSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -375,6 +397,7 @@ func TestWeeklyDigestSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
@@ -405,12 +428,90 @@ func TestWeeklyDigestOmitsSecurityAlertsSectionForDisabledSource(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		notifSvc,
 		settings,
+		noSlowTransactions,
 	)
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	require.Len(t, mail.sent, 1)
 	assert.NotContains(t, mail.sent[0], "vulnerable dependency")
+}
+
+func TestWeeklyDigestIncludesSlowTransactions(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-api", "GET /games/api/progress", 6000),
+		},
+		err: nil,
+	}
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+}
+
+// TestWeeklyDigestSlowTransactionsErrorOmitsSection asserts a Trends lookup
+// failure omits the section (self-heals on the next run) rather than
+// failing the digest send.
+func TestWeeklyDigestSlowTransactionsErrorOmitsSection(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	slow := fakeSlowTransactionsRepo{trends: nil, err: assert.AnError}
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestOmitsSlowTransactionsSectionForDisabledSource(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-api", "GET /games/api/progress", 6000),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only sentry_issues needs to be enabled here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues: true,
+		},
+	}
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		notifSvc,
+		settings,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "GET /games/api/progress")
 }
 
 func TestWeeklyDigestID(t *testing.T) {
@@ -420,6 +521,7 @@ func TestWeeklyDigestID(t *testing.T) {
 		fakeFeedsLister{unhealthy: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		alwaysEnabledSettings{},
+		noSlowTransactions,
 	)
 	assert.Equal(t, "weekly-digest", job.ID())
 	assert.Equal(t, 7*24*time.Hour, job.RunEvery())
