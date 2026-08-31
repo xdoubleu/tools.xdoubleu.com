@@ -257,15 +257,17 @@ func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSna
 	}
 
 	return &observabilityv1.StorageSnapshot{
-		ScannedAt:            s.ScannedAt.Format(time.RFC3339),
-		TotalSizeBytes:       s.TotalSizeBytes,
-		ObjectCount:          s.ObjectCount,
-		OrphanSizeBytes:      s.OrphanSizeBytes,
-		OrphanCount:          s.OrphanCount,
-		StaleUploadSizeBytes: s.StaleUploadSizeBytes,
-		StaleUploadCount:     s.StaleUploadCount,
-		PrefixBreakdown:      breakdown,
-		OrphanKeys:           s.OrphanKeys,
+		ScannedAt:              s.ScannedAt.Format(time.RFC3339),
+		TotalSizeBytes:         s.TotalSizeBytes,
+		ObjectCount:            s.ObjectCount,
+		OrphanSizeBytes:        s.OrphanSizeBytes,
+		OrphanCount:            s.OrphanCount,
+		StaleUploadSizeBytes:   s.StaleUploadSizeBytes,
+		StaleUploadCount:       s.StaleUploadCount,
+		PrefixBreakdown:        breakdown,
+		OrphanKeys:             s.OrphanKeys,
+		DeletedOrphanSizeBytes: s.DeletedOrphanSizeBytes,
+		DeletedOrphanCount:     s.DeletedOrphanCount,
 	}
 }
 
