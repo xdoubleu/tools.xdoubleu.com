@@ -10,14 +10,43 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/communication/wstools"
 	"tools.xdoubleu.com/internal/errortools"
 	"tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/sentrytools"
 	"tools.xdoubleu.com/internal/validate"
 )
+
+// newTracingSentryHub returns a hub whose transport captures every finished
+// transaction event. TracesSampleRate/EnableTracing must both be set or
+// sentry-go drops transactions before they ever reach the transport (see
+// Span.sample) — mirrors
+// internal/observability/trackedjob_internal_test.go's newSentryTestCtx.
+func newTracingSentryHub(t *testing.T) *sentry.Hub {
+	t.Helper()
+
+	client, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:              "http://whatever@example.com/1337",
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+		Transport:        sentrytools.MockedSentryClientOptions().Transport,
+	})
+	require.NoError(t, err)
+
+	return sentry.NewHub(client, sentry.NewScope())
+}
+
+// withHub mimics what sentryhttp's middleware does in production: setting a
+// request-scoped hub on the context before the handler runs.
+func withHub(hub *sentry.Hub, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r.WithContext(sentry.SetHubOnContext(r.Context(), hub)))
+	})
+}
 
 type testResponse struct {
 	Ok bool `json:"ok"`
@@ -172,6 +201,59 @@ func TestRemoveUnknownTopic(t *testing.T) {
 	)
 	err := ws.RemoveTopic(&wstools.Topic{Name: "unknown"})
 	assert.ErrorContains(t, err, "topic 'unknown' doesn't exist")
+}
+
+func TestWebSocketHandshake_RecordsDistinctSuccessTransaction(t *testing.T) {
+	t.Parallel()
+
+	hub := newTracingSentryHub(t)
+	ws := wstools.CreateWebSocketHandler[testSubscribeMsg](
+		t.Context(), logging.NewNopLogger(), 1, 10,
+	)
+	_, err := ws.AddTopic("exists", []string{"http://localhost"},
+		func(_ context.Context, _ *wstools.Topic) (any, error) {
+			return testResponse{Ok: true}, nil
+		})
+	require.NoError(t, err)
+
+	var got testResponse
+	dialAndExchange(
+		t,
+		withHub(hub, ws.Handler()),
+		testSubscribeMsg{TopicName: "exists"},
+		&got,
+	)
+	assert.True(t, got.Ok)
+
+	events := sentrytools.MockedHubEvents(hub)
+	require.Len(t, events, 1)
+	assert.Contains(t, events[0].Transaction, "[ws-handshake]")
+	assert.True(t, strings.HasPrefix(events[0].Transaction, "GET "))
+	trace, ok := events[0].Contexts["trace"]
+	require.True(t, ok)
+	assert.Equal(t, sentry.SpanStatusOK, trace["status"])
+}
+
+func TestWebSocketHandshake_FailureRecordsErrorStatus(t *testing.T) {
+	t.Parallel()
+
+	hub := newTracingSentryHub(t)
+	ws := wstools.CreateWebSocketHandler[testSubscribeMsg](
+		t.Context(), logging.NewNopLogger(), 1, 10,
+	)
+	handler := withHub(hub, ws.Handler())
+
+	// A plain (non-upgrade) request fails websocket.Accept immediately,
+	// without ever reaching the topic-subscription loop.
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	events := sentrytools.MockedHubEvents(hub)
+	require.Len(t, events, 1)
+	trace, ok := events[0].Contexts["trace"]
+	require.True(t, ok)
+	assert.Equal(t, sentry.SpanStatusInternalError, trace["status"])
 }
 
 func TestForbiddenOrigin(t *testing.T) {

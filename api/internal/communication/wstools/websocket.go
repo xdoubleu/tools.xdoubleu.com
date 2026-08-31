@@ -11,6 +11,7 @@ import (
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
+	"github.com/getsentry/sentry-go"
 
 	"tools.xdoubleu.com/internal/validate"
 )
@@ -111,10 +112,7 @@ func (h *WebSocketHandler[T]) RemoveTopic(topic *Topic) error {
 // Handler returns the [http.HandlerFunc] of a [WebSocketHandler].
 func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		//nolint:exhaustruct //other fields are optional
-		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			InsecureSkipVerify: true,
-		})
+		conn, err := acceptWithHandshakeSpan(w, r)
 		if err != nil {
 			UpgradeErrorResponse(w, r, err)
 			return
@@ -157,6 +155,59 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 			}
 		}
 	}
+}
+
+// acceptWithHandshakeSpan performs the WebSocket handshake/upgrade,
+// measuring it as its own Sentry transaction rather than letting it be
+// folded into the connection-lifetime transaction sentryhttp's middleware
+// starts around the whole handler call. That outer transaction never
+// returns until the socket closes, so its "duration" measures how long a
+// client kept the connection open, not request latency — a WebSocket route
+// is excluded from HTTP-class slow-transaction alerting entirely for that
+// reason (isWebSocketProgressTransaction,
+// internal/observability/jobs/threshold_alert_slow_transactions.go, issue
+// #1320). Excluding it from alerting is necessary (that duration can never
+// be a meaningful latency signal) but not sufficient on its own — this
+// gives the same route a bounded, comparable metric instead: how long the
+// actual handshake took, still subject to the ordinary HTTP threshold, so a
+// real upgrade-path regression (e.g. a slow auth check added in front of
+// websocket.Accept) still alerts.
+//
+// The transaction is started from a fresh context rather than r.Context():
+// sentry.StartTransaction returns the existing transaction unchanged when
+// one is already present in the context (which r.Context() carries, from
+// sentryhttp) instead of starting a new one, so reusing r.Context() here
+// would just hand back that same connection-lifetime transaction. The name
+// carries a distinct "[ws-handshake]" suffix so it aggregates in Sentry
+// separately from the connection transaction's own "GET .../api/progress"
+// name (same method+path prefix, so it still classifies as an HTTP handler)
+// and doesn't match isWebSocketProgressTransaction's exclusion.
+func acceptWithHandshakeSpan(
+	w http.ResponseWriter,
+	r *http.Request,
+) (*websocket.Conn, error) {
+	hub := sentry.GetHubFromContext(r.Context())
+	if hub == nil {
+		hub = sentry.CurrentHub()
+	}
+	txnCtx := sentry.SetHubOnContext(context.Background(), hub)
+	txn := sentry.StartTransaction(
+		txnCtx,
+		fmt.Sprintf("%s %s [ws-handshake]", r.Method, r.URL.Path),
+		sentry.WithOpName("websocket.server"),
+	)
+	defer txn.Finish()
+
+	//nolint:exhaustruct //other fields are optional
+	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+		InsecureSkipVerify: true,
+	})
+	if err != nil {
+		txn.Status = sentry.SpanStatusInternalError
+		return nil, err
+	}
+	txn.Status = sentry.SpanStatusOK
+	return conn, nil
 }
 
 // copied from github.com/coder/websocket.
