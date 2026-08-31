@@ -33,7 +33,18 @@ jobs:
       # KOBO_GATEWAY_RELEASE image env var so downstream consumers (the web
       # update-check) compare against what's actually bundled, not this
       # deploy's overall SHA. See root CLAUDE.md's CI section.
-      - uses: actions/cache@v6
+      #
+      # Restore and save are split (rather than one actions/cache@v6 step)
+      # because this job runs on pull_request with no fork restriction: a
+      # pull_request run executes the workflow and build steps from the
+      # PR's own head ref, so a fork PR fully controls what ends up in
+      # kobo-gateway/dist/kobo-gateway before a save step would persist it
+      # — even one that leaves kobo-gateway/**'s tracked source untouched,
+      # so the hash key still matches main. Restoring stays unconditional
+      # (PR builds, including forks, still get a legitimate cache hit's
+      # speed-up); saving is gated to contexts whose build output can be
+      # trusted (CodeQL alert #35, actions/cache-poisoning/direct-cache).
+      - uses: actions/cache/restore@v6
         id: cache
         with:
           path: kobo-gateway/dist/kobo-gateway
@@ -43,3 +54,10 @@ jobs:
           make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
           echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'
+      - if: |
+          steps.cache.outputs.cache-hit != 'true' &&
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: actions/cache/save@v6
+        with:
+          path: kobo-gateway/dist/kobo-gateway
+          key: ${{ steps.cache.outputs.cache-primary-key }}
