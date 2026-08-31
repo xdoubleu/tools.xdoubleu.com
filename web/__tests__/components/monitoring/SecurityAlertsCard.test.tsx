@@ -42,6 +42,28 @@ const secretAlert = {
   secretType: 'AWS Access Key'
 }
 
+const codeScanningAlertWithFile = {
+  number: 12n,
+  packageName: '',
+  ecosystem: '',
+  severity: 'unmapped-severity',
+  summary: '',
+  url: 'https://gh/alerts/12',
+  createdAt: '2026-08-22T08:00:00Z',
+  alertType: SecurityAlertType.CODE_SCANNING,
+  ruleId: 'js/unused-var',
+  filePath: 'src/index.ts',
+  line: 42,
+  secretType: ''
+}
+
+const codeScanningAlertWithoutFile = {
+  ...codeScanningAlertWithFile,
+  number: 13n,
+  filePath: '',
+  severity: ''
+}
+
 describe('SecurityAlertsCard', () => {
   beforeEach(() => {
     mockDismissSecurityAlert.mockReset()
@@ -132,6 +154,43 @@ describe('SecurityAlertsCard', () => {
 
     expect(await screen.findByText('boom')).toBeInTheDocument()
     expect(screen.getByText('Dismiss alert #83')).toBeInTheDocument()
+  })
+
+  it('shows the file path and line, plus an unmapped severity, for a code-scanning alert with a file', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [codeScanningAlertWithFile]
+    })
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('src/index.ts:42')).toBeInTheDocument()
+    expect(screen.getByText('unmapped-severity')).toBeInTheDocument()
+  })
+
+  it('falls back to the rule ID for a code-scanning alert with no file path', () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [codeScanningAlertWithoutFile]
+    })
+    render(<SecurityAlertsCard data={data} />)
+    expect(screen.getByText('js/unused-var')).toBeInTheDocument()
+  })
+
+  it('shows a generic error message when the rejection is not an Error', async () => {
+    mockDismissSecurityAlert.mockRejectedValue('boom')
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [dependabotAlert]
+    })
+    render(<SecurityAlertsCard data={data} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(await screen.findByText('Dismiss alert #83')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss alert' }))
+
+    expect(await screen.findByText('Failed to dismiss alert.')).toBeInTheDocument()
   })
 
   it('closes the dialog without dismissing on cancel', async () => {

@@ -154,6 +154,40 @@ func TestObservabilityDismissSecurityAlert_UpstreamError(t *testing.T) {
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
 }
 
+func TestObservabilityDismissSecurityAlert_UnspecifiedAlertType(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	_, err := callDismissSecurityAlert(
+		t, observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_UNSPECIFIED,
+		83, "not_used",
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestObservabilityDismissSecurityAlert_UnknownAlertType(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	_, err := callDismissSecurityAlert(
+		t, observabilityv1.SecurityAlertType(99),
+		83, "not_used",
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
 func TestObservabilityDismissSecurityAlert_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	_, err := callDismissSecurityAlert(

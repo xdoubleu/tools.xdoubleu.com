@@ -2,7 +2,9 @@ package github_test
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -93,6 +95,15 @@ func TestDismissSecurityAlert_ReasonValidForWrongType(t *testing.T) {
 	require.ErrorIs(t, err, github.ErrInvalidDismissReason)
 }
 
+func TestDismissSecurityAlert_SecretScanning_InvalidReason(t *testing.T) {
+	// A dismissed_reason from the other two types isn't a valid resolution
+	// for secret-scanning.
+	err := newClient().DismissSecurityAlert(
+		context.Background(), github.SecurityAlertTypeSecretScanning, 1, "no_bandwidth",
+	)
+	require.ErrorIs(t, err, github.ErrInvalidDismissReason)
+}
+
 func TestDismissSecurityAlert_UnknownAlertType(t *testing.T) {
 	err := newClient().DismissSecurityAlert(
 		context.Background(), github.SecurityAlertType("bogus"), 1, "whatever",
@@ -118,6 +129,71 @@ func TestDismissSecurityAlert_NotConnected(t *testing.T) {
 		context.Background(), github.SecurityAlertTypeDependabot, 1, "not_used",
 	)
 	require.ErrorIs(t, err, github.ErrNotConfigured)
+}
+
+func TestDismissSecurityAlert_TokenFnGenericError(t *testing.T) {
+	// A tokenFn error that isn't oauthconn.ErrNotConnected must propagate
+	// as-is rather than being mapped to ErrNotConfigured.
+	wantErr := errors.New("boom")
+	c := github.New(
+		logging.NewNopLogger(),
+		func(context.Context) (string, error) { return "", wantErr },
+		configWithRepo(testRepo),
+	)
+	err := c.DismissSecurityAlert(
+		context.Background(), github.SecurityAlertTypeDependabot, 1, "not_used",
+	)
+	require.ErrorIs(t, err, wantErr)
+}
+
+func TestDismissSecurityAlert_InvalidRequestURL(t *testing.T) {
+	// A repo containing a control character makes the built endpoint an
+	// invalid URL, so http.NewRequestWithContext itself fails.
+	c := github.New(
+		logging.NewNopLogger(),
+		stubToken("token"),
+		configWithRepo("o/r\n"),
+	)
+	err := c.DismissSecurityAlert(
+		context.Background(), github.SecurityAlertTypeDependabot, 1, "not_used",
+	)
+	require.Error(t, err)
+}
+
+func TestDismissSecurityAlert_TransportError(t *testing.T) {
+	// Point at a server that's already been closed so the PATCH's
+	// underlying http.Client.Do fails outright (connection refused),
+	// without falling back to the real GitHub API.
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
+	)
+	closedURL := srv.URL
+	srv.Close()
+	github.SetBaseURL(closedURL)
+	defer github.SetBaseURL(realBaseURL)
+
+	err := newClient().DismissSecurityAlert(
+		context.Background(), github.SecurityAlertTypeDependabot, 1, "not_used",
+	)
+	require.Error(t, err)
+}
+
+func TestDismissSecurityAlert_NonRetryableUpstreamError(t *testing.T) {
+	// A 422 isn't retryable and isn't 2xx, so it must surface as an error
+	// without exhausting all retry attempts.
+	attempts := 0
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			attempts++
+			w.WriteHeader(http.StatusUnprocessableEntity)
+		}))
+	defer cleanup()
+
+	err := newClient().DismissSecurityAlert(
+		context.Background(), github.SecurityAlertTypeDependabot, 1, "not_used",
+	)
+	require.Error(t, err)
+	assert.Equal(t, 1, attempts, "a non-retryable 4xx must not be retried")
 }
 
 func TestDismissSecurityAlert_ServerError_Retries(t *testing.T) {
