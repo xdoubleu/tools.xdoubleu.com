@@ -29,11 +29,34 @@ jobs:
       # read a version from at runtime — unlike api/gateway/web). A cache
       # hit reuses whatever was built (and stamped) the last time
       # kobo-gateway/ source actually changed, including the RELEASE file
-      # below — docker.yml reads that file's contents into the separate
-      # KOBO_GATEWAY_RELEASE image env var so downstream consumers (the web
-      # update-check) compare against what's actually bundled, not this
-      # deploy's overall SHA. See root CLAUDE.md's CI section.
-      - uses: actions/cache@v6
+      # below. See root CLAUDE.md's CI section.
+      #
+      # This job only ever restores (never writes) the cache — a
+      # pull_request run (including from a fork) executes the workflow and
+      # build steps from the PR's own head ref, so it fully controls what
+      # ends up in kobo-gateway/dist/kobo-gateway, and a `workflow_dispatch`
+      # run can target any ref, reviewed or not. Persisting a cache entry
+      # from either context is exactly the shape GitHub's
+      # actions/cache-poisoning CodeQL rule flags (issues #1322, alerts #35
+      # and #36) — a step-level `if:` gating an `actions/cache/save` by
+      # event/ref was tried first and CodeQL kept flagging the same rule
+      # against the same line across three different condition rewrites,
+      # which reads as this query not treating a runtime `if:` as a
+      # sanitizer for this rule at all. So instead the write moved out of
+      # every workflow reachable from pull_request/workflow_dispatch
+      # entirely: see save-kobo-gateway-cache.yml, which only ever runs via
+      # `workflow_run` after a real push-triggered Main Workflow run
+      # completes — a trigger GitHub's own workflow_run docs recommend
+      # specifically for deferring a privileged action safely past an
+      # untrusted pull_request run, since a workflow_run run always
+      # executes the workflow file version committed on the default
+      # branch, never a PR's.
+      #
+      # A cache miss here (this job never populates one) just means a full
+      # rebuild — normal on the very first PR/push touching kobo-gateway/
+      # after a source change, until save-kobo-gateway-cache.yml catches up
+      # on the resulting push to main.
+      - uses: actions/cache/restore@v6
         id: cache
         with:
           path: kobo-gateway/dist/kobo-gateway
@@ -43,3 +66,15 @@ jobs:
           make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
           echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'
+      # build-web.yml (same workflow run, ordered after this job via
+      # `needs:` in main.yml) downloads this artifact directly instead of
+      # doing its own cache restore of the same key — that used to race
+      # this job's cache-populating save, which only happened in its
+      # post-job step at the very end of the run (issue #1192). An
+      # artifact from a job earlier in the same run has no such race: it's
+      # simply not available until this job finishes.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kobo-gateway-dist
+          path: kobo-gateway/dist/kobo-gateway
+          retention-days: 1

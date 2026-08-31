@@ -1,0 +1,91 @@
+name: Save Kobo Gateway Cache
+
+# Populates build-kobo-gateway.yml's cache entry (build-kobo-gateway.yml
+# itself only ever restores it — see that workflow's own comment). This is
+# the one place that ever writes to it, and it only runs after a
+# push-to-main run of Main Workflow actually completes, via `workflow_run`
+# rather than being reachable directly from `pull_request`/
+# `workflow_dispatch` — GitHub's documented pattern for safely deferring a
+# privileged action past an untrusted pull_request run, since a
+# `workflow_run`-triggered run always executes the workflow file version
+# committed on the default branch, never a PR's (issue #1322, CodeQL
+# actions/cache-poisoning alerts #35/#36 — a step-level `if:` gating the
+# save by event/ref was tried first and didn't satisfy CodeQL across three
+# rewrites, so the write moved out of every pull_request/workflow_dispatch
+# -reachable workflow entirely instead of trying another runtime guard).
+#
+# Crucially, nothing below checks out `github.event.workflow_run.head_sha`
+# — that field is the *triggering* run's own commit, which for Main
+# Workflow can just as easily be a pull_request run's (Main Workflow runs
+# on both). An earlier version explicitly checked that out (gated by a
+# job-level `if: github.event.workflow_run.event == 'push'`) and CodeQL
+# flagged "checkout of untrusted code in a privileged context" against it
+# regardless (alert #37) — the same non-credited-runtime-condition pattern
+# as #35/#36. Every checkout here instead omits `ref:` entirely, which for
+# a `workflow_run` event resolves `github.sha`/the default checkout target
+# to the repository's default branch, not the triggering run's ref — the
+# actually-documented reason `workflow_run` is considered safe by default,
+# rather than something this workflow has to separately re-derive.
+# `branches: [main]` below is a second, belt-and-suspenders restriction on
+# top of that (a `workflow_run`'s `branches` filter matches the branch its
+# *source* event happened on — the pushed ref for a push trigger of Main
+# Workflow, but a PR's own head branch, not `main`, for a pull_request
+# trigger of it).
+on:
+  workflow_run:
+    workflows: ['Main Workflow']
+    types: [completed]
+    branches: [main]
+
+jobs:
+  # workflow_run fires on every completed run matching the filters above,
+  # regardless of whether that push touched kobo-gateway/ — a cheap Linux
+  # lookup-only cache check first means the macOS runner below only spins
+  # up on an actual cache miss, same cost profile as before this split (a
+  # push that doesn't touch kobo-gateway/ never needed a macOS runner
+  # either).
+  check-cache:
+    if: github.event.workflow_run.conclusion == 'success'
+    name: Check kobo-gateway cache (lookup only)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      cache-hit: ${{ steps.cache.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache/restore@v6
+        id: cache
+        with:
+          path: kobo-gateway/dist/kobo-gateway
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+          lookup-only: true
+
+  save:
+    needs: check-cache
+    if: needs.check-cache.outputs.cache-hit != 'true'
+    name: Save kobo-gateway build cache (macOS)
+    runs-on: macos-14
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: './kobo-gateway/go.mod'
+          cache-dependency-path: './kobo-gateway/go.sum'
+      # A plain (non-restore-only) actions/cache@v6 here is safe, unlike
+      # build-kobo-gateway.yml's: this workflow is never reachable from
+      # pull_request/workflow_dispatch at all, only from a completed run of
+      # Main Workflow associated with `main` itself, and check-cache
+      # already confirmed this is a real miss — build once and let the
+      # action's own post-job step persist it for build-kobo-gateway.yml's
+      # next restore.
+      - uses: actions/cache@v6
+        with:
+          path: kobo-gateway/dist/kobo-gateway
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+      - run: |
+          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
+          echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
+        working-directory: './kobo-gateway'
