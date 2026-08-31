@@ -426,7 +426,12 @@ func TestEmailInbound_ReceivedForFallback_IngestsItem(t *testing.T) {
 			"subject":      "Via received_for",
 		},
 	})
-	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-received-for", payload)
+	headers := signEmailWebhookBody(
+		t,
+		emailWebhookSecret(),
+		"msg-received-for",
+		payload,
+	)
 
 	rec := postWebhook(mux, payload, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)

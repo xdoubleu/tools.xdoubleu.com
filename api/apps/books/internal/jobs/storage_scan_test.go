@@ -153,7 +153,11 @@ func TestStorageScanDeletesGracedOrphans(t *testing.T) {
 	assert.Equal(t, int64(len("leaked")), snap.DeletedOrphanSizeBytes)
 
 	_, stillExists := store.GetContent("books/b1/graced-orphan.epub")
-	assert.False(t, stillExists, "graced orphan should have been deleted from the store")
+	assert.False(
+		t,
+		stillExists,
+		"graced orphan should have been deleted from the store",
+	)
 }
 
 func TestStorageScanKeepsFreshOrphans(t *testing.T) {
@@ -207,8 +211,11 @@ func TestStorageScanOrphanDeleteFailureIsLoggedNotFatal(t *testing.T) {
 	assert.Equal(t, int64(0), snap.DeletedOrphanCount)
 
 	_, stillExists := store.GetContent("books/b1/graced-orphan.epub")
-	assert.True(t, stillExists,
-		"a persistently-failing delete must leave the object in place, not silently drop it")
+	assert.True(
+		t,
+		stillExists,
+		"a persistently-failing delete must leave the object in place, not silently drop it",
+	)
 }
 
 func TestStorageScanEmptyBucket(t *testing.T) {

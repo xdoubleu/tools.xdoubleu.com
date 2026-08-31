@@ -65,6 +65,12 @@ type dismissSecurityAlertArgs struct {
 	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
 }
 
+// projectIssuesByStatusArgs is the input for get_project_issues_by_status.
+type projectIssuesByStatusArgs struct {
+	ProjectNumber int32  `json:"project_number,omitempty" jsonschema:"board number"`
+	Status        string `json:"status,omitempty"         jsonschema:"e.g. Ready"`
+}
+
 // hostMetricsArgs is the input for get_host_metrics. Since empty defaults to
 // the server's own retention window.
 type hostMetricsArgs struct {
@@ -108,8 +114,9 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (15 tools, which include the one mutating
-// tool, resolve_sentry_issue — see registerObservabilityMCPTools).
+// tools registered directly below (20 tools, which include the two mutating
+// tools, resolve_sentry_issue and dismiss_security_alert — see
+// registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -127,8 +134,8 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 19 admin observability tools —
-// 17 read-only plus the two deliberate mutations, resolve_sentry_issue and
+// registerObservabilityMCPTools registers the 20 admin observability tools —
+// 18 read-only plus the two deliberate mutations, resolve_sentry_issue and
 // dismiss_security_alert. Each wraps a shared internal ObservabilityService
 // method also used by the Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
@@ -282,6 +289,15 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 			"notification-source email.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.alertStates(ctx)
+		})
+	addObsTool(srv, "get_project_issues_by_status",
+		"Open issues on the configured repository owner's GitHub Projects "+
+			"(v2) board whose Status column matches the given name (e.g. "+
+			"\"Ready\"). The generic GitHub MCP server can't resolve custom "+
+			"fields on a personal (user-owned) project board, so this is the "+
+			"only way to answer \"which issues are in column X\".",
+		func(ctx context.Context, a projectIssuesByStatusArgs) (proto.Message, error) {
+			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status), nil
 		})
 }
 

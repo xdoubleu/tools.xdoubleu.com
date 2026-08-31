@@ -43,4 +43,11 @@ type Client interface {
 		alertNumber int64,
 		reason string,
 	) error
+	// ListProjectIssuesByStatus returns the open issues on the configured
+	// repository owner's GitHub Projects (v2) board number projectNumber
+	// whose Status field matches status (case-insensitive, e.g. "Ready").
+	// Returns ErrNotConfigured when no token/repo is set.
+	ListProjectIssuesByStatus(
+		ctx context.Context, projectNumber int64, status string,
+	) ([]ProjectIssue, error)
 }

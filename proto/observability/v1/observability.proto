@@ -21,6 +21,8 @@ service ObservabilityService {
       returns (GetSecurityAlertsResponse);
   rpc DismissSecurityAlert(DismissSecurityAlertRequest)
       returns (DismissSecurityAlertResponse);
+  rpc GetProjectIssuesByStatus(GetProjectIssuesByStatusRequest)
+      returns (GetProjectIssuesByStatusResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
@@ -212,6 +214,34 @@ message GetFailingPullRequestsResponse {
   repeated FailingPullRequest pull_requests = 1;
   bool configured = 2;
   int32 failing_count = 3;
+}
+
+// ProjectIssue is a single open issue on a GitHub Projects (v2) board,
+// annotated with the Status field value it currently sits under.
+message ProjectIssue {
+  int64 number = 1;
+  string title = 2;
+  string url = 3;
+  string status = 4;
+}
+
+// GetProjectIssuesByStatusRequest looks up issues on the configured
+// repository owner's GitHub Projects (v2) board number project_number whose
+// Status field matches status (case-insensitive, e.g. "Ready") — issue
+// #1357, filling the gap left by the separate GitHub MCP server tooling,
+// which can't resolve custom project fields on a personal (user-owned)
+// project board.
+message GetProjectIssuesByStatusRequest {
+  int32 project_number = 1;
+  string status = 2;
+}
+
+// GetProjectIssuesByStatusResponse carries the matching issues. configured is
+// false when no GitHub token/repo is set — the section is degraded, not
+// failed.
+message GetProjectIssuesByStatusResponse {
+  repeated ProjectIssue issues = 1;
+  bool configured = 2;
 }
 
 // WorkflowRun is a single GitHub Actions workflow run, either from a pull

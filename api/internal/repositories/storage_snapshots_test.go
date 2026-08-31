@@ -33,7 +33,10 @@ func sampleSnapshot(scannedAt time.Time) models.StorageSnapshot {
 			{Prefix: "books", SizeBytes: 900, Count: 8},
 			{Prefix: "users", SizeBytes: 100, Count: 2},
 		},
-		OrphanKeys:             []string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
+		OrphanKeys: []string{
+			"books/b1/orphan.epub",
+			"books/b2/orphan.epub",
+		},
 		DeletedOrphanSizeBytes: 100,
 		DeletedOrphanCount:     1,
 	}
