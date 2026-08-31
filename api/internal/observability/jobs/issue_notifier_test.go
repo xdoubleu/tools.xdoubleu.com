@@ -1073,7 +1073,11 @@ func slowTrend(
 func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 	slow := fakeSlowTransactionsRepo{
 		trends: []models.TransactionTrend{
-			slowTrend("tools-api", "GET /games/api/progress", 6000),
+			slowTrend(
+				"tools-api",
+				"POST /games.v1.GamesService/RefreshSteamGame",
+				6000,
+			),
 		},
 		err: nil,
 	}
@@ -1096,9 +1100,42 @@ func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 	assert.Len(t, mail.sent, 1)
 	year, week := time.Now().ISOWeek()
 	key := fmt.Sprintf(
-		"slow_transaction:tools-api:GET /games/api/progress:%d-W%02d", year, week,
+		"slow_transaction:tools-api:POST /games.v1.GamesService/RefreshSteamGame:%d-W%02d",
+		year,
+		week,
 	)
 	assert.True(t, notified.keys[key])
+}
+
+// TestIssueNotifierSkipsProgressWebSocketTransaction asserts the games/books
+// progressws WebSocket-upgrade routes never notify no matter how long a
+// client keeps the connection open -- their Sentry transaction spans the
+// whole connection lifetime, not a bounded response (issue #1320), the same
+// reasoning as TestIssueNotifierSkipsExcludedTransaction below.
+func TestIssueNotifierSkipsProgressWebSocketTransaction(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-api", "GET /games/api/progress", 125123),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
 }
 
 // TestIssueNotifierSkipsExcludedTransaction asserts a known non-representative

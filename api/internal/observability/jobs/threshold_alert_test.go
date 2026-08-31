@@ -510,7 +510,7 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_Breach(t *testing.T) {
 	stats := stubStatsLister{ //nolint:exhaustruct // fixture
 		stats: []sentryapi.TransactionStat{
 			{
-				Transaction:   "GET /games/api/progress",
+				Transaction:   "POST /games.v1.GamesService/RefreshSteamGame",
 				Project:       "tools-api",
 				P95DurationMs: 144000,
 				RequestCount:  35,
@@ -553,6 +553,64 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_Breach(t *testing.T) {
 	require.True(t, ok)
 	assert.True(t, state.Breaching)
 	assert.InDelta(t, 144000, state.CurrentValue, 0.01)
+}
+
+func TestThresholdAlertJob_SlowTransactionHTTPHigh_ProgressWebSocketExcluded(
+	t *testing.T,
+) {
+	// GET /games/api/progress and GET /books/api/progress are WebSocket
+	// upgrades (internal/progressws), not bounded request/response
+	// handlers -- their Sentry transaction spans the whole connection
+	// lifetime, so they must never breach the HTTP handler rule no matter
+	// how long a client keeps the socket open (issue #1320). The sibling
+	// ".../refresh" route is a normal bounded handler and must still be
+	// able to breach.
+	stats := stubStatsLister{ //nolint:exhaustruct // fixture
+		stats: []sentryapi.TransactionStat{
+			{
+				Transaction:   "GET /games/api/progress",
+				Project:       "tools-api",
+				P95DurationMs: 125123,
+				RequestCount:  180,
+			},
+			{
+				Transaction:   "GET /books/api/progress",
+				Project:       "tools-api",
+				P95DurationMs: 300000,
+				RequestCount:  90,
+			},
+			{
+				Transaction:   "GET /games/api/progress/{id}/refresh",
+				Project:       "tools-api",
+				P95DurationMs: 2000,
+				RequestCount:  10,
+			},
+		},
+	}
+	states := newFakeAlertStateRepo()
+	mail := &fakeMailer{} //nolint:exhaustruct // fixture
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewThresholdAlertJob(
+		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
+		noSnapshotGetter,
+		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
+		stats,
+		onlyEnabledSettings{
+			allowed: repositories.NotificationSourceSlowHTTPHigh,
+		},
+		states,
+		notifSvc,
+	)
+
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Empty(t, mail.sent)
+	state, ok := states.get("slow_transaction_http_high")
+	require.True(t, ok)
+	assert.False(t, state.Breaching)
+	assert.InDelta(t, 2000, state.CurrentValue, 0.01)
 }
 
 func TestThresholdAlertJob_SlowTransactionJobHigh_NotBreachingBelowThreshold(
