@@ -47,7 +47,7 @@ const userEmail = "feeds-test-user@example.com"
 func TestMain(m *testing.M) {
 	cfg := testhelper.NewTestConfig()
 	cfg.EmailInboundDomain = "mail.example.com"
-	cfg.EmailInboundSecret = emailWebhookSecret
+	cfg.EmailInboundSecret = emailWebhookSecret()
 	cfg.ResendAPIKey = "test-resend-key"
 
 	postgresDB := testhelper.ConnectTestDB(cfg.DBDsn)
