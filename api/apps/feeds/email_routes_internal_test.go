@@ -19,8 +19,11 @@ import (
 // testWebhookSecret is computed at runtime, not written as a literal
 // "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
 // real Svix/Stripe-shaped webhook signing secret (they match on shape, not
-// on whether the decoded content is obviously fake).
-var testWebhookSecret = fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+// on whether the decoded content is obviously fake). It's a function
+// (rather than a package-level var) to satisfy gochecknoglobals.
+func testWebhookSecret() string {
+	return fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+}
 
 // fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
 // a human-readable seed, so the source never contains a whsec_-prefixed
@@ -36,7 +39,7 @@ func signedResendHeaders(body string, ts time.Time) http.Header {
 	const id = "msg_1"
 	timestamp := strconv.FormatInt(ts.Unix(), 10)
 	raw, err := base64.StdEncoding.DecodeString(
-		testWebhookSecret[len("whsec_"):],
+		testWebhookSecret()[len("whsec_"):],
 	)
 	if err != nil {
 		panic(err)
@@ -56,7 +59,7 @@ func TestVerifyResendSignature_Valid(t *testing.T) {
 	body := []byte(`{"type":"email.received"}`)
 	headers := signedResendHeaders(string(body), time.Now())
 
-	assert.True(t, verifyResendSignature(testWebhookSecret, headers, body))
+	assert.True(t, verifyResendSignature(testWebhookSecret(), headers, body))
 }
 
 func TestVerifyResendSignature_WrongSecret(t *testing.T) {
@@ -72,7 +75,7 @@ func TestVerifyResendSignature_TamperedBody(t *testing.T) {
 	headers := signedResendHeaders(string(body), time.Now())
 
 	tampered := []byte(`{"type":"email.received","x":1}`)
-	assert.False(t, verifyResendSignature(testWebhookSecret, headers, tampered))
+	assert.False(t, verifyResendSignature(testWebhookSecret(), headers, tampered))
 }
 
 func TestVerifyResendSignature_ExpiredTimestamp(t *testing.T) {
@@ -80,13 +83,13 @@ func TestVerifyResendSignature_ExpiredTimestamp(t *testing.T) {
 	old := time.Now().Add(-10 * time.Minute)
 	headers := signedResendHeaders(string(body), old)
 
-	assert.False(t, verifyResendSignature(testWebhookSecret, headers, body))
+	assert.False(t, verifyResendSignature(testWebhookSecret(), headers, body))
 }
 
 func TestVerifyResendSignature_MissingHeaders(t *testing.T) {
 	assert.False(
 		t,
-		verifyResendSignature(testWebhookSecret, http.Header{}, []byte("{}")),
+		verifyResendSignature(testWebhookSecret(), http.Header{}, []byte("{}")),
 	)
 }
 
@@ -107,7 +110,7 @@ func TestVerifyResendSignature_MalformedTimestamp(t *testing.T) {
 	h.Set("svix-timestamp", "not-a-number")
 	h.Set("svix-signature", "v1,doesnotmatter")
 
-	assert.False(t, verifyResendSignature(testWebhookSecret, h, body))
+	assert.False(t, verifyResendSignature(testWebhookSecret(), h, body))
 }
 
 func TestVerifyResendSignature_MalformedSignatureField(t *testing.T) {
@@ -121,7 +124,7 @@ func TestVerifyResendSignature_MalformedSignatureField(t *testing.T) {
 	// rather than panicking on strings.Cut's second return.
 	h.Set("svix-signature", "no-comma-here")
 
-	assert.False(t, verifyResendSignature(testWebhookSecret, h, body))
+	assert.False(t, verifyResendSignature(testWebhookSecret(), h, body))
 }
 
 func TestParseUnixTimestamp_Invalid(t *testing.T) {

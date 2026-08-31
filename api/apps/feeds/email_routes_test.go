@@ -29,8 +29,11 @@ import (
 // emailWebhookSecret is computed at runtime, not written as a literal
 // "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
 // real Svix/Stripe-shaped webhook signing secret (they match on shape, not
-// on whether the decoded content is obviously fake).
-var emailWebhookSecret = fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+// on whether the decoded content is obviously fake). It's a function
+// (rather than a package-level var) to satisfy gochecknoglobals.
+func emailWebhookSecret() string {
+	return fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+}
 
 // fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
 // a human-readable seed, so the source never contains a whsec_-prefixed
@@ -174,7 +177,7 @@ func TestEmailInbound_ValidSignature_IngestsItem(t *testing.T) {
 
 	to := token + "@mail.example.com"
 	body := inboundPayload(to, "This week's issue", "email-1")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-1", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-1", body)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -199,7 +202,7 @@ func TestEmailInbound_BlankSubject_DefaultsTitle(t *testing.T) {
 
 	to := token + "@mail.example.com"
 	body := inboundPayload(to, "   ", "email-blank-subject")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-blank", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-blank", body)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -235,7 +238,7 @@ func TestEmailInbound_UnknownToken_NoOp(t *testing.T) {
 
 	to := "not-a-real-token@mail.example.com"
 	body := inboundPayload(to, "Nobody home", "email-3")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-3", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-3", body)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -244,7 +247,7 @@ func TestEmailInbound_UnknownToken_NoOp(t *testing.T) {
 func TestEmailInbound_MalformedBody_BadRequest(t *testing.T) {
 	mux := getRoutes()
 	body := []byte("not json")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-4", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-4", body)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -260,7 +263,7 @@ func TestEmailInbound_SourceURLUniqueness(t *testing.T) {
 	for _, tok := range []string{tokenA, tokenB} {
 		to := tok + "@mail.example.com"
 		body := inboundPayload(to, "Shared subject", "shared-email-id")
-		headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-"+tok, body)
+		headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-"+tok, body)
 		rec := postWebhook(mux, body, headers)
 		require.Equal(t, http.StatusOK, rec.Code)
 	}
@@ -285,7 +288,7 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 
 	to := token + "@mail.example.com"
 	body := inboundPayload(to, "Never arrives", "email-fetchfail")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-fetchfail", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-fetchfail", body)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -320,7 +323,7 @@ func TestEmailInbound_Resend_RestoresDismissedItem(t *testing.T) {
 
 	to := token + "@mail.example.com"
 	body := inboundPayload(to, "Issue #1", "email-resend")
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-resend-1", body)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-resend-1", body)
 	rec := postWebhook(mux, body, headers)
 	require.Equal(t, http.StatusOK, rec.Code)
 
@@ -373,7 +376,7 @@ func TestEmailInbound_IgnoredEventType_NoOp(t *testing.T) {
 			"to":       []string{to},
 		},
 	})
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-ignored", payload)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-ignored", payload)
 
 	rec := postWebhook(mux, payload, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -394,7 +397,7 @@ func TestEmailInbound_MissingMessageID_FallsBackToEmailID(t *testing.T) {
 			"subject":  "No message id",
 		},
 	})
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-no-msgid", payload)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-no-msgid", payload)
 
 	rec := postWebhook(mux, payload, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -423,7 +426,7 @@ func TestEmailInbound_ReceivedForFallback_IngestsItem(t *testing.T) {
 			"subject":      "Via received_for",
 		},
 	})
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-received-for", payload)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-received-for", payload)
 
 	rec := postWebhook(mux, payload, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
@@ -453,7 +456,7 @@ func TestEmailInbound_SkipsNonMatchingToAddress(t *testing.T) {
 			"subject":    "Multiple recipients",
 		},
 	})
-	headers := signEmailWebhookBody(t, emailWebhookSecret, "msg-multi-to", payload)
+	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-multi-to", payload)
 
 	rec := postWebhook(mux, payload, headers)
 	assert.Equal(t, http.StatusOK, rec.Code)
