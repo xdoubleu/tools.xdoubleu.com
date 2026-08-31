@@ -19,7 +19,7 @@ tools: tools/lint tools/proto
 tools/lint: tools/lint/go tools/lint/sql
 
 tools/lint/go:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 	go install github.com/segmentio/golines@v0.13.0
 	go install github.com/daixiang0/gci@v0.14.0
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
