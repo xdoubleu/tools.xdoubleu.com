@@ -569,9 +569,15 @@ type StorageSnapshot struct {
 	PrefixBreakdown      []*PrefixStat          `protobuf:"bytes,8,rep,name=prefix_breakdown,json=prefixBreakdown,proto3" json:"prefix_breakdown,omitempty"`
 	// orphan_keys is a capped sample of the orphaned object keys; orphan_count
 	// tallies every orphan found even when this list is truncated.
-	OrphanKeys    []string `protobuf:"bytes,9,rep,name=orphan_keys,json=orphanKeys,proto3" json:"orphan_keys,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	OrphanKeys []string `protobuf:"bytes,9,rep,name=orphan_keys,json=orphanKeys,proto3" json:"orphan_keys,omitempty"`
+	// deleted_orphan_size_bytes/deleted_orphan_count cover orphans this same
+	// scan actually deleted (past a grace period) — a subset of
+	// orphan_size_bytes/orphan_count, which count every orphan seen regardless
+	// of age or delete outcome.
+	DeletedOrphanSizeBytes int64 `protobuf:"varint,10,opt,name=deleted_orphan_size_bytes,json=deletedOrphanSizeBytes,proto3" json:"deleted_orphan_size_bytes,omitempty"`
+	DeletedOrphanCount     int64 `protobuf:"varint,11,opt,name=deleted_orphan_count,json=deletedOrphanCount,proto3" json:"deleted_orphan_count,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *StorageSnapshot) Reset() {
@@ -665,6 +671,20 @@ func (x *StorageSnapshot) GetOrphanKeys() []string {
 		return x.OrphanKeys
 	}
 	return nil
+}
+
+func (x *StorageSnapshot) GetDeletedOrphanSizeBytes() int64 {
+	if x != nil {
+		return x.DeletedOrphanSizeBytes
+	}
+	return 0
+}
+
+func (x *StorageSnapshot) GetDeletedOrphanCount() int64 {
+	if x != nil {
+		return x.DeletedOrphanCount
+	}
+	return 0
 }
 
 type GetStorageStatsRequest struct {
@@ -4550,7 +4570,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x06prefix\x18\x01 \x01(\tR\x06prefix\x12\x1d\n" +
 	"\n" +
 	"size_bytes\x18\x02 \x01(\x03R\tsizeBytes\x12\x14\n" +
-	"\x05count\x18\x03 \x01(\x03R\x05count\"\x9b\x03\n" +
+	"\x05count\x18\x03 \x01(\x03R\x05count\"\x88\x04\n" +
 	"\x0fStorageSnapshot\x12\x1d\n" +
 	"\n" +
 	"scanned_at\x18\x01 \x01(\tR\tscannedAt\x12(\n" +
@@ -4562,7 +4582,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12stale_upload_count\x18\a \x01(\x03R\x10staleUploadCount\x12G\n" +
 	"\x10prefix_breakdown\x18\b \x03(\v2\x1c.observability.v1.PrefixStatR\x0fprefixBreakdown\x12\x1f\n" +
 	"\vorphan_keys\x18\t \x03(\tR\n" +
-	"orphanKeys\"\x18\n" +
+	"orphanKeys\x129\n" +
+	"\x19deleted_orphan_size_bytes\x18\n" +
+	" \x01(\x03R\x16deletedOrphanSizeBytes\x120\n" +
+	"\x14deleted_orphan_count\x18\v \x01(\x03R\x12deletedOrphanCount\"\x18\n" +
 	"\x16GetStorageStatsRequest\"\x91\x01\n" +
 	"\x17GetStorageStatsResponse\x129\n" +
 	"\x06latest\x18\x01 \x01(\v2!.observability.v1.StorageSnapshotR\x06latest\x12;\n" +

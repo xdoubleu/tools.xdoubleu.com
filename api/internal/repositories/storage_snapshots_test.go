@@ -33,7 +33,9 @@ func sampleSnapshot(scannedAt time.Time) models.StorageSnapshot {
 			{Prefix: "books", SizeBytes: 900, Count: 8},
 			{Prefix: "users", SizeBytes: 100, Count: 2},
 		},
-		OrphanKeys: []string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
+		OrphanKeys:             []string{"books/b1/orphan.epub", "books/b2/orphan.epub"},
+		DeletedOrphanSizeBytes: 100,
+		DeletedOrphanCount:     1,
 	}
 }
 
@@ -52,6 +54,8 @@ func TestStorageSnapshotsInsertAndLatest(t *testing.T) {
 	require.NotNil(t, got)
 	assert.Equal(t, int64(2000), got.TotalSizeBytes)
 	assert.Equal(t, int64(2), got.OrphanCount)
+	assert.Equal(t, int64(1), got.DeletedOrphanCount)
+	assert.Equal(t, int64(100), got.DeletedOrphanSizeBytes)
 	require.Len(t, got.PrefixBreakdown, 2)
 	assert.Equal(t, "books", got.PrefixBreakdown[0].Prefix)
 	assert.Equal(

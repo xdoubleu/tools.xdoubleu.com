@@ -57,6 +57,13 @@ type StorageSnapshot struct {
 	// maxOrphanKeys in apps/books/internal/jobs/storage_scan.go. OrphanCount
 	// tallies every orphan found even when this list is truncated.
 	OrphanKeys []string
+	// DeletedOrphanSizeBytes/DeletedOrphanCount cover orphans this same scan
+	// actually deleted (past orphanGracePeriod, so an object whose book_files
+	// row hasn't committed yet during an in-flight upload is never wrongly
+	// removed) — a subset of OrphanSizeBytes/OrphanCount, which still counts
+	// every orphan seen regardless of age or delete outcome.
+	DeletedOrphanSizeBytes int64
+	DeletedOrphanCount     int64
 }
 
 // SchemaStats is the on-disk size of one database schema.
