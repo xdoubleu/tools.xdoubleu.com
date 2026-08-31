@@ -122,21 +122,22 @@ jobs:
   # kobo_gateway is in this gate: build-web.yml stages the kobo-gateway
   # .dmg/binary into web/public/downloads itself (since #1038) before
   # building the image, so it must re-run when kobo-gateway/ changes even
-  # if web/ didn't. build-kobo-gateway is also a `needs:` (not just gated the
-  # same way) because it's the same trigger condition that changes the
-  # kobo-gateway build-cache key (hashFiles('kobo-gateway/**') in
-  # build-kobo-gateway.yml) — that job only writes the new cache entry in its
-  # post-job step, at the very end of its run, while build-web's own
-  # cache-restore step fires almost immediately. Running them in parallel let
-  # build-web's restore race ahead of build-kobo-gateway's save and hit a
-  # false cache-miss failure even though build-kobo-gateway succeeded later
-  # in the same run (issue #1192, first seen on PR #1186).
+  # if web/ didn't. build-kobo-gateway is a strict `needs:` (result must be
+  # success, not just success-or-skipped) because build-web.yml now
+  # downloads that job's kobo-gateway-dist artifact directly instead of
+  # restoring it from build-kobo-gateway.yml's own cache key (issue #1322 —
+  # see build-kobo-gateway.yml's and save-kobo-gateway-cache.yml's own
+  # comments for why the cache handoff moved out of this run entirely).
+  # There's no artifact to download if build-kobo-gateway didn't actually
+  # run, so build-kobo-gateway's own gate below is deliberately broadened
+  # to a superset of this job's — every trigger that runs build-web also
+  # runs build-kobo-gateway, cache-hit-and-skip-the-actual-compile or not.
   build-web:
     needs: [changes, proto-check, build-kobo-gateway]
     if: |
       always() &&
       (needs.proto-check.result == 'success' || needs.proto-check.result == 'skipped') &&
-      (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped') &&
+      needs.build-kobo-gateway.result == 'success' &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
       needs.changes.outputs.proto == 'true' ||
@@ -148,13 +149,21 @@ jobs:
     secrets: inherit
 
   # Builds/packages kobo-gateway on a macOS runner (cgo + AppKit, can't
-  # cross-compile from Linux — see build-kobo-gateway.yml).
+  # cross-compile from Linux — see build-kobo-gateway.yml). Gated on the
+  # same conditions as build-web (not just kobo_gateway/workflows) so this
+  # job always actually runs — never skips — whenever build-web needs its
+  # kobo-gateway-dist artifact; a source-unchanged run just cache-hits and
+  # skips the real compile (see build-kobo-gateway.yml), so this costs a
+  # macOS runner's boot time on a web-only change, not compile time.
   build-kobo-gateway:
     needs: changes
     if: |
       always() &&
       (github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.proto == 'true' ||
+      needs.changes.outputs.config_web == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Kobo Gateway Workflow
     uses: ./.github/workflows/build-kobo-gateway.yml
