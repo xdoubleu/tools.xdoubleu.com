@@ -128,6 +128,89 @@ func TestStorageScanOrphanKeysCapped(t *testing.T) {
 	assert.Len(t, snap.OrphanKeys, 50)
 }
 
+func TestStorageScanDeletesGracedOrphans(t *testing.T) {
+	store := objectstore.NewFake()
+	// Orphan old enough to clear the grace period — should be deleted.
+	store.PutAt(
+		"books/b1/graced-orphan.epub",
+		[]byte("leaked"),
+		time.Now().Add(-2*time.Hour),
+	)
+
+	snapStore := &fakeSnapshotStore{saved: nil, err: nil}
+	job := jobs.NewStorageScanJob(
+		store,
+		fakeKeyLister{keys: nil, err: nil},
+		snapStore,
+	)
+
+	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
+
+	snap := snapStore.saved
+	require.NotNil(t, snap)
+	assert.Equal(t, int64(1), snap.OrphanCount)
+	assert.Equal(t, int64(1), snap.DeletedOrphanCount)
+	assert.Equal(t, int64(len("leaked")), snap.DeletedOrphanSizeBytes)
+
+	_, stillExists := store.GetContent("books/b1/graced-orphan.epub")
+	assert.False(t, stillExists, "graced orphan should have been deleted from the store")
+}
+
+func TestStorageScanKeepsFreshOrphans(t *testing.T) {
+	store := objectstore.NewFake()
+	// Fresh orphan, e.g. an in-flight upload whose book_files row hasn't
+	// committed yet — must never be deleted within the grace period.
+	put(t, store, "books/b1/fresh-orphan.epub", "leaked")
+
+	snapStore := &fakeSnapshotStore{saved: nil, err: nil}
+	job := jobs.NewStorageScanJob(
+		store,
+		fakeKeyLister{keys: nil, err: nil},
+		snapStore,
+	)
+
+	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
+
+	snap := snapStore.saved
+	require.NotNil(t, snap)
+	assert.Equal(t, int64(1), snap.OrphanCount)
+	assert.Equal(t, int64(0), snap.DeletedOrphanCount)
+
+	_, stillExists := store.GetContent("books/b1/fresh-orphan.epub")
+	assert.True(t, stillExists, "fresh orphan must survive within the grace period")
+}
+
+func TestStorageScanOrphanDeleteFailureIsLoggedNotFatal(t *testing.T) {
+	objectstore.SetBackoffBase(time.Millisecond)
+	store := objectstore.NewFake()
+	store.PutAt(
+		"books/b1/graced-orphan.epub",
+		[]byte("leaked"),
+		time.Now().Add(-2*time.Hour),
+	)
+	// More failures than DeleteWithRetry's own attempt budget, so every
+	// retry is exhausted and the delete is left genuinely failed.
+	store.FailNextDeletes(10, assert.AnError)
+
+	snapStore := &fakeSnapshotStore{saved: nil, err: nil}
+	job := jobs.NewStorageScanJob(
+		store,
+		fakeKeyLister{keys: nil, err: nil},
+		snapStore,
+	)
+
+	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
+
+	snap := snapStore.saved
+	require.NotNil(t, snap)
+	assert.Equal(t, int64(1), snap.OrphanCount)
+	assert.Equal(t, int64(0), snap.DeletedOrphanCount)
+
+	_, stillExists := store.GetContent("books/b1/graced-orphan.epub")
+	assert.True(t, stillExists,
+		"a persistently-failing delete must leave the object in place, not silently drop it")
+}
+
 func TestStorageScanEmptyBucket(t *testing.T) {
 	snapStore := &fakeSnapshotStore{saved: nil, err: nil}
 	job := jobs.NewStorageScanJob(
