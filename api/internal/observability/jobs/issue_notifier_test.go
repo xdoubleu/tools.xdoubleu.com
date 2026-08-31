@@ -1073,7 +1073,53 @@ func slowTrend(
 func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 	slow := fakeSlowTransactionsRepo{
 		trends: []models.TransactionTrend{
-			slowTrend("tools-api", "GET /games/api/progress", 6000),
+			slowTrend(
+				"tools-api",
+				"POST /games.v1.GamesService/RefreshSteamGame",
+				6000,
+			),
+		},
+		err: nil,
+	}
+	mail := &fakeMailer{sent: nil, err: nil}
+	notified := newFakeNotifiedRepo()
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewIssueNotifierJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		notifSvc,
+		notified,
+		alwaysEnabledSettings{},
+		noSnapshotGetter,
+		slow,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+	year, week := time.Now().ISOWeek()
+	key := fmt.Sprintf(
+		"slow_transaction:tools-api:POST /games.v1.GamesService/RefreshSteamGame:%d-W%02d",
+		year,
+		week,
+	)
+	assert.True(t, notified.keys[key])
+}
+
+// TestIssueNotifierNotifiesForProgressWebSocketTransaction asserts the
+// games/books progressws WebSocket-upgrade routes are NOT excluded from
+// slow-transaction notification (issue #1320) — their connection-lifetime
+// Sentry transaction will permanently run past any HTTP threshold, and
+// that's accepted as an inherent, known characteristic of a long-lived
+// WebSocket route rather than something to hide from this job.
+// acceptWithHandshakeSpan (internal/communication/wstools/websocket.go)
+// gives the actually-bounded part of the route (the handshake) its own,
+// separately-tracked transaction instead.
+func TestIssueNotifierNotifiesForProgressWebSocketTransaction(t *testing.T) {
+	slow := fakeSlowTransactionsRepo{
+		trends: []models.TransactionTrend{
+			slowTrend("tools-api", "GET /games/api/progress", 125123),
 		},
 		err: nil,
 	}

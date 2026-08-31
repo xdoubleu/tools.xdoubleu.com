@@ -33,6 +33,18 @@ const (
 // (61s observed), and would trip slow_transaction_frontend_high permanently
 // at the same threshold that fits every other frontend transaction (issue
 // #1310).
+//
+// games' and books' "GET /<prefix>/api/progress" WebSocket-upgrade routes
+// (apps/games/routes.go, apps/books/routes.go, internal/progressws) are
+// deliberately NOT excluded here (issue #1320) even though their
+// connection-lifetime transaction will now permanently breach
+// slow_transaction_http_high — excluding it left the whole upgrade path
+// with zero latency signal, and acceptWithHandshakeSpan
+// (internal/communication/wstools/websocket.go) only measures the
+// handshake, not this transaction. The permanent breach on the raw
+// connection transaction is accepted as a known, inherent characteristic
+// of a long-lived WebSocket route rather than something to hide from this
+// rule.
 func slowTransactionExcluded(transaction string) bool {
 	return transaction == "NextNodeServer.clientComponentLoading"
 }
