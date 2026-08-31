@@ -162,16 +162,15 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 // folded into the connection-lifetime transaction sentryhttp's middleware
 // starts around the whole handler call. That outer transaction never
 // returns until the socket closes, so its "duration" measures how long a
-// client kept the connection open, not request latency — a WebSocket route
-// is excluded from HTTP-class slow-transaction alerting entirely for that
-// reason (isWebSocketProgressTransaction,
-// internal/observability/jobs/threshold_alert_slow_transactions.go, issue
-// #1320). Excluding it from alerting is necessary (that duration can never
-// be a meaningful latency signal) but not sufficient on its own — this
-// gives the same route a bounded, comparable metric instead: how long the
-// actual handshake took, still subject to the ordinary HTTP threshold, so a
-// real upgrade-path regression (e.g. a slow auth check added in front of
-// websocket.Accept) still alerts.
+// client kept the connection open, not request latency, and is expected to
+// permanently breach HTTP-class slow-transaction alerting for any
+// long-lived connection (issue #1320) — accepted as inherent to a
+// WebSocket route rather than excluded from alerting. What that permanently
+// -breaching transaction can't provide is a *bounded* signal for the route:
+// this gives it one, by measuring just the handshake itself, still subject
+// to the ordinary HTTP threshold, so a real upgrade-path regression (e.g. a
+// slow auth check added in front of websocket.Accept) still alerts
+// distinctly from the expected long-connection breach.
 //
 // The transaction is started from a fresh context rather than r.Context():
 // sentry.StartTransaction returns the existing transaction unchanged when
@@ -180,8 +179,7 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 // would just hand back that same connection-lifetime transaction. The name
 // carries a distinct "[ws-handshake]" suffix so it aggregates in Sentry
 // separately from the connection transaction's own "GET .../api/progress"
-// name (same method+path prefix, so it still classifies as an HTTP handler)
-// and doesn't match isWebSocketProgressTransaction's exclusion.
+// name.
 func acceptWithHandshakeSpan(
 	w http.ResponseWriter,
 	r *http.Request,
