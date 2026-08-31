@@ -63,6 +63,9 @@ const (
 	// ObservabilityServiceGetSecurityAlertsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSecurityAlerts RPC.
 	ObservabilityServiceGetSecurityAlertsProcedure = "/observability.v1.ObservabilityService/GetSecurityAlerts"
+	// ObservabilityServiceDismissSecurityAlertProcedure is the fully-qualified name of the
+	// ObservabilityService's DismissSecurityAlert RPC.
+	ObservabilityServiceDismissSecurityAlertProcedure = "/observability.v1.ObservabilityService/DismissSecurityAlert"
 	// ObservabilityServiceGetSentryIssuesProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSentryIssues RPC.
 	ObservabilityServiceGetSentryIssuesProcedure = "/observability.v1.ObservabilityService/GetSentryIssues"
@@ -119,6 +122,7 @@ type ObservabilityServiceClient interface {
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
 	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
+	DismissSecurityAlert(context.Context, *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
@@ -204,6 +208,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetSecurityAlertsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetSecurityAlerts")),
+			connect.WithClientOptions(opts...),
+		),
+		dismissSecurityAlert: connect.NewClient[v1.DismissSecurityAlertRequest, v1.DismissSecurityAlertResponse](
+			httpClient,
+			baseURL+ObservabilityServiceDismissSecurityAlertProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("DismissSecurityAlert")),
 			connect.WithClientOptions(opts...),
 		),
 		getSentryIssues: connect.NewClient[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse](
@@ -305,6 +315,7 @@ type observabilityServiceClient struct {
 	getWorkflowRuns              *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
 	getWorkflowRunStats          *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
 	getSecurityAlerts            *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
+	dismissSecurityAlert         *connect.Client[v1.DismissSecurityAlertRequest, v1.DismissSecurityAlertResponse]
 	getSentryIssues              *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
 	resolveSentryIssue           *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
 	getSlowTransactions          *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
@@ -369,6 +380,11 @@ func (c *observabilityServiceClient) GetWorkflowRunStats(ctx context.Context, re
 // GetSecurityAlerts calls observability.v1.ObservabilityService.GetSecurityAlerts.
 func (c *observabilityServiceClient) GetSecurityAlerts(ctx context.Context, req *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {
 	return c.getSecurityAlerts.CallUnary(ctx, req)
+}
+
+// DismissSecurityAlert calls observability.v1.ObservabilityService.DismissSecurityAlert.
+func (c *observabilityServiceClient) DismissSecurityAlert(ctx context.Context, req *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error) {
+	return c.dismissSecurityAlert.CallUnary(ctx, req)
 }
 
 // GetSentryIssues calls observability.v1.ObservabilityService.GetSentryIssues.
@@ -456,6 +472,7 @@ type ObservabilityServiceHandler interface {
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
 	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
+	DismissSecurityAlert(context.Context, *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
@@ -537,6 +554,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetSecurityAlertsProcedure,
 		svc.GetSecurityAlerts,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetSecurityAlerts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceDismissSecurityAlertHandler := connect.NewUnaryHandler(
+		ObservabilityServiceDismissSecurityAlertProcedure,
+		svc.DismissSecurityAlert,
+		connect.WithSchema(observabilityServiceMethods.ByName("DismissSecurityAlert")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetSentryIssuesHandler := connect.NewUnaryHandler(
@@ -645,6 +668,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetWorkflowRunStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSecurityAlertsProcedure:
 			observabilityServiceGetSecurityAlertsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceDismissSecurityAlertProcedure:
+			observabilityServiceDismissSecurityAlertHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSentryIssuesProcedure:
 			observabilityServiceGetSentryIssuesHandler.ServeHTTP(w, r)
 		case ObservabilityServiceResolveSentryIssueProcedure:
@@ -720,6 +745,10 @@ func (UnimplementedObservabilityServiceHandler) GetWorkflowRunStats(context.Cont
 
 func (UnimplementedObservabilityServiceHandler) GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetSecurityAlerts is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) DismissSecurityAlert(context.Context, *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.DismissSecurityAlert is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error) {

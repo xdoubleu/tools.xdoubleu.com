@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -211,6 +212,42 @@ func (c *client) ListWorkflowRunJobs(
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
+}
+
+// DismissSecurityAlert dismisses/resolves a single open alert. Unlike the
+// List* methods it isn't cached, but a successful dismiss clears the
+// security-alerts cache so the next ListSecurityAlerts call reflects it
+// immediately instead of serving up to cacheTTL of stale (still-open) data —
+// mirrors sentryapi.Client.ResolveIssue's own cache invalidation.
+func (c *client) DismissSecurityAlert(
+	ctx context.Context, alertType SecurityAlertType, alertNumber int64, reason string,
+) error {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return err
+	}
+
+	endpoint, body, err := dismissRequest(repo, alertType, alertNumber, reason)
+	if err != nil {
+		return err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return ErrNotConfigured
+	}
+	if err != nil {
+		return err
+	}
+
+	if patchErr := c.patch(ctx, endpoint, token, body); patchErr != nil {
+		return patchErr
+	}
+
+	c.mu.Lock()
+	c.cachedAlerts = nil
+	c.mu.Unlock()
+	return nil
 }
 
 // resolveRepo reads the admin-picked repo from the stored connection config.
@@ -592,6 +629,44 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 		}
 
 		return false, json.NewDecoder(resp.Body).Decode(dst)
+	})
+}
+
+func (c *client) patch(ctx context.Context, endpoint, token, body string) error {
+	return c.doWithRetry(ctx, func() (bool, error) {
+		req, reqErr := http.NewRequestWithContext(
+			ctx, http.MethodPatch, endpoint, strings.NewReader(body),
+		)
+		if reqErr != nil {
+			return false, reqErr
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		resp, doErr := c.httpClient.Do(req)
+		if doErr != nil {
+			return isTransientErr(doErr), doErr
+		}
+		defer resp.Body.Close()
+
+		if isRetryableStatus(resp.StatusCode) {
+			raw, _ := io.ReadAll(resp.Body)
+			return true, fmt.Errorf(
+				"github API returned %d: %s", resp.StatusCode, string(raw),
+			)
+		}
+
+		if resp.StatusCode < http.StatusOK ||
+			resp.StatusCode >= http.StatusMultipleChoices {
+			raw, _ := io.ReadAll(resp.Body)
+			return false, fmt.Errorf(
+				"github API returned %d: %s", resp.StatusCode, string(raw),
+			)
+		}
+
+		_, _ = io.Copy(io.Discard, resp.Body)
+		return false, nil
 	})
 }
 

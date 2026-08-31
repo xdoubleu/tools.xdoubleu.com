@@ -48,11 +48,11 @@ var appsToolNames = []string{
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
-	// observability (18, admin-gated)
+	// observability (19, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_database_size_history",
 	"get_failing_pull_requests", "get_workflow_runs", "get_workflow_run_stats",
-	"get_security_alerts",
+	"get_security_alerts", "dismiss_security_alert",
 	"get_sentry_issues", "resolve_sentry_issue", "get_host_metrics", "get_logs",
 	"get_slow_transactions", "get_transaction_latency_history",
 	"get_oauth_connections", "get_notification_settings",
@@ -299,6 +299,11 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"shoppinglist_get_plan_ingredient_groups": map[string]any{"plan_id": uid},
 		"shoppinglist_get_store_categories":       map[string]any{"store_id": uid},
 		"resolve_sentry_issue":                    map[string]any{"issue_id": uid},
+		"dismiss_security_alert": map[string]any{
+			"alert_type":   "dependabot",
+			"alert_number": 1,
+			"reason":       "not_used",
+		},
 	}
 
 	session := appsMCPSession(t, accessToken.Value)

@@ -7,6 +7,7 @@ const mockGetProviderOptions = jest.fn()
 const mockSetProviderConfig = jest.fn()
 const mockTriggerStorageScan = jest.fn()
 const mockResolveSentryIssue = jest.fn()
+const mockDismissSecurityAlert = jest.fn()
 const mockGetNotificationSettings = jest.fn()
 const mockUpdateNotificationSettings = jest.fn()
 
@@ -24,6 +25,8 @@ jest.mock('@/lib/client', () => ({
     getDatabaseStats: jest.fn(),
     getDatabaseSizeHistory: jest.fn(),
     getFailingPullRequests: jest.fn(),
+    getSecurityAlerts: jest.fn(),
+    dismissSecurityAlert: (...args: unknown[]) => mockDismissSecurityAlert(...args),
     getSentryIssues: jest.fn(),
     getSlowTransactions: jest.fn(),
     getTransactionLatencyHistory: jest.fn(),
@@ -56,6 +59,7 @@ import {
   useSlowTransactions,
   useTransactionLatencyHistory,
   useResolveSentryIssue,
+  useDismissSecurityAlert,
   useHostMetrics,
   useAlertStates,
   useLogs,
@@ -222,6 +226,24 @@ describe('useResolveSentryIssue', () => {
 
     expect(mockResolveSentryIssue).toHaveBeenCalledWith({ issueId: '42' })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues)
+  })
+})
+
+describe('useDismissSecurityAlert', () => {
+  it('dismisses the given alert and revalidates the security alerts list', async () => {
+    mockDismissSecurityAlert.mockResolvedValue({})
+    const { result } = renderHook(() => useDismissSecurityAlert())
+
+    await act(async () => {
+      await result.current(1, 83n, 'no_bandwidth')
+    })
+
+    expect(mockDismissSecurityAlert).toHaveBeenCalledWith({
+      alertType: 1,
+      alertNumber: 83n,
+      reason: 'no_bandwidth'
+    })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringSecurityAlerts)
   })
 })
 
