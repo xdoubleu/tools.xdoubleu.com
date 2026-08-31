@@ -73,7 +73,7 @@ jobs:
       # post-job step at the very end of the run (issue #1192). An
       # artifact from a job earlier in the same run has no such race: it's
       # simply not available until this job finishes.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: kobo-gateway-dist
           path: kobo-gateway/dist/kobo-gateway

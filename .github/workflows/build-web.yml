@@ -32,7 +32,7 @@ jobs:
       # Staged here (rather than in the now-deleted docker.yml assembly
       # job) since web/Dockerfile is the sole assembler of web/public/
       # since #1038.
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: kobo-gateway-dist
           path: kobo-gateway/dist/kobo-gateway
