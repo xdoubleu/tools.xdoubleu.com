@@ -16,7 +16,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testWebhookSecret = "whsec_dGVzdC1zZWNyZXQtdGVzdC1zZWNyZXQ="
+// testWebhookSecret is computed at runtime, not written as a literal
+// "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
+// real Svix/Stripe-shaped webhook signing secret (they match on shape, not
+// on whether the decoded content is obviously fake).
+var testWebhookSecret = fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+
+// fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
+// a human-readable seed, so the source never contains a whsec_-prefixed
+// base64 blob as literal text.
+func fakeWebhookSecret(seed string) string {
+	return "whsec_" + base64.StdEncoding.EncodeToString([]byte(seed))
+}
 
 // signedResendHeaders always signs with testWebhookSecret and svix-id
 // "msg_1" — tests that need a mismatch verify against a different secret
@@ -52,7 +63,7 @@ func TestVerifyResendSignature_WrongSecret(t *testing.T) {
 	body := []byte(`{"type":"email.received"}`)
 	headers := signedResendHeaders(string(body), time.Now())
 
-	other := "whsec_ZGlmZmVyZW50LXNlY3JldC1oZXJlIQ=="
+	other := fakeWebhookSecret("FAKE-DIFFERENT-SECRET-FOR-TESTS")
 	assert.False(t, verifyResendSignature(other, headers, body))
 }
 

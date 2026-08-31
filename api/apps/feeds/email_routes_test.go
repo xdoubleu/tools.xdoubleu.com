@@ -26,7 +26,18 @@ import (
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 )
 
-const emailWebhookSecret = "whsec_dGVzdC1zZWNyZXQtdGVzdC1zZWNyZXQ="
+// emailWebhookSecret is computed at runtime, not written as a literal
+// "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
+// real Svix/Stripe-shaped webhook signing secret (they match on shape, not
+// on whether the decoded content is obviously fake).
+var emailWebhookSecret = fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
+
+// fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
+// a human-readable seed, so the source never contains a whsec_-prefixed
+// base64 blob as literal text.
+func fakeWebhookSecret(seed string) string {
+	return "whsec_" + base64.StdEncoding.EncodeToString([]byte(seed))
+}
 
 // signEmailWebhookBody signs body the way Resend signs "email.received"
 // webhooks (Svix scheme) — see verifyResendSignature.
@@ -206,7 +217,12 @@ func TestEmailInbound_InvalidSignature_Rejected(t *testing.T) {
 
 	to := token + "@mail.example.com"
 	body := inboundPayload(to, "Should not land", "email-2")
-	headers := signEmailWebhookBody(t, "whsec_d3Jvbmctc2VjcmV0LWhlcmUh", "msg-2", body)
+	headers := signEmailWebhookBody(
+		t,
+		fakeWebhookSecret("FAKE-WRONG-SECRET-FOR-TESTS"),
+		"msg-2",
+		body,
+	)
 
 	rec := postWebhook(mux, body, headers)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
