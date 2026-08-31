@@ -42,13 +42,13 @@ func (r *StorageSnapshotsRepository) Insert(
 			scanned_at, total_size_bytes, object_count,
 			orphan_size_bytes, orphan_count,
 			stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
-			orphan_keys
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			orphan_keys, deleted_orphan_size_bytes, deleted_orphan_count
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`,
 		snap.ScannedAt, snap.TotalSizeBytes, snap.ObjectCount,
 		snap.OrphanSizeBytes, snap.OrphanCount,
 		snap.StaleUploadSizeBytes, snap.StaleUploadCount, string(breakdown),
-		string(orphanKeys),
+		string(orphanKeys), snap.DeletedOrphanSizeBytes, snap.DeletedOrphanCount,
 	)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (r *StorageSnapshotsRepository) Latest(
 		SELECT scanned_at, total_size_bytes, object_count,
 		       orphan_size_bytes, orphan_count,
 		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
-		       orphan_keys
+		       orphan_keys, deleted_orphan_size_bytes, deleted_orphan_count
 		FROM global.storage_snapshots
 		ORDER BY scanned_at DESC
 		LIMIT 1
@@ -89,7 +89,7 @@ func (r *StorageSnapshotsRepository) History(
 		SELECT scanned_at, total_size_bytes, object_count,
 		       orphan_size_bytes, orphan_count,
 		       stale_upload_size_bytes, stale_upload_count, prefix_breakdown,
-		       orphan_keys
+		       orphan_keys, deleted_orphan_size_bytes, deleted_orphan_count
 		FROM global.storage_snapshots
 		WHERE scanned_at >= $1
 		ORDER BY scanned_at
@@ -126,7 +126,7 @@ func scanSnapshot(row rowScanner) (*models.StorageSnapshot, error) {
 		&snap.ScannedAt, &snap.TotalSizeBytes, &snap.ObjectCount,
 		&snap.OrphanSizeBytes, &snap.OrphanCount,
 		&snap.StaleUploadSizeBytes, &snap.StaleUploadCount, &breakdown,
-		&orphanKeys,
+		&orphanKeys, &snap.DeletedOrphanSizeBytes, &snap.DeletedOrphanCount,
 	); err != nil {
 		return nil, err
 	}

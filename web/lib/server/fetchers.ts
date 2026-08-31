@@ -2,8 +2,17 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { captureException } from '@sentry/nextjs'
 
 // Expected during normal degradation, so not reported: an expired access token
-// (401 here, recovered by the browser's SWR refresh) or missing app access.
-const EXPECTED_CODES = new Set([Code.Unauthenticated, Code.PermissionDenied])
+// (401 here, recovered by the browser's SWR refresh), missing app access, or
+// the api's own rate limiter correctly throttling a client IP. That last one
+// fires on every SSR render (including Next's default /_not-found, which
+// still runs through the root layout's current-user prefetch), so a burst of
+// bot/scanner traffic hitting made-up routes trips it repeatedly — the
+// limiter doing its job, not a bug to surface as an error (issue #1318).
+const EXPECTED_CODES = new Set([
+  Code.Unauthenticated,
+  Code.PermissionDenied,
+  Code.ResourceExhausted
+])
 
 // fetchOrNull makes server-side prefetching strictly best-effort: any API
 // rejection (expired access token awaiting browser-side refresh, missing
