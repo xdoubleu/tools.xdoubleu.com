@@ -48,7 +48,7 @@ var appsToolNames = []string{
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
 	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
-	// observability (19, admin-gated)
+	// observability (20, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_database_size_history",
 	"get_failing_pull_requests", "get_workflow_runs", "get_workflow_run_stats",
@@ -56,7 +56,7 @@ var appsToolNames = []string{
 	"get_sentry_issues", "resolve_sentry_issue", "get_host_metrics", "get_logs",
 	"get_slow_transactions", "get_transaction_latency_history",
 	"get_oauth_connections", "get_notification_settings",
-	"get_alert_states",
+	"get_alert_states", "get_project_issues_by_status",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -64,14 +64,15 @@ var appsToolNames = []string{
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsNetworkTools = map[string]bool{
-	"books_search_external":     true,
-	"books_get_external_book":   true,
-	"books_get_book_sources":    true,
-	"get_failing_pull_requests": true,
-	"get_workflow_runs":         true,
-	"get_security_alerts":       true,
-	"get_sentry_issues":         true,
-	"get_slow_transactions":     true,
+	"books_search_external":        true,
+	"books_get_external_book":      true,
+	"books_get_book_sources":       true,
+	"get_failing_pull_requests":    true,
+	"get_workflow_runs":            true,
+	"get_security_alerts":          true,
+	"get_sentry_issues":            true,
+	"get_slow_transactions":        true,
+	"get_project_issues_by_status": true,
 }
 
 // bearerRoundTripper attaches a Bearer token to every MCP client request,
@@ -251,7 +252,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
 		"get_sentry_issues", "get_host_metrics", "get_logs", "get_slow_transactions",
 		"get_transaction_latency_history",
-		"get_oauth_connections",
+		"get_oauth_connections", "get_project_issues_by_status",
 	}
 	for _, name := range tools {
 		//nolint:exhaustruct // only the tool name is required to call it

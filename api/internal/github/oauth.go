@@ -19,6 +19,9 @@ func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
 		RedirectURL: apiURL + "/admin/oauth/github/callback",
-		Scopes:      []string{"repo", "security_events"},
+		// read:project (issue #1357) lets ListProjectIssuesByStatus read a
+		// user-owned GitHub Projects (v2) board's Status field over
+		// GraphQL — a scope no other call here needs.
+		Scopes: []string{"repo", "security_events", "read:project"},
 	}
 }
