@@ -27,37 +27,26 @@ const (
 )
 
 // slowTransactionExcluded reports whether transaction is a name that would
-// otherwise be classified as frontend or an HTTP handler but isn't
-// comparable to the rest of its class — e.g.
-// NextNodeServer.clientComponentLoading is a Next.js-internal transaction
-// that legitimately runs far longer than any real page load (61s observed),
-// and would trip slow_transaction_frontend_high permanently at the same
-// threshold that fits every other frontend transaction (issue #1310).
+// otherwise be classified as frontend but isn't a representative page load —
+// e.g. NextNodeServer.clientComponentLoading is a Next.js-internal
+// transaction that legitimately runs far longer than any real page load
+// (61s observed), and would trip slow_transaction_frontend_high permanently
+// at the same threshold that fits every other frontend transaction (issue
+// #1310).
 //
-// isWebSocketProgressTransaction excludes the equivalent case on the HTTP
-// side: games' and books' "GET /<prefix>/api/progress" routes
-// (apps/games/routes.go, apps/books/routes.go) are WebSocket upgrades
-// (a.Services.WebSocket.Handler(), internal/progressws) rather than bounded
-// request/response handlers. sentryhttp's transaction span covers the whole
-// handler call, which for an upgraded socket doesn't return until the
-// connection closes — so its "duration" measures how long a client kept the
-// tab open, not request latency, and would breach slow_transaction_http_high
-// (issue #1320) the moment any client session outlives the 5s HTTP
-// threshold meant for bounded handlers.
+// games' and books' "GET /<prefix>/api/progress" WebSocket-upgrade routes
+// (apps/games/routes.go, apps/books/routes.go, internal/progressws) are
+// deliberately NOT excluded here (issue #1320) even though their
+// connection-lifetime transaction will now permanently breach
+// slow_transaction_http_high — excluding it left the whole upgrade path
+// with zero latency signal, and acceptWithHandshakeSpan
+// (internal/communication/wstools/websocket.go) only measures the
+// handshake, not this transaction. The permanent breach on the raw
+// connection transaction is accepted as a known, inherent characteristic
+// of a long-lived WebSocket route rather than something to hide from this
+// rule.
 func slowTransactionExcluded(transaction string) bool {
-	return transaction == "NextNodeServer.clientComponentLoading" ||
-		isWebSocketProgressTransaction(transaction)
-}
-
-// isWebSocketProgressTransaction matches the "GET /<prefix>/api/progress"
-// shape shared by every app registering a progressws WebSocket handler,
-// without hardcoding app names, so a future app adopting the same pattern
-// is covered automatically. It does not match the sibling
-// ".../api/progress/{id}/refresh" route, which is a normal bounded HTTP
-// handler and stays subject to the usual threshold.
-func isWebSocketProgressTransaction(transaction string) bool {
-	return strings.HasPrefix(transaction, "GET ") &&
-		strings.HasSuffix(transaction, "/api/progress")
+	return transaction == "NextNodeServer.clientComponentLoading"
 }
 
 // transactionClass distinguishes the three "shapes" of Sentry transaction

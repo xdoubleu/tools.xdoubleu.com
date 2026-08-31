@@ -1107,12 +1107,16 @@ func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 	assert.True(t, notified.keys[key])
 }
 
-// TestIssueNotifierSkipsProgressWebSocketTransaction asserts the games/books
-// progressws WebSocket-upgrade routes never notify no matter how long a
-// client keeps the connection open -- their Sentry transaction spans the
-// whole connection lifetime, not a bounded response (issue #1320), the same
-// reasoning as TestIssueNotifierSkipsExcludedTransaction below.
-func TestIssueNotifierSkipsProgressWebSocketTransaction(t *testing.T) {
+// TestIssueNotifierNotifiesForProgressWebSocketTransaction asserts the
+// games/books progressws WebSocket-upgrade routes are NOT excluded from
+// slow-transaction notification (issue #1320) — their connection-lifetime
+// Sentry transaction will permanently run past any HTTP threshold, and
+// that's accepted as an inherent, known characteristic of a long-lived
+// WebSocket route rather than something to hide from this job.
+// acceptWithHandshakeSpan (internal/communication/wstools/websocket.go)
+// gives the actually-bounded part of the route (the handshake) its own,
+// separately-tracked transaction instead.
+func TestIssueNotifierNotifiesForProgressWebSocketTransaction(t *testing.T) {
 	slow := fakeSlowTransactionsRepo{
 		trends: []models.TransactionTrend{
 			slowTrend("tools-api", "GET /games/api/progress", 125123),
@@ -1135,7 +1139,12 @@ func TestIssueNotifierSkipsProgressWebSocketTransaction(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
-	assert.Empty(t, mail.sent)
+	assert.Len(t, mail.sent, 1)
+	year, week := time.Now().ISOWeek()
+	key := fmt.Sprintf(
+		"slow_transaction:tools-api:GET /games/api/progress:%d-W%02d", year, week,
+	)
+	assert.True(t, notified.keys[key])
 }
 
 // TestIssueNotifierSkipsExcludedTransaction asserts a known non-representative

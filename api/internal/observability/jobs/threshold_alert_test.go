@@ -555,16 +555,19 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_Breach(t *testing.T) {
 	assert.InDelta(t, 144000, state.CurrentValue, 0.01)
 }
 
-func TestThresholdAlertJob_SlowTransactionHTTPHigh_ProgressWebSocketExcluded(
+func TestThresholdAlertJob_SlowTransactionHTTPHigh_ProgressWebSocketBreaches(
 	t *testing.T,
 ) {
 	// GET /games/api/progress and GET /books/api/progress are WebSocket
 	// upgrades (internal/progressws), not bounded request/response
 	// handlers -- their Sentry transaction spans the whole connection
-	// lifetime, so they must never breach the HTTP handler rule no matter
-	// how long a client keeps the socket open (issue #1320). The sibling
-	// ".../refresh" route is a normal bounded handler and must still be
-	// able to breach.
+	// lifetime, so they permanently breach the HTTP handler rule the
+	// moment any client session outlives the 5s threshold (issue #1320).
+	// That's accepted as an inherent characteristic of a long-lived
+	// WebSocket route rather than excluded: acceptWithHandshakeSpan
+	// (internal/communication/wstools/websocket.go) tracks the actually-
+	// bounded part of the route (the handshake) separately instead. The
+	// sibling ".../refresh" route is a normal bounded handler.
 	stats := stubStatsLister{ //nolint:exhaustruct // fixture
 		stats: []sentryapi.TransactionStat{
 			{
@@ -606,11 +609,11 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_ProgressWebSocketExcluded(
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
-	assert.Empty(t, mail.sent)
+	require.Len(t, mail.sent, 1)
 	state, ok := states.get("slow_transaction_http_high")
 	require.True(t, ok)
-	assert.False(t, state.Breaching)
-	assert.InDelta(t, 2000, state.CurrentValue, 0.01)
+	assert.True(t, state.Breaching)
+	assert.InDelta(t, 300000, state.CurrentValue, 0.01)
 }
 
 func TestThresholdAlertJob_SlowTransactionJobHigh_NotBreachingBelowThreshold(
