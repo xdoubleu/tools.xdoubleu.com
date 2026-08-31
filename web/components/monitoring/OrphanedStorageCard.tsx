@@ -28,6 +28,14 @@ export default function OrphanedStorageCard({ data }: { data?: GetStorageStatsRe
           <p className="py-8 text-center text-sm text-muted">No orphaned storage objects.</p>
         ) : (
           <>
+            {Number(latest.deletedOrphanCount) > 0 && (
+              <p className="mb-3 text-xs text-subtle">
+                This scan deleted {formatCount(latest.deletedOrphanCount)} of them (
+                {formatBytes(latest.deletedOrphanSizeBytes)}) — objects past the grace period a
+                fresh, in-flight upload gets to finish committing its book_files row. The listing
+                below still reflects the full set seen before cleanup ran.
+              </p>
+            )}
             <ul className="space-y-2">
               {orphanKeys.map((key) => (
                 <li

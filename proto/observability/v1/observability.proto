@@ -109,6 +109,12 @@ message StorageSnapshot {
   // orphan_keys is a capped sample of the orphaned object keys; orphan_count
   // tallies every orphan found even when this list is truncated.
   repeated string orphan_keys = 9;
+  // deleted_orphan_size_bytes/deleted_orphan_count cover orphans this same
+  // scan actually deleted (past a grace period) — a subset of
+  // orphan_size_bytes/orphan_count, which count every orphan seen regardless
+  // of age or delete outcome.
+  int64 deleted_orphan_size_bytes = 10;
+  int64 deleted_orphan_count = 11;
 }
 
 message GetStorageStatsRequest {}

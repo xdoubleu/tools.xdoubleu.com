@@ -16,18 +16,28 @@ const (
 	// staleUploadAge is how old a temp upload must be before it counts as
 	// leaked (the upload flow normally finalizes within minutes).
 	staleUploadAge = 7 * 24 * time.Hour
-	booksPrefix    = "books/"
-	uploadsMarker  = "/uploads/"
-	coverSuffix    = "/cover.jpg"
-	coverMissing   = "/cover.missing"
+	// orphanGracePeriod is how old a confirmed orphan must be before this scan
+	// actually deletes it — an in-flight upload writes its R2 object before
+	// its books.book_files row commits, so a freshly-uploaded object can look
+	// orphaned for a moment even though nothing has leaked. staleUploadAge
+	// covers the analogous uploads/ race with a much longer window because a
+	// stuck upload there is only ever reported, never deleted automatically;
+	// this one bounds an actual delete, so it stays short.
+	orphanGracePeriod = 1 * time.Hour
+	booksPrefix       = "books/"
+	uploadsMarker     = "/uploads/"
+	coverSuffix       = "/cover.jpg"
+	coverMissing      = "/cover.missing"
 	// maxOrphanKeys caps how many orphaned keys a snapshot retains — OrphanCount
 	// still tallies every orphan found, only the sample list truncates.
 	maxOrphanKeys = 50
 )
 
-// objectLister is the slice of objectstore.Client the scan needs.
+// objectLister is the slice of objectstore.Client the scan needs to read the
+// bucket and delete confirmed orphans past their grace period.
 type objectLister interface {
 	List(ctx context.Context, prefix string) ([]objectstore.ObjectInfo, error)
+	Delete(ctx context.Context, key string) error
 }
 
 // storageKeyLister returns the R2 keys referenced by book files.
@@ -81,36 +91,55 @@ func (j *StorageScanJob) Run(ctx context.Context, logger *slog.Logger) error {
 		referenced[k] = true
 	}
 
-	snap := buildSnapshot(objects, referenced, time.Now())
+	snap, deletable := buildSnapshot(objects, referenced, time.Now())
+
+	for _, obj := range deletable {
+		if delErr := objectstore.DeleteWithRetry(ctx, j.store, obj.Key); delErr != nil {
+			logger.ErrorContext(ctx, "failed to delete orphaned object",
+				slog.String("key", obj.Key),
+				slog.Any("error", delErr),
+			)
+			continue
+		}
+		snap.DeletedOrphanCount++
+		snap.DeletedOrphanSizeBytes += obj.Size
+	}
 
 	logger.InfoContext(ctx, "storage scan complete",
 		slog.Int64("objects", snap.ObjectCount),
 		slog.Int64("orphans", snap.OrphanCount),
 		slog.Int64("stale_uploads", snap.StaleUploadCount),
+		slog.Int64("orphans_deleted", snap.DeletedOrphanCount),
 	)
 
 	return j.snapshots.Insert(ctx, snap)
 }
 
-// buildSnapshot aggregates a bucket listing into a StorageSnapshot. It is pure
-// so the classification logic can be unit-tested without a live bucket.
+// buildSnapshot aggregates a bucket listing into a StorageSnapshot, and
+// separately returns the orphans old enough (past orphanGracePeriod) for Run
+// to actually delete. It is pure so the classification logic — including
+// which orphans are grace-period-eligible — can be unit-tested without a
+// live bucket or performing any I/O.
 func buildSnapshot(
 	objects []objectstore.ObjectInfo,
 	referenced map[string]bool,
 	now time.Time,
-) models.StorageSnapshot {
+) (models.StorageSnapshot, []objectstore.ObjectInfo) {
 	prefixes := map[string]*models.PrefixStat{}
 	snap := models.StorageSnapshot{
-		ScannedAt:            now,
-		TotalSizeBytes:       0,
-		ObjectCount:          0,
-		OrphanSizeBytes:      0,
-		OrphanCount:          0,
-		StaleUploadSizeBytes: 0,
-		StaleUploadCount:     0,
-		PrefixBreakdown:      nil,
-		OrphanKeys:           nil,
+		ScannedAt:              now,
+		TotalSizeBytes:         0,
+		ObjectCount:            0,
+		OrphanSizeBytes:        0,
+		OrphanCount:            0,
+		StaleUploadSizeBytes:   0,
+		StaleUploadCount:       0,
+		PrefixBreakdown:        nil,
+		OrphanKeys:             nil,
+		DeletedOrphanSizeBytes: 0,
+		DeletedOrphanCount:     0,
 	}
+	var deletable []objectstore.ObjectInfo
 
 	for _, obj := range objects {
 		snap.TotalSizeBytes += obj.Size
@@ -131,6 +160,9 @@ func buildSnapshot(
 			if len(snap.OrphanKeys) < maxOrphanKeys {
 				snap.OrphanKeys = append(snap.OrphanKeys, obj.Key)
 			}
+			if now.Sub(obj.LastModified) > orphanGracePeriod {
+				deletable = append(deletable, obj)
+			}
 		}
 		if isStaleUpload(obj, now) {
 			snap.StaleUploadSizeBytes += obj.Size
@@ -142,7 +174,7 @@ func buildSnapshot(
 	for _, stat := range prefixes {
 		snap.PrefixBreakdown = append(snap.PrefixBreakdown, *stat)
 	}
-	return snap
+	return snap, deletable
 }
 
 // isOrphan reports whether a books/<id>/… object is no longer referenced by
