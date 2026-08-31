@@ -121,6 +121,34 @@ func waitForFeedImport(
 	t.Fatalf("feed %s never imported any items", feedID)
 }
 
+// waitForFeedPollHealth polls ListFeeds until feedID's Etag is populated, or
+// fails the test after a timeout. Create's initial import runs processItems
+// then recordFetchResult in the same detached goroutine (see
+// FeedService.Create), so waitForFeedImport alone — which only waits for
+// items to land — can observe the feed before that second write commits;
+// callers that assert on poll-health fields (Etag/LastModified/
+// ConsecutiveFailures) after the initial import need this instead.
+func waitForFeedPollHealth(
+	t *testing.T,
+	client feedsv1connect.FeedServiceClient,
+	feedID string,
+) *feedsv1.Feed {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		resp, err := client.ListFeeds(
+			context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
+		)
+		require.NoError(t, err)
+		if found := findFeed(resp.Msg.Feeds, feedID); found != nil && found.Etag != "" {
+			return found
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("feed %s never recorded its initial fetch result", feedID)
+	return nil
+}
+
 // ── ListFeeds / CreateFeed (RSS) ────────────────────────────────────────────
 
 func TestListFeeds_Empty(t *testing.T) {
@@ -778,12 +806,7 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
 
-	list, err := client.ListFeeds(
-		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
-	)
-	require.NoError(t, err)
-	found := findFeed(list.Msg.Feeds, created.Msg.Feed.Id)
-	require.NotNil(t, found)
+	found := waitForFeedPollHealth(t, client, created.Msg.Feed.Id)
 	assert.Equal(t, `"v1"`, found.Etag)
 	assert.Equal(t, "Wed, 21 Oct 2015 07:28:00 GMT", found.LastModified)
 	assert.Equal(t, int32(0), found.ConsecutiveFailures)
@@ -796,7 +819,7 @@ func TestListFeeds_ExposesPollHealthFields(t *testing.T) {
 	)
 	require.Error(t, err)
 
-	list, err = client.ListFeeds(
+	list, err := client.ListFeeds(
 		context.Background(), connect.NewRequest(&feedsv1.ListFeedsRequest{}),
 	)
 	require.NoError(t, err)

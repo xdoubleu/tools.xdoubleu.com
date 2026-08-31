@@ -176,8 +176,10 @@ describe('ObservabilityClient', () => {
 
     expect(screen.getByRole('button', { name: 'Refreshing…' })).toBeDisabled()
     // storageStats is refreshed via triggerStorageScan (a live R2 rescan)
-    // instead of a plain mutate(), so mockMutate covers the other 6 sources.
-    expect(mockMutate).toHaveBeenCalledTimes(6)
+    // instead of a plain mutate(), so mockMutate covers the other 7 sources
+    // (jobStats, databaseStats, databaseSizeHistory, slowTransactions,
+    // transactionLatencyHistory, hostMetrics, alertStates).
+    expect(mockMutate).toHaveBeenCalledTimes(7)
     expect(mockTriggerStorageScan).toHaveBeenCalledTimes(1)
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Refresh' })).not.toBeDisabled())
