@@ -7,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/mcptools"
 )
 
@@ -15,12 +16,14 @@ import (
 // production domain data and system health can be pulled in as context for
 // testing changes. Every tool is gated either by the caller's own per-app
 // access (mcptools.RequireAppAccess) or, for observability, by admin access
-// (requireAdmin). Every app-provided tool wraps a read handler; the one
-// exception is resolve_sentry_issue, an admin-gated mutation letting an
-// agent close out a Sentry issue it just filed a fix for. Every tool reuses
-// the same OAuth 2.1 resource-server plumbing: the api is both the resource
-// server and, via the embedded internal/oauth2as provider (issue #1039),
-// the authorization server — no external Auth provider involved.
+// (requireAdmin). Every app-provided tool wraps a read handler; the two
+// exceptions are resolve_sentry_issue (closes out a Sentry issue an agent
+// just filed a fix for) and dismiss_security_alert (dismisses/resolves a
+// GitHub Dependabot/code-scanning/secret-scanning alert), both admin-gated
+// mutations. Every tool reuses the same OAuth 2.1 resource-server plumbing:
+// the api is both the resource server and, via the embedded
+// internal/oauth2as provider (issue #1039), the authorization server — no
+// external Auth provider involved.
 
 const (
 	appsMCPServerName = "tools-apps"
@@ -40,11 +43,26 @@ type windowArgs struct {
 
 type noArgs struct{}
 
-// resolveSentryIssueArgs is the input for resolve_sentry_issue — the one
-// mutating observability tool, deliberately exempted from the read-only rule
-// below so an agent triaging Sentry issues can close them out directly.
+// resolveSentryIssueArgs is the input for resolve_sentry_issue — one of the
+// two mutating observability tools, deliberately exempted from the
+// read-only rule below so an agent triaging Sentry issues can close them out
+// directly.
 type resolveSentryIssueArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
+}
+
+// dismissSecurityAlertArgs is the input for dismiss_security_alert — the
+// other mutating observability tool. AlertType matches the alert_type field
+// get_security_alerts already returns ("dependabot", "code_scanning", or
+// "secret_scanning"). Reason's valid values differ per AlertType:
+// dependabot: fix_started|inaccurate|no_bandwidth|not_used|tolerable_risk.
+// code_scanning: "false positive"|"won't fix"|"used in tests".
+// secret_scanning: false_positive|wont_fix|revoked|used_in_tests|
+// pattern_deleted.
+type dismissSecurityAlertArgs struct {
+	AlertType   string `json:"alert_type"   jsonschema:"see this type's doc comment"`
+	AlertNumber int64  `json:"alert_number" jsonschema:"see get_security_alerts"`
+	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
 }
 
 // hostMetricsArgs is the input for get_host_metrics. Since empty defaults to
@@ -109,10 +127,10 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 18 admin observability tools —
-// 17 read-only plus resolve_sentry_issue, the one deliberate mutation. Each
-// wraps a shared internal ObservabilityService method also used by the
-// Connect handlers.
+// registerObservabilityMCPTools registers the 19 admin observability tools —
+// 17 read-only plus the two deliberate mutations, resolve_sentry_issue and
+// dismiss_security_alert. Each wraps a shared internal ObservabilityService
+// method also used by the Connect handlers.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	h := &obsConnectHandler{app: app}
 
@@ -204,12 +222,30 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, a windowArgs) (proto.Message, error) {
 			return h.transactionLatencyHistory(ctx, a.WindowDays)
 		})
+	registerMutatingObservabilityMCPTools(srv, h)
+	registerAlertMCPTools(srv, h)
+}
+
+// registerMutatingObservabilityMCPTools registers the two deliberate
+// mutations, resolve_sentry_issue and dismiss_security_alert, split out of
+// registerObservabilityMCPTools to keep that function under the repo's
+// function-length lint limit.
+func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved. The one mutating observability tool.",
+		"Marks a Sentry issue as resolved. One of two mutating observability "+
+			"tools, alongside dismiss_security_alert.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
-	registerAlertMCPTools(srv, h)
+	addObsTool(srv, "dismiss_security_alert",
+		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
+			"secret-scanning security alert. The other mutating observability "+
+			"tool, alongside resolve_sentry_issue.",
+		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
+			return h.dismissSecurityAlert(
+				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
+			)
+		})
 }
 
 // registerAlertMCPTools registers get_host_metrics, get_logs,

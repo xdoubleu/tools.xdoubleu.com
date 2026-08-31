@@ -164,11 +164,18 @@ Claude CLI over a largely read-only MCP server at `/apps/mcp`
 (`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`) — each implementing
 app has its own `apps/<name>/mcp.go` wrapping only its **read** Connect
 handlers, so no per-app tool is ever mutating. `registerObservabilityMCPTools`
-adds the 18 unprefixed admin-gated observability tools on top, sharing the
-exact same internal methods the Connect handlers use — 17 are read, plus
-`resolve_sentry_issue`, the one deliberate mutation (marks a Sentry issue
-resolved via `sentryapi.Client.ResolveIssue`), letting an admin-authenticated
-agent close out an issue it just filed a fix for. Auth is MCP OAuth 2.1,
+adds the 19 unprefixed admin-gated observability tools on top, sharing the
+exact same internal methods the Connect handlers use — 17 are read, plus two
+deliberate mutations: `resolve_sentry_issue` (marks a Sentry issue resolved
+via `sentryapi.Client.ResolveIssue`), letting an admin-authenticated agent
+close out an issue it just filed a fix for, and `dismiss_security_alert`
+(dismisses/resolves an open Dependabot, code-scanning, or secret-scanning
+alert via `github.Client.DismissSecurityAlert`), letting an agent triaging
+`get_security_alerts` close one out directly instead of clicking through
+github.com's Security tab by hand — the reason string GitHub's API requires
+differs per alert type (see the tool's own description and
+`github.DismissSecurityAlert`'s doc comment for the exact accepted values).
+Auth is MCP OAuth 2.1,
 entirely first-party as of issue #1039: the api is both the resource server
 (`ResolveToken` verifies the bearer token) **and** the authorization server —
 `internal/oauth2as` embeds `ory/fosite` (PKCE-enforced, RFC 7591 dynamic

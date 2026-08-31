@@ -1,6 +1,8 @@
 package github
 
 import (
+	"errors"
+	"fmt"
 	"slices"
 	"time"
 )
@@ -64,6 +66,82 @@ type SecurityAlert struct {
 	FilePath              string
 	Line                  int64
 	SecretTypeDisplayName string
+}
+
+// ErrInvalidDismissReason is returned by DismissSecurityAlert when reason
+// isn't one of the values GitHub's API accepts for the given alert type, or
+// alertType itself isn't one of the three known types.
+var ErrInvalidDismissReason = errors.New("github: invalid dismiss reason")
+
+// dependabotDismissReasons/codeScanningDismissReasons/
+// secretScanningDismissReasons are the exact "dismissed_reason"/"resolution"
+// values GitHub's API accepts for each alert type's dismiss/resolve
+// endpoint — validated client-side so a bad reason fails fast with a clear
+// error instead of a raw 422 from GitHub.
+//
+//nolint:gochecknoglobals // static lookup tables
+var dependabotDismissReasons = map[string]bool{
+	"fix_started":    true,
+	"inaccurate":     true,
+	"no_bandwidth":   true,
+	"not_used":       true,
+	"tolerable_risk": true,
+}
+
+//nolint:gochecknoglobals // static lookup tables
+var codeScanningDismissReasons = map[string]bool{
+	"false positive": true,
+	"won't fix":      true,
+	"used in tests":  true,
+}
+
+//nolint:gochecknoglobals // static lookup tables
+var secretScanningDismissReasons = map[string]bool{
+	"false_positive":  true,
+	"wont_fix":        true,
+	"revoked":         true,
+	"used_in_tests":   true,
+	"pattern_deleted": true,
+}
+
+// dismissRequest builds the PATCH endpoint and JSON body for dismissing one
+// alert, validating reason against the set GitHub accepts for alertType.
+func dismissRequest(
+	repo string, alertType SecurityAlertType, alertNumber int64, reason string,
+) (string, string, error) {
+	switch alertType {
+	case SecurityAlertTypeDependabot:
+		if !dependabotDismissReasons[reason] {
+			return "", "", fmt.Errorf("%w: %q", ErrInvalidDismissReason, reason)
+		}
+		endpoint := fmt.Sprintf(
+			"%s/repos/%s/dependabot/alerts/%d", baseURL, repo, alertNumber,
+		)
+		body := fmt.Sprintf(`{"state":"dismissed","dismissed_reason":%q}`, reason)
+		return endpoint, body, nil
+	case SecurityAlertTypeCodeScanning:
+		if !codeScanningDismissReasons[reason] {
+			return "", "", fmt.Errorf("%w: %q", ErrInvalidDismissReason, reason)
+		}
+		endpoint := fmt.Sprintf(
+			"%s/repos/%s/code-scanning/alerts/%d", baseURL, repo, alertNumber,
+		)
+		body := fmt.Sprintf(`{"state":"dismissed","dismissed_reason":%q}`, reason)
+		return endpoint, body, nil
+	case SecurityAlertTypeSecretScanning:
+		if !secretScanningDismissReasons[reason] {
+			return "", "", fmt.Errorf("%w: %q", ErrInvalidDismissReason, reason)
+		}
+		endpoint := fmt.Sprintf(
+			"%s/repos/%s/secret-scanning/alerts/%d", baseURL, repo, alertNumber,
+		)
+		body := fmt.Sprintf(`{"state":"resolved","resolution":%q}`, reason)
+		return endpoint, body, nil
+	default:
+		return "", "", fmt.Errorf(
+			"%w: unknown alert type %q", ErrInvalidDismissReason, alertType,
+		)
+	}
 }
 
 // prWire is the subset of the GitHub pulls API payload that is decoded.

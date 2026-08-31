@@ -19,6 +19,8 @@ service ObservabilityService {
       returns (GetWorkflowRunStatsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
+  rpc DismissSecurityAlert(DismissSecurityAlertRequest)
+      returns (DismissSecurityAlertResponse);
   rpc GetSentryIssues(GetSentryIssuesRequest) returns (GetSentryIssuesResponse);
   rpc ResolveSentryIssue(ResolveSentryIssueRequest)
       returns (ResolveSentryIssueResponse);
@@ -331,6 +333,20 @@ message SentryIssue {
   string level = 7;
   string project = 8;  // which configured project this issue came from
 }
+
+// DismissSecurityAlertRequest dismisses/resolves one open alert. reason must
+// be one of the values GitHub's API accepts for alert_type: dependabot/
+// code_scanning use "fix_started"|"inaccurate"|"no_bandwidth"|"not_used"|
+// "tolerable_risk" and "false positive"|"won't fix"|"used in tests"
+// respectively; secret_scanning uses "false_positive"|"wont_fix"|"revoked"|
+// "used_in_tests"|"pattern_deleted".
+message DismissSecurityAlertRequest {
+  SecurityAlertType alert_type = 1;
+  int64 alert_number = 2;
+  string reason = 3;
+}
+
+message DismissSecurityAlertResponse {}
 
 message GetSentryIssuesRequest {}
 

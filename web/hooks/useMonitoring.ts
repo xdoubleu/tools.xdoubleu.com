@@ -4,7 +4,8 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
   ObservabilityService,
-  ProviderConfigSchema
+  ProviderConfigSchema,
+  SecurityAlertType
 } from '@/lib/gen/observability/v1/observability_pb'
 import type {
   GetJobStatsResponse,
@@ -86,6 +87,21 @@ export function useSecurityAlerts() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSecurityAlertsResponse, Error>(swrKeys.monitoringSecurityAlerts, () =>
     client.getSecurityAlerts({})
+  )
+}
+
+// useDismissSecurityAlert dismisses/resolves one open GitHub Dependabot,
+// code-scanning, or secret-scanning alert. Valid reasons differ per
+// alertType — the caller (the reason picker in SecurityAlertsCard) is
+// responsible for offering only the values GitHub's API accepts for it.
+export function useDismissSecurityAlert() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (alertType: SecurityAlertType, alertNumber: bigint, reason: string) => {
+      await client.dismissSecurityAlert({ alertType, alertNumber, reason })
+      await mutate(swrKeys.monitoringSecurityAlerts)
+    },
+    [client]
   )
 }
 

@@ -33,4 +33,14 @@ type Client interface {
 	// ListWorkflowRunJobs returns the per-job breakdown of a single workflow
 	// run. Returns ErrNotConfigured when no token/repo is set.
 	ListWorkflowRunJobs(ctx context.Context, runID int64) ([]WorkflowJob, error)
+	// DismissSecurityAlert dismisses/resolves a single open Dependabot,
+	// code-scanning, or secret-scanning alert. reason must be one of the
+	// values GitHub's API accepts for alertType — ErrInvalidDismissReason
+	// otherwise. Returns ErrNotConfigured when no token/repo is set.
+	DismissSecurityAlert(
+		ctx context.Context,
+		alertType SecurityAlertType,
+		alertNumber int64,
+		reason string,
+	) error
 }

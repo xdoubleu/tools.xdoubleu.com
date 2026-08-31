@@ -273,6 +273,68 @@ func securityAlertTypeToProto(
 	}
 }
 
+func (h *obsConnectHandler) DismissSecurityAlert(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.DismissSecurityAlertRequest],
+) (*connect.Response[observabilityv1.DismissSecurityAlertResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	resp, err := h.dismissSecurityAlert(
+		ctx,
+		securityAlertTypeFromProto(req.Msg.GetAlertType()),
+		req.Msg.GetAlertNumber(),
+		req.Msg.GetReason(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
+}
+
+// dismissSecurityAlert is the second deliberate mutation in this otherwise
+// read-only observability surface, alongside resolveSentryIssue below —
+// see api/CLAUDE.md's "Apps MCP Server" section. Takes the internal
+// github.SecurityAlertType (rather than the proto enum) so the MCP tool,
+// whose alert_type input already matches those string values, can call it
+// directly without a round trip through the proto enum.
+func (h *obsConnectHandler) dismissSecurityAlert(
+	ctx context.Context,
+	alertType github.SecurityAlertType,
+	alertNumber int64,
+	reason string,
+) (*observabilityv1.DismissSecurityAlertResponse, error) {
+	err := h.app.githubClient.DismissSecurityAlert(ctx, alertType, alertNumber, reason)
+	if err != nil {
+		if errors.Is(err, github.ErrInvalidDismissReason) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
+		if errors.Is(err, github.ErrNotConfigured) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return &observabilityv1.DismissSecurityAlertResponse{}, nil
+}
+
+// securityAlertTypeFromProto is the inverse of securityAlertTypeToProto.
+func securityAlertTypeFromProto(
+	t observabilityv1.SecurityAlertType,
+) github.SecurityAlertType {
+	switch t {
+	case observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_DEPENDABOT:
+		return github.SecurityAlertTypeDependabot
+	case observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_CODE_SCANNING:
+		return github.SecurityAlertTypeCodeScanning
+	case observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_SECRET_SCANNING:
+		return github.SecurityAlertTypeSecretScanning
+	case observabilityv1.SecurityAlertType_SECURITY_ALERT_TYPE_UNSPECIFIED:
+		return ""
+	default:
+		return ""
+	}
+}
+
 func (h *obsConnectHandler) GetSentryIssues(
 	ctx context.Context,
 	_ *connect.Request[observabilityv1.GetSentryIssuesRequest],

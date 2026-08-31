@@ -29,13 +29,17 @@ import HostMetricsCard, {
 } from '@/components/monitoring/HostMetricsCard'
 
 const mockResolveSentryIssue = jest.fn()
+const mockDismissSecurityAlert = jest.fn()
 jest.mock('@/hooks/useMonitoring', () => ({
-  useResolveSentryIssue: () => mockResolveSentryIssue
+  useResolveSentryIssue: () => mockResolveSentryIssue,
+  useDismissSecurityAlert: () => mockDismissSecurityAlert
 }))
 
 beforeEach(() => {
   mockResolveSentryIssue.mockReset()
   mockResolveSentryIssue.mockResolvedValue(undefined)
+  mockDismissSecurityAlert.mockReset()
+  mockDismissSecurityAlert.mockResolvedValue(undefined)
 })
 
 // recharts needs a non-zero layout size that jsdom does not provide.
