@@ -38,6 +38,15 @@ describe('fetchOrNull', () => {
     expect(mockCaptureException).not.toHaveBeenCalled()
   })
 
+  it('returns null without reporting on ResourceExhausted (rate limited)', async () => {
+    await expect(
+      fetchOrNull(async () => {
+        throw new ConnectError('rate limit exceeded', Code.ResourceExhausted)
+      })
+    ).resolves.toBeNull()
+    expect(mockCaptureException).not.toHaveBeenCalled()
+  })
+
   it('returns null but reports a hung api (DeadlineExceeded) to Sentry', async () => {
     const err = new ConnectError('timed out', Code.DeadlineExceeded)
     await expect(fetchOrNull(async () => Promise.reject(err))).resolves.toBeNull()
