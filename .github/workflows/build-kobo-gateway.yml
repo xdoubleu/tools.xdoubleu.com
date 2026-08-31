@@ -44,6 +44,14 @@ jobs:
       # (PR builds, including forks, still get a legitimate cache hit's
       # speed-up); saving is gated to contexts whose build output can be
       # trusted (CodeQL alert #35, actions/cache-poisoning/direct-cache).
+      #
+      # The save gate also excludes a bare workflow_dispatch run against a
+      # non-default ref (CodeQL alert #36, same rule): this workflow's own
+      # `workflow_dispatch:` trigger lets anyone with write access pick any
+      # branch to dispatch against, including one that never went through
+      # review, so an unreviewed branch's build output must not be allowed
+      # to poison the shared cache entry either — only a workflow_dispatch
+      # explicitly targeting the default branch counts as trusted here.
       - uses: actions/cache/restore@v6
         id: cache
         with:
@@ -56,7 +64,8 @@ jobs:
         working-directory: './kobo-gateway'
       - if: |
           steps.cache.outputs.cache-hit != 'true' &&
-          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+          (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+          (github.event_name != 'workflow_dispatch' || github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
         uses: actions/cache/save@v6
         with:
           path: kobo-gateway/dist/kobo-gateway
