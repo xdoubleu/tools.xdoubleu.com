@@ -24,5 +24,5 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           # renovate: datasource=go depName=github.com/golangci/golangci-lint/v2/cmd/golangci-lint
-          version: v2.13.1
+          version: v2.13.2
           working-directory: ./kobo-gateway
