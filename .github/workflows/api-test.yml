@@ -31,9 +31,24 @@ jobs:
           cache-dependency-path: './api/go.sum'
       - run: make test/cov/report
         working-directory: './api'
+      # files/disable_search pin the upload to exactly the deduped
+      # coverage.out `make test/cov/report` produces (see that target's own
+      # comment on why the dedup step exists). Without this, codecov-action's
+      # default auto-discovery also picks up the two intermediates the same
+      # target leaves behind in api/ (coverage.out.tmp, coverage.out.filtered
+      # — both pre-dedup, so they carry a 0-count block for any line only one
+      # of many -coverpkg-instrumented test binaries actually exercises) and
+      # uploads all three; Codecov's parser doesn't OR-merge duplicate blocks
+      # across uploaded files the way `go tool cover` does locally, so a
+      # genuinely 100%-covered new line can still get reported back as
+      # missing/partial on the patch check (issue #1364 — found chasing a
+      # codecov/patch failure on brand-new code that every local
+      # reproduction, using this exact make target, showed fully covered).
       - name: Upload coverage reports to Codecov
         if: always()
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: api
+          files: ./api/coverage.out
+          disable_search: true
