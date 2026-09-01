@@ -332,6 +332,32 @@ func (a feedsHealthAdapter) ListUnhealthy(
 	return out, nil
 }
 
+// feedsOpenItemsAdapter adapts *feeds.Feeds to jobs.openFeedItemsLister so
+// WeeklyDigestJob never imports apps/feeds directly, mirroring
+// feedsHealthAdapter above.
+type feedsOpenItemsAdapter struct {
+	feeds *feeds.Feeds
+}
+
+func (a feedsOpenItemsAdapter) ListOpenItems(
+	ctx context.Context,
+) ([]jobs.OpenFeedItem, error) {
+	open, err := a.feeds.ListOpenItems(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]jobs.OpenFeedItem, len(open))
+	for i, feed := range open {
+		out[i] = jobs.OpenFeedItem{
+			Title: feed.Title,
+			URL:   feed.URL,
+			Count: feed.Count,
+		}
+	}
+	return out, nil
+}
+
 func newWeeklyDigestJob(
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
@@ -342,7 +368,9 @@ func newWeeklyDigestJob(
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
 		sentryClient, githubClient,
-		feedsHealthAdapter{feeds: feedsApp}, notificationsSvc,
+		feedsHealthAdapter{feeds: feedsApp},
+		feedsOpenItemsAdapter{feeds: feedsApp},
+		notificationsSvc,
 		notificationSettingsRepo, transactionLatencyRepo,
 	)
 }
