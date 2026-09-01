@@ -234,7 +234,15 @@ func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T
 					{"id":2,"name":"Main Workflow","event":"push","head_branch":"main",
 					 "status":"completed","conclusion":"failure","html_url":"u2",
 					 "run_started_at":"2026-07-01T10:00:00Z",
-					 "updated_at":"2026-07-01T10:01:00Z"}
+					 "updated_at":"2026-07-01T10:01:00Z"},
+					{"id":3,"name":"Main Workflow","event":"push","head_branch":"other",
+					 "status":"completed","conclusion":"failure","html_url":"u3",
+					 "run_started_at":"2026-07-01T09:00:00Z",
+					 "updated_at":"2026-07-01T09:01:00Z"},
+					{"id":4,"name":"Main Workflow","event":"push","head_branch":"main",
+					 "status":"completed","conclusion":"success","html_url":"u4",
+					 "run_started_at":"2026-07-01T08:00:00Z",
+					 "updated_at":"2026-07-01T08:01:00Z"}
 				]}`))
 			default:
 				w.WriteHeader(http.StatusNotFound)
@@ -251,8 +259,14 @@ func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T
 
 	resp, err := callWorkflowRuns(t)
 	require.NoError(t, err)
-	require.Len(t, resp.Msg.Runs, 1)
-	assert.Equal(t, []string{"Deploy to Hetzner via Kamal"}, resp.Msg.Runs[0].FailedJobs)
+	byID := make(map[int64]*observabilityv1.WorkflowRun, len(resp.Msg.Runs))
+	for _, run := range resp.Msg.Runs {
+		byID[run.Id] = run
+	}
+	require.Len(t, resp.Msg.Runs, 3)
+	assert.Empty(t, byID[3].FailedJobs, "non-main branch must not report failed jobs")
+	assert.Empty(t, byID[4].FailedJobs, "non-failing run must not report failed jobs")
+	assert.Equal(t, []string{"Deploy to Hetzner via Kamal"}, byID[2].FailedJobs)
 }
 
 func TestObservabilityGetWorkflowRuns_MainFailureJobsFetchError(t *testing.T) {

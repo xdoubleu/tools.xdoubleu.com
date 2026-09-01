@@ -135,7 +135,13 @@ func (h *obsConnectHandler) workflowRuns(
 func (h *obsConnectHandler) failedJobNames(
 	ctx context.Context, run github.WorkflowRun,
 ) []string {
-	if run.Event != "push" || run.Branch != "main" || run.Conclusion != "failure" {
+	if run.Event != "push" {
+		return nil
+	}
+	if run.Branch != "main" {
+		return nil
+	}
+	if run.Conclusion != "failure" {
 		return nil
 	}
 
