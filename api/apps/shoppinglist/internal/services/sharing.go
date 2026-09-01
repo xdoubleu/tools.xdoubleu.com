@@ -109,5 +109,5 @@ func (s *SharingService) ResolveOwner(
 			Message: "You have read-only access to this shopping list",
 		}
 	}
-	return "", nil
+	return requestedOwnerID, nil
 }
