@@ -57,6 +57,58 @@ function breachingFirst(states: AlertState[]): AlertState[] {
   return [...states].sort((a, b) => Number(b.breaching) - Number(a.breaching))
 }
 
+// approachingRatio is how close a rule needs to get to its threshold, as a
+// fraction, before the meter switches from "good" to "approaching" — the
+// server itself only reports a boolean breaching flag, so this is purely a
+// client-side visual cue that a rule is trending toward a breach.
+const approachingRatio = 0.8
+
+// meterRatio clamps to [0, 1] so an already-breaching rule (current value
+// past its threshold) still fills the bar fully rather than overflowing it.
+function meterRatio(state: AlertState): number {
+  if (state.threshold <= 0) return 0
+  return Math.min(state.currentValue / state.threshold, 1)
+}
+
+type MeterTone = 'success' | 'warn' | 'danger'
+
+function meterTone(state: AlertState, ratio: number): MeterTone {
+  if (state.breaching) return 'danger'
+  if (ratio >= approachingRatio) return 'warn'
+  return 'success'
+}
+
+const METER_FILL_CLASSES: Record<MeterTone, string> = {
+  success: 'bg-success',
+  warn: 'bg-warn',
+  danger: 'bg-danger'
+}
+
+// AlertMeter gives each rule a visual sense of how close it is to its
+// threshold — the plain "X of Y threshold" text alone made every rule look
+// the same at a glance regardless of whether it was nowhere near tripping
+// or one step away (issue #1350).
+function AlertMeter({ state }: { state: AlertState }) {
+  const ratio = meterRatio(state)
+  const tone = meterTone(state, ratio)
+
+  return (
+    <div
+      className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-border"
+      role="progressbar"
+      aria-valuenow={Math.round(ratio * 100)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={`${ruleLabel(state.ruleKey)} threshold usage`}
+    >
+      <div
+        className={`h-full rounded-full ${METER_FILL_CLASSES[tone]}`}
+        style={{ width: `${ratio * 100}%` }}
+      />
+    </div>
+  )
+}
+
 export default function AlertStatesCard({ data }: { data?: GetAlertStatesResponse }) {
   const states = data ? breachingFirst(data.states) : []
   const breachingCount = states.filter((s) => s.breaching).length
@@ -94,6 +146,7 @@ export default function AlertStatesCard({ data }: { data?: GetAlertStatesRespons
                   {formatValue(state.ruleKey, state.currentValue)} of{' '}
                   {formatValue(state.ruleKey, state.threshold)} threshold
                 </p>
+                <AlertMeter state={state} />
                 {state.breaching && state.since && (
                   <p className="mt-1 text-xs text-muted">Since {formatDateTime(state.since)}</p>
                 )}
