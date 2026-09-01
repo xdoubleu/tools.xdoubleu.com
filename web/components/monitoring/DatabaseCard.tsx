@@ -14,22 +14,50 @@ import {
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
+import type {
+  GetDatabaseStatsResponse,
+  GetDatabaseSizeHistoryResponse,
+  DBSizeHistoryPoint
+} from '@/lib/gen/observability/v1/observability_pb'
 import {
   bytesTooltipFormatter,
   CATEGORICAL_PALETTE,
   chartTooltipStyle,
   formatBytes
 } from '@/lib/observability'
+import MultiSeriesChart, { type SeriesMeta, type SeriesPoint } from './MultiSeriesChart'
 
-function formatPctChange(pctChange: number): string {
-  const sign = pctChange >= 0 ? '+' : ''
-  return `${sign}${Math.round(pctChange * 100)}%`
+function seriesKey(schemaName: string, tableName: string): string {
+  return `${schemaName}.${tableName}`
 }
 
-export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse }) {
+export function toSeriesPoints(points: DBSizeHistoryPoint[]): SeriesPoint[] {
+  return points.map((p) => ({
+    day: p.day,
+    seriesKey: seriesKey(p.schemaName, p.tableName),
+    value: Number(p.sizeBytes)
+  }))
+}
+
+export function toSeriesMeta(points: DBSizeHistoryPoint[]): SeriesMeta[] {
+  const seen = new Map<string, SeriesMeta>()
+  for (const p of points) {
+    const key = seriesKey(p.schemaName, p.tableName)
+    if (!seen.has(key)) {
+      seen.set(key, { key, label: key })
+    }
+  }
+  return [...seen.values()]
+}
+
+export default function DatabaseCard({
+  data,
+  history
+}: {
+  data?: GetDatabaseStatsResponse
+  history?: GetDatabaseSizeHistoryResponse
+}) {
   const schemas = data?.schemas ?? []
-  const growth = data?.tableGrowth ?? []
   const historyData = (data?.history ?? []).map((s) => ({
     date: s.sampledAt.slice(0, 10),
     size: Number(s.totalSizeBytes)
@@ -39,6 +67,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
     size: Number(s.sizeBytes),
     tables: Number(s.tableCount)
   }))
+  const historyPoints = history?.points ?? []
 
   return (
     <Card>
@@ -53,7 +82,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
       </CardHeader>
       <CardContent>
         <div className="mb-5">
-          <h4 className="mb-2 text-sm font-semibold text-subtle">Size over time</h4>
+          <h4 className="mb-2 text-sm font-semibold text-subtle">Total size over time</h4>
           {historyData.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted">No snapshot history.</p>
           ) : (
@@ -92,6 +121,7 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
           <p className="py-8 text-center text-sm text-muted">No schema data.</p>
         ) : (
           <>
+            <h4 className="mb-2 text-sm font-semibold text-subtle">Schemas</h4>
             <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -140,43 +170,23 @@ export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse
           </>
         )}
 
-        {growth.length > 0 && (
-          <div className="mt-5">
-            <h4 className="mb-2 text-sm font-semibold text-subtle">Growing tables</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-border">
-                  <tr>
-                    <th className="py-2 pr-3 font-semibold text-subtle">Table</th>
-                    <th className="py-2 pr-3 text-right font-semibold text-subtle">Size</th>
-                    <th className="py-2 pr-3 text-right font-semibold text-subtle">Change</th>
-                    <th className="py-2 text-right font-semibold text-subtle">Δ%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {growth.map((g) => (
-                    <tr
-                      key={`${g.schemaName}.${g.tableName}`}
-                      className="border-b border-border last:border-0"
-                    >
-                      <td className="py-2 pr-3 font-mono text-xs text-fg">
-                        {g.schemaName}.{g.tableName}
-                      </td>
-                      <td className="py-2 pr-3 text-right text-fg">
-                        {formatBytes(g.currentSizeBytes)}
-                      </td>
-                      <td className="py-2 pr-3 text-right text-fg">
-                        {g.deltaBytes >= 0 ? '+' : '-'}
-                        {formatBytes(Math.abs(Number(g.deltaBytes)))}
-                      </td>
-                      <td className="py-2 text-right text-fg">{formatPctChange(g.pctChange)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <div className="mt-5">
+          <h4 className="mb-2 text-sm font-semibold text-subtle">Schema &amp; table history</h4>
+          <p className="mb-3 text-xs text-muted">
+            Select one or more schemas or tables to plot their on-disk size over time.
+          </p>
+          {historyPoints.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">No size history yet.</p>
+          ) : (
+            <MultiSeriesChart
+              points={toSeriesPoints(historyPoints)}
+              meta={toSeriesMeta(historyPoints)}
+              valueLabel="size"
+              valueFormatter={formatBytes}
+              searchPlaceholder="Filter schemas or tables…"
+            />
+          )}
+        </div>
       </CardContent>
     </Card>
   )

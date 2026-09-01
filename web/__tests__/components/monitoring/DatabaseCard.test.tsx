@@ -1,8 +1,12 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
-import { GetDatabaseStatsResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
-import DatabaseCard from '@/components/monitoring/DatabaseCard'
+import {
+  GetDatabaseStatsResponseSchema,
+  GetDatabaseSizeHistoryResponseSchema,
+  DBSizeHistoryPointSchema
+} from '@/lib/gen/observability/v1/observability_pb'
+import DatabaseCard, { toSeriesPoints, toSeriesMeta } from '@/components/monitoring/DatabaseCard'
 
 // recharts needs a non-zero layout size that jsdom does not provide.
 jest.mock('recharts', () => {
@@ -17,34 +21,71 @@ jest.mock('recharts', () => {
   }
 })
 
+describe('toSeriesPoints / toSeriesMeta', () => {
+  const points = [
+    create(DBSizeHistoryPointSchema, {
+      day: '2026-01-01',
+      schemaName: 'books',
+      tableName: 'books',
+      sizeBytes: 1000n
+    }),
+    create(DBSizeHistoryPointSchema, {
+      day: '2026-01-02',
+      schemaName: 'books',
+      tableName: 'books',
+      sizeBytes: 1500n
+    }),
+    create(DBSizeHistoryPointSchema, {
+      day: '2026-01-01',
+      schemaName: 'games',
+      tableName: 'library_entries',
+      sizeBytes: 500n
+    })
+  ]
+
+  it('builds a seriesKey/value point per row', () => {
+    expect(toSeriesPoints(points)).toEqual([
+      { day: '2026-01-01', seriesKey: 'books.books', value: 1000 },
+      { day: '2026-01-02', seriesKey: 'books.books', value: 1500 },
+      { day: '2026-01-01', seriesKey: 'games.library_entries', value: 500 }
+    ])
+  })
+
+  it('dedupes into one meta entry per (schema, table)', () => {
+    expect(toSeriesMeta(points)).toEqual([
+      { key: 'books.books', label: 'books.books' },
+      { key: 'games.library_entries', label: 'games.library_entries' }
+    ])
+  })
+})
+
 describe('DatabaseCard', () => {
   it('shows loading state without data', () => {
-    render(<DatabaseCard data={undefined} />)
+    render(<DatabaseCard data={undefined} history={undefined} />)
     expect(screen.getByText('Loading…')).toBeInTheDocument()
     expect(screen.getByText('No schema data.')).toBeInTheDocument()
     expect(screen.getByText('No snapshot history.')).toBeInTheDocument()
+    expect(screen.getByText('No size history yet.')).toBeInTheDocument()
   })
 
   it('renders the size-over-time chart when history is present', () => {
     const data = create(GetDatabaseStatsResponseSchema, {
       totalSizeBytes: 2048n,
       schemas: [],
-      tableGrowth: [],
       history: [
         { sampledAt: '2026-08-28T00:00:00Z', totalSizeBytes: 1024n },
         { sampledAt: '2026-08-29T00:00:00Z', totalSizeBytes: 2048n }
       ]
     })
     render(<DatabaseCard data={data} />)
-    expect(screen.getByText('Size over time')).toBeInTheDocument()
+    expect(screen.getByText('Total size over time')).toBeInTheDocument()
     expect(screen.queryByText('No snapshot history.')).not.toBeInTheDocument()
   })
 
-  it('renders schema sizes and total', () => {
+  it('renders schema sizes and total, with no growing-tables section', () => {
     const data = create(GetDatabaseStatsResponseSchema, {
       totalSizeBytes: 1024n * 1024n,
-      schemas: [{ name: 'global', sizeBytes: 1024n * 1024n, tableCount: 5n }],
-      tableGrowth: []
+      schemas: [{ name: 'global', sizeBytes: 1024n * 1024n, tableCount: 5n }]
     })
     render(<DatabaseCard data={data} />)
     expect(screen.getByText('1.0 MB total on disk')).toBeInTheDocument()
@@ -52,41 +93,34 @@ describe('DatabaseCard', () => {
     expect(screen.queryByText('Growing tables')).not.toBeInTheDocument()
   })
 
-  it('renders growing tables with size, delta and percentage', () => {
-    const data = create(GetDatabaseStatsResponseSchema, {
-      totalSizeBytes: 1024n,
-      schemas: [],
-      tableGrowth: [
-        {
-          schemaName: 'global',
-          tableName: 'usage_daily',
-          currentSizeBytes: 1500n,
-          deltaBytes: 500n,
-          pctChange: 0.5
-        }
-      ]
-    })
-    render(<DatabaseCard data={data} />)
-    expect(screen.getByText('Growing tables')).toBeInTheDocument()
-    expect(screen.getByText('global.usage_daily')).toBeInTheDocument()
-    expect(screen.getByText('+50%')).toBeInTheDocument()
+  it('shows an empty state for schema/table history without data', () => {
+    const data = create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 1024n, schemas: [] })
+    render(<DatabaseCard data={data} history={undefined} />)
+    expect(screen.getByText('No size history yet.')).toBeInTheDocument()
   })
 
-  it('renders a shrinking table with a negative delta', () => {
-    const data = create(GetDatabaseStatsResponseSchema, {
-      totalSizeBytes: 1024n,
-      schemas: [],
-      tableGrowth: [
+  it('shows an empty state for schema/table history when points is empty', () => {
+    const data = create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 1024n, schemas: [] })
+    const history = create(GetDatabaseSizeHistoryResponseSchema, { points: [] })
+    render(<DatabaseCard data={data} history={history} />)
+    expect(screen.getByText('No size history yet.')).toBeInTheDocument()
+  })
+
+  it('renders the filterable schema/table history chart when points are present', () => {
+    const data = create(GetDatabaseStatsResponseSchema, { totalSizeBytes: 1024n, schemas: [] })
+    const history = create(GetDatabaseSizeHistoryResponseSchema, {
+      points: [
         {
-          schemaName: 'global',
-          tableName: 'log_entries',
-          currentSizeBytes: 500n,
-          deltaBytes: -500n,
-          pctChange: -0.5
+          day: '2026-01-01',
+          schemaName: 'books',
+          tableName: 'books',
+          sizeBytes: 1000n
         }
       ]
     })
-    render(<DatabaseCard data={data} />)
-    expect(screen.getByText('-50%')).toBeInTheDocument()
+    render(<DatabaseCard data={data} history={history} />)
+    expect(screen.getByText('Schema & table history')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Filter schemas or tables…')).toBeInTheDocument()
+    expect(screen.getByLabelText('books.books')).toBeInTheDocument()
   })
 })
