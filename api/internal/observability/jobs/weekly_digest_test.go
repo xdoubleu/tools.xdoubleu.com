@@ -26,6 +26,17 @@ func (f fakeFeedsLister) ListUnhealthy(
 	return f.unhealthy, f.err
 }
 
+type fakeOpenFeedItemsLister struct {
+	open []jobs.OpenFeedItem
+	err  error
+}
+
+func (f fakeOpenFeedItemsLister) ListOpenItems(
+	_ context.Context,
+) ([]jobs.OpenFeedItem, error) {
+	return f.open, f.err
+}
+
 func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 	mail := &fakeMailer{sent: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
@@ -34,6 +45,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -55,6 +67,7 @@ func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 		sentry,
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -79,6 +92,7 @@ func TestWeeklyDigestIncludesUnhealthyFeeds(t *testing.T) {
 				LastError: "timeout", ConsecutiveFailures: 4,
 			},
 		}, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -97,6 +111,7 @@ func TestWeeklyDigestSentryNotConfiguredDoesNotBlockOthers(t *testing.T) {
 		fakeSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -119,6 +134,7 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 			}, err: nil, alerts: nil, alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -137,6 +153,7 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: assert.AnError},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -145,6 +162,77 @@ func TestWeeklyDigestFeedsErrorDoesNotFailRun(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestIncludesOpenFeedItems(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: []jobs.OpenFeedItem{
+			{Title: "My Feed", URL: "https://example.com/feed", Count: 3},
+		}, err: nil},
+		notifSvc,
+		alwaysEnabledSettings{},
+		noSlowTransactions,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+}
+
+// TestWeeklyDigestOpenFeedItemsErrorOmitsSection asserts a ListOpenItems
+// failure omits the section (self-heals on the next run) rather than
+// failing the digest send.
+func TestWeeklyDigestOpenFeedItemsErrorOmitsSection(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: assert.AnError},
+		notifSvc,
+		alwaysEnabledSettings{},
+		noSlowTransactions,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	assert.Len(t, mail.sent, 1)
+}
+
+func TestWeeklyDigestOmitsOpenFeedItemsSectionForDisabledSource(t *testing.T) {
+	mail := &fakeMailer{sent: nil, err: nil}
+	notifSvc := testNotifications(t, mail)
+	//nolint:exhaustive //only sentry_issues needs to be enabled here
+	settings := disabledSourceSettings{
+		enabled: map[repositories.NotificationSource]bool{
+			repositories.NotificationSourceSentryIssues: true,
+		},
+	}
+
+	job := jobs.NewWeeklyDigestJob(
+		fakeSentryClient{issues: nil, err: nil},
+		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
+		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: []jobs.OpenFeedItem{
+			{Title: "My Feed", URL: "https://example.com/feed", Count: 3},
+		}, err: nil},
+		notifSvc,
+		settings,
+		noSlowTransactions,
+	)
+	require.NoError(t, job.Run(t.Context(), testLogger()))
+	notifSvc.WaitUntilDone()
+
+	require.Len(t, mail.sent, 1)
+	assert.NotContains(t, mail.sent[0], "My Feed")
 }
 
 func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
@@ -160,6 +248,7 @@ func TestWeeklyDigestGithubNotConfiguredSkipsSilently(t *testing.T) {
 			alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -178,6 +267,7 @@ func TestWeeklyDigestSentryGenericErrorSkipsSilently(t *testing.T) {
 		fakeSentryClient{issues: nil, err: assert.AnError},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -196,6 +286,7 @@ func TestWeeklyDigestGithubGenericErrorSkipsSilently(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: assert.AnError, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -218,6 +309,7 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 			}, err: nil, alerts: nil, alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -249,6 +341,7 @@ func TestWeeklyDigestOmitsSectionForDisabledSource(t *testing.T) {
 		sentry,
 		gh,
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		settings,
 		noSlowTransactions,
@@ -290,6 +383,7 @@ func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 		sentry,
 		gh,
 		feeds,
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		settings,
 		noSlowTransactions,
@@ -311,6 +405,7 @@ func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 		sentry,
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		settingsErrFake{err: assert.AnError},
 		noSlowTransactions,
@@ -349,6 +444,7 @@ func TestWeeklyDigestIncludesSecurityAlerts(t *testing.T) {
 			alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -372,6 +468,7 @@ func TestWeeklyDigestSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 			alertsErr: github.ErrNotConfigured,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -395,6 +492,7 @@ func TestWeeklyDigestSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 			prs: nil, err: nil, alerts: nil, alertsErr: assert.AnError,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		noSlowTransactions,
@@ -426,6 +524,7 @@ func TestWeeklyDigestOmitsSecurityAlertsSectionForDisabledSource(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		gh,
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		settings,
 		noSlowTransactions,
@@ -451,6 +550,7 @@ func TestWeeklyDigestIncludesSlowTransactions(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		slow,
@@ -473,6 +573,7 @@ func TestWeeklyDigestSlowTransactionsErrorOmitsSection(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		alwaysEnabledSettings{},
 		slow,
@@ -503,6 +604,7 @@ func TestWeeklyDigestOmitsSlowTransactionsSectionForDisabledSource(t *testing.T)
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		notifSvc,
 		settings,
 		slow,
@@ -519,6 +621,7 @@ func TestWeeklyDigestID(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
 		fakeFeedsLister{unhealthy: nil, err: nil},
+		fakeOpenFeedItemsLister{open: nil, err: nil},
 		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
 		alwaysEnabledSettings{},
 		noSlowTransactions,
