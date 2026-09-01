@@ -35,6 +35,21 @@ type unhealthyFeedLister interface {
 	ListUnhealthy(ctx context.Context) ([]UnhealthyFeed, error)
 }
 
+// OpenFeedItem is one feed with unread items, as reported by the feeds app
+// for the weekly digest's open-feed-items reminder (issue #1355).
+type OpenFeedItem struct {
+	Title string
+	URL   string
+	Count int
+}
+
+// openFeedItemsLister is the subset of *feeds.Feeds this job needs for the
+// open-feed-items reminder — kept narrow for the same reason as
+// unhealthyFeedLister above.
+type openFeedItemsLister interface {
+	ListOpenItems(ctx context.Context) ([]OpenFeedItem, error)
+}
+
 // WeeklyDigestJob emails an admin, once a week, a summary of every issue
 // IssueNotifierJob already alerted on at least once but that may still be
 // open — a real-time alert fires only the first time an issue is seen, so
@@ -50,6 +65,7 @@ type WeeklyDigestJob struct {
 	sentry             sentryapi.Client
 	gh                 issueNotifierGithubClient
 	feeds              unhealthyFeedLister
+	openFeedItems      openFeedItemsLister
 	notifications      *notifications.Service
 	settings           notificationSettingsRepo
 	transactionLatency slowTransactionsRepo
@@ -59,6 +75,7 @@ func NewWeeklyDigestJob(
 	sentry sentryapi.Client,
 	gh issueNotifierGithubClient,
 	feeds unhealthyFeedLister,
+	openFeedItems openFeedItemsLister,
 	notifications *notifications.Service,
 	settings notificationSettingsRepo,
 	transactionLatency slowTransactionsRepo,
@@ -67,6 +84,7 @@ func NewWeeklyDigestJob(
 		sentry:             sentry,
 		gh:                 gh,
 		feeds:              feeds,
+		openFeedItems:      openFeedItems,
 		notifications:      notifications,
 		settings:           settings,
 		transactionLatency: transactionLatency,
@@ -110,6 +128,12 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	s, enabled = j.slowTransactionsSection(ctx, logger)
+	anyEnabled = anyEnabled || enabled
+	if s != "" {
+		sections = append(sections, s)
+	}
+
+	s, enabled = j.openFeedItemsSection(ctx, logger)
 	anyEnabled = anyEnabled || enabled
 	if s != "" {
 		sections = append(sections, s)
@@ -353,4 +377,51 @@ func (j *WeeklyDigestJob) slowTransactionsSection(
 	}
 	return fmt.Sprintf("Slow transactions — %d over threshold:\n%s",
 		len(slow), strings.Join(lines, "\n")), true
+}
+
+// openFeedItemsSection follows sentrySection's (text, enabled) contract.
+// Unlike feedsSection (feeds failing to poll), this restates every feed
+// with at least one open (unread, non-dismissed) item, across all users —
+// a nudge that items are piling up unread rather than a health problem
+// (issue #1355).
+func (j *WeeklyDigestJob) openFeedItemsSection(
+	ctx context.Context, logger *slog.Logger,
+) (string, bool) {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceOpenFeedItems,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to read open_feed_items setting",
+			"error", err)
+		return "", true
+	}
+	if !enabled {
+		return "", false
+	}
+
+	open, err := j.openFeedItems.ListOpenItems(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "weekly-digest: failed to list open feed items",
+			"error", err)
+		return "", true
+	}
+	if len(open) == 0 {
+		return "", true
+	}
+
+	total := 0
+	lines := make([]string, len(open))
+	for i, feed := range open {
+		total += feed.Count
+		lines[i] = fmt.Sprintf(
+			"- %s (%s) — %d unread",
+			feed.Title,
+			feed.URL,
+			feed.Count,
+		)
+	}
+	return fmt.Sprintf("Feeds — %d unread item(s) across %d feed(s):\n%s",
+		total, len(open), strings.Join(lines, "\n")), true
 }
