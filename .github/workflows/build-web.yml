@@ -1,7 +1,15 @@
 name: Build Web Workflow
 
+# No workflow_dispatch of its own (unlike build-api.yml/build-kobo-gateway.yml):
+# the "download kobo-gateway-dist" step below only finds that artifact when a
+# build-kobo-gateway job already ran in the SAME workflow run, which is only
+# ever true when main.yml calls this via workflow_call (it runs
+# build-kobo-gateway first via `needs:`) — a bare manual dispatch of this
+# workflow alone has no such job and fails outright at that step. To trigger
+# a web build manually, use main.yml's own workflow_dispatch instead — it
+# chains build-kobo-gateway ahead of build-web correctly (see root
+# CLAUDE.md's CI section, issue #1347).
 on:
-  workflow_dispatch:
   workflow_call:
 
 jobs:
