@@ -574,3 +574,127 @@ func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 	assert.Equal(t, "50.00", g.CompletionRate,
 		"stored data must be unchanged after a failed SyncGame")
 }
+
+// TestSyncUser_DelistedGameExcludedFromLibraryAverages reproduces the reported
+// mismatch between the dashboard's completion rate and Steam's own profile: a
+// delisted game kept its (high) stored rate and went on being averaged into the
+// headline rate and the distribution chart, even though every game list filters
+// is_delisted and Steam stops counting a game the moment it leaves the library.
+// The headline rate must be the mean of the games still owned.
+func TestSyncUser_DelistedGameExcludedFromLibraryAverages(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-delist-average-user"
+	const liveLow = 7101
+	const liveHigh = 7102
+	const delisted = 7103
+
+	allGames := []steam.Game{
+		//nolint:exhaustruct //only required fields
+		{AppID: liveLow, Name: "Live Low", HasCommunityVisibleStats: true},
+		//nolint:exhaustruct //only required fields
+		{AppID: liveHigh, Name: "Live High", HasCommunityVisibleStats: true},
+		//nolint:exhaustruct //only required fields
+		{AppID: delisted, Name: "Delisted", HasCommunityVisibleStats: true},
+	}
+	playerAch := map[int][]steam.Achievement{
+		liveLow:  {ach("L1", 1), ach("L2", 0), ach("L3", 0), ach("L4", 0)},
+		liveHigh: {ach("H1", 1), ach("H2", 1), ach("H3", 1), ach("H4", 0)},
+		delisted: {ach("D1", 1), ach("D2", 1)},
+	}
+
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames,
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	// Re-sync with the third game no longer owned: it becomes delisted at 100%.
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames[:2],
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	stored, err := app2.Services.Steam.GetGameByID(ctx, delisted, user)
+	require.NoError(t, err)
+	require.True(t, stored.IsDelisted)
+	require.Equal(t, "100.00", stored.CompletionRate)
+
+	// 25.00 and 75.00 average to 50.00. Averaging the delisted 100.00 in too
+	// would give 66.66 — the shape of the production discrepancy.
+	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", rate,
+		"headline rate must average only the games Steam still lists")
+
+	counts, bucketGames, err := app2.Services.Progress.
+		GetCompletionRateDistribution(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, 0, counts[10],
+		"delisted 100 percent game must not occupy a distribution bucket")
+	for _, bucket := range bucketGames {
+		for _, g := range bucket {
+			assert.NotEqual(t, delisted, g.ID,
+				"delisted game must not appear in any distribution bucket")
+		}
+	}
+
+	total := 0
+	for _, c := range counts {
+		total += c
+	}
+	assert.Equal(t, 2, total, "distribution covers only the two live games")
+}
+
+// TestSyncGame_DelistedGameExcludedFromTotalRate covers the same rule on the
+// single-game refresh path, which recomputes the library-wide graph too.
+func TestSyncGame_DelistedGameExcludedFromTotalRate(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-game-delist-user"
+	const live = 7201
+	const delisted = 7202
+
+	allGames := []steam.Game{
+		//nolint:exhaustruct //only required fields
+		{AppID: live, Name: "Live", HasCommunityVisibleStats: true},
+		//nolint:exhaustruct //only required fields
+		{AppID: delisted, Name: "Delisted", HasCommunityVisibleStats: true},
+	}
+	playerAch := map[int][]steam.Achievement{
+		live:     {ach("L1", 1), ach("L2", 0), ach("L3", 0), ach("L4", 0)},
+		delisted: {ach("D1", 1), ach("D2", 1)},
+	}
+
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames,
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames[:1],
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	// Refresh the live game alone: 2 of 4 achieved => 50.00, and that is the
+	// whole library average now that the delisted game is excluded.
+	app3 := newSyncTestApp(t, user, syncFakeClient{
+		games: allGames[:1],
+		playerAch: map[int][]steam.Achievement{
+			live:     {ach("L1", 1), ach("L2", 1), ach("L3", 0), ach("L4", 0)},
+			delisted: playerAch[delisted],
+		},
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app3.Services.Steam.SyncGame(ctx, user, live))
+
+	rate, err := app3.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", rate,
+		"single-game refresh must also exclude delisted games from the average")
+}

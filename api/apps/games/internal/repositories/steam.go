@@ -85,6 +85,11 @@ func (repo *SteamRepository) queryGames(
 	return games, nil
 }
 
+// GetAllGames returns every stored game, delisted ones included. This is
+// deliberately unfiltered: buildGamesMap diffs it against Steam's currently
+// owned games to decide what is delisted in the first place, so filtering here
+// would remove the very rows that detection depends on. Callers computing a
+// library-wide average want GetActiveGames instead.
 func (repo *SteamRepository) GetAllGames(
 	ctx context.Context,
 	userID string,
@@ -94,6 +99,27 @@ func (repo *SteamRepository) GetAllGames(
 		       playtime_forever, image_url, last_synced_at, favourite, last_played
 		FROM games.steam_games
 		WHERE user_id = $1
+	`
+
+	return repo.queryGames(ctx, query, userID)
+}
+
+// GetActiveGames returns only the games Steam still lists in the user's
+// library. Delisted games stay in storage and remain visible on their own
+// detail page, but must never take part in library-wide averages: Steam stops
+// counting a game in its own profile average the moment it leaves the library,
+// and every game list here already filters is_delisted, so including them makes
+// the dashboard's completion rate disagree with both.
+func (repo *SteamRepository) GetActiveGames(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	query := `
+		SELECT id, name, is_delisted, completion_rate, contribution,
+		       playtime_forever, image_url, last_synced_at, favourite, last_played
+		FROM games.steam_games
+		WHERE user_id = $1
+		    AND is_delisted = false
 	`
 
 	return repo.queryGames(ctx, query, userID)

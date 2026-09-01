@@ -69,7 +69,7 @@ func (s *ProgressService) GetCompletionRateDistribution(
 	ctx context.Context,
 	userID string,
 ) ([]int, [][]models.Game, error) {
-	games, err := s.steam.GetAllGames(ctx, userID)
+	games, err := s.steam.GetActiveGames(ctx, userID)
 	if err != nil {
 		return nil, nil, err
 	}
