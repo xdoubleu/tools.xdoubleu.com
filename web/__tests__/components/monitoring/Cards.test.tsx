@@ -240,7 +240,8 @@ describe('WorkflowRunsCard', () => {
           conclusion: 'failure',
           url: 'https://github.com/x/y/actions/runs/3',
           startedAt: '2026-01-01T12:00:00Z',
-          durationMs: 60000n
+          durationMs: 60000n,
+          failedJobs: ['Deploy to Hetzner via Kamal']
         }
       ]
     })
@@ -252,6 +253,7 @@ describe('WorkflowRunsCard', () => {
     expect(screen.getByText('in_progress')).toBeInTheDocument()
     expect(screen.getByText('failure')).toBeInTheDocument()
     expect(screen.getByText('1.0 min')).toBeInTheDocument()
+    expect(screen.getByText('Deploy to Hetzner via Kamal')).toBeInTheDocument()
   })
 
   it('degrades when not configured', () => {

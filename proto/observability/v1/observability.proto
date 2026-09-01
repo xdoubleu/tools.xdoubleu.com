@@ -246,7 +246,13 @@ message GetProjectIssuesByStatusResponse {
 
 // WorkflowRun is a single GitHub Actions workflow run, either from a pull
 // request or a push to the default branch. duration_ms is only meaningful
-// once status == "completed" — zero for runs still in progress.
+// once status == "completed" — zero for runs still in progress. failed_jobs
+// names the specific jobs that failed (e.g. "Deploy to Hetzner via Kamal")
+// — populated only for failed runs on a push to main, since that's the only
+// case worth an extra per-run GitHub API call: a failing PR run is already
+// explained by its own checks in the PR UI, but a failing main-push run is
+// an incident someone here needs to act on, and "the run failed" alone
+// doesn't say which job to look at.
 message WorkflowRun {
   int64 id = 1;
   string name = 2;
@@ -257,6 +263,7 @@ message WorkflowRun {
   string url = 7;
   string started_at = 8;  // RFC3339
   int64 duration_ms = 9;
+  repeated string failed_jobs = 10;
 }
 
 message GetWorkflowRunsRequest {}
