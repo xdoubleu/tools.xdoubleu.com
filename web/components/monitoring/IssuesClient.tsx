@@ -100,7 +100,7 @@ export default function IssuesClient() {
       tone: breachingAlerts.length > 0 ? ('danger' as const) : ('default' as const)
     },
     {
-      label: 'Slow transactions',
+      label: 'Slow spans',
       value: slowTransactions.data ? formatCount(currentlySlowTransactions.length) : '—',
       tone: currentlySlowTransactions.length > 0 ? ('danger' as const) : ('default' as const)
     }

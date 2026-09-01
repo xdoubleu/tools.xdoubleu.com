@@ -43,11 +43,11 @@ export default function TransactionLatencyHistoryCard({
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <CardTitle>Transaction latency history</CardTitle>
+          <CardTitle>Span latency history</CardTitle>
           <Badge variant="secondary">Sentry</Badge>
         </div>
         <CardDescription>
-          Select one or more transactions to plot their p95 duration over time.
+          Select one or more spans to plot their p95 duration over time.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -59,7 +59,7 @@ export default function TransactionLatencyHistoryCard({
             meta={toSeriesMeta(points)}
             valueLabel="p95 duration"
             valueFormatter={formatDuration}
-            searchPlaceholder="Filter transactions…"
+            searchPlaceholder="Filter spans…"
           />
         )}
       </CardContent>

@@ -69,7 +69,7 @@ describe('AlertStatesCard', () => {
     expect(screen.getByText(/1\.5 s of 5\.0 s threshold/)).toBeInTheDocument()
     expect(screen.getByText('Slow HTTP handlers (p95)')).toBeInTheDocument()
     expect(screen.getByText('Slow background jobs (p95)')).toBeInTheDocument()
-    expect(screen.getByText('Slow frontend transactions (p95)')).toBeInTheDocument()
+    expect(screen.getByText('Slow frontend spans (p95)')).toBeInTheDocument()
   })
 
   it('marks a breaching rule, shows its since timestamp, and counts it in the header', () => {

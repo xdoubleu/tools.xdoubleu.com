@@ -98,10 +98,10 @@ export default function ObservabilityClient() {
         <CollapsibleSection title="Jobs">
           <JobsCard data={jobStats.data} />
         </CollapsibleSection>
-        <CollapsibleSection title="Slow Transactions">
+        <CollapsibleSection title="Slow Spans">
           <SlowTransactionsCard data={slowTransactions.data} alertStates={alertStates.data} />
         </CollapsibleSection>
-        <CollapsibleSection title="Transaction Latency History">
+        <CollapsibleSection title="Span Latency History">
           <TransactionLatencyHistoryCard data={transactionLatencyHistory.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Host Metrics">
