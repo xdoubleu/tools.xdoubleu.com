@@ -20,7 +20,7 @@ export default async function BacklogBooksLibraryPage() {
     <PageContainer className="p-6">
       <Breadcrumb
         className="mb-6"
-        items={[{ label: 'Books', href: '/books' }, { label: 'Library' }]}
+        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Library' }]}
       />
 
       <div className="mb-6 flex items-center justify-between gap-4">

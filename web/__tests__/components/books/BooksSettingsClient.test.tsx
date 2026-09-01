@@ -36,9 +36,12 @@ describe('BooksSettingsClient', () => {
     expect(screen.getByRole('heading', { name: 'Reading Settings' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /books', () => {
+  it('renders a breadcrumb link back to /dashboard/reading', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books')
+    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+      'href',
+      '/dashboard/reading'
+    )
   })
 
   it('renders the Import books section', () => {

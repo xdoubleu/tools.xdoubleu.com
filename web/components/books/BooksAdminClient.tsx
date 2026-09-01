@@ -28,7 +28,7 @@ export default function BooksAdminClient() {
     <PageContainer className="max-w-2xl p-6">
       <Breadcrumb
         className="mb-4"
-        items={[{ label: 'Books', href: '/books' }, { label: 'Admin tools' }]}
+        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Admin tools' }]}
       />
       <h1 className="mb-6 text-3xl font-bold">Books admin tools</h1>
 

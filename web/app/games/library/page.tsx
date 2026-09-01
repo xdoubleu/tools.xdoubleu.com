@@ -13,7 +13,7 @@ export default async function BacklogGamesLibraryPage() {
     <PageContainer className="p-6">
       <Breadcrumb
         className="mb-6"
-        items={[{ label: 'Games', href: '/games' }, { label: 'Library' }]}
+        items={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Library' }]}
       />
 
       <h1 className="text-3xl font-bold mb-6">Library</h1>
