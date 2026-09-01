@@ -120,7 +120,6 @@ describe('ObservabilityClient', () => {
     for (const title of [
       'Storage',
       'Database',
-      'Database Size History',
       'Jobs',
       'Slow Transactions',
       'Transaction Latency History',

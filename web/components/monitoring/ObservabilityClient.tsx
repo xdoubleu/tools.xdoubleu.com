@@ -19,7 +19,6 @@ import {
 import CollapsibleSection from './CollapsibleSection'
 import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
-import DatabaseSizeHistoryCard from './DatabaseSizeHistoryCard'
 import JobsCard from './JobsCard'
 import SlowTransactionsCard from './SlowTransactionsCard'
 import TransactionLatencyHistoryCard from './TransactionLatencyHistoryCard'
@@ -94,10 +93,7 @@ export default function ObservabilityClient() {
           <StorageCard data={storageStats.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Database">
-          <DatabaseCard data={databaseStats.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Database Size History">
-          <DatabaseSizeHistoryCard data={databaseSizeHistory.data} />
+          <DatabaseCard data={databaseStats.data} history={databaseSizeHistory.data} />
         </CollapsibleSection>
         <CollapsibleSection title="Jobs">
           <JobsCard data={jobStats.data} />
