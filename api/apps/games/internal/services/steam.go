@@ -55,13 +55,15 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 
 	fetched := service.fetchAchievements(ctx, client, creds.SteamUserID, gamesMap)
 
+	active := activeGames(gamesMap)
+
 	for id := range gamesMap {
 		rows, ok := fetched[id]
 		if !ok {
 			// Fetch failed/skipped for this game: keep its existing values.
 			continue
 		}
-		gamesMap[id].SetCalculatedInfo(rows, len(gamesMap))
+		gamesMap[id].SetCalculatedInfo(rows, len(active))
 	}
 
 	// The progress graph must reflect the whole library, so include the stored
@@ -72,7 +74,7 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 		return err
 	}
 
-	labels, values := buildProgress(complete)
+	labels, values := buildProgress(activeAchievements(complete, gamesMap))
 
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.UpsertGames(ctx, tx, gamesMap, userID); errIn != nil {
@@ -361,6 +363,40 @@ func percentPtr(globalPercents map[string]float64, name string) *float64 {
 	return nil
 }
 
+// activeGames returns the subset of gamesMap that Steam still lists in the
+// user's library. Library-wide averages must be computed over this set only:
+// Steam stops counting a game in its own profile average once it leaves the
+// library, and every game list in this app already filters is_delisted, so
+// averaging the delisted ones too produced a headline completion rate that
+// matched neither Steam nor the lists shown beside it.
+func activeGames(gamesMap map[int]*models.Game) map[int]*models.Game {
+	active := make(map[int]*models.Game, len(gamesMap))
+	for id, game := range gamesMap {
+		if !game.IsDelisted {
+			active[id] = game
+		}
+	}
+	return active
+}
+
+// activeAchievements drops the achievements of delisted games so they take part
+// in neither the numerator nor the denominator of the progress graph's average.
+// A game absent from gamesMap is kept: it is being refreshed right now and its
+// stored row simply has not been read back yet.
+func activeAchievements(
+	achievements map[int][]models.Achievement,
+	gamesMap map[int]*models.Game,
+) map[int][]models.Achievement {
+	active := make(map[int][]models.Achievement, len(achievements))
+	for id, rows := range achievements {
+		if game, ok := gamesMap[id]; ok && game.IsDelisted {
+			continue
+		}
+		active[id] = rows
+	}
+	return active
+}
+
 // buildProgress recomputes the cumulative completion-rate graph from the freshly
 // fetched achievements, keyed by the date each achievement was unlocked.
 func buildProgress(fetched map[int][]models.Achievement) ([]string, []string) {
@@ -386,6 +422,16 @@ func (service *SteamService) GetAllGames(
 	userID string,
 ) ([]models.Game, error) {
 	return service.steam.GetAllGames(ctx, userID)
+}
+
+// GetActiveGames returns only the games Steam still lists in the user's
+// library. See SteamRepository.GetActiveGames for why library-wide averages
+// must use this rather than GetAllGames.
+func (service *SteamService) GetActiveGames(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	return service.steam.GetActiveGames(ctx, userID)
 }
 
 func (service *SteamService) GetBacklog(
@@ -470,8 +516,6 @@ func (service *SteamService) SyncGame(
 		return err
 	}
 
-	game.SetCalculatedInfo(rows, len(allGames))
-
 	// Recompute the library-wide progress graph so the dashboard's total
 	// completion rate reflects this game's refreshed achievements (same as
 	// SyncUser). Other games contribute their stored achievements.
@@ -480,12 +524,15 @@ func (service *SteamService) SyncGame(
 		g := allGames[i]
 		gamesMap[g.ID] = &g
 	}
+
+	game.SetCalculatedInfo(rows, len(activeGames(gamesMap)))
+
 	fetched := map[int][]models.Achievement{gameID: rows}
 	complete, err := service.completeAchievements(ctx, userID, gamesMap, fetched)
 	if err != nil {
 		return err
 	}
-	labels, values := buildProgress(complete)
+	labels, values := buildProgress(activeAchievements(complete, gamesMap))
 
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.ReplaceAchievements(
