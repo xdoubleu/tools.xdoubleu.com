@@ -22,7 +22,7 @@ const RULE_LABELS: Record<string, string> = {
   ci_duration_high: 'CI workflow duration (p95)',
   slow_transaction_http_high: 'Slow HTTP handlers (p95)',
   slow_transaction_job_high: 'Slow background jobs (p95)',
-  slow_transaction_frontend_high: 'Slow frontend transactions (p95)'
+  slow_transaction_frontend_high: 'Slow frontend spans (p95)'
 }
 
 const RULE_FORMATTERS: Record<string, (value: number) => string> = {

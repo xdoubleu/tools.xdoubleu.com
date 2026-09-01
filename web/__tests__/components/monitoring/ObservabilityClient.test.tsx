@@ -122,8 +122,8 @@ describe('ObservabilityClient', () => {
       'Database',
       'Database Size History',
       'Jobs',
-      'Slow Transactions',
-      'Transaction Latency History',
+      'Slow Spans',
+      'Span Latency History',
       'Host Metrics',
       'Logs'
     ]) {

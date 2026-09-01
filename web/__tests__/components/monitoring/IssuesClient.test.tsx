@@ -12,6 +12,19 @@ import {
 } from '@/lib/gen/observability/v1/observability_pb'
 import IssuesClient from '@/components/monitoring/IssuesClient'
 
+// recharts needs a non-zero layout size that jsdom does not provide.
+jest.mock('recharts', () => {
+  const Original = jest.requireActual('recharts')
+  return {
+    ...Original,
+    ResponsiveContainer: ({
+      children
+    }: {
+      children: React.ReactElement<{ width?: number; height?: number }>
+    }) => <div>{React.cloneElement(children, { width: 600, height: 300 })}</div>
+  }
+})
+
 const mockUseFailingPullRequests = jest.fn()
 const mockUseWorkflowRuns = jest.fn()
 const mockUseSecurityAlerts = jest.fn()
@@ -260,7 +273,7 @@ describe('IssuesClient', () => {
     mockUseSlowTransactions.mockReturnValue({ data: undefined, mutate: mockMutate })
 
     render(<IssuesClient />)
-    expect(screen.getAllByText('Slow transactions').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Slow spans').length).toBeGreaterThan(0)
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
 
@@ -279,8 +292,8 @@ describe('IssuesClient', () => {
 
     render(<IssuesClient />)
 
-    expect(screen.getAllByText('Slow transactions').length).toBeGreaterThan(0)
-    expect(screen.getByText('GET /slow')).toBeInTheDocument()
-    expect(screen.queryByText('GET /fast')).not.toBeInTheDocument()
+    expect(screen.getAllByText('Slow spans').length).toBeGreaterThan(0)
+    expect(screen.getByText('proj · GET /slow')).toBeInTheDocument()
+    expect(screen.queryByText('proj · GET /fast')).not.toBeInTheDocument()
   })
 })
