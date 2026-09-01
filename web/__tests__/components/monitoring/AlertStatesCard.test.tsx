@@ -138,4 +138,59 @@ describe('AlertStatesCard', () => {
 
     expect(screen.queryByText(/^Since /)).not.toBeInTheDocument()
   })
+
+  it('renders a low-usage meter as the success tone, clamped and unfilled', () => {
+    render(
+      <AlertStatesCard
+        data={create(GetAlertStatesResponseSchema, {
+          states: [{ ruleKey: 'host_cpu_high', breaching: false, currentValue: 10, threshold: 80 }]
+        })}
+      />
+    )
+
+    const meter = screen.getByRole('progressbar', { name: 'Host CPU usage threshold usage' })
+    expect(meter).toHaveAttribute('aria-valuenow', '13')
+    expect(meter.firstChild).toHaveClass('bg-success')
+  })
+
+  it('renders a near-threshold meter as the warn tone', () => {
+    render(
+      <AlertStatesCard
+        data={create(GetAlertStatesResponseSchema, {
+          states: [{ ruleKey: 'host_cpu_high', breaching: false, currentValue: 68, threshold: 80 }]
+        })}
+      />
+    )
+
+    const meter = screen.getByRole('progressbar', { name: 'Host CPU usage threshold usage' })
+    expect(meter.firstChild).toHaveClass('bg-warn')
+  })
+
+  it('renders a breaching meter as the danger tone, clamped to full even past threshold', () => {
+    render(
+      <AlertStatesCard
+        data={create(GetAlertStatesResponseSchema, {
+          states: [{ ruleKey: 'host_disk_high', breaching: true, currentValue: 120, threshold: 85 }]
+        })}
+      />
+    )
+
+    const meter = screen.getByRole('progressbar', { name: 'Host disk usage threshold usage' })
+    expect(meter).toHaveAttribute('aria-valuenow', '100')
+    expect(meter.firstChild).toHaveClass('bg-danger')
+    expect(meter.firstChild).toHaveStyle({ width: '100%' })
+  })
+
+  it('does not divide by zero for a rule with no threshold configured', () => {
+    render(
+      <AlertStatesCard
+        data={create(GetAlertStatesResponseSchema, {
+          states: [{ ruleKey: 'host_cpu_high', breaching: false, currentValue: 0, threshold: 0 }]
+        })}
+      />
+    )
+
+    const meter = screen.getByRole('progressbar', { name: 'Host CPU usage threshold usage' })
+    expect(meter).toHaveAttribute('aria-valuenow', '0')
+  })
 })
