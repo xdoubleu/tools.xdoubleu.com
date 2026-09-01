@@ -27,6 +27,7 @@ const (
 	NotificationSourceR2UsageHigh          NotificationSource = "r2_usage_high"
 	NotificationSourceCIDurationHigh       NotificationSource = "ci_duration_high"
 	NotificationSourceSlowTransactions     NotificationSource = "slow_transactions"
+	NotificationSourceOpenFeedItems        NotificationSource = "open_feed_items"
 )
 
 // Per-class slow-transaction threshold sources (issue #1310) — kept in
