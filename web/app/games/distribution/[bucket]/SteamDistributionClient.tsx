@@ -21,7 +21,7 @@ export default function SteamDistributionClient({
 
   return (
     <PageContainer className="p-6">
-      <Breadcrumb items={[{ label: 'Games', href: '/games' }, { label }]} />
+      <Breadcrumb items={[{ label: 'Games', href: '/dashboard/games' }, { label }]} />
 
       {isLoading && <p className="mt-6 text-muted">Loading…</p>}
       {error && <p className="mt-6 text-danger">Failed to load distribution.</p>}

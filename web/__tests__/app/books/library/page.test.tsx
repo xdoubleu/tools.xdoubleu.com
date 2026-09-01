@@ -42,9 +42,12 @@ describe('BacklogBooksLibraryPage', () => {
     expect(screen.getByRole('heading', { name: 'Library' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /books', async () => {
+  it('renders a breadcrumb link back to /dashboard/reading', async () => {
     render(await BacklogBooksLibraryPage())
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books')
+    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+      'href',
+      '/dashboard/reading'
+    )
   })
 
   it('renders the BooksSection', async () => {

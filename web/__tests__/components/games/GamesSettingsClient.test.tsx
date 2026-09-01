@@ -30,9 +30,9 @@ describe('GamesSettingsClient', () => {
     expect(screen.getByRole('heading', { name: 'Games Settings' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /games', () => {
+  it('renders a breadcrumb link back to /dashboard/games', () => {
     render(<GamesSettingsClient />)
-    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/games')
+    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/dashboard/games')
   })
 
   it('renders the Steam section', () => {

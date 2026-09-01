@@ -45,9 +45,12 @@ describe('BooksAdminClient', () => {
     expect(screen.getByRole('heading', { name: 'Books admin tools' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /books', () => {
+  it('renders a breadcrumb link back to /dashboard/reading', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute('href', '/books')
+    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+      'href',
+      '/dashboard/reading'
+    )
   })
 
   it('renders the scan section with a start button', () => {

@@ -61,7 +61,7 @@ export default function GamesSettingsClient({
     <PageContainer size="narrow" className="p-6">
       <Breadcrumb
         className="mb-4"
-        items={[{ label: 'Games', href: '/games' }, { label: 'Settings' }]}
+        items={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Settings' }]}
       />
       <h1 className="mb-6 text-3xl font-bold">Games Settings</h1>
 

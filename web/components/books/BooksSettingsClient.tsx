@@ -39,7 +39,7 @@ export default function BooksSettingsClient() {
     <PageContainer size="narrow" className="p-6">
       <Breadcrumb
         className="mb-4"
-        items={[{ label: 'Books', href: '/books' }, { label: 'Settings' }]}
+        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Settings' }]}
       />
       <h1 className="mb-6 text-3xl font-bold">Reading Settings</h1>
 

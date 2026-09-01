@@ -25,9 +25,9 @@ describe('BacklogGamesLibraryPage', () => {
     expect(screen.getByRole('heading', { name: 'Library' })).toBeInTheDocument()
   })
 
-  it('renders a breadcrumb link back to /games', async () => {
+  it('renders a breadcrumb link back to /dashboard/games', async () => {
     render(await BacklogGamesLibraryPage())
-    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/games')
+    expect(screen.getByRole('link', { name: 'Games' })).toHaveAttribute('href', '/dashboard/games')
   })
 
   it('renders the GamesLibrary', async () => {
