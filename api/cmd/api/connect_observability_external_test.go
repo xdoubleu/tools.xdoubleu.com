@@ -210,6 +210,106 @@ func TestObservabilityGetWorkflowRuns_AsAdmin(t *testing.T) {
 	assert.Equal(t, int64(5*60*1000), resp.Msg.Runs[0].DurationMs)
 }
 
+func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch {
+			case r.URL.Path == "/repos/o/r/actions/runs/2/jobs":
+				_, _ = w.Write([]byte(`{"jobs":[
+					{"name":"Deploy to Hetzner via Kamal","status":"completed",
+					 "conclusion":"failure","started_at":"2026-07-01T10:00:00Z",
+					 "completed_at":"2026-07-01T10:01:00Z"},
+					{"name":"changes","status":"completed","conclusion":"success",
+					 "started_at":"2026-07-01T09:59:00Z",
+					 "completed_at":"2026-07-01T09:59:30Z"}
+				]}`))
+			case r.URL.Query().Get("event") == "pull_request":
+				_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+			case r.URL.Query().Get("event") == "push":
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":2,"name":"Main Workflow","event":"push","head_branch":"main",
+					 "status":"completed","conclusion":"failure","html_url":"u2",
+					 "run_started_at":"2026-07-01T10:00:00Z",
+					 "updated_at":"2026-07-01T10:01:00Z"},
+					{"id":3,"name":"Main Workflow","event":"push","head_branch":"other",
+					 "status":"completed","conclusion":"failure","html_url":"u3",
+					 "run_started_at":"2026-07-01T09:00:00Z",
+					 "updated_at":"2026-07-01T09:01:00Z"},
+					{"id":4,"name":"Main Workflow","event":"push","head_branch":"main",
+					 "status":"completed","conclusion":"success","html_url":"u4",
+					 "run_started_at":"2026-07-01T08:00:00Z",
+					 "updated_at":"2026-07-01T08:01:00Z"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err)
+	byID := make(map[int64]*observabilityv1.WorkflowRun, len(resp.Msg.Runs))
+	for _, run := range resp.Msg.Runs {
+		byID[run.Id] = run
+	}
+	require.Len(t, resp.Msg.Runs, 3)
+	assert.Empty(t, byID[3].FailedJobs, "non-main branch must not report failed jobs")
+	assert.Empty(t, byID[4].FailedJobs, "non-failing run must not report failed jobs")
+	assert.Equal(t, []string{"Deploy to Hetzner via Kamal"}, byID[2].FailedJobs)
+}
+
+func TestObservabilityGetWorkflowRuns_MainFailureJobsFetchError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	github.SetBackoffBase(time.Millisecond)
+	t.Cleanup(func() { github.SetBackoffBase(500 * time.Millisecond) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path == "/repos/o/r/actions/runs/2/jobs":
+				w.WriteHeader(http.StatusInternalServerError)
+			case r.URL.Query().Get("event") == "pull_request":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+			case r.URL.Query().Get("event") == "push":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":2,"name":"Main Workflow","event":"push","head_branch":"main",
+					 "status":"completed","conclusion":"failure","html_url":"u2",
+					 "run_started_at":"2026-07-01T10:00:00Z",
+					 "updated_at":"2026-07-01T10:01:00Z"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Runs, 1)
+	assert.Empty(t, resp.Msg.Runs[0].FailedJobs)
+}
+
 func TestObservabilityGetWorkflowRuns_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })

@@ -120,10 +120,45 @@ func (h *obsConnectHandler) workflowRuns(
 			Url:        run.URL,
 			StartedAt:  run.StartedAt.Format(time.RFC3339),
 			DurationMs: run.DurationMs,
+			FailedJobs: h.failedJobNames(ctx, run),
 		}
 	}
 	resp.Runs = protoRuns
 	return resp
+}
+
+// failedJobNames names the jobs that failed within run, fetched from GitHub
+// only for a failed push-to-main run (see WorkflowRun.failed_jobs' doc
+// comment) — every other run returns nil without an extra API call. A fetch
+// failure here is logged and swallowed rather than degrading the whole
+// response: the run itself still shows as failed, just without job detail.
+func (h *obsConnectHandler) failedJobNames(
+	ctx context.Context, run github.WorkflowRun,
+) []string {
+	if run.Event != "push" {
+		return nil
+	}
+	if run.Branch != "main" {
+		return nil
+	}
+	if run.Conclusion != "failure" {
+		return nil
+	}
+
+	jobs, err := h.app.githubClient.ListWorkflowRunJobs(ctx, run.ID)
+	if err != nil {
+		h.app.logger.WarnContext(ctx, "workflow run jobs unavailable",
+			slog.Any("error", err), slog.Int64("run_id", run.ID))
+		return nil
+	}
+
+	names := make([]string, 0, len(jobs))
+	for _, job := range jobs {
+		if job.Conclusion == "failure" {
+			names = append(names, job.Name)
+		}
+	}
+	return names
 }
 
 func (h *obsConnectHandler) GetWorkflowRunStats(

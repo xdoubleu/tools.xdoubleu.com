@@ -1744,7 +1744,13 @@ func (x *GetProjectIssuesByStatusResponse) GetConfigured() bool {
 
 // WorkflowRun is a single GitHub Actions workflow run, either from a pull
 // request or a push to the default branch. duration_ms is only meaningful
-// once status == "completed" — zero for runs still in progress.
+// once status == "completed" — zero for runs still in progress. failed_jobs
+// names the specific jobs that failed (e.g. "Deploy to Hetzner via Kamal")
+// — populated only for failed runs on a push to main, since that's the only
+// case worth an extra per-run GitHub API call: a failing PR run is already
+// explained by its own checks in the PR UI, but a failing main-push run is
+// an incident someone here needs to act on, and "the run failed" alone
+// doesn't say which job to look at.
 type WorkflowRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1756,6 +1762,7 @@ type WorkflowRun struct {
 	Url           string                 `protobuf:"bytes,7,opt,name=url,proto3" json:"url,omitempty"`
 	StartedAt     string                 `protobuf:"bytes,8,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"` // RFC3339
 	DurationMs    int64                  `protobuf:"varint,9,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	FailedJobs    []string               `protobuf:"bytes,10,rep,name=failed_jobs,json=failedJobs,proto3" json:"failed_jobs,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1851,6 +1858,13 @@ func (x *WorkflowRun) GetDurationMs() int64 {
 		return x.DurationMs
 	}
 	return 0
+}
+
+func (x *WorkflowRun) GetFailedJobs() []string {
+	if x != nil {
+		return x.FailedJobs
+	}
+	return nil
 }
 
 type GetWorkflowRunsRequest struct {
@@ -4952,7 +4966,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x06issues\x18\x01 \x03(\v2\x1e.observability.v1.ProjectIssueR\x06issues\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
-	"configured\"\xe9\x01\n" +
+	"configured\"\x8a\x02\n" +
 	"\vWorkflowRun\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
@@ -4966,7 +4980,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\b \x01(\tR\tstartedAt\x12\x1f\n" +
 	"\vduration_ms\x18\t \x01(\x03R\n" +
-	"durationMs\"\x18\n" +
+	"durationMs\x12\x1f\n" +
+	"\vfailed_jobs\x18\n" +
+	" \x03(\tR\n" +
+	"failedJobs\"\x18\n" +
 	"\x16GetWorkflowRunsRequest\"l\n" +
 	"\x17GetWorkflowRunsResponse\x121\n" +
 	"\x04runs\x18\x01 \x03(\v2\x1d.observability.v1.WorkflowRunR\x04runs\x12\x1e\n" +

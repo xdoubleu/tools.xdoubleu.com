@@ -74,6 +74,15 @@ export default function WorkflowRunsCard({
                     <Badge variant="secondary">{run.status}</Badge>
                   )}
                 </div>
+                {run.failedJobs.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {run.failedJobs.map((jobName) => (
+                      <Badge key={jobName} variant="danger">
+                        {jobName}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

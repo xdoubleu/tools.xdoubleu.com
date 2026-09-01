@@ -388,6 +388,24 @@ jobs:
   # with either. success-or-skipped for the same reason as build-api/build-web:
   # infra-apply skips itself (see its own if:) when infra/ didn't change,
   # which must not block a deploy that has nothing to do with infra.
+  #
+  # concurrency (issue #1364): two pushes to main close together (e.g. two
+  # PRs merged back-to-back) used to start two Main Workflow runs whose
+  # deploy-kamal jobs then ran `kamal deploy` against the same Hetzner host
+  # at the same time. That produced three different-looking failures that
+  # were all really this one race: `mkdir: .kamal/lock-tools-***-com-*: File
+  # exists` (second run's lock acquisition hits the first run's still-held
+  # lock — Kamal doesn't wait/retry, it fails immediately), containerd
+  # `failed commit on ref ...: no such file or directory` (two concurrent
+  # `docker pull`s on the host racing on the same shared base-image layer's
+  # ingest path), and once a container health-check timeout (host under
+  # double deploy load). This group name is intentionally NOT ref-scoped —
+  # unlike a typical PR-cancellation concurrency group, every push to main
+  # must queue against the same Hetzner host regardless of which commit it
+  # is, so a second run's deploy-kamal job waits for the first's to finish
+  # rather than colliding with it. cancel-in-progress stays false: cancelling
+  # a deploy mid-flight would abandon a live kamal deploy lock/half-applied
+  # release, which is worse than a few minutes of queueing.
   deploy-kamal:
     needs: [build-api, build-web, infra-apply]
     if: |
@@ -397,6 +415,9 @@ jobs:
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
+    concurrency:
+      group: hetzner-vps-deploy
+      cancel-in-progress: false
     name: Deploy to Hetzner via Kamal
     runs-on: ubuntu-latest
     environment: production
@@ -550,6 +571,13 @@ jobs:
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
+    # Same group as deploy-kamal (see its comment, issue #1364): this job
+    # also SSHes into the Hetzner host, so a concurrent run here and a
+    # deploy-kamal run from another in-flight workflow run could otherwise
+    # race on the host (e.g. a firewall/Postgres change landing mid-deploy).
+    concurrency:
+      group: hetzner-vps-deploy
+      cancel-in-progress: false
     name: Apply Infra via OpenTofu
     runs-on: ubuntu-latest
     environment: production
