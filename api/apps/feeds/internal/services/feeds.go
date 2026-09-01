@@ -421,6 +421,14 @@ func (s *FeedService) ListUnhealthy(ctx context.Context) ([]models.Feed, error) 
 	return s.feeds.ListUnhealthy(ctx)
 }
 
+// CountUnreadByFeed returns unread item counts per feed, across all users,
+// for the weekly digest job's open-feed-items reminder (issue #1355).
+func (s *FeedService) CountUnreadByFeed(
+	ctx context.Context,
+) ([]models.FeedUnreadCount, error) {
+	return s.items.CountUnreadByFeed(ctx)
+}
+
 // pollFeed fetches one feed (conditional GET) and ingests its new items,
 // dispatching on source type — scrape feeds have no RSS/Atom body to parse.
 func (s *FeedService) pollFeed(
