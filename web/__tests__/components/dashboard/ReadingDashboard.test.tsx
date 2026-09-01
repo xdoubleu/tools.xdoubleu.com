@@ -178,6 +178,7 @@ describe('ReadingDashboard', () => {
     })
     render(<ReadingDashboard />)
     expect(screen.getByText('2 unread')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByText('New post')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Feeds/ })).toHaveAttribute('href', '/feeds')
   })
 })
