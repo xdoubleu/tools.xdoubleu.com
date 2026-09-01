@@ -269,3 +269,20 @@ func TestPlanSharing_OwnerOnly(t *testing.T) {
 	assert.True(t, store.shared)
 	assert.True(t, store.unshared)
 }
+
+// TestPlanSharing_RejectsInvalidTarget guards issue #1349: the owner-share
+// path used to skip the empty-target/self-share validation that
+// shoppinglist/recipes' sharing already enforced.
+func TestPlanSharing_RejectsInvalidTarget(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture(true)}
+	svc := &PlanService{repo: store}
+
+	err := svc.Share(t.Context(), store.plan.ID, "owner", "", true)
+	assert.Equal(t, http.StatusBadRequest, planHTTPStatus(t, err))
+	assert.False(t, store.shared)
+
+	err = svc.Share(t.Context(), store.plan.ID, "owner", "owner", true)
+	assert.Equal(t, http.StatusBadRequest, planHTTPStatus(t, err))
+	assert.False(t, store.shared)
+}

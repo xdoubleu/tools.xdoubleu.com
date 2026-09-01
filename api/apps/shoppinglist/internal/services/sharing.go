@@ -6,6 +6,7 @@ import (
 
 	"tools.xdoubleu.com/apps/shoppinglist/internal/repositories"
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/sharing"
 )
 
 type sharingRepo interface {
@@ -40,11 +41,8 @@ func (s *SharingService) Share(
 	ownerID, targetUserID string,
 	canEdit bool,
 ) error {
-	if targetUserID == "" || targetUserID == ownerID {
-		return &iapp.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid contact to share with",
-		}
+	if err := sharing.ValidateShareTarget(ownerID, targetUserID); err != nil {
+		return err
 	}
 	return s.repo.ShareList(ctx, ownerID, targetUserID, canEdit)
 }
@@ -111,5 +109,5 @@ func (s *SharingService) ResolveOwner(
 			Message: "You have read-only access to this shopping list",
 		}
 	}
-	return requestedOwnerID, nil
+	return "", nil
 }

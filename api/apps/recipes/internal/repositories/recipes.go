@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -10,6 +9,7 @@ import (
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/pagination"
+	"tools.xdoubleu.com/internal/sharing"
 )
 
 type RecipesRepository struct {
@@ -206,32 +206,26 @@ func (r *RecipesRepository) GetIngredients(
 	return result, rows.Err()
 }
 
+// sharingAccess is recipes' use of the owner/user/can_edit access pattern
+// shared with shoppinglist's list sharing — see internal/sharing.Repository.
+func (r *RecipesRepository) sharingAccess() *sharing.Repository {
+	return sharing.NewRepository(r.db, "recipes", "recipebook_access")
+}
+
 // ShareBook grants targetUserID access to ownerID's whole recipe book.
 func (r *RecipesRepository) ShareBook(
 	ctx context.Context,
 	ownerID, targetUserID string,
 	canEdit bool,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO recipes.recipebook_access (owner_user_id, user_id, can_edit)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (owner_user_id, user_id)
-		DO UPDATE SET can_edit = EXCLUDED.can_edit`,
-		ownerID, targetUserID, canEdit,
-	)
-	return err
+	return r.sharingAccess().Share(ctx, ownerID, targetUserID, canEdit)
 }
 
 func (r *RecipesRepository) UnshareBook(
 	ctx context.Context,
 	ownerID, targetUserID string,
 ) error {
-	_, err := r.db.Exec(ctx,
-		`DELETE FROM recipes.recipebook_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, targetUserID,
-	)
-	return err
+	return r.sharingAccess().Unshare(ctx, ownerID, targetUserID)
 }
 
 // ListBookShares returns the users ownerID shares their recipe book with,
@@ -240,30 +234,19 @@ func (r *RecipesRepository) ListBookShares(
 	ctx context.Context,
 	ownerID string,
 ) ([]models.RecipeBookShare, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT ba.user_id, ba.can_edit,
-		       COALESCE(c.display_name, ba.user_id) AS display_name
-		FROM recipes.recipebook_access ba
-		LEFT JOIN global.contacts c
-		       ON c.owner_user_id = $1 AND c.contact_user_id = ba.user_id
-		WHERE ba.owner_user_id = $1
-		ORDER BY display_name`,
-		ownerID,
-	)
+	shares, err := r.sharingAccess().ListShares(ctx, ownerID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []models.RecipeBookShare
-	for rows.Next() {
-		var s models.RecipeBookShare
-		if err = rows.Scan(&s.UserID, &s.CanEdit, &s.DisplayName); err != nil {
-			return nil, err
+	result := make([]models.RecipeBookShare, len(shares))
+	for i, s := range shares {
+		result[i] = models.RecipeBookShare{
+			UserID:      s.UserID,
+			CanEdit:     s.CanEdit,
+			DisplayName: s.DisplayName,
 		}
-		result = append(result, s)
 	}
-	return result, rows.Err()
+	return result, nil
 }
 
 // GetBookAccess reports whether viewerID may access ownerID's book and, if so,
@@ -272,17 +255,5 @@ func (r *RecipesRepository) GetBookAccess(
 	ctx context.Context,
 	ownerID, viewerID string,
 ) (bool, bool, error) {
-	var canEdit bool
-	err := r.db.QueryRow(ctx, `
-		SELECT can_edit FROM recipes.recipebook_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, viewerID,
-	).Scan(&canEdit)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, false, nil
-		}
-		return false, false, err
-	}
-	return canEdit, true, nil
+	return r.sharingAccess().GetAccess(ctx, ownerID, viewerID)
 }

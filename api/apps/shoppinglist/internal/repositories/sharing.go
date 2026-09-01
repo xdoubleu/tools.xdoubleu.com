@@ -2,9 +2,8 @@ package repositories
 
 import (
 	"context"
-	"errors"
 
-	"github.com/jackc/pgx/v5"
+	"tools.xdoubleu.com/internal/sharing"
 )
 
 // ShoppingListShare is a user the owner shares their list with.
@@ -22,33 +21,27 @@ type ListOwner struct {
 	IsSelf      bool
 }
 
+// sharingAccess is shoppinglist's use of the owner/user/can_edit access
+// pattern shared with recipes' recipe-book sharing — see
+// internal/sharing.Repository.
+func (r *ShoppingRepository) sharingAccess() *sharing.Repository {
+	return sharing.NewRepository(r.db, "shoppinglist", "shoppinglist_access")
+}
+
 // ShareList grants targetUserID access to ownerID's shopping list.
 func (r *ShoppingRepository) ShareList(
 	ctx context.Context,
 	ownerID, targetUserID string,
 	canEdit bool,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO shoppinglist.shoppinglist_access
-			(owner_user_id, user_id, can_edit)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (owner_user_id, user_id)
-		DO UPDATE SET can_edit = EXCLUDED.can_edit`,
-		ownerID, targetUserID, canEdit,
-	)
-	return err
+	return r.sharingAccess().Share(ctx, ownerID, targetUserID, canEdit)
 }
 
 func (r *ShoppingRepository) UnshareList(
 	ctx context.Context,
 	ownerID, targetUserID string,
 ) error {
-	_, err := r.db.Exec(ctx, `
-		DELETE FROM shoppinglist.shoppinglist_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, targetUserID,
-	)
-	return err
+	return r.sharingAccess().Unshare(ctx, ownerID, targetUserID)
 }
 
 // ListShares returns the users ownerID shares their list with, resolving
@@ -57,30 +50,19 @@ func (r *ShoppingRepository) ListShares(
 	ctx context.Context,
 	ownerID string,
 ) ([]ShoppingListShare, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT a.user_id, a.can_edit,
-		       COALESCE(c.display_name, a.user_id) AS display_name
-		FROM shoppinglist.shoppinglist_access a
-		LEFT JOIN global.contacts c
-		       ON c.owner_user_id = $1 AND c.contact_user_id = a.user_id
-		WHERE a.owner_user_id = $1
-		ORDER BY display_name`,
-		ownerID,
-	)
+	shares, err := r.sharingAccess().ListShares(ctx, ownerID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []ShoppingListShare
-	for rows.Next() {
-		var s ShoppingListShare
-		if err = rows.Scan(&s.UserID, &s.CanEdit, &s.DisplayName); err != nil {
-			return nil, err
+	result := make([]ShoppingListShare, len(shares))
+	for i, s := range shares {
+		result[i] = ShoppingListShare{
+			UserID:      s.UserID,
+			CanEdit:     s.CanEdit,
+			DisplayName: s.DisplayName,
 		}
-		result = append(result, s)
 	}
-	return result, rows.Err()
+	return result, nil
 }
 
 // GetListAccess reports whether viewerID may act on ownerID's list and, if so,
@@ -89,19 +71,7 @@ func (r *ShoppingRepository) GetListAccess(
 	ctx context.Context,
 	ownerID, viewerID string,
 ) (bool, bool, error) {
-	var canEdit bool
-	err := r.db.QueryRow(ctx, `
-		SELECT can_edit FROM shoppinglist.shoppinglist_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, viewerID,
-	).Scan(&canEdit)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, false, nil
-		}
-		return false, false, err
-	}
-	return canEdit, true, nil
+	return r.sharingAccess().GetAccess(ctx, ownerID, viewerID)
 }
 
 // ListAccessibleOwners returns the lists shared with viewerID (not including
@@ -110,28 +80,18 @@ func (r *ShoppingRepository) ListAccessibleOwners(
 	ctx context.Context,
 	viewerID string,
 ) ([]ListOwner, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT a.owner_user_id, a.can_edit,
-		       COALESCE(c.display_name, a.owner_user_id) AS display_name
-		FROM shoppinglist.shoppinglist_access a
-		LEFT JOIN global.contacts c
-		       ON c.owner_user_id = $1 AND c.contact_user_id = a.owner_user_id
-		WHERE a.user_id = $1
-		ORDER BY display_name`,
-		viewerID,
-	)
+	owners, err := r.sharingAccess().ListAccessibleOwners(ctx, viewerID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var result []ListOwner
-	for rows.Next() {
-		o := ListOwner{IsSelf: false} //nolint:exhaustruct // scanned below
-		if err = rows.Scan(&o.UserID, &o.CanEdit, &o.DisplayName); err != nil {
-			return nil, err
+	result := make([]ListOwner, len(owners))
+	for i, o := range owners {
+		result[i] = ListOwner{
+			UserID:      o.UserID,
+			DisplayName: o.DisplayName,
+			CanEdit:     o.CanEdit,
+			IsSelf:      false,
 		}
-		result = append(result, o)
 	}
-	return result, rows.Err()
+	return result, nil
 }

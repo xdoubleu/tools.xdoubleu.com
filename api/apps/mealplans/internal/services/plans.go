@@ -9,6 +9,7 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	"tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/sharing"
 )
 
 const errNoEditAccess = "You do not have edit access to this plan"
@@ -316,6 +317,9 @@ func (s *PlanService) Share(
 			Status:  http.StatusForbidden,
 			Message: "Only the owner can share this plan",
 		}
+	}
+	if err = sharing.ValidateShareTarget(ownerID, contactUserID); err != nil {
+		return err
 	}
 	return s.repo.SharePlan(ctx, planID, contactUserID, canEdit)
 }

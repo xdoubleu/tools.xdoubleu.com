@@ -8,6 +8,7 @@ import (
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/sharing"
 )
 
 const errNotRecipeOwner = "You do not own this recipe"
@@ -191,11 +192,8 @@ func (s *RecipeService) ShareBook(
 	ownerID, targetUserID string,
 	canEdit bool,
 ) error {
-	if targetUserID == "" || targetUserID == ownerID {
-		return &app.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid contact to share with",
-		}
+	if err := sharing.ValidateShareTarget(ownerID, targetUserID); err != nil {
+		return err
 	}
 	return s.repo.ShareBook(ctx, ownerID, targetUserID, canEdit)
 }
