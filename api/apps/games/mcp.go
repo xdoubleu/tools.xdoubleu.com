@@ -22,8 +22,12 @@ type steamRangeArgs struct {
 	DateEnd   string `json:"date_end,omitempty"   jsonschema:"window end (YYYY-MM-DD)"`
 }
 
+// bucketArgs indexes services.DistributionLabels, which has 11 entries: 0 is
+// 0-9%, rising in tens, and 10 is the fully-completed (100%) bucket. Keep the
+// documented range in step with that list — an agent that trusts a narrower
+// range silently drops every game in the bucket it was told does not exist.
 type bucketArgs struct {
-	Bucket int32 `json:"bucket,omitempty" jsonschema:"distribution bucket (0-9)"`
+	Bucket int32 `json:"bucket,omitempty" jsonschema:"bucket (0-10; 10=100%)"`
 }
 
 // RegisterMCPTools exposes the games app's read-only RPCs on the combined apps
