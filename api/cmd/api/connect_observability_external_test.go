@@ -255,6 +255,47 @@ func TestObservabilityGetWorkflowRuns_MainFailureIncludesFailedJobs(t *testing.T
 	assert.Equal(t, []string{"Deploy to Hetzner via Kamal"}, resp.Msg.Runs[0].FailedJobs)
 }
 
+func TestObservabilityGetWorkflowRuns_MainFailureJobsFetchError(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	github.SetBackoffBase(time.Millisecond)
+	t.Cleanup(func() { github.SetBackoffBase(500 * time.Millisecond) })
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path == "/repos/o/r/actions/runs/2/jobs":
+				w.WriteHeader(http.StatusInternalServerError)
+			case r.URL.Query().Get("event") == "pull_request":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+			case r.URL.Query().Get("event") == "push":
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"workflow_runs":[
+					{"id":2,"name":"Main Workflow","event":"push","head_branch":"main",
+					 "status":"completed","conclusion":"failure","html_url":"u2",
+					 "run_started_at":"2026-07-01T10:00:00Z",
+					 "updated_at":"2026-07-01T10:01:00Z"}
+				]}`))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		}))
+	t.Cleanup(srv.Close)
+	github.SetBaseURL(srv.URL)
+	t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+	testApp.githubClient = github.New(
+		logging.NewNopLogger(),
+		stubTok("tok"),
+		testConfigJSON(t, map[string]string{"repo": "o/r"}),
+	)
+
+	resp, err := callWorkflowRuns(t)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.Runs, 1)
+	assert.Empty(t, resp.Msg.Runs[0].FailedJobs)
+}
+
 func TestObservabilityGetWorkflowRuns_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
