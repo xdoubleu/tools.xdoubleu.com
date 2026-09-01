@@ -650,16 +650,21 @@ func TestGetPlanIngredientGroups_PlanNotFound(t *testing.T) {
 
 func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 	planID := createTestPlan(t, "Groups Plan")
-	t.Cleanup(func() { deletePlan(t, planID) })
 
 	recipeID := createTestRecipeWithGroups(t)
 	t.Cleanup(func() {
-		_, _ = testDB.Exec(
+		_, err := testDB.Exec(
 			context.Background(),
 			"DELETE FROM recipes.recipes WHERE id = $1",
 			recipeID,
 		)
+		require.NoError(t, err)
 	})
+	// Registered after the recipe cleanup above so t.Cleanup's LIFO order runs
+	// this first: plan_meals references recipe_id with no ON DELETE clause, so
+	// the plan (and its plan_meals rows, cascaded via plan_id ON DELETE CASCADE)
+	// must be gone before the recipe delete above can succeed.
+	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
 	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
@@ -685,16 +690,19 @@ func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 
 func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 	planID := createTestPlan(t, "Attribution Plan")
-	t.Cleanup(func() { deletePlan(t, planID) })
 
 	recipeID := createTestRecipeWithGroups(t)
 	t.Cleanup(func() {
-		_, _ = testDB.Exec(
+		_, err := testDB.Exec(
 			context.Background(),
 			"DELETE FROM recipes.recipes WHERE id = $1",
 			recipeID,
 		)
+		require.NoError(t, err)
 	})
+	// See TestGetPlanIngredientGroups_ReturnsGroups for why this must be
+	// registered last (LIFO: runs before the recipe cleanup above).
+	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
 	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
@@ -738,16 +746,19 @@ func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 
 func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {
 	planID := createTestPlan(t, "Exclude Group Plan")
-	t.Cleanup(func() { deletePlan(t, planID) })
 
 	recipeID := createTestRecipeWithGroups(t)
 	t.Cleanup(func() {
-		_, _ = testDB.Exec(
+		_, err := testDB.Exec(
 			context.Background(),
 			"DELETE FROM recipes.recipes WHERE id = $1",
 			recipeID,
 		)
+		require.NoError(t, err)
 	})
+	// See TestGetPlanIngredientGroups_ReturnsGroups for why this must be
+	// registered last (LIFO: runs before the recipe cleanup above).
+	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
 	addPlanMeal(t, planID, recipeID, tomorrow, "noon")
