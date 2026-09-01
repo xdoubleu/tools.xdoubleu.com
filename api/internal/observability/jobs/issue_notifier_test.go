@@ -110,16 +110,23 @@ func failingPRNumbered(
 	}
 }
 
+// fakeMailer records both halves of every send: sent holds subjects,
+// bodies the matching body at the same index. WeeklyDigestJob sends two
+// separate emails per run, and only the bodies distinguish which content
+// landed in which — a subject-only fake made assertions about that
+// vacuously pass.
 type fakeMailer struct {
-	sent []string
-	err  error
+	sent   []string
+	bodies []string
+	err    error
 }
 
-func (f *fakeMailer) Send(_ context.Context, subject, _ string) error {
+func (f *fakeMailer) Send(_ context.Context, subject, body string) error {
 	if f.err != nil {
 		return f.err
 	}
 	f.sent = append(f.sent, subject)
+	f.bodies = append(f.bodies, body)
 	return nil
 }
 
@@ -245,7 +252,7 @@ func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -269,7 +276,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedIssue(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["sentry:1"] = true
 	notifSvc := testNotifications(t, mail)
@@ -293,7 +300,7 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: mailer.ErrNotConfigured}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: mailer.ErrNotConfigured}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -314,7 +321,7 @@ func TestIssueNotifierMailerNotConfiguredDoesNotRecordAsNotified(t *testing.T) {
 
 func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: context.DeadlineExceeded}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
@@ -337,7 +344,7 @@ func TestIssueNotifierLogsWarnForTransientSentryError(t *testing.T) {
 
 func TestIssueNotifierLogsErrorForNonTransientSentryError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: assert.AnError}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
@@ -361,7 +368,7 @@ func TestIssueNotifierIDAndRunEvery(t *testing.T) {
 	job := jobs.NewIssueNotifierJob(
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil},
-		testNotifications(t, &fakeMailer{sent: nil, err: nil}),
+		testNotifications(t, &fakeMailer{sent: nil, bodies: nil, err: nil}),
 		newFakeNotifiedRepo(),
 		alwaysEnabledSettings{},
 		noSnapshotGetter,
@@ -375,7 +382,7 @@ func TestIssueNotifierNotifiedExistsErrorPropagates(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("42", "kaboom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := &erroringNotifiedRepo{err: assert.AnError}
 	notifSvc := testNotifications(t, mail)
 
@@ -398,7 +405,7 @@ func TestIssueNotifierRealSendErrorIsNotMarkedAsNotified(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: assert.AnError}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: assert.AnError}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -423,7 +430,7 @@ func TestIssueNotifierSendsForFailingDependencyPR(t *testing.T) {
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -448,7 +455,7 @@ func TestIssueNotifierGithubNoFailingPRs(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: []github.PullRequest{}, err: nil, alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -476,7 +483,7 @@ func TestIssueNotifierGithubHandlesMultiplePRs(t *testing.T) {
 		},
 		err: nil, alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -503,7 +510,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedDependencyPR(t *testing.T) {
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
@@ -529,7 +536,7 @@ func TestIssueNotifierRenotifiesDependencyPROnNewHeadSHA(t *testing.T) {
 		prs: []github.PullRequest{failingPR("sha2", "dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["github:pr:42:sha1"] = true
 	notifSvc := testNotifications(t, mail)
@@ -559,7 +566,7 @@ func TestIssueNotifierGithubNotifiedExistsErrorPropagates(t *testing.T) {
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := &erroringNotifiedRepo{err: assert.AnError}
 	notifSvc := testNotifications(t, mail)
 
@@ -583,7 +590,7 @@ func TestIssueNotifierGithubNotConfiguredSkipsSilently(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: github.ErrNotConfigured, alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -607,7 +614,7 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: context.DeadlineExceeded, alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
@@ -631,7 +638,7 @@ func TestIssueNotifierLogsWarnForTransientGithubError(t *testing.T) {
 func TestIssueNotifierLogsErrorForNonTransientGithubError(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: assert.AnError, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	logger, buf := testLoggerWithBuf()
 	notifSvc := testNotifications(t, mail)
@@ -668,7 +675,7 @@ func TestIssueNotifierSkipsSentryWhenSourceDisabled(t *testing.T) {
 	sentry := fakeSentryClient{
 		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	settings := disabledSourceSettings{
@@ -698,7 +705,7 @@ func TestIssueNotifierSkipsGithubWhenSourceDisabled(t *testing.T) {
 		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	//nolint:exhaustive //only sentry_issues needs to be listed as enabled here
@@ -750,7 +757,7 @@ func TestIssueNotifierSendsForSecurityAlert(t *testing.T) {
 		},
 		alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -783,7 +790,7 @@ func TestIssueNotifierSecurityAlertDedupKeyIncludesType(t *testing.T) {
 		},
 		alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -813,7 +820,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedSecurityAlert(t *testing.T) {
 		},
 		alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["security:dependabot:5"] = true
 	notifSvc := testNotifications(t, mail)
@@ -838,7 +845,7 @@ func TestIssueNotifierSecurityAlertsNotConfiguredSkipsSilently(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: nil, alerts: nil, alertsErr: github.ErrNotConfigured,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -865,7 +872,7 @@ func TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 	gh := fakeGithubClient{
 		prs: nil, err: nil, alerts: nil, alertsErr: errors.New("upstream down"),
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -887,7 +894,7 @@ func TestIssueNotifierSecurityAlertsUpstreamErrorSkipsSilently(t *testing.T) {
 func TestIssueNotifierSendsForNewOrphan(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	storage := fakeStorageSnapshotGetter{
@@ -918,7 +925,7 @@ func TestIssueNotifierSendsForNewOrphan(t *testing.T) {
 func TestIssueNotifierSkipsAlreadyNotifiedOrphan(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notified.keys["orphan:books/abc/def.epub"] = true
 	notifSvc := testNotifications(t, mail)
@@ -949,7 +956,7 @@ func TestIssueNotifierSkipsAlreadyNotifiedOrphan(t *testing.T) {
 func TestIssueNotifierNoSnapshotYetSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -966,7 +973,7 @@ func TestIssueNotifierNoSnapshotYetSkipsSilently(t *testing.T) {
 func TestIssueNotifierOrphanSnapshotErrorLogsErrorAndSkipsSilently(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	logger, buf := testLoggerWithBuf()
@@ -991,7 +998,7 @@ func TestIssueNotifierOrphanSnapshotErrorLogsErrorAndSkipsSilently(t *testing.T)
 func TestIssueNotifierSkipsOrphansWhenSourceDisabled(t *testing.T) {
 	sentry := fakeSentryClient{issues: nil, err: nil}
 	gh := fakeGithubClient{prs: nil, err: nil, alerts: nil, alertsErr: nil}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	storage := fakeStorageSnapshotGetter{
@@ -1030,7 +1037,7 @@ func TestIssueNotifierSkipsSecurityAlertsWhenSourceDisabled(t *testing.T) {
 		},
 		alertsErr: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	//nolint:exhaustive //only sentry_issues/failing_dependency_prs need to be listed here
@@ -1081,7 +1088,7 @@ func TestIssueNotifierSendsForSlowTransaction(t *testing.T) {
 		},
 		err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -1123,7 +1130,7 @@ func TestIssueNotifierNotifiesForProgressWebSocketTransaction(t *testing.T) {
 		},
 		err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -1158,7 +1165,7 @@ func TestIssueNotifierSkipsExcludedTransaction(t *testing.T) {
 		},
 		err: nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -1185,7 +1192,7 @@ func TestIssueNotifierSkipsTransactionBelowThreshold(t *testing.T) {
 		trends: []models.TransactionTrend{slowTrend("tools-web", "/dashboard", 1500)},
 		err:    nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 
@@ -1212,7 +1219,7 @@ func TestIssueNotifierSkipsSlowTransactionsWhenSourceDisabled(t *testing.T) {
 		trends: []models.TransactionTrend{slowTrend("tools-api", "steam", 65000)},
 		err:    nil,
 	}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	//nolint:exhaustive //only sentry_issues needs to be listed here
@@ -1240,7 +1247,7 @@ func TestIssueNotifierSkipsSlowTransactionsWhenSourceDisabled(t *testing.T) {
 
 func TestIssueNotifierSlowTransactionsErrorLogsAndContinues(t *testing.T) {
 	slow := fakeSlowTransactionsRepo{trends: nil, err: assert.AnError}
-	mail := &fakeMailer{sent: nil, err: nil}
+	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notified := newFakeNotifiedRepo()
 	notifSvc := testNotifications(t, mail)
 	logger, buf := testLoggerWithBuf()

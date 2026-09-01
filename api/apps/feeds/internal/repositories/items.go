@@ -288,6 +288,51 @@ func (repo *ItemsRepository) CountUnread(
 	return count, nil
 }
 
+// CountUnreadByFeed returns the number of non-dismissed, successfully
+// ingested, unread items per feed, across all users, restricted to feeds
+// with at least one such item — for the weekly digest job's open-feed-items
+// reminder (issue #1355). Only ids/counts are selected, never content_html
+// (see the "Never put a wide TEXT column in a list query" convention).
+func (repo *ItemsRepository) CountUnreadByFeed(
+	ctx context.Context,
+) ([]models.FeedUnreadCount, error) {
+	query := `
+		SELECT f.id, f.title, f.url, count(i.id)
+		FROM feeds.items i
+		JOIN feeds.feeds f ON f.id = i.feed_id
+		WHERE i.ingest_error IS NULL AND i.dismissed = false
+		  AND i.read_at IS NULL
+		GROUP BY f.id, f.user_id, f.title, f.url
+		ORDER BY f.user_id, f.title, f.url
+	`
+	rows, err := repo.db.Query(ctx, query)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	defer rows.Close()
+
+	var out []models.FeedUnreadCount
+	for rows.Next() {
+		var c models.FeedUnreadCount
+		// url is nullable (email feeds have none, see feedColumns' own
+		// handling in feeds.go's scanFeed).
+		var url *string
+		if scanErr := rows.Scan(
+			&c.FeedID, &c.FeedTitle, &url, &c.UnreadCount,
+		); scanErr != nil {
+			return nil, postgres.PgxErrorToHTTPError(scanErr)
+		}
+		if url != nil {
+			c.FeedURL = *url
+		}
+		out = append(out, c)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return out, nil
+}
+
 // RecentPublishedAt returns the publish timestamps of the feed's most recent
 // successfully-ingested items, newest first, for the quiet-feed cadence
 // check (issue #799).

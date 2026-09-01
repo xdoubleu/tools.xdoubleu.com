@@ -35,21 +35,48 @@ type unhealthyFeedLister interface {
 	ListUnhealthy(ctx context.Context) ([]UnhealthyFeed, error)
 }
 
+// OpenFeedItem is one feed with unread items, as reported by the feeds app
+// for the weekly digest's open-feed-items reminder (issue #1355).
+type OpenFeedItem struct {
+	Title string
+	URL   string
+	Count int
+}
+
+// openFeedItemsLister is the subset of *feeds.Feeds this job needs for the
+// open-feed-items reminder — kept narrow for the same reason as
+// unhealthyFeedLister above.
+type openFeedItemsLister interface {
+	ListOpenItems(ctx context.Context) ([]OpenFeedItem, error)
+}
+
 // WeeklyDigestJob emails an admin, once a week, a summary of every issue
 // IssueNotifierJob already alerted on at least once but that may still be
 // open — a real-time alert fires only the first time an issue is seen, so
-// this restates anything still unresolved a week later, plus feeds
-// currently failing to poll. Unlike IssueNotifierJob there is no per-item
-// dedup: every run sends, including a short "all clear" email when a source
-// is enabled but has nothing to report, so a missing weekly email is itself
-// a signal the job stopped running rather than being indistinguishable from
-// "nothing to report". The one case that does suppress the send entirely is
-// every source being disabled in global.notification_settings — an admin
-// who turned everything off shouldn't still get an empty digest every week.
+// this restates anything still unresolved a week later.
+//
+// It sends two separate emails, not one combined digest: monitoring
+// (Sentry, failing dependency PRs, security alerts, slow transactions) and
+// feeds (feeds failing to poll, unread items). Monitoring and feeds are
+// separate apps with separate audiences — an admin chasing a red CI check
+// and a reader clearing a backlog of unread items are doing unrelated
+// things, and folding both into one mail means neither can be skimmed,
+// filtered or muted on its own.
+//
+// Unlike IssueNotifierJob there is no per-item dedup: every run sends,
+// including a short "all clear" email when a source is enabled but has
+// nothing to report, so a missing weekly email is itself a signal the job
+// stopped running rather than being indistinguishable from "nothing to
+// report". The one case that suppresses a send entirely is every source
+// feeding that particular email being disabled in
+// global.notification_settings — an admin who turned all of monitoring off
+// shouldn't still get an empty monitoring digest every week, and the two
+// emails make that call independently of each other.
 type WeeklyDigestJob struct {
 	sentry             sentryapi.Client
 	gh                 issueNotifierGithubClient
 	feeds              unhealthyFeedLister
+	openFeedItems      openFeedItemsLister
 	notifications      *notifications.Service
 	settings           notificationSettingsRepo
 	transactionLatency slowTransactionsRepo
@@ -59,6 +86,7 @@ func NewWeeklyDigestJob(
 	sentry sentryapi.Client,
 	gh issueNotifierGithubClient,
 	feeds unhealthyFeedLister,
+	openFeedItems openFeedItemsLister,
 	notifications *notifications.Service,
 	settings notificationSettingsRepo,
 	transactionLatency slowTransactionsRepo,
@@ -67,6 +95,7 @@ func NewWeeklyDigestJob(
 		sentry:             sentry,
 		gh:                 gh,
 		feeds:              feeds,
+		openFeedItems:      openFeedItems,
 		notifications:      notifications,
 		settings:           settings,
 		transactionLatency: transactionLatency,
@@ -81,51 +110,67 @@ func (j *WeeklyDigestJob) RunEvery() time.Duration {
 	return weeklyDigestRunEvery
 }
 
+// digest accumulates the sections of one outgoing email, along with whether
+// any of the sources feeding it is enabled at all — an empty section list is
+// ambiguous between "everything healthy" and "everything muted", and only
+// the former should still send an all-clear.
+type digest struct {
+	subject    string
+	emptyBody  string
+	sections   []string
+	anyEnabled bool
+}
+
+// add takes a section method's (text, enabled) pair directly, so registering
+// a source reads as one line per source.
+func (d *digest) add(section string, enabled bool) {
+	d.anyEnabled = d.anyEnabled || enabled
+	if section != "" {
+		d.sections = append(d.sections, section)
+	}
+}
+
 func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
-	var sections []string
-	var anyEnabled bool
+	monitoring := &digest{
+		subject:    "[Weekly Digest] Monitoring — open issues summary",
+		emptyBody:  "No open monitoring issues this week.",
+		sections:   nil,
+		anyEnabled: false,
+	}
+	monitoring.add(j.sentrySection(ctx, logger))
+	monitoring.add(j.githubSection(ctx, logger))
+	monitoring.add(j.securityAlertsSection(ctx, logger))
+	monitoring.add(j.slowTransactionsSection(ctx, logger))
 
-	s, enabled := j.sentrySection(ctx, logger)
-	anyEnabled = anyEnabled || enabled
-	if s != "" {
-		sections = append(sections, s)
+	feeds := &digest{
+		subject:    "[Weekly Digest] Feeds — open items and failing feeds",
+		emptyBody:  "No feeds need attention this week.",
+		sections:   nil,
+		anyEnabled: false,
+	}
+	feeds.add(j.feedsSection(ctx, logger))
+	feeds.add(j.openFeedItemsSection(ctx, logger))
+
+	j.send(monitoring)
+	j.send(feeds)
+
+	return nil
+}
+
+// send enqueues one digest email, skipping it entirely when every source
+// feeding it is disabled.
+func (j *WeeklyDigestJob) send(d *digest) {
+	if !d.anyEnabled {
+		return
 	}
 
-	s, enabled = j.githubSection(ctx, logger)
-	anyEnabled = anyEnabled || enabled
-	if s != "" {
-		sections = append(sections, s)
-	}
-
-	s, enabled = j.feedsSection(ctx, logger)
-	anyEnabled = anyEnabled || enabled
-	if s != "" {
-		sections = append(sections, s)
-	}
-
-	s, enabled = j.securityAlertsSection(ctx, logger)
-	anyEnabled = anyEnabled || enabled
-	if s != "" {
-		sections = append(sections, s)
-	}
-
-	s, enabled = j.slowTransactionsSection(ctx, logger)
-	anyEnabled = anyEnabled || enabled
-	if s != "" {
-		sections = append(sections, s)
-	}
-
-	if !anyEnabled {
-		return nil
-	}
-
-	body := "No open issues this week."
-	if len(sections) > 0 {
-		body = strings.Join(sections, "\n\n")
+	body := d.emptyBody
+	if len(d.sections) > 0 {
+		body = strings.Join(d.sections, "\n\n")
 	}
 
 	j.notifications.Enqueue(
-		"[Weekly Digest] Open issues summary",
+		d.subject,
 		body,
 		func(_ context.Context, err error) error {
 			if errors.Is(err, mailer.ErrNotConfigured) {
@@ -134,12 +179,11 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 			return err
 		},
 	)
-	return nil
 }
 
 // sentrySection returns the section's rendered text (empty when there's
 // nothing to report) and whether the source is enabled — enabled is what
-// Run uses to decide whether the weekly email should send at all, since an
+// digest.add uses to decide whether that email should send at all, since an
 // empty section is ambiguous between "healthy" and "disabled".
 func (j *WeeklyDigestJob) sentrySection(
 	ctx context.Context, logger *slog.Logger,
@@ -353,4 +397,51 @@ func (j *WeeklyDigestJob) slowTransactionsSection(
 	}
 	return fmt.Sprintf("Slow transactions — %d over threshold:\n%s",
 		len(slow), strings.Join(lines, "\n")), true
+}
+
+// openFeedItemsSection follows sentrySection's (text, enabled) contract.
+// Unlike feedsSection (feeds failing to poll), this restates every feed
+// with at least one open (unread, non-dismissed) item, across all users —
+// a nudge that items are piling up unread rather than a health problem
+// (issue #1355).
+func (j *WeeklyDigestJob) openFeedItemsSection(
+	ctx context.Context, logger *slog.Logger,
+) (string, bool) {
+	enabled, err := j.settings.IsEnabled(
+		ctx,
+		repositories.NotificationSourceOpenFeedItems,
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"weekly-digest: failed to read open_feed_items setting",
+			"error", err)
+		return "", true
+	}
+	if !enabled {
+		return "", false
+	}
+
+	open, err := j.openFeedItems.ListOpenItems(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx, "weekly-digest: failed to list open feed items",
+			"error", err)
+		return "", true
+	}
+	if len(open) == 0 {
+		return "", true
+	}
+
+	total := 0
+	lines := make([]string, len(open))
+	for i, feed := range open {
+		total += feed.Count
+		lines[i] = fmt.Sprintf(
+			"- %s (%s) — %d unread",
+			feed.Title,
+			feed.URL,
+			feed.Count,
+		)
+	}
+	return fmt.Sprintf("Feeds — %d unread item(s) across %d feed(s):\n%s",
+		total, len(open), strings.Join(lines, "\n")), true
 }

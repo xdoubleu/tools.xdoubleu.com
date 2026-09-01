@@ -10,24 +10,29 @@ jest.mock('@/hooks/useMonitoring', () => ({
 }))
 
 describe('FeedsNotificationSettingsCard', () => {
-  it('renders only unhealthy_feeds, not the monitoring-owned sources', () => {
+  it('renders unhealthy_feeds and open_feed_items, not the monitoring-owned sources', () => {
     mockUseNotificationSettings.mockReturnValue({
       data: create(GetNotificationSettingsResponseSchema, {
         settings: [
           { sourceKey: 'sentry_issues', enabled: true },
           { sourceKey: 'failing_dependency_prs', enabled: true },
-          { sourceKey: 'unhealthy_feeds', enabled: false }
+          { sourceKey: 'unhealthy_feeds', enabled: false },
+          { sourceKey: 'open_feed_items', enabled: true }
         ]
       })
     })
     render(<FeedsNotificationSettingsCard />)
 
     expect(screen.getByText('Unhealthy feeds')).toBeInTheDocument()
+    expect(screen.getByText('Open feed items')).toBeInTheDocument()
     expect(screen.queryByText('Sentry issues')).not.toBeInTheDocument()
     expect(screen.queryByText('Failing dependency PRs')).not.toBeInTheDocument()
     expect(
       screen.getByRole('checkbox', { name: 'Email notifications for Unhealthy feeds' })
     ).not.toBeChecked()
+    expect(
+      screen.getByRole('checkbox', { name: 'Email notifications for Open feed items' })
+    ).toBeChecked()
   })
 
   it('shows a loading state without data', () => {

@@ -19,7 +19,8 @@ const SOURCE_LABELS: Record<string, string> = {
   ci_duration_high: 'CI workflow duration high',
   slow_transaction_http_high: 'Slow HTTP handlers',
   slow_transaction_job_high: 'Slow background jobs',
-  slow_transaction_frontend_high: 'Slow frontend spans'
+  slow_transaction_frontend_high: 'Slow frontend spans',
+  open_feed_items: 'Open feed items'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
@@ -47,7 +48,8 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   slow_transaction_job_high:
     "Emails an admin when a background job's p95 duration goes above threshold, and again on recovery.",
   slow_transaction_frontend_high:
-    "Emails an admin when a frontend span's p95 duration goes above threshold, and again on recovery."
+    "Emails an admin when a frontend span's p95 duration goes above threshold, and again on recovery.",
+  open_feed_items: 'Includes feeds with unread items in the weekly digest email.'
 }
 
 function sourceLabel(sourceKey: string): string {

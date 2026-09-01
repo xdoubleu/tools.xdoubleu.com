@@ -87,6 +87,16 @@ type Item struct {
 	CreatedAt   time.Time
 }
 
+// FeedUnreadCount is one feed's count of open (unread, non-dismissed,
+// successfully ingested) items, across all users — the weekly digest job's
+// open-feed-items reminder (issue #1355).
+type FeedUnreadCount struct {
+	FeedID      uuid.UUID
+	FeedTitle   string
+	FeedURL     string
+	UnreadCount int
+}
+
 // FeedStats aggregates one feed's posting cadence and read/completion
 // metrics (issue #798).
 type FeedStats struct {
