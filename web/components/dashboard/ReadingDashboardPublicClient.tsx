@@ -1,15 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import {
-  useSharedLibrary,
-  useSharedBooksProgress,
-  useSharedFeedsSummary
-} from '@/hooks/useDashboardShare'
+import { useSharedLibrary, useSharedBooksProgress } from '@/hooks/useDashboardShare'
 import type { GetSharedLibraryResponse } from '@/lib/gen/dashboard/v1/reading_pb'
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
-import SharedFeedsCard from '@/components/dashboard/SharedFeedsCard'
 import { Button } from '@/components/ui/button'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
@@ -29,7 +24,6 @@ export default function ReadingDashboardPublicClient({
     chart.start,
     chart.end
   )
-  const { data: feedsSummaryData } = useSharedFeedsSummary(token)
   const library = data?.library
   const allTimeChartData =
     progressData?.progress?.labels?.map((label: string, idx: number) => ({
@@ -51,7 +45,7 @@ export default function ReadingDashboardPublicClient({
           <DashboardBookCard userBook={ub} />
         </div>
       )}
-      feedsCard={<SharedFeedsCard feeds={feedsSummaryData?.feeds} />}
+      // feeds hidden from the reading dashboard for now — see issue #1382
       actions={
         <>
           {data?.lastSyncedAt ? (

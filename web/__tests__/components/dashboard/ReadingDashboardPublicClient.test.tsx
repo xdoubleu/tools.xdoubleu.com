@@ -11,12 +11,10 @@ import { GetSharedLibraryResponseSchema } from '@/lib/gen/dashboard/v1/reading_p
 
 const mockUseSharedLibrary = jest.fn()
 const mockUseSharedBooksProgress = jest.fn()
-const mockUseSharedFeedsSummary = jest.fn()
 
 jest.mock('@/hooks/useDashboardShare', () => ({
   useSharedLibrary: () => mockUseSharedLibrary(),
-  useSharedBooksProgress: () => mockUseSharedBooksProgress(),
-  useSharedFeedsSummary: () => mockUseSharedFeedsSummary()
+  useSharedBooksProgress: () => mockUseSharedBooksProgress()
 }))
 
 jest.mock('@/components/books/BooksProgressChart', () => () => (
@@ -76,7 +74,6 @@ describe('ReadingDashboardPublicClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseSharedBooksProgress.mockReturnValue({ data: undefined })
-    mockUseSharedFeedsSummary.mockReturnValue({ data: undefined })
   })
 
   it('renders stat cards and last synced state', () => {
@@ -153,30 +150,5 @@ describe('ReadingDashboardPublicClient', () => {
     expect(screen.getByTestId('books-progress-chart')).toBeInTheDocument()
     expect(screen.getByLabelText('From')).toBeInTheDocument()
     expect(screen.getByLabelText('To')).toBeInTheDocument()
-  })
-
-  it('renders the subscribed feeds list, linking feeds with a public URL', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    mockUseSharedFeedsSummary.mockReturnValue({
-      data: {
-        feeds: [
-          { title: 'RSS Feed', url: 'https://example.com/rss' },
-          { title: 'Email Feed', url: '' }
-        ]
-      }
-    })
-    render(<ReadingDashboardPublicClient token="tok-1" />)
-
-    const rssLink = screen.getByRole('link', { name: 'RSS Feed' })
-    expect(rssLink).toHaveAttribute('href', 'https://example.com/rss')
-    expect(screen.getByText('Email Feed')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Email Feed' })).not.toBeInTheDocument()
-  })
-
-  it('omits the feeds widget while the feed list has not loaded', () => {
-    mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
-    render(<ReadingDashboardPublicClient token="tok-1" />)
-
-    expect(screen.queryByText('Feeds')).not.toBeInTheDocument()
   })
 })

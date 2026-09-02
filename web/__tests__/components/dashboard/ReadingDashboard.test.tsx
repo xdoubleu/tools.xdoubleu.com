@@ -6,10 +6,6 @@ jest.mock('@/hooks/useBooks', () => ({
   useBooksProgress: jest.fn()
 }))
 
-jest.mock('@/hooks/useFeeds', () => ({
-  useFeedsSummary: jest.fn()
-}))
-
 jest.mock('next/image', () => {
   return function MockImage({ src, alt, ...props }: { src: string; alt: string }) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -46,7 +42,6 @@ jest.mock('swr', () => ({ mutate: jest.fn() }))
 
 import ReadingDashboard from '@/components/dashboard/ReadingDashboard'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
-import { useFeedsSummary } from '@/hooks/useFeeds'
 import { create } from '@bufbuild/protobuf'
 import {
   UserBookSchema,
@@ -57,7 +52,6 @@ import {
 
 const mockUseBacklogLibrary = jest.mocked(useLibrary)
 const mockUseBooksProgress = jest.mocked(useBooksProgress)
-const mockUseFeedsSummary = jest.mocked(useFeedsSummary)
 
 const readingBook = create(UserBookSchema, {
   id: '1',
@@ -92,7 +86,6 @@ function mockLibrary(reading = [readingBook]) {
 describe('ReadingDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockUseFeedsSummary.mockReturnValue({ data: undefined, error: undefined, isLoading: false })
   })
 
   it('renders the stat cards derived from the library', () => {
@@ -167,18 +160,5 @@ describe('ReadingDashboard', () => {
     mockUseBooksProgress.mockReturnValue({ data: undefined })
     render(<ReadingDashboard />)
     expect(screen.getByText('Failed to load books.')).toBeInTheDocument()
-  })
-
-  it('renders the feeds summary widget linking to /feeds', () => {
-    mockLibrary()
-    mockUseFeedsSummary.mockReturnValue({
-      data: { unreadCount: 2, items: [{ title: 'New post', sourceUrl: 'x', publishedAt: 'y' }] },
-      error: undefined,
-      isLoading: false
-    })
-    render(<ReadingDashboard />)
-    expect(screen.getByText('2 unread')).toBeInTheDocument()
-    expect(screen.getByText('New post')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Feeds/ })).toHaveAttribute('href', '/feeds')
   })
 })
