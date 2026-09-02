@@ -1,14 +1,22 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-const fetchOrNull = jest.fn()
+const listCategories = jest.fn().mockResolvedValue({})
+const listItemNames = jest.fn().mockResolvedValue({})
+const listItemCategories = jest.fn().mockResolvedValue({})
+const listStores = jest.fn().mockResolvedValue({})
 
 jest.mock('@/lib/server/client', () => ({
-  createServerClient: jest.fn(async () => ({}))
+  createServerClient: jest.fn(async () => ({
+    listCategories: (...args: unknown[]) => listCategories(...args),
+    listItemNames: (...args: unknown[]) => listItemNames(...args),
+    listItemCategories: (...args: unknown[]) => listItemCategories(...args),
+    listStores: (...args: unknown[]) => listStores(...args)
+  }))
 }))
 
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: (fn: () => Promise<unknown>) => fetchOrNull(fn)
+  fetchOrNull: (fn: () => Promise<unknown>) => fn()
 }))
 
 jest.mock('@/components/SWRFallback', () => ({
@@ -33,13 +41,16 @@ import Page from '@/app/shoppinglist/settings/page'
 
 describe('ShoppingListSettingsPage', () => {
   it('renders with server-fetched data', async () => {
-    fetchOrNull.mockResolvedValue({})
     render(await Page())
     expect(screen.getByTestId('client')).toBeInTheDocument()
+    expect(listCategories).toHaveBeenCalledWith({})
   })
 
   it('renders when the server fetch returns null', async () => {
-    fetchOrNull.mockResolvedValue(null)
+    listCategories.mockResolvedValueOnce(null)
+    listItemNames.mockResolvedValueOnce(null)
+    listItemCategories.mockResolvedValueOnce(null)
+    listStores.mockResolvedValueOnce(null)
     render(await Page())
     expect(screen.getByTestId('client')).toBeInTheDocument()
   })

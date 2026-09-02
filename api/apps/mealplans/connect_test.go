@@ -34,12 +34,15 @@ func contextWithUser(ctx context.Context, user *sharedmodels.User) context.Conte
 // reference a real recipe_id without spinning up the recipes app.
 func createRecipeInDB(t *testing.T, name string) uuid.UUID {
 	t.Helper()
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+
 	var id uuid.UUID
-	err := testDB.QueryRow(context.Background(), `
-		INSERT INTO recipes.recipes (user_id, name, base_servings)
-		VALUES ($1, $2, 2)
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, family_id, name, base_servings)
+		VALUES ($1, $2, $3, 2)
 		RETURNING id`,
-		userID, name,
+		userID, familyID, name,
 	).Scan(&id)
 	require.NoError(t, err)
 	return id
@@ -49,12 +52,15 @@ func createRecipeInDB(t *testing.T, name string) uuid.UUID {
 // without going through the ListPlans auto-creation.
 func createPlanInDB(t *testing.T, name string) string {
 	t.Helper()
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+
 	var id string
-	err := testDB.QueryRow(context.Background(), `
-		INSERT INTO mealplans.plans (owner_user_id, name)
-		VALUES ($1, $2)
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO mealplans.plans (owner_user_id, family_id, name)
+		VALUES ($1, $2, $3)
 		RETURNING id::text`,
-		userID, name,
+		userID, familyID, name,
 	).Scan(&id)
 	require.NoError(t, err)
 	return id
@@ -218,6 +224,51 @@ func TestUpdatePlan_Success(t *testing.T) {
 	assert.Equal(t, "Updated Plan", getResp.Msg.Plan.Name)
 }
 
+// TestFamilyMember_GrantsAccess creates a plan owned by another user, joins
+// them into userID's family directly in the DB (the mock auth always
+// authenticates the server as userID, so the family membership must be
+// staged directly), then confirms userID can read and edit that plan.
+func TestFamilyMember_GrantsAccess(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	const familyMember = "mealplans-family-member-1"
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO global.family_members (user_id, family_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id) DO UPDATE SET family_id = EXCLUDED.family_id`,
+		familyMember, familyID,
+	)
+	require.NoError(t, err)
+
+	var planID string
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO mealplans.plans (owner_user_id, family_id, name)
+		VALUES ($1, $2, 'Family Member Plan')
+		RETURNING id::text`,
+		familyMember, familyID,
+	).Scan(&planID)
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(
+		ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{Id: planID}),
+	)
+	require.NoError(t, err)
+	assert.False(t, getResp.Msg.IsOwner)
+
+	_, err = client.UpdatePlan(ctx, connect.NewRequest(&mealplansv1.UpdatePlanRequest{
+		Id: planID, Name: "Edited By Family Member",
+	}))
+	require.NoError(t, err)
+}
+
 func TestAddMeal_WithRecipe(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
@@ -367,49 +418,6 @@ func TestDeleteMeal_Success(t *testing.T) {
 	assert.Equal(t, 0, len(getResp2.Msg.Plan.Meals))
 }
 
-func TestSharePlan_Success(t *testing.T) {
-	client := setupMealPlansClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-
-	planID := createPlanInDB(t, "Share Plan")
-
-	_, err := client.SharePlan(
-		ctx,
-		connect.NewRequest(&mealplansv1.SharePlanRequest{
-			PlanId:        planID,
-			ContactUserId: "other-user",
-			CanEdit:       true,
-		}),
-	)
-	require.NoError(t, err)
-}
-
-func TestUnsharePlan_RequiresTargetUserID(t *testing.T) {
-	client := setupMealPlansClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-
-	planID := createPlanInDB(t, "Unshare Plan")
-
-	_, err := client.UnsharePlan(
-		ctx,
-		connect.NewRequest(&mealplansv1.UnsharePlanRequest{
-			PlanId: planID, TargetUserId: "",
-		}),
-	)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
-}
-
 func TestMoveMeal_ToEmptySlot(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
@@ -524,28 +532,6 @@ func TestMoveMeal_NoOp(t *testing.T) {
 	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
 	assert.Equal(t, today, getResp.Msg.Plan.Meals[0].MealDate)
 	assert.Equal(t, "evening", getResp.Msg.Plan.Meals[0].MealSlot)
-}
-
-func TestUnsharePlan_Success(t *testing.T) {
-	client := setupMealPlansClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-
-	planID := createPlanInDB(t, "Unshare Test")
-
-	_, err := client.SharePlan(ctx, connect.NewRequest(&mealplansv1.SharePlanRequest{
-		PlanId: planID, ContactUserId: "other-user", CanEdit: false,
-	}))
-	require.NoError(t, err)
-
-	_, err = client.UnsharePlan(ctx, connect.NewRequest(&mealplansv1.UnsharePlanRequest{
-		PlanId: planID, TargetUserId: "other-user",
-	}))
-	require.NoError(t, err)
 }
 
 func TestDeleteMeal_InvalidPlanID(t *testing.T) {
@@ -769,21 +755,6 @@ func TestMoveMeal_InvalidSlot(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
-func TestSharePlan_InvalidPlanID(t *testing.T) {
-	client := setupMealPlansClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-	_, err := client.SharePlan(ctx, connect.NewRequest(&mealplansv1.SharePlanRequest{
-		PlanId: "not-a-uuid", ContactUserId: "other-user",
-	}))
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
-}
-
 func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
@@ -904,24 +875,6 @@ func TestSuggestRecipes_InvalidDate(t *testing.T) {
 		ctx,
 		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
 			PlanId: uuid.New().String(), MealDate: "not-a-date", MealSlot: "noon",
-		}),
-	)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
-}
-
-func TestUnsharePlan_InvalidPlanID(t *testing.T) {
-	client := setupMealPlansClient(getRoutes())
-	ctx := contextWithUser(
-		context.Background(),
-		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
-			ID: userID,
-		},
-	)
-	_, err := client.UnsharePlan(
-		ctx,
-		connect.NewRequest(&mealplansv1.UnsharePlanRequest{
-			PlanId: "not-a-uuid", TargetUserId: "other-user",
 		}),
 	)
 	require.Error(t, err)

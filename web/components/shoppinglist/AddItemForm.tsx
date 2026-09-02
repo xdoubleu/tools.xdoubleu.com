@@ -13,14 +13,12 @@ import type { Category } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 const NEW_CATEGORY = '__new__'
 
 interface AddItemFormProps {
-  ownerUserId: string
   categories: Category[]
   onAdded: () => Promise<unknown>
   onCategoriesChanged: () => Promise<unknown>
 }
 
 export default function AddItemForm({
-  ownerUserId,
   categories,
   onAdded,
   onCategoriesChanged
@@ -42,8 +40,7 @@ export default function AddItemForm({
       await client.createShoppingItem({
         amount: newAmount || '0',
         unit: newUnit.trim(),
-        name,
-        ownerUserId
+        name
       })
       // Resolve the effective category id: either an existing selection or a
       // brand-new category created inline from the add form.
@@ -52,7 +49,7 @@ export default function AddItemForm({
         const trimmed = newCategoryName.trim()
         categoryId = ''
         if (trimmed) {
-          const resp = await client.createCategory({ name: trimmed, ownerUserId })
+          const resp = await client.createCategory({ name: trimmed })
           categoryId = resp.category?.id ?? ''
           await onCategoriesChanged()
         }
@@ -60,7 +57,7 @@ export default function AddItemForm({
       // The category lives in the name->category catalog, not on the item, so
       // assigning it here makes it persist by name across every list and export.
       if (categoryId) {
-        await client.setItemCategory({ name, categoryId, ownerUserId })
+        await client.setItemCategory({ name, categoryId })
       }
       setNewName('')
       setNewAmount('')

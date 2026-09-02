@@ -12,14 +12,14 @@ import (
 
 func (h *shoppingConnectHandler) ListCategories(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.ListCategoriesRequest],
+	_ *connect.Request[shoppinglistv1.ListCategoriesRequest],
 ) (*connect.Response[shoppinglistv1.ListCategoriesResponse], error) {
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	categories, err := h.app.services.Shopping.ListCategories(ctx, ownerID)
+	categories, err := h.app.services.Shopping.ListCategories(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -40,12 +40,12 @@ func (h *shoppingConnectHandler) CreateCategory(
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := h.app.services.Shopping.CreateCategory(ctx, ownerID, req.Msg.Name)
+	c, err := h.app.services.Shopping.CreateCategory(ctx, userID, req.Msg.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -65,12 +65,12 @@ func (h *shoppingConnectHandler) RenameCategory(
 	if err != nil {
 		return nil, errInvalidID()
 	}
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := h.app.services.Shopping.RenameCategory(ctx, ownerID, id, req.Msg.Name)
+	c, err := h.app.services.Shopping.RenameCategory(ctx, userID, id, req.Msg.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -87,12 +87,12 @@ func (h *shoppingConnectHandler) DeleteCategory(
 	if err != nil {
 		return nil, errInvalidID()
 	}
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = h.app.services.Shopping.DeleteCategory(ctx, ownerID, id); err != nil {
+	if err = h.app.services.Shopping.DeleteCategory(ctx, userID, id); err != nil {
 		return nil, mapError(err)
 	}
 	return connect.NewResponse(&shoppinglistv1.DeleteCategoryResponse{}), nil
@@ -100,14 +100,14 @@ func (h *shoppingConnectHandler) DeleteCategory(
 
 func (h *shoppingConnectHandler) ListItemNames(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.ListItemNamesRequest],
+	_ *connect.Request[shoppinglistv1.ListItemNamesRequest],
 ) (*connect.Response[shoppinglistv1.ListItemNamesResponse], error) {
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	names, err := h.app.services.Shopping.ListItemNames(ctx, ownerID)
+	names, err := h.app.services.Shopping.ListItemNames(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -125,14 +125,14 @@ func (h *shoppingConnectHandler) ListItemNames(
 
 func (h *shoppingConnectHandler) ListItemCategories(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.ListItemCategoriesRequest],
+	_ *connect.Request[shoppinglistv1.ListItemCategoriesRequest],
 ) (*connect.Response[shoppinglistv1.ListItemCategoriesResponse], error) {
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	items, err := h.app.services.Shopping.ListItemCategories(ctx, ownerID)
+	items, err := h.app.services.Shopping.ListItemCategories(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -164,13 +164,13 @@ func (h *shoppingConnectHandler) SetItemCategory(
 		categoryID = parsed
 	}
 
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	err = h.app.services.Shopping.SetItemCategory(
-		ctx, ownerID, req.Msg.Name, categoryID,
+		ctx, userID, req.Msg.Name, categoryID,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -186,13 +186,13 @@ func (h *shoppingConnectHandler) SetItemExcluded(
 		return nil, errNameRequired()
 	}
 
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	err = h.app.services.Shopping.SetItemExcluded(
-		ctx, ownerID, req.Msg.Name, req.Msg.Excluded,
+		ctx, userID, req.Msg.Name, req.Msg.Excluded,
 	)
 	if err != nil {
 		return nil, mapError(err)

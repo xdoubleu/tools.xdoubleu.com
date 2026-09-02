@@ -2,16 +2,12 @@ package services
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
-	"tools.xdoubleu.com/internal/app"
 )
-
-const errNoEditAccess = "You do not have edit access to this plan"
 
 const (
 	daysPerWeek = 7
@@ -29,18 +25,13 @@ func WeekWindow(offset int) (time.Time, time.Time) {
 }
 
 // plansStore is the storage surface PlanService needs. It is satisfied by
-// repositories.PlansRepository and by fakes in unit tests, so the ownership
-// and edit-access rules can be tested without a database.
+// repositories.PlansRepository and by fakes in unit tests, so the
+// family-scoping rules can be tested without a database.
 type plansStore interface {
-	ListForUser(
-		ctx context.Context, userID string, limit, offset int32,
+	ListForFamily(
+		ctx context.Context, familyID uuid.UUID, limit, offset int32,
 	) ([]models.Plan, bool, error)
-	GetByID(ctx context.Context, id uuid.UUID, userID string) (*models.Plan, error)
-	GetSharedWith(
-		ctx context.Context,
-		id uuid.UUID,
-		userID string,
-	) ([]models.PlanSharedUser, error)
+	GetByID(ctx context.Context, id uuid.UUID, familyID uuid.UUID) (*models.Plan, error)
 	GetMealsInWindow(
 		ctx context.Context,
 		planID uuid.UUID,
@@ -56,7 +47,7 @@ type plansStore interface {
 	GetByICalToken(ctx context.Context, token uuid.UUID) (*models.Plan, error)
 	Create(ctx context.Context, plan models.Plan) (*models.Plan, error)
 	Update(ctx context.Context, plan models.Plan) error
-	Delete(ctx context.Context, id uuid.UUID, userID string) error
+	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
 	CreateMeal(ctx context.Context, meal models.PlanMeal) (*models.PlanMeal, error)
 	DeleteMeal(ctx context.Context, mealID, planID uuid.UUID) error
 	MoveMeal(
@@ -65,17 +56,17 @@ type plansStore interface {
 		newDate time.Time,
 		newSlot string,
 	) error
-	UnshareUser(ctx context.Context, planID uuid.UUID, targetUserID string) error
-	SharePlan(
-		ctx context.Context,
-		planID uuid.UUID,
-		contactUserID string,
-		canEdit bool,
-	) error
+}
+
+// familyStore resolves which family a user belongs to, lazily creating a
+// family-of-one the first time it's asked for (see internal/family).
+type familyStore interface {
+	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
 }
 
 type PlanService struct {
-	repo plansStore
+	repo   plansStore
+	family familyStore
 }
 
 func (s *PlanService) List(
@@ -84,7 +75,11 @@ func (s *PlanService) List(
 	limit int32,
 	offset int32,
 ) ([]models.Plan, bool, error) {
-	return s.repo.ListForUser(ctx, userID, limit, offset)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	return s.repo.ListForFamily(ctx, familyID, limit, offset)
 }
 
 func (s *PlanService) Get(
@@ -92,17 +87,11 @@ func (s *PlanService) Get(
 	id uuid.UUID,
 	userID string,
 ) (*models.Plan, error) {
-	plan, err := s.repo.GetByID(ctx, id, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	if plan.OwnerUserID == userID {
-		plan.SharedWith, err = s.repo.GetSharedWith(ctx, id, userID)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return plan, nil
+	return s.repo.GetByID(ctx, id, familyID)
 }
 
 // GetWithWeek returns the plan along with its meals for the 7-day window
@@ -135,7 +124,7 @@ func (s *PlanService) GetMeals(
 	userID string,
 	start, end time.Time,
 ) ([]models.PlanMeal, error) {
-	if _, err := s.repo.GetByID(ctx, planID, userID); err != nil {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return nil, err
 	}
 	return s.repo.GetMealsInWindow(ctx, planID, start, end)
@@ -151,7 +140,7 @@ func (s *PlanService) SuggestRecipes(
 	mealDate time.Time,
 	slot string,
 ) ([]models.RecipeSuggestion, error) {
-	if _, err := s.repo.GetByID(ctx, planID, userID); err != nil {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return nil, err
 	}
 	return s.repo.SuggestRecipes(ctx, planID, mealDate, slot, suggestRecipesLimit)
@@ -179,7 +168,12 @@ func (s *PlanService) Create(
 	userID string,
 	plan models.Plan,
 ) (*models.Plan, error) {
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	plan.OwnerUserID = userID
+	plan.FamilyID = familyID
 	return s.repo.Create(ctx, plan)
 }
 
@@ -188,17 +182,11 @@ func (s *PlanService) Update(
 	userID string,
 	plan models.Plan,
 ) error {
-	existing, err := s.repo.GetByID(ctx, plan.ID, userID)
+	existing, err := s.Get(ctx, plan.ID, userID)
 	if err != nil {
 		return err
 	}
-	if existing.OwnerUserID != userID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: "Only the owner can edit plan details",
-		}
-	}
-	plan.OwnerUserID = userID
+	plan.FamilyID = existing.FamilyID
 	return s.repo.Update(ctx, plan)
 }
 
@@ -207,17 +195,14 @@ func (s *PlanService) Delete(
 	id uuid.UUID,
 	userID string,
 ) error {
-	existing, err := s.repo.GetByID(ctx, id, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if existing.OwnerUserID != userID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: "Only the owner can delete this plan",
-		}
+	if _, err = s.repo.GetByID(ctx, id, familyID); err != nil {
+		return err
 	}
-	return s.repo.Delete(ctx, id, userID)
+	return s.repo.Delete(ctx, id, familyID)
 }
 
 func (s *PlanService) CreateMeal(
@@ -226,18 +211,11 @@ func (s *PlanService) CreateMeal(
 	userID string,
 	meal models.PlanMeal,
 ) error {
-	plan, err := s.repo.GetByID(ctx, planID, userID)
-	if err != nil {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return err
 	}
-	if !plan.CanEdit {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNoEditAccess,
-		}
-	}
 	meal.PlanID = planID
-	_, err = s.repo.CreateMeal(ctx, meal)
+	_, err := s.repo.CreateMeal(ctx, meal)
 	return err
 }
 
@@ -247,15 +225,8 @@ func (s *PlanService) DeleteMeal(
 	planID uuid.UUID,
 	userID string,
 ) error {
-	plan, err := s.repo.GetByID(ctx, planID, userID)
-	if err != nil {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return err
-	}
-	if !plan.CanEdit {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNoEditAccess,
-		}
 	}
 	return s.repo.DeleteMeal(ctx, mealID, planID)
 }
@@ -268,54 +239,8 @@ func (s *PlanService) MoveMeal(
 	newDate time.Time,
 	newSlot string,
 ) error {
-	plan, err := s.repo.GetByID(ctx, planID, userID)
-	if err != nil {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
 		return err
-	}
-	if !plan.CanEdit {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: errNoEditAccess,
-		}
 	}
 	return s.repo.MoveMeal(ctx, mealID, planID, newDate, newSlot)
-}
-
-func (s *PlanService) Unshare(
-	ctx context.Context,
-	planID uuid.UUID,
-	ownerID string,
-	targetUserID string,
-) error {
-	existing, err := s.repo.GetByID(ctx, planID, ownerID)
-	if err != nil {
-		return err
-	}
-	if existing.OwnerUserID != ownerID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: "Only the owner can modify sharing",
-		}
-	}
-	return s.repo.UnshareUser(ctx, planID, targetUserID)
-}
-
-func (s *PlanService) Share(
-	ctx context.Context,
-	planID uuid.UUID,
-	ownerID string,
-	contactUserID string,
-	canEdit bool,
-) error {
-	existing, err := s.repo.GetByID(ctx, planID, ownerID)
-	if err != nil {
-		return err
-	}
-	if existing.OwnerUserID != ownerID {
-		return &app.HTTPError{
-			Status:  http.StatusForbidden,
-			Message: "Only the owner can share this plan",
-		}
-	}
-	return s.repo.SharePlan(ctx, planID, contactUserID, canEdit)
 }

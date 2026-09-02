@@ -7,9 +7,7 @@ import {
   UpdatePlanRequestSchema,
   CreateMealRequestSchema,
   DeleteMealRequestSchema,
-  MoveMealRequestSchema,
-  SharePlanRequestSchema,
-  UnsharePlanRequestSchema
+  MoveMealRequestSchema
 } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type {
   ListPlansResponse,
@@ -21,8 +19,6 @@ export type UpdatePlanInput = MessageInitShape<typeof UpdatePlanRequestSchema>
 export type AddMealInput = MessageInitShape<typeof CreateMealRequestSchema>
 export type DeleteMealInput = MessageInitShape<typeof DeleteMealRequestSchema>
 export type MoveMealInput = MessageInitShape<typeof MoveMealRequestSchema>
-export type SharePlanInput = MessageInitShape<typeof SharePlanRequestSchema>
-export type UnsharePlanInput = MessageInitShape<typeof UnsharePlanRequestSchema>
 
 export function useMealPlans() {
   const client = createServiceClient(MealPlansService)
@@ -65,14 +61,4 @@ export function useDeleteMeal() {
 export function useMoveMeal() {
   const client = createServiceClient(MealPlansService)
   return (req: MoveMealInput) => client.moveMeal(req)
-}
-
-export function useSharePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: SharePlanInput) => client.sharePlan(req)
-}
-
-export function useUnsharePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: UnsharePlanInput) => client.unsharePlan(req)
 }

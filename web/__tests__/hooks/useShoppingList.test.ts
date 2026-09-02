@@ -10,11 +10,7 @@ const mockClient = {
   getStoreCategories: jest.fn().mockResolvedValue({}),
   listItemNames: jest.fn().mockResolvedValue({}),
   listItemCategories: jest.fn().mockResolvedValue({}),
-  listPlans: jest.fn().mockResolvedValue({ plans: [] }),
-  listAccessibleLists: jest.fn().mockResolvedValue({ owners: [] }),
-  listShoppingListShares: jest.fn().mockResolvedValue({ shares: [] }),
-  shareShoppingList: jest.fn().mockResolvedValue({}),
-  unshareShoppingList: jest.fn().mockResolvedValue({})
+  listPlans: jest.fn().mockResolvedValue({ plans: [] })
 }
 
 jest.mock('@/lib/client', () => ({
@@ -38,11 +34,7 @@ import {
   useItemNames,
   useItemCategories,
   useAllMealPlanExportItems,
-  useAllPlanIngredientGroups,
-  useAccessibleLists,
-  useShoppingListShares,
-  useShareShoppingList,
-  useUnshareShoppingList
+  useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -61,20 +53,15 @@ beforeEach(() => {
 })
 
 describe('useCustomList', () => {
-  it('uses /shoppinglist as the SWR key, scoped by owner', () => {
+  it('uses /shoppinglist as the SWR key', () => {
     renderHook(() => useCustomList())
     expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist?owner=', expect.any(Function))
   })
 
-  it('includes the owner in the key when given', () => {
-    renderHook(() => useCustomList('owner-1'))
-    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist?owner=owner-1', expect.any(Function))
-  })
-
-  it('fetcher calls getCustomList with the owner', async () => {
-    renderHook(() => useCustomList('owner-1'))
+  it('fetcher calls getCustomList', async () => {
+    renderHook(() => useCustomList())
     await callFetcher()
-    expect(mockClient.getCustomList).toHaveBeenCalledWith({ ownerUserId: 'owner-1' })
+    expect(mockClient.getCustomList).toHaveBeenCalledWith({})
   })
 })
 
@@ -114,15 +101,15 @@ describe('usePlanIngredientGroups', () => {
 })
 
 describe('useCategories', () => {
-  it('uses /shoppinglist/categories as the SWR key, scoped by owner', () => {
+  it('uses /shoppinglist/categories as the SWR key', () => {
     renderHook(() => useCategories())
     expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/categories?owner=', expect.any(Function))
   })
 
-  it('fetcher calls listCategories with the owner', async () => {
-    renderHook(() => useCategories('owner-1'))
+  it('fetcher calls listCategories', async () => {
+    renderHook(() => useCategories())
     await callFetcher()
-    expect(mockClient.listCategories).toHaveBeenCalledWith({ ownerUserId: 'owner-1' })
+    expect(mockClient.listCategories).toHaveBeenCalledWith({})
   })
 })
 
@@ -229,37 +216,6 @@ describe('useAllMealPlanExportItems', () => {
         { name: 'onion', amount: '1', unit: 'pc' }
       ]
     })
-  })
-})
-
-describe('sharing hooks', () => {
-  it('useAccessibleLists uses its key and fetches owners', async () => {
-    renderHook(() => useAccessibleLists())
-    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/accessible', expect.any(Function))
-    await callFetcher()
-    expect(mockClient.listAccessibleLists).toHaveBeenCalledWith({})
-  })
-
-  it('useShoppingListShares uses its key and fetches shares', async () => {
-    renderHook(() => useShoppingListShares())
-    expect(mockUseSWR).toHaveBeenCalledWith('/shoppinglist/shares', expect.any(Function))
-    await callFetcher()
-    expect(mockClient.listShoppingListShares).toHaveBeenCalledWith({})
-  })
-
-  it('useShareShoppingList calls shareShoppingList with contact and permission', () => {
-    const { result } = renderHook(() => useShareShoppingList())
-    result.current('u-1', true)
-    expect(mockClient.shareShoppingList).toHaveBeenCalledWith({
-      contactUserId: 'u-1',
-      canEdit: true
-    })
-  })
-
-  it('useUnshareShoppingList calls unshareShoppingList with the target', () => {
-    const { result } = renderHook(() => useUnshareShoppingList())
-    result.current('u-2')
-    expect(mockClient.unshareShoppingList).toHaveBeenCalledWith({ targetUserId: 'u-2' })
   })
 })
 

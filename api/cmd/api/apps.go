@@ -48,6 +48,7 @@ func NewApps(
 	db postgres.DB,
 	notifications *notifications.Service,
 	appUsersRepo *repositories.AppUsersRepository,
+	familyRepo *repositories.FamilyRepository,
 ) (*Apps, *books.Books, *feeds.Feeds) {
 	var apps Apps = []App{}
 
@@ -70,9 +71,9 @@ func NewApps(
 	gamesApp := games.New(authService, logger, cfg, db)
 	apps.addApp(gamesApp)
 	apps.addApp(watchparty.New(authService, logger, cfg))
-	apps.addApp(recipes.New(authService, logger, cfg, db))
-	apps.addApp(mealplans.New(authService, logger, cfg, db))
-	apps.addApp(shoppinglist.New(authService, logger, cfg, db))
+	apps.addApp(recipes.New(authService, logger, cfg, db, familyRepo))
+	apps.addApp(mealplans.New(authService, logger, cfg, db, familyRepo))
+	apps.addApp(shoppinglist.New(authService, logger, cfg, db, familyRepo))
 	apps.addApp(
 		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)

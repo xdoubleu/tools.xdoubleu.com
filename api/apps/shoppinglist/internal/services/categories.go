@@ -12,14 +12,22 @@ func (s *ShoppingService) ListCategories(
 	ctx context.Context,
 	userID string,
 ) ([]repositories.Category, error) {
-	return s.repo.ListCategories(ctx, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListCategories(ctx, familyID)
 }
 
 func (s *ShoppingService) CreateCategory(
 	ctx context.Context,
 	userID, name string,
 ) (repositories.Category, error) {
-	return s.repo.CreateCategory(ctx, userID, name)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return repositories.Category{}, err
+	}
+	return s.repo.CreateCategory(ctx, familyID, name)
 }
 
 func (s *ShoppingService) RenameCategory(
@@ -28,7 +36,11 @@ func (s *ShoppingService) RenameCategory(
 	id uuid.UUID,
 	name string,
 ) (repositories.Category, error) {
-	return s.repo.RenameCategory(ctx, userID, id, name)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return repositories.Category{}, err
+	}
+	return s.repo.RenameCategory(ctx, familyID, id, name)
 }
 
 func (s *ShoppingService) DeleteCategory(
@@ -36,21 +48,33 @@ func (s *ShoppingService) DeleteCategory(
 	userID string,
 	id uuid.UUID,
 ) error {
-	return s.repo.DeleteCategory(ctx, userID, id)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return s.repo.DeleteCategory(ctx, familyID, id)
 }
 
 func (s *ShoppingService) ListItemNames(
 	ctx context.Context,
 	userID string,
 ) ([]repositories.ItemName, error) {
-	return s.repo.ListItemNames(ctx, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListItemNames(ctx, familyID)
 }
 
 func (s *ShoppingService) ListItemCategories(
 	ctx context.Context,
 	userID string,
 ) ([]repositories.ItemCategory, error) {
-	return s.repo.ListItemCategories(ctx, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.ListItemCategories(ctx, familyID)
 }
 
 func (s *ShoppingService) SetItemCategory(
@@ -58,7 +82,11 @@ func (s *ShoppingService) SetItemCategory(
 	userID, name string,
 	categoryID uuid.UUID,
 ) error {
-	return s.repo.SetItemCategory(ctx, userID, name, categoryID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return s.repo.SetItemCategory(ctx, familyID, name, categoryID)
 }
 
 func (s *ShoppingService) SetItemExcluded(
@@ -66,5 +94,9 @@ func (s *ShoppingService) SetItemExcluded(
 	userID, name string,
 	excluded bool,
 ) error {
-	return s.repo.SetItemExcluded(ctx, userID, name, excluded)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return s.repo.SetItemExcluded(ctx, familyID, name, excluded)
 }

@@ -51,12 +51,6 @@ const (
 	// MealPlansServiceMoveMealProcedure is the fully-qualified name of the MealPlansService's MoveMeal
 	// RPC.
 	MealPlansServiceMoveMealProcedure = "/mealplans.v1.MealPlansService/MoveMeal"
-	// MealPlansServiceSharePlanProcedure is the fully-qualified name of the MealPlansService's
-	// SharePlan RPC.
-	MealPlansServiceSharePlanProcedure = "/mealplans.v1.MealPlansService/SharePlan"
-	// MealPlansServiceUnsharePlanProcedure is the fully-qualified name of the MealPlansService's
-	// UnsharePlan RPC.
-	MealPlansServiceUnsharePlanProcedure = "/mealplans.v1.MealPlansService/UnsharePlan"
 	// MealPlansServiceSuggestRecipesProcedure is the fully-qualified name of the MealPlansService's
 	// SuggestRecipes RPC.
 	MealPlansServiceSuggestRecipesProcedure = "/mealplans.v1.MealPlansService/SuggestRecipes"
@@ -70,8 +64,6 @@ type MealPlansServiceClient interface {
 	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
 	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
-	SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error)
-	UnsharePlan(context.Context, *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error)
 	SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error)
 }
 
@@ -122,18 +114,6 @@ func NewMealPlansServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
 			connect.WithClientOptions(opts...),
 		),
-		sharePlan: connect.NewClient[v1.SharePlanRequest, v1.SharePlanResponse](
-			httpClient,
-			baseURL+MealPlansServiceSharePlanProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("SharePlan")),
-			connect.WithClientOptions(opts...),
-		),
-		unsharePlan: connect.NewClient[v1.UnsharePlanRequest, v1.UnsharePlanResponse](
-			httpClient,
-			baseURL+MealPlansServiceUnsharePlanProcedure,
-			connect.WithSchema(mealPlansServiceMethods.ByName("UnsharePlan")),
-			connect.WithClientOptions(opts...),
-		),
 		suggestRecipes: connect.NewClient[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse](
 			httpClient,
 			baseURL+MealPlansServiceSuggestRecipesProcedure,
@@ -151,8 +131,6 @@ type mealPlansServiceClient struct {
 	createMeal     *connect.Client[v1.CreateMealRequest, v1.CreateMealResponse]
 	deleteMeal     *connect.Client[v1.DeleteMealRequest, v1.DeleteMealResponse]
 	moveMeal       *connect.Client[v1.MoveMealRequest, v1.MoveMealResponse]
-	sharePlan      *connect.Client[v1.SharePlanRequest, v1.SharePlanResponse]
-	unsharePlan    *connect.Client[v1.UnsharePlanRequest, v1.UnsharePlanResponse]
 	suggestRecipes *connect.Client[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse]
 }
 
@@ -186,16 +164,6 @@ func (c *mealPlansServiceClient) MoveMeal(ctx context.Context, req *connect.Requ
 	return c.moveMeal.CallUnary(ctx, req)
 }
 
-// SharePlan calls mealplans.v1.MealPlansService.SharePlan.
-func (c *mealPlansServiceClient) SharePlan(ctx context.Context, req *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error) {
-	return c.sharePlan.CallUnary(ctx, req)
-}
-
-// UnsharePlan calls mealplans.v1.MealPlansService.UnsharePlan.
-func (c *mealPlansServiceClient) UnsharePlan(ctx context.Context, req *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error) {
-	return c.unsharePlan.CallUnary(ctx, req)
-}
-
 // SuggestRecipes calls mealplans.v1.MealPlansService.SuggestRecipes.
 func (c *mealPlansServiceClient) SuggestRecipes(ctx context.Context, req *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error) {
 	return c.suggestRecipes.CallUnary(ctx, req)
@@ -209,8 +177,6 @@ type MealPlansServiceHandler interface {
 	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
 	MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error)
-	SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error)
-	UnsharePlan(context.Context, *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error)
 	SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error)
 }
 
@@ -257,18 +223,6 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 		connect.WithSchema(mealPlansServiceMethods.ByName("MoveMeal")),
 		connect.WithHandlerOptions(opts...),
 	)
-	mealPlansServiceSharePlanHandler := connect.NewUnaryHandler(
-		MealPlansServiceSharePlanProcedure,
-		svc.SharePlan,
-		connect.WithSchema(mealPlansServiceMethods.ByName("SharePlan")),
-		connect.WithHandlerOptions(opts...),
-	)
-	mealPlansServiceUnsharePlanHandler := connect.NewUnaryHandler(
-		MealPlansServiceUnsharePlanProcedure,
-		svc.UnsharePlan,
-		connect.WithSchema(mealPlansServiceMethods.ByName("UnsharePlan")),
-		connect.WithHandlerOptions(opts...),
-	)
 	mealPlansServiceSuggestRecipesHandler := connect.NewUnaryHandler(
 		MealPlansServiceSuggestRecipesProcedure,
 		svc.SuggestRecipes,
@@ -289,10 +243,6 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 			mealPlansServiceDeleteMealHandler.ServeHTTP(w, r)
 		case MealPlansServiceMoveMealProcedure:
 			mealPlansServiceMoveMealHandler.ServeHTTP(w, r)
-		case MealPlansServiceSharePlanProcedure:
-			mealPlansServiceSharePlanHandler.ServeHTTP(w, r)
-		case MealPlansServiceUnsharePlanProcedure:
-			mealPlansServiceUnsharePlanHandler.ServeHTTP(w, r)
 		case MealPlansServiceSuggestRecipesProcedure:
 			mealPlansServiceSuggestRecipesHandler.ServeHTTP(w, r)
 		default:
@@ -326,14 +276,6 @@ func (UnimplementedMealPlansServiceHandler) DeleteMeal(context.Context, *connect
 
 func (UnimplementedMealPlansServiceHandler) MoveMeal(context.Context, *connect.Request[v1.MoveMealRequest]) (*connect.Response[v1.MoveMealResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.MoveMeal is not implemented"))
-}
-
-func (UnimplementedMealPlansServiceHandler) SharePlan(context.Context, *connect.Request[v1.SharePlanRequest]) (*connect.Response[v1.SharePlanResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.SharePlan is not implemented"))
-}
-
-func (UnimplementedMealPlansServiceHandler) UnsharePlan(context.Context, *connect.Request[v1.UnsharePlanRequest]) (*connect.Response[v1.UnsharePlanResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.UnsharePlan is not implemented"))
 }
 
 func (UnimplementedMealPlansServiceHandler) SuggestRecipes(context.Context, *connect.Request[v1.SuggestRecipesRequest]) (*connect.Response[v1.SuggestRecipesResponse], error) {

@@ -48,15 +48,6 @@ const (
 	// RecipesServiceDeleteRecipeProcedure is the fully-qualified name of the RecipesService's
 	// DeleteRecipe RPC.
 	RecipesServiceDeleteRecipeProcedure = "/recipes.v1.RecipesService/DeleteRecipe"
-	// RecipesServiceShareRecipeBookProcedure is the fully-qualified name of the RecipesService's
-	// ShareRecipeBook RPC.
-	RecipesServiceShareRecipeBookProcedure = "/recipes.v1.RecipesService/ShareRecipeBook"
-	// RecipesServiceUnshareRecipeBookProcedure is the fully-qualified name of the RecipesService's
-	// UnshareRecipeBook RPC.
-	RecipesServiceUnshareRecipeBookProcedure = "/recipes.v1.RecipesService/UnshareRecipeBook"
-	// RecipesServiceListRecipeBookSharesProcedure is the fully-qualified name of the RecipesService's
-	// ListRecipeBookShares RPC.
-	RecipesServiceListRecipeBookSharesProcedure = "/recipes.v1.RecipesService/ListRecipeBookShares"
 )
 
 // RecipesServiceClient is a client for the recipes.v1.RecipesService service.
@@ -66,9 +57,6 @@ type RecipesServiceClient interface {
 	CreateRecipe(context.Context, *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error)
 	UpdateRecipe(context.Context, *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error)
 	DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error)
-	ShareRecipeBook(context.Context, *connect.Request[v1.ShareRecipeBookRequest]) (*connect.Response[v1.ShareRecipeBookResponse], error)
-	UnshareRecipeBook(context.Context, *connect.Request[v1.UnshareRecipeBookRequest]) (*connect.Response[v1.UnshareRecipeBookResponse], error)
-	ListRecipeBookShares(context.Context, *connect.Request[v1.ListRecipeBookSharesRequest]) (*connect.Response[v1.ListRecipeBookSharesResponse], error)
 }
 
 // NewRecipesServiceClient constructs a client for the recipes.v1.RecipesService service. By
@@ -112,37 +100,16 @@ func NewRecipesServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(recipesServiceMethods.ByName("DeleteRecipe")),
 			connect.WithClientOptions(opts...),
 		),
-		shareRecipeBook: connect.NewClient[v1.ShareRecipeBookRequest, v1.ShareRecipeBookResponse](
-			httpClient,
-			baseURL+RecipesServiceShareRecipeBookProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("ShareRecipeBook")),
-			connect.WithClientOptions(opts...),
-		),
-		unshareRecipeBook: connect.NewClient[v1.UnshareRecipeBookRequest, v1.UnshareRecipeBookResponse](
-			httpClient,
-			baseURL+RecipesServiceUnshareRecipeBookProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("UnshareRecipeBook")),
-			connect.WithClientOptions(opts...),
-		),
-		listRecipeBookShares: connect.NewClient[v1.ListRecipeBookSharesRequest, v1.ListRecipeBookSharesResponse](
-			httpClient,
-			baseURL+RecipesServiceListRecipeBookSharesProcedure,
-			connect.WithSchema(recipesServiceMethods.ByName("ListRecipeBookShares")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // recipesServiceClient implements RecipesServiceClient.
 type recipesServiceClient struct {
-	listRecipes          *connect.Client[v1.ListRecipesRequest, v1.ListRecipesResponse]
-	getRecipe            *connect.Client[v1.GetRecipeRequest, v1.GetRecipeResponse]
-	createRecipe         *connect.Client[v1.CreateRecipeRequest, v1.CreateRecipeResponse]
-	updateRecipe         *connect.Client[v1.UpdateRecipeRequest, v1.UpdateRecipeResponse]
-	deleteRecipe         *connect.Client[v1.DeleteRecipeRequest, v1.DeleteRecipeResponse]
-	shareRecipeBook      *connect.Client[v1.ShareRecipeBookRequest, v1.ShareRecipeBookResponse]
-	unshareRecipeBook    *connect.Client[v1.UnshareRecipeBookRequest, v1.UnshareRecipeBookResponse]
-	listRecipeBookShares *connect.Client[v1.ListRecipeBookSharesRequest, v1.ListRecipeBookSharesResponse]
+	listRecipes  *connect.Client[v1.ListRecipesRequest, v1.ListRecipesResponse]
+	getRecipe    *connect.Client[v1.GetRecipeRequest, v1.GetRecipeResponse]
+	createRecipe *connect.Client[v1.CreateRecipeRequest, v1.CreateRecipeResponse]
+	updateRecipe *connect.Client[v1.UpdateRecipeRequest, v1.UpdateRecipeResponse]
+	deleteRecipe *connect.Client[v1.DeleteRecipeRequest, v1.DeleteRecipeResponse]
 }
 
 // ListRecipes calls recipes.v1.RecipesService.ListRecipes.
@@ -170,21 +137,6 @@ func (c *recipesServiceClient) DeleteRecipe(ctx context.Context, req *connect.Re
 	return c.deleteRecipe.CallUnary(ctx, req)
 }
 
-// ShareRecipeBook calls recipes.v1.RecipesService.ShareRecipeBook.
-func (c *recipesServiceClient) ShareRecipeBook(ctx context.Context, req *connect.Request[v1.ShareRecipeBookRequest]) (*connect.Response[v1.ShareRecipeBookResponse], error) {
-	return c.shareRecipeBook.CallUnary(ctx, req)
-}
-
-// UnshareRecipeBook calls recipes.v1.RecipesService.UnshareRecipeBook.
-func (c *recipesServiceClient) UnshareRecipeBook(ctx context.Context, req *connect.Request[v1.UnshareRecipeBookRequest]) (*connect.Response[v1.UnshareRecipeBookResponse], error) {
-	return c.unshareRecipeBook.CallUnary(ctx, req)
-}
-
-// ListRecipeBookShares calls recipes.v1.RecipesService.ListRecipeBookShares.
-func (c *recipesServiceClient) ListRecipeBookShares(ctx context.Context, req *connect.Request[v1.ListRecipeBookSharesRequest]) (*connect.Response[v1.ListRecipeBookSharesResponse], error) {
-	return c.listRecipeBookShares.CallUnary(ctx, req)
-}
-
 // RecipesServiceHandler is an implementation of the recipes.v1.RecipesService service.
 type RecipesServiceHandler interface {
 	ListRecipes(context.Context, *connect.Request[v1.ListRecipesRequest]) (*connect.Response[v1.ListRecipesResponse], error)
@@ -192,9 +144,6 @@ type RecipesServiceHandler interface {
 	CreateRecipe(context.Context, *connect.Request[v1.CreateRecipeRequest]) (*connect.Response[v1.CreateRecipeResponse], error)
 	UpdateRecipe(context.Context, *connect.Request[v1.UpdateRecipeRequest]) (*connect.Response[v1.UpdateRecipeResponse], error)
 	DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error)
-	ShareRecipeBook(context.Context, *connect.Request[v1.ShareRecipeBookRequest]) (*connect.Response[v1.ShareRecipeBookResponse], error)
-	UnshareRecipeBook(context.Context, *connect.Request[v1.UnshareRecipeBookRequest]) (*connect.Response[v1.UnshareRecipeBookResponse], error)
-	ListRecipeBookShares(context.Context, *connect.Request[v1.ListRecipeBookSharesRequest]) (*connect.Response[v1.ListRecipeBookSharesResponse], error)
 }
 
 // NewRecipesServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -234,24 +183,6 @@ func NewRecipesServiceHandler(svc RecipesServiceHandler, opts ...connect.Handler
 		connect.WithSchema(recipesServiceMethods.ByName("DeleteRecipe")),
 		connect.WithHandlerOptions(opts...),
 	)
-	recipesServiceShareRecipeBookHandler := connect.NewUnaryHandler(
-		RecipesServiceShareRecipeBookProcedure,
-		svc.ShareRecipeBook,
-		connect.WithSchema(recipesServiceMethods.ByName("ShareRecipeBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	recipesServiceUnshareRecipeBookHandler := connect.NewUnaryHandler(
-		RecipesServiceUnshareRecipeBookProcedure,
-		svc.UnshareRecipeBook,
-		connect.WithSchema(recipesServiceMethods.ByName("UnshareRecipeBook")),
-		connect.WithHandlerOptions(opts...),
-	)
-	recipesServiceListRecipeBookSharesHandler := connect.NewUnaryHandler(
-		RecipesServiceListRecipeBookSharesProcedure,
-		svc.ListRecipeBookShares,
-		connect.WithSchema(recipesServiceMethods.ByName("ListRecipeBookShares")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/recipes.v1.RecipesService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RecipesServiceListRecipesProcedure:
@@ -264,12 +195,6 @@ func NewRecipesServiceHandler(svc RecipesServiceHandler, opts ...connect.Handler
 			recipesServiceUpdateRecipeHandler.ServeHTTP(w, r)
 		case RecipesServiceDeleteRecipeProcedure:
 			recipesServiceDeleteRecipeHandler.ServeHTTP(w, r)
-		case RecipesServiceShareRecipeBookProcedure:
-			recipesServiceShareRecipeBookHandler.ServeHTTP(w, r)
-		case RecipesServiceUnshareRecipeBookProcedure:
-			recipesServiceUnshareRecipeBookHandler.ServeHTTP(w, r)
-		case RecipesServiceListRecipeBookSharesProcedure:
-			recipesServiceListRecipeBookSharesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -297,16 +222,4 @@ func (UnimplementedRecipesServiceHandler) UpdateRecipe(context.Context, *connect
 
 func (UnimplementedRecipesServiceHandler) DeleteRecipe(context.Context, *connect.Request[v1.DeleteRecipeRequest]) (*connect.Response[v1.DeleteRecipeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.DeleteRecipe is not implemented"))
-}
-
-func (UnimplementedRecipesServiceHandler) ShareRecipeBook(context.Context, *connect.Request[v1.ShareRecipeBookRequest]) (*connect.Response[v1.ShareRecipeBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.ShareRecipeBook is not implemented"))
-}
-
-func (UnimplementedRecipesServiceHandler) UnshareRecipeBook(context.Context, *connect.Request[v1.UnshareRecipeBookRequest]) (*connect.Response[v1.UnshareRecipeBookResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.UnshareRecipeBook is not implemented"))
-}
-
-func (UnimplementedRecipesServiceHandler) ListRecipeBookShares(context.Context, *connect.Request[v1.ListRecipeBookSharesRequest]) (*connect.Response[v1.ListRecipeBookSharesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("recipes.v1.RecipesService.ListRecipeBookShares is not implemented"))
 }

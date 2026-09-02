@@ -9,7 +9,6 @@ const ROUTES = [
   'mealplans',
   'shoppinglist',
   'contacts',
-  'sharing',
   'family',
   'user-management',
   'monitoring'

@@ -80,32 +80,10 @@ message UpdateRecipeResponse {}
 message DeleteRecipeRequest { string id = 1; }
 message DeleteRecipeResponse {}
 
-// RecipeBookShare describes a user the owner has shared their whole recipe
-// book with. display_name resolves via the owner's contacts.
-message RecipeBookShare {
-  string user_id = 1;
-  bool can_edit = 2;
-  string display_name = 3;
-}
-
-message ShareRecipeBookRequest { string contact_user_id = 1; bool can_edit = 2; }
-message ShareRecipeBookResponse {}
-
-message UnshareRecipeBookRequest { string target_user_id = 1; }
-message UnshareRecipeBookResponse {}
-
-message ListRecipeBookSharesRequest {}
-message ListRecipeBookSharesResponse { repeated RecipeBookShare shares = 1; }
-
 service RecipesService {
   rpc ListRecipes(ListRecipesRequest) returns (ListRecipesResponse);
   rpc GetRecipe(GetRecipeRequest) returns (GetRecipeResponse);
   rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
   rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
   rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeResponse);
-  rpc ShareRecipeBook(ShareRecipeBookRequest) returns (ShareRecipeBookResponse);
-  rpc UnshareRecipeBook(UnshareRecipeBookRequest)
-      returns (UnshareRecipeBookResponse);
-  rpc ListRecipeBookShares(ListRecipeBookSharesRequest)
-      returns (ListRecipeBookSharesResponse);
 }

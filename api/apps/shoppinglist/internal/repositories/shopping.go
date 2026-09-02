@@ -30,23 +30,19 @@ type ShoppingItem struct {
 	GroupName  string
 }
 
-// CheckPlanAccess returns an error if userID cannot access planID.
+// CheckPlanAccess returns an error if familyID cannot access planID.
 func (r *ShoppingRepository) CheckPlanAccess(
 	ctx context.Context,
 	planID uuid.UUID,
-	userID string,
+	familyID uuid.UUID,
 ) error {
 	var exists bool
 	err := r.db.QueryRow(ctx, `
 		SELECT EXISTS (
 			SELECT 1 FROM mealplans.plans p
-			WHERE p.id = $1
-			  AND (p.owner_user_id = $2
-			       OR p.id IN (
-			           SELECT plan_id FROM mealplans.plan_access WHERE user_id = $2
-			       ))
+			WHERE p.id = $1 AND p.family_id = $2
 		)`,
-		planID, userID,
+		planID, familyID,
 	).Scan(&exists)
 	if err != nil {
 		return err
@@ -62,14 +58,14 @@ func (r *ShoppingRepository) CheckPlanAccess(
 
 func (r *ShoppingRepository) GetCustomItems(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]ShoppingItem, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT ci.id::text, ci.name, ci.unit, ci.amount::float8
 		FROM shoppinglist.custom_items ci
-		WHERE ci.user_id = $1
+		WHERE ci.family_id = $1
 		ORDER BY ci.name`,
-		userID,
+		familyID,
 	)
 	if err != nil {
 		return nil, err
@@ -89,15 +85,16 @@ func (r *ShoppingRepository) GetCustomItems(
 
 func (r *ShoppingRepository) AddCustomItem(
 	ctx context.Context,
-	userID, name, unit string,
+	familyID uuid.UUID,
+	name, unit string,
 	amount float64,
 ) (ShoppingItem, error) {
 	var item ShoppingItem
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO shoppinglist.custom_items (user_id, name, amount, unit)
+		INSERT INTO shoppinglist.custom_items (family_id, name, amount, unit)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id::text, name, unit, amount::float8`,
-		userID, name, amount, unit,
+		familyID, name, amount, unit,
 	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
 	if err != nil {
 		return ShoppingItem{}, err
@@ -107,7 +104,7 @@ func (r *ShoppingRepository) AddCustomItem(
 
 func (r *ShoppingRepository) UpdateCustomItem(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	itemID uuid.UUID,
 	name, unit string,
 	amount float64,
@@ -116,9 +113,9 @@ func (r *ShoppingRepository) UpdateCustomItem(
 	err := r.db.QueryRow(ctx, `
 		UPDATE shoppinglist.custom_items
 		SET name = $3, amount = $4, unit = $5
-		WHERE id = $1 AND user_id = $2
+		WHERE id = $1 AND family_id = $2
 		RETURNING id::text, name, unit, amount::float8`,
-		itemID, userID, name, amount, unit,
+		itemID, familyID, name, amount, unit,
 	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ShoppingItem{}, &iapp.HTTPError{
@@ -134,13 +131,13 @@ func (r *ShoppingRepository) UpdateCustomItem(
 
 func (r *ShoppingRepository) DeleteCustomItem(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	itemID uuid.UUID,
 ) error {
 	result, err := r.db.Exec(ctx, `
 		DELETE FROM shoppinglist.custom_items
-		WHERE id = $1 AND user_id = $2`,
-		itemID, userID,
+		WHERE id = $1 AND family_id = $2`,
+		itemID, familyID,
 	)
 	if err != nil {
 		return err

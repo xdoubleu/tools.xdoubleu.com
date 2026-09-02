@@ -14,23 +14,19 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
-// fakeRecipesStore implements recipesStore in memory for permission tests.
+// fakeRecipesStore implements recipesStore in memory for family-scoping tests.
 type fakeRecipesStore struct {
 	recipe      *models.Recipe
 	ingredients []models.Ingredient
 	getErr      error
-	// book access returned by GetBookAccess for any (owner, user) pair
-	accessCanEdit bool
-	accessOK      bool
 
-	updated       bool
-	deleted       bool
-	sharedTargets []string
-	updatedOwner  string
+	updated      bool
+	deleted      bool
+	updatedOwner string
 }
 
-func (f *fakeRecipesStore) ListForUser(
-	_ context.Context, _ string, _, _ int32,
+func (f *fakeRecipesStore) ListForFamily(
+	_ context.Context, _ uuid.UUID, _, _ int32,
 ) ([]models.Recipe, bool, error) {
 	return nil, false, nil
 }
@@ -43,12 +39,6 @@ func (f *fakeRecipesStore) GetByID(
 	}
 	cp := *f.recipe
 	return &cp, nil
-}
-
-func (f *fakeRecipesStore) GetBookAccess(
-	_ context.Context, _, _ string,
-) (bool, bool, error) {
-	return f.accessCanEdit, f.accessOK, nil
 }
 
 func (f *fakeRecipesStore) GetIngredients(
@@ -75,31 +65,48 @@ func (f *fakeRecipesStore) Update(_ context.Context, recipe models.Recipe) error
 	return nil
 }
 
-func (f *fakeRecipesStore) Delete(_ context.Context, _ uuid.UUID, _ string) error {
+func (f *fakeRecipesStore) Delete(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 	f.deleted = true
 	return nil
 }
 
-func (f *fakeRecipesStore) ShareBook(
-	_ context.Context, _, targetUserID string, _ bool,
-) error {
-	f.sharedTargets = append(f.sharedTargets, targetUserID)
-	return nil
+// fakeFamilyStore maps a user to a fixed family ID for tests.
+type fakeFamilyStore struct {
+	families map[string]uuid.UUID
+	err      error
 }
 
-func (f *fakeRecipesStore) UnshareBook(_ context.Context, _, _ string) error {
-	return nil
+func (f *fakeFamilyStore) EnsureFamily(
+	_ context.Context, userID string,
+) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return f.families[userID], nil
 }
 
-func (f *fakeRecipesStore) ListBookShares(
-	_ context.Context, _ string,
-) ([]models.RecipeBookShare, error) {
-	return nil, nil
-}
+//nolint:gochecknoglobals //shared fixtures for family-scoping tests
+var (
+	familyA = uuid.New()
+	familyB = uuid.New()
+)
 
 func newRecipeFixture() *models.Recipe {
-	//nolint:exhaustruct //only fields relevant to permissions
-	return &models.Recipe{ID: uuid.New(), UserID: "owner"}
+	//nolint:exhaustruct //only fields relevant to family scoping
+	return &models.Recipe{ID: uuid.New(), UserID: "owner", FamilyID: familyA}
+}
+
+func newFamilyStore() *fakeFamilyStore {
+	//nolint:exhaustruct //err intentionally zero
+	return &fakeFamilyStore{
+		families: map[string]uuid.UUID{
+			"owner":  familyA,
+			"member": familyA,
+			"editor": familyA,
+			"viewer": familyA,
+			"other":  familyB,
+		},
+	}
 }
 
 func httpStatus(t *testing.T, err error) int {
@@ -109,78 +116,66 @@ func httpStatus(t *testing.T, err error) int {
 	return httpErr.Status
 }
 
-func TestRecipeGet_OwnerCanEdit(t *testing.T) {
+func TestRecipeGet_FamilyMemberCanEdit(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{recipe: newRecipeFixture()}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	_, canEdit, err := svc.Get(t.Context(), uuid.New(), "owner")
+	_, canEdit, err := svc.Get(t.Context(), uuid.New(), "member")
 	require.NoError(t, err)
 	assert.True(t, canEdit)
 }
 
-func TestRecipeGet_ViewOnlyShareCannotEdit(t *testing.T) {
+func TestRecipeGet_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture(),
-		accessOK:      true,
-		accessCanEdit: false,
-	}
-	svc := &RecipeService{repo: store}
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	_, canEdit, err := svc.Get(t.Context(), uuid.New(), "viewer")
-	require.NoError(t, err)
-	assert.False(t, canEdit)
-}
-
-func TestRecipeGet_NoAccessForbidden(t *testing.T) {
-	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeRecipesStore{recipe: newRecipeFixture(), accessOK: false}
-	svc := &RecipeService{repo: store}
-
-	_, _, err := svc.Get(t.Context(), uuid.New(), "stranger")
+	_, _, err := svc.Get(t.Context(), uuid.New(), "other")
 	assert.Equal(t, http.StatusForbidden, httpStatus(t, err))
 }
 
-func TestRecipeUpdate_EditShareKeepsOriginalOwner(t *testing.T) {
+func TestRecipeUpdate_FamilyMemberKeepsOriginalOwner(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture(),
-		accessOK:      true,
-		accessCanEdit: true,
-	}
-	svc := &RecipeService{repo: store}
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
 	recipe := *store.recipe
 	err := svc.Update(t.Context(), "editor", recipe)
 	require.NoError(t, err)
 	assert.True(t, store.updated)
-	// Recipes always remain owned by their original creator.
+	// Recipes always remain attributed to their original creator.
 	assert.Equal(t, "owner", store.updatedOwner)
 }
 
-func TestRecipeUpdate_ViewOnlyShareForbidden(t *testing.T) {
+func TestRecipeUpdate_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeRecipesStore{
-		recipe:        newRecipeFixture(),
-		accessOK:      true,
-		accessCanEdit: false,
-	}
-	svc := &RecipeService{repo: store}
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	err := svc.Update(t.Context(), "viewer", *store.recipe)
+	err := svc.Update(t.Context(), "other", *store.recipe)
 	assert.Equal(t, http.StatusForbidden, httpStatus(t, err))
 	assert.False(t, store.updated)
 }
 
-func TestRecipeDelete_NonOwnerForbidden(t *testing.T) {
+func TestRecipeDelete_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{recipe: newRecipeFixture()}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	err := svc.Delete(t.Context(), uuid.New(), "someone-else")
+	err := svc.Delete(t.Context(), uuid.New(), "other")
 	assert.Equal(t, http.StatusForbidden, httpStatus(t, err))
 	assert.False(t, store.deleted)
+}
+
+func TestRecipeDelete_FamilyMemberAllowed(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+
+	err := svc.Delete(t.Context(), uuid.New(), "member")
+	require.NoError(t, err)
+	assert.True(t, store.deleted)
 }
 
 func TestRecipeGetScaled_DoublesIngredientAmounts(t *testing.T) {
@@ -193,7 +188,7 @@ func TestRecipeGetScaled_DoublesIngredientAmounts(t *testing.T) {
 			{Name: "Flour", Amount: 100, Unit: "g"},
 		},
 	}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
 	_, _, servings, scaled, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 4)
 	require.NoError(t, err)
@@ -211,7 +206,7 @@ func TestRecipeGetScaled_ZeroRequestKeepsBaseServings(t *testing.T) {
 			{Name: "Flour", Amount: 100, Unit: "g"},
 		},
 	}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
 	_, _, servings, scaled, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 0)
 	require.NoError(t, err)
@@ -223,25 +218,59 @@ func TestRecipeGetScaled_PropagatesGetError(t *testing.T) {
 	getErr := errors.New("db error")
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{recipe: newRecipeFixture(), getErr: getErr}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
 	_, _, _, _, err := svc.GetScaled(t.Context(), uuid.New(), "owner", 4)
 	assert.ErrorIs(t, err, getErr)
 }
 
-func TestRecipeShareBook_RejectsEmptyAndSelf(t *testing.T) {
+func TestRecipeCreate_ScopesToUsersFamily(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	store := &fakeRecipesStore{}
-	svc := &RecipeService{repo: store}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	err := svc.ShareBook(t.Context(), "owner", "", true)
-	assert.Equal(t, http.StatusBadRequest, httpStatus(t, err))
+	//nolint:exhaustruct //other fields optional
+	created, err := svc.Create(t.Context(), "member", models.Recipe{
+		Name: "Pasta",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "member", created.UserID)
+	assert.Equal(t, familyA, created.FamilyID)
+}
 
-	err = svc.ShareBook(t.Context(), "owner", "owner", true)
-	assert.Equal(t, http.StatusBadRequest, httpStatus(t, err))
+func TestRecipeList_ScopesToUsersFamily(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
 
-	assert.Empty(t, store.sharedTargets)
+	_, _, err := svc.List(t.Context(), "member", 10, 0)
+	require.NoError(t, err)
+}
 
-	require.NoError(t, svc.ShareBook(t.Context(), "owner", "friend", false))
-	assert.Equal(t, []string{"friend"}, store.sharedTargets)
+// Every RecipeService method resolves the caller's family before touching
+// the repo; a family-resolution failure must propagate.
+func TestFamilyResolutionErrors_Propagate(t *testing.T) {
+	familyErr := errors.New("family error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	family := &fakeFamilyStore{err: familyErr}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: family}
+	ctx := t.Context()
+
+	_, _, err := svc.List(ctx, "member", 10, 0)
+	assert.ErrorIs(t, err, familyErr)
+
+	_, _, err = svc.Get(ctx, uuid.New(), "member")
+	assert.ErrorIs(t, err, familyErr)
+
+	//nolint:exhaustruct //other fields optional
+	_, err = svc.Create(ctx, "member", models.Recipe{Name: "Pasta"})
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.Update(ctx, "member", *store.recipe)
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.Delete(ctx, uuid.New(), "member")
+	assert.ErrorIs(t, err, familyErr)
 }

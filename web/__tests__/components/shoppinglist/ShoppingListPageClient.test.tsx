@@ -27,10 +27,6 @@ jest.mock('@/hooks/useShoppingList', () => ({
     data: { categories: [{ id: 'cat-produce', name: 'Produce' }] },
     mutate: categoriesMutate
   }),
-  useAccessibleLists: () => ({ data: { owners: [] } }),
-  useShoppingListShares: () => ({ data: { shares: [] }, mutate: jest.fn() }),
-  useShareShoppingList: () => jest.fn().mockResolvedValue(undefined),
-  useUnshareShoppingList: () => jest.fn().mockResolvedValue(undefined),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
   // Consumed by ExportModal once the export dialog is opened.
@@ -69,14 +65,12 @@ describe('ShoppingPage add form', () => {
       expect(createShoppingItem).toHaveBeenCalledWith({
         name: 'Apples',
         amount: '0',
-        unit: '',
-        ownerUserId: ''
+        unit: ''
       })
     )
     expect(setItemCategory).toHaveBeenCalledWith({
       name: 'Apples',
-      categoryId: 'cat-produce',
-      ownerUserId: ''
+      categoryId: 'cat-produce'
     })
   })
 
@@ -98,13 +92,10 @@ describe('ShoppingPage add form', () => {
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Fruit' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-    await waitFor(() =>
-      expect(createCategory).toHaveBeenCalledWith({ name: 'Fruit', ownerUserId: '' })
-    )
+    await waitFor(() => expect(createCategory).toHaveBeenCalledWith({ name: 'Fruit' }))
     expect(setItemCategory).toHaveBeenCalledWith({
       name: 'Kiwi',
-      categoryId: 'cat-new',
-      ownerUserId: ''
+      categoryId: 'cat-new'
     })
     expect(categoriesMutate).toHaveBeenCalled()
   })
@@ -125,10 +116,18 @@ describe('ShoppingPage edit', () => {
         itemId: 'i1',
         name: 'Oat Milk',
         amount: '2',
-        unit: 'cartons',
-        ownerUserId: ''
+        unit: 'cartons'
       })
     )
+    expect(listMutate).toHaveBeenCalled()
+  })
+
+  it('deletes a custom item and refreshes the list', async () => {
+    render(<ShoppingListPageClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Remove Milk/ }))
+
+    await waitFor(() => expect(deleteShoppingItem).toHaveBeenCalledWith({ itemId: 'i1' }))
     expect(listMutate).toHaveBeenCalled()
   })
 })
@@ -191,5 +190,8 @@ describe('ShoppingPage meal-plan section', () => {
     // the ingredient-group controls.
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
     expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()
   })
 })

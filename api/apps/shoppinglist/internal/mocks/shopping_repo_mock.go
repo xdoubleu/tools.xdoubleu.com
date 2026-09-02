@@ -13,26 +13,27 @@ type ShoppingRepoMock struct {
 	CheckPlanAccessFn func(
 		ctx context.Context,
 		planID uuid.UUID,
-		userID string,
+		familyID uuid.UUID,
 	) error
 	GetCustomItemsFn func(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 	) ([]repositories.ShoppingItem, error)
 	AddCustomItemFn func(
 		ctx context.Context,
-		userID, name, unit string,
+		familyID uuid.UUID,
+		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
 	UpdateCustomItemFn func(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 		itemID uuid.UUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
 	DeleteCustomItemFn func(
-		ctx context.Context, userID string, itemID uuid.UUID,
+		ctx context.Context, familyID uuid.UUID, itemID uuid.UUID,
 	) error
 	GetMealPlanExportItemsFn func(
 		ctx context.Context,
@@ -48,15 +49,15 @@ type ShoppingRepoMock struct {
 		pastSlots []string,
 	) ([]repositories.PlanIngredientGroup, error)
 	ListCategoriesFn func(
-		ctx context.Context, userID string,
+		ctx context.Context, familyID uuid.UUID,
 	) ([]repositories.Category, error)
 	CreateCategoryFn func(
-		ctx context.Context, userID, name string,
+		ctx context.Context, familyID uuid.UUID, name string,
 	) (repositories.Category, error)
 	RenameCategoryFn func(
-		ctx context.Context, userID string, id uuid.UUID, name string,
+		ctx context.Context, familyID uuid.UUID, id uuid.UUID, name string,
 	) (repositories.Category, error)
-	DeleteCategoryFn func(ctx context.Context, userID string, id uuid.UUID) error
+	DeleteCategoryFn func(ctx context.Context, familyID uuid.UUID, id uuid.UUID) error
 	ListStoresFn     func(
 		ctx context.Context, userID string,
 	) ([]repositories.Store, error)
@@ -71,61 +72,66 @@ type ShoppingRepoMock struct {
 		ctx context.Context, userID string, storeID uuid.UUID,
 	) ([]repositories.Category, error)
 	SetStoreCategoriesFn func(
-		ctx context.Context, userID string, storeID uuid.UUID, categoryIDs []uuid.UUID,
+		ctx context.Context,
+		userID string,
+		familyID uuid.UUID,
+		storeID uuid.UUID,
+		categoryIDs []uuid.UUID,
 	) error
 	ListItemNamesFn func(
-		ctx context.Context, userID string,
+		ctx context.Context, familyID uuid.UUID,
 	) ([]repositories.ItemName, error)
 	ListItemCategoriesFn func(
-		ctx context.Context, userID string,
+		ctx context.Context, familyID uuid.UUID,
 	) ([]repositories.ItemCategory, error)
 	SetItemCategoryFn func(
-		ctx context.Context, userID, name string, categoryID uuid.UUID,
+		ctx context.Context, familyID uuid.UUID, name string, categoryID uuid.UUID,
 	) error
 	SetItemExcludedFn func(
-		ctx context.Context, userID, name string, excluded bool,
+		ctx context.Context, familyID uuid.UUID, name string, excluded bool,
 	) error
 }
 
 func (m *ShoppingRepoMock) CheckPlanAccess(
 	ctx context.Context,
 	planID uuid.UUID,
-	userID string,
+	familyID uuid.UUID,
 ) error {
-	return m.CheckPlanAccessFn(ctx, planID, userID)
+	return m.CheckPlanAccessFn(ctx, planID, familyID)
 }
 
 func (m *ShoppingRepoMock) GetCustomItems(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]repositories.ShoppingItem, error) {
-	return m.GetCustomItemsFn(ctx, userID)
+	return m.GetCustomItemsFn(ctx, familyID)
 }
 
 func (m *ShoppingRepoMock) AddCustomItem(
 	ctx context.Context,
-	userID, name, unit string,
+	familyID uuid.UUID,
+	name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return m.AddCustomItemFn(ctx, userID, name, unit, amount)
+	return m.AddCustomItemFn(ctx, familyID, name, unit, amount)
 }
 
 func (m *ShoppingRepoMock) UpdateCustomItem(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	itemID uuid.UUID,
 	name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return m.UpdateCustomItemFn(ctx, userID, itemID, name, unit, amount)
+	return m.UpdateCustomItemFn(ctx, familyID, itemID, name, unit, amount)
 }
 
 func (m *ShoppingRepoMock) DeleteCustomItem(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	itemID uuid.UUID,
 ) error {
-	return m.DeleteCustomItemFn(ctx, userID, itemID)
+	return m.DeleteCustomItemFn(ctx, familyID, itemID)
 }
 
 func (m *ShoppingRepoMock) GetMealPlanExportItems(
@@ -156,33 +162,34 @@ func (m *ShoppingRepoMock) GetPlanIngredientGroups(
 
 func (m *ShoppingRepoMock) ListCategories(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]repositories.Category, error) {
-	return m.ListCategoriesFn(ctx, userID)
+	return m.ListCategoriesFn(ctx, familyID)
 }
 
 func (m *ShoppingRepoMock) CreateCategory(
 	ctx context.Context,
-	userID, name string,
+	familyID uuid.UUID,
+	name string,
 ) (repositories.Category, error) {
-	return m.CreateCategoryFn(ctx, userID, name)
+	return m.CreateCategoryFn(ctx, familyID, name)
 }
 
 func (m *ShoppingRepoMock) RenameCategory(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	id uuid.UUID,
 	name string,
 ) (repositories.Category, error) {
-	return m.RenameCategoryFn(ctx, userID, id, name)
+	return m.RenameCategoryFn(ctx, familyID, id, name)
 }
 
 func (m *ShoppingRepoMock) DeleteCategory(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	id uuid.UUID,
 ) error {
-	return m.DeleteCategoryFn(ctx, userID, id)
+	return m.DeleteCategoryFn(ctx, familyID, id)
 }
 
 func (m *ShoppingRepoMock) ListStores(
@@ -227,38 +234,41 @@ func (m *ShoppingRepoMock) GetStoreCategories(
 func (m *ShoppingRepoMock) SetStoreCategories(
 	ctx context.Context,
 	userID string,
+	familyID uuid.UUID,
 	storeID uuid.UUID,
 	categoryIDs []uuid.UUID,
 ) error {
-	return m.SetStoreCategoriesFn(ctx, userID, storeID, categoryIDs)
+	return m.SetStoreCategoriesFn(ctx, userID, familyID, storeID, categoryIDs)
 }
 
 func (m *ShoppingRepoMock) ListItemNames(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]repositories.ItemName, error) {
-	return m.ListItemNamesFn(ctx, userID)
+	return m.ListItemNamesFn(ctx, familyID)
 }
 
 func (m *ShoppingRepoMock) ListItemCategories(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]repositories.ItemCategory, error) {
-	return m.ListItemCategoriesFn(ctx, userID)
+	return m.ListItemCategoriesFn(ctx, familyID)
 }
 
 func (m *ShoppingRepoMock) SetItemCategory(
 	ctx context.Context,
-	userID, name string,
+	familyID uuid.UUID,
+	name string,
 	categoryID uuid.UUID,
 ) error {
-	return m.SetItemCategoryFn(ctx, userID, name, categoryID)
+	return m.SetItemCategoryFn(ctx, familyID, name, categoryID)
 }
 
 func (m *ShoppingRepoMock) SetItemExcluded(
 	ctx context.Context,
-	userID, name string,
+	familyID uuid.UUID,
+	name string,
 	excluded bool,
 ) error {
-	return m.SetItemExcludedFn(ctx, userID, name, excluded)
+	return m.SetItemExcludedFn(ctx, familyID, name, excluded)
 }

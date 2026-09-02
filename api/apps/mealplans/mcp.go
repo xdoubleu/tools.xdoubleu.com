@@ -26,13 +26,12 @@ type mcpSuggestArgs struct {
 }
 
 // RegisterMCPTools exposes the mealplans app's read-only RPCs on the combined
-// apps MCP server. Every tool returns plans the calling user owns or has been
-// shared.
+// apps MCP server. Every tool returns plans in the calling user's family.
 func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
 	h := &mealplansConnectHandler{app: a}
 
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_list_plans",
-		"The meal plans the user owns or has been shared.", h.mcpListPlans)
+		"The meal plans in the user's family.", h.mcpListPlans)
 	mcptools.AddReadTool(srv, mcpAppName, "mealplans_get_plan",
 		"A single meal plan's week of meals with the referenced recipes.",
 		h.mcpGetPlan)

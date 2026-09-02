@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -16,26 +15,22 @@ type RecipesRepository struct {
 	db postgres.DB
 }
 
-func (r *RecipesRepository) ListForUser(
+func (r *RecipesRepository) ListForFamily(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	limit int32,
 	offset int32,
 ) ([]models.Recipe, bool, error) {
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT r.id, r.user_id, r.name,
+		SELECT r.id, r.user_id, r.family_id, r.name,
 		       r.instructions, r.base_servings, r.created_at, r.updated_at
 		FROM recipes.recipes r
-		WHERE r.user_id = $1
-		   OR r.user_id IN (
-		       SELECT owner_user_id FROM recipes.recipebook_access
-		       WHERE user_id = $1
-		   )
+		WHERE r.family_id = $1
 		ORDER BY r.name, r.id
 		LIMIT $2 OFFSET $3`,
-		userID, sqlLimit, offset,
+		familyID, sqlLimit, offset,
 	)
 	if err != nil {
 		return nil, false, err
@@ -46,7 +41,7 @@ func (r *RecipesRepository) ListForUser(
 	for rows.Next() {
 		var recipe models.Recipe
 		if err = rows.Scan(
-			&recipe.ID, &recipe.UserID, &recipe.Name,
+			&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
 			&recipe.Instructions, &recipe.BaseServings,
 			&recipe.CreatedAt, &recipe.UpdatedAt,
 		); err != nil {
@@ -68,13 +63,13 @@ func (r *RecipesRepository) GetByID(
 ) (*models.Recipe, error) {
 	var recipe models.Recipe
 	err := r.db.QueryRow(ctx, `
-		SELECT id, user_id, name,
+		SELECT id, user_id, family_id, name,
 		instructions, base_servings, batch_servings, created_at, updated_at
 		FROM recipes.recipes
 		WHERE id = $1`,
 		id,
 	).Scan(
-		&recipe.ID, &recipe.UserID, &recipe.Name,
+		&recipe.ID, &recipe.UserID, &recipe.FamilyID, &recipe.Name,
 		&recipe.Instructions, &recipe.BaseServings, &recipe.BatchServings,
 		&recipe.CreatedAt, &recipe.UpdatedAt,
 	)
@@ -91,10 +86,11 @@ func (r *RecipesRepository) Create(
 	err := r.db.QueryRow(
 		ctx,
 		`INSERT INTO recipes.recipes
-		(user_id, name, instructions, base_servings, batch_servings)
-		VALUES ($1, $2, $3, $4, $5)
+		(user_id, family_id, name, instructions, base_servings, batch_servings)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at`,
 		recipe.UserID,
+		recipe.FamilyID,
 		recipe.Name,
 		recipe.Instructions,
 		recipe.BaseServings,
@@ -115,9 +111,9 @@ func (r *RecipesRepository) Update(
 		`UPDATE recipes.recipes
 		SET name = $3, instructions = $4,
 		base_servings = $5, batch_servings = $6, updated_at = now()
-		WHERE id = $1 AND user_id = $2`,
+		WHERE id = $1 AND family_id = $2`,
 		recipe.ID,
-		recipe.UserID,
+		recipe.FamilyID,
 		recipe.Name,
 		recipe.Instructions,
 		recipe.BaseServings,
@@ -129,11 +125,11 @@ func (r *RecipesRepository) Update(
 func (r *RecipesRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,
-	userID string,
+	familyID uuid.UUID,
 ) error {
 	_, err := r.db.Exec(ctx,
-		`DELETE FROM recipes.recipes WHERE id = $1 AND user_id = $2`,
-		id, userID,
+		`DELETE FROM recipes.recipes WHERE id = $1 AND family_id = $2`,
+		id, familyID,
 	)
 	return err
 }
@@ -204,85 +200,4 @@ func (r *RecipesRepository) GetIngredients(
 		result = append(result, ing)
 	}
 	return result, rows.Err()
-}
-
-// ShareBook grants targetUserID access to ownerID's whole recipe book.
-func (r *RecipesRepository) ShareBook(
-	ctx context.Context,
-	ownerID, targetUserID string,
-	canEdit bool,
-) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO recipes.recipebook_access (owner_user_id, user_id, can_edit)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (owner_user_id, user_id)
-		DO UPDATE SET can_edit = EXCLUDED.can_edit`,
-		ownerID, targetUserID, canEdit,
-	)
-	return err
-}
-
-func (r *RecipesRepository) UnshareBook(
-	ctx context.Context,
-	ownerID, targetUserID string,
-) error {
-	_, err := r.db.Exec(ctx,
-		`DELETE FROM recipes.recipebook_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, targetUserID,
-	)
-	return err
-}
-
-// ListBookShares returns the users ownerID shares their recipe book with,
-// resolving display names from the owner's contacts.
-func (r *RecipesRepository) ListBookShares(
-	ctx context.Context,
-	ownerID string,
-) ([]models.RecipeBookShare, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT ba.user_id, ba.can_edit,
-		       COALESCE(c.display_name, ba.user_id) AS display_name
-		FROM recipes.recipebook_access ba
-		LEFT JOIN global.contacts c
-		       ON c.owner_user_id = $1 AND c.contact_user_id = ba.user_id
-		WHERE ba.owner_user_id = $1
-		ORDER BY display_name`,
-		ownerID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var result []models.RecipeBookShare
-	for rows.Next() {
-		var s models.RecipeBookShare
-		if err = rows.Scan(&s.UserID, &s.CanEdit, &s.DisplayName); err != nil {
-			return nil, err
-		}
-		result = append(result, s)
-	}
-	return result, rows.Err()
-}
-
-// GetBookAccess reports whether viewerID may access ownerID's book and, if so,
-// whether with edit rights.
-func (r *RecipesRepository) GetBookAccess(
-	ctx context.Context,
-	ownerID, viewerID string,
-) (bool, bool, error) {
-	var canEdit bool
-	err := r.db.QueryRow(ctx, `
-		SELECT can_edit FROM recipes.recipebook_access
-		WHERE owner_user_id = $1 AND user_id = $2`,
-		ownerID, viewerID,
-	).Scan(&canEdit)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, false, nil
-		}
-		return false, false, err
-	}
-	return canEdit, true, nil
 }

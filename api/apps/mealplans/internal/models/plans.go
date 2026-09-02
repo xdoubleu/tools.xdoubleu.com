@@ -12,15 +12,10 @@ const (
 	SlotEvening   = "evening"
 )
 
-type PlanSharedUser struct {
-	UserID      string
-	CanEdit     bool
-	DisplayName string
-}
-
 type Plan struct {
 	ID            uuid.UUID
 	OwnerUserID   string
+	FamilyID      uuid.UUID
 	Name          string
 	ICalToken     uuid.UUID
 	CreatedAt     time.Time
@@ -29,7 +24,6 @@ type Plan struct {
 	ICalHideSlots []string
 	ICalHidePast  bool
 	Meals         []PlanMeal
-	SharedWith    []PlanSharedUser
 }
 
 type RecipeSuggestion struct {

@@ -87,15 +87,3 @@ func protoPlans(list []models.Plan) []*mealplansv1.Plan {
 	}
 	return result
 }
-
-func protoSharedUsers(list []models.PlanSharedUser) []*mealplansv1.PlanSharedUser {
-	result := make([]*mealplansv1.PlanSharedUser, len(list))
-	for i, u := range list {
-		result[i] = &mealplansv1.PlanSharedUser{
-			UserId:      u.UserID,
-			CanEdit:     u.CanEdit,
-			DisplayName: u.DisplayName,
-		}
-	}
-	return result
-}

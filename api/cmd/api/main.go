@@ -461,7 +461,13 @@ func NewApplication(
 	contactsSvc, notificationsSvc := newContactsService(
 		ctx, logger, config, contactsRepo, authSvc,
 	)
-	familySvc := family.New(familyRepo, authSvc, notificationsSvc, config.WebURL, logger)
+	familySvc := family.New(
+		familyRepo,
+		authSvc,
+		notificationsSvc,
+		config.WebURL,
+		logger,
+	)
 
 	oauthConnRepo := repositories.NewOAuthConnectionsRepository(db, authSealer)
 	githubClient, sentryClient := newObservabilityClients(
@@ -548,7 +554,7 @@ func NewApplication(
 	spanDB := postgres.NewSpanDB(db)
 	var feedsApp *feeds.Feeds
 	app.apps, app.booksApp, feedsApp = NewApps(
-		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
+		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo, familyRepo,
 	)
 	app.feedsApp = feedsApp
 	app.weeklyDigestJob = newWeeklyDigestJob(

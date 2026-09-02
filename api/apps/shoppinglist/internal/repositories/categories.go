@@ -17,14 +17,14 @@ type Category struct {
 
 func (r *ShoppingRepository) ListCategories(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 ) ([]Category, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id::text, name
 		FROM shoppinglist.categories
-		WHERE user_id = $1
+		WHERE family_id = $1
 		ORDER BY name`,
-		userID,
+		familyID,
 	)
 	if err != nil {
 		return nil, err
@@ -44,14 +44,15 @@ func (r *ShoppingRepository) ListCategories(
 
 func (r *ShoppingRepository) CreateCategory(
 	ctx context.Context,
-	userID, name string,
+	familyID uuid.UUID,
+	name string,
 ) (Category, error) {
 	var c Category
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO shoppinglist.categories (user_id, name)
+		INSERT INTO shoppinglist.categories (family_id, name)
 		VALUES ($1, $2)
 		RETURNING id::text, name`,
-		userID, name,
+		familyID, name,
 	).Scan(&c.ID, &c.Name)
 	if err != nil {
 		return Category{}, postgres.PgxErrorToHTTPError(err)
@@ -61,7 +62,7 @@ func (r *ShoppingRepository) CreateCategory(
 
 func (r *ShoppingRepository) RenameCategory(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	id uuid.UUID,
 	name string,
 ) (Category, error) {
@@ -69,9 +70,9 @@ func (r *ShoppingRepository) RenameCategory(
 	err := r.db.QueryRow(ctx, `
 		UPDATE shoppinglist.categories
 		SET name = $3
-		WHERE id = $1 AND user_id = $2
+		WHERE id = $1 AND family_id = $2
 		RETURNING id::text, name`,
-		id, userID, name,
+		id, familyID, name,
 	).Scan(&c.ID, &c.Name)
 	if err != nil {
 		return Category{}, postgres.PgxErrorToHTTPError(err)
@@ -81,13 +82,13 @@ func (r *ShoppingRepository) RenameCategory(
 
 func (r *ShoppingRepository) DeleteCategory(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	id uuid.UUID,
 ) error {
 	result, err := r.db.Exec(ctx, `
 		DELETE FROM shoppinglist.categories
-		WHERE id = $1 AND user_id = $2`,
-		id, userID,
+		WHERE id = $1 AND family_id = $2`,
+		id, familyID,
 	)
 	if err != nil {
 		return err

@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -21,6 +22,9 @@ var testApp *recipes.Recipes
 
 //nolint:gochecknoglobals //needed for tests
 var testDB postgres.DB
+
+//nolint:gochecknoglobals //needed for tests
+var familyRepo *sharedrepositories.FamilyRepository
 
 //nolint:gochecknoglobals //needed for tests
 var testCfg config.Config
@@ -33,12 +37,14 @@ func TestMain(m *testing.M) {
 
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB
+	familyRepo = sharedrepositories.NewFamilyRepository(postgresDB)
 
 	testApp = recipes.New(
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
 		postgresDB,
+		familyRepo,
 	)
 
 	// Drop the schema so the rewritten migration is applied from scratch.
@@ -50,7 +56,9 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// Ensure global.contacts exists (used by recipe-book sharing queries).
+	// Ensure global.contacts/families exist (families used by family_id
+	// scoping, contacts kept around for any other app's fixtures sharing
+	// this schema in CI's single test database).
 	if _, err = postgresDB.Exec(context.Background(), `
 		CREATE SCHEMA IF NOT EXISTS global;
 		CREATE TABLE IF NOT EXISTS global.contacts (
@@ -61,6 +69,15 @@ func TestMain(m *testing.M) {
 			status TEXT NOT NULL DEFAULT 'pending',
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			UNIQUE (owner_user_id, contact_user_id)
+		);
+		CREATE TABLE IF NOT EXISTS global.families (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		);
+		CREATE TABLE IF NOT EXISTS global.family_members (
+			user_id TEXT PRIMARY KEY,
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`); err != nil {
 		panic(err)
 	}

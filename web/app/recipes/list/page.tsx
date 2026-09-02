@@ -8,18 +8,10 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export default async function RecipesListPage() {
   const client = await createServerClient(RecipesService)
-  const [recipes, shares] = await Promise.all([
-    fetchOrNull(() => client.listRecipes({ limit: DEFAULT_PAGE_SIZE })),
-    fetchOrNull(() => client.listRecipeBookShares({}))
-  ])
+  const recipes = await fetchOrNull(() => client.listRecipes({ limit: DEFAULT_PAGE_SIZE }))
 
   return (
-    <SWRFallback
-      fallback={{
-        ...(recipes ? { [swrKeys.recipes]: recipes } : {}),
-        ...(shares ? { [swrKeys.recipeBookShares]: shares } : {})
-      }}
-    >
+    <SWRFallback fallback={recipes ? { [swrKeys.recipes]: recipes } : {}}>
       <RecipesListClient />
     </SWRFallback>
   )

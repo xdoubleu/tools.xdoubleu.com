@@ -9,6 +9,7 @@ import (
 type Recipe struct {
 	ID            uuid.UUID
 	UserID        string
+	FamilyID      uuid.UUID
 	Name          string
 	Instructions  string
 	BaseServings  int
@@ -16,13 +17,6 @@ type Recipe struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Ingredients   []Ingredient
-}
-
-// RecipeBookShare is a user the owner shares their whole recipe book with.
-type RecipeBookShare struct {
-	UserID      string
-	CanEdit     bool
-	DisplayName string
 }
 
 type Ingredient struct {

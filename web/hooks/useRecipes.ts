@@ -9,11 +9,7 @@ import {
   UpdateRecipeRequestSchema,
   DeleteRecipeRequestSchema
 } from '@/lib/gen/recipes/v1/recipes_pb'
-import type {
-  ListRecipesResponse,
-  GetRecipeResponse,
-  ListRecipeBookSharesResponse
-} from '@/lib/gen/recipes/v1/recipes_pb'
+import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 
 export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
@@ -63,22 +59,4 @@ export function useUpdateRecipe() {
 export function useDeleteRecipe() {
   const client = createServiceClient(RecipesService)
   return (req: DeleteRecipeInput) => client.deleteRecipe(req)
-}
-
-export function useRecipeBookShares() {
-  const client = createServiceClient(RecipesService)
-  return useSWR<ListRecipeBookSharesResponse, Error>(swrKeys.recipeBookShares, () =>
-    client.listRecipeBookShares({})
-  )
-}
-
-export function useShareRecipeBook() {
-  const client = createServiceClient(RecipesService)
-  return (contactUserId: string, canEdit: boolean) =>
-    client.shareRecipeBook({ contactUserId, canEdit })
-}
-
-export function useUnshareRecipeBook() {
-  const client = createServiceClient(RecipesService)
-  return (targetUserId: string) => client.unshareRecipeBook({ targetUserId })
 }

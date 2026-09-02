@@ -22,6 +22,25 @@ var errNotFound = &iapp.HTTPError{
 	Message: "Plan not found",
 }
 
+// fakeFamilyStore maps "user1" to a fixed family ID for tests.
+type fakeFamilyStore struct {
+	familyID uuid.UUID
+	err      error
+}
+
+func (f *fakeFamilyStore) EnsureFamily(
+	_ context.Context, _ string,
+) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return f.familyID, nil
+}
+
+func newFamilyStore() *fakeFamilyStore {
+	return &fakeFamilyStore{familyID: uuid.New(), err: nil}
+}
+
 func baseMock() *mocks.ShoppingRepoMock {
 	return &mocks.ShoppingRepoMock{
 		CheckPlanAccessFn:         nil,
@@ -50,7 +69,7 @@ func baseMock() *mocks.ShoppingRepoMock {
 
 func accessGrantedMock() *mocks.ShoppingRepoMock {
 	m := baseMock()
-	m.CheckPlanAccessFn = func(_ context.Context, _ uuid.UUID, _ string) error {
+	m.CheckPlanAccessFn = func(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 		return nil
 	}
 	return m
@@ -58,7 +77,7 @@ func accessGrantedMock() *mocks.ShoppingRepoMock {
 
 func accessDeniedMock() *mocks.ShoppingRepoMock {
 	m := baseMock()
-	m.CheckPlanAccessFn = func(_ context.Context, _ uuid.UUID, _ string) error {
+	m.CheckPlanAccessFn = func(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 		return errNotFound
 	}
 	return m
@@ -69,15 +88,16 @@ func TestGetCustomList_ReturnsItems(t *testing.T) {
 		{ID: "id-1", Name: "milk", Unit: "L", Amount: 1, RecipeName: "", GroupName: ""},
 		{ID: "id-2", Name: "eggs", Unit: "", Amount: 6, RecipeName: "", GroupName: ""},
 	}
+	family := newFamilyStore()
 	m := baseMock()
 	m.GetCustomItemsFn = func(
-		_ context.Context, userID string,
+		_ context.Context, familyID uuid.UUID,
 	) ([]repositories.ShoppingItem, error) {
-		assert.Equal(t, "user1", userID)
+		assert.Equal(t, family.familyID, familyID)
 		return want, nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, family)
 	got, err := svc.GetCustomList(context.Background(), "user1")
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
@@ -87,12 +107,12 @@ func TestGetCustomList_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
 	m.GetCustomItemsFn = func(
-		_ context.Context, _ string,
+		_ context.Context, _ uuid.UUID,
 	) ([]repositories.ShoppingItem, error) {
 		return nil, repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	_, err := svc.GetCustomList(context.Background(), "user1")
 	assert.ErrorIs(t, err, repoErr)
 }
@@ -106,20 +126,22 @@ func TestAddItem_Success(t *testing.T) {
 		RecipeName: "",
 		GroupName:  "",
 	}
+	family := newFamilyStore()
 	m := baseMock()
 	m.AddCustomItemFn = func(
 		_ context.Context,
-		userID, name, unit string,
+		familyID uuid.UUID,
+		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error) {
-		assert.Equal(t, "user1", userID)
+		assert.Equal(t, family.familyID, familyID)
 		assert.Equal(t, "milk", name)
 		assert.Equal(t, "L", unit)
 		assert.InDelta(t, 1.0, amount, 1e-9)
 		return want, nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, family)
 	got, err := svc.AddItem(context.Background(), "user1", "milk", "L", 1)
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
@@ -129,12 +151,12 @@ func TestAddItem_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
 	m.AddCustomItemFn = func(
-		_ context.Context, _, _, _ string, _ float64,
+		_ context.Context, _ uuid.UUID, _, _ string, _ float64,
 	) (repositories.ShoppingItem, error) {
 		return repositories.ShoppingItem{}, repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	_, err := svc.AddItem(context.Background(), "user1", "milk", "L", 1)
 	assert.ErrorIs(t, err, repoErr)
 }
@@ -149,15 +171,16 @@ func TestUpdateItem_Success(t *testing.T) {
 		RecipeName: "",
 		GroupName:  "",
 	}
+	family := newFamilyStore()
 	m := baseMock()
 	m.UpdateCustomItemFn = func(
 		_ context.Context,
-		userID string,
+		familyID uuid.UUID,
 		iID uuid.UUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error) {
-		assert.Equal(t, "user1", userID)
+		assert.Equal(t, family.familyID, familyID)
 		assert.Equal(t, itemID, iID)
 		assert.Equal(t, "oat milk", name)
 		assert.Equal(t, "L", unit)
@@ -165,7 +188,7 @@ func TestUpdateItem_Success(t *testing.T) {
 		return want, nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, family)
 	got, err := svc.UpdateItem(
 		context.Background(),
 		"user1",
@@ -182,26 +205,29 @@ func TestUpdateItem_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
 	m.UpdateCustomItemFn = func(
-		_ context.Context, _ string, _ uuid.UUID, _, _ string, _ float64,
+		_ context.Context, _ uuid.UUID, _ uuid.UUID, _, _ string, _ float64,
 	) (repositories.ShoppingItem, error) {
 		return repositories.ShoppingItem{}, repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	_, err := svc.UpdateItem(context.Background(), "user1", uuid.New(), "milk", "L", 1)
 	assert.ErrorIs(t, err, repoErr)
 }
 
 func TestDeleteItem_Success(t *testing.T) {
 	itemID := uuid.New()
+	family := newFamilyStore()
 	m := baseMock()
-	m.DeleteCustomItemFn = func(_ context.Context, userID string, iID uuid.UUID) error {
-		assert.Equal(t, "user1", userID)
+	m.DeleteCustomItemFn = func(
+		_ context.Context, familyID uuid.UUID, iID uuid.UUID,
+	) error {
+		assert.Equal(t, family.familyID, familyID)
 		assert.Equal(t, itemID, iID)
 		return nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, family)
 	err := svc.DeleteItem(context.Background(), "user1", itemID)
 	assert.NoError(t, err)
 }
@@ -209,27 +235,28 @@ func TestDeleteItem_Success(t *testing.T) {
 func TestDeleteItem_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
-	m.DeleteCustomItemFn = func(_ context.Context, _ string, _ uuid.UUID) error {
+	m.DeleteCustomItemFn = func(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 		return repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	err := svc.DeleteItem(context.Background(), "user1", uuid.New())
 	assert.ErrorIs(t, err, repoErr)
 }
 
 func TestSetItemExcluded_PassesThrough(t *testing.T) {
+	family := newFamilyStore()
 	m := baseMock()
 	m.SetItemExcludedFn = func(
-		_ context.Context, userID, name string, excluded bool,
+		_ context.Context, familyID uuid.UUID, name string, excluded bool,
 	) error {
-		assert.Equal(t, "user1", userID)
+		assert.Equal(t, family.familyID, familyID)
 		assert.Equal(t, "olive oil", name)
 		assert.True(t, excluded)
 		return nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, family)
 	err := svc.SetItemExcluded(context.Background(), "user1", "olive oil", true)
 	assert.NoError(t, err)
 }
@@ -237,17 +264,17 @@ func TestSetItemExcluded_PassesThrough(t *testing.T) {
 func TestSetItemExcluded_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
-	m.SetItemExcludedFn = func(_ context.Context, _, _ string, _ bool) error {
+	m.SetItemExcludedFn = func(_ context.Context, _ uuid.UUID, _ string, _ bool) error {
 		return repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	err := svc.SetItemExcluded(context.Background(), "user1", "olive oil", false)
 	assert.ErrorIs(t, err, repoErr)
 }
 
 func TestGetMealPlanExportItems_AccessDenied(t *testing.T) {
-	svc := services.NewShoppingService(accessDeniedMock())
+	svc := services.NewShoppingService(accessDeniedMock(), newFamilyStore())
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
 		context.Background(),
@@ -289,13 +316,13 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	// Custom items must NOT be fetched here; the frontend merges them once on
 	// its own. Fetching and appending would duplicate them per meal plan.
 	m.GetCustomItemsFn = func(
-		_ context.Context, _ string,
+		_ context.Context, _ uuid.UUID,
 	) ([]repositories.ShoppingItem, error) {
 		t.Fatal("GetCustomItems must not be called from GetMealPlanExportItems")
 		return nil, nil
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	got, err := svc.GetMealPlanExportItems(
 		context.Background(),
 		planID,
@@ -318,7 +345,7 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 		return nil, repoErr
 	}
 
-	svc := services.NewShoppingService(m)
+	svc := services.NewShoppingService(m, newFamilyStore())
 	start := time.Now().UTC()
 	_, err := svc.GetMealPlanExportItems(
 		context.Background(),
@@ -330,4 +357,65 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 		[]string{},
 	)
 	assert.ErrorIs(t, err, repoErr)
+}
+
+// Every ShoppingService method resolves the caller's family before touching
+// the repo; a family-resolution failure must propagate without calling the
+// repo at all.
+func TestFamilyResolutionErrors_PropagateWithoutTouchingRepo(t *testing.T) {
+	familyErr := errors.New("family error")
+	family := &fakeFamilyStore{familyID: uuid.Nil, err: familyErr}
+	m := baseMock()
+	svc := services.NewShoppingService(m, family)
+	ctx := context.Background()
+
+	_, err := svc.GetCustomList(ctx, "user1")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.AddItem(ctx, "user1", "milk", "L", 1)
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.UpdateItem(ctx, "user1", uuid.New(), "milk", "L", 1)
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.DeleteItem(ctx, "user1", uuid.New())
+	assert.ErrorIs(t, err, familyErr)
+
+	start := time.Now().UTC()
+	_, err = svc.GetMealPlanExportItems(
+		ctx, uuid.New(), "user1", start, start.AddDate(0, 0, 6), []string{}, []string{},
+	)
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.GetPlanIngredientGroups(
+		ctx, uuid.New(), "user1", start, start.AddDate(0, 0, 6), []string{},
+	)
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.ListCategories(ctx, "user1")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.CreateCategory(ctx, "user1", "Produce")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.RenameCategory(ctx, "user1", uuid.New(), "Produce")
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.DeleteCategory(ctx, "user1", uuid.New())
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.ListItemNames(ctx, "user1")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.ListItemCategories(ctx, "user1")
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.SetItemCategory(ctx, "user1", "milk", uuid.New())
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.SetItemExcluded(ctx, "user1", "milk", true)
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.SetStoreCategories(ctx, "user1", uuid.New(), []uuid.UUID{})
+	assert.ErrorIs(t, err, familyErr)
 }
