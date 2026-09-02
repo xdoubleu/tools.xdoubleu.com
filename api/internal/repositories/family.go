@@ -44,7 +44,6 @@ func (r *FamilyRepository) ListMembers(
 	ctx context.Context,
 	familyID uuid.UUID,
 ) ([]string, error) {
-	//nolint:sqlclosecheck // closed via defer below
 	rows, err := r.db.Query(ctx, `
 		SELECT user_id FROM global.family_members
 		WHERE family_id = $1
@@ -158,7 +157,7 @@ func (r *FamilyRepository) GetInvite(
 		userID,
 	).Scan(&inv.ID, &inv.FamilyID, &inv.FromUserID, &inv.ToUserID, &inv.CreatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return models.FamilyInvite{}, false, nil
+		return models.FamilyInvite{}, false, nil //nolint:exhaustruct // zero value
 	}
 	if err != nil {
 		return models.FamilyInvite{}, false, err

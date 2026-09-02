@@ -45,7 +45,10 @@ type Service interface {
 	// fromUserID's family, creating that family first if needed.
 	InviteByEmail(ctx context.Context, fromUserID, email string) error
 	// GetIncomingInvite returns the pending invite addressed to userID, if any.
-	GetIncomingInvite(ctx context.Context, userID string) (models.FamilyInvite, bool, error)
+	GetIncomingInvite(
+		ctx context.Context,
+		userID string,
+	) (models.FamilyInvite, bool, error)
 	Accept(ctx context.Context, userID string) error
 	Decline(ctx context.Context, userID string) error
 	// Leave removes userID from their family. Their family-scoped data,

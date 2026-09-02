@@ -84,8 +84,9 @@ describe('FamilyPageClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Invite' }))
 
     await waitFor(() =>
-      expect(screen.getByText('Failed to send invite. Check the email and try again.'))
-        .toBeInTheDocument()
+      expect(
+        screen.getByText('Failed to send invite. Check the email and try again.')
+      ).toBeInTheDocument()
     )
   })
 

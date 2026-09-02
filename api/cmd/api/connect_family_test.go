@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -11,7 +12,52 @@ import (
 
 	familyv1 "tools.xdoubleu.com/gen/family/v1"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
+	"tools.xdoubleu.com/internal/family"
+	"tools.xdoubleu.com/internal/models"
 )
+
+// erroringFamilyService fails every method, letting handler tests exercise
+// the CodeInternal branches that a real, healthy family.Service never takes.
+type erroringFamilyService struct{}
+
+var errFamilyServiceFake = errors.New("fake family service failure")
+
+func (erroringFamilyService) GetMembership(
+	context.Context, string,
+) (family.Membership, error) {
+	return family.Membership{}, errFamilyServiceFake
+}
+
+func (erroringFamilyService) InviteByEmail(context.Context, string, string) error {
+	return errFamilyServiceFake
+}
+
+func (erroringFamilyService) GetIncomingInvite(
+	context.Context, string,
+) (models.FamilyInvite, bool, error) {
+	return models.FamilyInvite{}, false, errFamilyServiceFake
+}
+
+func (erroringFamilyService) Accept(context.Context, string) error {
+	return errFamilyServiceFake
+}
+
+func (erroringFamilyService) Decline(context.Context, string) error {
+	return errFamilyServiceFake
+}
+
+func (erroringFamilyService) Leave(context.Context, string) error {
+	return errFamilyServiceFake
+}
+
+// withErroringFamilyService swaps testApp.family for one that always fails,
+// restoring the real service on test cleanup.
+func withErroringFamilyService(t *testing.T) {
+	t.Helper()
+	original := testApp.family
+	testApp.family = erroringFamilyService{}
+	t.Cleanup(func() { testApp.family = original })
+}
 
 func familyClient(t *testing.T) familyv1connect.FamilyServiceClient {
 	t.Helper()
@@ -147,4 +193,69 @@ func TestLeaveFamily_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, before.FamilyID, after.FamilyID,
 		"leaving should hand testUserID a fresh solo family")
+}
+
+func TestGetFamily_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.GetFamilyRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.GetFamily(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+func TestInviteToFamily_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.InviteToFamilyRequest{Email: "x@example.com"})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.InviteToFamily(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+func TestAcceptFamilyInvite_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.AcceptFamilyInvite(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+func TestDeclineFamilyInvite_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.DeclineFamilyInviteRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.DeclineFamilyInvite(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
+}
+
+func TestLeaveFamily_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.LeaveFamilyRequest{})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.LeaveFamily(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
 }

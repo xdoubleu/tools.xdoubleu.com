@@ -94,8 +94,8 @@ export default function FamilyPageClient() {
     <PageContainer className="max-w-lg p-6">
       <h1 className="mb-2 text-3xl font-bold">Family</h1>
       <p className="mb-6 text-sm text-muted">
-        A family shares one recipe book, one meal plan and one shopping list together — not
-        separate lists cross-shared, but a single set everyone in it sees and edits.
+        A family shares one recipe book, one meal plan and one shopping list together — not separate
+        lists cross-shared, but a single set everyone in it sees and edits.
       </p>
 
       {incomingInvite && (
