@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/gen/contacts/v1/contactsv1connect"
 	dashboardv1connect "tools.xdoubleu.com/gen/dashboard/v1/dashboardv1connect"
+	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
 	"tools.xdoubleu.com/gen/observability/v1/observabilityv1connect"
 	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/constants"
@@ -57,6 +58,15 @@ func (app *Application) Routes() http.Handler {
 	mux.Handle(
 		"POST "+contactsPath,
 		app.auth.Access(contactsHandler.ServeHTTP),
+	)
+
+	familyPath, familyHandler := familyv1connect.NewFamilyServiceHandler(
+		&familyConnectHandler{app: app},
+		scrub,
+	)
+	mux.Handle(
+		"POST "+familyPath,
+		app.auth.Access(familyHandler.ServeHTTP),
 	)
 
 	dashboardPath, dashboardHandler := dashboardv1connect.NewDashboardServiceHandler(
