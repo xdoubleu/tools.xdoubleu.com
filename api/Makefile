@@ -120,6 +120,12 @@ test/cov/report:
 	# misreports genuinely covered lines as partial/missed. Keep the highest
 	# count per line before uploading.
 	tail -n +2 coverage.out.filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> coverage.out
+	# Go opens a function's first block at its body's opening brace, so the
+	# parameter lines of a signature golines wrapped over the 88-char limit
+	# belong to no block at all and Codecov reports them as missed --
+	# costing every newly added function 2-3 patch lines it can never cover
+	# (issue #1376). Extend those blocks back to the `func` keyword.
+	python3 ../tools/extend_signature_coverage.py coverage.out
 
 test/cov: test/cov/report
 	go tool cover -html=coverage.out -o=coverage.html
