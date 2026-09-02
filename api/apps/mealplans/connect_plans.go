@@ -95,7 +95,6 @@ func (h *mealplansConnectHandler) GetPlan(
 		NextOffset:  int32(offset + 1), //nolint:gosec // pagination offset fits int32
 		WindowStart: windowStart.Format(time.RFC3339),
 		WindowEnd:   windowEnd.Format(time.RFC3339),
-		SharedWith:  protoSharedUsers(plan.SharedWith),
 	}), nil
 }
 
@@ -131,69 +130,4 @@ func (h *mealplansConnectHandler) UpdatePlan(
 	}
 
 	return connect.NewResponse(&mealplansv1.UpdatePlanResponse{}), nil
-}
-
-func (h *mealplansConnectHandler) SharePlan(
-	ctx context.Context,
-	req *connect.Request[mealplansv1.SharePlanRequest],
-) (*connect.Response[mealplansv1.SharePlanResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	planID, err := uuid.Parse(req.Msg.PlanId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
-		)
-	}
-
-	if err = h.app.services.Plans.Share(
-		ctx, planID, user.ID, req.Msg.ContactUserId, req.Msg.CanEdit,
-	); err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&mealplansv1.SharePlanResponse{}), nil
-}
-
-func (h *mealplansConnectHandler) UnsharePlan(
-	ctx context.Context,
-	req *connect.Request[mealplansv1.UnsharePlanRequest],
-) (*connect.Response[mealplansv1.UnsharePlanResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated,
-			fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	planID, err := uuid.Parse(req.Msg.PlanId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("invalid plan ID"),
-		)
-	}
-
-	if req.Msg.TargetUserId == "" {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument,
-			fmt.Errorf("target user ID is required"),
-		)
-	}
-
-	if err = h.app.services.Plans.Unshare(
-		ctx, planID, user.ID, req.Msg.TargetUserId,
-	); err != nil {
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&mealplansv1.UnsharePlanResponse{}), nil
 }

@@ -13,7 +13,7 @@ import { PageContainer } from '@/components/ui/page-container'
 export default async function ShoppingListSettingsPage() {
   const client = await createServerClient(ShoppingListService)
   const [categories, itemNames, itemCategories, stores] = await Promise.all([
-    fetchOrNull(() => client.listCategories({ ownerUserId: '' })),
+    fetchOrNull(() => client.listCategories({})),
     fetchOrNull(() => client.listItemNames({})),
     fetchOrNull(() => client.listItemCategories({})),
     fetchOrNull(() => client.listStores({}))

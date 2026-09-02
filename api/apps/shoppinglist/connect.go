@@ -29,26 +29,15 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 }
 
-// resolveOwner authenticates the caller and resolves which list the request
-// acts on. requestedOwner empty means the caller's own list; a non-empty value
-// must reference a list shared with the caller (writes require edit rights).
-// The returned error is already a connect error ready to return.
-func (h *shoppingConnectHandler) resolveOwner(
-	ctx context.Context,
-	requestedOwner string,
-	write bool,
-) (string, error) {
+// callerID authenticates the caller and returns their user ID. Every data
+// RPC acts on the caller's family shopping list, resolved inside the service
+// layer from this user ID.
+func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
 	user := getUser(ctx)
 	if user == nil {
 		return "", errUnauthenticated()
 	}
-	owner, err := h.app.services.Sharing.ResolveOwner(
-		ctx, requestedOwner, user.ID, write,
-	)
-	if err != nil {
-		return "", mapError(err)
-	}
-	return owner, nil
+	return user.ID, nil
 }
 
 func mapError(err error) error {
@@ -57,14 +46,14 @@ func mapError(err error) error {
 
 func (h *shoppingConnectHandler) GetCustomList(
 	ctx context.Context,
-	req *connect.Request[shoppinglistv1.GetCustomListRequest],
+	_ *connect.Request[shoppinglistv1.GetCustomListRequest],
 ) (*connect.Response[shoppinglistv1.GetCustomListResponse], error) {
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, false)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	items, err := h.app.services.Shopping.GetCustomList(ctx, ownerID)
+	items, err := h.app.services.Shopping.GetCustomList(ctx, userID)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -101,13 +90,13 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		)
 	}
 
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	item, err := h.app.services.Shopping.AddItem(
-		ctx, ownerID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, userID, req.Msg.Name, req.Msg.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -150,13 +139,13 @@ func (h *shoppingConnectHandler) UpdateShoppingItem(
 		)
 	}
 
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	item, err := h.app.services.Shopping.UpdateItem(
-		ctx, ownerID, itemID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, userID, itemID, req.Msg.Name, req.Msg.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -184,12 +173,12 @@ func (h *shoppingConnectHandler) DeleteShoppingItem(
 		)
 	}
 
-	ownerID, err := h.resolveOwner(ctx, req.Msg.OwnerUserId, true)
+	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = h.app.services.Shopping.DeleteItem(ctx, ownerID, itemID); err != nil {
+	if err = h.app.services.Shopping.DeleteItem(ctx, userID, itemID); err != nil {
 		return nil, mapError(err)
 	}
 

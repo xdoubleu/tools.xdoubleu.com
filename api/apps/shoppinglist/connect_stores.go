@@ -9,17 +9,6 @@ import (
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
 )
 
-// callerID returns the authenticated caller's own user ID. Stores are private:
-// the store RPCs never resolve a shared owner, so a share recipient can only
-// ever touch their own stores.
-func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
-	user := getUser(ctx)
-	if user == nil {
-		return "", errUnauthenticated()
-	}
-	return user.ID, nil
-}
-
 func (h *shoppingConnectHandler) ListStores(
 	ctx context.Context,
 	_ *connect.Request[shoppinglistv1.ListStoresRequest],

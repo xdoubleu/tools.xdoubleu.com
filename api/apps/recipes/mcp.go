@@ -19,19 +19,16 @@ type mcpRecipeArgs struct {
 }
 
 // RegisterMCPTools exposes the recipes app's read-only RPCs on the combined apps
-// MCP server. Every tool returns recipes the calling user owns or has been
-// shared.
+// MCP server. Every tool returns recipes belonging to the calling user's
+// family.
 func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 	h := &recipesConnectHandler{app: a}
 
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_list_recipes",
-		"All recipes the user owns or has been shared.", h.mcpListRecipes)
+		"All recipes in the user's family recipe book.", h.mcpListRecipes)
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_get_recipe",
 		"A single recipe with its ingredients scaled to the requested servings.",
 		h.mcpGetRecipe)
-	mcptools.AddReadTool(srv, mcpAppName, "recipes_list_recipe_book_shares",
-		"The users the caller has shared their recipe book with.",
-		h.mcpListRecipeBookShares)
 }
 
 func (h *recipesConnectHandler) mcpListRecipes(
@@ -47,13 +44,5 @@ func (h *recipesConnectHandler) mcpGetRecipe(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetRecipe(ctx, connect.NewRequest(
 		&recipesv1.GetRecipeRequest{Id: args.ID, Servings: args.Servings},
-	)))
-}
-
-func (h *recipesConnectHandler) mcpListRecipeBookShares(
-	ctx context.Context, _ mcptools.NoArgs,
-) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListRecipeBookShares(ctx, connect.NewRequest(
-		&recipesv1.ListRecipeBookSharesRequest{},
 	)))
 }

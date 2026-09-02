@@ -367,11 +367,20 @@ func seedForeignStore(t *testing.T, owner, name string) string {
 	return id
 }
 
-// Stores are private to the caller: even with a shared-list grant, a recipient
-// never sees or touches the owner's stores.
+// Stores are private to the caller: even a fellow family member (who shares
+// everything else — categories, custom items, the item catalog) never sees
+// or touches another member's stores.
 func TestStores_PrivateToCaller(t *testing.T) {
 	const owner = "sl-store-owner"
-	grantListAccess(t, owner, true) // full edit access to the owner's list…
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO global.family_members (user_id, family_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id) DO UPDATE SET family_id = EXCLUDED.family_id`,
+		owner, familyID,
+	)
+	require.NoError(t, err)
 	foreignID := seedForeignStore(t, owner, "Owner-Only-"+uuid.NewString())
 
 	client := newShoppingClient(t)
@@ -409,6 +418,79 @@ func TestStores_PrivateToCaller(t *testing.T) {
 		connect.NewRequest(&shoppinglistv1.DeleteStoreRequest{Id: foreignID}),
 	)
 	assertCode(t, err, connect.CodeNotFound)
+}
+
+// A category or custom item added directly by a family member (staged via SQL,
+// since the mock auth always authenticates as userID) is visible to the caller
+// through the normal list RPCs — the shopping list is shared family-wide.
+func TestFamilyMember_SharesCategoriesAndCustomItems(t *testing.T) {
+	const familyMember = "sl-family-member-1"
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO global.family_members (user_id, family_id)
+		VALUES ($1, $2)
+		ON CONFLICT (user_id) DO UPDATE SET family_id = EXCLUDED.family_id`,
+		familyMember, familyID,
+	)
+	require.NoError(t, err)
+
+	catName := "family-cat-" + uuid.NewString()
+	var catID string
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO shoppinglist.categories (family_id, name)
+		VALUES ($1, $2) RETURNING id::text`,
+		familyID, catName,
+	).Scan(&catID)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM shoppinglist.categories WHERE id::text = $1",
+			catID,
+		)
+	})
+
+	itemName := "family-item-" + uuid.NewString()
+	_, err = testDB.Exec(context.Background(), `
+		INSERT INTO shoppinglist.custom_items (family_id, name, amount, unit)
+		VALUES ($1, $2, 1, 'pcs')`,
+		familyID, itemName,
+	)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(
+			context.Background(),
+			"DELETE FROM shoppinglist.custom_items WHERE family_id = $1 AND name = $2",
+			familyID, itemName,
+		)
+	})
+
+	client := newShoppingClient(t)
+
+	cats, err := client.ListCategories(
+		t.Context(), connect.NewRequest(&shoppinglistv1.ListCategoriesRequest{}),
+	)
+	require.NoError(t, err)
+	var foundCat bool
+	for _, c := range cats.Msg.Categories {
+		if c.Id == catID {
+			foundCat = true
+		}
+	}
+	assert.True(t, foundCat, "family member's category should be visible")
+
+	items, err := client.GetCustomList(
+		t.Context(), connect.NewRequest(&shoppinglistv1.GetCustomListRequest{}),
+	)
+	require.NoError(t, err)
+	var foundItem bool
+	for _, item := range items.Msg.Items {
+		if item.Name == itemName {
+			foundItem = true
+		}
+	}
+	assert.True(t, foundItem, "family member's custom item should be visible")
 }
 
 // ── Item catalog ──────────────────────────────────────────────────────────────
@@ -777,16 +859,4 @@ func TestSetItemExcluded_EmptyName(t *testing.T) {
 		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{Name: ""}),
 	)
 	assertCode(t, err, connect.CodeInvalidArgument)
-}
-
-func TestSetItemExcluded_PermissionDenied(t *testing.T) {
-	client := newShoppingClient(t)
-	// Acting on a stranger's list without an edit grant is rejected.
-	_, err := client.SetItemExcluded(
-		t.Context(),
-		connect.NewRequest(&shoppinglistv1.SetItemExcludedRequest{
-			Name: "salt", OwnerUserId: "stranger-owner",
-		}),
-	)
-	assertCode(t, err, connect.CodePermissionDenied)
 }

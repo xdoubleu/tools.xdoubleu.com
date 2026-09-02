@@ -2,9 +2,6 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
-  listRecipeBookShares: jest.fn().mockResolvedValue({ shares: [] }),
-  shareRecipeBook: jest.fn().mockResolvedValue({}),
-  unshareRecipeBook: jest.fn().mockResolvedValue({}),
   listRecipes: jest.fn().mockResolvedValue({ recipes: [{ id: 'r-1' }], hasMore: true })
 }
 jest.mock('@/lib/client', () => ({
@@ -21,9 +18,6 @@ import {
   useCreateRecipe,
   useUpdateRecipe,
   useDeleteRecipe,
-  useRecipeBookShares,
-  useShareRecipeBook,
-  useUnshareRecipeBook,
   useFetchRecipesPage
 } from '@/hooks/useRecipes'
 
@@ -75,26 +69,6 @@ describe('mutation hooks return functions', () => {
   it('useDeleteRecipe returns a function', () => {
     const { result } = renderHook(() => useDeleteRecipe())
     expect(typeof result.current).toBe('function')
-  })
-
-  it('useShareRecipeBook calls shareRecipeBook with contact and permission', () => {
-    const { result } = renderHook(() => useShareRecipeBook())
-    result.current('u-1', true)
-    expect(mockClient.shareRecipeBook).toHaveBeenCalledWith({
-      contactUserId: 'u-1',
-      canEdit: true
-    })
-  })
-
-  it('useUnshareRecipeBook calls unshareRecipeBook with the target', () => {
-    const { result } = renderHook(() => useUnshareRecipeBook())
-    result.current('u-2')
-    expect(mockClient.unshareRecipeBook).toHaveBeenCalledWith({ targetUserId: 'u-2' })
-  })
-
-  it('useRecipeBookShares uses /recipes/book-shares as key', () => {
-    renderHook(() => useRecipeBookShares())
-    expect(mockUseSWR).toHaveBeenCalledWith('/recipes/book-shares', expect.any(Function))
   })
 })
 

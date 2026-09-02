@@ -16,9 +16,7 @@ import {
   useUpdatePlan,
   useAddMeal,
   useDeleteMeal,
-  useMoveMeal,
-  useSharePlan,
-  useUnsharePlan
+  useMoveMeal
 } from '@/hooks/useMealPlans'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -86,16 +84,6 @@ describe('mutation hooks return functions', () => {
 
   it('useMoveMeal returns a function', () => {
     const { result } = renderHook(() => useMoveMeal())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('useSharePlan returns a function', () => {
-    const { result } = renderHook(() => useSharePlan())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('useUnsharePlan returns a function', () => {
-    const { result } = renderHook(() => useUnsharePlan())
     expect(typeof result.current).toBe('function')
   })
 })

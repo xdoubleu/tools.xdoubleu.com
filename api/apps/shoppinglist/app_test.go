@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
@@ -24,6 +25,9 @@ var testApp *shoppinglist.ShoppingList
 var testDB postgres.DB
 
 //nolint:gochecknoglobals //needed for tests
+var familyRepo *sharedrepositories.FamilyRepository
+
+//nolint:gochecknoglobals //needed for tests
 var userID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
 func TestMain(m *testing.M) {
@@ -31,12 +35,17 @@ func TestMain(m *testing.M) {
 
 	postgresDB := testhelper.ConnectTestDB(cfg.DBDsn)
 	testDB = postgresDB
+	familyRepo = sharedrepositories.NewFamilyRepository(postgresDB)
 	auth := sharedmocks.NewMockedAuthService(userID)
 
-	recipesApp := recipes.New(auth, logging.NewNopLogger(), cfg, postgresDB)
-	mealPlansApp := mealplans.New(auth, logging.NewNopLogger(), cfg, postgresDB)
+	recipesApp := recipes.New(auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo)
+	mealPlansApp := mealplans.New(
+		auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo,
+	)
 
-	testApp = shoppinglist.New(auth, logging.NewNopLogger(), cfg, postgresDB)
+	testApp = shoppinglist.New(
+		auth, logging.NewNopLogger(), cfg, postgresDB, familyRepo,
+	)
 
 	var err error
 	for _, schema := range []string{"shoppinglist", "mealplans", "recipes"} {
@@ -48,7 +57,9 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	// Ensure global.contacts exists (used by shopping-list sharing queries).
+	// Ensure global.contacts/families exist (families used by family_id
+	// scoping, contacts kept around for any other app's fixtures sharing
+	// this schema in CI's single test database).
 	if _, err = postgresDB.Exec(context.Background(), `
 		CREATE SCHEMA IF NOT EXISTS global;
 		CREATE TABLE IF NOT EXISTS global.contacts (
@@ -59,6 +70,15 @@ func TestMain(m *testing.M) {
 			status TEXT NOT NULL DEFAULT 'pending',
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			UNIQUE (owner_user_id, contact_user_id)
+		);
+		CREATE TABLE IF NOT EXISTS global.families (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		);
+		CREATE TABLE IF NOT EXISTS global.family_members (
+			user_id TEXT PRIMARY KEY,
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`); err != nil {
 		panic(err)
 	}

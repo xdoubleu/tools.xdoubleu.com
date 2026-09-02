@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/database/postgres"
+	sharedrepositories "tools.xdoubleu.com/internal/repositories"
 )
 
 //go:embed migrations/*.sql
@@ -28,6 +29,7 @@ func New(
 	logger *slog.Logger,
 	cfg config.Config,
 	db postgres.DB,
+	familyRepo *sharedrepositories.FamilyRepository,
 ) *Recipes {
 	//nolint:exhaustruct //services initialised below
 	a := &Recipes{
@@ -38,7 +40,7 @@ func New(
 			cfg,
 		),
 	}
-	a.services = services.New(a.Logger, repositories.New(db), authService)
+	a.services = services.New(a.Logger, repositories.New(db), authService, familyRepo)
 
 	return a
 }

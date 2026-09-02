@@ -13,12 +13,6 @@ import (
 
 const mcpAppName = "shoppinglist"
 
-// mcpOwnerArgs selects whose list to read: empty is the caller's own list; a
-// non-empty owner must be a list shared with the caller.
-type mcpOwnerArgs struct {
-	OwnerUserID string `json:"owner_user_id,omitempty" jsonschema:"owner; empty=own list"`
-}
-
 type mcpPlanIDArgs struct {
 	PlanID string `json:"plan_id" jsonschema:"meal-plan id"`
 }
@@ -33,8 +27,8 @@ type mcpStoreIDArgs struct {
 }
 
 // RegisterMCPTools exposes the shoppinglist app's read-only RPCs on the combined
-// apps MCP server. List data is scoped to the caller (own or shared lists);
-// stores are always the caller's own.
+// apps MCP server. List data is scoped to the caller's family; stores are
+// always the caller's own.
 func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 	h := &shoppingConnectHandler{app: a}
 
@@ -46,7 +40,7 @@ func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 		"The recipe/ingredient groups available to exclude for a plan.",
 		h.mcpGetPlanIngredientGroups)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_categories",
-		"The user-defined shopping categories.", h.mcpListCategories)
+		"The family's shopping categories.", h.mcpListCategories)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_stores",
 		"The caller's own stores.", h.mcpListStores)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_get_store_categories",
@@ -56,18 +50,13 @@ func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpListItemNames)
 	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_item_categories",
 		"The item-name to category assignments.", h.mcpListItemCategories)
-	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_shares",
-		"The users the caller has shared their list with.", h.mcpListShares)
-	mcptools.AddReadTool(srv, mcpAppName, "shoppinglist_list_accessible_lists",
-		"Lists the caller can act on: their own plus lists shared with them.",
-		h.mcpListAccessibleLists)
 }
 
 func (h *shoppingConnectHandler) mcpGetCustomList(
-	ctx context.Context, args mcpOwnerArgs,
+	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetCustomList(ctx, connect.NewRequest(
-		&shoppinglistv1.GetCustomListRequest{OwnerUserId: args.OwnerUserID},
+		&shoppinglistv1.GetCustomListRequest{},
 	)))
 }
 
@@ -91,10 +80,10 @@ func (h *shoppingConnectHandler) mcpGetPlanIngredientGroups(
 }
 
 func (h *shoppingConnectHandler) mcpListCategories(
-	ctx context.Context, args mcpOwnerArgs,
+	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListCategories(ctx, connect.NewRequest(
-		&shoppinglistv1.ListCategoriesRequest{OwnerUserId: args.OwnerUserID},
+		&shoppinglistv1.ListCategoriesRequest{},
 	)))
 }
 
@@ -115,33 +104,17 @@ func (h *shoppingConnectHandler) mcpGetStoreCategories(
 }
 
 func (h *shoppingConnectHandler) mcpListItemNames(
-	ctx context.Context, args mcpOwnerArgs,
+	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListItemNames(ctx, connect.NewRequest(
-		&shoppinglistv1.ListItemNamesRequest{OwnerUserId: args.OwnerUserID},
+		&shoppinglistv1.ListItemNamesRequest{},
 	)))
 }
 
 func (h *shoppingConnectHandler) mcpListItemCategories(
-	ctx context.Context, args mcpOwnerArgs,
+	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListItemCategories(ctx, connect.NewRequest(
-		&shoppinglistv1.ListItemCategoriesRequest{OwnerUserId: args.OwnerUserID},
-	)))
-}
-
-func (h *shoppingConnectHandler) mcpListShares(
-	ctx context.Context, _ mcptools.NoArgs,
-) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListShoppingListShares(ctx, connect.NewRequest(
-		&shoppinglistv1.ListShoppingListSharesRequest{},
-	)))
-}
-
-func (h *shoppingConnectHandler) mcpListAccessibleLists(
-	ctx context.Context, _ mcptools.NoArgs,
-) (proto.Message, error) {
-	return mcptools.Unwrap(h.ListAccessibleLists(ctx, connect.NewRequest(
-		&shoppinglistv1.ListAccessibleListsRequest{},
+		&shoppinglistv1.ListItemCategoriesRequest{},
 	)))
 }

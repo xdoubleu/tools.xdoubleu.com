@@ -3,9 +3,6 @@ import { render, screen } from '@testing-library/react'
 
 jest.mock('@/hooks/useRecipes', () => ({
   useRecipes: jest.fn(),
-  useRecipeBookShares: jest.fn(() => ({ data: undefined, mutate: jest.fn() })),
-  useShareRecipeBook: jest.fn(() => jest.fn()),
-  useUnshareRecipeBook: jest.fn(() => jest.fn()),
   useFetchRecipesPage: jest.fn(() => jest.fn())
 }))
 
@@ -15,11 +12,6 @@ jest.mock('next/link', () => {
   )
   return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
-
-jest.mock('@/components/recipes/ShareModal', () => ({
-  __esModule: true,
-  default: () => <div data-testid="share-modal" />
-}))
 
 import RecipesListClient from '@/components/recipes/RecipesListClient'
 import { useRecipes } from '@/hooks/useRecipes'

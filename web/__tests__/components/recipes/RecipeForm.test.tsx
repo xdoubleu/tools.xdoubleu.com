@@ -153,8 +153,7 @@ describe('RecipeForm (new recipe)', () => {
     await waitFor(() =>
       expect(mockSetItemCategory).toHaveBeenCalledWith({
         name: 'carrot',
-        categoryId: 'cat-produce',
-        ownerUserId: ''
+        categoryId: 'cat-produce'
       })
     )
   })
@@ -170,11 +169,10 @@ describe('RecipeForm (new recipe)', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => {
-      expect(mockCreateCategory).toHaveBeenCalledWith({ name: 'Bakery', ownerUserId: '' })
+      expect(mockCreateCategory).toHaveBeenCalledWith({ name: 'Bakery' })
       expect(mockSetItemCategory).toHaveBeenCalledWith({
         name: 'eggs',
-        categoryId: 'cat-bakery',
-        ownerUserId: ''
+        categoryId: 'cat-bakery'
       })
     })
   })

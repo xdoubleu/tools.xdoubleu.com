@@ -53,5 +53,9 @@ func (s *ShoppingService) SetStoreCategories(
 	storeID uuid.UUID,
 	categoryIDs []uuid.UUID,
 ) error {
-	return s.repo.SetStoreCategories(ctx, userID, storeID, categoryIDs)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return s.repo.SetStoreCategories(ctx, userID, familyID, storeID, categoryIDs)
 }

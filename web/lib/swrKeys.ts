@@ -32,7 +32,6 @@ export const swrKeys = {
   // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
   // api service, so a path under /api never reaches this Next.js route.
   webRelease: '/release',
-  sharedMealPlans: '/sharing/mealplans',
 
   dashboardShare: (kind: 'games' | 'reading') => `/dashboard/share/${kind}`,
   dashboardReading: (token: string) => `/dashboard/reading/${token}`,
@@ -97,7 +96,6 @@ export const swrKeys = {
   recipes: '/recipes',
   recipe: (id: string, servings?: number) =>
     servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`,
-  recipeBookShares: '/recipes/book-shares',
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>
@@ -107,8 +105,6 @@ export const swrKeys = {
   planIngredientGroups: (planId: string) => `/shoppinglist/groups/${planId}`,
   planIngredientGroupsAll: '/shoppinglist/groups/all',
   shoppingCategories: (ownerUserId: string) => `/shoppinglist/categories?owner=${ownerUserId}`,
-  accessibleShoppingLists: '/shoppinglist/accessible',
-  shoppingListShares: '/shoppinglist/shares',
   stores: '/shoppinglist/stores',
   storeCategories: (storeId: string) => `/shoppinglist/stores/${storeId}/categories`,
   itemNames: '/shoppinglist/item-names',

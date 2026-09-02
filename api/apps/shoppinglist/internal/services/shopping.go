@@ -51,25 +51,32 @@ func ExportWindow(now time.Time) (time.Time, time.Time, []string) {
 	return start, end, pastSlots
 }
 
+// familyStore resolves which family a user belongs to, lazily creating a
+// family-of-one the first time it's asked for (see internal/family).
+type familyStore interface {
+	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
+}
+
 type shoppingRepo interface {
-	CheckPlanAccess(ctx context.Context, planID uuid.UUID, userID string) error
+	CheckPlanAccess(ctx context.Context, planID uuid.UUID, familyID uuid.UUID) error
 	GetCustomItems(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 	) ([]repositories.ShoppingItem, error)
 	AddCustomItem(
 		ctx context.Context,
-		userID, name, unit string,
+		familyID uuid.UUID,
+		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
 	UpdateCustomItem(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 		itemID uuid.UUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
-	DeleteCustomItem(ctx context.Context, userID string, itemID uuid.UUID) error
+	DeleteCustomItem(ctx context.Context, familyID uuid.UUID, itemID uuid.UUID) error
 	GetMealPlanExportItems(
 		ctx context.Context,
 		planID uuid.UUID,
@@ -84,18 +91,22 @@ type shoppingRepo interface {
 		pastSlots []string,
 	) ([]repositories.PlanIngredientGroup, error)
 
-	ListCategories(ctx context.Context, userID string) ([]repositories.Category, error)
+	ListCategories(
+		ctx context.Context,
+		familyID uuid.UUID,
+	) ([]repositories.Category, error)
 	CreateCategory(
 		ctx context.Context,
-		userID, name string,
+		familyID uuid.UUID,
+		name string,
 	) (repositories.Category, error)
 	RenameCategory(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 		id uuid.UUID,
 		name string,
 	) (repositories.Category, error)
-	DeleteCategory(ctx context.Context, userID string, id uuid.UUID) error
+	DeleteCategory(ctx context.Context, familyID uuid.UUID, id uuid.UUID) error
 
 	ListStores(ctx context.Context, userID string) ([]repositories.Store, error)
 	CreateStore(ctx context.Context, userID, name string) (repositories.Store, error)
@@ -114,23 +125,29 @@ type shoppingRepo interface {
 	SetStoreCategories(
 		ctx context.Context,
 		userID string,
+		familyID uuid.UUID,
 		storeID uuid.UUID,
 		categoryIDs []uuid.UUID,
 	) error
 
-	ListItemNames(ctx context.Context, userID string) ([]repositories.ItemName, error)
+	ListItemNames(
+		ctx context.Context,
+		familyID uuid.UUID,
+	) ([]repositories.ItemName, error)
 	ListItemCategories(
 		ctx context.Context,
-		userID string,
+		familyID uuid.UUID,
 	) ([]repositories.ItemCategory, error)
 	SetItemCategory(
 		ctx context.Context,
-		userID, name string,
+		familyID uuid.UUID,
+		name string,
 		categoryID uuid.UUID,
 	) error
 	SetItemExcluded(
 		ctx context.Context,
-		userID, name string,
+		familyID uuid.UUID,
+		name string,
 		excluded bool,
 	) error
 }
@@ -138,32 +155,39 @@ type shoppingRepo interface {
 type Services struct {
 	Auth     auth.Service
 	Shopping *ShoppingService
-	Sharing  *SharingService
 }
 
-func New(repo *repositories.ShoppingRepository, authService auth.Service) *Services {
+func New(
+	repo *repositories.ShoppingRepository,
+	authService auth.Service,
+	family familyStore,
+) *Services {
 	return &Services{
 		Auth:     authService,
-		Shopping: &ShoppingService{repo: repo},
-		Sharing:  &SharingService{repo: repo},
+		Shopping: &ShoppingService{repo: repo, family: family},
 	}
 }
 
 type ShoppingService struct {
-	repo shoppingRepo
+	repo   shoppingRepo
+	family familyStore
 }
 
-// NewShoppingService constructs a ShoppingService from any shoppingRepo implementation,
-// allowing injection of mocks in tests.
-func NewShoppingService(repo shoppingRepo) *ShoppingService {
-	return &ShoppingService{repo: repo}
+// NewShoppingService constructs a ShoppingService from any shoppingRepo
+// implementation, allowing injection of mocks in tests.
+func NewShoppingService(repo shoppingRepo, family familyStore) *ShoppingService {
+	return &ShoppingService{repo: repo, family: family}
 }
 
 func (s *ShoppingService) GetCustomList(
 	ctx context.Context,
 	userID string,
 ) ([]repositories.ShoppingItem, error) {
-	return s.repo.GetCustomItems(ctx, userID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.GetCustomItems(ctx, familyID)
 }
 
 func (s *ShoppingService) AddItem(
@@ -171,7 +195,11 @@ func (s *ShoppingService) AddItem(
 	userID, name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return s.repo.AddCustomItem(ctx, userID, name, unit, amount)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return repositories.ShoppingItem{}, err
+	}
+	return s.repo.AddCustomItem(ctx, familyID, name, unit, amount)
 }
 
 func (s *ShoppingService) UpdateItem(
@@ -181,7 +209,11 @@ func (s *ShoppingService) UpdateItem(
 	name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return s.repo.UpdateCustomItem(ctx, userID, itemID, name, unit, amount)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return repositories.ShoppingItem{}, err
+	}
+	return s.repo.UpdateCustomItem(ctx, familyID, itemID, name, unit, amount)
 }
 
 func (s *ShoppingService) DeleteItem(
@@ -189,7 +221,11 @@ func (s *ShoppingService) DeleteItem(
 	userID string,
 	itemID uuid.UUID,
 ) error {
-	return s.repo.DeleteCustomItem(ctx, userID, itemID)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	return s.repo.DeleteCustomItem(ctx, familyID, itemID)
 }
 
 // GetMealPlanExportItems returns only the aggregated meal-plan ingredients for
@@ -205,7 +241,11 @@ func (s *ShoppingService) GetMealPlanExportItems(
 	pastSlots []string,
 	excludedGroups []string,
 ) ([]repositories.ShoppingItem, error) {
-	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err = s.repo.CheckPlanAccess(ctx, planID, familyID); err != nil {
 		return nil, err
 	}
 	return s.repo.GetMealPlanExportItems(
@@ -220,7 +260,11 @@ func (s *ShoppingService) GetPlanIngredientGroups(
 	start, end time.Time,
 	pastSlots []string,
 ) ([]repositories.PlanIngredientGroup, error) {
-	if err := s.repo.CheckPlanAccess(ctx, planID, userID); err != nil {
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if err = s.repo.CheckPlanAccess(ctx, planID, familyID); err != nil {
 		return nil, err
 	}
 	return s.repo.GetPlanIngredientGroups(ctx, planID, start, end, pastSlots)

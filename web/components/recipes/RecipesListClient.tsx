@@ -1,14 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
-import {
-  useRecipes,
-  useRecipeBookShares,
-  useShareRecipeBook,
-  useUnshareRecipeBook,
-  useFetchRecipesPage
-} from '@/hooks/useRecipes'
+import { useRecipes, useFetchRecipesPage } from '@/hooks/useRecipes'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { cn } from '@/lib/cn'
@@ -16,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
-import ShareModal from '@/components/recipes/ShareModal'
 import { PageContainer } from '@/components/ui/page-container'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
@@ -31,10 +24,6 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
 
 export default function RecipesListClient() {
   const { data, error, isLoading } = useRecipes()
-  const { data: sharesData, mutate: mutateShares } = useRecipeBookShares()
-  const shareBook = useShareRecipeBook()
-  const unshareBook = useUnshareRecipeBook()
-  const [showShareModal, setShowShareModal] = useState(false)
 
   const fetchPage = useFetchRecipesPage()
   const initialPage = useMemo(
@@ -48,28 +37,13 @@ export default function RecipesListClient() {
     loadMore
   } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
 
-  const handleShare = async (contactUserId: string, canEdit: boolean) => {
-    await shareBook(contactUserId, canEdit)
-    await mutateShares()
-  }
-
-  const handleUnshare = async (userId: string) => {
-    await unshareBook(userId)
-    await mutateShares()
-  }
-
   return (
     <PageContainer className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Recipes</h1>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setShowShareModal(true)}>
-            Share
-          </Button>
-          <Button asChild>
-            <Link href="/recipes/new">New Recipe</Link>
-          </Button>
-        </div>
+        <Button asChild>
+          <Link href="/recipes/new">New Recipe</Link>
+        </Button>
       </div>
 
       {isLoading && <p className="text-muted">Loading recipes…</p>}
@@ -86,20 +60,6 @@ export default function RecipesListClient() {
           </div>
           {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
         </>
-      )}
-
-      {showShareModal && (
-        <ShareModal
-          title="Share recipe book"
-          shares={(sharesData?.shares ?? []).map((s) => ({
-            userId: s.userId,
-            displayName: s.displayName,
-            canEdit: s.canEdit
-          }))}
-          onShare={handleShare}
-          onUnshare={handleUnshare}
-          onClose={() => setShowShareModal(false)}
-        />
       )}
     </PageContainer>
   )

@@ -19,11 +19,14 @@ import (
 // createTestPlan inserts a minimal meal plan owned by the test user and returns its ID.
 func createTestPlan(t *testing.T, name string) uuid.UUID {
 	t.Helper()
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+
 	var id uuid.UUID
-	err := testDB.QueryRow(context.Background(), `
-		INSERT INTO mealplans.plans (owner_user_id, name)
-		VALUES ($1, $2) RETURNING id`,
-		userID, name,
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO mealplans.plans (owner_user_id, family_id, name)
+		VALUES ($1, $2, $3) RETURNING id`,
+		userID, familyID, name,
 	).Scan(&id)
 	require.NoError(t, err)
 	return id
@@ -581,11 +584,14 @@ func TestGetMealPlanExportItems_SumsCustomMealItemAmounts(t *testing.T) {
 // returns the recipe ID.
 func createTestRecipeWithGroups(t *testing.T) uuid.UUID {
 	t.Helper()
+	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
+	require.NoError(t, err)
+
 	var recipeID uuid.UUID
-	err := testDB.QueryRow(context.Background(), `
-		INSERT INTO recipes.recipes (user_id, name, instructions, base_servings)
-		VALUES ($1, 'Spaghetti', '', 2) RETURNING id`,
-		userID,
+	err = testDB.QueryRow(context.Background(), `
+		INSERT INTO recipes.recipes (user_id, family_id, name, instructions, base_servings)
+		VALUES ($1, $2, 'Spaghetti', '', 2) RETURNING id`,
+		userID, familyID,
 	).Scan(&recipeID)
 	require.NoError(t, err)
 

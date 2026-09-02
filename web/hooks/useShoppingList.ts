@@ -9,17 +9,15 @@ import type {
   ListStoresResponse,
   GetStoreCategoriesResponse,
   ListItemNamesResponse,
-  ListItemCategoriesResponse,
-  ListShoppingListSharesResponse,
-  ListAccessibleListsResponse
+  ListItemCategoriesResponse
 } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
-export function useCustomList(ownerUserId = '') {
+export function useCustomList() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<GetCustomListResponse, Error>(swrKeys.shoppingList(ownerUserId), () =>
-    client.getCustomList({ ownerUserId })
+  return useSWR<GetCustomListResponse, Error>(swrKeys.shoppingList(''), () =>
+    client.getCustomList({})
   )
 }
 
@@ -39,36 +37,11 @@ export function usePlanIngredientGroups(planId: string) {
   )
 }
 
-export function useCategories(ownerUserId = '') {
+export function useCategories() {
   const client = createServiceClient(ShoppingListService)
-  return useSWR<ListCategoriesResponse, Error>(swrKeys.shoppingCategories(ownerUserId), () =>
-    client.listCategories({ ownerUserId })
+  return useSWR<ListCategoriesResponse, Error>(swrKeys.shoppingCategories(''), () =>
+    client.listCategories({})
   )
-}
-
-export function useAccessibleLists() {
-  const client = createServiceClient(ShoppingListService)
-  return useSWR<ListAccessibleListsResponse, Error>(swrKeys.accessibleShoppingLists, () =>
-    client.listAccessibleLists({})
-  )
-}
-
-export function useShoppingListShares() {
-  const client = createServiceClient(ShoppingListService)
-  return useSWR<ListShoppingListSharesResponse, Error>(swrKeys.shoppingListShares, () =>
-    client.listShoppingListShares({})
-  )
-}
-
-export function useShareShoppingList() {
-  const client = createServiceClient(ShoppingListService)
-  return (contactUserId: string, canEdit: boolean) =>
-    client.shareShoppingList({ contactUserId, canEdit })
-}
-
-export function useUnshareShoppingList() {
-  const client = createServiceClient(ShoppingListService)
-  return (targetUserId: string) => client.unshareShoppingList({ targetUserId })
 }
 
 export function useStores() {

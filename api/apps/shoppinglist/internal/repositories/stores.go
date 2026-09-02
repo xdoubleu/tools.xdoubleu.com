@@ -137,12 +137,14 @@ func (r *ShoppingRepository) GetStoreCategories(
 	return result, rows.Err()
 }
 
-// SetStoreCategories fully replaces the store's category order. The array index
-// of each category id becomes its sort_order. Only categories owned by userID
-// are persisted; unknown or foreign ids are silently skipped.
+// SetStoreCategories fully replaces the store's category order. The array
+// index of each category id becomes its sort_order. Only categories
+// belonging to familyID are persisted; unknown or foreign ids are silently
+// skipped.
 func (r *ShoppingRepository) SetStoreCategories(
 	ctx context.Context,
 	userID string,
+	familyID uuid.UUID,
 	storeID uuid.UUID,
 	categoryIDs []uuid.UUID,
 ) error {
@@ -169,8 +171,8 @@ func (r *ShoppingRepository) SetStoreCategories(
 			INSERT INTO shoppinglist.store_categories (store_id, category_id, sort_order)
 			SELECT $1, c.id, $3
 			FROM shoppinglist.categories c
-			WHERE c.id = $2 AND c.user_id = $4`,
-			storeID, categoryID, i, userID,
+			WHERE c.id = $2 AND c.family_id = $4`,
+			storeID, categoryID, i, familyID,
 		)
 	}
 

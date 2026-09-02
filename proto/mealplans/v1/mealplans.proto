@@ -31,12 +31,6 @@ message Plan {
   bool ical_hide_past = 10;
 }
 
-message PlanSharedUser {
-  string user_id = 1;
-  bool can_edit = 2;
-  string display_name = 3;
-}
-
 message ListPlansRequest {
   int32 limit = 1;
   int32 offset = 2;
@@ -60,7 +54,7 @@ message GetPlanResponse {
   int32 next_offset = 7;
   string window_start = 8;
   string window_end = 9;
-  repeated PlanSharedUser shared_with = 10;
+  reserved 10; // was: repeated PlanSharedUser shared_with (per-plan sharing removed)
 }
 
 message UpdatePlanRequest {
@@ -96,19 +90,6 @@ message MoveMealRequest {
 }
 message MoveMealResponse {}
 
-message SharePlanRequest {
-  string plan_id = 1;
-  string contact_user_id = 2;
-  bool can_edit = 3;
-}
-message SharePlanResponse {}
-
-message UnsharePlanRequest {
-  string plan_id = 1;
-  string target_user_id = 2;
-}
-message UnsharePlanResponse {}
-
 message SuggestRecipesRequest {
   string plan_id = 1;
   string meal_date = 2;
@@ -127,7 +108,5 @@ service MealPlansService {
   rpc CreateMeal(CreateMealRequest) returns (CreateMealResponse);
   rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);
   rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);
-  rpc SharePlan(SharePlanRequest) returns (SharePlanResponse);
-  rpc UnsharePlan(UnsharePlanRequest) returns (UnsharePlanResponse);
   rpc SuggestRecipes(SuggestRecipesRequest) returns (SuggestRecipesResponse);
 }

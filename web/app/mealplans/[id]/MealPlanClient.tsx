@@ -3,11 +3,9 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { getApiUrl } from '@/lib/env'
-import { useMealPlan, useSharePlan, useUnsharePlan } from '@/hooks/useMealPlans'
-import type { SharePlanInput, UnsharePlanInput } from '@/hooks/useMealPlans'
+import { useMealPlan } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
-import ShareModal from '@/components/recipes/ShareModal'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 
@@ -15,10 +13,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
   const { data, error, isLoading, mutate } = useMealPlan(id, offset)
   const { data: recipesData } = useRecipes()
-  const sharePlan = useSharePlan()
-  const unsharePlan = useUnsharePlan()
 
-  const [showShareModal, setShowShareModal] = useState(false)
   const [icalCopied, setIcalCopied] = useState(false)
 
   const handleCopyIcal = () => {
@@ -32,21 +27,6 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   const plan = data?.plan
   const recipes = recipesData?.recipes ?? []
-  const isOwner = data?.isOwner ?? false
-
-  const handleShare = async (userId: string, canEdit: boolean) => {
-    if (!plan) return
-    const req: SharePlanInput = { planId: plan.id, contactUserId: userId, canEdit }
-    await sharePlan(req)
-    await mutate()
-  }
-
-  const handleUnshare = async (userId: string) => {
-    if (!plan) return
-    const req: UnsharePlanInput = { planId: plan.id, targetUserId: userId }
-    await unsharePlan(req)
-    await mutate()
-  }
 
   return (
     <PageContainer className="p-6">
@@ -63,16 +43,9 @@ export default function MealPlanClient({ id }: { id: string }) {
                   {icalCopied ? 'Copied!' : 'iCal Link'}
                 </Button>
               )}
-              {isOwner && (
-                <>
-                  <Button variant="secondary" size="sm" onClick={() => setShowShareModal(true)}>
-                    Share
-                  </Button>
-                  <Button asChild variant="secondary" size="sm">
-                    <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
-                  </Button>
-                </>
-              )}
+              <Button asChild variant="secondary" size="sm">
+                <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
+              </Button>
             </div>
           </div>
 
@@ -84,20 +57,6 @@ export default function MealPlanClient({ id }: { id: string }) {
             onNextWeek={() => setOffset(data?.nextOffset ?? offset + 1)}
             onMutate={() => mutate()}
           />
-
-          {showShareModal && (
-            <ShareModal
-              title="Share meal plan"
-              shares={(data?.sharedWith ?? []).map((u) => ({
-                userId: u.userId,
-                displayName: u.displayName,
-                canEdit: u.canEdit
-              }))}
-              onShare={handleShare}
-              onUnshare={handleUnshare}
-              onClose={() => setShowShareModal(false)}
-            />
-          )}
         </>
       )}
     </PageContainer>

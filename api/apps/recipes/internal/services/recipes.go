@@ -10,20 +10,16 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
-const errNotRecipeOwner = "You do not own this recipe"
+const errNotInFamily = "You do not have access to this recipe"
 
 // recipesStore is the storage surface RecipeService needs. It is satisfied by
-// repositories.RecipesRepository and by fakes in unit tests, so the ownership
-// and sharing rules can be tested without a database.
+// repositories.RecipesRepository and by fakes in unit tests, so the
+// family-scoping rules can be tested without a database.
 type recipesStore interface {
-	ListForUser(
-		ctx context.Context, userID string, limit, offset int32,
+	ListForFamily(
+		ctx context.Context, familyID uuid.UUID, limit, offset int32,
 	) ([]models.Recipe, bool, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*models.Recipe, error)
-	GetBookAccess(
-		ctx context.Context,
-		ownerUserID, userID string,
-	) (canEdit bool, ok bool, err error)
 	GetIngredients(ctx context.Context, id uuid.UUID) ([]models.Ingredient, error)
 	Create(ctx context.Context, recipe models.Recipe) (*models.Recipe, error)
 	ReplaceIngredients(
@@ -32,17 +28,18 @@ type recipesStore interface {
 		ingredients []models.Ingredient,
 	) error
 	Update(ctx context.Context, recipe models.Recipe) error
-	Delete(ctx context.Context, id uuid.UUID, userID string) error
-	ShareBook(ctx context.Context, ownerID, targetUserID string, canEdit bool) error
-	UnshareBook(ctx context.Context, ownerID, targetUserID string) error
-	ListBookShares(
-		ctx context.Context,
-		ownerID string,
-	) ([]models.RecipeBookShare, error)
+	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
+}
+
+// familyStore resolves which family a user belongs to, lazily creating a
+// family-of-one the first time it's asked for (see internal/family).
+type familyStore interface {
+	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
 }
 
 type RecipeService struct {
-	repo recipesStore
+	repo   recipesStore
+	family familyStore
 }
 
 func (s *RecipeService) List(
@@ -51,11 +48,16 @@ func (s *RecipeService) List(
 	limit int32,
 	offset int32,
 ) ([]models.Recipe, bool, error) {
-	return s.repo.ListForUser(ctx, userID, limit, offset)
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	return s.repo.ListForFamily(ctx, familyID, limit, offset)
 }
 
-// Get returns a recipe the user owns or has book access to, along with whether
-// the user may edit it.
+// Get returns a recipe belonging to the user's family. Every family member
+// has equal read/write access, so canEdit is always true once access is
+// granted at all.
 func (s *RecipeService) Get(
 	ctx context.Context,
 	id uuid.UUID,
@@ -66,19 +68,15 @@ func (s *RecipeService) Get(
 		return nil, false, err
 	}
 
-	canEdit := recipe.UserID == userID
-	if recipe.UserID != userID {
-		shareEdit, ok, accessErr := s.repo.GetBookAccess(ctx, recipe.UserID, userID)
-		if accessErr != nil {
-			return nil, false, accessErr
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, false, err
+	}
+	if recipe.FamilyID != familyID {
+		return nil, false, &app.HTTPError{
+			Status:  http.StatusForbidden,
+			Message: errNotInFamily,
 		}
-		if !ok {
-			return nil, false, &app.HTTPError{
-				Status:  http.StatusForbidden,
-				Message: "You do not have access to this recipe",
-			}
-		}
-		canEdit = shareEdit
 	}
 
 	ingredients, err := s.repo.GetIngredients(ctx, id)
@@ -86,11 +84,11 @@ func (s *RecipeService) Get(
 		return nil, false, err
 	}
 	recipe.Ingredients = ingredients
-	return recipe, canEdit, nil
+	return recipe, true, nil
 }
 
-// GetScaled returns a recipe the user owns or has book access to, along with
-// the resolved serving count and its ingredients scaled to that count.
+// GetScaled returns a recipe belonging to the user's family, along with the
+// resolved serving count and its ingredients scaled to that count.
 // requestedServings <= 0 keeps the recipe's own BaseServings.
 func (s *RecipeService) GetScaled(
 	ctx context.Context,
@@ -123,7 +121,13 @@ func (s *RecipeService) Create(
 	userID string,
 	recipe models.Recipe,
 ) (*models.Recipe, error) {
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 	recipe.UserID = userID
+	recipe.FamilyID = familyID
+
 	created, err := s.repo.Create(ctx, recipe)
 	if err != nil {
 		return nil, err
@@ -145,22 +149,22 @@ func (s *RecipeService) Update(
 	if err != nil {
 		return err
 	}
-	if existing.UserID != userID {
-		canEdit, ok, accessErr := s.repo.GetBookAccess(ctx, existing.UserID, userID)
-		if accessErr != nil {
-			return accessErr
-		}
-		if !ok || !canEdit {
-			return &app.HTTPError{
-				Status:  http.StatusForbidden,
-				Message: errNotRecipeOwner,
-			}
+
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if existing.FamilyID != familyID {
+		return &app.HTTPError{
+			Status:  http.StatusForbidden,
+			Message: errNotInFamily,
 		}
 	}
 
-	// Recipes always remain owned by their original creator, even when an
-	// edit-sharer updates them.
+	// Recipes always remain attributed to their original creator, even when
+	// another family member updates them.
 	recipe.UserID = existing.UserID
+	recipe.FamilyID = existing.FamilyID
 	if err = s.repo.Update(ctx, recipe); err != nil {
 		return err
 	}
@@ -176,40 +180,16 @@ func (s *RecipeService) Delete(
 	if err != nil {
 		return err
 	}
-	if existing.UserID != userID {
+
+	familyID, err := s.family.EnsureFamily(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if existing.FamilyID != familyID {
 		return &app.HTTPError{
 			Status:  http.StatusForbidden,
-			Message: errNotRecipeOwner,
+			Message: errNotInFamily,
 		}
 	}
-	return s.repo.Delete(ctx, id, userID)
-}
-
-// ShareBook shares the owner's whole recipe book with targetUserID.
-func (s *RecipeService) ShareBook(
-	ctx context.Context,
-	ownerID, targetUserID string,
-	canEdit bool,
-) error {
-	if targetUserID == "" || targetUserID == ownerID {
-		return &app.HTTPError{
-			Status:  http.StatusBadRequest,
-			Message: "Invalid contact to share with",
-		}
-	}
-	return s.repo.ShareBook(ctx, ownerID, targetUserID, canEdit)
-}
-
-func (s *RecipeService) UnshareBook(
-	ctx context.Context,
-	ownerID, targetUserID string,
-) error {
-	return s.repo.UnshareBook(ctx, ownerID, targetUserID)
-}
-
-func (s *RecipeService) ListBookShares(
-	ctx context.Context,
-	ownerID string,
-) ([]models.RecipeBookShare, error) {
-	return s.repo.ListBookShares(ctx, ownerID)
+	return s.repo.Delete(ctx, id, familyID)
 }

@@ -133,7 +133,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         const key = newName.toLowerCase()
         let id = createdCategories.get(key)
         if (!id) {
-          const resp = await client.createCategory({ name: newName, ownerUserId: '' })
+          const resp = await client.createCategory({ name: newName })
           id = resp.category?.id ?? ''
           createdCategories.set(key, id)
           categoryCreated = true
@@ -144,7 +144,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
       // Skip when the catalog already maps this name to the same category.
       if (nameToCategory.get(normalizeName(itemName)) === categoryId) continue
-      writes.push(client.setItemCategory({ name: itemName, categoryId, ownerUserId: '' }))
+      writes.push(client.setItemCategory({ name: itemName, categoryId }))
     }
 
     await Promise.all(writes)

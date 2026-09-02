@@ -15,7 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/app"
 )
 
-// fakePlansStore implements plansStore in memory for permission tests.
+// fakePlansStore implements plansStore in memory for family-scoping tests.
 type fakePlansStore struct {
 	plan          *models.Plan
 	getErr        error
@@ -27,30 +27,28 @@ type fakePlansStore struct {
 	mealCreated bool
 	mealDeleted bool
 	mealMoved   bool
-	shared      bool
-	unshared    bool
 }
 
-func (f *fakePlansStore) ListForUser(
-	_ context.Context, _ string, _, _ int32,
+func (f *fakePlansStore) ListForFamily(
+	_ context.Context, _ uuid.UUID, _, _ int32,
 ) ([]models.Plan, bool, error) {
 	return nil, false, nil
 }
 
 func (f *fakePlansStore) GetByID(
-	_ context.Context, _ uuid.UUID, _ string,
+	_ context.Context, _ uuid.UUID, familyID uuid.UUID,
 ) (*models.Plan, error) {
 	if f.getErr != nil {
 		return nil, f.getErr
 	}
+	if f.plan.FamilyID != familyID {
+		return nil, &app.HTTPError{
+			Status:  http.StatusNotFound,
+			Message: "plan not found",
+		}
+	}
 	cp := *f.plan
 	return &cp, nil
-}
-
-func (f *fakePlansStore) GetSharedWith(
-	_ context.Context, _ uuid.UUID, _ string,
-) ([]models.PlanSharedUser, error) {
-	return nil, nil
 }
 
 func (f *fakePlansStore) GetMealsInWindow(
@@ -86,7 +84,7 @@ func (f *fakePlansStore) Update(_ context.Context, _ models.Plan) error {
 	return nil
 }
 
-func (f *fakePlansStore) Delete(_ context.Context, _ uuid.UUID, _ string) error {
+func (f *fakePlansStore) Delete(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 	f.deleted = true
 	return nil
 }
@@ -110,23 +108,42 @@ func (f *fakePlansStore) MoveMeal(
 	return nil
 }
 
-func (f *fakePlansStore) UnshareUser(
-	_ context.Context, _ uuid.UUID, _ string,
-) error {
-	f.unshared = true
-	return nil
+// fakeFamilyStore maps a user to a fixed family ID for tests.
+type fakeFamilyStore struct {
+	families map[string]uuid.UUID
+	err      error
 }
 
-func (f *fakePlansStore) SharePlan(
-	_ context.Context, _ uuid.UUID, _ string, _ bool,
-) error {
-	f.shared = true
-	return nil
+func (f *fakeFamilyStore) EnsureFamily(
+	_ context.Context, userID string,
+) (uuid.UUID, error) {
+	if f.err != nil {
+		return uuid.Nil, f.err
+	}
+	return f.families[userID], nil
 }
 
-func newPlanFixture(canEdit bool) *models.Plan {
-	//nolint:exhaustruct //only fields relevant to permissions
-	return &models.Plan{ID: uuid.New(), OwnerUserID: "owner", CanEdit: canEdit}
+//nolint:gochecknoglobals //shared fixtures for family-scoping tests
+var (
+	familyA = uuid.New()
+	familyB = uuid.New()
+)
+
+func newFamilyStore() *fakeFamilyStore {
+	//nolint:exhaustruct //err intentionally zero
+	return &fakeFamilyStore{
+		families: map[string]uuid.UUID{
+			"owner":  familyA,
+			"member": familyA,
+			"editor": familyA,
+			"other":  familyB,
+		},
+	}
+}
+
+func newPlanFixture() *models.Plan {
+	//nolint:exhaustruct //only fields relevant to family scoping
+	return &models.Plan{ID: uuid.New(), OwnerUserID: "owner", FamilyID: familyA}
 }
 
 func planHTTPStatus(t *testing.T, err error) int {
@@ -136,54 +153,63 @@ func planHTTPStatus(t *testing.T, err error) int {
 	return httpErr.Status
 }
 
-func TestPlanUpdate_NonOwnerForbidden(t *testing.T) {
+func TestPlanUpdate_FamilyMemberAllowed(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true)}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	err := svc.Update(t.Context(), "editor", *store.plan)
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
+	require.NoError(t, err)
+	assert.True(t, store.updated)
+}
+
+func TestPlanUpdate_OtherFamilyForbidden(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	err := svc.Update(t.Context(), "other", *store.plan)
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.updated)
 }
 
-func TestPlanDelete_NonOwnerForbidden(t *testing.T) {
+func TestPlanDelete_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true)}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
-	err := svc.Delete(t.Context(), uuid.New(), "editor")
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
+	err := svc.Delete(t.Context(), uuid.New(), "other")
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.deleted)
 }
 
-func TestPlanMealMutations_RequireEditAccess(t *testing.T) {
+func TestPlanMealMutations_OtherFamilyForbidden(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(false)}
-	svc := &PlanService{repo: store}
-	viewer := "view-only-user"
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	err := svc.CreateMeal(
-		t.Context(), store.plan.ID, viewer,
+		t.Context(), store.plan.ID, "other",
 		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
 	)
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealCreated)
 
-	err = svc.DeleteMeal(t.Context(), uuid.New(), store.plan.ID, viewer)
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
+	err = svc.DeleteMeal(t.Context(), uuid.New(), store.plan.ID, "other")
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealDeleted)
 
 	err = svc.MoveMeal(
-		t.Context(), uuid.New(), store.plan.ID, viewer, time.Now(), "dinner",
+		t.Context(), uuid.New(), store.plan.ID, "other", time.Now(), "dinner",
 	)
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealMoved)
 }
 
-func TestPlanMealMutations_AllowedWithEditAccess(t *testing.T) {
+func TestPlanMealMutations_AllowedForFamilyMember(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true)}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	require.NoError(t, svc.CreateMeal(
 		t.Context(), store.plan.ID, "editor",
@@ -217,8 +243,8 @@ func TestWeekWindow_OffsetShiftsByWeeks(t *testing.T) {
 
 func TestPlanGetWithWeek_ComputesWindowAndMeals(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true)}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	plan, windowStart, windowEnd, err := svc.GetWithWeek(
 		t.Context(), store.plan.ID, "owner", 2,
@@ -234,8 +260,8 @@ func TestPlanGetWithWeek_ComputesWindowAndMeals(t *testing.T) {
 func TestPlanGetWithWeek_PropagatesGetError(t *testing.T) {
 	getErr := errors.New("db error")
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true), getErr: getErr}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture(), getErr: getErr}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	_, _, _, err := svc.GetWithWeek(t.Context(), uuid.New(), "owner", 0)
 	assert.ErrorIs(t, err, getErr)
@@ -244,28 +270,61 @@ func TestPlanGetWithWeek_PropagatesGetError(t *testing.T) {
 func TestPlanGetWithWeek_PropagatesMealsError(t *testing.T) {
 	mealsErr := errors.New("db error")
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true), mealsErr: mealsErr}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{plan: newPlanFixture(), mealsErr: mealsErr}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
 	_, _, _, err := svc.GetWithWeek(t.Context(), store.plan.ID, "owner", 0)
 	assert.ErrorIs(t, err, mealsErr)
 }
 
-func TestPlanSharing_OwnerOnly(t *testing.T) {
+func TestPlanCreate_ScopesToUsersFamily(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakePlansStore{plan: newPlanFixture(true)}
-	svc := &PlanService{repo: store}
+	store := &fakePlansStore{}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
-	err := svc.Share(t.Context(), store.plan.ID, "editor", "friend", false)
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
-	assert.False(t, store.shared)
+	//nolint:exhaustruct //other fields optional
+	created, err := svc.Create(t.Context(), "member", models.Plan{Name: "Plan"})
+	require.NoError(t, err)
+	assert.Equal(t, "member", created.OwnerUserID)
+	assert.Equal(t, familyA, created.FamilyID)
+}
 
-	err = svc.Unshare(t.Context(), store.plan.ID, "editor", "friend")
-	assert.Equal(t, http.StatusForbidden, planHTTPStatus(t, err))
-	assert.False(t, store.unshared)
+func TestPlanList_ScopesToUsersFamily(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
 
-	require.NoError(t, svc.Share(t.Context(), store.plan.ID, "owner", "friend", true))
-	require.NoError(t, svc.Unshare(t.Context(), store.plan.ID, "owner", "friend"))
-	assert.True(t, store.shared)
-	assert.True(t, store.unshared)
+	_, _, err := svc.List(t.Context(), "member", 10, 0)
+	require.NoError(t, err)
+}
+
+// Every PlanService method resolves the caller's family before touching the
+// repo; a family-resolution failure must propagate.
+func TestFamilyResolutionErrors_Propagate(t *testing.T) {
+	familyErr := errors.New("family error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	family := &fakeFamilyStore{err: familyErr}
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{plan: newPlanFixture()}
+	svc := &PlanService{repo: store, family: family}
+	ctx := t.Context()
+
+	_, _, err := svc.List(ctx, "member", 10, 0)
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.Get(ctx, store.plan.ID, "member")
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.GetMeals(ctx, store.plan.ID, "member", time.Now(), time.Now())
+	assert.ErrorIs(t, err, familyErr)
+
+	_, err = svc.SuggestRecipes(ctx, store.plan.ID, "member", time.Now(), "noon")
+	assert.ErrorIs(t, err, familyErr)
+
+	//nolint:exhaustruct //other fields optional
+	_, err = svc.Create(ctx, "member", models.Plan{Name: "Plan"})
+	assert.ErrorIs(t, err, familyErr)
+
+	err = svc.Delete(ctx, store.plan.ID, "member")
+	assert.ErrorIs(t, err, familyErr)
 }

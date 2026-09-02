@@ -16,9 +16,10 @@ func New(
 	_ *slog.Logger,
 	repos *repositories.Repositories,
 	authService auth.Service,
+	family familyStore,
 ) *Services {
 	return &Services{
 		Auth:    authService,
-		Recipes: &RecipeService{repo: repos.Recipes},
+		Recipes: &RecipeService{repo: repos.Recipes, family: family},
 	}
 }

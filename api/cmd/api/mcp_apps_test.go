@@ -38,16 +38,15 @@ var appsToolNames = []string{
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
 	// feeds (2)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
-	// recipes (3)
-	"recipes_list_recipes", "recipes_get_recipe", "recipes_list_recipe_book_shares",
+	// recipes (2)
+	"recipes_list_recipes", "recipes_get_recipe",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
-	// shoppinglist (10)
+	// shoppinglist (8)
 	"shoppinglist_get_custom_list", "shoppinglist_get_meal_plan_export_items",
 	"shoppinglist_get_plan_ingredient_groups", "shoppinglist_list_categories",
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
-	"shoppinglist_list_shares", "shoppinglist_list_accessible_lists",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_database_size_history",
@@ -246,7 +245,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	tools := []string{
 		"games_get_recently_active_games", "books_get_library",
 		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
-		"shoppinglist_list_accessible_lists",
+		"shoppinglist_list_categories",
 		"get_job_stats", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",

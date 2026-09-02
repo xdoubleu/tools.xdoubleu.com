@@ -16,25 +16,23 @@ type PlansRepository struct {
 	db postgres.DB
 }
 
-func (r *PlansRepository) ListForUser(
+func (r *PlansRepository) ListForFamily(
 	ctx context.Context,
-	userID string,
+	familyID uuid.UUID,
 	limit int32,
 	offset int32,
 ) ([]models.Plan, bool, error) {
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT p.id, p.owner_user_id, p.name,
+		SELECT p.id, p.owner_user_id, p.family_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
-		       COALESCE(pa.can_edit, p.owner_user_id = $1) AS can_edit,
 		       p.ical_hide_slots, p.ical_hide_past
 		FROM mealplans.plans p
-		LEFT JOIN mealplans.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $1
-		WHERE p.owner_user_id = $1 OR pa.user_id = $1
+		WHERE p.family_id = $1
 		ORDER BY p.name, p.id
 		LIMIT $2 OFFSET $3`,
-		userID, sqlLimit, offset,
+		familyID, sqlLimit, offset,
 	)
 	if err != nil {
 		return nil, false, err
@@ -45,12 +43,13 @@ func (r *PlansRepository) ListForUser(
 	for rows.Next() {
 		var plan models.Plan
 		if err = rows.Scan(
-			&plan.ID, &plan.OwnerUserID, &plan.Name,
-			&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
+			&plan.ID, &plan.OwnerUserID, &plan.FamilyID, &plan.Name,
+			&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt,
 			&plan.ICalHideSlots, &plan.ICalHidePast,
 		); err != nil {
 			return nil, false, err
 		}
+		plan.CanEdit = true
 		result = append(result, plan)
 	}
 	if err = rows.Err(); err != nil {
@@ -64,26 +63,25 @@ func (r *PlansRepository) ListForUser(
 func (r *PlansRepository) GetByID(
 	ctx context.Context,
 	id uuid.UUID,
-	userID string,
+	familyID uuid.UUID,
 ) (*models.Plan, error) {
 	var plan models.Plan
 	err := r.db.QueryRow(ctx, `
-		SELECT p.id, p.owner_user_id, p.name,
+		SELECT p.id, p.owner_user_id, p.family_id, p.name,
 		       p.ical_token, p.created_at, p.updated_at,
-		       COALESCE(pa.can_edit, p.owner_user_id = $2) AS can_edit,
 		       p.ical_hide_slots, p.ical_hide_past
 		FROM mealplans.plans p
-		LEFT JOIN mealplans.plan_access pa ON pa.plan_id = p.id AND pa.user_id = $2
-		WHERE p.id = $1 AND (p.owner_user_id = $2 OR pa.user_id = $2)`,
-		id, userID,
+		WHERE p.id = $1 AND p.family_id = $2`,
+		id, familyID,
 	).Scan(
-		&plan.ID, &plan.OwnerUserID, &plan.Name,
-		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt, &plan.CanEdit,
+		&plan.ID, &plan.OwnerUserID, &plan.FamilyID, &plan.Name,
+		&plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt,
 		&plan.ICalHideSlots, &plan.ICalHidePast,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
+	plan.CanEdit = true
 	return &plan, nil
 }
 
@@ -115,10 +113,10 @@ func (r *PlansRepository) Create(
 	plan models.Plan,
 ) (*models.Plan, error) {
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO mealplans.plans (owner_user_id, name)
-		VALUES ($1, $2)
+		INSERT INTO mealplans.plans (owner_user_id, family_id, name)
+		VALUES ($1, $2, $3)
 		RETURNING id, ical_token, created_at, updated_at`,
-		plan.OwnerUserID, plan.Name,
+		plan.OwnerUserID, plan.FamilyID, plan.Name,
 	).Scan(&plan.ID, &plan.ICalToken, &plan.CreatedAt, &plan.UpdatedAt)
 	if err != nil {
 		return nil, err
@@ -131,12 +129,17 @@ func (r *PlansRepository) Update(
 	ctx context.Context,
 	plan models.Plan,
 ) error {
+	// ical_hide_slots is NOT NULL; an omitted repeated field decodes to a nil
+	// slice, which pgx would otherwise send as SQL NULL.
+	if plan.ICalHideSlots == nil {
+		plan.ICalHideSlots = []string{}
+	}
 	_, err := r.db.Exec(ctx, `
 		UPDATE mealplans.plans
 		SET name = $3, ical_hide_slots = $4, ical_hide_past = $5,
 		    updated_at = now()
-		WHERE id = $1 AND owner_user_id = $2`,
-		plan.ID, plan.OwnerUserID, plan.Name,
+		WHERE id = $1 AND family_id = $2`,
+		plan.ID, plan.FamilyID, plan.Name,
 		plan.ICalHideSlots, plan.ICalHidePast,
 	)
 	return err
@@ -145,11 +148,11 @@ func (r *PlansRepository) Update(
 func (r *PlansRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,
-	ownerUserID string,
+	familyID uuid.UUID,
 ) error {
 	_, err := r.db.Exec(ctx,
-		`DELETE FROM mealplans.plans WHERE id = $1 AND owner_user_id = $2`,
-		id, ownerUserID,
+		`DELETE FROM mealplans.plans WHERE id = $1 AND family_id = $2`,
+		id, familyID,
 	)
 	return err
 }
@@ -285,64 +288,6 @@ func (r *PlansRepository) SuggestRecipes(
 		result = append(result, s)
 	}
 	return result, rows.Err()
-}
-
-func (r *PlansRepository) GetSharedWith(
-	ctx context.Context,
-	planID uuid.UUID,
-	ownerID string,
-) ([]models.PlanSharedUser, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT pa.user_id, pa.can_edit,
-		       COALESCE(c.display_name, pa.user_id) AS display_name
-		FROM mealplans.plan_access pa
-		LEFT JOIN global.contacts c
-		       ON c.owner_user_id = $2 AND c.contact_user_id = pa.user_id
-		WHERE pa.plan_id = $1
-		ORDER BY display_name`,
-		planID, ownerID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var result []models.PlanSharedUser
-	for rows.Next() {
-		var u models.PlanSharedUser
-		if err = rows.Scan(&u.UserID, &u.CanEdit, &u.DisplayName); err != nil {
-			return nil, err
-		}
-		result = append(result, u)
-	}
-	return result, rows.Err()
-}
-
-func (r *PlansRepository) UnshareUser(
-	ctx context.Context,
-	planID uuid.UUID,
-	targetUserID string,
-) error {
-	_, err := r.db.Exec(ctx,
-		`DELETE FROM mealplans.plan_access WHERE plan_id = $1 AND user_id = $2`,
-		planID, targetUserID,
-	)
-	return err
-}
-
-func (r *PlansRepository) SharePlan(
-	ctx context.Context,
-	planID uuid.UUID,
-	userID string,
-	canEdit bool,
-) error {
-	_, err := r.db.Exec(ctx, `
-		INSERT INTO mealplans.plan_access (plan_id, user_id, can_edit)
-		VALUES ($1, $2, $3)
-		ON CONFLICT (plan_id, user_id) DO UPDATE SET can_edit = EXCLUDED.can_edit`,
-		planID, userID, canEdit,
-	)
-	return err
 }
 
 func (r *PlansRepository) MoveMeal(
