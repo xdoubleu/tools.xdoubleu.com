@@ -78,6 +78,12 @@ const ALL_APPS: AppLink[] = [
     description: 'Manage what you share'
   },
   {
+    name: 'family',
+    label: 'Family',
+    href: '/family',
+    description: 'Share one recipe book, meal plan and shopping list together'
+  },
+  {
     name: 'user-management',
     label: 'User management',
     href: '/user-management',
@@ -97,11 +103,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Productivity', names: ['games', 'books', 'feeds'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
-  { title: 'Account', names: ['settings', 'contacts', 'sharing'] },
+  { title: 'Account', names: ['settings', 'contacts', 'sharing', 'family'] },
   { title: 'Admin', names: ['user-management', 'monitoring'] }
 ]
 
-const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing'])
+const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'sharing', 'family'])
 const ADMIN_ONLY = new Set(['user-management', 'monitoring'])
 
 export default function HomeClient() {

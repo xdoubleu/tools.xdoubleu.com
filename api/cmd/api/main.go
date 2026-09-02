@@ -22,6 +22,7 @@ import (
 	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
+	"tools.xdoubleu.com/internal/family"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/jobqueue"
 	essentialogger "tools.xdoubleu.com/internal/logging"
@@ -49,6 +50,7 @@ type Application struct {
 	authSealer                    *crypto.Sealer
 	oauth2as                      *oauth2asWiring
 	contacts                      contacts.Service
+	family                        family.Service
 	apps                          *Apps
 	booksApp                      storageScanRunner
 	feedsApp                      unhealthyFeedLister
@@ -441,6 +443,7 @@ func NewApplication(
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
 	contactsRepo := repositories.NewContactsRepository(db)
+	familyRepo := repositories.NewFamilyRepository(db)
 	authSealer := newOAuthSealer(logger, config)
 	authRepo := auth.NewRepository(db)
 	authMailer := mailer.New(
@@ -458,6 +461,7 @@ func NewApplication(
 	contactsSvc, notificationsSvc := newContactsService(
 		ctx, logger, config, contactsRepo, authSvc,
 	)
+	familySvc := family.New(familyRepo, authSvc, notificationsSvc, config.WebURL, logger)
 
 	oauthConnRepo := repositories.NewOAuthConnectionsRepository(db, authSealer)
 	githubClient, sentryClient := newObservabilityClients(
@@ -510,6 +514,7 @@ func NewApplication(
 		// wired below, after migrations create the auth schema
 		oauth2as:                      nil,
 		contacts:                      contactsSvc,
+		family:                        familySvc,
 		appUsersRepo:                  appUsersRepo,
 		profileSharesRepo:             repositories.NewProfileSharesRepository(db),
 		usage:                         observability.NewUsageRecorder(logger, db),

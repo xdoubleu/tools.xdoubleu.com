@@ -72,6 +72,20 @@ func TestMain(m *testing.M) {
 	); err != nil {
 		panic(err)
 	}
+	if _, err = postgresDB.Exec(
+		ctx,
+		"DELETE FROM global.family_invites WHERE to_user_id = $1",
+		testUserID,
+	); err != nil {
+		panic(err)
+	}
+	if _, err = postgresDB.Exec(
+		ctx,
+		"DELETE FROM global.family_members WHERE user_id = $1",
+		testUserID,
+	); err != nil {
+		panic(err)
+	}
 
 	if err = seedTestUsers(ctx); err != nil {
 		panic(err)

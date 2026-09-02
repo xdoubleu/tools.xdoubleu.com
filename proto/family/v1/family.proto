@@ -1,0 +1,50 @@
+syntax = "proto3";
+package family.v1;
+option go_package = "tools.xdoubleu.com/gen/family/v1;familyv1";
+
+service FamilyService {
+  rpc GetFamily(GetFamilyRequest) returns (GetFamilyResponse);
+  rpc InviteToFamily(InviteToFamilyRequest) returns (InviteToFamilyResponse);
+  rpc AcceptFamilyInvite(AcceptFamilyInviteRequest) returns (AcceptFamilyInviteResponse);
+  rpc DeclineFamilyInvite(DeclineFamilyInviteRequest) returns (DeclineFamilyInviteResponse);
+  rpc LeaveFamily(LeaveFamilyRequest) returns (LeaveFamilyResponse);
+}
+
+message FamilyMember {
+  string user_id = 1;
+  string email = 2;
+}
+
+message FamilyInvite {
+  string id = 1;
+  string from_user_id = 2;
+  string from_email = 3;
+  string created_at = 4;
+}
+
+message GetFamilyRequest {}
+
+message GetFamilyResponse {
+  repeated FamilyMember members = 1;
+  // incoming_invite is set when the caller has a pending invite to join
+  // another family.
+  FamilyInvite incoming_invite = 2;
+}
+
+message InviteToFamilyRequest {
+  string email = 1;
+}
+
+message InviteToFamilyResponse {}
+
+message AcceptFamilyInviteRequest {}
+
+message AcceptFamilyInviteResponse {}
+
+message DeclineFamilyInviteRequest {}
+
+message DeclineFamilyInviteResponse {}
+
+message LeaveFamilyRequest {}
+
+message LeaveFamilyResponse {}

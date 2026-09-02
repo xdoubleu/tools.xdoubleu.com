@@ -10,6 +10,7 @@ const ROUTES = [
   'shoppinglist',
   'contacts',
   'sharing',
+  'family',
   'user-management',
   'monitoring'
 ]
