@@ -7,3 +7,4 @@ __debug_*
 # (isolation: "worktree") - each is its own checkout with its own
 # branch, never meant to be committed into this one.
 .claude/worktrees/
+__pycache__/
