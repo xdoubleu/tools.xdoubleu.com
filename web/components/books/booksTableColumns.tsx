@@ -6,6 +6,7 @@ import BookCover from '@/components/books/BookCover'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
+import BookProgressCell from '@/components/books/BookProgressCell'
 import BookShelfTagFields from '@/components/books/BookShelfTagFields'
 import BookRemoveAction from '@/components/books/BookRemoveAction'
 import { Popover, PopoverTrigger } from '@/components/ui/popover'
@@ -21,6 +22,7 @@ export type ColumnKey =
   | 'rating'
   | 'favourite'
   | 'owned'
+  | 'progress'
   | 'shelf'
   | 'added'
   | 'read'
@@ -199,6 +201,12 @@ export const ALL_COLUMNS: BookColumn[] = [
     renderCell: (ub, ctx) => <BookOwnershipToggles userBook={ub} onSaved={ctx.onSaved} hideLabel />
   },
   {
+    key: 'progress',
+    label: 'Progress',
+    cellClassName: 'w-32',
+    renderCell: (ub, ctx) => <BookProgressCell userBook={ub} onSaved={ctx.onSaved} />
+  },
+  {
     key: 'shelf',
     label: 'Shelf & tags',
     sortKey: 'shelf',
@@ -267,6 +275,7 @@ export const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = [
   'rating',
   'favourite',
   'owned',
+  'progress',
   'shelf',
   'added',
   'read',

@@ -62,6 +62,12 @@ describe('BookProgressEditor', () => {
     expect(screen.queryByLabelText('Current page')).not.toBeInTheDocument()
   })
 
+  it('has no quick-step button', () => {
+    render(<BookProgressEditor userBook={makeBook()} />)
+    expect(screen.queryByLabelText('Advance one page')).not.toBeInTheDocument()
+    expect(screen.queryByText('+1')).not.toBeInTheDocument()
+  })
+
   it('shows the edit form when the progress bar is clicked', () => {
     render(<BookProgressEditor userBook={makeBook()} />)
     fireEvent.click(screen.getByLabelText('Edit reading progress'))
@@ -139,60 +145,6 @@ describe('BookProgressEditor', () => {
     await waitFor(() => {
       expect(onSaved).toHaveBeenCalled()
     })
-  })
-
-  it('advances by one page in a single click without opening the editor', async () => {
-    render(<BookProgressEditor userBook={makeBook({ currentPage: 50, pageCount: 200 })} />)
-
-    fireEvent.click(screen.getByLabelText('Advance one page'))
-
-    await waitFor(() => {
-      expect(mockUpdateProgress).toHaveBeenCalledWith({
-        bookId: 'book-1',
-        progressMode: 'pages',
-        currentPage: 51,
-        progressPercent: 0
-      })
-    })
-    expect(mockMutate).toHaveBeenCalledWith('/books')
-    // the quick step never opens the full editor
-    expect(screen.queryByLabelText('Current page')).not.toBeInTheDocument()
-  })
-
-  it('advances by one percent in a single click for percent-mode books', async () => {
-    render(
-      <BookProgressEditor
-        userBook={makeBook({ progressMode: 'percent', progressPercent: 20, tags: ['own-digital'] })}
-      />
-    )
-
-    fireEvent.click(screen.getByLabelText('Advance progress by one percent'))
-
-    await waitFor(() => {
-      expect(mockUpdateProgress).toHaveBeenCalledWith(
-        expect.objectContaining({ progressPercent: 21 })
-      )
-    })
-  })
-
-  it('disables the quick-step button once progress is already at its max', () => {
-    render(<BookProgressEditor userBook={makeBook({ currentPage: 200, pageCount: 200 })} />)
-    expect(screen.getByLabelText('Advance one page')).toBeDisabled()
-  })
-
-  it('reverts the displayed value if the quick step fails to save', async () => {
-    mockUpdateProgress.mockRejectedValueOnce(new Error('network error'))
-    render(<BookProgressEditor userBook={makeBook({ currentPage: 50, pageCount: 200 })} />)
-
-    fireEvent.click(screen.getByLabelText('Advance one page'))
-
-    await waitFor(() => {
-      expect(mockUpdateProgress).toHaveBeenCalled()
-    })
-
-    // reopening the editor should show the original, unchanged value
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
-    expect(screen.getByLabelText('Current page')).toHaveValue(50)
   })
 
   it('selects the existing value on focus so retyping does not require clearing it first', () => {
