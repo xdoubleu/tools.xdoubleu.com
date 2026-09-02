@@ -5,7 +5,7 @@ import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
-import BookProgressBar from '@/components/books/BookProgressBar'
+import BookQuickProgress from '@/components/books/BookQuickProgress'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
@@ -18,23 +18,30 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
   if (!book) return null
   return (
-    <Link
-      href={`/books/${userBook.id}`}
+    <div
       className={cn(
         interactiveCardClass,
         'relative flex w-full gap-3 p-4 text-left sm:w-60 self-start'
       )}
     >
-      <CardLinkStatus />
+      {/* Stretched link covers the card; the progress controls sit above it
+          via z-10 so adjusting progress doesn't navigate to the detail page. */}
+      <Link
+        href={`/books/${userBook.id}`}
+        className="absolute inset-0 rounded-2xl"
+        aria-label={book.title}
+      >
+        <CardLinkStatus />
+      </Link>
       <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
       <div className="min-w-0 flex-1">
         <h3 className="font-semibold truncate">{book.title}</h3>
         <p className="text-sm text-muted truncate">{book.authors.join(', ')}</p>
-        <div className="mt-2">
-          <BookProgressBar userBook={userBook} />
+        <div className="relative z-10 mt-2">
+          <BookQuickProgress userBook={userBook} />
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 

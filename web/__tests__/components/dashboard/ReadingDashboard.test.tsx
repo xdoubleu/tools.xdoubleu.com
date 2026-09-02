@@ -1,9 +1,12 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+
+const mockUpdateProgress = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
-  useBooksProgress: jest.fn()
+  useBooksProgress: jest.fn(),
+  useUpdateProgress: () => mockUpdateProgress
 }))
 
 jest.mock('next/image', () => {
@@ -108,9 +111,25 @@ describe('ReadingDashboard', () => {
 
   it('links reading cards to the book detail page', () => {
     mockLibrary()
+    const { container } = render(<ReadingDashboard />)
+    // The card link is a stretched overlay, so it's a sibling of the title
+    // rather than its ancestor — the progress controls sit above it.
+    expect(container.querySelector('a[href="/books/1"]')).toBeInTheDocument()
+  })
+
+  it('updates progress from the card without leaving the dashboard', async () => {
+    mockUpdateProgress.mockResolvedValue({})
+    mockLibrary()
     render(<ReadingDashboard />)
-    const link = screen.getByText('Dune').closest('a')
-    expect(link).toHaveAttribute('href', '/books/1')
+
+    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
+
+    await waitFor(() =>
+      expect(mockUpdateProgress).toHaveBeenCalledWith(
+        expect.objectContaining({ progressMode: 'pages', currentPage: 110 })
+      )
+    )
+    expect(screen.getByText('110 / 400 pages')).toBeInTheDocument()
   })
 
   it('shows an empty message when nothing is in progress', () => {
