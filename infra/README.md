@@ -398,6 +398,11 @@ OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization
                               rotating it invalidates every issued MCP token)
 STEAM_API_KEY
 HARDCOVER_API_KEY
+BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key
+                              for the SNCB GTFS feed, trains app / issue
+                              #1390 — free self-service registration,
+                              Standard tier; sent as the bmc-partner-key
+                              header)
 R2_ACCOUNT_ID
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY

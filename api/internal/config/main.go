@@ -47,10 +47,19 @@ type Config struct {
 	AuthIssuer      string
 	SteamAPIKey     string
 	HardcoverAPIKey string
-	R2AccountID     string
-	R2AccessKeyID   string
-	R2SecretKey     string
-	R2Bucket        string
+
+	// BMCHost is the Belgian Mobility Company APIM gateway host serving the
+	// GTFS static + realtime feeds (trains app, issue #1390). Kept as config
+	// rather than a constant because the spike (#1389) found two live APIM
+	// spellings answering the same paths — the ambiguity itself is evidence
+	// it moves. BMCPartnerKey is the Azure APIM subscription key, sent as the
+	// bmc-partner-key request header.
+	BMCHost       string
+	BMCPartnerKey string
+	R2AccountID   string
+	R2AccessKeyID string
+	R2SecretKey   string
+	R2Bucket      string
 
 	// OAuth app registration credentials for the observability integrations
 	// (issue #440): each provider's connection itself is stored in
@@ -237,6 +246,11 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")
+
+	cfg.BMCHost = p.envStr(
+		"BMC_HOST", "api-management-opendata-production.azure-api.net",
+	)
+	cfg.BMCPartnerKey = p.envSecret("BMC_PARTNER_KEY", "")
 
 	cfg.R2AccountID = p.envStr("R2_ACCOUNT_ID", "")
 	cfg.R2AccessKeyID = p.envSecret("R2_ACCESS_KEY_ID", "")

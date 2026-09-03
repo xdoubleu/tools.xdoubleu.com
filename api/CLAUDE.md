@@ -32,10 +32,11 @@ go test ./apps/books/... -run TestFunctionName   # single test
 All apps are registered in `cmd/api/apps.go` and share one HTTP mux routed by
 URL prefix. `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once
 (so every app's queries emit tracing spans; migrations use the raw pool
-instead) and calls `NewApps`, which registers 8 apps in a fixed order —
+instead) and calls `NewApps`, which registers 9 apps in a fixed order —
 `books` before `games`, because `games`' final migration drops the
 leftover `backlog` schema only after `books` has adopted its tables out of
-it. Apps expose ConnectRPC endpoints consumed by `web/`.
+it. `trains` depends on no other schema and appends last (after `dashboard`).
+Apps expose ConnectRPC endpoints consumed by `web/`.
 
 The `App` interface (`cmd/api/apps.go`):
 
@@ -148,12 +149,14 @@ implementation (`supabase-community/auth-go`, now removed). Key points:
 - **mealplans** — weekly meal planning with per-plan iCal feeds and sharing. Schema `mealplans` (its `plans` tables were adopted from `recipes` via `ALTER TABLE ... SET SCHEMA`).
 - **shoppinglist** — custom items plus meal-plan ingredient aggregation, categories, store-ordered export, sharing. Stores themselves stay private per-user even when the rest of the list is shared. Schema `shoppinglist`.
 - **dashboard** — centralizes the public Games and Reading (books+feeds) dashboards, both private/owner and public/shared views, plus the share-token lifecycle (issue #737). No DB, no jobs, like `watchparty`; registers last in `apps.go` since it holds live references to the already-constructed `games`/`books`/`feeds` apps. See "Public Dashboard Sharing" below.
+- **trains** — SNCB/NMBS timetable + (in later slices, issue #1388) CSA journey planning and realtime delay overlay. Schema `trains`. As of issue #1390 only `jobs.StaticImportJob` exists: a daily download+validate+import of the Belgian Mobility Company GTFS static feed via `pkg/bmc` (gateway host + `bmc-partner-key` from `internal/config`), swapped into the schema in one transaction (`repositories.FeedRepository.ImportFeed` — `TRUNCATE` + `pgx.CopyFrom`, atomic for readers under MVCC). A conditional GET (`feed_info.etag`/`last_modified`) makes an unchanged daily feed a no-op. No `Routes()` yet — no user-visible half. **Feed traps handled by the importer** (each from the #1389 spike, each with a test): `calendar.txt` weekday flags are an all-zero decoy so service days resolve from `calendar_dates` alone; `stop_times` values legitimately exceed `24:00:00` but a `36:00:00` bound rejects publisher-bug values (`87:39:00` observed); CSV columns are alphabetically ordered so parsing is by header name; the download is verified a zip by magic bytes (`PK\x03\x04`), not `Content-Type`. `trip_id` is a daily-churning stopping-pattern variant — never persist it as a long-lived FK from user data; group user-facing output by `trips.trip_short_name`.
 
 ### Database Conventions
 
 - Each app owns its own Postgres schema, migrated via Goose SQL files in `apps/<name>/migrations/`.
 - Cross-cutting tables live in schema `global`, migrations embedded in `cmd/api/migrations/`.
 - **Never put a wide TEXT column in a list query's column list.** The deployed database is reached over a transaction-mode pooler and billed per byte returned, so a page of rows carrying a large column is billed egress on every request. `feeds`' `itemColumns`/`itemListColumns` split (`apps/feeds/internal/repositories/items.go`) and `books`' `bookColumns` (`apps/books/internal/repositories/books_scan.go`) show the pattern: multi-row reads and `RETURNING` clauses select `<col> IS NOT NULL AND <col> <> ''` as a boolean, and a dedicated single-row read is the only query selecting the column itself. Getting this wrong on `feeds.items.content_html` exhausted the whole monthly egress quota and took the site down (issue #1027). The same applies to any query whose result the caller then throws away — a job that only needs to know which rows exist should select ids only, not the columns it's about to discard.
+- The same rule bounds `trains`: `stop_times` (~0.8M rows) and `calendar_dates` (~1.07M rows) are large, so any list query the router (slice 3) adds must select only the columns it uses — a careless full-row read of `stop_times` is the same shape of mistake as `feeds.items.content_html`.
 - Downstream apps may **read** an upstream app's schema directly in SQL instead of going through an internal API — the allowed dependency direction is acyclic: `recipes ← mealplans ← shoppinglist`. `mealplans` joins `recipes.recipes`; `shoppinglist`'s export/item-name-catalog features join both `mealplans.*` and `recipes.*`. Reads only, never the reverse direction, and each app's migrations touch only its own schema — grep downstream repositories before changing an upstream schema.
 - CI runs tests against a real PostgreSQL 18 instance — no DB mocking.
 

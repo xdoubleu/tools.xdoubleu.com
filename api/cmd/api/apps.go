@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
+	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -77,6 +78,10 @@ func NewApps(
 	apps.addApp(
 		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)
+	// trains has no dependency on any other app's schema and no live-reference
+	// wiring, so it appends here without disturbing the load-bearing order
+	// above (issue #1390).
+	apps.addApp(trains.New(authService, logger, cfg, db))
 
 	return &apps, booksApp, feedsApp
 }
