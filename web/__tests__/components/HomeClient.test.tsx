@@ -59,7 +59,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Family')).toBeInTheDocument()
     })
 
     expect(screen.getByRole('link', { name: /Games/ })).toHaveAttribute('href', '/dashboard/games')
@@ -75,7 +75,7 @@ describe('HomeClient', () => {
       '/shoppinglist'
     )
     expect(screen.getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '/settings')
-    expect(screen.getByRole('link', { name: /Contacts/ })).toHaveAttribute('href', '/contacts')
+    expect(screen.getByRole('link', { name: /Family/ })).toHaveAttribute('href', '/family')
     expect(screen.getByRole('link', { name: /User management/ })).toHaveAttribute(
       'href',
       '/user-management'
@@ -266,7 +266,9 @@ describe('HomeClient', () => {
       expect(screen.getByText('WebRTC screen sharing')).toBeInTheDocument()
       expect(screen.getByText('Recipe management')).toBeInTheDocument()
       expect(screen.getByText('User preferences')).toBeInTheDocument()
-      expect(screen.getByText('Manage contacts')).toBeInTheDocument()
+      expect(
+        screen.getByText('Share one recipe book, meal plan and shopping list together')
+      ).toBeInTheDocument()
     })
   })
 
@@ -290,7 +292,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Reading')).toBeInTheDocument()
       expect(screen.getByText('Feeds')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Family')).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
@@ -365,7 +367,7 @@ describe('HomeClient', () => {
       expect(screen.getByText('Meal Plans')).toBeInTheDocument()
       expect(screen.getByText('Shopping List')).toBeInTheDocument()
       expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Family')).toBeInTheDocument()
     })
   })
 
@@ -381,7 +383,7 @@ describe('HomeClient', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Settings')).toBeInTheDocument()
-      expect(screen.getByText('Contacts')).toBeInTheDocument()
+      expect(screen.getByText('Family')).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Games')).not.toBeInTheDocument()

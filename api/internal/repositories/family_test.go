@@ -106,3 +106,28 @@ func TestFamilyRepository_ErrorsOnCanceledContext(t *testing.T) {
 	err = repo.Invite(ctx, userID, "someone-else")
 	require.Error(t, err)
 }
+
+func TestFamilyRepository_DisplayName(t *testing.T) {
+	const ownerID = "family-repo-dn-owner"
+	const inviteeID = "family-repo-dn-invitee"
+	clearFamily(t, ownerID, inviteeID)
+	repo := repositories.NewFamilyRepository(testDB)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+	familyID, err := repo.AcceptInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+
+	names, err := repo.MemberDisplayNames(t.Context(), familyID)
+	require.NoError(t, err)
+	assert.Equal(t, "", names[ownerID])
+	assert.Equal(t, "", names[inviteeID])
+
+	require.NoError(t, repo.SetDisplayName(t.Context(), inviteeID, "Robin"))
+
+	names, err = repo.MemberDisplayNames(t.Context(), familyID)
+	require.NoError(t, err)
+	assert.Equal(t, "Robin", names[inviteeID])
+	assert.Equal(t, "", names[ownerID])
+
+	require.NoError(t, repo.Leave(t.Context(), inviteeID))
+}

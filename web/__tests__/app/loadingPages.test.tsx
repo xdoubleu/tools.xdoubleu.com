@@ -8,7 +8,6 @@ const ROUTES = [
   'recipes/list',
   'mealplans',
   'shoppinglist',
-  'contacts',
   'family',
   'user-management',
   'monitoring'

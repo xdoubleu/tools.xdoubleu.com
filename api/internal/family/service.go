@@ -1,14 +1,12 @@
 // Package family implements the shared "family" concept from issue #1349: a
 // user configures a family (of at most one, per the issue's confirmed
-// decision) whose members will eventually share one set of recipes, one meal
-// plan set, and one shopping list as a single unit, replacing the
-// owner-centric per-app sharing model. This package lands the family entity
-// itself — membership, invites (reusing the contacts invite/accept pattern),
-// and leaving — as the substrate the three apps re-key onto in a follow-up
-// (see issue #1349's tracking issue for the coupling that makes that its own
-// piece of work: shoppinglist's catalog queries already join directly into
-// recipes/mealplans by owner user ID, so re-keying needs to happen for all
-// three together, not one app at a time).
+// decision) whose members share one set of recipes, one meal plan set, and
+// one shopping list as a single unit, replacing the owner-centric per-app
+// sharing model. It owns the family entity itself — membership, invites
+// (invite -> accept/decline, the shape global.contacts once established
+// before that table was removed in issue #1403), per-member display names,
+// and leaving. recipes/mealplans/shoppinglist key their data by the
+// family_id this package hands them (via repositories.FamilyRepository).
 package family
 
 import (
@@ -29,12 +27,15 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// Membership describes the caller's current family: FamilyID and the other
-// members' user IDs (self excluded). An implicit family-of-one has no
-// members.
+// Membership describes the caller's current family: FamilyID, the other
+// members' user IDs (self excluded), and each of those members' chosen
+// display name keyed by user ID (empty when unset). An implicit
+// family-of-one has no members.
 type Membership struct {
-	FamilyID uuid.UUID
-	Members  []string
+	FamilyID        uuid.UUID
+	Members         []string
+	DisplayNames    map[string]string
+	SelfDisplayName string
 }
 
 type Service interface {
@@ -51,6 +52,8 @@ type Service interface {
 	) (models.FamilyInvite, bool, error)
 	Accept(ctx context.Context, userID string) error
 	Decline(ctx context.Context, userID string) error
+	// SetDisplayName sets the caller's own display name within their family.
+	SetDisplayName(ctx context.Context, userID, displayName string) error
 	// Leave removes userID from their family. Their family-scoped data,
 	// once apps re-key onto family_id, stays with the family — it cannot be
 	// un-merged (issue #1349's confirmed decision).
@@ -95,13 +98,30 @@ func (s *familyService) GetMembership(
 		return Membership{}, err
 	}
 
+	names, err := s.repo.MemberDisplayNames(ctx, familyID)
+	if err != nil {
+		return Membership{}, err
+	}
+
 	members := make([]string, 0, len(all))
 	for _, m := range all {
 		if m != userID {
 			members = append(members, m)
 		}
 	}
-	return Membership{FamilyID: familyID, Members: members}, nil
+	return Membership{
+		FamilyID:        familyID,
+		Members:         members,
+		DisplayNames:    names,
+		SelfDisplayName: names[userID],
+	}, nil
+}
+
+func (s *familyService) SetDisplayName(
+	ctx context.Context,
+	userID, displayName string,
+) error {
+	return s.repo.SetDisplayName(ctx, userID, displayName)
 }
 
 func (s *familyService) InviteByEmail(
@@ -141,9 +161,8 @@ func (s *familyService) InviteByEmail(
 	return nil
 }
 
-// sendInviteEmail queues a notification email, following the same
-// failure-tolerant pattern as internal/contacts' sendContactRequestEmail —
-// the invite is already persisted, so a delivery failure only degrades the
+// sendInviteEmail queues a notification email off the request path — the
+// invite is already persisted, so a delivery failure only degrades the
 // notification, never the request itself.
 func (s *familyService) sendInviteEmail(to, senderEmail string) {
 	subject := fmt.Sprintf("%s invited you to join their family", senderEmail)

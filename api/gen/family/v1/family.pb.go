@@ -22,9 +22,12 @@ const (
 )
 
 type FamilyMember struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Email  string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
+	// display_name is the member's own chosen name, shown to the rest of the
+	// family in place of their email. Empty when they haven't set one.
+	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -69,6 +72,13 @@ func (x *FamilyMember) GetUserId() string {
 func (x *FamilyMember) GetEmail() string {
 	if x != nil {
 		return x.Email
+	}
+	return ""
+}
+
+func (x *FamilyMember) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
 	}
 	return ""
 }
@@ -183,8 +193,11 @@ type GetFamilyResponse struct {
 	// incoming_invite is set when the caller has a pending invite to join
 	// another family.
 	IncomingInvite *FamilyInvite `protobuf:"bytes,2,opt,name=incoming_invite,json=incomingInvite,proto3" json:"incoming_invite,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// self_display_name is the caller's own chosen name within their family
+	// (empty when unset). The caller is not included in members.
+	SelfDisplayName string `protobuf:"bytes,3,opt,name=self_display_name,json=selfDisplayName,proto3" json:"self_display_name,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetFamilyResponse) Reset() {
@@ -229,6 +242,13 @@ func (x *GetFamilyResponse) GetIncomingInvite() *FamilyInvite {
 		return x.IncomingInvite
 	}
 	return nil
+}
+
+func (x *GetFamilyResponse) GetSelfDisplayName() string {
+	if x != nil {
+		return x.SelfDisplayName
+	}
+	return ""
 }
 
 type InviteToFamilyRequest struct {
@@ -455,6 +475,86 @@ func (*DeclineFamilyInviteResponse) Descriptor() ([]byte, []int) {
 	return file_family_v1_family_proto_rawDescGZIP(), []int{9}
 }
 
+type SetFamilyDisplayNameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DisplayName   string                 `protobuf:"bytes,1,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetFamilyDisplayNameRequest) Reset() {
+	*x = SetFamilyDisplayNameRequest{}
+	mi := &file_family_v1_family_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetFamilyDisplayNameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetFamilyDisplayNameRequest) ProtoMessage() {}
+
+func (x *SetFamilyDisplayNameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_family_v1_family_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetFamilyDisplayNameRequest.ProtoReflect.Descriptor instead.
+func (*SetFamilyDisplayNameRequest) Descriptor() ([]byte, []int) {
+	return file_family_v1_family_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *SetFamilyDisplayNameRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type SetFamilyDisplayNameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetFamilyDisplayNameResponse) Reset() {
+	*x = SetFamilyDisplayNameResponse{}
+	mi := &file_family_v1_family_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetFamilyDisplayNameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetFamilyDisplayNameResponse) ProtoMessage() {}
+
+func (x *SetFamilyDisplayNameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_family_v1_family_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetFamilyDisplayNameResponse.ProtoReflect.Descriptor instead.
+func (*SetFamilyDisplayNameResponse) Descriptor() ([]byte, []int) {
+	return file_family_v1_family_proto_rawDescGZIP(), []int{11}
+}
+
 type LeaveFamilyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -463,7 +563,7 @@ type LeaveFamilyRequest struct {
 
 func (x *LeaveFamilyRequest) Reset() {
 	*x = LeaveFamilyRequest{}
-	mi := &file_family_v1_family_proto_msgTypes[10]
+	mi := &file_family_v1_family_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -475,7 +575,7 @@ func (x *LeaveFamilyRequest) String() string {
 func (*LeaveFamilyRequest) ProtoMessage() {}
 
 func (x *LeaveFamilyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_family_v1_family_proto_msgTypes[10]
+	mi := &file_family_v1_family_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +588,7 @@ func (x *LeaveFamilyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveFamilyRequest.ProtoReflect.Descriptor instead.
 func (*LeaveFamilyRequest) Descriptor() ([]byte, []int) {
-	return file_family_v1_family_proto_rawDescGZIP(), []int{10}
+	return file_family_v1_family_proto_rawDescGZIP(), []int{12}
 }
 
 type LeaveFamilyResponse struct {
@@ -499,7 +599,7 @@ type LeaveFamilyResponse struct {
 
 func (x *LeaveFamilyResponse) Reset() {
 	*x = LeaveFamilyResponse{}
-	mi := &file_family_v1_family_proto_msgTypes[11]
+	mi := &file_family_v1_family_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -511,7 +611,7 @@ func (x *LeaveFamilyResponse) String() string {
 func (*LeaveFamilyResponse) ProtoMessage() {}
 
 func (x *LeaveFamilyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_family_v1_family_proto_msgTypes[11]
+	mi := &file_family_v1_family_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -524,17 +624,18 @@ func (x *LeaveFamilyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveFamilyResponse.ProtoReflect.Descriptor instead.
 func (*LeaveFamilyResponse) Descriptor() ([]byte, []int) {
-	return file_family_v1_family_proto_rawDescGZIP(), []int{11}
+	return file_family_v1_family_proto_rawDescGZIP(), []int{13}
 }
 
 var File_family_v1_family_proto protoreflect.FileDescriptor
 
 const file_family_v1_family_proto_rawDesc = "" +
 	"\n" +
-	"\x16family/v1/family.proto\x12\tfamily.v1\"=\n" +
+	"\x16family/v1/family.proto\x12\tfamily.v1\"`\n" +
 	"\fFamilyMember\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\"~\n" +
+	"\x05email\x18\x02 \x01(\tR\x05email\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"~\n" +
 	"\fFamilyInvite\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12 \n" +
 	"\ffrom_user_id\x18\x02 \x01(\tR\n" +
@@ -543,24 +644,29 @@ const file_family_v1_family_proto_rawDesc = "" +
 	"from_email\x18\x03 \x01(\tR\tfromEmail\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x04 \x01(\tR\tcreatedAt\"\x12\n" +
-	"\x10GetFamilyRequest\"\x88\x01\n" +
+	"\x10GetFamilyRequest\"\xb4\x01\n" +
 	"\x11GetFamilyResponse\x121\n" +
 	"\amembers\x18\x01 \x03(\v2\x17.family.v1.FamilyMemberR\amembers\x12@\n" +
-	"\x0fincoming_invite\x18\x02 \x01(\v2\x17.family.v1.FamilyInviteR\x0eincomingInvite\"-\n" +
+	"\x0fincoming_invite\x18\x02 \x01(\v2\x17.family.v1.FamilyInviteR\x0eincomingInvite\x12*\n" +
+	"\x11self_display_name\x18\x03 \x01(\tR\x0fselfDisplayName\"-\n" +
 	"\x15InviteToFamilyRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"\x18\n" +
 	"\x16InviteToFamilyResponse\"\x1b\n" +
 	"\x19AcceptFamilyInviteRequest\"\x1c\n" +
 	"\x1aAcceptFamilyInviteResponse\"\x1c\n" +
 	"\x1aDeclineFamilyInviteRequest\"\x1d\n" +
-	"\x1bDeclineFamilyInviteResponse\"\x14\n" +
+	"\x1bDeclineFamilyInviteResponse\"@\n" +
+	"\x1bSetFamilyDisplayNameRequest\x12!\n" +
+	"\fdisplay_name\x18\x01 \x01(\tR\vdisplayName\"\x1e\n" +
+	"\x1cSetFamilyDisplayNameResponse\"\x14\n" +
 	"\x12LeaveFamilyRequest\"\x15\n" +
-	"\x13LeaveFamilyResponse2\xc5\x03\n" +
+	"\x13LeaveFamilyResponse2\xae\x04\n" +
 	"\rFamilyService\x12F\n" +
 	"\tGetFamily\x12\x1b.family.v1.GetFamilyRequest\x1a\x1c.family.v1.GetFamilyResponse\x12U\n" +
 	"\x0eInviteToFamily\x12 .family.v1.InviteToFamilyRequest\x1a!.family.v1.InviteToFamilyResponse\x12a\n" +
 	"\x12AcceptFamilyInvite\x12$.family.v1.AcceptFamilyInviteRequest\x1a%.family.v1.AcceptFamilyInviteResponse\x12d\n" +
-	"\x13DeclineFamilyInvite\x12%.family.v1.DeclineFamilyInviteRequest\x1a&.family.v1.DeclineFamilyInviteResponse\x12L\n" +
+	"\x13DeclineFamilyInvite\x12%.family.v1.DeclineFamilyInviteRequest\x1a&.family.v1.DeclineFamilyInviteResponse\x12g\n" +
+	"\x14SetFamilyDisplayName\x12&.family.v1.SetFamilyDisplayNameRequest\x1a'.family.v1.SetFamilyDisplayNameResponse\x12L\n" +
 	"\vLeaveFamily\x12\x1d.family.v1.LeaveFamilyRequest\x1a\x1e.family.v1.LeaveFamilyResponseB+Z)tools.xdoubleu.com/gen/family/v1;familyv1b\x06proto3"
 
 var (
@@ -575,20 +681,22 @@ func file_family_v1_family_proto_rawDescGZIP() []byte {
 	return file_family_v1_family_proto_rawDescData
 }
 
-var file_family_v1_family_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_family_v1_family_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_family_v1_family_proto_goTypes = []any{
-	(*FamilyMember)(nil),                // 0: family.v1.FamilyMember
-	(*FamilyInvite)(nil),                // 1: family.v1.FamilyInvite
-	(*GetFamilyRequest)(nil),            // 2: family.v1.GetFamilyRequest
-	(*GetFamilyResponse)(nil),           // 3: family.v1.GetFamilyResponse
-	(*InviteToFamilyRequest)(nil),       // 4: family.v1.InviteToFamilyRequest
-	(*InviteToFamilyResponse)(nil),      // 5: family.v1.InviteToFamilyResponse
-	(*AcceptFamilyInviteRequest)(nil),   // 6: family.v1.AcceptFamilyInviteRequest
-	(*AcceptFamilyInviteResponse)(nil),  // 7: family.v1.AcceptFamilyInviteResponse
-	(*DeclineFamilyInviteRequest)(nil),  // 8: family.v1.DeclineFamilyInviteRequest
-	(*DeclineFamilyInviteResponse)(nil), // 9: family.v1.DeclineFamilyInviteResponse
-	(*LeaveFamilyRequest)(nil),          // 10: family.v1.LeaveFamilyRequest
-	(*LeaveFamilyResponse)(nil),         // 11: family.v1.LeaveFamilyResponse
+	(*FamilyMember)(nil),                 // 0: family.v1.FamilyMember
+	(*FamilyInvite)(nil),                 // 1: family.v1.FamilyInvite
+	(*GetFamilyRequest)(nil),             // 2: family.v1.GetFamilyRequest
+	(*GetFamilyResponse)(nil),            // 3: family.v1.GetFamilyResponse
+	(*InviteToFamilyRequest)(nil),        // 4: family.v1.InviteToFamilyRequest
+	(*InviteToFamilyResponse)(nil),       // 5: family.v1.InviteToFamilyResponse
+	(*AcceptFamilyInviteRequest)(nil),    // 6: family.v1.AcceptFamilyInviteRequest
+	(*AcceptFamilyInviteResponse)(nil),   // 7: family.v1.AcceptFamilyInviteResponse
+	(*DeclineFamilyInviteRequest)(nil),   // 8: family.v1.DeclineFamilyInviteRequest
+	(*DeclineFamilyInviteResponse)(nil),  // 9: family.v1.DeclineFamilyInviteResponse
+	(*SetFamilyDisplayNameRequest)(nil),  // 10: family.v1.SetFamilyDisplayNameRequest
+	(*SetFamilyDisplayNameResponse)(nil), // 11: family.v1.SetFamilyDisplayNameResponse
+	(*LeaveFamilyRequest)(nil),           // 12: family.v1.LeaveFamilyRequest
+	(*LeaveFamilyResponse)(nil),          // 13: family.v1.LeaveFamilyResponse
 }
 var file_family_v1_family_proto_depIdxs = []int32{
 	0,  // 0: family.v1.GetFamilyResponse.members:type_name -> family.v1.FamilyMember
@@ -597,14 +705,16 @@ var file_family_v1_family_proto_depIdxs = []int32{
 	4,  // 3: family.v1.FamilyService.InviteToFamily:input_type -> family.v1.InviteToFamilyRequest
 	6,  // 4: family.v1.FamilyService.AcceptFamilyInvite:input_type -> family.v1.AcceptFamilyInviteRequest
 	8,  // 5: family.v1.FamilyService.DeclineFamilyInvite:input_type -> family.v1.DeclineFamilyInviteRequest
-	10, // 6: family.v1.FamilyService.LeaveFamily:input_type -> family.v1.LeaveFamilyRequest
-	3,  // 7: family.v1.FamilyService.GetFamily:output_type -> family.v1.GetFamilyResponse
-	5,  // 8: family.v1.FamilyService.InviteToFamily:output_type -> family.v1.InviteToFamilyResponse
-	7,  // 9: family.v1.FamilyService.AcceptFamilyInvite:output_type -> family.v1.AcceptFamilyInviteResponse
-	9,  // 10: family.v1.FamilyService.DeclineFamilyInvite:output_type -> family.v1.DeclineFamilyInviteResponse
-	11, // 11: family.v1.FamilyService.LeaveFamily:output_type -> family.v1.LeaveFamilyResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
+	10, // 6: family.v1.FamilyService.SetFamilyDisplayName:input_type -> family.v1.SetFamilyDisplayNameRequest
+	12, // 7: family.v1.FamilyService.LeaveFamily:input_type -> family.v1.LeaveFamilyRequest
+	3,  // 8: family.v1.FamilyService.GetFamily:output_type -> family.v1.GetFamilyResponse
+	5,  // 9: family.v1.FamilyService.InviteToFamily:output_type -> family.v1.InviteToFamilyResponse
+	7,  // 10: family.v1.FamilyService.AcceptFamilyInvite:output_type -> family.v1.AcceptFamilyInviteResponse
+	9,  // 11: family.v1.FamilyService.DeclineFamilyInvite:output_type -> family.v1.DeclineFamilyInviteResponse
+	11, // 12: family.v1.FamilyService.SetFamilyDisplayName:output_type -> family.v1.SetFamilyDisplayNameResponse
+	13, // 13: family.v1.FamilyService.LeaveFamily:output_type -> family.v1.LeaveFamilyResponse
+	8,  // [8:14] is the sub-list for method output_type
+	2,  // [2:8] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -621,7 +731,7 @@ func file_family_v1_family_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_family_v1_family_proto_rawDesc), len(file_family_v1_family_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

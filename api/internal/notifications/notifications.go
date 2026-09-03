@@ -1,7 +1,7 @@
 // Package notifications decouples callers from the latency of a
 // mailer.Client send: every email is deposited on a single background
 // worker so a scheduled job's Run (see observability/jobs.IssueNotifierJob)
-// or an HTTP handler (see contacts.Service.AddByEmail) never blocks on
+// or an HTTP handler (see family.Service.InviteByEmail) never blocks on
 // Resend's network round trip, and every enqueued email is delivered
 // strictly in enqueue order (issue #923).
 package notifications
@@ -19,7 +19,7 @@ import (
 const singleWorker = 1
 
 // queueSize is generous relative to how rarely these notifications fire
-// (a 5-minute poll job, occasional contact requests); it exists only so a
+// (a 5-minute poll job, occasional family invites); it exists only so a
 // burst never blocks the enqueueing caller.
 const queueSize = 64
 

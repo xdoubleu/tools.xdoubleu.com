@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/models"
@@ -86,39 +85,4 @@ func revokeAppAccess(t *testing.T, userID, appName string) {
 	require.NoError(t, testApp.appUsersRepo.SetAppAccess(
 		context.Background(), userID, appName, false,
 	))
-}
-
-func mustParseUUID(t *testing.T, s string) uuid.UUID {
-	t.Helper()
-	id, err := uuid.Parse(s)
-	require.NoError(t, err)
-	return id
-}
-
-func insertPendingContact(t *testing.T) string {
-	t.Helper()
-	ctx := context.Background()
-
-	senderUUID := uuid.New()
-	senderID := senderUUID.String()
-	senderEmail := "sender-" + senderID + "@example.com"
-
-	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, senderID, senderEmail))
-	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
-	require.NoError(t, testApp.contacts.AddByEmail(
-		ctx, senderID, "user@example.com", "Test Sender",
-	))
-
-	incoming, err := testApp.contacts.ListIncoming(ctx, testUserID)
-	require.NoError(t, err)
-
-	var contactID string
-	for _, c := range incoming {
-		if c.OwnerUserID == senderID {
-			contactID = c.ID.String()
-			break
-		}
-	}
-	require.NotEmpty(t, contactID, "expected a pending contact request from sender")
-	return contactID
 }

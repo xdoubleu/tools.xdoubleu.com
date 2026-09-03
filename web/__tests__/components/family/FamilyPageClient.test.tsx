@@ -5,10 +5,12 @@ const inviteToFamily = jest.fn().mockResolvedValue({})
 const acceptFamilyInvite = jest.fn().mockResolvedValue({})
 const declineFamilyInvite = jest.fn().mockResolvedValue({})
 const leaveFamily = jest.fn().mockResolvedValue({})
+const setFamilyDisplayName = jest.fn().mockResolvedValue({})
 
 let mockData: {
-  members: { userId: string; email: string }[]
+  members: { userId: string; email: string; displayName?: string }[]
   incomingInvite?: { fromUserId: string; fromEmail: string } | undefined
+  selfDisplayName?: string
 } = { members: [], incomingInvite: undefined }
 let mockIsLoading = false
 let mockError: Error | undefined
@@ -22,6 +24,7 @@ jest.mock('@/hooks/useFamily', () => ({
   useInviteToFamily: () => inviteToFamily,
   useAcceptFamilyInvite: () => acceptFamilyInvite,
   useDeclineFamilyInvite: () => declineFamilyInvite,
+  useSetFamilyDisplayName: () => setFamilyDisplayName,
   useLeaveFamily: () => leaveFamily
 }))
 
@@ -111,6 +114,26 @@ describe('FamilyPageClient', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Decline' }))
     await waitFor(() => expect(declineFamilyInvite).toHaveBeenCalled())
+  })
+
+  it('saves your display name', async () => {
+    mockData = { members: [], incomingInvite: undefined, selfDisplayName: 'Old' }
+    render(<FamilyPageClient />)
+    fireEvent.change(screen.getByPlaceholderText('Your name'), {
+      target: { value: 'New name' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(setFamilyDisplayName).toHaveBeenCalledWith('New name'))
+  })
+
+  it('shows a member display name in place of the email', () => {
+    mockData = {
+      members: [{ userId: 'u1', email: 'partner@example.com', displayName: 'Partner' }],
+      incomingInvite: undefined
+    }
+    render(<FamilyPageClient />)
+    expect(screen.getByText('Partner')).toBeInTheDocument()
+    expect(screen.queryByText('partner@example.com')).not.toBeInTheDocument()
   })
 
   it('leaves the family', async () => {

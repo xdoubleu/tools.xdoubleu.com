@@ -25,9 +25,8 @@ func (h *familyConnectHandler) userID(ctx context.Context) string {
 	return u.ID
 }
 
-// emailsByUserID resolves user IDs to their email addresses, mirroring the
-// contacts handler's own helper (family members/invites are stored by user
-// ID, but displayed by email).
+// emailsByUserID resolves user IDs to their email addresses (family members
+// and invites are stored by user ID, but displayed by email).
 func (h *familyConnectHandler) emailsByUserID(
 	ctx context.Context,
 ) (map[string]string, error) {
@@ -67,14 +66,16 @@ func (h *familyConnectHandler) GetFamily(
 	members := make([]*familyv1.FamilyMember, len(membership.Members))
 	for i, memberID := range membership.Members {
 		members[i] = &familyv1.FamilyMember{
-			UserId: memberID,
-			Email:  emails[memberID],
+			UserId:      memberID,
+			Email:       emails[memberID],
+			DisplayName: membership.DisplayNames[memberID],
 		}
 	}
 
 	resp := &familyv1.GetFamilyResponse{
-		Members:        members,
-		IncomingInvite: nil,
+		Members:         members,
+		IncomingInvite:  nil,
+		SelfDisplayName: membership.SelfDisplayName,
 	}
 	if hasInvite {
 		resp.IncomingInvite = &familyv1.FamilyInvite{
@@ -128,6 +129,21 @@ func (h *familyConnectHandler) DeclineFamilyInvite(
 	}
 
 	return connect.NewResponse(&familyv1.DeclineFamilyInviteResponse{}), nil
+}
+
+func (h *familyConnectHandler) SetFamilyDisplayName(
+	ctx context.Context,
+	req *connect.Request[familyv1.SetFamilyDisplayNameRequest],
+) (*connect.Response[familyv1.SetFamilyDisplayNameResponse], error) {
+	userID := h.userID(ctx)
+
+	if err := h.app.family.SetDisplayName(
+		ctx, userID, req.Msg.DisplayName,
+	); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&familyv1.SetFamilyDisplayNameResponse{}), nil
 }
 
 func (h *familyConnectHandler) LeaveFamily(

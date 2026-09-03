@@ -70,7 +70,6 @@ const ALL_APPS: AppLink[] = [
     description: 'WebRTC screen sharing'
   },
   { name: 'settings', label: 'Settings', href: '/settings', description: 'User preferences' },
-  { name: 'contacts', label: 'Contacts', href: '/contacts', description: 'Manage contacts' },
   {
     name: 'family',
     label: 'Family',
@@ -97,11 +96,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Productivity', names: ['games', 'books', 'feeds'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
-  { title: 'Account', names: ['settings', 'contacts', 'family'] },
+  { title: 'Account', names: ['settings', 'family'] },
   { title: 'Admin', names: ['user-management', 'monitoring'] }
 ]
 
-const ALWAYS_VISIBLE = new Set(['settings', 'contacts', 'family'])
+const ALWAYS_VISIBLE = new Set(['settings', 'family'])
 const ADMIN_ONLY = new Set(['user-management', 'monitoring'])
 
 export default function HomeClient() {

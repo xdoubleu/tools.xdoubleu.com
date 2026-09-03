@@ -107,6 +107,28 @@ func TestMain(m *testing.M) {
 			request_count BIGINT NOT NULL,
 			PRIMARY KEY (day, project, transaction_name)
 		)`,
+		// Mirrors cmd/api/migrations/00040_family.sql and
+		// 00041_family_display_name.sql.
+		`CREATE TABLE IF NOT EXISTS global.families (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
+		`CREATE TABLE IF NOT EXISTS global.family_members (
+			user_id TEXT PRIMARY KEY,
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			display_name TEXT NOT NULL DEFAULT ''
+		)`,
+		// display_name may be absent on a shared DB where only 00040 ran.
+		`ALTER TABLE global.family_members
+			ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT ''`,
+		`CREATE TABLE IF NOT EXISTS global.family_invites (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			family_id UUID NOT NULL REFERENCES global.families (id) ON DELETE CASCADE,
+			from_user_id TEXT NOT NULL,
+			to_user_id TEXT NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := postgresDB.Exec(ctx, stmt); err != nil {

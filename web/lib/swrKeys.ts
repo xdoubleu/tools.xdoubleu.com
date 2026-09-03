@@ -27,7 +27,6 @@ export const swrKeys = {
     ['/monitoring/logs', source, minLevel] as const,
   monitoringOAuthConnections: '/monitoring/oauth-connections',
   monitoringNotificationSettings: '/monitoring/notification-settings',
-  contacts: '/contacts',
   family: '/family',
   // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
   // api service, so a path under /api never reaches this Next.js route.

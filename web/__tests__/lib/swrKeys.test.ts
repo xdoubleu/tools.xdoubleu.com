@@ -7,7 +7,6 @@ describe('swrKeys', () => {
   it('static keys match their historical literals', () => {
     expect(swrKeys.currentUser).toBe('/auth/current-user')
     expect(swrKeys.userManagementUsers).toBe('/user-management/users')
-    expect(swrKeys.contacts).toBe('/contacts')
     expect(swrKeys.webRelease).toBe('/release')
     expect(swrKeys.books).toBe('/books')
     expect(swrKeys.koboDevices).toBe('/books/kobo/devices')
