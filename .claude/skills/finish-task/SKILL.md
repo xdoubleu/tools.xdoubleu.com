@@ -117,6 +117,30 @@ issue and independent PR via `start-task`/`finish-task` — never stacked on
 this PR. Running the analysis is mandatory every time; most runs should find
 nothing worth acting on, and that's expected.
 
+## When a delegated skill isn't installed (e.g. Claude Code on the web)
+
+`ship-pr` and `session-retro` come from marketplace plugins a Claude Code
+**on the web** session does not have, and that environment has no `gh`
+either (use the `github` MCP tools). If either skill fails to load, don't
+silently skip or improvise it — say so explicitly, then fall back to the
+floor the root `CLAUDE.md` documents:
+
+- **No `ship-pr`**: rebase the branch on latest `origin/main`, push, and
+  open a **non-draft** PR whose body closes the tracking issue with a
+  keyword (`Fixes #123`), then watch CI to green. Apply this skill's
+  auto-merge rule above yourself. Do all of this with the `github` MCP
+  tools.
+- **No `session-retro`**: still run the retro *analysis* by hand — review
+  this session's tool calls, retries, and CI runs for a concrete
+  inefficiency (a doc gap, a missing target, an under-triggered
+  skill/tool). Only if something real turns up, ship it as its own issue
+  and PR, never stacked on this one.
+
+The `Stop` hook in `.claude/settings.json` can't confirm a PR exists
+without `gh`, so in a web session it treats "can't tell" as "don't block"
+(issue #1400) — meaning nothing external forces the PR to get opened there.
+That makes doing it yourself, unprompted, the only guardrail.
+
 ## Notes
 
 - Never skip hooks (`--no-verify`) or bypass signing (`--no-gpg-sign`) unless
