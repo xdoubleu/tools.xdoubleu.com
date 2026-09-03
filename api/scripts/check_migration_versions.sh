@@ -51,9 +51,14 @@ if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
 	for dir in cmd/api/migrations apps/*/migrations; do
 		[ -d "$dir" ] || continue
 
+		# An app whose migrations/ directory did not exist at the branch
+		# point (a brand-new app's first migration) has no base tree to list
+		# — treat its base max as 0. Without the `|| true` the failing
+		# `git show` aborts the whole script under `set -e`/pipefail.
+		base_tree=$(git show "$merge_base:${repo_prefix}${dir}" 2>/dev/null || true)
 		base_max=$(
-			git show "$merge_base:${repo_prefix}${dir}" 2>/dev/null |
-				grep -o '^[0-9]\{1,\}_[^[:space:]]*\.sql$' |
+			printf '%s\n' "$base_tree" |
+				{ grep -o '^[0-9]\{1,\}_[^[:space:]]*\.sql$' || true; } |
 				cut -d_ -f1 |
 				sort -n |
 				tail -1

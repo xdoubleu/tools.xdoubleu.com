@@ -13,6 +13,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 - **watchparty** — WebRTC screen sharing with draggable camera overlays for real-time collaboration.
 - **recipes** — Recipe management with fraction parsing, iCal export, shopping lists, and whole-recipe-book sharing with contacts (view-only or edit).
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, store-ordered export (group items by the aisle order of the store you're visiting), and full-list sharing with contacts (switch between your own and shared lists).
+- **trains** — SNCB/NMBS journey planner that stays useful when a trip is delayed mid-journey: a route overview between two stations and a live journey view that re-plans an alternative when a delay breaks it (issue #1388). Routes are computed in-house from the Belgian Mobility Company's open GTFS timetable, refreshed daily. In progress — as of issue #1390 only the timetable ingest exists.
 
 Books and games can also be shared publicly: a revocable token link (managed from the Sharing page) exposes read-only profile pages at `/profile/<token>` with the same dashboards, libraries, and backlogs — no account needed.
 

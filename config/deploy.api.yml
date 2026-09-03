@@ -156,6 +156,11 @@ env:
     # deploy the app, so there's exactly one place to rotate each value.
     - STEAM_API_KEY
     - HARDCOVER_API_KEY
+    # Belgian Mobility Company APIM subscription key for the SNCB GTFS feed
+    # (trains app, issue #1390). Sent as the bmc-partner-key header. Free
+    # self-service registration, Standard tier. BMC_HOST has a working
+    # default and only needs setting if the gateway host changes.
+    - BMC_PARTNER_KEY
     - R2_ACCOUNT_ID
     - R2_ACCESS_KEY_ID
     - R2_SECRET_ACCESS_KEY
