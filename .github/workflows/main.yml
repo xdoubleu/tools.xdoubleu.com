@@ -177,6 +177,8 @@ jobs:
       needs.changes.outputs.api == 'true' ||
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.sentrytools == 'true' ||
+      needs.changes.outputs.config_api == 'true' ||
+      needs.changes.outputs.config_web == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml

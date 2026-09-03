@@ -60,7 +60,7 @@ Prefer the `Agent` tool for noisy, multi-step, or bulk data-gathering — a grep
 docker-compose up -d       # start Postgres (needed before running/testing)
 make run                   # go run ./cmd/api
 make test                  # go test -p 1 ./...
-make lint                  # golangci-lint + sqlfluff + buf lint + migration-version check (duplicate or out-of-order)
+make lint                  # golangci-lint + sqlfluff + buf lint + migration-version check (duplicate or out-of-order) + Kamal deploy-secret consistency check
 make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
@@ -131,6 +131,8 @@ kobo-gateway stays on the old `actions/cache`-restore-into-build-context mechani
 **#1113 decommissioned DigitalOcean**: the `deploy` job, `do-app.yaml`, and the `DO_ACCESS_TOKEN`/`DO_APP_ID` secrets are gone, as is `infra/`'s duplicate local deploy path (`null_resource.kamal_deploy`, `data.external.deployable_image`, `deployable-image.sh`, and the 25 app-secret tfvars that fed it). **Tofu now provisions the host only** — firewall, hardening, deploy keys, Postgres (GoTrue was part of this too until issue #1039 replaced it with first-party auth in `api` and removed the container entirely) — and never deploys the app; app secrets live in repo Secrets and nowhere else.
 
 Because `main` deploys without re-testing, never push directly to `main` — only merge PRs whose CI passed. When editing any `.github/workflows/*.yml`, ensure its own `pull_request` trigger includes `.github/workflows/**` in its `paths` filter (docker-build workflows are the deliberate exception — push-to-main only).
+
+The deploy-secret list is declared in three places that must agree — `config/deploy.{api,web}.yml`'s `env.secret:`, `.kamal/secrets`, and each `Deploy <svc> via Kamal` step's `env:` block in `main.yml` — and a name present in the first but missing from the others only fails at `kamal deploy` time on `main` (post-merge, untested): `Secret 'X' not found in .kamal/secrets`. That shipped once (`BMC_PARTNER_KEY`, #1390 → fixed #1404). `api`'s `make lint/kamal-secrets` (`api/scripts/check_kamal_secrets.sh`, CI job `API Kamal Secrets Lint`) now fails the PR when those three lists disagree, and `api-lint`'s gate in `main.yml` includes `config_api`/`config_web` so a config-only PR actually runs it (issue #1405). Adding a genuinely new secret still means editing all three plus creating the `production` Environment secret (see `infra/README.md`).
 
 **`ci-pass` fails with "Timed out waiting for Codecov to report" (issue #863's PR):** Codecov's GitHub-app check-suite for the commit can get stuck permanently in `queued` — confirmed via `gh api repos/<repo>/commits/<sha>/check-suites --jq '.check_suites[] | select(.app.slug=="codecov")'` — even though Codecov's own backend finished processing the coverage report (`https://api.codecov.io/api/v2/github/<owner>/repos/<repo>/commits/<sha>/` shows `"state":"complete"`). No `codecov/patch`/`codecov/project` check-run is ever created in that state, so `ci-pass` always times out (10 min) no matter how many times the workflow job itself is rerun. There's no API to rerequest another app's check-suite with a PAT; push a new commit (an empty one is fine) to get Codecov a fresh check-suite.
 
