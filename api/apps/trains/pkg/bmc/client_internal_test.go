@@ -88,6 +88,33 @@ func TestFetchStatic_ConditionalGet304(t *testing.T) {
 	assert.Empty(t, res.Body)
 }
 
+func TestFetchStatic_UnexpectedStatus(t *testing.T) {
+	withHTTPScheme(t)
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+	defer srv.Close()
+
+	c := New(logging.NewNopLogger(), hostOf(t, srv), "k")
+	_, err := c.FetchStatic(
+		context.Background(),
+		StaticOptions{ETag: "", LastModified: ""},
+	)
+	require.ErrorContains(t, err, "unexpected status 500")
+}
+
+func TestParseRetryAfter_Fallbacks(t *testing.T) {
+	assert.Equal(
+		t,
+		30*time.Second,
+		parseRetryAfter(&http.Response{Header: http.Header{}}),
+	)
+	h := http.Header{}
+	h.Set("Retry-After", "garbage")
+	assert.Equal(t, 30*time.Second, parseRetryAfter(&http.Response{Header: h}))
+}
+
 func TestFetchStatic_RateLimited(t *testing.T) {
 	withHTTPScheme(t)
 	srv := httptest.NewServer(http.HandlerFunc(

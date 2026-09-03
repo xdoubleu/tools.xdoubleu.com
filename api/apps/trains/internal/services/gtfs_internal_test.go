@@ -49,6 +49,28 @@ func TestParseFeed_RejectsNonZip(t *testing.T) {
 	assert.ErrorIs(t, err, errZipMagic)
 }
 
+func TestParseFeed_MissingFileIsError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	delete(files, "stop_times.txt")
+	_, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.ErrorContains(t, err, "stop_times.txt missing")
+}
+
+func TestParseFeed_NoFeedVersionIsError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["feed_info.txt"] = "feed_lang,feed_version\nfr,\n"
+	_, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.ErrorContains(t, err, "feed_version")
+}
+
+func TestParseGTFSDate(t *testing.T) {
+	d, ok := parseGTFSDate("20260831")
+	require.True(t, ok)
+	assert.Equal(t, 2026, d.Year())
+	_, ok = parseGTFSDate("not-a-date")
+	assert.False(t, ok)
+}
+
 func TestParseFeed_TrapsAndBounds(t *testing.T) {
 	raw := mocks.BuildFeedZip(mocks.SampleFeedFiles())
 
