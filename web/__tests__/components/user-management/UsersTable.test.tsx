@@ -58,7 +58,6 @@ describe('UsersTable', () => {
     expect(screen.getByText('mealplans')).toBeInTheDocument()
     expect(screen.getByText('shoppinglist')).toBeInTheDocument()
     expect(screen.getByText('recipes')).toBeInTheDocument()
-    expect(screen.getByText('contacts')).toBeInTheDocument()
     expect(screen.getByText('watchparty')).toBeInTheDocument()
   })
 

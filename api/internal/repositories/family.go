@@ -66,6 +66,47 @@ func (r *FamilyRepository) ListMembers(
 	return result, rows.Err()
 }
 
+// MemberDisplayNames maps each member of familyID to the display name they
+// chose for themselves (empty string when they haven't set one).
+func (r *FamilyRepository) MemberDisplayNames(
+	ctx context.Context,
+	familyID uuid.UUID,
+) (map[string]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT user_id, display_name FROM global.family_members
+		WHERE family_id = $1`,
+		familyID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	names := map[string]string{}
+	for rows.Next() {
+		var userID, displayName string
+		if err = rows.Scan(&userID, &displayName); err != nil {
+			return nil, err
+		}
+		names[userID] = displayName
+	}
+	return names, rows.Err()
+}
+
+// SetDisplayName sets userID's own display name within their family. A user
+// with no membership row (implicit family-of-one) is unaffected — there's
+// nobody to show the name to yet.
+func (r *FamilyRepository) SetDisplayName(
+	ctx context.Context,
+	userID, displayName string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE global.family_members SET display_name = $2 WHERE user_id = $1`,
+		userID, displayName,
+	)
+	return err
+}
+
 // EnsureFamily returns the family userID currently belongs to, creating a new
 // solo family for them (and inserting their membership row) if they don't
 // have one yet. This is the "implicit family-of-one" from a lazy-creation

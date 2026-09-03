@@ -6,7 +6,7 @@ server.js`). Run all `npm` commands from this directory.
 
 ## Layout
 
-- `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `books/`, `feeds/`, `recipes/`, `mealplans/`, `shoppinglist/`, `watchparty/`, plus `auth/`, `contacts/`, `monitoring/`, `dashboard/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`). `dashboard/{games,reading}/` holds both the private (owner) and public (token-shared) Games/Reading dashboards (issue #737) — `games/`/`books/` no longer have a dashboard-shaped route of their own, only library/detail/settings pages.
+- `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `books/`, `feeds/`, `recipes/`, `mealplans/`, `shoppinglist/`, `watchparty/`, plus `auth/`, `family/`, `monitoring/`, `dashboard/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`). `dashboard/{games,reading}/` holds both the private (owner) and public (token-shared) Games/Reading dashboards (issue #737) — `games/`/`books/` no longer have a dashboard-shaped route of their own, only library/detail/settings pages.
 - `components/` — shared cross-app components at the root (`Navbar.tsx`, `HomeClient.tsx`, `SWRFallback.tsx`, `SWRProvider.tsx`, …) plus one subfolder per domain mirroring `app/`, and `components/ui/` for shadcn-style primitives.
 - `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`books/`, `recipes/`, `games/`, `watchparty/`, `oauth2as/`).
 - `hooks/` — one SWR data-fetching hook file per domain.

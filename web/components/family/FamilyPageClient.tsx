@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { mutate } from 'swr'
 import {
   useFamily,
   useInviteToFamily,
   useAcceptFamilyInvite,
   useDeclineFamilyInvite,
+  useSetFamilyDisplayName,
   useLeaveFamily
 } from '@/hooks/useFamily'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ export default function FamilyPageClient() {
   const inviteToFamily = useInviteToFamily()
   const acceptInvite = useAcceptFamilyInvite()
   const declineInvite = useDeclineFamilyInvite()
+  const setDisplayName = useSetFamilyDisplayName()
   const leaveFamily = useLeaveFamily()
 
   const [email, setEmail] = useState('')
@@ -28,8 +30,16 @@ export default function FamilyPageClient() {
   const [declining, setDeclining] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
+  const [name, setName] = useState('')
+  const [savingName, setSavingName] = useState(false)
+
   const members = data?.members ?? []
   const incomingInvite = data?.incomingInvite
+  const selfDisplayName = data?.selfDisplayName ?? ''
+
+  useEffect(() => {
+    setName(selfDisplayName)
+  }, [selfDisplayName])
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
@@ -67,6 +77,19 @@ export default function FamilyPageClient() {
       // ignore
     } finally {
       setDeclining(false)
+    }
+  }
+
+  async function handleSaveName(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingName(true)
+    try {
+      await setDisplayName(name.trim())
+      await mutate(swrKeys.family)
+    } catch {
+      // ignore
+    } finally {
+      setSavingName(false)
     }
   }
 
@@ -132,6 +155,25 @@ export default function FamilyPageClient() {
         </form>
       </div>
 
+      <div className="mb-6 rounded-2xl border border-border bg-card p-4">
+        <h2 className="mb-3 text-sm font-semibold text-subtle">Your name</h2>
+        <p className="mb-3 text-xs text-muted">
+          Shown to the rest of your family in place of your email.
+        </p>
+        <form onSubmit={handleSaveName} className="flex gap-2">
+          <Input
+            type="text"
+            placeholder="Your name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={savingName || name.trim() === selfDisplayName}>
+            {savingName ? 'Saving…' : 'Save'}
+          </Button>
+        </form>
+      </div>
+
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Members</h2>
         {members.length > 0 ? (
@@ -141,14 +183,14 @@ export default function FamilyPageClient() {
                 key={m.userId}
                 className="rounded-2xl border border-border bg-card px-3 py-2 text-sm font-medium text-fg"
               >
-                {m.email}
+                {m.displayName || m.email}
               </li>
             ))}
           </ul>
         ) : (
           <p className="mb-4 text-sm text-muted">
-            Just you for now. Invite someone from your contacts to share your recipes, meal plans
-            and shopping list with them.
+            Just you for now. Invite someone by email to share your recipes, meal plans and shopping
+            list with them.
           </p>
         )}
 

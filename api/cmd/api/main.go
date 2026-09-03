@@ -19,7 +19,6 @@ import (
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
-	"tools.xdoubleu.com/internal/contacts"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/family"
@@ -49,7 +48,6 @@ type Application struct {
 	auth                          *auth.LocalService
 	authSealer                    *crypto.Sealer
 	oauth2as                      *oauth2asWiring
-	contacts                      contacts.Service
 	family                        family.Service
 	apps                          *Apps
 	booksApp                      storageScanRunner
@@ -187,27 +185,21 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	return sealer
 }
 
-// newContactsService wires the contacts service to a notifications.Service
-// backed by the Resend mailer (issue #383) so a contact request emails its
-// recipient without blocking the request on the Resend round trip (issue
-// #923). notificationsSvc is also returned for reuse by NewApps (feeds) and
-// IssueNotifierJob, so every mail notification in the app shares the one
-// FIFO delivery queue.
-func newContactsService(
+// newNotificationsService builds the shared Resend-backed notifications
+// queue (issue #383/#923) reused by family (invite emails), NewApps (feeds)
+// and IssueNotifierJob, so every mail notification shares one FIFO delivery
+// queue and never blocks a request on the Resend round trip.
+func newNotificationsService(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
-	repo *repositories.ContactsRepository,
-	authSvc auth.Service,
-) (contacts.Service, *notifications.Service) {
+) *notifications.Service {
 	mailClient := mailer.New(
 		config.ResendAPIKey,
 		config.EmailFrom,
 		config.NotifyEmailTo,
 	)
-	notificationsSvc := notifications.New(ctx, logger, mailClient)
-	return contacts.New(repo, authSvc, notificationsSvc, config.WebURL, logger),
-		notificationsSvc
+	return notifications.New(ctx, logger, mailClient)
 }
 
 // newObservabilityClients builds the two external observability clients,
@@ -442,7 +434,6 @@ func NewApplication(
 	}
 
 	appUsersRepo := repositories.NewAppUsersRepository(db)
-	contactsRepo := repositories.NewContactsRepository(db)
 	familyRepo := repositories.NewFamilyRepository(db)
 	authSealer := newOAuthSealer(logger, config)
 	authRepo := auth.NewRepository(db)
@@ -458,9 +449,7 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
-	contactsSvc, notificationsSvc := newContactsService(
-		ctx, logger, config, contactsRepo, authSvc,
-	)
+	notificationsSvc := newNotificationsService(ctx, logger, config)
 	familySvc := family.New(
 		familyRepo,
 		authSvc,
@@ -519,7 +508,6 @@ func NewApplication(
 		authSealer: authSealer,
 		// wired below, after migrations create the auth schema
 		oauth2as:                      nil,
-		contacts:                      contactsSvc,
 		family:                        familySvc,
 		appUsersRepo:                  appUsersRepo,
 		profileSharesRepo:             repositories.NewProfileSharesRepository(db),

@@ -46,6 +46,12 @@ func (erroringFamilyService) Decline(context.Context, string) error {
 	return errFamilyServiceFake
 }
 
+func (erroringFamilyService) SetDisplayName(
+	context.Context, string, string,
+) error {
+	return errFamilyServiceFake
+}
+
 func (erroringFamilyService) Leave(context.Context, string) error {
 	return errFamilyServiceFake
 }
@@ -193,6 +199,53 @@ func TestLeaveFamily_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEqual(t, before.FamilyID, after.FamilyID,
 		"leaving should hand testUserID a fresh solo family")
+}
+
+func TestSetFamilyDisplayName_Success(t *testing.T) {
+	senderID := insertPendingFamilyInvite(t)
+
+	client := familyClient(t)
+
+	acceptReq := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{})
+	setCookieOnRequest(acceptReq, accessToken)
+	_, err := client.AcceptFamilyInvite(context.Background(), acceptReq)
+	require.NoError(t, err)
+
+	nameReq := connect.NewRequest(&familyv1.SetFamilyDisplayNameRequest{
+		DisplayName: "Sam",
+	})
+	setCookieOnRequest(nameReq, accessToken)
+	_, err = client.SetFamilyDisplayName(context.Background(), nameReq)
+	require.NoError(t, err)
+
+	// The sender, viewing their family, sees testUserID's chosen name.
+	membership, err := testApp.family.GetMembership(context.Background(), senderID)
+	require.NoError(t, err)
+	assert.Equal(t, "Sam", membership.DisplayNames[testUserID])
+
+	// testUserID's own GetFamily echoes it back as self_display_name.
+	getReq := connect.NewRequest(&familyv1.GetFamilyRequest{})
+	setCookieOnRequest(getReq, accessToken)
+	getResp, err := client.GetFamily(context.Background(), getReq)
+	require.NoError(t, err)
+	assert.Equal(t, "Sam", getResp.Msg.SelfDisplayName)
+
+	require.NoError(t, testApp.family.Leave(context.Background(), testUserID))
+}
+
+func TestSetFamilyDisplayName_InternalError(t *testing.T) {
+	withErroringFamilyService(t)
+
+	client := familyClient(t)
+	req := connect.NewRequest(&familyv1.SetFamilyDisplayNameRequest{
+		DisplayName: "x",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.SetFamilyDisplayName(context.Background(), req)
+	require.Error(t, err)
+	var connectErr *connect.Error
+	require.ErrorAs(t, err, &connectErr)
+	assert.Equal(t, connect.CodeInternal, connectErr.Code())
 }
 
 func TestGetFamily_InternalError(t *testing.T) {

@@ -44,6 +44,9 @@ const (
 	// FamilyServiceDeclineFamilyInviteProcedure is the fully-qualified name of the FamilyService's
 	// DeclineFamilyInvite RPC.
 	FamilyServiceDeclineFamilyInviteProcedure = "/family.v1.FamilyService/DeclineFamilyInvite"
+	// FamilyServiceSetFamilyDisplayNameProcedure is the fully-qualified name of the FamilyService's
+	// SetFamilyDisplayName RPC.
+	FamilyServiceSetFamilyDisplayNameProcedure = "/family.v1.FamilyService/SetFamilyDisplayName"
 	// FamilyServiceLeaveFamilyProcedure is the fully-qualified name of the FamilyService's LeaveFamily
 	// RPC.
 	FamilyServiceLeaveFamilyProcedure = "/family.v1.FamilyService/LeaveFamily"
@@ -55,6 +58,7 @@ type FamilyServiceClient interface {
 	InviteToFamily(context.Context, *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error)
 	AcceptFamilyInvite(context.Context, *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error)
 	DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error)
+	SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error)
 	LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error)
 }
 
@@ -93,6 +97,12 @@ func NewFamilyServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(familyServiceMethods.ByName("DeclineFamilyInvite")),
 			connect.WithClientOptions(opts...),
 		),
+		setFamilyDisplayName: connect.NewClient[v1.SetFamilyDisplayNameRequest, v1.SetFamilyDisplayNameResponse](
+			httpClient,
+			baseURL+FamilyServiceSetFamilyDisplayNameProcedure,
+			connect.WithSchema(familyServiceMethods.ByName("SetFamilyDisplayName")),
+			connect.WithClientOptions(opts...),
+		),
 		leaveFamily: connect.NewClient[v1.LeaveFamilyRequest, v1.LeaveFamilyResponse](
 			httpClient,
 			baseURL+FamilyServiceLeaveFamilyProcedure,
@@ -104,11 +114,12 @@ func NewFamilyServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // familyServiceClient implements FamilyServiceClient.
 type familyServiceClient struct {
-	getFamily           *connect.Client[v1.GetFamilyRequest, v1.GetFamilyResponse]
-	inviteToFamily      *connect.Client[v1.InviteToFamilyRequest, v1.InviteToFamilyResponse]
-	acceptFamilyInvite  *connect.Client[v1.AcceptFamilyInviteRequest, v1.AcceptFamilyInviteResponse]
-	declineFamilyInvite *connect.Client[v1.DeclineFamilyInviteRequest, v1.DeclineFamilyInviteResponse]
-	leaveFamily         *connect.Client[v1.LeaveFamilyRequest, v1.LeaveFamilyResponse]
+	getFamily            *connect.Client[v1.GetFamilyRequest, v1.GetFamilyResponse]
+	inviteToFamily       *connect.Client[v1.InviteToFamilyRequest, v1.InviteToFamilyResponse]
+	acceptFamilyInvite   *connect.Client[v1.AcceptFamilyInviteRequest, v1.AcceptFamilyInviteResponse]
+	declineFamilyInvite  *connect.Client[v1.DeclineFamilyInviteRequest, v1.DeclineFamilyInviteResponse]
+	setFamilyDisplayName *connect.Client[v1.SetFamilyDisplayNameRequest, v1.SetFamilyDisplayNameResponse]
+	leaveFamily          *connect.Client[v1.LeaveFamilyRequest, v1.LeaveFamilyResponse]
 }
 
 // GetFamily calls family.v1.FamilyService.GetFamily.
@@ -131,6 +142,11 @@ func (c *familyServiceClient) DeclineFamilyInvite(ctx context.Context, req *conn
 	return c.declineFamilyInvite.CallUnary(ctx, req)
 }
 
+// SetFamilyDisplayName calls family.v1.FamilyService.SetFamilyDisplayName.
+func (c *familyServiceClient) SetFamilyDisplayName(ctx context.Context, req *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error) {
+	return c.setFamilyDisplayName.CallUnary(ctx, req)
+}
+
 // LeaveFamily calls family.v1.FamilyService.LeaveFamily.
 func (c *familyServiceClient) LeaveFamily(ctx context.Context, req *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error) {
 	return c.leaveFamily.CallUnary(ctx, req)
@@ -142,6 +158,7 @@ type FamilyServiceHandler interface {
 	InviteToFamily(context.Context, *connect.Request[v1.InviteToFamilyRequest]) (*connect.Response[v1.InviteToFamilyResponse], error)
 	AcceptFamilyInvite(context.Context, *connect.Request[v1.AcceptFamilyInviteRequest]) (*connect.Response[v1.AcceptFamilyInviteResponse], error)
 	DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error)
+	SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error)
 	LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error)
 }
 
@@ -176,6 +193,12 @@ func NewFamilyServiceHandler(svc FamilyServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(familyServiceMethods.ByName("DeclineFamilyInvite")),
 		connect.WithHandlerOptions(opts...),
 	)
+	familyServiceSetFamilyDisplayNameHandler := connect.NewUnaryHandler(
+		FamilyServiceSetFamilyDisplayNameProcedure,
+		svc.SetFamilyDisplayName,
+		connect.WithSchema(familyServiceMethods.ByName("SetFamilyDisplayName")),
+		connect.WithHandlerOptions(opts...),
+	)
 	familyServiceLeaveFamilyHandler := connect.NewUnaryHandler(
 		FamilyServiceLeaveFamilyProcedure,
 		svc.LeaveFamily,
@@ -192,6 +215,8 @@ func NewFamilyServiceHandler(svc FamilyServiceHandler, opts ...connect.HandlerOp
 			familyServiceAcceptFamilyInviteHandler.ServeHTTP(w, r)
 		case FamilyServiceDeclineFamilyInviteProcedure:
 			familyServiceDeclineFamilyInviteHandler.ServeHTTP(w, r)
+		case FamilyServiceSetFamilyDisplayNameProcedure:
+			familyServiceSetFamilyDisplayNameHandler.ServeHTTP(w, r)
 		case FamilyServiceLeaveFamilyProcedure:
 			familyServiceLeaveFamilyHandler.ServeHTTP(w, r)
 		default:
@@ -217,6 +242,10 @@ func (UnimplementedFamilyServiceHandler) AcceptFamilyInvite(context.Context, *co
 
 func (UnimplementedFamilyServiceHandler) DeclineFamilyInvite(context.Context, *connect.Request[v1.DeclineFamilyInviteRequest]) (*connect.Response[v1.DeclineFamilyInviteResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.DeclineFamilyInvite is not implemented"))
+}
+
+func (UnimplementedFamilyServiceHandler) SetFamilyDisplayName(context.Context, *connect.Request[v1.SetFamilyDisplayNameRequest]) (*connect.Response[v1.SetFamilyDisplayNameResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("family.v1.FamilyService.SetFamilyDisplayName is not implemented"))
 }
 
 func (UnimplementedFamilyServiceHandler) LeaveFamily(context.Context, *connect.Request[v1.LeaveFamilyRequest]) (*connect.Response[v1.LeaveFamilyResponse], error) {

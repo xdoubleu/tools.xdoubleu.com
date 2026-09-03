@@ -67,13 +67,6 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 	if _, err = postgresDB.Exec(
 		ctx,
-		"DELETE FROM global.contacts WHERE owner_user_id = $1 OR contact_user_id = $1",
-		testUserID,
-	); err != nil {
-		panic(err)
-	}
-	if _, err = postgresDB.Exec(
-		ctx,
 		"DELETE FROM global.family_invites WHERE to_user_id = $1",
 		testUserID,
 	); err != nil {
