@@ -29,116 +29,28 @@ browser never reads the Kobo's conf file itself, so `conf.go` is the only
 place that parses/serializes `Kobo eReader.conf` (mirrors
 `web/lib/books/koboConf.ts`, which only keeps simple string checks).
 
-## HTTP Server (`internal/kobogateway/server.go`)
+## Runtime
 
-Loopback-only HTTPS on `127.0.0.1:41132` (`DefaultPort`): `GET /status`,
-`POST /configure`, `POST /revert`, `POST /update`. All requests pass through
-`Server.secure()`:
+Loopback-only **HTTPS** on `127.0.0.1:41132` (`DefaultPort`): `GET /status`,
+`POST /configure`, `POST /revert`, `POST /update`, all through `Server.secure()`
+(host allowlist, origin allowlist, CORS + Chrome Private Network Access). HTTPS
+rather than HTTP because Safari blocks a secure page from fetching a plain-HTTP
+loopback URL; the cert is self-signed and trusted once via `EnsureTrusted`.
 
-- **Host allowlist** — only `127.0.0.1:<port>` or `localhost:<port>` (blocks DNS rebinding).
-- **Origin allowlist** — `https://tools.xdoubleu.com` and `http://localhost:3000` (plus any `--allow-origin` flags); the matched allowlist string is echoed back, never the raw header, to avoid request-data forgery on the update download URL.
-- **CORS + Chrome Private Network Access** — sets `Access-Control-Allow-Origin`/`Vary: Origin`, and on an `OPTIONS` preflight with `Access-Control-Request-Private-Network: true` also sets `Access-Control-Allow-Private-Network: true` — required because the calling page is public HTTPS reaching a private/loopback target.
-- POSTs must be `Content-Type: application/json`; `/update` re-validates Origin independently before calling `SelfUpdate`.
+The menu bar (`menubar_darwin.go`) runs as an accessory app on the main OS
+thread; `internal/kobogateway/watcher.go` polls `FindKobos` and emits
+connect/disconnect events. Login-item management is a plain
+`~/Library/LaunchAgents` plist whose `KeepAlive` relaunches the app on any
+abnormal exit. `Updater.SelfUpdate` replaces the running executable, re-signs the
+bundle, and restarts via `open -n <bundle>`.
 
-HTTPS (not HTTP) is required because Safari blocks a secure page (the books
-page is always `https://`) from fetching a plain-HTTP loopback URL — Chrome
-exempts loopback from that check, Safari doesn't.
+→ [`docs/spec-kobo-gateway-runtime.md`](../docs/spec-kobo-gateway-runtime.md),
+[`docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md`](../docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md)
 
-## TLS (`internal/kobogateway/tls.go`)
+Two things that break silently if changed:
 
-`EnsureCert` generates (or loads a persisted) self-signed ECDSA P-256 cert
-scoped to `localhost`/`127.0.0.1`, valid 10 years — regenerate by deleting
-`cert.pem`/`key.pem`. `EnsureTrusted` runs `security add-trusted-cert` once
-(marker file) to add it to the login keychain, prompting the user; if Safari
-still rejects it, the fallback is the System keychain (needs sudo). Both
-live under `~/Library/Application Support/kobo-gateway`.
-
-## Menu Bar (`menubar_darwin.go`)
-
-Runs `macos.RunApp` as an accessory app (no Dock icon) on the main OS thread.
-Builds an `NSStatusItem` (icon rendered at 18pt — an unsized image falls back
-to the PNG's native 36px and effectively disappears), a header, an "Open
-tools.xdoubleu.com" link, a live Kobo connected/disconnected line, a "Start
-at Login" toggle, and Quit. The header and tooltip (`KoboTooltip`,
-`internal/kobogateway/watcher.go`) show the release truncated to 7
-characters via `kobogateway.ShortRelease` — matching
-`web/components/Footer.tsx`'s own truncation — the full SHA is still what
-the web update-check (`gatewayNeedsUpdate`) compares exactly.
-
-The status item, its button, and its live line are package-level vars, not
-locals — `objc.Retain` installs a Go finalizer that releases the object once
-its Go wrapper is GC'd, so a value that only lives in a setup closure would
-have its icon disappear a few GC cycles after launch. Creation is factored
-into `buildStatusItem`, called once at startup and again from an
-`NSWorkspaceDidWakeNotification` observer, since macOS can silently drop a
-status item's on-screen presence across sleep/wake even though the retained
-object stays alive.
-
-`internal/kobogateway/watcher.go` polls `FindKobos` and diffs snapshots to
-emit connect/disconnect `KoboEvent`s, consumed on the main dispatch queue to
-update the tooltip/menu line and fire a best-effort `UNUserNotificationCenter`
-toast via raw `objc.Call` (darwinkit has no generated binding for
-`UserNotifications.framework`). Both notification paths are gated by
-`runningInAppBundle` (`UNUserNotificationCenter` throws with no bundle
-proxy, e.g. a raw dev binary run outside `KoboGateway.app`).
-
-## Login Item (`internal/kobogateway/loginitem.go`)
-
-Manages a plain `~/Library/LaunchAgents` plist (not `SMAppService` — that
-needs macOS 13, this app's minimum is 12.0). The plist sets
-`KeepAlive.SuccessfulExit: false`, so launchd relaunches the gateway on any
-abnormal exit — a panic, a listener error, or darwinkit's AppKit bridge
-`SIGABRT` — but not on a clean Quit (exit 0). `EnsureInitialLoginItem`
-auto-registers it once on first-ever launch (marker file); after that only
-the menu-bar toggle changes it. `SyncLoginItem` runs on every launch to
-rewrite an already-enabled plist to the current template (picking up changes
-like `KeepAlive`) without touching `launchctl` — a bootout/bootstrap cycle
-would kill the very process calling it; the refreshed policy takes effect on
-the next login/reboot.
-
-## Crash Recovery (`cmd/kobo-gateway/recover.go`)
-
-Defense-in-depth on top of `KeepAlive`: `guard`/`recoverGo` recover and
-report a panic in a single event/block (a dispatched menu update, a
-notification call) to Sentry and swallow it, so one bad event doesn't take
-the whole app down. `reportAndRepanic` (deferred once in `main`) instead
-reports then **re-panics** — swallowing a main-thread panic would leave the
-app running in a broken, un-relaunched state, whereas re-panicking exits
-non-zero and lets `KeepAlive` relaunch a fresh process. `reportFatal` covers
-a plain error `run()` returns (not a panic, e.g. a bind failure) — that
-otherwise only goes to stderr, invisible on a console-less menu-bar app.
-None of these catch darwinkit's `SIGABRT`, a native abort that bypasses Go's
-panic machinery entirely — that stays covered by `KeepAlive` alone.
-
-Crash reporting goes to Sentry (`initSentry` in `main.go`), gated on a
-build-time `-ldflags -X main.SentryDSN=...` var — empty in dev
-builds/`go test`, so nothing is ever sent off a dev machine.
-`codecov.yml` excludes `menubar_darwin.go` from coverage since it's pure
-AppKit/cgo with no window-server session under `go test`.
-
-## Self-Update
-
-`POST /update` and the `update` CLI subcommand both call `Updater.SelfUpdate`:
-downloads `kobo-gateway-darwin-arm64` from the requesting/configured origin
-(size-capped, validated as a Mach-O binary), atomically replaces the running
-executable, then re-signs the `.app` bundle ad-hoc (overwriting the binary
-invalidates the seal `package.sh` applied at build time) and signals a
-restart. `menubar_darwin.go`'s restart path relaunches via `open -n <bundle>`
-inside a real `.app` — not a bare `syscall.Exec`, which would keep the same
-PID and skip LaunchServices, leaving `NSStatusItem`/`UNUserNotificationCenter`
-unregistered after the swap — falling back to `syscall.Exec` only for a
-bundle-less dev binary.
-
-The web UI (`gatewayNeedsUpdate` in `web/lib/books/gatewayClient.ts`)
-decides *when* to trigger this by comparing two independent things: the
-gateway's `GatewayVersion` against a required floor (bump only on a real
-protocol break), and its `release` build stamp against
-`getKoboGatewayRelease()` — the release of the kobo-gateway artifact
-actually bundled in the running deploy (not the web app's own release,
-since kobo-gateway's build can be cache-skipped and lag behind — see
-`## Distribution` above), so a mismatch means a newer binary is genuinely
-available even when the protocol hasn't changed. `'dev'` on either side
-skips the check.
+- **The status item, its button, and its live line must stay package-level vars**, not locals — `objc.Retain` installs a Go finalizer, so a value living only in a setup closure loses its icon a few GC cycles after launch.
+- **Never echo the raw `Origin` header back** — echo the matched allowlist entry, to avoid request-data forgery on the update download URL.
 
 ## Building
 
@@ -152,45 +64,22 @@ make lint    # golangci-lint, shared root .golangci.yml config
 make lint/fix
 ```
 
-The Makefile pins `GOTOOLCHAIN=go1.24.13` even though `go.mod` only states
-that as a minimum: darwinkit's AppKit bridge `SIGABRT`s on launch under Go
-1.25+ ([progrium/darwinkit#286](https://github.com/progrium/darwinkit/issues/286),
-open/unfixed). A bare `go` directive can't downgrade a newer ambient Go on
-`PATH`, so every `make` target forces the exact toolchain regardless of
-what's installed locally or in CI. Bump both together once the upstream
-issue is fixed — never bump past 1.24.x alone, or the crash silently
-reappears for anyone with a newer Go installed.
+The Makefile pins `GOTOOLCHAIN=go1.24.13` on every target, even though `go.mod`
+only states it as a minimum — darwinkit's AppKit bridge `SIGABRT`s on launch
+under Go 1.25+. **Never bump past 1.24.x alone, or the crash silently reappears**
+for anyone with a newer Go installed; bump the pin and the `go.mod` minimum
+together once upstream is fixed → [`docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md`](../docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md).
 
 `make dist` needs `sips`/`iconutil`/`hdiutil` (standard macOS tools) to build
 `AppIcon.icns` and pack the `.dmg`.
 
 ## Distribution
 
-`kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (the self-update target)
-both ship inside the single merged **app** Docker image (issue #558). Since
-this module can't build on the Linux runner that builds the app image,
-`.github/workflows/build-kobo-gateway.yml` builds and packages it on a
-`macos-14` runner (`make dist RELEASE=${{ github.sha }} SENTRY_DSN=...`) and
-uploads the result as an artifact; `docker.yml`'s app-image job downloads it
-into `web/public/downloads/` before `docker build` runs — the root
-`Dockerfile` just `COPY`s the two files in directly, it never builds
-kobo-gateway itself. There is a separate, unrelated `gateway/` module at the
-repo root (routing + process supervision for the merged api/web container,
-see its own `CLAUDE.md`) — don't confuse the two. See root `CLAUDE.md`'s CI
-section for the full wiring.
-
-This is the **only** one of the four image components that still bakes its
-release into the compiled artifact — it's a binary that leaves the
-container and runs on a user's own machine, so there's no runtime
-environment to read a version from (unlike `api`/`gateway`/`web`, which now
-read `RELEASE` from the container env, see root `CLAUDE.md`). Its build is
-still cacheable: `build-kobo-gateway.yml` skips `make dist` entirely when
-`hashFiles('kobo-gateway/**')` is unchanged, reusing whatever was built the
-last time this module's source actually changed — including the
-`dist/kobo-gateway/RELEASE` file it writes alongside the `.dmg`/binary,
-which `docker.yml` reads to set the image's separate `KOBO_GATEWAY_RELEASE`
-env var (as opposed to `RELEASE`, which always reflects the current
-deploy). This means the release baked into a given deploy's bundled
-kobo-gateway artifact can be older than the rest of the image — expected,
-and exactly what `KOBO_GATEWAY_RELEASE` exists to track correctly (see
-`gatewayNeedsUpdate` in `web/lib/books/gatewayClient.ts`).
+`kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (the self-update target) are
+built on a `macos-14` runner by `.github/workflows/build-kobo-gateway.yml` and
+staged into the **`web`** image's `public/downloads/` by `build-web.yml`; nothing
+builds kobo-gateway inside a container. Its release is compile-stamped and its
+build is cacheable, so the bundled artifact's release can legitimately be older
+than the rest of the deploy — which is what `KOBO_GATEWAY_RELEASE` exists to
+track → [`docs/adr-0004-runtime-release-env-vs-compile-stamp.md`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md),
+[`docs/adr-0002-kobo-gateway-ci-cache-split.md`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).

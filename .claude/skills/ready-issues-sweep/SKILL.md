@@ -57,7 +57,11 @@ taking N minutes of wall-clock finish in ~N minutes total instead of 10×N.
    - Not invent scope beyond the issue — if the issue is ambiguous about
      approach, make the smallest reasonable judgment call and note it in the
      PR description rather than stalling, since these subagents run
-     unattended.
+     unattended. **The one exception is an issue with an empty body** (a
+     title and nothing else): that is not ambiguity to resolve, it's a
+     missing spec. Report back that the issue needs scoping by the user and
+     open no PR — a title permits too many readings for a guess to be worth
+     more than the review time it costs.
    - Report back: issue number, root cause/approach, PR URL, CI status.
 
 4. **Do not poll the subagents.** They run in the background and this
