@@ -34,6 +34,23 @@ If a finalized plan exists (from plan mode or otherwise), record it in the
 issue's `## Plan` section via `refine-issue` before the first edit, and move
 Status to "In progress" at that point.
 
+## When a delegated skill isn't installed (e.g. Claude Code on the web)
+
+`task-worktree` and `refine-issue` come from marketplace plugins that a
+local CLI syncs automatically but a Claude Code **on the web** session does
+not have, and that environment also has no `gh` (GitHub access is via the
+`github` MCP tools). If either skill fails to load, don't silently improvise
+the mechanics — say so explicitly, then fall back:
+
+- **No `task-worktree`**: create the branch yourself off up-to-date
+  `origin/main` (`EnterWorktree`, or `git worktree add`), never editing the
+  main checkout or reusing an existing branch.
+- **No `refine-issue`**: still create/find a tracking issue (via the
+  `github` MCP tools) and record the plan in its `## Plan` section before
+  the first edit. You can't set the project board's Priority/Status fields
+  without `gh` — note that in your reply so it can be done from a local
+  session later.
+
 ## Notes
 
 - `refine-issue` owns the repo/project-board config, label lists, and

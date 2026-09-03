@@ -117,6 +117,20 @@ fi
 out2=$(PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
 [ -z "$out2" ] && pass "second invocation for same SHA is suppressed" || fail "second invocation for same SHA is suppressed" "$out2"
 
+# case: no gh on PATH -> "can't tell" if a PR exists, so stay silent (issue #1400)
+repo=$(setup_repo "no-gh-case")
+echo y > "$repo/g.txt"
+git -C "$repo" add g.txt
+git -C "$repo" commit -q -m "second commit"
+echo dirty > "$repo/h.txt"
+NOGH_DIR="$WORK/nogh-bin"
+mkdir -p "$NOGH_DIR"
+for tool in bash git jq mktemp cat mkdir tr printf; do
+  p=$(command -v "$tool") && ln -sf "$p" "$NOGH_DIR/$tool"
+done
+out=$(PATH="$NOGH_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+[ -z "$out" ] && pass "no gh on PATH -> silent (can't tell)" || fail "no gh on PATH -> silent (can't tell)" "$out"
+
 # --- ExitPlanMode hook ---------------------------------------------------
 out=$(bash -c "$EXITPLAN_CMD")
 if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("start-task")' > /dev/null 2>&1; then
