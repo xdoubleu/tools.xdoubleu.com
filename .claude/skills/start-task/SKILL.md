@@ -30,6 +30,13 @@ this repo lives in `.claude/github-triage.config.json`), not a bare `gh
 issue create`, so Priority/Status/labels get set — do this even for work
 that wasn't explicitly requested as an "issue", e.g. tooling/doc changes.
 
+**An issue with an empty body is never self-explanatory.** If the tracking issue
+exists but has no body — only a title — stop and ask the user what they actually
+want before planning, exploring further, or editing anything. A title states a
+topic, not a scope, and the readings it permits usually differ enough to produce
+materially different work. Record their answer in the issue body via
+`refine-issue` so the next session doesn't have to ask again.
+
 If a finalized plan exists (from plan mode or otherwise), record it in the
 issue's `## Plan` section via `refine-issue` before the first edit, and move
 Status to "In progress" at that point.
