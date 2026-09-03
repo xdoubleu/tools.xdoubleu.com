@@ -458,9 +458,12 @@ can populate its secrets). It:
 2. `tofu init`s against the R2 backend.
 3. **Snapshots the VPS** via the Hetzner API
    (`POST /servers/{id}/actions/create_image`) and polls until the snapshot
-   is actually ready, labeled `purpose=ci-pre-apply` so later steps (and a
-   human browsing the Hetzner console) can tell CI's snapshots apart from
-   any you take by hand.
+   is actually ready (up to 30 min — a full VPS snapshot regularly takes
+   well over 5), labeled `purpose=ci-pre-apply` so later steps (and a human
+   browsing the Hetzner console) can tell CI's snapshots apart from any you
+   take by hand. The step publishes the image id only once that poll
+   succeeds, so a poll timeout can't leave step 5 rebuilding from a
+   still-building image.
 4. `tofu apply -auto-approve`.
 5. **On failure**, calls the Hetzner API to rebuild the server from that
    snapshot (`POST /servers/{id}/actions/rebuild`) automatically, then lets

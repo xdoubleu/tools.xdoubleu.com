@@ -583,6 +583,9 @@ jobs:
       cancel-in-progress: false
     name: Apply Infra via OpenTofu
     runs-on: ubuntu-latest
+    # Bounds a stuck snapshot poll (below) so it can't hold the
+    # hetzner-vps-deploy concurrency group for a full-length runner.
+    timeout-minutes: 45
     environment: production
     defaults:
       run:
@@ -630,8 +633,12 @@ jobs:
 
       # Async: create_image returns immediately with the action still
       # running, and a rebuild later needs the image to actually be ready —
-      # so this polls the action instead of assuming it's done. Labeled so
-      # the prune step below only ever touches snapshots this job created.
+      # so this polls the action instead of assuming it's done, and only
+      # publishes image_id once the poll succeeds so "Restore snapshot on
+      # failure" can never fire against a still-building image. A full VPS
+      # snapshot regularly takes well over 5 minutes, hence the 30-minute
+      # deadline (bounded by the job's own timeout-minutes above). Labeled
+      # so the prune step below only ever touches snapshots this job made.
       - name: Snapshot the VPS before applying
         id: snapshot
         env:
@@ -643,9 +650,8 @@ jobs:
             -d '{"type":"snapshot","description":"ci-pre-apply","labels":{"purpose":"ci-pre-apply"}}')
           image_id=$(echo "$response" | jq -r '.image.id')
           action_id=$(echo "$response" | jq -r '.action.id')
-          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
 
-          deadline=$(( $(date +%s) + 300 ))
+          deadline=$(( $(date +%s) + 1800 ))
           while true; do
             status=$(curl -sf "https://api.hetzner.cloud/v1/actions/$action_id" \
               -H "Authorization: Bearer $HCLOUD_TOKEN" | jq -r '.action.status')
@@ -656,6 +662,10 @@ jobs:
             fi
             sleep 10
           done
+
+          # Only now that the image is ready — publishing earlier would let
+          # "Restore snapshot on failure" rebuild from a half-built image.
+          echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
 
       - name: tofu apply
         env:
