@@ -54,3 +54,12 @@ jobs:
       - name: Check migration versions
         run: make lint/migrations
         working-directory: './api'
+
+  lint-kamal-secrets:
+    name: API Kamal Secrets Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check Kamal deploy-secret consistency
+        run: make lint/kamal-secrets
+        working-directory: './api'

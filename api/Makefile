@@ -48,11 +48,15 @@ lint/proto: tools/proto
 lint/migrations:
 	./scripts/check_migration_versions.sh
 
+lint/kamal-secrets:
+	./scripts/check_kamal_secrets.sh
+
 lint: tools/lint
 	golangci-lint run
 	make lint/sql
 	make lint/proto
 	make lint/migrations
+	make lint/kamal-secrets
 
 lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...

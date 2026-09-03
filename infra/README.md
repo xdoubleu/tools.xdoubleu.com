@@ -426,6 +426,18 @@ OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
                               authenticate a Connect call with)
 ```
 
+Every name a deploy config's `env.secret:` list references must also appear
+in `.kamal/secrets` **and** in the matching `Deploy <svc> via Kamal` step's
+`env:` block in `main.yml` — otherwise `kamal deploy` aborts on `main` with
+`Secret 'X' not found in .kamal/secrets` (post-merge, untested; this is how
+`BMC_PARTNER_KEY` shipped broken in #1390, fixed in #1404). `api`'s
+`make lint/kamal-secrets` (`api/scripts/check_kamal_secrets.sh`, run by the
+`API Kamal Secrets Lint` CI job on any `config/deploy.*.yml` or workflow
+change) fails the PR when those three lists disagree — issue #1405. A brand
+new secret still needs adding to all three by hand, plus creating the
+Environment secret above; the check only catches a name that was missed in
+one of them.
+
 **Verify**: push a trivial change to `main`, confirm `deploy-kamal` runs and
 succeeds in the Actions tab, then `curl https://tools.xdoubleu.com/health`.
 

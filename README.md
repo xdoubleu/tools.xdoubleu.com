@@ -156,7 +156,11 @@ VPS with Kamal. [`config/deploy.api.yml`](config/deploy.api.yml) and
 [`config/deploy.web.yml`](config/deploy.web.yml) are the deploy configs
 (committed, read as-is — Kamal evaluates each as ERB), and every app secret is
 a **repo Secret**; see [`infra/README.md`](infra/README.md) for the full list,
-the one-time host bootstrap, and how to deploy or roll back by hand.
+the one-time host bootstrap, and how to deploy or roll back by hand. Each
+secret name is declared in three places that must stay in sync — a deploy
+config's `env.secret:`, `.kamal/secrets`, and `main.yml`'s `deploy-kamal`
+`env:` block — and `api`'s `make lint/kamal-secrets` (CI job `API Kamal
+Secrets Lint`) fails a PR that leaves them inconsistent (issue #1405).
 OpenTofu under `infra/` provisions the host only — it does not deploy the app.
 DigitalOcean App Platform, which hosted this before #1029/#1034, was
 decommissioned in #1113.

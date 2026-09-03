@@ -16,8 +16,9 @@ make test/race                    # with race detector
 make test/cov/report               # coverage report (HTML, excludes mocks/gen)
 make test/cov/diff                  # coverage on changed lines only, vs origin/main
 make test/cov/per-pkg              # per-package coverage, merged
-make lint                          # golangci-lint + sqlfluff + buf lint + lint/migrations
+make lint                          # golangci-lint + sqlfluff + buf lint + lint/migrations + lint/kamal-secrets
 make lint/migrations               # fail on two migrations sharing a version number (goose skips the duplicate silently), or a new migration numbered below the existing max in its directory
+make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.yml's env.secret: is missing from .kamal/secrets or from main.yml's deploy-kamal env: block (issue #1405 — caught only at deploy time on main otherwise)
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
@@ -252,6 +253,8 @@ two public services above.
 | Testing | `stretchr/testify` |
 
 ## Linting
+
+`make lint` also runs two repo-consistency shell checks that aren't golangci-lint: `lint/migrations` (see Commands) and `lint/kamal-secrets` (`scripts/check_kamal_secrets.sh` — keeps the Kamal deploy-secret list in sync across `config/deploy.{api,web}.yml`, `.kamal/secrets`, and `main.yml`'s `deploy-kamal` env blocks; issue #1405).
 
 `golangci-lint` (40+ linters), configured by the repo-root `.golangci.yml` — not `api/.golangci.yml`, which moved there so `gateway/` and `kobo-gateway/` share the exact same config (golangci-lint's config search walks up from the working directory to find it). Key constraints: max line length 88 (`golines`), import order standard → default → `prefix(tools.xdoubleu.com)` (`gci`), max function length 100 lines/50 statements (`funlen`), max cyclomatic complexity 30 (`cyclop`). `nolintlint` requires an explanation on every `//nolint` except `funlen`/`gocognit`/`lll`. Always run `make lint/fix` as the final step; fix anything the auto-fixer can't resolve manually. If a `.proto` file changed this session, order relative to `lint/fix` doesn't matter — run `make proto/check` (or `make proto/generate` in `api/` and `npm run generate` in `web/`) whenever it's convenient and commit the result; see root `CLAUDE.md`'s Commands section for why there's no ordering dependency. `GOLANGCI_LINT_CACHE` is set in the Makefile to a `.golangci-cache/` directory local to the checkout, so concurrent worktrees (which otherwise share the same Go module path and, by default, a single global cache) don't bleed each other's file paths into lint output.
 
