@@ -60,6 +60,7 @@ func (r *FeedRepository) GetFeedInfo(
 var stagedTables = []string{
 	"trains.stop_times",
 	"trains.calendar_dates",
+	"trains.transfers",
 	"trains.trips",
 	"trains.routes",
 	"trains.stops",
@@ -96,6 +97,9 @@ func (r *FeedRepository) ImportFeed(
 		return err
 	}
 	if err = copyCalendarDates(ctx, tx, feed.CalendarDates); err != nil {
+		return err
+	}
+	if err = copyTransfers(ctx, tx, feed.Transfers); err != nil {
 		return err
 	}
 	if err = upsertFeedInfo(ctx, tx, feed.Info); err != nil {
@@ -203,6 +207,22 @@ func copyCalendarDates(
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			cd := rows[i]
 			return []any{cd.ServiceID, cd.Date, cd.ExceptionType}, nil
+		}),
+	)
+	return err
+}
+
+func copyTransfers(ctx context.Context, tx pgx.Tx, rows []models.Transfer) error {
+	_, err := tx.CopyFrom(ctx,
+		pgx.Identifier{schemaName, "transfers"},
+		[]string{
+			"from_stop_id", "to_stop_id", "transfer_type", "min_transfer_time",
+		},
+		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
+			t := rows[i]
+			return []any{
+				t.FromStopID, t.ToStopID, t.TransferType, t.MinTransferTime,
+			}, nil
 		}),
 	)
 	return err

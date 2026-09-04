@@ -13,6 +13,8 @@ import (
 //   - stop_times.txt carries an absurd 87:39:00 value that must be rejected
 //   - one stop_times row is a non-boarding technical pass-through
 //   - columns are alphabetically ordered, as in the real feed
+//   - transfers.txt (issue #1391) carries one valid row plus one with a
+//     blank from_stop_id, exercising parseTransfers' skip branch
 func SampleFeedFiles() map[string]string {
 	return map[string]string{
 		"feed_info.txt": "feed_end_date,feed_lang,feed_publisher_name," +
@@ -44,6 +46,9 @@ func SampleFeedFiles() map[string]string {
 			"08:20:00,08:20:00,1,1,gs:nmbssncb:8821006,2,trip_522_a\n" +
 			"08:40:00,08:40:00,0,0,gs:nmbssncb:8892007_1,3,trip_522_a\n" +
 			"87:39:00,87:39:00,0,0,gs:nmbssncb:8892007_1,1,trip_522_b\n",
+		"transfers.txt": "from_stop_id,min_transfer_time,to_stop_id,transfer_type\n" +
+			"gs:nmbssncb:8814001_3,120,gs:nmbssncb:8892007_1,2\n" +
+			",120,gs:nmbssncb:8892007_1,2\n",
 	}
 }
 

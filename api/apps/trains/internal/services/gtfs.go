@@ -73,6 +73,9 @@ func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	if feed.CalendarDates, err = parseCalendarDates(files); err != nil {
 		return nil, err
 	}
+	if feed.Transfers, err = parseTransfers(files); err != nil {
+		return nil, err
+	}
 
 	return feed, nil
 }
@@ -298,6 +301,41 @@ func parseCalendarDates(
 			ServiceID:     svc,
 			Date:          date,
 			ExceptionType: rr.getInt(rec, "exception_type"),
+		})
+	}
+	return out, nil
+}
+
+// parseTransfers parses transfers.txt. Unlike every other GTFS file this
+// one is optional in the feed — a missing file yields no rows rather than
+// an error, and the router falls back to a default minimum transfer time
+// at same-station changes (issue #1391).
+func parseTransfers(files map[string]*zip.File) ([]models.Transfer, error) {
+	rr, openErr := openRows(files, "transfers.txt")
+	if openErr != nil {
+		return nil, nil
+	}
+	defer rr.close()
+
+	var out []models.Transfer
+	for {
+		rec, err := rr.next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		from := rr.get(rec, "from_stop_id")
+		to := rr.get(rec, "to_stop_id")
+		if from == "" || to == "" {
+			continue
+		}
+		out = append(out, models.Transfer{
+			FromStopID:      from,
+			ToStopID:        to,
+			TransferType:    rr.getInt(rec, "transfer_type"),
+			MinTransferTime: parseIntPtr(rr.get(rec, "min_transfer_time")),
 		})
 	}
 	return out, nil

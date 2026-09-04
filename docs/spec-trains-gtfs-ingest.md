@@ -6,9 +6,10 @@
 ## Shape
 
 `trains` is an SNCB/NMBS timetable app (schema `trains`, proto `trains.v1`).
-As of #1390 **only `jobs.StaticImportJob` exists** — there is no `Routes()` yet
-and no user-visible half. CSA journey planning and the realtime delay overlay are
-later slices of #1388.
+#1390 added `jobs.StaticImportJob`; #1391 added `trains.v1.TrainService` and
+its CSA journey planner (`docs/spec-trains-journey-search.md`) — still no
+user-visible half of its own (that's #1388's slice 4). The realtime delay
+overlay is a later slice of #1388.
 
 The job is a daily download + validate + import of the Belgian Mobility Company
 GTFS static feed via `pkg/bmc` (gateway host + `bmc-partner-key` from
@@ -46,4 +47,5 @@ Each of these came from the #1389 spike and each has a test:
 
 ## Known gaps
 
-No `Routes()`, no journey planning, no realtime overlay yet.
+No realtime overlay yet — see `docs/spec-trains-journey-search.md` for the
+journey planner added in #1391.

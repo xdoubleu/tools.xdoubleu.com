@@ -1,14 +1,14 @@
 // Package trains ingests the SNCB/NMBS timetable and (in later slices, see
-// issue #1388) computes journeys and overlays realtime delays. This slice
-// (#1390) is the app shell plus the daily GTFS static feed import; it has
-// no user-visible half of its own.
+// issue #1388) overlays realtime delays. #1390 added the daily GTFS static
+// import; this slice (#1391) adds trains.v1.TrainService.SearchJourneys, a
+// Connection Scan Algorithm journey planner over an in-memory index built
+// from a rolling window of the ingested timetable.
 package trains
 
 import (
 	"context"
 	"embed"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,10 +33,11 @@ type Trains struct {
 	db postgres.DB
 	// Services and Repositories are exported so integration tests can drive
 	// the real import path (same convention as games/books).
-	Services        *services.Services
-	Repositories    *repositories.Repositories
-	jobQueue        *jobqueue.JobQueue
-	staticImportJob *jobs.StaticImportJob
+	Services         *services.Services
+	Repositories     *repositories.Repositories
+	jobQueue         *jobqueue.JobQueue
+	staticImportJob  *jobs.StaticImportJob
+	routerRefreshJob *jobs.RouterRefreshJob
 }
 
 func New(
@@ -79,21 +80,24 @@ func NewInner(
 	a.Repositories = repositories.New(a.db)
 	a.Services = services.New(logger, a.Repositories, bmcClient)
 	a.staticImportJob = jobs.NewStaticImportJob(a.Services.StaticImport)
+	a.routerRefreshJob = jobs.NewRouterRefreshJob(a.Services.Journey.RefreshOnly)
 
 	return a
 }
 
 func (a *Trains) Start() error {
 	noop := func(_ string, _ bool, _ *time.Time) {}
-	return a.jobQueue.AddJob(
+	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.staticImportJob, a.db),
+		noop,
+	); err != nil {
+		return err
+	}
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.routerRefreshJob, a.db),
 		noop,
 	)
 }
-
-// Routes registers no HTTP routes yet — this slice has no user-visible half
-// (issue #1390). Slice 4 (#1392) adds the ConnectRPC service.
-func (a *Trains) Routes(_ string, _ *http.ServeMux) {}
 
 func (a *Trains) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())

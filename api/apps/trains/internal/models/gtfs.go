@@ -71,6 +71,18 @@ type FeedInfo struct {
 	LastModified string
 }
 
+// Transfer is one row of transfers.txt. TransferType follows the GTFS
+// enum (0/1 = recommended/timed, min_transfer_time only meaningful for
+// type 2, 3 = not possible). Present only when the feed publishes it — the
+// router falls back to a default minimum transfer time otherwise (issue
+// #1391).
+type Transfer struct {
+	FromStopID      string
+	ToStopID        string
+	TransferType    int
+	MinTransferTime *int
+}
+
 // Feed is a fully parsed static feed, ready to be swapped into the trains
 // schema in one transaction.
 type Feed struct {
@@ -80,4 +92,5 @@ type Feed struct {
 	Trips         []Trip
 	StopTimes     []StopTime
 	CalendarDates []CalendarDate
+	Transfers     []Transfer
 }
