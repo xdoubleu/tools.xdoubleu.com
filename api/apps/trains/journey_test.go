@@ -8,7 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/trains/internal/jobs"
 	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 // journeyFeed builds a hand-assembled Feed exercising the router's real
@@ -31,8 +33,14 @@ func journeyFeed(windowStart time.Time) *models.Feed {
 			{StopID: "C1", Name: "Charlie", ParentStation: "SC", PlatformCode: "1"},
 			{StopID: "M1", Name: "Midway"},
 		},
-		Routes:    journeyRoutes(),
-		Trips:     journeyTrips(),
+		Routes: journeyRoutes(),
+		Trips:  journeyTrips(),
+		Transfers: []models.Transfer{
+			{
+				FromStopID: "B1", ToStopID: "B2",
+				TransferType: 2, MinTransferTime: intPtr(120),
+			},
+		},
 		StopTimes: journeyStopTimes(),
 		CalendarDates: []models.CalendarDate{
 			{ServiceID: "svc_direct", Date: day(0), ExceptionType: 1},
@@ -43,6 +51,8 @@ func journeyFeed(windowStart time.Time) *models.Feed {
 		},
 	}
 }
+
+func intPtr(n int) *int { return &n }
 
 func journeyRoutes() []models.Route {
 	return []models.Route{
@@ -241,4 +251,30 @@ func TestSearchJourneys_UnknownStopIsAnError(t *testing.T) {
 		ctx, "does-not-exist", "also-not-real", time.Now(), false,
 	)
 	require.Error(t, err)
+}
+
+// TestJourneyService_Refresh exercises Refresh (as opposed to
+// RefreshWindow, used by the fixture-aligned tests above), which anchors
+// the rolling window to "today" in Europe/Brussels — the production path
+// jobs.RouterRefreshJob calls on a schedule.
+func TestJourneyService_Refresh(t *testing.T) {
+	ctx := context.Background()
+	idx, err := testApp.Services.Journey.Refresh(ctx)
+	require.NoError(t, err)
+	assert.NotNil(t, idx)
+}
+
+// TestJourneyService_RefreshOnly covers the func(context.Context) error
+// adapter jobs.RouterRefreshJob is constructed with.
+func TestJourneyService_RefreshOnly(t *testing.T) {
+	require.NoError(t, testApp.Services.Journey.RefreshOnly(context.Background()))
+}
+
+// TestRouterRefreshJob_Metadata mirrors app_test.go's
+// TestStaticImportJob_Metadata for the router-refresh job added in #1391.
+func TestRouterRefreshJob_Metadata(t *testing.T) {
+	j := jobs.NewRouterRefreshJob(testApp.Services.Journey.RefreshOnly)
+	assert.Equal(t, "trains-router-refresh", j.ID())
+	assert.Equal(t, 6*time.Hour, j.RunEvery())
+	assert.NoError(t, j.Run(context.Background(), logging.NewNopLogger()))
 }
