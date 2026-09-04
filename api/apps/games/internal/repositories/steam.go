@@ -63,6 +63,7 @@ func (repo *SteamRepository) queryGames(
 			&game.ID,
 			&game.Name,
 			&game.IsDelisted,
+			&game.InCompletionAverage,
 			&game.CompletionRate,
 			&game.Contribution,
 			&game.Playtime,
@@ -95,8 +96,9 @@ func (repo *SteamRepository) GetAllGames(
 	userID string,
 ) ([]models.Game, error) {
 	query := `
-		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at, favourite, last_played
+		SELECT id, name, is_delisted, in_completion_average, completion_rate,
+		       contribution, playtime_forever, image_url, last_synced_at,
+		       favourite, last_played
 		FROM games.steam_games
 		WHERE user_id = $1
 	`
@@ -104,22 +106,45 @@ func (repo *SteamRepository) GetAllGames(
 	return repo.queryGames(ctx, query, userID)
 }
 
-// GetActiveGames returns only the games Steam still lists in the user's
-// library. Delisted games stay in storage and remain visible on their own
-// detail page, but must never take part in library-wide averages: Steam stops
-// counting a game in its own profile average the moment it leaves the library,
-// and every game list here already filters is_delisted, so including them makes
-// the dashboard's completion rate disagree with both.
-func (repo *SteamRepository) GetActiveGames(
+// GetAveragedGames returns the games that take part in the library-wide
+// completion averages: everything Steam still lists, plus any delisted game
+// whose achievements no listed game has taken over. The distribution chart and
+// the headline rate must both use this set, or they describe different
+// libraries (docs/adr-0018-completion-average-population.md).
+func (repo *SteamRepository) GetAveragedGames(
 	ctx context.Context,
 	userID string,
 ) ([]models.Game, error) {
 	query := `
-		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at, favourite, last_played
+		SELECT id, name, is_delisted, in_completion_average, completion_rate,
+		       contribution, playtime_forever, image_url, last_synced_at,
+		       favourite, last_played
 		FROM games.steam_games
 		WHERE user_id = $1
-		    AND is_delisted = false
+		    AND in_completion_average = true
+	`
+
+	return repo.queryGames(ctx, query, userID)
+}
+
+// GetDelisted returns the games Steam no longer returns in the owned list.
+// They are excluded from the backlog lists, and most of them still count
+// towards the library-wide averages
+// (docs/adr-0018-completion-average-population.md), which makes them invisible
+// everywhere else — this is the one read that surfaces them, so a completion
+// number can be reconciled against the games behind it.
+func (repo *SteamRepository) GetDelisted(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	query := `
+		SELECT id, name, is_delisted, in_completion_average, completion_rate,
+		       contribution, playtime_forever, image_url, last_synced_at,
+		       favourite, last_played
+		FROM games.steam_games
+		WHERE user_id = $1
+		    AND is_delisted = true
+		ORDER BY name
 	`
 
 	return repo.queryGames(ctx, query, userID)
@@ -130,9 +155,9 @@ func (repo *SteamRepository) GetBacklog(
 	userID string,
 ) ([]models.Game, error) {
 	query := `
-		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite, sg.last_played
+		SELECT sg.id, sg.name, sg.is_delisted, sg.in_completion_average,
+		       sg.completion_rate, sg.contribution, sg.playtime_forever,
+		       sg.image_url, sg.last_synced_at, sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) = 0
@@ -152,9 +177,9 @@ func (repo *SteamRepository) GetInProgress(
 	userID string,
 ) ([]models.Game, error) {
 	query := `
-		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite, sg.last_played
+		SELECT sg.id, sg.name, sg.is_delisted, sg.in_completion_average,
+		       sg.completion_rate, sg.contribution, sg.playtime_forever,
+		       sg.image_url, sg.last_synced_at, sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND CAST(sg.completion_rate AS FLOAT) > 0
@@ -175,9 +200,9 @@ func (repo *SteamRepository) GetCompleted(
 	userID string,
 ) ([]models.Game, error) {
 	query := `
-		SELECT sg.id, sg.name, sg.is_delisted, sg.completion_rate,
-		       sg.contribution, sg.playtime_forever, sg.image_url, sg.last_synced_at,
-		       sg.favourite, sg.last_played
+		SELECT sg.id, sg.name, sg.is_delisted, sg.in_completion_average,
+		       sg.completion_rate, sg.contribution, sg.playtime_forever,
+		       sg.image_url, sg.last_synced_at, sg.favourite, sg.last_played
 		FROM games.steam_games sg
 		WHERE sg.user_id = $1
 		    AND sg.is_delisted = false
@@ -256,13 +281,15 @@ func (repo *SteamRepository) UpsertGames(
 	// user-set state and must survive every sync (new rows default FALSE).
 	query := `
 		INSERT INTO games.steam_games
-		    (id, user_id, name, is_delisted, completion_rate, contribution,
-		     playtime_forever, image_url, last_synced_at, last_played)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now(), $9)
+		    (id, user_id, name, is_delisted, in_completion_average,
+		     completion_rate, contribution, playtime_forever, image_url,
+		     last_synced_at, last_played)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), $10)
 		ON CONFLICT (id, user_id)
-		DO UPDATE SET name = $3, is_delisted = $4, completion_rate = $5,
-		              contribution = $6, playtime_forever = $7, image_url = $8,
-		              last_synced_at = now(), last_played = $9
+		DO UPDATE SET name = $3, is_delisted = $4, in_completion_average = $5,
+		              completion_rate = $6, contribution = $7,
+		              playtime_forever = $8, image_url = $9,
+		              last_synced_at = now(), last_played = $10
 	`
 
 	//nolint:exhaustruct //fields are optional
@@ -274,6 +301,7 @@ func (repo *SteamRepository) UpsertGames(
 			userID,
 			game.Name,
 			game.IsDelisted,
+			game.InCompletionAverage,
 			game.CompletionRate,
 			game.Contribution,
 			game.Playtime,
@@ -384,8 +412,9 @@ func (repo *SteamRepository) GetGameByID(
 	userID string,
 ) (*models.Game, error) {
 	query := `
-		SELECT id, name, is_delisted, completion_rate, contribution,
-		       playtime_forever, image_url, last_synced_at, favourite, last_played
+		SELECT id, name, is_delisted, in_completion_average, completion_rate,
+		       contribution, playtime_forever, image_url, last_synced_at,
+		       favourite, last_played
 		FROM games.steam_games
 		WHERE id = $1 AND user_id = $2
 	`
@@ -395,6 +424,7 @@ func (repo *SteamRepository) GetGameByID(
 		&game.ID,
 		&game.Name,
 		&game.IsDelisted,
+		&game.InCompletionAverage,
 		&game.CompletionRate,
 		&game.Contribution,
 		&game.Playtime,

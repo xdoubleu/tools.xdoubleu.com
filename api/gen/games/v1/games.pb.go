@@ -22,18 +22,22 @@ const (
 )
 
 type Game struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IsDelisted     bool                   `protobuf:"varint,3,opt,name=is_delisted,json=isDelisted,proto3" json:"is_delisted,omitempty"`
-	CompletionRate string                 `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
-	Contribution   string                 `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
-	Playtime       int32                  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
-	ImageUrl       string                 `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	LastSyncedAt   string                 `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
-	Favourite      bool                   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	IsDelisted bool                   `protobuf:"varint,3,opt,name=is_delisted,json=isDelisted,proto3" json:"is_delisted,omitempty"`
+	// Whether this game takes part in the library-wide completion averages.
+	// False only for a delisted game whose achievements a game still in the
+	// library has taken over.
+	InCompletionAverage bool   `protobuf:"varint,12,opt,name=in_completion_average,json=inCompletionAverage,proto3" json:"in_completion_average,omitempty"`
+	CompletionRate      string `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
+	Contribution        string `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
+	Playtime            int32  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
+	ImageUrl            string `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	LastSyncedAt        string `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	Favourite           bool   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Game) Reset() {
@@ -83,6 +87,13 @@ func (x *Game) GetName() string {
 func (x *Game) GetIsDelisted() bool {
 	if x != nil {
 		return x.IsDelisted
+	}
+	return false
+}
+
+func (x *Game) GetInCompletionAverage() bool {
+	if x != nil {
+		return x.InCompletionAverage
 	}
 	return false
 }
@@ -214,17 +225,22 @@ func (x *Achievement) GetGlobalPercent() float64 {
 }
 
 type SteamResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NotStarted    []*Game                `protobuf:"bytes,1,rep,name=not_started,json=notStarted,proto3" json:"not_started,omitempty"`
-	InProgress    []*Game                `protobuf:"bytes,2,rep,name=in_progress,json=inProgress,proto3" json:"in_progress,omitempty"`
-	Completed     []*Game                `protobuf:"bytes,3,rep,name=completed,proto3" json:"completed,omitempty"`
-	TotalBacklog  int32                  `protobuf:"varint,4,opt,name=total_backlog,json=totalBacklog,proto3" json:"total_backlog,omitempty"`
-	CurrentRate   string                 `protobuf:"bytes,5,opt,name=current_rate,json=currentRate,proto3" json:"current_rate,omitempty"`
-	Distribution  []int32                `protobuf:"varint,6,rep,packed,name=distribution,proto3" json:"distribution,omitempty"`
-	Labels        []string               `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty"`
-	Values        []string               `protobuf:"bytes,8,rep,name=values,proto3" json:"values,omitempty"`
-	DateStart     string                 `protobuf:"bytes,9,opt,name=date_start,json=dateStart,proto3" json:"date_start,omitempty"`
-	DateEnd       string                 `protobuf:"bytes,10,opt,name=date_end,json=dateEnd,proto3" json:"date_end,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	NotStarted   []*Game                `protobuf:"bytes,1,rep,name=not_started,json=notStarted,proto3" json:"not_started,omitempty"`
+	InProgress   []*Game                `protobuf:"bytes,2,rep,name=in_progress,json=inProgress,proto3" json:"in_progress,omitempty"`
+	Completed    []*Game                `protobuf:"bytes,3,rep,name=completed,proto3" json:"completed,omitempty"`
+	TotalBacklog int32                  `protobuf:"varint,4,opt,name=total_backlog,json=totalBacklog,proto3" json:"total_backlog,omitempty"`
+	CurrentRate  string                 `protobuf:"bytes,5,opt,name=current_rate,json=currentRate,proto3" json:"current_rate,omitempty"`
+	Distribution []int32                `protobuf:"varint,6,rep,packed,name=distribution,proto3" json:"distribution,omitempty"`
+	Labels       []string               `protobuf:"bytes,7,rep,name=labels,proto3" json:"labels,omitempty"`
+	Values       []string               `protobuf:"bytes,8,rep,name=values,proto3" json:"values,omitempty"`
+	DateStart    string                 `protobuf:"bytes,9,opt,name=date_start,json=dateStart,proto3" json:"date_start,omitempty"`
+	DateEnd      string                 `protobuf:"bytes,10,opt,name=date_end,json=dateEnd,proto3" json:"date_end,omitempty"`
+	// Games Steam no longer returns in the owned list. They are absent from the
+	// three lists above, but most still count towards current_rate and
+	// distribution — see each game's in_completion_average. This is the only
+	// place the population behind a completion number can be checked.
+	Delisted      []*Game `protobuf:"bytes,11,rep,name=delisted,proto3" json:"delisted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -327,6 +343,13 @@ func (x *SteamResponse) GetDateEnd() string {
 		return x.DateEnd
 	}
 	return ""
+}
+
+func (x *SteamResponse) GetDelisted() []*Game {
+	if x != nil {
+		return x.Delisted
+	}
+	return nil
 }
 
 type SteamGameResponse struct {
@@ -1262,12 +1285,13 @@ var File_games_v1_games_proto protoreflect.FileDescriptor
 
 const file_games_v1_games_proto_rawDesc = "" +
 	"\n" +
-	"\x14games/v1/games.proto\x12\bgames.v1\"\x95\x02\n" +
+	"\x14games/v1/games.proto\x12\bgames.v1\"\xc9\x02\n" +
 	"\x04Game\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
 	"\vis_delisted\x18\x03 \x01(\bR\n" +
-	"isDelisted\x12'\n" +
+	"isDelisted\x122\n" +
+	"\x15in_completion_average\x18\f \x01(\bR\x13inCompletionAverage\x12'\n" +
 	"\x0fcompletion_rate\x18\x04 \x01(\tR\x0ecompletionRate\x12\"\n" +
 	"\fcontribution\x18\x05 \x01(\tR\fcontribution\x12\x1a\n" +
 	"\bplaytime\x18\x06 \x01(\x05R\bplaytime\x12\x1b\n" +
@@ -1281,7 +1305,7 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\bicon_url\x18\x04 \x01(\tR\aiconUrl\x12\x1a\n" +
 	"\bachieved\x18\x05 \x01(\bR\bachieved\x12*\n" +
 	"\x0eglobal_percent\x18\x06 \x01(\x01H\x00R\rglobalPercent\x88\x01\x01B\x11\n" +
-	"\x0f_global_percent\"\xf5\x02\n" +
+	"\x0f_global_percent\"\xa1\x03\n" +
 	"\rSteamResponse\x12/\n" +
 	"\vnot_started\x18\x01 \x03(\v2\x0e.games.v1.GameR\n" +
 	"notStarted\x12/\n" +
@@ -1296,7 +1320,8 @@ const file_games_v1_games_proto_rawDesc = "" +
 	"\n" +
 	"date_start\x18\t \x01(\tR\tdateStart\x12\x19\n" +
 	"\bdate_end\x18\n" +
-	" \x01(\tR\adateEnd\"r\n" +
+	" \x01(\tR\adateEnd\x12*\n" +
+	"\bdelisted\x18\v \x03(\v2\x0e.games.v1.GameR\bdelisted\"r\n" +
 	"\x11SteamGameResponse\x12\"\n" +
 	"\x04game\x18\x01 \x01(\v2\x0e.games.v1.GameR\x04game\x129\n" +
 	"\fachievements\x18\x02 \x03(\v2\x15.games.v1.AchievementR\fachievements\"W\n" +
@@ -1397,38 +1422,39 @@ var file_games_v1_games_proto_depIdxs = []int32{
 	0,  // 0: games.v1.SteamResponse.not_started:type_name -> games.v1.Game
 	0,  // 1: games.v1.SteamResponse.in_progress:type_name -> games.v1.Game
 	0,  // 2: games.v1.SteamResponse.completed:type_name -> games.v1.Game
-	0,  // 3: games.v1.SteamGameResponse.game:type_name -> games.v1.Game
-	1,  // 4: games.v1.SteamGameResponse.achievements:type_name -> games.v1.Achievement
-	0,  // 5: games.v1.SteamDistributionResponse.games:type_name -> games.v1.Game
-	2,  // 6: games.v1.GetSteamResponse.steam:type_name -> games.v1.SteamResponse
-	3,  // 7: games.v1.GetSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
-	4,  // 8: games.v1.GetSteamDistributionResponse.data:type_name -> games.v1.SteamDistributionResponse
-	5,  // 9: games.v1.GetRecentlyActiveGamesResponse.games:type_name -> games.v1.RecentGame
-	3,  // 10: games.v1.RefreshSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
-	6,  // 11: games.v1.GetIntegrationsResponse.integrations:type_name -> games.v1.Integrations
-	6,  // 12: games.v1.SaveIntegrationsRequest.integrations:type_name -> games.v1.Integrations
-	0,  // 13: games.v1.SetGameFavouriteResponse.game:type_name -> games.v1.Game
-	7,  // 14: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
-	9,  // 15: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
-	11, // 16: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
-	13, // 17: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
-	15, // 18: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
-	17, // 19: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
-	19, // 20: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
-	21, // 21: games.v1.GamesService.SetGameFavourite:input_type -> games.v1.SetGameFavouriteRequest
-	8,  // 22: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
-	10, // 23: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
-	12, // 24: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
-	14, // 25: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
-	16, // 26: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
-	18, // 27: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
-	20, // 28: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
-	22, // 29: games.v1.GamesService.SetGameFavourite:output_type -> games.v1.SetGameFavouriteResponse
-	22, // [22:30] is the sub-list for method output_type
-	14, // [14:22] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	0,  // 3: games.v1.SteamResponse.delisted:type_name -> games.v1.Game
+	0,  // 4: games.v1.SteamGameResponse.game:type_name -> games.v1.Game
+	1,  // 5: games.v1.SteamGameResponse.achievements:type_name -> games.v1.Achievement
+	0,  // 6: games.v1.SteamDistributionResponse.games:type_name -> games.v1.Game
+	2,  // 7: games.v1.GetSteamResponse.steam:type_name -> games.v1.SteamResponse
+	3,  // 8: games.v1.GetSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
+	4,  // 9: games.v1.GetSteamDistributionResponse.data:type_name -> games.v1.SteamDistributionResponse
+	5,  // 10: games.v1.GetRecentlyActiveGamesResponse.games:type_name -> games.v1.RecentGame
+	3,  // 11: games.v1.RefreshSteamGameResponse.data:type_name -> games.v1.SteamGameResponse
+	6,  // 12: games.v1.GetIntegrationsResponse.integrations:type_name -> games.v1.Integrations
+	6,  // 13: games.v1.SaveIntegrationsRequest.integrations:type_name -> games.v1.Integrations
+	0,  // 14: games.v1.SetGameFavouriteResponse.game:type_name -> games.v1.Game
+	7,  // 15: games.v1.GamesService.GetSteam:input_type -> games.v1.GetSteamRequest
+	9,  // 16: games.v1.GamesService.GetSteamGame:input_type -> games.v1.GetSteamGameRequest
+	11, // 17: games.v1.GamesService.GetSteamDistribution:input_type -> games.v1.GetSteamDistributionRequest
+	13, // 18: games.v1.GamesService.GetRecentlyActiveGames:input_type -> games.v1.GetRecentlyActiveGamesRequest
+	15, // 19: games.v1.GamesService.RefreshSteamGame:input_type -> games.v1.RefreshSteamGameRequest
+	17, // 20: games.v1.GamesService.GetIntegrations:input_type -> games.v1.GetIntegrationsRequest
+	19, // 21: games.v1.GamesService.SaveIntegrations:input_type -> games.v1.SaveIntegrationsRequest
+	21, // 22: games.v1.GamesService.SetGameFavourite:input_type -> games.v1.SetGameFavouriteRequest
+	8,  // 23: games.v1.GamesService.GetSteam:output_type -> games.v1.GetSteamResponse
+	10, // 24: games.v1.GamesService.GetSteamGame:output_type -> games.v1.GetSteamGameResponse
+	12, // 25: games.v1.GamesService.GetSteamDistribution:output_type -> games.v1.GetSteamDistributionResponse
+	14, // 26: games.v1.GamesService.GetRecentlyActiveGames:output_type -> games.v1.GetRecentlyActiveGamesResponse
+	16, // 27: games.v1.GamesService.RefreshSteamGame:output_type -> games.v1.RefreshSteamGameResponse
+	18, // 28: games.v1.GamesService.GetIntegrations:output_type -> games.v1.GetIntegrationsResponse
+	20, // 29: games.v1.GamesService.SaveIntegrations:output_type -> games.v1.SaveIntegrationsResponse
+	22, // 30: games.v1.GamesService.SetGameFavourite:output_type -> games.v1.SetGameFavouriteResponse
+	23, // [23:31] is the sub-list for method output_type
+	15, // [15:23] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_games_v1_games_proto_init() }

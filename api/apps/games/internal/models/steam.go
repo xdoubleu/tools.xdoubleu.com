@@ -7,16 +7,22 @@ import (
 )
 
 type Game struct {
-	ID             int        `json:"id"`
-	Name           string     `json:"name"`
-	IsDelisted     bool       `json:"isDelisted"`
-	CompletionRate string     `json:"completionRate"`
-	Contribution   string     `json:"contribution"`
-	Playtime       int        `json:"playtime"`
-	ImageURL       string     `json:"imageUrl"`
-	LastSyncedAt   time.Time  `json:"lastSyncedAt"`
-	Favourite      bool       `json:"favourite"`
-	LastPlayed     *time.Time `json:"lastPlayed"`
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	IsDelisted bool   `json:"isDelisted"`
+	// InCompletionAverage records whether this game takes part in the
+	// library-wide completion averages. It is false only for a delisted game
+	// whose achievements a game still in the library has taken over, which is
+	// what keeps the Half-Life 2 episodes from being counted twice
+	// (docs/adr-0018-completion-average-population.md).
+	InCompletionAverage bool       `json:"inCompletionAverage"`
+	CompletionRate      string     `json:"completionRate"`
+	Contribution        string     `json:"contribution"`
+	Playtime            int        `json:"playtime"`
+	ImageURL            string     `json:"imageUrl"`
+	LastSyncedAt        time.Time  `json:"lastSyncedAt"`
+	Favourite           bool       `json:"favourite"`
+	LastPlayed          *time.Time `json:"lastPlayed"`
 }
 
 type Achievement struct {

@@ -6,6 +6,10 @@ message Game {
   int32 id = 1;
   string name = 2;
   bool is_delisted = 3;
+  // Whether this game takes part in the library-wide completion averages.
+  // False only for a delisted game whose achievements a game still in the
+  // library has taken over.
+  bool in_completion_average = 12;
   string completion_rate = 4;
   string contribution = 5;
   int32 playtime = 6;
@@ -34,6 +38,11 @@ message SteamResponse {
   repeated string values = 8;
   string date_start = 9;
   string date_end = 10;
+  // Games Steam no longer returns in the owned list. They are absent from the
+  // three lists above, but most still count towards current_rate and
+  // distribution — see each game's in_completion_average. This is the only
+  // place the population behind a completion number can be checked.
+  repeated Game delisted = 11;
 }
 
 message SteamGameResponse {

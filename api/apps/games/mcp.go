@@ -37,7 +37,9 @@ func (a *Games) RegisterMCPTools(srv *mcp.Server) {
 
 	mcptools.AddReadTool(srv, mcpAppName, "games_get_steam",
 		"Steam backlog overview: not-started/in-progress/completed games, "+
-			"backlog size, and completion-rate progress.", h.mcpGetSteam)
+			"backlog size, completion-rate progress, and the delisted games "+
+			"absent from every list (in_completion_average says which of "+
+			"those still count towards the rate).", h.mcpGetSteam)
 	mcptools.AddReadTool(srv, mcpAppName, "games_get_steam_game",
 		"A single Steam game with its achievements.", h.mcpGetSteamGame)
 	mcptools.AddReadTool(srv, mcpAppName, "games_get_steam_distribution",

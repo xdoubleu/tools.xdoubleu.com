@@ -40,6 +40,11 @@ func (a *Games) buildSteamResponse(
 		return nil, err
 	}
 
+	delisted, err := a.Services.Steam.GetDelisted(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	currentRate, err := a.Services.Progress.GetCurrentSteamCompletionRate(
 		ctx,
 		userID,
@@ -59,6 +64,7 @@ func (a *Games) buildSteamResponse(
 		NotStarted: protoGames(notStarted),
 		InProgress: protoGames(inProgress),
 		Completed:  protoGames(completed),
+		Delisted:   protoGames(delisted),
 		//nolint:gosec // safe for domain counts
 		TotalBacklog: int32(len(notStarted) + len(inProgress)),
 		Distribution: convertIntSlice(distribution),

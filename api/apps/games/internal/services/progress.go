@@ -65,11 +65,15 @@ func (s *ProgressService) GetCurrentSteamCompletionRate(
 	return value, nil
 }
 
+// GetCompletionRateDistribution buckets the games taking part in the
+// library-wide averages, so the chart and the headline rate beside it can never
+// describe different libraries
+// (docs/adr-0018-completion-average-population.md).
 func (s *ProgressService) GetCompletionRateDistribution(
 	ctx context.Context,
 	userID string,
 ) ([]int, [][]models.Game, error) {
-	games, err := s.steam.GetActiveGames(ctx, userID)
+	games, err := s.steam.GetAveragedGames(ctx, userID)
 	if err != nil {
 		return nil, nil, err
 	}

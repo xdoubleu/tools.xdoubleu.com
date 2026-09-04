@@ -183,15 +183,16 @@ func (h *gamesConnectHandler) GetRecentlyActiveGames(
 
 func protoGame(g models.Game) *gamesv1.Game {
 	return &gamesv1.Game{
-		Id:             int32(g.ID), //nolint:gosec // int32 safe for domain values
-		Name:           g.Name,
-		IsDelisted:     g.IsDelisted,
-		CompletionRate: g.CompletionRate,
-		Contribution:   g.Contribution,
-		Playtime:       int32(g.Playtime), //nolint:gosec // safe for domain values
-		ImageUrl:       g.ImageURL,
-		LastSyncedAt:   g.LastSyncedAt.Format(time.RFC3339),
-		Favourite:      g.Favourite,
+		Id:                  int32(g.ID), //nolint:gosec // int32 safe for domain values
+		Name:                g.Name,
+		IsDelisted:          g.IsDelisted,
+		InCompletionAverage: g.InCompletionAverage,
+		CompletionRate:      g.CompletionRate,
+		Contribution:        g.Contribution,
+		Playtime:            int32(g.Playtime), //nolint:gosec // safe for domain values
+		ImageUrl:            g.ImageURL,
+		LastSyncedAt:        g.LastSyncedAt.Format(time.RFC3339),
+		Favourite:           g.Favourite,
 	}
 }
 
