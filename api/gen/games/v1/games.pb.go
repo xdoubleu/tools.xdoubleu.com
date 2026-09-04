@@ -22,18 +22,22 @@ const (
 )
 
 type Game struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	IsDelisted     bool                   `protobuf:"varint,3,opt,name=is_delisted,json=isDelisted,proto3" json:"is_delisted,omitempty"`
-	CompletionRate string                 `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
-	Contribution   string                 `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
-	Playtime       int32                  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
-	ImageUrl       string                 `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
-	LastSyncedAt   string                 `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
-	Favourite      bool                   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Id         int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	IsDelisted bool                   `protobuf:"varint,3,opt,name=is_delisted,json=isDelisted,proto3" json:"is_delisted,omitempty"`
+	// Whether this game takes part in the library-wide completion averages.
+	// False only for a delisted game whose achievements a game still in the
+	// library has taken over.
+	InCompletionAverage bool   `protobuf:"varint,12,opt,name=in_completion_average,json=inCompletionAverage,proto3" json:"in_completion_average,omitempty"`
+	CompletionRate      string `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
+	Contribution        string `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
+	Playtime            int32  `protobuf:"varint,6,opt,name=playtime,proto3" json:"playtime,omitempty"`
+	ImageUrl            string `protobuf:"bytes,7,opt,name=image_url,json=imageUrl,proto3" json:"image_url,omitempty"`
+	LastSyncedAt        string `protobuf:"bytes,8,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
+	Favourite           bool   `protobuf:"varint,9,opt,name=favourite,proto3" json:"favourite,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Game) Reset() {
@@ -83,6 +87,13 @@ func (x *Game) GetName() string {
 func (x *Game) GetIsDelisted() bool {
 	if x != nil {
 		return x.IsDelisted
+	}
+	return false
+}
+
+func (x *Game) GetInCompletionAverage() bool {
+	if x != nil {
+		return x.InCompletionAverage
 	}
 	return false
 }
@@ -225,10 +236,10 @@ type SteamResponse struct {
 	Values       []string               `protobuf:"bytes,8,rep,name=values,proto3" json:"values,omitempty"`
 	DateStart    string                 `protobuf:"bytes,9,opt,name=date_start,json=dateStart,proto3" json:"date_start,omitempty"`
 	DateEnd      string                 `protobuf:"bytes,10,opt,name=date_end,json=dateEnd,proto3" json:"date_end,omitempty"`
-	// Games Steam no longer returns in the owned list. They are excluded from
-	// the three lists above and from current_rate and distribution, which leaves
-	// them invisible everywhere else — this is the only place the population
-	// behind a completion number can be checked.
+	// Games Steam no longer returns in the owned list. They are absent from the
+	// three lists above, but most still count towards current_rate and
+	// distribution — see each game's in_completion_average. This is the only
+	// place the population behind a completion number can be checked.
 	Delisted      []*Game `protobuf:"bytes,11,rep,name=delisted,proto3" json:"delisted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1274,12 +1285,13 @@ var File_games_v1_games_proto protoreflect.FileDescriptor
 
 const file_games_v1_games_proto_rawDesc = "" +
 	"\n" +
-	"\x14games/v1/games.proto\x12\bgames.v1\"\x95\x02\n" +
+	"\x14games/v1/games.proto\x12\bgames.v1\"\xc9\x02\n" +
 	"\x04Game\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
 	"\vis_delisted\x18\x03 \x01(\bR\n" +
-	"isDelisted\x12'\n" +
+	"isDelisted\x122\n" +
+	"\x15in_completion_average\x18\f \x01(\bR\x13inCompletionAverage\x12'\n" +
 	"\x0fcompletion_rate\x18\x04 \x01(\tR\x0ecompletionRate\x12\"\n" +
 	"\fcontribution\x18\x05 \x01(\tR\fcontribution\x12\x1a\n" +
 	"\bplaytime\x18\x06 \x01(\x05R\bplaytime\x12\x1b\n" +

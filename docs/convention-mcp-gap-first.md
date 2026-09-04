@@ -101,7 +101,7 @@ from #1375's commit message, and checking them meant pulling
 `games_get_steam_game` one at a time. On that evidence the rule from #1375 was
 about to be reverted; the owner counting 157 games with achievement progress on
 the profile is what stopped it — see
-`adr-0018-delisted-games-excluded-from-completion-averages.md`.
+`adr-0018-completion-average-population.md`.
 
 `SteamResponse` now carries a `delisted` list, so `games_get_steam` reports the
 games excluded from `current_rate`, `distribution` and all three lists. That

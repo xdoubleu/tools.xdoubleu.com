@@ -577,13 +577,13 @@ func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 		"stored data must be unchanged after a failed SyncGame")
 }
 
-// TestSyncUser_DelistedGameExcludedFromLibraryAverages reproduces the reported
-// mismatch between the dashboard's completion rate and Steam's own profile: a
-// delisted game kept its (high) stored rate and went on being averaged into the
-// headline rate and the distribution chart, even though every game list filters
-// is_delisted and Steam stops counting a game the moment it leaves the library.
-// The headline rate must be the mean of the games still owned.
-func TestSyncUser_DelistedGameExcludedFromLibraryAverages(t *testing.T) {
+// TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver pins half of the
+// accounting rule: is_delisted only records that GetOwnedGames stopped
+// returning an app id, and the achievements earned there stay on the Steam
+// profile, so a delisted game keeps counting towards the headline rate and the
+// distribution chart
+// (docs/adr-0018-completion-average-population.md).
+func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-delist-average-user"
 	const liveLow = 7101
@@ -623,35 +623,40 @@ func TestSyncUser_DelistedGameExcludedFromLibraryAverages(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, stored.IsDelisted)
 	require.Equal(t, "100.00", stored.CompletionRate)
+	assert.True(t, stored.InCompletionAverage,
+		"no listed game carries D1/D2, so the delisted game keeps counting")
 
-	// 25.00 and 75.00 average to 50.00. Averaging the delisted 100.00 in too
-	// would give 66.66 — the shape of the production discrepancy.
+	// 25.00, 75.00 and the delisted 100.00 average to 66.66.
 	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
-	assert.Equal(t, "50.00", rate,
-		"headline rate must average only the games Steam still lists")
+	assert.Equal(t, "66.66", rate,
+		"headline rate counts a delisted game nothing took over")
 
 	counts, bucketGames, err := app2.Services.Progress.
 		GetCompletionRateDistribution(ctx, user)
 	require.NoError(t, err)
-	assert.Equal(t, 0, counts[10],
-		"delisted 100 percent game must not occupy a distribution bucket")
-	for _, bucket := range bucketGames {
-		for _, g := range bucket {
-			assert.NotEqual(t, delisted, g.ID,
-				"delisted game must not appear in any distribution bucket")
-		}
-	}
+	assert.Equal(t, 1, counts[10],
+		"the delisted 100 percent game occupies its distribution bucket")
 
 	total := 0
 	for _, c := range counts {
 		total += c
 	}
-	assert.Equal(t, 2, total, "distribution covers only the two live games")
+	assert.Equal(t, 3, total,
+		"distribution covers the same games the headline rate averages")
 
-	// Excluded from the lists and from the averages, the delisted game is
-	// otherwise invisible; the payload reports it separately so the headline
-	// rate stays reconcilable against the games it does and does not count.
+	found := false
+	for _, bucket := range bucketGames {
+		for _, g := range bucket {
+			if g.ID == delisted {
+				found = true
+			}
+		}
+	}
+	assert.True(t, found, "delisted game appears in the distribution")
+
+	// It is still absent from the three backlog lists, so the payload reports
+	// it separately — otherwise it is invisible everywhere a number comes from.
 	payload, _, err := app2.BuildSharedSteam(
 		ctx, user, time.Now().AddDate(0, 0, -7), time.Now(),
 	)
@@ -668,9 +673,68 @@ func TestSyncUser_DelistedGameExcludedFromLibraryAverages(t *testing.T) {
 	}
 }
 
-// TestSyncGame_DelistedGameExcludedFromTotalRate covers the same rule on the
+// TestSyncUser_SupersededDelistedGameLeavesTheAverage pins the other half: when
+// a game Steam still lists carries every achievement of a delisted one — what
+// Valve did folding the Half-Life 2 episodes into Half-Life 2 — counting the
+// delisted app as well would put the same achievements in twice.
+func TestSyncUser_SupersededDelistedGameLeavesTheAverage(t *testing.T) {
+	ctx := context.Background()
+	const user = "sync-superseded-user"
+	const successor = 7301
+	const episode = 7302
+
+	allGames := []steam.Game{
+		//nolint:exhaustruct //only required fields
+		{AppID: successor, Name: "Successor", HasCommunityVisibleStats: true},
+		//nolint:exhaustruct //only required fields
+		{AppID: episode, Name: "Episode", HasCommunityVisibleStats: true},
+	}
+	// The successor's schema absorbed the episode's two achievements.
+	playerAch := map[int][]steam.Achievement{
+		successor: {ach("S1", 1), ach("S2", 1), ach("D1", 0), ach("D2", 0)},
+		episode:   {ach("D1", 1), ach("D2", 1)},
+	}
+
+	app := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames,
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app.Services.Steam.SyncUser(ctx, user))
+
+	app2 := newSyncTestApp(t, user, syncFakeClient{
+		games:     allGames[:1],
+		playerAch: playerAch,
+		schemaErr: map[int]bool{},
+	})
+	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
+
+	stored, err := app2.Services.Steam.GetGameByID(ctx, episode, user)
+	require.NoError(t, err)
+	require.True(t, stored.IsDelisted)
+	assert.False(t, stored.InCompletionAverage,
+		"the successor carries D1/D2, so the episode must leave the average")
+
+	// Only the successor counts: 2 of 4 => 50.00. Counting the episode's
+	// 100.00 as well would give 75.00 off the same two achievements.
+	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
+	require.NoError(t, err)
+	assert.Equal(t, "50.00", rate,
+		"a superseded game must not put its achievements in the average twice")
+
+	counts, _, err := app2.Services.Progress.
+		GetCompletionRateDistribution(ctx, user)
+	require.NoError(t, err)
+	total := 0
+	for _, c := range counts {
+		total += c
+	}
+	assert.Equal(t, 1, total, "distribution covers only the successor")
+}
+
+// TestSyncGame_DelistedGameCountsTowardTotalRate covers the same rule on the
 // single-game refresh path, which recomputes the library-wide graph too.
-func TestSyncGame_DelistedGameExcludedFromTotalRate(t *testing.T) {
+func TestSyncGame_DelistedGameCountsTowardTotalRate(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-game-delist-user"
 	const live = 7201
@@ -701,8 +765,8 @@ func TestSyncGame_DelistedGameExcludedFromTotalRate(t *testing.T) {
 	})
 	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
 
-	// Refresh the live game alone: 2 of 4 achieved => 50.00, and that is the
-	// whole library average now that the delisted game is excluded.
+	// Refresh the live game alone: 2 of 4 achieved => 50.00, averaged with the
+	// delisted game's stored 100.00 for a library-wide 75.00.
 	app3 := newSyncTestApp(t, user, syncFakeClient{
 		games: allGames[:1],
 		playerAch: map[int][]steam.Achievement{
@@ -715,6 +779,6 @@ func TestSyncGame_DelistedGameExcludedFromTotalRate(t *testing.T) {
 
 	rate, err := app3.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
-	assert.Equal(t, "50.00", rate,
-		"single-game refresh must also exclude delisted games from the average")
+	assert.Equal(t, "75.00", rate,
+		"single-game refresh keeps counting a delisted game in the average")
 }

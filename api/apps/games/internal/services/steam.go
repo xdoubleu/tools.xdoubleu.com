@@ -55,17 +55,6 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 
 	fetched := service.fetchAchievements(ctx, client, creds.SteamUserID, gamesMap)
 
-	active := activeGames(gamesMap)
-
-	for id := range gamesMap {
-		rows, ok := fetched[id]
-		if !ok {
-			// Fetch failed/skipped for this game: keep its existing values.
-			continue
-		}
-		gamesMap[id].SetCalculatedInfo(rows, len(active))
-	}
-
 	// The progress graph must reflect the whole library, so include the stored
 	// achievements of any game whose fetch failed this run (their data is kept,
 	// not reset) instead of dropping them from the average.
@@ -74,7 +63,19 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 		return err
 	}
 
-	labels, values := buildProgress(activeAchievements(complete, gamesMap))
+	markCompletionAverageMembership(gamesMap, complete)
+	averaged := averagedGames(gamesMap)
+
+	for id := range gamesMap {
+		rows, ok := fetched[id]
+		if !ok {
+			// Fetch failed/skipped for this game: keep its existing values.
+			continue
+		}
+		gamesMap[id].SetCalculatedInfo(rows, len(averaged))
+	}
+
+	labels, values := buildProgress(averagedAchievements(complete, gamesMap))
 
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.UpsertGames(ctx, tx, gamesMap, userID); errIn != nil {
@@ -164,10 +165,12 @@ func (service *SteamService) buildGamesMap(
 			CompletionRate: "0.00",
 			Contribution:   "0.0000",
 			IsDelisted:     false,
-			ImageURL:       g.GetFullImgIconURL(),
-			LastSyncedAt:   time.Time{}, // set by DB via now() in UpsertGames
-			Favourite:      false,       // user-set; never written by UpsertGames
-			LastPlayed:     rtimeLastPlayedToTime(g.RtimeLastPlayed),
+			// set by markCompletionAverageMembership before persisting
+			InCompletionAverage: false,
+			ImageURL:            g.GetFullImgIconURL(),
+			LastSyncedAt:        time.Time{}, // set by DB via now() in UpsertGames
+			Favourite:           false,       // user-set; never written by UpsertGames
+			LastPlayed:          rtimeLastPlayedToTime(g.RtimeLastPlayed),
 		}
 		if prev, ok := existingByID[g.AppID]; ok {
 			game.CompletionRate = prev.CompletionRate
@@ -363,38 +366,100 @@ func percentPtr(globalPercents map[string]float64, name string) *float64 {
 	return nil
 }
 
-// activeGames returns the subset of gamesMap that Steam still lists in the
-// user's library. Library-wide averages must be computed over this set only:
-// Steam stops counting a game in its own profile average once it leaves the
-// library, and every game list in this app already filters is_delisted, so
-// averaging the delisted ones too produced a headline completion rate that
-// matched neither Steam nor the lists shown beside it.
-func activeGames(gamesMap map[int]*models.Game) map[int]*models.Game {
-	active := make(map[int]*models.Game, len(gamesMap))
+// markCompletionAverageMembership sets InCompletionAverage on every game. A
+// game Steam still lists always counts. A delisted game counts too — the
+// achievements earned there stay on the Steam profile — unless a listed game
+// has taken its achievements over, which is what Valve did folding the
+// Half-Life 2 episodes into Half-Life 2: counting the episode apps as well
+// would put the same achievements into the average twice
+// (docs/adr-0018-completion-average-population.md).
+func markCompletionAverageMembership(
+	gamesMap map[int]*models.Game,
+	achievements map[int][]models.Achievement,
+) {
+	listed := make([]map[string]struct{}, 0, len(gamesMap))
 	for id, game := range gamesMap {
-		if !game.IsDelisted {
-			active[id] = game
+		if game.IsDelisted {
+			continue
+		}
+		if names := achievementNames(achievements[id]); len(names) > 0 {
+			listed = append(listed, names)
 		}
 	}
-	return active
+
+	for id, game := range gamesMap {
+		game.InCompletionAverage = !game.IsDelisted ||
+			!supersededByListedGame(achievementNames(achievements[id]), listed)
+	}
 }
 
-// activeAchievements drops the achievements of delisted games so they take part
-// in neither the numerator nor the denominator of the progress graph's average.
-// A game absent from gamesMap is kept: it is being refreshed right now and its
-// stored row simply has not been read back yet.
-func activeAchievements(
+func achievementNames(rows []models.Achievement) map[string]struct{} {
+	names := make(map[string]struct{}, len(rows))
+	for _, a := range rows {
+		names[a.Name] = struct{}{}
+	}
+	return names
+}
+
+// supersededByListedGame reports whether one single listed game carries every
+// achievement in names. Containment has to be complete and within one game:
+// achievement API names are only unique per app, so a couple of generic ones
+// ("ACH_01") shared across unrelated games must not read as a takeover.
+func supersededByListedGame(
+	names map[string]struct{},
+	listed []map[string]struct{},
+) bool {
+	if len(names) == 0 {
+		return false
+	}
+	for _, owned := range listed {
+		if containsAll(owned, names) {
+			return true
+		}
+	}
+	return false
+}
+
+func containsAll(super, sub map[string]struct{}) bool {
+	if len(super) < len(sub) {
+		return false
+	}
+	for name := range sub {
+		if _, ok := super[name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// averagedGames returns the subset of gamesMap taking part in the library-wide
+// averages, as decided by markCompletionAverageMembership.
+func averagedGames(gamesMap map[int]*models.Game) map[int]*models.Game {
+	averaged := make(map[int]*models.Game, len(gamesMap))
+	for id, game := range gamesMap {
+		if game.InCompletionAverage {
+			averaged[id] = game
+		}
+	}
+	return averaged
+}
+
+// averagedAchievements drops the achievements of games outside the average so
+// they take part in neither its numerator nor its denominator. A game absent
+// from gamesMap is kept: it is being refreshed right now and its stored row
+// simply has not been read back yet.
+func averagedAchievements(
 	achievements map[int][]models.Achievement,
 	gamesMap map[int]*models.Game,
 ) map[int][]models.Achievement {
-	active := make(map[int][]models.Achievement, len(achievements))
+	averaged := make(map[int][]models.Achievement, len(achievements))
 	for id, rows := range achievements {
-		if game, ok := gamesMap[id]; ok && game.IsDelisted {
+		if game, ok := gamesMap[id]; ok && !game.InCompletionAverage {
 			continue
 		}
-		active[id] = rows
+		averaged[id] = rows
 	}
-	return active
+	return averaged
 }
 
 // buildProgress recomputes the cumulative completion-rate graph from the freshly
@@ -424,14 +489,13 @@ func (service *SteamService) GetAllGames(
 	return service.steam.GetAllGames(ctx, userID)
 }
 
-// GetActiveGames returns only the games Steam still lists in the user's
-// library. See SteamRepository.GetActiveGames for why library-wide averages
-// must use this rather than GetAllGames.
-func (service *SteamService) GetActiveGames(
+// GetAveragedGames returns the games taking part in the library-wide
+// completion averages. See SteamRepository.GetAveragedGames.
+func (service *SteamService) GetAveragedGames(
 	ctx context.Context,
 	userID string,
 ) ([]models.Game, error) {
-	return service.steam.GetActiveGames(ctx, userID)
+	return service.steam.GetAveragedGames(ctx, userID)
 }
 
 // GetDelisted returns the games Steam no longer lists in the user's library.
@@ -534,14 +598,17 @@ func (service *SteamService) SyncGame(
 		gamesMap[g.ID] = &g
 	}
 
-	game.SetCalculatedInfo(rows, len(activeGames(gamesMap)))
-
 	fetched := map[int][]models.Achievement{gameID: rows}
 	complete, err := service.completeAchievements(ctx, userID, gamesMap, fetched)
 	if err != nil {
 		return err
 	}
-	labels, values := buildProgress(activeAchievements(complete, gamesMap))
+
+	markCompletionAverageMembership(gamesMap, complete)
+	game.InCompletionAverage = gamesMap[gameID].InCompletionAverage
+	game.SetCalculatedInfo(rows, len(averagedGames(gamesMap)))
+
+	labels, values := buildProgress(averagedAchievements(complete, gamesMap))
 
 	return service.steam.WithTx(ctx, func(tx pgx.Tx) error {
 		if errIn := service.steam.ReplaceAchievements(
