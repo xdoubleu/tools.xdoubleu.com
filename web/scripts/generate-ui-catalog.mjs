@@ -113,8 +113,10 @@ function propsOf(name, byName, text) {
   return [props, heritage]
 }
 
+// Backslashes must be escaped before pipes, or an input backslash would end up
+// escaping the escape and break out of the table cell.
 function escapeCell(value) {
-  return value.replace(/\|/g, '\\|')
+  return value.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')
 }
 
 const files = readdirSync(uiDir)
