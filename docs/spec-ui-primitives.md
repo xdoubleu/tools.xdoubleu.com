@@ -170,6 +170,7 @@ Confirmation prompt for an irreversible action. Prefer this over composing `Dial
 | `cancelLabel` | `string` |  |  |
 | `destructive` | `boolean` |  | Styles the confirm action as destructive. |
 | `pending` | `boolean` |  |  |
+| `confirmDisabled` | `boolean` |  | Blocks confirming while required input in `children` is missing. |
 | `onConfirm` | `() => void` | yes |  |
 | `children` | `ReactNode` |  |  |
 

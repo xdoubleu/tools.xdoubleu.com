@@ -4,8 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { useRemoveBook } from '@/hooks/useBooks'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { swrKeys } from '@/lib/swrKeys'
 
 interface RemoveBookDialogProps {
@@ -46,40 +45,28 @@ export default function RemoveBookDialog({
     }
   }
 
-  const busy = removing
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Remove from library</DialogTitle>
-        </DialogHeader>
-
-        <p className="text-sm text-muted">
+    <ConfirmDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Remove from library"
+      description={
+        <>
           Remove <span className="font-semibold text-fg">{title}</span> from your library? Your
           reading progress and any uploaded files for this book will be deleted.
+        </>
+      }
+      confirmLabel="Remove"
+      pendingLabel="Removing…"
+      destructive
+      pending={removing}
+      onConfirm={handleConfirm}
+    >
+      {error && (
+        <p className="mt-2 text-sm text-danger" data-testid="remove-book-error">
+          {error}
         </p>
-
-        {error && (
-          <p className="mt-2 text-sm text-danger" data-testid="remove-book-error">
-            {error}
-          </p>
-        )}
-
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
-          <Button variant="ghost" disabled={busy} onClick={() => handleOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            disabled={busy}
-            onClick={handleConfirm}
-            data-testid="remove-book-confirm-btn"
-          >
-            {removing ? 'Removing…' : 'Remove'}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+      )}
+    </ConfirmDialog>
   )
 }

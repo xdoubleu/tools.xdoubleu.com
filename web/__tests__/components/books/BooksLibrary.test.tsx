@@ -12,7 +12,7 @@ import {
 const mockSearchExternal = jest.fn()
 const mockCreateBook = jest.fn()
 
-// AddManualBookModal (rendered from the "No results." empty state) also
+// AddManualBookDialog (rendered from the "No results." empty state) also
 // calls useLibrary for its custom-shelf options — stub it with a minimal
 // shape rather than a real proto message, since jest.mock factories can't
 // reference out-of-scope imports (they're hoisted above the imports).
@@ -422,7 +422,7 @@ describe('BooksLibrary', () => {
     expect(screen.getByRole('button', { name: 'Add book' })).toBeInTheDocument()
   })
 
-  it('opens the manual-add modal from the persistent button, prefilled with the search query', async () => {
+  it('opens the manual-add dialog from the persistent button, prefilled with the search query', async () => {
     renderLibrary(makeLibrary(), { searchQuery: 'Dungeon Crawler Carl' })
     await act(async () => {
       jest.advanceTimersByTime(300)
@@ -437,7 +437,7 @@ describe('BooksLibrary', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('Dungeon Crawler Carl')
   })
 
-  it('opens the manual-add modal even when a search returns an (unwanted) match', () => {
+  it('opens the manual-add dialog even when a search returns an (unwanted) match', () => {
     // resultCount > 0 here (Dune matches), so the old no-results-only
     // affordance would never have shown — the persistent button must still
     // work regardless of whether the search found something.
@@ -447,7 +447,7 @@ describe('BooksLibrary', () => {
     expect(screen.getByLabelText('Title')).toHaveValue('dune')
   })
 
-  it('closes the manual-add modal via its Cancel button', () => {
+  it('closes the manual-add dialog via its Cancel button', () => {
     renderLibrary(makeLibrary())
     fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
     expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()

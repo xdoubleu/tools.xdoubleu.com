@@ -16,21 +16,21 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { BOOK_STATUSES, BUILT_IN_STATUSES } from '@/lib/books/bookShelves'
 
-interface AddManualBookModalProps {
+interface AddManualBookDialogProps {
   initialTitle?: string
   onClose: () => void
   onAdded: () => void
 }
 
 // Rendered only while the "add manually" flow is active (see BooksLibrary) —
-// unlike BookModal, which stays mounted and toggles via `open={!!book}`,
+// unlike BookDialog, which stays mounted and toggles via `open={!!book}`,
 // this component owns its own form state, so the parent conditionally
 // mounts/unmounts it instead of passing an `open` flag.
-export default function AddManualBookModal({
+export default function AddManualBookDialog({
   initialTitle = '',
   onClose,
   onAdded
-}: AddManualBookModalProps) {
+}: AddManualBookDialogProps) {
   const [title, setTitle] = useState(initialTitle)
   const [author, setAuthor] = useState('')
   const [isbn13, setIsbn13] = useState('')

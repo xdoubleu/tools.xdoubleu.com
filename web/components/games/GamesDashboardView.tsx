@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import type { RecentGame, SteamResponse } from '@/lib/gen/games/v1/games_pb'
-import GamesStatCard from '@/components/games/GamesStatCard'
+import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
@@ -76,11 +76,11 @@ export default function GamesDashboardView({
       <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <GamesStatCard label="Total backlog" value={steam.totalBacklog} />
-        <GamesStatCard label="Current rate" value={`${steam.currentRate}%`} />
-        <GamesStatCard label="In progress" value={steam.inProgress.length} />
-        <GamesStatCard label="Completed" value={steam.completed.length} />
-        <GamesStatCard label="Favourites" value={favouritesCount} href={favouritesHref} />
+        <StatTile label="Total backlog" value={steam.totalBacklog} />
+        <StatTile label="Current rate" value={`${steam.currentRate}%`} />
+        <StatTile label="In progress" value={steam.inProgress.length} />
+        <StatTile label="Completed" value={steam.completed.length} />
+        <StatTile label="Favourites" value={favouritesCount} href={favouritesHref} />
       </div>
 
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">

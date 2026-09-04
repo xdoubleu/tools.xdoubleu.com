@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { useExternalBook } from '@/hooks/useBooks'
 import BookCover from '@/components/books/BookCover'
-import BookModal from '@/components/books/BookModal'
+import BookDialog from '@/components/books/BookDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -24,7 +24,7 @@ export default function ExternalBookDetailClient({
   providerId
 }: ExternalBookDetailClientProps) {
   const { data, error, isLoading } = useExternalBook(provider, providerId)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showAddDialog, setShowAddDialog] = useState(false)
   const router = useRouter()
 
   const book = data?.result
@@ -63,7 +63,7 @@ export default function ExternalBookDetailClient({
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
 
               <div className="mt-4">
-                <Button type="button" onClick={() => setShowAddModal(true)}>
+                <Button type="button" onClick={() => setShowAddDialog(true)}>
                   Add to library
                 </Button>
               </div>
@@ -83,12 +83,12 @@ export default function ExternalBookDetailClient({
         </>
       )}
 
-      {showAddModal && book && (
-        <BookModal
+      {showAddDialog && book && (
+        <BookDialog
           book={book}
-          onClose={() => setShowAddModal(false)}
+          onClose={() => setShowAddDialog(false)}
           onAdded={() => {
-            setShowAddModal(false)
+            setShowAddDialog(false)
             void mutate(swrKeys.books)
             router.push('/books/library')
           }}

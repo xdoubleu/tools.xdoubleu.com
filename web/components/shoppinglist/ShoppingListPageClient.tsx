@@ -9,7 +9,7 @@ import {
   useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
 import ShoppingList from '@/components/recipes/ShoppingList'
-import ExportModal from '@/components/recipes/ExportModal'
+import ExportDialog from '@/components/recipes/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
 import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
@@ -44,7 +44,7 @@ export default function ShoppingListPageClient() {
   )
 
   // Map the aggregated meal-plan export items into the shared ShoppingItem shape
-  // once, so both the read-only landing preview and the ExportModal work off a
+  // once, so both the read-only landing preview and the ExportDialog work off a
   // single source of truth (and a single SWR fetch).
   const mealItems: ShoppingItemExport[] = useMemo(
     () =>
@@ -121,7 +121,7 @@ export default function ShoppingListPageClient() {
       </div>
 
       {showExport && (
-        <ExportModal
+        <ExportDialog
           customItems={items}
           mealItems={mealItems}
           onClose={() => setShowExport(false)}

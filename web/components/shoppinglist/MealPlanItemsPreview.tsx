@@ -9,7 +9,7 @@ interface MealPlanItemsPreviewProps {
 }
 
 // Read-only preview of the meal-plan-derived items on the shopping-list landing
-// page. Mirrors the ExportModal flat preview: it runs the shared merge/combine/
+// page. Mirrors the ExportDialog flat preview: it runs the shared merge/combine/
 // unit-upgrade pipeline (custom items are passed empty here — they render in the
 // editable list above), so nothing is editable and no merge logic is duplicated.
 export default function MealPlanItemsPreview({ mealItems, isLoading }: MealPlanItemsPreviewProps) {

@@ -1,20 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from '@/components/ui/dialog'
+import ArticleReaderDialog from '@/components/ArticleReaderDialog'
+import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog'
 import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
 import { useFeedItem, useUpdateItem } from '@/hooks/useFeeds'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
-import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
 // How close to the bottom (px) counts as "reached the end" (issue #716).
 const AUTO_READ_THRESHOLD_PX = 24
@@ -24,7 +18,7 @@ const AUTO_READ_THRESHOLD_PX = 24
 // network call on every scroll tick.
 const PROGRESS_DEBOUNCE_MS = 1000
 
-interface ArticleReaderDialogProps {
+interface FeedArticleReaderDialogProps {
   item: Item
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -36,14 +30,15 @@ interface ArticleReaderDialogProps {
 
 // List responses carry only item.hasContent, never the body (issue #1027),
 // so the reader fetches the article itself once the dialog opens — which is
-// also the only moment a body is actually needed.
-export default function ArticleReaderDialog({
+// also the only moment a body is actually needed. The dialog scaffold and
+// prose rendering come from the shared components/ArticleReaderDialog.tsx.
+export default function FeedArticleReaderDialog({
   item,
   open,
   onOpenChange,
   onMarkRead,
   onSettled
-}: ArticleReaderDialogProps) {
+}: FeedArticleReaderDialogProps) {
   const { data: itemData, isLoading } = useFeedItem(open && item.hasContent ? item.id : null)
   const html = itemData?.item?.contentHtml ?? ''
   const [zoomedSrc, setZoomedSrc] = useState<string | null>(null)
@@ -93,25 +88,25 @@ export default function ArticleReaderDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        side="fullscreen"
-        className="max-w-2xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[85vh] sm:p-5 flex flex-col"
-      >
-        <DialogHeader className="items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="leading-tight">{item.title}</DialogTitle>
-            {item.sourceUrl && (
-              <a
-                href={item.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block py-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                View original ↗
-              </a>
-            )}
-          </div>
+    <>
+      <ArticleReaderDialog
+        title={item.title}
+        sourceUrl={item.sourceUrl}
+        open={open}
+        onOpenChange={onOpenChange}
+        html={html}
+        proseClassName="[&_img]:cursor-zoom-in"
+        scrollRef={checkAutoRead}
+        onScroll={(e) => checkAutoRead(e.currentTarget)}
+        // Delegated: article images are raw HTML, so there's no per-image
+        // React node to attach a handler to (issue #941). preventDefault
+        // keeps an image wrapped in a link from navigating away instead.
+        onContentClick={(e) => {
+          if (!(e.target instanceof HTMLImageElement)) return
+          e.preventDefault()
+          setZoomedSrc(e.target.src)
+        }}
+        actions={
           <div className="flex shrink-0 items-center gap-2">
             <FeedBookmarkButton itemId={item.id} bookmarked={item.bookmarked} />
             <FeedItemMarkReadButton
@@ -121,46 +116,17 @@ export default function ArticleReaderDialog({
               onSettled={onSettled}
             />
           </div>
-          <DialogClose
-            aria-label="Close reader"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
-          >
-            X
-          </DialogClose>
-        </DialogHeader>
+        }
+      >
+        {!item.hasContent && (
+          <p className="text-sm text-muted p-4">
+            No in-app content stored for this item.
+            {item.sourceUrl && ' Use "View original" above instead.'}
+          </p>
+        )}
 
-        <div
-          className="min-w-0 flex-1 overflow-y-auto"
-          ref={checkAutoRead}
-          onScroll={(e) => checkAutoRead(e.currentTarget)}
-        >
-          {!item.hasContent && (
-            <p className="text-sm text-muted p-4">
-              No in-app content stored for this item.
-              {item.sourceUrl && ' Use "View original" above instead.'}
-            </p>
-          )}
-
-          {item.hasContent && isLoading && <p className="text-muted p-4">Loading…</p>}
-
-          {html && (
-            <div
-              className="prose prose-sm max-w-none text-fg p-1 [&_img]:cursor-zoom-in"
-              // The HTML originates from third-party RSS feeds — always
-              // sanitize before rendering.
-              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
-              // Delegated: article images are raw HTML, so there's no per-image
-              // React node to attach a handler to (issue #941). preventDefault
-              // keeps an image wrapped in a link from navigating away instead.
-              onClick={(e) => {
-                if (!(e.target instanceof HTMLImageElement)) return
-                e.preventDefault()
-                setZoomedSrc(e.target.src)
-              }}
-            />
-          )}
-        </div>
-      </DialogContent>
+        {item.hasContent && isLoading && <p className="text-muted p-4">Loading…</p>}
+      </ArticleReaderDialog>
 
       <Dialog open={zoomedSrc !== null} onOpenChange={() => setZoomedSrc(null)}>
         {zoomedSrc && (
@@ -184,6 +150,6 @@ export default function ArticleReaderDialog({
           </DialogContent>
         )}
       </Dialog>
-    </Dialog>
+    </>
   )
 }

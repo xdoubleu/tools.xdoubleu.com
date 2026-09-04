@@ -1,16 +1,9 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from '@/components/ui/dialog'
+import ArticleReaderDialog from '@/components/ArticleReaderDialog'
 import { useGetBookContent } from '@/hooks/useBooks'
-import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 
-interface ArticleReaderDialogProps {
+interface BookArticleReaderDialogProps {
   bookId: string
   title: string
   sourceUrl?: string
@@ -19,69 +12,36 @@ interface ArticleReaderDialogProps {
 }
 
 // In-app reader for a library book's stored content (paper/article ingests
-// with content_html). RSS feed items have their own reader in
-// components/feeds/ArticleReaderDialog.tsx, backed by the standalone feeds
-// app (issue #734) — this one stays library/bookId-based.
-export default function ArticleReaderDialog({
+// with content_html) — fetches by bookId and renders the shared reader
+// scaffold in components/ArticleReaderDialog.tsx.
+export default function BookArticleReaderDialog({
   bookId,
   title,
   sourceUrl,
   open,
   onOpenChange
-}: ArticleReaderDialogProps) {
+}: BookArticleReaderDialogProps) {
   const { data, error } = useGetBookContent(open ? bookId : null)
   const html = data?.html ?? ''
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        side="fullscreen"
-        className="max-w-2xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[85vh] sm:p-5 flex flex-col"
-      >
-        <DialogHeader className="items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <DialogTitle className="leading-tight">{title}</DialogTitle>
-            {sourceUrl && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block py-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                View original ↗
-              </a>
-            )}
-          </div>
-          <DialogClose
-            aria-label="Close reader"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
-          >
-            X
-          </DialogClose>
-        </DialogHeader>
+    <ArticleReaderDialog
+      title={title}
+      sourceUrl={sourceUrl}
+      open={open}
+      onOpenChange={onOpenChange}
+      html={html}
+    >
+      {error && <p className="text-sm text-danger p-4">Failed to load article.</p>}
 
-        <div className="min-w-0 flex-1 overflow-y-auto">
-          {error && <p className="text-sm text-danger p-4">Failed to load article.</p>}
+      {!error && !data && <p className="text-sm text-muted p-4">Loading…</p>}
 
-          {!error && !data && <p className="text-sm text-muted p-4">Loading…</p>}
-
-          {!error && data && !html && (
-            <p className="text-sm text-muted p-4">
-              No in-app content stored for this item.
-              {sourceUrl && ' Use "View original" above instead.'}
-            </p>
-          )}
-
-          {html && (
-            <div
-              className="prose prose-sm max-w-none text-fg p-1"
-              // Content originates from ingested third-party HTML — always
-              // sanitize before rendering.
-              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
-            />
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+      {!error && data && !html && (
+        <p className="text-sm text-muted p-4">
+          No in-app content stored for this item.
+          {sourceUrl && ' Use "View original" above instead.'}
+        </p>
+      )}
+    </ArticleReaderDialog>
   )
 }

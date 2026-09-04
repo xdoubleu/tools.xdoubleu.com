@@ -53,7 +53,7 @@ describe('BookRemoveAction', () => {
     render(<BookRemoveAction userBook={makeBook('Dune')} onSaved={onSaved} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Remove Dune from library' }))
-    fireEvent.click(screen.getByTestId('remove-book-confirm-btn'))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => expect(mockRemoveBook).toHaveBeenCalledWith('book-1'))
     expect(onSaved).toHaveBeenCalled()

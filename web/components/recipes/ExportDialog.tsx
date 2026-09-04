@@ -26,15 +26,15 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 
-interface ExportModalProps {
+interface ExportDialogProps {
   customItems: ShoppingItem[]
   // Meal-plan items are fetched once on the landing page (which also owns the
-  // ingredient-group exclusion) and passed in. The modal only picks the store.
+  // ingredient-group exclusion) and passed in. The dialog only picks the store.
   mealItems: ShoppingItem[]
   onClose: () => void
 }
 
-export default function ExportModal({ customItems, mealItems, onClose }: ExportModalProps) {
+export default function ExportDialog({ customItems, mealItems, onClose }: ExportDialogProps) {
   const [selectedStoreId, setSelectedStoreId] = useState('')
   const [copyFeedback, setCopyFeedback] = useState('')
 

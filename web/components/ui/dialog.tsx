@@ -152,6 +152,8 @@ interface ConfirmDialogProps {
   /** Styles the confirm action as destructive. */
   destructive?: boolean
   pending?: boolean
+  /** Blocks confirming while required input in `children` is missing. */
+  confirmDisabled?: boolean
   onConfirm: () => void
   children?: ReactNode
 }
@@ -170,6 +172,7 @@ function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   pending = false,
+  confirmDisabled = false,
   onConfirm,
   children
 }: ConfirmDialogProps) {
@@ -188,7 +191,7 @@ function ConfirmDialog({
           <Button
             variant={destructive ? 'destructive' : 'default'}
             onClick={onConfirm}
-            disabled={pending}
+            disabled={pending || confirmDisabled}
           >
             {pending && pendingLabel !== undefined ? pendingLabel : confirmLabel}
           </Button>

@@ -11,7 +11,7 @@ import BooksTable from '@/components/books/BooksTable'
 import BookCard from '@/components/books/BookCard'
 import ExternalBookCard from '@/components/books/ExternalBookCard'
 import ManageShelvesTagsDialog from '@/components/books/ManageShelvesTagsDialog'
-import AddManualBookModal from '@/components/books/AddManualBookModal'
+import AddManualBookDialog from '@/components/books/AddManualBookDialog'
 import { Button } from '@/components/ui/button'
 import { useSearchExternal } from '@/hooks/useBooks'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
@@ -205,7 +205,7 @@ export default function BooksLibrary({
       />
 
       {manualAddOpen && (
-        <AddManualBookModal
+        <AddManualBookDialog
           initialTitle={searchQuery.trim()}
           onClose={() => setManualAddOpen(false)}
           onAdded={onSaved}

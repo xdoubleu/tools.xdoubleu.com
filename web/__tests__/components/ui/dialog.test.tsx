@@ -74,6 +74,12 @@ describe('ConfirmDialog', () => {
     expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
   })
 
+  it('disables only the confirm action when confirmDisabled is set', () => {
+    render(<ConfirmDialog {...baseProps} confirmLabel="Remove" confirmDisabled />)
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeEnabled()
+  })
+
   it('styles the confirm action as destructive when asked', () => {
     render(<ConfirmDialog {...baseProps} confirmLabel="Remove" destructive />)
     expect(screen.getByRole('button', { name: 'Remove' })).toHaveClass('bg-danger')
