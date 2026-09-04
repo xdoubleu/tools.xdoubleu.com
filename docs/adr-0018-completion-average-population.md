@@ -48,9 +48,11 @@ when it is delisted and no listed game carries its achievements.
 `markCompletionAverageMembership` (`services/steam.go`) decides this on every
 sync by comparing achievement API names, and stores the verdict in
 `steam_games.in_completion_average`. Containment must be complete and within one
-listed game: achievement API names are only unique per app, so a couple of
-generic ones (`ACH_01`) shared across unrelated games must not read as a
-takeover.
+listed game, so a partial overlap, or a set spread across several listed games,
+is not a takeover. Achievement API names are only unique per app, so a whole set
+of generic ones (`ACH_01`) sitting inside an unrelated game would still read as
+one; that is accepted, the alternative being a name-shape heuristic that would
+misjudge real takeovers.
 
 `GetAveragedGames` returns that population, and both the distribution chart and
 the progress graph use it, so the chart and the tile beside it can never

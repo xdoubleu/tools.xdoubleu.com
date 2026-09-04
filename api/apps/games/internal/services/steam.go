@@ -402,9 +402,12 @@ func achievementNames(rows []models.Achievement) map[string]struct{} {
 }
 
 // supersededByListedGame reports whether one single listed game carries every
-// achievement in names. Containment has to be complete and within one game:
-// achievement API names are only unique per app, so a couple of generic ones
-// ("ACH_01") shared across unrelated games must not read as a takeover.
+// achievement in names. Containment has to be complete and within one game, so
+// a partial overlap, or a set spread across several listed games, is not a
+// takeover. Achievement API names are only unique per app, so a whole set of
+// generic ones ("ACH_01") sitting inside an unrelated game would still read as
+// one — unlikely enough to accept, given the alternative is a name-shape
+// heuristic that would misjudge real takeovers.
 func supersededByListedGame(
 	names map[string]struct{},
 	listed []map[string]struct{},
