@@ -4,7 +4,7 @@ inputs:
   - directory: ../proto
 plugins:
   # renovate: datasource=github-releases depName=bufbuild/protobuf-es
-  - remote: buf.build/bufbuild/es:v2.14.0
+  - remote: buf.build/bufbuild/es:v2.14.1
     out: ./lib/gen
     opt:
       - target=ts
