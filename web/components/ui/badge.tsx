@@ -1,4 +1,5 @@
 import { type HTMLAttributes } from 'react'
+import { cn } from '@/lib/cn'
 
 type BadgeVariant = 'default' | 'secondary' | 'success' | 'warn' | 'danger'
 
@@ -14,16 +15,15 @@ const variantClasses: Record<BadgeVariant, string> = {
   danger: 'bg-danger/10 text-danger border-danger/20'
 }
 
-function Badge({ variant = 'default', className = '', ...props }: BadgeProps) {
+/** Small inline status pill. Pick the variant by meaning, not colour. */
+function Badge({ variant = 'default', className, ...props }: BadgeProps) {
   return (
     <span
-      className={[
+      className={cn(
         'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
         variantClasses[variant],
         className
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      )}
       {...props}
     />
   )

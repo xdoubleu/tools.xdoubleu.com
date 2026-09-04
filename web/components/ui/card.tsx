@@ -1,4 +1,5 @@
 import { type HTMLAttributes } from 'react'
+import { cn } from '@/lib/cn'
 
 /**
  * Shared hover/focus treatment for clickable cards (Links or buttons rendered
@@ -11,52 +12,39 @@ import { type HTMLAttributes } from 'react'
 const interactiveCardClass =
   'rounded-2xl border border-border bg-card shadow-card ring-1 ring-accent/20 transition-[box-shadow,transform] duration-200 hover:shadow-elevated hover:ring-accent/40 active:shadow-elevated active:ring-accent/40 active:scale-[0.98]'
 
-function Card({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
+/** Static surface for grouped content. Use `interactiveCardClass` when the card is clickable. */
+function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={['rounded-2xl border border-border bg-card shadow-card', className]
-        .filter(Boolean)
-        .join(' ')}
+      className={cn('rounded-2xl border border-border bg-card shadow-card', className)}
       {...props}
     />
   )
 }
 
-function CardHeader({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={['flex flex-col space-y-1 p-4 sm:p-5', className].filter(Boolean).join(' ')}
-      {...props}
-    />
-  )
+/** Title/description block at the top of a `Card`. */
+function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('flex flex-col space-y-1 p-4 sm:p-5', className)} {...props} />
 }
 
-function CardTitle({ className = '', ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return (
-    <h3
-      className={['text-base font-semibold text-fg', className].filter(Boolean).join(' ')}
-      {...props}
-    />
-  )
+/** Heading inside a `CardHeader`. */
+function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn('text-base font-semibold text-fg', className)} {...props} />
 }
 
-function CardDescription({ className = '', ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={['text-sm text-muted', className].filter(Boolean).join(' ')} {...props} />
+/** Muted supporting line inside a `CardHeader`. */
+function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
+  return <p className={cn('text-sm text-muted', className)} {...props} />
 }
 
-function CardContent({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div className={['p-4 pt-0 sm:p-5 sm:pt-0', className].filter(Boolean).join(' ')} {...props} />
-  )
+/** Main body of a `Card`, padded to line up with `CardHeader`. */
+function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('p-4 pt-0 sm:p-5 sm:pt-0', className)} {...props} />
 }
 
-function CardFooter({ className = '', ...props }: HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={['flex items-center p-4 pt-0 sm:p-5 sm:pt-0', className].filter(Boolean).join(' ')}
-      {...props}
-    />
-  )
+/** Action row at the bottom of a `Card`. */
+function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn('flex items-center p-4 pt-0 sm:p-5 sm:pt-0', className)} {...props} />
 }
 
 export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
