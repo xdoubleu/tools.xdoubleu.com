@@ -11,6 +11,7 @@ import (
 
 type Services struct {
 	StaticImport *StaticImportService
+	Journey      *JourneyService
 }
 
 func New(
@@ -20,5 +21,6 @@ func New(
 ) *Services {
 	return &Services{
 		StaticImport: NewStaticImportService(logger, repos, bmcClient),
+		Journey:      NewJourneyService(logger, repos),
 	}
 }

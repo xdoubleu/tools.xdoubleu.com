@@ -1,0 +1,50 @@
+syntax = "proto3";
+package trains.v1;
+option go_package = "tools.xdoubleu.com/gen/trains/v1;trainsv1";
+
+// Leg is one boarded train, from where the passenger gets on to where they
+// get off. trip_short_name/route_short_name identify the train to a
+// user — trip_id itself churns daily and is never exposed here.
+message Leg {
+  string trip_short_name = 1;
+  string route_short_name = 2;
+  string headsign = 3;
+  string board_stop_id = 4;
+  string board_stop_name = 5;
+  string board_platform = 6;
+  string board_time = 7;
+  string alight_stop_id = 8;
+  string alight_stop_name = 9;
+  string alight_platform = 10;
+  string alight_time = 11;
+}
+
+// Journey is one ordered itinerary from origin to destination.
+message Journey {
+  repeated Leg legs = 1;
+  string departure_time = 2;
+  string arrival_time = 3;
+  int32 transfers = 4;
+}
+
+message SearchJourneysRequest {
+  // Origin stop id — a station (its children are all considered) or a
+  // specific platform.
+  string origin_stop_id = 1;
+  string destination_stop_id = 2;
+  // RFC3339 timestamp, interpreted as a departure time unless arrive_by
+  // is set.
+  string time = 3;
+  bool arrive_by = 4;
+}
+
+message SearchJourneysResponse {
+  // A Pareto set over (arrival time, transfer count) — the earliest
+  // arrival plus slower options with fewer changes, for a window around
+  // the requested time.
+  repeated Journey journeys = 1;
+}
+
+service TrainService {
+  rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
+}
