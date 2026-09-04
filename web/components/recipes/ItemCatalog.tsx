@@ -5,7 +5,9 @@ import { useItemNames, useCategories } from '@/hooks/useShoppingList'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { ItemName } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 // Excluded items collect under this trailing group; it is collapsed by default.
 const NOT_EXPORTED = 'Not exported'
@@ -107,18 +109,18 @@ export default function ItemCatalog() {
         const isCollapsed = collapsed[group.key] ?? false
         return (
           <div key={group.key} className="space-y-2">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
               onClick={() => toggleGroup(group.key)}
               aria-expanded={!isCollapsed}
-              className="flex w-full items-center gap-2 text-left text-sm font-semibold text-fg"
+              className="h-auto w-full justify-start gap-2 px-0 py-0 text-left text-sm font-semibold hover:bg-transparent"
             >
               <span aria-hidden className="text-muted">
                 {isCollapsed ? '▸' : '▾'}
               </span>
               {group.title}
               <span className="text-xs font-normal text-muted">({group.items.length})</span>
-            </button>
+            </Button>
             {!isCollapsed && (
               <ul className="space-y-2">
                 {group.items.map((item) => (
@@ -147,12 +149,10 @@ export default function ItemCatalog() {
                       </Select>
                     )}
                     <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         aria-label={`Export ${item.name} to list`}
                         checked={!item.excluded}
                         onChange={(e) => handleExcludedChange(item.name, !e.target.checked)}
-                        className="size-4 rounded accent-accent"
                       />
                       Export
                     </label>

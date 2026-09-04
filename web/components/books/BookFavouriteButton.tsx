@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useUpdateBookStatus } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
-import { cn } from '@/lib/cn'
+import { ToggleIconButton } from '@/components/ui/toggle-icon-button'
 import { swrKeys } from '@/lib/swrKeys'
 
 interface BookFavouriteButtonProps {
@@ -35,18 +35,13 @@ export default function BookFavouriteButton({ userBook, onSaved }: BookFavourite
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-label={favourite ? 'Remove from favourites' : 'Add to favourites'}
-      aria-pressed={favourite}
-      className={cn(
-        'text-sm leading-none transition-colors',
-        'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
-        favourite ? 'text-amber-500' : 'text-border hover:text-amber-400 active:text-amber-400'
-      )}
+    <ToggleIconButton
+      active={favourite}
+      onToggle={handleClick}
+      label="Add to favourites"
+      activeLabel="Remove from favourites"
     >
       ♥
-    </button>
+    </ToggleIconButton>
   )
 }

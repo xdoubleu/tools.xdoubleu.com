@@ -4,14 +4,7 @@ import { useState } from 'react'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/dialog'
 import { Select } from '@/components/ui/select'
 import {
   SecurityAlertType,
@@ -103,40 +96,35 @@ function DismissAlertDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Dismiss alert #{alert.number.toString()}</DialogTitle>
-          <DialogClose aria-label="Close">x</DialogClose>
-        </DialogHeader>
-        <DialogDescription>
-          This resolves the alert on GitHub. Pick the reason that best describes why it no longer
-          needs attention.
-        </DialogDescription>
-        <div className="mt-4 space-y-4">
-          <Select
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            aria-label="Dismissal reason"
-          >
-            {reasons.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </Select>
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={dismissing}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDismiss} disabled={dismissing || !reason}>
-              {dismissing ? 'Dismissing…' : 'Dismiss alert'}
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={<>Dismiss alert #{alert.number.toString()}</>}
+      description="This resolves the alert on GitHub. Pick the reason that best describes why it no longer needs attention."
+      confirmLabel="Dismiss alert"
+      pendingLabel="Dismissing…"
+      destructive
+      pending={dismissing}
+      // GitHub's API requires a reason, and an alert type with no reason list
+      // (UNSPECIFIED) can't be dismissed at all.
+      confirmDisabled={!reason}
+      onConfirm={handleDismiss}
+    >
+      <div className="mt-4 space-y-4">
+        <Select
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          aria-label="Dismissal reason"
+        >
+          {reasons.map((r) => (
+            <option key={r.value} value={r.value}>
+              {r.label}
+            </option>
+          ))}
+        </Select>
+        {error && <p className="text-sm text-danger">{error}</p>}
+      </div>
+    </ConfirmDialog>
   )
 }
 

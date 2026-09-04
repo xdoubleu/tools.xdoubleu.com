@@ -117,7 +117,7 @@ describe('ExternalBookDetailClient', () => {
     expect(screen.getByText('Library').closest('a')).toHaveAttribute('href', '/books/library')
   })
 
-  it('opens the add-to-library modal when "Add to library" is clicked', () => {
+  it('opens the add-to-library dialog when "Add to library" is clicked', () => {
     mockResult()
     render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
     fireEvent.click(screen.getByRole('button', { name: 'Add to library' }))

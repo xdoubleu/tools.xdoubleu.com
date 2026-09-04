@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import TogglePill from '@/components/books/TogglePill'
+import { TogglePill } from '@/components/ui/toggle-pill'
 
 describe('TogglePill', () => {
   it('renders the label', () => {

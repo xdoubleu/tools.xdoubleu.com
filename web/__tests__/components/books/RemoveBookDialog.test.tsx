@@ -82,7 +82,7 @@ describe('RemoveBookDialog', () => {
     const onRemoved = jest.fn()
     renderDialog({ onOpenChange, onRemoved })
 
-    fireEvent.click(screen.getByTestId('remove-book-confirm-btn'))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => expect(mockRemoveBook).toHaveBeenCalledWith('book-1'))
     expect(mockMutate).toHaveBeenCalledWith('/books')
@@ -94,7 +94,7 @@ describe('RemoveBookDialog', () => {
     mockRemoveBook.mockRejectedValue(new Error('network error'))
     renderDialog()
 
-    fireEvent.click(screen.getByTestId('remove-book-confirm-btn'))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     await waitFor(() => expect(screen.getByTestId('remove-book-error')).toBeInTheDocument())
     expect(screen.getByTestId('remove-book-error')).toHaveTextContent('Failed to remove book')

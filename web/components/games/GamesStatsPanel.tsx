@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSteam, useSteamProgress } from '@/hooks/useGames'
-import GamesStatCard from '@/components/games/GamesStatCard'
+import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
@@ -40,10 +40,10 @@ function GamesStatsPanelContent() {
       {steam && (
         <div className="flex flex-col gap-6">
           <div className="grid grid-cols-2 gap-3">
-            <GamesStatCard label="Total backlog" value={steam.totalBacklog} />
-            <GamesStatCard label="Current rate" value={`${steam.currentRate}%`} />
-            <GamesStatCard label="In progress" value={steam.inProgress.length} />
-            <GamesStatCard label="Completed" value={steam.completed.length} />
+            <StatTile label="Total backlog" value={steam.totalBacklog} />
+            <StatTile label="Current rate" value={`${steam.currentRate}%`} />
+            <StatTile label="In progress" value={steam.inProgress.length} />
+            <StatTile label="Completed" value={steam.completed.length} />
           </div>
 
           <div>

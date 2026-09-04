@@ -3,6 +3,7 @@
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
 import type { BookConflictField, FieldConflict } from './duplicateConflicts'
 import BookCover from '@/components/books/BookCover'
+import { Radio } from '@/components/ui/radio-group'
 
 // ---------------------------------------------------------------------------
 // Field label map
@@ -34,8 +35,7 @@ interface CoverChoiceProps {
 function CoverChoice({ bookId, coverUrl, title, checked, onChange, groupKey }: CoverChoiceProps) {
   return (
     <label className="flex flex-col items-center gap-1 cursor-pointer">
-      <input
-        type="radio"
+      <Radio
         name={`cover-${groupKey}`}
         value={bookId}
         checked={checked}
@@ -119,8 +119,7 @@ export default function ConflictFieldPicker({
                         : 'border-border text-muted hover:border-muted'
                     }`}
                   >
-                    <input
-                      type="radio"
+                    <Radio
                       name={`${field}-${groupKey}`}
                       value={c.bookId}
                       checked={chosen === c.bookId}

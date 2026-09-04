@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface RecoveryCodesDialogProps {
   codes: string[]
@@ -53,8 +54,7 @@ export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesD
           </Button>
 
           <label className="flex items-start gap-2 text-sm text-subtle">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={confirmed}
               onChange={(e) => setConfirmed(e.target.checked)}
               className="mt-1"

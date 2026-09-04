@@ -49,7 +49,7 @@ loaded automatically.
 | [convention-database-queries.md](convention-database-queries.md) | Never select a wide TEXT column in a list query; read direction | #1027 |
 | [convention-deploy-secrets.md](convention-deploy-secrets.md) | A deploy secret is declared in three places that must agree | #1390, #1404, #1405 |
 | [convention-mcp-gap-first.md](convention-mcp-gap-first.md) | Fix the missing MCP tool before investigating the incident | #1027, #1195, #1214, #1357, #1374, #1377 |
-| [convention-ui-standards.md](convention-ui-standards.md) | Web UI rules, theming, and the server/client import trap | — |
+| [convention-ui-standards.md](convention-ui-standards.md) | Web UI rules, theming, and the server/client import trap | #1412 |
 
 ## Specs
 
@@ -61,6 +61,7 @@ loaded automatically.
 | [spec-oauth-consent-screen.md](spec-oauth-consent-screen.md) | The server-rendered `/oauth/consent` flow | #1039 |
 | [spec-observability-subsystem.md](spec-observability-subsystem.md) | `TrackedJob`, `UsageRecorder`, host metrics, log tee, snapshots | #1027, #915, #1040, #848, #1217 |
 | [spec-trains-gtfs-ingest.md](spec-trains-gtfs-ingest.md) | GTFS static import, feed traps, `trip_id` churn | #1388, #1389, #1390 |
+| [spec-ui-primitives.md](spec-ui-primitives.md) | Generated inventory of `components/ui/` — check before building a component | #1412 |
 | [spec-web-data-flow.md](spec-web-data-flow.md) | Two ConnectRPC transports; RSC prefetch → SWR hydration | #1318 |
 
 ## Infrastructure

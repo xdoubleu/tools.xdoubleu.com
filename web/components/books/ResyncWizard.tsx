@@ -10,7 +10,7 @@ import {
   type SourceSearchOverride
 } from '@/hooks/useBooks'
 import SourceCompare from '@/components/books/SourceCompare'
-import TogglePill from '@/components/books/TogglePill'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

@@ -6,6 +6,7 @@ import { useCurrentUser, useSignIn, useMFAChallenge } from '@/hooks/useAuth'
 import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
@@ -281,12 +282,10 @@ export default function HomeClient() {
           </div>
 
           <div className="flex items-center">
-            <input
+            <Checkbox
               id="rememberMe"
-              type="checkbox"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-accent"
             />
             <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
               Remember me

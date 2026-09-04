@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
+import { Checkbox } from '@/components/ui/checkbox'
 
 function formatLastSeen(lastSeenAt: string): string {
   if (!lastSeenAt) return 'Never synced'
@@ -152,11 +153,9 @@ export default function KoboDevices() {
 
             <div className="mt-2 flex items-center gap-3">
               <label className="flex cursor-pointer items-center gap-2 text-xs text-subtle">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={device.loggingEnabled}
                   onChange={(e) => handleToggleLogging(device.id, e.target.checked)}
-                  className="rounded accent-accent"
                   data-testid={`kobo-logging-toggle-${device.id}`}
                 />
                 Debug logging

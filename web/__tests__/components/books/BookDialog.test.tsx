@@ -1,7 +1,7 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import BookModal from '@/components/books/BookModal'
+import BookDialog from '@/components/books/BookDialog'
 import { useLibrary } from '@/hooks/useBooks'
 import {
   ExternalBookResultSchema,
@@ -35,7 +35,7 @@ function makeLibraryData(shelfNames: string[] = []) {
   })
 }
 
-describe('BookModal', () => {
+describe('BookDialog', () => {
   beforeEach(() => {
     mockAddBook.mockReset()
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
@@ -47,18 +47,18 @@ describe('BookModal', () => {
   })
 
   it('renders nothing when book is null', () => {
-    const { container } = render(<BookModal book={null} onClose={jest.fn()} onAdded={jest.fn()} />)
+    const { container } = render(<BookDialog book={null} onClose={jest.fn()} onAdded={jest.fn()} />)
     expect(container.firstChild).toBeNull()
   })
 
   it('renders book title and authors', () => {
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     expect(screen.getByText('The Go Programming Language')).toBeInTheDocument()
     expect(screen.getByText('Alan Donovan, Brian Kernighan')).toBeInTheDocument()
   })
 
   it('renders status select defaulting to "Want to read"', () => {
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     const select = screen.getByLabelText('Status') as HTMLSelectElement
     expect(select.value).toBe('to-read')
   })
@@ -70,7 +70,7 @@ describe('BookModal', () => {
       isLoading: false,
       error: undefined
     })
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     const select = screen.getByLabelText('Status') as HTMLSelectElement
     expect(screen.getByRole('option', { name: 'book-club' })).toBeInTheDocument()
     fireEvent.change(select, { target: { value: 'book-club' } })
@@ -84,13 +84,13 @@ describe('BookModal', () => {
       isLoading: false,
       error: undefined
     })
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
     expect(screen.getAllByRole('option', { name: 'Read' })).toHaveLength(1)
   })
 
   it('calls onClose when Cancel button clicked', () => {
     const onClose = jest.fn()
-    render(<BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(onClose).toHaveBeenCalled()
   })
@@ -99,7 +99,7 @@ describe('BookModal', () => {
     const onAdded = jest.fn()
     const onClose = jest.fn()
     mockAddBook.mockResolvedValue(undefined)
-    render(<BookModal book={fakeBook} onClose={onClose} onAdded={onAdded} />)
+    render(<BookDialog book={fakeBook} onClose={onClose} onAdded={onAdded} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
 
@@ -112,7 +112,7 @@ describe('BookModal', () => {
 
   it('shows error message when addBook throws', async () => {
     mockAddBook.mockRejectedValue(new Error('Network error'))
-    render(<BookModal book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={jest.fn()} onAdded={jest.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Book' }))
 
@@ -123,7 +123,7 @@ describe('BookModal', () => {
 
   it('closes when Escape is pressed', () => {
     const onClose = jest.fn()
-    render(<BookModal book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
+    render(<BookDialog book={fakeBook} onClose={onClose} onAdded={jest.fn()} />)
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalled()
   })

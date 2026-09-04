@@ -29,7 +29,7 @@ jest.mock('@/hooks/useShoppingList', () => ({
   }),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
-  // Consumed by ExportModal once the export dialog is opened.
+  // Consumed by ExportDialog once the export dialog is opened.
   useStores: () => ({ data: { stores: [] }, isLoading: false }),
   useStoreCategories: () => ({ data: undefined, isLoading: false }),
   useItemCategories: () => ({ data: { items: [] }, isLoading: false })
@@ -186,7 +186,7 @@ describe('ShoppingPage meal-plan section', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
     expect(screen.getByText('Export Shopping List')).toBeInTheDocument()
-    // The meal item flows into the modal's preview, and the modal no longer owns
+    // The meal item flows into the dialog's preview, and the dialog no longer owns
     // the ingredient-group controls.
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
     expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()

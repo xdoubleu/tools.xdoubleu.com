@@ -161,6 +161,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`spec-oauth-consent-screen`](docs/spec-oauth-consent-screen.md) — the `/oauth/consent` flow
 - [`spec-observability-subsystem`](docs/spec-observability-subsystem.md) — jobs, usage recording, host metrics, log tee
 - [`spec-trains-gtfs-ingest`](docs/spec-trains-gtfs-ingest.md) — GTFS import and its feed traps
+- [`spec-ui-primitives`](docs/spec-ui-primitives.md) — generated `components/ui/` inventory; check before building a component
 - [`spec-web-data-flow`](docs/spec-web-data-flow.md) — RSC/SWR transports and hydration
 
 Host-layer decisions stay in [`infra/README.md`](infra/README.md), the single

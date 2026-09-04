@@ -125,6 +125,26 @@ describe('SecurityAlertsCard', () => {
     await waitFor(() => expect(screen.queryByText('Dismiss alert #83')).not.toBeInTheDocument())
   })
 
+  it('blocks confirming until a reason is picked', async () => {
+    const data = create(GetSecurityAlertsResponseSchema, {
+      configured: true,
+      alertCount: 1,
+      alerts: [dependabotAlert]
+    })
+    render(<SecurityAlertsCard data={data} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
+    expect(await screen.findByText('Dismiss alert #83')).toBeInTheDocument()
+
+    // No reason chosen yet, so the destructive action must not be reachable.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Dismissal reason' }), {
+      target: { value: '' }
+    })
+    expect(screen.getByRole('button', { name: 'Dismiss alert' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss alert' }))
+    expect(mockDismissSecurityAlert).not.toHaveBeenCalled()
+  })
+
   it('offers secret-scanning-specific reasons for a secret-scanning alert', async () => {
     const data = create(GetSecurityAlertsResponseSchema, {
       configured: true,

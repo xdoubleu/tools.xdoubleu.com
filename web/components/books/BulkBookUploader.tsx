@@ -179,6 +179,7 @@ export default function BulkBookUploader() {
         <p className="text-sm text-muted">
           Drop EPUB or PDF files (or a folder) here, or click to browse
         </p>
+        {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
         <input
           id="bulk-file-input"
           type="file"
@@ -188,6 +189,7 @@ export default function BulkBookUploader() {
           onChange={handleInputChange}
           data-testid="file-input"
         />
+        {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
         <input
           id="bulk-folder-input"
           type="file"

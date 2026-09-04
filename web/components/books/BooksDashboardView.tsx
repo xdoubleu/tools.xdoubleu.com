@@ -2,9 +2,7 @@
 
 import { Fragment, type ReactNode } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
-// ponytail: GamesStatCard is the shared stat card for both apps; not renamed to
-// avoid churning imports across ~5 files for no behaviour change.
-import GamesStatCard from '@/components/games/GamesStatCard'
+import { StatTile } from '@/components/ui/stat'
 import BooksProgressChart from '@/components/books/BooksProgressChart'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
@@ -40,14 +38,14 @@ export default function BooksDashboardView({
       <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <GamesStatCard
+        <StatTile
           label="Total books"
           value={reading.length + library.wishlist.length + library.finished.length}
         />
-        <GamesStatCard label={statusLabel('currently-reading')} value={reading.length} />
-        <GamesStatCard label={statusLabel('read')} value={library.finished.length} />
-        <GamesStatCard label="Read this year" value={ytd.total} />
-        <GamesStatCard label={statusLabel('to-read')} value={library.wishlist.length} />
+        <StatTile label={statusLabel('currently-reading')} value={reading.length} />
+        <StatTile label={statusLabel('read')} value={library.finished.length} />
+        <StatTile label="Read this year" value={ytd.total} />
+        <StatTile label={statusLabel('to-read')} value={library.wishlist.length} />
       </div>
 
       <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">

@@ -40,12 +40,20 @@ npm run test:cov:diff                        # jest --coverage, then scope the r
 npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
+npm run generate:ui-catalog                 # regenerate docs/spec-ui-primitives.md from components/ui/
+npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
 ```
 
 ## UI Standards
 
 Mobile-first Tailwind (no fixed-pixel widths); Server Components by default;
-every interactive control uses a `components/ui/` shadcn-style primitive; merge
+every interactive control uses a `components/ui/` shadcn-style primitive —
+**ESLint fails the build on a raw `<button>`/`<input>`/`<select>`/`<textarea>`
+outside `components/ui/`**, so check the generated inventory in
+[`docs/spec-ui-primitives.md`](../docs/spec-ui-primitives.md) before writing a
+new component, and add a primitive rather than styling a raw element at a call
+site. Regenerate that inventory with `npm run generate:ui-catalog` whenever
+`components/ui/` changes (`npm run lint` fails if it's stale). Merge
 class overrides with `cn()` from `lib/cn.ts`; clickable cards use
 `interactiveCardClass` from `components/ui/card.tsx`. Page-level loading is
 `<p className="text-muted">Loading…</p>`, errors

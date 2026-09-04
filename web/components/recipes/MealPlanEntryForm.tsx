@@ -8,6 +8,7 @@ import RecipeCombobox from './RecipeCombobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
 import { useCategories, useItemCategories } from '@/hooks/useShoppingList'
@@ -291,11 +292,9 @@ export default function MealPlanEntryForm({
               + Add item
             </Button>
             <label className="flex items-center gap-2 pt-1 text-xs text-muted">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={excludeFromShoppingList}
                 onChange={(e) => setExcludeFromShoppingList(e.target.checked)}
-                className="size-4 rounded accent-accent"
               />
               Keep off the shopping list
             </label>

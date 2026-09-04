@@ -16,13 +16,13 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { BOOK_STATUSES, BUILT_IN_STATUSES } from '@/lib/books/bookShelves'
 
-interface BookModalProps {
+interface BookDialogProps {
   book: ExternalBookResult | null
   onClose: () => void
   onAdded: () => void
 }
 
-export default function BookModal({ book, onClose, onAdded }: BookModalProps) {
+export default function BookDialog({ book, onClose, onAdded }: BookDialogProps) {
   const [status, setStatus] = useState('to-read')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

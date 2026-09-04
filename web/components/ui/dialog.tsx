@@ -2,6 +2,7 @@
 
 import * as RadixDialog from '@radix-ui/react-dialog'
 import { type ReactNode } from 'react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
 interface DialogProps {
@@ -133,4 +134,81 @@ function DialogClose({
   )
 }
 
-export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose }
+/** Right-aligned action row at the bottom of a dialog. Put the confirming action last. */
+function DialogFooter({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={cn('mt-5 flex items-center justify-end gap-2', className)}>{children}</div>
+}
+
+interface ConfirmDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: ReactNode
+  /** Say what will happen, especially what cannot be undone. */
+  description?: ReactNode
+  confirmLabel?: string
+  /** Shown on the confirm button while `pending` — a `…`-suffixed present participle. */
+  pendingLabel?: string
+  cancelLabel?: string
+  /** Styles the confirm action as destructive. */
+  destructive?: boolean
+  pending?: boolean
+  /** Blocks confirming while required input in `children` is missing. */
+  confirmDisabled?: boolean
+  onConfirm: () => void
+  children?: ReactNode
+}
+
+/**
+ * Confirmation prompt for an irreversible action. Prefer this over composing
+ * `Dialog` by hand so every confirm step reads and behaves the same.
+ */
+function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = 'Confirm',
+  pendingLabel,
+  cancelLabel = 'Cancel',
+  destructive = false,
+  pending = false,
+  confirmDisabled = false,
+  onConfirm,
+  children
+}: ConfirmDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        {description !== undefined && <DialogDescription>{description}</DialogDescription>}
+        {children}
+        <DialogFooter>
+          <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={pending}>
+            {cancelLabel}
+          </Button>
+          <Button
+            variant={destructive ? 'destructive' : 'default'}
+            onClick={onConfirm}
+            disabled={pending || confirmDisabled}
+          >
+            {pending && pendingLabel !== undefined ? pendingLabel : confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+  DialogFooter,
+  ConfirmDialog
+}
+export type { ConfirmDialogProps }

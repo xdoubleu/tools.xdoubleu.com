@@ -53,6 +53,7 @@ export default function BooksSettingsClient() {
         <div className="flex items-center gap-2">
           <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover active:bg-hover">
             Import CSV
+            {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
             <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
           </label>
           {importStatus && <span className="text-sm text-muted">{importStatus}</span>}

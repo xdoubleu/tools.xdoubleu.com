@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useEnableKoboSync, useToggleTag, useKEPUBStatus } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Radio } from '@/components/ui/radio-group'
 
 interface KoboSyncToggleProps {
   bookId: string
@@ -84,13 +86,11 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <input
+        <Checkbox
           id="kobo-sync-toggle"
-          type="checkbox"
           checked={enabledState}
           disabled={(!canEnable && !enabledState) || toggling}
           onChange={handleToggle}
-          className="rounded accent-accent"
           data-testid="kobo-sync-checkbox"
         />
         <label htmlFor="kobo-sync-toggle" className="text-sm text-subtle cursor-pointer">
@@ -107,25 +107,21 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
           <p className="text-xs text-muted">Send to Kobo as:</p>
           <div className="flex gap-3">
             <label className="flex items-center gap-1.5 text-xs text-subtle cursor-pointer">
-              <input
-                type="radio"
+              <Radio
                 name={`kobo-format-${bookId}`}
                 checked={!wantsPDF}
                 disabled={toggling}
                 onChange={() => wantsPDF && handleFormatChange(false)}
-                className="accent-accent"
                 data-testid="kobo-format-kepub"
               />
               EPUB (converted)
             </label>
             <label className="flex items-center gap-1.5 text-xs text-subtle cursor-pointer">
-              <input
-                type="radio"
+              <Radio
                 name={`kobo-format-${bookId}`}
                 checked={wantsPDF}
                 disabled={toggling}
                 onChange={() => !wantsPDF && handleFormatChange(true)}
-                className="accent-accent"
                 data-testid="kobo-format-pdf"
               />
               PDF (as-is)

@@ -1,9 +1,9 @@
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import ExportModal from '@/components/recipes/ExportModal'
+import ExportDialog from '@/components/recipes/ExportDialog'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 
-// The modal no longer fetches meal-plan items or ingredient groups — those are
+// The dialog no longer fetches meal-plan items or ingredient groups — those are
 // owned by the landing page and passed in via the mealItems prop.
 jest.mock('@/hooks/useShoppingList', () => ({
   useStores: () => ({
@@ -38,9 +38,9 @@ const mealItems: ShoppingItem[] = [
   { name: 'garlic', amount: '2', unit: 'cloves', recipeName: 'Pasta', groupName: 'Sauce' }
 ]
 
-const renderModal = (props: Partial<React.ComponentProps<typeof ExportModal>> = {}) =>
+const renderDialog = (props: Partial<React.ComponentProps<typeof ExportDialog>> = {}) =>
   render(
-    <ExportModal customItems={customItems} mealItems={mealItems} onClose={jest.fn()} {...props} />
+    <ExportDialog customItems={customItems} mealItems={mealItems} onClose={jest.fn()} {...props} />
   )
 
 beforeEach(() => {
@@ -56,37 +56,37 @@ beforeEach(() => {
   })
 })
 
-describe('ExportModal', () => {
+describe('ExportDialog', () => {
   it('renders export buttons', () => {
-    renderModal()
+    renderDialog()
     expect(screen.getByRole('button', { name: /Copy to Clipboard/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Share to Apple Notes/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Download .txt/ })).toBeInTheDocument()
   })
 
   it('shows the passed-in meal plan items in the export preview', () => {
-    renderModal()
+    renderDialog()
     expect(screen.getByText(/2 cloves — garlic/)).toBeInTheDocument()
   })
 
   it('no longer renders the ingredient-group exclusion controls', () => {
-    renderModal()
+    renderDialog()
     expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
 
   it('shows the ingredient group name in the origin label in the preview', () => {
-    renderModal({ customItems: [] })
+    renderDialog({ customItems: [] })
     expect(screen.getByText(/Pasta \[Sauce\]/)).toBeInTheDocument()
   })
 
   it('renders store selector with options', () => {
-    renderModal()
+    renderDialog()
     expect(screen.getByRole('option', { name: 'Colruyt' })).toBeInTheDocument()
   })
 
   it('groups items by store aisle order when a store is selected', () => {
-    renderModal()
+    renderDialog()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -96,7 +96,7 @@ describe('ExportModal', () => {
   })
 
   it('warns when items have no category assigned for the selected store', () => {
-    renderModal()
+    renderDialog()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -112,7 +112,7 @@ describe('ExportModal', () => {
       ...customItems,
       { id: 'c2', amount: '1', unit: 'tub', name: 'icecream' }
     ]
-    renderModal({ customItems: items })
+    renderDialog({ customItems: items })
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -121,13 +121,13 @@ describe('ExportModal', () => {
   })
 
   it('does not show store-coverage warnings until a store is selected', () => {
-    renderModal()
+    renderDialog()
     expect(screen.queryByText(/no category assigned/)).not.toBeInTheDocument()
     expect(screen.queryByText(/this store doesn.t order/)).not.toBeInTheDocument()
   })
 
   it('copies grouped output to clipboard when a store is selected', async () => {
-    renderModal()
+    renderDialog()
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
@@ -142,20 +142,20 @@ describe('ExportModal', () => {
 
   it('calls onClose when close button is clicked', () => {
     const onClose = jest.fn()
-    renderModal({ onClose })
+    renderDialog({ onClose })
     fireEvent.click(screen.getByRole('button', { name: /Close/ }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('calls onClose when Escape is pressed', () => {
     const onClose = jest.fn()
-    renderModal({ onClose })
+    renderDialog({ onClose })
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
   it('Copy to Clipboard calls navigator.clipboard.writeText', async () => {
-    renderModal()
+    renderDialog()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Copy to Clipboard/ }))
     })
@@ -163,7 +163,7 @@ describe('ExportModal', () => {
   })
 
   it('Share to Apple Notes falls back to clipboard when navigator.share is absent', async () => {
-    renderModal()
+    renderDialog()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -177,7 +177,7 @@ describe('ExportModal', () => {
       writable: true,
       configurable: true
     })
-    renderModal()
+    renderDialog()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -192,7 +192,7 @@ describe('ExportModal', () => {
       writable: true,
       configurable: true
     })
-    renderModal()
+    renderDialog()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
@@ -202,7 +202,7 @@ describe('ExportModal', () => {
 
   it('Download .txt triggers file download', () => {
     const mockClick = jest.fn()
-    renderModal()
+    renderDialog()
     const mockAppendChild = jest.spyOn(document.body, 'appendChild').mockImplementation(jest.fn())
     const mockRemoveChild = jest.spyOn(document.body, 'removeChild').mockImplementation(jest.fn())
     const realCreate = document.createElement.bind(document)

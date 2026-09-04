@@ -7,7 +7,7 @@ import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { swrKeys } from '@/lib/swrKeys'
-import TogglePill from '@/components/books/TogglePill'
+import { TogglePill } from '@/components/ui/toggle-pill'
 
 interface BookOwnershipTogglesProps {
   userBook: UserBook
