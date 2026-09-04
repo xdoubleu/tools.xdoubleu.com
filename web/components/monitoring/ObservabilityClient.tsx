@@ -16,7 +16,7 @@ import {
   useHostMetrics,
   useAlertStates
 } from '@/hooks/useMonitoring'
-import CollapsibleSection from './CollapsibleSection'
+import { Collapsible } from '@/components/ui/collapsible'
 import StorageCard from './StorageCard'
 import DatabaseCard from './DatabaseCard'
 import JobsCard from './JobsCard'
@@ -89,27 +89,27 @@ export default function ObservabilityClient() {
       </div>
 
       <div className="mt-6 space-y-4">
-        <CollapsibleSection title="Storage">
+        <Collapsible title="Storage">
           <StorageCard data={storageStats.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Database">
+        </Collapsible>
+        <Collapsible title="Database">
           <DatabaseCard data={databaseStats.data} history={databaseSizeHistory.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Jobs">
+        </Collapsible>
+        <Collapsible title="Jobs">
           <JobsCard data={jobStats.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Slow Spans">
+        </Collapsible>
+        <Collapsible title="Slow Spans">
           <SlowTransactionsCard data={slowTransactions.data} alertStates={alertStates.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Span Latency History">
+        </Collapsible>
+        <Collapsible title="Span Latency History">
           <TransactionLatencyHistoryCard data={transactionLatencyHistory.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Host Metrics">
+        </Collapsible>
+        <Collapsible title="Host Metrics">
           <HostMetricsCard data={hostMetrics.data} />
-        </CollapsibleSection>
-        <CollapsibleSection title="Logs">
+        </Collapsible>
+        <Collapsible title="Logs">
           <LogsCard />
-        </CollapsibleSection>
+        </Collapsible>
       </div>
     </PageContainer>
   )

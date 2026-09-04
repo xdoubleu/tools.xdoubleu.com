@@ -136,9 +136,7 @@ function DialogClose({
 
 /** Right-aligned action row at the bottom of a dialog. Put the confirming action last. */
 function DialogFooter({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={cn('mt-5 flex items-center justify-end gap-2', className)}>{children}</div>
-  )
+  return <div className={cn('mt-5 flex items-center justify-end gap-2', className)}>{children}</div>
 }
 
 interface ConfirmDialogProps {

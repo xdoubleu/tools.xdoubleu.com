@@ -98,14 +98,14 @@ export default function BookQuickProgress({
 
   return (
     <div className="flex items-end gap-2">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
         onClick={() => setEditing(true)}
         aria-label="Edit reading progress"
-        className="min-w-0 flex-1 rounded-lg py-2 -my-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
+        className="-my-2 h-auto min-w-0 flex-1 justify-start rounded-lg px-0 py-2 text-left hover:bg-transparent"
       >
         <BookProgressBar userBook={shown} />
-      </button>
+      </Button>
 
       {canStep && (
         <div className="flex shrink-0 gap-1">

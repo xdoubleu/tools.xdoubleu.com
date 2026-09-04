@@ -8,7 +8,7 @@ import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
-import TogglePill from '@/components/books/TogglePill'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import {
   SPECIAL_TAGS,
   BOOK_STATUSES,

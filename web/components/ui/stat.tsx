@@ -52,9 +52,7 @@ function StatTile({ label, value, tone = 'default', hint, href, className }: Sta
 
 /** Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`. */
 function StatTileGrid({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <div className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>{children}</div>
-  )
+  return <div className={cn('grid grid-cols-2 gap-3 sm:grid-cols-4', className)}>{children}</div>
 }
 
 export { StatTile, StatTileGrid }

@@ -1,5 +1,7 @@
 'use client'
 
+import { Checkbox } from '@/components/ui/checkbox'
+
 interface IngredientGroup {
   recipeName: string
   groupName: string
@@ -33,12 +35,7 @@ export default function MealPlanGroupFilter({
           const checked = !excludedGroups.has(g.groupName)
           return (
             <label key={key} className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(g.groupName)}
-                className="rounded"
-              />
+              <Checkbox checked={checked} onChange={() => onToggle(g.groupName)} />
               <span className="text-fg">{g.groupName}</span>
               <span className="text-muted">({g.recipeName})</span>
             </label>

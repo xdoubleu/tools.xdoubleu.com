@@ -15,6 +15,9 @@ interface RadioGroupContextValue {
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null)
 
+const radioClass =
+  'h-4 w-4 rounded-full border border-border bg-surface text-accent cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50'
+
 function useRadioGroup() {
   const ctx = useContext(RadioGroupContext)
   if (!ctx) throw new Error('RadioGroupItem must be inside RadioGroup')
@@ -45,7 +48,7 @@ interface RadioGroupItemProps extends Omit<
   label: string
 }
 
-// RadioGroupItem wraps a native radio input (sanctioned raw element).
+/** One labelled radio inside a `RadioGroup`. Use `Radio` for a custom layout. */
 const RadioGroupItem = forwardRef<HTMLInputElement, RadioGroupItemProps>(
   ({ value, label, className, id, ...props }, ref) => {
     const ctx = useRadioGroup()
@@ -63,13 +66,7 @@ const RadioGroupItem = forwardRef<HTMLInputElement, RadioGroupItemProps>(
           value={value}
           checked={ctx.value === value}
           onChange={() => ctx.onChange(value)}
-          className={cn(
-            'h-4 w-4 rounded-full border border-border bg-surface text-accent',
-            'cursor-pointer transition-colors',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-1',
-            'disabled:pointer-events-none disabled:opacity-50',
-            className
-          )}
+          className={cn(radioClass, className)}
           {...props}
         />
         <span className="text-sm">{label}</span>
@@ -80,5 +77,18 @@ const RadioGroupItem = forwardRef<HTMLInputElement, RadioGroupItemProps>(
 
 RadioGroupItem.displayName = 'RadioGroupItem'
 
-export { RadioGroup, RadioGroupItem }
-export type { RadioGroupProps, RadioGroupItemProps }
+type RadioProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
+
+/**
+ * A bare styled radio input, for call sites that supply their own label and
+ * layout (a selectable card, a visually-hidden control behind custom visuals)
+ * and so can't use `RadioGroupItem`'s built-in label.
+ */
+const Radio = forwardRef<HTMLInputElement, RadioProps>(({ className, ...props }, ref) => (
+  <input ref={ref} type="radio" className={cn(radioClass, className)} {...props} />
+))
+
+Radio.displayName = 'Radio'
+
+export { RadioGroup, RadioGroupItem, Radio }
+export type { RadioGroupProps, RadioGroupItemProps, RadioProps }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useUpdateBookStatus } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -55,24 +56,25 @@ export default function BookRatingStars({
       onMouseLeave={() => setHover(0)}
     >
       {[1, 2, 3, 4, 5].map((star) => (
-        <button
+        <Button
           key={star}
-          type="button"
+          variant="ghost"
+          size="iconSm"
           onClick={() => handleClick(star)}
           onMouseEnter={() => !readOnly && setHover(star)}
           disabled={readOnly}
           aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
           className={cn(
-            'leading-none transition-colors',
+            'h-auto w-auto p-0 leading-none hover:bg-transparent',
             size === 'md' ? 'text-lg' : 'text-sm',
-            readOnly ? 'cursor-default' : 'cursor-pointer',
             star <= displayed ? 'text-amber-400' : 'text-border',
-            !readOnly &&
-              'hover:text-amber-400 active:text-amber-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent'
+            // Read-only stars are a rating display, so they must stay legible
+            // rather than taking the Button's dimmed disabled treatment.
+            readOnly ? 'cursor-default disabled:opacity-100' : 'hover:text-amber-400'
           )}
         >
           ★
-        </button>
+        </Button>
       ))}
     </div>
   )

@@ -7,6 +7,7 @@ import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface PlanFormProps {
   plan: Plan
@@ -65,12 +66,7 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
         <div className="flex flex-wrap gap-4">
           {SLOT_NAMES.map((slot) => (
             <label key={slot} className="flex items-center gap-2 text-sm text-fg cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hiddenSlots.includes(slot)}
-                onChange={() => toggleSlot(slot)}
-                className="h-4 w-4 rounded accent-accent"
-              />
+              <Checkbox checked={hiddenSlots.includes(slot)} onChange={() => toggleSlot(slot)} />
               {slot.charAt(0).toUpperCase() + slot.slice(1)}
             </label>
           ))}
@@ -81,12 +77,10 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
         htmlFor="ical-hide-past"
         className="flex items-center gap-2 text-sm text-fg cursor-pointer"
       >
-        <input
+        <Checkbox
           id="ical-hide-past"
-          type="checkbox"
           checked={hidePast}
           onChange={(e) => setHidePast(e.target.checked)}
-          className="h-4 w-4 rounded accent-accent"
         />
         <span className="font-medium">iCal — Hide past events</span>
       </label>

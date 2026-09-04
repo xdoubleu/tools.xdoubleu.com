@@ -1,6 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/cn'
+import { MenuItem } from '@/components/ui/menu-item'
+import { TogglePill } from '@/components/ui/toggle-pill'
 import type { LibraryResponse } from '@/lib/gen/books/v1/library_pb'
 import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/books/bookShelves'
 
@@ -92,19 +94,17 @@ function NavItem({
   count?: number
 }) {
   return (
-    <button
-      type="button"
+    <MenuItem
       onClick={onClick}
+      aria-current={active ? 'true' : undefined}
       className={cn(
-        'flex items-center justify-between w-full text-left px-3 py-2 rounded-xl text-sm transition-colors',
-        active
-          ? 'bg-accent/10 text-accent font-medium'
-          : 'text-subtle hover:bg-surface hover:text-fg'
+        'justify-between rounded-xl px-3 py-2',
+        active ? 'bg-accent/10 text-accent font-medium' : 'text-subtle hover:text-fg'
       )}
     >
       <span className="truncate">{label}</span>
       {count !== undefined && <span className="ml-2 text-xs text-muted shrink-0">{count}</span>}
-    </button>
+    </MenuItem>
   )
 }
 
@@ -158,13 +158,9 @@ export default function LibrarySidebar({
         {onManage && (
           <>
             <div className="my-1 h-px bg-border" />
-            <button
-              type="button"
-              onClick={onManage}
-              className="w-full text-left px-3 py-2 rounded-xl text-sm text-subtle hover:bg-surface hover:text-fg transition-colors"
-            >
-              Edit shelves & tags
-            </button>
+            <MenuItem onClick={onManage} className="rounded-xl px-3 py-2 text-subtle hover:text-fg">
+              Edit shelves &amp; tags
+            </MenuItem>
           </>
         )}
       </nav>
@@ -177,39 +173,38 @@ export default function LibrarySidebar({
           aria-label="Shelves"
         >
           {shelves.map((shelf) => (
-            <button
+            <TogglePill
               key={shelf.id}
               role="tab"
               aria-selected={selectedShelfId === shelf.id}
+              aria-pressed={undefined}
+              active={selectedShelfId === shelf.id}
               onClick={() => onSelectShelf(shelf.id)}
-              className={cn(
-                'flex items-center gap-1 shrink-0 px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors',
-                selectedShelfId === shelf.id
-                  ? 'bg-accent/10 text-accent font-medium'
-                  : 'bg-surface text-subtle hover:text-fg'
-              )}
-            >
-              {shelf.label}
-              <span className="text-xs opacity-60">{shelf.count}</span>
-            </button>
+              label={
+                <>
+                  {shelf.label}
+                  <span className="ml-1 text-xs opacity-60">{shelf.count}</span>
+                </>
+              }
+              className="shrink-0 px-3 py-1.5 text-sm whitespace-nowrap"
+            />
           ))}
         </div>
         {allTags.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {allTags.map((tag) => (
-              <button
+              <TogglePill
                 key={tag.name}
+                active={selectedTag === tag.name}
                 onClick={() => onSelectTag(tag.name)}
-                className={cn(
-                  'flex items-center gap-1 shrink-0 px-2 py-1 rounded-full text-xs whitespace-nowrap transition-colors border',
-                  selectedTag === tag.name
-                    ? 'bg-accent/10 text-accent border-accent/30 font-medium'
-                    : 'bg-surface text-subtle border-border hover:text-fg'
-                )}
-              >
-                {tag.name}
-                <span className="opacity-60">{tag.count}</span>
-              </button>
+                label={
+                  <>
+                    {tag.name}
+                    <span className="ml-1 opacity-60">{tag.count}</span>
+                  </>
+                }
+                className="shrink-0 px-2 py-1 whitespace-nowrap"
+              />
             ))}
           </div>
         )}

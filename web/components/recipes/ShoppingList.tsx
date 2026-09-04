@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export interface ShoppingItemEdit {
   name: string
@@ -124,12 +125,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                 key={key}
                 className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggleItem(key)}
-                  className="h-4 w-4 rounded accent-accent"
-                />
+                <Checkbox checked={isChecked} onChange={() => toggleItem(key)} />
                 <span
                   className={`flex-1 text-sm ${isChecked ? 'line-through text-muted' : 'text-fg'}`}
                 >

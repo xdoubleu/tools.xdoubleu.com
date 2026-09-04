@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import DuplicateBookSummary from '@/components/books/DuplicateBookSummary'
 import ConflictFieldPicker from '@/components/books/ConflictFieldPicker'
+import { Radio } from '@/components/ui/radio-group'
 import {
   detectConflicts,
   buildResolvedMetadata,
@@ -75,8 +76,7 @@ function DuplicateGroupCard({
             key={ub.bookId}
             className="flex items-start gap-3 cursor-pointer rounded-lg p-2 hover:bg-surface transition-colors"
           >
-            <input
-              type="radio"
+            <Radio
               name={`winner-${group.entries[0]?.bookId}`}
               value={ub.bookId}
               checked={winnerId === ub.bookId}

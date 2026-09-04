@@ -3,6 +3,7 @@
 import { useSetRole, useSetAppAccess } from '@/hooks/useUserManagement'
 import type { AppUser } from '@/lib/gen/access/v1/access_pb'
 import { Select } from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface UsersTableProps {
   users: AppUser[]
@@ -62,11 +63,9 @@ export default function UsersTable({ users, onUpdated }: UsersTableProps) {
               </td>
               {APPS.map((app) => (
                 <td key={app} className="p-3 text-center">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={(user.appAccess || []).includes(app)}
                     onChange={(e) => handleAppAccessChange(user.id, app, e.target.checked)}
-                    className="h-4 w-4 accent-accent"
                   />
                 </td>
               ))}
