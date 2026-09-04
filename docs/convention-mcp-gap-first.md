@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424
 
 ## Rule
 
@@ -90,10 +90,20 @@ enumerating all 11 distribution buckets and hand-diffing appids against
    filter `is_delisted`, so the three games inflating the rate appeared in no
    tool's output.
 
-The rate itself is fixed (delisted games no longer take part in library-wide
-averages), but **a tool reporting delisted games is still missing**. When a games
-number can't be reconciled against a list, that is the first thing to check.
+Bucket 10 was fixed then. The delisted blind spot was not, and #1424 is the bill
+for that.
 
-## Open gaps
+### #1424 — the same delisted blind spot, three days later
 
-- No MCP tool reports delisted games (#1374).
+The rate disagreed with the Steam profile again, in the other direction. With
+no tool listing delisted games, the app IDs were once more only recoverable
+from #1375's commit message, and checking them meant pulling
+`games_get_steam_game` one at a time. On that evidence the rule from #1375 was
+about to be reverted; the owner counting 157 games with achievement progress on
+the profile is what stopped it — see
+`adr-0018-delisted-games-excluded-from-completion-averages.md`.
+
+`SteamResponse` now carries a `delisted` list, so `games_get_steam` reports the
+games excluded from `current_rate`, `distribution` and all three lists. That
+closes the gap #1374 left open, and makes the population behind a completion
+number checkable instead of inferable.

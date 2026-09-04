@@ -125,6 +125,27 @@ func (repo *SteamRepository) GetActiveGames(
 	return repo.queryGames(ctx, query, userID)
 }
 
+// GetDelisted returns the games Steam no longer returns in the owned list.
+// They are excluded from the backlog lists and from every library-wide average
+// (docs/adr-0018-delisted-games-excluded-from-completion-averages.md), which
+// makes them invisible everywhere else — this is the one read that surfaces
+// them, so a completion number can be reconciled against the games behind it.
+func (repo *SteamRepository) GetDelisted(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	query := `
+		SELECT id, name, is_delisted, completion_rate, contribution,
+		       playtime_forever, image_url, last_synced_at, favourite, last_played
+		FROM games.steam_games
+		WHERE user_id = $1
+		    AND is_delisted = true
+		ORDER BY name
+	`
+
+	return repo.queryGames(ctx, query, userID)
+}
+
 func (repo *SteamRepository) GetBacklog(
 	ctx context.Context,
 	userID string,

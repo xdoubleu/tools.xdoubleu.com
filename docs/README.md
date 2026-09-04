@@ -40,6 +40,7 @@ loaded automatically.
 | [adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md](adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md) | Own Go module; `GOTOOLCHAIN=go1.24.13` pin | darwinkit#286 |
 | [adr-0016-kobo-gateway-loopback-tls-and-login-item.md](adr-0016-kobo-gateway-loopback-tls-and-login-item.md) | Loopback HTTPS for Safari; LaunchAgents over `SMAppService` | — |
 | [adr-0017-long-request-handler-deadlines.md](adr-0017-long-request-handler-deadlines.md) | Handler deadlines pinned under the edge proxy ceiling | #672, #1113 |
+| [adr-0018-delisted-games-excluded-from-completion-averages.md](adr-0018-delisted-games-excluded-from-completion-averages.md) | Delisted games stay out of the Steam completion averages; how to check before changing it | #1375, #1424 |
 
 ## Conventions
 
@@ -48,7 +49,7 @@ loaded automatically.
 | [convention-comments-describe-current-behavior.md](convention-comments-describe-current-behavior.md) | No historical or stale claims in code comments | — |
 | [convention-database-queries.md](convention-database-queries.md) | Never select a wide TEXT column in a list query; read direction | #1027 |
 | [convention-deploy-secrets.md](convention-deploy-secrets.md) | A deploy secret is declared in three places that must agree | #1390, #1404, #1405 |
-| [convention-mcp-gap-first.md](convention-mcp-gap-first.md) | Fix the missing MCP tool before investigating the incident | #1027, #1195, #1214, #1357, #1374, #1377 |
+| [convention-mcp-gap-first.md](convention-mcp-gap-first.md) | Fix the missing MCP tool before investigating the incident | #1027, #1195, #1214, #1357, #1374, #1377, #1424 |
 | [convention-ui-standards.md](convention-ui-standards.md) | Web UI rules, theming, and the server/client import trap | #1412 |
 
 ## Specs

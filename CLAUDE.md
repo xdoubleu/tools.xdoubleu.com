@@ -144,6 +144,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0015-kobo-gateway-separate-module-and-toolchain-pin`](docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md) — never bump past Go 1.24.x alone
 - [`adr-0016-kobo-gateway-loopback-tls-and-login-item`](docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md) — loopback HTTPS and LaunchAgents
 - [`adr-0017-long-request-handler-deadlines`](docs/adr-0017-long-request-handler-deadlines.md) — deadlines vs the proxy ceiling
+- [`adr-0018-delisted-games-excluded-from-completion-averages`](docs/adr-0018-delisted-games-excluded-from-completion-averages.md) — what `is_delisted` excludes, and how to verify before changing it
 
 **Conventions**
 

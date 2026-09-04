@@ -434,6 +434,15 @@ func (service *SteamService) GetActiveGames(
 	return service.steam.GetActiveGames(ctx, userID)
 }
 
+// GetDelisted returns the games Steam no longer lists in the user's library.
+// See SteamRepository.GetDelisted for why they are reported separately.
+func (service *SteamService) GetDelisted(
+	ctx context.Context,
+	userID string,
+) ([]models.Game, error) {
+	return service.steam.GetDelisted(ctx, userID)
+}
+
 func (service *SteamService) GetBacklog(
 	ctx context.Context,
 	userID string,

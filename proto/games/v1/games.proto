@@ -34,6 +34,11 @@ message SteamResponse {
   repeated string values = 8;
   string date_start = 9;
   string date_end = 10;
+  // Games Steam no longer returns in the owned list. They are excluded from
+  // the three lists above and from current_rate and distribution, which leaves
+  // them invisible everywhere else — this is the only place the population
+  // behind a completion number can be checked.
+  repeated Game delisted = 11;
 }
 
 message SteamGameResponse {

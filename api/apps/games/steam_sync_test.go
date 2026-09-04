@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/games"
 	"tools.xdoubleu.com/apps/games/internal/models"
 	"tools.xdoubleu.com/apps/games/pkg/steam"
+	gamesv1 "tools.xdoubleu.com/gen/games/v1"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
 
@@ -646,6 +648,24 @@ func TestSyncUser_DelistedGameExcludedFromLibraryAverages(t *testing.T) {
 		total += c
 	}
 	assert.Equal(t, 2, total, "distribution covers only the two live games")
+
+	// Excluded from the lists and from the averages, the delisted game is
+	// otherwise invisible; the payload reports it separately so the headline
+	// rate stays reconcilable against the games it does and does not count.
+	payload, _, err := app2.BuildSharedSteam(
+		ctx, user, time.Now().AddDate(0, 0, -7), time.Now(),
+	)
+	require.NoError(t, err)
+	require.Len(t, payload.GetDelisted(), 1)
+	assert.Equal(t, int32(delisted), payload.GetDelisted()[0].GetId())
+	for _, list := range [][]*gamesv1.Game{
+		payload.GetNotStarted(), payload.GetInProgress(), payload.GetCompleted(),
+	} {
+		for _, g := range list {
+			assert.NotEqual(t, int32(delisted), g.GetId(),
+				"delisted game stays out of the backlog lists")
+		}
+	}
 }
 
 // TestSyncGame_DelistedGameExcludedFromTotalRate covers the same rule on the
