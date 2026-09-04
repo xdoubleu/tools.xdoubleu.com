@@ -70,11 +70,38 @@ current library.
   public` for a retired app's player stats, which is why `214850`, `502820`,
   `1549180` and `2767030` log a warning on every sync.
 
+## What the profile's whole number hides
+
+The 2026-09-04 disagreement — app 39.64, profile 40 — turned out not to be a
+disagreement at all. Two achievements unlocked in Breathedge (`738520`) the
+previous evening tipped the profile from 39 to 40. Breathedge carries 54
+achievements, so two of them move a 157-game average by
+`2 / 54 / 157 = 0.024pp`, and the stored progress graph moved by exactly that:
+**39.62 on 2026-08-30 to 39.64 on 2026-09-03**. The same event, at the same
+time, of the same size.
+
+A move that small cannot take any average from 39 to 40. What it can do is
+carry a value already sitting within a few hundredths of a rendering threshold
+across it. The app has no such threshold: it prints two decimals, so the same
+increment reads as 39.62 → 39.64 and looks like nothing happened.
+
+Whether the profile rounds (its value ≈ 39.50) or truncates (≈ 40.00) is not
+determinable from a whole number, so the constant offset between the two
+figures is somewhere under half a point and cannot be measured from here.
+Neither reading implies a defect: the two numbers track the same events with
+the same magnitude.
+
 ## Revisit when
 
-**Never on a whole-number reading of the profile alone.** This number has now
-been argued over twice from a rendered "39" or "40" that hides up to a full
-point either way, and was nearly reverted the second time. Before changing the
-rule, establish the population the same way the owner did — count the games
-with achievement progress on the profile — and compare it against the
-`delisted` list in `SteamResponse`.
+**Never on a whole-number reading of the profile alone.** This number has been
+argued over three times from a rendered "39" or "40" that hides up to a full
+point either way, and was nearly reverted the second time. What settles a
+question about it:
+
+- *Which games are counted* — count the games with achievement progress on the
+  profile (157 on 2026-09-04) and compare against the `delisted` list in
+  `SteamResponse`.
+- *Whether the app missed something* — find the achievement that moved the
+  profile, work out its arithmetic weight, and look for exactly that step in
+  the stored progress graph. A step of the right size on the right date means
+  the pipeline is fine and the rest is rendering.
