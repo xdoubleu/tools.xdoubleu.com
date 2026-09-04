@@ -30,6 +30,7 @@ Two rules that bite if broken:
 ## Commands
 
 ```bash
+npm ci                                      # first command in a fresh worktree — node_modules/ is gitignored, so every other command here fails without it
 npm run dev
 npm run build                              # required before finishing web tasks, see root CLAUDE.md
 npm run lint                                # eslint → tsc --noEmit → prettier --check → knip → syncpack lint
