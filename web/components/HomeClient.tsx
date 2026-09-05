@@ -51,6 +51,12 @@ const ALL_APPS: AppLink[] = [
     description: 'Unread RSS and newsletter articles.',
     accessKey: 'feeds'
   },
+  {
+    name: 'trains',
+    label: 'Trains',
+    href: '/trains',
+    description: 'SNCB/NMBS station pickers and route overview.'
+  },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
     name: 'mealplans',
@@ -94,7 +100,7 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Productivity', names: ['games', 'books', 'feeds'] },
+  { title: 'Productivity', names: ['games', 'books', 'feeds', 'trains'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'family'] },

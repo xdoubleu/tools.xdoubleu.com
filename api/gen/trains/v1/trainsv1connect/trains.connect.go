@@ -36,11 +36,19 @@ const (
 	// TrainServiceSearchJourneysProcedure is the fully-qualified name of the TrainService's
 	// SearchJourneys RPC.
 	TrainServiceSearchJourneysProcedure = "/trains.v1.TrainService/SearchJourneys"
+	// TrainServiceSearchStationsProcedure is the fully-qualified name of the TrainService's
+	// SearchStations RPC.
+	TrainServiceSearchStationsProcedure = "/trains.v1.TrainService/SearchStations"
+	// TrainServiceGetFeedInfoProcedure is the fully-qualified name of the TrainService's GetFeedInfo
+	// RPC.
+	TrainServiceGetFeedInfoProcedure = "/trains.v1.TrainService/GetFeedInfo"
 )
 
 // TrainServiceClient is a client for the trains.v1.TrainService service.
 type TrainServiceClient interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
+	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
+	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
 }
 
 // NewTrainServiceClient constructs a client for the trains.v1.TrainService service. By default, it
@@ -60,12 +68,26 @@ func NewTrainServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(trainServiceMethods.ByName("SearchJourneys")),
 			connect.WithClientOptions(opts...),
 		),
+		searchStations: connect.NewClient[v1.SearchStationsRequest, v1.SearchStationsResponse](
+			httpClient,
+			baseURL+TrainServiceSearchStationsProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("SearchStations")),
+			connect.WithClientOptions(opts...),
+		),
+		getFeedInfo: connect.NewClient[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse](
+			httpClient,
+			baseURL+TrainServiceGetFeedInfoProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // trainServiceClient implements TrainServiceClient.
 type trainServiceClient struct {
 	searchJourneys *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
+	searchStations *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
+	getFeedInfo    *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
 }
 
 // SearchJourneys calls trains.v1.TrainService.SearchJourneys.
@@ -73,9 +95,21 @@ func (c *trainServiceClient) SearchJourneys(ctx context.Context, req *connect.Re
 	return c.searchJourneys.CallUnary(ctx, req)
 }
 
+// SearchStations calls trains.v1.TrainService.SearchStations.
+func (c *trainServiceClient) SearchStations(ctx context.Context, req *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error) {
+	return c.searchStations.CallUnary(ctx, req)
+}
+
+// GetFeedInfo calls trains.v1.TrainService.GetFeedInfo.
+func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error) {
+	return c.getFeedInfo.CallUnary(ctx, req)
+}
+
 // TrainServiceHandler is an implementation of the trains.v1.TrainService service.
 type TrainServiceHandler interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
+	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
+	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
 }
 
 // NewTrainServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -91,10 +125,26 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(trainServiceMethods.ByName("SearchJourneys")),
 		connect.WithHandlerOptions(opts...),
 	)
+	trainServiceSearchStationsHandler := connect.NewUnaryHandler(
+		TrainServiceSearchStationsProcedure,
+		svc.SearchStations,
+		connect.WithSchema(trainServiceMethods.ByName("SearchStations")),
+		connect.WithHandlerOptions(opts...),
+	)
+	trainServiceGetFeedInfoHandler := connect.NewUnaryHandler(
+		TrainServiceGetFeedInfoProcedure,
+		svc.GetFeedInfo,
+		connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/trains.v1.TrainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TrainServiceSearchJourneysProcedure:
 			trainServiceSearchJourneysHandler.ServeHTTP(w, r)
+		case TrainServiceSearchStationsProcedure:
+			trainServiceSearchStationsHandler.ServeHTTP(w, r)
+		case TrainServiceGetFeedInfoProcedure:
+			trainServiceGetFeedInfoHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +156,12 @@ type UnimplementedTrainServiceHandler struct{}
 
 func (UnimplementedTrainServiceHandler) SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.SearchJourneys is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.SearchStations is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetFeedInfo is not implemented"))
 }

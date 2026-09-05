@@ -32,6 +32,15 @@ export const swrKeys = {
   // api service, so a path under /api never reaches this Next.js route.
   webRelease: '/release',
 
+  trainsFeedInfo: '/trains/feed-info',
+  trainsStations: (query: string) => ['/trains/stations', query] as const,
+  trainsJourneys: (
+    originStopId: string,
+    destinationStopId: string,
+    time: string,
+    arriveBy: boolean
+  ) => ['/trains/journeys', originStopId, destinationStopId, time, arriveBy] as const,
+
   dashboardShare: (kind: 'games' | 'reading') => `/dashboard/share/${kind}`,
   dashboardReading: (token: string) => `/dashboard/reading/${token}`,
   dashboardReadingProgress: (token: string, dateStart?: string, dateEnd?: string) =>

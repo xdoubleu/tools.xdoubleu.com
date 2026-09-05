@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJImgKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBSJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkyZQoMVHJhaW5TZXJ2aWNlElUKDlNlYXJjaEpvdXJuZXlzEiAudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1Jlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vdHJhaW5zL3YxO3RyYWluc3YxYgZwcm90bzM");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJImgKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBSJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiKAoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiJgoVU2VhcmNoU3RhdGlvbnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KFlNlYXJjaFN0YXRpb25zUmVzcG9uc2USJAoIc3RhdGlvbnMYASADKAsyEi50cmFpbnMudjEuU3RhdGlvbiIUChJHZXRGZWVkSW5mb1JlcXVlc3QiKwoTR2V0RmVlZEluZm9SZXNwb25zZRIUCgxmZWVkX3ZlcnNpb24YASABKAkyigIKDFRyYWluU2VydmljZRJVCg5TZWFyY2hKb3VybmV5cxIgLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXNwb25zZRJVCg5TZWFyY2hTdGF0aW9ucxIgLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXNwb25zZRJMCgtHZXRGZWVkSW5mbxIdLnRyYWlucy52MS5HZXRGZWVkSW5mb1JlcXVlc3QaHi50cmFpbnMudjEuR2V0RmVlZEluZm9SZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL3RyYWlucy92MTt0cmFpbnN2MWIGcHJvdG8z");
 
 /**
  * Leg is one boarded train, from where the passenger gets on to where they
@@ -177,6 +177,100 @@ export const SearchJourneysResponseSchema: GenMessage<SearchJourneysResponse> = 
   messageDesc(file_trains_v1_trains, 3);
 
 /**
+ * Station is a location_type=1 stop — a station a passenger picks as an
+ * origin or destination. Never a platform-level stop.
+ *
+ * @generated from message trains.v1.Station
+ */
+export type Station = Message<"trains.v1.Station"> & {
+  /**
+   * @generated from field: string stop_id = 1;
+   */
+  stopId: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message trains.v1.Station.
+ * Use `create(StationSchema)` to create a new message.
+ */
+export const StationSchema: GenMessage<Station> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 4);
+
+/**
+ * @generated from message trains.v1.SearchStationsRequest
+ */
+export type SearchStationsRequest = Message<"trains.v1.SearchStationsRequest"> & {
+  /**
+   * Free-text substring match against station name, case-insensitive. Empty
+   * returns an alphabetical page of stations.
+   *
+   * @generated from field: string query = 1;
+   */
+  query: string;
+};
+
+/**
+ * Describes the message trains.v1.SearchStationsRequest.
+ * Use `create(SearchStationsRequestSchema)` to create a new message.
+ */
+export const SearchStationsRequestSchema: GenMessage<SearchStationsRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 5);
+
+/**
+ * @generated from message trains.v1.SearchStationsResponse
+ */
+export type SearchStationsResponse = Message<"trains.v1.SearchStationsResponse"> & {
+  /**
+   * @generated from field: repeated trains.v1.Station stations = 1;
+   */
+  stations: Station[];
+};
+
+/**
+ * Describes the message trains.v1.SearchStationsResponse.
+ * Use `create(SearchStationsResponseSchema)` to create a new message.
+ */
+export const SearchStationsResponseSchema: GenMessage<SearchStationsResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 6);
+
+/**
+ * @generated from message trains.v1.GetFeedInfoRequest
+ */
+export type GetFeedInfoRequest = Message<"trains.v1.GetFeedInfoRequest"> & {
+};
+
+/**
+ * Describes the message trains.v1.GetFeedInfoRequest.
+ * Use `create(GetFeedInfoRequestSchema)` to create a new message.
+ */
+export const GetFeedInfoRequestSchema: GenMessage<GetFeedInfoRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 7);
+
+/**
+ * @generated from message trains.v1.GetFeedInfoResponse
+ */
+export type GetFeedInfoResponse = Message<"trains.v1.GetFeedInfoResponse"> & {
+  /**
+   * Empty when the static feed has never been imported yet.
+   *
+   * @generated from field: string feed_version = 1;
+   */
+  feedVersion: string;
+};
+
+/**
+ * Describes the message trains.v1.GetFeedInfoResponse.
+ * Use `create(GetFeedInfoResponseSchema)` to create a new message.
+ */
+export const GetFeedInfoResponseSchema: GenMessage<GetFeedInfoResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 8);
+
+/**
  * @generated from service trains.v1.TrainService
  */
 export const TrainService: GenService<{
@@ -187,6 +281,22 @@ export const TrainService: GenService<{
     methodKind: "unary";
     input: typeof SearchJourneysRequestSchema;
     output: typeof SearchJourneysResponseSchema;
+  },
+  /**
+   * @generated from rpc trains.v1.TrainService.SearchStations
+   */
+  searchStations: {
+    methodKind: "unary";
+    input: typeof SearchStationsRequestSchema;
+    output: typeof SearchStationsResponseSchema;
+  },
+  /**
+   * @generated from rpc trains.v1.TrainService.GetFeedInfo
+   */
+  getFeedInfo: {
+    methodKind: "unary";
+    input: typeof GetFeedInfoRequestSchema;
+    output: typeof GetFeedInfoResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_trains_v1_trains, 0);
