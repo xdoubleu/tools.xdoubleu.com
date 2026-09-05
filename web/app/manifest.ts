@@ -22,6 +22,12 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: 'Feeds',
         url: '/feeds',
         icons: [{ src: '/icon-192', sizes: '192x192', type: 'image/png' }]
+      },
+      {
+        name: 'Trains',
+        short_name: 'Trains',
+        url: '/trains',
+        icons: [{ src: '/icon-192', sizes: '192x192', type: 'image/png' }]
       }
     ]
   }

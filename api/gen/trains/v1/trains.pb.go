@@ -336,6 +336,231 @@ func (x *SearchJourneysResponse) GetJourneys() []*Journey {
 	return nil
 }
 
+// Station is a location_type=1 stop — a station a passenger picks as an
+// origin or destination. Never a platform-level stop.
+type Station struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StopId        string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Station) Reset() {
+	*x = Station{}
+	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Station) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Station) ProtoMessage() {}
+
+func (x *Station) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Station.ProtoReflect.Descriptor instead.
+func (*Station) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Station) GetStopId() string {
+	if x != nil {
+		return x.StopId
+	}
+	return ""
+}
+
+func (x *Station) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type SearchStationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Free-text substring match against station name, case-insensitive. Empty
+	// returns an alphabetical page of stations.
+	Query         string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchStationsRequest) Reset() {
+	*x = SearchStationsRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchStationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchStationsRequest) ProtoMessage() {}
+
+func (x *SearchStationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchStationsRequest.ProtoReflect.Descriptor instead.
+func (*SearchStationsRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SearchStationsRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+type SearchStationsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Stations      []*Station             `protobuf:"bytes,1,rep,name=stations,proto3" json:"stations,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchStationsResponse) Reset() {
+	*x = SearchStationsResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchStationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchStationsResponse) ProtoMessage() {}
+
+func (x *SearchStationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchStationsResponse.ProtoReflect.Descriptor instead.
+func (*SearchStationsResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *SearchStationsResponse) GetStations() []*Station {
+	if x != nil {
+		return x.Stations
+	}
+	return nil
+}
+
+type GetFeedInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFeedInfoRequest) Reset() {
+	*x = GetFeedInfoRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFeedInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFeedInfoRequest) ProtoMessage() {}
+
+func (x *GetFeedInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFeedInfoRequest.ProtoReflect.Descriptor instead.
+func (*GetFeedInfoRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{7}
+}
+
+type GetFeedInfoResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty when the static feed has never been imported yet.
+	FeedVersion   string `protobuf:"bytes,1,opt,name=feed_version,json=feedVersion,proto3" json:"feed_version,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFeedInfoResponse) Reset() {
+	*x = GetFeedInfoResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFeedInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFeedInfoResponse) ProtoMessage() {}
+
+func (x *GetFeedInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFeedInfoResponse.ProtoReflect.Descriptor instead.
+func (*GetFeedInfoResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetFeedInfoResponse) GetFeedVersion() string {
+	if x != nil {
+		return x.FeedVersion
+	}
+	return ""
+}
+
 var File_trains_v1_trains_proto protoreflect.FileDescriptor
 
 const file_trains_v1_trains_proto_rawDesc = "" +
@@ -367,9 +592,21 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x04time\x18\x03 \x01(\tR\x04time\x12\x1b\n" +
 	"\tarrive_by\x18\x04 \x01(\bR\barriveBy\"H\n" +
 	"\x16SearchJourneysResponse\x12.\n" +
-	"\bjourneys\x18\x01 \x03(\v2\x12.trains.v1.JourneyR\bjourneys2e\n" +
+	"\bjourneys\x18\x01 \x03(\v2\x12.trains.v1.JourneyR\bjourneys\"6\n" +
+	"\aStation\x12\x17\n" +
+	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"-\n" +
+	"\x15SearchStationsRequest\x12\x14\n" +
+	"\x05query\x18\x01 \x01(\tR\x05query\"H\n" +
+	"\x16SearchStationsResponse\x12.\n" +
+	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\x14\n" +
+	"\x12GetFeedInfoRequest\"8\n" +
+	"\x13GetFeedInfoResponse\x12!\n" +
+	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion2\x8a\x02\n" +
 	"\fTrainService\x12U\n" +
-	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
+	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
+	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
+	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
 
 var (
 	file_trains_v1_trains_proto_rawDescOnce sync.Once
@@ -383,23 +620,33 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_trains_v1_trains_proto_goTypes = []any{
 	(*Leg)(nil),                    // 0: trains.v1.Leg
 	(*Journey)(nil),                // 1: trains.v1.Journey
 	(*SearchJourneysRequest)(nil),  // 2: trains.v1.SearchJourneysRequest
 	(*SearchJourneysResponse)(nil), // 3: trains.v1.SearchJourneysResponse
+	(*Station)(nil),                // 4: trains.v1.Station
+	(*SearchStationsRequest)(nil),  // 5: trains.v1.SearchStationsRequest
+	(*SearchStationsResponse)(nil), // 6: trains.v1.SearchStationsResponse
+	(*GetFeedInfoRequest)(nil),     // 7: trains.v1.GetFeedInfoRequest
+	(*GetFeedInfoResponse)(nil),    // 8: trains.v1.GetFeedInfoResponse
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
 	0, // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
 	1, // 1: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
-	2, // 2: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	3, // 3: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 2: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
+	2, // 3: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	5, // 4: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	7, // 5: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
+	3, // 6: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	6, // 7: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	8, // 8: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -413,7 +660,7 @@ func file_trains_v1_trains_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

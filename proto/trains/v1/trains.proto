@@ -45,6 +45,32 @@ message SearchJourneysResponse {
   repeated Journey journeys = 1;
 }
 
+// Station is a location_type=1 stop — a station a passenger picks as an
+// origin or destination. Never a platform-level stop.
+message Station {
+  string stop_id = 1;
+  string name = 2;
+}
+
+message SearchStationsRequest {
+  // Free-text substring match against station name, case-insensitive. Empty
+  // returns an alphabetical page of stations.
+  string query = 1;
+}
+
+message SearchStationsResponse {
+  repeated Station stations = 1;
+}
+
+message GetFeedInfoRequest {}
+
+message GetFeedInfoResponse {
+  // Empty when the static feed has never been imported yet.
+  string feed_version = 1;
+}
+
 service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
+  rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
+  rpc GetFeedInfo(GetFeedInfoRequest) returns (GetFeedInfoResponse);
 }
