@@ -28,16 +28,19 @@ func TestSearchStations_Handler_Success(t *testing.T) {
 	assert.Equal(t, "Bravo", resp.Msg.GetStations()[0].GetName())
 }
 
-// TestGetFeedInfo_Handler_Success drives GetFeedInfo over real HTTP after a
-// static import, verifying the feed_version field mapping used to drive the
-// required CC BY attribution string on /trains.
+// TestGetFeedInfo_Handler_Success drives GetFeedInfo over real HTTP against
+// stationsFeed (stations_test.go), verifying the feed_version field mapping
+// used to drive the required CC BY attribution string on /trains. Goes
+// through ImportFeed directly rather than StaticImport.Import, since the
+// shared MockBMCClient only ever serves a real body on the first call across
+// the whole test binary.
 func TestGetFeedInfo_Handler_Success(t *testing.T) {
 	ctx := context.Background()
-	require.NoError(t, testApp.Services.StaticImport.Import(ctx))
+	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 
 	client := newTrainsTestClient(t)
 	req := connect.NewRequest(&trainsv1.GetFeedInfoRequest{})
 	resp, err := client.GetFeedInfo(ctx, req)
 	require.NoError(t, err)
-	assert.NotEmpty(t, resp.Msg.GetFeedVersion())
+	assert.Equal(t, "2026-08-31", resp.Msg.GetFeedVersion())
 }

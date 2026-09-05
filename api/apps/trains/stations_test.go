@@ -10,12 +10,16 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// stationsFeed is a hand-assembled Feed exercising SearchStations directly
-// against the DB path, independent of app_test.go's GTFS-zip fixtures: two
-// stations sharing a name-substring plus a platform stop that must never be
-// returned as a station.
+// stationsFeed is a hand-assembled Feed exercising SearchStations and
+// GetFeedInfo directly against the DB path, independent of app_test.go's
+// GTFS-zip fixtures and its shared MockBMCClient (which only ever serves a
+// real body on its first call across the whole test binary — every
+// subsequent StaticImport.Import call in this package is a deliberate
+// no-op, so feed-info tests must go through ImportFeed directly instead):
+// two stations sharing a name-substring, a platform stop that must never be
+// returned as a station, and a populated FeedInfo.
 func stationsFeed() *models.Feed {
-	//nolint:exhaustruct //only Stops matter for station search
+	//nolint:exhaustruct //only Stops/Info matter for station and feed-info search
 	return &models.Feed{
 		Stops: []models.Stop{
 			{StopID: "SA", Name: "Alpha", LocationType: 1},
@@ -23,6 +27,7 @@ func stationsFeed() *models.Feed {
 			{StopID: "SB", Name: "Bravo", LocationType: 1},
 			{StopID: "SC", Name: "Charlie", LocationType: 1},
 		},
+		Info: models.FeedInfo{FeedVersion: "2026-08-31"}, //nolint:exhaustruct //rest unused
 	}
 }
 
@@ -63,9 +68,9 @@ func TestStationsService_SearchStations(t *testing.T) {
 
 func TestFeedInfoService_FeedVersion(t *testing.T) {
 	ctx := context.Background()
-	require.NoError(t, testApp.Services.StaticImport.Import(ctx))
+	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 
 	version, err := testApp.Services.FeedInfo.FeedVersion(ctx)
 	require.NoError(t, err)
-	assert.NotEmpty(t, version)
+	assert.Equal(t, "2026-08-31", version)
 }
