@@ -26,14 +26,14 @@ func (r *FeedRepository) GetFeedInfo(
 ) (*models.FeedInfo, error) {
 	//nolint:exhaustruct //scan target
 	info := &models.FeedInfo{}
-	var etag, lastModified *string
+	var lang, etag, lastModified *string
 	err := r.db.QueryRow(ctx, `
 		SELECT feed_version, feed_start_date, feed_end_date, feed_lang,
 		       etag, last_modified
 		FROM trains.feed_info
 		WHERE singleton
 	`).Scan(
-		&info.FeedVersion, &info.StartDate, &info.EndDate, &info.Lang,
+		&info.FeedVersion, &info.StartDate, &info.EndDate, &lang,
 		&etag, &lastModified,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -41,6 +41,9 @@ func (r *FeedRepository) GetFeedInfo(
 	}
 	if err != nil {
 		return nil, err
+	}
+	if lang != nil {
+		info.Lang = *lang
 	}
 	if etag != nil {
 		info.ETag = *etag
