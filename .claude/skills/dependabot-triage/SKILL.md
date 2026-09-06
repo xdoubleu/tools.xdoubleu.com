@@ -6,10 +6,16 @@ description: Go through every open Dependabot/code-scanning/secret-scanning aler
 # Dependabot Triage
 
 Bulk triage for GitHub's three alert types (Dependabot, code scanning, secret
-scanning), all returned together by the `get_security_alerts` MCP tool. This
-repo has no MCP tool that dismisses any of the three — every alert this
-skill can't resolve with a code fix ends in a manual-dismissal instruction
-to the user, never a silent skip.
+scanning), all returned together by the `get_security_alerts` MCP tool.
+Every alert this skill can't resolve with a code fix is either dismissed
+directly via the `dismiss_security_alert` MCP tool or filed as a tracking
+issue — never a silent skip. `dismiss_security_alert` takes `alert_type`
+(`dependabot`|`code_scanning`|`secret_scanning`), `alert_number`, and a
+`reason` whose valid values depend on `alert_type`: dependabot →
+`fix_started`|`inaccurate`|`no_bandwidth`|`not_used`|`tolerable_risk`;
+code_scanning → `"false positive"`|`"won't fix"`|`"used in tests"`;
+secret_scanning →
+`false_positive`|`wont_fix`|`revoked`|`used_in_tests`|`pattern_deleted`.
 
 ## Steps
 
@@ -36,9 +42,11 @@ to the user, never a silent skip.
    For anything with **no fix available yet upstream**: don't invent a
    workaround. Collect these into one tracking GitHub issue (`issue_write`,
    not a full `start-task`/`finish-task` — there's no code change) listing
-   each alert number/package/reason, so it's revisited periodically and can
-   be manually dismissed with reason "no fix available" if the team accepts
-   the risk meanwhile.
+   each alert number/package/reason, so it's revisited periodically. Leave
+   the alerts open — only call `dismiss_security_alert(alert_type:
+   "dependabot", reason: tolerable_risk)` on one once the team has actually
+   accepted the risk (recorded in that tracking issue), never as part of
+   this sweep itself.
 
 3. **Code scanning alerts** — read the flagged file and the specific rule
    (e.g. `actions/cache-poisoning/direct-cache`). Fix the actual hole the
@@ -56,25 +64,30 @@ to the user, never a silent skip.
    - If it's a genuine fixture/placeholder value that happens to match a
      real-secret regex: fix the fixture to something that obviously can't
      match (a clearly-fake placeholder, consistent with this codebase's
-     existing fake-credential conventions) via a normal PR, and report the
-     exact alert numbers that should be manually dismissed as false
-     positives once that PR merges.
+     existing fake-credential conventions) via a normal PR, then once that
+     PR merges call `dismiss_security_alert(alert_type: "secret_scanning",
+     reason: false_positive)` for each alert number it resolves.
    - If it looks like a real, currently-valid credential: **stop, do not
-     treat it as safe, and flag it to the user immediately** — rotating a
-     real secret requires human access to the actual provider dashboard and
-     is outside what this skill (or any subagent) should do unilaterally.
+     treat it as safe, and do not dismiss it.** Rotating a real secret
+     requires human access to the actual provider dashboard, which is
+     outside what this skill (or any subagent) should do unilaterally — file
+     a tracking issue immediately (`issue_write`, titled to make clear this
+     is a live credential exposure, not a routine finding) and move on to
+     the next alert rather than waiting on a response.
 
-5. **Report back**: a table of alert → outcome (fixed in PR #N, tracked in
-   issue #M for no-fix-available, or flagged for human attention), plus the
-   exact list of alert numbers that need manual dismissal in the GitHub UI
-   (Security tab) and why, since no tool here can do that dismissal itself.
+5. **Report back**: a table of alert → outcome — fixed in PR #N, dismissed
+   this run via `dismiss_security_alert` (with alert number and reason),
+   tracked in issue #M pending a human accept-risk/rotate-credential
+   decision, or still open awaiting that PR to merge.
 
 ## Notes
 
 - This mirrors `sentry-triage`'s shape (bulk sweep → cluster → fix-or-file →
-  report) but for the three GitHub-native alert types instead of Sentry, and
-  with an extra manual-dismissal reporting step since there's no equivalent
-  of `resolve_sentry_issue` for any of these three alert types.
+  report) but for the three GitHub-native alert types instead of Sentry.
+  `dismiss_security_alert` is this skill's equivalent of
+  `resolve_sentry_issue` — the only alerts left un-dismissed at the end of a
+  run are the ones genuinely waiting on a human (no fix upstream yet, or a
+  real credential needing rotation), tracked in the issue filed for them.
 - Don't force a breaking major-version bump through automatically just
   because it's the only available fix — flag it for a human decision
   instead of guessing whether the breakage is acceptable.
