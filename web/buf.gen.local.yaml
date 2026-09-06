@@ -1,0 +1,13 @@
+version: v2
+clean: true
+inputs:
+  - directory: ../proto
+plugins:
+  # Runs the protoc-gen-es already installed as a devDependency (node_modules/.bin) —
+  # keep its package.json version in step with buf.gen.yaml's matching `remote:` pin.
+  # make lint/proto-local-versions (api/) fails the build if they drift.
+  - local: node_modules/.bin/protoc-gen-es
+    out: ./lib/gen
+    opt:
+      - target=ts
+      - import_extension=none

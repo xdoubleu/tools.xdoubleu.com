@@ -1,0 +1,16 @@
+version: v2
+clean: true
+inputs:
+  - directory: ../proto
+plugins:
+  # Version pinned by `go install ...@vX` in tools/proto/local (Makefile) —
+  # keep in step with buf.gen.yaml's matching `remote:` pin.
+  # make lint/proto-local-versions fails the build if they drift.
+  - local: protoc-gen-go
+    out: gen
+    opt:
+      - paths=source_relative
+  - local: protoc-gen-connect-go
+    out: gen
+    opt:
+      - paths=source_relative

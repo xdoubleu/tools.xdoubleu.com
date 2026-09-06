@@ -72,6 +72,8 @@ cd api && make proto/generate   # regenerates api/gen/
 cd web && npm run generate      # regenerates web/lib/gen/
 cd api && make proto/check      # regenerate + fail if that changed anything uncommitted (mirrors CI)
 cd web && npm run generate:check
+cd api && make proto/generate/local   # same output, without reaching buf.build — for environments that can't (e.g. Claude Code on the web)
+cd web && npm run generate:local
 ```
 
 Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`), so there's no ordering dependency between regenerating and running lint/fix — run them in either order. `make proto/check` / `npm run generate:check` run the exact same regenerate-then-diff CI's proto-staleness check (`proto-check.yml`) does, so use those to verify locally rather than reasoning about the exclusion config by hand. Run `make lint/proto` to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.

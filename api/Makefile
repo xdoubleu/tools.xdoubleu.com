@@ -42,6 +42,14 @@ lint/sql: tools/lint/sql
 tools/proto:
 	go install github.com/bufbuild/buf/cmd/buf@v1.72.0
 
+# Plugins buf.gen.local.yaml runs against, for environments (e.g. Claude Code
+# on the web) whose network allowlist doesn't reach buf.build. Versions must
+# match buf.gen.yaml's `remote:` pins exactly — make lint/proto-local-versions
+# fails the build if they drift.
+tools/proto/local: tools/proto
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
+	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+
 lint/proto: tools/proto
 	cd ../proto && buf lint
 
@@ -51,12 +59,16 @@ lint/migrations:
 lint/kamal-secrets:
 	./scripts/check_kamal_secrets.sh
 
+lint/proto-local-versions:
+	./scripts/check_proto_local_versions.sh
+
 lint: tools/lint
 	golangci-lint run
 	make lint/sql
 	make lint/proto
 	make lint/migrations
 	make lint/kamal-secrets
+	make lint/proto-local-versions
 
 lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
@@ -76,6 +88,12 @@ lint/sql/ci:
 
 proto/generate: tools/proto
 	buf generate
+
+# Same output as proto/generate, but runs locally-installed plugins instead of
+# resolving them from buf.build (BSR) — for environments whose network
+# allowlist doesn't reach buf.build, e.g. Claude Code on the web (issue #1426).
+proto/generate/local: tools/proto/local
+	buf generate --template buf.gen.local.yaml
 
 # Mirrors what CI's proto-staleness check does: regenerate, then fail loudly
 # if that changed anything under gen/ that wasn't already committed. Also
