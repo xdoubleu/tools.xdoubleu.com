@@ -55,9 +55,39 @@ type StaticResult struct {
 	NotModified bool
 }
 
+// FeedTripUpdate and FeedAlert are the BMC gateway's GTFS-Realtime feed path
+// segments for SNCB/NMBS (issue #1393).
+const (
+	FeedTripUpdate = "rt/trip-update"
+	FeedAlert      = "rt/alert"
+)
+
+// UpstreamError is a non-2xx, non-429 response from the realtime endpoint.
+// Distinct from a generic error so callers can tell a 5xx (transient,
+// worth backing off and retrying next poll) from anything else (a real bug
+// worth surfacing to the monitoring page).
+type UpstreamError struct {
+	StatusCode int
+}
+
+func (e *UpstreamError) Error() string {
+	return fmt.Sprintf("bmc: unexpected status %d", e.StatusCode)
+}
+
+// RealtimeResult is a completed GTFS-Realtime feed fetch. Body is always
+// protobuf — FetchRealtime asserts the response Content-Type rather than
+// trusting the ?format=protobuf query param silently, since the gateway is
+// documented (issue #1389) to serve JSON by default.
+type RealtimeResult struct {
+	Body []byte
+}
+
 // Client fetches feeds from the BMC gateway.
 type Client interface {
 	// FetchStatic downloads the SNCB GTFS static zip, honouring the
 	// conditional-GET validators in opts.
 	FetchStatic(ctx context.Context, opts StaticOptions) (*StaticResult, error)
+	// FetchRealtime downloads one GTFS-Realtime feed (FeedTripUpdate or
+	// FeedAlert) for SNCB/NMBS, always as protobuf.
+	FetchRealtime(ctx context.Context, feed string) (*RealtimeResult, error)
 }

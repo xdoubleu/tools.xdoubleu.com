@@ -6,6 +6,7 @@ require github.com/justinas/alice v1.2.0
 
 require (
 	connectrpc.com/connect v1.20.0
+	github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs v1.0.0
 	github.com/aws/aws-sdk-go-v2 v1.43.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.0
@@ -122,7 +123,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.32 // indirect
 	github.com/aws/smithy-go v1.27.3 // indirect
 	github.com/beevik/etree v1.1.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
@@ -135,7 +135,6 @@ require (
 	github.com/mmcdole/goxpp/v2 v2.0.0 // indirect
 	github.com/pgaskin/kepubify/_/go116-zip.go117 v0.0.0-20210611152744-2d89b3182523 // indirect
 	github.com/pgaskin/kepubify/_/html v0.0.0-20211223234002-6ee2cc632cdc // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/sethvargo/go-retry v0.4.0 // indirect
