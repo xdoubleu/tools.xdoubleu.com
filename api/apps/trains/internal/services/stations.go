@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
@@ -52,10 +53,7 @@ func (s *StationsService) SearchStations(
 		if stop.LocationType != stationLocationType {
 			continue
 		}
-		if q != "" &&
-			!strings.Contains(strings.ToLower(stop.NameNL), q) &&
-			!strings.Contains(strings.ToLower(stop.NameFR), q) &&
-			!strings.Contains(strings.ToLower(stop.NameEN), q) {
+		if !nameMatches(stop, q) {
 			continue
 		}
 		matches = append(matches, Station{
@@ -73,4 +71,18 @@ func (s *StationsService) SearchStations(
 		matches = matches[:maxStationResults]
 	}
 	return matches, nil
+}
+
+// nameMatches reports whether q (already lowercased) is a substring of
+// stop's name in any of the three languages. An empty q always matches.
+func nameMatches(stop models.Stop, q string) bool {
+	if q == "" {
+		return true
+	}
+	for _, name := range []string{stop.NameNL, stop.NameFR, stop.NameEN} {
+		if strings.Contains(strings.ToLower(name), q) {
+			return true
+		}
+	}
+	return false
 }

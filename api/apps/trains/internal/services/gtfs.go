@@ -207,14 +207,22 @@ func parseTranslations(
 		if err != nil {
 			return nil, err
 		}
-		if rr.get(rec, "table_name") != "stops" ||
-			rr.get(rec, "field_name") != "stop_name" {
+		if rr.get(rec, "table_name") != "stops" {
+			continue
+		}
+		if rr.get(rec, "field_name") != "stop_name" {
 			continue
 		}
 		stopID := rr.get(rec, "record_id")
+		if stopID == "" {
+			continue
+		}
 		lang := normalizeLang(rr.get(rec, "language"))
+		if lang == "" {
+			continue
+		}
 		translation := rr.get(rec, "translation")
-		if stopID == "" || lang == "" || translation == "" {
+		if translation == "" {
 			continue
 		}
 		if out[stopID] == nil {
