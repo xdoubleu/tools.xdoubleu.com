@@ -10,8 +10,10 @@ func toCSAStops(stops []models.Stop) []csa.StopInput {
 	out := make([]csa.StopInput, len(stops))
 	for i, s := range stops {
 		out[i] = csa.StopInput{
-			ID:            s.StopID,
-			Name:          s.Name,
+			ID: s.StopID,
+			// Leg.BoardStopName/AlightStopName are single-language — the
+			// French name, matching the feed's own primary language.
+			Name:          s.NameFR,
 			ParentStation: s.ParentStation,
 			PlatformCode:  s.PlatformCode,
 			LocationType:  s.LocationType,

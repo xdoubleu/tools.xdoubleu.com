@@ -20,7 +20,9 @@ const maxStationResults = 20
 // destination.
 type Station struct {
 	StopID string
-	Name   string
+	NameNL string
+	NameFR string
+	NameEN string
 }
 
 // StationsService answers SearchStations for the /trains station pickers.
@@ -32,9 +34,10 @@ func NewStationsService(repos *repositories.Repositories) *StationsService {
 	return &StationsService{repos: repos}
 }
 
-// SearchStations returns up to maxStationResults stations whose name
-// contains query, case-insensitively, ordered alphabetically. An empty
-// query returns the first page of all stations in the same order.
+// SearchStations returns up to maxStationResults stations whose name in any
+// of the three languages contains query, case-insensitively, ordered
+// alphabetically by the French name. An empty query returns the first page
+// of all stations in the same order.
 func (s *StationsService) SearchStations(
 	ctx context.Context, query string,
 ) ([]Station, error) {
@@ -49,13 +52,23 @@ func (s *StationsService) SearchStations(
 		if stop.LocationType != stationLocationType {
 			continue
 		}
-		if q != "" && !strings.Contains(strings.ToLower(stop.Name), q) {
+		if q != "" &&
+			!strings.Contains(strings.ToLower(stop.NameNL), q) &&
+			!strings.Contains(strings.ToLower(stop.NameFR), q) &&
+			!strings.Contains(strings.ToLower(stop.NameEN), q) {
 			continue
 		}
-		matches = append(matches, Station{StopID: stop.StopID, Name: stop.Name})
+		matches = append(matches, Station{
+			StopID: stop.StopID,
+			NameNL: stop.NameNL,
+			NameFR: stop.NameFR,
+			NameEN: stop.NameEN,
+		})
 	}
 
-	sort.Slice(matches, func(i, j int) bool { return matches[i].Name < matches[j].Name })
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].NameFR < matches[j].NameFR
+	})
 	if len(matches) > maxStationResults {
 		matches = matches[:maxStationResults]
 	}

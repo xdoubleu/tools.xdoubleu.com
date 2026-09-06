@@ -24,6 +24,12 @@ is atomic for readers under MVCC.
 A conditional GET (`feed_info.etag`/`last_modified`) makes an unchanged daily
 feed a no-op.
 
+Each stop is stored under three names — `name_nl`/`name_fr`/`name_en`.
+`stop_name` carries the feed's primary language (`feed_info.feed_lang`); the
+optional `translations.txt` (`table_name=stops`, `field_name=stop_name`)
+supplies the other two, keyed by `record_id` (the `stop_id`). A language with
+no translation entry falls back to the primary `stop_name` (issue #1450).
+
 ### Feed traps handled by the importer
 
 Each of these came from the #1389 spike and each has a test:

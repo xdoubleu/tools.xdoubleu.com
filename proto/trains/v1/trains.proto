@@ -49,12 +49,15 @@ message SearchJourneysResponse {
 // origin or destination. Never a platform-level stop.
 message Station {
   string stop_id = 1;
-  string name = 2;
+  string name_nl = 2;
+  string name_fr = 3;
+  string name_en = 4;
 }
 
 message SearchStationsRequest {
-  // Free-text substring match against station name, case-insensitive. Empty
-  // returns an alphabetical page of stations.
+  // Free-text substring match against the station name in any of the three
+  // languages, case-insensitive. Empty returns an alphabetical page of
+  // stations.
   string query = 1;
 }
 

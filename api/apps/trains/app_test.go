@@ -49,7 +49,34 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
+	ensureGlobalJobRuns(pool)
+
 	os.Exit(m.Run())
+}
+
+// ensureGlobalJobRuns mirrors cmd/api/migrations/00005_observability.sql's
+// job_runs table so TestNewAndStart's Start()/jobqueue.AddJob call can look
+// up a job's last successful run before the cmd/api package has applied the
+// global migrations (same pattern as apps/books/app_test.go).
+func ensureGlobalJobRuns(db postgres.DB) {
+	ctx := context.Background()
+	if _, err := db.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS global"); err != nil {
+		panic(err)
+	}
+
+	_, err := db.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS global.job_runs (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			job_id TEXT NOT NULL,
+			started_at TIMESTAMPTZ NOT NULL,
+			duration_ms BIGINT NOT NULL,
+			success BOOLEAN NOT NULL,
+			error TEXT
+		)
+	`)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestGetName(t *testing.T) {

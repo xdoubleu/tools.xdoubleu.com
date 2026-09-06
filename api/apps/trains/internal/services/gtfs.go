@@ -58,7 +58,11 @@ func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	if feed.Info, err = parseFeedInfo(files); err != nil {
 		return nil, err
 	}
-	if feed.Stops, err = parseStops(files); err != nil {
+	translations, err := parseTranslations(files)
+	if err != nil {
+		return nil, err
+	}
+	if feed.Stops, err = parseStops(files, translations, feed.Info.Lang); err != nil {
 		return nil, err
 	}
 	if feed.Routes, err = parseRoutes(files); err != nil {
@@ -130,7 +134,15 @@ func (rr *rowReader) getInt(rec []string, name string) int {
 	return n
 }
 
-func parseStops(files map[string]*zip.File) ([]models.Stop, error) {
+// parseStops parses stops.txt. Each stop's stop_name is in primaryLang
+// (feed_info's feed_lang); translations, keyed by stop_id then a two-letter
+// language code (see parseTranslations), fills in the other languages. A
+// language absent from translations falls back to the primary stop_name.
+func parseStops(
+	files map[string]*zip.File,
+	translations map[string]map[string]string,
+	primaryLang string,
+) ([]models.Stop, error) {
 	rr, openErr := openRows(files, "stops.txt")
 	if openErr != nil {
 		return nil, openErr
@@ -150,10 +162,23 @@ func parseStops(files map[string]*zip.File) ([]models.Stop, error) {
 		if id == "" {
 			continue
 		}
+		name := rr.get(rec, "stop_name")
+		names := map[string]string{normalizeLang(primaryLang): name}
+		for lang, translated := range translations[id] {
+			names[lang] = translated
+		}
+		nameOrFallback := func(lang string) string {
+			if n, ok := names[lang]; ok {
+				return n
+			}
+			return name
+		}
 		out = append(out, models.Stop{
 			StopID:        id,
 			ParentStation: rr.get(rec, "parent_station"),
-			Name:          rr.get(rec, "stop_name"),
+			NameNL:        nameOrFallback("nl"),
+			NameFR:        nameOrFallback("fr"),
+			NameEN:        nameOrFallback("en"),
 			LocationType:  rr.getInt(rec, "location_type"),
 			PlatformCode:  rr.get(rec, "platform_code"),
 			UIC:           uicFromStopID(id),
@@ -162,6 +187,62 @@ func parseStops(files map[string]*zip.File) ([]models.Stop, error) {
 		})
 	}
 	return out, nil
+}
+
+// parseTranslations parses the optional translations.txt, returning
+// stop_name translations keyed by stop_id then a two-letter language code.
+// Like transfers.txt, this file is optional in the feed — a missing file
+// yields no rows rather than an error (issue #1450).
+func parseTranslations(
+	files map[string]*zip.File,
+) (map[string]map[string]string, error) {
+	rr, openErr := openRows(files, "translations.txt")
+	if openErr != nil {
+		return nil, nil //nolint:nilnil //missing file is valid, like parseTransfers
+	}
+	defer rr.close()
+
+	out := make(map[string]map[string]string)
+	for {
+		rec, err := rr.next()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if rr.get(rec, "table_name") != "stops" ||
+			rr.get(rec, "field_name") != "stop_name" {
+			continue
+		}
+		stopID := rr.get(rec, "record_id")
+		lang := normalizeLang(rr.get(rec, "language"))
+		translation := rr.get(rec, "translation")
+		if stopID == "" || lang == "" || translation == "" {
+			continue
+		}
+		if out[stopID] == nil {
+			out[stopID] = make(map[string]string)
+		}
+		out[stopID][lang] = translation
+	}
+	return out, nil
+}
+
+// normalizeLang maps a GTFS language tag ("nl", "fr-BE", "nld", ...) to the
+// two-letter code this app stores, or "" for anything else.
+func normalizeLang(v string) string {
+	v = strings.ToLower(v)
+	switch {
+	case strings.HasPrefix(v, "nl"):
+		return "nl"
+	case strings.HasPrefix(v, "fr"):
+		return "fr"
+	case strings.HasPrefix(v, "en"):
+		return "en"
+	default:
+		return ""
+	}
 }
 
 func parseRoutes(files map[string]*zip.File) ([]models.Route, error) {

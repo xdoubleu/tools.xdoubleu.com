@@ -20,8 +20,8 @@ beforeEach(() => {
   mockUseTrainsFeedInfo.mockReturnValue({ data: { feedVersion: '2026-08-31' } })
   mockUseStationSearch.mockReturnValue({
     stations: [
-      { stopId: 'SA', name: 'Alpha' },
-      { stopId: 'SB', name: 'Bravo' }
+      { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha' },
+      { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo' }
     ]
   })
   mockUseJourneySearch.mockReturnValue({ data: undefined, isLoading: false, error: undefined })

@@ -19,7 +19,12 @@ func (h *trainsConnectHandler) SearchStations(
 
 	out := make([]*trainsv1.Station, len(stations))
 	for i, st := range stations {
-		out[i] = &trainsv1.Station{StopId: st.StopID, Name: st.Name}
+		out[i] = &trainsv1.Station{
+			StopId: st.StopID,
+			NameNl: st.NameNL,
+			NameFr: st.NameFR,
+			NameEn: st.NameEN,
+		}
 	}
 	return connect.NewResponse(&trainsv1.SearchStationsResponse{Stations: out}), nil
 }

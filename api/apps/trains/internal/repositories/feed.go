@@ -137,14 +137,14 @@ func copyStops(ctx context.Context, tx pgx.Tx, rows []models.Stop) error {
 	_, err := tx.CopyFrom(ctx,
 		pgx.Identifier{schemaName, "stops"},
 		[]string{
-			"stop_id", "parent_station", "name", "location_type",
-			"platform_code", "uic", "lat", "lon",
+			"stop_id", "parent_station", "name_nl", "name_fr", "name_en",
+			"location_type", "platform_code", "uic", "lat", "lon",
 		},
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			s := rows[i]
 			return []any{
-				s.StopID, nullStr(s.ParentStation), s.Name, s.LocationType,
-				nullStr(s.PlatformCode), nullStr(s.UIC), s.Lat, s.Lon,
+				s.StopID, nullStr(s.ParentStation), s.NameNL, s.NameFR, s.NameEN,
+				s.LocationType, nullStr(s.PlatformCode), nullStr(s.UIC), s.Lat, s.Lon,
 			}, nil
 		}),
 	)

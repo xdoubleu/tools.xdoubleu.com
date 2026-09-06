@@ -22,12 +22,29 @@ func stationsFeed() *models.Feed {
 	//nolint:exhaustruct //only Stops/Info matter for station and feed-info search
 	return &models.Feed{
 		Stops: []models.Stop{
-			{StopID: "SA", Name: "Alpha", LocationType: 1},
-			{StopID: "A1", Name: "Alpha", ParentStation: "SA", PlatformCode: "1"},
-			{StopID: "SB", Name: "Bravo", LocationType: 1},
-			{StopID: "SC", Name: "Charlie", LocationType: 1},
+			{
+				StopID:       "SA",
+				NameNL:       "Alpha",
+				NameFR:       "Alpha",
+				NameEN:       "Alpha",
+				LocationType: 1,
+			},
+			{
+				StopID: "A1", NameNL: "Alpha", NameFR: "Alpha", NameEN: "Alpha",
+				ParentStation: "SA", PlatformCode: "1",
+			},
+			{
+				StopID: "SB", NameNL: "Bravo-NL", NameFR: "Bravo", NameEN: "Bravo-EN",
+				LocationType: 1,
+			},
+			{
+				StopID: "SC", NameNL: "Charlie", NameFR: "Charlie", NameEN: "Charlie",
+				LocationType: 1,
+			},
 		},
-		Info: models.FeedInfo{FeedVersion: "2026-08-31"}, //nolint:exhaustruct //rest unused
+		Info: models.FeedInfo{
+			FeedVersion: "2026-08-31",
+		}, //nolint:exhaustruct //rest unused
 	}
 }
 
@@ -40,7 +57,7 @@ func TestStationsService_SearchStations(t *testing.T) {
 		require.NoError(t, err)
 		names := make([]string, 0, len(stations))
 		for _, s := range stations {
-			names = append(names, s.Name)
+			names = append(names, s.NameFR)
 		}
 		assert.Contains(t, names, "Alpha")
 		assert.Contains(t, names, "Bravo")
@@ -51,16 +68,34 @@ func TestStationsService_SearchStations(t *testing.T) {
 		}
 	})
 
-	t.Run("case-insensitive substring match", func(t *testing.T) {
-		stations, err := testApp.Services.Stations.SearchStations(ctx, "rav")
+	t.Run(
+		"case-insensitive substring match against the French name",
+		func(t *testing.T) {
+			stations, err := testApp.Services.Stations.SearchStations(ctx, "rav")
+			require.NoError(t, err)
+			require.Len(t, stations, 1)
+			assert.Equal(t, "SB", stations[0].StopID)
+			assert.Equal(t, "Bravo", stations[0].NameFR)
+		},
+	)
+
+	t.Run("matches a name only present in another language", func(t *testing.T) {
+		stations, err := testApp.Services.Stations.SearchStations(ctx, "bravo-nl")
 		require.NoError(t, err)
 		require.Len(t, stations, 1)
 		assert.Equal(t, "SB", stations[0].StopID)
-		assert.Equal(t, "Bravo", stations[0].Name)
+
+		stations, err = testApp.Services.Stations.SearchStations(ctx, "bravo-en")
+		require.NoError(t, err)
+		require.Len(t, stations, 1)
+		assert.Equal(t, "SB", stations[0].StopID)
 	})
 
 	t.Run("no match returns empty, not an error", func(t *testing.T) {
-		stations, err := testApp.Services.Stations.SearchStations(ctx, "nowhere-at-all-xyz")
+		stations, err := testApp.Services.Stations.SearchStations(
+			ctx,
+			"nowhere-at-all-xyz",
+		)
 		require.NoError(t, err)
 		assert.Empty(t, stations)
 	})
