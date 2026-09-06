@@ -57,6 +57,13 @@ func TestParseFeed_MissingFileIsError(t *testing.T) {
 	require.ErrorContains(t, err, "stop_times.txt missing")
 }
 
+func TestParseFeed_MissingStopsFileIsError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	delete(files, "stops.txt")
+	_, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.ErrorContains(t, err, "stops.txt missing")
+}
+
 func TestParseFeed_NoFeedVersionIsError(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["feed_info.txt"] = "feed_lang,feed_version\nfr,\n"
@@ -123,6 +130,17 @@ func TestParseFeed_StopNamesMultilingual(t *testing.T) {
 	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameNL)
 	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameFR)
 	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameEN)
+}
+
+func TestParseTranslations_MalformedRowPropagatesError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	// a bare quote mid-field is a real encoding/csv parse error, distinct
+	// from the io.EOF that ends a well-formed file.
+	files["translations.txt"] = "field_name,language,record_id,table_name,translation\n" +
+		"stop_name,nl,gs:nmbssncb:S8814001,stops,broken\"value\n"
+
+	_, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.Error(t, err)
 }
 
 func TestParseFeed_MissingTranslationsIsNotAnError(t *testing.T) {

@@ -16,7 +16,9 @@ import (
 //   - transfers.txt (issue #1391) carries one valid row plus one with a
 //     blank from_stop_id, exercising parseTransfers' skip branch
 //   - translations.txt (issue #1450) translates one stop's name into nl/en;
-//     the other stops have no translation and fall back to stop_name
+//     the other stops have no translation and fall back to stop_name; it
+//     also carries a non-stop_name row and an unrecognized-language row,
+//     both of which must be skipped
 func SampleFeedFiles() map[string]string {
 	return map[string]string{
 		"feed_info.txt": "feed_end_date,feed_lang,feed_publisher_name," +
@@ -53,7 +55,12 @@ func SampleFeedFiles() map[string]string {
 			",120,gs:nmbssncb:8892007_1,2\n",
 		"translations.txt": "field_name,language,record_id,table_name,translation\n" +
 			"stop_name,nl,gs:nmbssncb:S8814001,stops,Brussel-Zuid\n" +
-			"stop_name,en,gs:nmbssncb:S8814001,stops,Brussels-South\n",
+			"stop_name,en,gs:nmbssncb:S8814001,stops,Brussels-South\n" +
+			// a translation of a non-stop-name field: must be skipped.
+			"route_long_name,nl,r1,routes,Brussel - Gent\n" +
+			// an unrecognized language: normalizeLang returns "" and the row
+			// is skipped rather than overwriting a real translation.
+			"stop_name,de,gs:nmbssncb:S8892007,stops,Gent-Sint-Peter\n",
 	}
 }
 
