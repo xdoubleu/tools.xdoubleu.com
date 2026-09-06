@@ -22,8 +22,10 @@ make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.y
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
+make proto/generate/local          # same, via locally-installed plugins instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `npm run generate:local` in web/)
 make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 make lint/proto                    # buf lint — also part of make lint / lint/fix
+make lint/proto-local-versions     # fail if a proto/generate/local plugin version (api/Makefile, web/package.json) drifts from buf.gen.yaml's `remote:` pin — also part of make lint
 
 go test ./apps/books/... -run TestFunctionName   # single test
 ```

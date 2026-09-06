@@ -40,6 +40,7 @@ npm run test:cov                            # jest --coverage
 npm run test:cov:diff                        # jest --coverage, then scope the report to lines changed vs origin/main
 npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
+npm run generate:local                      # same, via the locally-installed protoc-gen-es instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `make proto/generate/local` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 npm run generate:ui-catalog                 # regenerate docs/spec-ui-primitives.md from components/ui/
 npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
