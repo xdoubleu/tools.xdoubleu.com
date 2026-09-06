@@ -17,7 +17,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/klippa-app/go-pdfium v1.19.4
-	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
+	github.com/ledongthuc/pdf v0.0.0-20260903153007-b3c860c23753
 	github.com/mmcdole/gofeed v1.4.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/ory/fosite v0.49.0
