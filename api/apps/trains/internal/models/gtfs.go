@@ -11,9 +11,15 @@ import "time"
 type Stop struct {
 	StopID        string
 	ParentStation string
-	Name          string
-	LocationType  int
-	PlatformCode  string
+	// NameNL/NameFR/NameEN are the stop name in each language. The feed's
+	// stop_name column carries a single (primary) language; translations.txt,
+	// when the feed publishes it, supplies the other two. A language with no
+	// translation falls back to the primary stop_name (issue #1450).
+	NameNL       string
+	NameFR       string
+	NameEN       string
+	LocationType int
+	PlatformCode string
 	// UIC is the bare 7-digit code parsed out of StopID.
 	UIC string
 	Lat *float64

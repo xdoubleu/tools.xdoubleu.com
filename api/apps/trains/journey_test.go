@@ -24,14 +24,14 @@ func journeyFeed(windowStart time.Time) *models.Feed {
 	//nolint:exhaustruct //FeedInfo/Transfers filled below, rest zero-valued
 	return &models.Feed{
 		Stops: []models.Stop{
-			{StopID: "SA", Name: "Alpha", LocationType: 1},
-			{StopID: "A1", Name: "Alpha", ParentStation: "SA", PlatformCode: "1"},
-			{StopID: "SB", Name: "Bravo", LocationType: 1},
-			{StopID: "B1", Name: "Bravo", ParentStation: "SB", PlatformCode: "1"},
-			{StopID: "B2", Name: "Bravo", ParentStation: "SB", PlatformCode: "2"},
-			{StopID: "SC", Name: "Charlie", LocationType: 1},
-			{StopID: "C1", Name: "Charlie", ParentStation: "SC", PlatformCode: "1"},
-			{StopID: "M1", Name: "Midway"},
+			{StopID: "SA", NameFR: "Alpha", LocationType: 1},
+			{StopID: "A1", NameFR: "Alpha", ParentStation: "SA", PlatformCode: "1"},
+			{StopID: "SB", NameFR: "Bravo", LocationType: 1},
+			{StopID: "B1", NameFR: "Bravo", ParentStation: "SB", PlatformCode: "1"},
+			{StopID: "B2", NameFR: "Bravo", ParentStation: "SB", PlatformCode: "2"},
+			{StopID: "SC", NameFR: "Charlie", LocationType: 1},
+			{StopID: "C1", NameFR: "Charlie", ParentStation: "SC", PlatformCode: "1"},
+			{StopID: "M1", NameFR: "Midway"},
 		},
 		Routes: journeyRoutes(),
 		Trips:  journeyTrips(),

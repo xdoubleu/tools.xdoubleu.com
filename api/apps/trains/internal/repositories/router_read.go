@@ -23,7 +23,8 @@ type ActiveTrip struct {
 // AllStops returns every stop (652 in this feed — cheap to load whole).
 func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT stop_id, parent_station, name, location_type, platform_code, uic
+		SELECT stop_id, parent_station, name_nl, name_fr, name_en,
+		       location_type, platform_code, uic
 		FROM trains.stops
 	`)
 	if err != nil {
@@ -36,7 +37,8 @@ func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 		var s models.Stop
 		var parent, platform, uic *string
 		if err = rows.Scan(
-			&s.StopID, &parent, &s.Name, &s.LocationType, &platform, &uic,
+			&s.StopID, &parent, &s.NameNL, &s.NameFR, &s.NameEN,
+			&s.LocationType, &platform, &uic,
 		); err != nil {
 			return nil, err
 		}

@@ -25,7 +25,9 @@ func TestSearchStations_Handler_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, resp.Msg.GetStations(), 1)
 	assert.Equal(t, "SB", resp.Msg.GetStations()[0].GetStopId())
-	assert.Equal(t, "Bravo", resp.Msg.GetStations()[0].GetName())
+	assert.Equal(t, "Bravo-NL", resp.Msg.GetStations()[0].GetNameNl())
+	assert.Equal(t, "Bravo", resp.Msg.GetStations()[0].GetNameFr())
+	assert.Equal(t, "Bravo-EN", resp.Msg.GetStations()[0].GetNameEn())
 }
 
 // TestGetFeedInfo_Handler_Success drives GetFeedInfo over real HTTP against

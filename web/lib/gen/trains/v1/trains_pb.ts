@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJImgKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBSJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiKAoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEgwKBG5hbWUYAiABKAkiJgoVU2VhcmNoU3RhdGlvbnNSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJIj4KFlNlYXJjaFN0YXRpb25zUmVzcG9uc2USJAoIc3RhdGlvbnMYASADKAsyEi50cmFpbnMudjEuU3RhdGlvbiIUChJHZXRGZWVkSW5mb1JlcXVlc3QiKwoTR2V0RmVlZEluZm9SZXNwb25zZRIUCgxmZWVkX3ZlcnNpb24YASABKAkyigIKDFRyYWluU2VydmljZRJVCg5TZWFyY2hKb3VybmV5cxIgLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXNwb25zZRJVCg5TZWFyY2hTdGF0aW9ucxIgLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXNwb25zZRJMCgtHZXRGZWVkSW5mbxIdLnRyYWlucy52MS5HZXRGZWVkSW5mb1JlcXVlc3QaHi50cmFpbnMudjEuR2V0RmVlZEluZm9SZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL3RyYWlucy92MTt0cmFpbnN2MWIGcHJvdG8z");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJImgKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBSJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiTQoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJIiYKFVNlYXJjaFN0YXRpb25zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI+ChZTZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEiQKCHN0YXRpb25zGAEgAygLMhIudHJhaW5zLnYxLlN0YXRpb24iFAoSR2V0RmVlZEluZm9SZXF1ZXN0IisKE0dldEZlZWRJbmZvUmVzcG9uc2USFAoMZmVlZF92ZXJzaW9uGAEgASgJMooCCgxUcmFpblNlcnZpY2USVQoOU2VhcmNoSm91cm5leXMSIC50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVzcG9uc2USVQoOU2VhcmNoU3RhdGlvbnMSIC50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVzcG9uc2USTAoLR2V0RmVlZEluZm8SHS50cmFpbnMudjEuR2V0RmVlZEluZm9SZXF1ZXN0Gh4udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi90cmFpbnMvdjE7dHJhaW5zdjFiBnByb3RvMw");
 
 /**
  * Leg is one boarded train, from where the passenger gets on to where they
@@ -189,9 +189,19 @@ export type Station = Message<"trains.v1.Station"> & {
   stopId: string;
 
   /**
-   * @generated from field: string name = 2;
+   * @generated from field: string name_nl = 2;
    */
-  name: string;
+  nameNl: string;
+
+  /**
+   * @generated from field: string name_fr = 3;
+   */
+  nameFr: string;
+
+  /**
+   * @generated from field: string name_en = 4;
+   */
+  nameEn: string;
 };
 
 /**
@@ -206,8 +216,9 @@ export const StationSchema: GenMessage<Station> = /*@__PURE__*/
  */
 export type SearchStationsRequest = Message<"trains.v1.SearchStationsRequest"> & {
   /**
-   * Free-text substring match against station name, case-insensitive. Empty
-   * returns an alphabetical page of stations.
+   * Free-text substring match against the station name in any of the three
+   * languages, case-insensitive. Empty returns an alphabetical page of
+   * stations.
    *
    * @generated from field: string query = 1;
    */

@@ -15,6 +15,8 @@ import (
 //   - columns are alphabetically ordered, as in the real feed
 //   - transfers.txt (issue #1391) carries one valid row plus one with a
 //     blank from_stop_id, exercising parseTransfers' skip branch
+//   - translations.txt (issue #1450) translates one stop's name into nl/en;
+//     the other stops have no translation and fall back to stop_name
 func SampleFeedFiles() map[string]string {
 	return map[string]string{
 		"feed_info.txt": "feed_end_date,feed_lang,feed_publisher_name," +
@@ -49,6 +51,9 @@ func SampleFeedFiles() map[string]string {
 		"transfers.txt": "from_stop_id,min_transfer_time,to_stop_id,transfer_type\n" +
 			"gs:nmbssncb:8814001_3,120,gs:nmbssncb:8892007_1,2\n" +
 			",120,gs:nmbssncb:8892007_1,2\n",
+		"translations.txt": "field_name,language,record_id,table_name,translation\n" +
+			"stop_name,nl,gs:nmbssncb:S8814001,stops,Brussel-Zuid\n" +
+			"stop_name,en,gs:nmbssncb:S8814001,stops,Brussels-South\n",
 	}
 }
 

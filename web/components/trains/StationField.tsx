@@ -2,6 +2,12 @@
 
 import { Combobox } from '@/components/ui/combobox'
 import { useStationSearch } from '@/hooks/useTrains'
+import type { Station } from '@/lib/gen/trains/v1/trains_pb'
+
+/** Joins the station's distinct nl/fr/en names, e.g. "Brussel-Zuid / Bruxelles-Midi". */
+function displayName(station: Station): string {
+  return Array.from(new Set([station.nameNl, station.nameFr, station.nameEn])).join(' / ')
+}
 
 interface StationFieldProps {
   label: string
@@ -22,7 +28,7 @@ export default function StationField({
   autoFocus
 }: StationFieldProps) {
   const { stations } = useStationSearch(query)
-  const stopIdByName = new Map(stations.map((s) => [s.name, s.stopId]))
+  const stopIdByName = new Map(stations.map((s) => [displayName(s), s.stopId]))
 
   return (
     <div>
@@ -34,7 +40,7 @@ export default function StationField({
           const stopId = stopIdByName.get(name)
           if (stopId) onSelectStation(stopId, name)
         }}
-        suggestions={stations.map((s) => s.name)}
+        suggestions={stations.map(displayName)}
         placeholder={placeholder}
         autoFocus={autoFocus}
         aria-label={label}

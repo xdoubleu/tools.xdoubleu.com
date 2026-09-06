@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
+	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/internal/logging"
 )
 
@@ -94,4 +95,45 @@ func TestParseFeed_TrapsAndBounds(t *testing.T) {
 	assert.Equal(t, 1, nonBoarding)
 
 	assert.Equal(t, "8814001", feed.Stops[0].UIC)
+}
+
+func TestParseFeed_StopNamesMultilingual(t *testing.T) {
+	raw := mocks.BuildFeedZip(mocks.SampleFeedFiles())
+
+	feed, err := parseFeed(logging.NewNopLogger(), raw)
+	require.NoError(t, err)
+
+	var brusselsSouth, ghent models.Stop
+	for _, s := range feed.Stops {
+		switch s.StopID {
+		case "gs:nmbssncb:S8814001":
+			brusselsSouth = s
+		case "gs:nmbssncb:S8892007":
+			ghent = s
+		}
+	}
+
+	// translations.txt supplies nl/en for this stop; fr comes from stop_name,
+	// the feed's primary language (feed_lang=fr).
+	assert.Equal(t, "Brussel-Zuid", brusselsSouth.NameNL)
+	assert.Equal(t, "Bruxelles-Midi", brusselsSouth.NameFR)
+	assert.Equal(t, "Brussels-South", brusselsSouth.NameEN)
+
+	// no translation for this stop — every language falls back to stop_name.
+	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameNL)
+	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameFR)
+	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameEN)
+}
+
+func TestParseFeed_MissingTranslationsIsNotAnError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	delete(files, "translations.txt")
+
+	feed, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.NoError(t, err)
+
+	for _, s := range feed.Stops {
+		assert.Equal(t, s.NameFR, s.NameNL)
+		assert.Equal(t, s.NameFR, s.NameEN)
+	}
 }
