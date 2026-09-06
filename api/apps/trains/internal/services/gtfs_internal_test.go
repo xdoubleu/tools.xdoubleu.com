@@ -110,13 +110,15 @@ func TestParseFeed_StopNamesMultilingual(t *testing.T) {
 	feed, err := parseFeed(logging.NewNopLogger(), raw)
 	require.NoError(t, err)
 
-	var brusselsSouth, ghent models.Stop
+	var brusselsSouth, ghent, antwerp models.Stop
 	for _, s := range feed.Stops {
 		switch s.StopID {
 		case "gs:nmbssncb:S8814001":
 			brusselsSouth = s
 		case "gs:nmbssncb:S8892007":
 			ghent = s
+		case "gs:nmbssncb:8821006":
+			antwerp = s
 		}
 	}
 
@@ -125,6 +127,12 @@ func TestParseFeed_StopNamesMultilingual(t *testing.T) {
 	assert.Equal(t, "Brussel-Zuid", brusselsSouth.NameNL)
 	assert.Equal(t, "Bruxelles-Midi", brusselsSouth.NameFR)
 	assert.Equal(t, "Brussels-South", brusselsSouth.NameEN)
+
+	// translations.txt overrides fr here too, even though fr is the primary
+	// language — an explicit translation always wins over stop_name.
+	assert.Equal(t, "Anvers-Central", antwerp.NameFR)
+	assert.Equal(t, "Antwerpen-Centraal", antwerp.NameNL)
+	assert.Equal(t, "Antwerpen-Centraal", antwerp.NameEN)
 
 	// no translation for this stop — every language falls back to stop_name.
 	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameNL)

@@ -15,10 +15,11 @@ import (
 //   - columns are alphabetically ordered, as in the real feed
 //   - transfers.txt (issue #1391) carries one valid row plus one with a
 //     blank from_stop_id, exercising parseTransfers' skip branch
-//   - translations.txt (issue #1450) translates one stop's name into nl/en;
-//     the other stops have no translation and fall back to stop_name; it
-//     also carries a non-stop_name row and an unrecognized-language row,
-//     both of which must be skipped
+//   - translations.txt (issue #1450) translates one stop's name into nl/en
+//     and another's into fr (overriding its own primary-language name); a
+//     third stop has no translation and falls back to stop_name; it also
+//     carries a non-stop_name row and an unrecognized-language row, both of
+//     which must be skipped
 func SampleFeedFiles() map[string]string {
 	return map[string]string{
 		"feed_info.txt": "feed_end_date,feed_lang,feed_publisher_name," +
@@ -56,6 +57,7 @@ func SampleFeedFiles() map[string]string {
 		"translations.txt": "field_name,language,record_id,table_name,translation\n" +
 			"stop_name,nl,gs:nmbssncb:S8814001,stops,Brussel-Zuid\n" +
 			"stop_name,en,gs:nmbssncb:S8814001,stops,Brussels-South\n" +
+			"stop_name,fr,gs:nmbssncb:8821006,stops,Anvers-Central\n" +
 			// a translation of a non-stop-name field: must be skipped.
 			"route_long_name,nl,r1,routes,Brussel - Gent\n" +
 			// an unrecognized language: normalizeLang returns "" and the row

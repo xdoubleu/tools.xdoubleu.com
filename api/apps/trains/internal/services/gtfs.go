@@ -62,7 +62,7 @@ func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	if err != nil {
 		return nil, err
 	}
-	if feed.Stops, err = parseStops(files, translations, feed.Info.Lang); err != nil {
+	if feed.Stops, err = parseStops(files, translations); err != nil {
 		return nil, err
 	}
 	if feed.Routes, err = parseRoutes(files); err != nil {
@@ -134,14 +134,13 @@ func (rr *rowReader) getInt(rec []string, name string) int {
 	return n
 }
 
-// parseStops parses stops.txt. Each stop's stop_name is in primaryLang
-// (feed_info's feed_lang); translations, keyed by stop_id then a two-letter
-// language code (see parseTranslations), fills in the other languages. A
-// language absent from translations falls back to the primary stop_name.
+// parseStops parses stops.txt. Each stop's stop_name is the feed's primary
+// language; translations, keyed by stop_id then a two-letter language code
+// (see parseTranslations), fills in the other languages. A language absent
+// from translations falls back to the primary stop_name.
 func parseStops(
 	files map[string]*zip.File,
 	translations map[string]map[string]string,
-	primaryLang string,
 ) ([]models.Stop, error) {
 	rr, openErr := openRows(files, "stops.txt")
 	if openErr != nil {
@@ -163,10 +162,7 @@ func parseStops(
 			continue
 		}
 		name := rr.get(rec, "stop_name")
-		names := map[string]string{normalizeLang(primaryLang): name}
-		for lang, translated := range translations[id] {
-			names[lang] = translated
-		}
+		names := translations[id]
 		nameOrFallback := func(lang string) string {
 			if n, ok := names[lang]; ok {
 				return n
