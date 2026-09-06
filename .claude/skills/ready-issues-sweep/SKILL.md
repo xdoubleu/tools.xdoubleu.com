@@ -28,8 +28,11 @@ taking N minutes of wall-clock finish in ~N minutes total instead of 10×N.
    `get_oauth_connections` for the `github` connection first: this tool
    needs `read:project` scope, and a connection made before that scope
    existed will silently return nothing until the user reconnects GitHub
-   (claude.ai Settings → Connectors). Ask the user to reconnect rather than
-   reporting a false "nothing to do".
+   (claude.ai Settings → Connectors). Reconnecting is a human-only action
+   this skill can't take itself, and nothing later in the sweep can proceed
+   without it either — so file a tracking issue documenting the missing
+   scope and end the sweep for this run, rather than reporting a false
+   "nothing to do" or blocking on a question no one is there to answer.
 
 2. **Skim titles for genuine overlap** (two issues that would touch the same
    files/area) and note it in each affected subagent's prompt so they're

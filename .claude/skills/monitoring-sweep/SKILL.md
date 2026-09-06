@@ -61,8 +61,10 @@ have each drive its own fix to a merged/mergeable PR independently.
      subagents yourself.
 
 3. **Before dispatching, decide what's actually fixable vs. what needs a
-   human call**, and ask the user (`AskUserQuestion`) rather than guessing,
-   especially for:
+   human call.** Don't dispatch a fix subagent for these — file (or, for the
+   security-alert cases, let `dependabot-triage` file) a tracking issue
+   explaining why it needs a human decision, and keep dispatching everything
+   else rather than blocking the whole sweep on it:
    - Secret-scanning alerts — a real leaked credential needs rotation by a
      human with access to the actual provider dashboard; a subagent can only
      investigate and report which alerts look like false positives vs. real.
@@ -88,12 +90,12 @@ have each drive its own fix to a merged/mergeable PR independently.
      branch off main) → fix → tests to the ≥80% changed-lines bar → `make
      lint`/`npm run lint` → `finish-task` (PR closing the tracking issue,
      watch CI green).
-   - Close the loop on the monitoring page's own data where a mutating tool
-     exists (`resolve_sentry_issue` for Sentry — only after the fix is
-     confirmed correct, not just pushed) — and where none exists (Dependabot
-     alerts, secret scanning), report back exactly what should be manually
-     dismissed and why, since this MCP server exposes no dismiss tool for
-     either.
+   - Close the loop on the monitoring page's own data via whichever mutating
+     tool applies — `resolve_sentry_issue` for Sentry (only after the fix is
+     confirmed correct, not just pushed), `dismiss_security_alert` for
+     Dependabot/code-scanning/secret-scanning alerts (see
+     `dependabot-triage` for the per-alert-type dismissal judgement) — and
+     report back which alerts it dismissed and why.
    - Report back a short summary: root cause, fix, PR URL(s).
 
 5. **Do not poll the subagents.** They run in the background and this
