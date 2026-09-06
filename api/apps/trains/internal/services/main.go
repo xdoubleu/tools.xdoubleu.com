@@ -14,6 +14,7 @@ type Services struct {
 	Journey      *JourneyService
 	Stations     *StationsService
 	FeedInfo     *FeedInfoService
+	Realtime     *RealtimeService
 }
 
 func New(
@@ -26,5 +27,6 @@ func New(
 		Journey:      NewJourneyService(logger, repos),
 		Stations:     NewStationsService(repos),
 		FeedInfo:     NewFeedInfoService(repos),
+		Realtime:     NewRealtimeService(logger, bmcClient),
 	}
 }

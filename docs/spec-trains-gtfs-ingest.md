@@ -47,5 +47,7 @@ Each of these came from the #1389 spike and each has a test:
 
 ## Known gaps
 
-No realtime overlay yet — see `docs/spec-trains-journey-search.md` for the
-journey planner added in #1391.
+No realtime overlay onto the journey planner yet — see
+`docs/spec-trains-journey-search.md` for the planner added in #1391 and
+`docs/spec-trains-realtime-ingest.md` for the GTFS-Realtime poll job added in
+#1393.

@@ -38,6 +38,7 @@ type Trains struct {
 	jobQueue         *jobqueue.JobQueue
 	staticImportJob  *jobs.StaticImportJob
 	routerRefreshJob *jobs.RouterRefreshJob
+	realtimePollJob  *jobs.RealtimePollJob
 }
 
 func New(
@@ -81,6 +82,7 @@ func NewInner(
 	a.Services = services.New(logger, a.Repositories, bmcClient)
 	a.staticImportJob = jobs.NewStaticImportJob(a.Services.StaticImport)
 	a.routerRefreshJob = jobs.NewRouterRefreshJob(a.Services.Journey.RefreshOnly)
+	a.realtimePollJob = jobs.NewRealtimePollJob(a.Services.Realtime)
 
 	return a
 }
@@ -93,8 +95,14 @@ func (a *Trains) Start() error {
 	); err != nil {
 		return err
 	}
-	return a.jobQueue.AddJob(
+	if err := a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.routerRefreshJob, a.db),
+		noop,
+	); err != nil {
+		return err
+	}
+	return a.jobQueue.AddJob(
+		observability.NewTrackedJob(a.realtimePollJob, a.db),
 		noop,
 	)
 }

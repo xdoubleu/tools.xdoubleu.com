@@ -63,6 +63,7 @@ loaded automatically.
 | [spec-observability-subsystem.md](spec-observability-subsystem.md) | `TrackedJob`, `UsageRecorder`, host metrics, log tee, snapshots | #1027, #915, #1040, #848, #1217 |
 | [spec-trains-gtfs-ingest.md](spec-trains-gtfs-ingest.md) | GTFS static import, feed traps, `trip_id` churn | #1388, #1389, #1390 |
 | [spec-trains-journey-search.md](spec-trains-journey-search.md) | CSA journey planner, rolling window, Pareto search | #1388, #1390, #1391 |
+| [spec-trains-realtime-ingest.md](spec-trains-realtime-ingest.md) | GTFS-Realtime poll job, the trip-level/stop-level `schedule_relationship` split, backoff | #1388, #1389, #1393 |
 | [spec-ui-primitives.md](spec-ui-primitives.md) | Generated inventory of `components/ui/` — check before building a component | #1412 |
 | [spec-web-data-flow.md](spec-web-data-flow.md) | Two ConnectRPC transports; RSC prefetch → SWR hydration | #1318 |
 
