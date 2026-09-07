@@ -83,6 +83,33 @@ type FeedInfo struct {
 	// the conditional-GET validators above still describe usable data
 	// (issue #1453).
 	ParserVersion int
+	// Translations records how much of translations.txt the import actually
+	// applied (issue #1459).
+	Translations TranslationCoverage
+}
+
+// TranslationCoverage is what one import made of translations.txt. A feed
+// that publishes no translations, one whose rows this importer cannot match
+// to a stop, and one that is simply monolingual all produce the same
+// user-visible result — three identical station names — so the counts are
+// stored and served alongside the feed to tell those cases apart
+// (issue #1459).
+type TranslationCoverage struct {
+	// StopsNL/StopsFR/StopsEN count the stops whose name in that language
+	// came from translations.txt rather than falling back to the primary
+	// stop_name. A count of 0 against a non-zero Rows means the rows were
+	// read but matched nothing.
+	StopsNL int
+	StopsFR int
+	StopsEN int
+	// Rows is the number of usable stop_name rows read from translations.txt
+	// — 0 when the feed omits the file entirely.
+	Rows int
+	// RowsUnmatched counts the (key, language) pairs among those Rows that
+	// identified a stop this feed's stops.txt does not contain. Duplicate
+	// rows for one pair collapse, so against a feed that repeats itself this
+	// reads slightly below Rows even when nothing matched.
+	RowsUnmatched int
 }
 
 // Transfer is one row of transfers.txt. TransferType follows the GTFS

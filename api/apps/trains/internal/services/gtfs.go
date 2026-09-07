@@ -62,7 +62,9 @@ func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	if err != nil {
 		return nil, err
 	}
-	if feed.Stops, err = parseStops(files, translations, feed.Info.Lang); err != nil {
+	if feed.Stops, feed.Info.Translations, err = parseStops(
+		files, translations, feed.Info.Lang,
+	); err != nil {
 		return nil, err
 	}
 	if feed.Routes, err = parseRoutes(files); err != nil {
@@ -135,17 +137,21 @@ func (rr *rowReader) getInt(rec []string, name string) int {
 }
 
 // parseStops parses stops.txt. Each stop's stop_name is in primaryLang
-// (feed_info's feed_lang); translations, keyed by stop_id then a two-letter
-// language code (see parseTranslations), fills in the other languages. A
-// language absent from translations falls back to the primary stop_name.
+// (feed_info's feed_lang); translations fills in the other languages, and a
+// language it does not cover falls back to the primary stop_name. The
+// returned coverage reports how many stops each language actually got from
+// translations.txt (issue #1459).
 func parseStops(
 	files map[string]*zip.File,
-	translations map[string]map[string]string,
+	translations *stopTranslations,
 	primaryLang string,
-) ([]models.Stop, error) {
+) ([]models.Stop, models.TranslationCoverage, error) {
+	//nolint:exhaustruct //counted up below
+	coverage := models.TranslationCoverage{Rows: translations.rows}
+
 	rr, openErr := openRows(files, "stops.txt")
 	if openErr != nil {
-		return nil, openErr
+		return nil, coverage, openErr
 	}
 	defer rr.close()
 
@@ -156,22 +162,32 @@ func parseStops(
 			break
 		}
 		if err != nil {
-			return nil, err
+			return nil, coverage, err
 		}
 		id := rr.get(rec, "stop_id")
 		if id == "" {
 			continue
 		}
 		name := rr.get(rec, "stop_name")
+		translated := translations.forStop(id, name)
 		names := map[string]string{normalizeLang(primaryLang): name}
-		for lang, translated := range translations[id] {
-			names[lang] = translated
+		for lang, t := range translated {
+			names[lang] = t
 		}
 		nameOrFallback := func(lang string) string {
 			if n, ok := names[lang]; ok {
 				return n
 			}
 			return name
+		}
+		if _, ok := translated["nl"]; ok {
+			coverage.StopsNL++
+		}
+		if _, ok := translated["fr"]; ok {
+			coverage.StopsFR++
+		}
+		if _, ok := translated["en"]; ok {
+			coverage.StopsEN++
 		}
 		out = append(out, models.Stop{
 			StopID:        id,
@@ -186,23 +202,99 @@ func parseStops(
 			Lon:           parseFloatPtr(rr.get(rec, "stop_lon")),
 		})
 	}
-	return out, nil
+
+	coverage.RowsUnmatched = translations.unmatchedRows()
+	return out, coverage, nil
 }
 
-// parseTranslations parses the optional translations.txt, returning
-// stop_name translations keyed by stop_id then a two-letter language code.
-// Like transfers.txt, this file is optional in the feed — a missing file
-// yields no rows rather than an error (issue #1450).
-func parseTranslations(
-	files map[string]*zip.File,
-) (map[string]map[string]string, error) {
+// stopTranslations holds translations.txt's stop_name rows, indexed by both
+// of the keys GTFS allows such a row to carry, and remembers which of those
+// keys a stop actually claimed so unmatched rows can be counted.
+type stopTranslations struct {
+	// byRecordID is keyed by record_id, byValue by field_value — the two
+	// mutually exclusive ways translations.txt identifies the row it
+	// translates. Each maps to a two-letter language code to the name.
+	byRecordID map[string]map[string]string
+	byValue    map[string]map[string]string
+	// used records the keys forStop matched, as "<index>\x00<key>".
+	used map[string]bool
+	// rows counts the usable stop_name rows read.
+	rows int
+}
+
+// forStop returns the translations for one stop, keyed by two-letter
+// language code, and marks the matching rows used. A stop is resolved
+// against, in precedence order: its full stop_id, its stop_id with the
+// gateway's gtfsPrefix stripped, and finally its primary stop_name. The
+// bare-id attempt is what covers a feed whose stops.txt the BMC gateway
+// rewrites with gtfsPrefix while leaving translations.txt keyed by the
+// unprefixed id; the stop_name attempt covers a feed that identifies rows
+// by field_value rather than record_id at all (issue #1459).
+func (t *stopTranslations) forStop(stopID, name string) map[string]string {
+	candidates := []struct {
+		index string
+		key   string
+		from  map[string]map[string]string
+	}{
+		{"id", stopID, t.byRecordID},
+		{"id", strings.TrimPrefix(stopID, gtfsPrefix), t.byRecordID},
+		{"value", name, t.byValue},
+	}
+
+	out := map[string]string{}
+	for _, c := range candidates {
+		if c.key == "" {
+			continue
+		}
+		names, ok := c.from[c.key]
+		if !ok {
+			continue
+		}
+		t.used[c.index+"\x00"+c.key] = true
+		// An earlier candidate wins per language: an explicit record_id
+		// match is more specific than one made on the name's value.
+		for lang, translated := range names {
+			if _, taken := out[lang]; !taken {
+				out[lang] = translated
+			}
+		}
+	}
+	return out
+}
+
+// unmatchedRows counts the rows whose identifying key no stop claimed.
+func (t *stopTranslations) unmatchedRows() int {
+	unmatched := 0
+	for index, from := range map[string]map[string]map[string]string{
+		"id":    t.byRecordID,
+		"value": t.byValue,
+	} {
+		for key, names := range from {
+			if !t.used[index+"\x00"+key] {
+				unmatched += len(names)
+			}
+		}
+	}
+	return unmatched
+}
+
+// parseTranslations parses the optional translations.txt into an index of
+// its stop_name rows. Like transfers.txt, this file is optional in the feed
+// — a missing file yields an empty index rather than an error (issue #1450).
+func parseTranslations(files map[string]*zip.File) (*stopTranslations, error) {
+	out := &stopTranslations{
+		byRecordID: map[string]map[string]string{},
+		byValue:    map[string]map[string]string{},
+		used:       map[string]bool{},
+		rows:       0,
+	}
+
 	rr, openErr := openRows(files, "translations.txt")
 	if openErr != nil {
-		return nil, nil //nolint:nilnil //missing file is valid, like parseTransfers
+		return out, nil
 	}
 	defer rr.close()
 
-	out := make(map[string]map[string]string)
 	for {
 		rec, err := rr.next()
 		if errors.Is(err, io.EOF) {
@@ -215,16 +307,26 @@ func parseTranslations(
 			rr.get(rec, "field_name") != "stop_name" {
 			continue
 		}
-		stopID := rr.get(rec, "record_id")
 		lang := normalizeLang(rr.get(rec, "language"))
 		translation := rr.get(rec, "translation")
-		if stopID == "" || lang == "" || translation == "" {
+		if lang == "" || translation == "" {
 			continue
 		}
-		if out[stopID] == nil {
-			out[stopID] = make(map[string]string)
+		// record_id and field_value are mutually exclusive in GTFS, and
+		// record_id is the more specific of the two — prefer it when a
+		// publisher sets both anyway.
+		index, key := out.byValue, rr.get(rec, "field_value")
+		if recordID := rr.get(rec, "record_id"); recordID != "" {
+			index, key = out.byRecordID, recordID
 		}
-		out[stopID][lang] = translation
+		if key == "" {
+			continue
+		}
+		if index[key] == nil {
+			index[key] = map[string]string{}
+		}
+		index[key][lang] = translation
+		out.rows++
 	}
 	return out, nil
 }

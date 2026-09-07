@@ -33,7 +33,8 @@ func TestSearchStations_Handler_Success(t *testing.T) {
 
 // TestGetFeedInfo_Handler_Success drives GetFeedInfo over real HTTP against
 // stationsFeed (stations_test.go), verifying the feed_version field mapping
-// used to drive the required CC BY attribution string on /trains. Goes
+// used to drive the required CC BY attribution string on /trains, and the
+// translation-coverage mapping (issue #1459). Goes
 // through ImportFeed directly rather than StaticImport.Import, since the
 // shared MockBMCClient only ever serves a real body on the first call across
 // the whole test binary.
@@ -49,4 +50,15 @@ func TestGetFeedInfo_Handler_Success(t *testing.T) {
 	importedAt, err := time.Parse(time.RFC3339, resp.Msg.GetImportedAt())
 	require.NoError(t, err, "imported_at is an RFC3339 timestamp")
 	assert.WithinDuration(t, time.Now(), importedAt, time.Minute)
+
+	// The translation coverage stored by the import round-trips out again —
+	// this is what says whether station names are actually multilingual or
+	// have silently fallen back to one language (issue #1459).
+	translations := resp.Msg.GetTranslations()
+	require.NotNil(t, translations)
+	assert.Equal(t, int32(2), translations.GetTranslatedStopsNl())
+	assert.Equal(t, int32(0), translations.GetTranslatedStopsFr())
+	assert.Equal(t, int32(2), translations.GetTranslatedStopsEn())
+	assert.Equal(t, int32(5), translations.GetRows())
+	assert.Equal(t, int32(1), translations.GetRowsUnmatched())
 }

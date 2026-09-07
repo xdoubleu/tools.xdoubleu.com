@@ -40,9 +40,12 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 			"name — the names the /trains pickers search and display.",
 		h.mcpSearchStations)
 	mcptools.AddReadTool(srv, mcpAppName, "trains_get_feed_info",
-		"The imported SNCB/NMBS timetable's feed version and when the import "+
-			"that produced it ran. A conditional GET makes an unchanged feed a "+
-			"no-op, so a stale imported_at is how a skipped import shows up.",
+		"The imported SNCB/NMBS timetable's feed version, when the import "+
+			"that produced it ran, and how much of the feed's translations.txt "+
+			"it applied. A conditional GET makes an unchanged feed a no-op, so "+
+			"a stale imported_at is how a skipped import shows up; translated "+
+			"stop counts of 0 against a non-zero rows count is how station "+
+			"names silently staying monolingual shows up.",
 		h.mcpGetFeedInfo)
 	mcptools.AddReadTool(srv, mcpAppName, "trains_search_journeys",
 		"Journeys between two stops around a time, as the /trains route "+

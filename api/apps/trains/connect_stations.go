@@ -2,6 +2,7 @@ package trains
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"connectrpc.com/connect"
@@ -45,5 +46,25 @@ func (h *trainsConnectHandler) GetFeedInfo(
 	return connect.NewResponse(&trainsv1.GetFeedInfoResponse{
 		FeedVersion: info.FeedVersion,
 		ImportedAt:  importedAt,
+		Translations: &trainsv1.TranslationCoverage{
+			TranslatedStopsNl: count32(info.Translations.StopsNL),
+			TranslatedStopsFr: count32(info.Translations.StopsFR),
+			TranslatedStopsEn: count32(info.Translations.StopsEN),
+			Rows:              count32(info.Translations.Rows),
+			RowsUnmatched:     count32(info.Translations.RowsUnmatched),
+		},
 	}), nil
+}
+
+// count32 narrows a parsed count to the proto's int32. A GTFS feed nowhere
+// near two billion translation rows makes the clamp unreachable in practice;
+// it is here so the conversion cannot wrap into a negative count.
+func count32(n int) int32 {
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if n < 0 {
+		return 0
+	}
+	return int32(n)
 }
