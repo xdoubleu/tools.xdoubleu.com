@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJImgKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBSJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiTQoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJIiYKFVNlYXJjaFN0YXRpb25zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI+ChZTZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEiQKCHN0YXRpb25zGAEgAygLMhIudHJhaW5zLnYxLlN0YXRpb24iFAoSR2V0RmVlZEluZm9SZXF1ZXN0IkAKE0dldEZlZWRJbmZvUmVzcG9uc2USFAoMZmVlZF92ZXJzaW9uGAEgASgJEhMKC2ltcG9ydGVkX2F0GAIgASgJMooCCgxUcmFpblNlcnZpY2USVQoOU2VhcmNoSm91cm5leXMSIC50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVzcG9uc2USVQoOU2VhcmNoU3RhdGlvbnMSIC50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVzcG9uc2USTAoLR2V0RmVlZEluZm8SHS50cmFpbnMudjEuR2V0RmVlZEluZm9SZXF1ZXN0Gh4udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi90cmFpbnMvdjE7dHJhaW5zdjFiBnByb3RvMw");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQidQoNSm91cm5leURldGFpbBISCgpqb3VybmV5X2lkGAEgASgJEiIKBGxlZ3MYAiADKAsyFC50cmFpbnMudjEuTGVnRGV0YWlsEhYKDmRlcGFydHVyZV90aW1lGAMgASgJEhQKDGFycml2YWxfdGltZRgEIAEoCSItChdHZXRKb3VybmV5RGV0YWlsUmVxdWVzdBISCgpqb3VybmV5X2lkGAEgASgJIkUKGEdldEpvdXJuZXlEZXRhaWxSZXNwb25zZRIpCgdqb3VybmV5GAEgASgLMhgudHJhaW5zLnYxLkpvdXJuZXlEZXRhaWwibQoVU2VhcmNoSm91cm5leXNSZXF1ZXN0EhYKDm9yaWdpbl9zdG9wX2lkGAEgASgJEhsKE2Rlc3RpbmF0aW9uX3N0b3BfaWQYAiABKAkSDAoEdGltZRgDIAEoCRIRCglhcnJpdmVfYnkYBCABKAgiPgoWU2VhcmNoSm91cm5leXNSZXNwb25zZRIkCghqb3VybmV5cxgBIAMoCzISLnRyYWlucy52MS5Kb3VybmV5Ik0KB1N0YXRpb24SDwoHc3RvcF9pZBgBIAEoCRIPCgduYW1lX25sGAIgASgJEg8KB25hbWVfZnIYAyABKAkSDwoHbmFtZV9lbhgEIAEoCSImChVTZWFyY2hTdGF0aW9uc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiPgoWU2VhcmNoU3RhdGlvbnNSZXNwb25zZRIkCghzdGF0aW9ucxgBIAMoCzISLnRyYWlucy52MS5TdGF0aW9uIhQKEkdldEZlZWRJbmZvUmVxdWVzdCJAChNHZXRGZWVkSW5mb1Jlc3BvbnNlEhQKDGZlZWRfdmVyc2lvbhgBIAEoCRITCgtpbXBvcnRlZF9hdBgCIAEoCTLnAgoMVHJhaW5TZXJ2aWNlElUKDlNlYXJjaEpvdXJuZXlzEiAudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1Jlc3BvbnNlElUKDlNlYXJjaFN0YXRpb25zEiAudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEkwKC0dldEZlZWRJbmZvEh0udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVxdWVzdBoeLnRyYWlucy52MS5HZXRGZWVkSW5mb1Jlc3BvbnNlElsKEEdldEpvdXJuZXlEZXRhaWwSIi50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlcXVlc3QaIy50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vdHJhaW5zL3YxO3RyYWluc3YxYgZwcm90bzM");
 
 /**
  * Leg is one boarded train, from where the passenger gets on to where they
@@ -108,6 +108,15 @@ export type Journey = Message<"trains.v1.Journey"> & {
    * @generated from field: int32 transfers = 4;
    */
   transfers: number;
+
+  /**
+   * Opaque id identifying this exact journey (trip_short_name + board/alight
+   * stop and time per leg), decodable back into GetJourneyDetailRequest with
+   * no server-side storage — never a raw trip_id, which churns daily.
+   *
+   * @generated from field: string journey_id = 5;
+   */
+  journeyId: string;
 };
 
 /**
@@ -116,6 +125,221 @@ export type Journey = Message<"trains.v1.Journey"> & {
  */
 export const JourneySchema: GenMessage<Journey> = /*@__PURE__*/
   messageDesc(file_trains_v1_trains, 1);
+
+/**
+ * Alert is a decoded GTFS-RT service alert attached to a leg of a journey.
+ *
+ * @generated from message trains.v1.Alert
+ */
+export type Alert = Message<"trains.v1.Alert"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string header_text = 2;
+   */
+  headerText: string;
+
+  /**
+   * @generated from field: string description_text = 3;
+   */
+  descriptionText: string;
+};
+
+/**
+ * Describes the message trains.v1.Alert.
+ * Use `create(AlertSchema)` to create a new message.
+ */
+export const AlertSchema: GenMessage<Alert> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 2);
+
+/**
+ * StopCall is the scheduled and (if published) live state of one stop along
+ * a journey detail leg.
+ *
+ * @generated from message trains.v1.StopCall
+ */
+export type StopCall = Message<"trains.v1.StopCall"> & {
+  /**
+   * @generated from field: string stop_id = 1;
+   */
+  stopId: string;
+
+  /**
+   * @generated from field: string stop_name = 2;
+   */
+  stopName: string;
+
+  /**
+   * @generated from field: string platform = 3;
+   */
+  platform: string;
+
+  /**
+   * RFC3339, empty at the leg's origin stop.
+   *
+   * @generated from field: string scheduled_arrival = 4;
+   */
+  scheduledArrival: string;
+
+  /**
+   * RFC3339, empty at the leg's terminus stop.
+   *
+   * @generated from field: string scheduled_departure = 5;
+   */
+  scheduledDeparture: string;
+
+  /**
+   * One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
+   * models.DelayState. "unknown" must never be rendered as "on_time".
+   *
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * Only meaningful when status is "delayed"; seconds, positive = late.
+   *
+   * @generated from field: int32 delay_seconds = 7;
+   */
+  delaySeconds: number;
+
+  /**
+   * @generated from field: bool is_board_stop = 8;
+   */
+  isBoardStop: boolean;
+
+  /**
+   * @generated from field: bool is_alight_stop = 9;
+   */
+  isAlightStop: boolean;
+};
+
+/**
+ * Describes the message trains.v1.StopCall.
+ * Use `create(StopCallSchema)` to create a new message.
+ */
+export const StopCallSchema: GenMessage<StopCall> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 3);
+
+/**
+ * LegDetail is one boarded train's full live state: every stop between
+ * where the passenger boards and alights, plus any alerts attached to it.
+ *
+ * @generated from message trains.v1.LegDetail
+ */
+export type LegDetail = Message<"trains.v1.LegDetail"> & {
+  /**
+   * @generated from field: string trip_short_name = 1;
+   */
+  tripShortName: string;
+
+  /**
+   * @generated from field: string route_short_name = 2;
+   */
+  routeShortName: string;
+
+  /**
+   * @generated from field: string headsign = 3;
+   */
+  headsign: string;
+
+  /**
+   * Whole-trip cancellation — distinct from an individual StopCall's
+   * "skipped" (partial cancellation).
+   *
+   * @generated from field: bool cancelled = 4;
+   */
+  cancelled: boolean;
+
+  /**
+   * @generated from field: repeated trains.v1.StopCall stops = 5;
+   */
+  stops: StopCall[];
+
+  /**
+   * @generated from field: repeated trains.v1.Alert alerts = 6;
+   */
+  alerts: Alert[];
+};
+
+/**
+ * Describes the message trains.v1.LegDetail.
+ * Use `create(LegDetailSchema)` to create a new message.
+ */
+export const LegDetailSchema: GenMessage<LegDetail> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 4);
+
+/**
+ * JourneyDetail is the full live state of one previously-searched journey —
+ * the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+ *
+ * @generated from message trains.v1.JourneyDetail
+ */
+export type JourneyDetail = Message<"trains.v1.JourneyDetail"> & {
+  /**
+   * @generated from field: string journey_id = 1;
+   */
+  journeyId: string;
+
+  /**
+   * @generated from field: repeated trains.v1.LegDetail legs = 2;
+   */
+  legs: LegDetail[];
+
+  /**
+   * @generated from field: string departure_time = 3;
+   */
+  departureTime: string;
+
+  /**
+   * @generated from field: string arrival_time = 4;
+   */
+  arrivalTime: string;
+};
+
+/**
+ * Describes the message trains.v1.JourneyDetail.
+ * Use `create(JourneyDetailSchema)` to create a new message.
+ */
+export const JourneyDetailSchema: GenMessage<JourneyDetail> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 5);
+
+/**
+ * @generated from message trains.v1.GetJourneyDetailRequest
+ */
+export type GetJourneyDetailRequest = Message<"trains.v1.GetJourneyDetailRequest"> & {
+  /**
+   * @generated from field: string journey_id = 1;
+   */
+  journeyId: string;
+};
+
+/**
+ * Describes the message trains.v1.GetJourneyDetailRequest.
+ * Use `create(GetJourneyDetailRequestSchema)` to create a new message.
+ */
+export const GetJourneyDetailRequestSchema: GenMessage<GetJourneyDetailRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 6);
+
+/**
+ * @generated from message trains.v1.GetJourneyDetailResponse
+ */
+export type GetJourneyDetailResponse = Message<"trains.v1.GetJourneyDetailResponse"> & {
+  /**
+   * @generated from field: trains.v1.JourneyDetail journey = 1;
+   */
+  journey?: JourneyDetail | undefined;
+};
+
+/**
+ * Describes the message trains.v1.GetJourneyDetailResponse.
+ * Use `create(GetJourneyDetailResponseSchema)` to create a new message.
+ */
+export const GetJourneyDetailResponseSchema: GenMessage<GetJourneyDetailResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 7);
 
 /**
  * @generated from message trains.v1.SearchJourneysRequest
@@ -153,7 +377,7 @@ export type SearchJourneysRequest = Message<"trains.v1.SearchJourneysRequest"> &
  * Use `create(SearchJourneysRequestSchema)` to create a new message.
  */
 export const SearchJourneysRequestSchema: GenMessage<SearchJourneysRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 2);
+  messageDesc(file_trains_v1_trains, 8);
 
 /**
  * @generated from message trains.v1.SearchJourneysResponse
@@ -174,7 +398,7 @@ export type SearchJourneysResponse = Message<"trains.v1.SearchJourneysResponse">
  * Use `create(SearchJourneysResponseSchema)` to create a new message.
  */
 export const SearchJourneysResponseSchema: GenMessage<SearchJourneysResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 3);
+  messageDesc(file_trains_v1_trains, 9);
 
 /**
  * Station is a location_type=1 stop — a station a passenger picks as an
@@ -209,7 +433,7 @@ export type Station = Message<"trains.v1.Station"> & {
  * Use `create(StationSchema)` to create a new message.
  */
 export const StationSchema: GenMessage<Station> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 4);
+  messageDesc(file_trains_v1_trains, 10);
 
 /**
  * @generated from message trains.v1.SearchStationsRequest
@@ -230,7 +454,7 @@ export type SearchStationsRequest = Message<"trains.v1.SearchStationsRequest"> &
  * Use `create(SearchStationsRequestSchema)` to create a new message.
  */
 export const SearchStationsRequestSchema: GenMessage<SearchStationsRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 5);
+  messageDesc(file_trains_v1_trains, 11);
 
 /**
  * @generated from message trains.v1.SearchStationsResponse
@@ -247,7 +471,7 @@ export type SearchStationsResponse = Message<"trains.v1.SearchStationsResponse">
  * Use `create(SearchStationsResponseSchema)` to create a new message.
  */
 export const SearchStationsResponseSchema: GenMessage<SearchStationsResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 6);
+  messageDesc(file_trains_v1_trains, 12);
 
 /**
  * @generated from message trains.v1.GetFeedInfoRequest
@@ -260,7 +484,7 @@ export type GetFeedInfoRequest = Message<"trains.v1.GetFeedInfoRequest"> & {
  * Use `create(GetFeedInfoRequestSchema)` to create a new message.
  */
 export const GetFeedInfoRequestSchema: GenMessage<GetFeedInfoRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 7);
+  messageDesc(file_trains_v1_trains, 13);
 
 /**
  * @generated from message trains.v1.GetFeedInfoResponse
@@ -289,7 +513,7 @@ export type GetFeedInfoResponse = Message<"trains.v1.GetFeedInfoResponse"> & {
  * Use `create(GetFeedInfoResponseSchema)` to create a new message.
  */
 export const GetFeedInfoResponseSchema: GenMessage<GetFeedInfoResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 8);
+  messageDesc(file_trains_v1_trains, 14);
 
 /**
  * @generated from service trains.v1.TrainService
@@ -318,6 +542,19 @@ export const TrainService: GenService<{
     methodKind: "unary";
     input: typeof GetFeedInfoRequestSchema;
     output: typeof GetFeedInfoResponseSchema;
+  },
+  /**
+   * GetJourneyDetail fetches the full live state of a previously-searched
+   * journey (issue #1394) and, as a side effect, ensures the websocket topic
+   * at /trains/api/journeys/live exists for its journey_id so a client can
+   * subscribe right after this call returns.
+   *
+   * @generated from rpc trains.v1.TrainService.GetJourneyDetail
+   */
+  getJourneyDetail: {
+    methodKind: "unary";
+    input: typeof GetJourneyDetailRequestSchema;
+    output: typeof GetJourneyDetailResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_trains_v1_trains, 0);

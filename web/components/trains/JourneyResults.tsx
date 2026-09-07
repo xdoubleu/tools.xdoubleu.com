@@ -1,4 +1,6 @@
-import { Card } from '@/components/ui/card'
+import Link from 'next/link'
+import { Card, interactiveCardClass } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 import type { Journey } from '@/lib/gen/trains/v1/trains_pb'
 
 function formatTime(iso: string): string {
@@ -22,8 +24,29 @@ function transfersLabel(transfers: number): string {
 function JourneyRow({ journey }: { journey: Journey }) {
   const trains = journey.legs.map((leg) => leg.tripShortName).join(', ')
 
+  if (!journey.journeyId) {
+    // Defensive fallback — the api always sets journey_id, but a row with
+    // none can't open a detail page.
+    return (
+      <Card className="p-4">
+        <JourneyRowContent journey={journey} trains={trains} />
+      </Card>
+    )
+  }
+
   return (
-    <Card className="p-4">
+    <Link
+      href={`/trains/${encodeURIComponent(journey.journeyId)}`}
+      className={cn(interactiveCardClass, 'block p-4')}
+    >
+      <JourneyRowContent journey={journey} trains={trains} />
+    </Link>
+  )
+}
+
+function JourneyRowContent({ journey, trains }: { journey: Journey; trains: string }) {
+  return (
+    <>
       <div className="flex items-center justify-between gap-3">
         <div className="text-fg">
           <span className="font-semibold">{formatTime(journey.departureTime)}</span>
@@ -37,7 +60,7 @@ function JourneyRow({ journey }: { journey: Journey }) {
       <p className="mt-1 text-sm text-muted">
         {transfersLabel(journey.transfers)} · {trains}
       </p>
-    </Card>
+    </>
   )
 }
 

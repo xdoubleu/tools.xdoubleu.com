@@ -42,6 +42,9 @@ const (
 	// TrainServiceGetFeedInfoProcedure is the fully-qualified name of the TrainService's GetFeedInfo
 	// RPC.
 	TrainServiceGetFeedInfoProcedure = "/trains.v1.TrainService/GetFeedInfo"
+	// TrainServiceGetJourneyDetailProcedure is the fully-qualified name of the TrainService's
+	// GetJourneyDetail RPC.
+	TrainServiceGetJourneyDetailProcedure = "/trains.v1.TrainService/GetJourneyDetail"
 )
 
 // TrainServiceClient is a client for the trains.v1.TrainService service.
@@ -49,6 +52,11 @@ type TrainServiceClient interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
 	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
 	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
+	// GetJourneyDetail fetches the full live state of a previously-searched
+	// journey (issue #1394) and, as a side effect, ensures the websocket topic
+	// at /trains/api/journeys/live exists for its journey_id so a client can
+	// subscribe right after this call returns.
+	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
 }
 
 // NewTrainServiceClient constructs a client for the trains.v1.TrainService service. By default, it
@@ -80,14 +88,21 @@ func NewTrainServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
 			connect.WithClientOptions(opts...),
 		),
+		getJourneyDetail: connect.NewClient[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse](
+			httpClient,
+			baseURL+TrainServiceGetJourneyDetailProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // trainServiceClient implements TrainServiceClient.
 type trainServiceClient struct {
-	searchJourneys *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
-	searchStations *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
-	getFeedInfo    *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
+	searchJourneys   *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
+	searchStations   *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
+	getFeedInfo      *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
+	getJourneyDetail *connect.Client[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse]
 }
 
 // SearchJourneys calls trains.v1.TrainService.SearchJourneys.
@@ -105,11 +120,21 @@ func (c *trainServiceClient) GetFeedInfo(ctx context.Context, req *connect.Reque
 	return c.getFeedInfo.CallUnary(ctx, req)
 }
 
+// GetJourneyDetail calls trains.v1.TrainService.GetJourneyDetail.
+func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
+	return c.getJourneyDetail.CallUnary(ctx, req)
+}
+
 // TrainServiceHandler is an implementation of the trains.v1.TrainService service.
 type TrainServiceHandler interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
 	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
 	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
+	// GetJourneyDetail fetches the full live state of a previously-searched
+	// journey (issue #1394) and, as a side effect, ensures the websocket topic
+	// at /trains/api/journeys/live exists for its journey_id so a client can
+	// subscribe right after this call returns.
+	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
 }
 
 // NewTrainServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -137,6 +162,12 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(trainServiceMethods.ByName("GetFeedInfo")),
 		connect.WithHandlerOptions(opts...),
 	)
+	trainServiceGetJourneyDetailHandler := connect.NewUnaryHandler(
+		TrainServiceGetJourneyDetailProcedure,
+		svc.GetJourneyDetail,
+		connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/trains.v1.TrainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TrainServiceSearchJourneysProcedure:
@@ -145,6 +176,8 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 			trainServiceSearchStationsHandler.ServeHTTP(w, r)
 		case TrainServiceGetFeedInfoProcedure:
 			trainServiceGetFeedInfoHandler.ServeHTTP(w, r)
+		case TrainServiceGetJourneyDetailProcedure:
+			trainServiceGetJourneyDetailHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -164,4 +197,8 @@ func (UnimplementedTrainServiceHandler) SearchStations(context.Context, *connect
 
 func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetFeedInfo is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetJourneyDetail is not implemented"))
 }

@@ -27,11 +27,21 @@ type RealtimeService struct {
 	mu        sync.RWMutex
 	snapshot  models.Snapshot
 	pollCount int
+	onUpdate  []func()
 }
 
 func NewRealtimeService(logger *slog.Logger, bmcClient bmc.Client) *RealtimeService {
-	//nolint:exhaustruct //snapshot/pollCount start zero-valued
+	//nolint:exhaustruct //snapshot/pollCount/onUpdate start zero-valued
 	return &RealtimeService{logger: logger, bmc: bmcClient}
+}
+
+// OnUpdate registers fn to run after every successful Poll — used by
+// JourneyWSService to push fresh journey detail to open sockets without
+// waiting to be asked (issue #1394).
+func (s *RealtimeService) OnUpdate(fn func()) {
+	s.mu.Lock()
+	s.onUpdate = append(s.onUpdate, fn)
+	s.mu.Unlock()
 }
 
 // Snapshot returns the current realtime state. Safe for concurrent use.
@@ -86,7 +96,13 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		Alerts:    alerts,
 		FetchedAt: time.Now(),
 	}
+	listeners := make([]func(), len(s.onUpdate))
+	copy(listeners, s.onUpdate)
 	s.mu.Unlock()
+
+	for _, fn := range listeners {
+		fn()
+	}
 	return nil
 }
 

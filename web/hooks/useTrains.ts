@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/client'
 import { TrainService } from '@/lib/gen/trains/v1/trains_pb'
 import type {
   GetFeedInfoResponse,
+  GetJourneyDetailResponse,
   SearchJourneysResponse,
   Station
 } from '@/lib/gen/trains/v1/trains_pb'
@@ -42,5 +43,20 @@ export function useJourneySearch(
   return useSWR<SearchJourneysResponse, Error>(
     ready ? swrKeys.trainsJourneys(originStopId, destinationStopId, time, arriveBy) : null,
     () => client.searchJourneys({ originStopId, destinationStopId, time, arriveBy })
+  )
+}
+
+/**
+ * The live journey detail page's data source (issue #1394): an initial fetch
+ * via GetJourneyDetail, revalidated on demand by useJourneyLive's
+ * reconnect-and-refetch path rather than on any fixed interval — the
+ * websocket push is what keeps it current while the page stays open.
+ */
+export function useJourneyDetail(journeyId: string) {
+  const client = createServiceClient(TrainService)
+  return useSWR<GetJourneyDetailResponse, Error>(
+    journeyId ? swrKeys.trainsJourneyDetail(journeyId) : null,
+    () => client.getJourneyDetail({ journeyId }),
+    { revalidateOnFocus: false }
   )
 }

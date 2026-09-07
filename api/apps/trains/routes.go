@@ -10,7 +10,9 @@ import (
 
 // Routes registers trains.v1.TrainService — journey search over the
 // ingested timetable, gated by the trains app's own AppAccess (issue
-// #1391, following #1390's app shell).
+// #1391, following #1390's app shell) — plus the per-journey live-update
+// websocket at /trains/api/journeys/live (issue #1394), following the same
+// wstools shape games/books use for job progress.
 func (a *Trains) Routes(prefix string, mux *http.ServeMux) {
 	trainsPath, trainsHandler := trainsv1connect.NewTrainServiceHandler(
 		&trainsConnectHandler{app: a},
@@ -19,5 +21,9 @@ func (a *Trains) Routes(prefix string, mux *http.ServeMux) {
 	mux.Handle(
 		fmt.Sprintf("POST %s", trainsPath),
 		a.Auth.AppAccess(prefix, trainsHandler.ServeHTTP),
+	)
+	mux.HandleFunc(
+		fmt.Sprintf("GET /%s/api/journeys/live", prefix),
+		a.Auth.AppAccess(prefix, a.Services.JourneyWS.Handler()),
 	)
 }

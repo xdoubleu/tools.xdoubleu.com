@@ -25,6 +25,66 @@ message Journey {
   string departure_time = 2;
   string arrival_time = 3;
   int32 transfers = 4;
+  // Opaque id identifying this exact journey (trip_short_name + board/alight
+  // stop and time per leg), decodable back into GetJourneyDetailRequest with
+  // no server-side storage — never a raw trip_id, which churns daily.
+  string journey_id = 5;
+}
+
+// Alert is a decoded GTFS-RT service alert attached to a leg of a journey.
+message Alert {
+  string id = 1;
+  string header_text = 2;
+  string description_text = 3;
+}
+
+// StopCall is the scheduled and (if published) live state of one stop along
+// a journey detail leg.
+message StopCall {
+  string stop_id = 1;
+  string stop_name = 2;
+  string platform = 3;
+  // RFC3339, empty at the leg's origin stop.
+  string scheduled_arrival = 4;
+  // RFC3339, empty at the leg's terminus stop.
+  string scheduled_departure = 5;
+  // One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
+  // models.DelayState. "unknown" must never be rendered as "on_time".
+  string status = 6;
+  // Only meaningful when status is "delayed"; seconds, positive = late.
+  int32 delay_seconds = 7;
+  bool is_board_stop = 8;
+  bool is_alight_stop = 9;
+}
+
+// LegDetail is one boarded train's full live state: every stop between
+// where the passenger boards and alights, plus any alerts attached to it.
+message LegDetail {
+  string trip_short_name = 1;
+  string route_short_name = 2;
+  string headsign = 3;
+  // Whole-trip cancellation — distinct from an individual StopCall's
+  // "skipped" (partial cancellation).
+  bool cancelled = 4;
+  repeated StopCall stops = 5;
+  repeated Alert alerts = 6;
+}
+
+// JourneyDetail is the full live state of one previously-searched journey —
+// the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+message JourneyDetail {
+  string journey_id = 1;
+  repeated LegDetail legs = 2;
+  string departure_time = 3;
+  string arrival_time = 4;
+}
+
+message GetJourneyDetailRequest {
+  string journey_id = 1;
+}
+
+message GetJourneyDetailResponse {
+  JourneyDetail journey = 1;
 }
 
 message SearchJourneysRequest {
@@ -81,4 +141,9 @@ service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
   rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
   rpc GetFeedInfo(GetFeedInfoRequest) returns (GetFeedInfoResponse);
+  // GetJourneyDetail fetches the full live state of a previously-searched
+  // journey (issue #1394) and, as a side effect, ensures the websocket topic
+  // at /trains/api/journeys/live exists for its journey_id so a client can
+  // subscribe right after this call returns.
+  rpc GetJourneyDetail(GetJourneyDetailRequest) returns (GetJourneyDetailResponse);
 }
