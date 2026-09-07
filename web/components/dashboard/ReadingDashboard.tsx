@@ -1,11 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BookQuickProgress from '@/components/books/BookQuickProgress'
+import MarkAsCompletedDialog from '@/components/books/MarkAsCompletedDialog'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
@@ -15,6 +17,7 @@ import { cn } from '@/lib/cn'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 
 function ReadingBookCard({ userBook }: { userBook: UserBook }) {
+  const [completing, setCompleting] = useState(false)
   const book = userBook.book
   if (!book) return null
   return (
@@ -40,7 +43,13 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
         <div className="relative z-10 mt-2">
           <BookQuickProgress userBook={userBook} />
         </div>
+        <div className="relative z-10 mt-2">
+          <Button variant="secondary" size="sm" onClick={() => setCompleting(true)}>
+            Mark as completed
+          </Button>
+        </div>
       </div>
+      <MarkAsCompletedDialog userBook={userBook} open={completing} onOpenChange={setCompleting} />
     </div>
   )
 }

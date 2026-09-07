@@ -4,11 +4,10 @@ import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 
 const mockUpdateProgress = jest.fn()
-const mockMutate = jest.fn()
 
 jest.mock('swr', () => ({
   ...jest.requireActual('swr'),
-  mutate: (...args: unknown[]) => mockMutate(...args)
+  mutate: jest.fn()
 }))
 
 jest.mock('@/hooks/useBooks', () => ({
@@ -47,64 +46,15 @@ describe('BookQuickProgress', () => {
     mockUpdateProgress.mockResolvedValue({})
   })
 
-  it('steps pages up by 10 and revalidates the library', async () => {
+  it('renders the progress bar', () => {
     render(<BookQuickProgress userBook={makeBook()} />)
-
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
-
-    await waitFor(() =>
-      expect(mockUpdateProgress).toHaveBeenCalledWith({
-        bookId: 'book-1',
-        progressMode: 'pages',
-        currentPage: 60,
-        progressPercent: 25
-      })
-    )
-    expect(mockMutate).toHaveBeenCalled()
-    expect(await screen.findByText('60 / 200 pages')).toBeInTheDocument()
+    expect(screen.getByText('50 / 200 pages')).toBeInTheDocument()
   })
 
-  it('steps percent by 5 in percent mode', async () => {
-    render(<BookQuickProgress userBook={makeBook({ progressMode: 'percent' })} />)
-
-    fireEvent.click(screen.getByLabelText('Decrease progress by 5 percent'))
-
-    await waitFor(() =>
-      expect(mockUpdateProgress).toHaveBeenCalledWith({
-        bookId: 'book-1',
-        progressMode: 'percent',
-        currentPage: 50,
-        progressPercent: 20
-      })
-    )
-  })
-
-  it('clamps at the page count and at zero', async () => {
-    render(<BookQuickProgress userBook={makeBook({ currentPage: 195 })} />)
-
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
-    await waitFor(() =>
-      expect(mockUpdateProgress).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 200 }))
-    )
-
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
-    expect(mockUpdateProgress).toHaveBeenCalledTimes(1)
-  })
-
-  it('reverts the optimistic value when the save fails', async () => {
-    mockUpdateProgress.mockRejectedValue(new Error('nope'))
+  it('does not render step buttons', () => {
     render(<BookQuickProgress userBook={makeBook()} />)
-
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
-
-    await waitFor(() => expect(screen.getByText('50 / 200 pages')).toBeInTheDocument())
-  })
-
-  it('hides the steppers in pages mode without a page count', () => {
-    render(<BookQuickProgress userBook={makeBook({ pageCount: 0 })} />)
-
-    expect(screen.queryByLabelText('Increase progress by 10 pages')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Edit reading progress')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Increase progress/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Decrease progress/)).not.toBeInTheDocument()
   })
 
   it('opens the exact-entry form when the bar is tapped', () => {
@@ -115,11 +65,13 @@ describe('BookQuickProgress', () => {
     expect(screen.getByLabelText('Current page')).toBeInTheDocument()
   })
 
-  it('calls onSaved after a successful step', async () => {
+  it('calls onSaved after committing an edited value', async () => {
     const onSaved = jest.fn()
     render(<BookQuickProgress userBook={makeBook()} onSaved={onSaved} />)
 
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
+    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.change(screen.getByLabelText('Current page'), { target: { value: '75' } })
+    fireEvent.keyDown(screen.getByLabelText('Current page'), { key: 'Enter' })
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
