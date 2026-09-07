@@ -247,3 +247,53 @@ func TestParseFeed_MissingTranslationsIsNotAnError(t *testing.T) {
 	assert.Equal(t, 0, feed.Info.Translations.Rows)
 	assert.Equal(t, 0, feed.Info.Translations.RowsUnmatched)
 }
+
+// A stops.txt row with no stop_id is skipped rather than stored under an
+// empty key, where it would collide with every other such row.
+func TestParseFeed_StopWithoutIDIsSkipped(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +
+		"stop_lat,stop_lon,stop_name\n" +
+		"1,,,gs:nmbssncb:S8814001,50.83,4.33,Bruxelles-Midi\n" +
+		"1,,,,50.00,4.00,No-Stop-ID\n"
+
+	feed, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.NoError(t, err)
+
+	require.Len(t, feed.Stops, 1)
+	assert.Equal(t, "gs:nmbssncb:S8814001", feed.Stops[0].StopID)
+}
+
+// A stop with a blank stop_name has nothing for a field_value row to match
+// on, so that candidate is skipped rather than looked up under the empty
+// key — which would otherwise collide with every other unnamed stop.
+func TestParseFeed_BlankStopNameMatchesNoFieldValueRow(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +
+		"stop_lat,stop_lon,stop_name\n" +
+		"1,,,gs:nmbssncb:S8814001,50.83,4.33,\n"
+	files["translations.txt"] = "field_name,field_value,language,record_id," +
+		"table_name,translation\n" +
+		"stop_name,,nl,,stops,Should-Not-Be-Applied\n"
+
+	feed, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.NoError(t, err)
+
+	require.Len(t, feed.Stops, 1)
+	assert.Empty(t, feed.Stops[0].NameNL)
+	// The row identified neither a record nor a value, so it was never
+	// indexed and cannot be reported unmatched either.
+	assert.Equal(t, 0, feed.Info.Translations.Rows)
+}
+
+// A malformed stops.txt is a real parse error, not a skipped row: failing
+// the whole import beats silently storing a truncated timetable.
+func TestParseFeed_MalformedStopsRowPropagatesError(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +
+		"stop_lat,stop_lon,stop_name\n" +
+		"1,,,gs:nmbssncb:S8814001,50.83,4.33,broken\"value\n"
+
+	_, err := parseFeed(logging.NewNopLogger(), mocks.BuildFeedZip(files))
+	require.Error(t, err)
+}
