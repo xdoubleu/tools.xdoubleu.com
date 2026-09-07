@@ -14,6 +14,7 @@ import (
 	"tools.xdoubleu.com/apps/trains"
 	"tools.xdoubleu.com/apps/trains/internal/jobs"
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
+	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
@@ -153,7 +154,8 @@ func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 	info, err := app.Repositories.Feed.GetFeedInfo(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, info)
-	assert.Equal(t, 2, info.ParserVersion, "an import stamps the current importer")
+	assert.Equal(t, services.ImportParserVersion, info.ParserVersion,
+		"an import stamps the current importer")
 	assert.NotNil(t, info.ImportedAt)
 
 	// Rewind to what a pre-multilingual importer (#1450) left behind: every
@@ -182,7 +184,7 @@ func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 	info, err = app.Repositories.Feed.GetFeedInfo(ctx)
 	require.NoError(t, err)
 	require.NotNil(t, info)
-	assert.Equal(t, 2, info.ParserVersion)
+	assert.Equal(t, services.ImportParserVersion, info.ParserVersion)
 }
 
 func TestStaticImport_MissingKeyIsSkippedNotFailed(t *testing.T) {

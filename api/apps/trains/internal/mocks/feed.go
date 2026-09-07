@@ -15,12 +15,15 @@ import (
 //   - columns are alphabetically ordered, as in the real feed
 //   - transfers.txt (issue #1391) carries one valid row plus one with a
 //     blank from_stop_id, exercising parseTransfers' skip branch
-//   - translations.txt (issue #1450) translates one stop's name into nl/en
-//     and another's into fr (overriding its own primary-language name); a
-//     third stop has no translation and falls back to stop_name; it also
-//     carries a non-stops-table row, a non-stop_name field row, a blank
-//     record_id row, a blank translation row, and an unrecognized-language
-//     row — every one of which must be skipped
+//   - translations.txt (issues #1450, #1459) exercises all three ways a row
+//     reaches a stop: by full record_id (Bruxelles-Midi), by record_id
+//     without the gateway's "gs:nmbssncb:" prefix (Antwerpen-Centraal), and
+//     by field_value, which matches a station and its platform at once
+//     (Gent-Sint-Pieters). It also carries a non-stops-table row, a
+//     non-stop_name field row, a row identifying neither a record nor a
+//     value, a blank translation row, an unrecognized-language row — every
+//     one of which must be skipped — and one well-formed row naming a stop
+//     this feed does not contain, which must be counted as unmatched
 func SampleFeedFiles() map[string]string {
 	return map[string]string{
 		"feed_info.txt": "feed_end_date,feed_lang,feed_publisher_name," +
@@ -55,21 +58,30 @@ func SampleFeedFiles() map[string]string {
 		"transfers.txt": "from_stop_id,min_transfer_time,to_stop_id,transfer_type\n" +
 			"gs:nmbssncb:8814001_3,120,gs:nmbssncb:8892007_1,2\n" +
 			",120,gs:nmbssncb:8892007_1,2\n",
-		"translations.txt": "field_name,language,record_id,table_name,translation\n" +
-			"stop_name,nl,gs:nmbssncb:S8814001,stops,Brussel-Zuid\n" +
-			"stop_name,en,gs:nmbssncb:S8814001,stops,Brussels-South\n" +
-			"stop_name,fr,gs:nmbssncb:8821006,stops,Anvers-Central\n" +
+		"translations.txt": "field_name,field_value,language,record_id," +
+			"table_name,translation\n" +
+			// matched by full record_id
+			"stop_name,,nl,gs:nmbssncb:S8814001,stops,Brussel-Zuid\n" +
+			"stop_name,,en,gs:nmbssncb:S8814001,stops,Brussels-South\n" +
+			// matched by record_id with the gateway prefix stripped
+			"stop_name,,fr,8821006,stops,Anvers-Central\n" +
+			// matched by field_value: hits the station and its platform
+			"stop_name,Gent-Sint-Pieters,fr,,stops,Gand-Saint-Pierre\n" +
+			"stop_name,Gent-Sint-Pieters,en,,stops,Ghent-Sint-Pieters\n" +
 			// a non-stops-table row: must be skipped.
-			"route_long_name,nl,r1,routes,Brussel - Gent\n" +
+			"route_long_name,,nl,r1,routes,Brussel - Gent\n" +
 			// a stops-table row for a field other than stop_name: skipped.
-			"platform_code,nl,gs:nmbssncb:8892007_1,stops,1\n" +
-			// a blank record_id: skipped.
-			"stop_name,nl,,stops,Empty-Record-ID\n" +
+			"platform_code,,nl,gs:nmbssncb:8892007_1,stops,1\n" +
+			// identifies neither a record nor a value: skipped.
+			"stop_name,,nl,,stops,Nothing-To-Match\n" +
 			// a blank translation: skipped.
-			"stop_name,nl,gs:nmbssncb:8892007_1,stops,\n" +
+			"stop_name,,nl,gs:nmbssncb:8892007_1,stops,\n" +
 			// an unrecognized language: normalizeLang returns "" and the row
 			// is skipped rather than overwriting a real translation.
-			"stop_name,de,gs:nmbssncb:S8892007,stops,Gent-Sint-Peter\n",
+			"stop_name,,de,gs:nmbssncb:S8892007,stops,Gent-Sint-Peter\n" +
+			// well-formed, but names a stop this feed does not contain: it
+			// is read and counted, then reported as unmatched.
+			"stop_name,,nl,gs:nmbssncb:S9999999,stops,Nergenshuizen\n",
 	}
 }
 

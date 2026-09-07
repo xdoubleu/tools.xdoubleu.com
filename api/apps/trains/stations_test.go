@@ -18,7 +18,8 @@ import (
 // subsequent StaticImport.Import call in this package is a deliberate
 // no-op, so feed-info tests must go through ImportFeed directly instead):
 // two stations sharing a name-substring, a platform stop that must never be
-// returned as a station, and a populated FeedInfo.
+// returned as a station, and a populated FeedInfo carrying translation
+// coverage (issue #1459).
 func stationsFeed() *models.Feed {
 	//nolint:exhaustruct //only Stops/Info matter for station and feed-info search
 	return &models.Feed{
@@ -45,6 +46,9 @@ func stationsFeed() *models.Feed {
 		},
 		Info: models.FeedInfo{
 			FeedVersion: "2026-08-31",
+			Translations: models.TranslationCoverage{
+				StopsNL: 2, StopsFR: 0, StopsEN: 2, Rows: 5, RowsUnmatched: 1,
+			},
 		}, //nolint:exhaustruct //rest unused
 	}
 }

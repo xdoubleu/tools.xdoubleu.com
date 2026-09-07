@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459
 
 ## Rule
 
@@ -134,3 +134,28 @@ The fix itself is `feed_info.parser_version` (see
 `spec-trains-gtfs-ingest.md`): a mismatch against the importer's own version
 drops the validators and forces a full re-import, so the next importer change
 recovers on its next run instead of waiting on SNCB.
+
+### #1459 — the import that reports nothing about what it imported
+
+`/trains` was reported as showing French-only station names for the **third**
+time. #1453's tools proved the import had run (`parser_version` 2, 2887 stops,
+no errors) and `trains_search_stations` proved the result was still three
+copies of the French name — but nothing could bridge the two. A successful
+import that applies zero translations and a successful import of a monolingual
+feed emit byte-identical logs, so distinguishing "the feed has no
+`translations.txt`", "its rows were skipped for an unknown language" and "its
+rows matched no stop" required reading the importer's source and reasoning
+about a feed nobody could download from the session.
+
+`feed_info` now stores the coverage each import achieved —
+`translation_rows`, `translation_rows_unmatched`, and per-language
+`translated_stops_*` — surfaced by `GetFeedInfo` and `trains_get_feed_info`
+and logged at import. `translated_stops_nl = 0` against a non-zero
+`translation_rows` names the failure directly.
+
+The bug itself was that `parseTranslations` keyed rows by `record_id` alone,
+while GTFS lets a row identify its target by `record_id` **or** `field_value`
+— see `spec-trains-gtfs-ingest.md`. The mock feed had been hand-written in the
+`record_id` shape, so the tests agreed with the parser rather than with the
+feed: **a fixture invented to match the code under test proves only that the
+code matches itself.**

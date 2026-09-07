@@ -1,7 +1,7 @@
 # Spec: trains GTFS static ingest
 
 - Source of truth: `api/apps/trains/` (`jobs.StaticImportJob`, `pkg/bmc`, `repositories.FeedRepository`)
-- Issues: #1388, #1389, #1390
+- Issues: #1388, #1389, #1390, #1450, #1453, #1459
 
 ## Shape
 
@@ -39,8 +39,27 @@ when an import last actually landed.
 Each stop is stored under three names — `name_nl`/`name_fr`/`name_en`.
 `stop_name` carries the feed's primary language (`feed_info.feed_lang`); the
 optional `translations.txt` (`table_name=stops`, `field_name=stop_name`)
-supplies the other two, keyed by `record_id` (the `stop_id`). A language with
-no translation entry falls back to the primary `stop_name` (issue #1450).
+supplies the other two. A language with no translation entry falls back to the
+primary `stop_name` (issue #1450).
+
+**A `translations.txt` row is resolved to a stop three ways, in this order**
+(issue #1459): by `record_id` matching the full `stop_id`; by `record_id`
+matching the `stop_id` with the gateway's `gs:nmbssncb:` prefix stripped; and
+by `field_value` matching the primary `stop_name`. GTFS makes `record_id` and
+`field_value` mutually exclusive alternatives, so a parser handling only the
+first silently translates nothing against a feed that uses the second — and
+the bare-`record_id` case exists because BMC rewrites `stop_id` on the way out
+while leaving `translations.txt` keyed by the unprefixed id. A `field_value`
+match is on the *name*, so it reaches a station and all its platforms at once;
+a `record_id` match reaches only the record it names.
+
+`feed_info` stores what each import made of that file — `translation_rows`,
+`translation_rows_unmatched`, and per-language `translated_stops_*` counts —
+served by `GetFeedInfo`/`trains_get_feed_info`. **A feed with no
+`translations.txt`, one whose rows match no stop, and a genuinely monolingual
+one all render identically** (three copies of the same station name), so those
+counts are the only thing that tells them apart: `translated_stops_nl = 0`
+against a non-zero `translation_rows` is the signature of the #1459 failure.
 
 ### Feed traps handled by the importer
 
@@ -54,6 +73,9 @@ Each of these came from the #1389 spike and each has a test:
   position.
 - **The download is verified a zip by magic bytes** (`PK\x03\x04`), not
   `Content-Type`.
+- **`translations.txt` identifies rows by `record_id` *or* `field_value`** —
+  see above; handling only one of the two fails silently, and the gateway's
+  `stop_id` prefix rewrite means even `record_id` may not match verbatim.
 
 ## Invariants
 

@@ -974,7 +974,12 @@ type GetFeedInfoResponse struct {
 	// conditional GET makes an unchanged feed a no-op, so this is the only
 	// signal distinguishing "the timetable is current" from "no import has
 	// landed in weeks"; empty when nothing has been imported yet.
-	ImportedAt    string `protobuf:"bytes,2,opt,name=imported_at,json=importedAt,proto3" json:"imported_at,omitempty"`
+	ImportedAt string `protobuf:"bytes,2,opt,name=imported_at,json=importedAt,proto3" json:"imported_at,omitempty"`
+	// How much of translations.txt the stored import applied. A feed with no
+	// translations, one whose rows match no stop, and a monolingual one all
+	// render as three identical station names, so these counts are what tells
+	// them apart.
+	Translations  *TranslationCoverage `protobuf:"bytes,3,opt,name=translations,proto3" json:"translations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1021,6 +1026,96 @@ func (x *GetFeedInfoResponse) GetImportedAt() string {
 		return x.ImportedAt
 	}
 	return ""
+}
+
+func (x *GetFeedInfoResponse) GetTranslations() *TranslationCoverage {
+	if x != nil {
+		return x.Translations
+	}
+	return nil
+}
+
+// TranslationCoverage reports what an import made of the feed's
+// translations.txt.
+type TranslationCoverage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Stops whose name in that language came from translations.txt rather
+	// than falling back to the feed's primary stop_name.
+	TranslatedStopsNl int32 `protobuf:"varint,1,opt,name=translated_stops_nl,json=translatedStopsNl,proto3" json:"translated_stops_nl,omitempty"`
+	TranslatedStopsFr int32 `protobuf:"varint,2,opt,name=translated_stops_fr,json=translatedStopsFr,proto3" json:"translated_stops_fr,omitempty"`
+	TranslatedStopsEn int32 `protobuf:"varint,3,opt,name=translated_stops_en,json=translatedStopsEn,proto3" json:"translated_stops_en,omitempty"`
+	// Usable stop_name rows read from translations.txt; 0 when the feed omits
+	// the file.
+	Rows int32 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
+	// Rows identifying a stop this feed's stops.txt does not contain.
+	RowsUnmatched int32 `protobuf:"varint,5,opt,name=rows_unmatched,json=rowsUnmatched,proto3" json:"rows_unmatched,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TranslationCoverage) Reset() {
+	*x = TranslationCoverage{}
+	mi := &file_trains_v1_trains_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TranslationCoverage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TranslationCoverage) ProtoMessage() {}
+
+func (x *TranslationCoverage) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TranslationCoverage.ProtoReflect.Descriptor instead.
+func (*TranslationCoverage) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *TranslationCoverage) GetTranslatedStopsNl() int32 {
+	if x != nil {
+		return x.TranslatedStopsNl
+	}
+	return 0
+}
+
+func (x *TranslationCoverage) GetTranslatedStopsFr() int32 {
+	if x != nil {
+		return x.TranslatedStopsFr
+	}
+	return 0
+}
+
+func (x *TranslationCoverage) GetTranslatedStopsEn() int32 {
+	if x != nil {
+		return x.TranslatedStopsEn
+	}
+	return 0
+}
+
+func (x *TranslationCoverage) GetRows() int32 {
+	if x != nil {
+		return x.Rows
+	}
+	return 0
+}
+
+func (x *TranslationCoverage) GetRowsUnmatched() int32 {
+	if x != nil {
+		return x.RowsUnmatched
+	}
+	return 0
 }
 
 var File_trains_v1_trains_proto protoreflect.FileDescriptor
@@ -1099,11 +1194,18 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"H\n" +
 	"\x16SearchStationsResponse\x12.\n" +
 	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\x14\n" +
-	"\x12GetFeedInfoRequest\"Y\n" +
+	"\x12GetFeedInfoRequest\"\x9d\x01\n" +
 	"\x13GetFeedInfoResponse\x12!\n" +
 	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion\x12\x1f\n" +
 	"\vimported_at\x18\x02 \x01(\tR\n" +
-	"importedAt2\xe7\x02\n" +
+	"importedAt\x12B\n" +
+	"\ftranslations\x18\x03 \x01(\v2\x1e.trains.v1.TranslationCoverageR\ftranslations\"\xe0\x01\n" +
+	"\x13TranslationCoverage\x12.\n" +
+	"\x13translated_stops_nl\x18\x01 \x01(\x05R\x11translatedStopsNl\x12.\n" +
+	"\x13translated_stops_fr\x18\x02 \x01(\x05R\x11translatedStopsFr\x12.\n" +
+	"\x13translated_stops_en\x18\x03 \x01(\x05R\x11translatedStopsEn\x12\x12\n" +
+	"\x04rows\x18\x04 \x01(\x05R\x04rows\x12%\n" +
+	"\x0erows_unmatched\x18\x05 \x01(\x05R\rrowsUnmatched2\xe7\x02\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
 	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
@@ -1122,7 +1224,7 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_trains_v1_trains_proto_goTypes = []any{
 	(*Leg)(nil),                      // 0: trains.v1.Leg
 	(*Journey)(nil),                  // 1: trains.v1.Journey
@@ -1139,6 +1241,7 @@ var file_trains_v1_trains_proto_goTypes = []any{
 	(*SearchStationsResponse)(nil),   // 12: trains.v1.SearchStationsResponse
 	(*GetFeedInfoRequest)(nil),       // 13: trains.v1.GetFeedInfoRequest
 	(*GetFeedInfoResponse)(nil),      // 14: trains.v1.GetFeedInfoResponse
+	(*TranslationCoverage)(nil),      // 15: trains.v1.TranslationCoverage
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
 	0,  // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
@@ -1148,19 +1251,20 @@ var file_trains_v1_trains_proto_depIdxs = []int32{
 	5,  // 4: trains.v1.GetJourneyDetailResponse.journey:type_name -> trains.v1.JourneyDetail
 	1,  // 5: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
 	10, // 6: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
-	8,  // 7: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	11, // 8: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
-	13, // 9: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
-	6,  // 10: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
-	9,  // 11: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	12, // 12: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
-	14, // 13: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
-	7,  // 14: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	15, // 7: trains.v1.GetFeedInfoResponse.translations:type_name -> trains.v1.TranslationCoverage
+	8,  // 8: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	11, // 9: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	13, // 10: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
+	6,  // 11: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
+	9,  // 12: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	12, // 13: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	14, // 14: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
+	7,  // 15: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -1174,7 +1278,7 @@ func file_trains_v1_trains_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

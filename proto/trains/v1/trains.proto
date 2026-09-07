@@ -135,6 +135,26 @@ message GetFeedInfoResponse {
   // signal distinguishing "the timetable is current" from "no import has
   // landed in weeks"; empty when nothing has been imported yet.
   string imported_at = 2;
+  // How much of translations.txt the stored import applied. A feed with no
+  // translations, one whose rows match no stop, and a monolingual one all
+  // render as three identical station names, so these counts are what tells
+  // them apart.
+  TranslationCoverage translations = 3;
+}
+
+// TranslationCoverage reports what an import made of the feed's
+// translations.txt.
+message TranslationCoverage {
+  // Stops whose name in that language came from translations.txt rather
+  // than falling back to the feed's primary stop_name.
+  int32 translated_stops_nl = 1;
+  int32 translated_stops_fr = 2;
+  int32 translated_stops_en = 3;
+  // Usable stop_name rows read from translations.txt; 0 when the feed omits
+  // the file.
+  int32 rows = 4;
+  // Rows identifying a stop this feed's stops.txt does not contain.
+  int32 rows_unmatched = 5;
 }
 
 service TrainService {
