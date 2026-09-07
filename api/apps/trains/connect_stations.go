@@ -2,6 +2,7 @@ package trains
 
 import (
 	"context"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -33,9 +34,16 @@ func (h *trainsConnectHandler) GetFeedInfo(
 	ctx context.Context,
 	_ *connect.Request[trainsv1.GetFeedInfoRequest],
 ) (*connect.Response[trainsv1.GetFeedInfoResponse], error) {
-	version, err := h.app.Services.FeedInfo.FeedVersion(ctx)
+	info, err := h.app.Services.FeedInfo.FeedInfo(ctx)
 	if err != nil {
 		return nil, mapError(err)
 	}
-	return connect.NewResponse(&trainsv1.GetFeedInfoResponse{FeedVersion: version}), nil
+	var importedAt string
+	if info.ImportedAt != nil {
+		importedAt = info.ImportedAt.Format(time.RFC3339)
+	}
+	return connect.NewResponse(&trainsv1.GetFeedInfoResponse{
+		FeedVersion: info.FeedVersion,
+		ImportedAt:  importedAt,
+	}), nil
 }

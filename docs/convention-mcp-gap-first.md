@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453
 
 ## Rule
 
@@ -107,3 +107,30 @@ the profile is what stopped it — see
 games excluded from `current_rate`, `distribution` and all three lists. That
 closes the gap #1374 left open, and makes the population behind a completion
 number checkable instead of inferable.
+
+### #1453 — the trains app had no tools at all
+
+`/trains` was reported as still showing French-only station names, months after
+#1450 landed multilingual names end to end — schema, `translations.txt`
+parsing, tri-lingual search, and a `Brussel-Zuid / Bruxelles-Midi` display
+string. Every layer of the code was correct, so the only remaining question
+was what the **database** actually held, and `trains` was the one app with read
+RPCs and no `mcp.go`: nothing could read a station's three names, and nothing
+could say when the timetable last imported.
+
+Both blind spots were needed to see the cause. The daily import sends the
+stored ETag as a conditional-GET validator and returns on a 304, so an
+importer change (new columns to fill) never re-imports an unchanged feed —
+#1450's migration backfill was still what production held, and `SearchStations`
+was matching all three columns against the same French string.
+
+`apps/trains/mcp.go` now exposes `trains_search_stations`,
+`trains_get_feed_info` and `trains_search_journeys`, and
+`GetFeedInfoResponse` carries `imported_at` — without it, "the timetable is
+current" and "no import has landed in weeks" look identical, since an
+unchanged feed keeps the same `feed_version` either way.
+
+The fix itself is `feed_info.parser_version` (see
+`spec-trains-gtfs-ingest.md`): a mismatch against the importer's own version
+drops the validators and forces a full re-import, so the next importer change
+recovers on its next run instead of waiting on SNCB.

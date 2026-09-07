@@ -29,12 +29,12 @@ func (r *FeedRepository) GetFeedInfo(
 	var lang, etag, lastModified *string
 	err := r.db.QueryRow(ctx, `
 		SELECT feed_version, feed_start_date, feed_end_date, feed_lang,
-		       etag, last_modified
+		       etag, last_modified, imported_at, parser_version
 		FROM trains.feed_info
 		WHERE singleton
 	`).Scan(
 		&info.FeedVersion, &info.StartDate, &info.EndDate, &lang,
-		&etag, &lastModified,
+		&etag, &lastModified, &info.ImportedAt, &info.ParserVersion,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil //nolint:nilnil //"nothing imported yet" is a valid state
@@ -235,8 +235,8 @@ func upsertFeedInfo(ctx context.Context, tx pgx.Tx, info models.FeedInfo) error 
 	_, err := tx.Exec(ctx, `
 		INSERT INTO trains.feed_info
 			(singleton, feed_version, feed_start_date, feed_end_date,
-			 feed_lang, etag, last_modified, imported_at)
-		VALUES (TRUE, $1, $2, $3, $4, $5, $6, now())
+			 feed_lang, etag, last_modified, parser_version, imported_at)
+		VALUES (TRUE, $1, $2, $3, $4, $5, $6, $7, now())
 		ON CONFLICT (singleton) DO UPDATE SET
 			feed_version    = EXCLUDED.feed_version,
 			feed_start_date = EXCLUDED.feed_start_date,
@@ -244,10 +244,11 @@ func upsertFeedInfo(ctx context.Context, tx pgx.Tx, info models.FeedInfo) error 
 			feed_lang       = EXCLUDED.feed_lang,
 			etag            = EXCLUDED.etag,
 			last_modified   = EXCLUDED.last_modified,
+			parser_version  = EXCLUDED.parser_version,
 			imported_at     = now()
 	`,
 		info.FeedVersion, info.StartDate, info.EndDate, nullStr(info.Lang),
-		nullStr(info.ETag), nullStr(info.LastModified),
+		nullStr(info.ETag), nullStr(info.LastModified), info.ParserVersion,
 	)
 	return err
 }

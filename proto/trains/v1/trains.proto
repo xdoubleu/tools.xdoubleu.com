@@ -70,6 +70,11 @@ message GetFeedInfoRequest {}
 message GetFeedInfoResponse {
   // Empty when the static feed has never been imported yet.
   string feed_version = 1;
+  // RFC3339 timestamp of the import that produced the stored feed. A
+  // conditional GET makes an unchanged feed a no-op, so this is the only
+  // signal distinguishing "the timetable is current" from "no import has
+  // landed in weeks"; empty when nothing has been imported yet.
+  string imported_at = 2;
 }
 
 service TrainService {
