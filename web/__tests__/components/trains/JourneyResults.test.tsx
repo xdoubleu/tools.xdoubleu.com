@@ -3,12 +3,13 @@ import { create } from '@bufbuild/protobuf'
 import JourneyResults from '@/components/trains/JourneyResults'
 import { JourneySchema, LegSchema, type Journey } from '@/lib/gen/trains/v1/trains_pb'
 
-function journey(transfers = 0): Journey {
+function journey(transfers = 0, journeyId = ''): Journey {
   return create(JourneySchema, {
     legs: [create(LegSchema, { tripShortName: '515', routeShortName: 'IC' })],
     departureTime: '2026-01-01T08:00:00.000Z',
     arrivalTime: '2026-01-01T09:20:00.000Z',
-    transfers
+    transfers,
+    journeyId
   })
 }
 
@@ -87,5 +88,32 @@ describe('JourneyResults', () => {
       />
     )
     expect(screen.getByText('2 changes · 515')).toBeInTheDocument()
+  })
+
+  it('links a row with a journey_id to its detail page', () => {
+    render(
+      <JourneyResults
+        ready
+        isLoading={false}
+        error={undefined}
+        feedImported
+        journeys={[journey(0, 'abc123')]}
+      />
+    )
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/trains/abc123')
+  })
+
+  it('renders a non-clickable card when a row has no journey_id', () => {
+    render(
+      <JourneyResults
+        ready
+        isLoading={false}
+        error={undefined}
+        feedImported
+        journeys={[journey(0, '')]}
+      />
+    )
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 })

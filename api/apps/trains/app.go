@@ -79,7 +79,9 @@ func NewInner(
 	)
 
 	a.Repositories = repositories.New(a.db)
-	a.Services = services.New(logger, a.Repositories, bmcClient)
+	a.Services = services.New(
+		a.Ctx, logger, a.Repositories, bmcClient, []string{cfg.WebURL},
+	)
 	a.staticImportJob = jobs.NewStaticImportJob(a.Services.StaticImport)
 	a.routerRefreshJob = jobs.NewRouterRefreshJob(a.Services.Journey.RefreshOnly)
 	a.realtimePollJob = jobs.NewRealtimePollJob(a.Services.Realtime)

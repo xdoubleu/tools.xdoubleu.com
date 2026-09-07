@@ -155,6 +155,25 @@ func (m *alertErroringMock) FetchRealtime(
 	return m.MockBMCClient.FetchRealtime(ctx, feed)
 }
 
+// TestRealtimeService_Poll_FiresOnUpdateListeners covers the hook
+// JourneyWSService's PushAll is wired through (issue #1394): every
+// registered listener must run once per successful poll, after the
+// snapshot is already swapped in.
+func TestRealtimeService_Poll_FiresOnUpdateListeners(t *testing.T) {
+	m := newTestMock(t, "trip-1", "alert-1")
+	svc := NewRealtimeService(logging.NewNopLogger(), m)
+
+	var calls int
+	svc.OnUpdate(func() { calls++ })
+	svc.OnUpdate(func() { calls++ })
+
+	require.NoError(t, svc.Poll(context.Background()))
+	assert.Equal(t, 2, calls)
+
+	require.NoError(t, svc.Poll(context.Background()))
+	assert.Equal(t, 4, calls)
+}
+
 func TestIsBackoffable(t *testing.T) {
 	assert.True(t, isBackoffable(&bmc.RateLimitedError{RetryAfter: time.Second}))
 	assert.True(t, isBackoffable(&bmc.UpstreamError{StatusCode: 502}))

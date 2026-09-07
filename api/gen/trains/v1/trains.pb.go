@@ -155,6 +155,10 @@ type Journey struct {
 	DepartureTime string                 `protobuf:"bytes,2,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
 	ArrivalTime   string                 `protobuf:"bytes,3,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
 	Transfers     int32                  `protobuf:"varint,4,opt,name=transfers,proto3" json:"transfers,omitempty"`
+	// Opaque id identifying this exact journey (trip_short_name + board/alight
+	// stop and time per leg), decodable back into GetJourneyDetailRequest with
+	// no server-side storage — never a raw trip_id, which churns daily.
+	JourneyId     string `protobuf:"bytes,5,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -217,6 +221,435 @@ func (x *Journey) GetTransfers() int32 {
 	return 0
 }
 
+func (x *Journey) GetJourneyId() string {
+	if x != nil {
+		return x.JourneyId
+	}
+	return ""
+}
+
+// Alert is a decoded GTFS-RT service alert attached to a leg of a journey.
+type Alert struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	HeaderText      string                 `protobuf:"bytes,2,opt,name=header_text,json=headerText,proto3" json:"header_text,omitempty"`
+	DescriptionText string                 `protobuf:"bytes,3,opt,name=description_text,json=descriptionText,proto3" json:"description_text,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *Alert) Reset() {
+	*x = Alert{}
+	mi := &file_trains_v1_trains_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Alert) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Alert) ProtoMessage() {}
+
+func (x *Alert) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Alert.ProtoReflect.Descriptor instead.
+func (*Alert) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Alert) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Alert) GetHeaderText() string {
+	if x != nil {
+		return x.HeaderText
+	}
+	return ""
+}
+
+func (x *Alert) GetDescriptionText() string {
+	if x != nil {
+		return x.DescriptionText
+	}
+	return ""
+}
+
+// StopCall is the scheduled and (if published) live state of one stop along
+// a journey detail leg.
+type StopCall struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	StopId   string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
+	StopName string                 `protobuf:"bytes,2,opt,name=stop_name,json=stopName,proto3" json:"stop_name,omitempty"`
+	Platform string                 `protobuf:"bytes,3,opt,name=platform,proto3" json:"platform,omitempty"`
+	// RFC3339, empty at the leg's origin stop.
+	ScheduledArrival string `protobuf:"bytes,4,opt,name=scheduled_arrival,json=scheduledArrival,proto3" json:"scheduled_arrival,omitempty"`
+	// RFC3339, empty at the leg's terminus stop.
+	ScheduledDeparture string `protobuf:"bytes,5,opt,name=scheduled_departure,json=scheduledDeparture,proto3" json:"scheduled_departure,omitempty"`
+	// One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
+	// models.DelayState. "unknown" must never be rendered as "on_time".
+	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	// Only meaningful when status is "delayed"; seconds, positive = late.
+	DelaySeconds  int32 `protobuf:"varint,7,opt,name=delay_seconds,json=delaySeconds,proto3" json:"delay_seconds,omitempty"`
+	IsBoardStop   bool  `protobuf:"varint,8,opt,name=is_board_stop,json=isBoardStop,proto3" json:"is_board_stop,omitempty"`
+	IsAlightStop  bool  `protobuf:"varint,9,opt,name=is_alight_stop,json=isAlightStop,proto3" json:"is_alight_stop,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopCall) Reset() {
+	*x = StopCall{}
+	mi := &file_trains_v1_trains_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopCall) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopCall) ProtoMessage() {}
+
+func (x *StopCall) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopCall.ProtoReflect.Descriptor instead.
+func (*StopCall) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *StopCall) GetStopId() string {
+	if x != nil {
+		return x.StopId
+	}
+	return ""
+}
+
+func (x *StopCall) GetStopName() string {
+	if x != nil {
+		return x.StopName
+	}
+	return ""
+}
+
+func (x *StopCall) GetPlatform() string {
+	if x != nil {
+		return x.Platform
+	}
+	return ""
+}
+
+func (x *StopCall) GetScheduledArrival() string {
+	if x != nil {
+		return x.ScheduledArrival
+	}
+	return ""
+}
+
+func (x *StopCall) GetScheduledDeparture() string {
+	if x != nil {
+		return x.ScheduledDeparture
+	}
+	return ""
+}
+
+func (x *StopCall) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *StopCall) GetDelaySeconds() int32 {
+	if x != nil {
+		return x.DelaySeconds
+	}
+	return 0
+}
+
+func (x *StopCall) GetIsBoardStop() bool {
+	if x != nil {
+		return x.IsBoardStop
+	}
+	return false
+}
+
+func (x *StopCall) GetIsAlightStop() bool {
+	if x != nil {
+		return x.IsAlightStop
+	}
+	return false
+}
+
+// LegDetail is one boarded train's full live state: every stop between
+// where the passenger boards and alights, plus any alerts attached to it.
+type LegDetail struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TripShortName  string                 `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
+	RouteShortName string                 `protobuf:"bytes,2,opt,name=route_short_name,json=routeShortName,proto3" json:"route_short_name,omitempty"`
+	Headsign       string                 `protobuf:"bytes,3,opt,name=headsign,proto3" json:"headsign,omitempty"`
+	// Whole-trip cancellation — distinct from an individual StopCall's
+	// "skipped" (partial cancellation).
+	Cancelled     bool        `protobuf:"varint,4,opt,name=cancelled,proto3" json:"cancelled,omitempty"`
+	Stops         []*StopCall `protobuf:"bytes,5,rep,name=stops,proto3" json:"stops,omitempty"`
+	Alerts        []*Alert    `protobuf:"bytes,6,rep,name=alerts,proto3" json:"alerts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LegDetail) Reset() {
+	*x = LegDetail{}
+	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LegDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LegDetail) ProtoMessage() {}
+
+func (x *LegDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LegDetail.ProtoReflect.Descriptor instead.
+func (*LegDetail) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *LegDetail) GetTripShortName() string {
+	if x != nil {
+		return x.TripShortName
+	}
+	return ""
+}
+
+func (x *LegDetail) GetRouteShortName() string {
+	if x != nil {
+		return x.RouteShortName
+	}
+	return ""
+}
+
+func (x *LegDetail) GetHeadsign() string {
+	if x != nil {
+		return x.Headsign
+	}
+	return ""
+}
+
+func (x *LegDetail) GetCancelled() bool {
+	if x != nil {
+		return x.Cancelled
+	}
+	return false
+}
+
+func (x *LegDetail) GetStops() []*StopCall {
+	if x != nil {
+		return x.Stops
+	}
+	return nil
+}
+
+func (x *LegDetail) GetAlerts() []*Alert {
+	if x != nil {
+		return x.Alerts
+	}
+	return nil
+}
+
+// JourneyDetail is the full live state of one previously-searched journey —
+// the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+type JourneyDetail struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JourneyId     string                 `protobuf:"bytes,1,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
+	Legs          []*LegDetail           `protobuf:"bytes,2,rep,name=legs,proto3" json:"legs,omitempty"`
+	DepartureTime string                 `protobuf:"bytes,3,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
+	ArrivalTime   string                 `protobuf:"bytes,4,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JourneyDetail) Reset() {
+	*x = JourneyDetail{}
+	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JourneyDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JourneyDetail) ProtoMessage() {}
+
+func (x *JourneyDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JourneyDetail.ProtoReflect.Descriptor instead.
+func (*JourneyDetail) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *JourneyDetail) GetJourneyId() string {
+	if x != nil {
+		return x.JourneyId
+	}
+	return ""
+}
+
+func (x *JourneyDetail) GetLegs() []*LegDetail {
+	if x != nil {
+		return x.Legs
+	}
+	return nil
+}
+
+func (x *JourneyDetail) GetDepartureTime() string {
+	if x != nil {
+		return x.DepartureTime
+	}
+	return ""
+}
+
+func (x *JourneyDetail) GetArrivalTime() string {
+	if x != nil {
+		return x.ArrivalTime
+	}
+	return ""
+}
+
+type GetJourneyDetailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JourneyId     string                 `protobuf:"bytes,1,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJourneyDetailRequest) Reset() {
+	*x = GetJourneyDetailRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJourneyDetailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJourneyDetailRequest) ProtoMessage() {}
+
+func (x *GetJourneyDetailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJourneyDetailRequest.ProtoReflect.Descriptor instead.
+func (*GetJourneyDetailRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetJourneyDetailRequest) GetJourneyId() string {
+	if x != nil {
+		return x.JourneyId
+	}
+	return ""
+}
+
+type GetJourneyDetailResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Journey       *JourneyDetail         `protobuf:"bytes,1,opt,name=journey,proto3" json:"journey,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJourneyDetailResponse) Reset() {
+	*x = GetJourneyDetailResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJourneyDetailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJourneyDetailResponse) ProtoMessage() {}
+
+func (x *GetJourneyDetailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJourneyDetailResponse.ProtoReflect.Descriptor instead.
+func (*GetJourneyDetailResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetJourneyDetailResponse) GetJourney() *JourneyDetail {
+	if x != nil {
+		return x.Journey
+	}
+	return nil
+}
+
 type SearchJourneysRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Origin stop id — a station (its children are all considered) or a
@@ -233,7 +666,7 @@ type SearchJourneysRequest struct {
 
 func (x *SearchJourneysRequest) Reset() {
 	*x = SearchJourneysRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[2]
+	mi := &file_trains_v1_trains_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -245,7 +678,7 @@ func (x *SearchJourneysRequest) String() string {
 func (*SearchJourneysRequest) ProtoMessage() {}
 
 func (x *SearchJourneysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[2]
+	mi := &file_trains_v1_trains_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -258,7 +691,7 @@ func (x *SearchJourneysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchJourneysRequest.ProtoReflect.Descriptor instead.
 func (*SearchJourneysRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{2}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SearchJourneysRequest) GetOriginStopId() string {
@@ -301,7 +734,7 @@ type SearchJourneysResponse struct {
 
 func (x *SearchJourneysResponse) Reset() {
 	*x = SearchJourneysResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[3]
+	mi := &file_trains_v1_trains_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -313,7 +746,7 @@ func (x *SearchJourneysResponse) String() string {
 func (*SearchJourneysResponse) ProtoMessage() {}
 
 func (x *SearchJourneysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[3]
+	mi := &file_trains_v1_trains_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -326,7 +759,7 @@ func (x *SearchJourneysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchJourneysResponse.ProtoReflect.Descriptor instead.
 func (*SearchJourneysResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{3}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *SearchJourneysResponse) GetJourneys() []*Journey {
@@ -350,7 +783,7 @@ type Station struct {
 
 func (x *Station) Reset() {
 	*x = Station{}
-	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	mi := &file_trains_v1_trains_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -362,7 +795,7 @@ func (x *Station) String() string {
 func (*Station) ProtoMessage() {}
 
 func (x *Station) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[4]
+	mi := &file_trains_v1_trains_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -375,7 +808,7 @@ func (x *Station) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Station.ProtoReflect.Descriptor instead.
 func (*Station) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{4}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Station) GetStopId() string {
@@ -418,7 +851,7 @@ type SearchStationsRequest struct {
 
 func (x *SearchStationsRequest) Reset() {
 	*x = SearchStationsRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	mi := &file_trains_v1_trains_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +863,7 @@ func (x *SearchStationsRequest) String() string {
 func (*SearchStationsRequest) ProtoMessage() {}
 
 func (x *SearchStationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[5]
+	mi := &file_trains_v1_trains_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +876,7 @@ func (x *SearchStationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchStationsRequest.ProtoReflect.Descriptor instead.
 func (*SearchStationsRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{5}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *SearchStationsRequest) GetQuery() string {
@@ -462,7 +895,7 @@ type SearchStationsResponse struct {
 
 func (x *SearchStationsResponse) Reset() {
 	*x = SearchStationsResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	mi := &file_trains_v1_trains_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -474,7 +907,7 @@ func (x *SearchStationsResponse) String() string {
 func (*SearchStationsResponse) ProtoMessage() {}
 
 func (x *SearchStationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[6]
+	mi := &file_trains_v1_trains_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -487,7 +920,7 @@ func (x *SearchStationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchStationsResponse.ProtoReflect.Descriptor instead.
 func (*SearchStationsResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{6}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SearchStationsResponse) GetStations() []*Station {
@@ -505,7 +938,7 @@ type GetFeedInfoRequest struct {
 
 func (x *GetFeedInfoRequest) Reset() {
 	*x = GetFeedInfoRequest{}
-	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	mi := &file_trains_v1_trains_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -517,7 +950,7 @@ func (x *GetFeedInfoRequest) String() string {
 func (*GetFeedInfoRequest) ProtoMessage() {}
 
 func (x *GetFeedInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[7]
+	mi := &file_trains_v1_trains_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -530,7 +963,7 @@ func (x *GetFeedInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFeedInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetFeedInfoRequest) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{7}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{13}
 }
 
 type GetFeedInfoResponse struct {
@@ -543,7 +976,7 @@ type GetFeedInfoResponse struct {
 
 func (x *GetFeedInfoResponse) Reset() {
 	*x = GetFeedInfoResponse{}
-	mi := &file_trains_v1_trains_proto_msgTypes[8]
+	mi := &file_trains_v1_trains_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -555,7 +988,7 @@ func (x *GetFeedInfoResponse) String() string {
 func (*GetFeedInfoResponse) ProtoMessage() {}
 
 func (x *GetFeedInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_trains_v1_trains_proto_msgTypes[8]
+	mi := &file_trains_v1_trains_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -568,7 +1001,7 @@ func (x *GetFeedInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFeedInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetFeedInfoResponse) Descriptor() ([]byte, []int) {
-	return file_trains_v1_trains_proto_rawDescGZIP(), []int{8}
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetFeedInfoResponse) GetFeedVersion() string {
@@ -597,12 +1030,47 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x0falight_platform\x18\n" +
 	" \x01(\tR\x0ealightPlatform\x12\x1f\n" +
 	"\valight_time\x18\v \x01(\tR\n" +
-	"alightTime\"\x95\x01\n" +
+	"alightTime\"\xb4\x01\n" +
 	"\aJourney\x12\"\n" +
 	"\x04legs\x18\x01 \x03(\v2\x0e.trains.v1.LegR\x04legs\x12%\n" +
 	"\x0edeparture_time\x18\x02 \x01(\tR\rdepartureTime\x12!\n" +
 	"\farrival_time\x18\x03 \x01(\tR\varrivalTime\x12\x1c\n" +
-	"\ttransfers\x18\x04 \x01(\x05R\ttransfers\"\x9e\x01\n" +
+	"\ttransfers\x18\x04 \x01(\x05R\ttransfers\x12\x1d\n" +
+	"\n" +
+	"journey_id\x18\x05 \x01(\tR\tjourneyId\"c\n" +
+	"\x05Alert\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1f\n" +
+	"\vheader_text\x18\x02 \x01(\tR\n" +
+	"headerText\x12)\n" +
+	"\x10description_text\x18\x03 \x01(\tR\x0fdescriptionText\"\xc1\x02\n" +
+	"\bStopCall\x12\x17\n" +
+	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12\x1b\n" +
+	"\tstop_name\x18\x02 \x01(\tR\bstopName\x12\x1a\n" +
+	"\bplatform\x18\x03 \x01(\tR\bplatform\x12+\n" +
+	"\x11scheduled_arrival\x18\x04 \x01(\tR\x10scheduledArrival\x12/\n" +
+	"\x13scheduled_departure\x18\x05 \x01(\tR\x12scheduledDeparture\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12#\n" +
+	"\rdelay_seconds\x18\a \x01(\x05R\fdelaySeconds\x12\"\n" +
+	"\ris_board_stop\x18\b \x01(\bR\visBoardStop\x12$\n" +
+	"\x0eis_alight_stop\x18\t \x01(\bR\fisAlightStop\"\xec\x01\n" +
+	"\tLegDetail\x12&\n" +
+	"\x0ftrip_short_name\x18\x01 \x01(\tR\rtripShortName\x12(\n" +
+	"\x10route_short_name\x18\x02 \x01(\tR\x0erouteShortName\x12\x1a\n" +
+	"\bheadsign\x18\x03 \x01(\tR\bheadsign\x12\x1c\n" +
+	"\tcancelled\x18\x04 \x01(\bR\tcancelled\x12)\n" +
+	"\x05stops\x18\x05 \x03(\v2\x13.trains.v1.StopCallR\x05stops\x12(\n" +
+	"\x06alerts\x18\x06 \x03(\v2\x10.trains.v1.AlertR\x06alerts\"\xa2\x01\n" +
+	"\rJourneyDetail\x12\x1d\n" +
+	"\n" +
+	"journey_id\x18\x01 \x01(\tR\tjourneyId\x12(\n" +
+	"\x04legs\x18\x02 \x03(\v2\x14.trains.v1.LegDetailR\x04legs\x12%\n" +
+	"\x0edeparture_time\x18\x03 \x01(\tR\rdepartureTime\x12!\n" +
+	"\farrival_time\x18\x04 \x01(\tR\varrivalTime\"8\n" +
+	"\x17GetJourneyDetailRequest\x12\x1d\n" +
+	"\n" +
+	"journey_id\x18\x01 \x01(\tR\tjourneyId\"N\n" +
+	"\x18GetJourneyDetailResponse\x122\n" +
+	"\ajourney\x18\x01 \x01(\v2\x18.trains.v1.JourneyDetailR\ajourney\"\x9e\x01\n" +
 	"\x15SearchJourneysRequest\x12$\n" +
 	"\x0eorigin_stop_id\x18\x01 \x01(\tR\foriginStopId\x12.\n" +
 	"\x13destination_stop_id\x18\x02 \x01(\tR\x11destinationStopId\x12\x12\n" +
@@ -621,11 +1089,12 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\x14\n" +
 	"\x12GetFeedInfoRequest\"8\n" +
 	"\x13GetFeedInfoResponse\x12!\n" +
-	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion2\x8a\x02\n" +
+	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion2\xe7\x02\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
 	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
-	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
+	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponse\x12[\n" +
+	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
 
 var (
 	file_trains_v1_trains_proto_rawDescOnce sync.Once
@@ -639,33 +1108,45 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_trains_v1_trains_proto_goTypes = []any{
-	(*Leg)(nil),                    // 0: trains.v1.Leg
-	(*Journey)(nil),                // 1: trains.v1.Journey
-	(*SearchJourneysRequest)(nil),  // 2: trains.v1.SearchJourneysRequest
-	(*SearchJourneysResponse)(nil), // 3: trains.v1.SearchJourneysResponse
-	(*Station)(nil),                // 4: trains.v1.Station
-	(*SearchStationsRequest)(nil),  // 5: trains.v1.SearchStationsRequest
-	(*SearchStationsResponse)(nil), // 6: trains.v1.SearchStationsResponse
-	(*GetFeedInfoRequest)(nil),     // 7: trains.v1.GetFeedInfoRequest
-	(*GetFeedInfoResponse)(nil),    // 8: trains.v1.GetFeedInfoResponse
+	(*Leg)(nil),                      // 0: trains.v1.Leg
+	(*Journey)(nil),                  // 1: trains.v1.Journey
+	(*Alert)(nil),                    // 2: trains.v1.Alert
+	(*StopCall)(nil),                 // 3: trains.v1.StopCall
+	(*LegDetail)(nil),                // 4: trains.v1.LegDetail
+	(*JourneyDetail)(nil),            // 5: trains.v1.JourneyDetail
+	(*GetJourneyDetailRequest)(nil),  // 6: trains.v1.GetJourneyDetailRequest
+	(*GetJourneyDetailResponse)(nil), // 7: trains.v1.GetJourneyDetailResponse
+	(*SearchJourneysRequest)(nil),    // 8: trains.v1.SearchJourneysRequest
+	(*SearchJourneysResponse)(nil),   // 9: trains.v1.SearchJourneysResponse
+	(*Station)(nil),                  // 10: trains.v1.Station
+	(*SearchStationsRequest)(nil),    // 11: trains.v1.SearchStationsRequest
+	(*SearchStationsResponse)(nil),   // 12: trains.v1.SearchStationsResponse
+	(*GetFeedInfoRequest)(nil),       // 13: trains.v1.GetFeedInfoRequest
+	(*GetFeedInfoResponse)(nil),      // 14: trains.v1.GetFeedInfoResponse
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
-	0, // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
-	1, // 1: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
-	4, // 2: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
-	2, // 3: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	5, // 4: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
-	7, // 5: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
-	3, // 6: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	6, // 7: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
-	8, // 8: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	0,  // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
+	3,  // 1: trains.v1.LegDetail.stops:type_name -> trains.v1.StopCall
+	2,  // 2: trains.v1.LegDetail.alerts:type_name -> trains.v1.Alert
+	4,  // 3: trains.v1.JourneyDetail.legs:type_name -> trains.v1.LegDetail
+	5,  // 4: trains.v1.GetJourneyDetailResponse.journey:type_name -> trains.v1.JourneyDetail
+	1,  // 5: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
+	10, // 6: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
+	8,  // 7: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	11, // 8: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	13, // 9: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
+	6,  // 10: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
+	9,  // 11: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	12, // 12: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	14, // 13: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
+	7,  // 14: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
+	11, // [11:15] is the sub-list for method output_type
+	7,  // [7:11] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -679,7 +1160,7 @@ func file_trains_v1_trains_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -4,7 +4,8 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
   getFeedInfo: jest.fn().mockResolvedValue({ feedVersion: '2026-08-31' }),
   searchStations: jest.fn().mockResolvedValue({ stations: [{ stopId: 'SA', name: 'Alpha' }] }),
-  searchJourneys: jest.fn().mockResolvedValue({ journeys: [] })
+  searchJourneys: jest.fn().mockResolvedValue({ journeys: [] }),
+  getJourneyDetail: jest.fn().mockResolvedValue({ journey: { legs: [] } })
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -14,7 +15,12 @@ jest.mock('@/lib/gen/trains/v1/trains_pb', () => ({
 }))
 
 import useSWR from 'swr'
-import { useTrainsFeedInfo, useStationSearch, useJourneySearch } from '@/hooks/useTrains'
+import {
+  useTrainsFeedInfo,
+  useStationSearch,
+  useJourneySearch,
+  useJourneyDetail
+} from '@/hooks/useTrains'
 
 const mockUseSWR = jest.mocked(useSWR)
 
@@ -69,5 +75,30 @@ describe('useJourneySearch', () => {
       ['/trains/journeys', 'SA', 'SB', '2026-01-01T00:00:00Z', true],
       expect.any(Function)
     )
+  })
+})
+
+describe('useJourneyDetail', () => {
+  it('passes null as key when there is no journey id', () => {
+    renderHook(() => useJourneyDetail(''))
+    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function), {
+      revalidateOnFocus: false
+    })
+  })
+
+  it('keys by the journey id', () => {
+    renderHook(() => useJourneyDetail('journey-1'))
+    expect(mockUseSWR).toHaveBeenCalledWith(
+      ['/trains/journey', 'journey-1'],
+      expect.any(Function),
+      { revalidateOnFocus: false }
+    )
+  })
+
+  it('fetches via getJourneyDetail', async () => {
+    renderHook(() => useJourneyDetail('journey-1'))
+    const [, fetcher] = mockUseSWR.mock.calls[0]!
+    await fetcher!()
+    expect(mockClient.getJourneyDetail).toHaveBeenCalledWith({ journeyId: 'journey-1' })
   })
 })

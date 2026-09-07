@@ -76,16 +76,20 @@ type TripUpdate struct {
 }
 
 // Alert is a decoded GTFS-RT service alert (rt/alert), attached to the
-// trips/routes/stops it affects.
+// trips/routes/stops it affects. JSON tags cover only the fields
+// trains.v1.Alert also exposes — the websocket push (this package's own
+// JSON DTO) and the GetJourneyDetail RPC response decode into the same
+// client-side shape (issue #1394); Cause/Effect/Informed*IDs are
+// server-side matching detail, not shown to a passenger.
 type Alert struct {
-	ID               string
-	Cause            string
-	Effect           string
-	HeaderText       string
-	DescriptionText  string
-	InformedTripIDs  []string
-	InformedRouteIDs []string
-	InformedStopIDs  []string
+	ID               string   `json:"id"`
+	Cause            string   `json:"-"`
+	Effect           string   `json:"-"`
+	HeaderText       string   `json:"headerText"`
+	DescriptionText  string   `json:"descriptionText"`
+	InformedTripIDs  []string `json:"-"`
+	InformedRouteIDs []string `json:"-"`
+	InformedStopIDs  []string `json:"-"`
 }
 
 // Snapshot is the wholly-replaced current realtime state, rebuilt on every
