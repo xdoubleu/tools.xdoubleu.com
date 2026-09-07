@@ -2,11 +2,13 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockUpdateProgress = jest.fn()
+const mockUpdateBookStatus = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn(),
   useBooksProgress: jest.fn(),
-  useUpdateProgress: () => mockUpdateProgress
+  useUpdateProgress: () => mockUpdateProgress,
+  useUpdateBookStatus: () => mockUpdateBookStatus
 }))
 
 jest.mock('next/image', () => {
@@ -58,6 +60,7 @@ const mockUseBooksProgress = jest.mocked(useBooksProgress)
 
 const readingBook = create(UserBookSchema, {
   id: '1',
+  bookId: 'book-1',
   status: 'currently-reading',
   progressMode: 'pages',
   currentPage: 100,
@@ -89,6 +92,7 @@ function mockLibrary(reading = [readingBook]) {
 describe('ReadingDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUpdateBookStatus.mockResolvedValue({})
   })
 
   it('renders the stat cards derived from the library', () => {
@@ -117,19 +121,27 @@ describe('ReadingDashboard', () => {
     expect(container.querySelector('a[href="/books/1"]')).toBeInTheDocument()
   })
 
-  it('updates progress from the card without leaving the dashboard', async () => {
-    mockUpdateProgress.mockResolvedValue({})
+  it('does not show quick-step buttons on currently-reading cards', () => {
+    mockLibrary()
+    render(<ReadingDashboard />)
+    expect(screen.queryByLabelText(/Increase progress/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Decrease progress/)).not.toBeInTheDocument()
+  })
+
+  it('marks a book as completed from the card without leaving the dashboard', async () => {
     mockLibrary()
     render(<ReadingDashboard />)
 
-    fireEvent.click(screen.getByLabelText('Increase progress by 10 pages'))
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as completed' }))
+    // Radix marks the rest of the page inert while the dialog is open, so
+    // only the dialog's own confirm button remains an accessible match.
+    fireEvent.click(await screen.findByRole('button', { name: 'Mark as completed' }))
 
     await waitFor(() =>
-      expect(mockUpdateProgress).toHaveBeenCalledWith(
-        expect.objectContaining({ progressMode: 'pages', currentPage: 110 })
+      expect(mockUpdateBookStatus).toHaveBeenCalledWith(
+        expect.objectContaining({ bookId: 'book-1', status: 'read' })
       )
     )
-    expect(screen.getByText('110 / 400 pages')).toBeInTheDocument()
   })
 
   it('shows an empty message when nothing is in progress', () => {
