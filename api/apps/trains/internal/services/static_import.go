@@ -9,6 +9,17 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
 )
 
+// importParserVersion identifies what this importer writes. It is stored
+// alongside the feed and compared on every run: when the stored rows came
+// from an older importer, the conditional-GET validators are dropped so the
+// unchanged feed is fetched and imported in full.
+//
+// Bump this whenever an import writes something it previously did not —
+// a new column, a new file parsed, a changed derivation. Version 2 is the
+// first that fills name_nl/name_fr/name_en from translations.txt (#1450);
+// version 1 stored a single French-only stop name (issue #1453).
+const importParserVersion = 2
+
 // StaticImportService downloads, validates and imports the SNCB GTFS static
 // timetable into the trains schema. It is driven by jobs.StaticImportJob on
 // a 24h cadence.
@@ -27,8 +38,11 @@ func NewStaticImportService(
 }
 
 // Import runs one import cycle. A conditional GET makes an unchanged daily
-// feed a no-op (issue #1390). A missing BMC key is logged and skipped, not
-// an error — matching how games handles a missing STEAM_API_KEY.
+// feed a no-op (issue #1390) — but only while the stored rows come from the
+// current importer, since those validators describe the feed and not what
+// the importer does with it (issue #1453). A missing BMC key is logged and
+// skipped, not an error — matching how games handles a missing
+// STEAM_API_KEY.
 func (s *StaticImportService) Import(ctx context.Context) error {
 	stored, err := s.repos.Feed.GetFeedInfo(ctx)
 	if err != nil {
@@ -37,7 +51,16 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 
 	//nolint:exhaustruct //both validators optional
 	opts := bmc.StaticOptions{}
-	if stored != nil {
+	switch {
+	case stored == nil:
+		// Nothing imported yet: an unconditional fetch is the only option.
+	case stored.ParserVersion != importParserVersion:
+		s.logger.InfoContext(ctx,
+			"trains: stored feed predates the current importer, forcing re-import",
+			slog.Int("stored_parser_version", stored.ParserVersion),
+			slog.Int("parser_version", importParserVersion),
+		)
+	default:
 		opts.ETag = stored.ETag
 		opts.LastModified = stored.LastModified
 	}
@@ -62,6 +85,7 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 	}
 	feed.Info.ETag = res.ETag
 	feed.Info.LastModified = res.LastModified
+	feed.Info.ParserVersion = importParserVersion
 
 	if err = s.repos.Feed.ImportFeed(ctx, feed); err != nil {
 		return err
@@ -69,6 +93,7 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 
 	s.logger.InfoContext(ctx, "trains: static feed imported",
 		slog.String("feed_version", feed.Info.FeedVersion),
+		slog.Int("parser_version", importParserVersion),
 		slog.Int("stops", len(feed.Stops)),
 		slog.Int("trips", len(feed.Trips)),
 		slog.Int("stop_times", len(feed.StopTimes)),

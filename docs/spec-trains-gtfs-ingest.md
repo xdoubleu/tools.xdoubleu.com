@@ -22,7 +22,19 @@ The feed is swapped into the schema **in one transaction** —
 is atomic for readers under MVCC.
 
 A conditional GET (`feed_info.etag`/`last_modified`) makes an unchanged daily
-feed a no-op.
+feed a no-op — but only while `feed_info.parser_version` matches
+`services.importParserVersion`. Those validators describe the **feed**, not
+what the importer writes with it, so on a mismatch they are dropped and the
+unchanged feed is fetched and imported in full (issue #1453).
+
+**Bump `importParserVersion` in the same change whenever an import starts
+writing something it previously did not** — a new column, a newly parsed file,
+a changed derivation. Skipping the bump leaves the deployed rows pinned to
+whatever the previous importer wrote for as long as SNCB publishes no new
+feed, with no error anywhere: that is exactly how #1450's multilingual stop
+names shipped as code and never reached the database. `feed_info.imported_at`,
+surfaced by `GetFeedInfo` and `trains_get_feed_info`, is the signal that says
+when an import last actually landed.
 
 Each stop is stored under three names — `name_nl`/`name_fr`/`name_en`.
 `stop_name` carries the feed's primary language (`feed_info.feed_lang`); the

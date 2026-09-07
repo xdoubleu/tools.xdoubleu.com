@@ -126,6 +126,65 @@ func TestStaticImport_UnchangedFeedIsNoOp(t *testing.T) {
 	assert.Equal(t, 2, count, "no-op run leaves the timetable intact")
 }
 
+// TestStaticImport_ParserVersionMismatchForcesReimport is the assertion
+// issue #1453 calls for: rows written by an older importer must be
+// re-imported even though the feed itself is unchanged. The stored ETag
+// describes the feed, not what the importer writes with it, so on its own it
+// pinned production to French-only stop names for as long as SNCB published
+// no new feed.
+//
+// It builds its own app and mock rather than using the shared ones, since it
+// needs a client that serves a real body again after the package's earlier
+// imports.
+func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
+	ctx := context.Background()
+	cfg := testhelper.NewTestConfig()
+	cfg.BMCPartnerKey = "test-key"
+	bmcClient := mocks.NewMockBMCClient(mocks.BuildFeedZip(mocks.SampleFeedFiles()))
+	app := trains.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		bmcClient,
+	)
+
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+	info, err := app.Repositories.Feed.GetFeedInfo(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, info)
+	assert.Equal(t, 2, info.ParserVersion, "an import stamps the current importer")
+	assert.NotNil(t, info.ImportedAt)
+
+	// Rewind to what a pre-multilingual importer (#1450) left behind: every
+	// language holding the French stop_name, under a still-current ETag.
+	_, err = testDB.Exec(ctx,
+		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
+	require.NoError(t, err)
+	_, err = testDB.Exec(ctx,
+		`UPDATE trains.stops SET name_nl = name_fr, name_en = name_fr`)
+	require.NoError(t, err)
+
+	bmcClient.Calls = nil
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+
+	require.Len(t, bmcClient.Calls, 1)
+	assert.Empty(t, bmcClient.Calls[0].ETag,
+		"validators dropped, so the unchanged feed is fetched in full")
+	assert.Empty(t, bmcClient.Calls[0].LastModified)
+
+	stations, err := app.Services.Stations.SearchStations(ctx, "brussel-zuid")
+	require.NoError(t, err)
+	require.Len(t, stations, 1, "the forced re-import restores the Dutch name")
+	assert.Equal(t, "Bruxelles-Midi", stations[0].NameFR)
+	assert.Equal(t, "Brussels-South", stations[0].NameEN)
+
+	info, err = app.Repositories.Feed.GetFeedInfo(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, info)
+	assert.Equal(t, 2, info.ParserVersion)
+}
+
 func TestStaticImport_MissingKeyIsSkippedNotFailed(t *testing.T) {
 	ctx := context.Background()
 	testBMC.Err = bmc.ErrNotConfigured
