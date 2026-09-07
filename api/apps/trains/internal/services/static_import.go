@@ -9,7 +9,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
 )
 
-// importParserVersion identifies what this importer writes. It is stored
+// ImportParserVersion identifies what this importer writes. It is stored
 // alongside the feed and compared on every run: when the stored rows came
 // from an older importer, the conditional-GET validators are dropped so the
 // unchanged feed is fetched and imported in full.
@@ -20,7 +20,7 @@ import (
 // fill name_nl/name_fr/name_en from translations.txt (#1450); version 3
 // matches those translations by field_value and by unprefixed record_id as
 // well, and records the resulting coverage (issue #1459).
-const importParserVersion = 3
+const ImportParserVersion = 3
 
 // StaticImportService downloads, validates and imports the SNCB GTFS static
 // timetable into the trains schema. It is driven by jobs.StaticImportJob on
@@ -56,11 +56,11 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 	switch {
 	case stored == nil:
 		// Nothing imported yet: an unconditional fetch is the only option.
-	case stored.ParserVersion != importParserVersion:
+	case stored.ParserVersion != ImportParserVersion:
 		s.logger.InfoContext(ctx,
 			"trains: stored feed predates the current importer, forcing re-import",
 			slog.Int("stored_parser_version", stored.ParserVersion),
-			slog.Int("parser_version", importParserVersion),
+			slog.Int("parser_version", ImportParserVersion),
 		)
 	default:
 		opts.ETag = stored.ETag
@@ -87,7 +87,7 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 	}
 	feed.Info.ETag = res.ETag
 	feed.Info.LastModified = res.LastModified
-	feed.Info.ParserVersion = importParserVersion
+	feed.Info.ParserVersion = ImportParserVersion
 
 	if err = s.repos.Feed.ImportFeed(ctx, feed); err != nil {
 		return err
@@ -95,7 +95,7 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 
 	s.logger.InfoContext(ctx, "trains: static feed imported",
 		slog.String("feed_version", feed.Info.FeedVersion),
-		slog.Int("parser_version", importParserVersion),
+		slog.Int("parser_version", ImportParserVersion),
 		slog.Int("stops", len(feed.Stops)),
 		slog.Int("trips", len(feed.Trips)),
 		slog.Int("stop_times", len(feed.StopTimes)),
