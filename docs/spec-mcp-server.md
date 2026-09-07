@@ -1,7 +1,7 @@
 # Spec: the Apps MCP server
 
 - Source of truth: `api/cmd/api/mcp_apps.go`, `api/cmd/api/apps.go`, `api/internal/mcptools/`, `apps/<name>/mcp.go`
-- Issues: #1039
+- Issues: #1039, #1453
 
 Auth for this server is ADR-0006. Setup instructions are in root `README.md`.
 
@@ -23,6 +23,14 @@ Claude CLI over a largely read-only MCP server at `/apps/mcp`
 
 App tools are gated by the caller's own per-app access and return **only that
 user's data**. Observability tools require admin.
+
+`trains` is the one app whose tools are not per-user: its timetable is public
+data shared by every caller, so `trains_search_stations`,
+`trains_get_feed_info` and `trains_search_journeys` return the same rows to
+anyone holding `trains` access. `trains_get_feed_info` reports `imported_at`
+alongside the feed version, because a conditional GET makes an unchanged feed
+a no-op and a stale import is otherwise indistinguishable from a current one
+(issue #1453).
 
 ### The two deliberate mutations
 

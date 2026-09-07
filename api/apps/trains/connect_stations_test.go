@@ -3,6 +3,7 @@ package trains_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
@@ -45,4 +46,7 @@ func TestGetFeedInfo_Handler_Success(t *testing.T) {
 	resp, err := client.GetFeedInfo(ctx, req)
 	require.NoError(t, err)
 	assert.Equal(t, "2026-08-31", resp.Msg.GetFeedVersion())
+	importedAt, err := time.Parse(time.RFC3339, resp.Msg.GetImportedAt())
+	require.NoError(t, err, "imported_at is an RFC3339 timestamp")
+	assert.WithinDuration(t, time.Now(), importedAt, time.Minute)
 }

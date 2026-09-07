@@ -3,6 +3,7 @@ package trains_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,11 +102,35 @@ func TestStationsService_SearchStations(t *testing.T) {
 	})
 }
 
-func TestFeedInfoService_FeedVersion(t *testing.T) {
+func TestFeedInfoService_FeedInfo(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
 
-	version, err := testApp.Services.FeedInfo.FeedVersion(ctx)
+	info, err := testApp.Services.FeedInfo.FeedInfo(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, "2026-08-31", version)
+	assert.Equal(t, "2026-08-31", info.FeedVersion)
+	// imported_at is written by the database on every import, so it says
+	// when this timetable actually landed — the signal a skipped import
+	// (issue #1453) shows up in.
+	require.NotNil(t, info.ImportedAt)
+	assert.WithinDuration(t, time.Now(), *info.ImportedAt, time.Minute)
+}
+
+// TestFeedInfoService_FeedInfo_NothingImported covers the state a fresh
+// replica starts in: the attribution string and the import timestamp are
+// both empty rather than an error.
+func TestFeedInfoService_FeedInfo_NothingImported(t *testing.T) {
+	ctx := context.Background()
+	_, err := testDB.Exec(ctx, `TRUNCATE trains.feed_info`)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		require.NoError(
+			t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()),
+		)
+	})
+
+	info, err := testApp.Services.FeedInfo.FeedInfo(ctx)
+	require.NoError(t, err)
+	assert.Empty(t, info.FeedVersion)
+	assert.Nil(t, info.ImportedAt)
 }

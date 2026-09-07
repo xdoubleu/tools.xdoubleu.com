@@ -536,7 +536,12 @@ func (*GetFeedInfoRequest) Descriptor() ([]byte, []int) {
 type GetFeedInfoResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty when the static feed has never been imported yet.
-	FeedVersion   string `protobuf:"bytes,1,opt,name=feed_version,json=feedVersion,proto3" json:"feed_version,omitempty"`
+	FeedVersion string `protobuf:"bytes,1,opt,name=feed_version,json=feedVersion,proto3" json:"feed_version,omitempty"`
+	// RFC3339 timestamp of the import that produced the stored feed. A
+	// conditional GET makes an unchanged feed a no-op, so this is the only
+	// signal distinguishing "the timetable is current" from "no import has
+	// landed in weeks"; empty when nothing has been imported yet.
+	ImportedAt    string `protobuf:"bytes,2,opt,name=imported_at,json=importedAt,proto3" json:"imported_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -574,6 +579,13 @@ func (*GetFeedInfoResponse) Descriptor() ([]byte, []int) {
 func (x *GetFeedInfoResponse) GetFeedVersion() string {
 	if x != nil {
 		return x.FeedVersion
+	}
+	return ""
+}
+
+func (x *GetFeedInfoResponse) GetImportedAt() string {
+	if x != nil {
+		return x.ImportedAt
 	}
 	return ""
 }
@@ -619,9 +631,11 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"H\n" +
 	"\x16SearchStationsResponse\x12.\n" +
 	"\bstations\x18\x01 \x03(\v2\x12.trains.v1.StationR\bstations\"\x14\n" +
-	"\x12GetFeedInfoRequest\"8\n" +
+	"\x12GetFeedInfoRequest\"Y\n" +
 	"\x13GetFeedInfoResponse\x12!\n" +
-	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion2\x8a\x02\n" +
+	"\ffeed_version\x18\x01 \x01(\tR\vfeedVersion\x12\x1f\n" +
+	"\vimported_at\x18\x02 \x01(\tR\n" +
+	"importedAt2\x8a\x02\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
 	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +

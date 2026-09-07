@@ -75,6 +75,14 @@ type FeedInfo struct {
 	Lang         string
 	ETag         string
 	LastModified string
+	// ImportedAt is when the import that produced these rows ran. Set by the
+	// database on write, so it is only populated on a read.
+	ImportedAt *time.Time
+	// ParserVersion identifies the importer that produced the stored rows.
+	// The import compares it against the current version to decide whether
+	// the conditional-GET validators above still describe usable data
+	// (issue #1453).
+	ParserVersion int
 }
 
 // Transfer is one row of transfers.txt. TransferType follows the GTFS
