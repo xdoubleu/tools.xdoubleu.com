@@ -35,12 +35,15 @@ issues that don't survive contact with the code. Before drafting:
 
 ## 2. Put the real decisions to the user
 
-A refinement that silently picks for the user is the failure mode here. Ask
-(via `AskUserQuestion`) only about choices that change the issue set —
-naming of a new app/schema, how much of a domain is in scope, build-vs-adopt
-for a dependency, whether a slice is in the first cut. Anything a careful
-reader of the codebase would answer the same way, decide yourself and record
-it in the parent's `## Decisions` section so it can be argued with later.
+A refinement that silently picks for the user is the failure mode here. Run
+the `grilling` skill to work the decision tree round-by-round — this is
+unconditional (root `CLAUDE.md`, "Always grill the scope before an issue is
+treated as refined") and replaces any lighter one-shot confirmation. Put to
+the user only choices that change the issue set — naming of a new app/schema,
+how much of a domain is in scope, build-vs-adopt for a dependency, whether a
+slice is in the first cut. Anything a careful reader of the codebase would
+answer the same way, decide yourself and record it in the parent's
+`## Decisions` section so it can be argued with later.
 
 ## 3. Write the parent issue
 
