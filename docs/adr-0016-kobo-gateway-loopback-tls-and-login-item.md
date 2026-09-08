@@ -19,8 +19,9 @@ from fetching a plain-HTTP loopback URL**, and the books page is always
 
 This is what forces the whole self-signed cert apparatus: `EnsureCert` generates
 a self-signed ECDSA P-256 cert and `EnsureTrusted` adds it to the login keychain
-via `security add-trusted-cert`, prompting the user once. See
-`spec-kobo-gateway-runtime.md`.
+via `security add-trusted-cert`, prompting the user once (both live under
+`~/Library/Application Support/kobo-gateway`; delete `cert.pem`/`key.pem` to
+regenerate).
 
 ### A plain LaunchAgents plist, not `SMAppService`
 

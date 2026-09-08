@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Go 1.26 backend (`api/`) serving multiple apps from a single binary, paired with a Next.js 16 / React 19 frontend (`web/`, standalone Node server). Apps share a single HTTP mux and expose ConnectRPC endpoints. Each app owns its own PostgreSQL schema; shared proto definitions live in `proto/`. A separate macOS-only Go module, `kobo-gateway/`, ships as a downloadable menu-bar helper (own `CLAUDE.md`). `sentrytools/` is a tiny third Go module holding slog→Sentry glue `api` pulls in via a local `replace` directive → [`docs/adr-0009-sentrytools-extracted-module.md`](docs/adr-0009-sentrytools-extracted-module.md).
 
-Apps: **games**, **books** (Go package `apps/books`, schema `books`, proto `books.v1`), **feeds**, **watchparty**, **recipes**, **mealplans**, **shoppinglist**, **dashboard** (no schema of its own), **trains** (SNCB/NMBS, schema `trains`, proto `trains.v1` — GTFS static ingest → [`docs/spec-trains-gtfs-ingest.md`](docs/spec-trains-gtfs-ingest.md), a CSA journey planner → [`docs/spec-trains-journey-search.md`](docs/spec-trains-journey-search.md), and a GTFS-Realtime poll job overlaying delays/cancellations/alerts → [`docs/spec-trains-realtime-ingest.md`](docs/spec-trains-realtime-ingest.md); `web/app/trains` (station pickers, route overview) and `web/app/trains/[journeyId]` (a live journey page that keeps updating itself over a websocket for the length of a trip) are its user-visible pages). All apps are registered in `api/cmd/api/apps.go` (implements the `App` interface: `Routes`, `ApplyMigrations`, `GetName`, `GetDisplayName`, `GetDomain`, `Start`) — **migrations run sequentially in registration order**, so schema dependencies between apps dictate the list order. **dashboard** owns the public Games and Reading dashboards and the share-token lifecycle, reaching other apps only through exported methods on their structs → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](docs/adr-0007-dashboard-app-owns-public-sharing.md).
+Apps: **games**, **books** (Go package `apps/books`, schema `books`, proto `books.v1`), **feeds**, **watchparty**, **recipes**, **mealplans**, **shoppinglist**, **dashboard** (no schema of its own), **trains** (SNCB/NMBS, schema `trains`, proto `trains.v1` — daily GTFS static ingest, a CSA journey planner, and a GTFS-Realtime poll job overlaying delays/cancellations/alerts; `web/app/trains` and `web/app/trains/[journeyId]` are its user-visible pages). All apps are registered in `api/cmd/api/apps.go` (implements the `App` interface: `Routes`, `ApplyMigrations`, `GetName`, `GetDisplayName`, `GetDomain`, `Start`) — **migrations run sequentially in registration order**, so schema dependencies between apps dictate the list order. **dashboard** owns the public Games and Reading dashboards and the share-token lifecycle, reaching other apps only through exported methods on their structs → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](docs/adr-0007-dashboard-app-owns-public-sharing.md).
 
 Shared Go code lives in `api/internal/` (auth, config, encryption, family, observability, github, sentryapi, mailer, oauthconn, mcptools, repositories, safedial, testhelper). Any outbound fetch of a
 **user-supplied URL** must go through `api/internal/safedial` — its dialer
@@ -17,7 +17,7 @@ turned into an SSRF pivot against the container's own network. Each app under `a
 
 **Long-request handler deadlines:** a handler that outlives the edge proxy's response timeout gets its connection reset before it writes a byte — no server log, no Sentry event. `deployLogsCtxTimeout` (`api/cmd/api/routes.go`) = 20s and `liveLogDeadline` (`api/internal/digitalocean/logs_live.go`) = 8s. Raising either means also raising `proxy.response_timeout` in `config/deploy.api.yml`; nothing tests this → [`docs/adr-0017-long-request-handler-deadlines.md`](docs/adr-0017-long-request-handler-deadlines.md).
 
-A largely read-only **MCP server** at `/apps/mcp` exposes each app's own read RPCs as `<app>_<rpc>` tools plus 20 unprefixed admin observability tools, so a local Claude CLI can pull production domain data and system health as context. App tools are gated by the caller's own per-app access and return only that user's data; observability tools require admin. Two are deliberate mutations (`resolve_sentry_issue`, `dismiss_security_alert`) → [`docs/spec-mcp-server.md`](docs/spec-mcp-server.md); auth flow in [`docs/adr-0006-embedded-oauth21-authorization-server.md`](docs/adr-0006-embedded-oauth21-authorization-server.md) and `README.md`.
+A largely read-only **MCP server** at `/apps/mcp` exposes each app's own read RPCs as `<app>_<rpc>` tools plus 20 unprefixed admin observability tools, so a local Claude CLI can pull production domain data and system health as context. App tools are gated by the caller's own per-app access and return only that user's data; observability tools require admin. Two are deliberate mutations (`resolve_sentry_issue`, `dismiss_security_alert`); no per-app tool is ever mutating. Auth flow in [`docs/adr-0006-embedded-oauth21-authorization-server.md`](docs/adr-0006-embedded-oauth21-authorization-server.md) and `README.md`.
 
 **MCP coverage gaps:** if the user describes a production issue and there's no MCP tool that surfaces it, or an existing tool returns wrong/incomplete data, fix that gap first (add/correct the tool) before investigating the issue itself — otherwise the same blind spot just recurs next time. Record the case in [`docs/convention-mcp-gap-first.md`](docs/convention-mcp-gap-first.md), which also lists the known open gaps.
 
@@ -100,7 +100,7 @@ An `ExitPlanMode` hook and a `Stop` hook in `.claude/settings.json` enforce both
 
 ## CI
 
-`.github/workflows/main.yml` orchestrates reusable workflows (`proto-check`, `build-api`, `build-web`, `build-kobo-gateway`, `api-lint`, `web-lint`, `kobo-gateway-lint`, `api-test`, `web-test`, `kobo-gateway-test`) gated by a `changes` path filter. `kobo-gateway-*` jobs run on `macos-14` (cgo/AppKit). On PRs the full suite runs and **`ci-pass` is the required check**; on push to `main` the lint jobs don't re-run but the build jobs do, since they produce the deploy artifacts, and `deploy-kamal` then deploys → [`docs/spec-ci-pipeline.md`](docs/spec-ci-pipeline.md).
+`.github/workflows/main.yml` orchestrates reusable workflows (`proto-check`, `build-api`, `build-web`, `build-kobo-gateway`, `api-lint`, `web-lint`, `kobo-gateway-lint`, `api-test`, `web-test`, `kobo-gateway-test`) gated by a `changes` path filter. `kobo-gateway-*` jobs run on `macos-14` (cgo/AppKit). On PRs the full suite runs and **`ci-pass` is the required check**; on push to `main` the lint jobs don't re-run but the build jobs do, since they produce the deploy artifacts, and `deploy-kamal` then deploys.
 
 The `api`/`web`/`kobo_gateway` filters exclude `**/*.md`, so a docs-only PR triggers none of the build/lint/test jobs and `ci-pass` skips Codecov entirely.
 
@@ -114,13 +114,20 @@ Images are cached via BuildKit's `type=gha,scope=<component>` — **no hand-comp
 
 `golangci-lint` runs across all three Go modules (`api`, `kobo-gateway`, `sentrytools`) off one shared **root** `.golangci.yml` — its config search walks up from the working directory. A change to `sentrytools/` can break `api` without touching `api/`'s subtree, so that path filter is OR'd into `api`'s own gate → [`docs/adr-0009-sentrytools-extracted-module.md`](docs/adr-0009-sentrytools-extracted-module.md).
 
-If `ci-pass` fails with "Timed out waiting for Codecov to report", Codecov's check-suite is stuck — push a new (even empty) commit; rerunning the job never helps. See [`docs/spec-ci-pipeline.md`](docs/spec-ci-pipeline.md).
+If `ci-pass` fails with "Timed out waiting for Codecov to report", Codecov's check-suite is stuck — push a new (even empty) commit; rerunning the job never helps (there is no API to rerequest another app's check-suite).
 
 ## Docs Impact
 
 When a change touches project structure, packages, Make/npm targets, shared services, or architecture conventions, update this file and `README.md` in the same change.
 
-**Decisions, rationale and incident history go in `docs/`, not here.** The rule of thumb: *imperative mood stays in a `CLAUDE.md`; past tense moves to `docs/`.* If a sentence you are about to add explains what something used to be, what was tried and rejected, or which issue produced a rule, write it as a `docs/` document instead and leave one pointer line here. When you add a document, register it in both `docs/README.md` and the index below — that index is what makes these files discoverable, since only `CLAUDE.md` files load automatically.
+**Keep documentation lean.** `docs/` holds long-term decisions (ADRs) and
+conventions only — never a prose description of how a subsystem currently works.
+**The code is the spec**: behavior belongs in the code and its comments, where it
+cannot drift. The rule of thumb: *imperative mood stays in a `CLAUDE.md`; past
+tense — what something used to be, what was tried and rejected, which issue
+produced a rule — moves to `docs/`.* Register a new document in both
+`docs/README.md` and the index below; that index is what makes it discoverable,
+since only `CLAUDE.md` files load automatically.
 
 ## Documented Decisions (`docs/`)
 
@@ -155,20 +162,6 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`convention-deploy-secrets`](docs/convention-deploy-secrets.md) — the three lists that must agree
 - [`convention-mcp-gap-first`](docs/convention-mcp-gap-first.md) — fix the tool before the incident; open gaps
 - [`convention-ui-standards`](docs/convention-ui-standards.md) — UI rules, theming, the server/client import trap
-
-**Specs**
-
-- [`spec-ci-pipeline`](docs/spec-ci-pipeline.md) — workflow behavior, the stuck-Codecov gap
-- [`spec-kobo-gateway-runtime`](docs/spec-kobo-gateway-runtime.md) — server, TLS, menu bar, self-update, crash recovery
-- [`spec-mcp-server`](docs/spec-mcp-server.md) — the `/apps/mcp` tool surface
-- [`spec-oauth-consent-screen`](docs/spec-oauth-consent-screen.md) — the `/oauth/consent` flow
-- [`spec-observability-subsystem`](docs/spec-observability-subsystem.md) — jobs, usage recording, host metrics, log tee
-- [`spec-trains-gtfs-ingest`](docs/spec-trains-gtfs-ingest.md) — GTFS import and its feed traps
-- [`spec-trains-journey-search`](docs/spec-trains-journey-search.md) — CSA journey planner, rolling window, Pareto search
-- [`spec-trains-realtime-ingest`](docs/spec-trains-realtime-ingest.md) — GTFS-Realtime poll job, trip-level vs stop-level `schedule_relationship`, backoff
-- [`spec-trains-live-journey`](docs/spec-trains-live-journey.md) — `journey_id` encoding, `GetJourneyDetail`, the wstools socket-vs-polling decision, reconnect-after-sleep, four-state rendering
-- [`spec-ui-primitives`](docs/spec-ui-primitives.md) — generated `components/ui/` inventory; check before building a component
-- [`spec-web-data-flow`](docs/spec-web-data-flow.md) — RSC/SWR transports and hydration
 
 Host-layer decisions stay in [`infra/README.md`](infra/README.md), the single
 source of truth for the deploy-secret list.

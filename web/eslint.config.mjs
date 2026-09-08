@@ -42,22 +42,22 @@ export default [
         {
           selector: "JSXOpeningElement[name.name='button']",
           message:
-            'Use Button from @/components/ui/button (or MenuItem/TogglePill/ToggleIconButton) instead of a raw <button>. See docs/spec-ui-primitives.md.'
+            'Use Button from @/components/ui/button (or MenuItem/TogglePill/ToggleIconButton) instead of a raw <button>. See components/ui/.'
         },
         {
           selector: "JSXOpeningElement[name.name='input']",
           message:
-            'Use Input from @/components/ui/input (or Checkbox/RadioGroup/DateInput) instead of a raw <input>. See docs/spec-ui-primitives.md.'
+            'Use Input from @/components/ui/input (or Checkbox/RadioGroup/DateInput) instead of a raw <input>. See components/ui/.'
         },
         {
           selector: "JSXOpeningElement[name.name='select']",
           message:
-            'Use Select from @/components/ui/select (or Combobox) instead of a raw <select>. See docs/spec-ui-primitives.md.'
+            'Use Select from @/components/ui/select (or Combobox) instead of a raw <select>. See components/ui/.'
         },
         {
           selector: "JSXOpeningElement[name.name='textarea']",
           message:
-            'Use Textarea from @/components/ui/textarea instead of a raw <textarea>. See docs/spec-ui-primitives.md.'
+            'Use Textarea from @/components/ui/textarea instead of a raw <textarea>. See components/ui/.'
         }
       ]
     }

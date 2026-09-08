@@ -62,56 +62,35 @@ three different condition rewrites, reading as this query not treating a runtime
 
 ### Publishing the build to a durable, addressable location — rejected (#1347)
 
-A GitHub Release asset or a GHCR/GitHub Packages generic package with a stable
-or SHA-versioned URL, so `build-web.yml` could `curl` it directly instead of
-downloading `build-kobo-gateway.yml`'s workflow-run artifact, decoupling the two
-jobs' scheduling. Rejected on inspection — it doesn't actually buy the
-decoupling it promises, and reintroduces problems this pipeline already paid
-down once:
+A Release asset or GHCR package with a stable URL that `build-web.yml` could
+`curl`, decoupling the two jobs' scheduling. Rejected: it doesn't buy the
+decoupling it promises.
 
 - **It breaks PR-time integration validation, or reduces to the status quo.** A
-  PR that changes `kobo-gateway/` needs `build-web.yml`'s Docker build to
-  reflect *that PR's* kobo-gateway output, not whatever was last published from
-  `main` — so the publish step could only safely run from a trusted,
-  already-merged context (same as today's cache write), never from the PR's own
-  run. That means a PR run still needs an in-run build of kobo-gateway for
-  `build-web` to consume, which is exactly today's
-  `upload-artifact`/`download-artifact` handoff — publishing a durable copy on
-  top adds a second delivery mechanism without removing the first.
-- **It buys no real latency win.** The "hard prerequisite" is already
-  inexpensive on the common path: `build-kobo-gateway.yml`'s own cache
-  (restored, not rebuilt, when `kobo-gateway/` is unchanged) makes a same-run
-  `build-kobo-gateway` job that `build-web` waits on a ~20s no-op, not a real
-  macOS compile — see this repo's own CI runs, where a cache-hit
-  `build-kobo-gateway` job completes before `build-web` even starts pulling its
-  artifact.
-- **It re-opens the #1322 cache-poisoning class of problem in a new shape.** A
-  publish step reachable from `pull_request`/`workflow_dispatch` that writes to
-  any location a later, trusted run might read from is the same pattern CodeQL
-  flagged for the `actions/cache` write — a Release asset or package tag would
-  need the exact same "never write from an untrusted context, only from a
-  `workflow_run`-after-push context" treatment `save-kobo-gateway-cache.yml`
-  already implements for the cache, at which point it's the same trust boundary
-  with more infrastructure (package/release tag naming and pruning,
-  `packages: write` scope) layered on top.
-- **It'd need to reinvent versioned lookup the cache/`RELEASE`-file combo
-  already provides.** `build-kobo-gateway.yml`'s `dist/kobo-gateway/RELEASE`
-  file plus its `hashFiles('kobo-gateway/**')` cache key already answer "what's
-  the most recent actual build for this source tree" without any separate
-  registry or "latest" pointer to keep consistent (a "latest" release/package
-  tag has its own race: a push that touches only `kobo-gateway/` could be
-  mid-publish when the next push's `build-web` run resolves "latest").
+  PR touching `kobo-gateway/` needs `build-web`'s Docker build to reflect *that
+  PR's* output, so the publish could only run from a trusted post-merge context
+  — leaving the in-run artifact handoff in place anyway, plus a second delivery
+  mechanism.
+- **It buys no latency win.** A cache-hit `build-kobo-gateway` job is a ~20s
+  no-op that completes before `build-web` starts pulling its artifact.
+- **It re-opens #1322 in a new shape.** A publish reachable from an untrusted
+  context that a trusted run later reads is the same pattern CodeQL flagged —
+  it would need the identical `workflow_run`-after-push treatment, with more
+  infrastructure on top.
+- **It'd reinvent versioned lookup.** `dist/kobo-gateway/RELEASE` plus the
+  `hashFiles('kobo-gateway/**')` cache key already answer "what's the latest
+  build for this source tree", with no "latest" pointer to race on.
 
-No workflow change was made for #1347; it is recorded here so it isn't
-re-proposed and re-investigated from scratch.
+No workflow change was made; recorded so it isn't re-investigated from scratch.
 
 ## Consequences
 
 - Never add a cache or artifact write to any workflow reachable from
   `pull_request` or `workflow_dispatch`. That is the invariant the whole split
   exists to hold.
-- `build-web.yml` **cannot run standalone** via its own `workflow_dispatch` —
-  see ADR-0003's consequences and `spec-ci-pipeline.md`.
+- `build-web.yml` **cannot run standalone** via its own `workflow_dispatch`; use
+  `main.yml`'s. Its artifact download only resolves within a run that also ran
+  `build-kobo-gateway`.
 - A web-only change still spins up a macOS runner (boot time, not compile time).
   That is the accepted price of guaranteeing the artifact exists.
 
