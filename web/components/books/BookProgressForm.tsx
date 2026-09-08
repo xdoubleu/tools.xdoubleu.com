@@ -9,6 +9,7 @@ import {
   PROGRESS_MODE_PERCENT,
   defaultProgressMode
 } from '@/lib/books/bookProgress'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { swrKeys } from '@/lib/swrKeys'
@@ -16,15 +17,18 @@ import { swrKeys } from '@/lib/swrKeys'
 interface BookProgressFormProps {
   userBook: UserBook
   onSaved?: () => void
-  /** Called after a successful save, and on Escape — lets an embedding popover/toggle close itself. */
+  /** Called after a successful save, and on Cancel/Escape — lets an embedding popover/toggle close itself. */
   onClose?: () => void
 }
 
 /**
  * The reading-progress edit form: a mode select (pages/percent) plus a
- * numeric input, committing on blur or Enter. Shared between the card view's
- * click-to-toggle usage (`BookProgressEditor`) and the library table's
- * "Progress" column popover (`BookProgressCell`).
+ * numeric input, committed via the Save button or Enter — never on blur, since
+ * a mobile numeric keypad often has no key that fires a real Enter keydown,
+ * and blurring into the Cancel button would otherwise save right before the
+ * value is discarded. Shared between the card view's click-to-toggle usage
+ * (`BookProgressEditor`) and the library table's "Progress" column popover
+ * (`BookProgressCell`).
  */
 export default function BookProgressForm({ userBook, onSaved, onClose }: BookProgressFormProps) {
   const [progressMode, setProgressMode] = useState(defaultProgressMode(userBook))
@@ -53,21 +57,24 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
     }
   }
 
+  const handleCancel = () => {
+    onClose?.()
+    setProgressMode(defaultProgressMode(userBook))
+    setCurrentPage(userBook.currentPage)
+    setProgressPercent(userBook.progressPercent)
+  }
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       void handleCommit()
     } else if (e.key === 'Escape') {
-      onClose?.()
-      // reset to stored values
-      setProgressMode(defaultProgressMode(userBook))
-      setCurrentPage(userBook.currentPage)
-      setProgressPercent(userBook.progressPercent)
+      handleCancel()
     }
   }
 
   return (
-    <div className="space-y-1.5" onKeyDown={handleKeyDown}>
+    <div className="space-y-2" onKeyDown={handleKeyDown}>
       <div className="flex gap-2 items-center">
         <Select
           value={progressMode}
@@ -83,11 +90,11 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
           <>
             <Input
               type="number"
+              inputMode="numeric"
               min={0}
               value={currentPage}
               onChange={(e) => setCurrentPage(Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              onBlur={() => void handleCommit()}
               autoFocus
               aria-label="Current page"
               className="w-20"
@@ -102,12 +109,12 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
           <>
             <Input
               type="number"
+              inputMode="numeric"
               min={0}
               max={100}
               value={progressPercent}
               onChange={(e) => setProgressPercent(Number(e.target.value))}
               onFocus={(e) => e.target.select()}
-              onBlur={() => void handleCommit()}
               autoFocus
               aria-label="Progress percent"
               className="w-20"
@@ -116,7 +123,14 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
           </>
         )}
       </div>
-      <p className="text-xs text-muted">Press Enter to save, Escape to cancel</p>
+      <div className="flex gap-2">
+        <Button onClick={() => void handleCommit()} disabled={isSaving}>
+          {isSaving ? 'Saving…' : 'Save'}
+        </Button>
+        <Button variant="secondary" onClick={handleCancel} disabled={isSaving}>
+          Cancel
+        </Button>
+      </div>
     </div>
   )
 }
