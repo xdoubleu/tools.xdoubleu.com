@@ -39,8 +39,8 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
         <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="font-semibold text-sm leading-snug">{book.title}</h3>
-        <p className="text-xs text-muted">{book.authors.join(', ')}</p>
+        <h3 className="font-semibold text-sm leading-snug truncate">{book.title}</h3>
+        <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>
 
         {/* Status pill — non-interactive, navigates with the card */}
         <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -72,7 +72,7 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
 
       {/* Tags — read-only here; edit on the book detail page (status is the pill above) */}
       {displayTags(userBook.tags).length > 0 && (
-        <div className="shrink-0 text-right text-xs text-muted max-w-24">
+        <div className="shrink-0 text-right text-xs text-muted max-w-24 truncate">
           {displayTags(userBook.tags).join(', ')}
         </div>
       )}

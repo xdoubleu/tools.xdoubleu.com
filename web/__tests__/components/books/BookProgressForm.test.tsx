@@ -68,7 +68,7 @@ describe('BookProgressForm', () => {
     expect(mockMutate).toHaveBeenCalledWith('/books')
   })
 
-  it('commits percent progress on blur', async () => {
+  it('commits percent progress when the Save button is clicked', async () => {
     render(
       <BookProgressForm
         userBook={makeBook({ progressMode: 'percent', progressPercent: 20, tags: ['own-digital'] })}
@@ -77,7 +77,7 @@ describe('BookProgressForm', () => {
 
     const input = screen.getByLabelText('Progress percent')
     fireEvent.change(input, { target: { value: '75' } })
-    fireEvent.blur(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(mockUpdateProgress).toHaveBeenCalledWith(
@@ -95,16 +95,54 @@ describe('BookProgressForm', () => {
     expect(screen.queryByLabelText('Current page')).not.toBeInTheDocument()
   })
 
-  it('commits pages progress on blur', async () => {
+  it('commits pages progress when the Save button is clicked', async () => {
+    render(<BookProgressForm userBook={makeBook({ progressMode: 'pages', currentPage: 50 })} />)
+
+    const input = screen.getByLabelText('Current page')
+    fireEvent.change(input, { target: { value: '75' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      expect(mockUpdateProgress).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 75 }))
+    })
+  })
+
+  it('does not commit on blur', async () => {
     render(<BookProgressForm userBook={makeBook({ progressMode: 'pages', currentPage: 50 })} />)
 
     const input = screen.getByLabelText('Current page')
     fireEvent.change(input, { target: { value: '75' } })
     fireEvent.blur(input)
 
-    await waitFor(() => {
-      expect(mockUpdateProgress).toHaveBeenCalledWith(expect.objectContaining({ currentPage: 75 }))
-    })
+    expect(mockUpdateProgress).not.toHaveBeenCalled()
+  })
+
+  it('clicking Cancel calls onClose and resets without saving', () => {
+    const onClose = jest.fn()
+    render(<BookProgressForm userBook={makeBook({ currentPage: 50 })} onClose={onClose} />)
+
+    fireEvent.change(screen.getByLabelText('Current page'), { target: { value: '99' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(onClose).toHaveBeenCalled()
+    expect(mockUpdateProgress).not.toHaveBeenCalled()
+  })
+
+  it('disables Save and Cancel while a save is in flight', async () => {
+    let resolveUpdate: () => void = () => {}
+    mockUpdateProgress.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveUpdate = () => resolve({})
+      })
+    )
+    render(<BookProgressForm userBook={makeBook()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled()
+    resolveUpdate()
+    await waitFor(() => expect(mockUpdateProgress).toHaveBeenCalledTimes(1))
   })
 
   it('calls onClose after a successful save', async () => {

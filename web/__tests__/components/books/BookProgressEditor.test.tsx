@@ -93,7 +93,7 @@ describe('BookProgressEditor', () => {
     expect(mockMutate).toHaveBeenCalledWith('/books')
   })
 
-  it('commits percent progress on blur', async () => {
+  it('commits percent progress when the Save button is clicked', async () => {
     render(
       <BookProgressEditor
         userBook={makeBook({ progressMode: 'percent', progressPercent: 20, tags: ['own-digital'] })}
@@ -103,7 +103,7 @@ describe('BookProgressEditor', () => {
 
     const input = screen.getByLabelText('Progress percent')
     fireEvent.change(input, { target: { value: '75' } })
-    fireEvent.blur(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() => {
       expect(mockUpdateProgress).toHaveBeenCalledWith(
