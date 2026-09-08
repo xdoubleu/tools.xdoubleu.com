@@ -37,6 +37,12 @@ topic, not a scope, and the readings it permits usually differ enough to produce
 materially different work. Record their answer in the issue body via
 `refine-issue` so the next session doesn't have to ask again.
 
+Always run the `grilling` skill against the issue's scope and plan before
+recording anything — this is unconditional (see root `CLAUDE.md`, "Always
+grill the scope before an issue is treated as refined"), even for a one-line
+issue with an already-approved plan. Feed its settled design tree into the
+`## Plan` section.
+
 If a finalized plan exists (from plan mode or otherwise), record it in the
 issue's `## Plan` section via `refine-issue` before the first edit, and move
 Status to "In progress" at that point.

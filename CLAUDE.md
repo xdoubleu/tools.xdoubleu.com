@@ -88,6 +88,8 @@ Before exploring, reading code, or making any change, use the `start-task` skill
 
 **Exiting plan mode does not count as having started the task.** `permissions.defaultMode` is `plan`, so nearly every session here begins by planning — and an approved plan is not a substitute for `start-task`, which still runs before the first edit, with the approved plan recorded in the tracking issue's `## Plan` section.
 
+**Always grill the scope before an issue is treated as refined.** Every issue-refinement flow — `start-task`, `refine-issue`, `issue-triage`, `refine-feature` — must run the `grilling` skill (the round-by-round design-tree interview) against the issue's scope and `## Plan` before the issue is recorded as refined, moved to "In progress", or edited against. This replaces the lighter one-shot scope-confirmation those skills describe: grill to settle the whole frontier, record the settled plan in the issue's `## Plan`, then start. It is unconditional — a one-line issue with an approved plan still gets a confirming round; there is no "looks trivial" escape hatch.
+
 ## Finishing a Task
 
 Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and the mandatory `session-retro` that follows.
