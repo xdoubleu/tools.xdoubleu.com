@@ -107,7 +107,7 @@ require (
 	github.com/jackc/pgerrcode v0.0.0-20250907135507-afb5586c32a6
 	github.com/joho/godotenv v1.5.1
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/time v0.15.0
+	golang.org/x/time v0.16.0
 )
 
 require (
