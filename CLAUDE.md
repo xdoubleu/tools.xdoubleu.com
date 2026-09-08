@@ -96,6 +96,8 @@ Once a task's changes are complete, use the `finish-task` skill — it covers li
 
 An `ExitPlanMode` hook and a `Stop` hook in `.claude/settings.json` enforce both halves, and `make hooks/test` exercises them. **In a Claude Code on the web session nothing external enforces this** — opening the PR unprompted is the only guardrail left there → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
 
+When a change adds or alters a page or component under `web/`, run the `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s mobile-first rule is review-only, so nothing else in the pipeline looks at a 375px viewport.
+
 `start-task`/`finish-task` are thin, project-specific wrappers around generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins` marketplace repo — declared in `.claude/settings.json`'s `extraKnownMarketplaces`/`enabledPlugins`. `refine-issue`/`issue-triage`'s repo/project-board/label config lives in `.claude/github-triage.config.json`, not in the skill files — edit that file, not the plugin, when this repo's board/labels change.
 
 ## CI

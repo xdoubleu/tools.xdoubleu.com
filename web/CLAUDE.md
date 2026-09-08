@@ -43,6 +43,7 @@ npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
 npm run generate:local                      # same, via the locally-installed protoc-gen-es instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `make proto/generate/local` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
+npm run mobile:audit -- /trains /books      # Playwright at 375x667, both themes: horizontal overflow, tap-target size/spacing, iOS input zoom (needs `npm run dev` running and `npx playwright install chromium`); used by the mobile-review skill
 npm run generate:ui-catalog                 # regenerate components/ui/README.md from components/ui/*.tsx
 npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
 ```
