@@ -232,9 +232,10 @@ func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 			continue
 		}
 		if n := len(legs); n > 0 && legs[n-1].sameInstance(st.conn, idx) {
-			legs[n-1].AlightStopID = idx.stopByIdx(st.conn.arrStop).ID
-			legs[n-1].AlightStopName = idx.stopByIdx(st.conn.arrStop).Name
-			legs[n-1].AlightPlatform = idx.stopByIdx(st.conn.arrStop).PlatformCode
+			arr := idx.stopByIdx(st.conn.arrStop)
+			legs[n-1].AlightStopID = arr.StopID
+			legs[n-1].AlightStopName = stopDisplayName(arr)
+			legs[n-1].AlightPlatform = arr.PlatformCode
 			legs[n-1].AlightTime = idx.fromAbs(st.conn.arrTime)
 			continue
 		}
@@ -245,12 +246,12 @@ func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 			TripShortName:  meta.shortName,
 			RouteShortName: meta.routeShortName,
 			Headsign:       meta.headsign,
-			BoardStopID:    board.ID,
-			BoardStopName:  board.Name,
+			BoardStopID:    board.StopID,
+			BoardStopName:  stopDisplayName(board),
 			BoardPlatform:  board.PlatformCode,
 			BoardTime:      idx.fromAbs(st.conn.depTime),
-			AlightStopID:   alight.ID,
-			AlightStopName: alight.Name,
+			AlightStopID:   alight.StopID,
+			AlightStopName: stopDisplayName(alight),
 			AlightPlatform: alight.PlatformCode,
 			AlightTime:     idx.fromAbs(st.conn.arrTime),
 		})
@@ -274,7 +275,7 @@ func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 // per-day instance identity is checked by the caller not re-entering
 // footpaths between elementary connections of the same trip.
 func (l Leg) sameInstance(c connection, idx *Index) bool {
-	return l.AlightStopID == idx.stopByIdx(c.depStop).ID &&
+	return l.AlightStopID == idx.stopByIdx(c.depStop).StopID &&
 		l.TripShortName == idx.tripMetas[c.meta].shortName &&
 		l.RouteShortName == idx.tripMetas[c.meta].routeShortName
 }

@@ -10,45 +10,17 @@ package csa
 import (
 	"sort"
 	"time"
+
+	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// StopInput is one stop as loaded from trains.stops.
-type StopInput struct {
-	ID            string
-	Name          string
-	ParentStation string
-	PlatformCode  string
-	LocationType  int
-}
-
-// TransferInput is one row of transfers.txt.
-type TransferInput struct {
-	FromStopID      string
-	ToStopID        string
-	TransferType    int
-	MinTransferTime *int
-}
-
-// TripInstanceInput is one (trip, service date) combination resolved from
-// calendar_dates alone. TripID is used only to look up the instance's
-// stop-time pattern while building the index — it is never retained on any
-// Connection, Leg, or Journey this package hands back.
-type TripInstanceInput struct {
-	TripID         string
-	ShortName      string
-	RouteShortName string
-	Headsign       string
-	Date           time.Time
-}
-
-// StopTimeInput is one stop_times row belonging to a trip's pattern.
-type StopTimeInput struct {
-	StopSequence     int
-	StopID           string
-	ArrivalSeconds   int
-	DepartureSeconds int
-	PickupType       int
-	DropOffType      int
+// stopDisplayName is the station name the planner puts on a Leg. The feed
+// carries three (models.Stop.NameNL/FR/EN); SearchJourneys' legs are
+// single-language and use French, the feed's own primary language — the
+// realtime journey-detail page is where all three are surfaced. Keeping the
+// choice here means it is stated once, not in a converter the caller owns.
+func stopDisplayName(s models.Stop) string {
+	return s.NameFR
 }
 
 type stopIdx int32
@@ -89,7 +61,7 @@ const defaultMinTransferSeconds = 180
 type Index struct {
 	loc         *time.Location
 	epoch       time.Time // local midnight of the window's first day
-	stops       []StopInput
+	stops       []models.Stop
 	stopByID    map[string]stopIdx
 	tripMetas   []tripMeta
 	connections []connection // sorted by depTime ascending
@@ -99,16 +71,19 @@ type Index struct {
 	explicitPair map[[2]stopIdx]bool
 }
 
-// Build assembles an Index from the caller's already-loaded rolling window.
-// loc is the feed's local timezone (Europe/Brussels); windowStart anchors
-// abs-second 0 to that date's local midnight.
+// Build assembles an Index from the caller's already-loaded rolling window,
+// straight off the trains domain models — trains is this package's only
+// caller, so there is no adapter layer in between. loc is the feed's local
+// timezone (Europe/Brussels); windowStart anchors abs-second 0 to that
+// date's local midnight. stopTimes may arrive in any order; Build groups
+// them by trip_id and keeps each trip's rows in stop_sequence order.
 func Build(
 	loc *time.Location,
 	windowStart time.Time,
-	stops []StopInput,
-	transfers []TransferInput,
-	instances []TripInstanceInput,
-	stopTimesByTripID map[string][]StopTimeInput,
+	stops []models.Stop,
+	transfers []models.Transfer,
+	instances []models.ActiveTrip,
+	stopTimes []models.StopTime,
 ) *Index {
 	epoch := time.Date(
 		windowStart.Year(), windowStart.Month(), windowStart.Day(),
@@ -125,10 +100,10 @@ func Build(
 		explicitPair: make(map[[2]stopIdx]bool),
 	}
 	for i, s := range stops {
-		idx.stopByID[s.ID] = stopIdx(i)
+		idx.stopByID[s.StopID] = stopIdx(i)
 	}
 
-	idx.buildConnections(instances, stopTimesByTripID)
+	idx.buildConnections(instances, groupStopTimesByTrip(stopTimes))
 	idx.buildTransfers(transfers)
 	idx.buildDefaultFootpaths()
 
@@ -139,22 +114,38 @@ func Build(
 	return idx
 }
 
+// groupStopTimesByTrip buckets stop_times by trip_id, sorting each bucket by
+// stop_sequence so Build does not depend on the order the caller loaded them
+// in.
+func groupStopTimesByTrip(stopTimes []models.StopTime) map[string][]models.StopTime {
+	out := make(map[string][]models.StopTime)
+	for _, st := range stopTimes {
+		out[st.TripID] = append(out[st.TripID], st)
+	}
+	for _, pattern := range out {
+		sort.Slice(pattern, func(i, j int) bool {
+			return pattern[i].StopSequence < pattern[j].StopSequence
+		})
+	}
+	return out
+}
+
 func (idx *Index) buildConnections(
-	instances []TripInstanceInput,
-	stopTimesByTripID map[string][]StopTimeInput,
+	instances []models.ActiveTrip,
+	stopTimesByTripID map[string][]models.StopTime,
 ) {
 	metaByKey := make(map[[3]string]int32)
 	var nextInstance int32
 	for _, inst := range instances {
-		key := [3]string{inst.ShortName, inst.RouteShortName, inst.Headsign}
+		key := [3]string{inst.TripShortName, inst.RouteShortName, inst.TripHeadsign}
 		metaIdx, ok := metaByKey[key]
 		if !ok {
 			//nolint:gosec //trip pattern count is small, never near int32 range
 			metaIdx = int32(len(idx.tripMetas))
 			idx.tripMetas = append(idx.tripMetas, tripMeta{
-				shortName:      inst.ShortName,
+				shortName:      inst.TripShortName,
 				routeShortName: inst.RouteShortName,
-				headsign:       inst.Headsign,
+				headsign:       inst.TripHeadsign,
 			})
 			metaByKey[key] = metaIdx
 		}
@@ -191,7 +182,7 @@ func (idx *Index) buildConnections(
 	}
 }
 
-func (idx *Index) buildTransfers(transfers []TransferInput) {
+func (idx *Index) buildTransfers(transfers []models.Transfer) {
 	const notPossible = 3
 	const timed = 1
 	for _, t := range transfers {
@@ -277,6 +268,6 @@ func (idx *Index) resolveStops(id string) []stopIdx {
 	return out
 }
 
-func (idx *Index) stopByIdx(i stopIdx) StopInput {
+func (idx *Index) stopByIdx(i stopIdx) models.Stop {
 	return idx.stops[i]
 }

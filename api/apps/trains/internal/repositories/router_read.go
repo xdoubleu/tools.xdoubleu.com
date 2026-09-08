@@ -10,18 +10,9 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// ActiveTrip is one (trip, service day) combination resolved from
-// calendar_dates alone — never calendar.txt, which is a decoy in this feed
-// (issue #1390) — for a trip whose service runs on Date within the
-// router's rolling window.
-type ActiveTrip struct {
-	TripID         string
-	RouteID        string
-	TripShortName  string
-	RouteShortName string
-	TripHeadsign   string
-	Date           time.Time
-}
+// ActiveTrip is defined in the models package (models.ActiveTrip); this
+// alias keeps the repository's own return types readable.
+type ActiveTrip = models.ActiveTrip
 
 // AllStops returns every stop (652 in this feed — cheap to load whole).
 func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
