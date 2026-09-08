@@ -23,7 +23,7 @@ every single request.
 
 This is also why `get_usage_stats` reports response **bytes** and not just
 request counts — "which endpoint moves the most data" is the question that
-matters here. See `spec-observability-subsystem.md`.
+matters here — see `convention-mcp-gap-first.md`'s #1027 entry.
 
 ## Worked examples
 

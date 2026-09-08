@@ -1,7 +1,9 @@
-// Generates docs/spec-ui-primitives.md — the inventory of components/ui/ that
+// Generates components/ui/README.md — the inventory of components/ui/ that
 // contributors and agents check before building a new component. Generated
 // rather than hand-written because the previous hand-written list in
-// docs/convention-ui-standards.md silently went stale (issue #1412).
+// docs/convention-ui-standards.md silently went stale (issue #1412), and it
+// lives beside its source rather than in docs/ so it is found by anyone
+// already reading the directory.
 //
 // Run: npm run generate:ui-catalog       (write)
 //      npm run generate:ui-catalog:check (verify it's committed up to date)
@@ -13,7 +15,7 @@ import ts from 'typescript'
 
 const webDir = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const uiDir = join(webDir, 'components', 'ui')
-const outFile = resolve(webDir, '..', 'docs', 'spec-ui-primitives.md')
+const outFile = join(uiDir, 'README.md')
 
 /** Leading `/** ... *\/` block on a node, flattened to one line. */
 function jsDocOf(node, text) {
@@ -159,7 +161,7 @@ for (const file of files) {
   sections.push(lines.join('\n'))
 }
 
-const header = `# Spec: components/ui/ primitives
+const header = `# components/ui/
 
 <!--
 GENERATED FILE — do not edit by hand.
@@ -167,11 +169,9 @@ Run \`npm run generate:ui-catalog\` from web/ after changing components/ui/.
 Source: web/components/ui/*.tsx (JSDoc + exported prop types).
 -->
 
-- Generated from: \`web/components/ui/*.tsx\`
-- Rule that makes these mandatory: [\`convention-ui-standards.md\`](convention-ui-standards.md)
-- Issues: #1412
-
-## What this is
+Generated from the \`*.tsx\` files in this directory. The rule that makes these
+primitives mandatory is
+[\`docs/convention-ui-standards.md\`](../../../docs/convention-ui-standards.md).
 
 The complete inventory of shared UI primitives. **Check here before building a
 new component** — the design system's failure mode is not a missing rule, it's

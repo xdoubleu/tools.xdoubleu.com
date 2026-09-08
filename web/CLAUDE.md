@@ -18,7 +18,8 @@ Two parallel ConnectRPC client stacks, one per rendering context — `lib/client
 `lib/server/client.ts` (RSC-only, built per request, wrapped in React's `cache()`,
 10s timeout). Server components prefetch via `fetchOrNull`
 (`lib/server/fetchers.ts`) and hand results to a client boundary as SWR fallback
-data through `<SWRFallback>` → [`docs/spec-web-data-flow.md`](../docs/spec-web-data-flow.md).
+data through `<SWRFallback>`. The RSC transport **never forwards the
+refresh-token cookie** — an RSC can't persist a rotated one.
 
 Two rules that bite if broken:
 
@@ -42,7 +43,7 @@ npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
 npm run generate:local                      # same, via the locally-installed protoc-gen-es instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `make proto/generate/local` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
-npm run generate:ui-catalog                 # regenerate docs/spec-ui-primitives.md from components/ui/
+npm run generate:ui-catalog                 # regenerate components/ui/README.md from components/ui/*.tsx
 npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
 ```
 
@@ -52,11 +53,11 @@ Mobile-first Tailwind (no fixed-pixel widths); Server Components by default;
 every interactive control uses a `components/ui/` shadcn-style primitive —
 **ESLint fails the build on a raw `<button>`/`<input>`/`<select>`/`<textarea>`
 outside `components/ui/`**, so check the generated inventory in
-[`docs/spec-ui-primitives.md`](../docs/spec-ui-primitives.md) before writing a
-new component, and add a primitive rather than styling a raw element at a call
-site. Regenerate that inventory with `npm run generate:ui-catalog` whenever
-`components/ui/` changes (`npm run lint` fails if it's stale). Merge
-class overrides with `cn()` from `lib/cn.ts`; clickable cards use
+[`components/ui/README.md`](components/ui/README.md) before writing a new
+component, and add a primitive rather than styling a raw element at a call site.
+Regenerate it with `npm run generate:ui-catalog` whenever `components/ui/`
+changes (`npm run lint` fails if it's stale). Merge class overrides with `cn()`
+from `lib/cn.ts`; clickable cards use
 `interactiveCardClass` from `components/ui/card.tsx`. Page-level loading is
 `<p className="text-muted">Loading…</p>`, errors
 `<p className="text-danger">Failed to load X.</p>`, and pending buttons swap to a
@@ -96,7 +97,9 @@ which is what delivers routine (non-protocol) updates → [`docs/adr-0004-runtim
 
 Server-rendered OAuth 2.1 consent screen for the apps MCP server, driving the
 api's own embedded fosite authorization server directly. Needs no env config
-beyond the existing `API_URL` → [`docs/spec-oauth-consent-screen.md`](../docs/spec-oauth-consent-screen.md).
+beyond the existing `API_URL`; the pending request's query params are echoed
+verbatim in both directions — this is not the place to normalize or default
+them.
 
 ## File Size & Splits
 

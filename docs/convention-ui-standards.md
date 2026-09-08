@@ -17,9 +17,10 @@
   primitive. Don't hand-style raw
   `<button>`/`<input>`/`<select>`/`<textarea>`; ESLint rejects them outside
   `components/ui/` itself. **The inventory is
-  [`spec-ui-primitives.md`](spec-ui-primitives.md)** — generated from the
-  source, so consult it rather than a list written down here. If nothing there
-  fits, add a primitive; don't style a raw element at the call site.
+  [`web/components/ui/README.md`](../web/components/ui/README.md)** — generated
+  from the source beside it, so consult it rather than a list written down here.
+  If nothing there fits, add a primitive; don't style a raw element at the call
+  site.
   The rare legitimate exception (a hidden `<input type="file">`, which no
   primitive can wrap) takes an `eslint-disable-next-line no-restricted-syntax`
   with the reason spelled out.

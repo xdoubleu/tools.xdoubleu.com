@@ -44,8 +44,7 @@ connect/disconnect events. Login-item management is a plain
 abnormal exit. `Updater.SelfUpdate` replaces the running executable, re-signs the
 bundle, and restarts via `open -n <bundle>`.
 
-→ [`docs/spec-kobo-gateway-runtime.md`](../docs/spec-kobo-gateway-runtime.md),
-[`docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md`](../docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md)
+→ [`docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md`](../docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md)
 
 Two things that break silently if changed:
 

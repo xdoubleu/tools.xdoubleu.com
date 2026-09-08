@@ -1,4 +1,4 @@
-# Spec: components/ui/ primitives
+# components/ui/
 
 <!--
 GENERATED FILE — do not edit by hand.
@@ -6,11 +6,9 @@ Run `npm run generate:ui-catalog` from web/ after changing components/ui/.
 Source: web/components/ui/*.tsx (JSDoc + exported prop types).
 -->
 
-- Generated from: `web/components/ui/*.tsx`
-- Rule that makes these mandatory: [`convention-ui-standards.md`](convention-ui-standards.md)
-- Issues: #1412
-
-## What this is
+Generated from the `*.tsx` files in this directory. The rule that makes these
+primitives mandatory is
+[`docs/convention-ui-standards.md`](../../../docs/convention-ui-standards.md).
 
 The complete inventory of shared UI primitives. **Check here before building a
 new component** — the design system's failure mode is not a missing rule, it's

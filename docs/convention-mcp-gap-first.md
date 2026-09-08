@@ -5,157 +5,60 @@
 
 ## Rule
 
-If the user describes a production issue and there is **no MCP tool that surfaces
-it**, or an existing tool returns wrong/incomplete data, **fix that gap first**
-— add or correct the tool — before investigating the issue itself.
-
-Then add the case to the log below.
+If a production issue has **no MCP tool that surfaces it**, or an existing tool
+returns wrong/incomplete data, **fix that gap first** — add or correct the tool —
+before investigating the issue itself. Then add a line to the log below.
 
 ## Why
 
-Otherwise the same blind spot just recurs next time. Every entry below cost real
-investigation time that a working tool would have made unnecessary, and several
-were only answerable with direct database access.
+Otherwise the same blind spot recurs. Every case below cost real investigation
+time a working tool would have made unnecessary, and several were only
+answerable with direct database access.
 
 ## Case log
 
-### #1027 — bytes, not just requests
-
-Supabase restricted the whole project for blowing its monthly egress quota, and
-nothing could say which endpoint caused it: `get_usage_stats` counted
-**requests** per endpoint but never bytes, so an endpoint returning 2 MB a call
-looked identical to one returning 200 B.
-
-`global.usage_daily` gained a `bytes` column and `get_usage_stats` now reports
-it. The database is reached over a transaction-mode pooler and billed per byte
-returned, so "which endpoint moves the most data" is the question that matters —
-see `convention-database-queries.md` for the query rule this exists to enforce.
-
-### #1195 — OAuth connection state was invisible
-
-Reconnecting GitHub in the monitoring app kept landing back on a "Connect"
-button, and no tool could say why: nothing reported OAuth connection state at
-all, so the cause — `ListOAuthConnections` judging coverage by the provider's
-echoed scope, which GitHub normalizes down to just `repo` — was invisible without
-database access.
-
-`get_oauth_connections` now reports each provider's connected state alongside its
-requested, granted, and currently-required scopes: the three values that explain
-a not-connected verdict.
-
-### #1214 — no per-source notification toggle
-
-`jobs.IssueNotifierJob`/`jobs.WeeklyDigestJob` email an admin about Sentry
-issues, failing dependency PRs, and unhealthy feeds, but nothing could say
-whether a given source was enabled or explain a missing email — there was no
-per-source toggle at all, so "why didn't I get emailed" was unanswerable without
-database access.
-
-`global.notification_settings` now holds a per-source enabled flag the jobs check
-before notifying, surfaced by `get_notification_settings` and toggled from the
-monitoring page.
-
-### #1357 — project board columns were unreadable
-
-Asked to work through the project board's "Ready" issues, nothing could answer
-"which issues are in that column". The separate GitHub MCP server's
-`list_issue_fields`/`field_filters` only resolve custom fields on
-**organization**-owned projects, and this repo's board
-(`.claude/github-triage.config.json`'s `project.owner`, `xdoubleu`) is a personal
-one — `list_issue_fields` errors "Could not resolve to an Organization" and
-`field_filters` comes back empty for every issue.
-
-`github.Client.ListProjectIssuesByStatus`
-(`api/internal/github/project_issues.go`) queries GitHub's GraphQL API directly
-with the admin's own connected OAuth token — not proxy-restricted, unlike raw
-calls from an agent session — for a `ProjectV2` board's Status field, surfaced by
-`get_project_issues_by_status`.
-
-This required adding `read:project` to the GitHub OAuth connection's scopes
-(`api/internal/github/oauth.go`). **An admin who connected GitHub before this
-change needs to reconnect once.**
-
-### #1374 / #1377 — an unreconcilable games number
-
-The games dashboard's completion rate disagreed with Steam's own profile (40.06%
-vs 39%), and answering "which games is each number averaging?" took a subagent
-enumerating all 11 distribution buckets and hand-diffing appids against
-`games_get_steam`'s three lists. Two blind spots caused that:
-
-1. `games_get_steam_distribution`'s `bucket` argument was documented to agents as
-   `0-9` while `services.DistributionLabels` has **11** entries, so bucket 10 —
-   every 100%-completed game — was invisible to anything trusting the schema
-   (#1377).
-2. **Nothing surfaces delisted games at all.** `games_get_steam`'s lists all
-   filter `is_delisted`, so the three games inflating the rate appeared in no
-   tool's output.
-
-Bucket 10 was fixed then. The delisted blind spot was not, and #1424 is the bill
-for that.
-
-### #1424 — the same delisted blind spot, three days later
-
-The rate disagreed with the Steam profile again, in the other direction. With
-no tool listing delisted games, the app IDs were once more only recoverable
-from #1375's commit message, and checking them meant pulling
-`games_get_steam_game` one at a time. On that evidence the rule from #1375 was
-about to be reverted; the owner counting 157 games with achievement progress on
-the profile is what stopped it — see
-`adr-0018-completion-average-population.md`.
-
-`SteamResponse` now carries a `delisted` list, so `games_get_steam` reports the
-games excluded from `current_rate`, `distribution` and all three lists. That
-closes the gap #1374 left open, and makes the population behind a completion
-number checkable instead of inferable.
-
-### #1453 — the trains app had no tools at all
-
-`/trains` was reported as still showing French-only station names, months after
-#1450 landed multilingual names end to end — schema, `translations.txt`
-parsing, tri-lingual search, and a `Brussel-Zuid / Bruxelles-Midi` display
-string. Every layer of the code was correct, so the only remaining question
-was what the **database** actually held, and `trains` was the one app with read
-RPCs and no `mcp.go`: nothing could read a station's three names, and nothing
-could say when the timetable last imported.
-
-Both blind spots were needed to see the cause. The daily import sends the
-stored ETag as a conditional-GET validator and returns on a 304, so an
-importer change (new columns to fill) never re-imports an unchanged feed —
-#1450's migration backfill was still what production held, and `SearchStations`
-was matching all three columns against the same French string.
-
-`apps/trains/mcp.go` now exposes `trains_search_stations`,
-`trains_get_feed_info` and `trains_search_journeys`, and
-`GetFeedInfoResponse` carries `imported_at` — without it, "the timetable is
-current" and "no import has landed in weeks" look identical, since an
-unchanged feed keeps the same `feed_version` either way.
-
-The fix itself is `feed_info.parser_version` (see
-`spec-trains-gtfs-ingest.md`): a mismatch against the importer's own version
-drops the validators and forces a full re-import, so the next importer change
-recovers on its next run instead of waiting on SNCB.
-
-### #1459 — the import that reports nothing about what it imported
-
-`/trains` was reported as showing French-only station names for the **third**
-time. #1453's tools proved the import had run (`parser_version` 2, 2887 stops,
-no errors) and `trains_search_stations` proved the result was still three
-copies of the French name — but nothing could bridge the two. A successful
-import that applies zero translations and a successful import of a monolingual
-feed emit byte-identical logs, so distinguishing "the feed has no
-`translations.txt`", "its rows were skipped for an unknown language" and "its
-rows matched no stop" required reading the importer's source and reasoning
-about a feed nobody could download from the session.
-
-`feed_info` now stores the coverage each import achieved —
-`translation_rows`, `translation_rows_unmatched`, and per-language
-`translated_stops_*` — surfaced by `GetFeedInfo` and `trains_get_feed_info`
-and logged at import. `translated_stops_nl = 0` against a non-zero
-`translation_rows` names the failure directly.
-
-The bug itself was that `parseTranslations` keyed rows by `record_id` alone,
-while GTFS lets a row identify its target by `record_id` **or** `field_value`
-— see `spec-trains-gtfs-ingest.md`. The mock feed had been hand-written in the
-`record_id` shape, so the tests agreed with the parser rather than with the
-feed: **a fixture invented to match the code under test proves only that the
-code matches itself.**
+- **#1027 — requests but not bytes.** Supabase restricted the project for
+  blowing its egress quota and nothing could say which endpoint caused it.
+  `global.usage_daily` gained a `bytes` column; `get_usage_stats` reports it.
+  The database is billed per byte returned — see `convention-database-queries.md`.
+- **#1195 — OAuth connection state was invisible.** A GitHub reconnect kept
+  landing back on "Connect" and nothing reported why. `get_oauth_connections`
+  now reports connected state plus requested, granted and required scopes — the
+  three values that explain a not-connected verdict.
+- **#1214 — no per-source notification toggle.** "Why didn't I get emailed" was
+  unanswerable. `global.notification_settings` holds a per-source flag the jobs
+  check before notifying, surfaced by `get_notification_settings`.
+- **#1357 — project board columns were unreadable.** The GitHub MCP server's
+  `list_issue_fields` only resolves custom fields on *organization* projects and
+  this board is personal. `get_project_issues_by_status` queries GraphQL with
+  the admin's own token instead. This added `read:project` to the GitHub OAuth
+  scopes — **an admin who connected before that change must reconnect once.**
+- **#1374 / #1377 — an unreconcilable games number.** The dashboard's completion
+  rate disagreed with Steam's profile. Two blind spots: the
+  `games_get_steam_distribution` `bucket` argument was documented as `0-9` while
+  there are 11 buckets (fixed then), and nothing surfaced delisted games at all
+  (not fixed then).
+- **#1424 — the same delisted blind spot, three days later.** The rate
+  disagreed again and the correct rule was nearly reverted for lack of evidence.
+  `games_get_steam`'s `delisted` list now reports the excluded games, making the
+  population behind a completion number checkable — see
+  `adr-0018-completion-average-population.md`.
+- **#1453 — the trains app had no tools at all.** Multilingual station names
+  looked broken months after they landed; every layer of code was correct, so
+  the question was what the database held, and `trains` had read RPCs but no
+  `mcp.go`. Now `trains_search_stations`/`trains_get_feed_info`/
+  `trains_search_journeys` exist, and `GetFeedInfo` carries `imported_at` —
+  without it, "current" and "no import in weeks" look identical, since an
+  unchanged feed keeps the same `feed_version`. The cause was a conditional GET
+  making an importer change never re-import; `feed_info.parser_version` now
+  forces a full re-import on a mismatch.
+- **#1459 — an import that reported nothing about what it imported.** Same
+  symptom a third time. A successful import applying zero translations and one
+  of a monolingual feed emit identical logs. `feed_info` now stores
+  `translation_rows`, `translation_rows_unmatched` and per-language
+  `translated_stops_*`; `translated_stops_nl = 0` against a non-zero
+  `translation_rows` names the failure directly. The bug was keying
+  `translations.txt` rows by `record_id` alone when GTFS allows `record_id`
+  **or** `field_value` — and the mock feed had been hand-written in the
+  `record_id` shape, so **a fixture invented to match the code under test proves
+  only that the code matches itself.**
