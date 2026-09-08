@@ -511,6 +511,40 @@ func TestUpdateMeal_InvalidMealID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
+func TestUpdateMeal_InvalidRecipeID(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().
+			String(),
+		MealId: uuid.New().String(), RecipeId: "not-a-uuid",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateMeal_PlanNotFound(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().String(), MealId: uuid.New().String(), CustomName: "Ghost",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
 func TestMoveMeal_ToEmptySlot(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
