@@ -13,6 +13,12 @@
         "source": "github",
         "repo": "anthropics/claude-plugins-official"
       }
+    },
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
     }
   },
   "enabledPlugins": {
@@ -21,7 +27,8 @@
     "git-cleanup@xdoubleu-claude-plugins": true,
     "github-issue-triage@xdoubleu-claude-plugins": true,
     "skill-lifecycle@xdoubleu-claude-plugins": true,
-    "claude-md-management@claude-plugins-official": true
+    "claude-md-management@claude-plugins-official": true,
+    "mattpocock-skills@mattpocock": true
   },
   "permissions": {
     "defaultMode": "plan",
