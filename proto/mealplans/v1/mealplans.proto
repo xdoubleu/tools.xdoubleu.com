@@ -76,6 +76,16 @@ message CreateMealRequest {
 }
 message CreateMealResponse {}
 
+message UpdateMealRequest {
+  string plan_id = 1;
+  string meal_id = 2;
+  string recipe_id = 3;
+  string custom_name = 4;
+  int32 servings = 5;
+  bool exclude_from_shopping_list = 6;
+}
+message UpdateMealResponse {}
+
 message DeleteMealRequest {
   string plan_id = 1;
   string meal_id = 2;
@@ -106,6 +116,7 @@ service MealPlansService {
   rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
   rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse);
   rpc CreateMeal(CreateMealRequest) returns (CreateMealResponse);
+  rpc UpdateMeal(UpdateMealRequest) returns (UpdateMealResponse);
   rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);
   rpc MoveMeal(MoveMealRequest) returns (MoveMealResponse);
   rpc SuggestRecipes(SuggestRecipesRequest) returns (SuggestRecipesResponse);

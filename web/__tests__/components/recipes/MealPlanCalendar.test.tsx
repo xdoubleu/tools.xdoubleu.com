@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 jest.mock('@/hooks/useMealPlans', () => ({
   useAddMeal: jest.fn(),
+  useUpdateMeal: jest.fn(),
   useDeleteMeal: jest.fn(),
   useMoveMeal: jest.fn(),
   useMealSuggestions: jest.fn(() => ({ data: undefined }))
@@ -21,7 +22,13 @@ jest.mock('@/lib/recipes/mealPlanCalendar', () => {
   }
 })
 
-import { useAddMeal, useDeleteMeal, useMoveMeal, useMealSuggestions } from '@/hooks/useMealPlans'
+import {
+  useAddMeal,
+  useUpdateMeal,
+  useDeleteMeal,
+  useMoveMeal,
+  useMealSuggestions
+} from '@/hooks/useMealPlans'
 import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
 import { create } from '@bufbuild/protobuf'
 import {
@@ -32,6 +39,7 @@ import {
 import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const mockAddMeal = jest.fn()
+const mockUpdateMeal = jest.fn()
 const mockDeleteMeal = jest.fn()
 const mockMoveMeal = jest.fn()
 
@@ -65,9 +73,11 @@ const defaultNavProps = {
 beforeEach(() => {
   jest.clearAllMocks()
   jest.mocked(useAddMeal).mockReturnValue(mockAddMeal)
+  jest.mocked(useUpdateMeal).mockReturnValue(mockUpdateMeal)
   jest.mocked(useDeleteMeal).mockReturnValue(mockDeleteMeal)
   jest.mocked(useMoveMeal).mockReturnValue(mockMoveMeal)
   mockAddMeal.mockResolvedValue({})
+  mockUpdateMeal.mockResolvedValue({})
   mockDeleteMeal.mockResolvedValue({})
   mockMoveMeal.mockResolvedValue({})
   mockOnPrevWeek.mockReset()
@@ -548,7 +558,7 @@ describe('MealPlanCalendar', () => {
     expect(input.value).toBe('Eggs')
   })
 
-  it('save edit calls createMeal with same date/slot and new values, then onMutate', async () => {
+  it('save edit calls updateMeal for the same meal id with new values, then onMutate', async () => {
     const onMutate = jest.fn()
     const planWithMeal = {
       ...basePlan,
@@ -577,11 +587,12 @@ describe('MealPlanCalendar', () => {
     const input = screen.getByPlaceholderText('Item 1')
     fireEvent.change(input, { target: { value: 'Updated meal' } })
     fireEvent.click(screen.getByRole('button', { name: /^Save$/i }))
-    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
-    const req = mockAddMeal.mock.calls[0][0]
-    expect(req.mealDate).toBe('2026-05-25')
-    expect(req.mealSlot).toBe('breakfast')
+    await waitFor(() => expect(mockUpdateMeal).toHaveBeenCalled())
+    const req = mockUpdateMeal.mock.calls[0][0]
+    expect(req.mealId).toBe('m1')
     expect(req.customName).toBe('Updated meal')
+    expect(mockAddMeal).not.toHaveBeenCalled()
+    expect(mockDeleteMeal).not.toHaveBeenCalled()
     expect(onMutate).toHaveBeenCalled()
   })
 
@@ -665,7 +676,8 @@ describe('MealPlanCalendar', () => {
     expect(screen.queryByText(/Swapping/i)).not.toBeInTheDocument()
   })
 
-  it('does not show add button when slot already has a meal', () => {
+  it('keeps an add button on an occupied slot so a second meal can be added', async () => {
+    const onMutate = jest.fn()
     const planWithMeal = {
       ...basePlan,
       meals: [
@@ -680,12 +692,26 @@ describe('MealPlanCalendar', () => {
       ]
     }
 
-    render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
-    // The occupied slot (2026-05-25 breakfast) should not have a "+" button;
-    // only the remaining 6 empty days have them.
+    render(
+      <MealPlanCalendar
+        plan={planWithMeal}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onMutate={onMutate}
+      />
+    )
+    // 7 days × 1 slot, all with a "+" (occupied slot included), mobile + desktop.
     const addButtons = screen.getAllByRole('button', { name: '+' })
-    // 7 days × 1 slot, but 1 slot is occupied → 6 "+" buttons per view (mobile + desktop = 12)
-    expect(addButtons.length).toBeLessThan(14)
+    expect(addButtons.length).toBe(14)
+
+    fireEvent.click(addButtons[0])
+    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.change(screen.getByPlaceholderText('Item 1'), { target: { value: 'Bacon' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
+    const req = mockAddMeal.mock.calls[0][0]
+    expect(req.mealDate).toBe('2026-05-25')
+    expect(req.mealSlot).toBe('breakfast')
   })
 
   it('adds multiple custom items joined by newline', async () => {
@@ -851,8 +877,39 @@ describe('MealPlanCalendar', () => {
     }
   })
 
-  it('renders a single chip when a slot somehow holds more than one meal', () => {
-    const planWithDuplicates = {
+  it('renders every meal in a slot as its own chip', () => {
+    const planWithTwo = {
+      ...basePlan,
+      meals: [
+        makePlanMeal({
+          id: 'm1',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Eggs',
+          servings: 1
+        }),
+        makePlanMeal({
+          id: 'm2',
+          mealDate: '2026-05-25',
+          mealSlot: 'breakfast',
+          recipeId: '',
+          customName: 'Pancakes',
+          servings: 1
+        })
+      ]
+    }
+
+    render(<MealPlanCalendar plan={planWithTwo} recipes={baseRecipes} {...defaultNavProps} />)
+    expect(screen.getAllByText(/Eggs/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Pancakes/).length).toBeGreaterThan(0)
+    // Two chips per view (mobile + desktop) → four action triggers.
+    expect(screen.getAllByRole('button', { name: /Meal actions/i })).toHaveLength(4)
+  })
+
+  it('removing one chip leaves the other meal in the slot', () => {
+    const onMutate = jest.fn()
+    const planWithTwo = {
       ...basePlan,
       meals: [
         makePlanMeal({
@@ -875,12 +932,16 @@ describe('MealPlanCalendar', () => {
     }
 
     render(
-      <MealPlanCalendar plan={planWithDuplicates} recipes={baseRecipes} {...defaultNavProps} />
+      <MealPlanCalendar
+        plan={planWithTwo}
+        recipes={baseRecipes}
+        {...defaultNavProps}
+        onMutate={onMutate}
+      />
     )
-    // Only the first meal is shown; the duplicate never renders a second chip.
-    expect(screen.getAllByText(/Eggs/).length).toBeGreaterThan(0)
-    expect(screen.queryByText(/Pancakes/)).not.toBeInTheDocument()
-    // One chip per view (mobile + desktop) → two action triggers, not four.
-    expect(screen.getAllByRole('button', { name: /Meal actions/i })).toHaveLength(2)
+    fireEvent.click(screen.getAllByRole('button', { name: /Meal actions/i })[0])
+    fireEvent.click(screen.getAllByRole('menuitem', { name: /Delete/i })[0])
+    expect(mockDeleteMeal).toHaveBeenCalledWith(expect.objectContaining({ mealId: 'm1' }))
+    expect(screen.getAllByText(/Pancakes/).length).toBeGreaterThan(0)
   })
 })

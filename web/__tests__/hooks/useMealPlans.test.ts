@@ -15,6 +15,7 @@ import {
   useMealSuggestions,
   useUpdatePlan,
   useAddMeal,
+  useUpdateMeal,
   useDeleteMeal,
   useMoveMeal
 } from '@/hooks/useMealPlans'
@@ -75,6 +76,18 @@ describe('mutation hooks return functions', () => {
   it('useAddMeal returns a function', () => {
     const { result } = renderHook(() => useAddMeal())
     expect(typeof result.current).toBe('function')
+  })
+
+  it('useUpdateMeal returns a function that calls client.updateMeal', () => {
+    const updateMeal = jest.fn()
+    jest.mocked(jest.requireMock('@/lib/client').createServiceClient).mockReturnValueOnce({
+      updateMeal
+    })
+    const { result } = renderHook(() => useUpdateMeal())
+    expect(typeof result.current).toBe('function')
+    const req = { planId: 'p1', mealId: 'm1', customName: 'X', servings: 2 }
+    result.current(req)
+    expect(updateMeal).toHaveBeenCalledWith(req)
   })
 
   it('useDeleteMeal returns a function', () => {

@@ -13,7 +13,7 @@ interface MealPlanWeekGridProps {
   weekDates: Date[]
   recipes: Recipe[]
   swappingMeal: PlanMeal | null
-  getMealForSlot: (date: string, slot: string) => PlanMeal | undefined
+  getMealsForSlot: (date: string, slot: string) => PlanMeal[]
   onCellClick: (date: string, slot: string) => void
   onMealClick: (meal: PlanMeal) => void
   onStartSwap: (meal: PlanMeal) => void
@@ -29,7 +29,7 @@ export default function MealPlanWeekGrid({
   weekDates,
   recipes,
   swappingMeal,
-  getMealForSlot,
+  getMealsForSlot,
   onCellClick,
   onMealClick,
   onStartSwap,
@@ -41,15 +41,17 @@ export default function MealPlanWeekGrid({
   const today = formatMealDate(new Date())
 
   const renderCell = (formattedDate: string, slot: string) => {
-    const meal = getMealForSlot(formattedDate, slot)
+    const meals = getMealsForSlot(formattedDate, slot)
+    const hasMeals = meals.length > 0
     return (
       <div
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 rounded-xl border bg-card p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={`min-h-14 min-w-0 space-y-1 rounded-xl border bg-card p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
         onClick={() => onCellClick(formattedDate, slot)}
       >
-        {meal ? (
+        {meals.map((meal) => (
           <MealPlanMealChip
+            key={meal.id}
             meal={meal}
             recipe={recipes.find((r) => r.id === meal.recipeId)}
             isSwapping={swappingMeal?.id === meal.id}
@@ -59,18 +61,22 @@ export default function MealPlanWeekGrid({
             onEditClick={onEditClick}
             onDeleteMeal={onDeleteMeal}
           />
-        ) : swappingMeal ? (
-          <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
-            Place here
-          </div>
+        ))}
+        {swappingMeal ? (
+          !hasMeals && (
+            <div className="flex h-full min-h-10 items-center justify-center text-xs text-muted">
+              Place here
+            </div>
+          )
         ) : (
           <Button
             variant="ghost"
+            title={hasMeals ? 'Add another meal' : 'Add meal'}
             onClick={(e) => {
               e.stopPropagation()
               onAddClick(formattedDate, slot)
             }}
-            className="h-full min-h-10 w-full px-0 text-lg text-muted"
+            className={`w-full px-0 text-muted ${hasMeals ? 'min-h-8 text-base' : 'h-full min-h-10 text-lg'}`}
           >
             +
           </Button>

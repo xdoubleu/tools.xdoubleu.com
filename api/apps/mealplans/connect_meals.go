@@ -81,6 +81,74 @@ func (h *mealplansConnectHandler) CreateMeal(
 	return connect.NewResponse(&mealplansv1.CreateMealResponse{}), nil
 }
 
+func (h *mealplansConnectHandler) UpdateMeal(
+	ctx context.Context,
+	req *connect.Request[mealplansv1.UpdateMealRequest],
+) (*connect.Response[mealplansv1.UpdateMealResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	planID, err := uuid.Parse(req.Msg.PlanId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	mealID, err := uuid.Parse(req.Msg.MealId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid meal ID"),
+		)
+	}
+
+	var recipeID *uuid.UUID
+	if req.Msg.RecipeId != "" {
+		id, parseErr := uuid.Parse(req.Msg.RecipeId)
+		if parseErr != nil {
+			return nil, connect.NewError(
+				connect.CodeInvalidArgument,
+				fmt.Errorf("invalid recipe ID"),
+			)
+		}
+		recipeID = &id
+	}
+
+	if recipeID == nil && req.Msg.CustomName == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("recipe ID or custom name is required"),
+		)
+	}
+
+	servings := 2
+	if req.Msg.Servings > 0 {
+		servings = int(req.Msg.Servings)
+	}
+
+	meal := models.PlanMeal{ //nolint:exhaustruct // other fields untouched by update
+		ID:                      mealID,
+		PlanID:                  planID,
+		RecipeID:                recipeID,
+		CustomName:              req.Msg.CustomName,
+		Servings:                servings,
+		ExcludeFromShoppingList: req.Msg.ExcludeFromShoppingList,
+	}
+
+	if err = h.app.services.Plans.UpdateMeal(ctx, planID, user.ID, meal); err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&mealplansv1.UpdateMealResponse{}), nil
+}
+
 func (h *mealplansConnectHandler) DeleteMeal(
 	ctx context.Context,
 	req *connect.Request[mealplansv1.DeleteMealRequest],

@@ -141,6 +141,20 @@ func TestRenderICalFeed_ExcludedEntryIncluded(t *testing.T) {
 	assert.Contains(t, out, "Birthday Dinner")
 }
 
+func TestRenderICalFeed_TwoMealsSameSlot(t *testing.T) {
+	plan := makeTestPlan("P", nil, false)
+	lunch := makeMeal("noon", 1)
+	lunch.CustomName = "My Lunch"
+	partner := makeMeal("noon", 1)
+	partner.CustomName = "Partner Lunch"
+	out := renderICalFeed(plan, []models.PlanMeal{lunch, partner})
+	assert.Equal(t, 2, strings.Count(out, "BEGIN:VEVENT"))
+	assert.Contains(t, out, "UID:"+lunch.ID.String())
+	assert.Contains(t, out, "UID:"+partner.ID.String())
+	assert.Contains(t, out, "My Lunch")
+	assert.Contains(t, out, "Partner Lunch")
+}
+
 func TestRenderICalFeed_ExcludedEntryShowsServings(t *testing.T) {
 	plan := makeTestPlan("P", nil, false)
 	entry := makeMeal("noon", 1)

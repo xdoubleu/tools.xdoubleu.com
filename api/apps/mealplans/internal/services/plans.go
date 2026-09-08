@@ -49,6 +49,7 @@ type plansStore interface {
 	Update(ctx context.Context, plan models.Plan) error
 	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
 	CreateMeal(ctx context.Context, meal models.PlanMeal) (*models.PlanMeal, error)
+	UpdateMeal(ctx context.Context, meal models.PlanMeal) error
 	DeleteMeal(ctx context.Context, mealID, planID uuid.UUID) error
 	MoveMeal(
 		ctx context.Context,
@@ -217,6 +218,19 @@ func (s *PlanService) CreateMeal(
 	meal.PlanID = planID
 	_, err := s.repo.CreateMeal(ctx, meal)
 	return err
+}
+
+func (s *PlanService) UpdateMeal(
+	ctx context.Context,
+	planID uuid.UUID,
+	userID string,
+	meal models.PlanMeal,
+) error {
+	if _, err := s.Get(ctx, planID, userID); err != nil {
+		return err
+	}
+	meal.PlanID = planID
+	return s.repo.UpdateMeal(ctx, meal)
 }
 
 func (s *PlanService) DeleteMeal(
