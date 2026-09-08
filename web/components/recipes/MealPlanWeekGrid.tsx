@@ -76,7 +76,7 @@ export default function MealPlanWeekGrid({
               e.stopPropagation()
               onAddClick(formattedDate, slot)
             }}
-            className={`w-full px-0 text-muted ${hasMeals ? 'min-h-8 text-base' : 'h-full min-h-10 text-lg'}`}
+            className={`w-full px-0 text-muted ${hasMeals ? 'min-h-10 text-base' : 'h-full min-h-10 text-lg'}`}
           >
             +
           </Button>
