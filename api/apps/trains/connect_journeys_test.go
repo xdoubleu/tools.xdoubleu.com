@@ -34,13 +34,21 @@ func getTrainsRoutes() http.Handler {
 // over real HTTP, covering the CodeNotFound mapping of csa.ErrUnknownStop
 // (connect_journeys.go's mapError).
 func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
+	ctx := context.Background()
+	// Warm the router — SearchJourneys returns CodeUnavailable, not the
+	// CodeNotFound this test asserts, while the index is unbuilt (issue #1484).
+	_, err := testApp.Services.Journey.RefreshWindow(
+		ctx, time.Now().UTC().Truncate(24*time.Hour),
+	)
+	require.NoError(t, err)
+
 	client := newTrainsTestClient(t)
 	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
 		OriginStopId:      "does-not-exist",
 		DestinationStopId: "also-not-real",
 	})
 
-	_, err := client.SearchJourneys(context.Background(), req)
+	_, err = client.SearchJourneys(ctx, req)
 	require.Error(t, err)
 	var connErr *connect.Error
 	require.ErrorAs(t, err, &connErr)

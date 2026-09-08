@@ -181,8 +181,12 @@ func protoStopCall(sc *models.StopDetail) *trainsv1.StopCall {
 }
 
 func mapError(err error) error {
-	if errors.Is(err, csa.ErrUnknownStop) {
+	switch {
+	case errors.Is(err, csa.ErrUnknownStop):
 		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, services.ErrRouterWarmingUp):
+		return connect.NewError(connect.CodeUnavailable, err)
+	default:
+		return connect.NewError(connect.CodeInternal, err)
 	}
-	return connect.NewError(connect.CodeInternal, err)
 }

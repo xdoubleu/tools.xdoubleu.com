@@ -60,9 +60,10 @@ type StopCall struct {
 // TripUpdate is the realtime state of one trip instance, decoded from a
 // GTFS-RT TripUpdate entity. TripID is the raw feed identifier: like the
 // static feed's trip_id (issue #1390) it is not a stable long-lived key —
-// it exists only for the lifetime of one in-memory Snapshot. A later slice
-// resolves it against the current static import to display
-// trips.trip_short_name; nothing here is persisted.
+// it exists only long enough for RealtimeService.Poll to resolve it against
+// the current static import into a (trip_short_name, service date) pair, the
+// coordinates everything downstream addresses a train by. Nothing here is
+// persisted.
 type TripUpdate struct {
 	TripID    string
 	RouteID   string
@@ -92,12 +93,42 @@ type Alert struct {
 	InformedStopIDs  []string `json:"-"`
 }
 
+// TripKey addresses one trip instance by the coordinates that survive a
+// daily feed churn: its trips.trip_short_name and its GTFS service date
+// ("YYYYMMDD"). The raw trip_id is deliberately not part of it — the static
+// and GTFS-RT feeds are ingested from separate BMC endpoints and nothing
+// guarantees they assign the same trip_id to the same physical train
+// (issue #1484).
+type TripKey struct {
+	ShortName string
+	Date      string
+}
+
 // Snapshot is the wholly-replaced current realtime state, rebuilt on every
 // poll. It is kept in memory only — nothing here is persisted (issue
 // #1393).
 type Snapshot struct {
-	// Trips is keyed by the raw feed trip_id — see TripUpdate.TripID.
-	Trips     map[string]TripUpdate
-	Alerts    []Alert
-	FetchedAt time.Time
+	// Trips is keyed by (trip_short_name, service date) — RealtimeService.Poll
+	// resolves each decoded TripUpdate's raw trip_id against the current
+	// static import before storing it here.
+	Trips map[TripKey]TripUpdate
+	// UnresolvedTripCount is how many decoded trip updates in this poll cycle
+	// carried a trip_id with no matching static trip — normally zero; a
+	// sustained nonzero value means the two feeds' trip_id namespaces have
+	// drifted apart (issue #1484).
+	UnresolvedTripCount int
+	Alerts              []Alert
+	FetchedAt           time.Time
+}
+
+// CallFor returns the realtime state of the trip running shortName on
+// serviceDate, if the last poll cycle published one. serviceDate is read in
+// its own location, so callers pass the feed-local (Europe/Brussels)
+// midnight of the service day.
+func (s Snapshot) CallFor(shortName string, serviceDate time.Time) (TripUpdate, bool) {
+	tu, ok := s.Trips[TripKey{
+		ShortName: shortName,
+		Date:      serviceDate.Format("20060102"),
+	}]
+	return tu, ok
 }

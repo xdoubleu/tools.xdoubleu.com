@@ -2,6 +2,7 @@ package trains_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 
 	"tools.xdoubleu.com/apps/trains/internal/jobs"
 	"tools.xdoubleu.com/apps/trains/internal/models"
+	"tools.xdoubleu.com/apps/trains/internal/services"
+	"tools.xdoubleu.com/apps/trains/pkg/csa"
 	"tools.xdoubleu.com/internal/logging"
 )
 
@@ -247,10 +250,64 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 
 func TestSearchJourneys_UnknownStopIsAnError(t *testing.T) {
 	ctx := context.Background()
-	_, err := testApp.Services.Journey.SearchJourneys(
+	// SearchJourneys no longer builds the index in-request (issue #1484), so
+	// warm it first — otherwise this asserts the warming-up path, not the
+	// unknown-stop one.
+	_, err := testApp.Services.Journey.RefreshWindow(
+		ctx, time.Now().UTC().Truncate(24*time.Hour),
+	)
+	require.NoError(t, err)
+	_, err = testApp.Services.Journey.SearchJourneys(
 		ctx, "does-not-exist", "also-not-real", time.Now(), false,
 	)
 	require.Error(t, err)
+}
+
+// TestSearchJourneys_ColdRouterIsUnavailable pins issue #1484's C3: a
+// JourneyService whose index has never been built rejects the query with
+// ErrRouterWarmingUp instead of running the whole-window scan in the caller's
+// goroutine.
+func TestSearchJourneys_ColdRouterIsUnavailable(t *testing.T) {
+	js := services.NewJourneyService(logging.NewNopLogger(), testApp.Repositories)
+	_, err := js.SearchJourneys(
+		context.Background(), "SA", "SB", time.Now(), false,
+	)
+	require.ErrorIs(t, err, services.ErrRouterWarmingUp)
+}
+
+// TestJourneyService_Refresh_CollapsesConcurrentRebuilds covers the
+// singleflight guard added with #1484: the startup warm-up racing the first
+// scheduled refresh must not run two window scans.
+func TestJourneyService_Refresh_CollapsesConcurrentRebuilds(t *testing.T) {
+	ctx := context.Background()
+	require.NoError(
+		t,
+		testApp.Repositories.Feed.ImportFeed(
+			ctx, journeyFeed(time.Now().UTC().Truncate(24*time.Hour)),
+		),
+	)
+	js := services.NewJourneyService(logging.NewNopLogger(), testApp.Repositories)
+
+	const n = 8
+	idxs := make([]*csa.Index, n)
+	var wg sync.WaitGroup
+	for i := range n {
+		wg.Go(func() {
+			idx, err := js.Refresh(ctx)
+			assert.NoError(t, err)
+			idxs[i] = idx
+		})
+	}
+	wg.Wait()
+
+	for i := 1; i < n; i++ {
+		assert.Same(
+			t,
+			idxs[0],
+			idxs[i],
+			"concurrent Refresh calls should share one index",
+		)
+	}
 }
 
 // TestJourneyService_Refresh exercises Refresh (as opposed to
@@ -268,6 +325,27 @@ func TestJourneyService_Refresh(t *testing.T) {
 // adapter jobs.RouterRefreshJob is constructed with.
 func TestJourneyService_RefreshOnly(t *testing.T) {
 	require.NoError(t, testApp.Services.Journey.RefreshOnly(context.Background()))
+}
+
+// TestShortNamesByTripIDs covers the trip_id→trip_short_name resolution
+// RealtimeService.Poll re-keys the GTFS-RT snapshot through (issue #1484).
+func TestShortNamesByTripIDs(t *testing.T) {
+	ctx := context.Background()
+	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	require.NoError(
+		t,
+		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
+	)
+
+	got, err := testApp.Repositories.Feed.ShortNamesByTripIDs(
+		ctx, []string{"t_detail", "not-a-trip"},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"t_detail": "IC900"}, got)
+
+	empty, err := testApp.Repositories.Feed.ShortNamesByTripIDs(ctx, nil)
+	require.NoError(t, err)
+	assert.Empty(t, empty)
 }
 
 // TestRouterRefreshJob_Metadata mirrors app_test.go's

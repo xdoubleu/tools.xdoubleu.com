@@ -39,6 +39,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0016](adr-0016-kobo-gateway-loopback-tls-and-login-item.md) | Loopback HTTPS for Safari; LaunchAgents over `SMAppService` | — |
 | [adr-0017](adr-0017-long-request-handler-deadlines.md) | Handler deadlines pinned under the edge proxy ceiling | #672, #1113 |
 | [adr-0018](adr-0018-completion-average-population.md) | Which games the Steam completion averages count | #1375, #1424 |
+| [adr-0019](adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) | Trains router warmed off the request path; the two GTFS feeds correlated by `(trip_short_name, service date)` | #1388, #1390, #1391, #1484 |
 
 ## Conventions
 

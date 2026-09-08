@@ -93,7 +93,7 @@ func (s *JourneyDetailService) buildLeg(
 		return models.LegDetail{}, err
 	}
 
-	tripUpdate, hasTripUpdate := snapshot.Trips[active.TripID]
+	tripUpdate, hasTripUpdate := snapshot.CallFor(ref.TripShortName, date)
 	cancelled := hasTripUpdate && tripUpdate.State == models.DelayCancelled
 
 	return models.LegDetail{

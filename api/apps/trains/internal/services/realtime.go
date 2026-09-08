@@ -16,13 +16,25 @@ import (
 // 30s job cadence this polls alerts roughly every 2 minutes.
 const alertPollEvery = 4
 
+// tripResolver maps raw GTFS-RT trip_ids to their static trips.trip_short_name
+// — RealtimeService.Poll re-keys the snapshot through it so a live journey
+// never joins to realtime data by a trip_id the two feeds only coincidentally
+// agree on (issue #1484).
+type tripResolver interface {
+	ShortNamesByTripIDs(
+		ctx context.Context,
+		tripIDs []string,
+	) (map[string]string, error)
+}
+
 // RealtimeService polls the BMC gateway's GTFS-Realtime feeds and keeps the
 // latest decoded state in memory. The snapshot is wholly replaced on every
 // poll and nothing here is persisted — a later slice decides what, if
 // anything, is worth writing down (issue #1393).
 type RealtimeService struct {
-	logger *slog.Logger
-	bmc    bmc.Client
+	logger   *slog.Logger
+	bmc      bmc.Client
+	resolver tripResolver
 
 	mu        sync.RWMutex
 	snapshot  models.Snapshot
@@ -30,9 +42,11 @@ type RealtimeService struct {
 	onUpdate  []func()
 }
 
-func NewRealtimeService(logger *slog.Logger, bmcClient bmc.Client) *RealtimeService {
+func NewRealtimeService(
+	logger *slog.Logger, bmcClient bmc.Client, resolver tripResolver,
+) *RealtimeService {
 	//nolint:exhaustruct //snapshot/pollCount/onUpdate start zero-valued
-	return &RealtimeService{logger: logger, bmc: bmcClient}
+	return &RealtimeService{logger: logger, bmc: bmcClient, resolver: resolver}
 }
 
 // OnUpdate registers fn to run after every successful Poll — used by
@@ -63,13 +77,25 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 		return nil
 	}
 
-	trips, err := s.fetchTripUpdates(ctx)
+	rawTrips, err := s.fetchTripUpdates(ctx)
 	if err != nil {
 		if isBackoffable(err) {
 			s.logger.Warn("trains: realtime trip-update poll backing off", "error", err)
 			return nil
 		}
 		return err
+	}
+
+	trips, unresolved, err := s.resolveTripUpdates(ctx, rawTrips)
+	if err != nil {
+		return err
+	}
+	if unresolved > 0 {
+		s.logger.Warn(
+			"trains: realtime trip updates without a matching static trip",
+			"unresolved", unresolved,
+			"total", len(rawTrips),
+		)
 	}
 
 	s.mu.Lock()
@@ -92,9 +118,10 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 
 	s.mu.Lock()
 	s.snapshot = models.Snapshot{
-		Trips:     trips,
-		Alerts:    alerts,
-		FetchedAt: time.Now(),
+		Trips:               trips,
+		UnresolvedTripCount: unresolved,
+		Alerts:              alerts,
+		FetchedAt:           time.Now(),
 	}
 	listeners := make([]func(), len(s.onUpdate))
 	copy(listeners, s.onUpdate)
@@ -114,6 +141,55 @@ func (s *RealtimeService) fetchTripUpdates(
 		return nil, err
 	}
 	return decodeTripUpdates(res.Body)
+}
+
+// correlateTripUpdates re-keys raw, trip_id-keyed trip updates off
+// (trip_short_name, service date) by resolving each trip_id against the
+// current static import. Updates whose trip_id has no static match are
+// dropped and counted — the return's second value — so a growing gap between
+// the two feeds' trip_id namespaces shows up as a metric rather than as
+// silently missing delays (issue #1484).
+func (s *RealtimeService) resolveTripUpdates(
+	ctx context.Context, raw map[string]models.TripUpdate,
+) (map[models.TripKey]models.TripUpdate, int, error) {
+	ids := make([]string, 0, len(raw))
+	for id := range raw {
+		ids = append(ids, id)
+	}
+	shortNames, err := s.resolver.ShortNamesByTripIDs(ctx, ids)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	fallbackDate := time.Now().In(brusselsLoc).Format("20060102")
+	trips, unresolved := correlateTripUpdates(raw, shortNames, fallbackDate)
+	return trips, unresolved, nil
+}
+
+// correlateTripUpdates is the pure core of RealtimeService.resolveTripUpdates:
+// given the trip_id→trip_short_name resolution and a fallback service date for
+// updates the feed left undated, it produces the (trip_short_name, date)-keyed
+// map and the count it could not place.
+func correlateTripUpdates(
+	raw map[string]models.TripUpdate,
+	shortNames map[string]string,
+	fallbackDate string,
+) (map[models.TripKey]models.TripUpdate, int) {
+	trips := make(map[models.TripKey]models.TripUpdate, len(raw))
+	unresolved := 0
+	for tripID, tu := range raw {
+		shortName, ok := shortNames[tripID]
+		if !ok {
+			unresolved++
+			continue
+		}
+		date := tu.StartDate
+		if date == "" {
+			date = fallbackDate
+		}
+		trips[models.TripKey{ShortName: shortName, Date: date}] = tu
+	}
+	return trips, unresolved
 }
 
 func (s *RealtimeService) fetchAlerts(ctx context.Context) ([]models.Alert, error) {

@@ -158,6 +158,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0016-kobo-gateway-loopback-tls-and-login-item`](docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md) — loopback HTTPS and LaunchAgents
 - [`adr-0017-long-request-handler-deadlines`](docs/adr-0017-long-request-handler-deadlines.md) — deadlines vs the proxy ceiling
 - [`adr-0018-completion-average-population`](docs/adr-0018-completion-average-population.md) — a delisted game counts unless a listed game took its achievements
+- [`adr-0019-trains-in-memory-router-and-dual-gtfs-feeds`](docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) — router warmed off the request path; static and realtime feeds correlated by `(trip_short_name, service date)`, never `trip_id`
 
 **Conventions**
 
