@@ -25,6 +25,7 @@ type fakePlansStore struct {
 	updated     bool
 	deleted     bool
 	mealCreated bool
+	mealUpdated bool
 	mealDeleted bool
 	mealMoved   bool
 }
@@ -94,6 +95,11 @@ func (f *fakePlansStore) CreateMeal(
 ) (*models.PlanMeal, error) {
 	f.mealCreated = true
 	return &meal, nil
+}
+
+func (f *fakePlansStore) UpdateMeal(_ context.Context, _ models.PlanMeal) error {
+	f.mealUpdated = true
+	return nil
 }
 
 func (f *fakePlansStore) DeleteMeal(_ context.Context, _, _ uuid.UUID) error {
@@ -195,6 +201,13 @@ func TestPlanMealMutations_OtherFamilyForbidden(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealCreated)
 
+	err = svc.UpdateMeal(
+		t.Context(), store.plan.ID, "other",
+		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+	)
+	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
+	assert.False(t, store.mealUpdated)
+
 	err = svc.DeleteMeal(t.Context(), uuid.New(), store.plan.ID, "other")
 	assert.Equal(t, http.StatusNotFound, planHTTPStatus(t, err))
 	assert.False(t, store.mealDeleted)
@@ -215,11 +228,16 @@ func TestPlanMealMutations_AllowedForFamilyMember(t *testing.T) {
 		t.Context(), store.plan.ID, "editor",
 		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
 	))
+	require.NoError(t, svc.UpdateMeal(
+		t.Context(), store.plan.ID, "editor",
+		models.PlanMeal{}, //nolint:exhaustruct //empty meal is enough
+	))
 	require.NoError(t, svc.DeleteMeal(t.Context(), uuid.New(), store.plan.ID, "editor"))
 	require.NoError(t, svc.MoveMeal(
 		t.Context(), uuid.New(), store.plan.ID, "editor", time.Now(), "lunch",
 	))
 	assert.True(t, store.mealCreated)
+	assert.True(t, store.mealUpdated)
 	assert.True(t, store.mealDeleted)
 	assert.True(t, store.mealMoved)
 }

@@ -35,7 +35,7 @@ export default function MealPlanCalendar({
     editingMeal,
     fillingDate,
     suggestedRecipes,
-    getMealForSlot,
+    getMealsForSlot,
     startAdd,
     startFillDay,
     cancelForm,
@@ -100,7 +100,7 @@ export default function MealPlanCalendar({
         weekDates={weekDates}
         recipes={recipes}
         swappingMeal={swappingMeal}
-        getMealForSlot={getMealForSlot}
+        getMealsForSlot={getMealsForSlot}
         onCellClick={handleCellClick}
         onMealClick={handleMealClick}
         onStartSwap={handleStartSwap}

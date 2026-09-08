@@ -418,6 +418,133 @@ func TestDeleteMeal_Success(t *testing.T) {
 	assert.Equal(t, 0, len(getResp2.Msg.Plan.Meals))
 }
 
+func TestUpdateMeal_Success(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	planID := createPlanInDB(t, "Update Meal Plan")
+	today := time.Now().Format("2006-01-02")
+
+	_, err := client.CreateMeal(ctx, connect.NewRequest(&mealplansv1.CreateMealRequest{
+		PlanId: planID, MealDate: today, MealSlot: "noon",
+		CustomName: "Old Meal", Servings: 2,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(getResp.Msg.Plan.Meals))
+	mealID := getResp.Msg.Plan.Meals[0].Id
+
+	_, err = client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: planID, MealId: mealID,
+		CustomName: "New Meal", Servings: 5, ExcludeFromShoppingList: true,
+	}))
+	require.NoError(t, err)
+
+	getResp2, err := client.GetPlan(ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{
+		Id: planID, Offset: 0,
+	}))
+	require.NoError(t, err)
+	require.Equal(t, 1, len(getResp2.Msg.Plan.Meals))
+	updated := getResp2.Msg.Plan.Meals[0]
+	assert.Equal(t, mealID, updated.Id)
+	assert.Equal(t, "New Meal", updated.CustomName)
+	assert.Equal(t, int32(5), updated.Servings)
+	assert.True(t, updated.ExcludeFromShoppingList)
+	assert.Equal(t, "noon", updated.MealSlot)
+	assert.Equal(t, today, updated.MealDate)
+}
+
+func TestUpdateMeal_RequiresRecipeOrName(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().String(), MealId: uuid.New().String(), Servings: 2,
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateMeal_InvalidPlanID(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: "not-a-uuid", MealId: uuid.New().String(), CustomName: "X",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateMeal_InvalidMealID(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().String(), MealId: "not-a-uuid", CustomName: "X",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateMeal_InvalidRecipeID(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().
+			String(),
+		MealId: uuid.New().String(), RecipeId: "not-a-uuid",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateMeal_PlanNotFound(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.UpdateMeal(ctx, connect.NewRequest(&mealplansv1.UpdateMealRequest{
+		PlanId: uuid.New().String(), MealId: uuid.New().String(), CustomName: "Ghost",
+	}))
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
 func TestMoveMeal_ToEmptySlot(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

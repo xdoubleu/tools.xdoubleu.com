@@ -189,6 +189,23 @@ func (r *PlansRepository) DeleteMeal(
 	return err
 }
 
+// UpdateMeal replaces the recipe/custom-name/servings/exclude fields of a
+// single meal row, leaving its date and slot untouched (use MoveMeal for that).
+func (r *PlansRepository) UpdateMeal(
+	ctx context.Context,
+	meal models.PlanMeal,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE mealplans.plan_meals
+		SET recipe_id = $3, custom_name = $4, servings = $5,
+		    exclude_from_shopping_list = $6
+		WHERE id = $1 AND plan_id = $2`,
+		meal.ID, meal.PlanID, meal.RecipeID, meal.CustomName,
+		meal.Servings, meal.ExcludeFromShoppingList,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 // GetMealsInWindow returns meals for a plan within the given date range.
 // When start is zero, all meals are returned (used for iCal export).
 func (r *PlansRepository) GetMealsInWindow(

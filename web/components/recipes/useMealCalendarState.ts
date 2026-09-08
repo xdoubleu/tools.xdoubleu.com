@@ -1,8 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAddMeal, useDeleteMeal, useMoveMeal, useMealSuggestions } from '@/hooks/useMealPlans'
-import type { AddMealInput, DeleteMealInput, MoveMealInput } from '@/hooks/useMealPlans'
+import {
+  useAddMeal,
+  useUpdateMeal,
+  useDeleteMeal,
+  useMoveMeal,
+  useMealSuggestions
+} from '@/hooks/useMealPlans'
+import type {
+  AddMealInput,
+  UpdateMealInput,
+  DeleteMealInput,
+  MoveMealInput
+} from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
@@ -23,6 +34,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const [fillingDate, setFillingDate] = useState<string | null>(null)
 
   const createMeal = useAddMeal()
+  const updateMeal = useUpdateMeal()
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
 
@@ -38,9 +50,10 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     })
     .filter((s): s is MealSuggestion => s !== undefined)
 
-  // Each slot holds at most one meal; return the first match if present.
-  const getMealForSlot = (date: string, slot: string) =>
-    (plan.meals || []).find((m) => m.mealDate === date && m.mealSlot === slot)
+  // A slot can hold any number of meals (the per-slot UNIQUE constraint was
+  // dropped) — return them all so the calendar can stack them.
+  const getMealsForSlot = (date: string, slot: string) =>
+    (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -123,13 +136,12 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
       handlePlaceSwap(date, slot)
       return
     }
-    if (!getMealForSlot(date, slot)) {
-      startAdd(date, slot)
-    }
+    startAdd(date, slot)
   }
 
-  // Move the picked meal to the target slot. If the target slot already holds a
-  // meal, the two trade places so each slot keeps a single entry.
+  // Move the picked meal to the target slot. When the target slot holds exactly
+  // one other meal, the two trade places (the common "swap these two" intent);
+  // when it is empty or already holds several, the picked meal just moves there.
   const handlePlaceSwap = async (newDate: string, newSlot: string) => {
     if (!swappingMeal) return
     if (swappingMeal.mealDate === newDate && swappingMeal.mealSlot === newSlot) {
@@ -137,8 +149,8 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
       return
     }
     try {
-      const targetMeal = getMealForSlot(newDate, newSlot)
-      const target = targetMeal && targetMeal.id !== swappingMeal.id ? targetMeal : undefined
+      const occupants = getMealsForSlot(newDate, newSlot).filter((m) => m.id !== swappingMeal.id)
+      const target = occupants.length === 1 ? occupants[0] : undefined
       const moveSelf: MoveMealInput = {
         planId: plan.id,
         mealId: swappingMeal.id,
@@ -177,17 +189,15 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   ) => {
     if (!editingMeal) return
     try {
-      await deleteMeal({ planId: plan.id, mealId: editingMeal.id })
-      const req: AddMealInput = {
+      const req: UpdateMealInput = {
         planId: plan.id,
-        mealDate: editingMeal.mealDate,
-        mealSlot: editingMeal.mealSlot,
+        mealId: editingMeal.id,
         recipeId,
         customName,
         servings,
         excludeFromShoppingList
       }
-      await createMeal(req)
+      await updateMeal(req)
       setEditingMeal(null)
       onMutate?.()
     } catch (err) {
@@ -246,7 +256,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     editingMeal,
     fillingDate,
     suggestedRecipes,
-    getMealForSlot,
+    getMealsForSlot,
     startAdd,
     startFillDay,
     cancelForm,
