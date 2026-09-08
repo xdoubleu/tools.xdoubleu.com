@@ -113,6 +113,27 @@ func detailFeed(windowStart time.Time) *models.Feed {
 	}
 }
 
+// detailFeedWithRTVariant is detailFeed plus a second trip carrying the same
+// trip_short_name (IC900) on the same service day but a different trip_id —
+// the shape issue #1484 is about, where the GTFS-RT feed labels a train with
+// a trip_id the static feed assigns to a different stopping-pattern variant.
+// TripByShortNameOnDate resolves the leg to "t_detail" (ordered by trip_id);
+// the realtime feed publishes under "t_detail_rt".
+func detailFeedWithRTVariant(windowStart time.Time) *models.Feed {
+	feed := detailFeed(windowStart)
+	feed.Trips = append(feed.Trips, models.Trip{
+		TripID: "t_detail_rt", RouteID: "dr1", ServiceID: "svc_detail",
+		ShortName: "IC900", Headsign: "Echo", DirectionID: nil,
+	})
+	variantStopTimes := make([]models.StopTime, len(feed.StopTimes))
+	for i, st := range feed.StopTimes {
+		st.TripID = "t_detail_rt"
+		variantStopTimes[i] = st
+	}
+	feed.StopTimes = append(feed.StopTimes, variantStopTimes...)
+	return feed
+}
+
 func detailLegRef(windowStart time.Time) services.LegRef {
 	const h = 8 * 3600
 	return services.LegRef{
@@ -176,6 +197,70 @@ func TestJourneyDetailService_GetJourneyDetail_OverlaysRealtimeState(t *testing.
 	assert.Equal(t, models.DelayDelayed, last.State)
 	require.NotNil(t, last.ArrivalDelay)
 	assert.Equal(t, 400, *last.ArrivalDelay)
+}
+
+// TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces is
+// issue #1484's C1: the realtime overlay must land even when the GTFS-RT feed
+// identifies the train by a trip_id the static feed never resolves the leg
+// to, because correlation now runs through (trip_short_name, service date).
+func TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces(
+	t *testing.T,
+) {
+	ctx := context.Background()
+	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	require.NoError(
+		t,
+		testApp.Repositories.Feed.ImportFeed(ctx, detailFeedWithRTVariant(windowStart)),
+	)
+
+	t.Cleanup(func() { testBMC.RealtimeResults = nil })
+	testBMC.RealtimeResults = map[string]*bmc.RealtimeResult{
+		bmc.FeedTripUpdate: {Body: delayedTripUpdateBody(t, "t_detail_rt", 3, 300)},
+		bmc.FeedAlert:      {Body: emptyAlertFeedBody(t)},
+	}
+	require.NoError(t, testApp.Services.Realtime.Poll(ctx))
+	assert.Zero(t, testApp.Services.Realtime.Snapshot().UnresolvedTripCount)
+
+	journeyID := services.EncodeJourneyID([]services.LegRef{detailLegRef(windowStart)})
+	detail, err := testApp.Services.JourneyDetail.GetJourneyDetail(ctx, journeyID)
+	require.NoError(t, err)
+	require.Len(t, detail.Legs, 1)
+
+	last := detail.Legs[0].Stops[2]
+	assert.Equal(t, models.DelayDelayed, last.State)
+	require.NotNil(t, last.ArrivalDelay)
+	assert.Equal(t, 300, *last.ArrivalDelay)
+}
+
+// TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted
+// covers the other half of #1484's C1: a realtime trip with no matching
+// static trip is dropped from the snapshot and counted, and the leg falls
+// back to DelayUnknown rather than silently swallowing the gap.
+func TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted(
+	t *testing.T,
+) {
+	ctx := context.Background()
+	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	require.NoError(
+		t,
+		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
+	)
+
+	t.Cleanup(func() { testBMC.RealtimeResults = nil })
+	testBMC.RealtimeResults = map[string]*bmc.RealtimeResult{
+		bmc.FeedTripUpdate: {Body: delayedTripUpdateBody(t, "ghost-trip", 3, 600)},
+		bmc.FeedAlert:      {Body: emptyAlertFeedBody(t)},
+	}
+	require.NoError(t, testApp.Services.Realtime.Poll(ctx))
+	assert.Equal(t, 1, testApp.Services.Realtime.Snapshot().UnresolvedTripCount)
+
+	journeyID := services.EncodeJourneyID([]services.LegRef{detailLegRef(windowStart)})
+	detail, err := testApp.Services.JourneyDetail.GetJourneyDetail(ctx, journeyID)
+	require.NoError(t, err)
+	require.Len(t, detail.Legs, 1)
+	for _, s := range detail.Legs[0].Stops {
+		assert.Equal(t, models.DelayUnknown, s.State)
+	}
 }
 
 func TestJourneyDetailService_GetJourneyDetail_TripOutsideWindowRendersEmptyLeg(

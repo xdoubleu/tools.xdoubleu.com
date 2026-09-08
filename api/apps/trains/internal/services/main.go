@@ -26,7 +26,7 @@ func New(
 	bmcClient bmc.Client,
 	allowedOrigins []string,
 ) *Services {
-	realtime := NewRealtimeService(logger, bmcClient)
+	realtime := NewRealtimeService(logger, bmcClient, repos.Feed)
 	detail := NewJourneyDetailService(repos, realtime)
 	journeyWS := NewJourneyWSService(ctx, logger, allowedOrigins, detail)
 	// A journey page stays open and pushed-to for the length of a trip

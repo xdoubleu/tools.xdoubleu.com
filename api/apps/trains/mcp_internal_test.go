@@ -46,6 +46,8 @@ func TestMCPTools(t *testing.T) {
 	// Migrations are applied once for the whole test binary by TestMain in
 	// app_test.go, which shares this package's compiled tests.
 	require.NoError(t, app.Services.StaticImport.Import(ctx))
+	// SearchJourneys no longer builds the router in-request (issue #1484).
+	require.NoError(t, app.Services.Journey.RefreshOnly(ctx))
 
 	h := &trainsConnectHandler{app: app}
 

@@ -103,10 +103,24 @@ func (a *Trains) Start() error {
 	); err != nil {
 		return err
 	}
+	// Warm the CSA router now rather than on the first scheduled refresh (up
+	// to 6h away) or in a request handler — SearchJourneys returns
+	// ErrRouterWarmingUp until this finishes (issue #1484). singleflight in
+	// Refresh keeps this from double-building against the first job tick.
+	go a.warmRouter()
+
 	return a.jobQueue.AddJob(
 		observability.NewTrackedJob(a.realtimePollJob, a.db),
 		noop,
 	)
+}
+
+// warmRouter builds the initial CSA index. Runs in its own goroutine from
+// Start; a failure is logged and retried by the scheduled RouterRefreshJob.
+func (a *Trains) warmRouter() {
+	if err := a.routerRefreshJob.Run(a.Ctx, a.Logger); err != nil {
+		a.Logger.Error("trains: initial router warm-up failed", "error", err)
+	}
 }
 
 func (a *Trains) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

@@ -127,12 +127,47 @@ func (r *FeedRepository) ActiveTripsInWindow(
 	return out, rows.Err()
 }
 
+// ShortNamesByTripIDs maps each of tripIDs to its trips.trip_short_name in
+// the current static import, omitting any that don't resolve or carry no
+// short name. RealtimeService.Poll uses it to re-key the GTFS-RT snapshot
+// off (trip_short_name, service date) instead of trusting the realtime
+// feed's trip_id to match the static feed's (issue #1484).
+func (r *FeedRepository) ShortNamesByTripIDs(
+	ctx context.Context, tripIDs []string,
+) (map[string]string, error) {
+	if len(tripIDs) == 0 {
+		return map[string]string{}, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT trip_id, trip_short_name
+		FROM trains.trips
+		WHERE trip_id = ANY($1) AND trip_short_name IS NOT NULL
+		      AND trip_short_name <> ''
+	`, tripIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[string]string, len(tripIDs))
+	for rows.Next() {
+		var tripID, shortName string
+		if err = rows.Scan(&tripID, &shortName); err != nil {
+			return nil, err
+		}
+		out[tripID] = shortName
+	}
+	return out, rows.Err()
+}
+
 // TripByShortNameOnDate resolves the trip_id running trip_short_name on
 // date, the same way ActiveTripsInWindow resolves a whole window — used to
 // map a live journey's boarded trip back to its full stop_times pattern for
 // the day it actually ran (issue #1394). Returns (nil, nil) when no active
 // trip matches (the timetable changed, or an old journey page is still open
-// past the router's rolling window).
+// past the router's rolling window). Ordered by trip_id so a short name
+// served by more than one stopping-pattern variant on a date resolves
+// deterministically.
 func (r *FeedRepository) TripByShortNameOnDate(
 	ctx context.Context, tripShortName string, date time.Time,
 ) (*ActiveTrip, error) {
@@ -145,6 +180,7 @@ func (r *FeedRepository) TripByShortNameOnDate(
 		JOIN trains.trips t ON t.service_id = cd.service_id
 		JOIN trains.routes r ON r.route_id = t.route_id
 		WHERE cd.exception_type = 1 AND cd.date = $1 AND t.trip_short_name = $2
+		ORDER BY t.trip_id
 		LIMIT 1
 	`, date, tripShortName).Scan(
 		&at.TripID, &at.RouteID, &shortName, &routeShortName, &headsign, &at.Date,
