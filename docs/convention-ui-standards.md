@@ -4,7 +4,9 @@
   `<button>`/`<input>`/`<select>`/`<textarea>` in `components/**` and `app/**`,
   and `generate:ui-catalog:check` fails when the primitive catalog is stale.
   `npm run build` catches the server/client boundary trap below. The remaining
-  rules (mobile-first, async-state wording, `interactiveCardClass`) are review.
+  rules (mobile-first, async-state wording, `interactiveCardClass`) are review
+  — the `mobile-review` skill is that review pass, run after any change under
+  `web/` and before `finish-task`.
 - Issues: #1412
 
 ## Rule
