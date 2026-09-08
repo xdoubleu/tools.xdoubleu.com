@@ -43,6 +43,8 @@ npx jest path/to/file.test.ts -t "name"     # single test
 npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
 npm run generate:local                      # same, via the locally-installed protoc-gen-es instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `make proto/generate/local` in api/)
 npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
+npm run generate:ui-catalog                 # regenerate components/ui/README.md from components/ui/*.tsx
+npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
 ```
 
 ## UI Standards
@@ -50,9 +52,12 @@ npm run generate:check                      # regenerate + fail if that changed 
 Mobile-first Tailwind (no fixed-pixel widths); Server Components by default;
 every interactive control uses a `components/ui/` shadcn-style primitive —
 **ESLint fails the build on a raw `<button>`/`<input>`/`<select>`/`<textarea>`
-outside `components/ui/`**, so read `components/ui/` before writing a new
+outside `components/ui/`**, so check the generated inventory in
+[`components/ui/README.md`](components/ui/README.md) before writing a new
 component, and add a primitive rather than styling a raw element at a call site.
-Merge class overrides with `cn()` from `lib/cn.ts`; clickable cards use
+Regenerate it with `npm run generate:ui-catalog` whenever `components/ui/`
+changes (`npm run lint` fails if it's stale). Merge class overrides with `cn()`
+from `lib/cn.ts`; clickable cards use
 `interactiveCardClass` from `components/ui/card.tsx`. Page-level loading is
 `<p className="text-muted">Loading…</p>`, errors
 `<p className="text-danger">Failed to load X.</p>`, and pending buttons swap to a

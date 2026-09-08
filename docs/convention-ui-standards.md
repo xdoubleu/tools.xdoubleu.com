@@ -1,7 +1,8 @@
 # Convention: web UI standards
 
 - Enforced by: `npm run lint` — ESLint `no-restricted-syntax` blocks raw
-  `<button>`/`<input>`/`<select>`/`<textarea>` in `components/**` and `app/**`.
+  `<button>`/`<input>`/`<select>`/`<textarea>` in `components/**` and `app/**`,
+  and `generate:ui-catalog:check` fails when the primitive catalog is stale.
   `npm run build` catches the server/client boundary trap below. The remaining
   rules (mobile-first, async-state wording, `interactiveCardClass`) are review.
 - Issues: #1412
@@ -15,9 +16,11 @@
 - **shadcn/ui primitives** — every interactive control uses a `components/ui/`
   primitive. Don't hand-style raw
   `<button>`/`<input>`/`<select>`/`<textarea>`; ESLint rejects them outside
-  `components/ui/` itself. **Read `web/components/ui/` for the inventory** —
-  the source is the list. If nothing there fits, add a primitive; don't style a
-  raw element at the call site.
+  `components/ui/` itself. **The inventory is
+  [`web/components/ui/README.md`](../web/components/ui/README.md)** — generated
+  from the source beside it, so consult it rather than a list written down here.
+  If nothing there fits, add a primitive; don't style a raw element at the call
+  site.
   The rare legitimate exception (a hidden `<input type="file">`, which no
   primitive can wrap) takes an `eslint-disable-next-line no-restricted-syntax`
   with the reason spelled out.
