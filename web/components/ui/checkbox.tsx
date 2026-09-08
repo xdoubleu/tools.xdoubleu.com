@@ -31,7 +31,10 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     if (!label) return inputEl
 
     return (
-      <label htmlFor={id} className="inline-flex items-center gap-2 cursor-pointer select-none">
+      <label
+        htmlFor={id}
+        className="inline-flex min-h-11 items-center gap-2 cursor-pointer select-none"
+      >
         {inputEl}
         <span className="text-sm">{label}</span>
       </label>

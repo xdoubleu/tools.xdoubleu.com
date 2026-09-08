@@ -280,23 +280,22 @@ export default function HomeClient() {
               required
               className="mt-1"
             />
-            <div className="mt-1 text-right">
-              <Link href="/auth/forgot-password" className="text-sm text-accent hover:underline">
+            <div className="mt-2 text-right">
+              <Link
+                href="/auth/forgot-password"
+                className="inline-block py-3 text-sm text-accent hover:underline"
+              >
                 Forgot password?
               </Link>
             </div>
           </div>
 
-          <div className="flex items-center">
-            <Checkbox
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <label htmlFor="rememberMe" className="ml-2 text-sm text-subtle">
-              Remember me
-            </label>
-          </div>
+          <Checkbox
+            id="rememberMe"
+            label="Remember me"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+          />
 
           {signInError && (
             <p role="alert" className="text-sm text-danger">

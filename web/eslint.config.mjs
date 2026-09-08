@@ -3,6 +3,33 @@ import nextPlugin from '@next/eslint-plugin-next'
 import typescriptEslint from 'typescript-eslint'
 import js from '@eslint/js'
 
+// Mechanically-checkable mobile-first violations from docs/convention-ui-standards.md
+// and the mobile-review skill — each is a class-string shape a Playwright
+// audit can only guess at from source, so it's enforced here instead.
+// grid-cols-2 is intentionally excluded: components/ui/stat.tsx's
+// StatTileGrid deliberately runs two-up on mobile, and that pattern is
+// reused (BooksDashboardView, GamesDashboardView, GamesStatsPanel) as an
+// established design choice, not a bug.
+const mobileFirstRestrictedSyntax = [
+  {
+    selector:
+      "JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)grid-cols-(3|4|5|6|7|8|9|10|11|12)(\\s|$)/]",
+    message:
+      'Bare grid-cols-N (N≥3) with no sm:/md: prefix starts at N columns on a phone. Write grid-cols-1 sm:grid-cols-N instead.'
+  },
+  {
+    selector: "JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)h-screen(\\s|$)/]",
+    message:
+      'h-screen is taller than the visible area once mobile browser chrome collapses. Use h-dvh (or min-h-dvh) instead.'
+  },
+  {
+    selector:
+      "JSXAttribute[name.name='className'] > Literal[value=/\\b(w|min-w|max-w|h)-\\[\\d+px\\]/]",
+    message:
+      'Fixed-pixel width/height breaks at narrow viewports. Use relative units (%, rem, fr) or a responsive class instead.'
+  }
+]
+
 export default [
   {
     ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**']
@@ -58,7 +85,8 @@ export default [
           selector: "JSXOpeningElement[name.name='textarea']",
           message:
             'Use Textarea from @/components/ui/textarea instead of a raw <textarea>. See components/ui/README.md.'
-        }
+        },
+        ...mobileFirstRestrictedSyntax
       ]
     }
   },
@@ -71,7 +99,8 @@ export default [
         {
           selector: 'TSSatisfiesExpression',
           message: 'Use create(Schema, fields) from @bufbuild/protobuf instead of satisfies.'
-        }
+        },
+        ...mobileFirstRestrictedSyntax
       ]
     }
   },

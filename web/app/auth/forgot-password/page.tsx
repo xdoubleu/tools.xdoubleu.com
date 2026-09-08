@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
           </p>
           <Link
             href="/auth/sign-in"
-            className="block text-center text-sm text-accent hover:underline"
+            className="block py-3 text-center text-sm text-accent hover:underline"
           >
             Back to sign in
           </Link>
@@ -76,7 +76,10 @@ export default function ForgotPasswordPage() {
           </Button>
 
           <div className="text-center">
-            <Link href="/auth/sign-in" className="text-sm text-accent hover:underline">
+            <Link
+              href="/auth/sign-in"
+              className="inline-block py-3 text-sm text-accent hover:underline"
+            >
               Back to sign in
             </Link>
           </div>

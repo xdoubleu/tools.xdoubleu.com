@@ -49,7 +49,7 @@ export default function PresenterClient({ id }: { id: string }) {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
+    <div className="flex flex-col h-[calc(100dvh-4rem)]">
       <div className="flex items-center gap-4 px-4 py-3 border-b border-border">
         <Breadcrumb
           items={[{ label: 'Watch Party', href: '/watchparty' }, { label: 'Presenter' }]}

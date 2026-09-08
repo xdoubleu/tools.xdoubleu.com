@@ -44,7 +44,10 @@ export default function Footer() {
       <div className="mx-auto flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         <div className="text-muted">
           © {year}{' '}
-          <Link href="https://xdoubleu.com" className="underline hover:text-fg transition-colors">
+          <Link
+            href="https://xdoubleu.com"
+            className="-my-[15px] inline-block py-[15px] underline hover:text-fg transition-colors"
+          >
             xdoubleu
           </Link>
         </div>
