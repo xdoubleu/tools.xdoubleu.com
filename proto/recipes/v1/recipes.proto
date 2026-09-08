@@ -29,6 +29,7 @@ message Recipe {
   repeated Ingredient ingredients = 8;
   reserved 9; // was: repeated string shared_with (per-recipe sharing removed)
   optional int32 batch_servings = 10;
+  bool is_draft = 11;
 }
 
 message ListRecipesRequest {
@@ -61,6 +62,7 @@ message CreateRecipeRequest {
   repeated string ingredient_units = 6;
   optional int32 batch_servings = 7;
   repeated string ingredient_group_names = 8;
+  bool is_draft = 9;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 
@@ -74,6 +76,7 @@ message UpdateRecipeRequest {
   repeated string ingredient_units = 7;
   optional int32 batch_servings = 8;
   repeated string ingredient_group_names = 9;
+  bool is_draft = 10;
 }
 message UpdateRecipeResponse {}
 

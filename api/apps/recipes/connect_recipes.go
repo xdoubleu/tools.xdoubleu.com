@@ -53,6 +53,7 @@ func protoRecipe(r *models.Recipe) *recipesv1.Recipe {
 			r.BaseServings,
 		),
 		BatchServings: batchServings,
+		IsDraft:       r.IsDraft,
 		CreatedAt:     r.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:     r.UpdatedAt.Format(time.RFC3339),
 		Ingredients:   ingredients,

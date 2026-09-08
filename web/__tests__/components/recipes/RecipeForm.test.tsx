@@ -106,6 +106,29 @@ describe('RecipeForm (new recipe)', () => {
     })
   })
 
+  it('sends isDraft when the Draft box is checked', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.click(screen.getByLabelText('Draft'))
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(expect.objectContaining({ isDraft: true }))
+    })
+  })
+
+  it('defaults isDraft to false for a new recipe', async () => {
+    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateRecipe).toHaveBeenCalledWith(expect.objectContaining({ isDraft: false }))
+    })
+  })
+
   it('adds a new ingredient row when Add Ingredient clicked', () => {
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
     const initialRows = screen.getAllByPlaceholderText('Name')
@@ -198,6 +221,7 @@ describe('RecipeForm (edit recipe)', () => {
     instructions: 'Boil water\nCook pasta',
     baseServings: 4,
     batchServings: 8,
+    isDraft: true,
     ingredients: [create(IngredientSchema, { name: 'pasta', amount: 200, unit: 'g' })]
   })
 
@@ -208,6 +232,19 @@ describe('RecipeForm (edit recipe)', () => {
     expect(nameInputEl.value).toBe('Spaghetti')
     expect(screen.getByDisplayValue('pasta')).toBeInTheDocument()
     expect(screen.getByDisplayValue('8')).toBeInTheDocument()
+    expect(screen.getByLabelText('Draft')).toBeChecked()
+  })
+
+  it('sends updated isDraft on submit', async () => {
+    mockUpdateRecipe.mockResolvedValue({})
+    render(<RecipeForm recipe={existingRecipe} onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.click(screen.getByLabelText('Draft'))
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateRecipe).toHaveBeenCalledWith(expect.objectContaining({ isDraft: false }))
+    })
   })
 
   it('pre-fills the ingredient category from the catalog', async () => {

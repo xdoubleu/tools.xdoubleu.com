@@ -374,4 +374,32 @@ describe('RecipeClient', () => {
     render(<RecipeClient id="r1" />)
     expect(screen.queryByRole('button', { name: /Cooking Mode/ })).not.toBeInTheDocument()
   })
+
+  it('shows a Draft badge for a draft recipe', () => {
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2, isDraft: true })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    expect(screen.getByText('Draft')).toBeInTheDocument()
+  })
+
+  it('omits the Draft badge for a proven recipe', () => {
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    expect(screen.queryByText('Draft')).not.toBeInTheDocument()
+  })
 })

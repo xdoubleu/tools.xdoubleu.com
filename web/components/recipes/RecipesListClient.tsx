@@ -17,7 +17,14 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
     <Link href={`/recipes/${recipe.id}`} className={cn(interactiveCardClass, 'relative block p-4')}>
       <CardLinkStatus />
       <h2 className="font-semibold text-lg">{recipe.name}</h2>
-      <p className="text-sm text-muted mt-1">Serves {recipe.baseServings}</p>
+      <p className="text-sm text-muted mt-1">
+        Serves {recipe.baseServings}
+        {recipe.isDraft && (
+          <span className="ml-2 rounded-full bg-surface border border-border px-2 py-0.5 text-xs">
+            Draft
+          </span>
+        )}
+      </p>
     </Link>
   )
 }

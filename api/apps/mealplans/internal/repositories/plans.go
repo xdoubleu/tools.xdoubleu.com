@@ -269,6 +269,7 @@ func (r *PlansRepository) SuggestRecipes(
 		  AND recipe_id IS NOT NULL
 		  AND meal_slot = $2
 		  AND EXTRACT(DOW FROM meal_date) = EXTRACT(DOW FROM $3::date)
+		  AND recipe_id NOT IN (SELECT id FROM recipes.recipes WHERE is_draft)
 		GROUP BY recipe_id
 		ORDER BY COUNT(*) DESC, MAX(meal_date) DESC
 		LIMIT $4`,

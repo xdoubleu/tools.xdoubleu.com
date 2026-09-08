@@ -54,4 +54,19 @@ describe('RecipesListClient', () => {
     render(<RecipesListClient />)
     expect(screen.getByRole('link', { name: /Pasta/ })).toHaveAttribute('href', '/recipes/r1')
   })
+
+  it('marks draft recipes with a badge and leaves proven ones unmarked', () => {
+    mockRecipes({
+      data: create(ListRecipesResponseSchema, {
+        recipes: [
+          create(RecipeSchema, { id: 'r1', name: 'Proven', baseServings: 2 }),
+          create(RecipeSchema, { id: 'r2', name: 'Untested', baseServings: 2, isDraft: true })
+        ]
+      }),
+      isLoading: false
+    })
+    render(<RecipesListClient />)
+    expect(screen.getByRole('link', { name: /Untested/ })).toHaveTextContent('Draft')
+    expect(screen.getByRole('link', { name: /Proven/ })).not.toHaveTextContent('Draft')
+  })
 })

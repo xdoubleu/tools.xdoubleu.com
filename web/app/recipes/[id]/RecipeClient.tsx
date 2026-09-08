@@ -141,6 +141,11 @@ export default function RecipeClient({ id }: { id: string }) {
                 Batch prep: {recipe.batchServings} servings
               </span>
             )}
+            {recipe.isDraft && (
+              <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">
+                Draft
+              </span>
+            )}
             {wakeLockSupported && (
               <Button
                 variant={cookingModeActive ? 'default' : 'secondary'}
