@@ -103,6 +103,7 @@ func (h *recipesConnectHandler) CreateRecipe(
 		req.Msg.IngredientGroupNames,
 	)
 	recipe.Ingredients = ingredients
+	recipe.IsDraft = req.Msg.IsDraft
 	if req.Msg.BatchServings != nil {
 		v := int(*req.Msg.BatchServings)
 		recipe.BatchServings = &v
@@ -149,6 +150,7 @@ func (h *recipesConnectHandler) UpdateRecipe(
 	)
 	recipe.ID = id
 	recipe.Ingredients = ingredients
+	recipe.IsDraft = req.Msg.IsDraft
 	if req.Msg.BatchServings != nil {
 		v := int(*req.Msg.BatchServings)
 		recipe.BatchServings = &v

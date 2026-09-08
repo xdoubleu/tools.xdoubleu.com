@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
 import { Combobox } from '@/components/ui/combobox'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface RecipeFormProps {
   recipe?: Recipe
@@ -40,6 +41,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const [name, setName] = useState(recipe?.name || '')
   const [servings, setServings] = useState(recipe?.baseServings?.toString() || '1')
   const [batchServings, setBatchServings] = useState(recipe?.batchServings?.toString() || '')
+  const [isDraft, setIsDraft] = useState(recipe?.isDraft ?? false)
   const [steps, setSteps] = useState(recipe?.instructions || '')
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     recipe?.ingredients?.map((ing) => ({
@@ -165,6 +167,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         name,
         baseServings: parseInt(servings, 10),
         batchServings: parsedBatchServings,
+        isDraft,
         steps: steps.split('\n').filter((s) => s.trim()),
         ...ingredientPayload
       }
@@ -219,6 +222,19 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           placeholder="e.g. 10"
           className="max-w-24"
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <Checkbox
+          id="recipe-is-draft"
+          label="Draft"
+          checked={isDraft}
+          onChange={(e) => setIsDraft(e.target.checked)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Mark a recipe you haven&apos;t cooked yet. Drafts stay in the recipe book with a badge but
+          are left out of meal-plan suggestions.
+        </p>
       </div>
 
       <div className="space-y-1.5">

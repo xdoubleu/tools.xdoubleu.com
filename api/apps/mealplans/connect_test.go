@@ -805,6 +805,41 @@ func TestSuggestRecipes_RanksByWeekdayAndSlot(t *testing.T) {
 	assert.Equal(t, int32(2), resp.Msg.Suggestions[1].Servings)
 }
 
+func TestSuggestRecipes_ExcludesDrafts(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	draftRecipe := createRecipeInDB(t, "Draft Suggest")
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE recipes.recipes SET is_draft = TRUE WHERE id = $1`, draftRecipe)
+	require.NoError(t, err)
+
+	planID := createPlanInDB(t, "Draft Suggest Plan")
+
+	_, err = client.CreateMeal(
+		ctx,
+		connect.NewRequest(&mealplansv1.CreateMealRequest{
+			PlanId: planID, MealDate: "2024-01-01", MealSlot: "noon", // Monday
+			RecipeId: draftRecipe.String(), Servings: 4,
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.SuggestRecipes(
+		ctx,
+		connect.NewRequest(&mealplansv1.SuggestRecipesRequest{
+			PlanId: planID, MealDate: "2024-02-05", MealSlot: "noon", // a Monday
+		}),
+	)
+	require.NoError(t, err)
+	assert.Empty(t, resp.Msg.Suggestions)
+}
+
 func TestSuggestRecipes_EmptyWhenNoHistory(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

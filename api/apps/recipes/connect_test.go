@@ -330,6 +330,67 @@ func TestUpdateRecipe_WithBatchServings(t *testing.T) {
 	assert.Equal(t, int32(8), *getResp.Msg.Recipe.BatchServings)
 }
 
+func TestCreateRecipe_WithIsDraft(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	resp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name:         "Untested Stew",
+			Steps:        []string{"Cook and hope"},
+			BaseServings: 2,
+			IsDraft:      true,
+		}),
+	)
+	require.NoError(t, err)
+	assert.True(t, resp.Msg.Recipe.IsDraft)
+}
+
+func TestUpdateRecipe_TogglesIsDraft(t *testing.T) {
+	client := setupRecipesClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	createResp, err := client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name:         "Draft Recipe",
+			Steps:        []string{"Step 1"},
+			BaseServings: 2,
+			IsDraft:      true,
+		}),
+	)
+	require.NoError(t, err)
+	assert.True(t, createResp.Msg.Recipe.IsDraft)
+
+	recipeID := createResp.Msg.Recipe.Id
+	_, err = client.UpdateRecipe(ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
+		Id:           recipeID,
+		Name:         "Draft Recipe",
+		Steps:        []string{"Step 1"},
+		BaseServings: 2,
+		IsDraft:      false,
+	}))
+	require.NoError(t, err)
+
+	getResp, err := client.GetRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
+	)
+	require.NoError(t, err)
+	assert.False(t, getResp.Msg.Recipe.IsDraft)
+}
+
 func TestUpdateRecipe_ClearBatchServings(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
@@ -386,12 +447,27 @@ func TestListRecipes_WithItems(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	_, err = client.CreateRecipe(
+		ctx,
+		connect.NewRequest(&recipesv1.CreateRecipeRequest{
+			Name: "Listed Draft", Steps: []string{"step"}, BaseServings: 2, IsDraft: true,
+		}),
+	)
+	require.NoError(t, err)
+
 	resp, err := client.ListRecipes(
 		ctx,
-		connect.NewRequest(&recipesv1.ListRecipesRequest{}),
+		connect.NewRequest(&recipesv1.ListRecipesRequest{Limit: 1000}),
 	)
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Recipes)
+
+	drafts := map[string]bool{}
+	for _, r := range resp.Msg.Recipes {
+		drafts[r.Name] = r.IsDraft
+	}
+	assert.True(t, drafts["Listed Draft"])
+	assert.False(t, drafts["Listed Recipe"])
 }
 
 // TestListRecipes_Pagination verifies Limit/Offset bound the page and

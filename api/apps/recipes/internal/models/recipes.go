@@ -14,6 +14,7 @@ type Recipe struct {
 	Instructions  string
 	BaseServings  int
 	BatchServings *int
+	IsDraft       bool
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	Ingredients   []Ingredient
