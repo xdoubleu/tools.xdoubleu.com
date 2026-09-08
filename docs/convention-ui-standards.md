@@ -6,7 +6,10 @@
   `npm run build` catches the server/client boundary trap below. The remaining
   rules (mobile-first, async-state wording, `interactiveCardClass`) are review
   — the `mobile-review` skill is that review pass, run after any change under
-  `web/` and before `finish-task`.
+  `web/` and before `finish-task`. Its `npm run mobile:audit` step
+  (`web/scripts/mobile-audit.mjs`) does make part of it a failing check:
+  horizontal overflow, sub-44px tap targets, crowded targets and sub-16px
+  inputs are measured in a real 375x667 viewport and exit non-zero.
 - Issues: #1412
 
 ## Rule

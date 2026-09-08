@@ -1,6 +1,6 @@
 ---
 name: mobile-review
-description: Review freshly-written frontend code in web/ for mobile usability and design problems — touch targets, hover-only affordances, horizontal overflow, iOS input zoom, safe areas, tables and dialogs on a 375px viewport — and report ranked, fix-shaped suggestions. Use after implementing or changing any page or component under web/, or when the user asks to "check this on mobile", "review the mobile design", "is this responsive", "does this work on a phone". Complements `npm run lint`, which enforces the primitives but checks nothing about layout at small widths.
+description: Review freshly-written frontend code in web/ for mobile usability and design problems — measuring horizontal overflow, tap-target size and spacing, and iOS input zoom in a real 375x667 Playwright viewport, then reading the source for what a browser can't see (hover-only affordances, safe areas, themes) — and report ranked, fix-shaped suggestions. Use after implementing or changing any page or component under web/, or when the user asks to "check this on mobile", "review the mobile design", "is this responsive", "does this work on a phone". Complements `npm run lint`, which enforces the primitives but checks nothing about layout at small widths.
 ---
 
 # Mobile review
@@ -35,7 +35,52 @@ against that, not against a laptop window narrowed with a mouse. A second
 pass at 320px is worth it only for pages carrying a table or a wide numeric
 readout.
 
+## Measure first, then read
+
+`npm run mobile:audit` (`web/scripts/mobile-audit.mjs`) drives Playwright at
+375 × 667 in both themes and **measures** the four things that are guesswork
+from source alone:
+
+```bash
+cd web
+npx playwright install chromium      # once per machine
+npm run dev &                        # the audit needs the app running
+npm run mobile:audit -- /trains /books/library
+```
+
+It reports, with the offending elements and their real pixel sizes:
+
+- **`horizontal-overflow`** — `scrollWidth` exceeding the viewport, naming the
+  *outermost* elements that stick out, so one wide child doesn't produce a
+  finding for every ancestor containing it. This is the check the static pass
+  can only guess at: a `min-w-[600px]` is a lead, a measured 640px row in a
+  375px viewport is the bug.
+- **`small-tap-target`** — every visible interactive element under 44 × 44px.
+  A small link *inside* a ≥44px tappable ancestor is not reported, since the
+  card is the real target.
+- **`crowded-tap-targets`** — pairs of targets less than 8px apart.
+- **`ios-focus-zoom`** — fields whose computed font-size is under 16px.
+- **`no-viewport-meta` / `zoom-disabled`** — a missing viewport meta (the page
+  then lays out at ~980px and scales down), or one that blocks pinch-zoom.
+
+Exit code is 1 when anything `broken` is found, so it works as a gate. Useful
+flags: `--json`, `--theme dark`, `--base-url`, `--width`, and
+`--storage-state <file>` for routes behind auth — most of this app is logged
+in, so capture a Playwright storage state once and reuse it rather than
+auditing only the login page. `CHROMIUM_EXECUTABLE_PATH` points at an existing
+Chromium where one is already installed.
+
+Run this **before** reading the source. It turns the checklist below from
+"scan the JSX and worry" into "here are three measured failures, plus the
+things a browser cannot see". If the app genuinely can't be started, fall
+through to the static checks alone and say in the report that the findings are
+unmeasured.
+
 ## Checks
+
+The audit covers overflow, tap targets and input zoom. Everything below is
+either what a browser can't judge or what explains *why* a measured finding
+happened — the static pass names the class to change.
 
 Work through these against the changed files. Each names what to grep for,
 but the grep is a lead — confirm by reading the component and its container.
@@ -46,7 +91,8 @@ but the grep is a lead — confirm by reading the component and its container.
   is too broad here; grep the changed files for `w-[`, `min-w-[`, `max-w-[`,
   `h-[` with a `px` value. A `min-w-[600px]` inside a `flex` row is the single
   most common cause of a page that scrolls sideways.
-- **Horizontal overflow.** Any `flex` row of ≥3 items with no `flex-wrap`, any
+- **Horizontal overflow** (measured by the audit — this is the *cause* side).
+  Any `flex` row of ≥3 items with no `flex-wrap`, any
   `grid-cols-N` (N ≥ 2) without an `sm:`/`md:` prefix — those start at N
   columns on a phone. `grid-cols-1 sm:grid-cols-3` is the correct shape;
   bare `grid-cols-3` is a bug.
@@ -60,13 +106,11 @@ but the grep is a lead — confirm by reading the component and its container.
 
 ### Touch
 
-- **Target size.** Anything tappable wants ~44 × 44px of hit area. Icon-only
-  buttons, close `×` buttons, and inline text links in dense lists are where
-  this breaks — check whether the `components/ui/` primitive being used
-  actually supplies the padding, or whether the call site shrank it with a
-  `size="sm"` / `h-6` override.
-- **Spacing between targets.** Adjacent tap targets closer than ~8px produce
-  mis-taps regardless of their individual size.
+- **Target size and spacing.** The audit measures these; your job is the fix.
+  For each reported element, check whether the `components/ui/` primitive
+  supplies the padding and the call site shrank it (`size="sm"`, `h-6`), or
+  whether the primitive itself is short. Icon-only buttons, close `×` buttons
+  and inline links in dense lists are where this breaks.
 - **Hover-only affordances.** `hover:` with no non-hover equivalent means the
   affordance does not exist on a phone. `group-hover:opacity-100` on a
   reveal-on-hover action is the standard offender. Clickable cards must use
@@ -103,18 +147,18 @@ but the grep is a lead — confirm by reading the component and its container.
 
 ## Steps
 
-1. **Establish scope** per above and read the changed components in full,
-   including the layout that contains them.
+1. **Establish scope** per above, then **run `npm run mobile:audit`** on the
+   affected routes. Read the changed components in full — including the layout
+   that contains them — with the measured findings already in hand.
 
-2. **Run the checks.** For a large diff, delegate the grep sweep to a subagent
+2. **Run the static checks.** For a large diff, delegate the grep sweep to a subagent
    per root `CLAUDE.md`'s "Delegating to Subagents" and have it return only
    the hits with `file:line`, not the matched files.
 
-3. **Optionally look at it.** If the app can be started (`npm run dev`, or the
-   `run` skill) and a browser driver is available, load the changed routes at
-   375 × 667. Static analysis catches most of this list; it cannot catch
-   "the two elements collide" — but a browser is a bonus here, never a
-   prerequisite for reporting.
+3. **Look at it.** Beyond the numbers the audit returns, screenshot the changed
+   routes at 375 × 667 in both themes when something is reported but the cause
+   isn't obvious from the source — collisions and cramped spacing read
+   instantly in a picture and not at all in a class list.
 
 4. **Report, ranked, fix-shaped.** Group as:
    - **Broken on mobile** — unusable or unreachable: sideways scroll, a
@@ -123,18 +167,21 @@ but the grep is a lead — confirm by reading the component and its container.
      zoom.
    - **Polish** — spacing, contrast near the line, wording.
 
-   Each finding gets `file:line`, the concrete failure ("this row is 640px
-   wide at 375px, so the page scrolls sideways"), and the specific Tailwind
-   or primitive change that fixes it. No finding without a fix. If a class is
-   the whole fix, write the class.
+   Each finding gets `file:line`, the concrete failure — with the audit's
+   real numbers where it measured them ("this row is 640px wide in a 375px
+   viewport, so the page scrolls sideways"; "this icon button is 24 × 24px")
+   — and the specific Tailwind or primitive change that fixes it. No finding
+   without a fix. If a class is the whole fix, write the class.
 
 5. **Close the enforcement gap.** For every finding, ask whether ESLint could
    have caught it. Bare `grid-cols-N`, `h-screen`, sub-16px input text and
    fixed-`px` widths in `app/**`/`components/**` all can — they are class-string
    patterns, the same shape as the existing `no-restricted-syntax` JSX rules.
    Add the rule in the same change as the fix; a rule shipped later never
-   ships. Anything genuinely requiring layout judgement stays review-only, and
-   the finding is enough.
+   ships. Anything needing real layout measurement belongs in
+   `scripts/mobile-audit.mjs` as another check instead — that's the same
+   "build the check" move, one level up from a class-string pattern. Only
+   genuine design judgement stays review-only.
 
 6. **Apply the fixes** when the user asked for a review-and-fix, or when the
    findings are small and local. Otherwise report and let them choose. Either

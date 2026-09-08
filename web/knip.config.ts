@@ -1,12 +1,13 @@
 import type { KnipConfig } from 'knip'
 
 const config: KnipConfig = {
-  entry: ['app/**/*.{ts,tsx}', 'lib/client.ts', 'components/**/*.{ts,tsx}'],
+  entry: ['app/**/*.{ts,tsx}', 'lib/client.ts', 'components/**/*.{ts,tsx}', 'scripts/*.mjs'],
   project: [
     'app/**/*.{ts,tsx}',
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
-    'hooks/**/*.{ts,tsx}'
+    'hooks/**/*.{ts,tsx}',
+    'scripts/*.mjs'
   ],
   ignore: ['lib/gen/**'],
   ignoreDependencies: [
