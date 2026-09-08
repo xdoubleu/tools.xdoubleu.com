@@ -24,9 +24,10 @@ import (
 // flagged it in the first place.
 var ErrProposalNotFound = errors.New("resync proposal not found")
 
-// booksResyncSource is the narrow subset of BooksRepository used by the resync
-// path. Defined as an interface so tests can stub it without a real DB.
-type booksResyncSource interface {
+// ResyncSource is the narrow subset of BooksRepository the metadata-resync
+// path depends on. It is a declared dependency of BookService, wired to
+// repositories.Books in production and stubbed in unit tests — never nil.
+type ResyncSource interface {
 	ListCatalogBooks(ctx context.Context) ([]models.Book, error)
 	GetBookByID(ctx context.Context, bookID uuid.UUID) (*models.Book, error)
 	RefreshBookExternalData(
@@ -60,13 +61,10 @@ type booksResyncSource interface {
 	DeleteResyncProposal(ctx context.Context, bookID uuid.UUID) error
 }
 
-// resyncRepo returns the books repo to use for resync operations.
-// Tests may set BookService.booksResync to override the real repository.
-func (s *BookService) resyncRepo() booksResyncSource {
-	if s.booksResync != nil {
-		return s.booksResync
-	}
-	return s.books
+// resyncRepo is the resync path's repository. Always s.booksResync — kept as
+// an accessor so the call sites read uniformly.
+func (s *BookService) resyncRepo() ResyncSource {
+	return s.booksResync
 }
 
 // SourceProposal is one candidate metadata set for a catalog book: either the

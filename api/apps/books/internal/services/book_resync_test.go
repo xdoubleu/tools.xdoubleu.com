@@ -44,7 +44,7 @@ type scanStatusCall struct {
 	hcFound *bool
 }
 
-// fakeBooksResync is a test stub for booksResyncSource.
+// fakeBooksResync is a test stub for ResyncSource.
 type fakeBooksResync struct {
 	books      []models.Book
 	listErr    error

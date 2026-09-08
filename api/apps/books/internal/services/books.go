@@ -46,9 +46,10 @@ type BookService struct {
 	readingState *repositories.BookReadingStateRepository
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
-	// booksResync overrides s.books for the resync path in unit tests.
-	// Nil in production — resyncRepo() falls back to s.books.
-	booksResync booksResyncSource
+	// booksResync is the metadata-resync path's repository dependency —
+	// wired to repositories.Books in production, a stub in unit tests. Always
+	// non-nil; reached through resyncRepo().
+	booksResync ResyncSource
 }
 
 // SearchLibrary searches the user's own library by title/author substring.
