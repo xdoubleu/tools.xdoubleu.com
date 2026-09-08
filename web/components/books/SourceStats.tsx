@@ -89,39 +89,41 @@ export default function SourceStats() {
 
   return (
     <Card className="rounded-2xl p-4">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-muted">
-            <th className="pb-2 font-semibold">Source</th>
-            <th className="pb-2 text-right font-semibold">Found</th>
-            <th className="pb-2 text-right font-semibold">Missed</th>
-            <th className="pb-2 text-right font-semibold">Unique</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.sources.map((s) => (
-            <tr key={s.source} className="border-t border-border">
-              <td className="py-1.5">{sourceLabel(s.source)}</td>
-              <td className="py-1.5 text-right tabular-nums">{s.foundCount}</td>
-              <td className="py-1.5 text-right tabular-nums">{s.missedCount}</td>
-              <td className="py-1.5 text-right tabular-nums">
-                {s.uniqueCount > 0 ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-auto px-1 py-0 tabular-nums"
-                    onClick={() => setOpenSources([s.source])}
-                  >
-                    {s.uniqueCount}
-                  </Button>
-                ) : (
-                  s.uniqueCount
-                )}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-muted">
+              <th className="pb-2 font-semibold">Source</th>
+              <th className="pb-2 text-right font-semibold">Found</th>
+              <th className="pb-2 text-right font-semibold">Missed</th>
+              <th className="pb-2 text-right font-semibold">Unique</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {data.sources.map((s) => (
+              <tr key={s.source} className="border-t border-border">
+                <td className="py-1.5">{sourceLabel(s.source)}</td>
+                <td className="py-1.5 text-right tabular-nums">{s.foundCount}</td>
+                <td className="py-1.5 text-right tabular-nums">{s.missedCount}</td>
+                <td className="py-1.5 text-right tabular-nums">
+                  {s.uniqueCount > 0 ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto px-1 py-0 tabular-nums"
+                      onClick={() => setOpenSources([s.source])}
+                    >
+                      {s.uniqueCount}
+                    </Button>
+                  ) : (
+                    s.uniqueCount
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="mt-3 space-y-0.5 text-xs text-muted">
         <p className="font-medium text-fg">
           {foundTotal} found across all sources (in at least one).

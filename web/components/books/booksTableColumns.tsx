@@ -154,12 +154,20 @@ export const ALL_COLUMNS: BookColumn[] = [
             </Link>
           ))}
           {hiddenCount > 0 && (
-            <span
-              className="text-xs text-muted"
-              title={authors.slice(MAX_AUTHORS_SHOWN).join(', ')}
+            <Popover
+              align="left"
+              trigger={({ onClick }) => (
+                <PopoverTrigger
+                  onClick={onClick}
+                  className="block px-1 py-0.5 -mx-1 -my-0.5 text-xs text-muted"
+                  aria-label="Show all authors"
+                >
+                  +{hiddenCount} more
+                </PopoverTrigger>
+              )}
             >
-              +{hiddenCount} more
-            </span>
+              <p className="text-sm">{authors.slice(MAX_AUTHORS_SHOWN).join(', ')}</p>
+            </Popover>
           )}
         </div>
       )

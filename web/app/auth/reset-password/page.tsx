@@ -62,7 +62,7 @@ export default function ResetPasswordPage() {
               <p className="text-sm text-danger">{error ?? 'Invalid or expired reset link.'}</p>
               <Link
                 href="/auth/forgot-password"
-                className="block text-center text-sm text-accent hover:underline"
+                className="block py-3 text-center text-sm text-accent hover:underline"
               >
                 Request a new reset link
               </Link>
@@ -72,7 +72,7 @@ export default function ResetPasswordPage() {
           {state === 'done' && (
             <div className="mt-6 space-y-4">
               <p className="text-sm text-subtle">Your password has been updated successfully.</p>
-              <Link href="/" className="block text-center text-sm text-accent hover:underline">
+              <Link href="/" className="block py-3 text-center text-sm text-accent hover:underline">
                 Continue to app
               </Link>
             </div>

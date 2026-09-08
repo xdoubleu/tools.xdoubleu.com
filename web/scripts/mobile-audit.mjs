@@ -116,16 +116,31 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
     (el) => visible(el) && el.type !== 'hidden' && !el.disabled
   )
 
+  // A checkbox/radio reached through a <label> — wrapping it, or associated
+  // by `for` — has that label as its real tap target, same as a link inside
+  // a larger tappable card.
+  const labelFor = (el) => {
+    if (el.tagName !== 'INPUT' || (el.type !== 'checkbox' && el.type !== 'radio')) return null
+    return (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label')
+  }
+
   const small = targets
     .map((el) => ({ el, r: el.getBoundingClientRect() }))
     // A link inside a larger tappable card is fine — the card is the target.
     .filter(({ el, r }) => {
       if (r.width >= minTap && r.height >= minTap) return false
-      return !targets.some((o) => {
+      const bigEnoughAncestor = targets.some((o) => {
         if (o === el || !o.contains(el)) return false
         const or = o.getBoundingClientRect()
         return or.width >= minTap && or.height >= minTap
       })
+      if (bigEnoughAncestor) return false
+      const label = labelFor(el)
+      if (label) {
+        const lr = label.getBoundingClientRect()
+        if (lr.width >= minTap && lr.height >= minTap) return false
+      }
+      return true
     })
   if (small.length > 0) {
     findings.push({

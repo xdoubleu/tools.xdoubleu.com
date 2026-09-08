@@ -29,7 +29,7 @@ export default function DeployNotification() {
   if (!newVersionAvailable) return null
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-xs">
+    <div className="fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-50 max-w-xs">
       <Card className="flex items-center gap-3 p-4">
         <p className="flex-1 text-sm text-fg">A new version is available.</p>
         <Button size="sm" onClick={() => window.location.reload()}>
