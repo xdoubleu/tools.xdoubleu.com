@@ -144,12 +144,7 @@ func (s *JourneyService) RefreshWindow(
 	}
 
 	idx := csa.Build(
-		brusselsLoc,
-		windowStart,
-		toCSAStops(stops),
-		toCSATransfers(transfers),
-		toCSAInstances(active),
-		toCSAPatterns(stopTimes),
+		brusselsLoc, windowStart, stops, transfers, active, stopTimes,
 	)
 
 	s.mu.Lock()

@@ -58,6 +58,20 @@ type StopTime struct {
 	DropOffType      int
 }
 
+// ActiveTrip is one (trip, service day) combination resolved from
+// calendar_dates alone — never calendar.txt, which is a decoy in this feed
+// (issue #1390) — for a trip whose service runs on Date. It joins in the
+// route's short name so the router and the journey-detail overlay have
+// everything they need to name a train without a second query.
+type ActiveTrip struct {
+	TripID         string
+	RouteID        string
+	TripShortName  string
+	RouteShortName string
+	TripHeadsign   string
+	Date           time.Time
+}
+
 // CalendarDate is one row of calendar_dates.txt. In this feed every row is
 // exception_type=1 (added) and calendar.txt itself is a decoy (issue #1390).
 type CalendarDate struct {
