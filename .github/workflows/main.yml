@@ -517,6 +517,9 @@ jobs:
           # First-party auth (issue #1039) — see config/deploy.api.yml.
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           OAUTH_HMAC_SECRET: ${{ secrets.OAUTH_HMAC_SECRET }}
+          # OIDC SSO for Grafana (issue #1469) — see config/deploy.api.yml.
+          OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
+          OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           BMC_PARTNER_KEY: ${{ secrets.BMC_PARTNER_KEY }}

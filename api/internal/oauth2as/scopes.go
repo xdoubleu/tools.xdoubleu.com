@@ -7,11 +7,26 @@ import (
 	"github.com/ory/fosite"
 )
 
-// OfflineAccessScope is the scope fosite requires among a request's *granted*
-// scopes before the token endpoint will issue a refresh token. Every client
-// this server registers carries it (see RegisterClient), and it is the only
-// scope this server supports.
-const OfflineAccessScope = "offline_access"
+// The scopes this authorization server understands.
+//
+//   - OfflineAccessScope is what fosite requires among a request's *granted*
+//     scopes before the token endpoint will issue a refresh token. Every
+//     dynamically-registered (MCP) client carries it (see RegisterClient).
+//   - OpenIDScope / ProfileScope / EmailScope drive OIDC ID-token issuance
+//     and its claims (issue #1469); only clients that register them — today
+//     just the static Grafana SSO client — may request them.
+const (
+	OpenIDScope        = "openid"
+	ProfileScope       = "profile"
+	EmailScope         = "email"
+	OfflineAccessScope = "offline_access"
+)
+
+// SupportedScopes is every scope this server advertises in its metadata
+// documents and is willing to grant to a client that has it registered.
+var SupportedScopes = []string{ //nolint:gochecknoglobals // read-only scope list
+	OpenIDScope, ProfileScope, EmailScope, OfflineAccessScope,
+}
 
 // grantOfflineAccess grants offline_access on top of whatever the client
 // actually asked for, provided the registered client is allowed to hold it.

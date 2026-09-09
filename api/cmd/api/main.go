@@ -565,9 +565,29 @@ func NewApplication(
 	}
 
 	oauth2Store := oauth2as.NewStore(spanDB)
-	oauth2Provider := oauth2as.NewProvider(config, oauth2Store)
-	app.oauth2as = &oauth2asWiring{store: oauth2Store, provider: oauth2Provider}
+	oidcKey, oidcKeyGenerated, err := oauth2as.LoadOrGenerateOIDCKey(
+		config.OAuthOIDCPrivateKey,
+	)
+	if err != nil {
+		panic(err)
+	}
+	if oidcKeyGenerated {
+		logger.Warn(
+			"OAUTH_OIDC_PRIVATE_KEY unset — using an ephemeral OIDC signing key; " +
+				"ID tokens issued before a restart will not verify afterwards",
+		)
+	}
+	oauth2Provider := oauth2as.NewProvider(config, oauth2Store, oidcKey)
+	app.oauth2as = &oauth2asWiring{
+		store: oauth2Store, provider: oauth2Provider, oidcKey: oidcKey,
+	}
 	app.auth.OAuth2TokenResolver = oauth2as.NewTokenResolver(oauth2Provider)
+
+	if err = oauth2as.EnsureGrafanaClientSecret(
+		ctx, spanDB, config.OAuthGrafanaClientSecret, logger,
+	); err != nil {
+		panic(err)
+	}
 
 	// Flush accumulated request counts to global.usage_daily periodically;
 	// the loop lives for the process lifetime (ctx is context.Background).

@@ -2,15 +2,19 @@ package oauth2as_test
 
 import (
 	"context"
+	"crypto/rsa"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ory/fosite"
+	"github.com/ory/fosite/handler/openid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/oauth2as"
 	"tools.xdoubleu.com/internal/testhelper"
 )
@@ -20,6 +24,35 @@ func newTestStore(t *testing.T) (*oauth2as.Store, *pgxpool.Pool) {
 	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(db.Close)
 	return oauth2as.NewStore(db), db
+}
+
+// testOIDCKeyOnce caches one generated RSA key across the package's tests —
+// key generation is the slowest part of building a provider, and every test
+// can share the same signing key.
+//
+//nolint:gochecknoglobals // one shared RSA signing key across the package's tests
+var (
+	testOIDCKeyOnce sync.Once
+	testOIDCKeyVal  *rsa.PrivateKey
+)
+
+func testOIDCKey(t *testing.T) *rsa.PrivateKey {
+	t.Helper()
+	testOIDCKeyOnce.Do(func() {
+		key, _, err := oauth2as.LoadOrGenerateOIDCKey("")
+		require.NoError(t, err)
+		testOIDCKeyVal = key
+	})
+	return testOIDCKeyVal
+}
+
+// newTestProvider builds the provider the way cmd/api does, with a shared
+// ephemeral OIDC signing key.
+func newTestProvider(
+	t *testing.T, cfg config.Config, store *oauth2as.Store,
+) fosite.OAuth2Provider {
+	t.Helper()
+	return oauth2as.NewProvider(cfg, store, testOIDCKey(t))
 }
 
 func TestRegisterClient_Validation(t *testing.T) {
@@ -467,4 +500,36 @@ func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {
 	//nolint:exhaustruct //populated by GetPKCERequestSession's json.Unmarshal
 	_, err = store.GetPKCERequestSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrNotFound)
+}
+
+func TestStore_OpenIDConnectSession_RoundTrip(t *testing.T) {
+	store, db := newTestStore(t)
+	ctx := context.Background()
+
+	//nolint:exhaustruct //ClientName is optional
+	client, err := oauth2as.RegisterClient(ctx, db, oauth2as.ClientMetadata{
+		RedirectURIs: []string{"https://example.com/callback"},
+	})
+	require.NoError(t, err)
+
+	request := newTestRequest(t, client, uuid.NewString())
+	code := uuid.NewString()
+
+	require.NoError(t, store.CreateOpenIDConnectSession(ctx, code, request))
+	// Re-creating with the same code upserts rather than conflicting.
+	require.NoError(t, store.CreateOpenIDConnectSession(ctx, code, request))
+
+	//nolint:exhaustruct //populated by GetOpenIDConnectSession's json.Unmarshal
+	got, err := store.GetOpenIDConnectSession(ctx, code, &fosite.Request{
+		Session: &fakeSession{},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, client.ID, got.GetClient().GetID())
+
+	require.NoError(t, store.DeleteOpenIDConnectSession(ctx, code))
+	//nolint:exhaustruct //populated by GetOpenIDConnectSession's json.Unmarshal
+	_, err = store.GetOpenIDConnectSession(ctx, code, &fosite.Request{
+		Session: &fakeSession{},
+	})
+	require.ErrorIs(t, err, openid.ErrNoSessionFound)
 }

@@ -3,6 +3,7 @@ package oauth2as_test
 import (
 	"context"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -53,6 +54,7 @@ type oauth2asTestServer struct {
 	store    *oauth2as.Store
 	db       *pgxpool.Pool
 	provider fosite.OAuth2Provider
+	key      *rsa.PrivateKey
 	userID   string
 	// logs captures every record the handlers emit, so observe_test.go can
 	// assert on the severity of a rejection and on what it did (and didn't)
@@ -64,11 +66,17 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	t.Helper()
 	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	key := testOIDCKey(t)
+	provider := oauth2as.NewProvider(cfg, store, key)
 	userID := uuid.NewString()
 
-	resolveUser := func(_ *http.Request) (string, bool) {
-		return userID, true
+	resolveUser := func(_ *http.Request) (oauth2as.ResolvedUser, bool) {
+		return oauth2as.ResolvedUser{
+			ID:          userID,
+			Email:       "e2e-user@example.com",
+			DisplayName: "E2E User",
+			IsAdmin:     true,
+		}, true
 	}
 
 	logs := newRecordCapture()
@@ -77,17 +85,20 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	mux := http.NewServeMux()
 	mux.HandleFunc(
 		"/oauth2/authorize",
-		oauth2as.AuthorizeHandler(provider, cfg, resolveUser, logger),
+		oauth2as.AuthorizeHandler(
+			provider, cfg, resolveUser, oauth2as.OIDCKeyID(key), logger,
+		),
 	)
 	mux.HandleFunc("/oauth2/token", oauth2as.TokenHandler(provider, logger))
 	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store, logger))
 	mux.HandleFunc("/oauth2/consent-info", oauth2as.ConsentInfoHandler(store))
+	mux.HandleFunc("/oauth2/jwks", oauth2as.JWKSHandler(key))
 
 	ts := httptest.NewServer(mux)
 	t.Cleanup(ts.Close)
 
 	return &oauth2asTestServer{
-		ts: ts, store: store, db: db, provider: provider,
+		ts: ts, store: store, db: db, provider: provider, key: key,
 		userID: userID, logs: logs,
 	}
 }

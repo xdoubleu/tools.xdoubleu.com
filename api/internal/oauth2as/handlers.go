@@ -8,16 +8,18 @@ import (
 	"strings"
 
 	"github.com/ory/fosite"
+	"github.com/ory/fosite/handler/openid"
 
 	"tools.xdoubleu.com/internal/config"
 )
 
 // SessionUserResolver resolves the currently-authenticated web session's
-// user ID from the request's own session cookie — passed in from cmd/api
-// (the composition root, which is the only place both internal/auth and
+// user (identity plus the attributes the ID-token claims are built from)
+// from the request's own session cookie — passed in from cmd/api (the
+// composition root, which is the only place both internal/auth and
 // internal/oauth2as are wired together) rather than imported directly here,
 // to avoid a cycle between the two packages.
-type SessionUserResolver func(r *http.Request) (userID string, ok bool)
+type SessionUserResolver func(r *http.Request) (user ResolvedUser, ok bool)
 
 // AuthorizeHandler implements the /oauth2/authorize endpoint. The first hit
 // (no consent decision yet) redirects to the web app's own consent page;
@@ -27,6 +29,7 @@ func AuthorizeHandler(
 	provider fosite.OAuth2Provider,
 	cfg config.Config,
 	resolveUser SessionUserResolver,
+	signingKeyID string,
 	logger *slog.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +64,7 @@ func AuthorizeHandler(
 			return
 		}
 
-		userID, ok := resolveUser(r)
+		user, ok := resolveUser(r)
 		if !ok {
 			logOAuthError(
 				ctx, logger, endpointAuthorize, ar, fosite.ErrRequestUnauthorized,
@@ -81,8 +84,7 @@ func AuthorizeHandler(
 		}
 		grantOfflineAccess(ar)
 
-		//nolint:exhaustruct //other DefaultSession fields are optional
-		session := &fosite.DefaultSession{Subject: userID}
+		session := newAuthorizeSession(user, signingKeyID, ar.GetGrantedScopes())
 		resp, err := provider.NewAuthorizeResponse(ctx, ar, session)
 		if err != nil {
 			logOAuthError(ctx, logger, endpointAuthorize, ar, err)
@@ -103,8 +105,11 @@ func TokenHandler(
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		//nolint:exhaustruct //other DefaultSession fields are optional
-		session := &fosite.DefaultSession{}
+		// openid.DefaultSession (not fosite.DefaultSession): the OIDC token
+		// handlers require a session that carries ID-token claims. For the
+		// non-OIDC (MCP) flow it behaves identically — Subject still round-
+		// trips and no ID token is issued without the openid scope.
+		session := openid.NewDefaultSession()
 		ar, err := provider.NewAccessRequest(ctx, r, session)
 		if err != nil {
 			logOAuthError(ctx, logger, endpointToken, ar, err)

@@ -93,14 +93,14 @@ func (app *Application) Routes() http.Handler {
 		"GET "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.logger,
+			app.oauth2SessionUserResolver(), app.oauth2as.oidcKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(
 		"POST "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
 			app.oauth2as.provider, app.config,
-			app.oauth2SessionUserResolver(), app.logger,
+			app.oauth2SessionUserResolver(), app.oauth2as.oidcKeyID(), app.logger,
 		),
 	)
 	mux.HandleFunc(
@@ -119,6 +119,14 @@ func (app *Application) Routes() http.Handler {
 	// (defaults to APIURL's "/api").
 	mux.HandleFunc(
 		"GET "+oauth2MetadataPath+"/api", app.oauth2MetadataHandler(),
+	)
+	// OIDC discovery (issue #1469): the same document at the well-known
+	// openid-configuration path, plus the JWKS a relying party (Grafana)
+	// needs to verify ID-token signatures.
+	mux.HandleFunc("GET "+openIDConfigurationPath, app.oauth2MetadataHandler())
+	mux.HandleFunc("GET "+openIDConfigurationPath+"/api", app.oauth2MetadataHandler())
+	mux.HandleFunc(
+		"GET "+oauth2JWKSPath, oauth2as.JWKSHandler(app.oauth2as.oidcKey),
 	)
 
 	// Browser-facing OAuth connect flow for the observability integrations

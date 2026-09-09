@@ -1,6 +1,6 @@
 # ADR-0006: Embed `ory/fosite` as the MCP authorization server, and grant `offline_access` server-side
 
-- Status: Accepted
+- Status: Accepted — extended by ADR-0021 (OIDC + confidential clients)
 - Issues: #1039, #1177
 - Affects: `api/internal/oauth2as/`, `api/cmd/api/oauth2as.go`, `api/cmd/api/mcp.go`, `web/app/oauth/consent`
 
@@ -75,10 +75,15 @@ slog, which is why `observe.go` exists as a separate layer.
 - **Credentials must never be logged.** The request form carries the code, the
   PKCE verifier and the refresh token. `TestObserve_NeverLogsCredentials` is the
   guard — keep it passing.
-- Adding a second scope means revisiting `grantOfflineAccess`, which currently
-  assumes one supported scope.
+- Adding a second scope means revisiting `grantOfflineAccess`. ADR-0021 did
+  this — it now grants `offline_access` on top of whatever was requested only
+  when the client is registered for it, and `openid`/`profile`/`email` were
+  added alongside.
 - See root `README.md` for the client-setup command.
 
 ## Revisit when
 
-A second OAuth scope or a non-MCP OAuth client becomes a requirement.
+Superseded in part by ADR-0021: the "non-MCP OAuth client" trigger has fired
+(Grafana). This ADR still governs the MCP flow, the consent page and the
+rejection-logging policy; the OIDC/confidential-client extension lives in
+ADR-0021.

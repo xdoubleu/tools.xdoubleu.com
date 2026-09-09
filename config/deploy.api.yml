@@ -150,6 +150,16 @@ env:
     # concern. Rotating this invalidates every issued MCP OAuth token —
     # connected MCP clients must redo the one-time consent flow.
     - OAUTH_HMAC_SECRET
+    # PEM-encoded RSA private key signing the embedded authorization
+    # server's OIDC ID tokens (issue #1469); its public half is published
+    # at /oauth2/jwks. If unset the api generates an ephemeral key on every
+    # boot, so previously-issued ID tokens stop verifying after a restart —
+    # fine for a single relying party (Grafana) that just re-logs-in.
+    - OAUTH_OIDC_PRIVATE_KEY
+    # Plaintext client secret for the static confidential "grafana" OAuth
+    # client (issue #1469). The api reconciles its bcrypt hash into
+    # auth.oauth2_clients on startup. Unset leaves Grafana SSO unusable.
+    - OAUTH_GRAFANA_CLIENT_SECRET
     # Everything below is a repo Secret read by .github/workflows/main.yml's
     # deploy-kamal job (export the same names by hand for a manual deploy).
     # They are deliberately NOT tfvars: Tofu provisions the host, it doesn't

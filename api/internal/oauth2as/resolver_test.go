@@ -32,7 +32,7 @@ func hmacStrategyFor(t *testing.T) fositeoauth2.CoreStrategy {
 func TestResolveAccessToken_ValidToken(t *testing.T) {
 	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	provider := newTestProvider(t, cfg, store)
 	resolver := oauth2as.NewTokenResolver(provider)
 
 	//nolint:exhaustruct //ClientName is optional
@@ -78,7 +78,7 @@ func TestResolveAccessToken_ValidToken(t *testing.T) {
 func TestResolveAccessToken_GarbageToken(t *testing.T) {
 	store, _ := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	provider := newTestProvider(t, cfg, store)
 	resolver := oauth2as.NewTokenResolver(provider)
 
 	_, err := resolver.ResolveAccessToken(context.Background(), "not-a-real-token")
@@ -88,7 +88,7 @@ func TestResolveAccessToken_GarbageToken(t *testing.T) {
 func TestResolveAccessToken_ExpiredToken(t *testing.T) {
 	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	provider := newTestProvider(t, cfg, store)
 	resolver := oauth2as.NewTokenResolver(provider)
 
 	//nolint:exhaustruct //ClientName is optional
@@ -132,7 +132,7 @@ func TestResolveAccessToken_ExpiredToken(t *testing.T) {
 func TestResolveAccessToken_NoSubject(t *testing.T) {
 	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	provider := newTestProvider(t, cfg, store)
 	resolver := oauth2as.NewTokenResolver(provider)
 
 	//nolint:exhaustruct //ClientName is optional
@@ -176,7 +176,7 @@ func TestResolveAccessToken_NoSubject(t *testing.T) {
 func TestResolveAccessToken_RevokedToken(t *testing.T) {
 	store, db := newTestStore(t)
 	cfg := testhelper.NewTestConfig()
-	provider := oauth2as.NewProvider(cfg, store)
+	provider := newTestProvider(t, cfg, store)
 	resolver := oauth2as.NewTokenResolver(provider)
 
 	//nolint:exhaustruct //ClientName is optional

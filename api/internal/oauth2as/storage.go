@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/ory/fosite"
 	"github.com/ory/fosite/handler/oauth2"
+	"github.com/ory/fosite/handler/openid"
 	"github.com/ory/fosite/handler/pkce"
 
 	"tools.xdoubleu.com/internal/database/postgres"
@@ -55,10 +56,11 @@ func NewStore(db postgres.DB) *Store {
 }
 
 var (
-	_ fosite.Storage                = (*Store)(nil)
-	_ oauth2.CoreStorage            = (*Store)(nil)
-	_ oauth2.TokenRevocationStorage = (*Store)(nil)
-	_ pkce.PKCERequestStorage       = (*Store)(nil)
+	_ fosite.Storage                     = (*Store)(nil)
+	_ oauth2.CoreStorage                 = (*Store)(nil)
+	_ oauth2.TokenRevocationStorage      = (*Store)(nil)
+	_ pkce.PKCERequestStorage            = (*Store)(nil)
+	_ openid.OpenIDConnectRequestStorage = (*Store)(nil)
 )
 
 func toPersisted(requester fosite.Requester) (*persistedRequest, error) {
@@ -365,6 +367,63 @@ func (s *Store) GetPKCERequestSession(
 func (s *Store) DeletePKCERequestSession(ctx context.Context, signature string) error {
 	_, err := s.db.Exec(
 		ctx, `DELETE FROM auth.oauth2_pkce_requests WHERE signature = $1`, signature,
+	)
+	return err
+}
+
+// --- OpenIDConnectRequestStorage ---
+
+// CreateOpenIDConnectSession stores the authorize-time request (including the
+// session's fully-populated ID-token claims) keyed by the authorization code,
+// so the token endpoint can mint the ID token from it. Only reached when the
+// openid scope was granted — the MCP flow never writes here.
+func (s *Store) CreateOpenIDConnectSession(
+	ctx context.Context, authorizeCode string, requester fosite.Requester,
+) error {
+	pr, err := toPersisted(requester)
+	if err != nil {
+		return err
+	}
+	raw, err := json.Marshal(pr)
+	if err != nil {
+		return err
+	}
+	_, err = s.db.Exec(ctx, `
+		INSERT INTO auth.oauth2_oidc_sessions (signature, request, client_id, expires_at)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (signature) DO UPDATE SET
+			request = EXCLUDED.request, expires_at = EXCLUDED.expires_at
+	`, authorizeCode, raw, pr.ClientID, time.Now().Add(authorizeCodeLifespan))
+	return err
+}
+
+func (s *Store) GetOpenIDConnectSession(
+	ctx context.Context, authorizeCode string, requester fosite.Requester,
+) (fosite.Requester, error) {
+	var raw []byte
+	err := s.db.QueryRow(ctx, `
+		SELECT request FROM auth.oauth2_oidc_sessions WHERE signature = $1
+	`, authorizeCode).Scan(&raw)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, openid.ErrNoSessionFound
+		}
+		return nil, err
+	}
+	var pr persistedRequest
+	if err = json.Unmarshal(raw, &pr); err != nil {
+		return nil, err
+	}
+	return s.fromPersisted(ctx, &pr, requester.GetSession())
+}
+
+func (s *Store) DeleteOpenIDConnectSession(
+	ctx context.Context, authorizeCode string,
+) error {
+	_, err := s.db.Exec(
+		ctx,
+		`DELETE FROM auth.oauth2_oidc_sessions WHERE signature = $1`,
+		authorizeCode,
 	)
 	return err
 }

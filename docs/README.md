@@ -41,6 +41,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0018](adr-0018-completion-average-population.md) | Which games the Steam completion averages count | #1375, #1424 |
 | [adr-0019](adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) | Trains router warmed off the request path; the two GTFS feeds correlated by `(trip_short_name, service date)` | #1388, #1390, #1391, #1484 |
 | [adr-0020](adr-0020-ui-configured-alert-delivery-channel.md) | One global email/Slack alert-delivery switch; webhook URL stored DB-encrypted and set in the UI; digests stay email-only | #1482 |
+| [adr-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md) | The embedded AS also issues OIDC ID tokens and supports confidential clients (Grafana SSO) | #1469 |
 
 ## Conventions
 
