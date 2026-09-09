@@ -5,16 +5,16 @@
 # instance and domain). This is the third Kamal service on this host, added
 # alongside `api`/`web` rather than replacing either.
 #
-# Unlike api/web, this deploys the stock `grafana/grafana-oss` image
-# straight from Docker Hub — there is no build step, no GHCR push. issue
-# #1504: an earlier version of this file assumed anonymous Docker Hub pulls
-# needed no `registry:` block at all, but Kamal's config schema requires
-# registry.username/password unconditionally, exactly like ghcr.io in
-# api/web's own configs ("confirmed via `kamal config`") — it failed
-# `kamal deploy` on main with `ConfigurationError: registry/username: is
-# required` before ever attempting a pull. A free-tier Docker Hub account's
-# credentials are needed below purely to satisfy that schema check, not
-# because the image itself requires auth to pull.
+# Like api/web, this deploys a thin wrapper image this repo builds and
+# pushes itself (infra/grafana.Dockerfile + build-grafana.yml), not the
+# stock `grafana/grafana-oss` image directly (issue #1509) — Kamal's
+# `validate_image` step requires every deployed image to carry a `service`
+# docker label matching `service:` below, which the upstream image has no
+# way to carry. The wrapper adds nothing else (`FROM grafana/grafana-oss:X`
+# plus that one label), pushed to this repo's own GHCR namespace so the
+# existing KAMAL_REGISTRY_USERNAME/PASSWORD credentials work unchanged —
+# no separate Docker Hub account needed (#1505's DOCKERHUB_USERNAME/TOKEN
+# were a dead end, reverted here).
 #
 # Grafana is the metrics/graphing/alerting half of issue #1468 — Prometheus
 # and postgres_exporter are Kamal-adjacent but NOT Kamal services: they run
@@ -27,16 +27,11 @@
 # kamal-proxy instance, which only routes to Kamal-managed containers.
 
 service: tools-xdoubleu-com-grafana
-# No tag here (issue #1507) — Kamal builds its pull reference as
-# "<image>:<version>", and the "Deploy grafana via Kamal" step passes
-# --version="12.1.1" (not $KAMAL_VERSION/the commit SHA, unlike api/web)
-# precisely so that concatenation produces grafana/grafana-oss:12.1.1.
-# Tagging the image here too doubled up into the invalid reference
-# grafana-oss:12.1.1:<sha> and failed every deploy with
-# "docker stderr: invalid reference format". Bumping Grafana's version
-# means updating both this comment's expectation and the workflow's
-# --version value together.
-image: grafana/grafana-oss
+# No `ghcr.io/` prefix, no tag — same reasoning as deploy.api.yml/
+# deploy.web.yml: registry.server below supplies the registry, and Kamal
+# appends --version (the commit SHA the "Deploy grafana via Kamal" step
+# passes) as the tag itself.
+image: xdoubleu/tools.xdoubleu.com/grafana
 
 servers:
   web:
@@ -50,16 +45,11 @@ builder:
   arch:
     - amd64
 
-# Real Docker Hub credentials, not GHCR's — KAMAL_REGISTRY_USERNAME/PASSWORD
-# (api/web's registry secrets) authenticate against ghcr.io and would be
-# rejected here as invalid Docker Hub credentials. Any Docker Hub account
-# works: the image is public, so this token needs no special permissions —
-# it only exists to satisfy Kamal's schema requirement (see comment above).
 registry:
-  server: docker.io
-  username: <%= ENV.fetch("DOCKERHUB_USERNAME") %>
+  server: ghcr.io
+  username: <%= ENV.fetch("KAMAL_REGISTRY_USERNAME") %>
   password:
-    - DOCKERHUB_TOKEN
+    - KAMAL_REGISTRY_PASSWORD
 
 proxy:
   # Same shared host as deploy.api.yml/deploy.web.yml. No `ssl` key here —

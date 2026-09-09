@@ -82,9 +82,8 @@ check_service web "$root/config/deploy.web.yml"
 check_service grafana "$root/config/deploy.grafana.yml"
 
 # Informational only: names sitting in .kamal/secrets that no deploy config
-# references. KAMAL_*/DOCKERHUB_* are consumed by Kamal's own config schema
-# (registry: auth, issue #1504's Docker Hub credentials included), not via
-# env.secret, so they are expected orphans.
+# references. KAMAL_* are consumed by Kamal's own config schema (registry:
+# auth), not via env.secret, so they are expected orphans.
 all_cfg_secrets="$(
 	{ extract_config_secrets "$root/config/deploy.api.yml"
 	  extract_config_secrets "$root/config/deploy.web.yml"
@@ -92,7 +91,7 @@ all_cfg_secrets="$(
 )"
 while IFS= read -r name; do
 	[ -n "$name" ] || continue
-	case "$name" in KAMAL_*|DOCKERHUB_*) continue ;; esac
+	case "$name" in KAMAL_*) continue ;; esac
 	in_list "$name" "$all_cfg_secrets" || echo "note: .kamal/secrets defines '$name' but no deploy config references it (dead entry?)" >&2
 done <<<"$defined"
 
