@@ -15,13 +15,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge'
 import type {
   GetSlowTransactionsResponse,
-  GetAlertStatesResponse,
   SlowTransaction
 } from '@/lib/gen/observability/v1/observability_pb'
 import {
   formatCount,
   formatDuration,
-  slowTransactionThresholds,
   isSlowTransaction,
   CATEGORICAL_PALETTE,
   chartTooltipStyle
@@ -55,17 +53,14 @@ export interface SpanBar {
 // bar chart plots, sorted slowest-first (the API already returns `current`
 // sorted this way, but re-sorting here keeps the chart correct even if a
 // caller passes an already-filtered subset in a different order).
-export function toSpanBars(
-  current: SlowTransaction[],
-  thresholds: Record<string, number>
-): SpanBar[] {
+export function toSpanBars(current: SlowTransaction[]): SpanBar[] {
   return current
     .map((t) => ({
       key: `${t.project}-${t.transaction}`,
       label: `${t.project} · ${t.transaction}`,
       p95: t.p95DurationMs,
       requests: Number(t.requestCount),
-      slow: isSlowTransaction(t.transaction, t.p95DurationMs, thresholds)
+      slow: isSlowTransaction(t.transaction, t.p95DurationMs)
     }))
     .sort((a, b) => b.p95 - a.p95)
 }
@@ -85,26 +80,22 @@ function SpanTooltip({ active, payload }: { active?: boolean; payload?: { payloa
 
 export default function SlowTransactionsCard({
   data,
-  alertStates,
   filtered = false
 }: {
   data?: GetSlowTransactionsResponse
-  alertStates?: GetAlertStatesResponse
   // filtered restricts `current` to rows currently breaching their class's
   // threshold, and hides the "Getting slower" trending section entirely —
   // used on the Issues page (issue #1308), which shows only what currently
-  // needs attention, unlike the unfiltered exhaustive view on
-  // /monitoring/observability.
+  // needs attention.
   filtered?: boolean
 }) {
-  const thresholds = slowTransactionThresholds(alertStates)
   const allCurrent = data?.current ?? []
   const current = filtered
-    ? allCurrent.filter((t) => isSlowTransaction(t.transaction, t.p95DurationMs, thresholds))
+    ? allCurrent.filter((t) => isSlowTransaction(t.transaction, t.p95DurationMs))
     : allCurrent
   const trending = filtered ? [] : (data?.trending ?? [])
 
-  const bars = toSpanBars(current, thresholds)
+  const bars = toSpanBars(current)
   const hasSlowBar = bars.some((b) => b.slow)
   const chartHeight = Math.max(160, bars.length * 32)
 

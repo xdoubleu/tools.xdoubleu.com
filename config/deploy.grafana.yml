@@ -1,0 +1,124 @@
+# Kamal's deploy config for Grafana (issue #1468) — modeled on
+# config/deploy.api.yml/deploy.web.yml, see that file's header comment for
+# the shared conventions (ERB, why KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME
+# can't be committed literally, the three services sharing one kamal-proxy
+# instance and domain). This is the third Kamal service on this host, added
+# alongside `api`/`web` rather than replacing either.
+#
+# Unlike api/web, this deploys the stock `grafana/grafana-oss` image
+# straight from Docker Hub — there is no build step, no GHCR push, and (per
+# Kamal's docs) no `registry:` block is required for an anonymous pull of a
+# public Docker Hub image, unlike ghcr.io which api/web's own configs note
+# requires registry.username/password even for a public package. If a
+# future Docker Hub rate-limit or policy change makes anonymous pulls
+# unreliable, add a `registry:` block here with a (free-tier) Docker Hub
+# account's credentials as two more Kamal secrets.
+#
+# Grafana is the metrics/graphing/alerting half of issue #1468 — Prometheus
+# and postgres_exporter are Kamal-adjacent but NOT Kamal services: they run
+# as a plain docker-compose accessory (infra/prometheus-compose.yml,
+# provisioned by OpenTofu the same way infra/postgres-compose.yml and
+# infra/node-exporter-compose.yml are — see infra/README.md), bound to the
+# internal `kamal` Docker network only, never a host port. Grafana itself
+# IS a Kamal service (not a compose accessory) because it needs to be
+# reachable at a public path (proxy.path_prefix below) through the shared
+# kamal-proxy instance, which only routes to Kamal-managed containers.
+
+service: tools-xdoubleu-com-grafana
+image: grafana/grafana-oss:12.1.1
+
+servers:
+  web:
+    hosts:
+      - <%= ENV.fetch("KAMAL_SERVER_IP") %>
+
+ssh:
+  user: deploy
+
+builder:
+  arch:
+    - amd64
+
+proxy:
+  # Same shared host as deploy.api.yml/deploy.web.yml. No `ssl` key here —
+  # same reasoning as deploy.api.yml: TLS is declared once, on the root path
+  # service (deploy.web.yml), and a path-prefixed service inherits it.
+  host: tools.xdoubleu.com
+  app_port: 3000
+  # Grafana is served under /grafana. strip_path_prefix is deliberately
+  # false: Grafana must see the /grafana prefix in incoming request paths
+  # itself (not have it silently stripped by kamal-proxy) so its own
+  # asset/API links, generated relative to GF_SERVER_ROOT_URL below, resolve
+  # correctly — this is the same reasoning api/'s own path_prefix comment
+  # gives for /api, and it's why GF_SERVER_SERVE_FROM_SUB_PATH is set below
+  # rather than trying to have kamal-proxy strip the prefix and Grafana
+  # serve from "/". It also matches the redirect URI already seeded in
+  # api/cmd/api/migrations/00045_seed_grafana_oauth_client.sql
+  # (https://tools.xdoubleu.com/grafana/login/generic_oauth), which assumes
+  # /grafana is NOT stripped before reaching Grafana.
+  path_prefix: "/grafana"
+  strip_path_prefix: false
+  healthcheck:
+    # Grafana's own liveness endpoint, checked directly over the internal
+    # Docker network — bypasses the public path_prefix routing entirely,
+    # same pattern as api's/web's own healthcheck.
+    path: /grafana/api/health
+    interval: 10
+    timeout: 5
+
+env:
+  clear:
+    GF_SERVER_ROOT_URL: https://tools.xdoubleu.com/grafana
+    GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    # Local admin/password login stays enabled (not
+    # GF_AUTH_DISABLE_LOGIN_FORM) as a break-glass path if the embedded
+    # OIDC provider (api) is ever unreachable — SSO is the default via
+    # generic_oauth below, not the only way in.
+    GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+    GF_AUTH_GENERIC_OAUTH_NAME: "tools.xdoubleu.com"
+    GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+    # OIDC discovery against the embedded authorization server (issue
+    # #1469/ADR-0021) — api/cmd/api/routes.go serves this at both
+    # /.well-known/openid-configuration and (RFC 8414 path-insertion,
+    # since AuthIssuer's own path is /api) .../api/.well-known/....
+    # Grafana's own discovery client expects the bare (non-/api) form.
+    GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://tools.xdoubleu.com/oauth2/authorize
+    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://tools.xdoubleu.com/oauth2/token
+    GF_AUTH_GENERIC_OAUTH_API_URL: ""
+    # role/login attributes read straight off the OIDC ID token's claims
+    # (ADR-0021's "Role claim" section) rather than a separate userinfo
+    # call — role_attribute_strict means an unmapped/missing role claim
+    # refuses the login rather than silently defaulting to Viewer.
+    GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH: preferred_username
+    GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "role"
+    GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true"
+    GF_AUTH_GENERIC_OAUTH_USE_PKCE: "true"
+    GF_AUTH_GENERIC_OAUTH_SCOPES: "openid profile email"
+    # Contact point (issue #1468's "least load-bearing part"): Grafana's own
+    # SMTP client, reusing the same Resend account api's mailer already
+    # uses — Resend's SMTP relay accepts an API key as the SMTP password
+    # (issue: no separate Grafana-specific mail credential needed).
+    GF_SMTP_ENABLED: "true"
+    GF_SMTP_HOST: smtp.resend.com:587
+    GF_SMTP_USER: resend
+  secret:
+    # Deploy-time SHA for Footer/version-display parity with api/web, even
+    # though Grafana has no such footer today — kept for consistency with
+    # the other two services' env.clear/secret shape and possible future use
+    # (e.g. an annotation on deploys).
+    - RELEASE
+    # Same static "grafana" OAuth client secret api reconciles into
+    # auth.oauth2_clients on boot (OAUTH_GRAFANA_CLIENT_SECRET, issue
+    # #1469) — Grafana is the other half of that pair.
+    - OAUTH_GRAFANA_CLIENT_SECRET
+    # Break-glass local admin password (GF_SECURITY_ADMIN_PASSWORD, Grafana's
+    # own env var name — Kamal secrets are matched by the name in
+    # .kamal/secrets, not restricted to GF_ prefixed names, so this Kamal
+    # secret name IS the container env var name here, unlike GITHUB_OAUTH_*
+    # below which get renamed).
+    - GF_SECURITY_ADMIN_PASSWORD
+    # Reused from api's own secret list — same Resend account, no new
+    # credential to provision. GF_SMTP_PASSWORD is Grafana's expected env
+    # var name for the SMTP password.
+    - GF_SMTP_PASSWORD
+    - GF_SMTP_FROM_ADDRESS

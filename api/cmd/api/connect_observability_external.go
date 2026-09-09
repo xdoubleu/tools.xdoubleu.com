@@ -11,7 +11,6 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -159,84 +158,6 @@ func (h *obsConnectHandler) failedJobNames(
 		}
 	}
 	return names
-}
-
-func (h *obsConnectHandler) GetWorkflowRunStats(
-	ctx context.Context,
-	req *connect.Request[observabilityv1.GetWorkflowRunStatsRequest],
-) (*connect.Response[observabilityv1.GetWorkflowRunStatsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	resp, err := h.workflowRunStats(ctx, req.Msg.GetWindowDays())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(resp), nil
-}
-
-// workflowRunStats reports aggregated CI duration/failure history rather
-// than a raw run list (issue #1217): main_failures should always be empty —
-// deploys run straight off a passing push to main — and the two duration
-// breakdowns answer "how long does CI normally take" and "which job is
-// slow" without dumping every recorded run.
-func (h *obsConnectHandler) workflowRunStats(
-	ctx context.Context, windowDays int32,
-) (*observabilityv1.GetWorkflowRunStatsResponse, error) {
-	if windowDays <= 0 {
-		windowDays = defaultWindowDays
-	}
-	since := time.Now().Add(-time.Duration(windowDays) * 24 * time.Hour)
-
-	failures, err := h.app.workflowRunsRepo.MainFailures(ctx, "main", "failure", since)
-	if err != nil {
-		return nil, err
-	}
-	protoFailures := make([]*observabilityv1.MainBranchFailure, len(failures))
-	for i, f := range failures {
-		protoFailures[i] = &observabilityv1.MainBranchFailure{
-			RunId:        f.RunID,
-			WorkflowName: f.WorkflowName,
-			Url:          f.URL,
-			CompletedAt:  f.CompletedAt.Format(time.RFC3339),
-		}
-	}
-
-	workflowStats, err := h.app.workflowRunsRepo.WorkflowDurationStats(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	protoWorkflowStats := make(
-		[]*observabilityv1.WorkflowDurationStat, len(workflowStats),
-	)
-	for i, s := range workflowStats {
-		protoWorkflowStats[i] = &observabilityv1.WorkflowDurationStat{
-			WorkflowName:  s.WorkflowName,
-			AvgDurationMs: s.AvgDurationMs,
-			P95DurationMs: s.P95DurationMs,
-			RunCount:      s.RunCount,
-		}
-	}
-
-	jobStats, err := h.app.workflowRunsRepo.JobDurationStats(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	protoJobStats := make([]*observabilityv1.JobDurationStat, len(jobStats))
-	for i, s := range jobStats {
-		protoJobStats[i] = &observabilityv1.JobDurationStat{
-			JobName:       s.JobName,
-			AvgDurationMs: s.AvgDurationMs,
-			P95DurationMs: s.P95DurationMs,
-			RunCount:      s.RunCount,
-		}
-	}
-
-	return &observabilityv1.GetWorkflowRunStatsResponse{
-		MainFailures:          protoFailures,
-		WorkflowDurationStats: protoWorkflowStats,
-		JobDurationStats:      protoJobStats,
-	}, nil
 }
 
 func (h *obsConnectHandler) GetSecurityAlerts(
@@ -510,47 +431,6 @@ func (h *obsConnectHandler) slowTransactions(
 	return resp, nil
 }
 
-func (h *obsConnectHandler) GetTransactionLatencyHistory(
-	ctx context.Context,
-	req *connect.Request[observabilityv1.GetTransactionLatencyHistoryRequest],
-) (*connect.Response[observabilityv1.GetTransactionLatencyHistoryResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	resp, err := h.transactionLatencyHistory(ctx, req.Msg.GetWindowDays())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(resp), nil
-}
-
-// transactionLatencyHistory returns every stored (project, transaction)
-// series over the window flat and unfiltered — the client pivots and picks
-// which series to plot.
-func (h *obsConnectHandler) transactionLatencyHistory(
-	ctx context.Context,
-	windowDays int32,
-) (*observabilityv1.GetTransactionLatencyHistoryResponse, error) {
-	points, err := h.app.transactionLatencyRepo.History(ctx, windowSince(windowDays))
-	if err != nil {
-		return nil, err
-	}
-
-	protoPoints := make([]*observabilityv1.TransactionLatencyPoint, len(points))
-	for i, p := range points {
-		protoPoints[i] = &observabilityv1.TransactionLatencyPoint{
-			Day:           p.Day.Format("2006-01-02"),
-			Project:       p.Project,
-			Transaction:   p.Transaction,
-			P95DurationMs: p.P95DurationMs,
-			RequestCount:  p.RequestCount,
-		}
-	}
-	return &observabilityv1.GetTransactionLatencyHistoryResponse{
-		Points: protoPoints,
-	}, nil
-}
-
 // protoSlowTransactions sorts stats slowest-first and caps it to
 // currentSlowTransactionsLimit — ListTransactionStats returns a broad
 // sample (not necessarily pre-sorted after project filtering), this is the
@@ -577,80 +457,6 @@ func protoSlowTransactions(
 		}
 	}
 	return protoStats
-}
-
-// hostMetricsHistoryPoint is the shared shape behind cpu/memory/disk_history
-// — factored out so protoHostMetricsResponse doesn't repeat itself building
-// three near-identical slices.
-type hostMetricPointSource func(models.HostMetricSample) float64
-
-func (h *obsConnectHandler) GetHostMetrics(
-	ctx context.Context,
-	req *connect.Request[observabilityv1.GetHostMetricsRequest],
-) (*connect.Response[observabilityv1.GetHostMetricsResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-
-	resp, err := h.hostMetrics(ctx, req.Msg.GetSince())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(resp), nil
-}
-
-func (h *obsConnectHandler) hostMetrics(
-	ctx context.Context, since string,
-) (*observabilityv1.GetHostMetricsResponse, error) {
-	sinceTime := time.Now().Add(-defaultWindowDays * 24 * time.Hour)
-	if since != "" {
-		if parsed, err := time.Parse(time.RFC3339, since); err == nil {
-			sinceTime = parsed
-		}
-	}
-
-	samples, err := h.app.hostMetricsRepo.Since(ctx, sinceTime)
-	if err != nil {
-		return nil, err
-	}
-
-	resp := &observabilityv1.GetHostMetricsResponse{
-		CpuHistory: hostMetricHistory(samples, func(s models.HostMetricSample) float64 {
-			return s.CPUPercent
-		}),
-		MemoryHistory: hostMetricHistory(
-			samples,
-			func(s models.HostMetricSample) float64 {
-				return s.MemoryPercent
-			},
-		),
-		DiskHistory: hostMetricHistory(
-			samples,
-			func(s models.HostMetricSample) float64 {
-				return s.DiskPercent
-			},
-		),
-	}
-	if len(samples) > 0 {
-		latest := samples[len(samples)-1]
-		resp.CpuPercent = latest.CPUPercent
-		resp.MemoryPercent = latest.MemoryPercent
-		resp.DiskPercent = latest.DiskPercent
-	}
-	return resp, nil
-}
-
-func hostMetricHistory(
-	samples []models.HostMetricSample, value hostMetricPointSource,
-) []*observabilityv1.HostMetricPoint {
-	points := make([]*observabilityv1.HostMetricPoint, len(samples))
-	for i, s := range samples {
-		points[i] = &observabilityv1.HostMetricPoint{
-			Timestamp: s.SampledAt.Format(time.RFC3339),
-			Value:     value(s),
-		}
-	}
-	return points
 }
 
 func (h *obsConnectHandler) GetLogs(

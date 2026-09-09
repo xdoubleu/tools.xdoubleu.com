@@ -79,13 +79,15 @@ check_service() {
 
 check_service api "$root/config/deploy.api.yml"
 check_service web "$root/config/deploy.web.yml"
+check_service grafana "$root/config/deploy.grafana.yml"
 
 # Informational only: names sitting in .kamal/secrets that no deploy config
 # references. KAMAL_* are consumed by Kamal's own config schema (registry
 # auth), not via env.secret, so they are expected orphans.
 all_cfg_secrets="$(
 	{ extract_config_secrets "$root/config/deploy.api.yml"
-	  extract_config_secrets "$root/config/deploy.web.yml"; } | sort -u
+	  extract_config_secrets "$root/config/deploy.web.yml"
+	  extract_config_secrets "$root/config/deploy.grafana.yml"; } | sort -u
 )"
 while IFS= read -r name; do
 	[ -n "$name" ] || continue

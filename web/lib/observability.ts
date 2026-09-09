@@ -1,5 +1,3 @@
-import type { GetAlertStatesResponse } from '@/lib/gen/observability/v1/observability_pb'
-
 // Shared helpers for the admin observability dashboard.
 
 // TransactionClass mirrors the three slow-transaction alert rule keys
@@ -22,29 +20,25 @@ function classifyTransaction(transaction: string): TransactionClass {
   return 'slow_transaction_job_high'
 }
 
-// slowTransactionThresholds looks up each slow-transaction rule's threshold
-// from the shared AlertState list rather than duplicating the numbers here —
-// the backend (jobs.ThresholdAlertJob) is the source of truth.
-export function slowTransactionThresholds(
-  alertStates?: GetAlertStatesResponse
-): Record<string, number> {
-  const thresholds: Record<string, number> = {}
-  for (const state of alertStates?.states ?? []) {
-    thresholds[state.ruleKey] = state.threshold
-  }
-  return thresholds
+// SLOW_TRANSACTION_THRESHOLDS_MS mirrors the per-class thresholds in
+// api/internal/observability/jobs/threshold_alert_slow_transactions.go
+// (slowTransactionHTTPThresholdMs/-JobThresholdMs/-FrontendThresholdMs).
+// These used to be readable from the now-removed GetAlertStates RPC (issue
+// #1468 removed it — Grafana/Prometheus own alert-state surfacing now); the
+// slow-transaction rules themselves stayed (ADR-0011), so the thresholds are
+// hardcoded here instead, same as classifyTransaction above. Keep both sides
+// in sync.
+const SLOW_TRANSACTION_THRESHOLDS_MS: Record<TransactionClass, number> = {
+  slow_transaction_http_high: 5000,
+  slow_transaction_frontend_high: 5000,
+  slow_transaction_job_high: 60000
 }
 
 // isSlowTransaction reports whether a transaction's p95 exceeds its class's
-// threshold. Returns false (not true) when the threshold isn't loaded yet,
-// so a still-loading AlertState list doesn't flag everything as slow.
-export function isSlowTransaction(
-  transaction: string,
-  p95DurationMs: number,
-  thresholds: Record<string, number>
-): boolean {
-  const threshold = thresholds[classifyTransaction(transaction)]
-  return threshold !== undefined && p95DurationMs > threshold
+// threshold.
+export function isSlowTransaction(transaction: string, p95DurationMs: number): boolean {
+  const threshold = SLOW_TRANSACTION_THRESHOLDS_MS[classifyTransaction(transaction)]
+  return p95DurationMs > threshold
 }
 
 // CATEGORICAL_PALETTE is a CVD-safe ordered hue set (validated with the

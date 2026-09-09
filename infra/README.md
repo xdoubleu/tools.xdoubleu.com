@@ -206,11 +206,43 @@ containers on the `kamal` network. Unlike Postgres, it takes no secrets
 (no `.env` provisioner). Re-running `apply` after editing
 `node-exporter-compose.yml` redeploys it.
 
-If `get_host_metrics` is returning empty history, check `global.job_runs`
-for repeated `host-metrics-snapshot` failures first — that means either
-this resource was never applied, or the container isn't reachable on the
-`kamal` network: `ssh deploy@<ip> docker ps` should show `node-exporter`
-running.
+Host metrics are read via Grafana (at `/grafana`) or the `prom_query` MCP
+tool (issue #1468) now, not a `get_host_metrics` RPC — see the next section.
+
+## Stand up Prometheus + postgres_exporter + Grafana (issue #1468)
+
+The same `tofu apply` above also creates `null_resource.prometheus`, which
+uploads `prometheus-compose.yml`, `prometheus.yml`, `prometheus/alert-rules.yml`,
+and a generated `.env` (postgres_exporter's `DATA_SOURCE_NAME`, built from the
+same Tofu-managed `random_password.postgres` node_exporter's sibling resource
+above doesn't need) to `/home/deploy/prometheus/` and runs `docker compose up
+-d` — the pipeline that replaced `internal/observability`'s hand-rolled
+snapshot jobs/threshold rules. Like node_exporter, neither Prometheus nor
+postgres_exporter has a published host port at all — reachable only from
+containers already on the `kamal` Docker network (Grafana, and `api`'s
+`prom_query` MCP tool).
+
+Grafana itself is **not** a Tofu-managed accessory — it's a third Kamal
+service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
+`deploy-kamal` job like `api`/`web`) because it needs a public path
+(`/grafana`) through the shared kamal-proxy instance, which only routes to
+Kamal-managed containers. See that config's own header comment for why it
+needs no `registry:` block (public Docker Hub image) and how its
+`proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
+`docs/adr-0022-prometheus-grafana-metrics.md` for the full rationale
+(Prometheus over VictoriaMetrics, Grafana owning graphs/alerting, what got
+removed).
+
+Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`/
+`prometheus/alert-rules.yml` redeploys the accessory; re-running `kamal
+deploy -c config/deploy.grafana.yml` (or pushing to `main`) redeploys
+Grafana. If `prom_query` reports every target `down`, check
+`ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`
+all running, and confirm the api/Grafana Kamal containers' network alias on
+`kamal` matches what `infra/prometheus.yml`'s scrape target expects
+(`docker network inspect kamal`) — Kamal's container naming isn't
+Tofu-managed, so this is the one part of the wiring worth confirming by hand
+after the first real deploy.
 
 ## GoTrue is gone (issue #1039)
 
@@ -405,8 +437,13 @@ OAUTH_OIDC_PRIVATE_KEY       (PEM RSA private key signing the AS's OIDC ID
 OAUTH_GRAFANA_CLIENT_SECRET  (plaintext secret for the static confidential
                               "grafana" OAuth client, issue #1469 — the api
                               reconciles its bcrypt hash on boot; unset ⇒
-                              Grafana SSO unusable. Grafana host wiring
-                              lands with issue #1468)
+                              Grafana SSO unusable. Also read by the
+                              "Deploy grafana via Kamal" step, issue #1468 —
+                              same value, both sides of the OAuth pair)
+GRAFANA_ADMIN_PASSWORD       (Grafana's local break-glass admin password,
+                              issue #1468 — config/deploy.grafana.yml's
+                              GF_SECURITY_ADMIN_PASSWORD; SSO via
+                              generic_oauth is the normal path in)
 STEAM_API_KEY
 HARDCOVER_API_KEY
 BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key
@@ -425,8 +462,12 @@ KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
 ENCRYPTION_KEY
-RESEND_API_KEY
-EMAIL_FROM
+RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
+                              contact-point password — issue #1468 — via
+                              the "Deploy grafana via Kamal" step's
+                              GF_SMTP_PASSWORD env key)
+EMAIL_FROM                   (also reused as Grafana's GF_SMTP_FROM_ADDRESS,
+                              issue #1468)
 NOTIFY_EMAIL_TO
 EMAIL_INBOUND_DOMAIN
 EMAIL_INBOUND_SECRET

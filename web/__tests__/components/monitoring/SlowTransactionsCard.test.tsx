@@ -1,10 +1,7 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
-import {
-  GetSlowTransactionsResponseSchema,
-  GetAlertStatesResponseSchema
-} from '@/lib/gen/observability/v1/observability_pb'
+import { GetSlowTransactionsResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
 import SlowTransactionsCard, {
   toSpanBars,
   regressionDangerThreshold
@@ -25,25 +22,22 @@ jest.mock('recharts', () => {
 
 describe('toSpanBars', () => {
   it('pivots current rows into sorted, slow-flagged bars', () => {
-    const bars = toSpanBars(
-      [
-        {
-          $typeName: 'observability.v1.SlowTransaction',
-          transaction: 'GET /fast',
-          project: 'proj',
-          p95DurationMs: 500,
-          requestCount: 10n
-        },
-        {
-          $typeName: 'observability.v1.SlowTransaction',
-          transaction: 'GET /slow',
-          project: 'proj',
-          p95DurationMs: 6000,
-          requestCount: 5n
-        }
-      ],
-      { slow_transaction_http_high: 5000 }
-    )
+    const bars = toSpanBars([
+      {
+        $typeName: 'observability.v1.SlowTransaction',
+        transaction: 'GET /fast',
+        project: 'proj',
+        p95DurationMs: 500,
+        requestCount: 10n
+      },
+      {
+        $typeName: 'observability.v1.SlowTransaction',
+        transaction: 'GET /slow',
+        project: 'proj',
+        p95DurationMs: 6000,
+        requestCount: 5n
+      }
+    ])
     expect(bars).toEqual([
       { key: 'proj-GET /slow', label: 'proj · GET /slow', p95: 6000, requests: 5, slow: true },
       { key: 'proj-GET /fast', label: 'proj · GET /fast', p95: 500, requests: 10, slow: false }
@@ -88,16 +82,6 @@ describe('SlowTransactionsCard', () => {
   })
 
   it('shows the over-threshold legend only when a bar is slow and unfiltered', () => {
-    const alertStates = create(GetAlertStatesResponseSchema, {
-      states: [
-        {
-          ruleKey: 'slow_transaction_http_high',
-          breaching: true,
-          currentValue: 6000,
-          threshold: 5000
-        }
-      ]
-    })
     const data = create(GetSlowTransactionsResponseSchema, {
       configured: true,
       current: [
@@ -105,7 +89,7 @@ describe('SlowTransactionsCard', () => {
       ],
       trending: []
     })
-    render(<SlowTransactionsCard data={data} alertStates={alertStates} />)
+    render(<SlowTransactionsCard data={data} />)
     expect(screen.getByText('Over its class threshold')).toBeInTheDocument()
   })
 
@@ -153,17 +137,6 @@ describe('SlowTransactionsCard', () => {
   })
 
   describe('filtered', () => {
-    const alertStates = create(GetAlertStatesResponseSchema, {
-      states: [
-        {
-          ruleKey: 'slow_transaction_http_high',
-          breaching: true,
-          currentValue: 6000,
-          threshold: 5000
-        }
-      ]
-    })
-
     it('shows only rows breaching their class threshold and omits the trending section', () => {
       const data = create(GetSlowTransactionsResponseSchema, {
         configured: true,
@@ -181,7 +154,7 @@ describe('SlowTransactionsCard', () => {
           }
         ]
       })
-      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
+      render(<SlowTransactionsCard data={data} filtered />)
       expect(screen.getByText('proj · GET /slow')).toBeInTheDocument()
       expect(screen.queryByText('proj · GET /fast')).not.toBeInTheDocument()
       expect(screen.queryByText('Getting slower')).not.toBeInTheDocument()
@@ -195,7 +168,7 @@ describe('SlowTransactionsCard', () => {
         ],
         trending: []
       })
-      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
+      render(<SlowTransactionsCard data={data} filtered />)
       expect(screen.getByText('No spans currently over threshold.')).toBeInTheDocument()
     })
 
@@ -207,7 +180,7 @@ describe('SlowTransactionsCard', () => {
         ],
         trending: []
       })
-      render(<SlowTransactionsCard data={data} alertStates={alertStates} filtered />)
+      render(<SlowTransactionsCard data={data} filtered />)
       expect(screen.getByText('proj · GET /slow')).toBeInTheDocument()
       expect(screen.queryByText('Over its class threshold')).not.toBeInTheDocument()
     })
@@ -226,34 +199,7 @@ describe('SlowTransactionsCard', () => {
       ],
       trending: []
     })
-    const alertStates = create(GetAlertStatesResponseSchema, {
-      states: [
-        {
-          ruleKey: 'slow_transaction_job_high',
-          breaching: false,
-          currentValue: 24000,
-          threshold: 60000
-        }
-      ]
-    })
-    render(<SlowTransactionsCard data={data} alertStates={alertStates} />)
-    expect(screen.queryByText('Over its class threshold')).not.toBeInTheDocument()
-  })
-
-  it('does not flag anything as slow when no alert states are loaded yet', () => {
-    const data = create(GetSlowTransactionsResponseSchema, {
-      configured: true,
-      current: [
-        {
-          transaction: 'GET /games/api/progress',
-          project: 'tools-api',
-          p95DurationMs: 144000,
-          requestCount: 35n
-        }
-      ],
-      trending: []
-    })
-    render(<SlowTransactionsCard data={data} alertStates={undefined} />)
+    render(<SlowTransactionsCard data={data} />)
     expect(screen.queryByText('Over its class threshold')).not.toBeInTheDocument()
   })
 })

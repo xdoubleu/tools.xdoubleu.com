@@ -277,3 +277,61 @@ resource "null_resource" "node_exporter" {
     ]
   }
 }
+
+# Stands up Prometheus + postgres_exporter (issue #1468), the second half of
+# the metrics stack alongside node_exporter above. postgres_exporter needs
+# DATA_SOURCE_NAME (a read connection string), so this follows
+# null_resource.postgres's file+.env pattern rather than node_exporter's
+# secret-free one, reusing the same Tofu-generated random_password.postgres
+# — no new credential to provision or rotate separately.
+resource "null_resource" "prometheus" {
+  depends_on = [null_resource.harden, null_resource.kamal_network, null_resource.postgres]
+
+  triggers = {
+    compose_hash = filesha256("${path.module}/prometheus-compose.yml")
+    config_hash  = filesha256("${path.module}/prometheus.yml")
+    rules_hash   = filesha256("${path.module}/prometheus/alert-rules.yml")
+    # Not the password itself (that's sensitive) — same "does the secret
+    # value's hash change" trick null_resource.postgres uses.
+    password_hash = sha256(random_password.postgres.result)
+  }
+
+  connection {
+    type  = "ssh"
+    host  = var.server_ip
+    user  = "deploy"
+    agent = true
+  }
+
+  provisioner "remote-exec" {
+    inline = ["mkdir -p /home/deploy/prometheus/prometheus"]
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/prometheus-compose.yml"
+    destination = "/home/deploy/prometheus/docker-compose.yml"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/prometheus.yml"
+    destination = "/home/deploy/prometheus/prometheus.yml"
+  }
+
+  provisioner "file" {
+    source      = "${path.module}/prometheus/alert-rules.yml"
+    destination = "/home/deploy/prometheus/prometheus/alert-rules.yml"
+  }
+
+  provisioner "file" {
+    content     = <<-EOT
+      DATA_SOURCE_NAME=postgresql://postgres:${random_password.postgres.result}@postgres:5432/postgres?sslmode=disable
+    EOT
+    destination = "/home/deploy/prometheus/.env"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "cd /home/deploy/prometheus && docker compose up -d --remove-orphans",
+    ]
+  }
+}

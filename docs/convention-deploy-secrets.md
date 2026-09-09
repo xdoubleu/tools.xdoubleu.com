@@ -1,13 +1,14 @@
 # Convention: a deploy secret is declared in three places that must agree
 
 - Enforced by: `make lint/kamal-secrets` (`api/scripts/check_kamal_secrets.sh`), CI job `API Kamal Secrets Lint`
-- Issues: #1390, #1404, #1405
+- Issues: #1390, #1404, #1405, #1468
 
 ## Rule
 
 Every Kamal deploy secret must appear in **all three** of:
 
-1. `config/deploy.api.yml` / `config/deploy.web.yml` — the `env.secret:` list
+1. `config/deploy.api.yml` / `config/deploy.web.yml` / `config/deploy.grafana.yml`
+   — the `env.secret:` list (three services since issue #1468 added Grafana)
 2. `.kamal/secrets`
 3. the matching `Deploy <svc> via Kamal` step's `env:` block in
    `.github/workflows/main.yml`

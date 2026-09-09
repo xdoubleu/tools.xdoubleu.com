@@ -137,6 +137,7 @@ func (app *Application) Routes() http.Handler {
 
 	mux.HandleFunc("GET /api/version", app.versionHandler)
 	mux.HandleFunc("GET "+healthPath, app.healthHandler)
+	mux.Handle("GET "+metricsPath, metricsHandler())
 
 	app.apps.Routes(mux)
 

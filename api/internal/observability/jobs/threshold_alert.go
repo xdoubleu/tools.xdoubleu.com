@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"tools.xdoubleu.com/internal/database"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
@@ -19,53 +18,10 @@ const (
 	// thresholdAlertRunEvery matches IssueNotifierJob's cadence.
 	thresholdAlertRunEvery = 5 * time.Minute
 
-	// sustainWindow is how long host_cpu_high/host_memory_high require
-	// every sample to stay above threshold before the rule breaches, so a
-	// single spike doesn't fire. host_disk_high deliberately doesn't use
-	// this — a full disk is instant, not sustained.
-	sustainWindow = 15 * time.Minute
-	// instantLookback bounds how far back an "instant" rule (host_disk_high)
-	// looks for the most recent host_metric_samples row — generous relative
-	// to HostMetricsSnapshotJob's 60s scrape interval so a briefly-delayed
-	// scrape doesn't read as "no data".
-	instantLookback = 5 * time.Minute
-	// ciStatsWindow is how far back ci_duration_high aggregates workflow
-	// p95 durations from, matching the default window get_workflow_run_stats
-	// uses when the caller doesn't specify one.
-	ciStatsWindow = 30 * 24 * time.Hour
+	unitMillis = "ms"
 
-	hostCPUThresholdPercent    = 80.0
-	hostMemoryThresholdPercent = 85.0
-	hostDiskThresholdPercent   = 85.0
-	// r2UsageThresholdBytes is a sane default, not a plan-derived figure —
-	// there's no numeric threshold anywhere else in the codebase to inherit
-	// from (issue #1283).
-	r2UsageThresholdBytes = 50 * bytesPerGB
-	// ciDurationThresholdMs flags a workflow whose p95 duration has grown
-	// well past what any workflow in this repo normally takes.
-	ciDurationThresholdMs = 15 * msPerMinute
-
-	unitPercent = "%"
-	unitBytes   = "bytes"
-	unitMillis  = "ms"
-
-	bytesPerGB  = 1024 * 1024 * 1024
 	msPerMinute = 60_000
 )
-
-// hostMetricsSinceRepo is the subset of *repositories.HostMetricsRepository
-// this job needs.
-type hostMetricsSinceRepo interface {
-	Since(ctx context.Context, since time.Time) ([]models.HostMetricSample, error)
-}
-
-// workflowDurationStatsRepo is the subset of
-// *repositories.WorkflowRunsRepository this job needs.
-type workflowDurationStatsRepo interface {
-	WorkflowDurationStats(
-		ctx context.Context, since time.Time,
-	) ([]models.WorkflowDurationStat, error)
-}
 
 // alertStateRepo is the subset of *repositories.AlertStatesRepository this
 // job needs.
@@ -89,9 +45,11 @@ type alertRule struct {
 	evaluate func(ctx context.Context) (value float64, breaching bool, err error)
 }
 
-// ThresholdAlertJob evaluates a fixed set of threshold rules against stored
-// samples (host metrics, R2 usage, CI duration history) and emails an admin
-// on breach and on recovery, tracking state in global.alert_states so a
+// ThresholdAlertJob evaluates the slow-transaction threshold rules (the
+// host/CI/storage rules it used to evaluate moved to Prometheus + Grafana
+// alert rules, issue #1468 — see docs/adr-0011-slow-transaction-thresholds.md
+// for why slow-transaction thresholds specifically did not) and emails an
+// admin on breach and on recovery, tracking state in global.alert_states so a
 // rule re-arms after recovering — the behavior global.notified_issues'
 // append-only dedup can't express (issue #1283).
 type ThresholdAlertJob struct {
@@ -102,18 +60,13 @@ type ThresholdAlertJob struct {
 }
 
 func NewThresholdAlertJob(
-	hostMetrics hostMetricsSinceRepo,
-	storage latestStorageSnapshotGetter,
-	workflowRuns workflowDurationStatsRepo,
 	transactionStats transactionStatsLister,
 	settings notificationSettingsRepo,
 	states alertStateRepo,
 	notificationsSvc *notifications.Service,
 ) *ThresholdAlertJob {
 	return &ThresholdAlertJob{
-		rules: buildAlertRules(
-			hostMetrics, storage, workflowRuns, transactionStats,
-		),
+		rules:         buildAlertRules(transactionStats),
 		settings:      settings,
 		states:        states,
 		notifications: notificationsSvc,
@@ -121,61 +74,9 @@ func NewThresholdAlertJob(
 }
 
 func buildAlertRules(
-	hostMetrics hostMetricsSinceRepo,
-	storage latestStorageSnapshotGetter,
-	workflowRuns workflowDurationStatsRepo,
 	transactionStats transactionStatsLister,
 ) []alertRule {
 	return []alertRule{
-		{
-			key:       "host_cpu_high",
-			label:     "Host CPU usage",
-			source:    repositories.NotificationSourceHostCPUHigh,
-			threshold: hostCPUThresholdPercent,
-			unit:      unitPercent,
-			evaluate: sustainedHostMetricEvaluator(
-				hostMetrics, hostCPUThresholdPercent,
-				func(s models.HostMetricSample) float64 { return s.CPUPercent },
-			),
-		},
-		{
-			key:       "host_memory_high",
-			label:     "Host memory usage",
-			source:    repositories.NotificationSourceHostMemoryHigh,
-			threshold: hostMemoryThresholdPercent,
-			unit:      unitPercent,
-			evaluate: sustainedHostMetricEvaluator(
-				hostMetrics, hostMemoryThresholdPercent,
-				func(s models.HostMetricSample) float64 { return s.MemoryPercent },
-			),
-		},
-		{
-			key:       "host_disk_high",
-			label:     "Host disk usage",
-			source:    repositories.NotificationSourceHostDiskHigh,
-			threshold: hostDiskThresholdPercent,
-			unit:      unitPercent,
-			evaluate: instantHostMetricEvaluator(
-				hostMetrics, hostDiskThresholdPercent,
-				func(s models.HostMetricSample) float64 { return s.DiskPercent },
-			),
-		},
-		{
-			key:       "r2_usage_high",
-			label:     "R2 storage usage",
-			source:    repositories.NotificationSourceR2UsageHigh,
-			threshold: r2UsageThresholdBytes,
-			unit:      unitBytes,
-			evaluate:  r2UsageEvaluator(storage, r2UsageThresholdBytes),
-		},
-		{
-			key:       "ci_duration_high",
-			label:     "CI workflow duration (p95)",
-			source:    repositories.NotificationSourceCIDurationHigh,
-			threshold: ciDurationThresholdMs,
-			unit:      unitMillis,
-			evaluate:  ciDurationEvaluator(workflowRuns, ciDurationThresholdMs),
-		},
 		{
 			key:       "slow_transaction_http_high",
 			label:     "Slow HTTP handlers (p95)",
@@ -215,101 +116,6 @@ func buildAlertRules(
 	}
 }
 
-// sustainedHostMetricEvaluator breaches only when every sample in the
-// trailing sustainWindow is above threshold, so a single spike doesn't fire
-// — "CPU above 80% for 15 minutes", not "CPU touched 80% once".
-func sustainedHostMetricEvaluator(
-	repo hostMetricsSinceRepo,
-	threshold float64,
-	extract func(models.HostMetricSample) float64,
-) func(context.Context) (float64, bool, error) {
-	return func(ctx context.Context) (float64, bool, error) {
-		samples, err := repo.Since(ctx, time.Now().Add(-sustainWindow))
-		if err != nil {
-			return 0, false, err
-		}
-		if len(samples) == 0 {
-			return 0, false, nil
-		}
-
-		sum := 0.0
-		breaching := true
-		for _, s := range samples {
-			v := extract(s)
-			sum += v
-			if v <= threshold {
-				breaching = false
-			}
-		}
-		return sum / float64(len(samples)), breaching, nil
-	}
-}
-
-// instantHostMetricEvaluator breaches based on the single most recent
-// sample only — used for host_disk_high, where a full disk is an instant
-// problem, not one that needs to sustain for 15 minutes to matter.
-func instantHostMetricEvaluator(
-	repo hostMetricsSinceRepo,
-	threshold float64,
-	extract func(models.HostMetricSample) float64,
-) func(context.Context) (float64, bool, error) {
-	return func(ctx context.Context) (float64, bool, error) {
-		samples, err := repo.Since(ctx, time.Now().Add(-instantLookback))
-		if err != nil {
-			return 0, false, err
-		}
-		if len(samples) == 0 {
-			return 0, false, nil
-		}
-
-		v := extract(samples[len(samples)-1])
-		return v, v > threshold, nil
-	}
-}
-
-// r2UsageEvaluator breaches when the latest storage snapshot's total size
-// exceeds threshold bytes. No snapshot yet (the scan hasn't run) reads as
-// not breaching rather than an error.
-func r2UsageEvaluator(
-	repo latestStorageSnapshotGetter,
-	threshold float64,
-) func(context.Context) (float64, bool, error) {
-	return func(ctx context.Context) (float64, bool, error) {
-		snap, err := repo.Latest(ctx)
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return 0, false, nil
-		}
-		if err != nil {
-			return 0, false, err
-		}
-		value := float64(snap.TotalSizeBytes)
-		return value, value > threshold, nil
-	}
-}
-
-// ciDurationEvaluator breaches when any workflow's p95 duration over
-// ciStatsWindow exceeds threshold, reporting the highest p95 among them —
-// one rule covering every workflow rather than a per-workflow rule set.
-func ciDurationEvaluator(
-	repo workflowDurationStatsRepo,
-	threshold float64,
-) func(context.Context) (float64, bool, error) {
-	return func(ctx context.Context) (float64, bool, error) {
-		stats, err := repo.WorkflowDurationStats(ctx, time.Now().Add(-ciStatsWindow))
-		if err != nil {
-			return 0, false, err
-		}
-
-		maxP95 := 0.0
-		for _, s := range stats {
-			if s.P95DurationMs > maxP95 {
-				maxP95 = s.P95DurationMs
-			}
-		}
-		return maxP95, maxP95 > threshold, nil
-	}
-}
-
 func (j *ThresholdAlertJob) ID() string {
 	return "threshold-alert"
 }
@@ -333,7 +139,7 @@ func (j *ThresholdAlertJob) Run(ctx context.Context, logger *slog.Logger) error 
 // case the transition is retried on the next run), mirroring
 // IssueNotifierJob.notifyOnce. When the rule's condition hasn't changed,
 // the current value/threshold are still refreshed on every run so
-// get_alert_states never shows a stale reading.
+// global.alert_states never shows a stale reading.
 func (j *ThresholdAlertJob) evaluateRule(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -428,13 +234,11 @@ func (j *ThresholdAlertJob) notifyTransition(
 }
 
 // formatAlertValue renders a rule's value/threshold in a notification body,
-// converting to friendlier units than the raw stored float.
+// converting to friendlier units than the raw stored float. Every remaining
+// rule is millisecond-based (unitMillis) — the switch stays in case a
+// non-millisecond rule returns.
 func formatAlertValue(value float64, unit string) string {
 	switch unit {
-	case unitPercent:
-		return fmt.Sprintf("%.1f%%", value)
-	case unitBytes:
-		return fmt.Sprintf("%.2f GB", value/bytesPerGB)
 	case unitMillis:
 		return fmt.Sprintf("%.1f min", value/msPerMinute)
 	default:

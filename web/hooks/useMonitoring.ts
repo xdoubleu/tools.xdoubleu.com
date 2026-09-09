@@ -11,19 +11,15 @@ import type {
   GetJobStatsResponse,
   GetStorageStatsResponse,
   GetDatabaseStatsResponse,
-  GetDatabaseSizeHistoryResponse,
   GetFailingPullRequestsResponse,
   GetWorkflowRunsResponse,
   GetSecurityAlertsResponse,
   GetSentryIssuesResponse,
   GetSlowTransactionsResponse,
-  GetTransactionLatencyHistoryResponse,
-  GetHostMetricsResponse,
   GetLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse,
-  GetNotificationSettingsResponse,
-  GetAlertStatesResponse
+  GetNotificationSettingsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -54,18 +50,10 @@ export function useTriggerStorageScan() {
   }, [client])
 }
 
-export function useDatabaseStats(windowDays: number) {
+export function useDatabaseStats() {
   const client = createServiceClient(ObservabilityService)
-  return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats(windowDays), () =>
-    client.getDatabaseStats({ windowDays })
-  )
-}
-
-export function useDatabaseSizeHistory(windowDays: number) {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetDatabaseSizeHistoryResponse, Error>(
-    swrKeys.monitoringDatabaseSizeHistory(windowDays),
-    () => client.getDatabaseSizeHistory({ windowDays })
+  return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats, () =>
+    client.getDatabaseStats({})
   )
 }
 
@@ -105,17 +93,6 @@ export function useDismissSecurityAlert() {
   )
 }
 
-// useAlertStates reads the current breach state of every threshold alert
-// rule (jobs.ThresholdAlertJob, issue #1283). current_value/threshold are
-// refreshed on every evaluation, not just on a breach/recovery transition,
-// so a non-breaching rule still reports a meaningful current value.
-export function useAlertStates() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetAlertStatesResponse, Error>(swrKeys.monitoringAlertStates, () =>
-    client.getAlertStates({})
-  )
-}
-
 export function useSentryIssues() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSentryIssuesResponse, Error>(swrKeys.monitoringSentryIssues, () =>
@@ -138,27 +115,6 @@ export function useSlowTransactions() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetSlowTransactionsResponse, Error>(swrKeys.monitoringSlowTransactions, () =>
     client.getSlowTransactions({})
-  )
-}
-
-// useTransactionLatencyHistory reads every stored (project, transaction)
-// daily p95 series over the window, flat — the chart pivots and selects
-// which series to plot.
-export function useTransactionLatencyHistory(windowDays: number) {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetTransactionLatencyHistoryResponse, Error>(
-    swrKeys.monitoringTransactionLatencyHistory(windowDays),
-    () => client.getTransactionLatencyHistory({ windowDays })
-  )
-}
-
-// useHostMetrics polls the host's CPU/memory/disk usage, scraped from
-// node_exporter (issue #1040). since bounds how far back the history series
-// go; empty defaults to the server's own retention window.
-export function useHostMetrics(since = '') {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetHostMetricsResponse, Error>(swrKeys.monitoringHostMetrics, () =>
-    client.getHostMetrics({ since })
   )
 }
 

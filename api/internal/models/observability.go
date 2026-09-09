@@ -73,15 +73,6 @@ type SchemaStats struct {
 	TableCount int64
 }
 
-// HostMetricSample is one point-in-time reading of host resource usage,
-// scraped from node_exporter (issue #1040).
-type HostMetricSample struct {
-	SampledAt     time.Time
-	CPUPercent    float64
-	MemoryPercent float64
-	DiskPercent   float64
-}
-
 // LogEntry is one application log line forwarded from api (in-process) or
 // web (HTTP ingest) into global.log_entries.
 type LogEntry struct {
@@ -92,50 +83,6 @@ type LogEntry struct {
 	// AttrsJSON is the log record's structured attributes, stored as opaque
 	// JSON — nil when there were none.
 	AttrsJSON []byte
-}
-
-// WorkflowRunSample is one recorded GitHub Actions workflow run, persisted so
-// duration/failure history survives past github.Client's 45s in-memory
-// cache (issue #1217).
-type WorkflowRunSample struct {
-	RunID        int64
-	WorkflowName string
-	Branch       string
-	Event        string
-	Conclusion   string
-	URL          string
-	DurationMs   int64
-	StartedAt    time.Time
-	CompletedAt  time.Time
-}
-
-// WorkflowJobSample is one job within a recorded workflow run — the
-// "specific actions" duration breakdown.
-type WorkflowJobSample struct {
-	RunID       int64
-	JobName     string
-	Conclusion  string
-	DurationMs  int64
-	StartedAt   time.Time
-	CompletedAt time.Time
-}
-
-// WorkflowDurationStat aggregates a workflow's recorded run durations over
-// the retention window.
-type WorkflowDurationStat struct {
-	WorkflowName  string
-	AvgDurationMs float64
-	P95DurationMs float64
-	RunCount      int64
-}
-
-// JobDurationStat aggregates one job name's recorded durations across every
-// workflow run over the retention window — the per-action breakdown.
-type JobDurationStat struct {
-	JobName       string
-	AvgDurationMs float64
-	P95DurationMs float64
-	RunCount      int64
 }
 
 // AlertState is one threshold rule's breach/recovery state
@@ -163,52 +110,4 @@ type TransactionTrend struct {
 	PriorAvgP95Ms  float64
 	RecentAvgP95Ms float64
 	PctChange      float64
-}
-
-// TransactionLatencyPoint is one global.transaction_latency_daily row,
-// returned flat for GetTransactionLatencyHistory — the client pivots and
-// selects series for its multi-line chart.
-type TransactionLatencyPoint struct {
-	Day           time.Time
-	Project       string
-	Transaction   string
-	P95DurationMs float64
-	RequestCount  int64
-}
-
-// TableSizeSample is one table's on-disk size at sampling time, scraped live
-// from pg_total_relation_size by DBSizeSnapshotJob (issue #1282).
-type TableSizeSample struct {
-	SchemaName string
-	TableName  string
-	SizeBytes  int64
-}
-
-// TableSizeGrowth compares one table's current size against its earliest
-// recorded size within a requested window: DeltaBytes/PctChange is the
-// growth from EarliestSizeBytes to CurrentSizeBytes.
-type TableSizeGrowth struct {
-	SchemaName        string
-	TableName         string
-	CurrentSizeBytes  int64
-	EarliestSizeBytes int64
-	DeltaBytes        int64
-	PctChange         float64
-}
-
-// DBSizeSnapshot is one snapshot batch's total size, summed across every table
-// sampled at that instant.
-type DBSizeSnapshot struct {
-	SampledAt      time.Time
-	TotalSizeBytes int64
-}
-
-// TableSizeHistoryPoint is one global.db_size_samples row, returned flat for
-// GetDatabaseSizeHistory — the client pivots and selects series for its
-// multi-line chart, same shape as TransactionLatencyPoint.
-type TableSizeHistoryPoint struct {
-	Day        time.Time
-	SchemaName string
-	TableName  string
-	SizeBytes  int64
 }

@@ -1,0 +1,53 @@
+services:
+  prometheus:
+    # Prometheus + postgres_exporter (issue #1468), replacing the hand-rolled
+    # metrics pipeline in api/internal/observability. Bound to the internal
+    # `kamal` Docker network only — no published host port at all (stricter
+    # than "127.0.0.1 only": not even loopback-reachable), same as
+    # node-exporter-compose.yml's node-exporter service. Grafana
+    # (config/deploy.grafana.yml, a Kamal service, not a compose accessory
+    # here) reads this over that same network at prometheus:9090; the
+    # api's prom_query MCP tool (cmd/api/mcp_prom_query.go) does the same.
+    image: prom/prometheus:v3.1.0
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      # A single self-hosted VPS with ~3GB free (issue #1468's Context) has
+      # no room for years of raw samples — 90 days matches the retention
+      # this repo already used for host_metric_samples/db_size_samples.
+      - "--storage.tsdb.retention.time=90d"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - kamal
+
+  postgres-exporter:
+    # Server-level Postgres stats (connections, transaction rates, bloat,
+    # replication lag) — distinct from api's own /metrics (Go runtime
+    # metrics) and from pg_database_size/pg_class (still queried live by
+    # GetDatabaseStats, unrelated to this accessory).
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      # Also needs the default postgres-compose.yml network membership to
+      # reach `postgres:5432` by name — both services join the shared
+      # `kamal` network (see postgres-compose.yml's own comment on why),
+      # so postgres-exporter reaches it there instead of needing yet
+      # another shared network declared just for this.
+      - kamal
+
+networks:
+  # Pre-created once via `docker network create kamal` (see
+  # infra/README.md) — declared external here since Kamal itself also
+  # creates/uses this network for its own app+proxy containers (including
+  # the new `grafana` Kamal service, config/deploy.grafana.yml), and this
+  # compose file must never race it or try to recreate it.
+  kamal:
+    external: true
+
+volumes:
+  prometheus_data:

@@ -10,7 +10,12 @@ import (
 
 func TestNewAuthorizeSession_NoOpenIDScope(t *testing.T) {
 	sess := newAuthorizeSession(
-		ResolvedUser{ID: "u1", Email: "u1@example.com", DisplayName: "", IsAdmin: false},
+		ResolvedUser{
+			ID:          "u1",
+			Email:       "u1@example.com",
+			DisplayName: "",
+			IsAdmin:     false,
+		},
 		"kid-1",
 		fosite.Arguments{OfflineAccessScope},
 	)

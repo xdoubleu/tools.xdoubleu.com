@@ -10,19 +10,12 @@ export const swrKeys = {
   userManagementUsers: '/user-management/users',
   monitoringJobStats: (windowDays: number) => ['/monitoring/job-stats', windowDays] as const,
   monitoringStorageStats: '/monitoring/storage-stats',
-  monitoringDatabaseStats: (windowDays: number) =>
-    ['/monitoring/database-stats', windowDays] as const,
-  monitoringDatabaseSizeHistory: (windowDays: number) =>
-    ['/monitoring/database-size-history', windowDays] as const,
+  monitoringDatabaseStats: '/monitoring/database-stats',
   monitoringFailingPullRequests: '/monitoring/failing-pull-requests',
   monitoringWorkflowRuns: '/monitoring/workflow-runs',
   monitoringSecurityAlerts: '/monitoring/security-alerts',
   monitoringSentryIssues: '/monitoring/sentry-issues',
   monitoringSlowTransactions: '/monitoring/slow-transactions',
-  monitoringTransactionLatencyHistory: (windowDays: number) =>
-    ['/monitoring/transaction-latency-history', windowDays] as const,
-  monitoringHostMetrics: '/monitoring/host-metrics',
-  monitoringAlertStates: '/monitoring/alert-states',
   monitoringLogs: (source: string, minLevel: string) =>
     ['/monitoring/logs', source, minLevel] as const,
   monitoringOAuthConnections: '/monitoring/oauth-connections',

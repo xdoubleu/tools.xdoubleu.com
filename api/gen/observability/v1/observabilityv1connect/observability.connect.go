@@ -48,18 +48,12 @@ const (
 	// ObservabilityServiceGetDatabaseStatsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetDatabaseStats RPC.
 	ObservabilityServiceGetDatabaseStatsProcedure = "/observability.v1.ObservabilityService/GetDatabaseStats"
-	// ObservabilityServiceGetDatabaseSizeHistoryProcedure is the fully-qualified name of the
-	// ObservabilityService's GetDatabaseSizeHistory RPC.
-	ObservabilityServiceGetDatabaseSizeHistoryProcedure = "/observability.v1.ObservabilityService/GetDatabaseSizeHistory"
 	// ObservabilityServiceGetFailingPullRequestsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetFailingPullRequests RPC.
 	ObservabilityServiceGetFailingPullRequestsProcedure = "/observability.v1.ObservabilityService/GetFailingPullRequests"
 	// ObservabilityServiceGetWorkflowRunsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetWorkflowRuns RPC.
 	ObservabilityServiceGetWorkflowRunsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRuns"
-	// ObservabilityServiceGetWorkflowRunStatsProcedure is the fully-qualified name of the
-	// ObservabilityService's GetWorkflowRunStats RPC.
-	ObservabilityServiceGetWorkflowRunStatsProcedure = "/observability.v1.ObservabilityService/GetWorkflowRunStats"
 	// ObservabilityServiceGetSecurityAlertsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSecurityAlerts RPC.
 	ObservabilityServiceGetSecurityAlertsProcedure = "/observability.v1.ObservabilityService/GetSecurityAlerts"
@@ -78,12 +72,6 @@ const (
 	// ObservabilityServiceGetSlowTransactionsProcedure is the fully-qualified name of the
 	// ObservabilityService's GetSlowTransactions RPC.
 	ObservabilityServiceGetSlowTransactionsProcedure = "/observability.v1.ObservabilityService/GetSlowTransactions"
-	// ObservabilityServiceGetTransactionLatencyHistoryProcedure is the fully-qualified name of the
-	// ObservabilityService's GetTransactionLatencyHistory RPC.
-	ObservabilityServiceGetTransactionLatencyHistoryProcedure = "/observability.v1.ObservabilityService/GetTransactionLatencyHistory"
-	// ObservabilityServiceGetHostMetricsProcedure is the fully-qualified name of the
-	// ObservabilityService's GetHostMetrics RPC.
-	ObservabilityServiceGetHostMetricsProcedure = "/observability.v1.ObservabilityService/GetHostMetrics"
 	// ObservabilityServiceGetLogsProcedure is the fully-qualified name of the ObservabilityService's
 	// GetLogs RPC.
 	ObservabilityServiceGetLogsProcedure = "/observability.v1.ObservabilityService/GetLogs"
@@ -111,9 +99,6 @@ const (
 	// ObservabilityServiceUpdateNotificationChannelProcedure is the fully-qualified name of the
 	// ObservabilityService's UpdateNotificationChannel RPC.
 	ObservabilityServiceUpdateNotificationChannelProcedure = "/observability.v1.ObservabilityService/UpdateNotificationChannel"
-	// ObservabilityServiceGetAlertStatesProcedure is the fully-qualified name of the
-	// ObservabilityService's GetAlertStates RPC.
-	ObservabilityServiceGetAlertStatesProcedure = "/observability.v1.ObservabilityService/GetAlertStates"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -123,18 +108,14 @@ type ObservabilityServiceClient interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
-	GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
-	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	DismissSecurityAlert(context.Context, *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error)
 	GetProjectIssuesByStatus(context.Context, *connect.Request[v1.GetProjectIssuesByStatusRequest]) (*connect.Response[v1.GetProjectIssuesByStatusResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
-	GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error)
-	GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
@@ -144,7 +125,6 @@ type ObservabilityServiceClient interface {
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
 	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
-	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -188,12 +168,6 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
 			connect.WithClientOptions(opts...),
 		),
-		getDatabaseSizeHistory: connect.NewClient[v1.GetDatabaseSizeHistoryRequest, v1.GetDatabaseSizeHistoryResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetDatabaseSizeHistoryProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseSizeHistory")),
-			connect.WithClientOptions(opts...),
-		),
 		getFailingPullRequests: connect.NewClient[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetFailingPullRequestsProcedure,
@@ -204,12 +178,6 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetWorkflowRunsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRuns")),
-			connect.WithClientOptions(opts...),
-		),
-		getWorkflowRunStats: connect.NewClient[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetWorkflowRunStatsProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRunStats")),
 			connect.WithClientOptions(opts...),
 		),
 		getSecurityAlerts: connect.NewClient[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse](
@@ -246,18 +214,6 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			httpClient,
 			baseURL+ObservabilityServiceGetSlowTransactionsProcedure,
 			connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
-			connect.WithClientOptions(opts...),
-		),
-		getTransactionLatencyHistory: connect.NewClient[v1.GetTransactionLatencyHistoryRequest, v1.GetTransactionLatencyHistoryResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetTransactionLatencyHistoryProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetTransactionLatencyHistory")),
-			connect.WithClientOptions(opts...),
-		),
-		getHostMetrics: connect.NewClient[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetHostMetricsProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetHostMetrics")),
 			connect.WithClientOptions(opts...),
 		),
 		getLogs: connect.NewClient[v1.GetLogsRequest, v1.GetLogsResponse](
@@ -314,44 +270,33 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
 			connect.WithClientOptions(opts...),
 		),
-		getAlertStates: connect.NewClient[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse](
-			httpClient,
-			baseURL+ObservabilityServiceGetAlertStatesProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("GetAlertStates")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
 // observabilityServiceClient implements ObservabilityServiceClient.
 type observabilityServiceClient struct {
-	getJobStats                  *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
-	getUsageStats                *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
-	getStorageStats              *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
-	triggerStorageScan           *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
-	getDatabaseStats             *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
-	getDatabaseSizeHistory       *connect.Client[v1.GetDatabaseSizeHistoryRequest, v1.GetDatabaseSizeHistoryResponse]
-	getFailingPullRequests       *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
-	getWorkflowRuns              *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
-	getWorkflowRunStats          *connect.Client[v1.GetWorkflowRunStatsRequest, v1.GetWorkflowRunStatsResponse]
-	getSecurityAlerts            *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
-	dismissSecurityAlert         *connect.Client[v1.DismissSecurityAlertRequest, v1.DismissSecurityAlertResponse]
-	getProjectIssuesByStatus     *connect.Client[v1.GetProjectIssuesByStatusRequest, v1.GetProjectIssuesByStatusResponse]
-	getSentryIssues              *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
-	resolveSentryIssue           *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
-	getSlowTransactions          *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
-	getTransactionLatencyHistory *connect.Client[v1.GetTransactionLatencyHistoryRequest, v1.GetTransactionLatencyHistoryResponse]
-	getHostMetrics               *connect.Client[v1.GetHostMetricsRequest, v1.GetHostMetricsResponse]
-	getLogs                      *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
-	getHealthOverview            *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
-	listOAuthConnections         *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
-	disconnectOAuthConnection    *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
-	getProviderOptions           *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
-	setProviderConfig            *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
-	getNotificationSettings      *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
-	updateNotificationSettings   *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
-	updateNotificationChannel    *connect.Client[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse]
-	getAlertStates               *connect.Client[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse]
+	getJobStats                *connect.Client[v1.GetJobStatsRequest, v1.GetJobStatsResponse]
+	getUsageStats              *connect.Client[v1.GetUsageStatsRequest, v1.GetUsageStatsResponse]
+	getStorageStats            *connect.Client[v1.GetStorageStatsRequest, v1.GetStorageStatsResponse]
+	triggerStorageScan         *connect.Client[v1.TriggerStorageScanRequest, v1.TriggerStorageScanResponse]
+	getDatabaseStats           *connect.Client[v1.GetDatabaseStatsRequest, v1.GetDatabaseStatsResponse]
+	getFailingPullRequests     *connect.Client[v1.GetFailingPullRequestsRequest, v1.GetFailingPullRequestsResponse]
+	getWorkflowRuns            *connect.Client[v1.GetWorkflowRunsRequest, v1.GetWorkflowRunsResponse]
+	getSecurityAlerts          *connect.Client[v1.GetSecurityAlertsRequest, v1.GetSecurityAlertsResponse]
+	dismissSecurityAlert       *connect.Client[v1.DismissSecurityAlertRequest, v1.DismissSecurityAlertResponse]
+	getProjectIssuesByStatus   *connect.Client[v1.GetProjectIssuesByStatusRequest, v1.GetProjectIssuesByStatusResponse]
+	getSentryIssues            *connect.Client[v1.GetSentryIssuesRequest, v1.GetSentryIssuesResponse]
+	resolveSentryIssue         *connect.Client[v1.ResolveSentryIssueRequest, v1.ResolveSentryIssueResponse]
+	getSlowTransactions        *connect.Client[v1.GetSlowTransactionsRequest, v1.GetSlowTransactionsResponse]
+	getLogs                    *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
+	getHealthOverview          *connect.Client[v1.GetHealthOverviewRequest, v1.GetHealthOverviewResponse]
+	listOAuthConnections       *connect.Client[v1.ListOAuthConnectionsRequest, v1.ListOAuthConnectionsResponse]
+	disconnectOAuthConnection  *connect.Client[v1.DisconnectOAuthConnectionRequest, v1.DisconnectOAuthConnectionResponse]
+	getProviderOptions         *connect.Client[v1.GetProviderOptionsRequest, v1.GetProviderOptionsResponse]
+	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
+	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
+	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
+	updateNotificationChannel  *connect.Client[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -379,11 +324,6 @@ func (c *observabilityServiceClient) GetDatabaseStats(ctx context.Context, req *
 	return c.getDatabaseStats.CallUnary(ctx, req)
 }
 
-// GetDatabaseSizeHistory calls observability.v1.ObservabilityService.GetDatabaseSizeHistory.
-func (c *observabilityServiceClient) GetDatabaseSizeHistory(ctx context.Context, req *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error) {
-	return c.getDatabaseSizeHistory.CallUnary(ctx, req)
-}
-
 // GetFailingPullRequests calls observability.v1.ObservabilityService.GetFailingPullRequests.
 func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context, req *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
 	return c.getFailingPullRequests.CallUnary(ctx, req)
@@ -392,11 +332,6 @@ func (c *observabilityServiceClient) GetFailingPullRequests(ctx context.Context,
 // GetWorkflowRuns calls observability.v1.ObservabilityService.GetWorkflowRuns.
 func (c *observabilityServiceClient) GetWorkflowRuns(ctx context.Context, req *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error) {
 	return c.getWorkflowRuns.CallUnary(ctx, req)
-}
-
-// GetWorkflowRunStats calls observability.v1.ObservabilityService.GetWorkflowRunStats.
-func (c *observabilityServiceClient) GetWorkflowRunStats(ctx context.Context, req *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error) {
-	return c.getWorkflowRunStats.CallUnary(ctx, req)
 }
 
 // GetSecurityAlerts calls observability.v1.ObservabilityService.GetSecurityAlerts.
@@ -427,17 +362,6 @@ func (c *observabilityServiceClient) ResolveSentryIssue(ctx context.Context, req
 // GetSlowTransactions calls observability.v1.ObservabilityService.GetSlowTransactions.
 func (c *observabilityServiceClient) GetSlowTransactions(ctx context.Context, req *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
 	return c.getSlowTransactions.CallUnary(ctx, req)
-}
-
-// GetTransactionLatencyHistory calls
-// observability.v1.ObservabilityService.GetTransactionLatencyHistory.
-func (c *observabilityServiceClient) GetTransactionLatencyHistory(ctx context.Context, req *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error) {
-	return c.getTransactionLatencyHistory.CallUnary(ctx, req)
-}
-
-// GetHostMetrics calls observability.v1.ObservabilityService.GetHostMetrics.
-func (c *observabilityServiceClient) GetHostMetrics(ctx context.Context, req *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error) {
-	return c.getHostMetrics.CallUnary(ctx, req)
 }
 
 // GetLogs calls observability.v1.ObservabilityService.GetLogs.
@@ -486,11 +410,6 @@ func (c *observabilityServiceClient) UpdateNotificationChannel(ctx context.Conte
 	return c.updateNotificationChannel.CallUnary(ctx, req)
 }
 
-// GetAlertStates calls observability.v1.ObservabilityService.GetAlertStates.
-func (c *observabilityServiceClient) GetAlertStates(ctx context.Context, req *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {
-	return c.getAlertStates.CallUnary(ctx, req)
-}
-
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -499,18 +418,14 @@ type ObservabilityServiceHandler interface {
 	GetStorageStats(context.Context, *connect.Request[v1.GetStorageStatsRequest]) (*connect.Response[v1.GetStorageStatsResponse], error)
 	TriggerStorageScan(context.Context, *connect.Request[v1.TriggerStorageScanRequest]) (*connect.Response[v1.TriggerStorageScanResponse], error)
 	GetDatabaseStats(context.Context, *connect.Request[v1.GetDatabaseStatsRequest]) (*connect.Response[v1.GetDatabaseStatsResponse], error)
-	GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error)
 	GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error)
 	GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error)
-	GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error)
 	GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error)
 	DismissSecurityAlert(context.Context, *connect.Request[v1.DismissSecurityAlertRequest]) (*connect.Response[v1.DismissSecurityAlertResponse], error)
 	GetProjectIssuesByStatus(context.Context, *connect.Request[v1.GetProjectIssuesByStatusRequest]) (*connect.Response[v1.GetProjectIssuesByStatusResponse], error)
 	GetSentryIssues(context.Context, *connect.Request[v1.GetSentryIssuesRequest]) (*connect.Response[v1.GetSentryIssuesResponse], error)
 	ResolveSentryIssue(context.Context, *connect.Request[v1.ResolveSentryIssueRequest]) (*connect.Response[v1.ResolveSentryIssueResponse], error)
 	GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error)
-	GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error)
-	GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetHealthOverview(context.Context, *connect.Request[v1.GetHealthOverviewRequest]) (*connect.Response[v1.GetHealthOverviewResponse], error)
 	ListOAuthConnections(context.Context, *connect.Request[v1.ListOAuthConnectionsRequest]) (*connect.Response[v1.ListOAuthConnectionsResponse], error)
@@ -520,7 +435,6 @@ type ObservabilityServiceHandler interface {
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
 	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
-	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -560,12 +474,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseStats")),
 		connect.WithHandlerOptions(opts...),
 	)
-	observabilityServiceGetDatabaseSizeHistoryHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetDatabaseSizeHistoryProcedure,
-		svc.GetDatabaseSizeHistory,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetDatabaseSizeHistory")),
-		connect.WithHandlerOptions(opts...),
-	)
 	observabilityServiceGetFailingPullRequestsHandler := connect.NewUnaryHandler(
 		ObservabilityServiceGetFailingPullRequestsProcedure,
 		svc.GetFailingPullRequests,
@@ -576,12 +484,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetWorkflowRunsProcedure,
 		svc.GetWorkflowRuns,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRuns")),
-		connect.WithHandlerOptions(opts...),
-	)
-	observabilityServiceGetWorkflowRunStatsHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetWorkflowRunStatsProcedure,
-		svc.GetWorkflowRunStats,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetWorkflowRunStats")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetSecurityAlertsHandler := connect.NewUnaryHandler(
@@ -618,18 +520,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		ObservabilityServiceGetSlowTransactionsProcedure,
 		svc.GetSlowTransactions,
 		connect.WithSchema(observabilityServiceMethods.ByName("GetSlowTransactions")),
-		connect.WithHandlerOptions(opts...),
-	)
-	observabilityServiceGetTransactionLatencyHistoryHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetTransactionLatencyHistoryProcedure,
-		svc.GetTransactionLatencyHistory,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetTransactionLatencyHistory")),
-		connect.WithHandlerOptions(opts...),
-	)
-	observabilityServiceGetHostMetricsHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetHostMetricsProcedure,
-		svc.GetHostMetrics,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetHostMetrics")),
 		connect.WithHandlerOptions(opts...),
 	)
 	observabilityServiceGetLogsHandler := connect.NewUnaryHandler(
@@ -686,12 +576,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
 		connect.WithHandlerOptions(opts...),
 	)
-	observabilityServiceGetAlertStatesHandler := connect.NewUnaryHandler(
-		ObservabilityServiceGetAlertStatesProcedure,
-		svc.GetAlertStates,
-		connect.WithSchema(observabilityServiceMethods.ByName("GetAlertStates")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -704,14 +588,10 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceTriggerStorageScanHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetDatabaseStatsProcedure:
 			observabilityServiceGetDatabaseStatsHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetDatabaseSizeHistoryProcedure:
-			observabilityServiceGetDatabaseSizeHistoryHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetFailingPullRequestsProcedure:
 			observabilityServiceGetFailingPullRequestsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetWorkflowRunsProcedure:
 			observabilityServiceGetWorkflowRunsHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetWorkflowRunStatsProcedure:
-			observabilityServiceGetWorkflowRunStatsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSecurityAlertsProcedure:
 			observabilityServiceGetSecurityAlertsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceDismissSecurityAlertProcedure:
@@ -724,10 +604,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceResolveSentryIssueHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetSlowTransactionsProcedure:
 			observabilityServiceGetSlowTransactionsHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetTransactionLatencyHistoryProcedure:
-			observabilityServiceGetTransactionLatencyHistoryHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetHostMetricsProcedure:
-			observabilityServiceGetHostMetricsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetLogsProcedure:
 			observabilityServiceGetLogsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetHealthOverviewProcedure:
@@ -746,8 +622,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceUpdateNotificationChannelProcedure:
 			observabilityServiceUpdateNotificationChannelHandler.ServeHTTP(w, r)
-		case ObservabilityServiceGetAlertStatesProcedure:
-			observabilityServiceGetAlertStatesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -777,20 +651,12 @@ func (UnimplementedObservabilityServiceHandler) GetDatabaseStats(context.Context
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDatabaseStats is not implemented"))
 }
 
-func (UnimplementedObservabilityServiceHandler) GetDatabaseSizeHistory(context.Context, *connect.Request[v1.GetDatabaseSizeHistoryRequest]) (*connect.Response[v1.GetDatabaseSizeHistoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetDatabaseSizeHistory is not implemented"))
-}
-
 func (UnimplementedObservabilityServiceHandler) GetFailingPullRequests(context.Context, *connect.Request[v1.GetFailingPullRequestsRequest]) (*connect.Response[v1.GetFailingPullRequestsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetFailingPullRequests is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetWorkflowRuns(context.Context, *connect.Request[v1.GetWorkflowRunsRequest]) (*connect.Response[v1.GetWorkflowRunsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetWorkflowRuns is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) GetWorkflowRunStats(context.Context, *connect.Request[v1.GetWorkflowRunStatsRequest]) (*connect.Response[v1.GetWorkflowRunStatsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetWorkflowRunStats is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetSecurityAlerts(context.Context, *connect.Request[v1.GetSecurityAlertsRequest]) (*connect.Response[v1.GetSecurityAlertsResponse], error) {
@@ -815,14 +681,6 @@ func (UnimplementedObservabilityServiceHandler) ResolveSentryIssue(context.Conte
 
 func (UnimplementedObservabilityServiceHandler) GetSlowTransactions(context.Context, *connect.Request[v1.GetSlowTransactionsRequest]) (*connect.Response[v1.GetSlowTransactionsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetSlowTransactions is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) GetTransactionLatencyHistory(context.Context, *connect.Request[v1.GetTransactionLatencyHistoryRequest]) (*connect.Response[v1.GetTransactionLatencyHistoryResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetTransactionLatencyHistory is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) GetHostMetrics(context.Context, *connect.Request[v1.GetHostMetricsRequest]) (*connect.Response[v1.GetHostMetricsResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetHostMetrics is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
@@ -859,8 +717,4 @@ func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(conte
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationChannel is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetAlertStates is not implemented"))
 }
