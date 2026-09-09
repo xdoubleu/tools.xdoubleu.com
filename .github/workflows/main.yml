@@ -600,7 +600,10 @@ jobs:
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
+          # Same repo Secret the api deploy step passes as
+          # OAUTH_GRAFANA_CLIENT_SECRET, under the env var name Grafana
+          # actually reads — see .kamal/secrets for why the spellings differ.
+          GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           # Reuses the same Resend account api's own mailer uses via SMTP
           # (issue #1468's Grafana contact point) — no new mail credential.

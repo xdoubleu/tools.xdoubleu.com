@@ -444,7 +444,10 @@ OAUTH_GRAFANA_CLIENT_SECRET  (plaintext secret for the static confidential
                               reconciles its bcrypt hash on boot; unset ⇒
                               Grafana SSO unusable. Also read by the
                               "Deploy grafana via Kamal" step, issue #1468 —
-                              same value, both sides of the OAuth pair)
+                              same value, both sides of the OAuth pair, but
+                              passed to that container as
+                              GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET, the only
+                              spelling Grafana reads, issue #1517)
 GRAFANA_ADMIN_PASSWORD       (Grafana's local break-glass admin password,
                               issue #1468 — config/deploy.grafana.yml's
                               GF_SECURITY_ADMIN_PASSWORD; SSO via
