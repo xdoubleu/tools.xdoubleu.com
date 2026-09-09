@@ -26,6 +26,7 @@ jobs:
       config_api: ${{ steps.filter.outputs.config_api }}
       config_web: ${{ steps.filter.outputs.config_web }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
+      grafana_dockerfile: ${{ steps.filter.outputs.grafana_dockerfile }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -67,21 +68,28 @@ jobs:
               - '!infra/**/*.md'
             # Kamal deploys are pinned to an image tag that must exist in
             # GHCR, so a config-only change can't just redeploy the existing
-            # image — it needs build-api/build-web to actually run so a fresh
-            # :<sha> image gets pushed for deploy-kamal to deploy (#1128:
-            # bf0829fe's SSL removal here matched no filter at all, so
-            # build-api was skipped and nothing redeployed).
+            # image — it needs build-api/build-web/build-grafana to actually
+            # run so a fresh :<sha> image gets pushed for deploy-kamal to
+            # deploy (#1128: bf0829fe's SSL removal here matched no filter at
+            # all, so build-api was skipped and nothing redeployed).
             config_api:
               - 'config/deploy.api.yml'
             config_web:
               - 'config/deploy.web.yml'
-            # No build-* job needs this one (Grafana pulls a stock public
-            # image, no build/push step of its own) — it exists purely so a
-            # config-only change to deploy.grafana.yml still runs api-lint's
-            # `make lint/kamal-secrets` check below (issue #1504; same gap
-            # #1405 closed for config_api/config_web).
+            # Also gates build-grafana (issue #1509 — Grafana moved from a
+            # direct Docker Hub pull to its own built-and-pushed wrapper
+            # image, same as api/web) and api-lint's `make lint/kamal-secrets`
+            # check for a config-only change (issue #1504; same gap #1405
+            # closed for config_api/config_web).
             config_grafana:
               - 'config/deploy.grafana.yml'
+            # infra/** above already covers this path, but that filter feeds
+            # infra-apply (OpenTofu), not build-grafana — this one exists so
+            # a Dockerfile-only change (e.g. bumping the pinned Grafana
+            # version) triggers a fresh image build the same way config_api
+            # does for deploy.api.yml.
+            grafana_dockerfile:
+              - 'infra/grafana.Dockerfile'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
@@ -125,6 +133,22 @@ jobs:
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
     uses: ./.github/workflows/build-api.yml
+    secrets: inherit
+
+  # Grafana's wrapper image (issue #1509) — see infra/grafana.Dockerfile's
+  # comment for why this exists instead of pulling grafana/grafana-oss
+  # directly. Gated only on its own Dockerfile/config, not proto/sentrytools
+  # (nothing here depends on this repo's own Go/proto code).
+  build-grafana:
+    needs: changes
+    if: |
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.grafana_dockerfile == 'true' ||
+      needs.changes.outputs.config_grafana == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Build Grafana Workflow
+    uses: ./.github/workflows/build-grafana.yml
     secrets: inherit
 
   # kobo_gateway is in this gate: build-web.yml stages the kobo-gateway
@@ -288,6 +312,7 @@ jobs:
         proto-check,
         build-api,
         build-web,
+        build-grafana,
         build-kobo-gateway,
         api-lint,
         web-lint,
@@ -418,13 +443,14 @@ jobs:
   # a deploy mid-flight would abandon a live kamal deploy lock/half-applied
   # release, which is worse than a few minutes of queueing.
   deploy-kamal:
-    needs: [build-api, build-web, infra-apply]
+    needs: [build-api, build-web, build-grafana, infra-apply]
     if: |
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
+      (needs.build-grafana.result == 'success' || needs.build-grafana.result == 'skipped') &&
       (needs.infra-apply.result == 'success' || needs.infra-apply.result == 'skipped')
     concurrency:
       group: hetzner-vps-deploy
@@ -556,40 +582,31 @@ jobs:
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Grafana (issue #1468) — the third Kamal service on this host,
-      # alongside api/web above. Unlike those two, there's no build-grafana
-      # job/image to gate on: this deploys the stock public
-      # grafana/grafana-oss image straight from Docker Hub, so it runs on
-      # every push to main unconditionally (same as the two steps above,
-      # minus their `if: needs.build-*` gate). Order relative to
-      # api/web doesn't matter for kamal-proxy's own TLS/path-registration
-      # rules (deploy.grafana.yml's proxy block has no `ssl` key, same as
-      # api's), but it runs last so its OAuth login against the just-
-      # deployed api is exercised against the newest api build in the same
-      # run.
+      # alongside api/web above, gated on build-grafana the same way (issue
+      # #1509 — Grafana moved to its own built-and-pushed wrapper image,
+      # see infra/grafana.Dockerfile). Order relative to api/web doesn't
+      # matter for kamal-proxy's own TLS/path-registration rules
+      # (deploy.grafana.yml's proxy block has no `ssl` key, same as api's),
+      # but it runs last so its OAuth login against the just-deployed api
+      # is exercised against the newest api build in the same run.
+      # Only when build-grafana actually ran (issue #1509, same reasoning as
+      # the web/api steps above) — a skipped build-grafana means no fresh
+      # ghcr.io/.../grafana:<sha> tag exists to deploy.
       - name: Deploy grafana via Kamal
+        if: needs.build-grafana.result == 'success'
         env:
-          # DOCKERHUB_USERNAME/TOKEN (issue #1504), not
-          # KAMAL_REGISTRY_USERNAME/PASSWORD — those are GHCR credentials and
-          # would be rejected as invalid against docker.io. Required by
-          # Kamal's config schema even though grafana/grafana-oss is a
-          # public image needing no auth to actually pull — see
-          # config/deploy.grafana.yml's registry: comment.
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_REGISTRY_USERNAME: ${{ secrets.KAMAL_REGISTRY_USERNAME }}
+          KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           # Reuses the same Resend account api's own mailer uses via SMTP
           # (issue #1468's Grafana contact point) — no new mail credential.
           GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
           GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
-        # A fixed version, not $KAMAL_VERSION/github.sha like api/web (issue
-        # #1507) — Grafana's image: (config/deploy.grafana.yml) carries no
-        # tag, so Kamal's own "<image>:<version>" concatenation must supply
-        # the real upstream tag here. Bumping Grafana means updating this
-        # value and config/deploy.grafana.yml's comment together.
-        run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="12.1.1"
+        run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
