@@ -4,21 +4,17 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
-// Monitoring owns sentry_issues/failing_dependency_prs/failing_main_ci/
-// security_alerts/orphaned_storage, plus the threshold alert rules
-// (issue #1283) — unhealthy_feeds is surfaced from the feeds app instead
-// (issue #1228).
+// Monitoring owns sentry_issues/failing_dependency_prs/security_alerts/
+// orphaned_storage, plus the slow-transaction threshold rules (issue
+// #1310, kept per ADR-0011) — unhealthy_feeds is surfaced from the feeds
+// app instead (issue #1228). The host/CI-duration/R2-usage/failing-main-CI
+// sources moved to Grafana + Prometheus alert rules (issue #1468) and no
+// longer exist here.
 const MONITORING_SOURCE_KEYS = [
   'sentry_issues',
   'failing_dependency_prs',
-  'failing_main_ci',
   'security_alerts',
   'orphaned_storage',
-  'host_cpu_high',
-  'host_memory_high',
-  'host_disk_high',
-  'r2_usage_high',
-  'ci_duration_high',
   'slow_transaction_http_high',
   'slow_transaction_job_high',
   'slow_transaction_frontend_high'

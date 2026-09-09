@@ -238,109 +238,12 @@ func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
 	assert.True(t, hasGlobal)
 }
 
-func TestObservabilityGetDatabaseStats_ReportsGrowth(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-
-	_, err := testApp.db.Exec(
-		context.Background(), "DELETE FROM global.db_size_samples",
-	)
-	require.NoError(t, err)
-	now := time.Now()
-	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
-		context.Background(), now.Add(-time.Hour),
-		[]models.TableSizeSample{
-			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1000},
-		},
-	))
-	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
-		context.Background(), now,
-		[]models.TableSizeSample{
-			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1500},
-		},
-	))
-
-	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetDatabaseStatsRequest{WindowDays: 1})
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetDatabaseStats(context.Background(), req)
-	require.NoError(t, err)
-
-	var found bool
-	for _, g := range resp.Msg.TableGrowth {
-		if g.SchemaName == "global" && g.TableName == "job_runs" {
-			found = true
-			assert.EqualValues(t, 1500, g.CurrentSizeBytes)
-			assert.EqualValues(t, 500, g.DeltaBytes)
-		}
-	}
-	assert.True(t, found)
-
-	require.Len(t, resp.Msg.History, 2)
-	assert.EqualValues(t, 1000, resp.Msg.History[0].TotalSizeBytes)
-	assert.EqualValues(t, 1500, resp.Msg.History[1].TotalSizeBytes)
-	for _, s := range resp.Msg.History {
-		_, parseErr := time.Parse(time.RFC3339, s.SampledAt)
-		assert.NoError(t, parseErr)
-	}
-}
-
 func TestObservabilityGetDatabaseStats_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	client := observabilityClient(t)
 	req := connect.NewRequest(&observabilityv1.GetDatabaseStatsRequest{})
 	setCookieOnRequest(req, accessToken)
 	_, err := client.GetDatabaseStats(context.Background(), req)
-	requirePermissionDenied(t, err)
-}
-
-func TestObservabilityGetDatabaseSizeHistory_AsAdmin(t *testing.T) {
-	promoteToAdmin(t)
-	t.Cleanup(func() { demoteToUser(t) })
-
-	_, err := testApp.db.Exec(
-		context.Background(), "DELETE FROM global.db_size_samples",
-	)
-	require.NoError(t, err)
-	now := time.Now()
-	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
-		context.Background(), now.Add(-time.Hour),
-		[]models.TableSizeSample{
-			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1000},
-		},
-	))
-	require.NoError(t, testApp.dbSizeSamplesRepo.InsertBatch(
-		context.Background(), now,
-		[]models.TableSizeSample{
-			{SchemaName: "global", TableName: "job_runs", SizeBytes: 1500},
-		},
-	))
-
-	client := observabilityClient(t)
-	req := connect.NewRequest(
-		&observabilityv1.GetDatabaseSizeHistoryRequest{WindowDays: 1},
-	)
-	setCookieOnRequest(req, accessToken)
-	resp, err := client.GetDatabaseSizeHistory(context.Background(), req)
-	require.NoError(t, err)
-
-	require.Len(t, resp.Msg.Points, 2)
-	assert.Equal(t, "global", resp.Msg.Points[0].SchemaName)
-	assert.Equal(t, "job_runs", resp.Msg.Points[0].TableName)
-	assert.EqualValues(t, 1000, resp.Msg.Points[0].SizeBytes)
-	assert.EqualValues(t, 1500, resp.Msg.Points[1].SizeBytes)
-	for _, p := range resp.Msg.Points {
-		_, parseErr := time.Parse("2006-01-02", p.Day)
-		assert.NoError(t, parseErr)
-	}
-}
-
-func TestObservabilityGetDatabaseSizeHistory_NonAdmin(t *testing.T) {
-	demoteToUser(t)
-	client := observabilityClient(t)
-	req := connect.NewRequest(&observabilityv1.GetDatabaseSizeHistoryRequest{})
-	setCookieOnRequest(req, accessToken)
-	_, err := client.GetDatabaseSizeHistory(context.Background(), req)
 	requirePermissionDenied(t, err)
 }
 

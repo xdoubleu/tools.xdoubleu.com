@@ -10,13 +10,9 @@ service ObservabilityService {
       returns (TriggerStorageScanResponse);
   rpc GetDatabaseStats(GetDatabaseStatsRequest)
       returns (GetDatabaseStatsResponse);
-  rpc GetDatabaseSizeHistory(GetDatabaseSizeHistoryRequest)
-      returns (GetDatabaseSizeHistoryResponse);
   rpc GetFailingPullRequests(GetFailingPullRequestsRequest)
       returns (GetFailingPullRequestsResponse);
   rpc GetWorkflowRuns(GetWorkflowRunsRequest) returns (GetWorkflowRunsResponse);
-  rpc GetWorkflowRunStats(GetWorkflowRunStatsRequest)
-      returns (GetWorkflowRunStatsResponse);
   rpc GetSecurityAlerts(GetSecurityAlertsRequest)
       returns (GetSecurityAlertsResponse);
   rpc DismissSecurityAlert(DismissSecurityAlertRequest)
@@ -28,9 +24,6 @@ service ObservabilityService {
       returns (ResolveSentryIssueResponse);
   rpc GetSlowTransactions(GetSlowTransactionsRequest)
       returns (GetSlowTransactionsResponse);
-  rpc GetTransactionLatencyHistory(GetTransactionLatencyHistoryRequest)
-      returns (GetTransactionLatencyHistoryResponse);
-  rpc GetHostMetrics(GetHostMetricsRequest) returns (GetHostMetricsResponse);
   rpc GetLogs(GetLogsRequest) returns (GetLogsResponse);
   rpc GetHealthOverview(GetHealthOverviewRequest)
       returns (GetHealthOverviewResponse);
@@ -48,7 +41,6 @@ service ObservabilityService {
       returns (UpdateNotificationSettingsResponse);
   rpc UpdateNotificationChannel(UpdateNotificationChannelRequest)
       returns (UpdateNotificationChannelResponse);
-  rpc GetAlertStates(GetAlertStatesRequest) returns (GetAlertStatesResponse);
 }
 
 message JobStat {
@@ -140,53 +132,14 @@ message SchemaStat {
   int64 table_count = 3;
 }
 
-message GetDatabaseStatsRequest {
-  int32 window_days = 1;
-}
+message GetDatabaseStatsRequest {}
 
-// TableGrowth compares one table's current on-disk size against its
-// earliest sampled size within the requested window (global.db_size_samples,
-// issue #1282). A table with fewer than two samples in the window is
-// omitted rather than reported as a false zero delta.
-message TableGrowth {
-  string schema_name = 1;
-  string table_name = 2;
-  int64 current_size_bytes = 3;
-  int64 delta_bytes = 4;
-  double pct_change = 5;
-}
-
-// DBSizeSnapshot is one snapshot batch's total on-disk size, summed across
-// every table sampled at that instant (global.db_size_samples, issue #1282).
-message DBSizeSnapshot {
-  string sampled_at = 1;  // RFC3339
-  int64 total_size_bytes = 2;
-}
-
+// GetDatabaseStatsResponse is a live snapshot (pg_database_size/pg_class) —
+// growth-over-time now lives in Grafana/Prometheus (issue #1468), which is
+// why this carries no window or history any more.
 message GetDatabaseStatsResponse {
   int64 total_size_bytes = 1;
   repeated SchemaStat schemas = 2;
-  repeated TableGrowth table_growth = 3;
-  repeated DBSizeSnapshot history = 4;
-}
-
-// DBSizeHistoryPoint is one global.db_size_samples row.
-message DBSizeHistoryPoint {
-  string day = 1;  // YYYY-MM-DD
-  string schema_name = 2;
-  string table_name = 3;
-  int64 size_bytes = 4;
-}
-
-message GetDatabaseSizeHistoryRequest {
-  int32 window_days = 1;
-}
-
-// GetDatabaseSizeHistoryResponse carries every stored (schema, table) series
-// over the window, flat and unfiltered — schema-level totals are a
-// client-side sum of their tables' rows, avoiding a second query.
-message GetDatabaseSizeHistoryResponse {
-  repeated DBSizeHistoryPoint points = 1;
 }
 
 // FailingCheck is a single non-passing CI check run on a pull request's head
@@ -276,50 +229,6 @@ message GetWorkflowRunsRequest {}
 message GetWorkflowRunsResponse {
   repeated WorkflowRun runs = 1;
   bool configured = 2;
-}
-
-// MainBranchFailure is one recorded workflow run on main that failed —
-// deploys run straight off a passing push, so this should never happen and
-// its presence is itself the alert-worthy signal.
-message MainBranchFailure {
-  int64 run_id = 1;
-  string workflow_name = 2;
-  string url = 3;
-  string completed_at = 4;  // RFC3339
-}
-
-// WorkflowDurationStat aggregates one workflow's recorded run durations over
-// the stats window.
-message WorkflowDurationStat {
-  string workflow_name = 1;
-  double avg_duration_ms = 2;
-  double p95_duration_ms = 3;
-  int64 run_count = 4;
-}
-
-// JobDurationStat aggregates one job name's recorded durations across every
-// workflow run over the stats window — the per-action breakdown.
-message JobDurationStat {
-  string job_name = 1;
-  double avg_duration_ms = 2;
-  double p95_duration_ms = 3;
-  int64 run_count = 4;
-}
-
-message GetWorkflowRunStatsRequest {
-  int32 window_days = 1;
-}
-
-// GetWorkflowRunStatsResponse is aggregated CI duration/failure history from
-// global.workflow_run_samples/global.workflow_job_samples (issue #1217) —
-// deliberately stats, not a raw run list: main_failures is expected to be
-// empty, and workflow_duration_stats/job_duration_stats answer "how long
-// does CI normally take" and "which specific job is slow", not "show me
-// every run".
-message GetWorkflowRunStatsResponse {
-  repeated MainBranchFailure main_failures = 1;
-  repeated WorkflowDurationStat workflow_duration_stats = 2;
-  repeated JobDurationStat job_duration_stats = 3;
 }
 
 enum SecurityAlertType {
@@ -435,50 +344,6 @@ message GetSlowTransactionsResponse {
   repeated SlowTransaction current = 1;
   bool configured = 2;
   repeated TransactionTrend trending = 3;
-}
-
-// TransactionLatencyPoint is one global.transaction_latency_daily row.
-message TransactionLatencyPoint {
-  string day = 1;  // YYYY-MM-DD
-  string project = 2;
-  string transaction = 3;
-  double p95_duration_ms = 4;
-  int64 request_count = 5;
-}
-
-message GetTransactionLatencyHistoryRequest {
-  int32 window_days = 1;
-}
-
-// GetTransactionLatencyHistoryResponse carries every stored
-// (project, transaction) series over the window, flat and unfiltered —
-// selection happens client-side since the transaction list is small.
-message GetTransactionLatencyHistoryResponse {
-  repeated TransactionLatencyPoint points = 1;
-}
-
-// HostMetricPoint is one host_metric_samples row's value at a point in time.
-message HostMetricPoint {
-  string timestamp = 1;  // RFC3339
-  double value = 2;
-}
-
-// GetHostMetricsRequest requests host CPU/memory/disk usage. since bounds how
-// far back the history series go; the zero value defaults to the server's
-// own retention window.
-message GetHostMetricsRequest {
-  string since = 1;  // RFC3339
-}
-
-// GetHostMetricsResponse carries the latest reading plus history series for
-// graphing, scraped from node_exporter (issue #1040).
-message GetHostMetricsResponse {
-  double cpu_percent = 1;
-  double memory_percent = 2;
-  double disk_percent = 3;
-  repeated HostMetricPoint cpu_history = 4;
-  repeated HostMetricPoint memory_history = 5;
-  repeated HostMetricPoint disk_history = 6;
 }
 
 // LogEntry is one application log line forwarded from api or web.
@@ -619,21 +484,3 @@ message UpdateNotificationChannelRequest {
 }
 
 message UpdateNotificationChannelResponse {}
-
-// AlertState is one threshold rule's breach/recovery state
-// (jobs.ThresholdAlertJob, issue #1283) — current_value/threshold are
-// refreshed on every evaluation, not just on a breach/recovery transition.
-message AlertState {
-  string rule_key = 1;
-  bool breaching = 2;
-  string since = 3;             // RFC3339, empty if not breaching
-  string last_notified_at = 4;  // RFC3339, empty if never notified
-  double current_value = 5;
-  double threshold = 6;
-}
-
-message GetAlertStatesRequest {}
-
-message GetAlertStatesResponse {
-  repeated AlertState states = 1;
-}

@@ -1,8 +1,6 @@
 'use client'
 
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
@@ -14,60 +12,25 @@ import {
 } from 'recharts'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import type {
-  GetDatabaseStatsResponse,
-  GetDatabaseSizeHistoryResponse,
-  DBSizeHistoryPoint
-} from '@/lib/gen/observability/v1/observability_pb'
+import type { GetDatabaseStatsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import {
   bytesTooltipFormatter,
   CATEGORICAL_PALETTE,
   chartTooltipStyle,
   formatBytes
 } from '@/lib/observability'
-import MultiSeriesChart, { type SeriesMeta, type SeriesPoint } from './MultiSeriesChart'
 
-function seriesKey(schemaName: string, tableName: string): string {
-  return `${schemaName}.${tableName}`
-}
-
-export function toSeriesPoints(points: DBSizeHistoryPoint[]): SeriesPoint[] {
-  return points.map((p) => ({
-    day: p.day,
-    seriesKey: seriesKey(p.schemaName, p.tableName),
-    value: Number(p.sizeBytes)
-  }))
-}
-
-export function toSeriesMeta(points: DBSizeHistoryPoint[]): SeriesMeta[] {
-  const seen = new Map<string, SeriesMeta>()
-  for (const p of points) {
-    const key = seriesKey(p.schemaName, p.tableName)
-    if (!seen.has(key)) {
-      seen.set(key, { key, label: key })
-    }
-  }
-  return [...seen.values()]
-}
-
-export default function DatabaseCard({
-  data,
-  history
-}: {
-  data?: GetDatabaseStatsResponse
-  history?: GetDatabaseSizeHistoryResponse
-}) {
+// DatabaseCard shows a live snapshot only (pg_database_size/pg_class) —
+// growth-over-time moved to Grafana/Prometheus (issue #1468), which removed
+// the daily db_size_samples scrape this card used to chart via
+// MultiSeriesChart.
+export default function DatabaseCard({ data }: { data?: GetDatabaseStatsResponse }) {
   const schemas = data?.schemas ?? []
-  const historyData = (data?.history ?? []).map((s) => ({
-    date: s.sampledAt.slice(0, 10),
-    size: Number(s.totalSizeBytes)
-  }))
   const chartData = schemas.map((s) => ({
     name: s.name,
     size: Number(s.sizeBytes),
     tables: Number(s.tableCount)
   }))
-  const historyPoints = history?.points ?? []
 
   return (
     <Card>
@@ -81,42 +44,6 @@ export default function DatabaseCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-5">
-          <h4 className="mb-2 text-sm font-semibold text-subtle">Total size over time</h4>
-          {historyData.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted">No snapshot history.</p>
-          ) : (
-            <div className="h-56 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historyData} margin={{ left: 8, right: 16 }}>
-                  <defs>
-                    <linearGradient id="databaseFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={CATEGORICAL_PALETTE[0]} stopOpacity={0.4} />
-                      <stop offset="100%" stopColor={CATEGORICAL_PALETTE[0]} stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} minTickGap={24} />
-                  <YAxis tickFormatter={(v: number) => formatBytes(v)} tick={{ fontSize: 11 }} />
-                  <Tooltip
-                    formatter={bytesTooltipFormatter('Total size')}
-                    contentStyle={chartTooltipStyle}
-                    labelStyle={{ color: 'var(--color-fg)' }}
-                    itemStyle={{ color: 'var(--color-fg)' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="size"
-                    stroke={CATEGORICAL_PALETTE[0]}
-                    strokeWidth={2}
-                    fill="url(#databaseFill)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
         {chartData.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted">No schema data.</p>
         ) : (
@@ -169,24 +96,6 @@ export default function DatabaseCard({
             </div>
           </>
         )}
-
-        <div className="mt-5">
-          <h4 className="mb-2 text-sm font-semibold text-subtle">Schema &amp; table history</h4>
-          <p className="mb-3 text-xs text-muted">
-            Select one or more schemas or tables to plot their on-disk size over time.
-          </p>
-          {historyPoints.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted">No size history yet.</p>
-          ) : (
-            <MultiSeriesChart
-              points={toSeriesPoints(historyPoints)}
-              meta={toSeriesMeta(historyPoints)}
-              valueLabel="size"
-              valueFormatter={formatBytes}
-              searchPlaceholder="Filter schemas or tables…"
-            />
-          )}
-        </div>
       </CardContent>
     </Card>
   )

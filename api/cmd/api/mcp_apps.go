@@ -71,10 +71,9 @@ type projectIssuesByStatusArgs struct {
 	Status        string `json:"status,omitempty"         jsonschema:"e.g. Ready"`
 }
 
-// hostMetricsArgs is the input for get_host_metrics. Since empty defaults to
-// the server's own retention window.
-type hostMetricsArgs struct {
-	Since string `json:"since,omitempty" jsonschema:"RFC3339, optional"`
+// promQueryArgs is the input for prom_query.
+type promQueryArgs struct {
+	Query string `json:"query" jsonschema:"a PromQL expression, e.g. up{job='api'}"`
 }
 
 // logsArgs is the input for get_logs. Source/MinLevel empty means "any".
@@ -114,7 +113,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (20 tools, which include the two mutating
+// tools registered directly below (16 tools, which include the two mutating
 // tools, resolve_sentry_issue and dismiss_security_alert — see
 // registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
@@ -134,10 +133,12 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 20 admin observability tools —
-// 18 read-only plus the two deliberate mutations, resolve_sentry_issue and
-// dismiss_security_alert. Each wraps a shared internal ObservabilityService
-// method also used by the Connect handlers.
+// registerObservabilityMCPTools registers the 16 admin observability tools —
+// 14 read-only plus the two deliberate mutations, resolve_sentry_issue and
+// dismiss_security_alert. Every tool but prom_query wraps a shared internal
+// ObservabilityService method also used by the Connect handlers; prom_query
+// (issue #1468) instead proxies straight to Prometheus's own HTTP API, since
+// its response shape isn't a proto message this repo defines.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	h := &obsConnectHandler{app: app}
 
@@ -160,19 +161,11 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			return h.storageStats(ctx)
 		})
 	addObsTool(srv, "get_database_stats",
-		"Total database size and per-schema sizes (live pg_* queries), plus "+
-			"per-table growth over the requested window (global.db_size_samples) "+
-			"— sort by delta_bytes to find which table is growing fastest.",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.databaseStats(ctx, a.WindowDays)
-		})
-	addObsTool(srv, "get_database_size_history",
-		"Daily per-(schema, table) on-disk size over the requested window "+
-			"(global.db_size_samples) — the raw time series behind "+
-			"get_database_stats' growth summary, for plotting or deeper "+
-			"analysis of one table's growth.",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.databaseSizeHistory(ctx, a.WindowDays)
+		"Total database size and per-schema sizes (live pg_* queries). "+
+			"Growth-over-time now lives in Grafana/Prometheus — use prom_query "+
+			"(e.g. pg_database_size_bytes via postgres_exporter) for a trend.",
+		func(ctx context.Context, _ noArgs) (proto.Message, error) {
+			return h.databaseStats(ctx)
 		})
 	addObsTool(srv, "get_failing_pull_requests",
 		"Open pull requests with at least one failing CI check.",
@@ -184,15 +177,6 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 			"runs, with duration for each completed run.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.workflowRuns(ctx), nil
-		})
-	addObsTool(srv, "get_workflow_run_stats",
-		"Aggregated CI history, not a raw run list: main-branch failures "+
-			"(should always be empty — main deploys straight off a passing "+
-			"push, so any entry here is an incident), avg/p95 duration per "+
-			"workflow, and avg/p95 duration per job (the specific-actions "+
-			"breakdown).",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.workflowRunStats(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+
@@ -221,14 +205,6 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.slowTransactions(ctx)
 		})
-	addObsTool(srv, "get_transaction_latency_history",
-		"Daily p95 duration + request count per (project, transaction) over "+
-			"the requested window (global.transaction_latency_daily) — the raw "+
-			"time series behind get_slow_transactions' trending summary, for "+
-			"plotting or deeper analysis of one transaction's history.",
-		func(ctx context.Context, a windowArgs) (proto.Message, error) {
-			return h.transactionLatencyHistory(ctx, a.WindowDays)
-		})
 	registerMutatingObservabilityMCPTools(srv, h)
 	registerAlertMCPTools(srv, h)
 }
@@ -255,17 +231,10 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 		})
 }
 
-// registerAlertMCPTools registers get_host_metrics, get_logs,
-// get_notification_settings, and get_alert_states, split out of
-// registerObservabilityMCPTools to keep that function under the repo's
-// function-length lint limit.
+// registerAlertMCPTools registers get_logs, get_notification_settings, and
+// prom_query, split out of registerObservabilityMCPTools to keep that
+// function under the repo's function-length lint limit.
 func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
-	addObsTool(srv, "get_host_metrics",
-		"Host CPU/memory/disk usage, scraped from node_exporter, plus history "+
-			"for graphing.",
-		func(ctx context.Context, a hostMetricsArgs) (proto.Message, error) {
-			return h.hostMetrics(ctx, a.Since)
-		})
 	addObsTool(srv, "get_logs",
 		"Application logs forwarded from api and web, optionally filtered by "+
 			"source/level.",
@@ -280,16 +249,7 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.notificationSettings(ctx)
 		})
-	addObsTool(srv, "get_alert_states",
-		"Current breach/recovery state of each threshold alert rule (host "+
-			"CPU/memory/disk, R2 usage, CI duration) — its configured "+
-			"threshold, latest evaluated value, when it entered breach, and "+
-			"when it last emailed. Explains a missing/unexpected alert email "+
-			"the way get_notification_settings explains a missing "+
-			"notification-source email.",
-		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.alertStates(ctx)
-		})
+	registerPromQueryMCPTool(srv, h.app)
 	addObsTool(srv, "get_project_issues_by_status",
 		"Open issues on the configured repository owner's GitHub Projects "+
 			"(v2) board whose Status column matches the given name (e.g. "+

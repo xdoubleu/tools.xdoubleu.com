@@ -9,14 +9,8 @@ const SOURCE_LABELS: Record<string, string> = {
   sentry_issues: 'Sentry issues',
   failing_dependency_prs: 'Failing dependency PRs',
   unhealthy_feeds: 'Unhealthy feeds',
-  failing_main_ci: 'Failing PRs on main',
   security_alerts: 'Security alerts',
   orphaned_storage: 'Orphaned storage',
-  host_cpu_high: 'Host CPU high',
-  host_memory_high: 'Host memory high',
-  host_disk_high: 'Host disk high',
-  r2_usage_high: 'R2 storage usage high',
-  ci_duration_high: 'CI workflow duration high',
   slow_transaction_http_high: 'Slow HTTP handlers',
   slow_transaction_job_high: 'Slow background jobs',
   slow_transaction_frontend_high: 'Slow frontend spans',
@@ -28,21 +22,10 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
   failing_dependency_prs:
     'Emails an admin the first time a dependency (Renovate) pull request fails CI.',
   unhealthy_feeds: 'Includes feeds failing to poll in the weekly digest email.',
-  failing_main_ci: 'Emails an admin the first time a CI run fails on the main branch.',
   security_alerts:
     'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.',
   orphaned_storage:
     'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.',
-  host_cpu_high:
-    'Emails an admin when host CPU usage stays above threshold for 15 minutes, and again on recovery.',
-  host_memory_high:
-    'Emails an admin when host memory usage stays above threshold for 15 minutes, and again on recovery.',
-  host_disk_high:
-    'Emails an admin when host disk usage goes above threshold, and again on recovery.',
-  r2_usage_high:
-    'Emails an admin when total R2 storage usage goes above threshold, and again on recovery.',
-  ci_duration_high:
-    "Emails an admin when a workflow's CI duration (p95) goes above threshold, and again on recovery.",
   slow_transaction_http_high:
     "Emails an admin when an HTTP handler's p95 duration goes above threshold, and again on recovery.",
   slow_transaction_job_high:

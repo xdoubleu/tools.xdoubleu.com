@@ -1,0 +1,43 @@
+# Prometheus's own config (issue #1468) — uploaded to
+# /home/deploy/prometheus/prometheus.yml by null_resource.prometheus
+# (infra/main.tf) and mounted read-only into the container by
+# infra/prometheus-compose.yml. rule_files below points at
+# infra/prometheus/alert-rules.yml, uploaded alongside it.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
+
+scrape_configs:
+  # api's own /metrics (api/cmd/api/metrics.go) — process/Go runtime
+  # metrics (go_*, process_*), scraped directly over the internal `kamal`
+  # Docker network at the container's app_port, exactly like Kamal's own
+  # /health check does (config/deploy.api.yml's proxy.healthcheck). Kamal
+  # gives each app container a network alias equal to its `service:` name
+  # (config/deploy.api.yml: tools-xdoubleu-com-api) — confirm with
+  # `docker network inspect kamal` on the VPS if this target ever shows
+  # "down" in Grafana/`up{job="api"}` and the container itself is healthy.
+  - job_name: api
+    static_configs:
+      - targets: ["tools-xdoubleu-com-api:8000"]
+
+  # Host CPU/memory/disk (issue #1040's node_exporter, now scraped by
+  # Prometheus directly instead of api's own removed
+  # HostMetricsSnapshotJob/hostmetrics.go).
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  # Postgres server-level stats (connections, transactions, replication
+  # lag, table/index bloat, etc.) — a new accessory alongside node_exporter,
+  # infra/prometheus-compose.yml.
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Prometheus's own self-monitoring.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

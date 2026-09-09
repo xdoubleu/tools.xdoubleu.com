@@ -60,9 +60,6 @@ type Application struct {
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
 	dbStatsRepo                   *repositories.DBStatsRepository
-	dbSizeSamplesRepo             *repositories.DBSizeSamplesRepository
-	dbSizeSnapshotJob             *jobs.DBSizeSnapshotJob
-	hostMetricsRepo               *repositories.HostMetricsRepository
 	logsRepo                      *repositories.LogsRepository
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	notificationChannelRepo       *repositories.NotificationChannelConfigRepository
@@ -74,9 +71,6 @@ type Application struct {
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
-	hostMetricsSnapshotJob        *jobs.HostMetricsSnapshotJob
-	workflowRunsRepo              *repositories.WorkflowRunsRepository
-	workflowRunsSnapshotJob       *jobs.WorkflowRunsSnapshotJob
 	alertStatesRepo               *repositories.AlertStatesRepository
 	thresholdAlertJob             *jobs.ThresholdAlertJob
 	globalJobQueue                *jobqueue.JobQueue
@@ -107,8 +101,6 @@ const (
 	// transaction-latency snapshot, issue #848).
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
-	// hostMetricsScrapeTimeout bounds one node_exporter HTTP scrape.
-	hostMetricsScrapeTimeout = 5 * time.Second
 )
 
 // migrationLockTimeout bounds how long a starting replica waits for the
@@ -279,27 +271,6 @@ func newCrossAppJobs(
 	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
 }
 
-// newWorkflowRunsSnapshotJob builds the workflow-run history job (issue
-// #1217), reusing the same notifiedIssuesRepo dedup table IssueNotifierJob
-// uses for its own main-branch-failure alert.
-func newWorkflowRunsSnapshotJob(
-	db *pgxpool.Pool,
-	githubClient github.Client,
-	notificationsSvc *notifications.Service,
-	notificationSettingsRepo *repositories.NotificationSettingsRepository,
-) (*repositories.WorkflowRunsRepository, *jobs.WorkflowRunsSnapshotJob) {
-	workflowRunsRepo := repositories.NewWorkflowRunsRepository(db)
-	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
-	workflowRunsSnapshotJob := jobs.NewWorkflowRunsSnapshotJob(
-		githubClient,
-		workflowRunsRepo,
-		notificationsSvc,
-		notifiedIssuesRepo,
-		notificationSettingsRepo,
-	)
-	return workflowRunsRepo, workflowRunsSnapshotJob
-}
-
 // feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
 // WeeklyDigestJob (internal/observability/jobs) never imports apps/feeds
 // directly — feeds.UnhealthyFeed and jobs.UnhealthyFeed are structurally
@@ -393,21 +364,6 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.hostMetricsSnapshotJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
-	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.workflowRunsSnapshotJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
-	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.dbSizeSnapshotJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
 	return app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.thresholdAlertJob, app.db), noopCallback,
 	)
@@ -483,27 +439,13 @@ func NewApplication(
 			storageSnapshotsRepo,
 		)
 
-	hostMetricsRepo := repositories.NewHostMetricsRepository(db)
 	logsRepo := repositories.NewLogsRepository(db)
-	hostMetricsScraper := observability.NewHostMetricsScraper(
-		config.NodeExporterURL, hostMetricsScrapeTimeout,
-	)
-	hostMetricsSnapshotJob := jobs.NewHostMetricsSnapshotJob(
-		hostMetricsScraper, hostMetricsRepo, logsRepo,
-	)
-
-	workflowRunsRepo, workflowRunsSnapshotJob := newWorkflowRunsSnapshotJob(
-		db, githubClient, notificationsSvc, notificationSettingsRepo,
-	)
 
 	dbStatsRepo := repositories.NewDBStatsRepository(db)
-	dbSizeSamplesRepo := repositories.NewDBSizeSamplesRepository(db)
-	dbSizeSnapshotJob := jobs.NewDBSizeSnapshotJob(dbStatsRepo, dbSizeSamplesRepo)
 
 	alertStatesRepo := repositories.NewAlertStatesRepository(db)
 	thresholdAlertJob := jobs.NewThresholdAlertJob(
-		hostMetricsRepo, storageSnapshotsRepo, workflowRunsRepo, sentryClient,
-		notificationSettingsRepo, alertStatesRepo, notificationsSvc,
+		sentryClient, notificationSettingsRepo, alertStatesRepo, notificationsSvc,
 	)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
@@ -524,9 +466,6 @@ func NewApplication(
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
 		dbStatsRepo:                   dbStatsRepo,
-		dbSizeSamplesRepo:             dbSizeSamplesRepo,
-		dbSizeSnapshotJob:             dbSizeSnapshotJob,
-		hostMetricsRepo:               hostMetricsRepo,
 		logsRepo:                      logsRepo,
 		notificationSettingsRepo:      notificationSettingsRepo,
 		notificationChannelRepo:       notificationChannelRepo,
@@ -537,9 +476,6 @@ func NewApplication(
 		issueNotifierJob:              issueNotifierJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
-		hostMetricsSnapshotJob:        hostMetricsSnapshotJob,
-		workflowRunsRepo:              workflowRunsRepo,
-		workflowRunsSnapshotJob:       workflowRunsSnapshotJob,
 		alertStatesRepo:               alertStatesRepo,
 		thresholdAlertJob:             thresholdAlertJob,
 		globalJobQueue: jobqueue.NewJobQueue(

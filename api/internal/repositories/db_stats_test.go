@@ -31,18 +31,3 @@ func TestDBStatsSchemaSizes(t *testing.T) {
 	}
 	assert.True(t, hasGlobal)
 }
-
-func TestDBStatsTableSizes(t *testing.T) {
-	repo := repositories.NewDBStatsRepository(testDB)
-
-	tables, err := repo.TableSizes(t.Context())
-	require.NoError(t, err)
-
-	var hasJobRuns bool
-	for _, tbl := range tables {
-		if tbl.SchemaName == "global" && tbl.TableName == "job_runs" {
-			hasJobRuns = true
-		}
-	}
-	assert.True(t, hasJobRuns)
-}

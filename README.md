@@ -116,8 +116,14 @@ named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_workflow_runs`,
 `get_security_alerts`, `get_sentry_issues`, `resolve_sentry_issue`,
-`dismiss_security_alert`, `get_deploy_status`, `get_deploy_logs`,
-`get_slow_transactions`, among others). Two of those are a deliberate
+`dismiss_security_alert`, `get_slow_transactions`, `prom_query`, among
+others). `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
+against Prometheus — host CPU/memory/disk, Postgres stats, api's own
+`/metrics` — now that Grafana + Prometheus own metrics/graphs/alerting (see
+[`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md));
+it replaced four narrower tools (`get_host_metrics`,
+`get_database_size_history`, `get_transaction_latency_history`,
+`get_alert_states`). Two tools are a deliberate
 exception to read-only: `resolve_sentry_issue` marks a Sentry issue
 resolved, and `dismiss_security_alert` dismisses/resolves an open GitHub
 Dependabot, code-scanning, or secret-scanning alert — so an
@@ -163,9 +169,11 @@ token carries a `role` claim (`Admin`/`Viewer`) for Grafana's
 
 **Where deploys happen:** every push to `main` builds one merged `app` image
 and `.github/workflows/main.yml`'s `deploy-kamal` job ships it to the Hetzner
-VPS with Kamal. [`config/deploy.api.yml`](config/deploy.api.yml) and
-[`config/deploy.web.yml`](config/deploy.web.yml) are the deploy configs
-(committed, read as-is — Kamal evaluates each as ERB), and every app secret is
+VPS with Kamal. [`config/deploy.api.yml`](config/deploy.api.yml),
+[`config/deploy.web.yml`](config/deploy.web.yml), and
+[`config/deploy.grafana.yml`](config/deploy.grafana.yml) (issue #1468) are the
+deploy configs (committed, read as-is — Kamal evaluates each as ERB), and
+every app secret is
 a **repo Secret**; see [`infra/README.md`](infra/README.md) for the full list,
 the one-time host bootstrap, and how to deploy or roll back by hand. Each
 secret name is declared in three places that must stay in sync — a deploy
@@ -188,6 +196,14 @@ config is a leftover soft ceiling from when it shared a container's memory
 with the Node child — worth re-tuning now that `api` runs in its own
 container, but not re-sized as part of #1038. Watch `docker stats` on the
 VPS before changing it.
+
+**A third Kamal service, `grafana` (issue #1468):** Grafana joins `api`/`web`
+on the same shared kamal-proxy instance and domain, at `/grafana`, replacing
+the hand-rolled metrics dashboard that used to live at
+`/monitoring/observability`. Prometheus + `postgres_exporter` back it as
+Tofu-managed compose accessories (like Postgres/node_exporter), not Kamal
+services — see [`infra/README.md`](infra/README.md) and
+[`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md).
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin

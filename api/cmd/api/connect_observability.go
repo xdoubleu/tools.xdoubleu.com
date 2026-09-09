@@ -273,13 +273,13 @@ func protoStorageSnapshot(s *models.StorageSnapshot) *observabilityv1.StorageSna
 
 func (h *obsConnectHandler) GetDatabaseStats(
 	ctx context.Context,
-	req *connect.Request[observabilityv1.GetDatabaseStatsRequest],
+	_ *connect.Request[observabilityv1.GetDatabaseStatsRequest],
 ) (*connect.Response[observabilityv1.GetDatabaseStatsResponse], error) {
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
 
-	resp, err := h.databaseStats(ctx, req.Msg.GetWindowDays())
+	resp, err := h.databaseStats(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -287,24 +287,17 @@ func (h *obsConnectHandler) GetDatabaseStats(
 	return connect.NewResponse(resp), nil
 }
 
+// databaseStats is a live snapshot only (pg_database_size/pg_class) —
+// growth-over-time moved to Grafana/Prometheus (issue #1468), which removed
+// global.db_size_samples and the daily scrape that populated it.
 func (h *obsConnectHandler) databaseStats(
 	ctx context.Context,
-	windowDays int32,
 ) (*observabilityv1.GetDatabaseStatsResponse, error) {
 	total, err := h.app.dbStatsRepo.TotalSize(ctx)
 	if err != nil {
 		return nil, err
 	}
 	schemas, err := h.app.dbStatsRepo.SchemaSizes(ctx)
-	if err != nil {
-		return nil, err
-	}
-	since := windowSince(windowDays)
-	growth, err := h.app.dbSizeSamplesRepo.Growth(ctx, since)
-	if err != nil {
-		return nil, err
-	}
-	history, err := h.app.dbSizeSamplesRepo.History(ctx, since)
 	if err != nil {
 		return nil, err
 	}
@@ -318,69 +311,8 @@ func (h *obsConnectHandler) databaseStats(
 		}
 	}
 
-	protoGrowth := make([]*observabilityv1.TableGrowth, len(growth))
-	for i, g := range growth {
-		protoGrowth[i] = &observabilityv1.TableGrowth{
-			SchemaName:       g.SchemaName,
-			TableName:        g.TableName,
-			CurrentSizeBytes: g.CurrentSizeBytes,
-			DeltaBytes:       g.DeltaBytes,
-			PctChange:        g.PctChange,
-		}
-	}
-
-	protoHistory := make([]*observabilityv1.DBSizeSnapshot, len(history))
-	for i, s := range history {
-		protoHistory[i] = &observabilityv1.DBSizeSnapshot{
-			SampledAt:      s.SampledAt.Format(time.RFC3339),
-			TotalSizeBytes: s.TotalSizeBytes,
-		}
-	}
-
 	return &observabilityv1.GetDatabaseStatsResponse{
 		TotalSizeBytes: total,
 		Schemas:        protoSchemas,
-		TableGrowth:    protoGrowth,
-		History:        protoHistory,
-	}, nil
-}
-
-func (h *obsConnectHandler) GetDatabaseSizeHistory(
-	ctx context.Context,
-	req *connect.Request[observabilityv1.GetDatabaseSizeHistoryRequest],
-) (*connect.Response[observabilityv1.GetDatabaseSizeHistoryResponse], error) {
-	if err := requireAdmin(ctx); err != nil {
-		return nil, err
-	}
-	resp, err := h.databaseSizeHistory(ctx, req.Msg.GetWindowDays())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-	return connect.NewResponse(resp), nil
-}
-
-// databaseSizeHistory returns every stored (schema, table) series over the
-// window flat and unfiltered — the client pivots, sums a schema's tables for
-// the schema-level view, and picks which series to plot.
-func (h *obsConnectHandler) databaseSizeHistory(
-	ctx context.Context,
-	windowDays int32,
-) (*observabilityv1.GetDatabaseSizeHistoryResponse, error) {
-	points, err := h.app.dbSizeSamplesRepo.PerTableHistory(ctx, windowSince(windowDays))
-	if err != nil {
-		return nil, err
-	}
-
-	protoPoints := make([]*observabilityv1.DBSizeHistoryPoint, len(points))
-	for i, p := range points {
-		protoPoints[i] = &observabilityv1.DBSizeHistoryPoint{
-			Day:        p.Day.Format("2006-01-02"),
-			SchemaName: p.SchemaName,
-			TableName:  p.TableName,
-			SizeBytes:  p.SizeBytes,
-		}
-	}
-	return &observabilityv1.GetDatabaseSizeHistoryResponse{
-		Points: protoPoints,
 	}, nil
 }

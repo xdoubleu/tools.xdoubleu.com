@@ -101,12 +101,12 @@ type Config struct {
 	EmailInboundDomain string
 	EmailInboundSecret string
 
-	// NodeExporterURL is node_exporter's Prometheus text-exposition endpoint,
-	// scraped by internal/observability/jobs.HostMetricsSnapshotJob (issue
-	// #1040). No standalone Prometheus server — node-exporter joins the same
-	// Docker network as api (infra/node-exporter-compose.yml) and is never
-	// reachable from outside it.
-	NodeExporterURL string
+	// PrometheusURL is Prometheus's own HTTP API base URL, queried by the
+	// prom_query MCP tool (cmd/api/mcp_prom_query.go, issue #1468). Prometheus
+	// joins the same Docker network as api (infra/prometheus-compose.yml) and
+	// is never reachable from outside it — same shape as the Postgres/
+	// node_exporter accessories it now scrapes instead of api doing so itself.
+	PrometheusURL string
 	// ObservabilityIngestSecret gates POST /api/observability/logs, the
 	// plain-HTTP log-forwarding endpoint web pushes batches to — web has no
 	// user session to authenticate with, so this shared secret stands in for
@@ -283,8 +283,8 @@ func New(logger *slog.Logger) Config {
 	cfg.EmailInboundDomain = p.envStr("EMAIL_INBOUND_DOMAIN", "")
 	cfg.EmailInboundSecret = p.envSecret("EMAIL_INBOUND_SECRET", "")
 
-	cfg.NodeExporterURL = p.envStr(
-		"NODE_EXPORTER_URL", "http://node-exporter:9100/metrics",
+	cfg.PrometheusURL = p.envStr(
+		"PROMETHEUS_URL", "http://prometheus:9090",
 	)
 	cfg.ObservabilityIngestSecret = p.envSecret("OBSERVABILITY_INGEST_SECRET", "")
 

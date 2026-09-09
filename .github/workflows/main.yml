@@ -546,6 +546,35 @@ jobs:
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
+      # Grafana (issue #1468) — the third Kamal service on this host,
+      # alongside api/web above. Unlike those two, there's no build-grafana
+      # job/image to gate on: this deploys the stock public
+      # grafana/grafana-oss image straight from Docker Hub, so it runs on
+      # every push to main unconditionally (same as the two steps above,
+      # minus their `if: needs.build-*` gate). Order relative to
+      # api/web doesn't matter for kamal-proxy's own TLS/path-registration
+      # rules (deploy.grafana.yml's proxy block has no `ssl` key, same as
+      # api's), but it runs last so its OAuth login against the just-
+      # deployed api is exercised against the newest api build in the same
+      # run.
+      - name: Deploy grafana via Kamal
+        env:
+          # No KAMAL_REGISTRY_USERNAME/PASSWORD here — deploy.grafana.yml
+          # declares no `registry:` block (see that file's header comment):
+          # unlike api/web's ghcr.io packages, Docker Hub needs no
+          # credentials for an anonymous pull of the public
+          # grafana/grafana-oss image.
+          KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
+          KAMAL_VERSION: ${{ github.sha }}
+          RELEASE: ${{ github.sha }}
+          OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
+          GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          # Reuses the same Resend account api's own mailer uses via SMTP
+          # (issue #1468's Grafana contact point) — no new mail credential.
+          GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
+          GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
+        run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
+
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
   # state lives remotely in Cloudflare R2 (infra/versions.tf's backend

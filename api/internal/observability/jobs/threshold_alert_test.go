@@ -17,67 +17,25 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// r2UsageAboveThreshold/ciDurationAboveThresholdMs mirror the unexported
-// defaults in threshold_alert.go (50 GB / 15 minutes) — chosen well past
-// them so a future default tweak within the same order of magnitude doesn't
-// flip these tests.
-const (
-	r2UsageAboveThreshold    = 100 * 1024 * 1024 * 1024 // 100 GB
-	ciDurationAboveThreshold = 25 * 60 * 1000           // 25 minutes
-)
-
-// mutableHostMetricsRepo is a *repositories.HostMetricsRepository stand-in
-// whose samples can change between two job.Run calls in the same test, for
-// the re-arm scenario.
-type mutableHostMetricsRepo struct {
-	mu      sync.Mutex
-	samples []models.HostMetricSample
-	err     error
+// mutableStatsLister is a stubStatsLister stand-in whose stats can change
+// between two job.Run calls in the same test, for the re-arm scenario.
+type mutableStatsLister struct {
+	mu    sync.Mutex
+	stats []sentryapi.TransactionStat
 }
 
-func (f *mutableHostMetricsRepo) setSamples(samples []models.HostMetricSample) {
+func (f *mutableStatsLister) setStats(stats []sentryapi.TransactionStat) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.samples = samples
+	f.stats = stats
 }
 
-func (f *mutableHostMetricsRepo) Since(
-	_ context.Context, _ time.Time,
-) ([]models.HostMetricSample, error) {
+func (f *mutableStatsLister) ListTransactionStats(
+	_ context.Context,
+) ([]sentryapi.TransactionStat, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.samples, f.err
-}
-
-func cpuSamples(values ...float64) []models.HostMetricSample {
-	samples := make([]models.HostMetricSample, len(values))
-	for i, v := range values {
-		samples[i] = models.HostMetricSample{
-			SampledAt: time.Now(), CPUPercent: v, MemoryPercent: 0, DiskPercent: 0,
-		}
-	}
-	return samples
-}
-
-func diskSamples(values ...float64) []models.HostMetricSample {
-	samples := make([]models.HostMetricSample, len(values))
-	for i, v := range values {
-		samples[i] = models.HostMetricSample{
-			SampledAt: time.Now(), CPUPercent: 0, MemoryPercent: 0, DiskPercent: v,
-		}
-	}
-	return samples
-}
-
-type fakeWorkflowDurationStatsRepo struct {
-	stats []models.WorkflowDurationStat
-	err   error
-}
-
-func (f fakeWorkflowDurationStatsRepo) WorkflowDurationStats(
-	_ context.Context, _ time.Time,
-) ([]models.WorkflowDurationStat, error) {
-	return f.stats, f.err
+	return f.stats, nil
 }
 
 // fakeAlertStateRepo mirrors global.alert_states as an in-memory map, so
@@ -176,10 +134,7 @@ func subjectsContaining(sent []string, substr string) int {
 
 func TestThresholdAlertJob_IDAndSchedule(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
+		stubStatsLister{}, //nolint:exhaustruct // fixture
 		disabledSettings{},
 		newFakeAlertStateRepo(),
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -188,194 +143,26 @@ func TestThresholdAlertJob_IDAndSchedule(t *testing.T) {
 	assert.Equal(t, 5*time.Minute, job.RunEvery())
 }
 
-func TestThresholdAlertJob_HostCPUSustainedBreach_SendsBreachEmail(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 92, 95),
-	}
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	require.Len(t, mail.sent, 1)
-	assert.Contains(t, mail.sent[0], "Host CPU usage above threshold")
-
-	state, ok := states.get("host_cpu_high")
-	require.True(t, ok)
-	assert.True(t, state.Breaching)
-	assert.NotNil(t, state.Since)
-	assert.NotNil(t, state.LastNotifiedAt)
-	assert.InDelta(t, 92.333, state.CurrentValue, 0.01)
-}
-
-func TestThresholdAlertJob_HostCPUNotSustained_NoBreach(t *testing.T) {
-	// One sample at/under threshold breaks the "every sample" requirement.
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 90, 70),
-	}
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Empty(t, mail.sent)
-	state, ok := states.get("host_cpu_high")
-	require.True(t, ok)
-	assert.False(t, state.Breaching)
-	assert.Nil(t, state.Since)
-}
-
-func TestThresholdAlertJob_HostCPUNoSamples_NoBreachNoError(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{} //nolint:exhaustruct // fixture, no samples
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	assert.Empty(t, mail.sent)
-	state, ok := states.get("host_cpu_high")
-	require.True(t, ok)
-	assert.False(t, state.Breaching)
-	assert.Zero(t, state.CurrentValue)
-}
-
-func TestThresholdAlertJob_HostDiskInstant_BreachesOnLatestSampleOnly(t *testing.T) {
-	// Latest sample above threshold breaches even though an earlier one in
-	// the same window wasn't — host_disk_high is instant, not sustained.
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: diskSamples(10, 95),
-	}
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostDiskHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	require.Len(t, mail.sent, 1)
-	state, ok := states.get("host_disk_high")
-	require.True(t, ok)
-	assert.True(t, state.Breaching)
-	assert.InDelta(t, 95, state.CurrentValue, 0.01)
-}
-
-func TestThresholdAlertJob_R2UsageHigh_Breach(t *testing.T) {
-	storage := fakeStorageSnapshotGetter{ //nolint:exhaustruct // fixture
-		snap: &models.StorageSnapshot{ //nolint:exhaustruct // fixture
-			TotalSizeBytes: r2UsageAboveThreshold,
-		},
-	}
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		storage,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceR2UsageHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	require.Len(t, mail.sent, 1)
-	assert.Contains(t, mail.sent[0], "R2 storage usage above threshold")
-	state, ok := states.get("r2_usage_high")
-	require.True(t, ok)
-	assert.True(t, state.Breaching)
-}
-
-func TestThresholdAlertJob_CIDurationHigh_Breach(t *testing.T) {
-	workflowRuns := fakeWorkflowDurationStatsRepo{
-		stats: []models.WorkflowDurationStat{
-			{
-				WorkflowName: "ci", AvgDurationMs: ciDurationAboveThreshold,
-				P95DurationMs: ciDurationAboveThreshold, RunCount: 5,
-			},
-		},
-		err: nil,
-	}
-	states := newFakeAlertStateRepo()
-	mail := &fakeMailer{} //nolint:exhaustruct // fixture
-	notifSvc := testNotifications(t, mail)
-
-	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		workflowRuns,
-		stubStatsLister{}, //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceCIDurationHigh},
-		states, notifSvc,
-	)
-
-	require.NoError(t, job.Run(t.Context(), testLogger()))
-	notifSvc.WaitUntilDone()
-
-	require.Len(t, mail.sent, 1)
-	state, ok := states.get("ci_duration_high")
-	require.True(t, ok)
-	assert.True(t, state.Breaching)
-	assert.InDelta(t, ciDurationAboveThreshold, state.CurrentValue, 0.01)
-}
-
 // TestThresholdAlertJob_ReArmEmailsTwice is the core scenario issue #1283
 // exists for: global.notified_issues' append-only dedup can only notify
 // once ever, but a breach → recover → breach cycle must email on both
 // breaches, since the second incident is a genuinely new event.
 func TestThresholdAlertJob_ReArmEmailsTwice(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 92, 95),
+	slowStats := &mutableStatsLister{ //nolint:exhaustruct // fixture
+		stats: []sentryapi.TransactionStat{
+			{
+				Transaction: "POST /games.v1.GamesService/RefreshSteamGame",
+				Project:     "tools-api", P95DurationMs: 144000, RequestCount: 35,
+			},
+		},
 	}
 	states := newFakeAlertStateRepo()
 	mail := &fakeMailer{} //nolint:exhaustruct // fixture
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
+		slowStats,
+		onlyEnabledSettings{allowed: repositories.NotificationSourceSlowHTTPHigh},
 		states, notifSvc,
 	)
 
@@ -384,35 +171,40 @@ func TestThresholdAlertJob_ReArmEmailsTwice(t *testing.T) {
 	notifSvc.WaitUntilDone()
 
 	// Recover.
-	hostMetrics.setSamples(cpuSamples(10, 12, 15))
+	slowStats.setStats([]sentryapi.TransactionStat{
+		{
+			Transaction: "POST /games.v1.GamesService/RefreshSteamGame",
+			Project:     "tools-api", P95DurationMs: 1000, RequestCount: 35,
+		},
+	})
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	// Breach again -- the re-arm.
-	hostMetrics.setSamples(cpuSamples(91, 93, 96))
+	slowStats.setStats([]sentryapi.TransactionStat{
+		{
+			Transaction: "POST /games.v1.GamesService/RefreshSteamGame",
+			Project:     "tools-api", P95DurationMs: 150000, RequestCount: 35,
+		},
+	})
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
 	assert.Equal(t, 2, subjectsContaining(mail.sent, "above threshold"))
 	assert.Equal(t, 1, subjectsContaining(mail.sent, "recovered"))
 
-	state, ok := states.get("host_cpu_high")
+	state, ok := states.get("slow_transaction_http_high")
 	require.True(t, ok)
 	assert.True(t, state.Breaching)
 }
 
 func TestThresholdAlertJob_DisabledSource_SkipsWithoutWritingState(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 92, 95),
-	}
 	states := newFakeAlertStateRepo()
 	mail := &fakeMailer{} //nolint:exhaustruct // fixture
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
+		stubStatsLister{}, //nolint:exhaustruct // fixture
 		disabledSettings{},
 		states, notifSvc,
 	)
@@ -426,10 +218,7 @@ func TestThresholdAlertJob_DisabledSource_SkipsWithoutWritingState(t *testing.T)
 
 func TestThresholdAlertJob_SettingsErrorPropagates(t *testing.T) {
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
+		stubStatsLister{}, //nolint:exhaustruct // fixture
 		erroringSettings{err: assert.AnError},
 		newFakeAlertStateRepo(),
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
@@ -440,17 +229,12 @@ func TestThresholdAlertJob_SettingsErrorPropagates(t *testing.T) {
 }
 
 func TestThresholdAlertJob_EvaluateErrorLogsAndContinues(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		err: assert.AnError,
-	}
 	states := newFakeAlertStateRepo()
 	logger, buf := testLoggerWithBuf()
 
 	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
+		stubStatsLister{err: assert.AnError}, //nolint:exhaustruct // fixture
+		onlyEnabledSettings{allowed: repositories.NotificationSourceSlowHTTPHigh},
 		states,
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
 	)
@@ -461,17 +245,19 @@ func TestThresholdAlertJob_EvaluateErrorLogsAndContinues(t *testing.T) {
 }
 
 func TestThresholdAlertJob_StatesGetErrorPropagates(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 92, 95),
-	}
 	states := newFakeAlertStateRepo()
 	states.getErr = assert.AnError
 
 	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
+		stubStatsLister{ //nolint:exhaustruct // fixture
+			stats: []sentryapi.TransactionStat{
+				{
+					Transaction: "POST /games.v1.GamesService/RefreshSteamGame",
+					Project:     "tools-api", P95DurationMs: 144000, RequestCount: 35,
+				},
+			},
+		},
+		onlyEnabledSettings{allowed: repositories.NotificationSourceSlowHTTPHigh},
 		states,
 		testNotifications(t, &fakeMailer{}), //nolint:exhaustruct // fixture
 	)
@@ -481,18 +267,20 @@ func TestThresholdAlertJob_StatesGetErrorPropagates(t *testing.T) {
 }
 
 func TestThresholdAlertJob_MailerNotConfigured_RetriesNextRun(t *testing.T) {
-	hostMetrics := &mutableHostMetricsRepo{ //nolint:exhaustruct // fixture
-		samples: cpuSamples(90, 92, 95),
-	}
 	states := newFakeAlertStateRepo()
 	mail := &fakeMailer{err: mailer.ErrNotConfigured} //nolint:exhaustruct // fixture
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		hostMetrics, noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
-		stubStatsLister{},               //nolint:exhaustruct // fixture
-		onlyEnabledSettings{allowed: repositories.NotificationSourceHostCPUHigh},
+		stubStatsLister{ //nolint:exhaustruct // fixture
+			stats: []sentryapi.TransactionStat{
+				{
+					Transaction: "POST /games.v1.GamesService/RefreshSteamGame",
+					Project:     "tools-api", P95DurationMs: 144000, RequestCount: 35,
+				},
+			},
+		},
+		onlyEnabledSettings{allowed: repositories.NotificationSourceSlowHTTPHigh},
 		states, notifSvc,
 	)
 
@@ -502,7 +290,7 @@ func TestThresholdAlertJob_MailerNotConfigured_RetriesNextRun(t *testing.T) {
 	// The mailer being unconfigured means no state row was written yet --
 	// the transition into breach is retried on the next run instead of
 	// silently marked handled.
-	_, ok := states.get("host_cpu_high")
+	_, ok := states.get("slow_transaction_http_high")
 	assert.False(t, ok)
 }
 
@@ -534,9 +322,6 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_Breach(t *testing.T) {
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
 		stats,
 		onlyEnabledSettings{
 			allowed: repositories.NotificationSourceSlowHTTPHigh,
@@ -595,9 +380,6 @@ func TestThresholdAlertJob_SlowTransactionHTTPHigh_ProgressWebSocketBreaches(
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
 		stats,
 		onlyEnabledSettings{
 			allowed: repositories.NotificationSourceSlowHTTPHigh,
@@ -642,9 +424,6 @@ func TestThresholdAlertJob_SlowTransactionJobHigh_NotBreachingBelowThreshold(
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
 		stats,
 		onlyEnabledSettings{
 			allowed: repositories.NotificationSourceSlowJobHigh,
@@ -690,9 +469,6 @@ func TestThresholdAlertJob_SlowTransactionFrontendHigh_ExcludedTransactionIgnore
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
 		stats,
 		onlyEnabledSettings{
 			allowed: repositories.NotificationSourceSlowFEHigh,
@@ -722,9 +498,6 @@ func TestThresholdAlertJob_SlowTransactionHigh_NotConfigured_NoBreachNoError(
 	notifSvc := testNotifications(t, mail)
 
 	job := jobs.NewThresholdAlertJob(
-		&mutableHostMetricsRepo{}, //nolint:exhaustruct // fixture
-		noSnapshotGetter,
-		fakeWorkflowDurationStatsRepo{}, //nolint:exhaustruct // fixture
 		stats,
 		onlyEnabledSettings{
 			allowed: repositories.NotificationSourceSlowHTTPHigh,

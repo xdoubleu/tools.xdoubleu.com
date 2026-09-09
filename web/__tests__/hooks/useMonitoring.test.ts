@@ -24,16 +24,12 @@ jest.mock('@/lib/client', () => ({
     getStorageStats: jest.fn(),
     triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
     getDatabaseStats: jest.fn(),
-    getDatabaseSizeHistory: jest.fn(),
     getFailingPullRequests: jest.fn(),
     getSecurityAlerts: jest.fn(),
     dismissSecurityAlert: (...args: unknown[]) => mockDismissSecurityAlert(...args),
     getSentryIssues: jest.fn(),
     getSlowTransactions: jest.fn(),
-    getTransactionLatencyHistory: jest.fn(),
     resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
-    getHostMetrics: jest.fn(),
-    getAlertStates: jest.fn(),
     getLogs: jest.fn(),
     listOAuthConnections: jest.fn(),
     disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
@@ -55,15 +51,11 @@ import {
   useStorageStats,
   useTriggerStorageScan,
   useDatabaseStats,
-  useDatabaseSizeHistory,
   useFailingPullRequests,
   useSentryIssues,
   useSlowTransactions,
-  useTransactionLatencyHistory,
   useResolveSentryIssue,
   useDismissSecurityAlert,
-  useHostMetrics,
-  useAlertStates,
   useLogs,
   useOAuthConnections,
   useDisconnectOAuthConnection,
@@ -101,20 +93,9 @@ describe('useMonitoring', () => {
     expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringStorageStats, expect.any(Function))
   })
 
-  it('keys database stats by window', () => {
-    renderHook(() => useDatabaseStats(30))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringDatabaseStats(30),
-      expect.any(Function)
-    )
-  })
-
-  it('keys database size history by window', () => {
-    renderHook(() => useDatabaseSizeHistory(30))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringDatabaseSizeHistory(30),
-      expect.any(Function)
-    )
+  it('keys database stats statically', () => {
+    renderHook(() => useDatabaseStats())
+    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDatabaseStats, expect.any(Function))
   })
 
   it('keys failing pull requests statically', () => {
@@ -136,24 +117,6 @@ describe('useMonitoring', () => {
       swrKeys.monitoringSlowTransactions,
       expect.any(Function)
     )
-  })
-
-  it('keys transaction latency history by window', () => {
-    renderHook(() => useTransactionLatencyHistory(30))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringTransactionLatencyHistory(30),
-      expect.any(Function)
-    )
-  })
-
-  it('keys host metrics statically', () => {
-    renderHook(() => useHostMetrics())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringHostMetrics, expect.any(Function))
-  })
-
-  it('keys alert states statically', () => {
-    renderHook(() => useAlertStates())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringAlertStates, expect.any(Function))
   })
 
   it('keys logs by source and min level', () => {
