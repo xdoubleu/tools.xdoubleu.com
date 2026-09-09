@@ -81,6 +81,33 @@ check_service api "$root/config/deploy.api.yml"
 check_service web "$root/config/deploy.web.yml"
 check_service grafana "$root/config/deploy.grafana.yml"
 
+# Grafana-specific rule: Kamal injects every env.secret:/env.clear: name into
+# the container verbatim, and Grafana only reads GF_-prefixed env vars. A
+# non-GF_ name here is internally consistent across all three lists yet inert
+# inside the container — exactly how #1517 shipped OAUTH_GRAFANA_CLIENT_SECRET
+# (renamed to GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET in #1518). RELEASE and
+# KAMAL_* are deploy-time metadata Grafana isn't meant to consume.
+grafana_config="$root/config/deploy.grafana.yml"
+grafana_env_names="$(
+	awk '
+		/^  (secret|clear):[[:space:]]*$/ { inblock = 1; next }
+		inblock && /^    - [A-Z0-9_]+[[:space:]]*$/ { gsub(/[ \t-]/, ""); print; next }
+		inblock && /^    [A-Z0-9_]+:/ { k = $1; sub(/:$/, "", k); print k; next }
+		inblock && /^  [^ ]/ { inblock = 0 }
+		inblock && /^[^ ]/   { inblock = 0 }
+	' "$grafana_config" | sort -u
+)"
+while IFS= read -r name; do
+	[ -n "$name" ] || continue
+	case "$name" in
+		GF_* | RELEASE | KAMAL_*) ;;
+		*)
+			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored (see #1517). Rename it to the GF_* name Grafana expects." >&2
+			status=1
+			;;
+	esac
+done <<<"$grafana_env_names"
+
 # Informational only: names sitting in .kamal/secrets that no deploy config
 # references. KAMAL_* are consumed by Kamal's own config schema (registry:
 # auth), not via env.secret, so they are expected orphans.

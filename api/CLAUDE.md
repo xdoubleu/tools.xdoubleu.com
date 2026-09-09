@@ -18,7 +18,7 @@ make test/cov/diff                  # coverage on changed lines only, vs origin/
 make test/cov/per-pkg              # per-package coverage, merged
 make lint                          # golangci-lint + sqlfluff + buf lint + lint/migrations + lint/kamal-secrets
 make lint/migrations               # fail on two migrations sharing a version number (goose skips the duplicate silently), or a new migration numbered below the existing max in its directory
-make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.yml's env.secret: is missing from .kamal/secrets or from main.yml's deploy-kamal env: block (issue #1405 — caught only at deploy time on main otherwise)
+make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.yml's env.secret: is missing from .kamal/secrets or from main.yml's deploy-kamal env: block (issue #1405 — caught only at deploy time on main otherwise); also fails on a non-GF_-prefixed env name in deploy.grafana.yml's env.secret:/env.clear: (issue #1520 — Grafana silently ignores it, as in #1517)
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
