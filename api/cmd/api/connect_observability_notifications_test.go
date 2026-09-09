@@ -83,6 +83,66 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	}
 }
 
+func TestUpdateNotificationChannel_AsAdmin(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+	t.Cleanup(func() {
+		req := connect.NewRequest(&observabilityv1.UpdateNotificationChannelRequest{
+			ChannelMode:     "email",
+			SlackWebhookUrl: ptr(""),
+		})
+		setCookieOnRequest(req, accessToken)
+		_, _ = observabilityClient(t).
+			UpdateNotificationChannel(context.Background(), req)
+	})
+
+	updateReq := connect.NewRequest(&observabilityv1.UpdateNotificationChannelRequest{
+		ChannelMode:     "both",
+		SlackWebhookUrl: ptr("https://hooks.slack.com/services/T/B/secret"),
+	})
+	setCookieOnRequest(updateReq, accessToken)
+	_, err := observabilityClient(t).
+		UpdateNotificationChannel(context.Background(), updateReq)
+	require.NoError(t, err)
+
+	getReq := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
+	setCookieOnRequest(getReq, accessToken)
+	resp, err := observabilityClient(t).
+		GetNotificationSettings(context.Background(), getReq)
+	require.NoError(t, err)
+	assert.Equal(t, "both", resp.Msg.ChannelMode)
+	assert.True(t, resp.Msg.SlackWebhookConfigured)
+	// The URL itself is never echoed back anywhere in the response.
+	assert.NotContains(t, resp.Msg.String(), "hooks.slack.com")
+}
+
+func TestUpdateNotificationChannel_RejectsInvalidMode(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	req := connect.NewRequest(&observabilityv1.UpdateNotificationChannelRequest{
+		ChannelMode: "carrier-pigeon",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).
+		UpdateNotificationChannel(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestUpdateNotificationChannel_AsNonAdmin_Rejected(t *testing.T) {
+	req := connect.NewRequest(&observabilityv1.UpdateNotificationChannelRequest{
+		ChannelMode: "email",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).
+		UpdateNotificationChannel(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func ptr[T any](v T) *T { return &v }
+
 func TestUpdateNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
 	t.Cleanup(func() {
 		req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{

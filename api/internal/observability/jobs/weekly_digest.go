@@ -158,7 +158,8 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 }
 
 // send enqueues one digest email, skipping it entirely when every source
-// feeding it is disabled.
+// feeding it is disabled. It uses EnqueueEmail, not Enqueue: the digests are
+// email-only regardless of the global email/Slack switch (docs/adr-0019).
 func (j *WeeklyDigestJob) send(d *digest) {
 	if !d.anyEnabled {
 		return
@@ -169,7 +170,7 @@ func (j *WeeklyDigestJob) send(d *digest) {
 		body = strings.Join(d.sections, "\n\n")
 	}
 
-	j.notifications.Enqueue(
+	j.notifications.EnqueueEmail(
 		d.subject,
 		body,
 		func(_ context.Context, err error) error {

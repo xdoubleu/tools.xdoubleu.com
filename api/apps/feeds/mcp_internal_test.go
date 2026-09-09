@@ -36,7 +36,7 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 		cfg,
 		pg,
 		mocks.NewMockWebFetchClient(),
-		notifications.New(
+		notifications.NewEmailOnly(
 			context.Background(),
 			logging.NewNopLogger(),
 			mailer.New("", "", ""),

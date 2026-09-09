@@ -108,6 +108,9 @@ const (
 	// ObservabilityServiceUpdateNotificationSettingsProcedure is the fully-qualified name of the
 	// ObservabilityService's UpdateNotificationSettings RPC.
 	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
+	// ObservabilityServiceUpdateNotificationChannelProcedure is the fully-qualified name of the
+	// ObservabilityService's UpdateNotificationChannel RPC.
+	ObservabilityServiceUpdateNotificationChannelProcedure = "/observability.v1.ObservabilityService/UpdateNotificationChannel"
 	// ObservabilityServiceGetAlertStatesProcedure is the fully-qualified name of the
 	// ObservabilityService's GetAlertStates RPC.
 	ObservabilityServiceGetAlertStatesProcedure = "/observability.v1.ObservabilityService/GetAlertStates"
@@ -140,6 +143,7 @@ type ObservabilityServiceClient interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
 	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
@@ -304,6 +308,12 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		updateNotificationChannel: connect.NewClient[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse](
+			httpClient,
+			baseURL+ObservabilityServiceUpdateNotificationChannelProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
+			connect.WithClientOptions(opts...),
+		),
 		getAlertStates: connect.NewClient[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse](
 			httpClient,
 			baseURL+ObservabilityServiceGetAlertStatesProcedure,
@@ -340,6 +350,7 @@ type observabilityServiceClient struct {
 	setProviderConfig            *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
 	getNotificationSettings      *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
 	updateNotificationSettings   *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
+	updateNotificationChannel    *connect.Client[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse]
 	getAlertStates               *connect.Client[v1.GetAlertStatesRequest, v1.GetAlertStatesResponse]
 }
 
@@ -470,6 +481,11 @@ func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Cont
 	return c.updateNotificationSettings.CallUnary(ctx, req)
 }
 
+// UpdateNotificationChannel calls observability.v1.ObservabilityService.UpdateNotificationChannel.
+func (c *observabilityServiceClient) UpdateNotificationChannel(ctx context.Context, req *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error) {
+	return c.updateNotificationChannel.CallUnary(ctx, req)
+}
+
 // GetAlertStates calls observability.v1.ObservabilityService.GetAlertStates.
 func (c *observabilityServiceClient) GetAlertStates(ctx context.Context, req *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {
 	return c.getAlertStates.CallUnary(ctx, req)
@@ -503,6 +519,7 @@ type ObservabilityServiceHandler interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
 	GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error)
 }
 
@@ -663,6 +680,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceUpdateNotificationChannelHandler := connect.NewUnaryHandler(
+		ObservabilityServiceUpdateNotificationChannelProcedure,
+		svc.UpdateNotificationChannel,
+		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
+		connect.WithHandlerOptions(opts...),
+	)
 	observabilityServiceGetAlertStatesHandler := connect.NewUnaryHandler(
 		ObservabilityServiceGetAlertStatesProcedure,
 		svc.GetAlertStates,
@@ -721,6 +744,8 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetNotificationSettingsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceUpdateNotificationSettingsProcedure:
 			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceUpdateNotificationChannelProcedure:
+			observabilityServiceUpdateNotificationChannelHandler.ServeHTTP(w, r)
 		case ObservabilityServiceGetAlertStatesProcedure:
 			observabilityServiceGetAlertStatesHandler.ServeHTTP(w, r)
 		default:
@@ -830,6 +855,10 @@ func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationChannel is not implemented"))
 }
 
 func (UnimplementedObservabilityServiceHandler) GetAlertStates(context.Context, *connect.Request[v1.GetAlertStatesRequest]) (*connect.Response[v1.GetAlertStatesResponse], error) {

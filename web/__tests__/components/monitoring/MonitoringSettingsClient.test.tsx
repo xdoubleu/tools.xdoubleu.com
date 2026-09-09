@@ -21,6 +21,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/hooks/useMonitoring', () => ({
   useNotificationSettings: () => mockUseNotificationSettings(),
   useUpdateNotificationSettings: () => jest.fn(),
+  useUpdateNotificationChannel: () => jest.fn(),
   useOAuthConnections: () => mockUseOAuthConnections(),
   useDisconnectOAuthConnection: () => jest.fn()
 }))

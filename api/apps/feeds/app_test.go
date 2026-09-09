@@ -67,7 +67,7 @@ func TestMain(m *testing.M) {
 		cfg,
 		postgresDB,
 		mockWebFetch,
-		notifications.New(
+		notifications.NewEmailOnly(
 			context.Background(),
 			logging.NewNopLogger(),
 			mailer.New("", "", ""),

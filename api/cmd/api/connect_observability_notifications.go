@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"connectrpc.com/connect"
 
@@ -47,10 +48,53 @@ func (h *obsConnectHandler) notificationSettings(
 		}
 	}
 
+	channelCfg, err := h.app.notificationChannelRepo.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &observabilityv1.GetNotificationSettingsResponse{
-		Settings:   protoSettings,
-		AdminEmail: h.app.config.NotifyEmailTo,
+		Settings:               protoSettings,
+		AdminEmail:             h.app.config.NotifyEmailTo,
+		ChannelMode:            channelCfg.ChannelMode,
+		SlackWebhookConfigured: channelCfg.SlackWebhookURL != "",
 	}, nil
+}
+
+// UpdateNotificationChannel sets the global email/Slack delivery switch and,
+// optionally, the Slack Incoming Webhook URL. Unlike the per-source toggles
+// above this is admin-gated: the webhook URL is a credential.
+func (h *obsConnectHandler) UpdateNotificationChannel(
+	ctx context.Context,
+	req *connect.Request[observabilityv1.UpdateNotificationChannelRequest],
+) (*connect.Response[observabilityv1.UpdateNotificationChannelResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+
+	mode := req.Msg.GetChannelMode()
+	if !repositories.IsValidChannelMode(mode) {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid channel_mode %q", mode),
+		)
+	}
+
+	if err := h.app.notificationChannelRepo.SetChannelMode(ctx, mode); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	if req.Msg.SlackWebhookUrl != nil {
+		if err := h.app.notificationChannelRepo.SetSlackWebhookURL(
+			ctx, req.Msg.GetSlackWebhookUrl(),
+		); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
+
+	return connect.NewResponse(
+		&observabilityv1.UpdateNotificationChannelResponse{},
+	), nil
 }
 
 func (h *obsConnectHandler) UpdateNotificationSettings(

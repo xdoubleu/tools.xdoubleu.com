@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useNotificationSettings, useOAuthConnections } from '@/hooks/useMonitoring'
+import NotificationChannelCard from './NotificationChannelCard'
 import NotificationSettingsCard from './NotificationSettingsCard'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
 
@@ -50,6 +51,7 @@ export default function MonitoringSettingsClient() {
           {oauthMessage.text}
         </p>
       )}
+      <NotificationChannelCard data={notificationSettings.data} />
       <NotificationSettingsCard data={notificationSettings.data} />
       <OAuthConnectionsCard
         data={oauthConnections.data}

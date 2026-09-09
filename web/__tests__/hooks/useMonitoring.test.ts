@@ -10,6 +10,7 @@ const mockResolveSentryIssue = jest.fn()
 const mockDismissSecurityAlert = jest.fn()
 const mockGetNotificationSettings = jest.fn()
 const mockUpdateNotificationSettings = jest.fn()
+const mockUpdateNotificationChannel = jest.fn()
 
 jest.mock('swr', () => ({
   __esModule: true,
@@ -39,7 +40,8 @@ jest.mock('@/lib/client', () => ({
     getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
     setProviderConfig: (...args: unknown[]) => mockSetProviderConfig(...args),
     getNotificationSettings: (...args: unknown[]) => mockGetNotificationSettings(...args),
-    updateNotificationSettings: (...args: unknown[]) => mockUpdateNotificationSettings(...args)
+    updateNotificationSettings: (...args: unknown[]) => mockUpdateNotificationSettings(...args),
+    updateNotificationChannel: (...args: unknown[]) => mockUpdateNotificationChannel(...args)
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -68,7 +70,8 @@ import {
   useProviderOptions,
   useSetProviderConfig,
   useNotificationSettings,
-  useUpdateNotificationSettings
+  useUpdateNotificationSettings,
+  useUpdateNotificationChannel
 } from '@/hooks/useMonitoring'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -198,6 +201,37 @@ describe('useUpdateNotificationSettings', () => {
       enabled: false
     })
     expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringNotificationSettings)
+  })
+})
+
+describe('useUpdateNotificationChannel', () => {
+  it('updates the channel with a webhook URL and revalidates', async () => {
+    mockUpdateNotificationChannel.mockResolvedValue({})
+    const { result } = renderHook(() => useUpdateNotificationChannel())
+
+    await act(async () => {
+      await result.current('both', 'https://hooks.slack.com/x')
+    })
+
+    expect(mockUpdateNotificationChannel).toHaveBeenCalledWith({
+      channelMode: 'both',
+      slackWebhookUrl: 'https://hooks.slack.com/x'
+    })
+    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringNotificationSettings)
+  })
+
+  it('leaves the URL undefined when not supplied', async () => {
+    mockUpdateNotificationChannel.mockResolvedValue({})
+    const { result } = renderHook(() => useUpdateNotificationChannel())
+
+    await act(async () => {
+      await result.current('email')
+    })
+
+    expect(mockUpdateNotificationChannel).toHaveBeenCalledWith({
+      channelMode: 'email',
+      slackWebhookUrl: undefined
+    })
   })
 })
 

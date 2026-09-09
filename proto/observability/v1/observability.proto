@@ -46,6 +46,8 @@ service ObservabilityService {
       returns (GetNotificationSettingsResponse);
   rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest)
       returns (UpdateNotificationSettingsResponse);
+  rpc UpdateNotificationChannel(UpdateNotificationChannelRequest)
+      returns (UpdateNotificationChannelResponse);
   rpc GetAlertStates(GetAlertStatesRequest) returns (GetAlertStatesResponse);
 }
 
@@ -591,6 +593,13 @@ message GetNotificationSettingsRequest {}
 message GetNotificationSettingsResponse {
   repeated NotificationSetting settings = 1;
   string admin_email = 2;
+  // channel_mode is the global email/Slack delivery switch for real-time and
+  // threshold alerts (issue #1482): "email", "slack", or "both". Weekly
+  // digests ignore it and always email.
+  string channel_mode = 3;
+  // slack_webhook_configured is true when a Slack Incoming Webhook URL has
+  // been saved. The URL itself is never returned.
+  bool slack_webhook_configured = 4;
 }
 
 message UpdateNotificationSettingsRequest {
@@ -599,6 +608,17 @@ message UpdateNotificationSettingsRequest {
 }
 
 message UpdateNotificationSettingsResponse {}
+
+// UpdateNotificationChannelRequest sets the global delivery channel. Admin
+// only — the webhook URL is a credential.
+message UpdateNotificationChannelRequest {
+  string channel_mode = 1;  // "email" | "slack" | "both"
+  // slack_webhook_url: absent leaves the stored URL unchanged; "" clears it;
+  // any other value replaces it.
+  optional string slack_webhook_url = 2;
+}
+
+message UpdateNotificationChannelResponse {}
 
 // AlertState is one threshold rule's breach/recovery state
 // (jobs.ThresholdAlertJob, issue #1283) — current_value/threshold are

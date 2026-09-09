@@ -60,7 +60,7 @@ func TestEnqueueDeliversAndReportsSuccess(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
@@ -82,7 +82,7 @@ func TestEnqueueToDeliversToRecipient(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	called := make(chan struct{})
 	svc.EnqueueTo(
@@ -106,7 +106,7 @@ func TestEnqueuePassesThroughErrNotConfigured(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(mailer.ErrNotConfigured)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
@@ -126,7 +126,7 @@ func TestEnqueuePassesThroughRealError(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(assert.AnError)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
@@ -146,7 +146,7 @@ func TestEnqueueNilOnResultDoesNotPanic(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	svc.Enqueue("subject", "body", nil)
 	svc.WaitUntilDone()
@@ -160,7 +160,7 @@ func TestEnqueueLogsOnResultError(t *testing.T) {
 	var buf bytes.Buffer
 	mail := newFakeMailer(nil)
 	logger := slog.New(logging.NewBufLogHandler(&buf, nil))
-	svc := notifications.New(t.Context(), logger, mail)
+	svc := notifications.NewEmailOnly(t.Context(), logger, mail)
 
 	svc.Enqueue("subject", "body", func(_ context.Context, _ error) error {
 		return errors.New("onResult failed")
@@ -174,7 +174,7 @@ func TestEnqueueDeliversStrictlyInOrder(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 
 	const n = 20
 	for i := range n {

@@ -34,6 +34,7 @@ import (
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/sentryapi"
+	"tools.xdoubleu.com/internal/slack"
 	"tools.xdoubleu.com/sentrytools"
 )
 
@@ -64,6 +65,7 @@ type Application struct {
 	hostMetricsRepo               *repositories.HostMetricsRepository
 	logsRepo                      *repositories.LogsRepository
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
+	notificationChannelRepo       *repositories.NotificationChannelConfigRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
@@ -193,13 +195,14 @@ func newNotificationsService(
 	ctx context.Context,
 	logger *slog.Logger,
 	config config.Config,
+	channelCfg *repositories.NotificationChannelConfigRepository,
 ) *notifications.Service {
 	mailClient := mailer.New(
 		config.ResendAPIKey,
 		config.EmailFrom,
 		config.NotifyEmailTo,
 	)
-	return notifications.New(ctx, logger, mailClient)
+	return notifications.New(ctx, logger, mailClient, slack.New(), channelCfg)
 }
 
 // newObservabilityClients builds the two external observability clients,
@@ -449,7 +452,12 @@ func NewApplication(
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	}
 
-	notificationsSvc := newNotificationsService(ctx, logger, config)
+	notificationChannelRepo := repositories.NewNotificationChannelConfigRepository(
+		db, authSealer,
+	)
+	notificationsSvc := newNotificationsService(
+		ctx, logger, config, notificationChannelRepo,
+	)
 	familySvc := family.New(
 		familyRepo,
 		authSvc,
@@ -521,6 +529,7 @@ func NewApplication(
 		hostMetricsRepo:               hostMetricsRepo,
 		logsRepo:                      logsRepo,
 		notificationSettingsRepo:      notificationSettingsRepo,
+		notificationChannelRepo:       notificationChannelRepo,
 		oauthConnRepo:                 oauthConnRepo,
 		oauthState:                    oauthconn.NewStateStore(),
 		githubClient:                  githubClient,
