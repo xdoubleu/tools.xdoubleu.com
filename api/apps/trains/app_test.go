@@ -55,6 +55,21 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+// trainsDayStart is midnight of the current civil day in Europe/Brussels —
+// the service date journey-detail lookups and the realtime correlation key
+// off (services.serviceDateOf). Test feeds and journey window starts must be
+// anchored here, not at UTC midnight: the two diverge in the ~22:00-24:00
+// UTC window, when it is already tomorrow in Brussels, and that gap made the
+// journey-detail realtime-overlay tests fail late in the UTC day.
+func trainsDayStart() time.Time {
+	loc, err := time.LoadLocation("Europe/Brussels")
+	if err != nil {
+		loc = time.UTC
+	}
+	now := time.Now().In(loc)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+}
+
 // ensureGlobalJobRuns mirrors cmd/api/migrations/00005_observability.sql's
 // job_runs table so TestNewAndStart's Start()/jobqueue.AddJob call can look
 // up a job's last successful run before the cmd/api package has applied the
