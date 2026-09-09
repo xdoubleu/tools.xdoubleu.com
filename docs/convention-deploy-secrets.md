@@ -1,7 +1,7 @@
 # Convention: a deploy secret is declared in three places that must agree
 
 - Enforced by: `make lint/kamal-secrets` (`api/scripts/check_kamal_secrets.sh`), CI job `API Kamal Secrets Lint`
-- Issues: #1390, #1404, #1405, #1468, #1504, #1507, #1509
+- Issues: #1390, #1404, #1405, #1468, #1504, #1507, #1509, #1517, #1520
 
 ## Rule
 
@@ -12,6 +12,17 @@ Every Kamal deploy secret must appear in **all three** of:
 2. `.kamal/secrets`
 3. the matching `Deploy <svc> via Kamal` step's `env:` block in
    `.github/workflows/main.yml`
+
+### Grafana prefix rule (#1520)
+
+Kamal injects every `env.secret:`/`env.clear:` name into the container
+verbatim — `.kamal/secrets` has no renaming mechanism. Grafana only reads
+`GF_`-prefixed env vars, so `check_kamal_secrets.sh` additionally fails the PR
+if `config/deploy.grafana.yml` lists an env name that is neither `GF_`-prefixed
+nor deploy-time metadata Grafana ignores (`RELEASE`, `KAMAL_*`). This is what
+`#1517` needed: `OAUTH_GRAFANA_CLIENT_SECRET` was consistent across all three
+lists yet inert inside the container until renamed to
+`GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` in `#1518`.
 
 Adding a genuinely new secret also means creating the `production` Environment
 secret — see `infra/README.md`, which is the single source of truth for the full
