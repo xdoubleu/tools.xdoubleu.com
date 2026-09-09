@@ -575,7 +575,6 @@ jobs:
           # public image needing no auth to actually pull — see
           # config/deploy.grafana.yml's registry: comment.
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
-          KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -585,7 +584,12 @@ jobs:
           # (issue #1468's Grafana contact point) — no new mail credential.
           GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
           GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
-        run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
+        # A fixed version, not $KAMAL_VERSION/github.sha like api/web (issue
+        # #1507) — Grafana's image: (config/deploy.grafana.yml) carries no
+        # tag, so Kamal's own "<image>:<version>" concatenation must supply
+        # the real upstream tag here. Bumping Grafana means updating this
+        # value and config/deploy.grafana.yml's comment together.
+        run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="12.1.1"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
   # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
