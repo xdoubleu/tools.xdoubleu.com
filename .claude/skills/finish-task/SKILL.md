@@ -90,6 +90,13 @@ repo's own auto-merge rule instead of its generic default:
   triggered signal, not just the first match — a generic disclaimer with no
   named signal isn't good enough.
 
+**Always append a `cc @xdoubleu` line to the PR body** (the repo owner can't
+be added as a reviewer on their own PRs, so this is how the Graphite Slack
+bot notifies them). Fetch the `--fill`-generated body first
+(`gh pr view <number> --json body -q .body`) and append to it — never
+overwrite. If a `## Manual review needed` section is also being added, put
+`cc @xdoubleu` at the very end.
+
 Reference the tracking issue from `start-task` in the PR body using a
 closing keyword (`Fixes #123`, `Closes #123`) — `ship-pr` already covers the
 mechanics of this, this is just a reminder it applies here too (this
