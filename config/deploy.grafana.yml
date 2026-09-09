@@ -90,14 +90,21 @@ env:
     GF_AUTH_GENERIC_OAUTH_NAME: "tools.xdoubleu.com"
     GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
     # Endpoints on the embedded authorization server (issue #1469/ADR-0021).
-    # They must carry the /api prefix: kamal-proxy only routes /api and
+    # Both carry the /api prefix: kamal-proxy only routes /api and
     # /.well-known to the api service (config/deploy.api.yml path_prefix),
     # and api strips /api in-process (kamal_proxy_shim.go). A bare
-    # /oauth2/... URL hits the web catch-all instead and 404s. This matches
-    # the authorization_endpoint/token_endpoint the metadata document
-    # advertises (issuer = AUTH_ISSUER, defaulting to API_URL = .../api).
+    # /oauth2/... URL hits the web catch-all instead and 404s.
+    #
+    # AUTH_URL is browser-facing, so it uses the public host. TOKEN_URL is a
+    # server-to-server call from this container and must NOT use the public
+    # host: from inside the Docker host that resolves to the box's own public
+    # IP and has to hairpin back through kamal-proxy, which fails ("failed to
+    # fetch a token from the provider", issue #1515). Instead reach api
+    # directly on the shared `kamal` network — Kamal aliases each app
+    # container to its `service:` name, so api is tools-xdoubleu-com-api on
+    # its app_port (8000), the same target infra/prometheus.yml scrapes.
     GF_AUTH_GENERIC_OAUTH_AUTH_URL: https://tools.xdoubleu.com/api/oauth2/authorize
-    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: https://tools.xdoubleu.com/api/oauth2/token
+    GF_AUTH_GENERIC_OAUTH_TOKEN_URL: http://tools-xdoubleu-com-api:8000/api/oauth2/token
     GF_AUTH_GENERIC_OAUTH_API_URL: ""
     # role/login attributes read straight off the OIDC ID token's claims
     # (ADR-0021's "Role claim" section) rather than a separate userinfo
