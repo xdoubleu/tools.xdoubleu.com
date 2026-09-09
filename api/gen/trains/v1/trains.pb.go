@@ -1118,6 +1118,456 @@ func (x *TranslationCoverage) GetRowsUnmatched() int32 {
 	return 0
 }
 
+// SavedCommute is a user's named origin->destination station pair, surfaced
+// above the /trains pickers so a route they take every day is one tap away.
+// origin/destination are always location_type=1 stations keyed by their
+// S-prefixed UIC parent-station id — never a trip_id or anything derived
+// from a specific day's timetable (#1390).
+type SavedCommute struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label       string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Origin      *Station               `protobuf:"bytes,3,opt,name=origin,proto3" json:"origin,omitempty"`
+	Destination *Station               `protobuf:"bytes,4,opt,name=destination,proto3" json:"destination,omitempty"`
+	// Ascending sort order within the signed-in user's list.
+	Position      int32 `protobuf:"varint,5,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SavedCommute) Reset() {
+	*x = SavedCommute{}
+	mi := &file_trains_v1_trains_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SavedCommute) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SavedCommute) ProtoMessage() {}
+
+func (x *SavedCommute) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SavedCommute.ProtoReflect.Descriptor instead.
+func (*SavedCommute) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *SavedCommute) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *SavedCommute) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *SavedCommute) GetOrigin() *Station {
+	if x != nil {
+		return x.Origin
+	}
+	return nil
+}
+
+func (x *SavedCommute) GetDestination() *Station {
+	if x != nil {
+		return x.Destination
+	}
+	return nil
+}
+
+func (x *SavedCommute) GetPosition() int32 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+type ListSavedCommutesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSavedCommutesRequest) Reset() {
+	*x = ListSavedCommutesRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSavedCommutesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSavedCommutesRequest) ProtoMessage() {}
+
+func (x *ListSavedCommutesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSavedCommutesRequest.ProtoReflect.Descriptor instead.
+func (*ListSavedCommutesRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{17}
+}
+
+type ListSavedCommutesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SavedCommutes []*SavedCommute        `protobuf:"bytes,1,rep,name=saved_commutes,json=savedCommutes,proto3" json:"saved_commutes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSavedCommutesResponse) Reset() {
+	*x = ListSavedCommutesResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSavedCommutesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSavedCommutesResponse) ProtoMessage() {}
+
+func (x *ListSavedCommutesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSavedCommutesResponse.ProtoReflect.Descriptor instead.
+func (*ListSavedCommutesResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ListSavedCommutesResponse) GetSavedCommutes() []*SavedCommute {
+	if x != nil {
+		return x.SavedCommutes
+	}
+	return nil
+}
+
+type CreateSavedCommuteRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Label             string                 `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	OriginStopId      string                 `protobuf:"bytes,2,opt,name=origin_stop_id,json=originStopId,proto3" json:"origin_stop_id,omitempty"`
+	DestinationStopId string                 `protobuf:"bytes,3,opt,name=destination_stop_id,json=destinationStopId,proto3" json:"destination_stop_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CreateSavedCommuteRequest) Reset() {
+	*x = CreateSavedCommuteRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSavedCommuteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSavedCommuteRequest) ProtoMessage() {}
+
+func (x *CreateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSavedCommuteRequest.ProtoReflect.Descriptor instead.
+func (*CreateSavedCommuteRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *CreateSavedCommuteRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *CreateSavedCommuteRequest) GetOriginStopId() string {
+	if x != nil {
+		return x.OriginStopId
+	}
+	return ""
+}
+
+func (x *CreateSavedCommuteRequest) GetDestinationStopId() string {
+	if x != nil {
+		return x.DestinationStopId
+	}
+	return ""
+}
+
+type CreateSavedCommuteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SavedCommute  *SavedCommute          `protobuf:"bytes,1,opt,name=saved_commute,json=savedCommute,proto3" json:"saved_commute,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSavedCommuteResponse) Reset() {
+	*x = CreateSavedCommuteResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSavedCommuteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSavedCommuteResponse) ProtoMessage() {}
+
+func (x *CreateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSavedCommuteResponse.ProtoReflect.Descriptor instead.
+func (*CreateSavedCommuteResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *CreateSavedCommuteResponse) GetSavedCommute() *SavedCommute {
+	if x != nil {
+		return x.SavedCommute
+	}
+	return nil
+}
+
+type UpdateSavedCommuteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Label         string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Position      int32                  `protobuf:"varint,3,opt,name=position,proto3" json:"position,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSavedCommuteRequest) Reset() {
+	*x = UpdateSavedCommuteRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSavedCommuteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSavedCommuteRequest) ProtoMessage() {}
+
+func (x *UpdateSavedCommuteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSavedCommuteRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSavedCommuteRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *UpdateSavedCommuteRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateSavedCommuteRequest) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *UpdateSavedCommuteRequest) GetPosition() int32 {
+	if x != nil {
+		return x.Position
+	}
+	return 0
+}
+
+type UpdateSavedCommuteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SavedCommute  *SavedCommute          `protobuf:"bytes,1,opt,name=saved_commute,json=savedCommute,proto3" json:"saved_commute,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSavedCommuteResponse) Reset() {
+	*x = UpdateSavedCommuteResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSavedCommuteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSavedCommuteResponse) ProtoMessage() {}
+
+func (x *UpdateSavedCommuteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSavedCommuteResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSavedCommuteResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UpdateSavedCommuteResponse) GetSavedCommute() *SavedCommute {
+	if x != nil {
+		return x.SavedCommute
+	}
+	return nil
+}
+
+type DeleteSavedCommuteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSavedCommuteRequest) Reset() {
+	*x = DeleteSavedCommuteRequest{}
+	mi := &file_trains_v1_trains_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSavedCommuteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSavedCommuteRequest) ProtoMessage() {}
+
+func (x *DeleteSavedCommuteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSavedCommuteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSavedCommuteRequest) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *DeleteSavedCommuteRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteSavedCommuteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSavedCommuteResponse) Reset() {
+	*x = DeleteSavedCommuteResponse{}
+	mi := &file_trains_v1_trains_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSavedCommuteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSavedCommuteResponse) ProtoMessage() {}
+
+func (x *DeleteSavedCommuteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_trains_v1_trains_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSavedCommuteResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSavedCommuteResponse) Descriptor() ([]byte, []int) {
+	return file_trains_v1_trains_proto_rawDescGZIP(), []int{24}
+}
+
 var File_trains_v1_trains_proto protoreflect.FileDescriptor
 
 const file_trains_v1_trains_proto_rawDesc = "" +
@@ -1205,12 +1655,40 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x13translated_stops_fr\x18\x02 \x01(\x05R\x11translatedStopsFr\x12.\n" +
 	"\x13translated_stops_en\x18\x03 \x01(\x05R\x11translatedStopsEn\x12\x12\n" +
 	"\x04rows\x18\x04 \x01(\x05R\x04rows\x12%\n" +
-	"\x0erows_unmatched\x18\x05 \x01(\x05R\rrowsUnmatched2\xe7\x02\n" +
+	"\x0erows_unmatched\x18\x05 \x01(\x05R\rrowsUnmatched\"\xb2\x01\n" +
+	"\fSavedCommute\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12*\n" +
+	"\x06origin\x18\x03 \x01(\v2\x12.trains.v1.StationR\x06origin\x124\n" +
+	"\vdestination\x18\x04 \x01(\v2\x12.trains.v1.StationR\vdestination\x12\x1a\n" +
+	"\bposition\x18\x05 \x01(\x05R\bposition\"\x1a\n" +
+	"\x18ListSavedCommutesRequest\"[\n" +
+	"\x19ListSavedCommutesResponse\x12>\n" +
+	"\x0esaved_commutes\x18\x01 \x03(\v2\x17.trains.v1.SavedCommuteR\rsavedCommutes\"\x87\x01\n" +
+	"\x19CreateSavedCommuteRequest\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label\x12$\n" +
+	"\x0eorigin_stop_id\x18\x02 \x01(\tR\foriginStopId\x12.\n" +
+	"\x13destination_stop_id\x18\x03 \x01(\tR\x11destinationStopId\"Z\n" +
+	"\x1aCreateSavedCommuteResponse\x12<\n" +
+	"\rsaved_commute\x18\x01 \x01(\v2\x17.trains.v1.SavedCommuteR\fsavedCommute\"]\n" +
+	"\x19UpdateSavedCommuteRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1a\n" +
+	"\bposition\x18\x03 \x01(\x05R\bposition\"Z\n" +
+	"\x1aUpdateSavedCommuteResponse\x12<\n" +
+	"\rsaved_commute\x18\x01 \x01(\v2\x17.trains.v1.SavedCommuteR\fsavedCommute\"+\n" +
+	"\x19DeleteSavedCommuteRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x1c\n" +
+	"\x1aDeleteSavedCommuteResponse2\xf0\x05\n" +
 	"\fTrainService\x12U\n" +
 	"\x0eSearchJourneys\x12 .trains.v1.SearchJourneysRequest\x1a!.trains.v1.SearchJourneysResponse\x12U\n" +
 	"\x0eSearchStations\x12 .trains.v1.SearchStationsRequest\x1a!.trains.v1.SearchStationsResponse\x12L\n" +
 	"\vGetFeedInfo\x12\x1d.trains.v1.GetFeedInfoRequest\x1a\x1e.trains.v1.GetFeedInfoResponse\x12[\n" +
-	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
+	"\x10GetJourneyDetail\x12\".trains.v1.GetJourneyDetailRequest\x1a#.trains.v1.GetJourneyDetailResponse\x12^\n" +
+	"\x11ListSavedCommutes\x12#.trains.v1.ListSavedCommutesRequest\x1a$.trains.v1.ListSavedCommutesResponse\x12a\n" +
+	"\x12CreateSavedCommute\x12$.trains.v1.CreateSavedCommuteRequest\x1a%.trains.v1.CreateSavedCommuteResponse\x12a\n" +
+	"\x12UpdateSavedCommute\x12$.trains.v1.UpdateSavedCommuteRequest\x1a%.trains.v1.UpdateSavedCommuteResponse\x12a\n" +
+	"\x12DeleteSavedCommute\x12$.trains.v1.DeleteSavedCommuteRequest\x1a%.trains.v1.DeleteSavedCommuteResponseB+Z)tools.xdoubleu.com/gen/trains/v1;trainsv1b\x06proto3"
 
 var (
 	file_trains_v1_trains_proto_rawDescOnce sync.Once
@@ -1224,24 +1702,33 @@ func file_trains_v1_trains_proto_rawDescGZIP() []byte {
 	return file_trains_v1_trains_proto_rawDescData
 }
 
-var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_trains_v1_trains_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_trains_v1_trains_proto_goTypes = []any{
-	(*Leg)(nil),                      // 0: trains.v1.Leg
-	(*Journey)(nil),                  // 1: trains.v1.Journey
-	(*Alert)(nil),                    // 2: trains.v1.Alert
-	(*StopCall)(nil),                 // 3: trains.v1.StopCall
-	(*LegDetail)(nil),                // 4: trains.v1.LegDetail
-	(*JourneyDetail)(nil),            // 5: trains.v1.JourneyDetail
-	(*GetJourneyDetailRequest)(nil),  // 6: trains.v1.GetJourneyDetailRequest
-	(*GetJourneyDetailResponse)(nil), // 7: trains.v1.GetJourneyDetailResponse
-	(*SearchJourneysRequest)(nil),    // 8: trains.v1.SearchJourneysRequest
-	(*SearchJourneysResponse)(nil),   // 9: trains.v1.SearchJourneysResponse
-	(*Station)(nil),                  // 10: trains.v1.Station
-	(*SearchStationsRequest)(nil),    // 11: trains.v1.SearchStationsRequest
-	(*SearchStationsResponse)(nil),   // 12: trains.v1.SearchStationsResponse
-	(*GetFeedInfoRequest)(nil),       // 13: trains.v1.GetFeedInfoRequest
-	(*GetFeedInfoResponse)(nil),      // 14: trains.v1.GetFeedInfoResponse
-	(*TranslationCoverage)(nil),      // 15: trains.v1.TranslationCoverage
+	(*Leg)(nil),                        // 0: trains.v1.Leg
+	(*Journey)(nil),                    // 1: trains.v1.Journey
+	(*Alert)(nil),                      // 2: trains.v1.Alert
+	(*StopCall)(nil),                   // 3: trains.v1.StopCall
+	(*LegDetail)(nil),                  // 4: trains.v1.LegDetail
+	(*JourneyDetail)(nil),              // 5: trains.v1.JourneyDetail
+	(*GetJourneyDetailRequest)(nil),    // 6: trains.v1.GetJourneyDetailRequest
+	(*GetJourneyDetailResponse)(nil),   // 7: trains.v1.GetJourneyDetailResponse
+	(*SearchJourneysRequest)(nil),      // 8: trains.v1.SearchJourneysRequest
+	(*SearchJourneysResponse)(nil),     // 9: trains.v1.SearchJourneysResponse
+	(*Station)(nil),                    // 10: trains.v1.Station
+	(*SearchStationsRequest)(nil),      // 11: trains.v1.SearchStationsRequest
+	(*SearchStationsResponse)(nil),     // 12: trains.v1.SearchStationsResponse
+	(*GetFeedInfoRequest)(nil),         // 13: trains.v1.GetFeedInfoRequest
+	(*GetFeedInfoResponse)(nil),        // 14: trains.v1.GetFeedInfoResponse
+	(*TranslationCoverage)(nil),        // 15: trains.v1.TranslationCoverage
+	(*SavedCommute)(nil),               // 16: trains.v1.SavedCommute
+	(*ListSavedCommutesRequest)(nil),   // 17: trains.v1.ListSavedCommutesRequest
+	(*ListSavedCommutesResponse)(nil),  // 18: trains.v1.ListSavedCommutesResponse
+	(*CreateSavedCommuteRequest)(nil),  // 19: trains.v1.CreateSavedCommuteRequest
+	(*CreateSavedCommuteResponse)(nil), // 20: trains.v1.CreateSavedCommuteResponse
+	(*UpdateSavedCommuteRequest)(nil),  // 21: trains.v1.UpdateSavedCommuteRequest
+	(*UpdateSavedCommuteResponse)(nil), // 22: trains.v1.UpdateSavedCommuteResponse
+	(*DeleteSavedCommuteRequest)(nil),  // 23: trains.v1.DeleteSavedCommuteRequest
+	(*DeleteSavedCommuteResponse)(nil), // 24: trains.v1.DeleteSavedCommuteResponse
 }
 var file_trains_v1_trains_proto_depIdxs = []int32{
 	0,  // 0: trains.v1.Journey.legs:type_name -> trains.v1.Leg
@@ -1252,19 +1739,32 @@ var file_trains_v1_trains_proto_depIdxs = []int32{
 	1,  // 5: trains.v1.SearchJourneysResponse.journeys:type_name -> trains.v1.Journey
 	10, // 6: trains.v1.SearchStationsResponse.stations:type_name -> trains.v1.Station
 	15, // 7: trains.v1.GetFeedInfoResponse.translations:type_name -> trains.v1.TranslationCoverage
-	8,  // 8: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
-	11, // 9: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
-	13, // 10: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
-	6,  // 11: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
-	9,  // 12: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
-	12, // 13: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
-	14, // 14: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
-	7,  // 15: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
-	12, // [12:16] is the sub-list for method output_type
-	8,  // [8:12] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	10, // 8: trains.v1.SavedCommute.origin:type_name -> trains.v1.Station
+	10, // 9: trains.v1.SavedCommute.destination:type_name -> trains.v1.Station
+	16, // 10: trains.v1.ListSavedCommutesResponse.saved_commutes:type_name -> trains.v1.SavedCommute
+	16, // 11: trains.v1.CreateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
+	16, // 12: trains.v1.UpdateSavedCommuteResponse.saved_commute:type_name -> trains.v1.SavedCommute
+	8,  // 13: trains.v1.TrainService.SearchJourneys:input_type -> trains.v1.SearchJourneysRequest
+	11, // 14: trains.v1.TrainService.SearchStations:input_type -> trains.v1.SearchStationsRequest
+	13, // 15: trains.v1.TrainService.GetFeedInfo:input_type -> trains.v1.GetFeedInfoRequest
+	6,  // 16: trains.v1.TrainService.GetJourneyDetail:input_type -> trains.v1.GetJourneyDetailRequest
+	17, // 17: trains.v1.TrainService.ListSavedCommutes:input_type -> trains.v1.ListSavedCommutesRequest
+	19, // 18: trains.v1.TrainService.CreateSavedCommute:input_type -> trains.v1.CreateSavedCommuteRequest
+	21, // 19: trains.v1.TrainService.UpdateSavedCommute:input_type -> trains.v1.UpdateSavedCommuteRequest
+	23, // 20: trains.v1.TrainService.DeleteSavedCommute:input_type -> trains.v1.DeleteSavedCommuteRequest
+	9,  // 21: trains.v1.TrainService.SearchJourneys:output_type -> trains.v1.SearchJourneysResponse
+	12, // 22: trains.v1.TrainService.SearchStations:output_type -> trains.v1.SearchStationsResponse
+	14, // 23: trains.v1.TrainService.GetFeedInfo:output_type -> trains.v1.GetFeedInfoResponse
+	7,  // 24: trains.v1.TrainService.GetJourneyDetail:output_type -> trains.v1.GetJourneyDetailResponse
+	18, // 25: trains.v1.TrainService.ListSavedCommutes:output_type -> trains.v1.ListSavedCommutesResponse
+	20, // 26: trains.v1.TrainService.CreateSavedCommute:output_type -> trains.v1.CreateSavedCommuteResponse
+	22, // 27: trains.v1.TrainService.UpdateSavedCommute:output_type -> trains.v1.UpdateSavedCommuteResponse
+	24, // 28: trains.v1.TrainService.DeleteSavedCommute:output_type -> trains.v1.DeleteSavedCommuteResponse
+	21, // [21:29] is the sub-list for method output_type
+	13, // [13:21] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_trains_v1_trains_proto_init() }
@@ -1278,7 +1778,7 @@ func file_trains_v1_trains_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_trains_v1_trains_proto_rawDesc), len(file_trains_v1_trains_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

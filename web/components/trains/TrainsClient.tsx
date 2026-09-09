@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import StationField from '@/components/trains/StationField'
 import JourneyResults from '@/components/trains/JourneyResults'
+import SavedCommutes, { type CommutePair } from '@/components/trains/SavedCommutes'
 import TrainsAttribution from '@/components/trains/TrainsAttribution'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { Input } from '@/components/ui/input'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import { PageContainer } from '@/components/ui/page-container'
-import { useJourneySearch, useTrainsFeedInfo } from '@/hooks/useTrains'
+import { useJourneySearch, useSavedCommutes, useTrainsFeedInfo } from '@/hooks/useTrains'
 
 function nowParts(): { date: string; time: string } {
   const now = new Date()
@@ -39,7 +40,28 @@ export default function TrainsClient() {
   const [arriveBy, setArriveBy] = useState(false)
 
   const { data: feedInfo } = useTrainsFeedInfo()
+  const { data: savedCommutes, create: createCommute, remove: removeCommute } = useSavedCommutes()
   const requestTime = toRfc3339(date, time)
+
+  const openCommute = (pair: CommutePair) => {
+    setOriginStopId(pair.originStopId)
+    setOriginQuery(pair.originName)
+    setDestStopId(pair.destStopId)
+    setDestQuery(pair.destName)
+    setDate(initial.date)
+    setTime(initial.time)
+    setArriveBy(false)
+  }
+
+  const currentPair: CommutePair | null =
+    originStopId !== '' && destStopId !== ''
+      ? {
+          originStopId,
+          originName: originQuery,
+          destStopId,
+          destName: destQuery
+        }
+      : null
   const {
     data: journeysData,
     error,
@@ -56,6 +78,16 @@ export default function TrainsClient() {
   return (
     <PageContainer size="narrow" className="p-6">
       <h1 className="mb-6 text-3xl font-bold">Trains</h1>
+
+      <div className="mb-6">
+        <SavedCommutes
+          commutes={savedCommutes?.savedCommutes ?? []}
+          onOpen={openCommute}
+          onCreate={createCommute}
+          onRemove={removeCommute}
+          currentPair={currentPair}
+        />
+      </div>
 
       <div className="space-y-4">
         <div className="flex items-end gap-2">

@@ -34,6 +34,7 @@ export const swrKeys = {
     arriveBy: boolean
   ) => ['/trains/journeys', originStopId, destinationStopId, time, arriveBy] as const,
   trainsJourneyDetail: (journeyId: string) => ['/trains/journey', journeyId] as const,
+  trainsSavedCommutes: '/trains/saved-commutes',
 
   dashboardShare: (kind: 'games' | 'reading') => `/dashboard/share/${kind}`,
   dashboardReading: (token: string) => `/dashboard/reading/${token}`,

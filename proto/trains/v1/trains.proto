@@ -157,6 +157,52 @@ message TranslationCoverage {
   int32 rows_unmatched = 5;
 }
 
+// SavedCommute is a user's named origin->destination station pair, surfaced
+// above the /trains pickers so a route they take every day is one tap away.
+// origin/destination are always location_type=1 stations keyed by their
+// S-prefixed UIC parent-station id — never a trip_id or anything derived
+// from a specific day's timetable (#1390).
+message SavedCommute {
+  string id = 1;
+  string label = 2;
+  Station origin = 3;
+  Station destination = 4;
+  // Ascending sort order within the signed-in user's list.
+  int32 position = 5;
+}
+
+message ListSavedCommutesRequest {}
+
+message ListSavedCommutesResponse {
+  repeated SavedCommute saved_commutes = 1;
+}
+
+message CreateSavedCommuteRequest {
+  string label = 1;
+  string origin_stop_id = 2;
+  string destination_stop_id = 3;
+}
+
+message CreateSavedCommuteResponse {
+  SavedCommute saved_commute = 1;
+}
+
+message UpdateSavedCommuteRequest {
+  string id = 1;
+  string label = 2;
+  int32 position = 3;
+}
+
+message UpdateSavedCommuteResponse {
+  SavedCommute saved_commute = 1;
+}
+
+message DeleteSavedCommuteRequest {
+  string id = 1;
+}
+
+message DeleteSavedCommuteResponse {}
+
 service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
   rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
@@ -166,4 +212,10 @@ service TrainService {
   // at /trains/api/journeys/live exists for its journey_id so a client can
   // subscribe right after this call returns.
   rpc GetJourneyDetail(GetJourneyDetailRequest) returns (GetJourneyDetailResponse);
+  // Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
+  // by the trains app's own AppAccess like every other RPC here.
+  rpc ListSavedCommutes(ListSavedCommutesRequest) returns (ListSavedCommutesResponse);
+  rpc CreateSavedCommute(CreateSavedCommuteRequest) returns (CreateSavedCommuteResponse);
+  rpc UpdateSavedCommute(UpdateSavedCommuteRequest) returns (UpdateSavedCommuteResponse);
+  rpc DeleteSavedCommute(DeleteSavedCommuteRequest) returns (DeleteSavedCommuteResponse);
 }

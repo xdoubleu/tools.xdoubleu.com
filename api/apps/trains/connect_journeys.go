@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/csa"
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 	"tools.xdoubleu.com/gen/trains/v1/trainsv1connect"
+	"tools.xdoubleu.com/internal/database"
 )
 
 type trainsConnectHandler struct {
@@ -186,6 +187,12 @@ func mapError(err error) error {
 		return connect.NewError(connect.CodeNotFound, err)
 	case errors.Is(err, services.ErrRouterWarmingUp):
 		return connect.NewError(connect.CodeUnavailable, err)
+	case errors.Is(err, services.ErrInvalidCommute):
+		return connect.NewError(connect.CodeInvalidArgument, err)
+	case errors.Is(err, database.ErrResourceNotFound):
+		return connect.NewError(connect.CodeNotFound, err)
+	case errors.Is(err, database.ErrResourceConflict):
+		return connect.NewError(connect.CodeAlreadyExists, err)
 	default:
 		return connect.NewError(connect.CodeInternal, err)
 	}

@@ -17,6 +17,7 @@ type Services struct {
 	Realtime      *RealtimeService
 	JourneyDetail *JourneyDetailService
 	JourneyWS     *JourneyWSService
+	SavedCommutes *SavedCommutesService
 }
 
 func New(
@@ -43,5 +44,6 @@ func New(
 		Realtime:      realtime,
 		JourneyDetail: detail,
 		JourneyWS:     journeyWS,
+		SavedCommutes: NewSavedCommutesService(repos),
 	}
 }

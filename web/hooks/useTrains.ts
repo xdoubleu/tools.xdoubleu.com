@@ -5,6 +5,7 @@ import { TrainService } from '@/lib/gen/trains/v1/trains_pb'
 import type {
   GetFeedInfoResponse,
   GetJourneyDetailResponse,
+  ListSavedCommutesResponse,
   SearchJourneysResponse,
   Station
 } from '@/lib/gen/trains/v1/trains_pb'
@@ -44,6 +45,30 @@ export function useJourneySearch(
     ready ? swrKeys.trainsJourneys(originStopId, destinationStopId, time, arriveBy) : null,
     () => client.searchJourneys({ originStopId, destinationStopId, time, arriveBy })
   )
+}
+
+/**
+ * The signed-in user's saved commutes (issue #1396), surfaced above the
+ * /trains pickers. Exposes create/delete/reverse mutators that revalidate
+ * the list on success.
+ */
+export function useSavedCommutes() {
+  const client = createServiceClient(TrainService)
+  const swr = useSWR<ListSavedCommutesResponse, Error>(swrKeys.trainsSavedCommutes, () =>
+    client.listSavedCommutes({})
+  )
+
+  const create = async (label: string, originStopId: string, destinationStopId: string) => {
+    await client.createSavedCommute({ label, originStopId, destinationStopId })
+    await swr.mutate()
+  }
+
+  const remove = async (id: string) => {
+    await client.deleteSavedCommute({ id })
+    await swr.mutate()
+  }
+
+  return { ...swr, create, remove }
 }
 
 /**

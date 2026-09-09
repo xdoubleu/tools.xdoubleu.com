@@ -45,6 +45,18 @@ const (
 	// TrainServiceGetJourneyDetailProcedure is the fully-qualified name of the TrainService's
 	// GetJourneyDetail RPC.
 	TrainServiceGetJourneyDetailProcedure = "/trains.v1.TrainService/GetJourneyDetail"
+	// TrainServiceListSavedCommutesProcedure is the fully-qualified name of the TrainService's
+	// ListSavedCommutes RPC.
+	TrainServiceListSavedCommutesProcedure = "/trains.v1.TrainService/ListSavedCommutes"
+	// TrainServiceCreateSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// CreateSavedCommute RPC.
+	TrainServiceCreateSavedCommuteProcedure = "/trains.v1.TrainService/CreateSavedCommute"
+	// TrainServiceUpdateSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// UpdateSavedCommute RPC.
+	TrainServiceUpdateSavedCommuteProcedure = "/trains.v1.TrainService/UpdateSavedCommute"
+	// TrainServiceDeleteSavedCommuteProcedure is the fully-qualified name of the TrainService's
+	// DeleteSavedCommute RPC.
+	TrainServiceDeleteSavedCommuteProcedure = "/trains.v1.TrainService/DeleteSavedCommute"
 )
 
 // TrainServiceClient is a client for the trains.v1.TrainService service.
@@ -57,6 +69,12 @@ type TrainServiceClient interface {
 	// at /trains/api/journeys/live exists for its journey_id so a client can
 	// subscribe right after this call returns.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	// Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
+	// by the trains app's own AppAccess like every other RPC here.
+	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
+	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
+	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)
+	DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error)
 }
 
 // NewTrainServiceClient constructs a client for the trains.v1.TrainService service. By default, it
@@ -94,15 +112,43 @@ func NewTrainServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
 			connect.WithClientOptions(opts...),
 		),
+		listSavedCommutes: connect.NewClient[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse](
+			httpClient,
+			baseURL+TrainServiceListSavedCommutesProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("ListSavedCommutes")),
+			connect.WithClientOptions(opts...),
+		),
+		createSavedCommute: connect.NewClient[v1.CreateSavedCommuteRequest, v1.CreateSavedCommuteResponse](
+			httpClient,
+			baseURL+TrainServiceCreateSavedCommuteProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("CreateSavedCommute")),
+			connect.WithClientOptions(opts...),
+		),
+		updateSavedCommute: connect.NewClient[v1.UpdateSavedCommuteRequest, v1.UpdateSavedCommuteResponse](
+			httpClient,
+			baseURL+TrainServiceUpdateSavedCommuteProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("UpdateSavedCommute")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSavedCommute: connect.NewClient[v1.DeleteSavedCommuteRequest, v1.DeleteSavedCommuteResponse](
+			httpClient,
+			baseURL+TrainServiceDeleteSavedCommuteProcedure,
+			connect.WithSchema(trainServiceMethods.ByName("DeleteSavedCommute")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // trainServiceClient implements TrainServiceClient.
 type trainServiceClient struct {
-	searchJourneys   *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
-	searchStations   *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
-	getFeedInfo      *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
-	getJourneyDetail *connect.Client[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse]
+	searchJourneys     *connect.Client[v1.SearchJourneysRequest, v1.SearchJourneysResponse]
+	searchStations     *connect.Client[v1.SearchStationsRequest, v1.SearchStationsResponse]
+	getFeedInfo        *connect.Client[v1.GetFeedInfoRequest, v1.GetFeedInfoResponse]
+	getJourneyDetail   *connect.Client[v1.GetJourneyDetailRequest, v1.GetJourneyDetailResponse]
+	listSavedCommutes  *connect.Client[v1.ListSavedCommutesRequest, v1.ListSavedCommutesResponse]
+	createSavedCommute *connect.Client[v1.CreateSavedCommuteRequest, v1.CreateSavedCommuteResponse]
+	updateSavedCommute *connect.Client[v1.UpdateSavedCommuteRequest, v1.UpdateSavedCommuteResponse]
+	deleteSavedCommute *connect.Client[v1.DeleteSavedCommuteRequest, v1.DeleteSavedCommuteResponse]
 }
 
 // SearchJourneys calls trains.v1.TrainService.SearchJourneys.
@@ -125,6 +171,26 @@ func (c *trainServiceClient) GetJourneyDetail(ctx context.Context, req *connect.
 	return c.getJourneyDetail.CallUnary(ctx, req)
 }
 
+// ListSavedCommutes calls trains.v1.TrainService.ListSavedCommutes.
+func (c *trainServiceClient) ListSavedCommutes(ctx context.Context, req *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error) {
+	return c.listSavedCommutes.CallUnary(ctx, req)
+}
+
+// CreateSavedCommute calls trains.v1.TrainService.CreateSavedCommute.
+func (c *trainServiceClient) CreateSavedCommute(ctx context.Context, req *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error) {
+	return c.createSavedCommute.CallUnary(ctx, req)
+}
+
+// UpdateSavedCommute calls trains.v1.TrainService.UpdateSavedCommute.
+func (c *trainServiceClient) UpdateSavedCommute(ctx context.Context, req *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error) {
+	return c.updateSavedCommute.CallUnary(ctx, req)
+}
+
+// DeleteSavedCommute calls trains.v1.TrainService.DeleteSavedCommute.
+func (c *trainServiceClient) DeleteSavedCommute(ctx context.Context, req *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error) {
+	return c.deleteSavedCommute.CallUnary(ctx, req)
+}
+
 // TrainServiceHandler is an implementation of the trains.v1.TrainService service.
 type TrainServiceHandler interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
@@ -135,6 +201,12 @@ type TrainServiceHandler interface {
 	// at /trains/api/journeys/live exists for its journey_id so a client can
 	// subscribe right after this call returns.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
+	// Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
+	// by the trains app's own AppAccess like every other RPC here.
+	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
+	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
+	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)
+	DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error)
 }
 
 // NewTrainServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -168,6 +240,30 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(trainServiceMethods.ByName("GetJourneyDetail")),
 		connect.WithHandlerOptions(opts...),
 	)
+	trainServiceListSavedCommutesHandler := connect.NewUnaryHandler(
+		TrainServiceListSavedCommutesProcedure,
+		svc.ListSavedCommutes,
+		connect.WithSchema(trainServiceMethods.ByName("ListSavedCommutes")),
+		connect.WithHandlerOptions(opts...),
+	)
+	trainServiceCreateSavedCommuteHandler := connect.NewUnaryHandler(
+		TrainServiceCreateSavedCommuteProcedure,
+		svc.CreateSavedCommute,
+		connect.WithSchema(trainServiceMethods.ByName("CreateSavedCommute")),
+		connect.WithHandlerOptions(opts...),
+	)
+	trainServiceUpdateSavedCommuteHandler := connect.NewUnaryHandler(
+		TrainServiceUpdateSavedCommuteProcedure,
+		svc.UpdateSavedCommute,
+		connect.WithSchema(trainServiceMethods.ByName("UpdateSavedCommute")),
+		connect.WithHandlerOptions(opts...),
+	)
+	trainServiceDeleteSavedCommuteHandler := connect.NewUnaryHandler(
+		TrainServiceDeleteSavedCommuteProcedure,
+		svc.DeleteSavedCommute,
+		connect.WithSchema(trainServiceMethods.ByName("DeleteSavedCommute")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/trains.v1.TrainService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TrainServiceSearchJourneysProcedure:
@@ -178,6 +274,14 @@ func NewTrainServiceHandler(svc TrainServiceHandler, opts ...connect.HandlerOpti
 			trainServiceGetFeedInfoHandler.ServeHTTP(w, r)
 		case TrainServiceGetJourneyDetailProcedure:
 			trainServiceGetJourneyDetailHandler.ServeHTTP(w, r)
+		case TrainServiceListSavedCommutesProcedure:
+			trainServiceListSavedCommutesHandler.ServeHTTP(w, r)
+		case TrainServiceCreateSavedCommuteProcedure:
+			trainServiceCreateSavedCommuteHandler.ServeHTTP(w, r)
+		case TrainServiceUpdateSavedCommuteProcedure:
+			trainServiceUpdateSavedCommuteHandler.ServeHTTP(w, r)
+		case TrainServiceDeleteSavedCommuteProcedure:
+			trainServiceDeleteSavedCommuteHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -201,4 +305,20 @@ func (UnimplementedTrainServiceHandler) GetFeedInfo(context.Context, *connect.Re
 
 func (UnimplementedTrainServiceHandler) GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.GetJourneyDetail is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.ListSavedCommutes is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.CreateSavedCommute is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.UpdateSavedCommute is not implemented"))
+}
+
+func (UnimplementedTrainServiceHandler) DeleteSavedCommute(context.Context, *connect.Request[v1.DeleteSavedCommuteRequest]) (*connect.Response[v1.DeleteSavedCommuteResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("trains.v1.TrainService.DeleteSavedCommute is not implemented"))
 }
