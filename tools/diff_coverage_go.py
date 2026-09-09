@@ -38,9 +38,18 @@ def is_relevant(path):
     return path.endswith('.go') and not path.endswith('_test.go')
 
 
+# ALL_LINES marks a file whose every instrumented line counts as changed --
+# an untracked new file is new in its entirety, so there's no diff hunk to
+# scope to. git diff omits untracked files, so without this a `make
+# test/cov/diff` run before `git add` silently skips brand-new source files
+# and passes, while codecov/patch (which sees them) later fails.
+ALL_LINES = 'all'
+
+
 def get_changed_lines(repo_root, project_dir):
-    """Returns {relative_path: set(changed_line_numbers)} for api/*.go files
-    changed vs origin/main, based on unified diff hunk headers."""
+    """Returns {relative_path: set(changed_line_numbers) | ALL_LINES} for
+    api/*.go files changed vs origin/main, based on unified diff hunk
+    headers, plus untracked new .go files scored in full."""
     merge_base_out = run_git(['merge-base', 'origin/main', 'HEAD'], repo_root)
     base_ref = merge_base_out.strip() if merge_base_out else 'origin/main'
 
@@ -67,6 +76,17 @@ def get_changed_lines(repo_root, project_dir):
             changed.setdefault(current_file, set()).update(
                 range(start, start + count)
             )
+
+    project_prefix = project_dir.rstrip('/') + '/'
+    untracked_out = run_git(
+        ['ls-files', '--others', '--exclude-standard'], repo_root
+    ) or ''
+    for f in untracked_out.splitlines():
+        if not f.startswith(project_prefix):
+            continue
+        rel = f[len(project_prefix):]
+        if is_relevant(rel):
+            changed[rel] = ALL_LINES
 
     return changed
 
@@ -143,7 +163,14 @@ def main():
         # Only lines go tool cover actually instrumented (statement lines)
         # count toward the denominator -- blank lines, comments, braces
         # never appear in the profile at all.
-        instrumented = {ln: file_lines[ln] for ln in added_lines if file_lines and ln in file_lines}
+        if added_lines is ALL_LINES:
+            instrumented = dict(file_lines) if file_lines else {}
+        else:
+            instrumented = {
+                ln: file_lines[ln]
+                for ln in added_lines
+                if file_lines and ln in file_lines
+            }
 
         if not instrumented:
             print(f'  -  {path:<60} no instrumented lines changed')
