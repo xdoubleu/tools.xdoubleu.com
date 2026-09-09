@@ -231,6 +231,21 @@ export function useUpdateNotificationSettings() {
   )
 }
 
+// useUpdateNotificationChannel sets the global email/Slack delivery switch
+// and, optionally, the Slack Incoming Webhook URL (issue #1482). Passing
+// slackWebhookUrl === undefined leaves the stored URL untouched; '' clears
+// it. Admin only on the server.
+export function useUpdateNotificationChannel() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (channelMode: string, slackWebhookUrl?: string) => {
+      await client.updateNotificationChannel({ channelMode, slackWebhookUrl })
+      await mutate(swrKeys.monitoringNotificationSettings)
+    },
+    [client]
+  )
+}
+
 export function useSetProviderConfig() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(

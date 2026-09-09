@@ -245,7 +245,7 @@ func testLoggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 // so tests must call WaitUntilDone before asserting on mail/notified state.
 func testNotifications(t *testing.T, mail *fakeMailer) *notifications.Service {
 	t.Helper()
-	return notifications.New(t.Context(), logging.NewNopLogger(), mail)
+	return notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
 }
 
 func TestIssueNotifierSendsForNewSentryIssue(t *testing.T) {

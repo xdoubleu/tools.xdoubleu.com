@@ -163,7 +163,11 @@ func TestMain(m *testing.M) {
 		testCfg,
 		postgresDB,
 		fakeFeedsWebFetchClient{},
-		notifications.New(context.Background(), logger, mailer.New("", "", "")),
+		notifications.NewEmailOnly(
+			context.Background(),
+			logger,
+			mailer.New("", "", ""),
+		),
 		sharedrepos.NewAppUsersRepository(postgresDB),
 	)
 	if err := testFeeds.ApplyMigrations(context.Background(), postgresDB); err != nil {
