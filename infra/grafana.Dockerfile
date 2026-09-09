@@ -10,4 +10,4 @@
 # DOCKERHUB_USERNAME/TOKEN, reverted here as unnecessary).
 #
 # Bumping Grafana's version means bumping the tag below.
-FROM grafana/grafana:12.4.10
+FROM grafana/grafana:13.2.1
