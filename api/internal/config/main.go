@@ -40,6 +40,17 @@ type Config struct {
 	// OAuthHMACSecret keys the embedded OAuth 2.1 authorization server's
 	// (internal/oauth2as, via ory/fosite) HMAC token strategy.
 	OAuthHMACSecret string
+	// OAuthOIDCPrivateKey is a PEM-encoded RSA private key signing the
+	// embedded authorization server's OIDC ID tokens (issue #1469); its
+	// public half is published at /oauth2/jwks. Empty in development —
+	// oauth2as generates an ephemeral key, at the cost of invalidating
+	// previously-issued ID tokens on every restart.
+	OAuthOIDCPrivateKey string
+	// OAuthGrafanaClientSecret is the plaintext client secret for the static
+	// confidential "grafana" OAuth client (issue #1469); its bcrypt hash is
+	// reconciled into auth.oauth2_clients on startup. Empty leaves Grafana
+	// SSO unusable.
+	OAuthGrafanaClientSecret string
 	// AuthIssuer is this api's own OAuth 2.1 authorization-server issuer URL,
 	// exposed via /.well-known/oauth-authorization-server and used as the
 	// resource-server metadata's authorization server (issue #1039). Defaults
@@ -239,6 +250,8 @@ func New(logger *slog.Logger) Config {
 
 	cfg.JWTSecret = p.envSecret("JWT_SECRET", "")
 	cfg.OAuthHMACSecret = p.envSecret("OAUTH_HMAC_SECRET", "")
+	cfg.OAuthOIDCPrivateKey = p.envSecret("OAUTH_OIDC_PRIVATE_KEY", "")
+	cfg.OAuthGrafanaClientSecret = p.envSecret("OAUTH_GRAFANA_CLIENT_SECRET", "")
 	cfg.AuthIssuer = p.envStr("AUTH_ISSUER", "")
 	if cfg.AuthIssuer == "" {
 		cfg.AuthIssuer = cfg.APIURL

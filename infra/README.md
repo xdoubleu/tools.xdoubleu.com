@@ -396,6 +396,17 @@ JWT_SECRET                   (signs api's self-issued session JWTs, issue
 OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization
                               server's token strategy, issue #1039 —
                               rotating it invalidates every issued MCP token)
+OAUTH_OIDC_PRIVATE_KEY       (PEM RSA private key signing the AS's OIDC ID
+                              tokens, issue #1469 — public half at
+                              /oauth2/jwks; unset ⇒ ephemeral key per boot,
+                              rotating it re-logs-in Grafana users.
+                              openssl genpkey -algorithm RSA
+                              -pkeyopt rsa_keygen_bits:2048)
+OAUTH_GRAFANA_CLIENT_SECRET  (plaintext secret for the static confidential
+                              "grafana" OAuth client, issue #1469 — the api
+                              reconciles its bcrypt hash on boot; unset ⇒
+                              Grafana SSO unusable. Grafana host wiring
+                              lands with issue #1468)
 STEAM_API_KEY
 HARDCOVER_API_KEY
 BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key

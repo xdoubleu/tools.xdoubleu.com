@@ -146,8 +146,18 @@ already see over HTTP; the observability tools require the signed-in user to
 be an **admin**.
 
 No external setup is required — `JWT_SECRET` and `OAUTH_HMAC_SECRET` are the
-only auth-related secrets (see
+only auth-related secrets for the MCP flow (see
 [`config/deploy.api.yml`](config/deploy.api.yml) for the full env list).
+
+The same embedded AS also acts as an **OpenID Connect provider** (issue #1469):
+RS256 ID tokens signed with `OAUTH_OIDC_PRIVATE_KEY` and published at
+`/oauth2/jwks`, the `openid`/`profile`/`email` scopes alongside
+`offline_access`, and support for confidential clients (`client_secret_basic` /
+`client_secret_post`). One static confidential client, `grafana`, is seeded for
+Grafana SSO — its secret comes from `OAUTH_GRAFANA_CLIENT_SECRET` and its ID
+token carries a `role` claim (`Admin`/`Viewer`) for Grafana's
+`role_attribute_path`. See
+[`docs/adr-0021-oauth-as-general-purpose-oidc-idp.md`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md).
 
 ## Deploy Notes
 

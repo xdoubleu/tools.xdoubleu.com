@@ -250,11 +250,29 @@ func TestObserve_NeverLogsCredentials(t *testing.T) {
 		"code_verifier": {verifier},
 	})
 
+	// A confidential-client rejection: the wrong client_secret must not be
+	// logged either (issue #1469 widened the AS to confidential clients).
+	const wrongClientSecret = "leaked-client-secret-should-not-appear"
+	gClient := grafanaConfidentialClient(t, srv)
+	gVerifier, gChallenge := pkcePair(t)
+	gCode := srv.authorizeAndGetCodeWithScope(
+		t, gClient, gChallenge, "observe-oidc-state1", "openid email",
+	)
+	srv.exchangeToken(t, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {gCode},
+		"redirect_uri":  {gClient.RedirectURIs[0]},
+		"client_id":     {gClient.ID},
+		"client_secret": {wrongClientSecret},
+		"code_verifier": {gVerifier},
+	})
+
 	secrets := map[string]string{
 		"access token":  out.AccessToken,
 		"refresh token": out.RefreshToken,
 		"auth code":     code,
 		"PKCE verifier": verifier,
+		"client secret": wrongClientSecret,
 	}
 
 	records := srv.logs.all()

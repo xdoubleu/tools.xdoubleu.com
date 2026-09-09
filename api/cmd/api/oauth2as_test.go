@@ -14,8 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"tools.xdoubleu.com/internal/oauth2as"
 )
 
 const (
@@ -47,11 +45,48 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 		t, []any{oauth2asTestCodeChallengeMethod},
 		out["code_challenge_methods_supported"],
 	)
-	assert.Equal(t, []any{"none"}, out["token_endpoint_auth_methods_supported"])
-	// Issue #1177: without this advertised, a client never requests
-	// offline_access, so no refresh token is issued and it has to
-	// re-authenticate interactively once the access token expires.
-	assert.Equal(t, []any{oauth2as.OfflineAccessScope}, out["scopes_supported"])
+	assert.Equal(t, []any{
+		"none", "client_secret_basic", "client_secret_post",
+	}, out["token_endpoint_auth_methods_supported"])
+	// Issue #1177: without offline_access advertised, a client never requests
+	// it, so no refresh token is issued and it has to re-authenticate
+	// interactively once the access token expires. Issue #1469 adds the OIDC
+	// scopes for the Grafana SSO client.
+	assert.Equal(t, []any{"openid", "profile", "email", "offline_access"},
+		out["scopes_supported"])
+
+	// Issue #1469: OIDC discovery fields.
+	assert.Equal(t, issuer+oauth2JWKSPath, out["jwks_uri"])
+	assert.Equal(t, []any{"RS256"}, out["id_token_signing_alg_values_supported"])
+	assert.Equal(t, []any{"public"}, out["subject_types_supported"])
+}
+
+// TestOIDCDiscoveryAndJWKS covers the issue #1469 additions: the
+// openid-configuration alias serves the same document, and /oauth2/jwks
+// exposes one RS256 signing key.
+func TestOIDCDiscoveryAndJWKS(t *testing.T) {
+	ts := connectServer(t)
+
+	resp, err := http.Get(ts.URL + "/.well-known/openid-configuration")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var cfg map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&cfg))
+	assert.NotEmpty(t, cfg["issuer"])
+
+	jwksResp, err := http.Get(ts.URL + oauth2JWKSPath)
+	require.NoError(t, err)
+	defer jwksResp.Body.Close()
+	require.Equal(t, http.StatusOK, jwksResp.StatusCode)
+	var jwks struct {
+		Keys []map[string]any `json:"keys"`
+	}
+	require.NoError(t, json.NewDecoder(jwksResp.Body).Decode(&jwks))
+	require.Len(t, jwks.Keys, 1)
+	assert.Equal(t, "RSA", jwks.Keys[0]["kty"])
+	assert.Equal(t, "sig", jwks.Keys[0]["use"])
+	assert.NotEmpty(t, jwks.Keys[0]["kid"])
 }
 
 // TestOAuth2Metadata_PathInsertionAlias covers issue #1141: in production,
