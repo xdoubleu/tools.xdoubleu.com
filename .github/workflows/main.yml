@@ -25,6 +25,7 @@ jobs:
       infra: ${{ steps.filter.outputs.infra }}
       config_api: ${{ steps.filter.outputs.config_api }}
       config_web: ${{ steps.filter.outputs.config_web }}
+      config_grafana: ${{ steps.filter.outputs.config_grafana }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -74,6 +75,13 @@ jobs:
               - 'config/deploy.api.yml'
             config_web:
               - 'config/deploy.web.yml'
+            # No build-* job needs this one (Grafana pulls a stock public
+            # image, no build/push step of its own) — it exists purely so a
+            # config-only change to deploy.grafana.yml still runs api-lint's
+            # `make lint/kamal-secrets` check below (issue #1504; same gap
+            # #1405 closed for config_api/config_web).
+            config_grafana:
+              - 'config/deploy.grafana.yml'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
@@ -179,6 +187,7 @@ jobs:
       needs.changes.outputs.sentrytools == 'true' ||
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.config_web == 'true' ||
+      needs.changes.outputs.config_grafana == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: API Lint Workflow
     uses: ./.github/workflows/api-lint.yml
@@ -559,14 +568,17 @@ jobs:
       # run.
       - name: Deploy grafana via Kamal
         env:
-          # No KAMAL_REGISTRY_USERNAME/PASSWORD here — deploy.grafana.yml
-          # declares no `registry:` block (see that file's header comment):
-          # unlike api/web's ghcr.io packages, Docker Hub needs no
-          # credentials for an anonymous pull of the public
-          # grafana/grafana-oss image.
+          # DOCKERHUB_USERNAME/TOKEN (issue #1504), not
+          # KAMAL_REGISTRY_USERNAME/PASSWORD — those are GHCR credentials and
+          # would be rejected as invalid against docker.io. Required by
+          # Kamal's config schema even though grafana/grafana-oss is a
+          # public image needing no auth to actually pull — see
+          # config/deploy.grafana.yml's registry: comment.
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
           # Reuses the same Resend account api's own mailer uses via SMTP

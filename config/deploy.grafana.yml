@@ -6,13 +6,15 @@
 # alongside `api`/`web` rather than replacing either.
 #
 # Unlike api/web, this deploys the stock `grafana/grafana-oss` image
-# straight from Docker Hub — there is no build step, no GHCR push, and (per
-# Kamal's docs) no `registry:` block is required for an anonymous pull of a
-# public Docker Hub image, unlike ghcr.io which api/web's own configs note
-# requires registry.username/password even for a public package. If a
-# future Docker Hub rate-limit or policy change makes anonymous pulls
-# unreliable, add a `registry:` block here with a (free-tier) Docker Hub
-# account's credentials as two more Kamal secrets.
+# straight from Docker Hub — there is no build step, no GHCR push. issue
+# #1504: an earlier version of this file assumed anonymous Docker Hub pulls
+# needed no `registry:` block at all, but Kamal's config schema requires
+# registry.username/password unconditionally, exactly like ghcr.io in
+# api/web's own configs ("confirmed via `kamal config`") — it failed
+# `kamal deploy` on main with `ConfigurationError: registry/username: is
+# required` before ever attempting a pull. A free-tier Docker Hub account's
+# credentials are needed below purely to satisfy that schema check, not
+# because the image itself requires auth to pull.
 #
 # Grafana is the metrics/graphing/alerting half of issue #1468 — Prometheus
 # and postgres_exporter are Kamal-adjacent but NOT Kamal services: they run
@@ -38,6 +40,17 @@ ssh:
 builder:
   arch:
     - amd64
+
+# Real Docker Hub credentials, not GHCR's — KAMAL_REGISTRY_USERNAME/PASSWORD
+# (api/web's registry secrets) authenticate against ghcr.io and would be
+# rejected here as invalid Docker Hub credentials. Any Docker Hub account
+# works: the image is public, so this token needs no special permissions —
+# it only exists to satisfy Kamal's schema requirement (see comment above).
+registry:
+  server: docker.io
+  username: <%= ENV.fetch("DOCKERHUB_USERNAME") %>
+  password:
+    - DOCKERHUB_TOKEN
 
 proxy:
   # Same shared host as deploy.api.yml/deploy.web.yml. No `ssl` key here —

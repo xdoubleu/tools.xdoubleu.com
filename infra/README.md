@@ -423,6 +423,16 @@ KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
                               its state can read it, so copy it in once here;
                               rotating it means updating both)
 KAMAL_REGISTRY_PASSWORD
+DOCKERHUB_USERNAME           (Grafana's own registry credentials, issue
+                              #1504 — a Docker Hub account, any account
+                              works since grafana/grafana-oss is public;
+                              needed only because Kamal's config schema
+                              requires registry.username/password
+                              unconditionally, same as KAMAL_REGISTRY_* above
+                              for ghcr.io — reusing KAMAL_REGISTRY_* here
+                              would fail since those are GHCR credentials,
+                              not Docker Hub ones)
+DOCKERHUB_TOKEN               (paired with DOCKERHUB_USERNAME above)
 JWT_SECRET                   (signs api's self-issued session JWTs, issue
                               #1039 — rotating it signs everyone out)
 OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization

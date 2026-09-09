@@ -42,3 +42,16 @@ that covers it.
 
 `BMC_PARTNER_KEY` shipped this way in #1390 and broke the `main` deploy; fixed in
 #1404. #1405 then added the lint so it can't recur silently.
+
+`config/deploy.grafana.yml` shipped in #1468 with no `registry:` block at all,
+on the (wrong) assumption that Docker Hub needs no credentials for an
+anonymous public-image pull — Kamal's config schema requires
+`registry.username`/`password` unconditionally, the same requirement
+api/web's own configs already document for ghcr.io. This broke the `main`
+deploy the same way (`ConfigurationError: registry/username: is required`);
+fixed in #1504 with new `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets. Unlike
+an `env.secret:` name, a `registry:` block's credentials are **not** covered
+by `check_kamal_secrets.sh` — that check only cross-references `env.secret:`
+entries, not `registry.username`/`password`. A future Kamal service still
+needs its `registry:` credentials verified by hand (or `kamal config`, where
+available) since no lint catches this class of mistake.
