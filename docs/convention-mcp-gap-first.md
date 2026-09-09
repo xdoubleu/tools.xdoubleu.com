@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397
 
 ## Rule
 
@@ -62,3 +62,12 @@ answerable with direct database access.
   **or** `field_value` — and the mock feed had been hand-written in the
   `record_id` shape, so **a fixture invented to match the code under test proves
   only that the code matches itself.**
+- **#1397 — no tool for the live state of a journey.** The route-overview and
+  station RPCs were exposed (#1453) but not `GetJourneyDetail`, so "why did the
+  open journey page not offer an alternative" was unanswerable from outside the
+  database. `trains_get_journey_detail(journey_id)` now wraps it. It reports
+  only the *current* overlay — the GTFS-RT feed is replaced wholesale every 30s
+  and nothing is retained — so answering the same question *about a past
+  morning* needs persisted realtime history, a journey-history feature epic
+  #1388 deliberately left out of the first cut; flagged there rather than
+  expanding #1397.

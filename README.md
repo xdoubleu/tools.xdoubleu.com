@@ -109,10 +109,10 @@ Every app's own **read-only** data — plus the admin observability signals — 
 exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
 server at `/apps/mcp`, so production domain data and system health can be
 pulled in as context for testing/verifying changes. Every app tool wraps an
-existing **read** RPC of an app (games, books, recipes, mealplans,
-shoppinglist) — no per-app tool ever mutates. App tools are
+existing **read** RPC of an app (games, books, feeds, recipes, mealplans,
+shoppinglist, trains) — no per-app tool ever mutates. App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
-`recipes_list_recipes`); the observability tools are unprefixed
+`recipes_list_recipes`, `trains_search_journeys`); the observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_workflow_runs`,
 `get_security_alerts`, `get_sentry_issues`, `resolve_sentry_issue`,
@@ -149,7 +149,13 @@ issued token. Authorization differs per tool: the app tools are gated by the
 **caller's own per-app access** (admin, or the app in their app-access list)
 and return only that signed-in user's own data, exactly what they can
 already see over HTTP; the observability tools require the signed-in user to
-be an **admin**.
+be an **admin**. The `trains_*` tools (`trains_search_stations`,
+`trains_search_journeys`, `trains_get_journey_detail`, `trains_get_feed_info`)
+are still gated by trains app-access, but the SNCB/NMBS timetable and its
+realtime overlay are public data shared by every user, so they return the
+same rows for any caller who holds that access. `trains_get_journey_detail`
+reports only the *current* live state of a journey — the realtime feed is
+replaced wholesale every 30s and nothing is retained.
 
 No external setup is required — `JWT_SECRET` and `OAUTH_HMAC_SECRET` are the
 only auth-related secrets for the MCP flow (see
