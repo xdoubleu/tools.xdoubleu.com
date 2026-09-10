@@ -60,11 +60,11 @@ func TestEnqueueDeliversAndReportsSuccess(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
-	svc.Enqueue("subject", "body", func(_ context.Context, err error) error {
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
 		gotErr = err
 		close(called)
 		return nil
@@ -82,7 +82,7 @@ func TestEnqueueToDeliversToRecipient(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
 	called := make(chan struct{})
 	svc.EnqueueTo(
@@ -106,11 +106,11 @@ func TestEnqueuePassesThroughErrNotConfigured(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(mailer.ErrNotConfigured)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
-	svc.Enqueue("subject", "body", func(_ context.Context, err error) error {
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
 		gotErr = err
 		close(called)
 		return nil
@@ -126,11 +126,11 @@ func TestEnqueuePassesThroughRealError(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(assert.AnError)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
 	var gotErr error
 	called := make(chan struct{})
-	svc.Enqueue("subject", "body", func(_ context.Context, err error) error {
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, err error) error {
 		gotErr = err
 		close(called)
 		return nil
@@ -146,9 +146,9 @@ func TestEnqueueNilOnResultDoesNotPanic(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
-	svc.Enqueue("subject", "body", nil)
+	svc.EnqueueEmail("subject", "body", nil)
 	svc.WaitUntilDone()
 
 	require.Len(t, mail.sentMails(), 1)
@@ -160,9 +160,9 @@ func TestEnqueueLogsOnResultError(t *testing.T) {
 	var buf bytes.Buffer
 	mail := newFakeMailer(nil)
 	logger := slog.New(logging.NewBufLogHandler(&buf, nil))
-	svc := notifications.NewEmailOnly(t.Context(), logger, mail)
+	svc := notifications.New(t.Context(), logger, mail)
 
-	svc.Enqueue("subject", "body", func(_ context.Context, _ error) error {
+	svc.EnqueueEmail("subject", "body", func(_ context.Context, _ error) error {
 		return errors.New("onResult failed")
 	})
 	svc.WaitUntilDone()
@@ -174,11 +174,11 @@ func TestEnqueueDeliversStrictlyInOrder(t *testing.T) {
 	t.Parallel()
 
 	mail := newFakeMailer(nil)
-	svc := notifications.NewEmailOnly(t.Context(), logging.NewNopLogger(), mail)
+	svc := notifications.New(t.Context(), logging.NewNopLogger(), mail)
 
 	const n = 20
 	for i := range n {
-		svc.Enqueue(strconv.Itoa(i), "body", nil)
+		svc.EnqueueEmail(strconv.Itoa(i), "body", nil)
 	}
 	svc.WaitUntilDone()
 

@@ -1,12 +1,25 @@
 # ADR-0020: A global email/Slack alert-delivery switch, configured in the UI
 
-- Status: Accepted
+- Status: Superseded by #1530
 - Issues: #1482
 - Affects: `api/internal/notifications/`, `api/internal/slack/`,
   `api/internal/repositories/notification_channel_config.go`,
   `api/cmd/api/migrations/00042_notification_channel_config.sql`,
   `api/cmd/api/connect_observability_notifications.go`,
   `web/components/monitoring/NotificationChannelCard.tsx`
+
+> **Superseded (issue #1530, Grafana Phase 4).** Alerting moved wholesale to
+> Grafana — #1528 retired `ThresholdAlertJob` and #1541 retired
+> `IssueNotifierJob`, which were the only producers that fanned out through
+> `notifications.Service.Enqueue`. With no producer left, the whole delivery
+> layer collapsed to email: the `slack` client, the
+> `global.notification_channel_config` table (dropped in
+> `00049_drop_notification_channel_config.sql`), the `UpdateNotificationChannel`
+> RPC, and the `NotificationChannelCard` UI (already removed in #1547) are all
+> gone. `notifications.Service` now only exposes `EnqueueEmail` (weekly digests)
+> and `EnqueueTo` (family invites, feeds). Prod `channel_mode` was already
+> `email`, so no live channel was dropped. The rest of this ADR is retained for
+> historical context.
 
 ## Context
 

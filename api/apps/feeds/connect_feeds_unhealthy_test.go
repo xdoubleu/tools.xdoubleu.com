@@ -30,7 +30,7 @@ func newAdminFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
 		testApp.Config,
 		testDB,
 		mockWebFetch,
-		notifications.NewEmailOnly(
+		notifications.New(
 			context.Background(),
 			testApp.Logger,
 			mailer.New("", "", ""),

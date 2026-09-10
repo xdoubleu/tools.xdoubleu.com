@@ -3527,18 +3527,11 @@ func (*GetNotificationSettingsRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetNotificationSettingsResponse struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Settings   []*NotificationSetting `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
-	AdminEmail string                 `protobuf:"bytes,2,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
-	// channel_mode is the global email/Slack delivery switch for real-time and
-	// threshold alerts (issue #1482): "email", "slack", or "both". Weekly
-	// digests ignore it and always email.
-	ChannelMode string `protobuf:"bytes,3,opt,name=channel_mode,json=channelMode,proto3" json:"channel_mode,omitempty"`
-	// slack_webhook_configured is true when a Slack Incoming Webhook URL has
-	// been saved. The URL itself is never returned.
-	SlackWebhookConfigured bool `protobuf:"varint,4,opt,name=slack_webhook_configured,json=slackWebhookConfigured,proto3" json:"slack_webhook_configured,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*NotificationSetting `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	AdminEmail    string                 `protobuf:"bytes,2,opt,name=admin_email,json=adminEmail,proto3" json:"admin_email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetNotificationSettingsResponse) Reset() {
@@ -3583,20 +3576,6 @@ func (x *GetNotificationSettingsResponse) GetAdminEmail() string {
 		return x.AdminEmail
 	}
 	return ""
-}
-
-func (x *GetNotificationSettingsResponse) GetChannelMode() string {
-	if x != nil {
-		return x.ChannelMode
-	}
-	return ""
-}
-
-func (x *GetNotificationSettingsResponse) GetSlackWebhookConfigured() bool {
-	if x != nil {
-		return x.SlackWebhookConfigured
-	}
-	return false
 }
 
 type UpdateNotificationSettingsRequest struct {
@@ -3685,98 +3664,6 @@ func (x *UpdateNotificationSettingsResponse) ProtoReflect() protoreflect.Message
 // Deprecated: Use UpdateNotificationSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{61}
-}
-
-// UpdateNotificationChannelRequest sets the global delivery channel. Admin
-// only — the webhook URL is a credential.
-type UpdateNotificationChannelRequest struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ChannelMode string                 `protobuf:"bytes,1,opt,name=channel_mode,json=channelMode,proto3" json:"channel_mode,omitempty"` // "email" | "slack" | "both"
-	// slack_webhook_url: absent leaves the stored URL unchanged; "" clears it;
-	// any other value replaces it.
-	SlackWebhookUrl *string `protobuf:"bytes,2,opt,name=slack_webhook_url,json=slackWebhookUrl,proto3,oneof" json:"slack_webhook_url,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *UpdateNotificationChannelRequest) Reset() {
-	*x = UpdateNotificationChannelRequest{}
-	mi := &file_observability_v1_observability_proto_msgTypes[62]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateNotificationChannelRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNotificationChannelRequest) ProtoMessage() {}
-
-func (x *UpdateNotificationChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[62]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNotificationChannelRequest.ProtoReflect.Descriptor instead.
-func (*UpdateNotificationChannelRequest) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{62}
-}
-
-func (x *UpdateNotificationChannelRequest) GetChannelMode() string {
-	if x != nil {
-		return x.ChannelMode
-	}
-	return ""
-}
-
-func (x *UpdateNotificationChannelRequest) GetSlackWebhookUrl() string {
-	if x != nil && x.SlackWebhookUrl != nil {
-		return *x.SlackWebhookUrl
-	}
-	return ""
-}
-
-type UpdateNotificationChannelResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateNotificationChannelResponse) Reset() {
-	*x = UpdateNotificationChannelResponse{}
-	mi := &file_observability_v1_observability_proto_msgTypes[63]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateNotificationChannelResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNotificationChannelResponse) ProtoMessage() {}
-
-func (x *UpdateNotificationChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_observability_v1_observability_proto_msgTypes[63]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNotificationChannelResponse.ProtoReflect.Descriptor instead.
-func (*UpdateNotificationChannelResponse) Descriptor() ([]byte, []int) {
-	return file_observability_v1_observability_proto_rawDescGZIP(), []int{63}
 }
 
 var File_observability_v1_observability_proto protoreflect.FileDescriptor
@@ -4044,28 +3931,21 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\" \n" +
-	"\x1eGetNotificationSettingsRequest\"\xe2\x01\n" +
+	"\x1eGetNotificationSettingsRequest\"\x85\x01\n" +
 	"\x1fGetNotificationSettingsResponse\x12A\n" +
 	"\bsettings\x18\x01 \x03(\v2%.observability.v1.NotificationSettingR\bsettings\x12\x1f\n" +
 	"\vadmin_email\x18\x02 \x01(\tR\n" +
-	"adminEmail\x12!\n" +
-	"\fchannel_mode\x18\x03 \x01(\tR\vchannelMode\x128\n" +
-	"\x18slack_webhook_configured\x18\x04 \x01(\bR\x16slackWebhookConfigured\"\\\n" +
+	"adminEmail\"\\\n" +
 	"!UpdateNotificationSettingsRequest\x12\x1d\n" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"$\n" +
-	"\"UpdateNotificationSettingsResponse\"\x8c\x01\n" +
-	" UpdateNotificationChannelRequest\x12!\n" +
-	"\fchannel_mode\x18\x01 \x01(\tR\vchannelMode\x12/\n" +
-	"\x11slack_webhook_url\x18\x02 \x01(\tH\x00R\x0fslackWebhookUrl\x88\x01\x01B\x14\n" +
-	"\x12_slack_webhook_url\"#\n" +
-	"!UpdateNotificationChannelResponse*\xac\x01\n" +
+	"\"UpdateNotificationSettingsResponse*\xac\x01\n" +
 	"\x11SecurityAlertType\x12#\n" +
 	"\x1fSECURITY_ALERT_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eSECURITY_ALERT_TYPE_DEPENDABOT\x10\x01\x12%\n" +
 	"!SECURITY_ALERT_TYPE_CODE_SCANNING\x10\x02\x12'\n" +
-	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xdf\x13\n" +
+	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xd8\x12\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
@@ -4087,8 +3967,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12GetProviderOptions\x12+.observability.v1.GetProviderOptionsRequest\x1a,.observability.v1.GetProviderOptionsResponse\x12l\n" +
 	"\x11SetProviderConfig\x12*.observability.v1.SetProviderConfigRequest\x1a+.observability.v1.SetProviderConfigResponse\x12~\n" +
 	"\x17GetNotificationSettings\x120.observability.v1.GetNotificationSettingsRequest\x1a1.observability.v1.GetNotificationSettingsResponse\x12\x87\x01\n" +
-	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponse\x12\x84\x01\n" +
-	"\x19UpdateNotificationChannel\x122.observability.v1.UpdateNotificationChannelRequest\x1a3.observability.v1.UpdateNotificationChannelResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
+	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
 
 var (
 	file_observability_v1_observability_proto_rawDescOnce sync.Once
@@ -4103,7 +3982,7 @@ func file_observability_v1_observability_proto_rawDescGZIP() []byte {
 }
 
 var file_observability_v1_observability_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 64)
+var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_observability_v1_observability_proto_goTypes = []any{
 	(SecurityAlertType)(0),                     // 0: observability.v1.SecurityAlertType
 	(*JobStat)(nil),                            // 1: observability.v1.JobStat
@@ -4168,8 +4047,6 @@ var file_observability_v1_observability_proto_goTypes = []any{
 	(*GetNotificationSettingsResponse)(nil),    // 60: observability.v1.GetNotificationSettingsResponse
 	(*UpdateNotificationSettingsRequest)(nil),  // 61: observability.v1.UpdateNotificationSettingsRequest
 	(*UpdateNotificationSettingsResponse)(nil), // 62: observability.v1.UpdateNotificationSettingsResponse
-	(*UpdateNotificationChannelRequest)(nil),   // 63: observability.v1.UpdateNotificationChannelRequest
-	(*UpdateNotificationChannelResponse)(nil),  // 64: observability.v1.UpdateNotificationChannelResponse
 }
 var file_observability_v1_observability_proto_depIdxs = []int32{
 	1,  // 0: observability.v1.GetJobStatsResponse.stats:type_name -> observability.v1.JobStat
@@ -4218,31 +4095,29 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	56, // 43: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
 	59, // 44: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
 	61, // 45: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
-	63, // 46: observability.v1.ObservabilityService.UpdateNotificationChannel:input_type -> observability.v1.UpdateNotificationChannelRequest
-	4,  // 47: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	7,  // 48: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	11, // 49: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	13, // 50: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
-	16, // 51: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	20, // 52: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
-	26, // 53: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
-	29, // 54: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
-	32, // 55: observability.v1.ObservabilityService.DismissSecurityAlert:output_type -> observability.v1.DismissSecurityAlertResponse
-	23, // 56: observability.v1.ObservabilityService.GetProjectIssuesByStatus:output_type -> observability.v1.GetProjectIssuesByStatusResponse
-	34, // 57: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
-	36, // 58: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
-	40, // 59: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
-	43, // 60: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
-	45, // 61: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
-	51, // 62: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
-	53, // 63: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
-	55, // 64: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
-	57, // 65: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
-	60, // 66: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
-	62, // 67: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
-	64, // 68: observability.v1.ObservabilityService.UpdateNotificationChannel:output_type -> observability.v1.UpdateNotificationChannelResponse
-	47, // [47:69] is the sub-list for method output_type
-	25, // [25:47] is the sub-list for method input_type
+	4,  // 46: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	7,  // 47: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	11, // 48: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	13, // 49: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
+	16, // 50: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	20, // 51: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
+	26, // 52: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
+	29, // 53: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
+	32, // 54: observability.v1.ObservabilityService.DismissSecurityAlert:output_type -> observability.v1.DismissSecurityAlertResponse
+	23, // 55: observability.v1.ObservabilityService.GetProjectIssuesByStatus:output_type -> observability.v1.GetProjectIssuesByStatusResponse
+	34, // 56: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	36, // 57: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
+	40, // 58: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
+	43, // 59: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
+	45, // 60: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	51, // 61: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
+	53, // 62: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
+	55, // 63: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
+	57, // 64: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
+	60, // 65: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
+	62, // 66: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
+	46, // [46:67] is the sub-list for method output_type
+	25, // [25:46] is the sub-list for method input_type
 	25, // [25:25] is the sub-list for extension type_name
 	25, // [25:25] is the sub-list for extension extendee
 	0,  // [0:25] is the sub-list for field type_name
@@ -4257,14 +4132,13 @@ func file_observability_v1_observability_proto_init() {
 		(*ProviderConfig_Github)(nil),
 		(*ProviderConfig_Sentry)(nil),
 	}
-	file_observability_v1_observability_proto_msgTypes[62].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_observability_v1_observability_proto_rawDesc), len(file_observability_v1_observability_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   64,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

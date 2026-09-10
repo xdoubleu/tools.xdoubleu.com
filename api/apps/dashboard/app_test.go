@@ -163,7 +163,7 @@ func TestMain(m *testing.M) {
 		testCfg,
 		postgresDB,
 		fakeFeedsWebFetchClient{},
-		notifications.NewEmailOnly(
+		notifications.New(
 			context.Background(),
 			logger,
 			mailer.New("", "", ""),
