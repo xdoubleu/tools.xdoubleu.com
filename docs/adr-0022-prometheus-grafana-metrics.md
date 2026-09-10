@@ -435,6 +435,47 @@ alert instance per container — so the fix is dashboard-side: `overview.json` a
 `api-runtime.json` now wrap every such expr in `min`/`max by (job) (...)`. No
 change to `infra/prometheus.yml` or the alert rules.
 
+## Phase 9 (#1570): GitHub + Sentry as Grafana datasource plugins
+
+The original question: can GitHub and Sentry be registered as Grafana
+datasources that fetch their own data, with no app-side code? Yes — Grafana
+ships official signed backend plugins for both (`grafana-github-datasource`,
+`grafana-sentry-datasource`, both `alerting: true`). Phase 7 registers them
+and moves the one signal that maps cleanly onto a plugin query off the
+collector.
+
+- **Both plugins are baked into the wrapper image**
+  (`GF_INSTALL_PLUGINS` in `infra/grafana.Dockerfile`) and provisioned as
+  datasources `github` / `sentry`
+  (`infra/grafana/provisioning/datasources/issue-signals.yml`), tokens fed by
+  `$__env{GRAFANA_GITHUB_DATASOURCE_TOKEN}` /
+  `$__env{GRAFANA_SENTRY_DATASOURCE_TOKEN}` — the same non-`GF_`
+  provisioning-interpolation mechanism `NOTIFY_EMAIL_TO` uses, added to the
+  three deploy-secret lists and the Grafana allowlist in
+  `api/scripts/check_kamal_secrets.sh`. The GitHub secret name is prefixed
+  `GRAFANA_` because GitHub Actions forbids a repo secret named `GITHUB_*`.
+- **Only `sentry_unresolved_issues` moved.** The `IssueSentryUnresolved`
+  alert rule and the "Unresolved Sentry issues" `service-health` panel now
+  run a `sentry` Issues query (`is:unresolved`, count reduce, `> 0`); the
+  gauge, `collectSentryIssues`, and the `sentryapi` dependency are gone from
+  `IssueSignalCollectorJob` (`cmd/api/main.go` drops the `sentryClient` arg —
+  the client stays, `WeeklyDigestJob` and the `get_sentry_issues` MCP tool
+  still use it). The job keeps its name — it still collects the GitHub CI,
+  storage and schema-size signals.
+- **Every GitHub signal stays a Prometheus gauge.** The GitHub plugin's
+  per-PR-check, workflow-conclusion and Dependabot/secret-scanning coverage
+  is looser than `internal/github`'s, so `github_failing_pull_requests`,
+  `github_workflow_run_failed`, `github_workflow_run_duration_seconds` and
+  `github_open_security_alerts` are unchanged. The `github` datasource is
+  provisioned for ad-hoc exploration; migrating those signals (and dropping
+  the GitHub half of the collector) waits on validating the plugin queries
+  against live data — tracked as a follow-up on #1570.
+- `scripts/validate_grafana_dashboards.py` now allows the `github`/`sentry`
+  datasource uids and only requires `expr` on Prometheus targets;
+  `scripts/verify_grafana_image.sh` exports dummy tokens and asserts all
+  three datasource uids provisioned.
+>>>>>>> 28fd6350 (Register GitHub + Sentry as Grafana datasources; move the Sentry issue signal off the collector)
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

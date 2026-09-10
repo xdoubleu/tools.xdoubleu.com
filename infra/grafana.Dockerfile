@@ -15,6 +15,13 @@
 # Bumping Grafana's version means bumping the tag below.
 FROM grafana/grafana:13.2.1
 
+# Backend datasource plugins for the GitHub and Sentry APIs (issue #1570), so
+# Grafana queries those providers directly instead of the api binary polling
+# them for metrics. Both are signed plugins from the Grafana catalog;
+# infra/grafana/provisioning/datasources/issue-signals.yml wires them to the
+# GRAFANA_GITHUB_DATASOURCE_TOKEN / GRAFANA_SENTRY_DATASOURCE_TOKEN deploy secrets.
+ENV GF_INSTALL_PLUGINS=grafana-github-datasource,grafana-sentry-datasource
+
 # Grafana reads these paths on startup without any GF_PATHS_* override.
 COPY infra/grafana/provisioning/ /etc/grafana/provisioning/
 COPY infra/grafana/dashboards/ /var/lib/grafana/dashboards/

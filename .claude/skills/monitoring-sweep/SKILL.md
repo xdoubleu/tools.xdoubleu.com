@@ -33,7 +33,9 @@ have each drive its own fix to a merged/mergeable PR independently.
    Alerting moved wholesale to Grafana in #1528 — the old `get_alert_states`
    tool is gone; `prom_query('ALERTS{alertstate="firing"}')` is the read path
    for what is currently breaching.
-   - `get_sentry_issues` — unresolved errors. Gauge: `sentry_unresolved_issues`.
+   - `get_sentry_issues` — unresolved errors. No Prometheus gauge since #1570;
+     Grafana's `IssueSentryUnresolved` alert queries the Sentry API directly
+     through the `grafana-sentry-datasource` plugin.
    - `get_failing_pull_requests` — open PRs with failing checks. Gauge:
      `github_failing_pull_requests`.
    - `get_workflow_runs` — filter to `event: push, branch: main` yourself and

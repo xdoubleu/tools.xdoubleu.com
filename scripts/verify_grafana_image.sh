@@ -28,6 +28,8 @@ docker run -d --name "$container" -p "$port:3000" \
   -e GF_LOG_LEVEL=info \
   -e GF_SMTP_FROM_ADDRESS="alerts@example.com" \
   -e NOTIFY_EMAIL_TO="alerts@example.com" \
+  -e GRAFANA_GITHUB_DATASOURCE_TOKEN="dummy" \
+  -e GRAFANA_SENTRY_DATASOURCE_TOKEN="dummy" \
   "$image" >/dev/null
 
 base="http://localhost:$port"
@@ -46,12 +48,14 @@ if docker logs "$container" 2>&1 | grep -E 'level=error.*(provision|dashboard|da
   fail=1
 fi
 
-echo "==> checking the Prometheus datasource provisioned"
+echo "==> checking the datasources provisioned"
 ds_uids=$(curl -sf -u admin:admin "$base/api/datasources" | python3 -c 'import json,sys; print("\n".join(d["uid"] for d in json.load(sys.stdin)))')
-if ! grep -qx "prometheus" <<<"$ds_uids"; then
-  echo "FAIL: datasource uid 'prometheus' not found (got: ${ds_uids:-none})"
-  fail=1
-fi
+for ds in prometheus github sentry; do
+  if ! grep -qx "$ds" <<<"$ds_uids"; then
+    echo "FAIL: datasource uid '$ds' not found (got: ${ds_uids:-none})"
+    fail=1
+  fi
+done
 
 echo "==> checking every dashboard JSON provisioned"
 want=$(cd "$repo_root/infra/grafana/dashboards" && for f in *.json; do

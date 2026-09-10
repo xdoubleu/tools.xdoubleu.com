@@ -17,12 +17,13 @@
 #   job_duration_seconds           (api/internal/observability/trackedjob.go)
 #   web_vitals_seconds             (web/lib/server/metrics.ts)
 #
-# The service-health group (issue #1540) reads the six gauges the
-# issue-signal collector exports (api/internal/observability/jobs/
-# issue_signal_collector.go, #1539): github_failing_pull_requests,
-# github_workflow_run_failed{branch}, github_open_security_alerts{severity},
-# sentry_unresolved_issues, r2_orphaned_objects, r2_storage_bytes. This
-# closed the r2_usage_high and failing_main_ci gaps.
+# The service-health group (issue #1540) reads the gauges the issue-signal
+# collector exports (api/internal/observability/jobs/issue_signal_collector.go,
+# #1539): github_failing_pull_requests, github_workflow_run_failed{branch},
+# github_open_security_alerts{severity}, r2_orphaned_objects, r2_storage_bytes.
+# This closed the r2_usage_high and failing_main_ci gaps. IssueSentryUnresolved
+# is the exception — it queries the Sentry API directly through the
+# grafana-sentry-datasource plugin (issue #1570), no gauge involved.
 #
 # Still NOT reimplemented: ci_duration_high — Prometheus has no exporter for
 # workflow durations. /monitoring still surfaces it live from its own source.
@@ -362,6 +363,14 @@ groups:
                     type: gt
                     params: [0]
 
+      # Reads the Sentry API directly through the grafana-sentry-datasource
+      # plugin (issue #1570) — no longer a Prometheus gauge. refId A is an
+      # Issues query returning one row per unresolved issue across the org;
+      # refId B reduces that to a count (0 when the query is empty); refId C
+      # is the "> 0" alert condition. projectIds is left empty so the query
+      # spans every project the token can see. The 90-day window
+      # approximates "currently unresolved" (Sentry scopes an issue search
+      # to the requested window).
       - uid: issue-sentry-unresolved
         title: IssueSentryUnresolved
         condition: C
@@ -369,25 +378,38 @@ groups:
           severity: warning
         annotations:
           summary: Unresolved Sentry issues present
-          description: "{{ $values.A }} unresolved Sentry issue(s)."
+          description: "{{ $values.B }} unresolved Sentry issue(s)."
         noDataState: OK
         execErrState: Alerting
         data:
           - refId: A
             relativeTimeRange:
-              from: 600
+              from: 7776000
               to: 0
-            datasourceUid: prometheus
+            datasourceUid: sentry
             model:
               refId: A
-              instant: true
-              expr: sentry_unresolved_issues > 0
+              queryType: issues
+              issuesQuery: is:unresolved
+              issuesLimit: 1000
+              projectIds: []
+              environments: []
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: count
+              settings:
+                mode: replaceNN
+                replaceWithValue: 0
           - refId: C
             datasourceUid: __expr__
             model:
               refId: C
               type: threshold
-              expression: A
+              expression: B
               conditions:
                 - evaluator:
                     type: gt

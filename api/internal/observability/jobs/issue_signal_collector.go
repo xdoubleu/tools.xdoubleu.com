@@ -13,7 +13,6 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // Issue-signal gauges, registered on client_golang's default registry which
@@ -45,10 +44,6 @@ var (
 		Name: "github_open_security_alerts",
 		Help: "Open Dependabot, code-scanning and secret-scanning alerts, by severity.",
 	}, []string{"severity"})
-	sentryUnresolvedIssues = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "sentry_unresolved_issues",
-		Help: "Unresolved Sentry issues in the configured project.",
-	})
 	r2OrphanedObjects = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "r2_orphaned_objects",
 		Help: "Orphaned R2 storage objects in the latest storage snapshot.",
@@ -115,26 +110,24 @@ type issueSignalGithubClient interface {
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, Sentry, the latest storage snapshot and per-schema database sizes.
-// A provider that isn't
-// connected leaves its gauge untouched rather than resetting it to zero or
-// failing the run; other errors are logged and skipped. Run always returns
-// nil.
+// GitHub, the latest storage snapshot and per-schema database sizes. A
+// provider that isn't connected leaves its gauge untouched rather than
+// resetting it to zero or failing the run; other errors are logged and
+// skipped. Run always returns nil. The Sentry unresolved-issues signal is
+// no longer collected here — Grafana reads it directly through the
+// grafana-sentry-datasource plugin (adr-0022 Phase 7).
 type IssueSignalCollectorJob struct {
-	sentry          sentryapi.Client
 	gh              issueSignalGithubClient
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
 }
 
 func NewIssueSignalCollectorJob(
-	sentry sentryapi.Client,
 	gh issueSignalGithubClient,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
-		sentry:          sentry,
 		gh:              gh,
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
@@ -170,7 +163,6 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectFailingPullRequests(ctx, logger)
 	j.collectWorkflowRuns(ctx, logger)
 	j.collectSecurityAlerts(ctx, logger)
-	j.collectSentryIssues(ctx, logger)
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
 	return nil
@@ -255,23 +247,6 @@ func (j *IssueSignalCollectorJob) collectSecurityAlerts(
 	for severity, count := range bySeverity {
 		githubOpenSecurityAlerts.WithLabelValues(severity).Set(float64(count))
 	}
-}
-
-func (j *IssueSignalCollectorJob) collectSentryIssues(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	issues, err := j.sentry.ListUnresolvedIssues(ctx)
-	if errors.Is(err, sentryapi.ErrNotConfigured) {
-		return
-	}
-	if err != nil {
-		logAPIErr(ctx, logger,
-			"issue-signal-collector: failed to list sentry issues",
-			err, sentryapi.IsTransientAPIError(err))
-		return
-	}
-	sentryUnresolvedIssues.Set(float64(len(issues)))
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(

@@ -240,13 +240,15 @@ service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
 (`/grafana`) through the shared kamal-proxy instance, which only routes to
 Kamal-managed containers. It deploys a thin wrapper image this repo builds
 and pushes to GHCR (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue
-#1509) that also bakes in the Prometheus datasource, dashboards, and (issue
-#1528) the alerting provisioning from
+#1509) that also bakes in the Prometheus datasource, dashboards, (issue
+#1528) the alerting provisioning, and (issue #1570) the
+`grafana-github-datasource` / `grafana-sentry-datasource` plugins plus their
+provisioned datasources from
 `infra/grafana/` (issue #1527). The dashboard JSON under
 `infra/grafana/dashboards/` is the single source of truth — `allowUiUpdates`
 is `false`, so an admin's UI edits can't be saved over the provisioned copy;
 edit the JSON and redeploy. `make lint/grafana` (static JSON) and `make
-grafana/verify` (boots the image, asserts the datasource, dashboards, alert
+grafana/verify` (boots the image, asserts the datasources, dashboards, alert
 rules, and contact point all provision) check it, both also run by
 `build-grafana.yml`. See `config/deploy.grafana.yml`'s own header comment for how
 its `proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
@@ -534,6 +536,18 @@ OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
                               infra-apply job, is written to the VPS for
                               Prometheus's `web` scrape job to send —
                               one repo Secret, three consumers)
+GRAFANA_GITHUB_DATASOURCE_TOKEN  (fine-grained GitHub PAT scoped to this
+                              repo, for the grafana-github-datasource plugin;
+                              issue #1570 — read by $__env{} in
+                              infra/grafana/provisioning/datasources/issue-signals.yml
+                              via the "Deploy grafana via Kamal" step. Named
+                              GRAFANA_* because GitHub Actions forbids a repo
+                              secret named GITHUB_*)
+GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
+                              + event:read, for the grafana-sentry-datasource
+                              plugin; issue #1570 — same wiring as above.
+                              Backs the IssueSentryUnresolved alert + the
+                              service-health dashboard's Sentry panel)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear
