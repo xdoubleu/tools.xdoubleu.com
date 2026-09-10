@@ -188,3 +188,10 @@ env:
     - NOTIFY_EMAIL_TO
     - EMAIL_INBOUND_DOMAIN
     - EMAIL_INBOUND_SECRET
+    # Shared secret authenticating web's server-side POSTs to
+    # /api/observability/logs (issue #1040 — web has no admin session to make
+    # a Connect call with). observabilityIngestAuthorized rejects every batch
+    # when this is empty, so without it here the centralized client-log
+    # pipeline is silently dead (issue #1568). Same repo Secret web already
+    # uses (config/deploy.web.yml gates GET /metrics on it, #1555).
+    - OBSERVABILITY_INGEST_SECRET

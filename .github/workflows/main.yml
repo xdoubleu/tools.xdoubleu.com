@@ -619,6 +619,9 @@ jobs:
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
+          # Authenticates web's /api/observability/logs ingest (issue #1568) —
+          # see config/deploy.api.yml. Same repo Secret the web/tofu steps use.
+          OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Grafana (issue #1468) — the third Kamal service on this host,
