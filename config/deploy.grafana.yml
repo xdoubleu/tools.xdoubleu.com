@@ -141,6 +141,14 @@ env:
     - GF_SECURITY_ADMIN_PASSWORD
     # Reused from api's own secret list — same Resend account, no new
     # credential to provision. GF_SMTP_PASSWORD is Grafana's expected env
-    # var name for the SMTP password.
+    # var name for the SMTP password; GF_SMTP_FROM_ADDRESS (the EMAIL_FROM
+    # repo secret) is the sender/from address.
     - GF_SMTP_PASSWORD
     - GF_SMTP_FROM_ADDRESS
+    # Alert-email recipient (issue #1528 follow-up): the same admin address
+    # api's own mailer sends notifications to (cfg.NotifyEmailTo). Consumed
+    # by $__env{NOTIFY_EMAIL_TO} in
+    # infra/grafana/provisioning/alerting/contactpoints.yml, not by Grafana
+    # settings — $__env{} interpolation in a provisioning file reads any env
+    # var name, so the non-GF_ spelling is intentional and load-bearing.
+    - NOTIFY_EMAIL_TO

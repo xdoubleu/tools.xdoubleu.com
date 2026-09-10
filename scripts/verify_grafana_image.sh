@@ -27,6 +27,7 @@ docker run -d --name "$container" -p "$port:3000" \
   -e GF_SERVER_ROOT_URL="http://localhost:$port" \
   -e GF_LOG_LEVEL=info \
   -e GF_SMTP_FROM_ADDRESS="alerts@example.com" \
+  -e NOTIFY_EMAIL_TO="alerts@example.com" \
   "$image" >/dev/null
 
 base="http://localhost:$port"
