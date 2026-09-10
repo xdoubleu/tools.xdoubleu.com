@@ -150,17 +150,19 @@ second, Grafana-native Slack integration for no clear benefit over SMTP.
   `workflow_run_samples`, `workflow_job_samples`).
 - The main-branch-CI-failure email alert (`WorkflowRunsSnapshotJob.
   notifyMainFailure`, `failing_main_ci` notification source) is removed along
-  with its snapshot table. **This alert has no direct replacement** —
-  Prometheus has no GitHub Actions data source to build an equivalent rule
-  from. Accepted because `GetWorkflowRuns`/`WorkflowRunsCard` and
+  with its snapshot table. Phase 3 (#1539/#1540) restored a proactive
+  replacement: the `IssueSignalCollectorJob` exports GitHub/Sentry/R2 signals
+  as Prometheus gauges, and the Grafana `service-health` alert group fires
+  `IssueMainCIRed` (and `IssueFailingPRs`, `IssueSecurityAlerts`,
+  `IssueSentryUnresolved`) off them. `GetWorkflowRuns`/`WorkflowRunsCard` and
   `GetFailingPullRequests` (both live, GitHub-API-backed, kept — see below)
-  still surface a red main branch on `/monitoring`, just without a proactive
-  email.
-- `r2_usage_high` similarly has no Prometheus equivalent — R2 storage usage
-  lives only in Postgres (`global.storage_snapshots`, written by `apps/books`'
-  own scan job), and there is no exporter for it. `GetStorageStats`/
-  `OrphanedStorageCard` on `/monitoring` still surface it live, without a
-  threshold alert.
+  still surface a red main branch on `/monitoring`.
+- `r2_usage_high` is likewise restored in Phase 3: `r2_storage_bytes` /
+  `r2_orphaned_objects` gauges from the same collector back the Grafana
+  `R2UsageHigh` (9 GiB budget) and `IssueOrphanedStorage` rules.
+  `GetStorageStats`/`OrphanedStorageCard` on `/monitoring` still surface it
+  live. `ci_duration_high` remains the only signal with no Grafana/Prometheus
+  replacement — Prometheus has no GitHub Actions workflow-duration exporter.
 - Frontend chart components: `MultiSeriesChart`, `HostMetricsCard`,
   `AlertStatesCard`, `TransactionLatencyHistoryCard`, and the history half of
   `DatabaseCard` (the schema/total-size live snapshot half is kept). The
