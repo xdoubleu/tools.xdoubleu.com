@@ -15,9 +15,9 @@ is what turns that convention into a step that actually runs, for any new
 incident.
 
 Reads across the observability MCP tools (`mcp__tools-apps__get_logs`,
-`get_job_stats`, `get_host_metrics`, `get_sentry_issues`,
-`get_slow_transactions`, `get_database_stats`, `get_workflow_run_stats`) and
-uses `refine-issue` to file the resulting issue(s).
+`get_job_stats`, `prom_query` for host/Postgres/runtime metrics,
+`get_sentry_issues`, `get_slow_transactions`, `get_database_stats`,
+`get_workflow_runs`) and uses `refine-issue` to file the resulting issue(s).
 
 ## Steps
 
@@ -27,8 +27,10 @@ uses `refine-issue` to file the resulting issue(s).
 
 2. **Gather evidence** across the observability MCP tools rather than
    guessing at the cause: `get_logs` (filtered by source/level/since),
-   `get_job_stats`, `get_host_metrics`, `get_sentry_issues`,
-   `get_slow_transactions`, `get_database_stats`, `get_workflow_run_stats`.
+   `get_job_stats`, `prom_query` (host CPU/memory/disk, Postgres, api/web
+   `/metrics` latency histograms, and `ALERTS{}` for what Grafana is
+   currently firing), `get_sentry_issues`, `get_slow_transactions`,
+   `get_database_stats`, `get_workflow_runs`.
    Per root `CLAUDE.md`'s "Delegating to Subagents" section, delegate the
    noisy pulls (`get_logs`, `get_sentry_issues`) to a subagent and have it
    return only the distilled findings — don't pull raw log/issue output into

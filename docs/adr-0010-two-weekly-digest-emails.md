@@ -7,9 +7,11 @@
 ## Context
 
 `jobs.WeeklyDigestJob` (#1014, `RunEvery = 7 days`, cross-app on `main.go`'s own
-job queue) emails an admin a summary of everything still open. Unlike
-`IssueNotifierJob` it has **no per-item dedup** — every run reports the current
-state.
+job queue) emails an admin a summary of everything still open. It has **no
+per-item dedup** — every run reports the current state. (The realtime
+first-seen notifier that did dedup, `IssueNotifierJob`, was retired in #1541;
+Grafana's `service-health` alert group covers first-seen alerting now →
+[`adr-0022`](adr-0022-prometheus-grafana-metrics.md).)
 
 The content spans two unrelated domains: monitoring (unresolved Sentry issues,
 failing `dependencies`-labeled PRs, open security alerts, slow transactions) and
