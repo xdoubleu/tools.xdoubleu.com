@@ -7,7 +7,9 @@ export function middleware() {
 
   // GATEWAY_URL: the books page talks to the local kobo-gateway helper over
   // loopback HTTPS, which 'self' doesn't cover.
-  const connectSrc = ["'self'", '*.sentry.io', GATEWAY_URL]
+  // *.r2.cloudflarestorage.com: book file uploads PUT directly to a Cloudflare
+  // R2 presigned URL from the browser.
+  const connectSrc = ["'self'", '*.sentry.io', 'https://*.r2.cloudflarestorage.com', GATEWAY_URL]
   if (process.env.API_URL) connectSrc.push(process.env.API_URL)
 
   const csp = [
