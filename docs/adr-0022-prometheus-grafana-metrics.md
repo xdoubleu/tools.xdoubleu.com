@@ -422,6 +422,19 @@ that is exactly the "assumed Kamal network alias" Phase 5 proved does not exist.
 `get_grafana_alerts` also removes the last reason to reference `ALERTS{}` for
 Grafana alert state (README/CLAUDE.md updated).
 
+## Phase 8 (#1574): dashboard panels aggregate away the churning `instance` label
+
+Phase 5's label-based discovery sets each `api`/`web` target's `instance` to the
+Kamal container name, which embeds the deploy version — so every deploy mints a
+new `instance` value. Panels that render a raw per-`instance` selector (`up`,
+`scrape_duration_seconds`, the `api-runtime` Go/process gauges) therefore grew a
+new row per deploy on the Overview dashboard and showed a doubled line during the
+deploy overlap window elsewhere. The churn is deliberate — overlapping old/new
+containers must not collide into one Prometheus series and `TargetDown` wants one
+alert instance per container — so the fix is dashboard-side: `overview.json` and
+`api-runtime.json` now wrap every such expr in `min`/`max by (job) (...)`. No
+change to `infra/prometheus.yml` or the alert rules.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why
