@@ -96,9 +96,6 @@ const (
 	// ObservabilityServiceUpdateNotificationSettingsProcedure is the fully-qualified name of the
 	// ObservabilityService's UpdateNotificationSettings RPC.
 	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
-	// ObservabilityServiceUpdateNotificationChannelProcedure is the fully-qualified name of the
-	// ObservabilityService's UpdateNotificationChannel RPC.
-	ObservabilityServiceUpdateNotificationChannelProcedure = "/observability.v1.ObservabilityService/UpdateNotificationChannel"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -124,7 +121,6 @@ type ObservabilityServiceClient interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
-	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -264,12 +260,6 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 			connect.WithClientOptions(opts...),
 		),
-		updateNotificationChannel: connect.NewClient[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse](
-			httpClient,
-			baseURL+ObservabilityServiceUpdateNotificationChannelProcedure,
-			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -296,7 +286,6 @@ type observabilityServiceClient struct {
 	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
 	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
 	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
-	updateNotificationChannel  *connect.Client[v1.UpdateNotificationChannelRequest, v1.UpdateNotificationChannelResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -405,11 +394,6 @@ func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Cont
 	return c.updateNotificationSettings.CallUnary(ctx, req)
 }
 
-// UpdateNotificationChannel calls observability.v1.ObservabilityService.UpdateNotificationChannel.
-func (c *observabilityServiceClient) UpdateNotificationChannel(ctx context.Context, req *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error) {
-	return c.updateNotificationChannel.CallUnary(ctx, req)
-}
-
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -434,7 +418,6 @@ type ObservabilityServiceHandler interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
-	UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -570,12 +553,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
-	observabilityServiceUpdateNotificationChannelHandler := connect.NewUnaryHandler(
-		ObservabilityServiceUpdateNotificationChannelProcedure,
-		svc.UpdateNotificationChannel,
-		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationChannel")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -620,8 +597,6 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetNotificationSettingsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceUpdateNotificationSettingsProcedure:
 			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
-		case ObservabilityServiceUpdateNotificationChannelProcedure:
-			observabilityServiceUpdateNotificationChannelHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -713,8 +688,4 @@ func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented"))
-}
-
-func (UnimplementedObservabilityServiceHandler) UpdateNotificationChannel(context.Context, *connect.Request[v1.UpdateNotificationChannelRequest]) (*connect.Response[v1.UpdateNotificationChannelResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationChannel is not implemented"))
 }

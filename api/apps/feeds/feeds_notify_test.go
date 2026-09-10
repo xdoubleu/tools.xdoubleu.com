@@ -106,7 +106,7 @@ func newNotifyTestApp(
 	webFetch := mocks.NewMockWebFetchClient()
 	var logBuf bytes.Buffer
 	logger := slog.New(logging.NewBufLogHandler(&logBuf, nil))
-	notifSvc := notifications.NewEmailOnly(
+	notifSvc := notifications.New(
 		t.Context(),
 		logging.NewNopLogger(),
 		mailer.New("test-resend-key", "feeds@example.com", ""),

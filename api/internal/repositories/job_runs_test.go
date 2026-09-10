@@ -124,16 +124,6 @@ func TestMain(m *testing.M) {
 			to_user_id TEXT NOT NULL UNIQUE,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
-		// Mirrors cmd/api/migrations/00042_notification_channel_config.sql.
-		`CREATE TABLE IF NOT EXISTS global.notification_channel_config (
-			id BOOLEAN PRIMARY KEY DEFAULT TRUE,
-			channel_mode TEXT NOT NULL DEFAULT 'email'
-				CHECK (channel_mode IN ('email', 'slack', 'both')),
-			slack_webhook_url BYTEA,
-			CONSTRAINT notification_channel_config_single_row CHECK (id)
-		)`,
-		`INSERT INTO global.notification_channel_config (id) VALUES (TRUE)
-			ON CONFLICT (id) DO NOTHING`,
 	}
 	for _, stmt := range stmts {
 		if _, err := postgresDB.Exec(ctx, stmt); err != nil {
