@@ -30,9 +30,8 @@ type transactionLatencyInserter interface {
 // TransactionLatencySnapshotJob snapshots today's per-transaction p95
 // duration/request count from Sentry into global.transaction_latency_daily
 // once a day (issue #848), building the history the "getting slower" trend
-// comparison (TransactionLatencyRepository.Trends) needs. Cross-app, like
-// IssueNotifierJob — this is observability data, not scoped to one
-// apps/<name>.
+// comparison (TransactionLatencyRepository.Trends) needs. Cross-app — this
+// is observability data, not scoped to one apps/<name>.
 type TransactionLatencySnapshotJob struct {
 	sentry transactionStatsLister
 	repo   transactionLatencyInserter

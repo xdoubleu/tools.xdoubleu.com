@@ -68,7 +68,7 @@ func TestWeeklyDigestSendsAllClearWhenNothingWrong(t *testing.T) {
 
 func TestWeeklyDigestAlwaysSendsEvenWhenPreviouslySeen(t *testing.T) {
 	sentry := fakeSentryClient{
-		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+		issues: []sentryapi.Issue{sentryIssue()}, err: nil,
 	}
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
@@ -142,7 +142,7 @@ func TestWeeklyDigestGithubOnlyIncludesDependencyPRs(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{
 			prs: []github.PullRequest{
-				failingPR("sha1"),
+				failingPR(),
 			}, err: nil, alerts: nil, alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
@@ -319,7 +319,7 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 		fakeSentryClient{issues: nil, err: nil},
 		fakeGithubClient{
 			prs: []github.PullRequest{
-				failingPR("sha1", "not-dependencies"),
+				failingPR("not-dependencies"),
 			}, err: nil, alerts: nil, alertsErr: nil,
 		},
 		fakeFeedsLister{unhealthy: nil, err: nil},
@@ -336,10 +336,10 @@ func TestWeeklyDigestGithubIgnoresNonDependencyPR(t *testing.T) {
 
 func TestWeeklyDigestOmitsSectionForDisabledSource(t *testing.T) {
 	sentry := fakeSentryClient{
-		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+		issues: []sentryapi.Issue{sentryIssue()}, err: nil,
 	}
 	gh := fakeGithubClient{
-		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		prs: []github.PullRequest{failingPR("dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
@@ -375,10 +375,10 @@ func TestWeeklyDigestOmitsSectionForDisabledSource(t *testing.T) {
 // getting a weekly email with nothing in it.
 func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 	sentry := fakeSentryClient{
-		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+		issues: []sentryapi.Issue{sentryIssue()}, err: nil,
 	}
 	gh := fakeGithubClient{
-		prs: []github.PullRequest{failingPR("sha1", "dependencies")}, err: nil,
+		prs: []github.PullRequest{failingPR("dependencies")}, err: nil,
 		alerts: nil, alertsErr: nil,
 	}
 	feeds := fakeFeedsLister{unhealthy: []jobs.UnhealthyFeed{
@@ -414,7 +414,7 @@ func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 // gets no empty monitoring digest, and still gets their feeds reminder.
 func TestWeeklyDigestSendsOnlyFeedsMailWhenMonitoringDisabled(t *testing.T) {
 	sentry := fakeSentryClient{
-		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+		issues: []sentryapi.Issue{sentryIssue()}, err: nil,
 	}
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
@@ -450,7 +450,7 @@ func TestWeeklyDigestSendsOnlyFeedsMailWhenMonitoringDisabled(t *testing.T) {
 
 func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 	sentry := fakeSentryClient{
-		issues: []sentryapi.Issue{sentryIssue("1", "boom")}, err: nil,
+		issues: []sentryapi.Issue{sentryIssue()}, err: nil,
 	}
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)

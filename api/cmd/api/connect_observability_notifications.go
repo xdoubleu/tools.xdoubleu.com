@@ -13,7 +13,7 @@ import (
 // GetNotificationSettings and UpdateNotificationSettings let any
 // authenticated user see and toggle which sources (Sentry issues, failing
 // dependency PRs, unhealthy feeds) are currently allowed to email an admin,
-// via jobs.IssueNotifierJob/jobs.WeeklyDigestJob (issue #1214) — deliberately
+// via jobs.WeeklyDigestJob (issue #1214) — deliberately
 // not gated by requireAdmin like the rest of ObservabilityService, since the
 // unhealthy-feeds toggle is surfaced from the feeds app rather than
 // monitoring and shouldn't require admin access to reach (issue #1228),

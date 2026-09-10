@@ -10,19 +10,16 @@ const SOURCE_LABELS: Record<string, string> = {
   failing_dependency_prs: 'Failing dependency PRs',
   unhealthy_feeds: 'Unhealthy feeds',
   security_alerts: 'Security alerts',
-  orphaned_storage: 'Orphaned storage',
   open_feed_items: 'Open feed items'
 }
 
 const SOURCE_DESCRIPTIONS: Record<string, string> = {
-  sentry_issues: 'Emails an admin the first time a new unresolved Sentry issue appears.',
+  sentry_issues: 'Includes unresolved Sentry issues in the weekly digest email.',
   failing_dependency_prs:
-    'Emails an admin the first time a dependency (Renovate) pull request fails CI.',
+    'Includes failing dependency (Renovate) pull requests in the weekly digest email.',
   unhealthy_feeds: 'Includes feeds failing to poll in the weekly digest email.',
   security_alerts:
-    'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.',
-  orphaned_storage:
-    'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.',
+    'Includes open Dependabot, code-scanning, and secret-scanning alerts in the weekly digest email.',
   open_feed_items: 'Includes feeds with unread items in the weekly digest email.'
 }
 
