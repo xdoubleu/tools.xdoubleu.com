@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
@@ -83,6 +84,17 @@ func (s stubStorageGetter) Latest(
 	return s.snap, s.err
 }
 
+type stubSchemaSizer struct {
+	sizes []models.SchemaStats
+	err   error
+}
+
+func (s stubSchemaSizer) SchemaSizes(
+	_ context.Context,
+) ([]models.SchemaStats, error) {
+	return s.sizes, s.err
+}
+
 func loggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	buf := &bytes.Buffer{}
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
@@ -104,6 +116,18 @@ func TestLogAPIErr(t *testing.T) {
 func failedRun(branch, conclusion string) github.WorkflowRun {
 	//nolint:exhaustruct //only Branch/Conclusion drive the workflow-run gauge
 	return github.WorkflowRun{Branch: branch, Conclusion: conclusion}
+}
+
+func completedRun(name string, durationMs int64) github.WorkflowRun {
+	//nolint:exhaustruct //only these fields drive the duration gauge
+	return github.WorkflowRun{
+		Name:       name,
+		Branch:     "main",
+		Status:     "completed",
+		Conclusion: "success",
+		StartedAt:  time.Unix(durationMs, 0),
+		DurationMs: durationMs,
+	}
 }
 
 func alertWithSeverity(sev string) github.SecurityAlert {
@@ -129,14 +153,17 @@ func resetGauges() {
 	sentryUnresolvedIssues.Set(0)
 	r2OrphanedObjects.Set(0)
 	r2StorageBytes.Set(0)
+	githubWorkflowRunDurationSeconds.Reset()
+	postgresSchemaSizeBytes.Reset()
 }
 
 func newStubJob(
 	sentry stubSentryClient,
 	gh stubGithubClient,
 	storage stubStorageGetter,
+	schemas stubSchemaSizer,
 ) *IssueSignalCollectorJob {
-	return NewIssueSignalCollectorJob(sentry, gh, storage)
+	return NewIssueSignalCollectorJob(sentry, gh, storage, schemas)
 }
 
 func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
@@ -147,6 +174,7 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 			alerts: nil, alertsErr: nil,
 		},
 		stubStorageGetter{snap: nil, err: nil},
+		stubSchemaSizer{sizes: nil, err: nil},
 	)
 	assert.Equal(t, "collect-issue-signals", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -164,6 +192,9 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 				failedRun("main", "failure"),
 				failedRun("main", "success"),
 				failedRun("feature", "failure"),
+				completedRun("CI", 300),
+				completedRun("CI", 420),
+				completedRun("Deploy", 90),
 			},
 			runsErr: nil,
 			alerts: []github.SecurityAlert{
@@ -177,6 +208,13 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 			//nolint:exhaustruct //only OrphanCount/TotalSizeBytes are read
 			snap: &models.StorageSnapshot{OrphanCount: 7, TotalSizeBytes: 123456},
 			err:  nil,
+		},
+		stubSchemaSizer{
+			sizes: []models.SchemaStats{
+				{Name: "books", SizeBytes: 5000, TableCount: 4},
+				{Name: "games", SizeBytes: 2000, TableCount: 3},
+			},
+			err: nil,
 		},
 	)
 
@@ -193,6 +231,14 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 	assert.InDelta(t, 3.0, testutil.ToFloat64(sentryUnresolvedIssues), 0)
 	assert.InDelta(t, 7.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 123456.0, testutil.ToFloat64(r2StorageBytes), 0)
+	assert.InDelta(t, 0.42, testutil.ToFloat64(
+		githubWorkflowRunDurationSeconds.WithLabelValues("CI")), 1e-9)
+	assert.InDelta(t, 0.09, testutil.ToFloat64(
+		githubWorkflowRunDurationSeconds.WithLabelValues("Deploy")), 1e-9)
+	assert.InDelta(t, 5000.0, testutil.ToFloat64(
+		postgresSchemaSizeBytes.WithLabelValues("books")), 0)
+	assert.InDelta(t, 2000.0, testutil.ToFloat64(
+		postgresSchemaSizeBytes.WithLabelValues("games")), 0)
 }
 
 func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
@@ -213,6 +259,9 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 			alertsErr: github.ErrNotConfigured,
 		},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		// SchemaSizes has no "not configured" sentinel — a nil result is a
+		// clean run that simply resets the gauge, no log.
+		stubSchemaSizer{sizes: nil, err: nil},
 	)
 
 	logger, buf := loggerWithBuf()
@@ -239,6 +288,7 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 			alertsErr: boom,
 		},
 		stubStorageGetter{snap: nil, err: boom},
+		stubSchemaSizer{sizes: nil, err: boom},
 	)
 
 	logger, buf := loggerWithBuf()
@@ -259,6 +309,7 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 			alertsErr: nil,
 		},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
 	)
 
 	logger, buf := loggerWithBuf()

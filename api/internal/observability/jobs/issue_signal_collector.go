@@ -33,6 +33,14 @@ var (
 		Name: "github_workflow_run_failed",
 		Help: "Recent GitHub Actions workflow runs that concluded in failure, by branch.",
 	}, []string{"branch"})
+	githubWorkflowRunDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "github_workflow_run_duration_seconds",
+		// Label is "workflow", not "job": the api scrape job already carries a
+		// "job" label and infra/prometheus.yml only relabels job_duration_seconds'
+		// collision, not this one.
+		Help: "Duration of the most recent completed run of each GitHub Actions " +
+			"workflow on the default branch, in seconds.",
+	}, []string{"workflow"})
 	githubOpenSecurityAlerts = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "github_open_security_alerts",
 		Help: "Open Dependabot, code-scanning and secret-scanning alerts, by severity.",
@@ -49,11 +57,20 @@ var (
 		Name: "r2_storage_bytes",
 		Help: "Total R2 storage size in bytes from the latest storage snapshot.",
 	})
+	postgresSchemaSizeBytes = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "postgres_schema_size_bytes",
+		Help: "On-disk size of each database schema in bytes. postgres_exporter " +
+			"only exposes per-database size, so this is the per-schema breakdown.",
+	}, []string{"schema"})
 )
 
 // mainBranch is the branch label the workflow-run gauge reports on — only
 // failures on the default branch are tracked.
 const mainBranch = "main"
+
+// millisPerSecond converts github.WorkflowRun.DurationMs to the seconds unit
+// the github_workflow_run_duration_seconds gauge reports in.
+const millisPerSecond = 1000
 
 // failingPRLister is the subset of github.Client the failing-PR gauge needs.
 type failingPRLister interface {
@@ -70,6 +87,12 @@ type securityAlertLister interface {
 // *repositories.StorageSnapshotsRepository the storage gauges need.
 type latestStorageSnapshotGetter interface {
 	Latest(ctx context.Context) (*models.StorageSnapshot, error)
+}
+
+// schemaSizer is the subset of *repositories.DBStatsRepository the
+// per-schema size gauge needs.
+type schemaSizer interface {
+	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
 }
 
 // workflowRunsLister is the subset of github.Client the collector needs on
@@ -92,7 +115,8 @@ type issueSignalGithubClient interface {
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, Sentry and the latest storage snapshot. A provider that isn't
+// GitHub, Sentry, the latest storage snapshot and per-schema database sizes.
+// A provider that isn't
 // connected leaves its gauge untouched rather than resetting it to zero or
 // failing the run; other errors are logged and skipped. Run always returns
 // nil.
@@ -100,17 +124,20 @@ type IssueSignalCollectorJob struct {
 	sentry          sentryapi.Client
 	gh              issueSignalGithubClient
 	storageSnapshot latestStorageSnapshotGetter
+	schemaSizes     schemaSizer
 }
 
 func NewIssueSignalCollectorJob(
 	sentry sentryapi.Client,
 	gh issueSignalGithubClient,
 	storageSnapshot latestStorageSnapshotGetter,
+	schemaSizes schemaSizer,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		sentry:          sentry,
 		gh:              gh,
 		storageSnapshot: storageSnapshot,
+		schemaSizes:     schemaSizes,
 	}
 }
 
@@ -145,6 +172,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectSecurityAlerts(ctx, logger)
 	j.collectSentryIssues(ctx, logger)
 	j.collectStorage(ctx, logger)
+	j.collectSchemaSizes(ctx, logger)
 	return nil
 }
 
@@ -181,13 +209,27 @@ func (j *IssueSignalCollectorJob) collectWorkflowRuns(
 	}
 
 	failed := 0
+	latestByWorkflow := make(map[string]github.WorkflowRun)
 	for _, run := range runs {
 		if run.Branch == mainBranch && run.Conclusion == "failure" {
 			failed++
 		}
+		if run.Branch != mainBranch || run.Status != "completed" {
+			continue
+		}
+		if cur, ok := latestByWorkflow[run.Name]; !ok ||
+			run.StartedAt.After(cur.StartedAt) {
+			latestByWorkflow[run.Name] = run
+		}
 	}
 	githubWorkflowRunFailed.Reset()
 	githubWorkflowRunFailed.WithLabelValues(mainBranch).Set(float64(failed))
+
+	githubWorkflowRunDurationSeconds.Reset()
+	for name, run := range latestByWorkflow {
+		githubWorkflowRunDurationSeconds.WithLabelValues(name).
+			Set(float64(run.DurationMs) / millisPerSecond)
+	}
 }
 
 func (j *IssueSignalCollectorJob) collectSecurityAlerts(
@@ -248,4 +290,21 @@ func (j *IssueSignalCollectorJob) collectStorage(
 	}
 	r2OrphanedObjects.Set(float64(snap.OrphanCount))
 	r2StorageBytes.Set(float64(snap.TotalSizeBytes))
+}
+
+func (j *IssueSignalCollectorJob) collectSchemaSizes(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	sizes, err := j.schemaSizes.SchemaSizes(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load schema sizes",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	postgresSchemaSizeBytes.Reset()
+	for _, s := range sizes {
+		postgresSchemaSizeBytes.WithLabelValues(s.Name).Set(float64(s.SizeBytes))
+	}
 }
