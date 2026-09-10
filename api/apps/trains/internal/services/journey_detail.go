@@ -22,12 +22,17 @@ const onTimeThresholdSeconds = 60
 type JourneyDetailService struct {
 	repos    *repositories.Repositories
 	realtime *RealtimeService
+	// replan re-queries the timetable router when a live signal shows the
+	// journey is broken (issue #1395). Nil disables the check entirely.
+	replan replanner
 }
 
 func NewJourneyDetailService(
-	repos *repositories.Repositories, realtime *RealtimeService,
+	repos *repositories.Repositories,
+	realtime *RealtimeService,
+	replan replanner,
 ) *JourneyDetailService {
-	return &JourneyDetailService{repos: repos, realtime: realtime}
+	return &JourneyDetailService{repos: repos, realtime: realtime, replan: replan}
 }
 
 // GetJourneyDetail decodes journeyID and rebuilds the current live state of
@@ -54,6 +59,7 @@ func (s *JourneyDetailService) GetJourneyDetail(
 		Legs:          legs,
 		DepartureTime: refs[0].BoardTime,
 		ArrivalTime:   refs[len(refs)-1].AlightTime,
+		Alternative:   s.evaluateAlternative(ctx, refs, legs),
 	}, nil
 }
 
