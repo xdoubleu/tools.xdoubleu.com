@@ -1,43 +1,14 @@
-import { renderHook, act } from '@testing-library/react'
-import { unstable_serialize } from 'swr'
+import { renderHook } from '@testing-library/react'
 
-const mockMutate = jest.fn()
-const mockDisconnectOAuthConnection = jest.fn()
-const mockGetProviderOptions = jest.fn()
-const mockSetProviderConfig = jest.fn()
-const mockTriggerStorageScan = jest.fn()
-const mockResolveSentryIssue = jest.fn()
-const mockDismissSecurityAlert = jest.fn()
-const mockGetNotificationSettings = jest.fn()
-const mockUpdateNotificationSettings = jest.fn()
-const mockUpdateNotificationChannel = jest.fn()
-
-jest.mock('swr', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  mutate: (...args: unknown[]) => mockMutate(...args),
-  unstable_serialize: jest.requireActual('swr').unstable_serialize
-}))
+jest.mock('swr', () => ({ __esModule: true, default: jest.fn(), mutate: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({
-    getJobStats: jest.fn(),
-    getStorageStats: jest.fn(),
-    triggerStorageScan: (...args: unknown[]) => mockTriggerStorageScan(...args),
-    getDatabaseStats: jest.fn(),
-    getFailingPullRequests: jest.fn(),
-    getSecurityAlerts: jest.fn(),
-    dismissSecurityAlert: (...args: unknown[]) => mockDismissSecurityAlert(...args),
-    getSentryIssues: jest.fn(),
-    getSlowTransactions: jest.fn(),
-    resolveSentryIssue: (...args: unknown[]) => mockResolveSentryIssue(...args),
-    getLogs: jest.fn(),
     listOAuthConnections: jest.fn(),
-    disconnectOAuthConnection: (...args: unknown[]) => mockDisconnectOAuthConnection(...args),
-    getProviderOptions: (...args: unknown[]) => mockGetProviderOptions(...args),
-    setProviderConfig: (...args: unknown[]) => mockSetProviderConfig(...args),
-    getNotificationSettings: (...args: unknown[]) => mockGetNotificationSettings(...args),
-    updateNotificationSettings: (...args: unknown[]) => mockUpdateNotificationSettings(...args),
-    updateNotificationChannel: (...args: unknown[]) => mockUpdateNotificationChannel(...args)
+    disconnectOAuthConnection: jest.fn(),
+    getProviderOptions: jest.fn(),
+    setProviderConfig: jest.fn(),
+    getNotificationSettings: jest.fn(),
+    updateNotificationSettings: jest.fn()
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -45,271 +16,113 @@ jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
   ProviderConfigSchema: {}
 }))
 
-import useSWR from 'swr'
+import useSWR, { mutate } from 'swr'
+import { createServiceClient } from '@/lib/client'
+import type { ProviderConfigInput } from '@/hooks/useMonitoring'
 import {
-  useJobStats,
-  useStorageStats,
-  useTriggerStorageScan,
-  useDatabaseStats,
-  useFailingPullRequests,
-  useSentryIssues,
-  useSlowTransactions,
-  useResolveSentryIssue,
-  useDismissSecurityAlert,
-  useLogs,
   useOAuthConnections,
   useDisconnectOAuthConnection,
   useProviderOptions,
   useSetProviderConfig,
   useNotificationSettings,
-  useUpdateNotificationSettings,
-  useUpdateNotificationChannel
+  useUpdateNotificationSettings
 } from '@/hooks/useMonitoring'
-import { swrKeys } from '@/lib/swrKeys'
 
 const mockUseSWR = jest.mocked(useSWR)
+const mockMutate = jest.mocked(mutate)
+const mockCreateServiceClient = jest.mocked(createServiceClient)
 
 beforeEach(() => {
-  // Invoke the fetcher each hook hands to useSWR so its client call executes.
-  // @ts-expect-error -- mock returns a partial SWRResponse for test purposes
-  mockUseSWR.mockImplementation((key, fetcher) => {
-    if (typeof fetcher === 'function') fetcher(key)
-    return { data: undefined, isLoading: false, error: undefined }
-  })
+  jest.clearAllMocks()
+  mockUseSWR.mockReturnValue(
+    // @ts-expect-error -- partial SWRResponse for test purposes
+    { data: undefined, isLoading: false, error: undefined }
+  )
 })
 
-afterEach(() => {
-  mockUseSWR.mockReset()
-})
-
-describe('useMonitoring', () => {
-  it('keys job stats by window', () => {
-    renderHook(() => useJobStats(7))
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringJobStats(7), expect.any(Function))
-  })
-
-  it('keys storage stats statically', () => {
-    renderHook(() => useStorageStats())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringStorageStats, expect.any(Function))
-  })
-
-  it('keys database stats statically', () => {
-    renderHook(() => useDatabaseStats())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringDatabaseStats, expect.any(Function))
-  })
-
-  it('keys failing pull requests statically', () => {
-    renderHook(() => useFailingPullRequests())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringFailingPullRequests,
-      expect.any(Function)
-    )
-  })
-
-  it('keys sentry issues statically', () => {
-    renderHook(() => useSentryIssues())
-    expect(mockUseSWR).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues, expect.any(Function))
-  })
-
-  it('keys slow transactions statically', () => {
-    renderHook(() => useSlowTransactions())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringSlowTransactions,
-      expect.any(Function)
-    )
-  })
-
-  it('keys logs by source and min level', () => {
-    renderHook(() => useLogs('api', 'warn'))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringLogs('api', 'warn'),
-      expect.any(Function)
-    )
-  })
-
-  it('keys oauth connections statically', () => {
+describe('useOAuthConnections', () => {
+  it('uses the oauth-connections SWR key', () => {
     renderHook(() => useOAuthConnections())
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringOAuthConnections,
-      expect.any(Function)
-    )
+    expect(mockUseSWR).toHaveBeenCalledWith('/monitoring/oauth-connections', expect.any(Function))
   })
+})
 
-  it('distinct window keys do not collide', () => {
-    expect(unstable_serialize(swrKeys.monitoringJobStats(7))).not.toBe(
-      unstable_serialize(swrKeys.monitoringJobStats(30))
-    )
-  })
-
-  it('keys notification settings statically', () => {
+describe('useNotificationSettings', () => {
+  it('uses the notification-settings SWR key', () => {
     renderHook(() => useNotificationSettings())
     expect(mockUseSWR).toHaveBeenCalledWith(
-      swrKeys.monitoringNotificationSettings,
+      '/monitoring/notification-settings',
       expect.any(Function)
     )
-  })
-})
-
-describe('useUpdateNotificationSettings', () => {
-  it('updates a source and revalidates notification settings', async () => {
-    mockUpdateNotificationSettings.mockResolvedValue({})
-    const { result } = renderHook(() => useUpdateNotificationSettings())
-
-    await act(async () => {
-      await result.current('sentry_issues', false)
-    })
-
-    expect(mockUpdateNotificationSettings).toHaveBeenCalledWith({
-      sourceKey: 'sentry_issues',
-      enabled: false
-    })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringNotificationSettings)
-  })
-})
-
-describe('useUpdateNotificationChannel', () => {
-  it('updates the channel with a webhook URL and revalidates', async () => {
-    mockUpdateNotificationChannel.mockResolvedValue({})
-    const { result } = renderHook(() => useUpdateNotificationChannel())
-
-    await act(async () => {
-      await result.current('both', 'https://hooks.slack.com/x')
-    })
-
-    expect(mockUpdateNotificationChannel).toHaveBeenCalledWith({
-      channelMode: 'both',
-      slackWebhookUrl: 'https://hooks.slack.com/x'
-    })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringNotificationSettings)
-  })
-
-  it('leaves the URL undefined when not supplied', async () => {
-    mockUpdateNotificationChannel.mockResolvedValue({})
-    const { result } = renderHook(() => useUpdateNotificationChannel())
-
-    await act(async () => {
-      await result.current('email')
-    })
-
-    expect(mockUpdateNotificationChannel).toHaveBeenCalledWith({
-      channelMode: 'email',
-      slackWebhookUrl: undefined
-    })
-  })
-})
-
-describe('useTriggerStorageScan', () => {
-  it('runs a live rescan and revalidates storage stats', async () => {
-    mockTriggerStorageScan.mockResolvedValue({})
-    const { result } = renderHook(() => useTriggerStorageScan())
-
-    await act(async () => {
-      await result.current()
-    })
-
-    expect(mockTriggerStorageScan).toHaveBeenCalledWith({})
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringStorageStats)
-  })
-})
-
-describe('useResolveSentryIssue', () => {
-  it('resolves the given issue and revalidates the sentry issues list', async () => {
-    mockResolveSentryIssue.mockResolvedValue({})
-    const { result } = renderHook(() => useResolveSentryIssue())
-
-    await act(async () => {
-      await result.current('42')
-    })
-
-    expect(mockResolveSentryIssue).toHaveBeenCalledWith({ issueId: '42' })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringSentryIssues)
-  })
-})
-
-describe('useDismissSecurityAlert', () => {
-  it('dismisses the given alert and revalidates the security alerts list', async () => {
-    mockDismissSecurityAlert.mockResolvedValue({})
-    const { result } = renderHook(() => useDismissSecurityAlert())
-
-    await act(async () => {
-      await result.current(1, 83n, 'no_bandwidth')
-    })
-
-    expect(mockDismissSecurityAlert).toHaveBeenCalledWith({
-      alertType: 1,
-      alertNumber: 83n,
-      reason: 'no_bandwidth'
-    })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringSecurityAlerts)
   })
 })
 
 describe('useDisconnectOAuthConnection', () => {
-  it('disconnects the given provider and revalidates the list', async () => {
-    mockDisconnectOAuthConnection.mockResolvedValue({})
+  it('calls client.disconnectOAuthConnection then revalidates connections', async () => {
+    const disconnectOAuthConnection = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ disconnectOAuthConnection })
+
     const { result } = renderHook(() => useDisconnectOAuthConnection())
+    await result.current('github')
 
-    await act(async () => {
-      await result.current('github')
-    })
-
-    expect(mockDisconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
+    expect(disconnectOAuthConnection).toHaveBeenCalledWith({ provider: 'github' })
+    expect(mockMutate).toHaveBeenCalledWith('/monitoring/oauth-connections')
   })
 })
 
 describe('useProviderOptions', () => {
-  it('fetches options for a provider with no sentry org', async () => {
-    mockGetProviderOptions.mockResolvedValue({ repos: ['o/r'] })
+  it('calls client.getProviderOptions with a defaulted sentryOrg', () => {
+    const getProviderOptions = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ getProviderOptions })
+
     const { result } = renderHook(() => useProviderOptions())
+    result.current('sentry')
 
-    await act(async () => {
-      await result.current('github')
-    })
-
-    expect(mockGetProviderOptions).toHaveBeenCalledWith({ provider: 'github', sentryOrg: '' })
+    expect(getProviderOptions).toHaveBeenCalledWith({ provider: 'sentry', sentryOrg: '' })
   })
 
-  it('passes the sentry org through when given', async () => {
-    mockGetProviderOptions.mockResolvedValue({ sentryProjects: ['p1'] })
+  it('passes an explicit sentryOrg through', () => {
+    const getProviderOptions = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ getProviderOptions })
+
     const { result } = renderHook(() => useProviderOptions())
+    result.current('sentry', 'acme')
 
-    await act(async () => {
-      await result.current('sentry', 'my-org')
-    })
-
-    expect(mockGetProviderOptions).toHaveBeenCalledWith({
-      provider: 'sentry',
-      sentryOrg: 'my-org'
-    })
+    expect(getProviderOptions).toHaveBeenCalledWith({ provider: 'sentry', sentryOrg: 'acme' })
   })
 })
 
 describe('useSetProviderConfig', () => {
-  it('saves the config and revalidates the connections list plus the provider data key', async () => {
-    mockSetProviderConfig.mockResolvedValue({})
+  it('calls client.setProviderConfig then revalidates connections', async () => {
+    const setProviderConfig = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ setProviderConfig })
+
     const { result } = renderHook(() => useSetProviderConfig())
+    const config: ProviderConfigInput = { config: { case: 'github', value: { repo: 'x/y' } } }
+    await result.current('github', config)
 
-    const config = { config: { case: 'github' as const, value: { repo: 'o/r' } } }
-    await act(async () => {
-      await result.current('github', config)
-    })
-
-    expect(mockSetProviderConfig).toHaveBeenCalledWith({ provider: 'github', config })
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringFailingPullRequests)
+    expect(setProviderConfig).toHaveBeenCalledWith({ provider: 'github', config })
+    expect(mockMutate).toHaveBeenCalledWith('/monitoring/oauth-connections')
   })
+})
 
-  it('does not mutate a data key for an unrecognized provider', async () => {
-    mockSetProviderConfig.mockResolvedValue({})
-    mockMutate.mockClear()
-    const { result } = renderHook(() => useSetProviderConfig())
+describe('useUpdateNotificationSettings', () => {
+  it('calls client.updateNotificationSettings then revalidates settings', async () => {
+    const updateNotificationSettings = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ updateNotificationSettings })
 
-    await act(async () => {
-      await result.current('unknown', {})
+    const { result } = renderHook(() => useUpdateNotificationSettings())
+    await result.current('sentry_issues', true)
+
+    expect(updateNotificationSettings).toHaveBeenCalledWith({
+      sourceKey: 'sentry_issues',
+      enabled: true
     })
-
-    expect(mockMutate).toHaveBeenCalledWith(swrKeys.monitoringOAuthConnections)
-    expect(mockMutate).toHaveBeenCalledTimes(1)
+    expect(mockMutate).toHaveBeenCalledWith('/monitoring/notification-settings')
   })
 })

@@ -4,19 +4,9 @@ import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
   ObservabilityService,
-  ProviderConfigSchema,
-  SecurityAlertType
+  ProviderConfigSchema
 } from '@/lib/gen/observability/v1/observability_pb'
 import type {
-  GetJobStatsResponse,
-  GetStorageStatsResponse,
-  GetDatabaseStatsResponse,
-  GetFailingPullRequestsResponse,
-  GetWorkflowRunsResponse,
-  GetSecurityAlertsResponse,
-  GetSentryIssuesResponse,
-  GetSlowTransactionsResponse,
-  GetLogsResponse,
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse,
   GetNotificationSettingsResponse
@@ -24,108 +14,6 @@ import type {
 import { swrKeys } from '@/lib/swrKeys'
 
 export type ProviderConfigInput = MessageInitShape<typeof ProviderConfigSchema>
-
-export function useJobStats(windowDays: number) {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetJobStatsResponse, Error>(swrKeys.monitoringJobStats(windowDays), () =>
-    client.getJobStats({ windowDays })
-  )
-}
-
-export function useStorageStats() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetStorageStatsResponse, Error>(swrKeys.monitoringStorageStats, () =>
-    client.getStorageStats({})
-  )
-}
-
-// useTriggerStorageScan runs a live R2 rescan (instead of just re-reading the
-// last daily-job snapshot), then revalidates storage stats so the fresh scan
-// shows up.
-export function useTriggerStorageScan() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(async () => {
-    await client.triggerStorageScan({})
-    await mutate(swrKeys.monitoringStorageStats)
-  }, [client])
-}
-
-export function useDatabaseStats() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetDatabaseStatsResponse, Error>(swrKeys.monitoringDatabaseStats, () =>
-    client.getDatabaseStats({})
-  )
-}
-
-export function useFailingPullRequests() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetFailingPullRequestsResponse, Error>(swrKeys.monitoringFailingPullRequests, () =>
-    client.getFailingPullRequests({})
-  )
-}
-
-export function useWorkflowRuns() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetWorkflowRunsResponse, Error>(swrKeys.monitoringWorkflowRuns, () =>
-    client.getWorkflowRuns({})
-  )
-}
-
-export function useSecurityAlerts() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetSecurityAlertsResponse, Error>(swrKeys.monitoringSecurityAlerts, () =>
-    client.getSecurityAlerts({})
-  )
-}
-
-// useDismissSecurityAlert dismisses/resolves one open GitHub Dependabot,
-// code-scanning, or secret-scanning alert. Valid reasons differ per
-// alertType — the caller (the reason picker in SecurityAlertsCard) is
-// responsible for offering only the values GitHub's API accepts for it.
-export function useDismissSecurityAlert() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    async (alertType: SecurityAlertType, alertNumber: bigint, reason: string) => {
-      await client.dismissSecurityAlert({ alertType, alertNumber, reason })
-      await mutate(swrKeys.monitoringSecurityAlerts)
-    },
-    [client]
-  )
-}
-
-export function useSentryIssues() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetSentryIssuesResponse, Error>(swrKeys.monitoringSentryIssues, () =>
-    client.getSentryIssues({})
-  )
-}
-
-export function useResolveSentryIssue() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    async (issueId: string) => {
-      await client.resolveSentryIssue({ issueId })
-      await mutate(swrKeys.monitoringSentryIssues)
-    },
-    [client]
-  )
-}
-
-export function useSlowTransactions() {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetSlowTransactionsResponse, Error>(swrKeys.monitoringSlowTransactions, () =>
-    client.getSlowTransactions({})
-  )
-}
-
-// useLogs reads recent application logs forwarded from both api and web
-// (global.log_entries, issue #1040). source/minLevel empty means "any".
-export function useLogs(source = '', minLevel = '', since = '') {
-  const client = createServiceClient(ObservabilityService)
-  return useSWR<GetLogsResponse, Error>(swrKeys.monitoringLogs(source, minLevel), () =>
-    client.getLogs({ source, minLevel, since })
-  )
-}
 
 export function useOAuthConnections() {
   const client = createServiceClient(ObservabilityService)
@@ -145,14 +33,6 @@ export function useDisconnectOAuthConnection() {
   )
 }
 
-// PROVIDER_DATA_KEYS maps a provider to the SWR key(s) holding the data it
-// unlocks, so useSetProviderConfig can flip those cards to "configured"
-// immediately instead of waiting for their own poll/revalidation.
-const PROVIDER_DATA_KEYS: Record<string, string[]> = {
-  github: [swrKeys.monitoringFailingPullRequests, swrKeys.monitoringSecurityAlerts],
-  sentry: [swrKeys.monitoringSentryIssues]
-}
-
 // useProviderOptions is fetched on demand (when the config picker dialog
 // opens), not via SWR — matching useDisconnectOAuthConnection's callback
 // pattern above.
@@ -161,6 +41,17 @@ export function useProviderOptions() {
   return useCallback(
     (provider: string, sentryOrg?: string): Promise<GetProviderOptionsResponse> =>
       client.getProviderOptions({ provider, sentryOrg: sentryOrg ?? '' }),
+    [client]
+  )
+}
+
+export function useSetProviderConfig() {
+  const client = useMemo(() => createServiceClient(ObservabilityService), [])
+  return useCallback(
+    async (provider: string, config: ProviderConfigInput) => {
+      await client.setProviderConfig({ provider, config })
+      await mutate(swrKeys.monitoringOAuthConnections)
+    },
     [client]
   )
 }
@@ -182,34 +73,6 @@ export function useUpdateNotificationSettings() {
     async (sourceKey: string, enabled: boolean) => {
       await client.updateNotificationSettings({ sourceKey, enabled })
       await mutate(swrKeys.monitoringNotificationSettings)
-    },
-    [client]
-  )
-}
-
-// useUpdateNotificationChannel sets the global email/Slack delivery switch
-// and, optionally, the Slack Incoming Webhook URL (issue #1482). Passing
-// slackWebhookUrl === undefined leaves the stored URL untouched; '' clears
-// it. Admin only on the server.
-export function useUpdateNotificationChannel() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    async (channelMode: string, slackWebhookUrl?: string) => {
-      await client.updateNotificationChannel({ channelMode, slackWebhookUrl })
-      await mutate(swrKeys.monitoringNotificationSettings)
-    },
-    [client]
-  )
-}
-
-export function useSetProviderConfig() {
-  const client = useMemo(() => createServiceClient(ObservabilityService), [])
-  return useCallback(
-    async (provider: string, config: ProviderConfigInput) => {
-      await client.setProviderConfig({ provider, config })
-      await mutate(swrKeys.monitoringOAuthConnections)
-      const dataKeys = PROVIDER_DATA_KEYS[provider] ?? []
-      await Promise.all(dataKeys.map((key) => mutate(key)))
     },
     [client]
   )
