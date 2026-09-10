@@ -32,8 +32,8 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 		},
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
 		uniCat: &fakeUCClient{ //nolint:exhaustruct // partial
 			//nolint:exhaustruct // partial
 			byISBN: &unicat.ExternalBook{Title: "Found In UniCat Only"},
@@ -72,8 +72,8 @@ func TestBuildResyncProposals_Hardcover_FoundByISBN(t *testing.T) {
 	}
 	hcTitle := "The Odyssey"
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			byISBN: &hardcover.ExternalBook{ //nolint:exhaustruct // partial
 				Title: hcTitle, Authors: []string{"Homer"}, ISBN13: &isbn,
@@ -99,9 +99,9 @@ func TestBuildResyncProposals_ScanStatus_UnsearchableAllNil(t *testing.T) {
 		books: []models.Book{{ID: id}}, //nolint:exhaustruct // no ISBN, no title
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		objectStore: objectstore.NewFake(),
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
+		objectStore:  objectstore.NewFake(),
 	}
 
 	_, err := svc.BuildResyncProposals(
@@ -126,9 +126,9 @@ func TestBuildResyncProposals_ScanStatusError_NonFatal(t *testing.T) {
 		scanStatusErr: errors.New("db down"),
 	}
 	svc := &BookService{ //nolint:exhaustruct // partial
-		logger:      logging.NewNopLogger(),
-		booksResync: repo,
-		objectStore: objectstore.NewFake(),
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
+		objectStore:  objectstore.NewFake(),
 	}
 
 	n, err := svc.BuildResyncProposals(
@@ -157,7 +157,7 @@ func TestGetBookSources_Override_ForcesSearchAndSkipsGuards(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -188,7 +188,7 @@ func TestGetBookSources_OverrideAuthorOnly_UsesStoredTitle(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -213,9 +213,9 @@ func TestGetBookSources_Override_NoResults_EmptySources(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
-		hardcover:   &fakeHCClient{}, //nolint:exhaustruct // no results
-		objectStore: objectstore.NewFake(),
+		resyncSource: repo,
+		hardcover:    &fakeHCClient{}, //nolint:exhaustruct // no results
+		objectStore:  objectstore.NewFake(),
 	}
 
 	proposal, err := svc.GetBookSources(
@@ -234,7 +234,7 @@ func TestSyncBookSource_Override_AppliesTopResult(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -262,7 +262,7 @@ func TestGetBookSources_Override_ReturnsUpToFiveCandidatesPerSource(t *testing.T
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 
 			searchResults: []hardcover.ExternalBook{
@@ -298,7 +298,7 @@ func TestSyncBookSource_Override_AppliesChosenIndexNotJustFirst(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 
 			searchResults: []hardcover.ExternalBook{
@@ -326,7 +326,7 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -354,7 +354,7 @@ func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -390,7 +390,7 @@ func TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -426,7 +426,7 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
 	svc := &BookService{                                 //nolint:exhaustruct // partial
-		booksResync: repo,
+		resyncSource: repo,
 		hardcover: &fakeHCClient{ //nolint:exhaustruct // partial
 			searchResults: []hardcover.ExternalBook{
 				//nolint:exhaustruct // partial
@@ -495,7 +495,7 @@ func TestGetSourceStats_Passthrough(t *testing.T) {
 		NeverScanned: 2,
 	}
 	repo := &fakeBooksResync{sourceStats: want} //nolint:exhaustruct // partial
-	svc := &BookService{booksResync: repo}      //nolint:exhaustruct // partial
+	svc := &BookService{resyncSource: repo}     //nolint:exhaustruct // partial
 
 	got, err := svc.GetSourceStats(context.Background())
 	require.NoError(t, err)
@@ -506,7 +506,7 @@ func TestListBooksInExactSources_Passthrough(t *testing.T) {
 	//nolint:exhaustruct // partial
 	want := []models.Book{{Title: "Unique Book"}}
 	repo := &fakeBooksResync{uniqueBooks: want} //nolint:exhaustruct // partial
-	svc := &BookService{booksResync: repo}      //nolint:exhaustruct // partial
+	svc := &BookService{resyncSource: repo}     //nolint:exhaustruct // partial
 
 	got, err := svc.ListBooksInExactSources(context.Background(), []string{"unicat"})
 	require.NoError(t, err)
