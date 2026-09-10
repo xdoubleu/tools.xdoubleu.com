@@ -26,7 +26,7 @@ jobs:
       config_api: ${{ steps.filter.outputs.config_api }}
       config_web: ${{ steps.filter.outputs.config_web }}
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
-      grafana_dockerfile: ${{ steps.filter.outputs.grafana_dockerfile }}
+      grafana_dockerfile: ${{ steps.proto-workflows.outputs.grafana_dockerfile }}
     steps:
       - uses: actions/checkout@v7
       # 'every' requires a file to match every listed pattern, so
@@ -83,20 +83,12 @@ jobs:
             # closed for config_api/config_web).
             config_grafana:
               - 'config/deploy.grafana.yml'
-            # infra/** above already covers these paths, but that filter
-            # feeds infra-apply (OpenTofu), not build-grafana — this one
-            # exists so a change to the wrapper image's own inputs (the
-            # Dockerfile, e.g. bumping the pinned Grafana version; or the
-            # baked-in datasource/dashboard provisioning, issue #1527)
-            # triggers a fresh image build the same way config_api does for
-            # deploy.api.yml.
-            grafana_dockerfile:
-              - 'infra/grafana.Dockerfile'
-              - 'infra/grafana/**'
-              - 'scripts/validate_grafana_dashboards.py'
-              - 'scripts/verify_grafana_image.sh'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
+      # (grafana_dockerfile lived in the 'every' step above until #1528 —
+      # a multi-pattern positive-only filter can never be true under 'every',
+      # so build-grafana silently never ran for an infra/grafana/**-only
+      # change.)
       - uses: dorny/paths-filter@v4
         id: proto-workflows
         with:
@@ -107,6 +99,17 @@ jobs:
               - 'web/buf.gen.yaml'
             workflows:
               - '.github/workflows/**'
+            # infra/** feeds infra-apply (OpenTofu), not build-grafana —
+            # this one exists so a change to the wrapper image's own inputs
+            # (the Dockerfile, e.g. bumping the pinned Grafana version; or
+            # the baked-in datasource/dashboard/alerting provisioning,
+            # issues #1527/#1528) triggers a fresh image build the same way
+            # config_api does for deploy.api.yml.
+            grafana_dockerfile:
+              - 'infra/grafana.Dockerfile'
+              - 'infra/grafana/**'
+              - 'scripts/validate_grafana_dashboards.py'
+              - 'scripts/verify_grafana_image.sh'
 
   proto-check:
     needs: changes
