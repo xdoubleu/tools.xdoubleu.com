@@ -13,7 +13,7 @@ import (
 )
 
 // Channel modes for global.notification_channel_config.channel_mode — the
-// single switch deciding where jobs.IssueNotifierJob sends its alerts
+// single switch deciding where jobs.WeeklyDigestJob sends its alerts
 // (issue #1482).
 const (
 	ChannelModeEmail = "email"

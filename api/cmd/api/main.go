@@ -67,7 +67,6 @@ type Application struct {
 	sentryClient                  sentryapi.Client
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
-	issueNotifierJob              *jobs.IssueNotifierJob
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
@@ -180,7 +179,7 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 
 // newNotificationsService builds the shared Resend-backed notifications
 // queue (issue #383/#923) reused by family (invite emails), NewApps (feeds)
-// and IssueNotifierJob, so every mail notification shares one FIFO delivery
+// and WeeklyDigestJob, so every mail notification shares one FIFO delivery
 // queue and never blocks a request on the Resend round trip.
 func newNotificationsService(
 	ctx context.Context,
@@ -248,21 +247,13 @@ func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
-	notificationsSvc *notifications.Service,
-	notificationSettingsRepo *repositories.NotificationSettingsRepository,
 	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
 ) (
-	*jobs.IssueNotifierJob,
 	*jobs.IssueSignalCollectorJob,
 	*repositories.TransactionLatencyRepository,
 	*jobs.TransactionLatencySnapshotJob,
 ) {
-	notifiedIssuesRepo := repositories.NewNotifiedIssuesRepository(db)
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
-	issueNotifierJob := jobs.NewIssueNotifierJob(
-		sentryClient, githubClient, notificationsSvc, notifiedIssuesRepo,
-		notificationSettingsRepo, storageSnapshotsRepo, transactionLatencyRepo,
-	)
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
 		sentryClient, githubClient, storageSnapshotsRepo,
@@ -272,7 +263,7 @@ func newCrossAppJobs(
 		sentryClient, transactionLatencyRepo,
 	)
 
-	return issueNotifierJob, issueSignalCollectorJob, transactionLatencyRepo,
+	return issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob
 }
 
@@ -354,11 +345,6 @@ func newWeeklyDigestJob(
 func startCrossAppJobs(app *Application) error {
 	noopCallback := func(_ string, _ bool, _ *time.Time) {}
 	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.issueNotifierJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
-	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.issueSignalCollectorJob, app.db), noopCallback,
 	); err != nil {
 		return err
@@ -434,13 +420,11 @@ func NewApplication(
 
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
-	issueNotifierJob, issueSignalCollectorJob, transactionLatencyRepo,
+	issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
 		sentryClient,
 		githubClient,
-		notificationsSvc,
-		notificationSettingsRepo,
 		storageSnapshotsRepo,
 	)
 
@@ -473,7 +457,6 @@ func NewApplication(
 		oauthState:                    oauthconn.NewStateStore(),
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
-		issueNotifierJob:              issueNotifierJob,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,

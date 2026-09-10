@@ -1,6 +1,6 @@
 // Package notifications decouples callers from the latency of a
 // mailer.Client send: every notification is deposited on a single background
-// worker so a scheduled job's Run (see observability/jobs.IssueNotifierJob)
+// worker so a scheduled job's Run (see observability/jobs.WeeklyDigestJob)
 // or an HTTP handler (see family.Service.InviteByEmail) never blocks on
 // Resend's network round trip, and every enqueued notification is delivered
 // strictly in enqueue order (issue #923).

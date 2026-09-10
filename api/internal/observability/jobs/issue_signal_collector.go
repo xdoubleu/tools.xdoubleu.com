@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
@@ -54,6 +55,23 @@ var (
 // failures on the default branch are tracked.
 const mainBranch = "main"
 
+// failingPRLister is the subset of github.Client the failing-PR gauge needs.
+type failingPRLister interface {
+	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
+}
+
+// securityAlertLister is the subset of github.Client the security-alert
+// gauge needs.
+type securityAlertLister interface {
+	ListSecurityAlerts(ctx context.Context) ([]github.SecurityAlert, error)
+}
+
+// latestStorageSnapshotGetter is the subset of
+// *repositories.StorageSnapshotsRepository the storage gauges need.
+type latestStorageSnapshotGetter interface {
+	Latest(ctx context.Context) (*models.StorageSnapshot, error)
+}
+
 // workflowRunsLister is the subset of github.Client the collector needs on
 // top of failingPRLister and securityAlertLister.
 type workflowRunsLister interface {
@@ -68,12 +86,16 @@ type issueSignalGithubClient interface {
 	workflowRunsLister
 }
 
+// runEvery is the poll interval shared by the timer-driven observability
+// jobs in this package; "realtime" here means "within a few minutes", not
+// sub-second.
+const runEvery = 5 * time.Minute
+
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// the same sources IssueNotifierJob reads (GitHub, Sentry, the latest
-// storage snapshot). A provider that isn't connected leaves its gauge
-// untouched rather than resetting it to zero or failing the run, matching
-// IssueNotifierJob's degraded-provider behaviour; other errors are logged
-// and skipped. Run always returns nil.
+// GitHub, Sentry and the latest storage snapshot. A provider that isn't
+// connected leaves its gauge untouched rather than resetting it to zero or
+// failing the run; other errors are logged and skipped. Run always returns
+// nil.
 type IssueSignalCollectorJob struct {
 	sentry          sentryapi.Client
 	gh              issueSignalGithubClient
@@ -96,10 +118,22 @@ func (j *IssueSignalCollectorJob) ID() string {
 	return "collect-issue-signals"
 }
 
-// RunEvery reuses the package-level runEvery (5 minutes) shared with
-// IssueNotifierJob.
+// RunEvery reuses the package-level runEvery (5 minutes).
 func (j *IssueSignalCollectorJob) RunEvery() time.Duration {
 	return runEvery
+}
+
+// logAPIErr logs a poll failure at Warn (transient, self-heals on the next
+// poll) or Error (reaches Sentry, needs a look) depending on whether the
+// client classified the error as a known-benign shape.
+func logAPIErr(
+	ctx context.Context, logger *slog.Logger, msg string, err error, transient bool,
+) {
+	if transient {
+		logger.WarnContext(ctx, msg, essentialogger.ErrAttr(err))
+		return
+	}
+	logger.ErrorContext(ctx, msg, essentialogger.ErrAttr(err))
 }
 
 func (j *IssueSignalCollectorJob) Run(

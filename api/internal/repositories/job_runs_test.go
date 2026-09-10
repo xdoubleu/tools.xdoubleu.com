@@ -93,11 +93,6 @@ func TestMain(m *testing.M) {
 			config        JSONB,
 			scope         TEXT
 		)`,
-		// Mirrors cmd/api/migrations/00011_notified_issues.sql.
-		`CREATE TABLE IF NOT EXISTS global.notified_issues (
-			key TEXT PRIMARY KEY,
-			notified_at TIMESTAMPTZ NOT NULL DEFAULT now()
-		)`,
 		// Mirrors cmd/api/migrations/00014_transaction_latency.sql.
 		`CREATE TABLE IF NOT EXISTS global.transaction_latency_daily (
 			day DATE NOT NULL,

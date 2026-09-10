@@ -10,8 +10,7 @@ import (
 )
 
 // NotificationSource keys the rows of global.notification_settings — one
-// per email-notifying source shared by jobs.IssueNotifierJob and
-// jobs.WeeklyDigestJob (issue #1214).
+// per email-notifying source checked by jobs.WeeklyDigestJob (issue #1214).
 type NotificationSource string
 
 const (
@@ -19,7 +18,6 @@ const (
 	NotificationSourceFailingDependencyPRs NotificationSource = "failing_dependency_prs"
 	NotificationSourceUnhealthyFeeds       NotificationSource = "unhealthy_feeds"
 	NotificationSourceSecurityAlerts       NotificationSource = "security_alerts"
-	NotificationSourceOrphanedStorage      NotificationSource = "orphaned_storage"
 	NotificationSourceSlowTransactions     NotificationSource = "slow_transactions"
 	NotificationSourceOpenFeedItems        NotificationSource = "open_feed_items"
 )

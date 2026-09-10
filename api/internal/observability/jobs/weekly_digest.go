@@ -51,9 +51,8 @@ type openFeedItemsLister interface {
 }
 
 // WeeklyDigestJob emails an admin, once a week, a summary of every issue
-// IssueNotifierJob already alerted on at least once but that may still be
-// open — a real-time alert fires only the first time an issue is seen, so
-// this restates anything still unresolved a week later.
+// that is still open — realtime alerting now lives in Prometheus/Grafana,
+// so this restates anything still unresolved a week later.
 //
 // It sends two separate emails, not one combined digest: monitoring
 // (Sentry, failing dependency PRs, security alerts, slow transactions) and
@@ -63,7 +62,7 @@ type openFeedItemsLister interface {
 // things, and folding both into one mail means neither can be skimmed,
 // filtered or muted on its own.
 //
-// Unlike IssueNotifierJob there is no per-item dedup: every run sends,
+// There is no per-item dedup: every run sends,
 // including a short "all clear" email when a source is enabled but has
 // nothing to report, so a missing weekly email is itself a signal the job
 // stopped running rather than being indistinguishable from "nothing to
@@ -72,9 +71,25 @@ type openFeedItemsLister interface {
 // global.notification_settings — an admin who turned all of monitoring off
 // shouldn't still get an empty monitoring digest every week, and the two
 // emails make that call independently of each other.
+// digestGithubClient is the subset of github.Client WeeklyDigestJob reads.
+type digestGithubClient interface {
+	failingPRLister
+	securityAlertLister
+}
+
+// notificationSettingsRepo is the subset of
+// *repositories.NotificationSettingsRepository the digest checks before
+// sending each section.
+type notificationSettingsRepo interface {
+	IsEnabled(
+		ctx context.Context,
+		source repositories.NotificationSource,
+	) (bool, error)
+}
+
 type WeeklyDigestJob struct {
 	sentry             sentryapi.Client
-	gh                 issueNotifierGithubClient
+	gh                 digestGithubClient
 	feeds              unhealthyFeedLister
 	openFeedItems      openFeedItemsLister
 	notifications      *notifications.Service
@@ -84,7 +99,7 @@ type WeeklyDigestJob struct {
 
 func NewWeeklyDigestJob(
 	sentry sentryapi.Client,
-	gh issueNotifierGithubClient,
+	gh digestGithubClient,
 	feeds unhealthyFeedLister,
 	openFeedItems openFeedItemsLister,
 	notifications *notifications.Service,
@@ -354,9 +369,8 @@ func (j *WeeklyDigestJob) securityAlertsSection(
 }
 
 // slowTransactionsSection follows sentrySection's (text, enabled) contract.
-// Unlike IssueNotifierJob's per-item dedup, this reports every currently
-// slow transaction on every run — the digest restates current state, it
-// doesn't track "seen before".
+// It reports every currently slow transaction on every run — the digest
+// restates current state, it doesn't track "seen before".
 func (j *WeeklyDigestJob) slowTransactionsSection(
 	ctx context.Context, logger *slog.Logger,
 ) (string, bool) {
@@ -445,4 +459,14 @@ func (j *WeeklyDigestJob) openFeedItemsSection(
 	}
 	return fmt.Sprintf("Feeds — %d unread item(s) across %d feed(s):\n%s",
 		total, len(open), strings.Join(lines, "\n")), true
+}
+
+// failingCheckNames renders a pull request's failing checks as a
+// comma-separated "name (conclusion)" list for the digest body.
+func failingCheckNames(checks []github.FailingCheck) string {
+	names := make([]string, len(checks))
+	for i, c := range checks {
+		names[i] = fmt.Sprintf("%s (%s)", c.Name, c.Conclusion)
+	}
+	return strings.Join(names, ", ")
 }
