@@ -232,8 +232,9 @@ and pushes to GHCR (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue
 `infra/grafana/` (issue #1527). The dashboard JSON under
 `infra/grafana/dashboards/` is the single source of truth — `allowUiUpdates`
 is `false`, so an admin's UI edits can't be saved over the provisioned copy;
-edit the JSON and redeploy. `make lint/grafana` (and `build-grafana.yml`)
-validate it. See `config/deploy.grafana.yml`'s own header comment for how
+edit the JSON and redeploy. `make lint/grafana` (static JSON) and `make
+grafana/verify` (boots the image, asserts the datasource + dashboards
+provision) check it, both also run by `build-grafana.yml`. See `config/deploy.grafana.yml`'s own header comment for how
 its `proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
 `docs/adr-0022-prometheus-grafana-metrics.md` for the full rationale
 (Prometheus over VictoriaMetrics, Grafana owning graphs/alerting, what got

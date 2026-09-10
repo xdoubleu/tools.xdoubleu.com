@@ -71,7 +71,9 @@ disabled — SSO is the default, not the only way in. Follow-up #1527 made SSO
 API-runtime / overview dashboards that replace the removed
 `/monitoring/observability` charts. They are baked into the wrapper image
 (`infra/grafana.Dockerfile`), the dashboard JSON is the single source of
-truth (`allowUiUpdates: false`), and `make lint/grafana` validates it — a
+truth (`allowUiUpdates: false`); `make lint/grafana` statically validates the
+JSON and `make grafana/verify` boots the image to confirm the datasource and
+dashboards actually provision (issue #1533) — a
 change under `infra/grafana/` rebuilds the image via `main.yml`'s
 `grafana_dockerfile` path filter.
 

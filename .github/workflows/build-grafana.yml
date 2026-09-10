@@ -15,11 +15,13 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref || github.ref_name }}
-      # The dashboard JSON baked into the image (issue #1527) is validated
-      # nowhere else — a malformed dashboard only shows up as a silent
-      # provisioning error in Grafana's logs after deploy. Same check as
-      # `make lint/grafana`.
-      - run: python3 scripts/validate_grafana_dashboards.py
+      # The datasource + dashboards baked into the image (issues #1527/#1533)
+      # are validated nowhere else — a malformed dashboard or provisioning
+      # file otherwise only shows up as a silent provisioning error in
+      # Grafana's log after deploy. lint/grafana is the static JSON check;
+      # grafana/verify boots the image and asserts everything provisions.
+      - run: make lint/grafana
+      - run: make grafana/verify
       - uses: docker/setup-buildx-action@v4
       # Only needed to push — PRs build (validating the wrapper still
       # builds) but never push, and grafana/grafana-oss is a public Docker

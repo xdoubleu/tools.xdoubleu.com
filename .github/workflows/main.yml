@@ -94,6 +94,7 @@ jobs:
               - 'infra/grafana.Dockerfile'
               - 'infra/grafana/**'
               - 'scripts/validate_grafana_dashboards.py'
+              - 'scripts/verify_grafana_image.sh'
       # Separate step: these filters are a plain OR of positive-only
       # patterns, so they need the default 'some' quantifier, not 'every'.
       - uses: dorny/paths-filter@v4
