@@ -100,7 +100,11 @@ grafana_env_names="$(
 while IFS= read -r name; do
 	[ -n "$name" ] || continue
 	case "$name" in
-		GF_* | RELEASE | KAMAL_*) ;;
+		# NOTIFY_EMAIL_TO is read by $__env{} in
+		# infra/grafana/provisioning/alerting/contactpoints.yml, not by
+		# Grafana settings — provisioning-file interpolation accepts any env
+		# var name, so the non-GF_ spelling is deliberate (issue #1528 follow-up).
+		GF_* | RELEASE | KAMAL_* | NOTIFY_EMAIL_TO) ;;
 		*)
 			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored (see #1517). Rename it to the GF_* name Grafana expects." >&2
 			status=1

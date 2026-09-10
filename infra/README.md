@@ -489,7 +489,12 @@ RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
                               GF_SMTP_PASSWORD env key)
 EMAIL_FROM                   (also reused as Grafana's GF_SMTP_FROM_ADDRESS,
                               issue #1468)
-NOTIFY_EMAIL_TO
+NOTIFY_EMAIL_TO              (admin recipient for api's notification emails;
+                              also Grafana's alert-email recipient via the
+                              "Deploy grafana via Kamal" step's NOTIFY_EMAIL_TO
+                              env key, read by $__env{} in
+                              infra/grafana/provisioning/alerting/contactpoints.yml
+                              — issue #1528 follow-up)
 EMAIL_INBOUND_DOMAIN
 EMAIL_INBOUND_SECRET
 OBSERVABILITY_INGEST_SECRET  (shared secret gating POST

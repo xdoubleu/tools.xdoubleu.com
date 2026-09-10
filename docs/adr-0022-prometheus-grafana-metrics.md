@@ -124,7 +124,13 @@ disk doesn't need to sustain to matter).
 SMTP relay (`smtp.resend.com:587`), with `GF_SMTP_PASSWORD`/
 `GF_SMTP_FROM_ADDRESS` fed from the *same* `RESEND_API_KEY`/`EMAIL_FROM` repo
 secrets `api`'s own mailer already uses — no new mail credential to
-provision. This is explicitly the least load-bearing part of this change;
+provision. Alert emails are sent *from* `GF_SMTP_FROM_ADDRESS` (the
+`EMAIL_FROM` secret) but delivered *to* `$__env{NOTIFY_EMAIL_TO}` — the same
+admin recipient `api`'s own notification emails use (`cfg.NotifyEmailTo`);
+the contact point (`infra/grafana/provisioning/alerting/contactpoints.yml`)
+and `config/deploy.grafana.yml` both carry that secret (issue #1528
+follow-up — originally the contact point wrongly used the from-address as the
+recipient). This is explicitly the least load-bearing part of this change;
 Slack (ADR-0020) was considered but Grafana's contact-point model doesn't
 share `internal/notifications`' delivery queue, so wiring it in would mean a
 second, Grafana-native Slack integration for no clear benefit over SMTP.

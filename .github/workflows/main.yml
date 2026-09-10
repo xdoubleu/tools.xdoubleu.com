@@ -617,6 +617,10 @@ jobs:
           # (issue #1468's Grafana contact point) — no new mail credential.
           GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
           GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
+          # Alert-email recipient — the admin address api's own mailer sends
+          # notifications to. Consumed by $__env{NOTIFY_EMAIL_TO} in
+          # infra/grafana/provisioning/alerting/contactpoints.yml.
+          NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
         run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
