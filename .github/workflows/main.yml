@@ -660,6 +660,11 @@ jobs:
           # notifications to. Consumed by $__env{NOTIFY_EMAIL_TO} in
           # infra/grafana/provisioning/alerting/contactpoints.yml.
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
+          # GitHub + Sentry datasource plugin tokens (issue #1570). Consumed
+          # by $__env{} in
+          # infra/grafana/provisioning/datasources/issue-signals.yml.
+          GRAFANA_GITHUB_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_GITHUB_DATASOURCE_TOKEN }}
+          GRAFANA_SENTRY_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_SENTRY_DATASOURCE_TOKEN }}
         run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on

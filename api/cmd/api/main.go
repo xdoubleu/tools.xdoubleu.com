@@ -254,7 +254,7 @@ func newCrossAppJobs(
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
-		sentryClient, githubClient, storageSnapshotsRepo, dbStatsRepo,
+		githubClient, storageSnapshotsRepo, dbStatsRepo,
 	)
 
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(

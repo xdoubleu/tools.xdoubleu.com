@@ -121,8 +121,9 @@ named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 others). `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
 against Prometheus — host CPU/memory/disk, Postgres stats, api's and web's
 own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528) and
-the `github_*`/`sentry_unresolved_issues`/`r2_*` issue-signal gauges (issue
-#1529) — now that Grafana + Prometheus own metrics/graphs/alerting (see
+the `github_*`/`r2_*`/`postgres_schema_size_bytes` issue-signal gauges (issue
+#1529; Sentry unresolved issues moved to a Grafana datasource plugin in
+#1570) — now that Grafana + Prometheus own metrics/graphs/alerting (see
 [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md));
 it replaced four narrower tools (`get_host_metrics`,
 `get_database_size_history`, `get_transaction_latency_history`, and

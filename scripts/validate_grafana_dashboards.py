@@ -7,8 +7,10 @@ in Grafana's logs after deploy. This checks the invariants that matter:
 
   * the file is valid JSON
   * it has a non-empty `uid` and `title`, and no two dashboards share a `uid`
-  * every panel references the provisioned datasource by uid (`prometheus`)
-  * every panel target carries a non-empty `expr`
+  * every panel references a provisioned datasource by uid (`prometheus`,
+    `github` or `sentry` — see infra/grafana/provisioning/datasources/)
+  * every Prometheus panel target carries a non-empty `expr` (plugin
+    datasources use their own query fields, not `expr`)
 
 Run via `make lint/grafana` (wired into `make lint`).
 """
@@ -20,7 +22,10 @@ import sys
 from pathlib import Path
 
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "infra" / "grafana" / "dashboards"
-DATASOURCE_UID = "prometheus"
+# uids provisioned in infra/grafana/provisioning/datasources/. `prometheus`
+# is the default; `github`/`sentry` are the backend plugin datasources
+# added in issue #1570.
+DATASOURCE_UIDS = frozenset({"prometheus", "github", "sentry"})
 
 
 def _iter_panels(panels: list[dict]):
@@ -53,16 +58,23 @@ def validate_file(path: Path, seen_uids: dict[str, str]) -> list[str]:
             continue
         label = f"{path.name}: panel {panel.get('id', '?')} ({panel.get('title', '')!r})"
         ds = panel.get("datasource")
-        if isinstance(ds, dict) and ds.get("uid") not in (DATASOURCE_UID, None):
-            errors.append(f"{label}: datasource uid {ds.get('uid')!r} != {DATASOURCE_UID!r}")
+        if isinstance(ds, dict) and ds.get("uid") not in (*DATASOURCE_UIDS, None):
+            errors.append(
+                f"{label}: datasource uid {ds.get('uid')!r} not in {sorted(DATASOURCE_UIDS)}"
+            )
         for target in panel.get("targets", []):
-            ds = target.get("datasource")
-            if isinstance(ds, dict) and ds.get("uid") not in (DATASOURCE_UID, None):
+            tds = target.get("datasource")
+            tds_uid = tds.get("uid") if isinstance(tds, dict) else None
+            if tds_uid is not None and tds_uid not in DATASOURCE_UIDS:
                 errors.append(
                     f"{label}: target {target.get('refId', '?')} datasource uid "
-                    f"{ds.get('uid')!r} != {DATASOURCE_UID!r}"
+                    f"{tds_uid!r} not in {sorted(DATASOURCE_UIDS)}"
                 )
-            if not str(target.get("expr", "")).strip():
+            # Only Prometheus targets use `expr`; the github/sentry plugin
+            # datasources carry their own query fields (queryType, …).
+            panel_uid = ds.get("uid") if isinstance(ds, dict) else None
+            effective_uid = tds_uid or panel_uid or "prometheus"
+            if effective_uid == "prometheus" and not str(target.get("expr", "")).strip():
                 errors.append(f"{label}: target {target.get('refId', '?')} has empty `expr`")
     return errors
 

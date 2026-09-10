@@ -33,11 +33,19 @@
       "id": 2,
       "type": "stat",
       "title": "Unresolved Sentry issues",
-      "description": "sentry_unresolved_issues gauge from the issue-signal collector (#1539).",
+      "description": "Unresolved issues from the Sentry API, queried live through the grafana-sentry-datasource plugin (#1570).",
       "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sentry_unresolved_issues" }
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+          "queryType": "issues",
+          "issuesQuery": "is:unresolved",
+          "issuesLimit": 1000,
+          "projectIds": [],
+          "environments": []
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -46,7 +54,7 @@
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+      "options": { "reduceOptions": { "calcs": ["count"], "fields": "" }, "colorMode": "background", "graphMode": "none" }
     },
     {
       "id": 3,

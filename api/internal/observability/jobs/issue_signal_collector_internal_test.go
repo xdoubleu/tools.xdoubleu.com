@@ -15,36 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
-	"tools.xdoubleu.com/internal/sentryapi"
 )
-
-type stubSentryClient struct {
-	issues []sentryapi.Issue
-	err    error
-}
-
-func (s stubSentryClient) ListUnresolvedIssues(
-	_ context.Context,
-) ([]sentryapi.Issue, error) {
-	return s.issues, s.err
-}
-func (s stubSentryClient) ResolveIssue(_ context.Context, _ string) error { return nil }
-
-func (s stubSentryClient) ListOrgs(_ context.Context) ([]sentryapi.Org, error) {
-	return nil, nil
-}
-
-func (s stubSentryClient) ListProjects(
-	_ context.Context, _ string,
-) ([]sentryapi.Project, error) {
-	return nil, nil
-}
-
-func (s stubSentryClient) ListTransactionStats(
-	_ context.Context,
-) ([]sentryapi.TransactionStat, error) {
-	return nil, nil
-}
 
 type stubGithubClient struct {
 	prs       []github.PullRequest
@@ -135,11 +106,6 @@ func alertWithSeverity(sev string) github.SecurityAlert {
 	return github.SecurityAlert{Severity: sev}
 }
 
-func unresolvedIssues(n int) []sentryapi.Issue {
-	out := make([]sentryapi.Issue, n)
-	return out
-}
-
 func failingPRs(n int) []github.PullRequest {
 	return make([]github.PullRequest, n)
 }
@@ -150,7 +116,6 @@ func resetGauges() {
 	githubFailingPullRequests.Set(0)
 	githubWorkflowRunFailed.Reset()
 	githubOpenSecurityAlerts.Reset()
-	sentryUnresolvedIssues.Set(0)
 	r2OrphanedObjects.Set(0)
 	r2StorageBytes.Set(0)
 	githubWorkflowRunDurationSeconds.Reset()
@@ -158,17 +123,15 @@ func resetGauges() {
 }
 
 func newStubJob(
-	sentry stubSentryClient,
 	gh stubGithubClient,
 	storage stubStorageGetter,
 	schemas stubSchemaSizer,
 ) *IssueSignalCollectorJob {
-	return NewIssueSignalCollectorJob(sentry, gh, storage, schemas)
+	return NewIssueSignalCollectorJob(gh, storage, schemas)
 }
 
 func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 	job := newStubJob(
-		stubSentryClient{issues: nil, err: nil},
 		stubGithubClient{
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
@@ -183,7 +146,6 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 	resetGauges()
 	job := newStubJob(
-		stubSentryClient{issues: unresolvedIssues(3), err: nil},
 		stubGithubClient{
 			prs:    failingPRs(2),
 			prsErr: nil,
@@ -228,7 +190,6 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 		testutil.ToFloat64(githubOpenSecurityAlerts.WithLabelValues("high")), 0)
 	assert.InDelta(t, 1.0,
 		testutil.ToFloat64(githubOpenSecurityAlerts.WithLabelValues("low")), 0)
-	assert.InDelta(t, 3.0, testutil.ToFloat64(sentryUnresolvedIssues), 0)
 	assert.InDelta(t, 7.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 123456.0, testutil.ToFloat64(r2StorageBytes), 0)
 	assert.InDelta(t, 0.42, testutil.ToFloat64(
@@ -244,12 +205,10 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	resetGauges()
 	githubFailingPullRequests.Set(11)
-	sentryUnresolvedIssues.Set(22)
 	r2OrphanedObjects.Set(33)
 	r2StorageBytes.Set(44)
 
 	job := newStubJob(
-		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		stubGithubClient{
 			prs:       nil,
 			prsErr:    github.ErrNotConfigured,
@@ -268,7 +227,6 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), logger))
 
 	assert.InDelta(t, 11.0, testutil.ToFloat64(githubFailingPullRequests), 0)
-	assert.InDelta(t, 22.0, testutil.ToFloat64(sentryUnresolvedIssues), 0)
 	assert.InDelta(t, 33.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 44.0, testutil.ToFloat64(r2StorageBytes), 0)
 	assert.Empty(t, buf.String())
@@ -278,7 +236,6 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 	resetGauges()
 	boom := errors.New("upstream down")
 	job := newStubJob(
-		stubSentryClient{issues: nil, err: boom},
 		stubGithubClient{
 			prs:       nil,
 			prsErr:    boom,
@@ -299,7 +256,6 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 	resetGauges()
 	job := newStubJob(
-		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		stubGithubClient{
 			prs:       failingPRs(1),
 			prsErr:    nil,
