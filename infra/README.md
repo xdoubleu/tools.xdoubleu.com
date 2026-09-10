@@ -486,7 +486,11 @@ OAUTH_GRAFANA_CLIENT_SECRET  (plaintext secret for the static confidential
 GRAFANA_ADMIN_PASSWORD       (Grafana's local break-glass admin password,
                               issue #1468 — config/deploy.grafana.yml's
                               GF_SECURITY_ADMIN_PASSWORD; SSO via
-                              generic_oauth is the normal path in)
+                              generic_oauth is the normal path in. Also
+                              delivered to the api container under this same
+                              name, issue #1564 — the get_grafana_alerts MCP
+                              tool authenticates to Grafana's API as `admin`
+                              with it)
 STEAM_API_KEY
 HARDCOVER_API_KEY
 BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key

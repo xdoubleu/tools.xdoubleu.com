@@ -113,7 +113,7 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (16 tools, which include the two mutating
+// tools registered directly below (17 tools, which include the two mutating
 // tools, resolve_sentry_issue and dismiss_security_alert — see
 // registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
@@ -133,12 +133,13 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 16 admin observability tools —
-// 14 read-only plus the two deliberate mutations, resolve_sentry_issue and
-// dismiss_security_alert. Every tool but prom_query wraps a shared internal
-// ObservabilityService method also used by the Connect handlers; prom_query
-// (issue #1468) instead proxies straight to Prometheus's own HTTP API, since
-// its response shape isn't a proto message this repo defines.
+// registerObservabilityMCPTools registers the 17 admin observability tools —
+// 15 read-only plus the two deliberate mutations, resolve_sentry_issue and
+// dismiss_security_alert. Every tool but prom_query and get_grafana_alerts
+// wraps a shared internal ObservabilityService method also used by the
+// Connect handlers; those two (issues #1468, #1564) instead proxy straight
+// to Prometheus's / Grafana's own HTTP API, since their response shapes
+// aren't proto messages this repo defines.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	h := &obsConnectHandler{app: app}
 
@@ -250,6 +251,7 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 			return h.notificationSettings(ctx)
 		})
 	registerPromQueryMCPTool(srv, h.app)
+	registerGrafanaAlertsMCPTool(srv, h.app)
 	addObsTool(srv, "get_project_issues_by_status",
 		"Open issues on the configured repository owner's GitHub Projects "+
 			"(v2) board whose Status column matches the given name (e.g. "+
