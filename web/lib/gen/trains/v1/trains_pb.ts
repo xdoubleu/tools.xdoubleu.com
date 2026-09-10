@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiTQoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJIiYKFVNlYXJjaFN0YXRpb25zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI+ChZTZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEiQKCHN0YXRpb25zGAEgAygLMhIudHJhaW5zLnYxLlN0YXRpb24iFAoSR2V0RmVlZEluZm9SZXF1ZXN0InYKE0dldEZlZWRJbmZvUmVzcG9uc2USFAoMZmVlZF92ZXJzaW9uGAEgASgJEhMKC2ltcG9ydGVkX2F0GAIgASgJEjQKDHRyYW5zbGF0aW9ucxgDIAEoCzIeLnRyYWlucy52MS5UcmFuc2xhdGlvbkNvdmVyYWdlIpIBChNUcmFuc2xhdGlvbkNvdmVyYWdlEhsKE3RyYW5zbGF0ZWRfc3RvcHNfbmwYASABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19mchgCIAEoBRIbChN0cmFuc2xhdGVkX3N0b3BzX2VuGAMgASgFEgwKBHJvd3MYBCABKAUSFgoOcm93c191bm1hdGNoZWQYBSABKAUy5wIKDFRyYWluU2VydmljZRJVCg5TZWFyY2hKb3VybmV5cxIgLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXNwb25zZRJVCg5TZWFyY2hTdGF0aW9ucxIgLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXNwb25zZRJMCgtHZXRGZWVkSW5mbxIdLnRyYWlucy52MS5HZXRGZWVkSW5mb1JlcXVlc3QaHi50cmFpbnMudjEuR2V0RmVlZEluZm9SZXNwb25zZRJbChBHZXRKb3VybmV5RGV0YWlsEiIudHJhaW5zLnYxLkdldEpvdXJuZXlEZXRhaWxSZXF1ZXN0GiMudHJhaW5zLnYxLkdldEpvdXJuZXlEZXRhaWxSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL3RyYWlucy92MTt0cmFpbnN2MWIGcHJvdG8z");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiTQoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJIiYKFVNlYXJjaFN0YXRpb25zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI+ChZTZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEiQKCHN0YXRpb25zGAEgAygLMhIudHJhaW5zLnYxLlN0YXRpb24iFAoSR2V0RmVlZEluZm9SZXF1ZXN0InYKE0dldEZlZWRJbmZvUmVzcG9uc2USFAoMZmVlZF92ZXJzaW9uGAEgASgJEhMKC2ltcG9ydGVkX2F0GAIgASgJEjQKDHRyYW5zbGF0aW9ucxgDIAEoCzIeLnRyYWlucy52MS5UcmFuc2xhdGlvbkNvdmVyYWdlIpIBChNUcmFuc2xhdGlvbkNvdmVyYWdlEhsKE3RyYW5zbGF0ZWRfc3RvcHNfbmwYASABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19mchgCIAEoBRIbChN0cmFuc2xhdGVkX3N0b3BzX2VuGAMgASgFEgwKBHJvd3MYBCABKAUSFgoOcm93c191bm1hdGNoZWQYBSABKAUiiAEKDFNhdmVkQ29tbXV0ZRIKCgJpZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIiCgZvcmlnaW4YAyABKAsyEi50cmFpbnMudjEuU3RhdGlvbhInCgtkZXN0aW5hdGlvbhgEIAEoCzISLnRyYWlucy52MS5TdGF0aW9uEhAKCHBvc2l0aW9uGAUgASgFIhoKGExpc3RTYXZlZENvbW11dGVzUmVxdWVzdCJMChlMaXN0U2F2ZWRDb21tdXRlc1Jlc3BvbnNlEi8KDnNhdmVkX2NvbW11dGVzGAEgAygLMhcudHJhaW5zLnYxLlNhdmVkQ29tbXV0ZSJfChlDcmVhdGVTYXZlZENvbW11dGVSZXF1ZXN0Eg0KBWxhYmVsGAEgASgJEhYKDm9yaWdpbl9zdG9wX2lkGAIgASgJEhsKE2Rlc3RpbmF0aW9uX3N0b3BfaWQYAyABKAkiTAoaQ3JlYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USLgoNc2F2ZWRfY29tbXV0ZRgBIAEoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiSAoZVXBkYXRlU2F2ZWRDb21tdXRlUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVsYWJlbBgCIAEoCRIQCghwb3NpdGlvbhgDIAEoBSJMChpVcGRhdGVTYXZlZENvbW11dGVSZXNwb25zZRIuCg1zYXZlZF9jb21tdXRlGAEgASgLMhcudHJhaW5zLnYxLlNhdmVkQ29tbXV0ZSInChlEZWxldGVTYXZlZENvbW11dGVSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlMvAFCgxUcmFpblNlcnZpY2USVQoOU2VhcmNoSm91cm5leXMSIC50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVzcG9uc2USVQoOU2VhcmNoU3RhdGlvbnMSIC50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVzcG9uc2USTAoLR2V0RmVlZEluZm8SHS50cmFpbnMudjEuR2V0RmVlZEluZm9SZXF1ZXN0Gh4udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVzcG9uc2USWwoQR2V0Sm91cm5leURldGFpbBIiLnRyYWlucy52MS5HZXRKb3VybmV5RGV0YWlsUmVxdWVzdBojLnRyYWlucy52MS5HZXRKb3VybmV5RGV0YWlsUmVzcG9uc2USXgoRTGlzdFNhdmVkQ29tbXV0ZXMSIy50cmFpbnMudjEuTGlzdFNhdmVkQ29tbXV0ZXNSZXF1ZXN0GiQudHJhaW5zLnYxLkxpc3RTYXZlZENvbW11dGVzUmVzcG9uc2USYQoSQ3JlYXRlU2F2ZWRDb21tdXRlEiQudHJhaW5zLnYxLkNyZWF0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QaJS50cmFpbnMudjEuQ3JlYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USYQoSVXBkYXRlU2F2ZWRDb21tdXRlEiQudHJhaW5zLnYxLlVwZGF0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QaJS50cmFpbnMudjEuVXBkYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USYQoSRGVsZXRlU2F2ZWRDb21tdXRlEiQudHJhaW5zLnYxLkRlbGV0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QaJS50cmFpbnMudjEuRGVsZXRlU2F2ZWRDb21tdXRlUmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi90cmFpbnMvdjE7dHJhaW5zdjFiBnByb3RvMw");
 
 /**
  * Leg is one boarded train, from where the passenger gets on to where they
@@ -625,6 +625,199 @@ export const TranslationCoverageSchema: GenMessage<TranslationCoverage> = /*@__P
   messageDesc(file_trains_v1_trains, 16);
 
 /**
+ * SavedCommute is a user's named origin->destination station pair, surfaced
+ * above the /trains pickers so a route they take every day is one tap away.
+ * origin/destination are always location_type=1 stations keyed by their
+ * S-prefixed UIC parent-station id — never a trip_id or anything derived
+ * from a specific day's timetable (#1390).
+ *
+ * @generated from message trains.v1.SavedCommute
+ */
+export type SavedCommute = Message<"trains.v1.SavedCommute"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: trains.v1.Station origin = 3;
+   */
+  origin?: Station | undefined;
+
+  /**
+   * @generated from field: trains.v1.Station destination = 4;
+   */
+  destination?: Station | undefined;
+
+  /**
+   * Ascending sort order within the signed-in user's list.
+   *
+   * @generated from field: int32 position = 5;
+   */
+  position: number;
+};
+
+/**
+ * Describes the message trains.v1.SavedCommute.
+ * Use `create(SavedCommuteSchema)` to create a new message.
+ */
+export const SavedCommuteSchema: GenMessage<SavedCommute> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 17);
+
+/**
+ * @generated from message trains.v1.ListSavedCommutesRequest
+ */
+export type ListSavedCommutesRequest = Message<"trains.v1.ListSavedCommutesRequest"> & {
+};
+
+/**
+ * Describes the message trains.v1.ListSavedCommutesRequest.
+ * Use `create(ListSavedCommutesRequestSchema)` to create a new message.
+ */
+export const ListSavedCommutesRequestSchema: GenMessage<ListSavedCommutesRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 18);
+
+/**
+ * @generated from message trains.v1.ListSavedCommutesResponse
+ */
+export type ListSavedCommutesResponse = Message<"trains.v1.ListSavedCommutesResponse"> & {
+  /**
+   * @generated from field: repeated trains.v1.SavedCommute saved_commutes = 1;
+   */
+  savedCommutes: SavedCommute[];
+};
+
+/**
+ * Describes the message trains.v1.ListSavedCommutesResponse.
+ * Use `create(ListSavedCommutesResponseSchema)` to create a new message.
+ */
+export const ListSavedCommutesResponseSchema: GenMessage<ListSavedCommutesResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 19);
+
+/**
+ * @generated from message trains.v1.CreateSavedCommuteRequest
+ */
+export type CreateSavedCommuteRequest = Message<"trains.v1.CreateSavedCommuteRequest"> & {
+  /**
+   * @generated from field: string label = 1;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string origin_stop_id = 2;
+   */
+  originStopId: string;
+
+  /**
+   * @generated from field: string destination_stop_id = 3;
+   */
+  destinationStopId: string;
+};
+
+/**
+ * Describes the message trains.v1.CreateSavedCommuteRequest.
+ * Use `create(CreateSavedCommuteRequestSchema)` to create a new message.
+ */
+export const CreateSavedCommuteRequestSchema: GenMessage<CreateSavedCommuteRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 20);
+
+/**
+ * @generated from message trains.v1.CreateSavedCommuteResponse
+ */
+export type CreateSavedCommuteResponse = Message<"trains.v1.CreateSavedCommuteResponse"> & {
+  /**
+   * @generated from field: trains.v1.SavedCommute saved_commute = 1;
+   */
+  savedCommute?: SavedCommute | undefined;
+};
+
+/**
+ * Describes the message trains.v1.CreateSavedCommuteResponse.
+ * Use `create(CreateSavedCommuteResponseSchema)` to create a new message.
+ */
+export const CreateSavedCommuteResponseSchema: GenMessage<CreateSavedCommuteResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 21);
+
+/**
+ * @generated from message trains.v1.UpdateSavedCommuteRequest
+ */
+export type UpdateSavedCommuteRequest = Message<"trains.v1.UpdateSavedCommuteRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: int32 position = 3;
+   */
+  position: number;
+};
+
+/**
+ * Describes the message trains.v1.UpdateSavedCommuteRequest.
+ * Use `create(UpdateSavedCommuteRequestSchema)` to create a new message.
+ */
+export const UpdateSavedCommuteRequestSchema: GenMessage<UpdateSavedCommuteRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 22);
+
+/**
+ * @generated from message trains.v1.UpdateSavedCommuteResponse
+ */
+export type UpdateSavedCommuteResponse = Message<"trains.v1.UpdateSavedCommuteResponse"> & {
+  /**
+   * @generated from field: trains.v1.SavedCommute saved_commute = 1;
+   */
+  savedCommute?: SavedCommute | undefined;
+};
+
+/**
+ * Describes the message trains.v1.UpdateSavedCommuteResponse.
+ * Use `create(UpdateSavedCommuteResponseSchema)` to create a new message.
+ */
+export const UpdateSavedCommuteResponseSchema: GenMessage<UpdateSavedCommuteResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 23);
+
+/**
+ * @generated from message trains.v1.DeleteSavedCommuteRequest
+ */
+export type DeleteSavedCommuteRequest = Message<"trains.v1.DeleteSavedCommuteRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message trains.v1.DeleteSavedCommuteRequest.
+ * Use `create(DeleteSavedCommuteRequestSchema)` to create a new message.
+ */
+export const DeleteSavedCommuteRequestSchema: GenMessage<DeleteSavedCommuteRequest> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 24);
+
+/**
+ * @generated from message trains.v1.DeleteSavedCommuteResponse
+ */
+export type DeleteSavedCommuteResponse = Message<"trains.v1.DeleteSavedCommuteResponse"> & {
+};
+
+/**
+ * Describes the message trains.v1.DeleteSavedCommuteResponse.
+ * Use `create(DeleteSavedCommuteResponseSchema)` to create a new message.
+ */
+export const DeleteSavedCommuteResponseSchema: GenMessage<DeleteSavedCommuteResponse> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 25);
+
+/**
  * @generated from service trains.v1.TrainService
  */
 export const TrainService: GenService<{
@@ -664,6 +857,41 @@ export const TrainService: GenService<{
     methodKind: "unary";
     input: typeof GetJourneyDetailRequestSchema;
     output: typeof GetJourneyDetailResponseSchema;
+  },
+  /**
+   * Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
+   * by the trains app's own AppAccess like every other RPC here.
+   *
+   * @generated from rpc trains.v1.TrainService.ListSavedCommutes
+   */
+  listSavedCommutes: {
+    methodKind: "unary";
+    input: typeof ListSavedCommutesRequestSchema;
+    output: typeof ListSavedCommutesResponseSchema;
+  },
+  /**
+   * @generated from rpc trains.v1.TrainService.CreateSavedCommute
+   */
+  createSavedCommute: {
+    methodKind: "unary";
+    input: typeof CreateSavedCommuteRequestSchema;
+    output: typeof CreateSavedCommuteResponseSchema;
+  },
+  /**
+   * @generated from rpc trains.v1.TrainService.UpdateSavedCommute
+   */
+  updateSavedCommute: {
+    methodKind: "unary";
+    input: typeof UpdateSavedCommuteRequestSchema;
+    output: typeof UpdateSavedCommuteResponseSchema;
+  },
+  /**
+   * @generated from rpc trains.v1.TrainService.DeleteSavedCommute
+   */
+  deleteSavedCommute: {
+    methodKind: "unary";
+    input: typeof DeleteSavedCommuteRequestSchema;
+    output: typeof DeleteSavedCommuteResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_trains_v1_trains, 0);

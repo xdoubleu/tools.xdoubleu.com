@@ -4,9 +4,11 @@ import TrainsClient from '@/components/trains/TrainsClient'
 const mockUseTrainsFeedInfo = jest.fn()
 const mockUseStationSearch = jest.fn()
 const mockUseJourneySearch = jest.fn()
+const mockUseSavedCommutes = jest.fn()
 
 jest.mock('@/hooks/useTrains', () => ({
   useTrainsFeedInfo: () => mockUseTrainsFeedInfo(),
+  useSavedCommutes: () => mockUseSavedCommutes(),
   useStationSearch: (query: string) => mockUseStationSearch(query),
   useJourneySearch: (
     originStopId: string,
@@ -25,6 +27,11 @@ beforeEach(() => {
     ]
   })
   mockUseJourneySearch.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
+  mockUseSavedCommutes.mockReturnValue({
+    data: { savedCommutes: [] },
+    create: jest.fn().mockResolvedValue(undefined),
+    remove: jest.fn().mockResolvedValue(undefined)
+  })
 })
 
 describe('TrainsClient', () => {
@@ -64,6 +71,31 @@ describe('TrainsClient', () => {
 
     expect(screen.getByLabelText('To')).toHaveValue('Alpha')
     expect(screen.getByLabelText('From')).toHaveValue('')
+  })
+
+  it('opens a saved commute into the search in one tap', () => {
+    mockUseSavedCommutes.mockReturnValue({
+      data: {
+        savedCommutes: [
+          {
+            id: '1',
+            label: 'Home to work',
+            position: 0,
+            origin: { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha' },
+            destination: { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo' }
+          }
+        ]
+      },
+      create: jest.fn(),
+      remove: jest.fn()
+    })
+    render(<TrainsClient />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Home to work' }))
+
+    expect(screen.getByLabelText('From')).toHaveValue('Alpha')
+    expect(screen.getByLabelText('To')).toHaveValue('Bravo')
+    expect(mockUseJourneySearch).toHaveBeenLastCalledWith('SA', 'SB', expect.any(String), false)
   })
 
   it('treats a cleared date as no request time', () => {

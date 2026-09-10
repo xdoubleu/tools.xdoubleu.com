@@ -5,7 +5,10 @@ const mockClient = {
   getFeedInfo: jest.fn().mockResolvedValue({ feedVersion: '2026-08-31' }),
   searchStations: jest.fn().mockResolvedValue({ stations: [{ stopId: 'SA', name: 'Alpha' }] }),
   searchJourneys: jest.fn().mockResolvedValue({ journeys: [] }),
-  getJourneyDetail: jest.fn().mockResolvedValue({ journey: { legs: [] } })
+  getJourneyDetail: jest.fn().mockResolvedValue({ journey: { legs: [] } }),
+  listSavedCommutes: jest.fn().mockResolvedValue({ savedCommutes: [] }),
+  createSavedCommute: jest.fn().mockResolvedValue({}),
+  deleteSavedCommute: jest.fn().mockResolvedValue({})
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -19,7 +22,8 @@ import {
   useTrainsFeedInfo,
   useStationSearch,
   useJourneySearch,
-  useJourneyDetail
+  useJourneyDetail,
+  useSavedCommutes
 } from '@/hooks/useTrains'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -75,6 +79,40 @@ describe('useJourneySearch', () => {
       ['/trains/journeys', 'SA', 'SB', '2026-01-01T00:00:00Z', true],
       expect.any(Function)
     )
+  })
+})
+
+describe('useSavedCommutes', () => {
+  it('keys by the saved-commutes key and fetches the list', async () => {
+    renderHook(() => useSavedCommutes())
+    expect(mockUseSWR).toHaveBeenCalledWith('/trains/saved-commutes', expect.any(Function))
+    const [, fetcher] = mockUseSWR.mock.calls[0]!
+    await fetcher!()
+    expect(mockClient.listSavedCommutes).toHaveBeenCalledWith({})
+  })
+
+  it('create posts the pair then revalidates', async () => {
+    const mutate = jest.fn().mockResolvedValue(undefined)
+    // @ts-expect-error -- partial SWRResponse
+    mockUseSWR.mockReturnValue({ data: undefined, mutate })
+    const { result } = renderHook(() => useSavedCommutes())
+    await result.current.create('Label', 'SA', 'SB')
+    expect(mockClient.createSavedCommute).toHaveBeenCalledWith({
+      label: 'Label',
+      originStopId: 'SA',
+      destinationStopId: 'SB'
+    })
+    expect(mutate).toHaveBeenCalled()
+  })
+
+  it('remove deletes by id then revalidates', async () => {
+    const mutate = jest.fn().mockResolvedValue(undefined)
+    // @ts-expect-error -- partial SWRResponse
+    mockUseSWR.mockReturnValue({ data: undefined, mutate })
+    const { result } = renderHook(() => useSavedCommutes())
+    await result.current.remove('c1')
+    expect(mockClient.deleteSavedCommute).toHaveBeenCalledWith({ id: 'c1' })
+    expect(mutate).toHaveBeenCalled()
   })
 })
 

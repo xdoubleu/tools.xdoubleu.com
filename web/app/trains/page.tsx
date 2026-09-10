@@ -8,9 +8,15 @@ import { TrainService } from '@/lib/gen/trains/v1/trains_pb'
 export default async function TrainsPage() {
   const client = await createServerClient(TrainService)
   const feedInfo = await fetchOrNull(() => client.getFeedInfo({}))
+  const savedCommutes = await fetchOrNull(() => client.listSavedCommutes({}))
 
   return (
-    <SWRFallback fallback={feedInfo ? { [swrKeys.trainsFeedInfo]: feedInfo } : {}}>
+    <SWRFallback
+      fallback={{
+        ...(feedInfo ? { [swrKeys.trainsFeedInfo]: feedInfo } : {}),
+        ...(savedCommutes ? { [swrKeys.trainsSavedCommutes]: savedCommutes } : {})
+      }}
+    >
       <TrainsClient />
     </SWRFallback>
   )
