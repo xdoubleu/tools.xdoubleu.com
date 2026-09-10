@@ -167,8 +167,9 @@ second, Grafana-native Slack integration for no clear benefit over SMTP.
   `r2_orphaned_objects` gauges from the same collector back the Grafana
   `R2UsageHigh` (9 GiB budget) and `IssueOrphanedStorage` rules.
   `GetStorageStats`/`OrphanedStorageCard` on `/monitoring` still surface it
-  live. `ci_duration_high` remains the only signal with no Grafana/Prometheus
-  replacement — Prometheus has no GitHub Actions workflow-duration exporter.
+  live. `ci_duration_high` was at this point the only signal with no
+  Grafana/Prometheus replacement — Phase 6 (#1556) added the
+  `github_workflow_run_duration_seconds` gauge (panel-only, no alert).
 - Frontend chart components: `MultiSeriesChart`, `HostMetricsCard`,
   `AlertStatesCard`, `TransactionLatencyHistoryCard`, and the history half of
   `DatabaseCard` (the schema/total-size live snapshot half is kept). The
@@ -267,9 +268,10 @@ retires the last hand-rolled notifier.
   `IssueMainCIRed` (`max(github_workflow_run_failed{branch="main"}) > 0`),
   `IssueSecurityAlerts`, `IssueSentryUnresolved`, `IssueOrphanedStorage`, and
   `R2UsageHigh` (`r2_storage_bytes > 9 GiB`). `failing_main_ci` and
-  `r2_usage_high` are no longer open gaps — `ci_duration_high` remains the
-  only signal with no Prometheus/Grafana replacement (no GitHub Actions
-  workflow-duration exporter). A `service-health` Grafana dashboard graphs the
+  `r2_usage_high` are no longer open gaps — `ci_duration_high` was at this
+  point the only signal with no Prometheus metric behind it (Phase 6 (#1556)
+  later added `github_workflow_run_duration_seconds`, panel-only, no alert). A
+  `service-health` Grafana dashboard graphs the
   gauges alongside the host/Postgres/api-runtime/overview dashboards.
 - **`IssueNotifierJob` and `global.notified_issues` are retired** (#1541,
   migration `00048`). It was the realtime "email an admin the first time a
@@ -371,6 +373,30 @@ exported and alerted on still tells you nothing if nobody ever confirmed a
 sample landed. The post-deploy `prom_query` check in #1554's verification
 section exists to make that a step rather than an assumption.
 
+## Phase 6 (#1556): the two metrics that had nothing to graph
+
+#1554 restored every panel that could be built from metrics that already
+existed; two pre-Grafana overviews could not be, because nothing exported the
+data. Phase 6 adds the missing Go instrumentation, both as gauges refreshed on
+`IssueSignalCollectorJob`'s 5-minute timer (not scraped directly):
+
+- `github_workflow_run_duration_seconds{workflow}` — the latest completed
+  default-branch run's duration per workflow, computed in the loop
+  `collectWorkflowRuns` already runs over the GitHub API response. Closes the
+  long-standing `ci_duration_high` "revisit when" item: the data now exists.
+  No alert was added — failing-run signal already exists and duration trends
+  are read on the `app-performance` panel, not alerted.
+- `postgres_schema_size_bytes{schema}` — per-schema on-disk size from
+  `DBStatsRepository.SchemaSizes`, threaded into the job as a fourth
+  interface-typed dep (`dbStatsRepo` moved above `newCrossAppJobs` in
+  `cmd/api/main.go`). `postgres_exporter` only exposes per-*database* size.
+
+Both got an `app-performance` timeseries panel. Label names are `workflow` /
+`schema`, not `job` — the api scrape job's own `job` label would otherwise
+collide the way `job_duration_seconds` does (see `infra/prometheus.yml`'s
+`metric_relabel_configs`). Unverifiable until deployed by design — the
+post-deploy `prom_query` check confirms each series is non-empty.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why
@@ -380,8 +406,9 @@ section exists to make that a step rather than an assumption.
   digest, neither of which is an alert.
 - The main-branch-CI-failure and R2-usage-threshold alerts were an accepted,
   documented gap for #1468/#1528; Phase 3 (#1529) closed both via the
-  `service-health` gauge alerts. `ci_duration_high` is the one still-open
-  gap — no GitHub Actions workflow-duration exporter exists.
+  `service-health` gauge alerts. `ci_duration_high` was the one still-open
+  gap; Phase 6 (#1556) added the `github_workflow_run_duration_seconds`
+  gauge and an `app-performance` panel but deliberately no alert.
 - Kamal container naming isn't Tofu-managed, so the Prometheus scrape
   targets for `api` and (added in #1528) `web` (`infra/prometheus.yml`)
   assumed a specific Docker network alias that could not be verified against
@@ -396,9 +423,9 @@ section exists to make that a step rather than an assumption.
 
 ## Revisit when
 
-CI duration needs a real alert again — Phase 3 left `ci_duration_high` as the
-one signal with no exporter. Either write a small custom exporter (a
-Prometheus metric api's own `/metrics` exposes, sourced from GitHub's API) or
-accept that it stays workflow-surfaced-only rather than alerted. (R2 usage and
-the other five issue signals got their gauges + `service-health` alerts in
-#1529.)
+CI duration needs a real *alert*, not just a panel — Phase 6 (#1556) added
+the `github_workflow_run_duration_seconds` gauge and an `app-performance`
+panel, but no alert rule, on the reasoning that failing-run signal already
+exists and duration is a trend to read rather than be paged on. If that
+changes, a `ci_duration_high` rule in `infra/grafana/provisioning/alerting/`
+now has a metric to evaluate.

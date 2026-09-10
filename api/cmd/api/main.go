@@ -245,6 +245,7 @@ func newCrossAppJobs(
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
 	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
+	dbStatsRepo *repositories.DBStatsRepository,
 ) (
 	*jobs.IssueSignalCollectorJob,
 	*repositories.TransactionLatencyRepository,
@@ -253,7 +254,7 @@ func newCrossAppJobs(
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
-		sentryClient, githubClient, storageSnapshotsRepo,
+		sentryClient, githubClient, storageSnapshotsRepo, dbStatsRepo,
 	)
 
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
@@ -412,17 +413,17 @@ func NewApplication(
 
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
+	dbStatsRepo := repositories.NewDBStatsRepository(db)
 	issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
 		sentryClient,
 		githubClient,
 		storageSnapshotsRepo,
+		dbStatsRepo,
 	)
 
 	logsRepo := repositories.NewLogsRepository(db)
-
-	dbStatsRepo := repositories.NewDBStatsRepository(db)
 
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{

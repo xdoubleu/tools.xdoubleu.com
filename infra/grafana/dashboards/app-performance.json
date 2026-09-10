@@ -202,6 +202,62 @@
         ]
       },
       "options": { "sortBy": [ { "displayName": "p95", "desc": true } ] }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "CI workflow run duration",
+      "description": "Duration of the most recent completed run of each GitHub Actions workflow on the default branch. Refreshed every 5 minutes by IssueSignalCollectorJob, not scraped from GitHub directly.",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 42 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{workflow}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "github_workflow_run_duration_seconds"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      }
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Database size by schema",
+      "description": "Per-schema on-disk size. postgres_exporter only exposes per-database size; this gauge is refreshed every 5 minutes by IssueSignalCollectorJob from DBStatsRepository.SchemaSizes.",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 42 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "legendFormat": "{{schema}}",
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "postgres_schema_size_bytes"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "showPoints": "never" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      }
     }
   ]
 }
