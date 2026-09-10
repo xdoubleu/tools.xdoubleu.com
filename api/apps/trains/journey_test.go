@@ -275,6 +275,26 @@ func TestSearchJourneys_ColdRouterIsUnavailable(t *testing.T) {
 	require.ErrorIs(t, err, services.ErrRouterWarmingUp)
 }
 
+// TestJourneyService_MinTransferSeconds covers the connection-makeability
+// lookup the live journey page uses (issue #1395): before the index is
+// built it degrades to the router's own never-zero default, and once built
+// it defers to the index (an unknown pair still returns the default).
+func TestJourneyService_MinTransferSeconds(t *testing.T) {
+	ctx := context.Background()
+	js := services.NewJourneyService(logging.NewNopLogger(), testApp.Repositories)
+	assert.Equal(t, csa.DefaultMinTransferSeconds, js.MinTransferSeconds("SA", "SB"))
+
+	require.NoError(
+		t,
+		testApp.Repositories.Feed.ImportFeed(
+			ctx, journeyFeed(time.Now().UTC().Truncate(24*time.Hour)),
+		),
+	)
+	_, err := js.Refresh(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, csa.DefaultMinTransferSeconds, js.MinTransferSeconds("SA", "SC"))
+}
+
 // TestJourneyService_Refresh_CollapsesConcurrentRebuilds covers the
 // singleflight guard added with #1484: the startup warm-up racing the first
 // scheduled refresh must not run two window scans.

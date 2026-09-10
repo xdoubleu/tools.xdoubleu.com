@@ -3,6 +3,7 @@
 import { PageContainer } from '@/components/ui/page-container'
 import { Badge } from '@/components/ui/badge'
 import JourneyLegCard from '@/components/trains/JourneyLegCard'
+import JourneyAlternativePanel from '@/components/trains/JourneyAlternativePanel'
 import { useJourneyDetail } from '@/hooks/useTrains'
 import { useJourneyLive } from '@/lib/trains/journeySocket'
 
@@ -27,6 +28,12 @@ export default function JourneyDetailClient({ journeyId }: { journeyId: string }
           {connected ? 'Live' : 'Reconnecting…'}
         </Badge>
       </div>
+
+      {journey.alternative && (
+        <div className="mb-4">
+          <JourneyAlternativePanel alternative={journey.alternative} />
+        </div>
+      )}
 
       <div className="space-y-3">
         {journey.legs.map((leg, i) => (

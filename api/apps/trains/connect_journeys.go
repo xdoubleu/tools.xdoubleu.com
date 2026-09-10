@@ -128,6 +128,49 @@ func protoJourneyDetail(
 		Legs:          legs,
 		DepartureTime: d.DepartureTime.Format(time.RFC3339),
 		ArrivalTime:   d.ArrivalTime.Format(time.RFC3339),
+		Alternative:   protoJourneyAlternative(d.Alternative),
+	}
+}
+
+func protoJourneyAlternative(
+	a *models.JourneyAlternative,
+) *trainsv1.JourneyAlternative {
+	if a == nil {
+		return nil
+	}
+	return &trainsv1.JourneyAlternative{
+		Reason:       a.Reason,
+		FromStopName: a.FromStopName,
+		Journey:      protoJourneyOption(a.Journey),
+	}
+}
+
+func protoJourneyOption(o *models.JourneyOption) *trainsv1.Journey {
+	if o == nil {
+		return nil
+	}
+	legs := make([]*trainsv1.Leg, len(o.Legs))
+	for i, l := range o.Legs {
+		legs[i] = &trainsv1.Leg{
+			TripShortName:  l.TripShortName,
+			RouteShortName: l.RouteShortName,
+			Headsign:       l.Headsign,
+			BoardStopId:    l.BoardStopID,
+			BoardStopName:  l.BoardStopName,
+			BoardPlatform:  l.BoardPlatform,
+			BoardTime:      l.BoardTime.Format(time.RFC3339),
+			AlightStopId:   l.AlightStopID,
+			AlightStopName: l.AlightStopName,
+			AlightPlatform: l.AlightPlatform,
+			AlightTime:     l.AlightTime.Format(time.RFC3339),
+		}
+	}
+	return &trainsv1.Journey{
+		Legs:          legs,
+		DepartureTime: o.DepartureTime.Format(time.RFC3339),
+		ArrivalTime:   o.ArrivalTime.Format(time.RFC3339),
+		Transfers:     int32(o.Transfers), //nolint:gosec //transfer count is small
+		JourneyId:     o.JourneyID,
 	}
 }
 
