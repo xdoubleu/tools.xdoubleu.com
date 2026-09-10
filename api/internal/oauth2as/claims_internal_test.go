@@ -35,20 +35,22 @@ func TestAddProfileClaims_ScopeMatrix(t *testing.T) {
 		assert func(t *testing.T, extra map[string]any)
 	}{
 		{
-			name: "non-admin maps to Viewer, openid only",
+			name: "non-admin gets no role claim, openid only",
 			user: ResolvedUser{
 				ID: "u", Email: "v@example.com", DisplayName: "", IsAdmin: false,
 			},
 			scopes: fosite.Arguments{OpenIDScope},
 			assert: func(t *testing.T, extra map[string]any) {
 				t.Helper()
-				assert.Equal(t, "Viewer", extra["role"])
+				// Grafana's role_attribute_strict then refuses the login —
+				// which is the point: Grafana is admin-only (adr-0021).
+				assert.NotContains(t, extra, "role")
 				assert.NotContains(t, extra, "email")
 				assert.NotContains(t, extra, "name")
 			},
 		},
 		{
-			name: "admin with email scope",
+			name: "admin gets the Admin role claim, with email scope",
 			user: ResolvedUser{
 				ID: "u", Email: "a@example.com", DisplayName: "", IsAdmin: true,
 			},

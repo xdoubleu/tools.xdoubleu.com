@@ -17,7 +17,7 @@ metrics/alerting stack with Prometheus + Grafana). Grafana's `generic_oauth`
 provider cannot talk to the AS as ADR-0006 left it: it needs OIDC (an ID token
 or a userinfo endpoint), a **confidential** client with a real `client_secret`,
 a **fixed** client_id/secret it can be configured with ahead of time, and a
-**role claim** to map onto its Admin/Viewer roles.
+**role claim** to map onto its roles.
 
 Grafana ships its own local login, so this is a convenience layer — one identity
 for the app and Grafana — not a requirement to run Grafana. The cheaper
@@ -62,11 +62,16 @@ disturbing the MCP flow.
   public-client-only.
 
 - **Role claim.** The ID token carries `role` = `Admin` when the user is
-  `models.RoleAdmin`, else `Viewer`, resolved through the same DB-overlay path
-  as `GetCurrentUser`. `email`/`email_verified` (hardcoded `true` — first-party
-  accounts are admin-provisioned, ADR-0005) and `name`/`preferred_username`
-  follow the granted `email`/`profile` scopes. Grafana maps these with
-  `role_attribute_path` / `login_attribute_path` and `role_attribute_strict`.
+  `models.RoleAdmin` (resolved through the same DB-overlay path as
+  `GetCurrentUser`), and **omits the claim entirely otherwise**. Since #1468's
+  successor work (#1527) Grafana is the only relying party and its dashboards
+  expose host + Postgres internals, so access is admin-only: with
+  `role_attribute_strict: true` a token with no `role` is refused, which is the
+  intended outcome for a non-admin — they get a valid ID token but cannot
+  complete Grafana SSO. `email`/`email_verified` (hardcoded `true` —
+  first-party accounts are admin-provisioned, ADR-0005) and
+  `name`/`preferred_username` follow the granted `email`/`profile` scopes.
+  Grafana maps these with `role_attribute_path` / `login_attribute_path`.
 
 ## Alternatives considered
 

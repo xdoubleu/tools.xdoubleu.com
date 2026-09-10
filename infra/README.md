@@ -226,17 +226,24 @@ Grafana itself is **not** a Tofu-managed accessory — it's a third Kamal
 service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
 `deploy-kamal` job like `api`/`web`) because it needs a public path
 (`/grafana`) through the shared kamal-proxy instance, which only routes to
-Kamal-managed containers. See that config's own header comment for why it
-needs no `registry:` block (public Docker Hub image) and how its
-`proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
+Kamal-managed containers. It deploys a thin wrapper image this repo builds
+and pushes to GHCR (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue
+#1509) that also bakes in the Prometheus datasource + dashboards from
+`infra/grafana/` (issue #1527). The dashboard JSON under
+`infra/grafana/dashboards/` is the single source of truth — `allowUiUpdates`
+is `false`, so an admin's UI edits can't be saved over the provisioned copy;
+edit the JSON and redeploy. `make lint/grafana` (and `build-grafana.yml`)
+validate it. See `config/deploy.grafana.yml`'s own header comment for how
+its `proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
 `docs/adr-0022-prometheus-grafana-metrics.md` for the full rationale
 (Prometheus over VictoriaMetrics, Grafana owning graphs/alerting, what got
 removed).
 
 Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`/
 `prometheus/alert-rules.yml` redeploys the accessory; re-running `kamal
-deploy -c config/deploy.grafana.yml` (or pushing to `main`) redeploys
-Grafana. If `prom_query` reports every target `down`, check
+deploy -c config/deploy.grafana.yml` (or pushing to `main`, which rebuilds
+the image when `infra/grafana/**` or `infra/grafana.Dockerfile` changed)
+redeploys Grafana. If `prom_query` reports every target `down`, check
 `ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`
 all running, and confirm the api/Grafana Kamal containers' network alias on
 `kamal` matches what `infra/prometheus.yml`'s scrape target expects

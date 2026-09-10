@@ -1,0 +1,23 @@
+# Grafana datasource provisioning (issue #1527) — baked into the wrapper
+# image by infra/grafana.Dockerfile, read on startup from the image's
+# default /etc/grafana/provisioning path (no GF_PATHS_PROVISIONING needed).
+#
+# Prometheus runs as a docker-compose accessory on the internal `kamal`
+# Docker network with no published port (infra/prometheus-compose.yml), so
+# Grafana reaches it by service name over that shared network — the same
+# URL api's prom_query MCP tool uses (api/cmd/api/mcp_prom_query.go).
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    # Referenced by uid (not name) from every dashboard JSON so a rename
+    # here never breaks a panel.
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Matches infra/prometheus.yml's scrape_interval.
+      timeInterval: 30s
