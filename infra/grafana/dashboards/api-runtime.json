@@ -14,7 +14,7 @@
       "id": 1,
       "type": "stat",
       "title": "API up",
-      "description": "up{job=\"api\"} — mirrors the APIDown alert rule in infra/prometheus/alert-rules.yml.",
+      "description": "up{job=\"api\"} — the api slice of the TargetDown alert rule in infra/grafana/provisioning/alerting/rules.yml.",
       "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [

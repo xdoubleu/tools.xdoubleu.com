@@ -71,3 +71,16 @@ answerable with direct database access.
   morning* needs persisted realtime history, a journey-history feature epic
   #1388 deliberately left out of the first cut; flagged there rather than
   expanding #1397.
+- **#1554 — the tool worked; nothing said the data was missing.** `prom_query`
+  answered every query correctly for months while `up{job="api"}` and
+  `up{job="web"}` sat at `0` for the entire retention window, so three phases
+  of metrics work (#1528, #1529) shipped against a pipeline that delivered
+  nothing. The blind spot was not a missing tool but a missing *question*: no
+  tool, dashboard or alert reported which scrape targets were expected versus
+  which existed. `TargetMissing` (`absent(up{job=...})`) now fires on the
+  absence of a series — the one shape `up == 0` provably cannot catch, since a
+  job whose discovery yields nothing produces no `up` series to compare. The
+  general lesson, and the reason this belongs in the case log rather than only
+  in ADR-0022: **a tool that returns a correct answer to the query you thought
+  to ask is not coverage.** When a metric is added, the check that it arrived
+  is a separate step from the check that it compiles.

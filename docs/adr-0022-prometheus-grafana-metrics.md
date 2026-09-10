@@ -288,6 +288,70 @@ retires the last hand-rolled notifier.
   Grafana, the standalone Issues page is redundant and the OAuth-connection
   management is what remains worth a page.
 
+## Phase 5 (#1554): the scrape targets that never worked
+
+Phases 1–4 added metrics, alerts and dashboards on top of a pipeline that was
+not delivering. `up{job="api"}` and `up{job="web"}` were `0` for the entire
+90-day retention window — not flapping, never once up. Everything downstream
+of those two targets was therefore empty from the day it shipped:
+`http_request_duration_seconds`, `job_duration_seconds` and
+`web_vitals_seconds` (#1528) had no samples, so `RequestP95High`,
+`JobP95High` and `FrontendP95High` evaluated against nothing; all six
+`IssueSignalCollectorJob` gauges (#1529) were absent, so the entire
+`service-health` dashboard rendered "No data". The dashboards that looked
+right — `host`, `postgres` — were exactly the ones fed by the two targets
+that did work.
+
+The cause is the alias assumption recorded above: Kamal names containers
+`<service>-<role>-<version>` and creates no alias equal to the `service:`
+name, so Docker's embedded DNS never resolved `tools-xdoubleu-com-api:8000`
+or `tools-xdoubleu-com-web:3000`.
+
+Three things follow, and the third is the one that matters:
+
+1. **Discovery is now label-based.** The two app jobs use
+   `docker_sd_configs` and keep only containers carrying the `service` Docker
+   label Kamal's own `validate_image` step requires on every deployed image.
+   Nothing about container naming or the version tag can break it again. The
+   `node`/`postgres`/`prometheus` jobs stay `static_configs` — plain compose
+   accessories with stable names, where discovery would buy nothing.
+2. **Prometheus needs the Docker socket** (`:ro`) and, because the image runs
+   as `nobody`, membership of the host's `docker` group. The gid is
+   host-specific, so `null_resource.prometheus` resolves it at provision time
+   rather than hardcoding it, and fails loudly if there is no such group.
+3. **`up == 0` could never have caught this, and still can't.** A job whose
+   discovery yields nothing produces no `up` series at all, so a
+   down-detector matches nothing and stays silent. The old `static_configs`
+   at least manufactured a failing target to alert on; label-based discovery
+   removes even that consolation prize. `TargetMissing` closes it with
+   `absent(up{job="api"}) or absent(up{job="web"})` — a rule that fires on the
+   *absence* of a series. `APIDown`/`PostgresDown` are replaced by one
+   multi-dimensional `TargetDown` (`up == 0`), so a newly added target is
+   covered without anyone remembering to write a rule.
+
+Two incidental findings, both verified rather than assumed:
+
+- `job_duration_seconds` carries its own `job` label, which collides with the
+  `job` label Prometheus attaches from the scrape config; Prometheus renames
+  the exposed one to `exported_job`. A panel written the obvious way,
+  `sum by (job) (...)`, would have silently collapsed every background job
+  into one "api" series. `metric_relabel_configs` renames it to `job_name`.
+- `GET https://tools.xdoubleu.com/metrics` answers 200 to the public internet
+  (`web` is the kamal-proxy catch-all) and `POST /metrics` is unauthenticated
+  ingest for the Web Vitals beacon. Tracked separately so that an auth gate
+  does not land in the same change as the fix to the thing being scraped.
+
+The new `app-performance` dashboard restores what Grafana had no equivalent
+for: per-`route` p95 (the aggregate latency alerts can say something is slow
+but never which endpoint), per-job duration and failure rate, and Core Web
+Vitals at p75.
+
+**What this says about the pipeline as a whole:** every phase verified its own
+code and none verified that the data arrived. A metric that is registered,
+exported and alerted on still tells you nothing if nobody ever confirmed a
+sample landed. The post-deploy `prom_query` check in #1554's verification
+section exists to make that a step rather than an assumption.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why
@@ -301,9 +365,11 @@ retires the last hand-rolled notifier.
   gap — no GitHub Actions workflow-duration exporter exists.
 - Kamal container naming isn't Tofu-managed, so the Prometheus scrape
   targets for `api` and (added in #1528) `web` (`infra/prometheus.yml`)
-  assume a specific Docker network alias that could not be verified against
+  assumed a specific Docker network alias that could not be verified against
   real infra in this change — flagged in `infra/README.md` as the one thing
-  worth confirming by hand after the first real deploy.
+  worth confirming by hand after the first real deploy. **That assumption was
+  wrong and the check was never performed**; Phase 5 (#1554) below records
+  what it cost and replaces the mechanism.
 - This is the second of two Grafana-adjacent issues (after #1469/ADR-0021);
   end-to-end Grafana login and alert delivery could not be verified against
   real infra in this change either — the same caveat ADR-0021 recorded for

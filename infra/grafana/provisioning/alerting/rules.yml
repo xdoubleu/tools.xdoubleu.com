@@ -134,16 +134,27 @@ groups:
     folder: tools.xdoubleu.com
     interval: 1m
     rules:
-      - uid: api-down
-        title: APIDown
+      # One multi-dimensional rule covering every scrape target, replacing the
+      # per-job APIDown/PostgresDown rules (issue #1554). `up == 0` returns one
+      # series per failing target, so Grafana raises a separate alert instance
+      # per job/instance and a new scrape target is covered the moment it is
+      # added — no rule to remember to write.
+      #
+      # noDataState is OK here, unlike every other rule in this file: an empty
+      # result means no target is down, which is the healthy case. Alerting on
+      # NoData would page continuously whenever everything is fine.
+      - uid: target-down
+        title: TargetDown
         condition: C
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: api's /metrics endpoint is unreachable
-          description: Prometheus has failed to scrape api for 2 minutes.
-        noDataState: Alerting
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: >-
+            Target {{ $labels.instance }} (job {{ $labels.job }}) has failed to
+            scrape for 2 minutes.
+        noDataState: OK
         execErrState: Alerting
         data:
           - refId: A
@@ -154,7 +165,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: up{job="api"} == 0
+              expr: up == 0
           - refId: C
             datasourceUid: __expr__
             model:
@@ -166,18 +177,32 @@ groups:
                     type: gt
                     params: [0]
 
-      - uid: postgres-down
-        title: PostgresDown
+      # TargetDown above cannot catch a target that does not exist at all: a
+      # job whose service discovery yields nothing produces no `up` series, so
+      # `up == 0` matches nothing and stays silent. That is precisely the shape
+      # of the bug in #1554 — api and web were never scraped for months and the
+      # only reason anything could have noticed was that the old static_configs
+      # still created a (failing) target.
+      #
+      # With docker_sd_configs there is no such consolation prize: a bad label,
+      # a renamed network, or an unreadable Docker socket all yield zero
+      # targets and total silence. absent() is the guard — it returns a series
+      # exactly when its argument has none.
+      - uid: target-missing
+        title: TargetMissing
         condition: C
-        for: 2m
+        for: 5m
         labels:
           severity: critical
         annotations:
-          summary: postgres_exporter is unreachable
+          summary: "No scrape target exists for {{ $labels.job }}"
           description: >-
-            Prometheus has failed to scrape postgres_exporter for 2 minutes —
-            this may mean Postgres itself is down.
-        noDataState: Alerting
+            Prometheus has discovered no target at all for job
+            {{ $labels.job }}. Service discovery is broken (infra/prometheus.yml
+            docker_sd_configs), not merely the target — check that the Kamal
+            container carries its `service` label, is on the `kamal` network,
+            and that Prometheus can read the Docker socket.
+        noDataState: OK
         execErrState: Alerting
         data:
           - refId: A
@@ -188,7 +213,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: up{job="postgres"} == 0
+              expr: absent(up{job="api"}) or absent(up{job="web"})
           - refId: C
             datasourceUid: __expr__
             model:
