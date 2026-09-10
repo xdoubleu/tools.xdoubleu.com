@@ -1,4 +1,5 @@
 bin/
+/api
 .golangci-cache/
 *.out
 coverage.html
