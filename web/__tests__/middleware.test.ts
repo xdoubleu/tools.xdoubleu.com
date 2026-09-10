@@ -15,6 +15,11 @@ describe('middleware CSP', () => {
     expect(connectSrc()).toContain('https://127.0.0.1:41132')
   })
 
+  it('allows Cloudflare R2 for browser-side book file uploads', () => {
+    // The upload PUT goes straight to an R2 presigned URL (#1572).
+    expect(connectSrc()).toContain('https://*.r2.cloudflarestorage.com')
+  })
+
   it('includes the API origin when configured', () => {
     process.env.API_URL = 'https://example.com/api'
     expect(connectSrc()).toContain('https://example.com/api')
