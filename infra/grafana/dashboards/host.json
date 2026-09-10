@@ -14,7 +14,7 @@
       "id": 1,
       "type": "stat",
       "title": "CPU usage",
-      "description": "node_exporter. Mirrors the HostCPUHigh alert rule in infra/prometheus/alert-rules.yml.",
+      "description": "node_exporter. Mirrors the HostCPUHigh alert rule in infra/grafana/provisioning/alerting/rules.yml.",
       "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [

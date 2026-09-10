@@ -328,7 +328,14 @@ resource "null_resource" "prometheus" {
 
   provisioner "remote-exec" {
     inline = [
-      "cd /home/deploy/prometheus && docker compose up -d --remove-orphans",
+      # DOCKER_GID feeds prometheus-compose.yml's `group_add` so Prometheus,
+      # which runs as `nobody`, can read the Docker socket it needs for the
+      # api/web docker_sd_configs (issue #1554). The gid is host-specific, so
+      # it is resolved here rather than hardcoded in the compose file; failing
+      # loudly beats silently starting a Prometheus whose service discovery
+      # can never work.
+      "cd /home/deploy/prometheus && DOCKER_GID=$(getent group docker | cut -d: -f3) && [ -n \"$DOCKER_GID\" ] || { echo 'no docker group on host'; exit 1; }",
+      "cd /home/deploy/prometheus && DOCKER_GID=$(getent group docker | cut -d: -f3) docker compose up -d --remove-orphans",
     ]
   }
 }

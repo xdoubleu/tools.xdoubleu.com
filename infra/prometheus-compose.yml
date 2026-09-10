@@ -10,6 +10,13 @@ services:
     # api's prom_query MCP tool (cmd/api/mcp_prom_query.go) does the same.
     image: prom/prometheus:v3.1.0
     restart: unless-stopped
+    # The image runs as `nobody`, which cannot read the Docker socket mounted
+    # below — without this the api/web docker_sd_configs fail with "permission
+    # denied" and discover zero targets. The host's docker group id is passed
+    # in by null_resource.prometheus's remote-exec (infra/main.tf) rather than
+    # hardcoded, since it varies per host.
+    group_add:
+      - "${DOCKER_GID}"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -20,6 +27,19 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+      # Read-only Docker socket, for the docker_sd_configs the api/web
+      # scrape jobs use to find Kamal's app containers by their `service`
+      # label instead of by a hostname Kamal never creates (issue #1554 —
+      # see infra/prometheus.yml for why hostname targets never worked).
+      #
+      # Socket access is effectively host root, so it is worth being
+      # explicit about why it is acceptable here: this Prometheus publishes
+      # no host port at all (not even loopback), is reachable only from the
+      # internal `kamal` Docker network, and the VPS is single-tenant. If
+      # any of those three stop being true, put a socket proxy in front of
+      # it (exposing only the container-list endpoint) rather than widening
+      # this mount.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - kamal
 

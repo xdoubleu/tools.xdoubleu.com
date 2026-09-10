@@ -249,13 +249,26 @@ Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`
 redeploys the accessory; re-running `kamal
 deploy -c config/deploy.grafana.yml` (or pushing to `main`, which rebuilds
 the image when `infra/grafana/**` or `infra/grafana.Dockerfile` changed)
-redeploys Grafana. If `prom_query` reports every target `down`, check
-`ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`
-all running, and confirm the api/Grafana Kamal containers' network alias on
-`kamal` matches what `infra/prometheus.yml`'s scrape target expects
-(`docker network inspect kamal`) — Kamal's container naming isn't
-Tofu-managed, so this is the one part of the wiring worth confirming by hand
-after the first real deploy.
+redeploys Grafana.
+
+If `prom_query` reports a target `down`, check `ssh deploy@<ip> docker ps` for
+`prometheus`/`postgres-exporter`/`node-exporter` all running.
+
+If the `api` or `web` target is **missing entirely** rather than down, the
+problem is Docker service discovery, not the container. Those two jobs find
+their containers by the `service` Docker label (`infra/prometheus.yml`), which
+needs three things to hold: the container carries the label
+(`docker inspect -f '{{.Config.Labels.service}}' <container>`), it is attached
+to the `kamal` network, and Prometheus can read the Docker socket. The last one
+is the easiest to get wrong — the image runs as `nobody`, so
+`null_resource.prometheus` passes the host's docker gid via `DOCKER_GID` into
+the compose file's `group_add`. `docker logs prometheus | grep docker_sd` shows
+a permission error plainly if that has broken.
+
+This *was* the one part of the wiring worth confirming by hand after the first
+real deploy — and #1554 is what it cost when nobody did: `api` and `web` were
+never scraped at all for the whole retention window. The `TargetMissing` alert
+now reports this case instead of relying on someone remembering to check.
 
 ## GoTrue is gone (issue #1039)
 
