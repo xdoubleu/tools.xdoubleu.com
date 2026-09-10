@@ -55,6 +55,7 @@ type fakeBooksResync struct {
 	replaceErr   error
 	proposalRows map[uuid.UUID]repositories.ResyncProposalRow
 	deletedIDs   []uuid.UUID
+	deleteErr    error
 	refreshCalls []refreshCall
 	refreshErr   error
 
@@ -173,7 +174,7 @@ func (f *fakeBooksResync) DeleteResyncProposal(
 	f.mu.Lock()
 	f.deletedIDs = append(f.deletedIDs, bookID)
 	f.mu.Unlock()
-	return nil
+	return f.deleteErr
 }
 
 // fakeUCClient is a configurable unicat.Client stub. calls counts every
@@ -967,6 +968,30 @@ func TestBuildResyncProposals_ListError(t *testing.T) {
 	assert.Equal(t, 0, n)
 }
 
+func TestBuildResyncProposals_ReplaceError(t *testing.T) {
+	replaceErr := errors.New("write failed")
+	book := models.Book{ID: uuid.New(), Title: "Dune"} //nolint:exhaustruct // partial
+	repo := &fakeBooksResync{                          //nolint:exhaustruct // partial
+		books:      []models.Book{book},
+		replaceErr: replaceErr,
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
+		hardcover:    &fakeHCClient{}, //nolint:exhaustruct //zero values fine
+		objectStore:  objectstore.NewFake(),
+	}
+
+	n, err := svc.BuildResyncProposals(
+		context.Background(),
+		logging.NewNopLogger(),
+		nil,
+		false,
+	)
+	require.ErrorIs(t, err, replaceErr)
+	assert.Equal(t, 0, n)
+}
+
 // ---------------------------------------------------------------------------
 // ListResyncProposals: Differs recomputed at read time
 // ---------------------------------------------------------------------------
@@ -1270,6 +1295,35 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 		"applying live should also clear any pending wizard proposal")
 }
 
+func TestSyncBookSource_ClearPendingProposalError_NonFatal(t *testing.T) {
+	bookID := uuid.New()
+	book := models.Book{ID: bookID, Title: "Old Title"} //nolint:exhaustruct // partial
+	//nolint:exhaustruct // partial
+	hcDetail := hardcover.ExternalBook{
+		Title:   "Old Title",
+		Authors: []string{"Author"},
+	}
+
+	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
+		books:     []models.Book{book},
+		deleteErr: errors.New("proposal delete failed"),
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		resyncSource: repo,
+		hardcover: &fakeHCClient{ //nolint:exhaustruct //only relevant fields
+			searchResults: []hardcover.ExternalBook{hcDetail},
+		},
+		objectStore: objectstore.NewFake(),
+	}
+
+	err := svc.SyncBookSource(
+		context.Background(), logging.NewNopLogger(), bookID, "hardcover", 0, "", "",
+	)
+	require.NoError(t, err, "a failed pending-proposal cleanup must not fail the sync")
+	require.Len(t, repo.refreshCalls, 1)
+	assert.Equal(t, []uuid.UUID{bookID}, repo.deletedIDs)
+}
+
 func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID} //nolint:exhaustruct // partial
@@ -1314,4 +1368,25 @@ func TestWriteResyncResult_ClearCoverCacheErrors_NonFatal(t *testing.T) {
 		"", "", 0, "", "New Title", nil, "hardcover",
 	)
 	require.NoError(t, err, "a cover-cache-clear failure must not fail the apply")
+}
+
+// TestWriteResyncResult_RefreshError_Propagates verifies that a failed
+// RefreshBookExternalData write aborts the apply with that error.
+func TestWriteResyncResult_RefreshError_Propagates(t *testing.T) {
+	refreshErr := errors.New("refresh failed")
+	book := models.Book{ID: uuid.New()} //nolint:exhaustruct // partial
+	repo := &fakeBooksResync{           //nolint:exhaustruct //zero values fine
+		refreshErr: refreshErr,
+	}
+	svc := &BookService{ //nolint:exhaustruct // partial
+		logger:       logging.NewNopLogger(),
+		resyncSource: repo,
+		objectStore:  objectstore.NewFake(),
+	}
+
+	err := svc.writeResyncResult(
+		context.Background(), logging.NewNopLogger(), book,
+		"", "", 0, "", "New Title", nil, "hardcover",
+	)
+	require.ErrorIs(t, err, refreshErr)
 }
