@@ -147,7 +147,7 @@ func detailLegRef(windowStart time.Time) services.LegRef {
 
 func TestJourneyDetailService_GetJourneyDetail_NoLiveDataIsNeverOnTime(t *testing.T) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
@@ -175,7 +175,7 @@ func TestJourneyDetailService_GetJourneyDetail_NoLiveDataIsNeverOnTime(t *testin
 
 func TestJourneyDetailService_GetJourneyDetail_OverlaysRealtimeState(t *testing.T) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
@@ -207,7 +207,7 @@ func TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces(
 	t *testing.T,
 ) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeedWithRTVariant(windowStart)),
@@ -240,7 +240,7 @@ func TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted
 	t *testing.T,
 ) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
@@ -292,7 +292,7 @@ func TestJourneyDetailService_GetJourneyDetail_InvalidIDIsAnError(t *testing.T) 
 
 func TestGetJourneyDetail_Handler_EndToEnd(t *testing.T) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),
@@ -338,7 +338,7 @@ func TestGetJourneyDetail_Handler_MalformedJourneyIDIsInvalidArgument(t *testing
 
 func TestSearchJourneys_ResponseCarriesJourneyID(t *testing.T) {
 	ctx := context.Background()
-	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
+	windowStart := trainsDayStart()
 	require.NoError(
 		t,
 		testApp.Repositories.Feed.ImportFeed(ctx, detailFeed(windowStart)),

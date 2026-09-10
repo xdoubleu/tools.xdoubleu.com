@@ -21,7 +21,7 @@ function transfersLabel(transfers: number): string {
   return transfers === 1 ? '1 change' : `${transfers} changes`
 }
 
-function JourneyRow({ journey }: { journey: Journey }) {
+export function JourneyRow({ journey }: { journey: Journey }) {
   const trains = journey.legs.map((leg) => leg.tripShortName).join(', ')
 
   if (!journey.journeyId) {

@@ -27,7 +27,8 @@ func New(
 	allowedOrigins []string,
 ) *Services {
 	realtime := NewRealtimeService(logger, bmcClient, repos.Feed)
-	detail := NewJourneyDetailService(repos, realtime)
+	journey := NewJourneyService(logger, repos)
+	detail := NewJourneyDetailService(repos, realtime, journey)
 	journeyWS := NewJourneyWSService(ctx, logger, allowedOrigins, detail)
 	// A journey page stays open and pushed-to for the length of a trip
 	// (issue #1394): every realtime poll cycle rebroadcasts fresh detail to
@@ -37,7 +38,7 @@ func New(
 
 	return &Services{
 		StaticImport:  NewStaticImportService(logger, repos, bmcClient),
-		Journey:       NewJourneyService(logger, repos),
+		Journey:       journey,
 		Stations:      NewStationsService(repos),
 		FeedInfo:      NewFeedInfoService(repos),
 		Realtime:      realtime,

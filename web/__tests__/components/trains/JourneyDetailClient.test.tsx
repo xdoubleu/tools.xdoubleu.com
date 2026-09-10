@@ -80,6 +80,49 @@ describe('JourneyDetailClient', () => {
     expect(screen.getByText('Live')).toBeInTheDocument()
   })
 
+  it('surfaces an inline alternative when the journey is disrupted', () => {
+    mockUseJourneyDetail.mockReturnValue({
+      data: {
+        journey: {
+          legs: [
+            { tripShortName: 'IC900', routeShortName: 'IC', headsign: 'E', stops: [], alerts: [] }
+          ],
+          alternative: {
+            reason: 'IC900 is cancelled',
+            fromStopName: 'Mechelen',
+            journey: {
+              legs: [{ tripShortName: 'IC901', routeShortName: 'IC', headsign: 'E' }],
+              departureTime: '2026-06-01T15:00:00Z',
+              arrivalTime: '2026-06-01T15:40:00Z',
+              transfers: 0,
+              journeyId: 'alt-1'
+            }
+          }
+        }
+      },
+      error: undefined,
+      isLoading: false,
+      mutate: mockMutate
+    })
+    render(<JourneyDetailClient journeyId="journey-1" />)
+    expect(screen.getByText('IC900 is cancelled')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /switch to this journey/i })).toHaveAttribute(
+      'href',
+      '/trains/alt-1'
+    )
+  })
+
+  it('renders no alternative panel for a healthy journey', () => {
+    mockUseJourneyDetail.mockReturnValue({
+      data: { journey: { legs: [], alternative: undefined } },
+      error: undefined,
+      isLoading: false,
+      mutate: mockMutate
+    })
+    render(<JourneyDetailClient journeyId="journey-1" />)
+    expect(screen.queryByText('Journey disrupted')).not.toBeInTheDocument()
+  })
+
   it('shows "Reconnecting…" when the socket is not currently connected', () => {
     mockUseJourneyDetail.mockReturnValue({
       data: { journey: { legs: [] } },

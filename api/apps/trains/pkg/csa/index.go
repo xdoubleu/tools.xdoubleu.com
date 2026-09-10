@@ -56,6 +56,10 @@ type footpath struct {
 // separate stops, so this must never be 0 (issue #1391).
 const defaultMinTransferSeconds = 180
 
+// DefaultMinTransferSeconds is defaultMinTransferSeconds exported for callers
+// that need the same fallback before an Index exists (issue #1395).
+const DefaultMinTransferSeconds = defaultMinTransferSeconds
+
 // Index is the built, queryable in-memory router state for one rolling
 // window of service days.
 type Index struct {
@@ -238,6 +242,28 @@ func (idx *Index) buildDefaultFootpaths() {
 			}
 		}
 	}
+}
+
+// MinTransferSeconds reports the minimum time a passenger needs to change
+// from fromStopID to toStopID: the explicit transfers.txt footpath if one
+// exists, otherwise defaultMinTransferSeconds. It never returns 0 for two
+// distinct stops — the same station never grants a free platform change
+// (issue #1391) — and is used by the live journey page to tell whether a
+// delayed arrival still leaves the connection makeable (issue #1395).
+func (idx *Index) MinTransferSeconds(fromStopID, toStopID string) int {
+	if fromStopID == toStopID {
+		return 0
+	}
+	from, ok1 := idx.stopByID[fromStopID]
+	to, ok2 := idx.stopByID[toStopID]
+	if ok1 && ok2 {
+		for _, fp := range idx.footpaths[from] {
+			if fp.to == to {
+				return int(fp.seconds)
+			}
+		}
+	}
+	return defaultMinTransferSeconds
 }
 
 // toAbs converts a wall-clock time to the index's abs-second scale.

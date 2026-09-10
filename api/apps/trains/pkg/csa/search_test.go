@@ -335,6 +335,43 @@ func TestSearchJourneys_MergesConsecutiveConnectionsIntoOneLeg(t *testing.T) {
 	assert.Equal(t, "Charlie", leg.AlightStopName)
 }
 
+// TestMinTransferSeconds pins the connection-makeability lookup the live
+// journey page uses (issue #1395): explicit transfers.txt footpath wins, an
+// unknown pair falls back to the never-zero default, and the same stop is a
+// free change.
+func TestMinTransferSeconds(t *testing.T) {
+	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
+	instances := []models.ActiveTrip{
+		mkTrip("t1", "100", "Bravo", day(window, 0)),
+	}
+	patterns := map[string][]models.StopTime{
+		"t1": {
+			mkST(1, "A1", 8*3600, 8*3600, 0, 0),
+			mkST(2, "B1", 8*3600+1200, 8*3600+1200, 0, 0),
+		},
+	}
+	mtt := 300
+	transfers := []models.Transfer{
+		{
+			FromStopID: "B1", ToStopID: "B2",
+			TransferType: 2, MinTransferTime: &mtt,
+		},
+	}
+	idx := Build(
+		loc,
+		window,
+		baseStops(),
+		transfers,
+		instances,
+		flattenPatterns(patterns),
+	)
+
+	assert.Equal(t, 0, idx.MinTransferSeconds("B1", "B1"))
+	assert.Equal(t, 300, idx.MinTransferSeconds("B1", "B2"))
+	assert.Equal(t, defaultMinTransferSeconds, idx.MinTransferSeconds("A1", "C1"))
+	assert.Equal(t, defaultMinTransferSeconds, idx.MinTransferSeconds("nope", "B2"))
+}
+
 // TestBuild_GroupsUnorderedStopTimes pins the ordering guarantee Build now
 // owns: stop_times arriving out of stop_sequence order still build a
 // correctly-ordered pattern (previously the caller's SQL ORDER BY was load-

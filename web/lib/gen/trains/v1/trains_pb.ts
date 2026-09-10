@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file trains/v1/trains.proto.
  */
 export const file_trains_v1_trains: GenFile = /*@__PURE__*/
-  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQidQoNSm91cm5leURldGFpbBISCgpqb3VybmV5X2lkGAEgASgJEiIKBGxlZ3MYAiADKAsyFC50cmFpbnMudjEuTGVnRGV0YWlsEhYKDmRlcGFydHVyZV90aW1lGAMgASgJEhQKDGFycml2YWxfdGltZRgEIAEoCSItChdHZXRKb3VybmV5RGV0YWlsUmVxdWVzdBISCgpqb3VybmV5X2lkGAEgASgJIkUKGEdldEpvdXJuZXlEZXRhaWxSZXNwb25zZRIpCgdqb3VybmV5GAEgASgLMhgudHJhaW5zLnYxLkpvdXJuZXlEZXRhaWwibQoVU2VhcmNoSm91cm5leXNSZXF1ZXN0EhYKDm9yaWdpbl9zdG9wX2lkGAEgASgJEhsKE2Rlc3RpbmF0aW9uX3N0b3BfaWQYAiABKAkSDAoEdGltZRgDIAEoCRIRCglhcnJpdmVfYnkYBCABKAgiPgoWU2VhcmNoSm91cm5leXNSZXNwb25zZRIkCghqb3VybmV5cxgBIAMoCzISLnRyYWlucy52MS5Kb3VybmV5Ik0KB1N0YXRpb24SDwoHc3RvcF9pZBgBIAEoCRIPCgduYW1lX25sGAIgASgJEg8KB25hbWVfZnIYAyABKAkSDwoHbmFtZV9lbhgEIAEoCSImChVTZWFyY2hTdGF0aW9uc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiPgoWU2VhcmNoU3RhdGlvbnNSZXNwb25zZRIkCghzdGF0aW9ucxgBIAMoCzISLnRyYWlucy52MS5TdGF0aW9uIhQKEkdldEZlZWRJbmZvUmVxdWVzdCJ2ChNHZXRGZWVkSW5mb1Jlc3BvbnNlEhQKDGZlZWRfdmVyc2lvbhgBIAEoCRITCgtpbXBvcnRlZF9hdBgCIAEoCRI0Cgx0cmFuc2xhdGlvbnMYAyABKAsyHi50cmFpbnMudjEuVHJhbnNsYXRpb25Db3ZlcmFnZSKSAQoTVHJhbnNsYXRpb25Db3ZlcmFnZRIbChN0cmFuc2xhdGVkX3N0b3BzX25sGAEgASgFEhsKE3RyYW5zbGF0ZWRfc3RvcHNfZnIYAiABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19lbhgDIAEoBRIMCgRyb3dzGAQgASgFEhYKDnJvd3NfdW5tYXRjaGVkGAUgASgFMucCCgxUcmFpblNlcnZpY2USVQoOU2VhcmNoSm91cm5leXMSIC50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVzcG9uc2USVQoOU2VhcmNoU3RhdGlvbnMSIC50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXF1ZXN0GiEudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVzcG9uc2USTAoLR2V0RmVlZEluZm8SHS50cmFpbnMudjEuR2V0RmVlZEluZm9SZXF1ZXN0Gh4udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVzcG9uc2USWwoQR2V0Sm91cm5leURldGFpbBIiLnRyYWlucy52MS5HZXRKb3VybmV5RGV0YWlsUmVxdWVzdBojLnRyYWlucy52MS5HZXRKb3VybmV5RGV0YWlsUmVzcG9uc2VCK1opdG9vbHMueGRvdWJsZXUuY29tL2dlbi90cmFpbnMvdjE7dHJhaW5zdjFiBnByb3RvMw");
+  fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiTQoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJIiYKFVNlYXJjaFN0YXRpb25zUmVxdWVzdBINCgVxdWVyeRgBIAEoCSI+ChZTZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEiQKCHN0YXRpb25zGAEgAygLMhIudHJhaW5zLnYxLlN0YXRpb24iFAoSR2V0RmVlZEluZm9SZXF1ZXN0InYKE0dldEZlZWRJbmZvUmVzcG9uc2USFAoMZmVlZF92ZXJzaW9uGAEgASgJEhMKC2ltcG9ydGVkX2F0GAIgASgJEjQKDHRyYW5zbGF0aW9ucxgDIAEoCzIeLnRyYWlucy52MS5UcmFuc2xhdGlvbkNvdmVyYWdlIpIBChNUcmFuc2xhdGlvbkNvdmVyYWdlEhsKE3RyYW5zbGF0ZWRfc3RvcHNfbmwYASABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19mchgCIAEoBRIbChN0cmFuc2xhdGVkX3N0b3BzX2VuGAMgASgFEgwKBHJvd3MYBCABKAUSFgoOcm93c191bm1hdGNoZWQYBSABKAUy5wIKDFRyYWluU2VydmljZRJVCg5TZWFyY2hKb3VybmV5cxIgLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoSm91cm5leXNSZXNwb25zZRJVCg5TZWFyY2hTdGF0aW9ucxIgLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1JlcXVlc3QaIS50cmFpbnMudjEuU2VhcmNoU3RhdGlvbnNSZXNwb25zZRJMCgtHZXRGZWVkSW5mbxIdLnRyYWlucy52MS5HZXRGZWVkSW5mb1JlcXVlc3QaHi50cmFpbnMudjEuR2V0RmVlZEluZm9SZXNwb25zZRJbChBHZXRKb3VybmV5RGV0YWlsEiIudHJhaW5zLnYxLkdldEpvdXJuZXlEZXRhaWxSZXF1ZXN0GiMudHJhaW5zLnYxLkdldEpvdXJuZXlEZXRhaWxSZXNwb25zZUIrWil0b29scy54ZG91YmxldS5jb20vZ2VuL3RyYWlucy92MTt0cmFpbnN2MWIGcHJvdG8z");
 
 /**
  * Leg is one boarded train, from where the passenger gets on to where they
@@ -273,6 +273,49 @@ export const LegDetailSchema: GenMessage<LegDetail> = /*@__PURE__*/
   messageDesc(file_trains_v1_trains, 4);
 
 /**
+ * JourneyAlternative is a re-planned itinerary surfaced when a positive
+ * realtime signal shows the journey as planned no longer works — a missed
+ * connection, a cancelled leg, a skipped board/alight stop, or a final
+ * arrival slipping past a threshold. Absence of live data (NO_DATA) never
+ * produces one. The re-plan runs from the next still-reachable station, at
+ * the actual (live) time there, to the original destination (issue #1395).
+ *
+ * @generated from message trains.v1.JourneyAlternative
+ */
+export type JourneyAlternative = Message<"trains.v1.JourneyAlternative"> & {
+  /**
+   * Passenger-facing explanation of what broke, e.g.
+   * "You'll miss the 17:42 at Mechelen by 4 min".
+   *
+   * @generated from field: string reason = 1;
+   */
+  reason: string;
+
+  /**
+   * Name of the station the alternative departs from.
+   *
+   * @generated from field: string from_stop_name = 2;
+   */
+  fromStopName: string;
+
+  /**
+   * The re-planned itinerary, same shape as a search result so the overview
+   * row renders it unchanged. Unset when the router found no alternative —
+   * the reason is still worth showing on its own.
+   *
+   * @generated from field: trains.v1.Journey journey = 3;
+   */
+  journey?: Journey | undefined;
+};
+
+/**
+ * Describes the message trains.v1.JourneyAlternative.
+ * Use `create(JourneyAlternativeSchema)` to create a new message.
+ */
+export const JourneyAlternativeSchema: GenMessage<JourneyAlternative> = /*@__PURE__*/
+  messageDesc(file_trains_v1_trains, 5);
+
+/**
  * JourneyDetail is the full live state of one previously-searched journey —
  * the page /trains/[journeyId] renders and keeps refreshed over a websocket.
  *
@@ -298,6 +341,14 @@ export type JourneyDetail = Message<"trains.v1.JourneyDetail"> & {
    * @generated from field: string arrival_time = 4;
    */
   arrivalTime: string;
+
+  /**
+   * Set only when a positive realtime signal shows the planned journey is
+   * broken (issue #1395); unset otherwise.
+   *
+   * @generated from field: trains.v1.JourneyAlternative alternative = 5;
+   */
+  alternative?: JourneyAlternative | undefined;
 };
 
 /**
@@ -305,7 +356,7 @@ export type JourneyDetail = Message<"trains.v1.JourneyDetail"> & {
  * Use `create(JourneyDetailSchema)` to create a new message.
  */
 export const JourneyDetailSchema: GenMessage<JourneyDetail> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 5);
+  messageDesc(file_trains_v1_trains, 6);
 
 /**
  * @generated from message trains.v1.GetJourneyDetailRequest
@@ -322,7 +373,7 @@ export type GetJourneyDetailRequest = Message<"trains.v1.GetJourneyDetailRequest
  * Use `create(GetJourneyDetailRequestSchema)` to create a new message.
  */
 export const GetJourneyDetailRequestSchema: GenMessage<GetJourneyDetailRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 6);
+  messageDesc(file_trains_v1_trains, 7);
 
 /**
  * @generated from message trains.v1.GetJourneyDetailResponse
@@ -339,7 +390,7 @@ export type GetJourneyDetailResponse = Message<"trains.v1.GetJourneyDetailRespon
  * Use `create(GetJourneyDetailResponseSchema)` to create a new message.
  */
 export const GetJourneyDetailResponseSchema: GenMessage<GetJourneyDetailResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 7);
+  messageDesc(file_trains_v1_trains, 8);
 
 /**
  * @generated from message trains.v1.SearchJourneysRequest
@@ -377,7 +428,7 @@ export type SearchJourneysRequest = Message<"trains.v1.SearchJourneysRequest"> &
  * Use `create(SearchJourneysRequestSchema)` to create a new message.
  */
 export const SearchJourneysRequestSchema: GenMessage<SearchJourneysRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 8);
+  messageDesc(file_trains_v1_trains, 9);
 
 /**
  * @generated from message trains.v1.SearchJourneysResponse
@@ -398,7 +449,7 @@ export type SearchJourneysResponse = Message<"trains.v1.SearchJourneysResponse">
  * Use `create(SearchJourneysResponseSchema)` to create a new message.
  */
 export const SearchJourneysResponseSchema: GenMessage<SearchJourneysResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 9);
+  messageDesc(file_trains_v1_trains, 10);
 
 /**
  * Station is a location_type=1 stop — a station a passenger picks as an
@@ -433,7 +484,7 @@ export type Station = Message<"trains.v1.Station"> & {
  * Use `create(StationSchema)` to create a new message.
  */
 export const StationSchema: GenMessage<Station> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 10);
+  messageDesc(file_trains_v1_trains, 11);
 
 /**
  * @generated from message trains.v1.SearchStationsRequest
@@ -454,7 +505,7 @@ export type SearchStationsRequest = Message<"trains.v1.SearchStationsRequest"> &
  * Use `create(SearchStationsRequestSchema)` to create a new message.
  */
 export const SearchStationsRequestSchema: GenMessage<SearchStationsRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 11);
+  messageDesc(file_trains_v1_trains, 12);
 
 /**
  * @generated from message trains.v1.SearchStationsResponse
@@ -471,7 +522,7 @@ export type SearchStationsResponse = Message<"trains.v1.SearchStationsResponse">
  * Use `create(SearchStationsResponseSchema)` to create a new message.
  */
 export const SearchStationsResponseSchema: GenMessage<SearchStationsResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 12);
+  messageDesc(file_trains_v1_trains, 13);
 
 /**
  * @generated from message trains.v1.GetFeedInfoRequest
@@ -484,7 +535,7 @@ export type GetFeedInfoRequest = Message<"trains.v1.GetFeedInfoRequest"> & {
  * Use `create(GetFeedInfoRequestSchema)` to create a new message.
  */
 export const GetFeedInfoRequestSchema: GenMessage<GetFeedInfoRequest> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 13);
+  messageDesc(file_trains_v1_trains, 14);
 
 /**
  * @generated from message trains.v1.GetFeedInfoResponse
@@ -523,7 +574,7 @@ export type GetFeedInfoResponse = Message<"trains.v1.GetFeedInfoResponse"> & {
  * Use `create(GetFeedInfoResponseSchema)` to create a new message.
  */
 export const GetFeedInfoResponseSchema: GenMessage<GetFeedInfoResponse> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 14);
+  messageDesc(file_trains_v1_trains, 15);
 
 /**
  * TranslationCoverage reports what an import made of the feed's
@@ -571,7 +622,7 @@ export type TranslationCoverage = Message<"trains.v1.TranslationCoverage"> & {
  * Use `create(TranslationCoverageSchema)` to create a new message.
  */
 export const TranslationCoverageSchema: GenMessage<TranslationCoverage> = /*@__PURE__*/
-  messageDesc(file_trains_v1_trains, 15);
+  messageDesc(file_trains_v1_trains, 16);
 
 /**
  * @generated from service trains.v1.TrainService

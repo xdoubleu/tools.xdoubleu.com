@@ -115,12 +115,16 @@ type JourneyDetail struct {
 	Legs          []LegDetail
 	DepartureTime time.Time
 	ArrivalTime   time.Time
+	// Alternative is set only when a positive realtime signal shows the
+	// planned journey no longer works (issue #1395) — nil in the common case.
+	Alternative *JourneyAlternative
 }
 
 type journeyDetailWire struct {
-	Legs          []LegDetail `json:"legs"`
-	DepartureTime string      `json:"departureTime"`
-	ArrivalTime   string      `json:"arrivalTime"`
+	Legs          []LegDetail         `json:"legs"`
+	DepartureTime string              `json:"departureTime"`
+	ArrivalTime   string              `json:"arrivalTime"`
+	Alternative   *JourneyAlternative `json:"alternative,omitempty"`
 }
 
 func (j JourneyDetail) MarshalJSON() ([]byte, error) {
@@ -132,5 +136,104 @@ func (j JourneyDetail) MarshalJSON() ([]byte, error) {
 		Legs:          legs,
 		DepartureTime: j.DepartureTime.Format(time.RFC3339),
 		ArrivalTime:   j.ArrivalTime.Format(time.RFC3339),
+		Alternative:   j.Alternative,
+	})
+}
+
+// JourneyAlternative is a re-planned itinerary surfaced when the open journey
+// breaks (issue #1395). Reason explains what broke in passenger terms;
+// Journey is the re-plan from FromStopName, nil when the router found none.
+type JourneyAlternative struct {
+	Reason       string
+	FromStopName string
+	Journey      *JourneyOption
+}
+
+type journeyAlternativeWire struct {
+	Reason       string         `json:"reason"`
+	FromStopName string         `json:"fromStopName"`
+	Journey      *JourneyOption `json:"journey,omitempty"`
+}
+
+func (a JourneyAlternative) MarshalJSON() ([]byte, error) {
+	return json.Marshal(journeyAlternativeWire(a))
+}
+
+// JourneyOption mirrors trains.v1.Journey — one planned itinerary, in the
+// same JSON shape a SearchJourneys result serializes to, so the websocket
+// push and the RPC response decode into an identical client-side type and
+// the overview-row component renders it unchanged (issue #1395 / #1392).
+type JourneyOption struct {
+	Legs          []JourneyOptionLeg
+	DepartureTime time.Time
+	ArrivalTime   time.Time
+	Transfers     int
+	JourneyID     string
+}
+
+type journeyOptionWire struct {
+	Legs          []JourneyOptionLeg `json:"legs"`
+	DepartureTime string             `json:"departureTime"`
+	ArrivalTime   string             `json:"arrivalTime"`
+	Transfers     int                `json:"transfers"`
+	JourneyID     string             `json:"journeyId"`
+}
+
+func (o JourneyOption) MarshalJSON() ([]byte, error) {
+	legs := o.Legs
+	if legs == nil {
+		legs = []JourneyOptionLeg{}
+	}
+	return json.Marshal(journeyOptionWire{
+		Legs:          legs,
+		DepartureTime: o.DepartureTime.Format(time.RFC3339),
+		ArrivalTime:   o.ArrivalTime.Format(time.RFC3339),
+		Transfers:     o.Transfers,
+		JourneyID:     o.JourneyID,
+	})
+}
+
+// JourneyOptionLeg mirrors trains.v1.Leg.
+type JourneyOptionLeg struct {
+	TripShortName  string
+	RouteShortName string
+	Headsign       string
+	BoardStopID    string
+	BoardStopName  string
+	BoardPlatform  string
+	BoardTime      time.Time
+	AlightStopID   string
+	AlightStopName string
+	AlightPlatform string
+	AlightTime     time.Time
+}
+
+type journeyOptionLegWire struct {
+	TripShortName  string `json:"tripShortName"`
+	RouteShortName string `json:"routeShortName"`
+	Headsign       string `json:"headsign"`
+	BoardStopID    string `json:"boardStopId"`
+	BoardStopName  string `json:"boardStopName"`
+	BoardPlatform  string `json:"boardPlatform"`
+	BoardTime      string `json:"boardTime"`
+	AlightStopID   string `json:"alightStopId"`
+	AlightStopName string `json:"alightStopName"`
+	AlightPlatform string `json:"alightPlatform"`
+	AlightTime     string `json:"alightTime"`
+}
+
+func (l JourneyOptionLeg) MarshalJSON() ([]byte, error) {
+	return json.Marshal(journeyOptionLegWire{
+		TripShortName:  l.TripShortName,
+		RouteShortName: l.RouteShortName,
+		Headsign:       l.Headsign,
+		BoardStopID:    l.BoardStopID,
+		BoardStopName:  l.BoardStopName,
+		BoardPlatform:  l.BoardPlatform,
+		BoardTime:      l.BoardTime.Format(time.RFC3339),
+		AlightStopID:   l.AlightStopID,
+		AlightStopName: l.AlightStopName,
+		AlightPlatform: l.AlightPlatform,
+		AlightTime:     l.AlightTime.Format(time.RFC3339),
 	})
 }
