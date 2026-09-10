@@ -80,6 +80,7 @@ describe('HomeClient', () => {
       'href',
       '/user-management'
     )
+    expect(screen.getByRole('link', { name: /Grafana/ })).toHaveAttribute('href', '/grafana')
 
     expect(screen.queryByRole('textbox', { name: /Email/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /Password/ })).not.toBeInTheDocument()
@@ -297,6 +298,7 @@ describe('HomeClient', () => {
 
     expect(screen.queryByText('Watch Party')).not.toBeInTheDocument()
     expect(screen.queryByText('Recipes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Grafana')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Tools' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Food' })).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
