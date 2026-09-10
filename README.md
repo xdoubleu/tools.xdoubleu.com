@@ -213,7 +213,8 @@ services — see [`infra/README.md`](infra/README.md) and
 [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md).
 The Prometheus datasource and the host/Postgres/API/overview dashboards are
 provisioned from `infra/grafana/` (baked into the wrapper image, issue #1527);
-the dashboard JSON is the source of truth, validated by `make lint/grafana`.
+the dashboard JSON is the source of truth, checked by `make lint/grafana` and
+`make grafana/verify`.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin
