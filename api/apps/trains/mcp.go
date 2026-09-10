@@ -28,6 +28,12 @@ type mcpSearchJourneysArgs struct {
 	ArriveBy          bool   `json:"arrive_by,omitempty" jsonschema:"time is a deadline"`
 }
 
+// mcpGetJourneyDetailArgs takes a journey_id exactly as a Journey in a
+// trains_search_journeys result reports it.
+type mcpGetJourneyDetailArgs struct {
+	JourneyID string `json:"journey_id" jsonschema:"id from trains_search_journeys"`
+}
+
 // RegisterMCPTools exposes the trains app's read-only RPCs on the combined
 // apps MCP server. The timetable is public data shared by every user, so
 // unlike the other apps' tools these return the same rows for any caller
@@ -50,6 +56,15 @@ func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "trains_search_journeys",
 		"Journeys between two stops around a time, as the /trains route "+
 			"overview computes them.", h.mcpSearchJourneys)
+	mcptools.AddReadTool(srv, mcpAppName, "trains_get_journey_detail",
+		"The full live state of one previously-searched journey — every stop "+
+			"of every boarded train with its scheduled time, live delay/"+
+			"cancellation status and platform, plus attached service alerts. "+
+			"This is what /trains/[journeyId] renders. The realtime feed is "+
+			"replaced wholesale every 30s and nothing is retained, so this "+
+			"only ever reports the current state, never what it looked like "+
+			"earlier.",
+		h.mcpGetJourneyDetail)
 }
 
 func (h *trainsConnectHandler) mcpSearchStations(
@@ -78,5 +93,13 @@ func (h *trainsConnectHandler) mcpSearchJourneys(
 			Time:              args.Time,
 			ArriveBy:          args.ArriveBy,
 		},
+	)))
+}
+
+func (h *trainsConnectHandler) mcpGetJourneyDetail(
+	ctx context.Context, args mcpGetJourneyDetailArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetJourneyDetail(ctx, connect.NewRequest(
+		&trainsv1.GetJourneyDetailRequest{JourneyId: args.JourneyID},
 	)))
 }

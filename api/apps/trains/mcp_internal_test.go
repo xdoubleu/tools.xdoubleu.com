@@ -3,6 +3,7 @@ package trains
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"tools.xdoubleu.com/apps/trains/internal/mocks"
+	"tools.xdoubleu.com/apps/trains/internal/services"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
@@ -67,6 +69,26 @@ func TestMCPTools(t *testing.T) {
 		DestinationStopID: "gs:nmbssncb:S8892007",
 	})
 	require.NoError(t, err)
+
+	// A well-formed journey_id decodes without server-side storage; with no
+	// realtime poll behind it the detail renders but every stop stays
+	// DelayUnknown — the tool must surface that, not error.
+	journeyID := services.EncodeJourneyID([]services.LegRef{{
+		TripShortName: "IC1234",
+		BoardStopID:   "gs:nmbssncb:S8814001",
+		BoardTime:     time.Now().UTC().Add(time.Hour),
+		AlightStopID:  "gs:nmbssncb:S8892007",
+		AlightTime:    time.Now().UTC().Add(2 * time.Hour),
+	}})
+	msg, err = h.mcpGetJourneyDetail(ctx, mcpGetJourneyDetailArgs{JourneyID: journeyID})
+	require.NoError(t, err)
+	assert.Contains(t, mcpJSON(t, msg), journeyID)
+
+	_, err = h.mcpGetJourneyDetail(
+		ctx,
+		mcpGetJourneyDetailArgs{JourneyID: "!!not-valid!!"},
+	)
+	require.Error(t, err)
 }
 
 // TestMCPTools_RequireAppAccess proves the gate rejects a caller without

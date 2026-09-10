@@ -47,8 +47,9 @@ var appsToolNames = []string{
 	"shoppinglist_get_plan_ingredient_groups", "shoppinglist_list_categories",
 	"shoppinglist_list_stores", "shoppinglist_get_store_categories",
 	"shoppinglist_list_item_names", "shoppinglist_list_item_categories",
-	// trains (3)
+	// trains (4)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
+	"trains_get_journey_detail",
 	// observability (16, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
