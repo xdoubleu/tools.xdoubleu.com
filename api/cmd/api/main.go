@@ -68,6 +68,7 @@ type Application struct {
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueNotifierJob              *jobs.IssueNotifierJob
+	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
@@ -252,6 +253,7 @@ func newCrossAppJobs(
 	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
 ) (
 	*jobs.IssueNotifierJob,
+	*jobs.IssueSignalCollectorJob,
 	*repositories.TransactionLatencyRepository,
 	*jobs.TransactionLatencySnapshotJob,
 ) {
@@ -262,11 +264,16 @@ func newCrossAppJobs(
 		notificationSettingsRepo, storageSnapshotsRepo, transactionLatencyRepo,
 	)
 
+	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
+		sentryClient, githubClient, storageSnapshotsRepo,
+	)
+
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
 		sentryClient, transactionLatencyRepo,
 	)
 
-	return issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob
+	return issueNotifierJob, issueSignalCollectorJob, transactionLatencyRepo,
+		transactionLatencySnapshotJob
 }
 
 // feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
@@ -352,6 +359,11 @@ func startCrossAppJobs(app *Application) error {
 		return err
 	}
 	if err := app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.issueSignalCollectorJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.transactionLatencySnapshotJob, app.db),
 		noopCallback,
 	); err != nil {
@@ -422,15 +434,15 @@ func NewApplication(
 
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
-	issueNotifierJob, transactionLatencyRepo, transactionLatencySnapshotJob :=
-		newCrossAppJobs(
-			db,
-			sentryClient,
-			githubClient,
-			notificationsSvc,
-			notificationSettingsRepo,
-			storageSnapshotsRepo,
-		)
+	issueNotifierJob, issueSignalCollectorJob, transactionLatencyRepo,
+		transactionLatencySnapshotJob := newCrossAppJobs(
+		db,
+		sentryClient,
+		githubClient,
+		notificationsSvc,
+		notificationSettingsRepo,
+		storageSnapshotsRepo,
+	)
 
 	logsRepo := repositories.NewLogsRepository(db)
 
@@ -462,6 +474,7 @@ func NewApplication(
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
 		issueNotifierJob:              issueNotifierJob,
+		issueSignalCollectorJob:       issueSignalCollectorJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(
