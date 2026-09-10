@@ -58,3 +58,10 @@ env:
     # deploy). Feeds web/components/Footer.tsx's version display.
     - RELEASE
     - SENTRY_DSN_WEB
+    # Shared secret gating GET /metrics (web/app/metrics/route.ts, issue
+    # #1555) — `web` is the kamal-proxy catch-all, so /metrics is otherwise
+    # publicly readable. Prometheus's `web` scrape job sends it as a bearer
+    # token (infra/prometheus.yml). Same value as the api's
+    # OBSERVABILITY_INGEST_SECRET and OpenTofu's
+    # TF_VAR_observability_ingest_secret — one repo Secret, three consumers.
+    - OBSERVABILITY_INGEST_SECRET

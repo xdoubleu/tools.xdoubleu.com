@@ -338,13 +338,32 @@ Two incidental findings, both verified rather than assumed:
   into one "api" series. `metric_relabel_configs` renames it to `job_name`.
 - `GET https://tools.xdoubleu.com/metrics` answers 200 to the public internet
   (`web` is the kamal-proxy catch-all) and `POST /metrics` is unauthenticated
-  ingest for the Web Vitals beacon. Tracked separately so that an auth gate
-  does not land in the same change as the fix to the thing being scraped.
+  ingest for the Web Vitals beacon. Tracked separately (#1555) so that an auth
+  gate did not land in the same change as the fix to the thing being scraped —
+  see Phase 6 below, where `GET` was gated once Phase 5's scrape path was
+  confirmed working.
 
 The new `app-performance` dashboard restores what Grafana had no equivalent
 for: per-`route` p95 (the aggregate latency alerts can say something is slow
 but never which endpoint), per-job duration and failure rate, and Core Web
 Vitals at p75.
+
+## Phase 6 (#1555): gating the `web` /metrics endpoint
+
+Once Phase 5 made Prometheus actually reach `web` directly over the Docker
+network, the public `GET https://tools.xdoubleu.com/metrics` route
+(`web/app/metrics/route.ts` — `web` is the kamal-proxy catch-all) had no
+reason to stay open. It now requires an `Authorization: Bearer` token equal
+to `OBSERVABILITY_INGEST_SECRET` — the same shared secret `web/app/logs/route.ts`
+already uses, now also a `web` Kamal deploy secret and, as
+`TF_VAR_observability_ingest_secret`, written to a file on the VPS that
+`infra/prometheus.yml`'s `web` scrape job reads via `credentials_file`. When
+the secret is unset the gate is skipped rather than closed, matching
+`app/logs/route.ts` and keeping a missing-secret misconfiguration from
+re-creating the Phase 5 "every `web_*` metric silently zero" failure. `POST
+/metrics` (the browser Web Vitals beacon) stays unauthenticated by design.
+`deploy-kamal` `needs` `infra-apply`, so Prometheus starts sending the token
+before `web` starts checking it — no scrape gap.
 
 **What this says about the pipeline as a whole:** every phase verified its own
 code and none verified that the data arrived. A metric that is registered,

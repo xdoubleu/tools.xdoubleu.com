@@ -1,12 +1,37 @@
+import { timingSafeEqual } from 'node:crypto'
+
+import { getObservabilityIngestSecret } from '@/lib/env'
 import { metricsRegistry, recordWebVital } from '@/lib/server/metrics'
 
-// Prometheus scrapes GET /metrics over the internal Docker network (the
-// "web" job in infra/prometheus.yml, issue #1528). POST /metrics is the
-// same-origin browser beacon from the WebVitals component.
+// GET /metrics is scraped by Prometheus over the internal Docker network (the
+// "web" job in infra/prometheus.yml). `web` is the kamal-proxy catch-all, so
+// the endpoint is also reachable from the public internet — it is gated on a
+// bearer token (OBSERVABILITY_INGEST_SECRET, the same shared secret
+// app/logs/route.ts uses; infra/prometheus.yml's `web` job sends it as
+// `Authorization: Bearer`). When the secret is unset the gate is skipped
+// rather than closed, matching app/logs/route.ts and keeping a missing-secret
+// misconfiguration from silently zeroing every `web_*` metric (issue #1555).
+//
+// POST /metrics is the same-origin browser Web Vitals beacon
+// (app/_components/web-vitals.tsx) and stays unauthenticated by design.
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET(): Promise<Response> {
+function bearerAuthorized(request: Request, secret: string): boolean {
+  const header = request.headers.get('authorization') ?? ''
+  const prefix = 'Bearer '
+  if (!header.startsWith(prefix)) return false
+  const provided = Buffer.from(header.slice(prefix.length))
+  const expected = Buffer.from(secret)
+  return provided.length === expected.length && timingSafeEqual(provided, expected)
+}
+
+export async function GET(request: Request): Promise<Response> {
+  const secret = getObservabilityIngestSecret()
+  if (secret && !bearerAuthorized(request, secret)) {
+    return new Response('unauthorized', { status: 401 })
+  }
+
   return new Response(await metricsRegistry.metrics(), {
     headers: { 'Content-Type': metricsRegistry.contentType }
   })

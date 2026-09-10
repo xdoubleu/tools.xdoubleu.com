@@ -570,6 +570,10 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          # Gates GET /metrics on the web container (issue #1555) — see
+          # config/deploy.web.yml. Same repo Secret also feeds the api and,
+          # as TF_VAR_observability_ingest_secret, OpenTofu's Prometheus.
+          OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
       # Deploys after web (see reasoning above) so the shared host's TLS is
@@ -790,6 +794,10 @@ jobs:
           TF_VAR_release_check_resend_api_key: ${{ secrets.RESEND_API_KEY }}
           TF_VAR_release_check_email_from: ${{ secrets.EMAIL_FROM }}
           TF_VAR_release_check_email_to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          # Written to a file on the VPS for infra/prometheus.yml's `web`
+          # scrape job to authenticate GET /metrics with (issue #1555). Same
+          # repo Secret the deploy-kamal web/api steps use.
+          TF_VAR_observability_ingest_secret: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
         run: tofu apply -auto-approve -input=false
 
       # The apply step above already failed the job; this restores the box

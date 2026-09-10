@@ -46,6 +46,12 @@ variable "release_check_email_to" {
   type        = string
 }
 
+variable "observability_ingest_secret" {
+  description = "Shared secret the `web` container requires as a bearer token on GET /metrics (web/app/metrics/route.ts, issue #1555). null_resource.prometheus writes it to a file on the VPS that infra/prometheus.yml's `web` scrape job reads via credentials_file — host-level, not passed to any container by Tofu. Reuses api/web's own OBSERVABILITY_INGEST_SECRET repo Secret (same value, one place to rotate); supplied in the infra-apply CI job as TF_VAR_observability_ingest_secret from that secret — see infra/README.md. Empty is allowed: the gate then fails open on the web side too."
+  type        = string
+  sensitive   = true
+}
+
 # No *app* secrets here. Tofu provisions the host (firewall, hardening,
 # deploy keys, Postgres, and — see above — the release-upgrade-check timer)
 # and nothing else — the app itself is deployed only

@@ -84,6 +84,15 @@ scrape_configs:
 
   - job_name: web
     docker_sd_configs: *app_sd
+    # `web` is the kamal-proxy catch-all, so its GET /metrics is reachable
+    # from the public internet — web/app/metrics/route.ts gates it on this
+    # bearer token (issue #1555). The file is the OBSERVABILITY_INGEST_SECRET
+    # value, written to the host by null_resource.prometheus (infra/main.tf)
+    # and mounted read-only (infra/prometheus-compose.yml). If the secret is
+    # unset the web side fails open, so an empty file here still scrapes fine.
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/web_ingest_secret
     relabel_configs:
       - source_labels: [__meta_docker_container_label_service]
         regex: tools-xdoubleu-com-web
