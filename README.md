@@ -167,8 +167,9 @@ RS256 ID tokens signed with `OAUTH_OIDC_PRIVATE_KEY` and published at
 `offline_access`, and support for confidential clients (`client_secret_basic` /
 `client_secret_post`). One static confidential client, `grafana`, is seeded for
 Grafana SSO — its secret comes from `OAUTH_GRAFANA_CLIENT_SECRET` and its ID
-token carries a `role` claim (`Admin`/`Viewer`) for Grafana's
-`role_attribute_path`. See
+token carries a `role` claim (`Admin`) only for admin users, so with Grafana's
+`role_attribute_strict` a non-admin can't complete Grafana SSO — Grafana access
+is admin-only. See
 [`docs/adr-0021-oauth-as-general-purpose-oidc-idp.md`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md).
 
 ## Deploy Notes
@@ -210,6 +211,9 @@ the hand-rolled metrics dashboard that used to live at
 Tofu-managed compose accessories (like Postgres/node_exporter), not Kamal
 services — see [`infra/README.md`](infra/README.md) and
 [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md).
+The Prometheus datasource and the host/Postgres/API/overview dashboards are
+provisioned from `infra/grafana/` (baked into the wrapper image, issue #1527);
+the dashboard JSON is the source of truth, validated by `make lint/grafana`.
 
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin

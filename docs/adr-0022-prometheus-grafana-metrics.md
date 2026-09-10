@@ -49,10 +49,11 @@ existing kamal-proxy instance and domain with `api`/`web`
 the prefix itself — `GF_SERVER_SERVE_FROM_SUB_PATH`/`GF_SERVER_ROOT_URL` are
 set accordingly, mirroring how `api/cmd/api/kamal_proxy_shim.go` handles
 `/api` in-process rather than relying on kamal-proxy stripping it). Grafana
-pulls a stock public `grafana/grafana-oss` image straight from Docker
-Hub — no build step, no GHCR push, and (unlike `api`/`web`'s GHCR packages)
-no `registry:` block, since an anonymous pull of a public Docker Hub image
-needs no credentials.
+deploys a thin wrapper image this repo builds and pushes to its own GHCR
+namespace (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue #1509) —
+`FROM grafana/grafana:X` plus a `service` label for Kamal's `validate_image`,
+and since #1527 the baked-in datasource/dashboard provisioning under
+`infra/grafana/`.
 
 **SSO reuses the embedded AS from ADR-0021**, which shipped ahead of this
 issue specifically to unblock it: Grafana's `generic_oauth` provider points
@@ -61,7 +62,18 @@ at `https://tools.xdoubleu.com/oauth2/{authorize,token}`, maps
 authenticates as the static confidential `grafana` client
 (`OAUTH_GRAFANA_CLIENT_SECRET`, migration `00045`). Local admin/password
 login stays enabled as a break-glass path (`GRAFANA_ADMIN_PASSWORD`), not
-disabled — SSO is the default, not the only way in.
+disabled — SSO is the default, not the only way in. Follow-up #1527 made SSO
+**admin-only**: the AS emits the `role` claim only for admins, so
+`role_attribute_strict` turns a non-admin token into a refused login.
+
+**Datasource and dashboards are provisioned, not click-configured** (#1527):
+`infra/grafana/` holds the Prometheus datasource and the host / Postgres /
+API-runtime / overview dashboards that replace the removed
+`/monitoring/observability` charts. They are baked into the wrapper image
+(`infra/grafana.Dockerfile`), the dashboard JSON is the single source of
+truth (`allowUiUpdates: false`), and `make lint/grafana` validates it — a
+change under `infra/grafana/` rebuilds the image via `main.yml`'s
+`grafana_dockerfile` path filter.
 
 **Prometheus + postgres_exporter are Tofu-managed compose accessories, not
 Kamal services** — same shape as `node-exporter-compose.yml`

@@ -11,7 +11,8 @@ import (
 // ResolvedUser is the identity the composition root resolves from the web
 // session cookie during the authorize flow — everything the ID token's claims
 // can be built from. Email/DisplayName are only surfaced when the matching
-// scope (email / profile) was granted; IsAdmin always drives the role claim.
+// scope (email / profile) was granted; IsAdmin drives whether a role claim is
+// emitted at all (see addProfileClaims).
 type ResolvedUser struct {
 	ID          string
 	Email       string
@@ -50,17 +51,19 @@ func newAuthorizeSession(
 }
 
 // addProfileClaims layers the OIDC identity claims onto an ID token per the
-// scopes actually granted. The role claim is emitted unconditionally: Grafana
-// maps it onto its Admin/Viewer roles via role_attribute_path, and a login
-// with no resolvable role is worse than no login.
+// scopes actually granted. The role claim is emitted only for admins (value
+// "Admin"): Grafana is the sole relying party, it maps this claim onto its
+// roles via role_attribute_path, and config/deploy.grafana.yml sets
+// role_attribute_strict so a token with no role is refused — which is exactly
+// the intent, Grafana access is admin-only (docs/adr-0021). A non-admin
+// first-party user therefore gets a valid ID token with no "role" key and
+// simply can't complete Grafana SSO.
 func addProfileClaims(
 	claims *jwt.IDTokenClaims, user ResolvedUser, grantedScopes fosite.Arguments,
 ) {
-	role := "Viewer"
 	if user.IsAdmin {
-		role = "Admin"
+		claims.Add("role", "Admin")
 	}
-	claims.Add("role", role)
 
 	if grantedScopes.Has(EmailScope) && user.Email != "" {
 		claims.Add("email", user.Email)
