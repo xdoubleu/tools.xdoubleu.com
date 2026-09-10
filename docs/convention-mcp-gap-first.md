@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564
 
 ## Rule
 
@@ -84,3 +84,14 @@ answerable with direct database access.
   in ADR-0022: **a tool that returns a correct answer to the query you thought
   to ask is not coverage.** When a metric is added, the check that it arrived
   is a separate step from the check that it compiles.
+- **#1564 — no tool for Grafana-managed alert state.** Alerting moved to Grafana
+  (#1528), and Grafana-managed alert rules are evaluated inside Grafana — they
+  never populate Prometheus `ALERTS{}`, so `prom_query` (the only
+  alerting-adjacent MCP tool) could not confirm "is the alert for X firing?";
+  state could only be re-derived by hand-running each rule's PromQL and reasoning
+  about `noDataState`. Surfaced by #1563's false `PostgresDown` alert.
+  `get_grafana_alerts` now proxies Grafana's Prometheus-compatible ruler API
+  (`/api/prometheus/grafana/api/v1/rules`) for each rule's `state` + active
+  instances. It reaches Grafana over the public URL with admin basic-auth,
+  **not** an internal `grafana:3000` hostname — that is the same non-existent
+  Kamal network alias #1554 was about.

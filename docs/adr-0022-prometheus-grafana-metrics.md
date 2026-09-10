@@ -282,9 +282,11 @@ retires the last hand-rolled notifier.
   `global.notification_settings` per section and is unaffected;
   `NOTIFY_EMAIL_TO` stays in use for the two weekly digests and the
   Ubuntu-release-check timer.
-- **`prom_query` gains `ALERTS{}` and the new gauges** as read paths, and the
+- **`prom_query` gains the new gauges** as read paths, and the
   `monitoring-sweep` skill is rewritten MCP-only around them (its stale
   `get_alert_states` reference — that tool went in #1528 — is removed).
+  (`ALERTS{}` was listed here too, but Grafana-managed alerts never populate
+  it — Phase 6 / #1564 adds `get_grafana_alerts` for actual alert state.)
 - **The `web` `/monitoring` surface collapses to `/monitoring/connections`**
   (#1542, its own slice): with alerting and the issue digest owned by
   Grafana, the standalone Issues page is redundant and the OAuth-connection
@@ -396,6 +398,29 @@ Both got an `app-performance` timeseries panel. Label names are `workflow` /
 collide the way `job_duration_seconds` does (see `infra/prometheus.yml`'s
 `metric_relabel_configs`). Unverifiable until deployed by design — the
 post-deploy `prom_query` check confirms each series is non-empty.
+
+## Phase 7 (#1564): reading Grafana-managed alert state
+
+Once alerting became Grafana-managed (Phase 2), `prom_query` stopped being able
+to answer "is the alert for X firing?" — Grafana-managed alert rules are
+evaluated inside Grafana and never populate Prometheus `ALERTS{}`, so the only
+way to check state was to re-run each rule's PromQL by hand and reason about its
+`noDataState`. #1563's false `PostgresDown` alert made that concrete.
+
+`get_grafana_alerts` (`api/cmd/api/mcp_grafana_alerts.go`, admin-gated, modelled
+on `prom_query` — raw-JSON passthrough) closes the gap: it calls Grafana's
+Prometheus-compatible ruler endpoint
+(`/api/prometheus/grafana/api/v1/rules`), which carries each rule's current
+`state` and its `alerts[]` active instances.
+
+It reaches Grafana over the **public URL** (`GRAFANA_URL`, default
+`https://tools.xdoubleu.com/grafana`) through kamal-proxy, with HTTP Basic auth
+as `admin` / `GRAFANA_ADMIN_PASSWORD` — the same value and repo Secret the
+grafana service already gets as `GF_SECURITY_ADMIN_PASSWORD`, now added to the
+`api` deploy-secret three-list. **Not** an internal `grafana:3000` hostname:
+that is exactly the "assumed Kamal network alias" Phase 5 proved does not exist.
+`get_grafana_alerts` also removes the last reason to reference `ALERTS{}` for
+Grafana alert state (README/CLAUDE.md updated).
 
 ## Consequences
 

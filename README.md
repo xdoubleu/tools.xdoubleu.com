@@ -116,17 +116,20 @@ named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_workflow_runs`,
 `get_security_alerts`, `get_sentry_issues`, `resolve_sentry_issue`,
-`dismiss_security_alert`, `get_slow_transactions`, `prom_query`, among
+`dismiss_security_alert`, `get_slow_transactions`, `prom_query`,
+`get_grafana_alerts`, among
 others). `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
 against Prometheus — host CPU/memory/disk, Postgres stats, api's and web's
-own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528), the
-`github_*`/`sentry_unresolved_issues`/`r2_*` issue-signal gauges (issue
-#1529), and `ALERTS{}` for what Grafana is currently firing — now that
-Grafana + Prometheus own metrics/graphs/alerting (see
+own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528) and
+the `github_*`/`sentry_unresolved_issues`/`r2_*` issue-signal gauges (issue
+#1529) — now that Grafana + Prometheus own metrics/graphs/alerting (see
 [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md));
 it replaced four narrower tools (`get_host_metrics`,
 `get_database_size_history`, `get_transaction_latency_history`, and
-`get_alert_states` — Grafana owns alert state now, read via `ALERTS{}`).
+`get_alert_states`). `get_grafana_alerts` (issue #1564) is the read path
+for alert *state*: alerting is Grafana-managed now and Grafana-managed
+alerts never appear in Prometheus `ALERTS{}`, so it queries Grafana's own
+ruler API for each rule's current state and active instances.
 Two tools are a deliberate
 exception to read-only: `resolve_sentry_issue` marks a Sentry issue
 resolved, and `dismiss_security_alert` dismisses/resolves an open GitHub

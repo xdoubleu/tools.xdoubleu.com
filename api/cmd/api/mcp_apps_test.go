@@ -50,12 +50,12 @@ var appsToolNames = []string{
 	// trains (4)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
 	"trains_get_journey_detail",
-	// observability (16, admin-gated)
+	// observability (17, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
 	"get_security_alerts", "dismiss_security_alert",
 	"get_sentry_issues", "resolve_sentry_issue", "get_logs",
-	"get_slow_transactions", "prom_query",
+	"get_slow_transactions", "prom_query", "get_grafana_alerts",
 	"get_oauth_connections", "get_notification_settings",
 	"get_project_issues_by_status",
 }
@@ -75,6 +75,7 @@ var appsNetworkTools = map[string]bool{
 	"get_slow_transactions":        true,
 	"get_project_issues_by_status": true,
 	"prom_query":                   true,
+	"get_grafana_alerts":           true,
 }
 
 // bearerRoundTripper attaches a Bearer token to every MCP client request,

@@ -195,3 +195,10 @@ env:
     # pipeline is silently dead (issue #1568). Same repo Secret web already
     # uses (config/deploy.web.yml gates GET /metrics on it, #1555).
     - OBSERVABILITY_INGEST_SECRET
+    # Grafana's break-glass admin password — the same value the grafana
+    # service receives as GF_SECURITY_ADMIN_PASSWORD (config/deploy.grafana.yml,
+    # repo Secret GRAFANA_ADMIN_PASSWORD). The api's get_grafana_alerts MCP
+    # tool authenticates to Grafana's HTTP API as `admin` with it, reaching
+    # Grafana over the public host through kamal-proxy since Kamal gives its
+    # containers no stable internal network alias (issue #1564).
+    - GRAFANA_ADMIN_PASSWORD

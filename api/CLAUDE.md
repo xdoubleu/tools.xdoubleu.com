@@ -143,7 +143,7 @@ Rules when touching a handler or anything that mutates a user:
 
 ### Apps MCP Server
 
-Every app's own read RPCs, plus 16 admin-gated observability tools (including the general `prom_query(promql)` tool against Prometheus, issue #1468), are exposed
+Every app's own read RPCs, plus 17 admin-gated observability tools (including `prom_query(promql)` against Prometheus, issue #1468, and `get_grafana_alerts` for Grafana-managed alert-rule state, issue #1564), are exposed
 to a local Claude CLI over a largely read-only MCP server at `/apps/mcp`
 (`cmd/api/mcp_apps.go`). Apps opt in via `MCPToolProvider`
 (`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`), each wrapping only its

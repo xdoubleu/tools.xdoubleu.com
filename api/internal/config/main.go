@@ -107,6 +107,17 @@ type Config struct {
 	// is never reachable from outside it — same shape as the Postgres/
 	// node_exporter accessories it now scrapes instead of api doing so itself.
 	PrometheusURL string
+	// GrafanaURL is Grafana's public base URL, used by the get_grafana_alerts
+	// MCP tool (cmd/api/mcp_grafana_alerts.go, issue #1564). Grafana is a Kamal
+	// service and Kamal gives its containers no stable network alias
+	// (infra/prometheus.yml's #1554 note), so the api reaches its HTTP API
+	// through kamal-proxy on the public host rather than a container hostname.
+	GrafanaURL string
+	// GrafanaAdminPassword is Grafana's break-glass admin password
+	// (GF_SECURITY_ADMIN_PASSWORD on the grafana service). get_grafana_alerts
+	// authenticates to Grafana's API as `admin` with it; empty disables the
+	// tool.
+	GrafanaAdminPassword string
 	// ObservabilityIngestSecret gates POST /api/observability/logs, the
 	// plain-HTTP log-forwarding endpoint web pushes batches to — web has no
 	// user session to authenticate with, so this shared secret stands in for
@@ -286,6 +297,10 @@ func New(logger *slog.Logger) Config {
 	cfg.PrometheusURL = p.envStr(
 		"PROMETHEUS_URL", "http://prometheus:9090",
 	)
+	cfg.GrafanaURL = p.envStr(
+		"GRAFANA_URL", "https://tools.xdoubleu.com/grafana",
+	)
+	cfg.GrafanaAdminPassword = p.envSecret("GRAFANA_ADMIN_PASSWORD", "")
 	cfg.ObservabilityIngestSecret = p.envSecret("OBSERVABILITY_INGEST_SECRET", "")
 
 	return cfg
