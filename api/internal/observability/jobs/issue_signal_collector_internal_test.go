@@ -88,6 +88,19 @@ func loggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
 }
 
+func TestLogAPIErr(t *testing.T) {
+	t.Run("transient logs at warn", func(t *testing.T) {
+		logger, buf := loggerWithBuf()
+		logAPIErr(t.Context(), logger, "poll failed", errors.New("boom"), true)
+		assert.Contains(t, buf.String(), "level=WARN")
+	})
+	t.Run("non-transient logs at error", func(t *testing.T) {
+		logger, buf := loggerWithBuf()
+		logAPIErr(t.Context(), logger, "poll failed", errors.New("boom"), false)
+		assert.Contains(t, buf.String(), "level=ERROR")
+	})
+}
+
 func failedRun(branch, conclusion string) github.WorkflowRun {
 	//nolint:exhaustruct //only Branch/Conclusion drive the workflow-run gauge
 	return github.WorkflowRun{Branch: branch, Conclusion: conclusion}
