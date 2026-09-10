@@ -26,6 +26,10 @@ services:
       - "--storage.tsdb.retention.time=90d"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Bearer token for the `web` scrape job's authenticated GET /metrics
+      # (issue #1555) — written by null_resource.prometheus (infra/main.tf),
+      # referenced as credentials_file in prometheus.yml.
+      - ./web_ingest_secret:/etc/prometheus/web_ingest_secret:ro
       - prometheus_data:/prometheus
       # Read-only Docker socket, for the docker_sd_configs the api/web
       # scrape jobs use to find Kamal's app containers by their `service`

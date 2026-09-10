@@ -20,9 +20,13 @@ infra_dir="$repo_root/infra"
 prom_image="prom/prometheus:v3.1.0"
 
 echo "==> promtool check config (infra/prometheus.yml)"
+# The `web` scrape job's authorization.credentials_file (issue #1555) points
+# at a path Tofu writes on the VPS, not in this repo — `promtool check config`
+# fails if that file is missing, so mount an empty stand-in at that path.
 docker run --rm \
 	--entrypoint promtool \
 	-v "$infra_dir/prometheus.yml:/prometheus.yml:ro" \
+	-v /dev/null:/etc/prometheus/web_ingest_secret:ro \
 	"$prom_image" check config /prometheus.yml
 
 echo "==> tofu fmt -check (infra/)"

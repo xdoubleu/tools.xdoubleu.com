@@ -225,6 +225,15 @@ postgres_exporter has a published host port at all — reachable only from
 containers already on the `kamal` Docker network (Grafana, and `api`'s
 `prom_query` MCP tool).
 
+`null_resource.prometheus` also uploads a `web_ingest_secret` file — the
+`OBSERVABILITY_INGEST_SECRET` value, passed in as
+`TF_VAR_observability_ingest_secret` by the `infra-apply` job — which
+`prometheus.yml`'s `web` scrape job reads via `credentials_file` and sends as
+a bearer token, because `web`'s `GET /metrics` is gated on it now (issue
+#1555; `web` is the kamal-proxy catch-all, so it was otherwise world-readable).
+`deploy-kamal` `needs` `infra-apply`, so Prometheus starts sending the token
+before the new `web` starts requiring it.
+
 Grafana itself is **not** a Tofu-managed accessory — it's a third Kamal
 service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
 `deploy-kamal` job like `api`/`web`) because it needs a public path
@@ -514,7 +523,13 @@ OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
                               /api/observability/logs, the plain-HTTP
                               endpoint web forwards its own logs through,
                               issue #1040 — web holds no admin session to
-                              authenticate a Connect call with)
+                              authenticate a Connect call with. Also gates
+                              GET /metrics on the web container as a bearer
+                              token (issue #1555) and, reused as
+                              TF_VAR_observability_ingest_secret in the
+                              infra-apply job, is written to the VPS for
+                              Prometheus's `web` scrape job to send —
+                              one repo Secret, three consumers)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear

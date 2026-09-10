@@ -296,6 +296,9 @@ resource "null_resource" "prometheus" {
     # Not the password itself (that's sensitive) — same "does the secret
     # value's hash change" trick null_resource.postgres uses.
     password_hash = sha256(random_password.postgres.result)
+    # Same trick for the /metrics bearer token (issue #1555) — re-uploads
+    # web_ingest_secret and restarts Prometheus when the value rotates.
+    ingest_secret_hash = sha256(var.observability_ingest_secret)
   }
 
   connection {
@@ -324,6 +327,15 @@ resource "null_resource" "prometheus" {
       DATA_SOURCE_NAME=postgresql://postgres:${random_password.postgres.result}@postgres:5432/postgres?sslmode=disable
     EOT
     destination = "/home/deploy/prometheus/.env"
+  }
+
+  # Bearer token the `web` scrape job in prometheus.yml sends so it can read
+  # the now-gated GET /metrics on the web container (issue #1555). Written
+  # raw (no trailing newline — Prometheus trims credentials_file whitespace
+  # anyway) and mounted read-only by prometheus-compose.yml.
+  provisioner "file" {
+    content     = var.observability_ingest_secret
+    destination = "/home/deploy/prometheus/web_ingest_secret"
   }
 
   provisioner "remote-exec" {
