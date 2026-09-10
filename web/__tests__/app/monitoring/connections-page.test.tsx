@@ -7,7 +7,6 @@ jest.mock('@/components/monitoring/MonitoringSettingsClient', () => () => (
 
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({
-    getNotificationSettings: jest.fn(async () => ({})),
     listOAuthConnections: jest.fn(async () => ({}))
   }))
 }))
@@ -21,27 +20,19 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-import MonitoringSettingsPage from '@/app/monitoring/settings/page'
+import MonitoringConnectionsPage from '@/app/monitoring/connections/page'
 
-describe('MonitoringSettingsPage', () => {
-  it('renders the settings client', async () => {
-    render(await MonitoringSettingsPage())
+describe('MonitoringConnectionsPage', () => {
+  it('renders the connections client', async () => {
+    render(await MonitoringConnectionsPage())
     expect(screen.getByTestId('monitoring-settings-client')).toBeInTheDocument()
   })
 
-  it('links back to /monitoring', async () => {
-    render(await MonitoringSettingsPage())
-    expect(screen.getByRole('link', { name: 'Back to monitoring' })).toHaveAttribute(
-      'href',
-      '/monitoring'
-    )
-  })
-
-  it('passes prefetched data as SWR fallback when available', async () => {
+  it('passes prefetched connections as SWR fallback when available', async () => {
     const { fetchOrNull } = jest.requireMock('@/lib/server/fetchers')
     fetchOrNull.mockImplementation((fn: () => unknown) => fn())
 
-    render(await MonitoringSettingsPage())
+    render(await MonitoringConnectionsPage())
     expect(screen.getByTestId('monitoring-settings-client')).toBeInTheDocument()
   })
 })

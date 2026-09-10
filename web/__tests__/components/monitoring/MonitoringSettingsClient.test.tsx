@@ -1,13 +1,9 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen } from '@testing-library/react'
-import {
-  GetNotificationSettingsResponseSchema,
-  ListOAuthConnectionsResponseSchema
-} from '@/lib/gen/observability/v1/observability_pb'
+import { ListOAuthConnectionsResponseSchema } from '@/lib/gen/observability/v1/observability_pb'
 import MonitoringSettingsClient from '@/components/monitoring/MonitoringSettingsClient'
 
-const mockUseNotificationSettings = jest.fn()
 const mockUseOAuthConnections = jest.fn()
 const mockMutate = jest.fn()
 const mockRouterReplace = jest.fn()
@@ -19,9 +15,6 @@ jest.mock('next/navigation', () => ({
 }))
 
 jest.mock('@/hooks/useMonitoring', () => ({
-  useNotificationSettings: () => mockUseNotificationSettings(),
-  useUpdateNotificationSettings: () => jest.fn(),
-  useUpdateNotificationChannel: () => jest.fn(),
   useOAuthConnections: () => mockUseOAuthConnections(),
   useDisconnectOAuthConnection: () => jest.fn()
 }))
@@ -36,15 +29,6 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockSearchParams = new URLSearchParams()
   mockMutate.mockResolvedValue(undefined)
-  mockUseNotificationSettings.mockReturnValue({
-    data: create(GetNotificationSettingsResponseSchema, {
-      settings: [
-        { sourceKey: 'sentry_issues', enabled: true },
-        { sourceKey: 'failing_dependency_prs', enabled: true }
-      ]
-    }),
-    mutate: mockMutate
-  })
   mockUseOAuthConnections.mockReturnValue({
     data: create(ListOAuthConnectionsResponseSchema, { connections: [] }),
     mutate: mockMutate
@@ -52,9 +36,8 @@ beforeEach(() => {
 })
 
 describe('MonitoringSettingsClient', () => {
-  it('renders the notification settings and integrations cards', () => {
+  it('renders the integrations card', () => {
     render(<MonitoringSettingsClient />)
-    expect(screen.getByText('Email notifications')).toBeInTheDocument()
     expect(screen.getByText('Integrations')).toBeInTheDocument()
   })
 
@@ -65,7 +48,7 @@ describe('MonitoringSettingsClient', () => {
 
     expect(await screen.findByText('Connected github.')).toBeInTheDocument()
     expect(mockMutate).toHaveBeenCalled()
-    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/connections')
   })
 
   it('auto-opens the config dialog for the just-connected provider', async () => {
@@ -84,7 +67,7 @@ describe('MonitoringSettingsClient', () => {
     render(<MonitoringSettingsClient />)
 
     await screen.findByText('Connected github.')
-    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings?foo=bar')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/connections?foo=bar')
   })
 
   it('shows an error banner on oauth_error without revalidating', async () => {
@@ -95,7 +78,7 @@ describe('MonitoringSettingsClient', () => {
     expect(
       await screen.findByText('Failed to connect github. Check the server logs for details.')
     ).toBeInTheDocument()
-    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/settings')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/monitoring/connections')
   })
 
   it('shows no banner and does not touch the URL when neither param is present', () => {

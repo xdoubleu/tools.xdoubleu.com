@@ -92,7 +92,7 @@ const ALL_APPS: AppLink[] = [
   {
     name: 'monitoring',
     label: 'Monitoring',
-    href: '/monitoring',
+    href: '/monitoring/connections',
     description: 'Observability'
   }
 ]

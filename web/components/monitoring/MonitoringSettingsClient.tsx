@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useNotificationSettings, useOAuthConnections } from '@/hooks/useMonitoring'
-import NotificationChannelCard from './NotificationChannelCard'
-import NotificationSettingsCard from './NotificationSettingsCard'
+import { useOAuthConnections } from '@/hooks/useMonitoring'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 export default function MonitoringSettingsClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const notificationSettings = useNotificationSettings()
   const oauthConnections = useOAuthConnections()
   const [oauthMessage, setOAuthMessage] = useState<{
     tone: 'success' | 'danger'
@@ -37,7 +34,9 @@ export default function MonitoringSettingsClient() {
     const params = new URLSearchParams(searchParams)
     params.delete('oauth_connected')
     params.delete('oauth_error')
-    router.replace(params.size > 0 ? `/monitoring/settings?${params}` : '/monitoring/settings')
+    router.replace(
+      params.size > 0 ? `/monitoring/connections?${params}` : '/monitoring/connections'
+    )
     // oauthConnections/router deliberately excluded: this should run once per
     // incoming URL, not on every SWR/router identity change.
   }, [searchParams])
@@ -51,8 +50,6 @@ export default function MonitoringSettingsClient() {
           {oauthMessage.text}
         </p>
       )}
-      <NotificationChannelCard data={notificationSettings.data} />
-      <NotificationSettingsCard data={notificationSettings.data} />
       <OAuthConnectionsCard
         data={oauthConnections.data}
         configuringProvider={configuringProvider}
