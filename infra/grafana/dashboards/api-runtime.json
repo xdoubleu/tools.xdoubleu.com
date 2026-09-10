@@ -14,11 +14,11 @@
       "id": 1,
       "type": "stat",
       "title": "API up",
-      "description": "up{job=\"api\"} — the api slice of the TargetDown alert rule in infra/grafana/provisioning/alerting/rules.yml.",
+      "description": "up{job=\"api\"} — the api slice of the TargetDown alert rule in infra/grafana/provisioning/alerting/rules.yml. Every expr on this dashboard is aggregated `min/max by (job)` because api gets a fresh docker_sd `instance` label each Kamal deploy (infra/prometheus.yml), so a bare selector shows a doubled series during the deploy overlap.",
       "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"api\"}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min by (job) (up{job=\"api\"})" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -38,7 +38,7 @@
       "gridPos": { "h": 5, "w": 5, "x": 4, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "process_resident_memory_bytes{job=\"api\"}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (process_resident_memory_bytes{job=\"api\"})" }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
@@ -50,7 +50,7 @@
       "gridPos": { "h": 5, "w": 5, "x": 9, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_goroutines{job=\"api\"}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_goroutines{job=\"api\"})" }
       ],
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
@@ -62,7 +62,7 @@
       "gridPos": { "h": 5, "w": 5, "x": 14, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(process_cpu_seconds_total{job=\"api\"}[5m])" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (rate(process_cpu_seconds_total{job=\"api\"}[5m]))" }
       ],
       "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
@@ -74,9 +74,9 @@
       "gridPos": { "h": 9, "w": 12, "x": 0, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "resident", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "process_resident_memory_bytes{job=\"api\"}" },
-        { "refId": "B", "legendFormat": "heap in use", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_memstats_heap_inuse_bytes{job=\"api\"}" },
-        { "refId": "C", "legendFormat": "heap alloc", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_memstats_heap_alloc_bytes{job=\"api\"}" }
+        { "refId": "A", "legendFormat": "resident", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (process_resident_memory_bytes{job=\"api\"})" },
+        { "refId": "B", "legendFormat": "heap in use", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_memstats_heap_inuse_bytes{job=\"api\"})" },
+        { "refId": "C", "legendFormat": "heap alloc", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_memstats_heap_alloc_bytes{job=\"api\"})" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
@@ -91,8 +91,8 @@
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "goroutines", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_goroutines{job=\"api\"}" },
-        { "refId": "B", "legendFormat": "OS threads", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_threads{job=\"api\"}" }
+        { "refId": "A", "legendFormat": "goroutines", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_goroutines{job=\"api\"})" },
+        { "refId": "B", "legendFormat": "OS threads", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_threads{job=\"api\"})" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
@@ -107,7 +107,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "gc pause quantile", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "go_gc_duration_seconds{job=\"api\",quantile=\"1\"}" }
+        { "refId": "A", "legendFormat": "gc pause quantile", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (go_gc_duration_seconds{job=\"api\",quantile=\"1\"})" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
@@ -122,8 +122,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "open", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "process_open_fds{job=\"api\"}" },
-        { "refId": "B", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "process_max_fds{job=\"api\"}" }
+        { "refId": "A", "legendFormat": "open", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (process_open_fds{job=\"api\"})" },
+        { "refId": "B", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (process_max_fds{job=\"api\"})" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },

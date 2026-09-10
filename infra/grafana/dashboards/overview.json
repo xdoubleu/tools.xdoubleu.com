@@ -14,11 +14,11 @@
       "id": 1,
       "type": "state-timeline",
       "title": "Scrape targets up/down",
-      "description": "Replaces the target-health part of the /monitoring observability page deleted in #1468.",
+      "description": "Replaces the target-health part of the /monitoring observability page deleted in #1468. Aggregated `min by (job)` because api/web get a fresh docker_sd `instance` label every Kamal deploy (infra/prometheus.yml) — without it each deploy adds another row.",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up" }
+        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min by (job) (up)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -36,10 +36,11 @@
       "id": 2,
       "type": "timeseries",
       "title": "Scrape duration",
+      "description": "Aggregated `max by (job)` for the same reason as the panel above — the docker_sd `instance` label churns every Kamal deploy.",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "scrape_duration_seconds" }
+        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (scrape_duration_seconds)" }
       ],
       "fieldConfig": {
         "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
