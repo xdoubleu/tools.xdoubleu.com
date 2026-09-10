@@ -70,6 +70,24 @@ message LegDetail {
   repeated Alert alerts = 6;
 }
 
+// JourneyAlternative is a re-planned itinerary surfaced when a positive
+// realtime signal shows the journey as planned no longer works — a missed
+// connection, a cancelled leg, a skipped board/alight stop, or a final
+// arrival slipping past a threshold. Absence of live data (NO_DATA) never
+// produces one. The re-plan runs from the next still-reachable station, at
+// the actual (live) time there, to the original destination (issue #1395).
+message JourneyAlternative {
+  // Passenger-facing explanation of what broke, e.g.
+  // "You'll miss the 17:42 at Mechelen by 4 min".
+  string reason = 1;
+  // Name of the station the alternative departs from.
+  string from_stop_name = 2;
+  // The re-planned itinerary, same shape as a search result so the overview
+  // row renders it unchanged. Unset when the router found no alternative —
+  // the reason is still worth showing on its own.
+  Journey journey = 3;
+}
+
 // JourneyDetail is the full live state of one previously-searched journey —
 // the page /trains/[journeyId] renders and keeps refreshed over a websocket.
 message JourneyDetail {
@@ -77,6 +95,9 @@ message JourneyDetail {
   repeated LegDetail legs = 2;
   string departure_time = 3;
   string arrival_time = 4;
+  // Set only when a positive realtime signal shows the planned journey is
+  // broken (issue #1395); unset otherwise.
+  JourneyAlternative alternative = 5;
 }
 
 message GetJourneyDetailRequest {

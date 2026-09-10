@@ -84,6 +84,20 @@ func (s *JourneyService) SearchJourneys(
 	return idx.SearchJourneys(originStopID, destStopID, when, arriveBy)
 }
 
+// MinTransferSeconds reports the minimum change time between two stops from
+// the current index (issue #1395's connection-makeability check). Before the
+// index is built it falls back to the router's own default, so the check
+// degrades to "assume a standard platform change" rather than failing.
+func (s *JourneyService) MinTransferSeconds(fromStopID, toStopID string) int {
+	s.mu.RLock()
+	idx := s.index
+	s.mu.RUnlock()
+	if idx == nil {
+		return csa.DefaultMinTransferSeconds
+	}
+	return idx.MinTransferSeconds(fromStopID, toStopID)
+}
+
 // RefreshOnly rebuilds the router index, discarding the built index —
 // matches the func(context.Context) error shape jobs.RouterRefreshJob
 // expects.

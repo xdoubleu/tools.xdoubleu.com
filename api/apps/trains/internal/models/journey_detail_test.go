@@ -106,6 +106,103 @@ func TestJourneyDetail_MarshalJSON(t *testing.T) {
 	assert.Equal(t, "2026-09-07T09:00:00Z", out["arrivalTime"])
 }
 
+// TestJourneyAlternative_MarshalJSON pins the wire shape the journey
+// websocket push and the GetJourneyDetail RPC must agree on for the
+// re-planned alternative (issue #1395) — camelCase, nested journey/leg
+// times as RFC3339, nil journey omitted.
+func TestJourneyAlternative_MarshalJSON(t *testing.T) {
+	dep := time.Date(2026, 9, 7, 8, 0, 0, 0, time.UTC)
+	arr := dep.Add(40 * time.Minute)
+	alt := models.JourneyAlternative{
+		Reason:       "You'll miss the 17:42 at Mechelen by 4 min",
+		FromStopName: "Mechelen",
+		Journey: &models.JourneyOption{
+			Legs: []models.JourneyOptionLeg{{
+				TripShortName:  "IC1717",
+				RouteShortName: "IC",
+				Headsign:       "Ghent",
+				BoardStopID:    "M1",
+				BoardStopName:  "Mechelen",
+				BoardPlatform:  "3",
+				BoardTime:      dep,
+				AlightStopID:   "G1",
+				AlightStopName: "Ghent",
+				AlightPlatform: "7",
+				AlightTime:     arr,
+			}},
+			DepartureTime: dep,
+			ArrivalTime:   arr,
+			Transfers:     0,
+			JourneyID:     "replan-id",
+		},
+	}
+
+	body, err := json.Marshal(alt)
+	require.NoError(t, err)
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(body, &out))
+	assert.Equal(t, "Mechelen", out["fromStopName"])
+	assert.Contains(t, out["reason"], "miss the 17:42")
+	j, ok := out["journey"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "replan-id", j["journeyId"])
+	assert.Equal(t, "2026-09-07T08:00:00Z", j["departureTime"])
+	assert.Equal(t, float64(0), j["transfers"])
+	legs, ok := j["legs"].([]any)
+	require.True(t, ok)
+	require.Len(t, legs, 1)
+	leg, ok := legs[0].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "IC1717", leg["tripShortName"])
+	assert.Equal(t, "2026-09-07T08:40:00Z", leg["alightTime"])
+	assert.Equal(t, "3", leg["boardPlatform"])
+}
+
+func TestJourneyAlternative_MarshalJSON_NoRouteFound(t *testing.T) {
+	//nolint:exhaustruct //Journey intentionally nil, under test
+	alt := models.JourneyAlternative{
+		Reason:       "IC900 is cancelled",
+		FromStopName: "Mechelen",
+	}
+	body, err := json.Marshal(alt)
+	require.NoError(t, err)
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(body, &out))
+	_, hasJourney := out["journey"]
+	assert.False(t, hasJourney)
+}
+
+func TestJourneyOption_MarshalJSON_NilLegsBecomeEmptyArray(t *testing.T) {
+	//nolint:exhaustruct //Legs intentionally nil, under test
+	o := models.JourneyOption{JourneyID: "x"}
+	body, err := json.Marshal(o)
+	require.NoError(t, err)
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(body, &out))
+	assert.Equal(t, []any{}, out["legs"])
+}
+
+func TestJourneyDetail_MarshalJSON_WithAlternative(t *testing.T) {
+	dep := time.Date(2026, 9, 7, 8, 0, 0, 0, time.UTC)
+	//nolint:exhaustruct //only Alternative under test
+	j := models.JourneyDetail{
+		DepartureTime: dep,
+		ArrivalTime:   dep.Add(time.Hour),
+		//nolint:exhaustruct //Journey intentionally nil, under test
+		Alternative: &models.JourneyAlternative{
+			Reason:       "IC1 is cancelled",
+			FromStopName: "Alpha",
+		},
+	}
+	body, err := json.Marshal(j)
+	require.NoError(t, err)
+	var out map[string]any
+	require.NoError(t, json.Unmarshal(body, &out))
+	alt, ok := out["alternative"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "IC1 is cancelled", alt["reason"])
+}
+
 func TestAlert_MarshalJSON_OnlyExposesPassengerFacingFields(t *testing.T) {
 	a := models.Alert{
 		ID:               "a1",
