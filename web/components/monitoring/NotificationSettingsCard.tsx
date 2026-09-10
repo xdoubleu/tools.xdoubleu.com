@@ -5,19 +5,17 @@ import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
 // Monitoring owns sentry_issues/failing_dependency_prs/security_alerts/
-// orphaned_storage, plus the slow-transaction threshold rules (issue
-// #1310, kept per ADR-0011) — unhealthy_feeds is surfaced from the feeds
-// app instead (issue #1228). The host/CI-duration/R2-usage/failing-main-CI
-// sources moved to Grafana + Prometheus alert rules (issue #1468) and no
-// longer exist here.
+// orphaned_storage — unhealthy_feeds is surfaced from the feeds app instead
+// (issue #1228). The host/CI/R2 sources moved to Grafana + Prometheus alert
+// rules (issue #1468), and the per-class slow-transaction latency alerts
+// followed (issue #1528, ADR-0011) — Grafana now evaluates real Prometheus
+// histograms and routes through its own SMTP contact point, so those
+// toggles no longer exist here.
 const MONITORING_SOURCE_KEYS = [
   'sentry_issues',
   'failing_dependency_prs',
   'security_alerts',
-  'orphaned_storage',
-  'slow_transaction_http_high',
-  'slow_transaction_job_high',
-  'slow_transaction_frontend_high'
+  'orphaned_storage'
 ]
 
 export default function NotificationSettingsCard({

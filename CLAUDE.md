@@ -150,7 +150,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0008-family-as-single-sharing-concept`](docs/adr-0008-family-as-single-sharing-concept.md) — the one sharing model
 - [`adr-0009-sentrytools-extracted-module`](docs/adr-0009-sentrytools-extracted-module.md) — the local `replace` and its build-context consequence
 - [`adr-0010-two-weekly-digest-emails`](docs/adr-0010-two-weekly-digest-emails.md) — digest split and suppression rules
-- [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — why WebSocket routes stay in breach on purpose
+- [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — name-shape classification for the `/monitoring` trending list + weekly digest; why WebSocket routes stay listed on purpose (the p95 *alert* moved to Grafana, #1528)
 - [`adr-0012-ubuntu-release-check-on-vps`](docs/adr-0012-ubuntu-release-check-on-vps.md) — the job that became a systemd timer
 - [`adr-0013-diff-scoped-coverage`](docs/adr-0013-diff-scoped-coverage.md) — changed-line coverage and the signature fixup
 - [`adr-0014-start-finish-task-enforcement`](docs/adr-0014-start-finish-task-enforcement.md) — the two hooks and the web-session gap
@@ -161,7 +161,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0019-trains-in-memory-router-and-dual-gtfs-feeds`](docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) — router warmed off the request path; static and realtime feeds correlated by `(trip_short_name, service date)`, never `trip_id`
 - [`adr-0020-ui-configured-alert-delivery-channel`](docs/adr-0020-ui-configured-alert-delivery-channel.md) — one global email/Slack switch for alerts; webhook URL DB-encrypted and UI-set, not a deploy secret; digests stay email-only
 - [`adr-0021-oauth-as-general-purpose-oidc-idp`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md) — the embedded AS also issues OIDC ID tokens (RS256, `/oauth2/jwks`) and supports confidential clients; the static Grafana SSO client and its admin-only role claim
-- [`adr-0022-prometheus-grafana-metrics`](docs/adr-0022-prometheus-grafana-metrics.md) — Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; the `prom_query` MCP tool; what got removed and what was verified to stay (slow-transaction thresholds, live GitHub-backed tools); datasource + dashboards provisioned from `infra/grafana/` (#1527)
+- [`adr-0022-prometheus-grafana-metrics`](docs/adr-0022-prometheus-grafana-metrics.md) — Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; the `prom_query` MCP tool; what got removed and what was verified to stay; datasource + dashboards provisioned from `infra/grafana/` (#1527); Phase 2 (#1528) — api/web latency histograms, all alerting unified in Grafana provisioning, `ThresholdAlertJob`/`alert_states` retired
 
 **Conventions**
 

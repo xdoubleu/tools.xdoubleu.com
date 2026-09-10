@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import AppShell from '@/components/AppShell'
 import Splash from '@/components/Splash'
+import { WebVitals } from '@/app/_components/web-vitals'
 import { themeInitScript } from '@/lib/theme'
 
 export const dynamic = 'force-dynamic'
@@ -42,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="flex min-h-screen flex-col bg-bg text-fg">
+        <WebVitals />
         <Suspense fallback={<Splash />}>
           <AppShell>{children}</AppShell>
         </Suspense>

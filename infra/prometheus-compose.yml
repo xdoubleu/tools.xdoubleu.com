@@ -19,7 +19,6 @@ services:
       - "--storage.tsdb.retention.time=90d"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus_data:/prometheus
     networks:
       - kamal

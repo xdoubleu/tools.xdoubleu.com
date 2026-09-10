@@ -290,7 +290,9 @@ resource "null_resource" "prometheus" {
   triggers = {
     compose_hash = filesha256("${path.module}/prometheus-compose.yml")
     config_hash  = filesha256("${path.module}/prometheus.yml")
-    rules_hash   = filesha256("${path.module}/prometheus/alert-rules.yml")
+    # Alert rules are no longer Prometheus's — Grafana owns alerting now,
+    # provisioned into its wrapper image (infra/grafana/provisioning/
+    # alerting/, issue #1528). Prometheus only collects.
     # Not the password itself (that's sensitive) — same "does the secret
     # value's hash change" trick null_resource.postgres uses.
     password_hash = sha256(random_password.postgres.result)
@@ -304,7 +306,7 @@ resource "null_resource" "prometheus" {
   }
 
   provisioner "remote-exec" {
-    inline = ["mkdir -p /home/deploy/prometheus/prometheus"]
+    inline = ["mkdir -p /home/deploy/prometheus"]
   }
 
   provisioner "file" {
@@ -315,11 +317,6 @@ resource "null_resource" "prometheus" {
   provisioner "file" {
     source      = "${path.module}/prometheus.yml"
     destination = "/home/deploy/prometheus/prometheus.yml"
-  }
-
-  provisioner "file" {
-    source      = "${path.module}/prometheus/alert-rules.yml"
-    destination = "/home/deploy/prometheus/prometheus/alert-rules.yml"
   }
 
   provisioner "file" {

@@ -26,6 +26,7 @@ echo "==> starting container"
 docker run -d --name "$container" -p "$port:3000" \
   -e GF_SERVER_ROOT_URL="http://localhost:$port" \
   -e GF_LOG_LEVEL=info \
+  -e GF_SMTP_FROM_ADDRESS="alerts@example.com" \
   "$image" >/dev/null
 
 base="http://localhost:$port"
@@ -63,8 +64,28 @@ if [ -n "$missing" ]; then
   fail=1
 fi
 
+echo "==> checking the alerting contact point provisioned"
+cp_names=$(curl -sf -u admin:admin "$base/api/v1/provisioning/contact-points" \
+  | python3 -c 'import json,sys; print("\n".join(c["name"] for c in json.load(sys.stdin)))')
+if ! grep -qx "email" <<<"$cp_names"; then
+  echo "FAIL: contact point 'email' not found (got: ${cp_names:-none})"
+  fail=1
+fi
+
+echo "==> checking the alert rules provisioned"
+want_rules="APIDown FrontendP95High HostCPUHigh HostDiskHigh HostMemoryHigh JobP95High PostgresDown RequestP95High"
+got_rules=$(curl -sf -u admin:admin "$base/api/v1/provisioning/alert-rules" \
+  | python3 -c 'import json,sys; print(" ".join(sorted(r["title"] for r in json.load(sys.stdin))))')
+for rule in $want_rules; do
+  if ! grep -qw "$rule" <<<"$got_rules"; then
+    echo "FAIL: alert rule '$rule' not provisioned (got: ${got_rules:-none})"
+    fail=1
+  fi
+done
+
 if [ "$fail" -ne 0 ]; then
   echo "grafana image verification FAILED"
   exit 1
 fi
-echo "ok: datasource + $(grep -c . <<<"$got") dashboard(s) provisioned, no provisioning errors"
+rule_count=$(set -- $want_rules; echo $#)
+echo "ok: datasource + $(grep -c . <<<"$got") dashboard(s) + $rule_count alert rule(s) + contact point provisioned, no provisioning errors"

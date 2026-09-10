@@ -13,7 +13,8 @@ describe('NotificationSettingsCard', () => {
       settings: [
         { sourceKey: 'sentry_issues', enabled: true },
         { sourceKey: 'failing_dependency_prs', enabled: false },
-        { sourceKey: 'unhealthy_feeds', enabled: true }
+        { sourceKey: 'unhealthy_feeds', enabled: true },
+        { sourceKey: 'slow_transaction_http_high', enabled: true }
       ]
     })
     render(<NotificationSettingsCard data={data} />)
@@ -21,6 +22,8 @@ describe('NotificationSettingsCard', () => {
     expect(screen.getByText('Sentry issues')).toBeInTheDocument()
     expect(screen.getByText('Failing dependency PRs')).toBeInTheDocument()
     expect(screen.queryByText('Unhealthy feeds')).not.toBeInTheDocument()
+    // Slow-transaction latency alerting moved to Grafana (issue #1528).
+    expect(screen.queryByText('Slow HTTP handlers')).not.toBeInTheDocument()
   })
 
   it('shows a loading state without data', () => {

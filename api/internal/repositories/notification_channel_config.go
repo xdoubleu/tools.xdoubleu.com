@@ -13,8 +13,8 @@ import (
 )
 
 // Channel modes for global.notification_channel_config.channel_mode — the
-// single switch deciding where jobs.IssueNotifierJob and
-// jobs.ThresholdAlertJob send their alerts (issue #1482).
+// single switch deciding where jobs.IssueNotifierJob sends its alerts
+// (issue #1482).
 const (
 	ChannelModeEmail = "email"
 	ChannelModeSlack = "slack"

@@ -212,12 +212,15 @@ tool (issue #1468) now, not a `get_host_metrics` RPC — see the next section.
 ## Stand up Prometheus + postgres_exporter + Grafana (issue #1468)
 
 The same `tofu apply` above also creates `null_resource.prometheus`, which
-uploads `prometheus-compose.yml`, `prometheus.yml`, `prometheus/alert-rules.yml`,
-and a generated `.env` (postgres_exporter's `DATA_SOURCE_NAME`, built from the
+uploads `prometheus-compose.yml`, `prometheus.yml`, and a generated `.env`
+(postgres_exporter's `DATA_SOURCE_NAME`, built from the
 same Tofu-managed `random_password.postgres` node_exporter's sibling resource
 above doesn't need) to `/home/deploy/prometheus/` and runs `docker compose up
 -d` — the pipeline that replaced `internal/observability`'s hand-rolled
-snapshot jobs/threshold rules. Like node_exporter, neither Prometheus nor
+snapshot jobs/threshold rules. Prometheus only collects: **alerting is
+Grafana's**, provisioned into its wrapper image
+(`infra/grafana/provisioning/alerting/` — rules, contact point, notification
+policy; issue #1528). Like node_exporter, neither Prometheus nor
 postgres_exporter has a published host port at all — reachable only from
 containers already on the `kamal` Docker network (Grafana, and `api`'s
 `prom_query` MCP tool).
@@ -228,20 +231,22 @@ service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
 (`/grafana`) through the shared kamal-proxy instance, which only routes to
 Kamal-managed containers. It deploys a thin wrapper image this repo builds
 and pushes to GHCR (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue
-#1509) that also bakes in the Prometheus datasource + dashboards from
+#1509) that also bakes in the Prometheus datasource, dashboards, and (issue
+#1528) the alerting provisioning from
 `infra/grafana/` (issue #1527). The dashboard JSON under
 `infra/grafana/dashboards/` is the single source of truth — `allowUiUpdates`
 is `false`, so an admin's UI edits can't be saved over the provisioned copy;
 edit the JSON and redeploy. `make lint/grafana` (static JSON) and `make
-grafana/verify` (boots the image, asserts the datasource + dashboards
-provision) check it, both also run by `build-grafana.yml`. See `config/deploy.grafana.yml`'s own header comment for how
+grafana/verify` (boots the image, asserts the datasource, dashboards, alert
+rules, and contact point all provision) check it, both also run by
+`build-grafana.yml`. See `config/deploy.grafana.yml`'s own header comment for how
 its `proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
 `docs/adr-0022-prometheus-grafana-metrics.md` for the full rationale
 (Prometheus over VictoriaMetrics, Grafana owning graphs/alerting, what got
 removed).
 
-Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`/
-`prometheus/alert-rules.yml` redeploys the accessory; re-running `kamal
+Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`
+redeploys the accessory; re-running `kamal
 deploy -c config/deploy.grafana.yml` (or pushing to `main`, which rebuilds
 the image when `infra/grafana/**` or `infra/grafana.Dockerfile` changed)
 redeploys Grafana. If `prom_query` reports every target `down`, check

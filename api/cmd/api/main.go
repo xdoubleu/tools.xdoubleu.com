@@ -71,8 +71,6 @@ type Application struct {
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
-	alertStatesRepo               *repositories.AlertStatesRepository
-	thresholdAlertJob             *jobs.ThresholdAlertJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -359,13 +357,8 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
 	return app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.thresholdAlertJob, app.db), noopCallback,
+		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
 	)
 }
 
@@ -443,11 +436,6 @@ func NewApplication(
 
 	dbStatsRepo := repositories.NewDBStatsRepository(db)
 
-	alertStatesRepo := repositories.NewAlertStatesRepository(db)
-	thresholdAlertJob := jobs.NewThresholdAlertJob(
-		sentryClient, notificationSettingsRepo, alertStatesRepo, notificationsSvc,
-	)
-
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
 		ctx:        ctx,
@@ -476,8 +464,6 @@ func NewApplication(
 		issueNotifierJob:              issueNotifierJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
-		alertStatesRepo:               alertStatesRepo,
-		thresholdAlertJob:             thresholdAlertJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),

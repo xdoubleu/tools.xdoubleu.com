@@ -1,15 +1,14 @@
 // Shared helpers for the admin observability dashboard.
 
-// TransactionClass mirrors the three slow-transaction alert rule keys
-// (jobs.ThresholdAlertJob, issue #1310).
+// TransactionClass keys the per-class "slow" thresholds used by the
+// /monitoring trending list (issue #1310).
 type TransactionClass =
   'slow_transaction_http_high' | 'slow_transaction_job_high' | 'slow_transaction_frontend_high'
 
 // classifyTransaction mirrors classifyTransaction in
-// api/internal/observability/jobs/threshold_alert_slow_transactions.go — the
-// transaction name shape is the only stable classification signal, since
-// Sentry project names are admin-configured free text. Keep both sides in
-// sync.
+// api/internal/observability/jobs/slow_transactions.go — the transaction
+// name shape is the only stable classification signal, since Sentry project
+// names are admin-configured free text. Keep both sides in sync.
 function classifyTransaction(transaction: string): TransactionClass {
   if (/^(GET|POST|PUT|PATCH|DELETE) /.test(transaction)) {
     return 'slow_transaction_http_high'
@@ -21,13 +20,12 @@ function classifyTransaction(transaction: string): TransactionClass {
 }
 
 // SLOW_TRANSACTION_THRESHOLDS_MS mirrors the per-class thresholds in
-// api/internal/observability/jobs/threshold_alert_slow_transactions.go
+// api/internal/observability/jobs/slow_transactions.go
 // (slowTransactionHTTPThresholdMs/-JobThresholdMs/-FrontendThresholdMs).
-// These used to be readable from the now-removed GetAlertStates RPC (issue
-// #1468 removed it — Grafana/Prometheus own alert-state surfacing now); the
-// slow-transaction rules themselves stayed (ADR-0011), so the thresholds are
-// hardcoded here instead, same as classifyTransaction above. Keep both sides
-// in sync.
+// They gate only the /monitoring trending list here; the p95 latency alert
+// moved to Grafana on real Prometheus histograms (issue #1528, ADR-0011).
+// Hardcoded rather than fetched, same as classifyTransaction above — keep
+// both sides in sync.
 const SLOW_TRANSACTION_THRESHOLDS_MS: Record<TransactionClass, number> = {
   slow_transaction_http_high: 5000,
   slow_transaction_frontend_high: 5000,
