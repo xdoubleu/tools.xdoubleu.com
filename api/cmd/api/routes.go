@@ -172,6 +172,9 @@ func (app *Application) Routes() http.Handler {
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
 	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
+	// RequestDuration feeds the http_request_duration_seconds histogram
+	// Grafana's RequestP95High alert evaluates (issue #1528).
+	handlers = append(handlers, middleware.RequestDuration())
 	standard := alice.New(handlers...)
 	return standard.Then(mux)
 }

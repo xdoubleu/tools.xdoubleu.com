@@ -1,21 +1,22 @@
 # ADR-0011: Classify slow transactions by name shape; don't exclude WebSocket routes
 
-- Status: Accepted
-- Issues: #1310, #1320
-- Affects: `api/internal/observability/jobs/threshold_alert.go`, `api/internal/communication/wstools/websocket.go`
+- Status: Accepted; superseded in part by #1528 (the p95 *alert* moved to Grafana — see "Superseded in part" below)
+- Issues: #1310, #1320, #1528
+- Affects: `api/internal/observability/jobs/slow_transactions.go`, `api/internal/communication/wstools/websocket.go`, `web/lib/observability.ts`
 
 ## Context
 
-`jobs.ThresholdAlertJob` has three slow-transaction rules (#1310):
-`slow_transaction_http_high`, `_job_high`, `_frontend_high`. To apply the right
-threshold it must know what kind of thing a transaction is — but **Sentry project
-names are admin-configured free text**, so there is no reliable metadata to key
-off.
+The `/monitoring` trending "currently slow" list and the weekly digest's
+slow-transaction section need to know what kind of thing a transaction is to
+apply the right threshold — but **Sentry project names are admin-configured free
+text**, so there is no reliable metadata to key off. (Originally this classified
+the three per-class rules of `jobs.ThresholdAlertJob`, retired in #1528.)
 
 ## Decision
 
-`classifyTransaction` in `threshold_alert.go` infers a transaction's class
-**purely from its name shape**:
+`classifyTransaction` in `slow_transactions.go` (mirrored in
+`web/lib/observability.ts`) infers a transaction's class **purely from its name
+shape**:
 
 | Shape | Class | Threshold | Reasoning |
 |---|---|---|---|
@@ -33,13 +34,13 @@ games' and books' `GET .../api/progress` transactions — the `progressws`
 WebSocket-upgrade routes in `apps/games/routes.go`/`apps/books/routes.go` — are
 **deliberately not** in that exclusion list, even though sentryhttp's transaction
 span covers the whole handler call, which for an upgraded socket doesn't return
-until the connection closes. They therefore permanently breach
-`slow_transaction_http_high` the moment any client session outlives 5s.
+until the connection closes. They therefore permanently register as slow the
+moment any client session outlives 5s.
 
 That is **accepted as an inherent property of a long-lived WebSocket route**, not
-hidden from the rule.
+hidden from the list.
 
-What the rule is actually missing without a carve-out is a *bounded* signal for
+What the list is actually missing without a carve-out is a *bounded* signal for
 that route family, and `wstools.WebSocketHandler.Handler()`'s
 `acceptWithHandshakeSpan` (`internal/communication/wstools/websocket.go`) supplies
 that separately: it measures **just the handshake/upgrade itself**
@@ -63,12 +64,29 @@ suppressing anything.
 Not available — project names are admin-configured free text, which is precisely
 why classification is name-shape-based.
 
+## Superseded in part (#1528)
+
+The p95 *latency alert* no longer runs here. `jobs.ThresholdAlertJob`,
+`global.alert_states`, and the `slow_transaction_{http,job,frontend}_high`
+notification sources are gone. Grafana now evaluates request/job/frontend p95
+off real Prometheus histograms (`http_request_duration_seconds`,
+`job_duration_seconds`, `web_vitals_seconds`) and routes breaches through its
+own SMTP contact point (`infra/grafana/provisioning/alerting/`).
+
+What this ADR still governs: the name-shape classification and the
+`NextNodeServer.clientComponentLoading` / WebSocket-route decisions, which
+still gate the `/monitoring` trending list (`currentlySlowTransactions`) and
+the weekly digest's slow-transaction section — both Sentry-derived, and neither
+an alert.
+
 ## Consequences
 
-- The `progressws` routes are expected to sit in permanent breach of
-  `slow_transaction_http_high`. **That is not a bug**, and should not be
-  "fixed" by adding an exclusion.
+- The `progressws` routes are expected to sit permanently in the trending
+  "slow" list. **That is not a bug**, and should not be "fixed" by adding an
+  exclusion.
 - Renaming a transaction can silently reclassify it and change its threshold.
+- The classification lives in two places (`slow_transactions.go`,
+  `web/lib/observability.ts`) that must be kept in sync.
 
 ## Revisit when
 

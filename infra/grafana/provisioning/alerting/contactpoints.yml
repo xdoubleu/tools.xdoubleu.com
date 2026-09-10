@@ -1,0 +1,20 @@
+# Grafana alerting contact point (issue #1528). Grafana — not Prometheus —
+# evaluates and routes every alert now; Prometheus only collects. This
+# reuses Grafana's own SMTP client (the GF_SMTP_* env in
+# config/deploy.grafana.yml, itself the Resend account api's mailer uses),
+# so no new deploy secret is introduced. Alerts are mailed to the same
+# address they're sent from ($__env{GF_SMTP_FROM_ADDRESS} = the EMAIL_FROM
+# repo secret) — the admin mailbox, matching how api's own alert emails
+# land. scripts/verify_grafana_image.sh exports a dummy value for that env
+# so provisioning loads cleanly in CI.
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: email
+    receivers:
+      - uid: email-admin
+        type: email
+        settings:
+          addresses: $__env{GF_SMTP_FROM_ADDRESS}
+          singleEmail: true

@@ -1,14 +1,12 @@
 # Prometheus's own config (issue #1468) — uploaded to
 # /home/deploy/prometheus/prometheus.yml by null_resource.prometheus
 # (infra/main.tf) and mounted read-only into the container by
-# infra/prometheus-compose.yml. rule_files below points at
-# infra/prometheus/alert-rules.yml, uploaded alongside it.
+# infra/prometheus-compose.yml. Prometheus only collects: alerting is
+# Grafana's, provisioned into its wrapper image
+# (infra/grafana/provisioning/alerting/, issue #1528). No rule_files here.
 global:
   scrape_interval: 30s
   evaluation_interval: 30s
-
-rule_files:
-  - /etc/prometheus/alert-rules.yml
 
 scrape_configs:
   # api's own /metrics (api/cmd/api/metrics.go) — process/Go runtime
@@ -22,6 +20,15 @@ scrape_configs:
   - job_name: api
     static_configs:
       - targets: ["tools-xdoubleu-com-api:8000"]
+
+  # web's /metrics (web/app/metrics/route.ts, issue #1528) — Node runtime
+  # metrics plus the web_vitals_seconds histogram fed by the browser
+  # Web-Vitals beacon, which Grafana's FrontendP95High alert evaluates.
+  # Same Kamal network-alias caveat as the api job above: the target is
+  # web's `service:` name (config/deploy.web.yml) at its app_port (3000).
+  - job_name: web
+    static_configs:
+      - targets: ["tools-xdoubleu-com-web:3000"]
 
   # Host CPU/memory/disk (issue #1040's node_exporter, now scraped by
   # Prometheus directly instead of api's own removed

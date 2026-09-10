@@ -31,7 +31,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0008](adr-0008-family-as-single-sharing-concept.md) | One `family` concept replaces per-app sharing and contacts | #1349, #1403 |
 | [adr-0009](adr-0009-sentrytools-extracted-module.md) | slog→Sentry glue as its own module via a local `replace` | #926, #1038 |
 | [adr-0010](adr-0010-two-weekly-digest-emails.md) | Weekly digest sends two emails, not one | #1014, #1253, #1355, #1214 |
-| [adr-0011](adr-0011-slow-transaction-thresholds.md) | Name-shape classification; WebSocket routes not excluded | #1310, #1320 |
+| [adr-0011](adr-0011-slow-transaction-thresholds.md) | Name-shape classification; WebSocket routes not excluded (p95 alert moved to Grafana in #1528) | #1310, #1320, #1528 |
 | [adr-0012](adr-0012-ubuntu-release-check-on-vps.md) | Local systemd timer replaces the Ubuntu release job | #1134 |
 | [adr-0013](adr-0013-diff-scoped-coverage.md) | Gate on changed-line coverage; the signature-coverage fixup | #1301, #1364, #1376 |
 | [adr-0014](adr-0014-start-finish-task-enforcement.md) | `ExitPlanMode` and `Stop` hooks enforce the task pairing | #1236, #1238, #1400 |
@@ -42,7 +42,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0019](adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) | Trains router warmed off the request path; the two GTFS feeds correlated by `(trip_short_name, service date)` | #1388, #1390, #1391, #1484 |
 | [adr-0020](adr-0020-ui-configured-alert-delivery-channel.md) | One global email/Slack alert-delivery switch; webhook URL stored DB-encrypted and set in the UI; digests stay email-only | #1482 |
 | [adr-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md) | The embedded AS also issues OIDC ID tokens and supports confidential clients (Grafana SSO) | #1469 |
-| [adr-0022](adr-0022-prometheus-grafana-metrics.md) | Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; `prom_query` MCP tool; what got removed | #1468 |
+| [adr-0022](adr-0022-prometheus-grafana-metrics.md) | Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; `prom_query` MCP tool; what got removed; Phase 2 (#1528) — latency histograms + Grafana alerting, `ThresholdAlertJob` retired | #1468, #1528 |
 
 ## Conventions
 

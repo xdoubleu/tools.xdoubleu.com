@@ -1,0 +1,296 @@
+# Grafana-managed alert rules (issue #1528). Grafana evaluates and routes
+# every alert now — Prometheus only collects. This file replaces the old
+# infra/prometheus/alert-rules.yml, whose rules fired into Prometheus's
+# ALERTS{} series and were delivered nowhere (no Alertmanager was ever
+# wired). All rules route to the single 'email' contact point via the
+# default notification policy (policies.yml).
+#
+# Each rule keeps its threshold inside the PromQL query (refId A, instant)
+# and uses a trivial "> 0" threshold expression (refId C) as the alerting
+# condition: A returns a 1-valued series only while the condition holds and
+# an empty result otherwise, so noDataState=OK means "not breaching".
+#
+# Thresholds / sustain windows for the migrated host+up rules mirror the
+# removed Prometheus rules exactly. The three p95 rules are new and read the
+# histograms added in this same issue:
+#   http_request_duration_seconds  (api/internal/middleware/metrics.go)
+#   job_duration_seconds           (api/internal/observability/trackedjob.go)
+#   web_vitals_seconds             (web/lib/server/metrics.ts)
+#
+# NOT reimplemented (same as the old file — Prometheus has no exporter for
+# these): r2_usage_high, ci_duration_high, failing_main_ci. /monitoring
+# still surfaces all three live from their own sources.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: host
+    folder: tools.xdoubleu.com
+    interval: 1m
+    rules:
+      - uid: host-cpu-high
+        title: HostCPUHigh
+        condition: C
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host CPU usage above 80% for 15 minutes
+          description: "{{ $values.A }}% CPU usage on the VPS."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: host-memory-high
+        title: HostMemoryHigh
+        condition: C
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Host memory usage above 85% for 15 minutes
+          description: "{{ $values.A }}% memory usage on the VPS."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: host-disk-high
+        title: HostDiskHigh
+        condition: C
+        labels:
+          severity: critical
+        annotations:
+          summary: Host disk usage above 85%
+          description: "{{ $values.A }}% disk usage on the VPS."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 85
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+  - orgId: 1
+    name: availability
+    folder: tools.xdoubleu.com
+    interval: 1m
+    rules:
+      - uid: api-down
+        title: APIDown
+        condition: C
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: api's /metrics endpoint is unreachable
+          description: Prometheus has failed to scrape api for 2 minutes.
+        noDataState: Alerting
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: up{job="api"} == 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: postgres-down
+        title: PostgresDown
+        condition: C
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: postgres_exporter is unreachable
+          description: >-
+            Prometheus has failed to scrape postgres_exporter for 2 minutes —
+            this may mean Postgres itself is down.
+        noDataState: Alerting
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: up{job="postgres"} == 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+  - orgId: 1
+    name: latency
+    folder: tools.xdoubleu.com
+    interval: 1m
+    rules:
+      - uid: request-p95-high
+        title: RequestP95High
+        condition: C
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: API request p95 latency above 5s
+          description: "p95 request latency is {{ $values.A }}s over the last 10m."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[10m]))) > 5
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: job-p95-high
+        title: JobP95High
+        condition: C
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Background job p95 duration above 60s
+          description: "p95 job duration is {{ $values.A }}s over the last 30m."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: histogram_quantile(0.95, sum by (le) (rate(job_duration_seconds_bucket[30m]))) > 60
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: frontend-p95-high
+        title: FrontendP95High
+        condition: C
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Frontend TTFB p95 above 5s
+          description: "p95 browser TTFB is {{ $values.A }}s over the last 30m."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: histogram_quantile(0.95, sum by (le) (rate(web_vitals_seconds_bucket{metric="TTFB"}[30m]))) > 5
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]

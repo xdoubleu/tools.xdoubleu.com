@@ -1,11 +1,12 @@
 # ADR-0022: Prometheus + Grafana replace the hand-rolled metrics pipeline
 
-- Status: Accepted
-- Issues: #1468 (follows #1469/ADR-0021)
-- Affects: `api/internal/observability/`, `api/cmd/api/metrics.go`,
-  `api/cmd/api/mcp_prom_query.go`, `config/deploy.grafana.yml`,
-  `infra/prometheus-compose.yml`, `infra/prometheus.yml`,
-  `infra/prometheus/alert-rules.yml`, `web/components/monitoring/`
+- Status: Accepted; extended by #1528 (see "Phase 2" below)
+- Issues: #1468 (follows #1469/ADR-0021), #1528
+- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`,
+  `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`,
+  `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`,
+  `infra/prometheus.yml`, `infra/grafana/provisioning/`,
+  `web/app/metrics/`, `web/lib/server/metrics.ts`, `web/components/monitoring/`
 
 ## Context
 
@@ -112,6 +113,12 @@ over exactly: `host_cpu_high`/`host_memory_high` at 80%/85% sustained 15
 minutes (`for: 15m`), `host_disk_high` at 85% instant (no `for:`, since a full
 disk doesn't need to sustain to matter).
 
+> **Superseded by Phase 2 (#1528):** nothing ever wired those Prometheus
+> rules to a delivery path — they fired into `ALERTS{}` and were mailed
+> nowhere. #1528 moved every rule into Grafana alerting provisioning
+> (`infra/grafana/provisioning/alerting/`), where Grafana evaluates and
+> routes them through a real contact point. See "Phase 2" below.
+
 **Contact point: Grafana's own SMTP, reusing the existing Resend account.**
 `config/deploy.grafana.yml` sets `GF_SMTP_*` env vars pointing at Resend's
 SMTP relay (`smtp.resend.com:587`), with `GF_SMTP_PASSWORD`/
@@ -161,16 +168,16 @@ second, Grafana-native Slack integration for no clear benefit over SMTP.
 
 ## What was verified to stay, and why
 
-- **`threshold_alert_slow_transactions.go` and its three
-  `slow_transaction_*_high` rules** stay in `ThresholdAlertJob`, unchanged —
-  they key off *live* Sentry data (`sentryapi.Client.ListTransactionStats`),
-  not stored host-metric samples, and ADR-0011's classification/threshold
-  reasoning is unaffected by this migration. `global.alert_states` and
-  `AlertStatesRepository` are kept (not dropped) for exactly this reason —
-  only their host/CI/storage *rows* are deleted, and the now-unused
-  `GetAlertStates` RPC/`get_alert_states` MCP tool are removed since nothing
-  external needs to read that state any more (Grafana owns state/alerting for
-  everything else).
+- **The slow-transaction classification helpers** (`classifyTransaction`,
+  `thresholdMsForClass`, `slowTransactionExcluded`) stay — they key off
+  *live* Sentry data, not stored host-metric samples, and still gate the
+  `/monitoring` trending list and the weekly digest. In #1468 they lived in
+  `threshold_alert_slow_transactions.go` inside `ThresholdAlertJob`;
+  Phase 2 (#1528) retired that job and moved the helpers into
+  `slow_transactions.go`, and the p95 *alert* they used to drive is now a
+  Grafana rule on real histograms. `global.alert_states` /
+  `AlertStatesRepository` — kept here in #1468 solely for that job — are
+  dropped in #1528 (migration `00047`).
 - **`TransactionLatencySnapshotJob`/`TransactionLatencyRepository` are
   kept**, not removed despite reading like snapshot-job scope. Both
   `WeeklyDigestJob` (`currentlySlowTransactions`) and `GetSlowTransactions`'
@@ -206,21 +213,47 @@ second, Grafana-native Slack integration for no clear benefit over SMTP.
 - **A Grafana-native Slack contact point** (ADR-0020's webhook). Considered
   and dropped — see Decision's contact-point paragraph.
 
+## Phase 2 (#1528): instrument latency, unify alerting in Grafana, retire ThresholdAlertJob
+
+#1468 left two loose ends this issue closes:
+
+- **The Prometheus alert rules delivered nowhere.** No Alertmanager, no
+  Grafana alert provisioning — `infra/prometheus/alert-rules.yml`'s header
+  *claimed* Grafana alerted off them, but nothing wired it. #1528 deletes
+  that file (and the `rule_files:` entry, the compose mount, the `main.tf`
+  upload) and recreates every rule under
+  `infra/grafana/provisioning/alerting/` — `rules.yml` (the 5 migrated
+  host/`up` rules verbatim, plus 3 new p95 rules), `contactpoints.yml` (one
+  email receiver reusing `GF_SMTP_*`, no new secret), `policies.yml` (one
+  flat route). `make grafana/verify` now asserts all of it provisioned.
+- **`ThresholdAlertJob` was the last hand-rolled alerting.** It, its
+  `slow_transaction_{http,job,frontend}_high` sources, and
+  `global.alert_states` / `AlertStatesRepository` / `models.AlertState` are
+  all deleted (migration `00047`). The p95 signal it approximated off Sentry
+  transaction stats is now real: an `http_request_duration_seconds`
+  histogram (`api/internal/middleware/metrics.go`), a `job_duration_seconds`
+  histogram (`api/internal/observability/trackedjob.go`), and a
+  `web_vitals_seconds` histogram fed by a browser Web-Vitals beacon to a new
+  `/metrics` route on the `web` Node server (`web/app/metrics/route.ts`,
+  scraped as a new `web` Prometheus job). Grafana's `RequestP95High` /
+  `JobP95High` / `FrontendP95High` rules evaluate those.
+
+Sentry keeps showing transaction data for manual review; it is no longer an
+alert source.
+
 ## Consequences
 
-- Two threshold-alert-shaped concerns now live in different systems:
-  slow-transaction thresholds stay in `ThresholdAlertJob`/email (Sentry
-  data, ADR-0011); everything else is a Prometheus alert rule + Grafana
-  contact point. A contributor grepping for "why didn't I get an alert"
-  needs to know which side a given metric is on.
-  `docs/adr-0011-slow-transaction-thresholds.md`'s own thresholds are
-  unaffected and explicitly still current.
+- All alerting now lives in one place (Grafana). A contributor asking "why
+  didn't I get an alert" has exactly one system to check.
+  `docs/adr-0011-slow-transaction-thresholds.md`'s classification/threshold
+  reasoning still governs the `/monitoring` trending list and the weekly
+  digest, neither of which is an alert.
 - The main-branch-CI-failure and R2-usage-threshold alerts have no
   replacement (see "What got removed") — an accepted, documented gap rather
   than a silent one.
-- Grafana's container naming isn't Tofu-managed (Kamal owns it), so the
-  Prometheus scrape target for `api`/`grafana` (`infra/prometheus.yml`)
-  assumes a specific Docker network alias that could not be verified against
+- Kamal container naming isn't Tofu-managed, so the Prometheus scrape
+  targets for `api` and (added in #1528) `web` (`infra/prometheus.yml`)
+  assume a specific Docker network alias that could not be verified against
   real infra in this change — flagged in `infra/README.md` as the one thing
   worth confirming by hand after the first real deploy.
 - This is the second of two Grafana-adjacent issues (after #1469/ADR-0021);

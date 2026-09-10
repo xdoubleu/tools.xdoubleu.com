@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -109,6 +110,38 @@ func TestTrackedJobRecordsSuccess(t *testing.T) {
 	assert.True(t, repo.runs[0].Success)
 	assert.Empty(t, repo.runs[0].Error)
 	assert.WithinDuration(t, time.Now(), repo.runs[0].StartedAt, time.Second)
+}
+
+func TestTrackedJobObservesDurationHistogram(t *testing.T) {
+	repo := &fakeInserter{runs: nil, insertErr: nil}
+	job := newTestTrackedJob(fakeJob{err: nil, panics: false}, repo)
+
+	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
+
+	assert.Positive(t, histogramSampleCount(t, "job_duration_seconds", "fake"))
+}
+
+// histogramSampleCount returns the observed-sample count for the
+// job_duration_seconds series whose "job" label equals jobLabel.
+func histogramSampleCount(t *testing.T, name, jobLabel string) uint64 {
+	t.Helper()
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+
+	for _, mf := range families {
+		if mf.GetName() != name {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			for _, l := range m.GetLabel() {
+				if l.GetName() == "job" && l.GetValue() == jobLabel {
+					return m.GetHistogram().GetSampleCount()
+				}
+			}
+		}
+	}
+	return 0
 }
 
 func TestTrackedJobRecordsFailure(t *testing.T) {

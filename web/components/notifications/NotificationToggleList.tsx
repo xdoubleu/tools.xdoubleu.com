@@ -11,9 +11,6 @@ const SOURCE_LABELS: Record<string, string> = {
   unhealthy_feeds: 'Unhealthy feeds',
   security_alerts: 'Security alerts',
   orphaned_storage: 'Orphaned storage',
-  slow_transaction_http_high: 'Slow HTTP handlers',
-  slow_transaction_job_high: 'Slow background jobs',
-  slow_transaction_frontend_high: 'Slow frontend spans',
   open_feed_items: 'Open feed items'
 }
 
@@ -26,12 +23,6 @@ const SOURCE_DESCRIPTIONS: Record<string, string> = {
     'Emails an admin the first time a Dependabot, code-scanning, or secret-scanning alert appears.',
   orphaned_storage:
     'Emails an admin the first time an orphaned R2 storage object is detected by the daily scan.',
-  slow_transaction_http_high:
-    "Emails an admin when an HTTP handler's p95 duration goes above threshold, and again on recovery.",
-  slow_transaction_job_high:
-    "Emails an admin when a background job's p95 duration goes above threshold, and again on recovery.",
-  slow_transaction_frontend_high:
-    "Emails an admin when a frontend span's p95 duration goes above threshold, and again on recovery.",
   open_feed_items: 'Includes feeds with unread items in the weekly digest email.'
 }
 

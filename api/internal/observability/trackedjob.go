@@ -8,15 +8,32 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"tools.xdoubleu.com/internal/database/postgres"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/threading"
+)
+
+// jobDuration is the Prometheus histogram Grafana's JobP95High alert rule
+// evaluates (issue #1528). Registered on client_golang's default registry,
+// which cmd/api's /metrics handler already serves.
+//
+//nolint:gochecknoglobals //Prometheus collectors are process-wide by design
+var jobDuration = promauto.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "job_duration_seconds",
+		Help:    "Duration of background job runs.",
+		Buckets: []float64{1, 5, 10, 30, 60, 120, 300, 600},
+	},
+	[]string{"job", "success"},
 )
 
 // jobRunsInserter is the slice of JobRunsRepository TrackedJob needs.
@@ -90,10 +107,17 @@ func (j *TrackedJob) record(
 	start time.Time,
 	err error,
 ) {
+	elapsed := time.Since(start)
+
+	jobDuration.WithLabelValues(
+		j.inner.ID(),
+		strconv.FormatBool(err == nil),
+	).Observe(elapsed.Seconds())
+
 	run := models.JobRun{
 		JobID:      j.inner.ID(),
 		StartedAt:  start,
-		DurationMs: time.Since(start).Milliseconds(),
+		DurationMs: elapsed.Milliseconds(),
 		Success:    err == nil,
 		Error:      "",
 	}
