@@ -17,9 +17,15 @@
 #   job_duration_seconds           (api/internal/observability/trackedjob.go)
 #   web_vitals_seconds             (web/lib/server/metrics.ts)
 #
-# NOT reimplemented (same as the old file — Prometheus has no exporter for
-# these): r2_usage_high, ci_duration_high, failing_main_ci. /monitoring
-# still surfaces all three live from their own sources.
+# The service-health group (issue #1540) reads the six gauges the
+# issue-signal collector exports (api/internal/observability/jobs/
+# issue_signal_collector.go, #1539): github_failing_pull_requests,
+# github_workflow_run_failed{branch}, github_open_security_alerts{severity},
+# sentry_unresolved_issues, r2_orphaned_objects, r2_storage_bytes. This
+# closed the r2_usage_high and failing_main_ci gaps.
+#
+# Still NOT reimplemented: ci_duration_high — Prometheus has no exporter for
+# workflow durations. /monitoring still surfaces it live from its own source.
 apiVersion: 1
 
 groups:
@@ -284,6 +290,199 @@ groups:
               refId: A
               instant: true
               expr: histogram_quantile(0.95, sum by (le) (rate(web_vitals_seconds_bucket{metric="TTFB"}[30m]))) > 5
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+  - orgId: 1
+    name: service-health
+    folder: tools.xdoubleu.com
+    interval: 1m
+    rules:
+      - uid: issue-failing-prs
+        title: IssueFailingPRs
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: One or more open pull requests have failing CI
+          description: "{{ $values.A }} open pull request(s) with failing checks."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: github_failing_pull_requests > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: issue-sentry-unresolved
+        title: IssueSentryUnresolved
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: Unresolved Sentry issues present
+          description: "{{ $values.A }} unresolved Sentry issue(s)."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: sentry_unresolved_issues > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: issue-security-alerts
+        title: IssueSecurityAlerts
+        condition: C
+        labels:
+          severity: critical
+        annotations:
+          summary: Open security alerts present
+          description: "{{ $values.A }} open security alert(s) across all severities."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: sum(github_open_security_alerts) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: issue-main-ci-red
+        title: IssueMainCIRed
+        condition: C
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: CI on the main branch is failing
+          description: "{{ $values.A }} failed workflow run(s) on main."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: max(github_workflow_run_failed{branch="main"}) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: issue-orphaned-storage
+        title: IssueOrphanedStorage
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: Orphaned R2 objects present
+          description: "{{ $values.A }} orphaned object(s) in R2 storage."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: r2_orphaned_objects > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: r2-usage-high
+        title: R2UsageHigh
+        condition: C
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: R2 storage usage above 9 GiB
+          description: "R2 storage is {{ $values.A }} bytes, above the 9 GiB (9663676416) budget; R2 free tier is 10 GB."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: r2_storage_bytes > 9663676416
           - refId: C
             datasourceUid: __expr__
             model:
