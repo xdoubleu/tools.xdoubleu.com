@@ -13,3 +13,10 @@ lint/grafana:
 # Docker; also run by build-grafana.yml.
 grafana/verify:
 	./scripts/verify_grafana_image.sh
+
+# Validate the Prometheus scrape config and the OpenTofu config (issue #1561).
+# infra-apply only runs after merge, and would not fail on a malformed
+# prometheus.yml anyway — Tofu uploads the file and `docker compose up -d`
+# exits 0 while Prometheus crash-loops on it. This is the pre-merge gate.
+lint/infra:
+	./scripts/lint_infra.sh

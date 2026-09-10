@@ -302,6 +302,33 @@ jobs:
     uses: ./.github/workflows/sentrytools-lint.yml
     secrets: inherit
 
+  # Pre-merge gate for infra/prometheus.yml and the OpenTofu config (issue
+  # #1561). infra-apply below runs `tofu apply` only after merge, and would
+  # not fail on a malformed prometheus.yml at all — Tofu uploads the file and
+  # `docker compose up -d` exits 0 while Prometheus crash-loops on it. Runs
+  # inline rather than as a reusable workflow: it is two tool invocations, not
+  # a per-module lint suite like the four above.
+  infra-lint:
+    needs: changes
+    if: |
+      github.event_name != 'push' &&
+      (github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.infra == 'true' ||
+      needs.changes.outputs.workflows == 'true')
+    name: Infra Lint Workflow
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      # Same action/version infra-apply below uses; tofu_wrapper is off so
+      # lint_infra.sh sees real exit codes rather than the wrapper's.
+      - uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_wrapper: false
+      - name: make lint/infra
+        run: make lint/infra
+
   sentrytools-test:
     needs: changes
     # Runs on push to main too (in parallel with docker/deploy, which do not
@@ -326,6 +353,7 @@ jobs:
         web-lint,
         kobo-gateway-lint,
         sentrytools-lint,
+        infra-lint,
         api-test,
         web-test,
         kobo-gateway-test,
