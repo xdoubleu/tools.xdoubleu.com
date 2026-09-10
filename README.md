@@ -119,12 +119,15 @@ named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 `dismiss_security_alert`, `get_slow_transactions`, `prom_query`, among
 others). `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
 against Prometheus — host CPU/memory/disk, Postgres stats, api's and web's
-own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528) —
-now that Grafana + Prometheus own metrics/graphs/alerting (see
+own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528), the
+`github_*`/`sentry_unresolved_issues`/`r2_*` issue-signal gauges (issue
+#1529), and `ALERTS{}` for what Grafana is currently firing — now that
+Grafana + Prometheus own metrics/graphs/alerting (see
 [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md));
 it replaced four narrower tools (`get_host_metrics`,
-`get_database_size_history`, `get_transaction_latency_history`,
-`get_alert_states`). Two tools are a deliberate
+`get_database_size_history`, `get_transaction_latency_history`, and
+`get_alert_states` — Grafana owns alert state now, read via `ALERTS{}`).
+Two tools are a deliberate
 exception to read-only: `resolve_sentry_issue` marks a Sentry issue
 resolved, and `dismiss_security_alert` dismisses/resolves an open GitHub
 Dependabot, code-scanning, or secret-scanning alert — so an
@@ -243,12 +246,17 @@ its "Connect" button on `/monitoring` fails with a provider-side error instead o
 one from this app. See [api/CLAUDE.md](api/CLAUDE.md) for the full connect-flow
 mechanics.
 
-**New-issue notification emails (issue #561):** a background job (`notify-new-issues`,
-runs every 5 minutes) emails an admin the first time a new unresolved Sentry issue or a
-failed DigitalOcean deployment is seen, via the [Resend](https://resend.com) API (free
-tier). Set `RESEND_API_KEY`, `EMAIL_FROM`, and `NOTIFY_EMAIL_TO` (repo Secrets,
-same as above). Any unset
-var makes the job a no-op — it still runs and records nothing, rather than failing.
+**Issue-signal alerting (issues #561, #1529):** the realtime "email me the first
+time a new issue is seen" job (`IssueNotifierJob` / `global.notified_issues`) was
+retired in #1541. GitHub failing-PR / red-main-CI / open-security-alert counts,
+unresolved-Sentry count, and R2 orphaned-object / storage-byte totals are now
+exported as Prometheus gauges by `IssueSignalCollectorJob` and alerted on by
+Grafana's `service-health` alert group
+([`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md)),
+delivered through Grafana's own SMTP contact point. `RESEND_API_KEY` /
+`EMAIL_FROM` / `NOTIFY_EMAIL_TO` (repo Secrets) are still used — by the two
+weekly digest emails and the Ubuntu-release-check timer; any unset var makes
+those a no-op rather than failing.
 
 **Email-relay newsletter feeds (issue #595):** lets a user subscribe a newsletter that
 has no public RSS feed (or is paywalled, e.g. Substack) by giving it a per-feed inbound

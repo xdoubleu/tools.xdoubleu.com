@@ -1,7 +1,7 @@
 # ADR-0022: Prometheus + Grafana replace the hand-rolled metrics pipeline
 
-- Status: Accepted; extended by #1528 (see "Phase 2" below)
-- Issues: #1468 (follows #1469/ADR-0021), #1528
+- Status: Accepted; extended by #1528 ("Phase 2") and #1529 ("Phase 3") below
+- Issues: #1468 (follows #1469/ADR-0021), #1528, #1529
 - Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`,
   `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`,
   `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`,
@@ -243,6 +243,45 @@ second, Grafana-native Slack integration for no clear benefit over SMTP.
 Sentry keeps showing transaction data for manual review; it is no longer an
 alert source.
 
+## Phase 3 (#1529): issue signals as Prometheus gauges, retire IssueNotifierJob
+
+#1528's "Consequences" flagged two gaps: the main-branch-CI-failure alert and
+the R2-usage-threshold alert had no replacement. Phase 3 closes both, and
+retires the last hand-rolled notifier.
+
+- **Six issue signals are now Prometheus gauges.**
+  `IssueSignalCollectorJob` (`api/internal/observability/jobs/issue_signal_collector.go`,
+  #1539) polls the same live GitHub/Sentry/R2 sources `/monitoring` already
+  uses and exports `github_failing_pull_requests`,
+  `github_workflow_run_failed{branch}`, `github_open_security_alerts{severity}`,
+  `sentry_unresolved_issues`, `r2_orphaned_objects`, and `r2_storage_bytes` on
+  api's `/metrics`.
+- **A Grafana `service-health` alert group evaluates them** (#1540,
+  `infra/grafana/provisioning/alerting/rules.yml`): `IssueFailingPRs`,
+  `IssueMainCIRed` (`max(github_workflow_run_failed{branch="main"}) > 0`),
+  `IssueSecurityAlerts`, `IssueSentryUnresolved`, `IssueOrphanedStorage`, and
+  `R2UsageHigh` (`r2_storage_bytes > 9 GiB`). `failing_main_ci` and
+  `r2_usage_high` are no longer open gaps — `ci_duration_high` remains the
+  only signal with no Prometheus/Grafana replacement (no GitHub Actions
+  workflow-duration exporter). A `service-health` Grafana dashboard graphs the
+  gauges alongside the host/Postgres/api-runtime/overview dashboards.
+- **`IssueNotifierJob` and `global.notified_issues` are retired** (#1541,
+  migration `00048`). It was the realtime "email an admin the first time a
+  new unresolved Sentry issue / failing PR / red main / security alert is
+  seen" job with per-item dedup in `global.notified_issues`; Grafana's
+  `service-health` group now delivers that first-seen alert through its own
+  SMTP contact point. `WeeklyDigestJob` still checks
+  `global.notification_settings` per section and is unaffected;
+  `NOTIFY_EMAIL_TO` stays in use for the two weekly digests and the
+  Ubuntu-release-check timer.
+- **`prom_query` gains `ALERTS{}` and the new gauges** as read paths, and the
+  `monitoring-sweep` skill is rewritten MCP-only around them (its stale
+  `get_alert_states` reference — that tool went in #1528 — is removed).
+- **The `web` `/monitoring` surface collapses to `/monitoring/connections`**
+  (#1542, its own slice): with alerting and the issue digest owned by
+  Grafana, the standalone Issues page is redundant and the OAuth-connection
+  management is what remains worth a page.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why
@@ -250,9 +289,10 @@ alert source.
   `docs/adr-0011-slow-transaction-thresholds.md`'s classification/threshold
   reasoning still governs the `/monitoring` trending list and the weekly
   digest, neither of which is an alert.
-- The main-branch-CI-failure and R2-usage-threshold alerts have no
-  replacement (see "What got removed") — an accepted, documented gap rather
-  than a silent one.
+- The main-branch-CI-failure and R2-usage-threshold alerts were an accepted,
+  documented gap for #1468/#1528; Phase 3 (#1529) closed both via the
+  `service-health` gauge alerts. `ci_duration_high` is the one still-open
+  gap — no GitHub Actions workflow-duration exporter exists.
 - Kamal container naming isn't Tofu-managed, so the Prometheus scrape
   targets for `api` and (added in #1528) `web` (`infra/prometheus.yml`)
   assume a specific Docker network alias that could not be verified against
@@ -265,8 +305,9 @@ alert source.
 
 ## Revisit when
 
-R2 usage or CI duration need a real alert again — either write a small
-custom exporter (a Prometheus metric api's own `/metrics` exposes,
-sourced from `global.storage_snapshots`/GitHub's API) or accept that those
-two specific signals stay workflow-surfaced-only on `/monitoring` rather than
-alerted.
+CI duration needs a real alert again — Phase 3 left `ci_duration_high` as the
+one signal with no exporter. Either write a small custom exporter (a
+Prometheus metric api's own `/metrics` exposes, sourced from GitHub's API) or
+accept that it stays workflow-surfaced-only rather than alerted. (R2 usage and
+the other five issue signals got their gauges + `service-health` alerts in
+#1529.)

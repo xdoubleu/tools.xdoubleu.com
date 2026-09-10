@@ -26,21 +26,38 @@ have each drive its own fix to a merged/mergeable PR independently.
 
 ## Steps
 
-1. **Pull every monitoring data source**, not just the stat tiles — the same
-   MCP tools `IssuesClient.tsx`'s hooks call:
-   - `get_sentry_issues` — unresolved errors
-   - `get_failing_pull_requests` — open PRs with failing checks
+1. **Pull every monitoring data source**, MCP-only. Two kinds of tool: the
+   detail tools `IssuesClient.tsx`'s hooks call (the rows to act on), and
+   `prom_query` for the Prometheus gauge + alert state behind the Grafana
+   `service-health` alert group (`infra/grafana/provisioning/alerting/rules.yml`).
+   Alerting moved wholesale to Grafana in #1528 — the old `get_alert_states`
+   tool is gone; `prom_query('ALERTS{alertstate="firing"}')` is the read path
+   for what is currently breaching.
+   - `get_sentry_issues` — unresolved errors. Gauge: `sentry_unresolved_issues`.
+   - `get_failing_pull_requests` — open PRs with failing checks. Gauge:
+     `github_failing_pull_requests`.
    - `get_workflow_runs` — filter to `event: push, branch: main` yourself and
      check whether the *latest* such run is a failure (a red main is worse
      than any single historical failure — CLAUDE.md's CI section explains
-     why: main deploys straight to prod on every push, no re-test gate)
-   - `get_security_alerts` — Dependabot, code scanning, secret scanning
-   - `get_storage_stats` — `.latest.orphanCount`/`orphanKeys`
-   - `get_alert_states` — anything with `breaching: true`
-   - `get_slow_transactions` — cross-reference against `get_alert_states`'
-     thresholds per rule key (see `web/lib/observability.ts`'s
-     `isSlowTransaction`/`slowTransactionThresholds` if you want the exact
-     matching logic the page itself uses)
+     why: main deploys straight to prod on every push, no re-test gate).
+     Gauge: `github_workflow_run_failed{branch="main"}`.
+   - `get_security_alerts` — Dependabot, code scanning, secret scanning.
+     Gauge: `github_open_security_alerts` (labelled by severity).
+   - `get_storage_stats` — `.latest.orphanCount`/`orphanKeys`. Gauges:
+     `r2_orphaned_objects`, `r2_storage_bytes`.
+   - `get_slow_transactions` — the `/monitoring` trending "currently slow"
+     list, keyed off *live* Sentry p95 data (not an alert — the p95 alert is
+     a Grafana rule on real histograms now, #1528 / ADR-0011). The name-shape
+     classification and per-class thresholds it uses live in
+     `web/lib/observability.ts` (exported `isSlowTransaction(transaction,
+     p95DurationMs)`; thresholds in the `SLOW_TRANSACTION_THRESHOLDS_MS`
+     const), mirroring `slow_transactions.go`.
+
+   The six `github_*` / `sentry_*` / `r2_*` gauges are exported by
+   `IssueSignalCollectorJob`
+   (`api/internal/observability/jobs/issue_signal_collector.go`, #1539/#1540);
+   one `prom_query` for `ALERTS{alertstate="firing"}` plus each gauge shows
+   what Grafana is alerting on before you dig into the detail tools.
 
 2. **Cluster into independent workstreams.** Don't dispatch one subagent per
    raw data row — group by root cause and by which part of the codebase
