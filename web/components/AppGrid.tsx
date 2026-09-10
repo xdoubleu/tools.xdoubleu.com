@@ -9,6 +9,12 @@ export interface AppLink {
   href: string
   description: string
   accessKey?: string
+  /**
+   * When set, the card is a plain anchor rather than a Next `<Link>` — for
+   * targets served by another container on the shared domain (e.g. `/grafana`),
+   * which Next's client-side navigation and prefetch can't handle.
+   */
+  external?: boolean
 }
 
 export interface AppSection {
@@ -24,17 +30,28 @@ interface AppGridProps {
 function AppCards({ apps }: { apps: AppLink[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {apps.map((app) => (
-        <Link
-          key={app.name}
-          href={app.href}
-          className={cn(interactiveCardClass, 'relative block p-4')}
-        >
-          <CardLinkStatus />
-          <div className="font-semibold text-fg">{app.label}</div>
-          <div className="mt-1 text-sm text-muted">{app.description}</div>
-        </Link>
-      ))}
+      {apps.map((app) =>
+        app.external ? (
+          <a
+            key={app.name}
+            href={app.href}
+            className={cn(interactiveCardClass, 'relative block p-4')}
+          >
+            <div className="font-semibold text-fg">{app.label}</div>
+            <div className="mt-1 text-sm text-muted">{app.description}</div>
+          </a>
+        ) : (
+          <Link
+            key={app.name}
+            href={app.href}
+            className={cn(interactiveCardClass, 'relative block p-4')}
+          >
+            <CardLinkStatus />
+            <div className="font-semibold text-fg">{app.label}</div>
+            <div className="mt-1 text-sm text-muted">{app.description}</div>
+          </Link>
+        )
+      )}
     </div>
   )
 }

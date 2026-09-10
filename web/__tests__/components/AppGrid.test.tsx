@@ -39,6 +39,25 @@ describe('AppGrid', () => {
     expect(container.firstChild).toBeNull()
   })
 
+  it('renders an external app as a plain anchor with the correct href', () => {
+    render(
+      <AppGrid
+        apps={[
+          {
+            name: 'grafana',
+            label: 'Grafana',
+            href: '/grafana',
+            description: 'Metrics',
+            external: true
+          }
+        ]}
+      />
+    )
+    const link = screen.getByRole('link', { name: /grafana/i })
+    expect(link).toHaveAttribute('href', '/grafana')
+    expect(link.tagName).toBe('A')
+  })
+
   describe('sections', () => {
     it('renders section headings', () => {
       render(<AppGrid sections={mockSections} />)
