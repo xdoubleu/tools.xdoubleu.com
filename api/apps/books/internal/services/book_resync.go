@@ -24,9 +24,9 @@ import (
 // flagged it in the first place.
 var ErrProposalNotFound = errors.New("resync proposal not found")
 
-// booksResyncSource is the narrow subset of BooksRepository used by the resync
-// path. Defined as an interface so tests can stub it without a real DB.
-type booksResyncSource interface {
+// ResyncSource is the narrow subset of BooksRepository the resync path depends
+// on. Declared as an interface so tests can supply a fake instead of a real DB.
+type ResyncSource interface {
 	ListCatalogBooks(ctx context.Context) ([]models.Book, error)
 	GetBookByID(ctx context.Context, bookID uuid.UUID) (*models.Book, error)
 	RefreshBookExternalData(
@@ -58,15 +58,6 @@ type booksResyncSource interface {
 		bookID uuid.UUID,
 	) (*repositories.ResyncProposalRow, error)
 	DeleteResyncProposal(ctx context.Context, bookID uuid.UUID) error
-}
-
-// resyncRepo returns the books repo to use for resync operations.
-// Tests may set BookService.booksResync to override the real repository.
-func (s *BookService) resyncRepo() booksResyncSource {
-	if s.booksResync != nil {
-		return s.booksResync
-	}
-	return s.books
 }
 
 // SourceProposal is one candidate metadata set for a catalog book: either the
@@ -124,7 +115,7 @@ func (s *BookService) BuildResyncProposals(
 	onProgress func(processed, total int),
 	force bool,
 ) (int, error) {
-	books, err := s.resyncRepo().ListCatalogBooks(ctx)
+	books, err := s.resyncSource.ListCatalogBooks(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -174,7 +165,7 @@ func (s *BookService) BuildResyncProposals(
 		return len(acc.entries), nil //nolint:nilerr // cancellation is not a failure
 	}
 
-	if err = s.resyncRepo().ReplaceResyncProposals(ctx, acc.entries); err != nil {
+	if err = s.resyncSource.ReplaceResyncProposals(ctx, acc.entries); err != nil {
 		return 0, err
 	}
 
@@ -279,7 +270,7 @@ func (s *BookService) recordScanStatus(
 		hcFound = found("hardcover")
 	}
 
-	return s.resyncRepo().UpdateResyncScanStatus(
+	return s.resyncSource.UpdateResyncScanStatus(
 		ctx, book.ID, ucFound, hcFound,
 	)
 }
@@ -1043,7 +1034,7 @@ func libraryProposal(book models.Book) SourceProposal {
 func (s *BookService) ListResyncProposals(
 	ctx context.Context,
 ) ([]ResyncProposal, error) {
-	rows, err := s.resyncRepo().ListResyncProposals(ctx)
+	rows, err := s.resyncSource.ListResyncProposals(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1089,7 +1080,7 @@ func (s *BookService) ApplyResyncChoice(
 	bookID uuid.UUID,
 	source string,
 ) error {
-	row, err := s.resyncRepo().GetResyncProposal(ctx, bookID)
+	row, err := s.resyncSource.GetResyncProposal(ctx, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return ErrProposalNotFound
 	}
@@ -1103,7 +1094,7 @@ func (s *BookService) ApplyResyncChoice(
 		}
 	}
 
-	return s.resyncRepo().DeleteResyncProposal(ctx, bookID)
+	return s.resyncSource.DeleteResyncProposal(ctx, bookID)
 }
 
 func (s *BookService) applyChosenSource(
@@ -1173,7 +1164,7 @@ func (s *BookService) GetBookSources(
 	overrideTitle string,
 	overrideAuthor string,
 ) (ResyncProposal, error) {
-	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
+	book, err := s.resyncSource.GetBookByID(ctx, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return ResyncProposal{}, ErrProposalNotFound
 	}
@@ -1206,7 +1197,7 @@ func (s *BookService) SyncBookSource(
 	overrideTitle string,
 	overrideAuthor string,
 ) error {
-	book, err := s.resyncRepo().GetBookByID(ctx, bookID)
+	book, err := s.resyncSource.GetBookByID(ctx, bookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return ErrProposalNotFound
 	}
@@ -1225,7 +1216,7 @@ func (s *BookService) SyncBookSource(
 
 	// Best-effort: dismiss any pending wizard proposal now that this book has
 	// been resolved live. A missing proposal is not an error here.
-	if err = s.resyncRepo().DeleteResyncProposal(ctx, bookID); err != nil &&
+	if err = s.resyncSource.DeleteResyncProposal(ctx, bookID); err != nil &&
 		!errors.Is(err, database.ErrResourceNotFound) {
 		logger.WarnContext(
 			ctx,
@@ -1253,7 +1244,7 @@ func (s *BookService) writeResyncResult(
 	authors []string,
 	metadataSource string,
 ) error {
-	if dbErr := s.resyncRepo().RefreshBookExternalData(
+	if dbErr := s.resyncSource.RefreshBookExternalData(
 		ctx,
 		book.ID,
 		coverURL,
@@ -1291,7 +1282,7 @@ func (s *BookService) writeResyncResult(
 func (s *BookService) GetSourceStats(
 	ctx context.Context,
 ) (*repositories.SourceStats, error) {
-	return s.resyncRepo().GetSourceStats(ctx)
+	return s.resyncSource.GetSourceStats(ctx)
 }
 
 // ListBooksInExactSources returns the catalog books found by exactly the
@@ -1301,7 +1292,7 @@ func (s *BookService) ListBooksInExactSources(
 	ctx context.Context,
 	sources []string,
 ) ([]models.Book, error) {
-	return s.resyncRepo().ListBooksInExactSources(ctx, sources)
+	return s.resyncSource.ListBooksInExactSources(ctx, sources)
 }
 
 // buildSearchQuery builds a search query string for title+first-author searches.

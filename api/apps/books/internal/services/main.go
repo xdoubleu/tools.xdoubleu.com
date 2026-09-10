@@ -52,7 +52,7 @@ func New(
 		readingState: repositories.ReadingState,
 		uniCat:       uniCat,
 		hardcover:    hardcoverClient,
-		booksResync:  nil, // nil → resyncRepo() falls back to books
+		resyncSource: repositories.Books,
 	}
 
 	conversionSvc := NewConversionService(
