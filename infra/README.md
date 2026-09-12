@@ -547,7 +547,7 @@ GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
                               + event:read, for the grafana-sentry-datasource
                               plugin; issue #1570 — same wiring as above.
                               Backs the IssueSentryUnresolved alert + the
-                              service-health dashboard's Sentry panel)
+                              Sentry dashboard's panel)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear
