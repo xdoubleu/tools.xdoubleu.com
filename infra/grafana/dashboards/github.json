@@ -1,6 +1,6 @@
 {
-  "uid": "service-health",
-  "title": "Service health",
+  "uid": "github-signals",
+  "title": "GitHub",
   "tags": ["provisioned"],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -14,11 +14,11 @@
       "id": 1,
       "type": "stat",
       "title": "Failing pull requests",
-      "description": "github_failing_pull_requests gauge from the issue-signal collector (#1539).",
+      "description": "github_failing_pull_requests gauge from the issue-signal collector (#1539). Aggregated with `max(...)` because the gauge is exported by the api process, which gets a fresh docker_sd `instance` label every Kamal deploy (infra/prometheus.yml) — without it, every redeploy added a permanent extra line to the timeseries panels below (issue #1580).",
       "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "github_failing_pull_requests" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(github_failing_pull_requests)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -32,20 +32,12 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Unresolved Sentry issues",
-      "description": "Unresolved issues from the Sentry API, queried live through the grafana-sentry-datasource plugin (#1570).",
+      "title": "Main CI red",
+      "description": "Mirrors the IssueMainCIRed alert rule exactly.",
       "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
-      "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        {
-          "refId": "A",
-          "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
-          "queryType": "issues",
-          "issuesQuery": "is:unresolved",
-          "issuesLimit": 1000,
-          "projectIds": [],
-          "environments": []
-        }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(github_workflow_run_failed{branch=\"main\"})" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -54,17 +46,17 @@
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["count"], "fields": "" }, "colorMode": "background", "graphMode": "none" }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
     },
     {
       "id": 3,
       "type": "stat",
       "title": "Open security alerts by severity",
-      "description": "github_open_security_alerts gauge from the issue-signal collector (#1539).",
+      "description": "github_open_security_alerts gauge from the issue-signal collector (#1539). Aggregated with `max by (severity)` for the same per-deploy-churn reason as panel 1.",
       "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "{{severity}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "github_open_security_alerts" }
+        { "refId": "A", "legendFormat": "{{severity}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (severity) (github_open_security_alerts)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -79,11 +71,11 @@
       "id": 4,
       "type": "timeseries",
       "title": "Failed workflow runs by branch",
-      "description": "github_workflow_run_failed gauge from the issue-signal collector (#1539).",
+      "description": "github_workflow_run_failed gauge from the issue-signal collector (#1539). Aggregated with `max by (branch)` — this panel is the one the per-deploy churn bug (#1580) was originally reported against: a bare `github_workflow_run_failed` carries the scraping api container's `instance` label, so every redeploy left a dead extra line on this chart forever.",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "{{branch}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "github_workflow_run_failed" }
+        { "refId": "A", "legendFormat": "{{branch}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (branch) (github_workflow_run_failed)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -99,42 +91,18 @@
     {
       "id": 5,
       "type": "timeseries",
-      "title": "R2 storage usage",
-      "description": "r2_storage_bytes gauge from the issue-signal collector (#1539). Alert budget is 9 GiB (R2 free tier is 10 GB).",
+      "title": "CI workflow run duration",
+      "description": "Duration of the most recent completed run of each GitHub Actions workflow on the default branch. Refreshed every 5 minutes by IssueSignalCollectorJob, not scraped from GitHub directly. Aggregated with `max by (workflow)` for the same per-deploy-churn reason as the panel above.",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "R2 bytes", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "r2_storage_bytes" }
+        { "refId": "A", "legendFormat": "{{workflow}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (workflow) (github_workflow_run_duration_seconds)" }
       ],
       "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "min": 0,
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 9663676416 } ] }
-        },
+        "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "showPoints": "never" } },
         "overrides": []
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
-    },
-    {
-      "id": 6,
-      "type": "stat",
-      "title": "R2 orphaned objects",
-      "description": "r2_orphaned_objects gauge from the issue-signal collector (#1539).",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "r2_orphaned_objects" }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
-        },
-        "overrides": []
-      },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
     }
   ]
 }

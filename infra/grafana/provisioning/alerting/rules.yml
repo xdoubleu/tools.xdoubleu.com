@@ -214,7 +214,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: absent(up{job="api"}) or absent(up{job="web"})
+              expr: absent(up{job="api"}) or absent(up{job="web"}) or absent(up{job="grafana"})
           - refId: C
             datasourceUid: __expr__
             model:

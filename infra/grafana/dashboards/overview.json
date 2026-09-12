@@ -12,10 +12,73 @@
   "panels": [
     {
       "id": 1,
+      "type": "stat",
+      "title": "Host CPU",
+      "description": "Mirrors the HostCPUHigh alert rule (infra/grafana/provisioning/alerting/rules.yml) exactly — threshold 80%, for 15m. See the Host dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 80 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Host memory",
+      "description": "Mirrors the HostMemoryHigh alert rule exactly — threshold 85%, for 15m. See the Host dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 85 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Host disk",
+      "description": "Mirrors the HostDiskHigh alert rule exactly — threshold 85%, no sustain window. See the Host dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "(1 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"})) * 100" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 85 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 4,
       "type": "state-timeline",
       "title": "Scrape targets up/down",
-      "description": "Replaces the target-health part of the /monitoring observability page deleted in #1468. Aggregated `min by (job)` because api/web get a fresh docker_sd `instance` label every Kamal deploy (infra/prometheus.yml) — without it each deploy adds another row.",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "description": "Covers the TargetDown/TargetMissing alert rules (availability group) across every scrape target, including the grafana job added in #1580. Aggregated `min by (job)` because api/web/grafana get a fresh docker_sd `instance` label every Kamal deploy (infra/prometheus.yml) — without it each deploy adds another row.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min by (job) (up)" }
@@ -33,80 +96,71 @@
       "options": { "showValue": "never", "mergeValues": true, "legend": { "displayMode": "list", "placement": "bottom" } }
     },
     {
-      "id": 2,
-      "type": "timeseries",
-      "title": "Scrape duration",
-      "description": "Aggregated `max by (job)` for the same reason as the panel above — the docker_sd `instance` label churns every Kamal deploy.",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (scrape_duration_seconds)" }
-      ],
-      "fieldConfig": {
-        "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
-        "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
-    },
-    {
-      "id": 3,
-      "type": "timeseries",
-      "title": "TSDB head series",
-      "description": "Series cardinality vs the single-VPS memory budget (infra/prometheus-compose.yml notes ~3GB free, 90d retention).",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "legendFormat": "head series", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "prometheus_tsdb_head_series" }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "min": 0,
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" },
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 100000 }, { "color": "red", "value": 300000 } ] }
-        },
-        "overrides": []
-      },
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
-    },
-    {
-      "id": 4,
-      "type": "stat",
-      "title": "TSDB storage size",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "prometheus_tsdb_storage_blocks_bytes" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
-    },
-    {
       "id": 5,
       "type": "stat",
-      "title": "Failed scrapes (5m)",
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+      "title": "Request p95",
+      "description": "Mirrors the RequestP95High alert rule exactly — threshold 5s, for 10m. See the API dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(increase(prometheus_target_scrapes_sample_out_of_order_total[5m])) + sum(count by (job) (up == 0))" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[10m])))" }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
     },
     {
       "id": 6,
       "type": "stat",
-      "title": "Active alerts",
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+      "title": "Job p95",
+      "description": "Mirrors the JobP95High alert rule exactly — threshold 60s, for 10m over a 30m window. See the API dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "legendFormat": "{{alertname}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "ALERTS{alertstate=\"firing\"}" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(job_duration_seconds_bucket[30m])))" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 60 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Frontend TTFB p95",
+      "description": "Mirrors the FrontendP95High alert rule exactly — threshold 5s, for 10m over a 30m window. See the Web dashboard for trends.",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(web_vitals_seconds_bucket{metric=\"TTFB\"}[30m])))" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Failing PRs",
+      "description": "Mirrors the IssueFailingPRs alert rule exactly. See the GitHub dashboard for trends.",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(github_failing_pull_requests)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -115,7 +169,110 @@
         },
         "overrides": []
       },
-      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "" }, "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Unresolved Sentry issues",
+      "description": "Mirrors the IssueSentryUnresolved alert rule exactly — queried live through the grafana-sentry-datasource plugin (#1570). See the Sentry dashboard for trends.",
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 20 },
+      "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+          "queryType": "issues",
+          "issuesQuery": "is:unresolved",
+          "issuesLimit": 1000,
+          "projectIds": [],
+          "environments": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["count"], "fields": "" }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Open security alerts",
+      "description": "Mirrors the IssueSecurityAlerts alert rule exactly. See the GitHub dashboard for a by-severity breakdown.",
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(github_open_security_alerts)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Main CI red",
+      "description": "Mirrors the IssueMainCIRed alert rule exactly. See the GitHub dashboard for trends.",
+      "gridPos": { "h": 6, "w": 4, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(github_workflow_run_failed{branch=\"main\"})" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Orphaned R2 objects",
+      "description": "Mirrors the IssueOrphanedStorage alert rule exactly. See the R2 storage dashboard for trends.",
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(r2_orphaned_objects)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "R2 storage usage",
+      "description": "Mirrors the R2UsageHigh alert rule exactly — threshold 9 GiB. See the R2 storage dashboard for trends.",
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(r2_storage_bytes)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 9663676416 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
     }
   ]
 }
