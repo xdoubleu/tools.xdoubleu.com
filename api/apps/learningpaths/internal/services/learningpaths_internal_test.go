@@ -9,7 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
+	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -36,6 +38,11 @@ type fakeLearningPathsStore struct {
 
 	item       *models.ItemForTask
 	getItemErr error
+
+	// resources is returned by GetResources — used by resolveResourceLinks
+	// propagation tests, which need a resource carrying a linked_book_id/
+	// linked_feed_item_id to reach fakeBookLookup/fakeFeedItemLookup.
+	resources []models.Resource
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -69,7 +76,7 @@ func (f *fakeLearningPathsStore) GetResources(
 	if f.getResourcesErr != nil {
 		return nil, f.getResourcesErr
 	}
-	return nil, nil
+	return f.resources, nil
 }
 
 func (f *fakeLearningPathsStore) Create(
@@ -153,6 +160,49 @@ func newFixture() *models.LearningPath {
 func newTestService(store learningPathsStore) *LearningPathService {
 	//nolint:exhaustruct //books/feeds intentionally nil, see doc comment above
 	return &LearningPathService{repo: store}
+}
+
+// fakeBookLookup implements bookLookup in memory so resolveResourceLinks/
+// validateResourceLinks' non-ErrResourceNotFound error-propagation branches
+// (a real infrastructure failure, as opposed to a link that simply doesn't
+// resolve) can be exercised without a database. errAfterCall, when nonzero,
+// makes the Nth call onward return genericErr instead of book — used to
+// reach Create's second resolveResourceLinks call (which reuses the same
+// book ID validateResourceLinks already checked) without genericErr also
+// tripping the first, validating, call.
+type fakeBookLookup struct {
+	calls        int
+	errAfterCall int
+	genericErr   error
+	book         *booksv1.UserBook
+}
+
+func (f *fakeBookLookup) GetLibraryBookByID(
+	_ context.Context, _ string, _ uuid.UUID,
+) (*booksv1.UserBook, error) {
+	f.calls++
+	if f.errAfterCall != 0 && f.calls >= f.errAfterCall {
+		return nil, f.genericErr
+	}
+	return f.book, nil
+}
+
+// fakeFeedItemLookup is the feeds-side counterpart to fakeBookLookup.
+type fakeFeedItemLookup struct {
+	calls        int
+	errAfterCall int
+	genericErr   error
+	item         *feeds.SharedItem
+}
+
+func (f *fakeFeedItemLookup) GetItemByID(
+	_ context.Context, _ string, _ uuid.UUID,
+) (*feeds.SharedItem, error) {
+	f.calls++
+	if f.errAfterCall != 0 && f.calls >= f.errAfterCall {
+		return nil, f.genericErr
+	}
+	return f.item, nil
 }
 
 func TestGet_OwnerAllowed(t *testing.T) {
@@ -343,4 +393,117 @@ func TestRecordItemProgress_DelegatesToRepo(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, store.progressRecorded)
 	assert.True(t, store.progressCompletedTo)
+}
+
+// --- resource-link error propagation -------------------------------------
+//
+// resource_links_test.go (connect-level, real books/feeds apps) covers the
+// happy path and the ErrResourceNotFound rejection. These unit tests cover
+// the other branch: a real infrastructure failure from the books/feeds
+// lookup, which must propagate as-is rather than being swallowed or turned
+// into a 400.
+
+func TestGet_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
+	lookupErr := errors.New("books lookup infra error")
+	bookID := uuid.New()
+	lp := newFixture()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		lp:        lp,
+		resources: []models.Resource{{LinkedBookID: &bookID}},
+	}
+	//nolint:exhaustruct //feeds intentionally nil, unused on this path
+	svc := &LearningPathService{
+		repo:  store,
+		books: &fakeBookLookup{genericErr: lookupErr, errAfterCall: 1},
+	}
+
+	_, err := svc.Get(t.Context(), lp.ID, lp.UserID)
+	assert.ErrorIs(t, err, lookupErr)
+}
+
+func TestGet_ResolveResourceLinks_PropagatesFeedItemLookupError(t *testing.T) {
+	lookupErr := errors.New("feeds lookup infra error")
+	itemID := uuid.New()
+	lp := newFixture()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		lp:        lp,
+		resources: []models.Resource{{LinkedFeedItemID: &itemID}},
+	}
+	//nolint:exhaustruct //books intentionally nil, unused on this path
+	svc := &LearningPathService{
+		repo:  store,
+		feeds: &fakeFeedItemLookup{genericErr: lookupErr, errAfterCall: 1},
+	}
+
+	_, err := svc.Get(t.Context(), lp.ID, lp.UserID)
+	assert.ErrorIs(t, err, lookupErr)
+}
+
+func TestCreate_ValidateResourceLinks_PropagatesBookLookupError(t *testing.T) {
+	lookupErr := errors.New("books lookup infra error")
+	bookID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{}
+	//nolint:exhaustruct //feeds intentionally nil, unused on this path
+	svc := &LearningPathService{
+		repo:  store,
+		books: &fakeBookLookup{genericErr: lookupErr, errAfterCall: 1},
+	}
+
+	//nolint:exhaustruct //other fields optional
+	_, err := svc.Create(t.Context(), "member", models.LearningPath{
+		Title:     "New Path",
+		Resources: []models.Resource{{LinkedBookID: &bookID}},
+	})
+	assert.ErrorIs(t, err, lookupErr)
+	assert.False(t, store.resourcesReplaced)
+}
+
+func TestCreate_ValidateResourceLinks_PropagatesFeedItemLookupError(t *testing.T) {
+	lookupErr := errors.New("feeds lookup infra error")
+	itemID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{}
+	//nolint:exhaustruct //books intentionally nil, unused on this path
+	svc := &LearningPathService{
+		repo:  store,
+		feeds: &fakeFeedItemLookup{genericErr: lookupErr, errAfterCall: 1},
+	}
+
+	//nolint:exhaustruct //other fields optional
+	_, err := svc.Create(t.Context(), "member", models.LearningPath{
+		Title:     "New Path",
+		Resources: []models.Resource{{LinkedFeedItemID: &itemID}},
+	})
+	assert.ErrorIs(t, err, lookupErr)
+	assert.False(t, store.resourcesReplaced)
+}
+
+// TestCreate_ResolveResourceLinks_PropagatesBookLookupError covers Create's
+// second books lookup — the post-persist resolveResourceLinks call that
+// populates LinkedBook on the response, distinct from the earlier
+// validateResourceLinks call that must succeed first for this path to be
+// reached at all.
+func TestCreate_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
+	lookupErr := errors.New("books lookup infra error")
+	bookID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{}
+	//nolint:exhaustruct //feeds intentionally nil, unused on this path
+	svc := &LearningPathService{
+		repo: store,
+		// errAfterCall: 2 lets the first call (validateResourceLinks)
+		// succeed, so only the second (resolveResourceLinks) errors.
+		books: &fakeBookLookup{genericErr: lookupErr, errAfterCall: 2},
+	}
+
+	//nolint:exhaustruct //other fields optional
+	_, err := svc.Create(t.Context(), "member", models.LearningPath{
+		Title:     "New Path",
+		Resources: []models.Resource{{LinkedBookID: &bookID}},
+	})
+	assert.ErrorIs(t, err, lookupErr)
+	assert.True(t, store.resourcesReplaced)
 }

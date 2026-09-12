@@ -191,6 +191,38 @@ func TestUpdateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
+// TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent confirms a
+// linked_book_id/linked_feed_item_id that isn't a parseable UUID is silently
+// dropped by dtoToResources' parseOptionalUUID rather than rejected —
+// per its doc comment, a well-formed but nonexistent/foreign-owned ID is
+// still caught downstream by validateResourceLinks, but a malformed string
+// never reaches that check at all.
+func TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent(t *testing.T) {
+	client := setupClient(getRoutes())
+
+	resp, err := client.CreateLearningPath(
+		newCtx(),
+		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Path With Malformed Link IDs",
+			Resources: []*learningpathsv1.Resource{
+				{
+					Text:             "still has text",
+					LinkedBookId:     ptrTo("not-a-valid-uuid"),
+					LinkedFeedItemId: ptrTo("also-not-a-valid-uuid"),
+				},
+			},
+		}),
+	)
+	require.NoError(t, err)
+	require.Len(t, resp.Msg.LearningPath.Resources, 1)
+	res := resp.Msg.LearningPath.Resources[0]
+	assert.Equal(t, "still has text", res.Text)
+	assert.Nil(t, res.LinkedBookId)
+	assert.Nil(t, res.LinkedFeedItemId)
+	assert.Nil(t, res.LinkedBook)
+	assert.Nil(t, res.LinkedFeedItem)
+}
+
 func ptrTo[T any](v T) *T {
 	return &v
 }
