@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import ResourceLinkPicker from '@/components/learningpaths/ResourceLinkPicker'
 
 interface LearningPathFormProps {
   learningPath?: LearningPath
@@ -26,8 +27,21 @@ interface ModuleRow {
   items: ItemRow[]
 }
 
+// ResourceRow is additive to the freeform text field (#1474) — a resource
+// can carry text, a link to a books/feeds entry, or both. linkedBookTitle/
+// linkedFeedItemTitle are display-only (the server resolves the canonical
+// title on every read); only the *Id fields round-trip to the request.
+interface ResourceRow {
+  text: string
+  linkedBookId?: string
+  linkedBookTitle?: string
+  linkedFeedItemId?: string
+  linkedFeedItemTitle?: string
+}
+
 const emptyItem = (): ItemRow => ({ type: '', description: '', completed: false })
 const emptyModule = (): ModuleRow => ({ title: '', items: [emptyItem()] })
+const emptyResource = (): ResourceRow => ({ text: '' })
 
 export default function LearningPathForm({
   learningPath,
@@ -51,8 +65,16 @@ export default function LearningPathForm({
         }))
       : [emptyModule()]
   )
-  const [resources, setResources] = useState<string[]>(
-    learningPath?.resources?.length ? learningPath.resources.map((r) => r.text) : ['']
+  const [resources, setResources] = useState<ResourceRow[]>(
+    learningPath?.resources?.length
+      ? learningPath.resources.map((r) => ({
+          text: r.text,
+          linkedBookId: r.linkedBookId,
+          linkedBookTitle: r.linkedBook?.title,
+          linkedFeedItemId: r.linkedFeedItemId,
+          linkedFeedItemTitle: r.linkedFeedItem?.title
+        }))
+      : [emptyResource()]
   )
 
   const createLearningPath = useCreateLearningPath()
@@ -95,11 +117,44 @@ export default function LearningPathForm({
     setModules(updated)
   }
 
-  const addResource = () => setResources([...resources, ''])
+  const addResource = () => setResources([...resources, emptyResource()])
   const removeResource = (idx: number) => setResources(resources.filter((_, i) => i !== idx))
-  const updateResource = (idx: number, value: string) => {
+  const updateResourceText = (idx: number, value: string) => {
     const updated = [...resources]
-    updated[idx] = value
+    updated[idx] = { ...updated[idx], text: value }
+    setResources(updated)
+  }
+  const linkResourceBook = (idx: number, book: { id: string; title: string }) => {
+    const updated = [...resources]
+    updated[idx] = {
+      ...updated[idx],
+      linkedBookId: book.id,
+      linkedBookTitle: book.title,
+      linkedFeedItemId: undefined,
+      linkedFeedItemTitle: undefined
+    }
+    setResources(updated)
+  }
+  const linkResourceFeedItem = (idx: number, item: { id: string; title: string }) => {
+    const updated = [...resources]
+    updated[idx] = {
+      ...updated[idx],
+      linkedFeedItemId: item.id,
+      linkedFeedItemTitle: item.title,
+      linkedBookId: undefined,
+      linkedBookTitle: undefined
+    }
+    setResources(updated)
+  }
+  const unlinkResource = (idx: number) => {
+    const updated = [...resources]
+    updated[idx] = {
+      ...updated[idx],
+      linkedBookId: undefined,
+      linkedBookTitle: undefined,
+      linkedFeedItemId: undefined,
+      linkedFeedItemTitle: undefined
+    }
     setResources(updated)
   }
 
@@ -114,7 +169,13 @@ export default function LearningPathForm({
             .filter((i) => i.description.trim())
             .map((i) => ({ type: i.type, description: i.description, completed: i.completed }))
         }))
-      const resourcePayload = resources.filter((r) => r.trim()).map((text) => ({ text }))
+      const resourcePayload = resources
+        .filter((r) => r.text.trim() || r.linkedBookId || r.linkedFeedItemId)
+        .map((r) => ({
+          text: r.text,
+          linkedBookId: r.linkedBookId,
+          linkedFeedItemId: r.linkedFeedItemId
+        }))
 
       const base = {
         title,
@@ -230,28 +291,47 @@ export default function LearningPathForm({
 
       <div className="space-y-1.5">
         <Label>Resources</Label>
-        <p className="text-xs text-muted-foreground">Freeform for now — books, sites, tools.</p>
-        <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Freeform text, or link an existing book/feed item — both may be set together.
+        </p>
+        <div className="space-y-3">
           {resources.map((resource, idx) => (
-            <div key={idx} className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="e.g. Book: The Go Programming Language"
-                value={resource}
-                onChange={(e) => updateResource(idx, e.target.value)}
-                className="flex-1"
+            <div key={idx} className="space-y-1.5 rounded-2xl border border-border p-3">
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  placeholder="e.g. Book: The Go Programming Language"
+                  value={resource.text}
+                  onChange={(e) => updateResourceText(idx, e.target.value)}
+                  className="flex-1"
+                />
+                {resources.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    aria-label="Remove resource"
+                    onClick={() => removeResource(idx)}
+                  >
+                    ×
+                  </Button>
+                )}
+              </div>
+              <ResourceLinkPicker
+                linkedBook={
+                  resource.linkedBookId
+                    ? { id: resource.linkedBookId, title: resource.linkedBookTitle ?? '' }
+                    : undefined
+                }
+                linkedFeedItem={
+                  resource.linkedFeedItemId
+                    ? { id: resource.linkedFeedItemId, title: resource.linkedFeedItemTitle ?? '' }
+                    : undefined
+                }
+                onLinkBook={(book) => linkResourceBook(idx, book)}
+                onLinkFeedItem={(item) => linkResourceFeedItem(idx, item)}
+                onUnlink={() => unlinkResource(idx)}
               />
-              {resources.length > 1 && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  aria-label="Remove resource"
-                  onClick={() => removeResource(idx)}
-                >
-                  ×
-                </Button>
-              )}
             </div>
           ))}
         </div>

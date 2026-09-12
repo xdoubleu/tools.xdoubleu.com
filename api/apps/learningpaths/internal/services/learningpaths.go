@@ -2,10 +2,15 @@ package services
 
 import (
 	"context"
+	"errors"
+	"net/http"
 
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
+	booksv1 "tools.xdoubleu.com/gen/books/v1"
+	iapp "tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -38,8 +43,28 @@ type learningPathsStore interface {
 	) (*models.ItemForTask, error)
 }
 
+// bookLookup is the surface LearningPathService needs from the books app to
+// resolve/validate a resource's linked book. Satisfied by *books.Books
+// (api/apps/books), narrowed here so unit tests can fake it without a
+// database.
+type bookLookup interface {
+	GetLibraryBookByID(
+		ctx context.Context, userID string, bookID uuid.UUID,
+	) (*booksv1.UserBook, error)
+}
+
+// feedItemLookup is the feeds-side counterpart to bookLookup, satisfied by
+// *feeds.Feeds (api/apps/feeds).
+type feedItemLookup interface {
+	GetItemByID(
+		ctx context.Context, userID string, itemID uuid.UUID,
+	) (*feeds.SharedItem, error)
+}
+
 type LearningPathService struct {
-	repo learningPathsStore
+	repo  learningPathsStore
+	books bookLookup
+	feeds feedItemLookup
 }
 
 func (s *LearningPathService) List(
@@ -79,9 +104,94 @@ func (s *LearningPathService) Get(
 	if err != nil {
 		return nil, err
 	}
+	if err = s.resolveResourceLinks(ctx, userID, resources); err != nil {
+		return nil, err
+	}
 	lp.Resources = resources
 
 	return lp, nil
+}
+
+// resolveResourceLinks populates LinkedBook/LinkedFeedItem on every resource
+// that carries a link ID, mutating resources in place. A link that no
+// longer resolves (the book/feed item was removed, or — defensively — now
+// belongs to someone else) is left unpopulated rather than failing the
+// whole Get: a stale link is a display concern, not a reason to 404 an
+// otherwise-valid learning path. Any other error (a real infrastructure
+// failure) still propagates.
+func (s *LearningPathService) resolveResourceLinks(
+	ctx context.Context,
+	userID string,
+	resources []models.Resource,
+) error {
+	for i := range resources {
+		if resources[i].LinkedBookID != nil {
+			book, err := s.books.GetLibraryBookByID(ctx, userID, *resources[i].LinkedBookID)
+			if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+				return err
+			}
+			if book != nil {
+				resources[i].LinkedBook = &models.LinkedBook{
+					Title:           book.Book.GetTitle(),
+					Status:          book.Status,
+					ProgressPercent: int(book.ProgressPercent),
+					CoverURL:        book.Book.GetCoverUrl(),
+				}
+			}
+		}
+		if resources[i].LinkedFeedItemID != nil {
+			item, err := s.feeds.GetItemByID(ctx, userID, *resources[i].LinkedFeedItemID)
+			if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+				return err
+			}
+			if item != nil {
+				resources[i].LinkedFeedItem = &models.LinkedFeedItem{
+					Title:      item.Title,
+					SourceURL:  item.SourceURL,
+					Read:       item.Read,
+					Bookmarked: item.Bookmarked,
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// validateResourceLinks confirms every linked_book_id/linked_feed_item_id a
+// caller supplies on Create/Update actually resolves for userID before it is
+// persisted — an unresolvable link (wrong ID, or an ID belonging to another
+// user) is rejected up front rather than silently stored and only
+// discovered missing on the next Get.
+func (s *LearningPathService) validateResourceLinks(
+	ctx context.Context,
+	userID string,
+	resources []models.Resource,
+) error {
+	for _, r := range resources {
+		if r.LinkedBookID != nil {
+			if _, err := s.books.GetLibraryBookByID(ctx, userID, *r.LinkedBookID); err != nil {
+				if errors.Is(err, database.ErrResourceNotFound) {
+					return &iapp.HTTPError{
+						Status:  http.StatusBadRequest,
+						Message: "linked_book_id does not resolve to a book in your library",
+					}
+				}
+				return err
+			}
+		}
+		if r.LinkedFeedItemID != nil {
+			if _, err := s.feeds.GetItemByID(ctx, userID, *r.LinkedFeedItemID); err != nil {
+				if errors.Is(err, database.ErrResourceNotFound) {
+					return &iapp.HTTPError{
+						Status:  http.StatusBadRequest,
+						Message: "linked_feed_item_id does not resolve to one of your feed items",
+					}
+				}
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (s *LearningPathService) Create(
@@ -90,6 +200,10 @@ func (s *LearningPathService) Create(
 	lp models.LearningPath,
 ) (*models.LearningPath, error) {
 	lp.UserID = userID
+
+	if err := s.validateResourceLinks(ctx, userID, lp.Resources); err != nil {
+		return nil, err
+	}
 
 	created, err := s.repo.Create(ctx, lp)
 	if err != nil {
@@ -100,6 +214,9 @@ func (s *LearningPathService) Create(
 		return nil, err
 	}
 	if err = s.repo.ReplaceResources(ctx, created.ID, lp.Resources); err != nil {
+		return nil, err
+	}
+	if err = s.resolveResourceLinks(ctx, userID, lp.Resources); err != nil {
 		return nil, err
 	}
 
@@ -119,6 +236,10 @@ func (s *LearningPathService) Update(
 	}
 	if existing.UserID != userID {
 		return database.ErrResourceNotFound
+	}
+
+	if err = s.validateResourceLinks(ctx, userID, lp.Resources); err != nil {
+		return err
 	}
 
 	lp.UserID = existing.UserID

@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/google/uuid"
+
 	"tools.xdoubleu.com/apps/books/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
@@ -159,6 +161,27 @@ func (app *Books) BuildSharedLibrary(
 		Finished: protoUserBooks(data.Finished, base),
 		Shelves:  protoBookshelves(data.Shelves, base),
 	}, lastSyncedAt, nil
+}
+
+// GetLibraryBookByID looks up a single library entry by book ID, scoped to
+// userID — the single-item counterpart to BuildSharedLibrary, used by the
+// learningpaths app (api/apps/learningpaths) to resolve a resource linked to
+// a books entry, following the same exported-methods-only cross-app pattern
+// as dashboard. Returns database.ErrResourceNotFound both when bookID
+// doesn't exist and when it belongs to a different user — the repository
+// query filters by user_id and book_id together, so a foreign-owned book
+// simply doesn't match rather than leaking its existence.
+func (app *Books) GetLibraryBookByID(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*booksv1.UserBook, error) {
+	ub, err := app.Services.Books.GetUserBook(ctx, userID, bookID)
+	if err != nil {
+		return nil, err
+	}
+
+	return protoUserBook(*ub, app.clients.PublicAPIBaseURL), nil
 }
 
 // BuildSharedProgress assembles the reading dashboard's progress-chart

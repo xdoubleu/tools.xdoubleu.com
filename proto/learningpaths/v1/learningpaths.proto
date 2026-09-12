@@ -29,13 +29,42 @@ message Module {
   repeated Item items = 5;
 }
 
-// Resources are freeform text entries for now (e.g. "Book: ...", "https://...").
-// Linking a resource to an existing books/feeds entry is #1474's scope.
+// LinkedBook is the resolved, read-only state of a resource's linked books
+// library entry (#1474) — populated on Get/List only, when linked_book_id
+// still resolves for the caller; never set by the client and ignored on
+// Create/Update.
+message LinkedBook {
+  string title = 1;
+  string status = 2;
+  int32 progress_percent = 3;
+  string cover_url = 4;
+}
+
+// LinkedFeedItem is the resolved, read-only state of a resource's linked
+// feeds item (#1474) — same populate-on-read-only rule as LinkedBook.
+message LinkedFeedItem {
+  string title = 1;
+  string source_url = 2;
+  bool read = 3;
+  bool bookmarked = 4;
+}
+
+// Resources are freeform text entries by default (e.g. "Book: ...",
+// "https://..."). Setting linked_book_id or linked_feed_item_id instead
+// links the resource to an existing books library entry or feeds item
+// (#1474) — additive to the freeform text field, which most resources still
+// use (a physical book, a plain website, etc. have nothing to link to).
+// Setting both, or setting one while text is also non-empty, is allowed;
+// text becomes a caller-supplied caption alongside the resolved link state.
 message Resource {
   string id = 1;
   string learning_path_id = 2;
   string text = 3;
   int32 sort_order = 4;
+  optional string linked_book_id = 5;
+  optional string linked_feed_item_id = 6;
+  LinkedBook linked_book = 7;
+  LinkedFeedItem linked_feed_item = 8;
 }
 
 message LearningPath {

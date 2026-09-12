@@ -167,9 +167,33 @@ export default function PathClient({ id }: { id: string }) {
           {learningPath.resources.length > 0 && (
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3">Resources</h2>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="space-y-2">
                 {learningPath.resources.map((resource) => (
-                  <li key={resource.id}>{resource.text}</li>
+                  <li key={resource.id} className="flex flex-col gap-1">
+                    {resource.text && <span className="break-words">{resource.text}</span>}
+                    {resource.linkedBook && (
+                      <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-sm text-accent">
+                        <span className="break-words">📚 {resource.linkedBook.title}</span>
+                        <span className="text-muted">
+                          — {resource.linkedBook.status.replace('_', ' ')}
+                          {resource.linkedBook.progressPercent > 0 &&
+                            `, ${resource.linkedBook.progressPercent}%`}
+                        </span>
+                      </span>
+                    )}
+                    {resource.linkedFeedItem && (
+                      <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-sm text-accent">
+                        <span className="break-words">📰 {resource.linkedFeedItem.title}</span>
+                        <span className="text-muted">
+                          — {resource.linkedFeedItem.read ? 'read' : 'unread'}
+                        </span>
+                      </span>
+                    )}
+                    {((resource.linkedBookId && !resource.linkedBook) ||
+                      (resource.linkedFeedItemId && !resource.linkedFeedItem)) && (
+                      <span className="text-muted italic">Linked resource no longer available</span>
+                    )}
+                  </li>
                 ))}
               </ul>
             </section>
