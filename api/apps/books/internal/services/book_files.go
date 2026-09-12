@@ -161,6 +161,40 @@ func (s *BookService) FinalizeUpload(
 	)
 }
 
+// resolveOrCreateUserBook returns the calling user's user_book row for
+// bookID, creating one (status "to read", no tags) if they don't have this
+// book in their library yet. The returned bool reports whether the row
+// already existed.
+func (s *BookService) resolveOrCreateUserBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*models.UserBook, bool, error) {
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	if err == nil {
+		return ub, true, nil
+	}
+	if !errors.Is(err, database.ErrResourceNotFound) {
+		return nil, false, err
+	}
+
+	newUB := models.UserBook{ //nolint:exhaustruct //optional fields
+		UserID:         userID,
+		BookID:         bookID,
+		Status:         models.StatusToRead,
+		Tags:           []string{},
+		ShelfPositions: map[string]int{},
+	}
+	if upsertErr := s.books.UpsertUserBook(ctx, newUB); upsertErr != nil {
+		return nil, false, upsertErr
+	}
+	ub, err = s.books.GetUserBook(ctx, userID, bookID)
+	if err != nil {
+		return nil, false, err
+	}
+	return ub, false, nil
+}
+
 // finalizeDuplicate handles an upload where a canonical blob for the checksum
 // already exists. It creates (or returns) the calling user's book_files row
 // pointing at the existing blob, without transferring any bytes.
@@ -173,25 +207,8 @@ func (s *BookService) finalizeDuplicate(
 	existing *models.BookFile,
 ) (*UploadFileResult, error) {
 	// Resolve or create the user's user_book entry for the existing book.
-	matchedExisting := true
-	ub, err := s.books.GetUserBook(ctx, userID, existing.BookID)
-	if errors.Is(err, database.ErrResourceNotFound) {
-		matchedExisting = false
-		newUB := models.UserBook{ //nolint:exhaustruct //optional fields
-			UserID:         userID,
-			BookID:         existing.BookID,
-			Status:         models.StatusToRead,
-			Tags:           []string{},
-			ShelfPositions: map[string]int{},
-		}
-		if upsertErr := s.books.UpsertUserBook(ctx, newUB); upsertErr != nil {
-			return nil, upsertErr
-		}
-		ub, err = s.books.GetUserBook(ctx, userID, existing.BookID)
-		if err != nil {
-			return nil, err
-		}
-	} else if err != nil {
+	ub, matchedExisting, err := s.resolveOrCreateUserBook(ctx, userID, existing.BookID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -493,8 +510,12 @@ func extForFormat(format string) string {
 // Matching is attempted in order from most to least precise:
 //  1. ISBN13 exact match
 //  2. Exact case-insensitive title + first author
-//  3. Normalized title + author last-name overlap (strips subtitles, folds
-//     diacritics, handles "Last, First" vs "First Last" formatting)
+//  3. Catalog-wide normalized title + author last-name overlap, exact then
+//     fuzzy (strips subtitles, folds diacritics, handles "Last, First" vs
+//     "First Last" formatting, tolerates reordered/series-suffixed titles) —
+//     searches every catalog book, not just ones already in this user's
+//     library, so the same book uploaded a second time in a different format
+//     attaches to the existing catalog entry instead of spawning a duplicate
 //  4. External search across configured providers (creates a new library
 //     entry, matchedExisting=false)
 func (s *BookService) recognizeBook(
@@ -526,14 +547,18 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 3. Normalized title + author last-name overlap.
-	// Fetches the full library once; the list is small relative to the
-	// cost of the external HTTP round-trip(s) that would otherwise follow.
-	lib, err := s.books.GetLibrary(ctx, userID)
+	// 3. Catalog-wide normalized title + author overlap, exact then fuzzy.
+	// Fetches the whole catalog once; the list is small relative to the cost
+	// of the external HTTP round-trip(s) that would otherwise follow.
+	catalog, err := s.books.GetCatalogWithUserOverlay(ctx, userID)
 	if err != nil {
 		return nil, false, err
 	}
-	if ub := matchLibraryByMetadata(lib, meta); ub != nil {
+	if match := matchCatalogByMetadata(catalog, meta); match != nil {
+		ub, _, attachErr := s.resolveOrCreateUserBook(ctx, userID, match.BookID)
+		if attachErr != nil {
+			return nil, false, attachErr
+		}
 		return ub, true, nil
 	}
 
