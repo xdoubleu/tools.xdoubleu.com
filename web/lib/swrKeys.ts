@@ -90,6 +90,9 @@ export const swrKeys = {
   recipe: (id: string, servings?: number) =>
     servings ? `/recipes/${id}?servings=${servings}` : `/recipes/${id}`,
 
+  learningPaths: '/learningpaths',
+  learningPath: (id: string) => `/learningpaths/${id}`,
+
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>
     `/shoppinglist/export/${planId}?excluded=${[...excludedGroups].sort().join(',')}`,

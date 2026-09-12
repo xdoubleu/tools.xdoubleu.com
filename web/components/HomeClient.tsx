@@ -59,6 +59,12 @@ const ALL_APPS: AppLink[] = [
   },
   { name: 'recipes', label: 'Recipes', href: '/recipes/list', description: 'Recipe management' },
   {
+    name: 'learningpaths',
+    label: 'Learning Paths',
+    href: '/learningpaths/list',
+    description: 'Self-directed curricula with modules, items and progress tracking'
+  },
+  {
     name: 'mealplans',
     label: 'Meal Plans',
     href: '/mealplans',
@@ -107,7 +113,7 @@ const ALL_APPS: AppLink[] = [
 const APP_MAP = new Map(ALL_APPS.map((a) => [a.name, a]))
 
 const SECTION_DEFS: { title: string; names: string[] }[] = [
-  { title: 'Productivity', names: ['games', 'books', 'feeds', 'trains'] },
+  { title: 'Productivity', names: ['games', 'books', 'feeds', 'trains', 'learningpaths'] },
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'family'] },

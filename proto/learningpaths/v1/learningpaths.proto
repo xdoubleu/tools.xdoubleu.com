@@ -1,0 +1,115 @@
+syntax = "proto3";
+package learningpaths.v1;
+option go_package = "tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1";
+
+// NOTE on message shape: unlike recipes.proto's flattened-parallel-array
+// convention (ingredient_names[]/ingredient_amounts[]/... kept in lockstep by
+// index), LearningPath is a genuine three-level tree (path -> modules ->
+// items). Three parallel arrays deep would be unreadable and error-prone to
+// keep aligned, so this proto uses ordinary nested messages instead. Create/
+// Update requests take the same nested LearningPath shape and round-trip the
+// whole tree in a single call — there are no separate module/item RPCs.
+
+message Item {
+  string id = 1;
+  string module_id = 2;
+  // Freeform for now (e.g. "read", "study", "do", "checkpoint") rather than
+  // an enum — kept simple until real usage shows a fixed set is warranted.
+  string type = 3;
+  string description = 4;
+  int32 sort_order = 5;
+  bool completed = 6;
+}
+
+message Module {
+  string id = 1;
+  string learning_path_id = 2;
+  string title = 3;
+  int32 sort_order = 4;
+  repeated Item items = 5;
+}
+
+// Resources are freeform text entries for now (e.g. "Book: ...", "https://...").
+// Linking a resource to an existing books/feeds entry is #1474's scope.
+message Resource {
+  string id = 1;
+  string learning_path_id = 2;
+  string text = 3;
+  int32 sort_order = 4;
+}
+
+message LearningPath {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string goal = 4;
+  // Freeform description of the recurring routine (e.g. "30 min every
+  // weekday morning").
+  string routine = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  repeated Module modules = 8;
+  repeated Resource resources = 9;
+}
+
+message ListLearningPathsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message ListLearningPathsResponse {
+  repeated LearningPath learning_paths = 1;
+  bool has_more = 2;
+}
+
+message GetLearningPathRequest {
+  string id = 1;
+}
+message GetLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message CreateLearningPathRequest {
+  string title = 1;
+  string goal = 2;
+  string routine = 3;
+  repeated Module modules = 4;
+  repeated Resource resources = 5;
+}
+message CreateLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message UpdateLearningPathRequest {
+  string id = 1;
+  string title = 2;
+  string goal = 3;
+  string routine = 4;
+  repeated Module modules = 5;
+  repeated Resource resources = 6;
+}
+message UpdateLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message DeleteLearningPathRequest {
+  string id = 1;
+}
+message DeleteLearningPathResponse {}
+
+// RecordItemProgress toggles a single item's completion flag without
+// resending the whole tree — the dedicated path both the "check an item off"
+// UI action and (in a later PR) an MCP tool use.
+message RecordItemProgressRequest {
+  string item_id = 1;
+  bool completed = 2;
+}
+message RecordItemProgressResponse {}
+
+service LearningPathsService {
+  rpc ListLearningPaths(ListLearningPathsRequest) returns (ListLearningPathsResponse);
+  rpc GetLearningPath(GetLearningPathRequest) returns (GetLearningPathResponse);
+  rpc CreateLearningPath(CreateLearningPathRequest) returns (CreateLearningPathResponse);
+  rpc UpdateLearningPath(UpdateLearningPathRequest) returns (UpdateLearningPathResponse);
+  rpc DeleteLearningPath(DeleteLearningPathRequest) returns (DeleteLearningPathResponse);
+  rpc RecordItemProgress(RecordItemProgressRequest) returns (RecordItemProgressResponse);
+}
