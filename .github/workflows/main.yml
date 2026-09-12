@@ -673,10 +673,10 @@ jobs:
           # (issue #1468's Grafana contact point) — no new mail credential.
           GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
           GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
-          # Alert-email recipient — the admin address api's own mailer sends
-          # notifications to. Consumed by $__env{NOTIFY_EMAIL_TO} in
+          # Slack Incoming Webhook URL (issue #1592) — the alert contact
+          # point. Consumed by $__env{GRAFANA_SLACK_WEBHOOK_URL} in
           # infra/grafana/provisioning/alerting/contactpoints.yml.
-          NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
+          GRAFANA_SLACK_WEBHOOK_URL: ${{ secrets.GRAFANA_SLACK_WEBHOOK_URL }}
           # GitHub + Sentry datasource plugin tokens (issue #1570). Consumed
           # by $__env{} in
           # infra/grafana/provisioning/datasources/issue-signals.yml.

@@ -100,14 +100,15 @@ grafana_env_names="$(
 while IFS= read -r name; do
 	[ -n "$name" ] || continue
 	case "$name" in
-		# NOTIFY_EMAIL_TO is read by $__env{} in
-		# infra/grafana/provisioning/alerting/contactpoints.yml, and
-		# GRAFANA_GITHUB_DATASOURCE_TOKEN / GRAFANA_SENTRY_DATASOURCE_TOKEN by $__env{} in
-		# infra/grafana/provisioning/datasources/issue-signals.yml (issue
-		# #1570) — not by Grafana settings. Provisioning-file interpolation
-		# accepts any env var name, so the non-GF_ spelling is deliberate.
-		GF_* | RELEASE | KAMAL_* | NOTIFY_EMAIL_TO) ;;
-		GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN) ;;
+		# GRAFANA_SLACK_WEBHOOK_URL is read by $__env{} in
+		# infra/grafana/provisioning/alerting/contactpoints.yml (issue
+		# #1592), and GRAFANA_GITHUB_DATASOURCE_TOKEN / GRAFANA_SENTRY_DATASOURCE_TOKEN
+		# by $__env{} in infra/grafana/provisioning/datasources/issue-signals.yml
+		# (issue #1570) — not by Grafana settings. Provisioning-file
+		# interpolation accepts any env var name, so the non-GF_ spelling is
+		# deliberate.
+		GF_* | RELEASE | KAMAL_*) ;;
+		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN) ;;
 		*)
 			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored (see #1517). Rename it to the GF_* name Grafana expects." >&2
 			status=1
