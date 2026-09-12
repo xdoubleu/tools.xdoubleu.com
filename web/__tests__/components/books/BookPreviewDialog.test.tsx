@@ -14,11 +14,16 @@ jest.mock('swr', () => ({
 
 jest.mock('next/dynamic', () => () => {
   // Return a stub component synchronously so tests don't need async import resolution.
-  const Stub = (props: { url?: unknown; epubInitOptions?: { openAs?: unknown } }) => (
+  const Stub = (props: {
+    url?: unknown
+    epubInitOptions?: { openAs?: unknown }
+    location?: unknown
+  }) => (
     <div
       data-testid="react-reader"
       data-url={String(props.url ?? '')}
       data-open-as={String(props.epubInitOptions?.openAs ?? '')}
+      data-location={String(props.location)}
     />
   )
   Stub.displayName = 'ReactReaderStub'
@@ -148,6 +153,9 @@ describe('BookPreviewDialog', () => {
     expect(reader).toBeInTheDocument()
     expect(reader).toHaveAttribute('data-url', 'https://r2.example.com/book.epub')
     expect(reader).toHaveAttribute('data-open-as', 'epub')
+    // Always opens at spine index 0 rather than trusting the book's own TOC,
+    // which can point to a nonexistent spine item (issue #1594).
+    expect(reader).toHaveAttribute('data-location', '0')
   })
 
   it('passes null bookId to useGetBookFile when dialog is closed', () => {
@@ -384,6 +392,28 @@ describe('BookPreviewDialog', () => {
       const event = makeRejectionEvent(
         new TypeError("undefined is not an object (evaluating 'this.book.package')")
       )
+      const preventDefault = jest.spyOn(event, 'preventDefault')
+      invokeHandler(handler, event)
+      expect(preventDefault).toHaveBeenCalled()
+    })
+
+    it('suppresses the known "No Section Found" dangling-TOC-entry error (#1594)', () => {
+      mockUseGetBookFile.mockReturnValue({
+        data: { url: 'https://r2.example.com/book.epub' },
+        error: null
+      })
+      const addSpy = jest.spyOn(window, 'addEventListener')
+      render(
+        <BookPreviewDialog
+          bookId={BOOK_ID}
+          format="epub"
+          title={TITLE}
+          open={true}
+          onOpenChange={jest.fn()}
+        />
+      )
+      const handler = getRegisteredHandler(addSpy)
+      const event = makeRejectionEvent(new Error('No Section Found'))
       const preventDefault = jest.spyOn(event, 'preventDefault')
       invokeHandler(handler, event)
       expect(preventDefault).toHaveBeenCalled()
