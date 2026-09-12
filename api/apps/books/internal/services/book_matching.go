@@ -693,3 +693,51 @@ func matchLibraryByMetadata(
 	}
 	return nil
 }
+
+// matchCatalogByMetadata extends matchLibraryByMetadata's exact match with a
+// fuzzy fallback — the same token-set Jaccard similarity + volume/edition
+// disambiguation FindDuplicateGroups uses for the admin duplicate scan — so a
+// reordered or subtitle-variant title still resolves to an existing catalog
+// entry instead of leaving the caller to spawn a new one. Intended for a
+// catalog fetched via GetCatalogWithUserOverlay (every book, not just the
+// entries a particular user already has), but works over any []models.UserBook.
+// Returns nil under the same conditions as matchLibraryByMetadata, plus when
+// the fuzzy pass also finds no same-author match.
+func matchCatalogByMetadata(
+	catalog []models.UserBook,
+	meta ebookmeta.Metadata,
+) *models.UserBook {
+	if ub := matchLibraryByMetadata(catalog, meta); ub != nil {
+		return ub
+	}
+
+	fileAuthors := make(map[string]struct{}, len(meta.Authors))
+	for _, a := range meta.Authors {
+		if n := normalizeAuthor(a); n != "" {
+			fileAuthors[n] = struct{}{}
+		}
+	}
+	if len(fileAuthors) == 0 {
+		return nil
+	}
+	fileTokens := titleTokens(meta.Title)
+	if len(fileTokens) == 0 {
+		return nil
+	}
+
+	for i := range catalog {
+		ub := &catalog[i]
+		if ub.Book == nil {
+			continue
+		}
+		if !titlesFuzzyMatch(fileTokens, titleTokens(ub.Book.Title)) {
+			continue
+		}
+		for _, a := range ub.Book.Authors {
+			if _, ok := fileAuthors[normalizeAuthor(a)]; ok {
+				return ub
+			}
+		}
+	}
+	return nil
+}
