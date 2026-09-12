@@ -31,6 +31,11 @@ type learningPathsStore interface {
 	RecordItemProgress(
 		ctx context.Context, itemID uuid.UUID, userID string, completed bool,
 	) error
+	// GetItemForUser is used by TodoistService.SendItem (issue #1475) to
+	// build a task's content without pulling the whole path tree.
+	GetItemForUser(
+		ctx context.Context, itemID uuid.UUID, userID string,
+	) (*models.ItemForTask, error)
 }
 
 type LearningPathService struct {

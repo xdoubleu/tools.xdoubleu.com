@@ -41,3 +41,11 @@ type Resource struct {
 	Text           string
 	SortOrder      int
 }
+
+// ItemForTask is the minimal projection SendItemToTodoist needs to build a
+// Todoist task's content — the item itself plus its owning path's title for
+// context, not the full tree (issue #1475).
+type ItemForTask struct {
+	Item      Item
+	PathTitle string
+}

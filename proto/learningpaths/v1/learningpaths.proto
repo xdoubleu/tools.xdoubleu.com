@@ -140,3 +140,45 @@ service LearningPathsService {
   rpc RecordItemProgress(RecordItemProgressRequest) returns (RecordItemProgressResponse);
   rpc GetLearningPathProgress(GetLearningPathProgressRequest) returns (GetLearningPathProgressResponse);
 }
+
+// TodoistService (issue #1475) lets a user connect their own Todoist account
+// and send a single path item to it as a task, one-way (no sync-back —
+// completing the Todoist task never flips the item's own `completed` flag).
+// A separate service, not folded into LearningPathsService, mirroring how
+// books.v1 splits LibraryService/BookFilesService/KoboService/CatalogService
+// by concern rather than one service per app.
+message ConnectTodoistRequest {}
+message ConnectTodoistResponse {
+  // authorize_url is where the client should navigate the browser to start
+  // Todoist's OAuth2 authorization-code flow. The callback leg that
+  // completes the flow is a plain HTTP redirect route, not a ConnectRPC
+  // method — see learningpaths' routes.go.
+  string authorize_url = 1;
+}
+
+message DisconnectTodoistRequest {}
+message DisconnectTodoistResponse {}
+
+message GetTodoistConnectionStatusRequest {}
+message GetTodoistConnectionStatusResponse {
+  bool connected = 1;
+  // connected_at is RFC3339, empty when not connected.
+  string connected_at = 2;
+}
+
+message SendItemToTodoistRequest {
+  string item_id = 1;
+}
+message SendItemToTodoistResponse {
+  // todoist_task_id is Todoist's own id for the created task, echoed back
+  // only for the caller's confirmation UI — nothing here is retained
+  // server-side to correlate the two systems, per "no two-way sync".
+  string todoist_task_id = 1;
+}
+
+service TodoistService {
+  rpc ConnectTodoist(ConnectTodoistRequest) returns (ConnectTodoistResponse);
+  rpc DisconnectTodoist(DisconnectTodoistRequest) returns (DisconnectTodoistResponse);
+  rpc GetTodoistConnectionStatus(GetTodoistConnectionStatusRequest) returns (GetTodoistConnectionStatusResponse);
+  rpc SendItemToTodoist(SendItemToTodoistRequest) returns (SendItemToTodoistResponse);
+}

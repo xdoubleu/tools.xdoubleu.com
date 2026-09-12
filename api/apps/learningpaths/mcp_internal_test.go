@@ -11,6 +11,7 @@ import (
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mcptools"
@@ -47,12 +48,16 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
 
+	testSealer, err := crypto.New(cfg.EncryptionKey)
+	require.NoError(t, err)
+
 	const mcpUserID = "mcp-learningpaths-user"
 	app := New(
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,
 		pg,
+		testSealer,
 	)
 	h := &learningPathsConnectHandler{app: app}
 

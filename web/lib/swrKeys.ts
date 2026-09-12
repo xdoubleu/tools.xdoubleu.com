@@ -92,6 +92,7 @@ export const swrKeys = {
 
   learningPaths: '/learningpaths',
   learningPath: (id: string) => `/learningpaths/${id}`,
+  todoistConnection: '/learningpaths/todoist-connection',
 
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>

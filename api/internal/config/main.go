@@ -82,6 +82,12 @@ type Config struct {
 	SentryOAuthClientSecret string
 	DOOAuthClientID         string
 	DOOAuthClientSecret     string
+	// TodoistOAuthClientID/Secret register this app once with Todoist
+	// (issue #1475); unlike the observability integrations above, each
+	// user's own connection is stored per-user in
+	// learningpaths.oauth_connections, not global.oauth_connections.
+	TodoistOAuthClientID     string
+	TodoistOAuthClientSecret string
 	// EncryptionKey is a base64-standard-encoded 32-byte AES-256 key used
 	// to encrypt stored OAuth tokens at rest (see internal/crypto).
 	EncryptionKey string
@@ -285,6 +291,8 @@ func New(logger *slog.Logger) Config {
 	cfg.GithubOAuthClientSecret = p.envSecret("GITHUB_OAUTH_CLIENT_SECRET", "")
 	cfg.SentryOAuthClientID = p.envStr("SENTRY_OAUTH_CLIENT_ID", "")
 	cfg.SentryOAuthClientSecret = p.envSecret("SENTRY_OAUTH_CLIENT_SECRET", "")
+	cfg.TodoistOAuthClientID = p.envStr("TODOIST_OAUTH_CLIENT_ID", "")
+	cfg.TodoistOAuthClientSecret = p.envSecret("TODOIST_OAUTH_CLIENT_SECRET", "")
 	cfg.EncryptionKey = p.envSecret("ENCRYPTION_KEY", "")
 
 	cfg.ResendAPIKey = p.envSecret("RESEND_API_KEY", "")

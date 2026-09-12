@@ -203,6 +203,11 @@ func protoProviderConfig(
 				},
 			},
 		}
+	case models.OAuthProviderTodoist:
+		// Todoist's per-user connection lives in
+		// learningpaths.oauth_connections, never global.oauth_connections —
+		// this admin-only observability config path never sees it.
+		return nil
 	default:
 		return nil
 	}
@@ -229,6 +234,11 @@ func (h *obsConnectHandler) GetProviderOptions(
 		resp, err = h.githubOptions(ctx)
 	case models.OAuthProviderSentry:
 		resp, err = h.sentryOptions(ctx, req.Msg.GetSentryOrg())
+	// Todoist's per-user connection lives in learningpaths.oauth_connections,
+	// never global.oauth_connections — this admin-only observability picker
+	// never sees it.
+	case models.OAuthProviderTodoist:
+		fallthrough
 	default:
 		return nil, connect.NewError(
 			connect.CodeInvalidArgument, errors.New("unknown provider"),
@@ -342,6 +352,11 @@ func configJSON(
 		return json.Marshal(
 			sentryConfigJSON{Org: s.GetOrg(), Projects: s.GetProjects()},
 		)
+	// Todoist's per-user connection lives in learningpaths.oauth_connections,
+	// never global.oauth_connections — this admin-only observability config
+	// path never sees it.
+	case models.OAuthProviderTodoist:
+		fallthrough
 	default:
 		return nil, errors.New("unknown provider")
 	}
