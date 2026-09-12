@@ -241,3 +241,43 @@ func TestDisconnectOAuthConnection_NonAdmin(t *testing.T) {
 	).DisconnectOAuthConnection(context.Background(), req)
 	requirePermissionDenied(t, err)
 }
+
+// TestProtoProviderConfig_TodoistReturnsNil exercises the unexported
+// protoProviderConfig helper's explicit Todoist case directly — unreachable
+// through any RPC since a Todoist row never exists in
+// global.oauth_connections (issue #1475).
+func TestProtoProviderConfig_TodoistReturnsNil(t *testing.T) {
+	got := protoProviderConfig(models.OAuthProviderTodoist, []byte(`{"x":1}`))
+	assert.Nil(t, got)
+}
+
+// TestGetProviderOptions_TodoistIsUnknown exercises the exhaustive switch's
+// explicit Todoist case in GetProviderOptions (issue #1475) — Todoist's
+// per-user connection lives in learningpaths.oauth_connections, never
+// global.oauth_connections, so this admin-only observability picker must
+// reject it the same way it rejects any other unrecognized provider.
+func TestGetProviderOptions_TodoistIsUnknown(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	req := connect.NewRequest(&observabilityv1.GetProviderOptionsRequest{
+		Provider: "todoist",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).GetProviderOptions(context.Background(), req)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+// TestSetProviderConfig_TodoistIsUnknown is configJSON's equivalent of the
+// above, via SetProviderConfig.
+func TestSetProviderConfig_TodoistIsUnknown(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	req := connect.NewRequest(&observabilityv1.SetProviderConfigRequest{
+		Provider: "todoist",
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(t).SetProviderConfig(context.Background(), req)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}

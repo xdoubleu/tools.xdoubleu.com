@@ -21,6 +21,12 @@ type OAuthProvider string
 const (
 	OAuthProviderGithub OAuthProvider = "github"
 	OAuthProviderSentry OAuthProvider = "sentry"
+	// OAuthProviderTodoist identifies a per-user Todoist connection stored in
+	// learningpaths.oauth_connections (issue #1475), never in
+	// global.oauth_connections — this constant exists only so that table's
+	// repository can satisfy oauthconn's connectionStore interface and reuse
+	// NewTokenFunc/ScopesAreStale.
+	OAuthProviderTodoist OAuthProvider = "todoist"
 )
 
 // OAuthConnection is the admin-facing status of a provider's stored OAuth

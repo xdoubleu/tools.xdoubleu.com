@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
@@ -34,15 +35,20 @@ func TestMain(m *testing.M) {
 	postgresDB := testhelper.ConnectTestDB(testCfg.DBDsn)
 	testDB = postgresDB
 
+	testSealer, err := crypto.New(testCfg.EncryptionKey)
+	if err != nil {
+		panic(err)
+	}
+
 	testApp = learningpaths.New(
 		sharedmocks.NewMockedAuthService(userID),
 		logging.NewNopLogger(),
 		testCfg,
 		postgresDB,
+		testSealer,
 	)
 
 	// Drop the schema so the rewritten migration is applied from scratch.
-	var err error
 	if _, err = postgresDB.Exec(
 		context.Background(),
 		"DROP SCHEMA IF EXISTS learningpaths CASCADE",

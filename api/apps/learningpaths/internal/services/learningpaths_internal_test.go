@@ -33,6 +33,9 @@ type fakeLearningPathsStore struct {
 	resourcesReplaced   bool
 	progressRecorded    bool
 	progressCompletedTo bool
+
+	item       *models.ItemForTask
+	getItemErr error
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -124,6 +127,15 @@ func (f *fakeLearningPathsStore) RecordItemProgress(
 	f.progressRecorded = true
 	f.progressCompletedTo = completed
 	return nil
+}
+
+func (f *fakeLearningPathsStore) GetItemForUser(
+	_ context.Context, _ uuid.UUID, _ string,
+) (*models.ItemForTask, error) {
+	if f.getItemErr != nil {
+		return nil, f.getItemErr
+	}
+	return f.item, nil
 }
 
 func newFixture() *models.LearningPath {

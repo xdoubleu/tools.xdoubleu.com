@@ -367,3 +367,28 @@ func (r *LearningPathsRepository) RecordItemProgress(
 	}
 	return nil
 }
+
+// GetItemForUser returns itemID's description/type plus its owning path's
+// title, scoped by userID (404 on foreign ownership, same rule as every
+// other per-user lookup in this app) — used by SendItemToTodoist to build a
+// task's content without pulling the whole path tree.
+func (r *LearningPathsRepository) GetItemForUser(
+	ctx context.Context, itemID uuid.UUID, userID string,
+) (*models.ItemForTask, error) {
+	var out models.ItemForTask
+	err := r.db.QueryRow(ctx, `
+		SELECT i.id, i.module_id, i.type, i.description, i.sort_order,
+		       i.completed, lp.title
+		FROM learningpaths.items i
+		JOIN learningpaths.modules m ON m.id = i.module_id
+		JOIN learningpaths.learning_paths lp ON lp.id = m.learning_path_id
+		WHERE i.id = $1 AND lp.user_id = $2
+	`, itemID, userID).Scan(
+		&out.Item.ID, &out.Item.ModuleID, &out.Item.Type, &out.Item.Description,
+		&out.Item.SortOrder, &out.Item.Completed, &out.PathTitle,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &out, nil
+}

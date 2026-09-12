@@ -510,6 +510,11 @@ KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
 KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
+TODOIST_OAUTH_CLIENT_ID      (learningpaths' per-user Todoist connect flow,
+                              issue #1475 — the app's own client id/secret
+                              only; each user's own connection is stored in
+                              learningpaths.oauth_connections, not here)
+TODOIST_OAUTH_CLIENT_SECRET
 ENCRYPTION_KEY
 RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
                               contact-point password — issue #1468 — via

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file learningpaths/v1/learningpaths.proto.
  */
 export const file_learningpaths_v1_learningpaths: GenFile = /*@__PURE__*/
-  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEibwoESXRlbRIKCgJpZBgBIAEoCRIRCgltb2R1bGVfaWQYAiABKAkSDAoEdHlwZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgpzb3J0X29yZGVyGAUgASgFEhEKCWNvbXBsZXRlZBgGIAEoCCJ4CgZNb2R1bGUSCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFEiUKBWl0ZW1zGAUgAygLMhYubGVhcm5pbmdwYXRocy52MS5JdGVtIlIKCFJlc291cmNlEgoKAmlkGAEgASgJEhgKEGxlYXJuaW5nX3BhdGhfaWQYAiABKAkSDAoEdGV4dBgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UiWQoOTW9kdWxlUHJvZ3Jlc3MSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLdG90YWxfaXRlbXMYAyABKAUSFwoPY29tcGxldGVkX2l0ZW1zGAQgASgFIiwKHkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBIKCgJpZBgBIAEoCSKrAQofR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZRIYChBsZWFybmluZ19wYXRoX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC3RvdGFsX2l0ZW1zGAMgASgFEhcKD2NvbXBsZXRlZF9pdGVtcxgEIAEoBRIxCgdtb2R1bGVzGAUgAygLMiAubGVhcm5pbmdwYXRocy52MS5Nb2R1bGVQcm9ncmVzczKwBgoUTGVhcm5pbmdQYXRoc1NlcnZpY2USbAoRTGlzdExlYXJuaW5nUGF0aHMSKi5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBorLmxlYXJuaW5ncGF0aHMudjEuTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRJmCg9HZXRMZWFybmluZ1BhdGgSKC5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFJlcXVlc3QaKS5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFJlc3BvbnNlEm8KEkNyZWF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuQ3JlYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuQ3JlYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSVXBkYXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5VcGRhdGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5VcGRhdGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJEZWxldGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkRlbGV0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElJlY29yZEl0ZW1Qcm9ncmVzcxIrLmxlYXJuaW5ncGF0aHMudjEuUmVjb3JkSXRlbVByb2dyZXNzUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2USfgoXR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3MSMC5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBoxLmxlYXJuaW5ncGF0aHMudjEuR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZUI5Wjd0b29scy54ZG91YmxldS5jb20vZ2VuL2xlYXJuaW5ncGF0aHMvdjE7bGVhcm5pbmdwYXRoc3YxYgZwcm90bzM");
+  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEibwoESXRlbRIKCgJpZBgBIAEoCRIRCgltb2R1bGVfaWQYAiABKAkSDAoEdHlwZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgpzb3J0X29yZGVyGAUgASgFEhEKCWNvbXBsZXRlZBgGIAEoCCJ4CgZNb2R1bGUSCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFEiUKBWl0ZW1zGAUgAygLMhYubGVhcm5pbmdwYXRocy52MS5JdGVtIlIKCFJlc291cmNlEgoKAmlkGAEgASgJEhgKEGxlYXJuaW5nX3BhdGhfaWQYAiABKAkSDAoEdGV4dBgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UiWQoOTW9kdWxlUHJvZ3Jlc3MSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLdG90YWxfaXRlbXMYAyABKAUSFwoPY29tcGxldGVkX2l0ZW1zGAQgASgFIiwKHkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBIKCgJpZBgBIAEoCSKrAQofR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZRIYChBsZWFybmluZ19wYXRoX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC3RvdGFsX2l0ZW1zGAMgASgFEhcKD2NvbXBsZXRlZF9pdGVtcxgEIAEoBRIxCgdtb2R1bGVzGAUgAygLMiAubGVhcm5pbmdwYXRocy52MS5Nb2R1bGVQcm9ncmVzcyIXChVDb25uZWN0VG9kb2lzdFJlcXVlc3QiLwoWQ29ubmVjdFRvZG9pc3RSZXNwb25zZRIVCg1hdXRob3JpemVfdXJsGAEgASgJIhoKGERpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdCIbChlEaXNjb25uZWN0VG9kb2lzdFJlc3BvbnNlIiMKIUdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdCJNCiJHZXRUb2RvaXN0Q29ubmVjdGlvblN0YXR1c1Jlc3BvbnNlEhEKCWNvbm5lY3RlZBgBIAEoCBIUCgxjb25uZWN0ZWRfYXQYAiABKAkiKwoYU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiNAoZU2VuZEl0ZW1Ub1RvZG9pc3RSZXNwb25zZRIXCg90b2RvaXN0X3Rhc2tfaWQYASABKAkysAYKFExlYXJuaW5nUGF0aHNTZXJ2aWNlEmwKEUxpc3RMZWFybmluZ1BhdGhzEioubGVhcm5pbmdwYXRocy52MS5MaXN0TGVhcm5pbmdQYXRoc1JlcXVlc3QaKy5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVzcG9uc2USZgoPR2V0TGVhcm5pbmdQYXRoEigubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXF1ZXN0GikubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXNwb25zZRJvChJDcmVhdGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElVwZGF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSRGVsZXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJSZWNvcmRJdGVtUHJvZ3Jlc3MSKy5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1Jlc3BvbnNlEn4KF0dldExlYXJuaW5nUGF0aFByb2dyZXNzEjAubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhQcm9ncmVzc1JlcXVlc3QaMS5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVzcG9uc2Uy2wMKDlRvZG9pc3RTZXJ2aWNlEmMKDkNvbm5lY3RUb2RvaXN0EicubGVhcm5pbmdwYXRocy52MS5Db25uZWN0VG9kb2lzdFJlcXVlc3QaKC5sZWFybmluZ3BhdGhzLnYxLkNvbm5lY3RUb2RvaXN0UmVzcG9uc2USbAoRRGlzY29ubmVjdFRvZG9pc3QSKi5sZWFybmluZ3BhdGhzLnYxLkRpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdBorLmxlYXJuaW5ncGF0aHMudjEuRGlzY29ubmVjdFRvZG9pc3RSZXNwb25zZRKHAQoaR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXMSMy5sZWFybmluZ3BhdGhzLnYxLkdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdBo0LmxlYXJuaW5ncGF0aHMudjEuR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXNSZXNwb25zZRJsChFTZW5kSXRlbVRvVG9kb2lzdBIqLmxlYXJuaW5ncGF0aHMudjEuU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0GisubGVhcm5pbmdwYXRocy52MS5TZW5kSXRlbVRvVG9kb2lzdFJlc3BvbnNlQjlaN3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vbGVhcm5pbmdwYXRocy92MTtsZWFybmluZ3BhdGhzdjFiBnByb3RvMw");
 
 /**
  * @generated from message learningpaths.v1.Item
@@ -545,6 +545,149 @@ export const GetLearningPathProgressResponseSchema: GenMessage<GetLearningPathPr
   messageDesc(file_learningpaths_v1_learningpaths, 18);
 
 /**
+ * TodoistService (issue #1475) lets a user connect their own Todoist account
+ * and send a single path item to it as a task, one-way (no sync-back —
+ * completing the Todoist task never flips the item's own `completed` flag).
+ * A separate service, not folded into LearningPathsService, mirroring how
+ * books.v1 splits LibraryService/BookFilesService/KoboService/CatalogService
+ * by concern rather than one service per app.
+ *
+ * @generated from message learningpaths.v1.ConnectTodoistRequest
+ */
+export type ConnectTodoistRequest = Message<"learningpaths.v1.ConnectTodoistRequest"> & {
+};
+
+/**
+ * Describes the message learningpaths.v1.ConnectTodoistRequest.
+ * Use `create(ConnectTodoistRequestSchema)` to create a new message.
+ */
+export const ConnectTodoistRequestSchema: GenMessage<ConnectTodoistRequest> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 19);
+
+/**
+ * @generated from message learningpaths.v1.ConnectTodoistResponse
+ */
+export type ConnectTodoistResponse = Message<"learningpaths.v1.ConnectTodoistResponse"> & {
+  /**
+   * authorize_url is where the client should navigate the browser to start
+   * Todoist's OAuth2 authorization-code flow. The callback leg that
+   * completes the flow is a plain HTTP redirect route, not a ConnectRPC
+   * method — see learningpaths' routes.go.
+   *
+   * @generated from field: string authorize_url = 1;
+   */
+  authorizeUrl: string;
+};
+
+/**
+ * Describes the message learningpaths.v1.ConnectTodoistResponse.
+ * Use `create(ConnectTodoistResponseSchema)` to create a new message.
+ */
+export const ConnectTodoistResponseSchema: GenMessage<ConnectTodoistResponse> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 20);
+
+/**
+ * @generated from message learningpaths.v1.DisconnectTodoistRequest
+ */
+export type DisconnectTodoistRequest = Message<"learningpaths.v1.DisconnectTodoistRequest"> & {
+};
+
+/**
+ * Describes the message learningpaths.v1.DisconnectTodoistRequest.
+ * Use `create(DisconnectTodoistRequestSchema)` to create a new message.
+ */
+export const DisconnectTodoistRequestSchema: GenMessage<DisconnectTodoistRequest> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 21);
+
+/**
+ * @generated from message learningpaths.v1.DisconnectTodoistResponse
+ */
+export type DisconnectTodoistResponse = Message<"learningpaths.v1.DisconnectTodoistResponse"> & {
+};
+
+/**
+ * Describes the message learningpaths.v1.DisconnectTodoistResponse.
+ * Use `create(DisconnectTodoistResponseSchema)` to create a new message.
+ */
+export const DisconnectTodoistResponseSchema: GenMessage<DisconnectTodoistResponse> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 22);
+
+/**
+ * @generated from message learningpaths.v1.GetTodoistConnectionStatusRequest
+ */
+export type GetTodoistConnectionStatusRequest = Message<"learningpaths.v1.GetTodoistConnectionStatusRequest"> & {
+};
+
+/**
+ * Describes the message learningpaths.v1.GetTodoistConnectionStatusRequest.
+ * Use `create(GetTodoistConnectionStatusRequestSchema)` to create a new message.
+ */
+export const GetTodoistConnectionStatusRequestSchema: GenMessage<GetTodoistConnectionStatusRequest> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 23);
+
+/**
+ * @generated from message learningpaths.v1.GetTodoistConnectionStatusResponse
+ */
+export type GetTodoistConnectionStatusResponse = Message<"learningpaths.v1.GetTodoistConnectionStatusResponse"> & {
+  /**
+   * @generated from field: bool connected = 1;
+   */
+  connected: boolean;
+
+  /**
+   * connected_at is RFC3339, empty when not connected.
+   *
+   * @generated from field: string connected_at = 2;
+   */
+  connectedAt: string;
+};
+
+/**
+ * Describes the message learningpaths.v1.GetTodoistConnectionStatusResponse.
+ * Use `create(GetTodoistConnectionStatusResponseSchema)` to create a new message.
+ */
+export const GetTodoistConnectionStatusResponseSchema: GenMessage<GetTodoistConnectionStatusResponse> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 24);
+
+/**
+ * @generated from message learningpaths.v1.SendItemToTodoistRequest
+ */
+export type SendItemToTodoistRequest = Message<"learningpaths.v1.SendItemToTodoistRequest"> & {
+  /**
+   * @generated from field: string item_id = 1;
+   */
+  itemId: string;
+};
+
+/**
+ * Describes the message learningpaths.v1.SendItemToTodoistRequest.
+ * Use `create(SendItemToTodoistRequestSchema)` to create a new message.
+ */
+export const SendItemToTodoistRequestSchema: GenMessage<SendItemToTodoistRequest> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 25);
+
+/**
+ * @generated from message learningpaths.v1.SendItemToTodoistResponse
+ */
+export type SendItemToTodoistResponse = Message<"learningpaths.v1.SendItemToTodoistResponse"> & {
+  /**
+   * todoist_task_id is Todoist's own id for the created task, echoed back
+   * only for the caller's confirmation UI — nothing here is retained
+   * server-side to correlate the two systems, per "no two-way sync".
+   *
+   * @generated from field: string todoist_task_id = 1;
+   */
+  todoistTaskId: string;
+};
+
+/**
+ * Describes the message learningpaths.v1.SendItemToTodoistResponse.
+ * Use `create(SendItemToTodoistResponseSchema)` to create a new message.
+ */
+export const SendItemToTodoistResponseSchema: GenMessage<SendItemToTodoistResponse> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 26);
+
+/**
  * @generated from service learningpaths.v1.LearningPathsService
  */
 export const LearningPathsService: GenService<{
@@ -606,4 +749,43 @@ export const LearningPathsService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_learningpaths_v1_learningpaths, 0);
+
+/**
+ * @generated from service learningpaths.v1.TodoistService
+ */
+export const TodoistService: GenService<{
+  /**
+   * @generated from rpc learningpaths.v1.TodoistService.ConnectTodoist
+   */
+  connectTodoist: {
+    methodKind: "unary";
+    input: typeof ConnectTodoistRequestSchema;
+    output: typeof ConnectTodoistResponseSchema;
+  },
+  /**
+   * @generated from rpc learningpaths.v1.TodoistService.DisconnectTodoist
+   */
+  disconnectTodoist: {
+    methodKind: "unary";
+    input: typeof DisconnectTodoistRequestSchema;
+    output: typeof DisconnectTodoistResponseSchema;
+  },
+  /**
+   * @generated from rpc learningpaths.v1.TodoistService.GetTodoistConnectionStatus
+   */
+  getTodoistConnectionStatus: {
+    methodKind: "unary";
+    input: typeof GetTodoistConnectionStatusRequestSchema;
+    output: typeof GetTodoistConnectionStatusResponseSchema;
+  },
+  /**
+   * @generated from rpc learningpaths.v1.TodoistService.SendItemToTodoist
+   */
+  sendItemToTodoist: {
+    methodKind: "unary";
+    input: typeof SendItemToTodoistRequestSchema;
+    output: typeof SendItemToTodoistResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_learningpaths_v1_learningpaths, 1);
 
