@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/dashboard"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
+	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
@@ -82,6 +83,12 @@ func NewApps(
 	// wiring, so it appends here without disturbing the load-bearing order
 	// above (issue #1390).
 	apps.addApp(trains.New(authService, logger, cfg, db))
+	// learningpaths has no migration dependency on any other app's schema
+	// either, same as trains above — it appends here rather than requiring a
+	// particular slot. A later PR (#1474) wires live references to
+	// booksApp/feedsApp for resource linking, at which point this call site
+	// changes but the registration order itself still won't matter.
+	apps.addApp(learningpaths.New(authService, logger, cfg, db))
 
 	return &apps, booksApp, feedsApp
 }
