@@ -161,38 +161,36 @@ func (s *BookService) FinalizeUpload(
 	)
 }
 
-// resolveOrCreateUserBook returns the calling user's user_book row for
-// bookID, creating one (status "to read", no tags) if they don't have this
-// book in their library yet. The returned bool reports whether the row
-// already existed.
-func (s *BookService) resolveOrCreateUserBook(
+// attachToCatalogBook adds an existing catalog book to userID's library if
+// they don't already have it there, returning the resulting user_book. book
+// must already be a fetched catalog entry (e.g. from
+// GetCatalogWithUserOverlay) — its data is reused for a newly-created row
+// instead of an extra round trip to re-fetch it.
+func (s *BookService) attachToCatalogBook(
 	ctx context.Context,
 	userID string,
-	bookID uuid.UUID,
-) (*models.UserBook, bool, error) {
-	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	book *models.Book,
+) (*models.UserBook, error) {
+	ub, err := s.books.GetUserBook(ctx, userID, book.ID)
 	if err == nil {
-		return ub, true, nil
+		return ub, nil
 	}
 	if !errors.Is(err, database.ErrResourceNotFound) {
-		return nil, false, err
+		return nil, err
 	}
 
 	newUB := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:         userID,
-		BookID:         bookID,
+		BookID:         book.ID,
+		Book:           book,
 		Status:         models.StatusToRead,
 		Tags:           []string{},
 		ShelfPositions: map[string]int{},
 	}
 	if upsertErr := s.books.UpsertUserBook(ctx, newUB); upsertErr != nil {
-		return nil, false, upsertErr
+		return nil, upsertErr
 	}
-	ub, err = s.books.GetUserBook(ctx, userID, bookID)
-	if err != nil {
-		return nil, false, err
-	}
-	return ub, false, nil
+	return &newUB, nil
 }
 
 // finalizeDuplicate handles an upload where a canonical blob for the checksum
@@ -207,8 +205,25 @@ func (s *BookService) finalizeDuplicate(
 	existing *models.BookFile,
 ) (*UploadFileResult, error) {
 	// Resolve or create the user's user_book entry for the existing book.
-	ub, matchedExisting, err := s.resolveOrCreateUserBook(ctx, userID, existing.BookID)
-	if err != nil {
+	matchedExisting := true
+	ub, err := s.books.GetUserBook(ctx, userID, existing.BookID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		matchedExisting = false
+		newUB := models.UserBook{ //nolint:exhaustruct //optional fields
+			UserID:         userID,
+			BookID:         existing.BookID,
+			Status:         models.StatusToRead,
+			Tags:           []string{},
+			ShelfPositions: map[string]int{},
+		}
+		if upsertErr := s.books.UpsertUserBook(ctx, newUB); upsertErr != nil {
+			return nil, upsertErr
+		}
+		ub, err = s.books.GetUserBook(ctx, userID, existing.BookID)
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -555,11 +570,8 @@ func (s *BookService) recognizeBook(
 		return nil, false, err
 	}
 	if match := matchCatalogByMetadata(catalog, meta); match != nil {
-		ub, _, attachErr := s.resolveOrCreateUserBook(ctx, userID, match.BookID)
-		if attachErr != nil {
-			return nil, false, attachErr
-		}
-		return ub, true, nil
+		ub, attachErr := s.attachToCatalogBook(ctx, userID, match.Book)
+		return ub, attachErr == nil, attachErr
 	}
 
 	// 4. Try the configured providers when a title is available.
