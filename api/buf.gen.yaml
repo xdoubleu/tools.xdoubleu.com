@@ -9,7 +9,7 @@ plugins:
     opt:
       - paths=source_relative
   # renovate: datasource=github-releases depName=connectrpc/connect-go
-  - remote: buf.build/connectrpc/go:v1.20.0
+  - remote: buf.build/connectrpc/go:v1.21.0
     out: gen
     opt:
       - paths=source_relative
