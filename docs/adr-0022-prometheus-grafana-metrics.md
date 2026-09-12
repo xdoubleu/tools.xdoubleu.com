@@ -520,6 +520,20 @@ churn bug Phase 8 missed:
   `get_sentry_issues`, `resolve_sentry_issue`, slow-transaction history),
   including two mutating actions no Grafana plugin can perform.
 
+Phase 11 (#1592) reverses the Slack rejection recorded in this ADR's
+Decision and "Alternatives considered" sections: the email contact point
+(Phase 2, #1528) is replaced with a Grafana-native Slack contact point, per
+user preference for centralized Slack-based alert delivery, not because the
+original "no clear benefit over SMTP" reasoning turned out to be wrong.
+`infra/grafana/provisioning/alerting/contactpoints.yml`'s `email` receiver
+became a `slack` one (`type: slack`, `settings.url:
+$__env{GRAFANA_SLACK_WEBHOOK_URL}`), `policies.yml`'s single flat policy now
+routes to `slack` instead of `email`, and `NOTIFY_EMAIL_TO` was dropped from
+`config/deploy.grafana.yml`'s secret list (it stays a required secret
+elsewhere — `api`'s own mailer and `infra/release-upgrade-check.sh` both
+still read it independently). `scripts/verify_grafana_image.sh` now asserts
+the `slack` contact point instead of `email`.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

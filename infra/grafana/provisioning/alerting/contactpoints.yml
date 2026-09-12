@@ -1,22 +1,17 @@
-# Grafana alerting contact point (issue #1528). Grafana — not Prometheus —
-# evaluates and routes every alert now; Prometheus only collects. This
-# reuses Grafana's own SMTP client (the GF_SMTP_* env in
-# config/deploy.grafana.yml, itself the Resend account api's mailer uses),
-# so no new mail credential is introduced. Alerts are mailed TO
-# $__env{NOTIFY_EMAIL_TO} — the admin recipient api's own mailer uses for
-# its notification emails (api/internal/config, cfg.NotifyEmailTo) — while
-# GF_SMTP_FROM_ADDRESS (the EMAIL_FROM repo secret) stays the sender/from
-# address. $__env{} interpolation in a provisioning file works with any env
-# var name, not just GF_-prefixed ones. scripts/verify_grafana_image.sh
-# exports a dummy value for that env so provisioning loads cleanly in CI.
+# Grafana alerting contact point (issue #1528, moved to Slack in #1592).
+# Grafana — not Prometheus — evaluates and routes every alert now;
+# Prometheus only collects. Alerts post to a Slack Incoming Webhook whose
+# URL is $__env{GRAFANA_SLACK_WEBHOOK_URL} — $__env{} interpolation in a
+# provisioning file works with any env var name, not just GF_-prefixed ones.
+# scripts/verify_grafana_image.sh exports a dummy value for that env so
+# provisioning loads cleanly in CI.
 apiVersion: 1
 
 contactPoints:
   - orgId: 1
-    name: email
+    name: slack
     receivers:
-      - uid: email-admin
-        type: email
+      - uid: slack-alerts
+        type: slack
         settings:
-          addresses: $__env{NOTIFY_EMAIL_TO}
-          singleEmail: true
+          url: $__env{GRAFANA_SLACK_WEBHOOK_URL}
