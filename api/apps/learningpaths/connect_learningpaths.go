@@ -142,6 +142,42 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 	return modules
 }
 
+// progressFromLearningPath derives per-module and overall completion counts
+// from a fully-populated learning path. Kept alongside the other
+// model-to-proto conversions rather than in the MCP layer, since it's shaped
+// by GetLearningPathProgress's proto response and has nothing MCP-specific
+// about it — the same computation would back a future UI progress bar too.
+func progressFromLearningPath(
+	lp *models.LearningPath,
+) *learningpathsv1.GetLearningPathProgressResponse {
+	modules := make([]*learningpathsv1.ModuleProgress, len(lp.Modules))
+	var totalItems, completedItems int32
+	for i, m := range lp.Modules {
+		var moduleTotal, moduleCompleted int32
+		for _, it := range m.Items {
+			moduleTotal++
+			if it.Completed {
+				moduleCompleted++
+			}
+		}
+		modules[i] = &learningpathsv1.ModuleProgress{
+			Id:             m.ID.String(),
+			Title:          m.Title,
+			TotalItems:     moduleTotal,
+			CompletedItems: moduleCompleted,
+		}
+		totalItems += moduleTotal
+		completedItems += moduleCompleted
+	}
+	return &learningpathsv1.GetLearningPathProgressResponse{
+		LearningPathId: lp.ID.String(),
+		Title:          lp.Title,
+		TotalItems:     totalItems,
+		CompletedItems: completedItems,
+		Modules:        modules,
+	}
+}
+
 func dtoToResources(in []*learningpathsv1.Resource) []models.Resource {
 	resources := make([]models.Resource, len(in))
 	for i, r := range in {

@@ -51,6 +51,9 @@ const (
 	// LearningPathsServiceRecordItemProgressProcedure is the fully-qualified name of the
 	// LearningPathsService's RecordItemProgress RPC.
 	LearningPathsServiceRecordItemProgressProcedure = "/learningpaths.v1.LearningPathsService/RecordItemProgress"
+	// LearningPathsServiceGetLearningPathProgressProcedure is the fully-qualified name of the
+	// LearningPathsService's GetLearningPathProgress RPC.
+	LearningPathsServiceGetLearningPathProgressProcedure = "/learningpaths.v1.LearningPathsService/GetLearningPathProgress"
 )
 
 // LearningPathsServiceClient is a client for the learningpaths.v1.LearningPathsService service.
@@ -61,6 +64,7 @@ type LearningPathsServiceClient interface {
 	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
 	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
 	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
+	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
 }
 
 // NewLearningPathsServiceClient constructs a client for the learningpaths.v1.LearningPathsService
@@ -110,17 +114,24 @@ func NewLearningPathsServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
 			connect.WithClientOptions(opts...),
 		),
+		getLearningPathProgress: connect.NewClient[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse](
+			httpClient,
+			baseURL+LearningPathsServiceGetLearningPathProgressProcedure,
+			connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPathProgress")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // learningPathsServiceClient implements LearningPathsServiceClient.
 type learningPathsServiceClient struct {
-	listLearningPaths  *connect.Client[v1.ListLearningPathsRequest, v1.ListLearningPathsResponse]
-	getLearningPath    *connect.Client[v1.GetLearningPathRequest, v1.GetLearningPathResponse]
-	createLearningPath *connect.Client[v1.CreateLearningPathRequest, v1.CreateLearningPathResponse]
-	updateLearningPath *connect.Client[v1.UpdateLearningPathRequest, v1.UpdateLearningPathResponse]
-	deleteLearningPath *connect.Client[v1.DeleteLearningPathRequest, v1.DeleteLearningPathResponse]
-	recordItemProgress *connect.Client[v1.RecordItemProgressRequest, v1.RecordItemProgressResponse]
+	listLearningPaths       *connect.Client[v1.ListLearningPathsRequest, v1.ListLearningPathsResponse]
+	getLearningPath         *connect.Client[v1.GetLearningPathRequest, v1.GetLearningPathResponse]
+	createLearningPath      *connect.Client[v1.CreateLearningPathRequest, v1.CreateLearningPathResponse]
+	updateLearningPath      *connect.Client[v1.UpdateLearningPathRequest, v1.UpdateLearningPathResponse]
+	deleteLearningPath      *connect.Client[v1.DeleteLearningPathRequest, v1.DeleteLearningPathResponse]
+	recordItemProgress      *connect.Client[v1.RecordItemProgressRequest, v1.RecordItemProgressResponse]
+	getLearningPathProgress *connect.Client[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse]
 }
 
 // ListLearningPaths calls learningpaths.v1.LearningPathsService.ListLearningPaths.
@@ -153,6 +164,11 @@ func (c *learningPathsServiceClient) RecordItemProgress(ctx context.Context, req
 	return c.recordItemProgress.CallUnary(ctx, req)
 }
 
+// GetLearningPathProgress calls learningpaths.v1.LearningPathsService.GetLearningPathProgress.
+func (c *learningPathsServiceClient) GetLearningPathProgress(ctx context.Context, req *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
+	return c.getLearningPathProgress.CallUnary(ctx, req)
+}
+
 // LearningPathsServiceHandler is an implementation of the learningpaths.v1.LearningPathsService
 // service.
 type LearningPathsServiceHandler interface {
@@ -162,6 +178,7 @@ type LearningPathsServiceHandler interface {
 	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
 	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
 	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
+	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
 }
 
 // NewLearningPathsServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -207,6 +224,12 @@ func NewLearningPathsServiceHandler(svc LearningPathsServiceHandler, opts ...con
 		connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
 		connect.WithHandlerOptions(opts...),
 	)
+	learningPathsServiceGetLearningPathProgressHandler := connect.NewUnaryHandler(
+		LearningPathsServiceGetLearningPathProgressProcedure,
+		svc.GetLearningPathProgress,
+		connect.WithSchema(learningPathsServiceMethods.ByName("GetLearningPathProgress")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/learningpaths.v1.LearningPathsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LearningPathsServiceListLearningPathsProcedure:
@@ -221,6 +244,8 @@ func NewLearningPathsServiceHandler(svc LearningPathsServiceHandler, opts ...con
 			learningPathsServiceDeleteLearningPathHandler.ServeHTTP(w, r)
 		case LearningPathsServiceRecordItemProgressProcedure:
 			learningPathsServiceRecordItemProgressHandler.ServeHTTP(w, r)
+		case LearningPathsServiceGetLearningPathProgressProcedure:
+			learningPathsServiceGetLearningPathProgressHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -252,4 +277,8 @@ func (UnimplementedLearningPathsServiceHandler) DeleteLearningPath(context.Conte
 
 func (UnimplementedLearningPathsServiceHandler) RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.RecordItemProgress is not implemented"))
+}
+
+func (UnimplementedLearningPathsServiceHandler) GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.GetLearningPathProgress is not implemented"))
 }

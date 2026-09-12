@@ -885,7 +885,7 @@ func (*DeleteLearningPathResponse) Descriptor() ([]byte, []int) {
 
 // RecordItemProgress toggles a single item's completion flag without
 // resending the whole tree — the dedicated path both the "check an item off"
-// UI action and (in a later PR) an MCP tool use.
+// UI action and an MCP tool (learningpaths_record_progress, #1473) use.
 type RecordItemProgressRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
@@ -974,6 +974,201 @@ func (*RecordItemProgressResponse) Descriptor() ([]byte, []int) {
 	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{15}
 }
 
+// ModuleProgress is one module's completion count within a
+// GetLearningPathProgressResponse.
+type ModuleProgress struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	TotalItems     int32                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	CompletedItems int32                  `protobuf:"varint,4,opt,name=completed_items,json=completedItems,proto3" json:"completed_items,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ModuleProgress) Reset() {
+	*x = ModuleProgress{}
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModuleProgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModuleProgress) ProtoMessage() {}
+
+func (x *ModuleProgress) ProtoReflect() protoreflect.Message {
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModuleProgress.ProtoReflect.Descriptor instead.
+func (*ModuleProgress) Descriptor() ([]byte, []int) {
+	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ModuleProgress) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *ModuleProgress) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ModuleProgress) GetTotalItems() int32 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *ModuleProgress) GetCompletedItems() int32 {
+	if x != nil {
+		return x.CompletedItems
+	}
+	return 0
+}
+
+type GetLearningPathProgressRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLearningPathProgressRequest) Reset() {
+	*x = GetLearningPathProgressRequest{}
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLearningPathProgressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLearningPathProgressRequest) ProtoMessage() {}
+
+func (x *GetLearningPathProgressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLearningPathProgressRequest.ProtoReflect.Descriptor instead.
+func (*GetLearningPathProgressRequest) Descriptor() ([]byte, []int) {
+	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *GetLearningPathProgressRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+// GetLearningPathProgressResponse reports completion counts derived
+// server-side from current item state, both overall and per module — added
+// in #1473 so the learningpaths_get_progress MCP tool (and any future UI
+// progress bar) reads a real RPC instead of re-deriving counts from
+// GetLearningPath's full tree.
+type GetLearningPathProgressResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	LearningPathId string                 `protobuf:"bytes,1,opt,name=learning_path_id,json=learningPathId,proto3" json:"learning_path_id,omitempty"`
+	Title          string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	TotalItems     int32                  `protobuf:"varint,3,opt,name=total_items,json=totalItems,proto3" json:"total_items,omitempty"`
+	CompletedItems int32                  `protobuf:"varint,4,opt,name=completed_items,json=completedItems,proto3" json:"completed_items,omitempty"`
+	Modules        []*ModuleProgress      `protobuf:"bytes,5,rep,name=modules,proto3" json:"modules,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetLearningPathProgressResponse) Reset() {
+	*x = GetLearningPathProgressResponse{}
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLearningPathProgressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLearningPathProgressResponse) ProtoMessage() {}
+
+func (x *GetLearningPathProgressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLearningPathProgressResponse.ProtoReflect.Descriptor instead.
+func (*GetLearningPathProgressResponse) Descriptor() ([]byte, []int) {
+	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *GetLearningPathProgressResponse) GetLearningPathId() string {
+	if x != nil {
+		return x.LearningPathId
+	}
+	return ""
+}
+
+func (x *GetLearningPathProgressResponse) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *GetLearningPathProgressResponse) GetTotalItems() int32 {
+	if x != nil {
+		return x.TotalItems
+	}
+	return 0
+}
+
+func (x *GetLearningPathProgressResponse) GetCompletedItems() int32 {
+	if x != nil {
+		return x.CompletedItems
+	}
+	return 0
+}
+
+func (x *GetLearningPathProgressResponse) GetModules() []*ModuleProgress {
+	if x != nil {
+		return x.Modules
+	}
+	return nil
+}
+
 var File_learningpaths_v1_learningpaths_proto protoreflect.FileDescriptor
 
 const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
@@ -1045,14 +1240,30 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\x19RecordItemProgressRequest\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x1c\n" +
 	"\tcompleted\x18\x02 \x01(\bR\tcompleted\"\x1c\n" +
-	"\x1aRecordItemProgressResponse2\xb0\x05\n" +
+	"\x1aRecordItemProgressResponse\"\x80\x01\n" +
+	"\x0eModuleProgress\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x05R\n" +
+	"totalItems\x12'\n" +
+	"\x0fcompleted_items\x18\x04 \x01(\x05R\x0ecompletedItems\"0\n" +
+	"\x1eGetLearningPathProgressRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xe7\x01\n" +
+	"\x1fGetLearningPathProgressResponse\x12(\n" +
+	"\x10learning_path_id\x18\x01 \x01(\tR\x0elearningPathId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12\x1f\n" +
+	"\vtotal_items\x18\x03 \x01(\x05R\n" +
+	"totalItems\x12'\n" +
+	"\x0fcompleted_items\x18\x04 \x01(\x05R\x0ecompletedItems\x12:\n" +
+	"\amodules\x18\x05 \x03(\v2 .learningpaths.v1.ModuleProgressR\amodules2\xb0\x06\n" +
 	"\x14LearningPathsService\x12l\n" +
 	"\x11ListLearningPaths\x12*.learningpaths.v1.ListLearningPathsRequest\x1a+.learningpaths.v1.ListLearningPathsResponse\x12f\n" +
 	"\x0fGetLearningPath\x12(.learningpaths.v1.GetLearningPathRequest\x1a).learningpaths.v1.GetLearningPathResponse\x12o\n" +
 	"\x12CreateLearningPath\x12+.learningpaths.v1.CreateLearningPathRequest\x1a,.learningpaths.v1.CreateLearningPathResponse\x12o\n" +
 	"\x12UpdateLearningPath\x12+.learningpaths.v1.UpdateLearningPathRequest\x1a,.learningpaths.v1.UpdateLearningPathResponse\x12o\n" +
 	"\x12DeleteLearningPath\x12+.learningpaths.v1.DeleteLearningPathRequest\x1a,.learningpaths.v1.DeleteLearningPathResponse\x12o\n" +
-	"\x12RecordItemProgress\x12+.learningpaths.v1.RecordItemProgressRequest\x1a,.learningpaths.v1.RecordItemProgressResponseB9Z7tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1b\x06proto3"
+	"\x12RecordItemProgress\x12+.learningpaths.v1.RecordItemProgressRequest\x1a,.learningpaths.v1.RecordItemProgressResponse\x12~\n" +
+	"\x17GetLearningPathProgress\x120.learningpaths.v1.GetLearningPathProgressRequest\x1a1.learningpaths.v1.GetLearningPathProgressResponseB9Z7tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1b\x06proto3"
 
 var (
 	file_learningpaths_v1_learningpaths_proto_rawDescOnce sync.Once
@@ -1066,24 +1277,27 @@ func file_learningpaths_v1_learningpaths_proto_rawDescGZIP() []byte {
 	return file_learningpaths_v1_learningpaths_proto_rawDescData
 }
 
-var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
-	(*Item)(nil),                       // 0: learningpaths.v1.Item
-	(*Module)(nil),                     // 1: learningpaths.v1.Module
-	(*Resource)(nil),                   // 2: learningpaths.v1.Resource
-	(*LearningPath)(nil),               // 3: learningpaths.v1.LearningPath
-	(*ListLearningPathsRequest)(nil),   // 4: learningpaths.v1.ListLearningPathsRequest
-	(*ListLearningPathsResponse)(nil),  // 5: learningpaths.v1.ListLearningPathsResponse
-	(*GetLearningPathRequest)(nil),     // 6: learningpaths.v1.GetLearningPathRequest
-	(*GetLearningPathResponse)(nil),    // 7: learningpaths.v1.GetLearningPathResponse
-	(*CreateLearningPathRequest)(nil),  // 8: learningpaths.v1.CreateLearningPathRequest
-	(*CreateLearningPathResponse)(nil), // 9: learningpaths.v1.CreateLearningPathResponse
-	(*UpdateLearningPathRequest)(nil),  // 10: learningpaths.v1.UpdateLearningPathRequest
-	(*UpdateLearningPathResponse)(nil), // 11: learningpaths.v1.UpdateLearningPathResponse
-	(*DeleteLearningPathRequest)(nil),  // 12: learningpaths.v1.DeleteLearningPathRequest
-	(*DeleteLearningPathResponse)(nil), // 13: learningpaths.v1.DeleteLearningPathResponse
-	(*RecordItemProgressRequest)(nil),  // 14: learningpaths.v1.RecordItemProgressRequest
-	(*RecordItemProgressResponse)(nil), // 15: learningpaths.v1.RecordItemProgressResponse
+	(*Item)(nil),                            // 0: learningpaths.v1.Item
+	(*Module)(nil),                          // 1: learningpaths.v1.Module
+	(*Resource)(nil),                        // 2: learningpaths.v1.Resource
+	(*LearningPath)(nil),                    // 3: learningpaths.v1.LearningPath
+	(*ListLearningPathsRequest)(nil),        // 4: learningpaths.v1.ListLearningPathsRequest
+	(*ListLearningPathsResponse)(nil),       // 5: learningpaths.v1.ListLearningPathsResponse
+	(*GetLearningPathRequest)(nil),          // 6: learningpaths.v1.GetLearningPathRequest
+	(*GetLearningPathResponse)(nil),         // 7: learningpaths.v1.GetLearningPathResponse
+	(*CreateLearningPathRequest)(nil),       // 8: learningpaths.v1.CreateLearningPathRequest
+	(*CreateLearningPathResponse)(nil),      // 9: learningpaths.v1.CreateLearningPathResponse
+	(*UpdateLearningPathRequest)(nil),       // 10: learningpaths.v1.UpdateLearningPathRequest
+	(*UpdateLearningPathResponse)(nil),      // 11: learningpaths.v1.UpdateLearningPathResponse
+	(*DeleteLearningPathRequest)(nil),       // 12: learningpaths.v1.DeleteLearningPathRequest
+	(*DeleteLearningPathResponse)(nil),      // 13: learningpaths.v1.DeleteLearningPathResponse
+	(*RecordItemProgressRequest)(nil),       // 14: learningpaths.v1.RecordItemProgressRequest
+	(*RecordItemProgressResponse)(nil),      // 15: learningpaths.v1.RecordItemProgressResponse
+	(*ModuleProgress)(nil),                  // 16: learningpaths.v1.ModuleProgress
+	(*GetLearningPathProgressRequest)(nil),  // 17: learningpaths.v1.GetLearningPathProgressRequest
+	(*GetLearningPathProgressResponse)(nil), // 18: learningpaths.v1.GetLearningPathProgressResponse
 }
 var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	0,  // 0: learningpaths.v1.Module.items:type_name -> learningpaths.v1.Item
@@ -1097,23 +1311,26 @@ var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	1,  // 8: learningpaths.v1.UpdateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
 	2,  // 9: learningpaths.v1.UpdateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
 	3,  // 10: learningpaths.v1.UpdateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	4,  // 11: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
-	6,  // 12: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
-	8,  // 13: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
-	10, // 14: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
-	12, // 15: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
-	14, // 16: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
-	5,  // 17: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
-	7,  // 18: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
-	9,  // 19: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
-	11, // 20: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
-	13, // 21: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
-	15, // 22: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
-	17, // [17:23] is the sub-list for method output_type
-	11, // [11:17] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	16, // 11: learningpaths.v1.GetLearningPathProgressResponse.modules:type_name -> learningpaths.v1.ModuleProgress
+	4,  // 12: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
+	6,  // 13: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
+	8,  // 14: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
+	10, // 15: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
+	12, // 16: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
+	14, // 17: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
+	17, // 18: learningpaths.v1.LearningPathsService.GetLearningPathProgress:input_type -> learningpaths.v1.GetLearningPathProgressRequest
+	5,  // 19: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
+	7,  // 20: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
+	9,  // 21: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
+	11, // 22: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
+	13, // 23: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
+	15, // 24: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
+	18, // 25: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_learningpaths_v1_learningpaths_proto_init() }
@@ -1127,7 +1344,7 @@ func file_learningpaths_v1_learningpaths_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_learningpaths_v1_learningpaths_proto_rawDesc), len(file_learningpaths_v1_learningpaths_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

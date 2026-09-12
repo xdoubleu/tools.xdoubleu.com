@@ -196,3 +196,31 @@ func (h *learningPathsConnectHandler) RecordItemProgress(
 
 	return connect.NewResponse(&learningpathsv1.RecordItemProgressResponse{}), nil
 }
+
+func (h *learningPathsConnectHandler) GetLearningPathProgress(
+	ctx context.Context,
+	req *connect.Request[learningpathsv1.GetLearningPathProgressRequest],
+) (*connect.Response[learningpathsv1.GetLearningPathProgressResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	id, err := uuid.Parse(req.Msg.Id)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid learning path ID"),
+		)
+	}
+
+	lp, err := h.app.services.LearningPaths.GetProgress(ctx, id, user.ID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(progressFromLearningPath(lp)), nil
+}
