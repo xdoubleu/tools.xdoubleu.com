@@ -20,3 +20,9 @@ grafana/verify:
 # exits 0 while Prometheus crash-loops on it. This is the pre-merge gate.
 lint/infra:
 	./scripts/lint_infra.sh
+
+# Fail on a leftover git merge-conflict marker in any tracked file (issue
+# #1583) — run unconditionally in CI since a marker can land in any file
+# type, not gated by main.yml's path filters like the targets above.
+lint/conflict-markers:
+	./scripts/lint_conflict_markers.sh
