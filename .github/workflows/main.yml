@@ -341,6 +341,22 @@ jobs:
     uses: ./.github/workflows/sentrytools-test.yml
     secrets: inherit
 
+  # Unconditional — not gated by the `changes` path filter like every job
+  # above, since a leftover git conflict marker can land in any file type
+  # (issue #1583; one sat undetected in a docs file for a while because
+  # nothing in this repo's tooling ever scanned for it). No build step, so
+  # this is cheap to always run.
+  conflict-markers:
+    if: github.event_name != 'push'
+    name: Conflict Marker Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: make lint/conflict-markers
+        run: make lint/conflict-markers
+
   ci-pass:
     needs:
       [
@@ -358,6 +374,7 @@ jobs:
         web-test,
         kobo-gateway-test,
         sentrytools-test,
+        conflict-markers,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
