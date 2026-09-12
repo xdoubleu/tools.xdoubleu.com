@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file learningpaths/v1/learningpaths.proto.
  */
 export const file_learningpaths_v1_learningpaths: GenFile = /*@__PURE__*/
-  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEibwoESXRlbRIKCgJpZBgBIAEoCRIRCgltb2R1bGVfaWQYAiABKAkSDAoEdHlwZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgpzb3J0X29yZGVyGAUgASgFEhEKCWNvbXBsZXRlZBgGIAEoCCJ4CgZNb2R1bGUSCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFEiUKBWl0ZW1zGAUgAygLMhYubGVhcm5pbmdwYXRocy52MS5JdGVtIlIKCFJlc291cmNlEgoKAmlkGAEgASgJEhgKEGxlYXJuaW5nX3BhdGhfaWQYAiABKAkSDAoEdGV4dBgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UysAUKFExlYXJuaW5nUGF0aHNTZXJ2aWNlEmwKEUxpc3RMZWFybmluZ1BhdGhzEioubGVhcm5pbmdwYXRocy52MS5MaXN0TGVhcm5pbmdQYXRoc1JlcXVlc3QaKy5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVzcG9uc2USZgoPR2V0TGVhcm5pbmdQYXRoEigubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXF1ZXN0GikubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXNwb25zZRJvChJDcmVhdGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElVwZGF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSRGVsZXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJSZWNvcmRJdGVtUHJvZ3Jlc3MSKy5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1Jlc3BvbnNlQjlaN3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vbGVhcm5pbmdwYXRocy92MTtsZWFybmluZ3BhdGhzdjFiBnByb3RvMw");
+  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEibwoESXRlbRIKCgJpZBgBIAEoCRIRCgltb2R1bGVfaWQYAiABKAkSDAoEdHlwZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRISCgpzb3J0X29yZGVyGAUgASgFEhEKCWNvbXBsZXRlZBgGIAEoCCJ4CgZNb2R1bGUSCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFEiUKBWl0ZW1zGAUgAygLMhYubGVhcm5pbmdwYXRocy52MS5JdGVtIlIKCFJlc291cmNlEgoKAmlkGAEgASgJEhgKEGxlYXJuaW5nX3BhdGhfaWQYAiABKAkSDAoEdGV4dBgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UiWQoOTW9kdWxlUHJvZ3Jlc3MSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLdG90YWxfaXRlbXMYAyABKAUSFwoPY29tcGxldGVkX2l0ZW1zGAQgASgFIiwKHkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBIKCgJpZBgBIAEoCSKrAQofR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZRIYChBsZWFybmluZ19wYXRoX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC3RvdGFsX2l0ZW1zGAMgASgFEhcKD2NvbXBsZXRlZF9pdGVtcxgEIAEoBRIxCgdtb2R1bGVzGAUgAygLMiAubGVhcm5pbmdwYXRocy52MS5Nb2R1bGVQcm9ncmVzczKwBgoUTGVhcm5pbmdQYXRoc1NlcnZpY2USbAoRTGlzdExlYXJuaW5nUGF0aHMSKi5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBorLmxlYXJuaW5ncGF0aHMudjEuTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRJmCg9HZXRMZWFybmluZ1BhdGgSKC5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFJlcXVlc3QaKS5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFJlc3BvbnNlEm8KEkNyZWF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuQ3JlYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuQ3JlYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSVXBkYXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5VcGRhdGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5VcGRhdGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJEZWxldGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkRlbGV0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElJlY29yZEl0ZW1Qcm9ncmVzcxIrLmxlYXJuaW5ncGF0aHMudjEuUmVjb3JkSXRlbVByb2dyZXNzUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2USfgoXR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3MSMC5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBoxLmxlYXJuaW5ncGF0aHMudjEuR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZUI5Wjd0b29scy54ZG91YmxldS5jb20vZ2VuL2xlYXJuaW5ncGF0aHMvdjE7bGVhcm5pbmdwYXRoc3YxYgZwcm90bzM");
 
 /**
  * @generated from message learningpaths.v1.Item
@@ -413,7 +413,7 @@ export const DeleteLearningPathResponseSchema: GenMessage<DeleteLearningPathResp
 /**
  * RecordItemProgress toggles a single item's completion flag without
  * resending the whole tree — the dedicated path both the "check an item off"
- * UI action and (in a later PR) an MCP tool use.
+ * UI action and an MCP tool (learningpaths_record_progress, #1473) use.
  *
  * @generated from message learningpaths.v1.RecordItemProgressRequest
  */
@@ -448,6 +448,101 @@ export type RecordItemProgressResponse = Message<"learningpaths.v1.RecordItemPro
  */
 export const RecordItemProgressResponseSchema: GenMessage<RecordItemProgressResponse> = /*@__PURE__*/
   messageDesc(file_learningpaths_v1_learningpaths, 15);
+
+/**
+ * ModuleProgress is one module's completion count within a
+ * GetLearningPathProgressResponse.
+ *
+ * @generated from message learningpaths.v1.ModuleProgress
+ */
+export type ModuleProgress = Message<"learningpaths.v1.ModuleProgress"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: int32 total_items = 3;
+   */
+  totalItems: number;
+
+  /**
+   * @generated from field: int32 completed_items = 4;
+   */
+  completedItems: number;
+};
+
+/**
+ * Describes the message learningpaths.v1.ModuleProgress.
+ * Use `create(ModuleProgressSchema)` to create a new message.
+ */
+export const ModuleProgressSchema: GenMessage<ModuleProgress> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 16);
+
+/**
+ * @generated from message learningpaths.v1.GetLearningPathProgressRequest
+ */
+export type GetLearningPathProgressRequest = Message<"learningpaths.v1.GetLearningPathProgressRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message learningpaths.v1.GetLearningPathProgressRequest.
+ * Use `create(GetLearningPathProgressRequestSchema)` to create a new message.
+ */
+export const GetLearningPathProgressRequestSchema: GenMessage<GetLearningPathProgressRequest> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 17);
+
+/**
+ * GetLearningPathProgressResponse reports completion counts derived
+ * server-side from current item state, both overall and per module — added
+ * in #1473 so the learningpaths_get_progress MCP tool (and any future UI
+ * progress bar) reads a real RPC instead of re-deriving counts from
+ * GetLearningPath's full tree.
+ *
+ * @generated from message learningpaths.v1.GetLearningPathProgressResponse
+ */
+export type GetLearningPathProgressResponse = Message<"learningpaths.v1.GetLearningPathProgressResponse"> & {
+  /**
+   * @generated from field: string learning_path_id = 1;
+   */
+  learningPathId: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: int32 total_items = 3;
+   */
+  totalItems: number;
+
+  /**
+   * @generated from field: int32 completed_items = 4;
+   */
+  completedItems: number;
+
+  /**
+   * @generated from field: repeated learningpaths.v1.ModuleProgress modules = 5;
+   */
+  modules: ModuleProgress[];
+};
+
+/**
+ * Describes the message learningpaths.v1.GetLearningPathProgressResponse.
+ * Use `create(GetLearningPathProgressResponseSchema)` to create a new message.
+ */
+export const GetLearningPathProgressResponseSchema: GenMessage<GetLearningPathProgressResponse> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 18);
 
 /**
  * @generated from service learningpaths.v1.LearningPathsService
@@ -500,6 +595,14 @@ export const LearningPathsService: GenService<{
     methodKind: "unary";
     input: typeof RecordItemProgressRequestSchema;
     output: typeof RecordItemProgressResponseSchema;
+  },
+  /**
+   * @generated from rpc learningpaths.v1.LearningPathsService.GetLearningPathProgress
+   */
+  getLearningPathProgress: {
+    methodKind: "unary";
+    input: typeof GetLearningPathProgressRequestSchema;
+    output: typeof GetLearningPathProgressResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_learningpaths_v1_learningpaths, 0);

@@ -98,12 +98,38 @@ message DeleteLearningPathResponse {}
 
 // RecordItemProgress toggles a single item's completion flag without
 // resending the whole tree — the dedicated path both the "check an item off"
-// UI action and (in a later PR) an MCP tool use.
+// UI action and an MCP tool (learningpaths_record_progress, #1473) use.
 message RecordItemProgressRequest {
   string item_id = 1;
   bool completed = 2;
 }
 message RecordItemProgressResponse {}
+
+// ModuleProgress is one module's completion count within a
+// GetLearningPathProgressResponse.
+message ModuleProgress {
+  string id = 1;
+  string title = 2;
+  int32 total_items = 3;
+  int32 completed_items = 4;
+}
+
+message GetLearningPathProgressRequest {
+  string id = 1;
+}
+
+// GetLearningPathProgressResponse reports completion counts derived
+// server-side from current item state, both overall and per module — added
+// in #1473 so the learningpaths_get_progress MCP tool (and any future UI
+// progress bar) reads a real RPC instead of re-deriving counts from
+// GetLearningPath's full tree.
+message GetLearningPathProgressResponse {
+  string learning_path_id = 1;
+  string title = 2;
+  int32 total_items = 3;
+  int32 completed_items = 4;
+  repeated ModuleProgress modules = 5;
+}
 
 service LearningPathsService {
   rpc ListLearningPaths(ListLearningPathsRequest) returns (ListLearningPathsResponse);
@@ -112,4 +138,5 @@ service LearningPathsService {
   rpc UpdateLearningPath(UpdateLearningPathRequest) returns (UpdateLearningPathResponse);
   rpc DeleteLearningPath(DeleteLearningPathRequest) returns (DeleteLearningPathResponse);
   rpc RecordItemProgress(RecordItemProgressRequest) returns (RecordItemProgressResponse);
+  rpc GetLearningPathProgress(GetLearningPathProgressRequest) returns (GetLearningPathProgressResponse);
 }

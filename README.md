@@ -106,12 +106,17 @@ local `replace` directive rather than duplicating it.
 
 ## Apps MCP server
 
-Every app's own **read-only** data — plus the admin observability signals — is
-exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
-server at `/apps/mcp`, so production domain data and system health can be
-pulled in as context for testing/verifying changes. Every app tool wraps an
-existing **read** RPC of an app (games, books, feeds, recipes, mealplans,
-shoppinglist, trains) — no per-app tool ever mutates. App tools are
+Every app's own data — plus the admin observability signals — is exposed to a
+locally-running Claude CLI over a single streamable-HTTP MCP server at
+`/apps/mcp`, so production domain data and system health can be pulled in as
+context for testing/verifying changes. Every app tool wraps an existing
+**read** RPC of an app (games, books, feeds, recipes, mealplans,
+shoppinglist, trains, learningpaths) — no per-app tool mutates, with one
+deliberate exception: `learningpaths` also exposes three mutating tools
+(`learningpaths_create_path`, `learningpaths_update_path`,
+`learningpaths_record_progress`), since agent-authored curricula is that
+app's core use case, not an add-on → [`docs/adr-0023-learningpaths-mcp-write-tools.md`](docs/adr-0023-learningpaths-mcp-write-tools.md).
+App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 `recipes_list_recipes`, `trains_search_journeys`); the observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,

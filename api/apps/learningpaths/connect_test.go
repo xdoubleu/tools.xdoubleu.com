@@ -420,3 +420,89 @@ func TestListLearningPaths_Pagination(t *testing.T) {
 	assert.Len(t, secondPage.Msg.LearningPaths, 1)
 	assert.False(t, secondPage.Msg.HasMore)
 }
+
+func TestGetLearningPathProgress_Success(t *testing.T) {
+	client := setupClient(getRoutes())
+	ctx := newCtx()
+
+	createResp, err := client.CreateLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Progress Overview",
+			Modules: []*learningpathsv1.Module{
+				{
+					Title: "M1",
+					Items: []*learningpathsv1.Item{
+						{Description: "one", Completed: true},
+						{Description: "two"},
+					},
+				},
+				{
+					Title: "M2",
+					Items: []*learningpathsv1.Item{
+						{Description: "three"},
+					},
+				},
+			},
+		}),
+	)
+	require.NoError(t, err)
+
+	resp, err := client.GetLearningPathProgress(
+		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
+			Id: createResp.Msg.LearningPath.Id,
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, int32(3), resp.Msg.TotalItems)
+	assert.Equal(t, int32(1), resp.Msg.CompletedItems)
+	require.Len(t, resp.Msg.Modules, 2)
+	assert.Equal(t, int32(2), resp.Msg.Modules[0].TotalItems)
+	assert.Equal(t, int32(1), resp.Msg.Modules[0].CompletedItems)
+	assert.Equal(t, int32(1), resp.Msg.Modules[1].TotalItems)
+	assert.Equal(t, int32(0), resp.Msg.Modules[1].CompletedItems)
+}
+
+func TestGetLearningPathProgress_NotFound(t *testing.T) {
+	client := setupClient(getRoutes())
+
+	_, err := client.GetLearningPathProgress(
+		newCtx(), connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
+			Id: uuid.NewString(),
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestGetLearningPathProgress_OtherUserDenied(t *testing.T) {
+	client := setupClient(getRoutes())
+
+	var pathID string
+	err := testDB.QueryRow(context.Background(), `
+		INSERT INTO learningpaths.learning_paths (user_id, title)
+		VALUES ('no-access-owner-progress', 'Hidden Progress Path')
+		RETURNING id::text`,
+	).Scan(&pathID)
+	require.NoError(t, err)
+
+	_, err = client.GetLearningPathProgress(
+		newCtx(), connect.NewRequest(&learningpathsv1.GetLearningPathProgressRequest{
+			Id: pathID,
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}
+
+func TestGetLearningPathProgress_InvalidID(t *testing.T) {
+	client := setupClient(getRoutes())
+
+	_, err := client.GetLearningPathProgress(
+		newCtx(),
+		connect.NewRequest(
+			&learningpathsv1.GetLearningPathProgressRequest{Id: "not-a-uuid"},
+		),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+}

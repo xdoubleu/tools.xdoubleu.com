@@ -152,3 +152,16 @@ func (s *LearningPathService) RecordItemProgress(
 ) error {
 	return s.repo.RecordItemProgress(ctx, itemID, userID, completed)
 }
+
+// GetProgress returns a learning path owned by userID with its
+// modules/items/resources populated, for the caller to derive completion
+// counts from. It is a thin alias over Get — reusing that method's ownership
+// check and tree assembly — kept as its own name so the connect handler's
+// intent (progress, not the full CRUD read) is clear at the call site.
+func (s *LearningPathService) GetProgress(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+) (*models.LearningPath, error) {
+	return s.Get(ctx, id, userID)
+}
