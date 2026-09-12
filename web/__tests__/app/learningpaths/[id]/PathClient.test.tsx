@@ -104,6 +104,61 @@ describe('PathClient', () => {
     expect(checkboxes[1]).not.toBeChecked()
   })
 
+  it('renders linked book/feed item resources and orphaned link fallbacks', () => {
+    const learningPath = create(LearningPathSchema, {
+      id: 'lp1',
+      title: 'Learn Go',
+      resources: [
+        create(ResourceSchema, {
+          id: 'r-book-progress',
+          linkedBookId: 'b1',
+          linkedBook: { title: 'Dune', status: 'in_progress', progressPercent: 42 }
+        }),
+        create(ResourceSchema, {
+          id: 'r-book-no-progress',
+          linkedBookId: 'b2',
+          linkedBook: { title: 'Foundation', status: 'to_read', progressPercent: 0 }
+        }),
+        create(ResourceSchema, {
+          id: 'r-feed-read',
+          linkedFeedItemId: 'f1',
+          linkedFeedItem: { title: 'Read Article', read: true }
+        }),
+        create(ResourceSchema, {
+          id: 'r-feed-unread',
+          linkedFeedItemId: 'f2',
+          linkedFeedItem: { title: 'Unread Article', read: false }
+        }),
+        create(ResourceSchema, {
+          id: 'r-orphan-book',
+          linkedBookId: 'b3'
+        }),
+        create(ResourceSchema, {
+          id: 'r-orphan-feed',
+          linkedFeedItemId: 'f3'
+        })
+      ]
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLearningPath).mockReturnValue({
+      data: create(GetLearningPathResponseSchema, { learningPath }),
+      isLoading: false,
+      error: undefined,
+      mutate: mockMutate
+    })
+    render(<PathClient id="lp1" />)
+
+    expect(screen.getByText(/Dune/)).toBeInTheDocument()
+    expect(screen.getByText(/, 42%/)).toBeInTheDocument()
+    expect(screen.getByText(/Foundation/)).toBeInTheDocument()
+    expect(screen.getByText(/— to read/)).toBeInTheDocument()
+    expect(screen.getByText(/Read Article/)).toBeInTheDocument()
+    expect(screen.getByText(/— read/)).toBeInTheDocument()
+    expect(screen.getByText(/Unread Article/)).toBeInTheDocument()
+    expect(screen.getByText(/— unread/)).toBeInTheDocument()
+    expect(screen.getAllByText('Linked resource no longer available')).toHaveLength(2)
+  })
+
   it('records progress and revalidates when a checkbox is toggled', async () => {
     const learningPath = create(LearningPathSchema, {
       id: 'lp1',

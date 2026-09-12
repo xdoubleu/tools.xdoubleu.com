@@ -52,12 +52,18 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	require.NoError(t, err)
 
 	const mcpUserID = "mcp-learningpaths-user"
+	// booksApp/feedsApp are nil — this test never sets a resource's
+	// linked_book_id/linked_feed_item_id, so the service layer's resolve/
+	// validate calls into them are never reached (see resolveResourceLinks
+	// in internal/services/learningpaths.go).
 	app := New(
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,
 		pg,
 		testSealer,
+		nil,
+		nil,
 	)
 	h := &learningPathsConnectHandler{app: app}
 

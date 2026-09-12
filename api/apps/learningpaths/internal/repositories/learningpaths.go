@@ -288,10 +288,12 @@ func (r *LearningPathsRepository) ReplaceResources(
 	batch := &pgx.Batch{}
 	for i, resource := range resources {
 		batch.Queue(`
-			INSERT INTO learningpaths.resources (learning_path_id, text, sort_order)
-			VALUES ($1, $2, $3)
+			INSERT INTO learningpaths.resources
+			(learning_path_id, text, sort_order, linked_book_id, linked_feed_item_id)
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id`,
 			learningPathID, resource.Text, i,
+			resource.LinkedBookID, resource.LinkedFeedItemID,
 		)
 	}
 
@@ -313,7 +315,8 @@ func (r *LearningPathsRepository) GetResources(
 	learningPathID uuid.UUID,
 ) ([]models.Resource, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, learning_path_id, text, sort_order
+		SELECT id, learning_path_id, text, sort_order,
+			linked_book_id, linked_feed_item_id
 		FROM learningpaths.resources
 		WHERE learning_path_id = $1
 		ORDER BY sort_order`,
@@ -329,6 +332,7 @@ func (r *LearningPathsRepository) GetResources(
 		var res models.Resource
 		if err = rows.Scan(
 			&res.ID, &res.LearningPathID, &res.Text, &res.SortOrder,
+			&res.LinkedBookID, &res.LinkedFeedItemID,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}

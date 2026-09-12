@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/google/uuid"
+
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
@@ -101,11 +103,50 @@ func protoResource(r *models.Resource) *learningpathsv1.Resource {
 		return nil
 	}
 	sortOrder := int32(r.SortOrder) //nolint:gosec // int32 safe for domain values
+
+	var linkedBookID, linkedFeedItemID *string
+	if r.LinkedBookID != nil {
+		id := r.LinkedBookID.String()
+		linkedBookID = &id
+	}
+	if r.LinkedFeedItemID != nil {
+		id := r.LinkedFeedItemID.String()
+		linkedFeedItemID = &id
+	}
+
 	return &learningpathsv1.Resource{
-		Id:             r.ID.String(),
-		LearningPathId: r.LearningPathID.String(),
-		Text:           r.Text,
-		SortOrder:      sortOrder,
+		Id:               r.ID.String(),
+		LearningPathId:   r.LearningPathID.String(),
+		Text:             r.Text,
+		SortOrder:        sortOrder,
+		LinkedBookId:     linkedBookID,
+		LinkedFeedItemId: linkedFeedItemID,
+		LinkedBook:       protoLinkedBook(r.LinkedBook),
+		LinkedFeedItem:   protoLinkedFeedItem(r.LinkedFeedItem),
+	}
+}
+
+func protoLinkedBook(lb *models.LinkedBook) *learningpathsv1.LinkedBook {
+	if lb == nil {
+		return nil
+	}
+	return &learningpathsv1.LinkedBook{
+		Title:           lb.Title,
+		Status:          lb.Status,
+		ProgressPercent: int32(lb.ProgressPercent), //nolint:gosec // safe for domain values
+		CoverUrl:        lb.CoverURL,
+	}
+}
+
+func protoLinkedFeedItem(li *models.LinkedFeedItem) *learningpathsv1.LinkedFeedItem {
+	if li == nil {
+		return nil
+	}
+	return &learningpathsv1.LinkedFeedItem{
+		Title:      li.Title,
+		SourceUrl:  li.SourceURL,
+		Read:       li.Read,
+		Bookmarked: li.Bookmarked,
 	}
 }
 
@@ -178,6 +219,11 @@ func progressFromLearningPath(
 	}
 }
 
+// dtoToResources converts request-level Resource messages to domain models.
+// An unparseable linked_book_id/linked_feed_item_id (not a valid UUID) is
+// silently treated as absent rather than rejected here — a well-formed but
+// non-existent/foreign-owned ID is still caught by the service layer's
+// validateResourceLinks call.
 func dtoToResources(in []*learningpathsv1.Resource) []models.Resource {
 	resources := make([]models.Resource, len(in))
 	for i, r := range in {
@@ -186,9 +232,22 @@ func dtoToResources(in []*learningpathsv1.Resource) []models.Resource {
 		}
 		//nolint:exhaustruct //ID/LearningPathID assigned by the repository
 		resources[i] = models.Resource{
-			Text:      r.Text,
-			SortOrder: i,
+			Text:             r.Text,
+			SortOrder:        i,
+			LinkedBookID:     parseOptionalUUID(r.LinkedBookId),
+			LinkedFeedItemID: parseOptionalUUID(r.LinkedFeedItemId),
 		}
 	}
 	return resources
+}
+
+func parseOptionalUUID(s *string) *uuid.UUID {
+	if s == nil || *s == "" {
+		return nil
+	}
+	id, err := uuid.Parse(*s)
+	if err != nil {
+		return nil
+	}
+	return &id
 }

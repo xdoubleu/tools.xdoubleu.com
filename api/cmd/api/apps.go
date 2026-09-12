@@ -87,13 +87,18 @@ func NewApps(
 	apps.addApp(trains.New(authService, logger, cfg, db))
 	// learningpaths has no migration dependency on any other app's schema
 	// either, same as trains above — it appends here rather than requiring a
-	// particular slot. A later PR (#1474) wires live references to
-	// booksApp/feedsApp for resource linking, at which point this call site
-	// changes but the registration order itself still won't matter. authSealer
-	// is threaded through for its own per-user Todoist OAuth connections
-	// (issue #1475, learningpaths.oauth_connections) — a separate table from
-	// global.oauth_connections, reusing the same encryption key.
-	apps.addApp(learningpaths.New(authService, logger, cfg, db, authSealer))
+	// particular slot. It takes live references to booksApp/feedsApp
+	// (constructed above) to resolve resources linked to a books/feeds
+	// entry, the same exported-methods-only pattern dashboard uses (#1474).
+	// authSealer is threaded through for its own per-user Todoist OAuth
+	// connections (issue #1475, learningpaths.oauth_connections) — a
+	// separate table from global.oauth_connections, reusing the same
+	// encryption key.
+	apps.addApp(
+		learningpaths.New(
+			authService, logger, cfg, db, authSealer, booksApp, feedsApp,
+		),
+	)
 
 	return &apps, booksApp, feedsApp
 }
