@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564, #1616
 
 ## Rule
 
@@ -95,3 +95,13 @@ answerable with direct database access.
   instances. It reaches Grafana over the public URL with admin basic-auth,
   **not** an internal `grafana:3000` hostname — that is the same non-existent
   Kamal network alias #1554 was about.
+- **#1616 — no pre-deploy check that a secret's value is well-formed, only
+  that its name is present.** `api` panicked at boot on 2026-09-13 with
+  `OAUTH_OIDC_PRIVATE_KEY is not valid PEM`, failing its Kamal healthcheck
+  and blocking the api deploy. `make lint/kamal-secrets` (see
+  `convention-deploy-secrets.md`) only checks the secret *name* appears
+  consistently across the three lists — nothing validates the secret's
+  *value* before `kamal deploy` runs, so a malformed PEM (e.g. escaped `\n`
+  from a bad rotation) surfaces only as a container crash, after the fact.
+  Fix tracked in #1616 (pending); the panic-vs-degrade behavior fix is
+  tracked separately in #1617.
