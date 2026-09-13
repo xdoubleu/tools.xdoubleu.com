@@ -76,5 +76,5 @@ func (b *Base) ApplyMigrationsFromFS(
 		return err
 	}
 
-	return goose.Up(stdlib.OpenDBFromPool(db), "migrations")
+	return goose.Up(stdlib.OpenDBFromPool(db), "migrations", goose.WithAllowMissing())
 }

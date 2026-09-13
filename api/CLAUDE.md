@@ -62,6 +62,15 @@ off to each app's own. `apps/backlog/` is dead — only stale `coverage.out`
 artifacts remain there, no `.go` source and nothing imports it; the name
 survives only in a migration-ordering comment.
 
+`ApplyMigrationsFromFS`'s `goose.Up(...)` call (`internal/app/base.go`) runs with
+`goose.WithAllowMissing()`, so goose applies a lower-numbered migration file even
+after a higher-numbered one already ran, instead of panicking. This repo's
+parallel-subagent, stacked-PR workflow means two sibling PRs' independently
+numbered migrations for the same app can merge to `main` — and deploy — out of
+numeric order; `WithAllowMissing` is what makes that self-healing rather than a
+startup panic on the next deploy. It's enabled for every app, since the helper is
+shared, not just the one that first hit this.
+
 ### App Structure
 
 Each app lives in `apps/<name>/`:
