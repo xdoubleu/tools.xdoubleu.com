@@ -6,6 +6,8 @@
 package csa
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 	"time"
 
@@ -183,6 +185,49 @@ func TestSearchJourneys_AfterMidnightCrossesServiceDay(t *testing.T) {
 	assert.Equal(t, 10, arr.Minute())
 }
 
+// TestBuildConnections_TripDateUTCMidnightVsBrusselsEpoch pins down the
+// suspected root cause of a specific train silently going missing from
+// search results (issue #1391 follow-up): ActiveTrip.Date comes from a
+// Postgres DATE column, which pgx scans as UTC midnight, while idx.epoch is
+// reconstructed as Brussels-local midnight. During CEST (UTC+2) these two
+// times for "the same calendar day" are 2 hours apart, not 0 — so
+// buildConnections' dayAbs, computed via Sub().Hours()/24*86400, silently
+// shifts every connection on that date by the standing UTC offset instead
+// of by whole days.
+func TestBuildConnections_TripDateUTCMidnightVsBrusselsEpoch(t *testing.T) {
+	brussels, err := time.LoadLocation("Europe/Brussels")
+	require.NoError(t, err)
+
+	// CEST is in effect on this date (DST ends in late October).
+	window := time.Date(2026, 9, 13, 0, 0, 0, 0, brussels)
+	stops := baseStops()
+	// simulates exactly what pgx hands back for a `DATE` column: UTC
+	// midnight, not Brussels-local midnight, for the same calendar day.
+	tripDateAsScannedByPgx := time.Date(2026, 9, 13, 0, 0, 0, 0, time.UTC)
+	instances := []models.ActiveTrip{
+		mkTrip("t1", "100", "Bravo", tripDateAsScannedByPgx),
+	}
+	patterns := map[string][]models.StopTime{
+		"t1": {
+			mkST(1, "A1", 6*3600+17*60, 6*3600+17*60, 0, 0), // 06:17
+			mkST(2, "B1", 6*3600+40*60, 6*3600+40*60, 0, 0), // 06:40
+		},
+	}
+	idx := Build(brussels, window, stops, nil, instances, flattenPatterns(patterns))
+
+	when := time.Date(2026, 9, 13, 6, 0, 0, 0, brussels)
+	journeys, err := idx.SearchJourneys("SA", "SB", when, false)
+	require.NoError(t, err)
+	require.NotEmpty(
+		t,
+		journeys,
+		"the 06:17 departure must be found searching from 06:00",
+	)
+	boardTime := journeys[0].Legs[0].BoardTime
+	assert.Equal(t, 6, boardTime.Hour(), "board time hour")
+	assert.Equal(t, 17, boardTime.Minute(), "board time minute")
+}
+
 func TestSearchJourneys_NoServiceOnRequestedDate(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	stops := baseStops()
@@ -264,6 +309,109 @@ func TestSearchJourneys_ArriveBy(t *testing.T) {
 		t,
 		journeys[0].ArrivalTime.Before(arriveBy) ||
 			journeys[0].ArrivalTime.Equal(arriveBy),
+	)
+}
+
+// TestSearchJourneys_WindowAroundRequestedTime pins issue #1643's "show a
+// few options before and after the filled out time": with hourly direct
+// trains from 04:00 to 11:00, a search at 07:00 must surface the requested
+// time itself plus at least windowBefore earlier and windowAfter later
+// distinct departures, sorted and capped at maxJourneyResults.
+func TestSearchJourneys_WindowAroundRequestedTime(t *testing.T) {
+	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
+	stops := baseStops()
+	var instances []models.ActiveTrip
+	patterns := map[string][]models.StopTime{}
+	for h := 4; h <= 11; h++ {
+		id := fmt.Sprintf("t%d", h)
+		instances = append(
+			instances, mkTrip(id, fmt.Sprintf("%d00", h), "Bravo", day(window, 0)),
+		)
+		patterns[id] = []models.StopTime{
+			mkST(1, "A1", h*3600, h*3600, 0, 0),
+			mkST(2, "B1", h*3600+1200, h*3600+1200, 0, 0),
+		}
+	}
+	idx := Build(loc, window, stops, nil, instances, flattenPatterns(patterns))
+
+	when := time.Date(2026, 10, 1, 7, 0, 0, 0, loc)
+	journeys, err := idx.SearchJourneys("SA", "SB", when, false)
+	require.NoError(t, err)
+
+	var hours []int
+	for _, j := range journeys {
+		hours = append(hours, j.DepartureTime.Hour())
+	}
+	assert.True(
+		t,
+		sort.IntsAreSorted(hours),
+		"journeys must be sorted by departure time",
+	)
+	assert.LessOrEqual(t, len(journeys), maxJourneyResults)
+	assert.Contains(t, hours, 7, "must include the requested time itself")
+
+	var before, after int
+	for _, h := range hours {
+		switch {
+		case h < 7:
+			before++
+		case h > 7:
+			after++
+		}
+	}
+	assert.GreaterOrEqual(
+		t,
+		before,
+		windowBefore,
+		"should surface a few departures before the requested time",
+	)
+	assert.GreaterOrEqual(
+		t,
+		after,
+		windowAfter,
+		"should surface a few departures after the requested time",
+	)
+}
+
+// TestSearchJourneys_ArriveByWindowNeverExtendsPastDeadline pins the
+// arriveBy=true half of issue #1643: the window widens only on the
+// "before" side (more distinct qualifying arrivals), never past the
+// requested deadline.
+func TestSearchJourneys_ArriveByWindowNeverExtendsPastDeadline(t *testing.T) {
+	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
+	stops := baseStops()
+	var instances []models.ActiveTrip
+	patterns := map[string][]models.StopTime{}
+	for h := 4; h <= 11; h++ {
+		id := fmt.Sprintf("t%d", h)
+		instances = append(
+			instances, mkTrip(id, fmt.Sprintf("%d00", h), "Bravo", day(window, 0)),
+		)
+		patterns[id] = []models.StopTime{
+			mkST(1, "A1", h*3600, h*3600, 0, 0),
+			mkST(2, "B1", h*3600+1200, h*3600+1200, 0, 0),
+		}
+	}
+	idx := Build(loc, window, stops, nil, instances, flattenPatterns(patterns))
+
+	deadline := time.Date(2026, 10, 1, 9, 0, 0, 0, loc)
+	journeys, err := idx.SearchJourneys("SA", "SB", deadline, true)
+	require.NoError(t, err)
+	require.GreaterOrEqual(t, len(journeys), windowBefore)
+
+	for _, j := range journeys {
+		assert.True(
+			t,
+			j.ArrivalTime.Before(deadline) || j.ArrivalTime.Equal(deadline),
+			"no journey may arrive after the requested deadline",
+		)
+	}
+	assert.True(
+		t,
+		sort.SliceIsSorted(journeys, func(i, j int) bool {
+			return journeys[i].ArrivalTime.Before(journeys[j].ArrivalTime)
+		}),
+		"journeys must be sorted by arrival time",
 	)
 }
 
