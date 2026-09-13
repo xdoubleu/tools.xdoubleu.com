@@ -20,10 +20,11 @@ const maxStationResults = 20
 // Station is a location_type=1 stop a passenger can pick as an origin or
 // destination.
 type Station struct {
-	StopID string
-	NameNL string
-	NameFR string
-	NameEN string
+	StopID      string
+	NameNL      string
+	NameFR      string
+	NameEN      string
+	DisplayName string
 }
 
 // StationsService answers SearchStations for the /trains station pickers.
@@ -71,10 +72,11 @@ func matchStations(stops []models.Stop, query string) []Station {
 			continue
 		}
 		station := Station{
-			StopID: stop.StopID,
-			NameNL: stop.NameNL,
-			NameFR: stop.NameFR,
-			NameEN: stop.NameEN,
+			StopID:      stop.StopID,
+			NameNL:      stop.NameNL,
+			NameFR:      stop.NameFR,
+			NameEN:      stop.NameEN,
+			DisplayName: stop.DisplayName,
 		}
 		if stop.UIC == "" {
 			noUIC = append(noUIC, station)

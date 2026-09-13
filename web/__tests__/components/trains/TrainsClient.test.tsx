@@ -22,8 +22,8 @@ beforeEach(() => {
   mockUseTrainsFeedInfo.mockReturnValue({ data: { feedVersion: '2026-08-31' } })
   mockUseStationSearch.mockReturnValue({
     stations: [
-      { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha' },
-      { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo' }
+      { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha', displayName: 'Alpha' },
+      { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo', displayName: 'Bravo' }
     ]
   })
   mockUseJourneySearch.mockReturnValue({ data: undefined, isLoading: false, error: undefined })
@@ -81,8 +81,20 @@ describe('TrainsClient', () => {
             id: '1',
             label: 'Home to work',
             position: 0,
-            origin: { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha' },
-            destination: { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo' }
+            origin: {
+              stopId: 'SA',
+              nameNl: 'Alpha',
+              nameFr: 'Alpha',
+              nameEn: 'Alpha',
+              displayName: 'Alpha'
+            },
+            destination: {
+              stopId: 'SB',
+              nameNl: 'Bravo',
+              nameFr: 'Bravo',
+              nameEn: 'Bravo',
+              displayName: 'Bravo'
+            }
           }
         ]
       },

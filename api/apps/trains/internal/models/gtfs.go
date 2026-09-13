@@ -15,9 +15,17 @@ type Stop struct {
 	// stop_name column carries a single (primary) language; translations.txt,
 	// when the feed publishes it, supplies the other two. A language with no
 	// translation falls back to the primary stop_name (issue #1450).
-	NameNL       string
-	NameFR       string
-	NameEN       string
+	NameNL string
+	NameFR string
+	NameEN string
+	// DisplayName is the single canonical passenger-facing label: every
+	// genuinely-known full-language name (the primary stop_name plus any
+	// translations.txt row actually present), deduped and " / "-joined.
+	// Unlike NameNL/NameFR/NameEN it never falls back to the primary
+	// stop_name for a language translations.txt doesn't cover — that raw
+	// value is sometimes itself an already-abbreviated/combined bilingual
+	// string (issue #1656).
+	DisplayName  string
 	LocationType int
 	PlatformCode string
 	// UIC is the bare 7-digit code parsed out of StopID.

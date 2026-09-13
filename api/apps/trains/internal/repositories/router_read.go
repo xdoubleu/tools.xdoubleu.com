@@ -18,7 +18,7 @@ type ActiveTrip = models.ActiveTrip
 func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT stop_id, parent_station, name_nl, name_fr, name_en,
-		       location_type, platform_code, uic
+		       display_name, location_type, platform_code, uic
 		FROM trains.stops
 	`)
 	if err != nil {
@@ -32,7 +32,7 @@ func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 		var parent, platform, uic *string
 		if err = rows.Scan(
 			&s.StopID, &parent, &s.NameNL, &s.NameFR, &s.NameEN,
-			&s.LocationType, &platform, &uic,
+			&s.DisplayName, &s.LocationType, &platform, &uic,
 		); err != nil {
 			return nil, err
 		}
@@ -205,7 +205,7 @@ func (r *FeedRepository) StopsByIDs(
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT stop_id, parent_station, name_nl, name_fr, name_en,
-		       location_type, platform_code, uic
+		       display_name, location_type, platform_code, uic
 		FROM trains.stops
 		WHERE stop_id = ANY($1)
 	`, ids)
@@ -220,7 +220,7 @@ func (r *FeedRepository) StopsByIDs(
 		var parent, platform, uic *string
 		if err = rows.Scan(
 			&s.StopID, &parent, &s.NameNL, &s.NameFR, &s.NameEN,
-			&s.LocationType, &platform, &uic,
+			&s.DisplayName, &s.LocationType, &platform, &uic,
 		); err != nil {
 			return nil, err
 		}

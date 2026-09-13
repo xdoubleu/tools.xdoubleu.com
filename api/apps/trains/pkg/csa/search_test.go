@@ -28,6 +28,7 @@ func mkStop(id, name, parent, platform string, locationType int) models.Stop {
 	return models.Stop{
 		StopID:        id,
 		NameFR:        name,
+		DisplayName:   name,
 		ParentStation: parent,
 		PlatformCode:  platform,
 		LocationType:  locationType,
@@ -558,4 +559,19 @@ func TestBuild_GroupsUnorderedStopTimes(t *testing.T) {
 	require.NotEmpty(t, journeys)
 	assert.Equal(t, "A1", journeys[0].Legs[0].BoardStopID)
 	assert.Equal(t, "B1", journeys[0].Legs[0].AlightStopID)
+}
+
+// TestStopDisplayName_UsesDisplayNameNotFrenchOnly guards against
+// regressing to the old French-only label (issue #1656): the planner's Leg
+// names must come from the same canonical DisplayName the station search
+// dropdown renders, not NameFR alone.
+func TestStopDisplayName_UsesDisplayNameNotFrenchOnly(t *testing.T) {
+	//nolint:exhaustruct //test fixture: unset fields are deliberately zero
+	stop := models.Stop{
+		StopID:      "SA",
+		NameFR:      "Bruxelles-Midi",
+		DisplayName: "Brussel-Zuid / Bruxelles-Midi",
+	}
+	assert.Equal(t, "Brussel-Zuid / Bruxelles-Midi", stopDisplayName(stop))
+	assert.NotEqual(t, stop.NameFR, stopDisplayName(stop))
 }
