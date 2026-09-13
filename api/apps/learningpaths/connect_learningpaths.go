@@ -19,8 +19,11 @@ type learningPathsConnectHandler struct {
 	app *LearningPaths
 }
 
+//
 //nolint:lll //type names are what they are
-var _ learningpathsv1connect.LearningPathsServiceHandler = (*learningPathsConnectHandler)(nil)
+var _ learningpathsv1connect.LearningPathsServiceHandler = (*learningPathsConnectHandler)(
+	nil,
+)
 
 func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](
@@ -130,10 +133,12 @@ func protoLinkedBook(lb *models.LinkedBook) *learningpathsv1.LinkedBook {
 	if lb == nil {
 		return nil
 	}
+	//nolint:gosec // safe for domain values
+	progressPercent := int32(lb.ProgressPercent)
 	return &learningpathsv1.LinkedBook{
 		Title:           lb.Title,
 		Status:          lb.Status,
-		ProgressPercent: int32(lb.ProgressPercent), //nolint:gosec // safe for domain values
+		ProgressPercent: progressPercent,
 		CoverUrl:        lb.CoverURL,
 	}
 }
