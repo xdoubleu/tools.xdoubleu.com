@@ -57,6 +57,7 @@ func New(
 
 	conversionSvc := NewConversionService(
 		logger,
+		repositories.Books,
 		repositories.BookFiles,
 		objectStore,
 		nil, // converter: defaults to kepubify

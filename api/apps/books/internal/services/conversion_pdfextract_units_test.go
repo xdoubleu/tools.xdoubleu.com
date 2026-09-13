@@ -143,7 +143,9 @@ func TestRemoveProofSlugLines(t *testing.T) {
 	t.Parallel()
 
 	bodyP := func(text string) htmlBlock {
-		return htmlBlock{tag: "p", text: text, html: ""}
+		return htmlBlock{ //nolint:exhaustruct // medHeight/isText unused by this test
+			tag: "p", text: text, html: "",
+		}
 	}
 	footer := func(page int) htmlBlock {
 		return bodyP(

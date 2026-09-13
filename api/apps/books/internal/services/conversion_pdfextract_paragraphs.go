@@ -34,6 +34,13 @@ type htmlBlock struct {
 	html string
 	tag  string // "p", "h1", "h2", or "img" — used for title fallback/tests.
 	text string // raw (unescaped) text; empty for "img".
+	// medHeight and isText are populated only for paragraph blocks
+	// (renderParagraph), never "img" blocks, and are consumed by
+	// finalizeHeadings — which assigns the final tag/html using
+	// document-wide context to avoid misclassifying bibliography/list-style
+	// large text as a heading (issue #1654).
+	medHeight float64
+	isText    bool
 }
 
 // mergeColumn interleaves a column's lines (already sorted top-to-bottom)
@@ -105,11 +112,13 @@ func buildPageStream(
 	return append(leftStream, rightStream...)
 }
 
-// buildPageBlocks groups a page's stream into paragraphs/headings, applying
-// hyphenation joins within each paragraph. A figure always flushes the
-// current paragraph and is emitted as its own <img> block.
+// buildPageBlocks groups a page's stream into paragraphs, applying
+// hyphenation joins within each paragraph (heading classification is
+// deferred to finalizeHeadings, which needs document-wide context — see
+// conversion_pdfextract_page.go's extractDocument). A figure always flushes
+// the current paragraph and is emitted as its own <img> block.
 func buildPageBlocks(
-	items []streamItem, medLineHeight, pageMedianCharWidth, docModalCharHeight float64,
+	items []streamItem, medLineHeight, pageMedianCharWidth float64,
 ) []htmlBlock {
 	var blocks []htmlBlock
 	var paraLines []pdfLine
@@ -119,7 +128,7 @@ func buildPageBlocks(
 		if len(paraLines) == 0 {
 			return
 		}
-		blocks = append(blocks, renderParagraph(paraLines, docModalCharHeight))
+		blocks = append(blocks, renderParagraph(paraLines))
 		paraLines = nil
 	}
 
@@ -127,15 +136,18 @@ func buildPageBlocks(
 		if item.figure != nil {
 			flush()
 			figureCount++
-			blocks = append(blocks, htmlBlock{
-				html: fmt.Sprintf(
-					`<img src="%s" alt="%s"/>`,
-					escapeXMLText(item.figure.fileName),
-					escapeXMLText(fmt.Sprintf("Figure %d", figureCount)),
-				),
-				tag:  imgTag,
-				text: "",
-			})
+			blocks = append(
+				blocks,
+				htmlBlock{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
+					html: fmt.Sprintf(
+						`<img src="%s" alt="%s"/>`,
+						escapeXMLText(item.figure.fileName),
+						escapeXMLText(fmt.Sprintf("Figure %d", figureCount)),
+					),
+					tag:  imgTag,
+					text: "",
+				},
+			)
 			continue
 		}
 
@@ -173,8 +185,10 @@ func startsNewParagraph(prev, cur pdfLine, medLineHeight, medCharWidth float64) 
 }
 
 // renderParagraph joins a paragraph's lines (applying hyphenation, step 5)
-// and classifies it as a heading (step 6) or a plain paragraph.
-func renderParagraph(lines []pdfLine, docModalCharHeight float64) htmlBlock {
+// into a plain-paragraph block, carrying its median character height for
+// finalizeHeadings to classify (step 6) once every paragraph in the document
+// is known.
+func renderParagraph(lines []pdfLine) htmlBlock {
 	text := joinLinesWithHyphenation(lines)
 
 	heights := make([]float64, len(lines))
@@ -183,21 +197,87 @@ func renderParagraph(lines []pdfLine, docModalCharHeight float64) htmlBlock {
 	}
 	medHeight := median(heights)
 
-	tag := "p"
-	if docModalCharHeight > 0 {
-		switch {
-		case medHeight > headingH1Ratio*docModalCharHeight:
-			tag = "h1"
-		case medHeight > headingH2Ratio*docModalCharHeight:
-			tag = "h2"
+	return htmlBlock{
+		html:      "", // filled in by finalizeHeadings
+		tag:       "p",
+		text:      text,
+		medHeight: medHeight,
+		isText:    true,
+	}
+}
+
+// finalizeHeadings assigns each paragraph block's final tag ("h1"/"h2"/"p")
+// and renders its html, in place. A paragraph is classified purely by height
+// ratio to the document's modal (body text) character height, as before, but
+// a candidate heading is then demoted to "p" when it's part of a run of 2+
+// consecutive large-font paragraphs: a real heading tends to be isolated,
+// surrounded by ordinary body-text paragraphs, whereas a bibliography- or
+// list-style block (e.g. a frontmatter "Other books by this author" page)
+// shares its larger font across many consecutive entries. Without this guard,
+// such lists were misclassified as headings roughly two orders of magnitude
+// more often than real chapter/section boundaries occur (issue #1654). A
+// non-paragraph block (e.g. an image) breaks a run, since it can't itself be
+// a citation-list entry.
+func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
+	tags := make([]string, len(blocks))
+	for i, b := range blocks {
+		if !b.isText {
+			continue
 		}
+		tags[i] = headingCandidateTag(b.medHeight, docModalCharHeight)
 	}
 
-	return htmlBlock{
-		html: fmt.Sprintf("<%s>%s</%s>", tag, escapeXMLText(text), tag),
-		tag:  tag,
-		text: text,
+	demoteHeadingRuns(blocks, tags)
+
+	for i := range blocks {
+		if !blocks[i].isText {
+			continue
+		}
+		blocks[i].tag = tags[i]
+		blocks[i].html = fmt.Sprintf(
+			"<%s>%s</%s>", tags[i], escapeXMLText(blocks[i].text), tags[i],
+		)
 	}
+}
+
+// headingCandidateTag classifies a single paragraph by height ratio alone,
+// ignoring surrounding context (that's demoteHeadingRuns's job).
+func headingCandidateTag(medHeight, docModalCharHeight float64) string {
+	if docModalCharHeight <= 0 {
+		return "p"
+	}
+	switch {
+	case medHeight > headingH1Ratio*docModalCharHeight:
+		return "h1"
+	case medHeight > headingH2Ratio*docModalCharHeight:
+		return "h2"
+	default:
+		return "p"
+	}
+}
+
+// demoteHeadingRuns rewrites tags in place, flattening any run of 2+
+// consecutive non-"p" text blocks down to "p" — see finalizeHeadings.
+func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
+	runStart := -1
+	flush := func(end int) {
+		if runStart >= 0 && end-runStart > 1 {
+			for i := runStart; i < end; i++ {
+				tags[i] = "p"
+			}
+		}
+		runStart = -1
+	}
+	for i, b := range blocks {
+		if !b.isText || tags[i] == "p" {
+			flush(i)
+			continue
+		}
+		if runStart < 0 {
+			runStart = i
+		}
+	}
+	flush(len(blocks))
 }
 
 // joinLinesWithHyphenation joins consecutive line texts with a space, except

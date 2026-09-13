@@ -56,8 +56,13 @@ func getPDFiumPool() (pdfium.Pool, error) {
 // pure-Go pipeline: go-pdfium extracts text/positions/images (see
 // conversion_pdfextract_page.go for the per-page/per-document orchestration),
 // which are reassembled into reading-order HTML and handed to
-// goHTMLConverter for EPUB assembly.
-func goPDFConverter(ctx context.Context, inPath, outPath string) error {
+// goHTMLConverter for EPUB assembly. catalogTitle/catalogAuthors are the
+// book's already-known bibliographic metadata (its catalog title/author, per
+// EnsureKEPUB) and take priority over anything documentMeta could otherwise
+// derive from the PDF itself — see documentMeta (issue #1654).
+func goPDFConverter(
+	ctx context.Context, inPath, outPath, catalogTitle string, catalogAuthors []string,
+) error {
 	select {
 	case pdfSem <- struct{}{}:
 	case <-ctx.Done():
@@ -106,7 +111,13 @@ func goPDFConverter(ctx context.Context, inPath, outPath string) error {
 		return fmt.Errorf("extract pdf content: %w", err)
 	}
 
-	meta := documentMeta(instance, docResp.Document, blocks)
+	meta := documentMeta(
+		instance,
+		docResp.Document,
+		blocks,
+		catalogTitle,
+		catalogAuthors,
+	)
 
 	htmlPath := filepath.Join(workDir, "index.html")
 	if err = os.WriteFile(htmlPath, []byte(renderHTML(blocks)), 0o600); err != nil {
@@ -132,15 +143,21 @@ func renderHTML(blocks []htmlBlock) string {
 	return b.String()
 }
 
-// documentMeta derives EPUB metadata from the PDF's own Title/Author info
-// dictionary entries (PDFConverter has no metadata parameter — unlike
-// HTMLConverter — since the source here is a raw PDF, not caller-supplied
-// article metadata). Falls back to the document's first heading, then a
-// fixed placeholder, when no Title is embedded.
+// documentMeta derives EPUB metadata for a PDF conversion, preferring the
+// book's catalog title/author — already known and correct by the time
+// EnsureKEPUB needs a PDF converted — over anything derived from the PDF
+// itself. When catalog metadata is unavailable it falls back to the PDF's
+// own Title/Author info dictionary entries, then the document's first
+// heading (often frontmatter, not the real title — issue #1654), then a
+// fixed placeholder.
 func documentMeta(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, blocks []htmlBlock,
+	catalogTitle string, catalogAuthors []string,
 ) ArticleMeta {
-	title := metaText(instance, doc, "Title")
+	title := catalogTitle
+	if title == "" {
+		title = metaText(instance, doc, "Title")
+	}
 	if title == "" {
 		title = firstHeadingText(blocks)
 	}
@@ -148,9 +165,14 @@ func documentMeta(
 		title = "Untitled"
 	}
 
+	authors := catalogAuthors
+	if len(authors) == 0 {
+		authors = splitAuthors(metaText(instance, doc, "Author"))
+	}
+
 	return ArticleMeta{
 		Title:   title,
-		Authors: splitAuthors(metaText(instance, doc, "Author")),
+		Authors: authors,
 	}
 }
 
