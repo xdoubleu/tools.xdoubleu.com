@@ -1,7 +1,10 @@
 //nolint:testpackage // testing unexported service helpers
 package services
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // TestGroupLines_CommaStaysOnLine reproduces issue #594: a comma's bounding
 // box is much shorter than the surrounding letters and sits low, near/below
@@ -106,5 +109,78 @@ func TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine(t *testing.T) {
 	lines := groupLines(chars)
 	if len(lines) != 2 {
 		t.Fatalf("expected 2 lines, got %d: %+v", len(lines), lines)
+	}
+}
+
+// TestGroupLines_QuotationMarksStayOnLine reproduces the broader #618 symptom
+// beyond a lone apostrophe: dialogue punctuation (straight double quotes)
+// bracketing a line of text, each sitting high near cap-height like the
+// apostrophe case. Both quote glyphs must attach to the surrounding line by
+// envelope overlap rather than splitting off into their own one-character
+// lines/paragraphs.
+func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
+	chars := []pdfChar{
+		{text: "\"", left: 0, top: 586.01, right: 3, bottom: 580.20},
+		{text: "h", left: 3, top: 584.07, right: 11, bottom: 574.36},
+		{text: "i", left: 11, top: 585.77, right: 15, bottom: 574.50},
+		{text: "b", left: 18, top: 586.01, right: 26, bottom: 574.12},
+		{text: "y", left: 26, top: 580.82, right: 34, bottom: 570.26},
+		{text: "e", left: 34, top: 582.03, right: 41, bottom: 574.32},
+		{text: "\"", left: 41, top: 586.01, right: 44, bottom: 580.20},
+	}
+
+	lines := groupLines(chars)
+	if len(lines) != 1 {
+		t.Fatalf(
+			"expected both quotation marks to stay on the same line, got %d lines: %+v",
+			len(lines),
+			lines,
+		)
+	}
+	if got, want := lines[0].text, "\"hi bye\""; got != want {
+		t.Fatalf("line text = %q, want %q", got, want)
+	}
+}
+
+// TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines covers the
+// tie-break branch in attachSmallChars: when a small character's box
+// overlaps more than one line's envelope (two lines close enough together
+// that their margins both reach it), it must join whichever line's
+// y-midpoint is nearest, not simply the first or last candidate considered.
+func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T) {
+	chars := []pdfChar{
+		// Line 1 ("hi"), a normal line near the top.
+		{text: "h", left: 0, top: 586.01, right: 8, bottom: 574.12},
+		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50},
+		// Line 2 ("bye"), a second normal line close beneath line 1 — close
+		// enough that a small character between them overlaps both
+		// envelopes within lineGroupYMidRatio * medH.
+		{text: "b", left: 0, top: 572.01, right: 8, bottom: 560.12},
+		{text: "y", left: 8, top: 566.82, right: 16, bottom: 556.26},
+		{text: "e", left: 16, top: 568.03, right: 23, bottom: 560.32},
+		// A stray quotation mark positioned closer to line 1's y-midpoint
+		// (~580.07) than line 2's (~566.07) — it must attach to line 1.
+		{text: "\"", left: 20, top: 578, right: 23, bottom: 572},
+	}
+
+	lines := groupLines(chars)
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d: %+v", len(lines), lines)
+	}
+
+	var line1 *pdfLine
+	for i := range lines {
+		if strings.Contains(lines[i].text, "hi") {
+			line1 = &lines[i]
+		}
+	}
+	if line1 == nil {
+		t.Fatalf("could not find the 'hi' line among: %+v", lines)
+	}
+	if !strings.Contains(line1.text, "\"") {
+		t.Fatalf(
+			"expected the quotation mark to attach to the closer 'hi' line, got %q",
+			line1.text,
+		)
 	}
 }
