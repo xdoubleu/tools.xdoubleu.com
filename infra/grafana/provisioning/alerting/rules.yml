@@ -214,7 +214,7 @@ groups:
             model:
               refId: A
               instant: true
-              expr: absent(up{job="api"}) or absent(up{job="web"})
+              expr: absent(up{job="api"}) or absent(up{job="web"}) or absent(up{job="grafana"})
           - refId: C
             datasourceUid: __expr__
             model:
@@ -364,13 +364,26 @@ groups:
                     params: [0]
 
       # Reads the Sentry API directly through the grafana-sentry-datasource
-      # plugin (issue #1570) — no longer a Prometheus gauge. refId A is an
-      # Issues query returning one row per unresolved issue across the org;
-      # refId B reduces that to a count (0 when the query is empty); refId C
-      # is the "> 0" alert condition. projectIds is left empty so the query
-      # spans every project the token can see. The 90-day window
-      # approximates "currently unresolved" (Sentry scopes an issue search
-      # to the requested window).
+      # plugin (issue #1570) — no longer a Prometheus gauge.
+      #
+      # refId A does NOT use the "issues" queryType, despite that being the
+      # obvious choice for "is there an unresolved issue": an Issues query
+      # returns one row per issue with several numeric columns (Count,
+      # UserCount, ...), and Grafana's expression engine can't collapse
+      # that into the single-value series both `reduce` and `threshold`
+      # require — every evaluation fails with "input data must be a wide
+      # series but got type long", forever, regardless of actual Sentry
+      # state (grafana/sentry-datasource#266, filed 2024, still unresolved
+      # upstream). Instead, A uses the "eventsStats" queryType with
+      # `count_unique(issue)` as its Y-axis: that returns a genuine time
+      # series (one numeric value per time bucket), which `reduce` can
+      # consume without a format error. refId B reduces that series to a
+      # single number via `max` (one bucket already containing >=1 distinct
+      # unresolved issue is enough to alert); refId C is the "> 0" alert
+      # condition. projectIds is left empty so the query spans every
+      # project the token can see. The 90-day window approximates
+      # "currently unresolved" (Sentry scopes a query to the requested
+      # window).
       - uid: issue-sentry-unresolved
         title: IssueSentryUnresolved
         condition: C
@@ -378,7 +391,7 @@ groups:
           severity: warning
         annotations:
           summary: Unresolved Sentry issues present
-          description: "{{ $values.B }} unresolved Sentry issue(s)."
+          description: "Unresolved Sentry issues detected in the last 90 days ({{ $values.B }} distinct issue(s) in the busiest interval)."
         noDataState: OK
         execErrState: Alerting
         data:
@@ -389,9 +402,10 @@ groups:
             datasourceUid: sentry
             model:
               refId: A
-              queryType: issues
-              issuesQuery: is:unresolved
-              issuesLimit: 1000
+              queryType: eventsStats
+              eventsStatsQuery: is:unresolved
+              eventsStatsYAxis:
+                - count_unique(issue)
               projectIds: []
               environments: []
           - refId: B
@@ -400,7 +414,7 @@ groups:
               refId: B
               type: reduce
               expression: A
-              reducer: count
+              reducer: max
               settings:
                 mode: replaceNN
                 replaceWithValue: 0

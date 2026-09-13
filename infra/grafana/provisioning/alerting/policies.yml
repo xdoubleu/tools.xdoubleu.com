@@ -1,12 +1,13 @@
-# Grafana notification policy (issue #1528) — a single flat policy routing
-# every alert to the one 'email' contact point. There is deliberately no
-# per-severity routing tree: this is a one-admin deployment, and the alert's
-# own severity label plus its summary carry that signal in the email body.
+# Grafana notification policy (issue #1528, moved to Slack in #1592) — a
+# single flat policy routing every alert to the one 'slack' contact point.
+# There is deliberately no per-severity routing tree: this is a one-admin
+# deployment, and the alert's own severity label plus its summary carry
+# that signal in the Slack message.
 apiVersion: 1
 
 policies:
   - orgId: 1
-    receiver: email
+    receiver: slack
     group_by:
       - grafana_folder
       - alertname

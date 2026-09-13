@@ -27,7 +27,7 @@ docker run -d --name "$container" -p "$port:3000" \
   -e GF_SERVER_ROOT_URL="http://localhost:$port" \
   -e GF_LOG_LEVEL=info \
   -e GF_SMTP_FROM_ADDRESS="alerts@example.com" \
-  -e NOTIFY_EMAIL_TO="alerts@example.com" \
+  -e GRAFANA_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/dummy" \
   -e GRAFANA_GITHUB_DATASOURCE_TOKEN="dummy" \
   -e GRAFANA_SENTRY_DATASOURCE_TOKEN="dummy" \
   "$image" >/dev/null
@@ -72,8 +72,8 @@ fi
 echo "==> checking the alerting contact point provisioned"
 cp_names=$(curl -sf -u admin:admin "$base/api/v1/provisioning/contact-points" \
   | python3 -c 'import json,sys; print("\n".join(c["name"] for c in json.load(sys.stdin)))')
-if ! grep -qx "email" <<<"$cp_names"; then
-  echo "FAIL: contact point 'email' not found (got: ${cp_names:-none})"
+if ! grep -qx "slack" <<<"$cp_names"; then
+  echo "FAIL: contact point 'slack' not found (got: ${cp_names:-none})"
   fail=1
 fi
 

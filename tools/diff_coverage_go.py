@@ -92,7 +92,13 @@ def get_changed_lines(repo_root, project_dir):
 
 
 def parse_profile(profile_path):
-    """Returns {relative_path: {line_number: max_count}}."""
+    """Returns {relative_path: {line_number: (hit, miss)}}, where hit/miss
+    each report whether some block touching that line had count>0 / count==0
+    respectively. A physical line can host more than one Go coverage block
+    (e.g. an `if err != nil {` condition plus its body) that disagree on
+    hit/miss -- Codecov's own patch check marks that line "partial" and
+    gives it no coverage credit, so callers must require hit and not miss
+    for a line to count as covered, rather than a plain max(count)."""
     files = {}
     block_re = re.compile(
         r'^(\S+):(\d+)\.\d+,(\d+)\.(\d+) \d+ (\d+)$'
@@ -116,7 +122,12 @@ def parse_profile(profile_path):
 
             file_lines = files.setdefault(rel_path, {})
             for line_no in range(start_line, last_line + 1):
-                file_lines[line_no] = max(file_lines.get(line_no, 0), count)
+                hit, miss = file_lines.get(line_no, (False, False))
+                if count > 0:
+                    hit = True
+                else:
+                    miss = True
+                file_lines[line_no] = (hit, miss)
 
     return files
 
@@ -176,7 +187,10 @@ def main():
             print(f'  -  {path:<60} no instrumented lines changed')
             continue
 
-        covered = sum(1 for count in instrumented.values() if count > 0)
+        # A line counts as covered only when every block touching it was
+        # hit -- a line with both a hit and a miss block is "partial" in
+        # Codecov's own accounting and gets no credit there either.
+        covered = sum(1 for hit, miss in instrumented.values() if hit and not miss)
         total = len(instrumented)
         line_pct = (covered / total) * 100.0
 

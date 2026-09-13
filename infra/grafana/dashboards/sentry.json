@@ -1,0 +1,41 @@
+{
+  "uid": "sentry-signals",
+  "title": "Sentry",
+  "tags": ["provisioned"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": false,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Unresolved Sentry issues",
+      "description": "Unresolved issues from the Sentry API, queried live through the grafana-sentry-datasource plugin (#1570). No per-deploy churn here — this datasource never touches Prometheus's `instance` label.",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-sentry-datasource", "uid": "sentry" },
+          "queryType": "issues",
+          "issuesQuery": "is:unresolved",
+          "issuesLimit": 1000,
+          "projectIds": [],
+          "environments": []
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["count"], "fields": "" }, "colorMode": "background", "graphMode": "none" }
+    }
+  ]
+}

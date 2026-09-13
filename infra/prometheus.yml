@@ -75,7 +75,7 @@ scrape_configs:
     # into a single "api" series instead of breaking them out.
     #
     # Rename it to something that says what it is, so the dashboards
-    # (infra/grafana/dashboards/app-performance.json) can read naturally.
+    # (infra/grafana/dashboards/api.json) can read naturally.
     metric_relabel_configs:
       - source_labels: [exported_job]
         target_label: job_name
@@ -105,6 +105,34 @@ scrape_configs:
         replacement: "$1:3000"
       # Docker reports container names with a leading slash; strip it so
       # `instance` reads as the plain container name.
+      - source_labels: [__meta_docker_container_name]
+        regex: "/?(.*)"
+        target_label: instance
+        replacement: "$1"
+
+  # Grafana's own /metrics (issue #1580) — same docker_sd pattern as api/web
+  # above, since Grafana is also a Kamal service (config/deploy.grafana.yml)
+  # rather than a docker-compose accessory. metrics_path must be
+  # /grafana/metrics, not the Prometheus default /metrics: unlike the
+  # assumption this comment originally made, GF_SERVER_SERVE_FROM_SUB_PATH
+  # (config/deploy.grafana.yml) *does* apply to /metrics too — a bare
+  # /metrics request 301-redirects to /grafana/metrics (confirmed by
+  # booting the wrapper image locally with the same env vars deploy.grafana.yml
+  # sets), even though this scrape talks to the container IP directly and
+  # never goes through kamal-proxy's public path_prefix routing.
+  - job_name: grafana
+    metrics_path: /grafana/metrics
+    docker_sd_configs: *app_sd
+    relabel_configs:
+      - source_labels: [__meta_docker_container_label_service]
+        regex: tools-xdoubleu-com-grafana
+        action: keep
+      - source_labels: [__meta_docker_network_name]
+        regex: kamal
+        action: keep
+      - source_labels: [__meta_docker_network_ip]
+        target_label: __address__
+        replacement: "$1:3000"
       - source_labels: [__meta_docker_container_name]
         regex: "/?(.*)"
         target_label: instance

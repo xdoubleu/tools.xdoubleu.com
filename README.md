@@ -15,6 +15,7 @@ A monorepo serving multiple web tools. The API is built with Go 1.26, PostgreSQL
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, item categories, and store-ordered export (group items by the aisle order of the store you're visiting). Shared as a unit with your family; stores themselves stay private per-user.
 - **family** — Invite other users by email into a shared "family": one recipe book, one meal plan set and one shopping list that everyone in it sees and edits. At most one family per user; each member can set a display name. Replaces the previous per-app "share with a contact" model (issue #1349, #1403).
 - **trains** — SNCB/NMBS journey planner that stays useful when a trip is delayed mid-journey: a route overview between two stations and a live journey view that re-plans an alternative when a delay breaks it (issue #1388). Routes are computed in-house from the Belgian Mobility Company's open GTFS timetable, refreshed daily. In progress — as of issue #1392 the timetable ingest, journey-search RPC and the `/trains` route overview page exist; the live, self-updating journey view is a later slice.
+- **learningpaths** — Self-directed learning curricula: a path (title, goal, recurring-routine description) made of ordered modules, each with ordered items you check off as you progress, plus a freeform resources list. Scoped per-user, no family sharing. This is the foundational slice (issue #1472) of epic #1471 — MCP write tools and books/feeds resource linking land in later, independent PRs. A per-user Todoist connection (issue #1475) lets you send a path item to your own Todoist account as a one-way task.
 
 Books and games can also be shared publicly: a revocable token link (managed from the Sharing page) exposes read-only profile pages at `/profile/<token>` with the same dashboards, libraries, and backlogs — no account needed.
 
@@ -105,12 +106,17 @@ local `replace` directive rather than duplicating it.
 
 ## Apps MCP server
 
-Every app's own **read-only** data — plus the admin observability signals — is
-exposed to a locally-running Claude CLI over a single streamable-HTTP MCP
-server at `/apps/mcp`, so production domain data and system health can be
-pulled in as context for testing/verifying changes. Every app tool wraps an
-existing **read** RPC of an app (games, books, feeds, recipes, mealplans,
-shoppinglist, trains) — no per-app tool ever mutates. App tools are
+Every app's own data — plus the admin observability signals — is exposed to a
+locally-running Claude CLI over a single streamable-HTTP MCP server at
+`/apps/mcp`, so production domain data and system health can be pulled in as
+context for testing/verifying changes. Every app tool wraps an existing
+**read** RPC of an app (games, books, feeds, recipes, mealplans,
+shoppinglist, trains, learningpaths) — no per-app tool mutates, with one
+deliberate exception: `learningpaths` also exposes three mutating tools
+(`learningpaths_create_path`, `learningpaths_update_path`,
+`learningpaths_record_progress`), since agent-authored curricula is that
+app's core use case, not an add-on → [`docs/adr-0023-learningpaths-mcp-write-tools.md`](docs/adr-0023-learningpaths-mcp-write-tools.md).
+App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 `recipes_list_recipes`, `trains_search_journeys`); the observability tools are unprefixed
 (`get_job_stats`, `get_usage_stats`, `get_storage_stats`,

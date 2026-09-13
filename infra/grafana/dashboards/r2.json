@@ -1,0 +1,54 @@
+{
+  "uid": "r2-storage",
+  "title": "R2 storage",
+  "tags": ["provisioned"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": false,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "R2 storage usage",
+      "description": "r2_storage_bytes gauge from the issue-signal collector (#1539). Alert budget is 9 GiB (R2 free tier is 10 GB). Aggregated with `max(...)` because the gauge is exported by the api process, which gets a fresh docker_sd `instance` label every Kamal deploy (infra/prometheus.yml) — without it, every redeploy added a permanent extra line to this chart (issue #1580).",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "R2 bytes", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(r2_storage_bytes)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 9663676416 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "R2 orphaned objects",
+      "description": "r2_orphaned_objects gauge from the issue-signal collector (#1539). Aggregated with `max(...)` for the same per-deploy-churn reason as the panel above.",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(r2_orphaned_objects)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    }
+  ]
+}

@@ -455,8 +455,9 @@ collector.
   `api/scripts/check_kamal_secrets.sh`. The GitHub secret name is prefixed
   `GRAFANA_` because GitHub Actions forbids a repo secret named `GITHUB_*`.
 - **Only `sentry_unresolved_issues` moved.** The `IssueSentryUnresolved`
-  alert rule and the "Unresolved Sentry issues" `service-health` panel now
-  run a `sentry` Issues query (`is:unresolved`, count reduce, `> 0`); the
+  alert rule and the "Unresolved Sentry issues" panel (moved to its own
+  `sentry` dashboard in Phase 10 below) now run a `sentry` Issues query
+  (`is:unresolved`, count reduce, `> 0`); the
   gauge, `collectSentryIssues`, and the `sentryapi` dependency are gone from
   `IssueSignalCollectorJob` (`cmd/api/main.go` drops the `sentryClient` arg —
   the client stays, `WeeklyDigestJob` and the `get_sentry_issues` MCP tool
@@ -474,7 +475,82 @@ collector.
   datasource uids and only requires `expr` on Prometheus targets;
   `scripts/verify_grafana_image.sh` exports dummy tokens and asserts all
   three datasource uids provisioned.
->>>>>>> 28fd6350 (Register GitHub + Sentry as Grafana datasources; move the Sentry issue signal off the collector)
+
+Phase 10 (#1580) reorganized the dashboards themselves and fixed a
+churn bug Phase 8 missed:
+
+- **`service-health.json` had the same per-redeploy-churn bug Phase 8
+  fixed on `overview.json`/`api-runtime.json`, just missed.** Its
+  `github_workflow_run_failed` and `r2_storage_bytes` timeseries panels were
+  bare exprs with no aggregation, so every redeploy's now-dead `instance`
+  label (the gauges are exported by the `api` process) left a permanent
+  extra line on those two charts. Fixed with the same `max`/`max by (...)`
+  wrapping used elsewhere.
+- **Nine focused, single-domain dashboards replace the four broader ones.**
+  `service-health.json` and `app-performance.json` are gone; their panels
+  moved into new `github.json`, `sentry.json`, `r2.json` and `web.json`
+  dashboards, plus the existing `postgres.json` (per-schema size) and a
+  renamed `api-runtime.json` → `api.json` (all API/job panels together).
+  `overview.json` (unchanged uid) was rebuilt as a direct one-tile-per-rule
+  mirror of every rule in `rules.yml`, replacing its old "Active alerts"
+  panel — that panel queried `ALERTS{alertstate="firing"}`, which has been
+  permanently empty since alerting moved to Grafana-managed rules and
+  `infra/prometheus.yml` stopped having any `rule_files` (Phase 2, #1528).
+- **A new `grafana` scrape job** (`infra/prometheus.yml`) covers Grafana's
+  own `/metrics`, feeding a new `grafana-prometheus.json` dashboard
+  alongside the Prometheus self-health panels moved off `overview.json`.
+  Its `metrics_path` is `/grafana/metrics`, not the Prometheus default —
+  confirmed by booting the wrapper image locally with the same
+  `GF_SERVER_SERVE_FROM_SUB_PATH`/`GF_SERVER_ROOT_URL` env
+  `config/deploy.grafana.yml` sets: a bare `/metrics` 301-redirects there.
+  The same boot also confirmed the exact metric names used
+  (`grafana_http_request_duration_seconds`, `grafana_alerting_scheduler_behind_seconds`,
+  `grafana_alerting_alerts_invalid_total`) — there is no
+  `grafana_alerting_rule_evaluations_total`/`_failures_total` metric in this
+  Grafana version, despite that being the more obvious name to guess.
+  `target-missing`'s `absent()` guard now also covers `job="grafana"`.
+- **This also answered a standing question, with no code change:** the
+  app's own GitHub/Sentry OAuth connections (`internal/github`,
+  `internal/sentryapi`) remain required. Grafana's `github`/`sentry`
+  datasource plugins (Phase 9 above) are a separate, read-only,
+  static-token path that only feeds Grafana's own dashboards/alerts; the
+  app's OAuth-connected clients still back the `/monitoring` page and the
+  MCP tools built on them (`get_failing_pull_requests`,
+  `get_workflow_runs`, `get_security_alerts`, `dismiss_security_alert`,
+  `get_sentry_issues`, `resolve_sentry_issue`, slow-transaction history),
+  including two mutating actions no Grafana plugin can perform.
+
+Phase 11 (#1592) reverses the Slack rejection recorded in this ADR's
+Decision and "Alternatives considered" sections: the email contact point
+(Phase 2, #1528) is replaced with a Grafana-native Slack contact point, per
+user preference for centralized Slack-based alert delivery, not because the
+original "no clear benefit over SMTP" reasoning turned out to be wrong.
+`infra/grafana/provisioning/alerting/contactpoints.yml`'s `email` receiver
+became a `slack` one (`type: slack`, `settings.url:
+$__env{GRAFANA_SLACK_WEBHOOK_URL}`), `policies.yml`'s single flat policy now
+routes to `slack` instead of `email`, and `NOTIFY_EMAIL_TO` was dropped from
+`config/deploy.grafana.yml`'s secret list (it stays a required secret
+elsewhere — `api`'s own mailer and `infra/release-upgrade-check.sh` both
+still read it independently). `scripts/verify_grafana_image.sh` now asserts
+the `slack` contact point instead of `email`.
+
+Phase 12 (#1608) fixed `IssueSentryUnresolved`, which had never actually
+evaluated since Phase 9 introduced it: its `issues` queryType + `reduce`
+(count) + `threshold` pipeline always failed with `[sse.readDataError]
+input data must be a wide series but got type long`, so the rule sat
+permanently `Alerting (Error)` regardless of real Sentry state
+(`grafana/sentry-datasource#266`, filed 2024, never fixed upstream — an
+Issues query returns one row per issue across several numeric columns,
+which the expression engine can't collapse into the single-value series
+`reduce`/`threshold` require). refId A now uses the `eventsStats` queryType
+with `count_unique(issue)` as its Y-axis instead — a genuine time series
+(one value per bucket), which `reduce` (now `max`, not `count`) consumes
+without error. The annotation text changed accordingly, from an exact
+unresolved-issue count to "issues detected" plus the busiest interval's
+distinct-issue count, since a per-bucket reduction no longer yields a
+true window-wide total by construction. `scripts/verify_grafana_image.sh`
+does not need updating — it only asserts the rule name provisions, never
+evaluates it against real Sentry data.
 
 ## Consequences
 

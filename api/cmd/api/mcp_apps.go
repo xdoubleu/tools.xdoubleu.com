@@ -11,19 +11,23 @@ import (
 	"tools.xdoubleu.com/internal/mcptools"
 )
 
-// The apps MCP server exposes each app's read-only RPCs, plus the admin
-// observability signals, to a local Claude CLI over streamable-HTTP, so
-// production domain data and system health can be pulled in as context for
-// testing changes. Every tool is gated either by the caller's own per-app
-// access (mcptools.RequireAppAccess) or, for observability, by admin access
-// (requireAdmin). Every app-provided tool wraps a read handler; the two
-// exceptions are resolve_sentry_issue (closes out a Sentry issue an agent
-// just filed a fix for) and dismiss_security_alert (dismisses/resolves a
-// GitHub Dependabot/code-scanning/secret-scanning alert), both admin-gated
-// mutations. Every tool reuses the same OAuth 2.1 resource-server plumbing:
-// the api is both the resource server and, via the embedded
-// internal/oauth2as provider (issue #1039), the authorization server — no
-// external Auth provider involved.
+// The apps MCP server exposes each app's RPCs, plus the admin observability
+// signals, to a local Claude CLI over streamable-HTTP, so production domain
+// data and system health can be pulled in as context for testing changes.
+// Every tool is gated either by the caller's own per-app access
+// (mcptools.RequireAppAccess) or, for observability, by admin access
+// (requireAdmin). Every app-provided tool wraps a read handler, with one
+// deliberate exception: learningpaths' create_path/update_path/
+// record_progress tools mutate, since agent-authored curricula is that app's
+// core use case → docs/adr-0023-learningpaths-mcp-write-tools.md. The
+// observability tools have their own two mutating exceptions,
+// resolve_sentry_issue (closes out a Sentry issue an agent just filed a fix
+// for) and dismiss_security_alert (dismisses/resolves a GitHub
+// Dependabot/code-scanning/secret-scanning alert), both admin-gated. Every
+// tool reuses the same OAuth 2.1 resource-server plumbing: the api is both
+// the resource server and, via the embedded internal/oauth2as provider
+// (issue #1039), the authorization server — no external Auth provider
+// involved.
 
 const (
 	appsMCPServerName = "tools-apps"

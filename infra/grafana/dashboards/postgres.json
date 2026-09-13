@@ -141,6 +141,22 @@
         "overrides": []
       },
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Database size by schema",
+      "description": "Per-schema on-disk size. postgres_exporter only exposes per-database size (panel 5 above); this gauge is refreshed every 5 minutes by IssueSignalCollectorJob from DBStatsRepository.SchemaSizes.",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{schema}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "postgres_schema_size_bytes" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 20, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
     }
   ]
 }

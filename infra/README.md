@@ -510,6 +510,11 @@ KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
 KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
+TODOIST_OAUTH_CLIENT_ID      (learningpaths' per-user Todoist connect flow,
+                              issue #1475 — the app's own client id/secret
+                              only; each user's own connection is stored in
+                              learningpaths.oauth_connections, not here)
+TODOIST_OAUTH_CLIENT_SECRET
 ENCRYPTION_KEY
 RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
                               contact-point password — issue #1468 — via
@@ -517,12 +522,7 @@ RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
                               GF_SMTP_PASSWORD env key)
 EMAIL_FROM                   (also reused as Grafana's GF_SMTP_FROM_ADDRESS,
                               issue #1468)
-NOTIFY_EMAIL_TO              (admin recipient for api's notification emails;
-                              also Grafana's alert-email recipient via the
-                              "Deploy grafana via Kamal" step's NOTIFY_EMAIL_TO
-                              env key, read by $__env{} in
-                              infra/grafana/provisioning/alerting/contactpoints.yml
-                              — issue #1528 follow-up)
+NOTIFY_EMAIL_TO              (admin recipient for api's notification emails)
 EMAIL_INBOUND_DOMAIN
 EMAIL_INBOUND_SECRET
 OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
@@ -547,7 +547,12 @@ GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
                               + event:read, for the grafana-sentry-datasource
                               plugin; issue #1570 — same wiring as above.
                               Backs the IssueSentryUnresolved alert + the
-                              service-health dashboard's Sentry panel)
+                              Sentry dashboard's panel)
+GRAFANA_SLACK_WEBHOOK_URL    (Slack Incoming Webhook URL — the alert contact
+                              point, issue #1592 — read by $__env{} in
+                              infra/grafana/provisioning/alerting/contactpoints.yml
+                              via the "Deploy grafana via Kamal" step. Replaces
+                              the #1528 email contact point)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear

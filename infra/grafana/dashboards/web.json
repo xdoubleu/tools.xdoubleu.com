@@ -1,0 +1,65 @@
+{
+  "uid": "web",
+  "title": "Web",
+  "tags": ["provisioned"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": false,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "LCP p75",
+      "description": "Largest Contentful Paint at the 75th percentile — the threshold Core Web Vitals is defined against. Good < 2.5s.",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.75, sum by (le) (rate(web_vitals_seconds_bucket{metric=\"LCP\"}[30m])))" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "orange", "value": 2.5 }, { "color": "red", "value": 4 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "TTFB p95",
+      "description": "Time to First Byte at the 95th percentile, reported by the browser beacon (web/app/_components/web-vitals.tsx). The same expression the FrontendP95High alert rule thresholds at 5s.",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(web_vitals_seconds_bucket{metric=\"TTFB\"}[30m])))" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 5 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Core Web Vitals p75",
+      "description": "Reported by the browser beacon (web/app/_components/web-vitals.tsx). p75 is the percentile the Core Web Vitals thresholds are defined at. No route label — these are site-wide.",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{metric}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.75, sum by (le, metric) (rate(web_vitals_seconds_bucket[30m])))" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "never" } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ]
+}

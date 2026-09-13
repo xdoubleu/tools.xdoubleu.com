@@ -12,6 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/dashboard"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/games"
+	"tools.xdoubleu.com/apps/learningpaths"
 	"tools.xdoubleu.com/apps/mealplans"
 	"tools.xdoubleu.com/apps/recipes"
 	"tools.xdoubleu.com/apps/shoppinglist"
@@ -19,6 +20,7 @@ import (
 	"tools.xdoubleu.com/apps/watchparty"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/notifications"
 	"tools.xdoubleu.com/internal/repositories"
@@ -50,6 +52,7 @@ func NewApps(
 	notifications *notifications.Service,
 	appUsersRepo *repositories.AppUsersRepository,
 	familyRepo *repositories.FamilyRepository,
+	authSealer *crypto.Sealer,
 ) (*Apps, *books.Books, *feeds.Feeds) {
 	var apps Apps = []App{}
 
@@ -82,6 +85,20 @@ func NewApps(
 	// wiring, so it appends here without disturbing the load-bearing order
 	// above (issue #1390).
 	apps.addApp(trains.New(authService, logger, cfg, db))
+	// learningpaths has no migration dependency on any other app's schema
+	// either, same as trains above — it appends here rather than requiring a
+	// particular slot. It takes live references to booksApp/feedsApp
+	// (constructed above) to resolve resources linked to a books/feeds
+	// entry, the same exported-methods-only pattern dashboard uses (#1474).
+	// authSealer is threaded through for its own per-user Todoist OAuth
+	// connections (issue #1475, learningpaths.oauth_connections) — a
+	// separate table from global.oauth_connections, reusing the same
+	// encryption key.
+	apps.addApp(
+		learningpaths.New(
+			authService, logger, cfg, db, authSealer, booksApp, feedsApp,
+		),
+	)
 
 	return &apps, booksApp, feedsApp
 }

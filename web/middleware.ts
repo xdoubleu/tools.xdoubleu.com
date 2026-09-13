@@ -18,6 +18,8 @@ export function middleware() {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
+    // Book preview: PDFs render in an <iframe> pointed at a presigned R2 URL.
+    "frame-src 'self' https://*.r2.cloudflarestorage.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'"

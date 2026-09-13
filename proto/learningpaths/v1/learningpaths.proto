@@ -1,0 +1,213 @@
+syntax = "proto3";
+package learningpaths.v1;
+option go_package = "tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1";
+
+// NOTE on message shape: unlike recipes.proto's flattened-parallel-array
+// convention (ingredient_names[]/ingredient_amounts[]/... kept in lockstep by
+// index), LearningPath is a genuine three-level tree (path -> modules ->
+// items). Three parallel arrays deep would be unreadable and error-prone to
+// keep aligned, so this proto uses ordinary nested messages instead. Create/
+// Update requests take the same nested LearningPath shape and round-trip the
+// whole tree in a single call — there are no separate module/item RPCs.
+
+message Item {
+  string id = 1;
+  string module_id = 2;
+  // Freeform for now (e.g. "read", "study", "do", "checkpoint") rather than
+  // an enum — kept simple until real usage shows a fixed set is warranted.
+  string type = 3;
+  string description = 4;
+  int32 sort_order = 5;
+  bool completed = 6;
+}
+
+message Module {
+  string id = 1;
+  string learning_path_id = 2;
+  string title = 3;
+  int32 sort_order = 4;
+  repeated Item items = 5;
+}
+
+// LinkedBook is the resolved, read-only state of a resource's linked books
+// library entry (#1474) — populated on Get/List only, when linked_book_id
+// still resolves for the caller; never set by the client and ignored on
+// Create/Update.
+message LinkedBook {
+  string title = 1;
+  string status = 2;
+  int32 progress_percent = 3;
+  string cover_url = 4;
+}
+
+// LinkedFeedItem is the resolved, read-only state of a resource's linked
+// feeds item (#1474) — same populate-on-read-only rule as LinkedBook.
+message LinkedFeedItem {
+  string title = 1;
+  string source_url = 2;
+  bool read = 3;
+  bool bookmarked = 4;
+}
+
+// Resources are freeform text entries by default (e.g. "Book: ...",
+// "https://..."). Setting linked_book_id or linked_feed_item_id instead
+// links the resource to an existing books library entry or feeds item
+// (#1474) — additive to the freeform text field, which most resources still
+// use (a physical book, a plain website, etc. have nothing to link to).
+// Setting both, or setting one while text is also non-empty, is allowed;
+// text becomes a caller-supplied caption alongside the resolved link state.
+message Resource {
+  string id = 1;
+  string learning_path_id = 2;
+  string text = 3;
+  int32 sort_order = 4;
+  optional string linked_book_id = 5;
+  optional string linked_feed_item_id = 6;
+  LinkedBook linked_book = 7;
+  LinkedFeedItem linked_feed_item = 8;
+}
+
+message LearningPath {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string goal = 4;
+  // Freeform description of the recurring routine (e.g. "30 min every
+  // weekday morning").
+  string routine = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  repeated Module modules = 8;
+  repeated Resource resources = 9;
+}
+
+message ListLearningPathsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message ListLearningPathsResponse {
+  repeated LearningPath learning_paths = 1;
+  bool has_more = 2;
+}
+
+message GetLearningPathRequest {
+  string id = 1;
+}
+message GetLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message CreateLearningPathRequest {
+  string title = 1;
+  string goal = 2;
+  string routine = 3;
+  repeated Module modules = 4;
+  repeated Resource resources = 5;
+}
+message CreateLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message UpdateLearningPathRequest {
+  string id = 1;
+  string title = 2;
+  string goal = 3;
+  string routine = 4;
+  repeated Module modules = 5;
+  repeated Resource resources = 6;
+}
+message UpdateLearningPathResponse {
+  LearningPath learning_path = 1;
+}
+
+message DeleteLearningPathRequest {
+  string id = 1;
+}
+message DeleteLearningPathResponse {}
+
+// RecordItemProgress toggles a single item's completion flag without
+// resending the whole tree — the dedicated path both the "check an item off"
+// UI action and an MCP tool (learningpaths_record_progress, #1473) use.
+message RecordItemProgressRequest {
+  string item_id = 1;
+  bool completed = 2;
+}
+message RecordItemProgressResponse {}
+
+// ModuleProgress is one module's completion count within a
+// GetLearningPathProgressResponse.
+message ModuleProgress {
+  string id = 1;
+  string title = 2;
+  int32 total_items = 3;
+  int32 completed_items = 4;
+}
+
+message GetLearningPathProgressRequest {
+  string id = 1;
+}
+
+// GetLearningPathProgressResponse reports completion counts derived
+// server-side from current item state, both overall and per module — added
+// in #1473 so the learningpaths_get_progress MCP tool (and any future UI
+// progress bar) reads a real RPC instead of re-deriving counts from
+// GetLearningPath's full tree.
+message GetLearningPathProgressResponse {
+  string learning_path_id = 1;
+  string title = 2;
+  int32 total_items = 3;
+  int32 completed_items = 4;
+  repeated ModuleProgress modules = 5;
+}
+
+service LearningPathsService {
+  rpc ListLearningPaths(ListLearningPathsRequest) returns (ListLearningPathsResponse);
+  rpc GetLearningPath(GetLearningPathRequest) returns (GetLearningPathResponse);
+  rpc CreateLearningPath(CreateLearningPathRequest) returns (CreateLearningPathResponse);
+  rpc UpdateLearningPath(UpdateLearningPathRequest) returns (UpdateLearningPathResponse);
+  rpc DeleteLearningPath(DeleteLearningPathRequest) returns (DeleteLearningPathResponse);
+  rpc RecordItemProgress(RecordItemProgressRequest) returns (RecordItemProgressResponse);
+  rpc GetLearningPathProgress(GetLearningPathProgressRequest) returns (GetLearningPathProgressResponse);
+}
+
+// TodoistService (issue #1475) lets a user connect their own Todoist account
+// and send a single path item to it as a task, one-way (no sync-back —
+// completing the Todoist task never flips the item's own `completed` flag).
+// A separate service, not folded into LearningPathsService, mirroring how
+// books.v1 splits LibraryService/BookFilesService/KoboService/CatalogService
+// by concern rather than one service per app.
+message ConnectTodoistRequest {}
+message ConnectTodoistResponse {
+  // authorize_url is where the client should navigate the browser to start
+  // Todoist's OAuth2 authorization-code flow. The callback leg that
+  // completes the flow is a plain HTTP redirect route, not a ConnectRPC
+  // method — see learningpaths' routes.go.
+  string authorize_url = 1;
+}
+
+message DisconnectTodoistRequest {}
+message DisconnectTodoistResponse {}
+
+message GetTodoistConnectionStatusRequest {}
+message GetTodoistConnectionStatusResponse {
+  bool connected = 1;
+  // connected_at is RFC3339, empty when not connected.
+  string connected_at = 2;
+}
+
+message SendItemToTodoistRequest {
+  string item_id = 1;
+}
+message SendItemToTodoistResponse {
+  // todoist_task_id is Todoist's own id for the created task, echoed back
+  // only for the caller's confirmation UI — nothing here is retained
+  // server-side to correlate the two systems, per "no two-way sync".
+  string todoist_task_id = 1;
+}
+
+service TodoistService {
+  rpc ConnectTodoist(ConnectTodoistRequest) returns (ConnectTodoistResponse);
+  rpc DisconnectTodoist(DisconnectTodoistRequest) returns (DisconnectTodoistResponse);
+  rpc GetTodoistConnectionStatus(GetTodoistConnectionStatusRequest) returns (GetTodoistConnectionStatusResponse);
+  rpc SendItemToTodoist(SendItemToTodoistRequest) returns (SendItemToTodoistResponse);
+}

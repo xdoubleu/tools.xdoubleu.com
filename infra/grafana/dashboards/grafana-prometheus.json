@@ -1,0 +1,150 @@
+{
+  "uid": "grafana-prometheus",
+  "title": "Grafana & Prometheus",
+  "tags": ["provisioned"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "editable": false,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Grafana up",
+      "description": "up{job=\"grafana\"} — the grafana slice of the TargetDown/TargetMissing alert rules (issue #1580). Aggregated `min by (job)` for the same reason as api/web: the docker_sd `instance` label churns every Kamal deploy.",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "min by (job) (up{job=\"grafana\"})" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Prometheus self scrape duration",
+      "description": "Aggregated `max by (job)` for the same reason as the panel below — the docker_sd `instance` label churns every Kamal deploy on api/web; harmless here since `prometheus` is a static_config, kept consistent with the rest of the dashboard.",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (scrape_duration_seconds{job=\"prometheus\"})" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Failed scrapes (5m)",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(increase(prometheus_target_scrapes_sample_out_of_order_total[5m])) + sum(count by (job) (up == 0))" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "TSDB storage size",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "prometheus_tsdb_storage_blocks_bytes" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "none", "graphMode": "area" }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Scrape duration by job",
+      "description": "Aggregated `max by (job)` because api/web/grafana get a fresh docker_sd `instance` label every Kamal deploy.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{job}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max by (job) (scrape_duration_seconds)" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "TSDB head series",
+      "description": "Series cardinality vs the single-VPS memory budget (infra/prometheus-compose.yml notes ~3GB free, 90d retention).",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "head series", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "prometheus_tsdb_head_series" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" },
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 100000 }, { "color": "red", "value": 300000 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Grafana HTTP request duration (p95)",
+      "description": "grafana_http_request_duration_seconds, Grafana's own request-handling latency — separate from the reverse-proxied /grafana path timing kamal-proxy might show. Metric name/labels (handler, method, status_code) confirmed by booting the wrapper image locally and curling /grafana/metrics (issue #1580).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "{{handler}}", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "topk(10, histogram_quantile(0.95, sum by (le, handler) (rate(grafana_http_request_duration_seconds_bucket[5m]))))" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 0, "showPoints": "never" } },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Alerting scheduler health",
+      "description": "grafana_alerting_scheduler_behind_seconds (how far the alert scheduler has fallen behind wall-clock — should stay ~0) and grafana_alerting_alerts_invalid_total (received alerts Grafana couldn't parse) — whether the rules in infra/grafana/provisioning/alerting/rules.yml (what this whole reorg's Overview dashboard mirrors) are actually evaluating on schedule, not just whether Grafana is up. There is no grafana_alerting_rule_evaluations_total/failures_total metric in this Grafana version — confirmed by booting the wrapper image locally and curling /grafana/metrics; grafana_alerting_alerts{state=...} (also verified present) is a plausible alternative if per-state alert counts prove more useful once real data comes in.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "legendFormat": "scheduler behind (s)", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "grafana_alerting_scheduler_behind_seconds" },
+        { "refId": "B", "legendFormat": "invalid alerts/s", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(grafana_alerting_alerts_invalid_total[5m]))" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "showPoints": "never" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "invalid alerts/s" }, "properties": [ { "id": "unit", "value": "ops" }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } } ] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    }
+  ]
+}

@@ -976,18 +976,23 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 	const isolatedUser = "norm-title-subtitle-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
-	t.Cleanup(func() {
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
-	})
 
 	// Library has "The Silmarillion" without the subtitle.
 	ub := seedBookInLibrary(
 		t, isolatedUser,
 		"The Silmarillion", "J.R.R. Tolkien", "",
 	)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
+		// Matching is now catalog-wide (recognizeBook step 3), so a leftover
+		// catalog row from a prior local run would otherwise be picked up
+		// ahead of the one this run just seeded.
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
+	})
 
 	// EPUB carries the full title with subtitle.
 	data := buildEPUBBytes(
@@ -1021,17 +1026,22 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 	const isolatedUser = "norm-author-lastfirst-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
-	t.Cleanup(func() {
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
-		_, _ = testDB.Exec(context.Background(),
-			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
-	})
 
 	// Library has "First Last" author format.
 	ub := seedBookInLibrary(
 		t, isolatedUser, "The Two Towers", "J.R.R. Tolkien", "",
 	)
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
+		// Matching is now catalog-wide (recognizeBook step 3), so a leftover
+		// catalog row from a prior local run would otherwise be picked up
+		// ahead of the one this run just seeded.
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
+	})
 
 	// EPUB carries "Last, First" author format.
 	data := buildEPUBBytes("The Two Towers", "Tolkien, J.R.R.", "")
@@ -1056,6 +1066,68 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 		"last-comma-first author format must still link",
 	)
 	assert.Equal(t, ub.BookID, result.UserBook.BookID)
+}
+
+// TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary verifies the fix for
+// the reported bug: a second user uploading the same book (in a different
+// format/file) must attach to the existing catalog entry another user
+// already owns, instead of spawning a duplicate catalog book — exercising
+// recognizeBook's catalog-wide step 3 and resolveOrCreateUserBook's
+// create-a-new-user_book branch.
+func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
+	const ownerUser = "catalog-match-owner-user"
+	const uploaderUser = "catalog-match-uploader-user"
+	app2 := noExternalMatchApp(t, uploaderUser)
+
+	// Another user already has this book in their library.
+	ub := seedBookInLibrary(t, ownerUser, "The Silmarillion", "J.R.R. Tolkien", "")
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.user_books WHERE user_id IN ($1, $2)`,
+			ownerUser, uploaderUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.book_files WHERE user_id IN ($1, $2)`,
+			ownerUser, uploaderUser)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
+	})
+
+	// The uploading user's own library has no entry for this book, so steps
+	// 1-2 must miss and only the catalog-wide step 3 can find it.
+	data := buildEPUBBytes("The Silmarillion", "J.R.R. Tolkien", "")
+	uploadID, _, _, err := app2.Services.Books.CreateUpload(
+		context.Background(), uploaderUser, "silm.epub", "application/epub+zip",
+		int64(len(data)), "",
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID,
+		bytes.NewReader(data), int64(len(data)), "application/epub+zip",
+	))
+
+	result, err := app2.Services.Books.FinalizeUpload(
+		context.Background(), uploaderUser, uploadID,
+		"silm.epub", "application/epub+zip", "", "", "",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.True(
+		t,
+		result.MatchedExisting,
+		"existing catalog book must link, not duplicate",
+	)
+	assert.Equal(t, ub.BookID, result.UserBook.BookID)
+	assert.NotEqual(
+		t, ub.ID, result.UserBook.ID,
+		"the uploader must get their own user_book row, not the owner's",
+	)
+
+	// The uploading user now has their own library entry for the book.
+	attached, err := testApp.Services.Books.GetUserBook(
+		context.Background(), uploaderUser, ub.BookID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, ub.BookID, attached.BookID)
 }
 
 // TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive verifies

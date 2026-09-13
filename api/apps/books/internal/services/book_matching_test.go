@@ -315,6 +315,105 @@ func TestMatchLibraryByMetadata_EmptyLibrary(t *testing.T) {
 	assert.Nil(t, got)
 }
 
+// --- matchCatalogByMetadata ---
+
+func TestMatchCatalogByMetadata_ExactMatchNotInCallersLibrary(t *testing.T) {
+	// Simulates GetCatalogWithUserOverlay: the catalog holds a book another
+	// user already has, and the uploading user doesn't have it yet — the
+	// entry is still a valid attach target.
+	catalog := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Hobbit",
+		Authors: []string{"J.R.R. Tolkien"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.NotNil(t, got)
+	assert.Equal(t, catalog[0].BookID, got.BookID)
+}
+
+func TestMatchCatalogByMetadata_FuzzyReorderedTitle(t *testing.T) {
+	// Exact matchLibraryByMetadata would miss this — the fuzzy fallback
+	// (same Jaccard threshold FindDuplicateGroups uses) must catch it.
+	catalog := []models.UserBook{
+		makeUserBook("Fellowship of the Ring, The", []string{"J.R.R. Tolkien"}),
+	}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Fellowship of the Ring",
+		Authors: []string{"J.R.R. Tolkien"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.NotNil(t, got)
+	assert.Equal(t, catalog[0].BookID, got.BookID)
+}
+
+func TestMatchCatalogByMetadata_FuzzyDoesNotMergeDifferentVolumes(t *testing.T) {
+	catalog := []models.UserBook{
+		makeUserBook(
+			"Mistborn Saga Legendary Heroes Volume 1",
+			[]string{"Brandon Sanderson"},
+		),
+	}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "Mistborn Saga Legendary Heroes Volume 2",
+		Authors: []string{"Brandon Sanderson"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.Nil(t, got)
+}
+
+func TestMatchCatalogByMetadata_FuzzyRequiresAuthorOverlap(t *testing.T) {
+	catalog := []models.UserBook{
+		makeUserBook("Fellowship of the Ring, The", []string{"J.R.R. Tolkien"}),
+	}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Fellowship of the Ring",
+		Authors: []string{"George Orwell"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.Nil(t, got)
+}
+
+func TestMatchCatalogByMetadata_BelowThreshold_NoMatch(t *testing.T) {
+	catalog := []models.UserBook{
+		makeUserBook("The Fellowship of the Ring", []string{"J.R.R. Tolkien"}),
+	}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Return of the King",
+		Authors: []string{"J.R.R. Tolkien"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.Nil(t, got)
+}
+
+func TestMatchCatalogByMetadata_EmptyTitle_NoMatch(t *testing.T) {
+	catalog := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "",
+		Authors: []string{"J.R.R. Tolkien"},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.Nil(t, got)
+}
+
+func TestMatchCatalogByMetadata_EmptyAuthors_NoMatch(t *testing.T) {
+	catalog := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Fellowship of the Ring",
+		Authors: []string{},
+	}
+	got := matchCatalogByMetadata(catalog, meta)
+	assert.Nil(t, got)
+}
+
+func TestMatchCatalogByMetadata_EmptyCatalog(t *testing.T) {
+	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
+		Title:   "The Hobbit",
+		Authors: []string{"J.R.R. Tolkien"},
+	}
+	got := matchCatalogByMetadata(nil, meta)
+	assert.Nil(t, got)
+}
+
 // --- FindDuplicateGroups ---
 
 func isbn13Ptr(s string) *string { return &s }

@@ -19,9 +19,10 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// appsToolNames lists every read-only tool the combined /apps/mcp server
-// registers, grouped by app, plus the admin observability tools.
-// Keep in sync with each apps/<app>/mcp.go and registerObservabilityMCPTools.
+// appsToolNames lists every tool the combined /apps/mcp server registers,
+// grouped by app, plus the admin observability tools. Every app's tools are
+// read-only except learningpaths' three mutating tools (adr-0023). Keep in
+// sync with each apps/<app>/mcp.go and registerObservabilityMCPTools.
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsToolNames = []string{
@@ -50,6 +51,12 @@ var appsToolNames = []string{
 	// trains (4)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
 	"trains_get_journey_detail",
+	// learningpaths (6) — create_path/update_path/record_progress mutate
+	// (adr-0023), the one exception to every other app's tools being
+	// read-only.
+	"learningpaths_list_paths", "learningpaths_get_path",
+	"learningpaths_get_progress", "learningpaths_create_path",
+	"learningpaths_update_path", "learningpaths_record_progress",
 	// observability (17, admin-gated)
 	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
@@ -301,7 +308,15 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"shoppinglist_get_meal_plan_export_items": map[string]any{"plan_id": uid},
 		"shoppinglist_get_plan_ingredient_groups": map[string]any{"plan_id": uid},
 		"shoppinglist_get_store_categories":       map[string]any{"store_id": uid},
-		"resolve_sentry_issue":                    map[string]any{"issue_id": uid},
+		"learningpaths_get_path":                  map[string]any{"id": uid},
+		"learningpaths_get_progress":              map[string]any{"id": uid},
+		"learningpaths_update_path": map[string]any{
+			"id": uid, "title": "t",
+		},
+		"learningpaths_record_progress": map[string]any{
+			"item_id": uid, "completed": true,
+		},
+		"resolve_sentry_issue": map[string]any{"issue_id": uid},
 		"dismiss_security_alert": map[string]any{
 			"alert_type":   "dependabot",
 			"alert_number": 1,
@@ -344,9 +359,24 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, allowed.IsError, "user with games access was denied")
 
-	for _, name := range []string{"books_get_library", "recipes_list_recipes"} {
-		//nolint:exhaustruct // only the tool name is required to call it
-		res, callErr := session.CallTool(ctx, &mcp.CallToolParams{Name: name})
+	// learningpaths_create_path is a mutating tool (adr-0023) — checked
+	// alongside a read tool to prove the access gate denies both equally,
+	// not just reads. Both need their required arguments filled in, or the
+	// SDK's schema validation rejects the call before RequireAppAccess ever
+	// runs, which would mask what this test is actually checking.
+	deniedToolArgs := map[string]any{
+		"learningpaths_get_path":    map[string]any{"id": uuid.NewString()},
+		"learningpaths_create_path": map[string]any{"title": "Hidden Path"},
+	}
+	for _, name := range []string{
+		"books_get_library", "recipes_list_recipes",
+		"learningpaths_get_path", "learningpaths_create_path",
+	} {
+		//nolint:exhaustruct // name + optional arguments are all a call needs
+		res, callErr := session.CallTool(ctx, &mcp.CallToolParams{
+			Name:      name,
+			Arguments: deniedToolArgs[name],
+		})
 		assert.Containsf(t, strings.ToLower(toolMessage(res, callErr)),
 			"access to", "expected %s to be denied", name)
 	}

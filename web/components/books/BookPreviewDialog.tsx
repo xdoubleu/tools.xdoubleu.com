@@ -72,12 +72,19 @@ export default function BookPreviewDialog({
   // closing the dialog while it's still loading destroys the underlying book but the pending
   // promise chain runs on regardless and throws reading the now-cleared state, surfacing as an
   // unhandled rejection well after unmount (issue #1158) rather than a catchable render error.
-  // Swallow only these two known-benign signatures; keep the guard alive briefly past unmount
+  // Swallow only these known-benign signatures; keep the guard alive briefly past unmount
   // since the rejection can land after this effect's own cleanup has already run.
   useEffect(() => {
     if (!data || isPDF) return
     const isKnownReaderRace = (message: string) =>
-      message === 'Connection closed.' || message.includes("evaluating 'this.book.package'")
+      message === 'Connection closed.' ||
+      message.includes("evaluating 'this.book.package'") ||
+      // Some EPUBs (commonly Calibre-recompiled ones) ship a TOC whose first
+      // entry points to a spine item that doesn't exist — react-reader's own
+      // fallback navigation still targets it, and epub.js rejects display()
+      // with this message (issue #1594). location={0} below sidesteps this
+      // for the initial page; this covers a later click on the broken entry.
+      message === 'No Section Found'
     const onRejection = (event: PromiseRejectionEvent) => {
       const message = event.reason instanceof Error ? event.reason.message : String(event.reason)
       if (isKnownReaderRace(message)) event.preventDefault()
@@ -138,8 +145,13 @@ export default function BookPreviewDialog({
               url={data.url}
               title={title}
               epubInitOptions={{ openAs: 'epub' }}
-              // location/locationChanged are required by ReactReader's props
-              location={null}
+              // Force the initial page to spine index 0 rather than letting
+              // react-reader fall back to the book's own TOC (toc[0].href):
+              // some EPUBs ship a first TOC entry pointing to a spine item
+              // that doesn't exist, which fails with "No Section Found"
+              // (issue #1594). Spine index 0 is guaranteed to exist by the
+              // EPUB spec. locationChanged is required by ReactReader's props.
+              location={0}
               locationChanged={() => {}}
             />
           )}

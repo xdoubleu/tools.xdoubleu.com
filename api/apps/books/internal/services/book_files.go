@@ -161,6 +161,38 @@ func (s *BookService) FinalizeUpload(
 	)
 }
 
+// attachToCatalogBook adds an existing catalog book to userID's library if
+// they don't already have it there, returning the resulting user_book. book
+// must already be a fetched catalog entry (e.g. from
+// GetCatalogWithUserOverlay) — its data is reused for a newly-created row
+// instead of an extra round trip to re-fetch it.
+func (s *BookService) attachToCatalogBook(
+	ctx context.Context,
+	userID string,
+	book *models.Book,
+) (*models.UserBook, error) {
+	ub, err := s.books.GetUserBook(ctx, userID, book.ID)
+	if err == nil {
+		return ub, nil
+	}
+	if !errors.Is(err, database.ErrResourceNotFound) {
+		return nil, err
+	}
+
+	newUB := models.UserBook{ //nolint:exhaustruct //optional fields
+		UserID:         userID,
+		BookID:         book.ID,
+		Book:           book,
+		Status:         models.StatusToRead,
+		Tags:           []string{},
+		ShelfPositions: map[string]int{},
+	}
+	if upsertErr := s.books.UpsertUserBook(ctx, newUB); upsertErr != nil {
+		return nil, upsertErr
+	}
+	return &newUB, nil
+}
+
 // finalizeDuplicate handles an upload where a canonical blob for the checksum
 // already exists. It creates (or returns) the calling user's book_files row
 // pointing at the existing blob, without transferring any bytes.
@@ -493,8 +525,12 @@ func extForFormat(format string) string {
 // Matching is attempted in order from most to least precise:
 //  1. ISBN13 exact match
 //  2. Exact case-insensitive title + first author
-//  3. Normalized title + author last-name overlap (strips subtitles, folds
-//     diacritics, handles "Last, First" vs "First Last" formatting)
+//  3. Catalog-wide normalized title + author last-name overlap, exact then
+//     fuzzy (strips subtitles, folds diacritics, handles "Last, First" vs
+//     "First Last" formatting, tolerates reordered/series-suffixed titles) —
+//     searches every catalog book, not just ones already in this user's
+//     library, so the same book uploaded a second time in a different format
+//     attaches to the existing catalog entry instead of spawning a duplicate
 //  4. External search across configured providers (creates a new library
 //     entry, matchedExisting=false)
 func (s *BookService) recognizeBook(
@@ -526,15 +562,16 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 3. Normalized title + author last-name overlap.
-	// Fetches the full library once; the list is small relative to the
-	// cost of the external HTTP round-trip(s) that would otherwise follow.
-	lib, err := s.books.GetLibrary(ctx, userID)
+	// 3. Catalog-wide normalized title + author overlap, exact then fuzzy.
+	// Fetches the whole catalog once; the list is small relative to the cost
+	// of the external HTTP round-trip(s) that would otherwise follow.
+	catalog, err := s.books.GetCatalogWithUserOverlay(ctx, userID)
 	if err != nil {
 		return nil, false, err
 	}
-	if ub := matchLibraryByMetadata(lib, meta); ub != nil {
-		return ub, true, nil
+	if match := matchCatalogByMetadata(catalog, meta); match != nil {
+		ub, attachErr := s.attachToCatalogBook(ctx, userID, match.Book)
+		return ub, attachErr == nil, attachErr
 	}
 
 	// 4. Try the configured providers when a title is available.
