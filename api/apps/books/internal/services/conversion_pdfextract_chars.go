@@ -3,6 +3,7 @@ package services
 import (
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/klippa-app/go-pdfium/responses"
 )
@@ -12,6 +13,10 @@ import (
 type pdfChar struct {
 	text                     string
 	left, top, right, bottom float64
+	// font is the name of the font this character was rendered with (empty
+	// when font information wasn't collected). A change in font name between
+	// two adjacent characters marks a text-run boundary — see buildLine.
+	font string
 }
 
 // pdfLine is one reconstructed line of text with its bounding box and the
@@ -59,12 +64,17 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
+		var font string
+		if c.FontInformation != nil {
+			font = c.FontInformation.Name
+		}
 		chars = append(chars, pdfChar{
 			text:   text,
 			left:   c.PointPosition.Left,
 			top:    c.PointPosition.Top,
 			right:  c.PointPosition.Right,
 			bottom: c.PointPosition.Bottom,
+			font:   font,
 		})
 	}
 	return chars
@@ -267,10 +277,53 @@ func groupYMid(g []pdfChar) float64 {
 	return sum / float64(len(g))
 }
 
+// lastRune/firstRune return the last/first rune of s, or the zero rune for
+// an empty string.
+func lastRune(s string) rune {
+	r := []rune(s)
+	if len(r) == 0 {
+		return 0
+	}
+	return r[len(r)-1]
+}
+
+func firstRune(s string) rune {
+	for _, r := range s {
+		return r
+	}
+	return 0
+}
+
+// needsRunBoundarySpace reports whether a space belongs between two
+// horizontally-adjacent characters already known to sit on the same line:
+// either the physical gap between their boxes exceeds lineSpaceGapRatio *
+// medH (the original geometric check), or they come from different
+// font/style runs (prev.font != c.font, both known) and both sides of the
+// boundary are alphabetic. The latter catches #1653: PDFium reports no
+// whitespace glyph at a run boundary that falls mid-word-gap (e.g. "of" in
+// one run, "Growth" in an adjacent italic run), so the geometric gap alone
+// can be far too small to notice — but a run boundary between two letters
+// reliably is a word boundary in body text. Font information is unset
+// (empty string on both sides) unless CollectFontInformation was requested,
+// so this never fires without it — buildLine falls back to the pre-#1653
+// gap-only behavior.
+func needsRunBoundarySpace(prev, c pdfChar, medH float64) bool {
+	if c.left-prev.right > lineSpaceGapRatio*medH {
+		return true
+	}
+	if prev.font == "" || c.font == "" || prev.font == c.font {
+		return false
+	}
+	return unicode.IsLetter(lastRune(prev.text)) && unicode.IsLetter(firstRune(c.text))
+}
+
 // buildLine sorts a line's characters left-to-right, joins their text
 // (inserting a space where the horizontal gap between consecutive character
-// boxes exceeds 0.25 * the line's median character height), and computes the
-// line's bounding box.
+// boxes exceeds 0.25 * the line's median character height, or where two
+// adjacent alphabetic characters come from different font/style runs — see
+// #1653: a style change at a word boundary doesn't reliably line up with a
+// physical gap large enough for the geometric check alone to catch), and
+// computes the line's bounding box.
 func buildLine(chars []pdfChar) pdfLine {
 	sort.SliceStable(
 		chars,
@@ -287,7 +340,7 @@ func buildLine(chars []pdfChar) pdfLine {
 	top, bottom := chars[0].top, chars[0].bottom
 
 	for i, c := range chars {
-		if i > 0 && c.left-chars[i-1].right > lineSpaceGapRatio*medH {
+		if i > 0 && needsRunBoundarySpace(chars[i-1], c, medH) {
 			b.WriteByte(' ')
 		}
 		b.WriteString(c.text)
