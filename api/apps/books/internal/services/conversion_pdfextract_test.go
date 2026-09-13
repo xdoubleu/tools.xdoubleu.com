@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -267,6 +268,37 @@ func TestGoPDFConverter_ImagesHaveAltText(t *testing.T) {
 	requireAllImagesHaveAlt(
 		t, string(readZipEntry(t, fallbackEPUB)),
 	)
+}
+
+// TestGoPDFConverter_ProofSlugFooterFiltered reproduces issue #1652: a
+// print-shop proof slug (page number + typesetting date/time) printed at a
+// fixed page-bottom position on every page must be recognized as running
+// production metadata and dropped, while genuine body paragraphs — including
+// one that merely contains a date — survive untouched.
+func TestGoPDFConverter_ProofSlugFooterFiltered(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeProofSlugPDF(t))
+	requireValidKEPUB(t, epubPath)
+
+	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	blocks := extractBlocks(t, xhtml)
+	paragraphs := blockTexts(blocks, "p")
+
+	var want []string
+	for page := 1; page <= proofSlugPageCount; page++ {
+		want = append(want, fmt.Sprintf(proofSlugBodyParaFmt, page))
+		if page == proofSlugPageCount {
+			want = append(want, proofSlugDateInBodyPara)
+		} else {
+			want = append(want, fmt.Sprintf(proofSlugBodyExtraFmt, page))
+		}
+		want = append(want, fmt.Sprintf(proofSlugBodyClosingFmt, page))
+	}
+	require.Equal(t, want, paragraphs)
+
+	for _, p := range paragraphs {
+		require.NotContains(t, p, "canoe scene ocean scan")
+	}
 }
 
 func indexOfBlock(blocks []extractedBlock, tag, text string) int {

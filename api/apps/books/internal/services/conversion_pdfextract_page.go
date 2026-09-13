@@ -146,11 +146,11 @@ func extractDocument(
 
 	docModalHeight := computeModalCharHeight(pages)
 
-	var blocks []htmlBlock
+	pageBlocks := make([][]htmlBlock, len(pages))
 	for i, p := range pages {
 		if p.fullPageImage != "" {
 			alt := fmt.Sprintf("Page %d illustration", i+1)
-			blocks = append(blocks, htmlBlock{
+			pageBlocks[i] = []htmlBlock{{
 				html: fmt.Sprintf(
 					`<img src="%s" alt="%s"/>`,
 					escapeXMLText(p.fullPageImage),
@@ -158,18 +158,21 @@ func extractDocument(
 				),
 				tag:  imgTag,
 				text: "",
-			})
+			}}
 			continue
 		}
-		blocks = append(
-			blocks,
-			buildPageBlocks(
-				p.items,
-				p.medLineHeight,
-				p.medCharWidth,
-				docModalHeight,
-			)...,
+		pageBlocks[i] = buildPageBlocks(
+			p.items,
+			p.medLineHeight,
+			p.medCharWidth,
+			docModalHeight,
 		)
+	}
+	pageBlocks = removeProofSlugLines(pageBlocks)
+
+	var blocks []htmlBlock
+	for _, pb := range pageBlocks {
+		blocks = append(blocks, pb...)
 	}
 	return blocks, nil
 }
