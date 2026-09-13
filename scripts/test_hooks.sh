@@ -28,6 +28,7 @@ pass "all hook commands pass bash -n"
 STOP_CMD=$(jq -r '.hooks.Stop[0].hooks[0].command' "$SETTINGS")
 EXITPLAN_CMD=$(jq -r '.hooks.PostToolUse[] | select(.matcher=="ExitPlanMode") | .hooks[0].command' "$SETTINGS")
 SESSIONSTART_CMD=$(jq -r '.hooks.SessionStart[0].hooks[0].command' "$SETTINGS")
+EDITGUARD_CMD=$(jq -r '.hooks.PreToolUse[] | select(.matcher=="Edit|Write|NotebookEdit") | .hooks[0].command' "$SETTINGS")
 
 # --- synthetic worktree-shaped repo ------------------------------------
 WORK=$(mktemp -d)
@@ -198,6 +199,51 @@ after=$(git -C "$LOCAL" rev-parse feature-branch)
 [ "$after" = "$before" ] &&
   pass "SessionStart leaves a non-main branch untouched" ||
   fail "SessionStart leaves a non-main branch untouched" "before=$before after=$after"
+
+# --- Edit/Write/NotebookEdit worktree-scope guard -----------------------
+run_editguard() {
+  local payload="$1"
+  printf '%s' "$payload" | bash -c "$EDITGUARD_CMD"
+}
+
+wt=$(setup_repo "guard-case")
+repo_root="${wt%/.claude/worktrees/guard-case}"
+
+# case: file_path under the active worktree is allowed
+out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$wt/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+[ -z "$out" ] && pass "edit inside active worktree is silent" || fail "edit inside active worktree is silent" "$out"
+
+# case: file_path in the main checkout (the actual incident this guards against) is denied
+out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
+  pass "edit in the main checkout -> denied"
+else
+  fail "edit in the main checkout -> denied" "$out"
+fi
+
+# case: file_path in a sibling worktree of the same repo is denied
+out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/.claude/worktrees/other-case/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
+  pass "edit in a sibling worktree -> denied"
+else
+  fail "edit in a sibling worktree -> denied" "$out"
+fi
+
+# case: notebook_path field (NotebookEdit) is checked the same way
+out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/nb.ipynb" '{cwd:$cwd, tool_input:{notebook_path:$fp}}')")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
+  pass "NotebookEdit outside the worktree -> denied"
+else
+  fail "NotebookEdit outside the worktree -> denied" "$out"
+fi
+
+# case: file outside the repo entirely is left alone (e.g. a /tmp scratch file)
+out=$(run_editguard "$(jq -n --arg cwd "$wt" '{cwd:$cwd, tool_input:{file_path:"/tmp/scratch.txt"}}')")
+[ -z "$out" ] && pass "edit outside the repo entirely is silent" || fail "edit outside the repo entirely is silent" "$out"
+
+# case: cwd not under .claude/worktrees/ (no worktree in play) never fires
+out=$(run_editguard "$(jq -n '{cwd:"/tmp/not-a-worktree", tool_input:{file_path:"/tmp/not-a-worktree/x.md"}}')")
+[ -z "$out" ] && pass "edit guard silent outside a worktree session" || fail "edit guard silent outside a worktree session" "$out"
 
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
