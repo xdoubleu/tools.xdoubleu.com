@@ -48,9 +48,14 @@ func extractPage(
 	}
 	pageArea := sizeResp.Width * sizeResp.Height
 
-	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no font/pixel info
+	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no pixel info
 		Page: page,
 		Mode: requests.GetPageTextStructuredModeChars,
+		// Font name is used to detect text-run boundaries mid-line (#1653):
+		// a style/font change at a word boundary doesn't reliably produce a
+		// physical gap large enough for buildLine's geometric space check to
+		// catch on its own.
+		CollectFontInformation: true,
 	}
 	textResp, err := instance.GetPageTextStructured(&textReq)
 	if err != nil {
