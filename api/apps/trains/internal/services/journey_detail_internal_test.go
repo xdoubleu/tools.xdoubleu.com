@@ -169,3 +169,24 @@ func TestBuildStopDetails_NoLiveDataIsNeverOnTime(t *testing.T) {
 	a.True(details[0].IsBoardStop)
 	a.False(details[0].IsAlightStop)
 }
+
+// TestBuildStopDetails_StopNameUsesDisplayName guards against regressing to
+// the old French-only label (issue #1656): a live journey's stop list must
+// show the same canonical DisplayName the station search dropdown renders,
+// not NameFR alone.
+func TestBuildStopDetails_StopNameUsesDisplayName(t *testing.T) {
+	//nolint:exhaustruct //only fields relevant to this stop's position are set
+	pattern := []models.StopTime{
+		{StopID: "A", StopSequence: 1, ArrivalSeconds: 0, DepartureSeconds: 60},
+	}
+	//nolint:exhaustruct //only board/alight identification is relevant here
+	ref := LegRef{TripShortName: "IC1", BoardStopID: "A", AlightStopID: "B"}
+	//nolint:exhaustruct //test fixture: unset fields are deliberately zero
+	stops := map[string]models.Stop{
+		"A": {NameFR: "Bruxelles-Midi", DisplayName: "Brussel-Zuid / Bruxelles-Midi"},
+	}
+
+	details := buildStopDetails(pattern, stops, nil, false, time.Now(), ref)
+
+	assert.Equal(t, "Brussel-Zuid / Bruxelles-Midi", details[0].StopName)
+}

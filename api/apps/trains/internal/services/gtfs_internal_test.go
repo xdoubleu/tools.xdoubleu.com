@@ -154,6 +154,67 @@ func TestParseFeed_StopNamesMultilingual(t *testing.T) {
 	// station's platform keeps the untranslated stop_name in all three.
 	assert.Equal(t, "Bruxelles-Midi", brusselsPlatform.NameNL)
 	assert.Equal(t, "Bruxelles-Midi", brusselsPlatform.NameEN)
+
+	// DisplayName never falls back to the primary stop_name for a language
+	// translations.txt doesn't cover: it only shows genuinely-known full
+	// names. Ghent has no nl translation, so its label is fr/en only;
+	// Antwerp's only translation is its own primary language (fr), which
+	// overrides the raw stop_name rather than sitting alongside it, so its
+	// label is that one translation.
+	assert.Equal(t, "Gand-Saint-Pierre / Ghent-Sint-Pieters", ghent.DisplayName)
+	assert.Equal(t, "Anvers-Central", antwerp.DisplayName)
+}
+
+// TestParseFeed_DisplayNameDedupesAbbreviatedFallback reproduces issue
+// #1656: a station whose primary raw stop_name is itself an
+// already-abbreviated/combined bilingual string (as NMBS's feed sometimes
+// publishes) must not leak that string into DisplayName as a spurious extra
+// part for a language translations.txt doesn't cover.
+func TestParseFeed_DisplayNameDedupesAbbreviatedFallback(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] += "1,,,gs:nmbssncb:S8811305,50.85,4.35,Brsls Centr / Bxl Centr\n"
+	files["translations.txt"] += "stop_name,,nl,gs:nmbssncb:S8811305,stops," +
+		"Brussel-Centraal\n" +
+		"stop_name,,fr,gs:nmbssncb:S8811305,stops,Bruxelles-Central\n"
+
+	raw := mocks.BuildFeedZip(files)
+	feed, err := parseFeed(logging.NewNopLogger(), raw)
+	require.NoError(t, err)
+
+	var brusselsCentral models.Stop
+	for _, s := range feed.Stops {
+		if s.StopID == "gs:nmbssncb:S8811305" {
+			brusselsCentral = s
+		}
+	}
+
+	// The genuine fr/nl translations are used; the abbreviated raw
+	// stop_name is not a stand-in for the untranslated en, so it never
+	// appears anywhere in DisplayName.
+	assert.Equal(t, "Bruxelles-Central / Brussel-Centraal", brusselsCentral.DisplayName)
+	assert.NotContains(t, brusselsCentral.DisplayName, "Brsls Centr")
+	assert.NotContains(t, brusselsCentral.DisplayName, "Bxl Centr")
+}
+
+// TestParseFeed_DisplayNameKeepsDistinctFullNames guards the flip side of
+// the #1656 fix: two genuinely different full-language names (no
+// abbreviation, no fallback involved) must both still show up.
+func TestParseFeed_DisplayNameKeepsDistinctFullNames(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] += "1,,,gs:nmbssncb:S8896008,50.95,3.13,Roulers\n"
+	files["translations.txt"] += "stop_name,,nl,gs:nmbssncb:S8896008,stops,Roeselare\n"
+
+	raw := mocks.BuildFeedZip(files)
+	feed, err := parseFeed(logging.NewNopLogger(), raw)
+	require.NoError(t, err)
+
+	var roeselare models.Stop
+	for _, s := range feed.Stops {
+		if s.StopID == "gs:nmbssncb:S8896008" {
+			roeselare = s
+		}
+	}
+	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
 }
 
 func TestParseFeed_TranslationCoverageIsReported(t *testing.T) {

@@ -14,13 +14,13 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// stopDisplayName is the station name the planner puts on a Leg. The feed
-// carries three (models.Stop.NameNL/FR/EN); SearchJourneys' legs are
-// single-language and use French, the feed's own primary language — the
-// realtime journey-detail page is where all three are surfaced. Keeping the
-// choice here means it is stated once, not in a converter the caller owns.
+// stopDisplayName is the station name the planner puts on a Leg — the same
+// canonical, deduped multilingual label (models.Stop.DisplayName) the
+// station search dropdown renders, so a journey's legs and the picker never
+// disagree (issue #1656). Keeping the choice here means it is stated once,
+// not in a converter the caller owns.
 func stopDisplayName(s models.Stop) string {
-	return s.NameFR
+	return s.DisplayName
 }
 
 type stopIdx int32

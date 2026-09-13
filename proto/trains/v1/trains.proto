@@ -133,6 +133,10 @@ message Station {
   string name_nl = 2;
   string name_fr = 3;
   string name_en = 4;
+  // The single canonical passenger-facing label: every genuinely-known
+  // full-language name, deduped and joined — the same value both the
+  // station picker and journey/leg views render (issue #1656).
+  string display_name = 5;
 }
 
 message SearchStationsRequest {

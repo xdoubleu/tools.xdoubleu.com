@@ -4,11 +4,9 @@ import { Combobox } from '@/components/ui/combobox'
 import { useStationSearch } from '@/hooks/useTrains'
 import type { Station } from '@/lib/gen/trains/v1/trains_pb'
 
-/** Joins the station's distinct nl/fr/en names, e.g. "Brussel-Zuid / Bruxelles-Midi". */
+/** The station's canonical label, e.g. "Brussel-Zuid / Bruxelles-Midi", computed server-side. */
 export function stationDisplayName(station: Station): string {
-  return Array.from(new Set([station.nameNl, station.nameFr, station.nameEn]))
-    .filter((n) => n !== '')
-    .join(' / ')
+  return station.displayName
 }
 
 const displayName = stationDisplayName

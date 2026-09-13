@@ -133,9 +133,10 @@ func protoSavedCommute(sc *models.SavedCommute) *trainsv1.SavedCommute {
 
 func protoStation(stopID string, stop *models.Stop) *trainsv1.Station {
 	return &trainsv1.Station{
-		StopId: stopID,
-		NameNl: stop.NameNL,
-		NameFr: stop.NameFR,
-		NameEn: stop.NameEN,
+		StopId:      stopID,
+		NameNl:      stop.NameNL,
+		NameFr:      stop.NameFR,
+		NameEn:      stop.NameEN,
+		DisplayName: stop.DisplayName,
 	}
 }
