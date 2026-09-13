@@ -101,7 +101,11 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	resp, err := client.SearchJourneys(ctx, req)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.GetJourneys())
-	j := resp.Msg.GetJourneys()[0]
+	// SearchJourneys now returns a window of journeys around the requested
+	// time (issue #1643), not just the single best one at index 0 — find
+	// the 200->300 transfer journey this test targets rather than assuming
+	// position.
+	j := findJourneyByFirstLeg(t, resp.Msg.GetJourneys(), "200")
 	require.Len(t, j.GetLegs(), 2)
 	assert.Equal(t, int32(1), j.GetTransfers())
 	assert.Equal(t, "200", j.GetLegs()[0].GetTripShortName())
@@ -112,4 +116,19 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	assert.NotEmpty(t, j.GetLegs()[1].GetAlightTime())
 	assert.NotEmpty(t, j.GetDepartureTime())
 	assert.NotEmpty(t, j.GetArrivalTime())
+}
+
+// findJourneyByFirstLeg locates the journey whose first leg's trip short
+// name matches tripShortName, failing the test if none is found.
+func findJourneyByFirstLeg(
+	t *testing.T, journeys []*trainsv1.Journey, tripShortName string,
+) *trainsv1.Journey {
+	t.Helper()
+	for _, j := range journeys {
+		if len(j.GetLegs()) > 0 && j.GetLegs()[0].GetTripShortName() == tripShortName {
+			return j
+		}
+	}
+	require.Fail(t, "no journey found with first leg "+tripShortName)
+	return nil
 }

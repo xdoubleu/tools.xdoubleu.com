@@ -121,9 +121,20 @@ func altFeed(windowStart time.Time) *models.Feed {
 	}
 }
 
+// altLegRefs hand-builds the LegRefs a real SearchJourneys call would have
+// encoded into the journey_id, so it must reproduce idx.fromAbs' reference
+// frame exactly: Brussels-local midnight of windowStart's calendar date
+// (never windowStart's own raw value — it's UTC, per altDayStart's doc
+// comment, and only its Y/M/D are meaningful).
 func altLegRefs(windowStart time.Time) []services.LegRef {
+	brussels, err := time.LoadLocation("Europe/Brussels")
+	if err != nil {
+		panic(err)
+	}
+	y, m, d := windowStart.Date()
+	localMidnight := time.Date(y, m, d, 0, 0, 0, 0, brussels)
 	at := func(sec int) time.Time {
-		return windowStart.Add(time.Duration(8*3600+sec) * time.Second)
+		return localMidnight.Add(time.Duration(8*3600+sec) * time.Second)
 	}
 	return []services.LegRef{
 		{
