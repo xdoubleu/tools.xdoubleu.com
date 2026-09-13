@@ -41,7 +41,7 @@ type PDFConverter func(
 // change to either would produce different output for existing content —
 // EnsureKEPUB then treats any book_files row stamped with an older version
 // as stale and regenerates it on next access (issue #594).
-const currentKEPUBConverterVersion int16 = 5
+const currentKEPUBConverterVersion int16 = 6
 
 // ConversionService produces KEPUBs from stored EPUBs or PDFs.
 // Callers must use EnsureKEPUB; internal conversion is lazy and idempotent,
