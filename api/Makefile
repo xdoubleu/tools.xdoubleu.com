@@ -73,6 +73,11 @@ lint: tools/lint
 lint/pkg: tools/lint
 	golangci-lint run ./$(PKG)/...
 
+lint/fix/pkg: tools/lint
+	golines ./$(PKG) -m 88 -w --ignore-generated
+	golangci-lint run --fix ./$(PKG)/...
+	gci write --skip-generated -s standard -s default -s "prefix(tools.xdoubleu.com)" ./$(PKG)
+
 lint/fix: tools/lint
 	golines . -m 88 -w --ignore-generated
 	golangci-lint run --fix
