@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"tools.xdoubleu.com/apps/trains/internal/models"
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
@@ -45,9 +46,20 @@ func (s *StationsService) SearchStations(
 	if err != nil {
 		return nil, err
 	}
+	return matchStations(stops, query), nil
+}
 
+// matchStations filters stops down to stations matching query (empty query
+// matches everything), dedupes stations that share a non-empty UIC (distinct
+// stop_ids for the same physical station, e.g. a re-numbered or dual-feed
+// entry — keeping the lexicographically lowest stop_id for determinism), and
+// sorts/caps the result. A stop whose UIC couldn't be parsed (empty) is never
+// merged with another empty-UIC stop — collapsing all of those together
+// would falsely correlate unrelated stations.
+func matchStations(stops []models.Stop, query string) []Station {
 	q := strings.ToLower(strings.TrimSpace(query))
-	matches := make([]Station, 0, len(stops))
+	byUIC := make(map[string]Station)
+	var noUIC []Station
 	for _, stop := range stops {
 		if stop.LocationType != stationLocationType {
 			continue
@@ -58,13 +70,26 @@ func (s *StationsService) SearchStations(
 			!strings.Contains(strings.ToLower(stop.NameEN), q) {
 			continue
 		}
-		matches = append(matches, Station{
+		station := Station{
 			StopID: stop.StopID,
 			NameNL: stop.NameNL,
 			NameFR: stop.NameFR,
 			NameEN: stop.NameEN,
-		})
+		}
+		if stop.UIC == "" {
+			noUIC = append(noUIC, station)
+			continue
+		}
+		if existing, ok := byUIC[stop.UIC]; !ok || station.StopID < existing.StopID {
+			byUIC[stop.UIC] = station
+		}
 	}
+
+	matches := make([]Station, 0, len(byUIC)+len(noUIC))
+	for _, station := range byUIC {
+		matches = append(matches, station)
+	}
+	matches = append(matches, noUIC...)
 
 	sort.Slice(matches, func(i, j int) bool {
 		return matches[i].NameFR < matches[j].NameFR
@@ -72,5 +97,5 @@ func (s *StationsService) SearchStations(
 	if len(matches) > maxStationResults {
 		matches = matches[:maxStationResults]
 	}
-	return matches, nil
+	return matches
 }
