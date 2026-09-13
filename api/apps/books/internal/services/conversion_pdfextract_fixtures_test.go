@@ -265,3 +265,28 @@ func makeLogoRepeatedPDF(t *testing.T) string {
 
 	return savePDF(t, pdf, "logo-repeated.pdf")
 }
+
+// makeImageOnlyMultiPagePDF builds five pages that all fall into the
+// image-only-page fallback (near-zero text, zero surviving figures): four
+// truly blank pages, whose 150-DPI rasters are byte-identical to each other
+// (mirroring the real-world case of many blank scanned pages), and one page
+// filled with a solid color via a vector fill rather than an embedded image
+// object — still qualifying for the same fallback, but rasterizing to
+// different bytes — to exercise document-level dedupe of the full-page
+// raster path the same way makeLogoRepeatedPDF exercises it for regular
+// figures.
+func makeImageOnlyMultiPagePDF(t *testing.T) string {
+	t.Helper()
+	pdf := newFixturePDF()
+
+	pdf.AddPage()
+	pdf.AddPage()
+
+	pdf.AddPage()
+	pdf.SetFillColor(200, 60, 60)
+	pdf.Rect(0, 0, fixturePageWidth, fixturePageHeight, "F")
+
+	pdf.AddPage()
+
+	return savePDF(t, pdf, "image-only-multi-page.pdf")
+}

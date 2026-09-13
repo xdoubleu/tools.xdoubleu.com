@@ -69,10 +69,13 @@ func extractPage(
 	}
 
 	if len(chars) < imageOnlyPageMaxChars && len(rawFigures) == 0 {
-		fileName, renderErr := renderFullPage(instance, page, index, workDir)
+		fileName, renderErr := renderFullPage(instance, page, workDir, tracker)
 		if renderErr != nil {
 			return noPageResult, renderErr
 		}
+		// fileName is "" when the tracker rejected this raster as a
+		// duplicate or over the per-document cap; the page then contributes
+		// no image at all, same as a deduped regular figure.
 		return pageResult{ //nolint:exhaustruct // no text stream for an image-only page
 			fullPageImage: fileName,
 		}, nil
@@ -144,10 +147,15 @@ func extractDocument(
 	docModalHeight := computeModalCharHeight(pages)
 
 	var blocks []htmlBlock
-	for _, p := range pages {
+	for i, p := range pages {
 		if p.fullPageImage != "" {
+			alt := fmt.Sprintf("Page %d illustration", i+1)
 			blocks = append(blocks, htmlBlock{
-				html: fmt.Sprintf(`<img src="%s"/>`, escapeXMLText(p.fullPageImage)),
+				html: fmt.Sprintf(
+					`<img src="%s" alt="%s"/>`,
+					escapeXMLText(p.fullPageImage),
+					escapeXMLText(alt),
+				),
 				tag:  imgTag,
 				text: "",
 			})

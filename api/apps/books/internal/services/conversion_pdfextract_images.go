@@ -217,9 +217,15 @@ func placeFigures(
 
 // renderFullPage rasterizes an image-only page (scanned content, or a page
 // with too little extractable text and no surviving figures) to a single PNG
-// at 150 DPI, per the image-only-page fallback.
+// at 150 DPI, per the image-only-page fallback. The raster is run through the
+// same document-wide figureTracker as regular figures, so a page whose
+// rendered bitmap is byte-identical to one already kept (most commonly a
+// blank page) dedupes instead of being re-embedded, and the fallback path
+// respects the same figureMaxPerDoc cap. An empty name with a nil error means
+// the render was rejected by the tracker (duplicate or over cap); the caller
+// should treat the page as if it contributed no image.
 func renderFullPage(
-	instance pdfium.Pdfium, page requests.Page, index int, workDir string,
+	instance pdfium.Pdfium, page requests.Page, workDir string, tracker *figureTracker,
 ) (string, error) {
 	renderResp, err := instance.RenderPageInDPI(
 		&requests.RenderPageInDPI{ //nolint:exhaustruct // defaults suit a plain page render
@@ -237,7 +243,11 @@ func renderFullPage(
 		return "", fmt.Errorf("encode full page png: %w", err)
 	}
 
-	name := fmt.Sprintf("fig-page-%d.png", index)
+	name, ok := tracker.accept(buf.Bytes())
+	if !ok {
+		return "", nil
+	}
+
 	if err = os.WriteFile(filepath.Join(workDir, name), buf.Bytes(), 0o600); err != nil {
 		return "", fmt.Errorf("write full page png: %w", err)
 	}

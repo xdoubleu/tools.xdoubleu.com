@@ -27,15 +27,19 @@ func convertToEPUB(t *testing.T, pdfPath string) string {
 	return outPath
 }
 
-// readZipEntry returns the bytes of a named entry from a zip file.
-func readZipEntry(t *testing.T, zipPath, name string) []byte {
+// indexXHTMLEntry is the one zip entry every test in this file reads back —
+// the produced EPUB's sole content document.
+const indexXHTMLEntry = "OEBPS/index.xhtml"
+
+// readZipEntry returns the bytes of indexXHTMLEntry from a zip file.
+func readZipEntry(t *testing.T, zipPath string) []byte {
 	t.Helper()
 	zr, err := zip.OpenReader(zipPath)
 	require.NoError(t, err)
 	defer func() { _ = zr.Close() }()
 
 	for _, f := range zr.File {
-		if f.Name == name {
+		if f.Name == indexXHTMLEntry {
 			rc, openErr := f.Open()
 			require.NoError(t, openErr)
 			defer func() { _ = rc.Close() }()
@@ -44,7 +48,7 @@ func readZipEntry(t *testing.T, zipPath, name string) []byte {
 			return data
 		}
 	}
-	t.Fatalf("zip entry %s not found in %s", name, zipPath)
+	t.Fatalf("zip entry %s not found in %s", indexXHTMLEntry, zipPath)
 	return nil
 }
 
@@ -93,7 +97,7 @@ func extractBlocks(t *testing.T, xhtmlDoc string) []extractedBlock {
 		}
 	}
 
-	imgRe := regexp.MustCompile(`<img src="([^"]*)"\s*/?>`)
+	imgRe := regexp.MustCompile(`<img src="([^"]*)"[^>]*/?>`)
 	for _, m := range imgRe.FindAllStringSubmatchIndex(xhtmlDoc, -1) {
 		found = append(found, positioned{
 			pos:   m[0],
@@ -143,7 +147,7 @@ func TestGoPDFConverter_TwoColumn(t *testing.T) {
 	epubPath := convertToEPUB(t, makeTwoColumnPDF(t))
 	requireValidKEPUB(t, epubPath)
 
-	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	xhtml := string(readZipEntry(t, epubPath))
 	blocks := extractBlocks(t, xhtml)
 
 	paragraphs := blockTexts(blocks, "p")
@@ -171,7 +175,7 @@ func TestGoPDFConverter_SingleColumn(t *testing.T) {
 	epubPath := convertToEPUB(t, makeSingleColumnPDF(t))
 	requireValidKEPUB(t, epubPath)
 
-	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	xhtml := string(readZipEntry(t, epubPath))
 	blocks := extractBlocks(t, xhtml)
 
 	require.Equal(t, []string{singleColHeading}, blockTexts(blocks, "h1"))
@@ -212,6 +216,57 @@ func TestGoPDFConverter_LogoRepeated(t *testing.T) {
 	// The logo repeats on all 3 pages and must dedupe to a single kept
 	// image; the sub-50px image must never appear.
 	require.Equal(t, 1, pngCount)
+}
+
+func TestGoPDFConverter_ImageOnlyMultiPageDeduped(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeImageOnlyMultiPagePDF(t))
+	requireValidKEPUB(t, epubPath)
+
+	names := zipEntryNames(t, epubPath)
+	pngCount := 0
+	for _, n := range names {
+		if strings.HasPrefix(n, "OEBPS/fig-") && strings.HasSuffix(n, ".png") {
+			pngCount++
+		}
+	}
+	// Four of the five image-only pages rasterize to an identical blank
+	// canvas and must dedupe to a single kept image; the filled page
+	// rasterizes differently and is kept separately.
+	require.Equal(t, 2, pngCount)
+}
+
+// imgTagRe/altAttrRe let a test assert every emitted <img> tag carries a
+// non-empty alt attribute without depending on x/net/html's exact attribute
+// reserialization order.
+var (
+	imgTagRe  = regexp.MustCompile(`<img\b[^>]*>`)
+	altAttrRe = regexp.MustCompile(`\balt="([^"]*)"`)
+)
+
+func requireAllImagesHaveAlt(t *testing.T, xhtmlDoc string) {
+	t.Helper()
+	tags := imgTagRe.FindAllString(xhtmlDoc, -1)
+	require.NotEmpty(t, tags, "expected at least one <img> tag in %s", xhtmlDoc)
+	for _, tag := range tags {
+		m := altAttrRe.FindStringSubmatch(tag)
+		require.NotNil(t, m, "img tag missing alt attribute: %s", tag)
+		require.NotEmpty(t, m[1], "img tag has empty alt attribute: %s", tag)
+	}
+}
+
+func TestGoPDFConverter_ImagesHaveAltText(t *testing.T) {
+	t.Parallel()
+
+	// Regular-figure path.
+	figEPUB := convertToEPUB(t, makeTwoColumnPDF(t))
+	requireAllImagesHaveAlt(t, string(readZipEntry(t, figEPUB)))
+
+	// Full-page-fallback path.
+	fallbackEPUB := convertToEPUB(t, makeImageOnlyPDF(t))
+	requireAllImagesHaveAlt(
+		t, string(readZipEntry(t, fallbackEPUB)),
+	)
 }
 
 func indexOfBlock(blocks []extractedBlock, tag, text string) int {
