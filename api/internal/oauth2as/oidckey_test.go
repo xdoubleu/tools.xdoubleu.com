@@ -7,6 +7,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"io"
+	"log/slog"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -69,6 +71,45 @@ func TestLoadOrGenerateOIDCKey(t *testing.T) {
 		_, _, err := oauth2as.LoadOrGenerateOIDCKey(pkcs8PEM(t, ecKey))
 		require.Error(t, err)
 	})
+}
+
+func TestLoadOIDCKeyOrDegrade(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	rsaKey, rsaErr := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, rsaErr)
+
+	t.Run("valid key is used as-is", func(t *testing.T) {
+		k := oauth2as.LoadOIDCKeyOrDegrade(logger, pkcs8PEM(t, rsaKey))
+		assert.Equal(t, rsaKey.N, k.N)
+	})
+
+	t.Run("empty key degrades to an ephemeral key", func(t *testing.T) {
+		k := oauth2as.LoadOIDCKeyOrDegrade(logger, "")
+		assert.NoError(t, k.Validate())
+	})
+
+	t.Run(
+		"invalid PEM degrades to an ephemeral key instead of panicking",
+		func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				k := oauth2as.LoadOIDCKeyOrDegrade(logger, "not a pem block")
+				assert.NoError(t, k.Validate())
+			})
+		},
+	)
+
+	t.Run(
+		"PEM that is not an RSA key degrades to an ephemeral key",
+		func(t *testing.T) {
+			ecKey, ecErr := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			require.NoError(t, ecErr)
+			assert.NotPanics(t, func() {
+				k := oauth2as.LoadOIDCKeyOrDegrade(logger, pkcs8PEM(t, ecKey))
+				assert.NoError(t, k.Validate())
+			})
+		},
+	)
 }
 
 func TestOIDCKeyID_StableAndDistinct(t *testing.T) {
