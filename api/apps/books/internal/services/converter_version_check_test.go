@@ -49,6 +49,7 @@ var pipelineFiles = []string{
 var pipelineFilesHashForVersion = map[int16]string{
 	1: "664a7e6eb4ef2d6bdae9142c00fd54a063fd311e64234208d1738925a689b545",
 	2: "10627fd199c1279262f45866d3f2f8e2f5953782b7ceb24fd9ffd2c5958deb1f",
+	3: "33a4312f7ea1b063766175392e2c5cde581abdc6bf90fc0193d94762401154e1",
 }
 
 // hashPipelineFiles returns the sha256 hash of pipelineFiles' concatenated

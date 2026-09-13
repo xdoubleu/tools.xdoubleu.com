@@ -113,6 +113,7 @@ func buildPageBlocks(
 ) []htmlBlock {
 	var blocks []htmlBlock
 	var paraLines []pdfLine
+	figureCount := 0
 
 	flush := func() {
 		if len(paraLines) == 0 {
@@ -125,10 +126,12 @@ func buildPageBlocks(
 	for _, item := range items {
 		if item.figure != nil {
 			flush()
+			figureCount++
 			blocks = append(blocks, htmlBlock{
 				html: fmt.Sprintf(
-					`<img src="%s"/>`,
+					`<img src="%s" alt="%s"/>`,
 					escapeXMLText(item.figure.fileName),
+					escapeXMLText(fmt.Sprintf("Figure %d", figureCount)),
 				),
 				tag:  imgTag,
 				text: "",

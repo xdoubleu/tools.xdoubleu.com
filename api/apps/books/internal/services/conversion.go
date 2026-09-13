@@ -36,7 +36,7 @@ type PDFConverter func(ctx context.Context, inPath, outPath string) error
 // change to either would produce different output for existing content —
 // EnsureKEPUB then treats any book_files row stamped with an older version
 // as stale and regenerates it on next access (issue #594).
-const currentKEPUBConverterVersion int16 = 2
+const currentKEPUBConverterVersion int16 = 3
 
 // ConversionService produces KEPUBs from stored EPUBs or PDFs.
 // Callers must use EnsureKEPUB; internal conversion is lazy and idempotent,
