@@ -534,6 +534,24 @@ elsewhere — `api`'s own mailer and `infra/release-upgrade-check.sh` both
 still read it independently). `scripts/verify_grafana_image.sh` now asserts
 the `slack` contact point instead of `email`.
 
+Phase 12 (#1608) fixed `IssueSentryUnresolved`, which had never actually
+evaluated since Phase 9 introduced it: its `issues` queryType + `reduce`
+(count) + `threshold` pipeline always failed with `[sse.readDataError]
+input data must be a wide series but got type long`, so the rule sat
+permanently `Alerting (Error)` regardless of real Sentry state
+(`grafana/sentry-datasource#266`, filed 2024, never fixed upstream — an
+Issues query returns one row per issue across several numeric columns,
+which the expression engine can't collapse into the single-value series
+`reduce`/`threshold` require). refId A now uses the `eventsStats` queryType
+with `count_unique(issue)` as its Y-axis instead — a genuine time series
+(one value per bucket), which `reduce` (now `max`, not `count`) consumes
+without error. The annotation text changed accordingly, from an exact
+unresolved-issue count to "issues detected" plus the busiest interval's
+distinct-issue count, since a per-bucket reduction no longer yields a
+true window-wide total by construction. `scripts/verify_grafana_image.sh`
+does not need updating — it only asserts the rule name provisions, never
+evaluates it against real Sentry data.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

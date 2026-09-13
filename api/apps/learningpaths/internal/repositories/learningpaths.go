@@ -288,10 +288,12 @@ func (r *LearningPathsRepository) ReplaceResources(
 	batch := &pgx.Batch{}
 	for i, resource := range resources {
 		batch.Queue(`
-			INSERT INTO learningpaths.resources (learning_path_id, text, sort_order)
-			VALUES ($1, $2, $3)
+			INSERT INTO learningpaths.resources
+			(learning_path_id, text, sort_order, linked_book_id, linked_feed_item_id)
+			VALUES ($1, $2, $3, $4, $5)
 			RETURNING id`,
 			learningPathID, resource.Text, i,
+			resource.LinkedBookID, resource.LinkedFeedItemID,
 		)
 	}
 
@@ -313,7 +315,8 @@ func (r *LearningPathsRepository) GetResources(
 	learningPathID uuid.UUID,
 ) ([]models.Resource, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, learning_path_id, text, sort_order
+		SELECT id, learning_path_id, text, sort_order,
+			linked_book_id, linked_feed_item_id
 		FROM learningpaths.resources
 		WHERE learning_path_id = $1
 		ORDER BY sort_order`,
@@ -329,6 +332,7 @@ func (r *LearningPathsRepository) GetResources(
 		var res models.Resource
 		if err = rows.Scan(
 			&res.ID, &res.LearningPathID, &res.Text, &res.SortOrder,
+			&res.LinkedBookID, &res.LinkedFeedItemID,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
@@ -366,4 +370,29 @@ func (r *LearningPathsRepository) RecordItemProgress(
 		return database.ErrResourceNotFound
 	}
 	return nil
+}
+
+// GetItemForUser returns itemID's description/type plus its owning path's
+// title, scoped by userID (404 on foreign ownership, same rule as every
+// other per-user lookup in this app) — used by SendItemToTodoist to build a
+// task's content without pulling the whole path tree.
+func (r *LearningPathsRepository) GetItemForUser(
+	ctx context.Context, itemID uuid.UUID, userID string,
+) (*models.ItemForTask, error) {
+	var out models.ItemForTask
+	err := r.db.QueryRow(ctx, `
+		SELECT i.id, i.module_id, i.type, i.description, i.sort_order,
+		       i.completed, lp.title
+		FROM learningpaths.items i
+		JOIN learningpaths.modules m ON m.id = i.module_id
+		JOIN learningpaths.learning_paths lp ON lp.id = m.learning_path_id
+		WHERE i.id = $1 AND lp.user_id = $2
+	`, itemID, userID).Scan(
+		&out.Item.ID, &out.Item.ModuleID, &out.Item.Type, &out.Item.Description,
+		&out.Item.SortOrder, &out.Item.Completed, &out.PathTitle,
+	)
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &out, nil
 }

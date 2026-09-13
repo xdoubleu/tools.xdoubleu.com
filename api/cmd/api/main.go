@@ -461,7 +461,8 @@ func NewApplication(
 	spanDB := postgres.NewSpanDB(db)
 	var feedsApp *feeds.Feeds
 	app.apps, app.booksApp, feedsApp = NewApps(
-		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo, familyRepo,
+		app.auth, logger, config, spanDB, notificationsSvc, appUsersRepo,
+		familyRepo, authSealer,
 	)
 	app.feedsApp = feedsApp
 	app.weeklyDigestJob = newWeeklyDigestJob(

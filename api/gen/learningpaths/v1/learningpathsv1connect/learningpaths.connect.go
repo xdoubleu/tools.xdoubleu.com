@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// LearningPathsServiceName is the fully-qualified name of the LearningPathsService service.
 	LearningPathsServiceName = "learningpaths.v1.LearningPathsService"
+	// TodoistServiceName is the fully-qualified name of the TodoistService service.
+	TodoistServiceName = "learningpaths.v1.TodoistService"
 )
 
 // These constants are the fully-qualified names of the RPCs defined in this package. They're
@@ -54,6 +56,18 @@ const (
 	// LearningPathsServiceGetLearningPathProgressProcedure is the fully-qualified name of the
 	// LearningPathsService's GetLearningPathProgress RPC.
 	LearningPathsServiceGetLearningPathProgressProcedure = "/learningpaths.v1.LearningPathsService/GetLearningPathProgress"
+	// TodoistServiceConnectTodoistProcedure is the fully-qualified name of the TodoistService's
+	// ConnectTodoist RPC.
+	TodoistServiceConnectTodoistProcedure = "/learningpaths.v1.TodoistService/ConnectTodoist"
+	// TodoistServiceDisconnectTodoistProcedure is the fully-qualified name of the TodoistService's
+	// DisconnectTodoist RPC.
+	TodoistServiceDisconnectTodoistProcedure = "/learningpaths.v1.TodoistService/DisconnectTodoist"
+	// TodoistServiceGetTodoistConnectionStatusProcedure is the fully-qualified name of the
+	// TodoistService's GetTodoistConnectionStatus RPC.
+	TodoistServiceGetTodoistConnectionStatusProcedure = "/learningpaths.v1.TodoistService/GetTodoistConnectionStatus"
+	// TodoistServiceSendItemToTodoistProcedure is the fully-qualified name of the TodoistService's
+	// SendItemToTodoist RPC.
+	TodoistServiceSendItemToTodoistProcedure = "/learningpaths.v1.TodoistService/SendItemToTodoist"
 )
 
 // LearningPathsServiceClient is a client for the learningpaths.v1.LearningPathsService service.
@@ -281,4 +295,152 @@ func (UnimplementedLearningPathsServiceHandler) RecordItemProgress(context.Conte
 
 func (UnimplementedLearningPathsServiceHandler) GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.GetLearningPathProgress is not implemented"))
+}
+
+// TodoistServiceClient is a client for the learningpaths.v1.TodoistService service.
+type TodoistServiceClient interface {
+	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
+	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
+	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
+	SendItemToTodoist(context.Context, *connect.Request[v1.SendItemToTodoistRequest]) (*connect.Response[v1.SendItemToTodoistResponse], error)
+}
+
+// NewTodoistServiceClient constructs a client for the learningpaths.v1.TodoistService service. By
+// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
+// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
+// connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewTodoistServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) TodoistServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	todoistServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods()
+	return &todoistServiceClient{
+		connectTodoist: connect.NewClient[v1.ConnectTodoistRequest, v1.ConnectTodoistResponse](
+			httpClient,
+			baseURL+TodoistServiceConnectTodoistProcedure,
+			connect.WithSchema(todoistServiceMethods.ByName("ConnectTodoist")),
+			connect.WithClientOptions(opts...),
+		),
+		disconnectTodoist: connect.NewClient[v1.DisconnectTodoistRequest, v1.DisconnectTodoistResponse](
+			httpClient,
+			baseURL+TodoistServiceDisconnectTodoistProcedure,
+			connect.WithSchema(todoistServiceMethods.ByName("DisconnectTodoist")),
+			connect.WithClientOptions(opts...),
+		),
+		getTodoistConnectionStatus: connect.NewClient[v1.GetTodoistConnectionStatusRequest, v1.GetTodoistConnectionStatusResponse](
+			httpClient,
+			baseURL+TodoistServiceGetTodoistConnectionStatusProcedure,
+			connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
+			connect.WithClientOptions(opts...),
+		),
+		sendItemToTodoist: connect.NewClient[v1.SendItemToTodoistRequest, v1.SendItemToTodoistResponse](
+			httpClient,
+			baseURL+TodoistServiceSendItemToTodoistProcedure,
+			connect.WithSchema(todoistServiceMethods.ByName("SendItemToTodoist")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// todoistServiceClient implements TodoistServiceClient.
+type todoistServiceClient struct {
+	connectTodoist             *connect.Client[v1.ConnectTodoistRequest, v1.ConnectTodoistResponse]
+	disconnectTodoist          *connect.Client[v1.DisconnectTodoistRequest, v1.DisconnectTodoistResponse]
+	getTodoistConnectionStatus *connect.Client[v1.GetTodoistConnectionStatusRequest, v1.GetTodoistConnectionStatusResponse]
+	sendItemToTodoist          *connect.Client[v1.SendItemToTodoistRequest, v1.SendItemToTodoistResponse]
+}
+
+// ConnectTodoist calls learningpaths.v1.TodoistService.ConnectTodoist.
+func (c *todoistServiceClient) ConnectTodoist(ctx context.Context, req *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error) {
+	return c.connectTodoist.CallUnary(ctx, req)
+}
+
+// DisconnectTodoist calls learningpaths.v1.TodoistService.DisconnectTodoist.
+func (c *todoistServiceClient) DisconnectTodoist(ctx context.Context, req *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error) {
+	return c.disconnectTodoist.CallUnary(ctx, req)
+}
+
+// GetTodoistConnectionStatus calls learningpaths.v1.TodoistService.GetTodoistConnectionStatus.
+func (c *todoistServiceClient) GetTodoistConnectionStatus(ctx context.Context, req *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error) {
+	return c.getTodoistConnectionStatus.CallUnary(ctx, req)
+}
+
+// SendItemToTodoist calls learningpaths.v1.TodoistService.SendItemToTodoist.
+func (c *todoistServiceClient) SendItemToTodoist(ctx context.Context, req *connect.Request[v1.SendItemToTodoistRequest]) (*connect.Response[v1.SendItemToTodoistResponse], error) {
+	return c.sendItemToTodoist.CallUnary(ctx, req)
+}
+
+// TodoistServiceHandler is an implementation of the learningpaths.v1.TodoistService service.
+type TodoistServiceHandler interface {
+	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
+	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
+	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
+	SendItemToTodoist(context.Context, *connect.Request[v1.SendItemToTodoistRequest]) (*connect.Response[v1.SendItemToTodoistResponse], error)
+}
+
+// NewTodoistServiceHandler builds an HTTP handler from the service implementation. It returns the
+// path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewTodoistServiceHandler(svc TodoistServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	todoistServiceMethods := v1.File_learningpaths_v1_learningpaths_proto.Services().ByName("TodoistService").Methods()
+	todoistServiceConnectTodoistHandler := connect.NewUnaryHandler(
+		TodoistServiceConnectTodoistProcedure,
+		svc.ConnectTodoist,
+		connect.WithSchema(todoistServiceMethods.ByName("ConnectTodoist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	todoistServiceDisconnectTodoistHandler := connect.NewUnaryHandler(
+		TodoistServiceDisconnectTodoistProcedure,
+		svc.DisconnectTodoist,
+		connect.WithSchema(todoistServiceMethods.ByName("DisconnectTodoist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	todoistServiceGetTodoistConnectionStatusHandler := connect.NewUnaryHandler(
+		TodoistServiceGetTodoistConnectionStatusProcedure,
+		svc.GetTodoistConnectionStatus,
+		connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
+	todoistServiceSendItemToTodoistHandler := connect.NewUnaryHandler(
+		TodoistServiceSendItemToTodoistProcedure,
+		svc.SendItemToTodoist,
+		connect.WithSchema(todoistServiceMethods.ByName("SendItemToTodoist")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/learningpaths.v1.TodoistService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case TodoistServiceConnectTodoistProcedure:
+			todoistServiceConnectTodoistHandler.ServeHTTP(w, r)
+		case TodoistServiceDisconnectTodoistProcedure:
+			todoistServiceDisconnectTodoistHandler.ServeHTTP(w, r)
+		case TodoistServiceGetTodoistConnectionStatusProcedure:
+			todoistServiceGetTodoistConnectionStatusHandler.ServeHTTP(w, r)
+		case TodoistServiceSendItemToTodoistProcedure:
+			todoistServiceSendItemToTodoistHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedTodoistServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedTodoistServiceHandler struct{}
+
+func (UnimplementedTodoistServiceHandler) ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.ConnectTodoist is not implemented"))
+}
+
+func (UnimplementedTodoistServiceHandler) DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.DisconnectTodoist is not implemented"))
+}
+
+func (UnimplementedTodoistServiceHandler) GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.GetTodoistConnectionStatus is not implemented"))
+}
+
+func (UnimplementedTodoistServiceHandler) SendItemToTodoist(context.Context, *connect.Request[v1.SendItemToTodoistRequest]) (*connect.Response[v1.SendItemToTodoistResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.SendItemToTodoist is not implemented"))
 }

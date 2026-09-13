@@ -11,6 +11,7 @@ import (
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/database/postgres"
 	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/mcptools"
@@ -47,12 +48,22 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
 
+	testSealer, err := crypto.New(cfg.EncryptionKey)
+	require.NoError(t, err)
+
 	const mcpUserID = "mcp-learningpaths-user"
+	// booksApp/feedsApp are nil — this test never sets a resource's
+	// linked_book_id/linked_feed_item_id, so the service layer's resolve/
+	// validate calls into them are never reached (see resolveResourceLinks
+	// in internal/services/learningpaths.go).
 	app := New(
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
 		cfg,
 		pg,
+		testSealer,
+		nil,
+		nil,
 	)
 	h := &learningPathsConnectHandler{app: app}
 

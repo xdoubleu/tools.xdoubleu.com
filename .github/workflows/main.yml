@@ -630,6 +630,8 @@ jobs:
           SENTRY_OAUTH_CLIENT_SECRET: ${{ secrets.SENTRY_OAUTH_CLIENT_SECRET }}
           DO_OAUTH_CLIENT_ID: ${{ secrets.DO_OAUTH_CLIENT_ID }}
           DO_OAUTH_CLIENT_SECRET: ${{ secrets.DO_OAUTH_CLIENT_SECRET }}
+          TODOIST_OAUTH_CLIENT_ID: ${{ secrets.TODOIST_OAUTH_CLIENT_ID }}
+          TODOIST_OAUTH_CLIENT_SECRET: ${{ secrets.TODOIST_OAUTH_CLIENT_SECRET }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
