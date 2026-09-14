@@ -9,7 +9,8 @@ import {
 import type {
   ListOAuthConnectionsResponse,
   GetProviderOptionsResponse,
-  GetNotificationSettingsResponse
+  GetNotificationSettingsResponse,
+  GetAutomatedActionsResponse
 } from '@/lib/gen/observability/v1/observability_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -75,5 +76,16 @@ export function useUpdateNotificationSettings() {
       await mutate(swrKeys.monitoringNotificationSettings)
     },
     [client]
+  )
+}
+
+// useAutomatedActions reads recent global.automated_actions runs (issue
+// #1442) — the platform's own self-healing activity, surfaced next to the
+// rest of the admin monitoring UI. Defaults to the RPC's own window (30
+// days, see defaultWindowDays in api/cmd/api/connect_observability.go).
+export function useAutomatedActions() {
+  const client = createServiceClient(ObservabilityService)
+  return useSWR<GetAutomatedActionsResponse, Error>(swrKeys.monitoringAutomatedActions, () =>
+    client.getAutomatedActions({})
   )
 }
