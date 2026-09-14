@@ -39,6 +39,21 @@ it.
    its prompt too — a fresh subagent has none of this session's context and
    would otherwise have to re-derive it.
 
+   **Look specifically for a shared mutable value** — a version/feature-flag
+   constant, a registry map, a shared struct literal, or any other single
+   piece of state multiple sub-issues will all need to edit (not just read)
+   — as distinct from generic file overlap. This is the overlap shape that
+   actually causes repeated rebase churn: every sub-issue's PR that edits
+   the same mutable value conflicts with every sibling PR that merges
+   before it, and each conflict costs a full rebase + re-lint + re-test +
+   re-CI cycle, not a one-line fix. Concrete cost from the #611 sweep: 7
+   sub-issues all shared `currentKEPUBConverterVersion` (a version-gate
+   constant) in one file; the last sub-issue's PR to land had to rebase and
+   re-bump that constant 4 separate times as siblings merged underneath it
+   one at a time, each rebase re-running full CI. If this shape is present,
+   apply the serialized-merge step in step 3 below instead of merging all
+   PRs in an uncoordinated race.
+
 3. **Dispatch one `Agent` call per open sub-issue, in parallel (single
    message, one Agent block per sub-issue), each with `isolation:
    "worktree"`** so they don't collide on the same git working tree. Each
@@ -70,6 +85,24 @@ it.
      PR.
    - Report back: sub-issue number, root cause, whether it was already
      fixed, PR URL, CI/merge status.
+
+   **If step 2 flagged a shared-mutable-value overlap**, tell every affected
+   subagent to stop after implementation + local lint/test are green and
+   report "ready to merge" *without* opening the final rebase/PR-merge
+   itself — the orchestrating session serializes that part (see step 3a).
+   A subagent can still open its PR early (to get CI running), but must not
+   rebase past a sibling's merge or merge its own PR until told to.
+
+3a. **When a shared-mutable-value overlap was flagged, merge those
+    sub-issues' PRs one at a time, not in parallel.** For each one, in the
+    order they became ready: have its subagent (or do it yourself) rebase
+    onto the current default branch, resolve the (at most one, since
+    siblings aren't landing concurrently anymore) conflict, confirm CI
+    green, merge, *then* move to the next one. This trades a small amount
+    of serial wall-clock time in the merge phase for avoiding the O(n²)
+    rebase cost of n PRs all racing to land through the same shared value —
+    the implementation/TDD phase before this point stays fully parallel
+    regardless, since that part doesn't touch the shared value yet.
 
 4. **Do not poll the subagents.** They run in the background and this
    session gets a completion notification per agent — use the time for
