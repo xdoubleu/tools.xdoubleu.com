@@ -280,7 +280,7 @@ func TestGoPDFConverter_ProofSlugFooterFiltered(t *testing.T) {
 	epubPath := convertToEPUB(t, makeProofSlugPDF(t))
 	requireValidKEPUB(t, epubPath)
 
-	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	xhtml := string(readZipEntry(t, epubPath))
 	blocks := extractBlocks(t, xhtml)
 	paragraphs := blockTexts(blocks, "p")
 
