@@ -331,12 +331,27 @@ func (s *JourneyDetailService) evaluateAlternative(
 	if err != nil {
 		return alt
 	}
+	// SearchJourneys now returns a window of journeys around brk.at (issue
+	// #1643), including ones departing before it — not valid replacements
+	// for a passenger who can only reboard at brk.at or later. Among the
+	// remaining candidates, the earliest arrival is the best replacement,
+	// which is no longer guaranteed to be journeys[0] once the window
+	// includes later, slower alternatives too.
+	var best *csa.Journey
 	for i := range journeys {
-		if reusesDeadTrip(journeys[i], brk.deadTrips) {
+		j := &journeys[i]
+		if j.DepartureTime.Before(brk.at) {
 			continue
 		}
-		alt.Journey = toJourneyOption(&journeys[i])
-		break
+		if reusesDeadTrip(*j, brk.deadTrips) {
+			continue
+		}
+		if best == nil || j.ArrivalTime.Before(best.ArrivalTime) {
+			best = j
+		}
+	}
+	if best != nil {
+		alt.Journey = toJourneyOption(best)
 	}
 	return alt
 }

@@ -3,6 +3,8 @@ package csa
 import (
 	"errors"
 	"math"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -12,8 +14,27 @@ import (
 // handful of alternatives (issue #1391).
 const maxTransfersSearched = 3
 
-// maxJourneyResults caps the Pareto set returned to callers.
-const maxJourneyResults = 5
+// maxJourneyResults caps the total window returned to callers — enough for
+// windowBefore + windowAfter (issue #1643) without ever trimming the window
+// itself before the caller sees it.
+const maxJourneyResults = 8
+
+// windowBefore/windowAfter are how many distinct journeys SearchJourneys
+// tries to surface strictly before/after the requested time, in addition to
+// whatever searchOnce already finds at the requested time itself — issue
+// #1643's "show a few options around the filled out time", since a single
+// Pareto-optimal result is not what a real journey-search UI shows.
+const windowBefore = 3
+const windowAfter = 3
+
+// beforeAnchorOffsets are how far back searchOnce is re-run, in order, to
+// find windowBefore distinct earlier departures/arrivals. CSA is a
+// forward-only algorithm, so there is no backward search — probing from
+// progressively earlier anchor times and keeping what lands before the
+// requested time is the practical alternative.
+var beforeAnchorOffsets = []time.Duration{ //nolint:gochecknoglobals //readonly config
+	1 * time.Hour, 2 * time.Hour, 4 * time.Hour,
+}
 
 // arriveByLookback bounds how far before an "arrive by" request the search
 // starts scanning connections from.
@@ -65,13 +86,161 @@ type hop struct {
 	from       stopIdx
 }
 
-// SearchJourneys returns a Pareto set over (arrival time, transfer count)
-// for journeys from originID to destID: the earliest arrival, plus slower
-// options with fewer changes, capped at maxJourneyResults. when is either
-// a departure time (arriveBy=false) or a desired arrival time
-// (arriveBy=true, approximated by scanning a lookback window ending at
-// when and keeping only results that land on or before it).
+// SearchJourneys returns a window of journeys from originID to destID
+// around when: whatever searchOnce finds at when itself, plus up to
+// windowBefore earlier and windowAfter later distinct journeys (issue
+// #1643), merged, deduplicated and sorted by departure time (arrival time
+// for arriveBy). For arriveBy=true only the "before" side is widened — a
+// journey arriving after the requested deadline contradicts the search
+// intent, so no "after" probing happens in that mode.
 func (idx *Index) SearchJourneys(
+	originID, destID string, when time.Time, arriveBy bool,
+) ([]Journey, error) {
+	primary, err := idx.searchOnce(originID, destID, when, arriveBy)
+	if err != nil {
+		return nil, err
+	}
+
+	w := newJourneyWindow(len(primary))
+	w.add(primary)
+	idx.widenBefore(w, originID, destID, when, arriveBy)
+	if !arriveBy {
+		idx.widenAfter(w, originID, destID, when)
+	}
+
+	sort.Slice(w.all, func(i, j int) bool {
+		if arriveBy {
+			return w.all[i].ArrivalTime.Before(w.all[j].ArrivalTime)
+		}
+		return w.all[i].DepartureTime.Before(w.all[j].DepartureTime)
+	})
+	if len(w.all) > maxJourneyResults {
+		w.all = w.all[:maxJourneyResults]
+	}
+	return w.all, nil
+}
+
+// widenBefore probes progressively earlier anchor times (beforeAnchorOffsets)
+// until w holds windowBefore distinct journeys strictly before when, or the
+// anchors run out.
+func (idx *Index) widenBefore(
+	w *journeyWindow, originID, destID string, when time.Time, arriveBy bool,
+) {
+	before := func(j Journey) bool {
+		if arriveBy {
+			return j.ArrivalTime.Before(when)
+		}
+		return j.DepartureTime.Before(when)
+	}
+	for _, offset := range beforeAnchorOffsets {
+		if w.count(before) >= windowBefore {
+			return
+		}
+		probe, err := idx.searchOnce(originID, destID, when.Add(-offset), arriveBy)
+		if err != nil {
+			continue
+		}
+		w.add(filterJourneys(probe, before))
+	}
+}
+
+// widenAfter probes progressively later anchor times (beforeAnchorOffsets,
+// reused as a forward offset here) until w holds windowAfter distinct
+// journeys departing at/after when (on top of whatever searchOnce already
+// found there), or the anchors run out. Only called for arriveBy=false — an
+// "after" journey has no meaning relative to an arrival deadline.
+func (idx *Index) widenAfter(
+	w *journeyWindow,
+	originID, destID string,
+	when time.Time,
+) {
+	atOrAfter := func(j Journey) bool { return !j.DepartureTime.Before(when) }
+	for _, offset := range beforeAnchorOffsets {
+		if w.count(atOrAfter) >= windowAfter+1 {
+			return
+		}
+		probe, err := idx.searchOnce(originID, destID, when.Add(offset), false)
+		if err != nil {
+			continue
+		}
+		w.add(probe)
+	}
+}
+
+func filterJourneys(js []Journey, keep func(Journey) bool) []Journey {
+	var out []Journey
+	for _, j := range js {
+		if keep(j) {
+			out = append(out, j)
+		}
+	}
+	return out
+}
+
+// journeyWindow accumulates journeys found from more than one search
+// anchor, deduplicating by journeyKey.
+type journeyWindow struct {
+	all  []Journey
+	seen map[string]bool
+}
+
+func newJourneyWindow(capHint int) *journeyWindow {
+	return &journeyWindow{
+		all:  make([]Journey, 0, capHint),
+		seen: make(map[string]bool, capHint),
+	}
+}
+
+func (w *journeyWindow) add(js []Journey) {
+	for _, j := range js {
+		k := journeyKey(j)
+		if w.seen[k] {
+			continue
+		}
+		w.seen[k] = true
+		w.all = append(w.all, j)
+	}
+}
+
+func (w *journeyWindow) count(match func(Journey) bool) int {
+	n := 0
+	for _, j := range w.all {
+		if match(j) {
+			n++
+		}
+	}
+	return n
+}
+
+// journeyKey is a stable dedup key for a Journey found from more than one
+// search anchor — mirrors what services.EncodeJourneyID keys on (the leg
+// sequence), built here from Journey's own fields since pkg/csa cannot
+// import the services package.
+func journeyKey(j Journey) string {
+	var b strings.Builder
+	for _, l := range j.Legs {
+		b.WriteString(l.TripShortName)
+		b.WriteByte('|')
+		b.WriteString(l.BoardStopID)
+		b.WriteByte('|')
+		b.WriteString(l.BoardTime.Format(time.RFC3339))
+		b.WriteByte('|')
+		b.WriteString(l.AlightStopID)
+		b.WriteByte('|')
+		b.WriteString(l.AlightTime.Format(time.RFC3339))
+		b.WriteByte(';')
+	}
+	return b.String()
+}
+
+// searchOnce returns a Pareto set over (arrival time, transfer count) for
+// journeys from originID to destID: the earliest arrival, plus slower
+// options with fewer changes. when is either a departure time
+// (arriveBy=false) or a desired arrival time (arriveBy=true, approximated
+// by scanning a lookback window ending at when and keeping only results
+// that land on or before it). SearchJourneys calls this once at when and
+// again at a handful of earlier/later anchor times to build a window.
+func (idx *Index) searchOnce(
 	originID, destID string, when time.Time, arriveBy bool,
 ) ([]Journey, error) {
 	origins := idx.resolveStops(originID)

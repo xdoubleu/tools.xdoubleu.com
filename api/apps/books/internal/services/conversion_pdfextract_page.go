@@ -48,9 +48,14 @@ func extractPage(
 	}
 	pageArea := sizeResp.Width * sizeResp.Height
 
-	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no font/pixel info
+	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no pixel info
 		Page: page,
 		Mode: requests.GetPageTextStructuredModeChars,
+		// Font name is used to detect text-run boundaries mid-line (#1653):
+		// a style/font change at a word boundary doesn't reliably produce a
+		// physical gap large enough for buildLine's geometric space check to
+		// catch on its own.
+		CollectFontInformation: true,
 	}
 	textResp, err := instance.GetPageTextStructured(&textReq)
 	if err != nil {
@@ -64,10 +69,13 @@ func extractPage(
 	}
 
 	if len(chars) < imageOnlyPageMaxChars && len(rawFigures) == 0 {
-		fileName, renderErr := renderFullPage(instance, page, index, workDir)
+		fileName, renderErr := renderFullPage(instance, page, workDir, tracker)
 		if renderErr != nil {
 			return noPageResult, renderErr
 		}
+		// fileName is "" when the tracker rejected this raster as a
+		// duplicate or over the per-document cap; the page then contributes
+		// no image at all, same as a deduped regular figure.
 		return pageResult{ //nolint:exhaustruct // no text stream for an image-only page
 			fullPageImage: fileName,
 		}, nil
@@ -138,26 +146,36 @@ func extractDocument(
 
 	docModalHeight := computeModalCharHeight(pages)
 
-	var blocks []htmlBlock
-	for _, p := range pages {
+	pageBlocks := make([][]htmlBlock, len(pages))
+	for i, p := range pages {
 		if p.fullPageImage != "" {
-			blocks = append(blocks, htmlBlock{
-				html: fmt.Sprintf(`<img src="%s"/>`, escapeXMLText(p.fullPageImage)),
-				tag:  imgTag,
-				text: "",
-			})
+			alt := fmt.Sprintf("Page %d illustration", i+1)
+			pageBlocks[i] = []htmlBlock{
+				{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
+					html: fmt.Sprintf(
+						`<img src="%s" alt="%s"/>`,
+						escapeXMLText(p.fullPageImage),
+						escapeXMLText(alt),
+					),
+					tag:  imgTag,
+					text: "",
+				},
+			}
 			continue
 		}
-		blocks = append(
-			blocks,
-			buildPageBlocks(
-				p.items,
-				p.medLineHeight,
-				p.medCharWidth,
-				docModalHeight,
-			)...,
+		pageBlocks[i] = buildPageBlocks(
+			p.items,
+			p.medLineHeight,
+			p.medCharWidth,
 		)
 	}
+	pageBlocks = removeProofSlugLines(pageBlocks)
+
+	var blocks []htmlBlock
+	for _, pb := range pageBlocks {
+		blocks = append(blocks, pb...)
+	}
+	finalizeHeadings(blocks, docModalHeight)
 	return blocks, nil
 }
 

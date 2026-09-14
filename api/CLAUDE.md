@@ -21,6 +21,7 @@ make lint/migrations               # fail on two migrations sharing a version nu
 make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.yml's env.secret: is missing from .kamal/secrets or from main.yml's deploy-kamal env: block (issue #1405 — caught only at deploy time on main otherwise); also fails on a non-GF_-prefixed env name in deploy.grafana.yml's env.secret:/env.clear: (issue #1520 — Grafana silently ignores it, as in #1517)
 make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
 make lint/pkg PKG=apps/recipes     # lint a single package
+make lint/fix/pkg PKG=apps/recipes # auto-fix a single package (golines + golangci-lint --fix + gci scoped to PKG); use this instead of the repo-wide `make lint/fix` for a change confined to one package, since golines' repo-wide pass can reformat unrelated already-merged files that have no actual lint failure
 make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
 make proto/generate/local          # same, via locally-installed plugins instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `npm run generate:local` in web/)
 make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
@@ -61,6 +62,15 @@ runs global migrations (embedded `cmd/api/migrations/*.sql`) before handing
 off to each app's own. `apps/backlog/` is dead — only stale `coverage.out`
 artifacts remain there, no `.go` source and nothing imports it; the name
 survives only in a migration-ordering comment.
+
+`ApplyMigrationsFromFS`'s `goose.Up(...)` call (`internal/app/base.go`) runs with
+`goose.WithAllowMissing()`, so goose applies a lower-numbered migration file even
+after a higher-numbered one already ran, instead of panicking. This repo's
+parallel-subagent, stacked-PR workflow means two sibling PRs' independently
+numbered migrations for the same app can merge to `main` — and deploy — out of
+numeric order; `WithAllowMissing` is what makes that self-healing rather than a
+startup panic on the next deploy. It's enabled for every app, since the helper is
+shared, not just the one that first hit this.
 
 ### App Structure
 

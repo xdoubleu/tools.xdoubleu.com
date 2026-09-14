@@ -854,11 +854,15 @@ func (x *SearchJourneysResponse) GetJourneys() []*Journey {
 // Station is a location_type=1 stop — a station a passenger picks as an
 // origin or destination. Never a platform-level stop.
 type Station struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	StopId        string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
-	NameNl        string                 `protobuf:"bytes,2,opt,name=name_nl,json=nameNl,proto3" json:"name_nl,omitempty"`
-	NameFr        string                 `protobuf:"bytes,3,opt,name=name_fr,json=nameFr,proto3" json:"name_fr,omitempty"`
-	NameEn        string                 `protobuf:"bytes,4,opt,name=name_en,json=nameEn,proto3" json:"name_en,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	StopId string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
+	NameNl string                 `protobuf:"bytes,2,opt,name=name_nl,json=nameNl,proto3" json:"name_nl,omitempty"`
+	NameFr string                 `protobuf:"bytes,3,opt,name=name_fr,json=nameFr,proto3" json:"name_fr,omitempty"`
+	NameEn string                 `protobuf:"bytes,4,opt,name=name_en,json=nameEn,proto3" json:"name_en,omitempty"`
+	// The single canonical passenger-facing label: every genuinely-known
+	// full-language name, deduped and joined — the same value both the
+	// station picker and journey/leg views render (issue #1656).
+	DisplayName   string `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -917,6 +921,13 @@ func (x *Station) GetNameFr() string {
 func (x *Station) GetNameEn() string {
 	if x != nil {
 		return x.NameEn
+	}
+	return ""
+}
+
+func (x *Station) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
 	}
 	return ""
 }
@@ -1721,12 +1732,13 @@ const file_trains_v1_trains_proto_rawDesc = "" +
 	"\x04time\x18\x03 \x01(\tR\x04time\x12\x1b\n" +
 	"\tarrive_by\x18\x04 \x01(\bR\barriveBy\"H\n" +
 	"\x16SearchJourneysResponse\x12.\n" +
-	"\bjourneys\x18\x01 \x03(\v2\x12.trains.v1.JourneyR\bjourneys\"m\n" +
+	"\bjourneys\x18\x01 \x03(\v2\x12.trains.v1.JourneyR\bjourneys\"\x90\x01\n" +
 	"\aStation\x12\x17\n" +
 	"\astop_id\x18\x01 \x01(\tR\x06stopId\x12\x17\n" +
 	"\aname_nl\x18\x02 \x01(\tR\x06nameNl\x12\x17\n" +
 	"\aname_fr\x18\x03 \x01(\tR\x06nameFr\x12\x17\n" +
-	"\aname_en\x18\x04 \x01(\tR\x06nameEn\"-\n" +
+	"\aname_en\x18\x04 \x01(\tR\x06nameEn\x12!\n" +
+	"\fdisplay_name\x18\x05 \x01(\tR\vdisplayName\"-\n" +
 	"\x15SearchStationsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"H\n" +
 	"\x16SearchStationsResponse\x12.\n" +

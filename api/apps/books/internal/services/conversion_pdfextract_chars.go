@@ -3,6 +3,7 @@ package services
 import (
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/klippa-app/go-pdfium/responses"
 )
@@ -12,6 +13,10 @@ import (
 type pdfChar struct {
 	text                     string
 	left, top, right, bottom float64
+	// font is the name of the font this character was rendered with (empty
+	// when font information wasn't collected). A change in font name between
+	// two adjacent characters marks a text-run boundary — see buildLine.
+	font string
 }
 
 // pdfLine is one reconstructed line of text with its bounding box and the
@@ -59,12 +64,17 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
+		var font string
+		if c.FontInformation != nil {
+			font = c.FontInformation.Name
+		}
 		chars = append(chars, pdfChar{
 			text:   text,
 			left:   c.PointPosition.Left,
 			top:    c.PointPosition.Top,
 			right:  c.PointPosition.Right,
 			bottom: c.PointPosition.Bottom,
+			font:   font,
 		})
 	}
 	return chars
@@ -170,10 +180,32 @@ func groupLines(chars []pdfChar) []pdfLine {
 	return lines
 }
 
+// clusterNormalCharsOverlapMarginRatio is the small float-rounding tolerance
+// applied to the vertical-interval overlap check in clusterNormalChars — not
+// a line-spacing allowance like lineGroupYMidRatio (that ratio is deliberately
+// too large for this check: applying it here reintroduces the false merge it
+// was tuned to avoid, see the comment below).
+const clusterNormalCharsOverlapMarginRatio = 0.05
+
 // clusterNormalChars groups normal-height characters into lines by
-// y-midpoint proximity: sort by descending midpoint, then join a character
-// to the line being built when its midpoint is within lineGroupYMidRatio *
-// medH of that line's running average midpoint.
+// vertical-interval overlap rather than y-midpoint distance: sort by
+// descending midpoint, then join a character to the line being built when
+// its own [bottom, top] box overlaps the running envelope (min bottom, max
+// top seen so far) of the line, within a small float-rounding margin.
+//
+// A single physical line set in a large or stylized font can span a wide
+// range of y-midpoints — a cap-height letter's midpoint sits well above an
+// x-height letter's, which sits above a descender's — and that spread can
+// exceed lineGroupYMidRatio * medH when medH is calibrated off a much
+// smaller body-text font sharing the page (the chapter-title fracturing in
+// issue #1651). Cap, x-height, and descender glyphs on one baseline all
+// still overlap each other's box near the baseline/x-height band regardless
+// of font size, so overlap keeps them together where midpoint distance
+// would not. Genuinely separate lines set with normal leading still don't
+// overlap, so they still split — this only requires actual box overlap, not
+// lineGroupYMidRatio * medH of slack the way attachSmallChars allows for
+// small punctuation: that much tolerance here would let lines separated by
+// a narrow but real gap merge into one.
 func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 	sorted := make([]pdfChar, len(chars))
 	copy(sorted, chars)
@@ -183,8 +215,8 @@ func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 
 	var groups [][]pdfChar
 	var group []pdfChar
-	var midSum float64
-	threshold := lineGroupYMidRatio * medH
+	var envTop, envBottom float64
+	margin := clusterNormalCharsOverlapMarginRatio * medH
 
 	flush := func() {
 		if len(group) == 0 {
@@ -192,19 +224,19 @@ func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 		}
 		groups = append(groups, group)
 		group = nil
-		midSum = 0
 	}
 
 	for _, c := range sorted {
-		mid := c.yMid()
-		if len(group) > 0 {
-			avg := midSum / float64(len(group))
-			if diff := avg - mid; diff > threshold || diff < -threshold {
-				flush()
-			}
+		if len(group) > 0 && (c.bottom > envTop+margin || c.top < envBottom-margin) {
+			flush()
+		}
+		if len(group) == 0 {
+			envTop, envBottom = c.top, c.bottom
+		} else {
+			envTop = max(envTop, c.top)
+			envBottom = min(envBottom, c.bottom)
 		}
 		group = append(group, c)
-		midSum += mid
 	}
 	flush()
 
@@ -267,10 +299,53 @@ func groupYMid(g []pdfChar) float64 {
 	return sum / float64(len(g))
 }
 
+// lastRune/firstRune return the last/first rune of s, or the zero rune for
+// an empty string.
+func lastRune(s string) rune {
+	r := []rune(s)
+	if len(r) == 0 {
+		return 0
+	}
+	return r[len(r)-1]
+}
+
+func firstRune(s string) rune {
+	for _, r := range s {
+		return r
+	}
+	return 0
+}
+
+// needsRunBoundarySpace reports whether a space belongs between two
+// horizontally-adjacent characters already known to sit on the same line:
+// either the physical gap between their boxes exceeds lineSpaceGapRatio *
+// medH (the original geometric check), or they come from different
+// font/style runs (prev.font != c.font, both known) and both sides of the
+// boundary are alphabetic. The latter catches #1653: PDFium reports no
+// whitespace glyph at a run boundary that falls mid-word-gap (e.g. "of" in
+// one run, "Growth" in an adjacent italic run), so the geometric gap alone
+// can be far too small to notice — but a run boundary between two letters
+// reliably is a word boundary in body text. Font information is unset
+// (empty string on both sides) unless CollectFontInformation was requested,
+// so this never fires without it — buildLine falls back to the pre-#1653
+// gap-only behavior.
+func needsRunBoundarySpace(prev, c pdfChar, medH float64) bool {
+	if c.left-prev.right > lineSpaceGapRatio*medH {
+		return true
+	}
+	if prev.font == "" || c.font == "" || prev.font == c.font {
+		return false
+	}
+	return unicode.IsLetter(lastRune(prev.text)) && unicode.IsLetter(firstRune(c.text))
+}
+
 // buildLine sorts a line's characters left-to-right, joins their text
 // (inserting a space where the horizontal gap between consecutive character
-// boxes exceeds 0.25 * the line's median character height), and computes the
-// line's bounding box.
+// boxes exceeds 0.25 * the line's median character height, or where two
+// adjacent alphabetic characters come from different font/style runs — see
+// #1653: a style change at a word boundary doesn't reliably line up with a
+// physical gap large enough for the geometric check alone to catch), and
+// computes the line's bounding box.
 func buildLine(chars []pdfChar) pdfLine {
 	sort.SliceStable(
 		chars,
@@ -287,7 +362,7 @@ func buildLine(chars []pdfChar) pdfLine {
 	top, bottom := chars[0].top, chars[0].bottom
 
 	for i, c := range chars {
-		if i > 0 && c.left-chars[i-1].right > lineSpaceGapRatio*medH {
+		if i > 0 && needsRunBoundarySpace(chars[i-1], c, medH) {
 			b.WriteByte(' ')
 		}
 		b.WriteString(c.text)

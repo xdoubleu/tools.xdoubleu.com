@@ -29,8 +29,8 @@ beforeEach(() => {
   mockUseStationSearch.mockReset()
   mockUseStationSearch.mockReturnValue({
     stations: [
-      { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha' },
-      { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo' }
+      { stopId: 'SA', nameNl: 'Alpha', nameFr: 'Alpha', nameEn: 'Alpha', displayName: 'Alpha' },
+      { stopId: 'SB', nameNl: 'Bravo', nameFr: 'Bravo', nameEn: 'Bravo', displayName: 'Bravo' }
     ]
   })
 })
@@ -80,10 +80,16 @@ describe('StationField', () => {
     expect(onSelectStation).toHaveBeenCalledWith('SA', 'Alpha')
   })
 
-  it('joins distinct nl/fr/en names into one suggestion', () => {
+  it('shows the station display name computed server-side as its suggestion', () => {
     mockUseStationSearch.mockReturnValue({
       stations: [
-        { stopId: 'SC', nameNl: 'Brussel-Zuid', nameFr: 'Bruxelles-Midi', nameEn: 'Brussels-South' }
+        {
+          stopId: 'SC',
+          nameNl: 'Brussel-Zuid',
+          nameFr: 'Bruxelles-Midi',
+          nameEn: 'Brussels-South',
+          displayName: 'Brussel-Zuid / Bruxelles-Midi / Brussels-South'
+        }
       ]
     })
     const onSelectStation = jest.fn()

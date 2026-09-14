@@ -172,8 +172,19 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	_, refreshErr := testApp.Services.Journey.RefreshWindow(ctx, windowStart)
 	require.NoError(t, refreshErr)
 
+	// GTFS stop_times are local wall-clock seconds-since-midnight, resolved
+	// by the router against Brussels-local midnight of windowStart's
+	// calendar date (its own Y/M/D only — windowStart itself is UTC, per
+	// its construction above). A "when" built directly off windowStart via
+	// .Add would be off by the standing UTC offset, same trap as
+	// journey_alternative_test.go's altLegRefs.
+	brussels, locErr := time.LoadLocation("Europe/Brussels")
+	require.NoError(t, locErr)
+	y, m, d := windowStart.Date()
+	localMidnight := time.Date(y, m, d, 0, 0, 0, 0, brussels)
+
 	t.Run("direct journey", func(t *testing.T) {
-		when := windowStart.Add(7*time.Hour + 55*time.Minute)
+		when := localMidnight.Add(7*time.Hour + 55*time.Minute)
 		journeys, err := testApp.Services.Journey.SearchJourneys(
 			ctx,
 			"SA",
@@ -188,7 +199,7 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("journey requiring a transfer", func(t *testing.T) {
-		when := windowStart.Add(8*time.Hour + 55*time.Minute)
+		when := localMidnight.Add(8*time.Hour + 55*time.Minute)
 		journeys, err := testApp.Services.Journey.SearchJourneys(
 			ctx,
 			"SA",
@@ -206,7 +217,7 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("after-midnight journey crosses the service day", func(t *testing.T) {
-		when := windowStart.Add(23 * time.Hour)
+		when := localMidnight.Add(23 * time.Hour)
 		journeys, err := testApp.Services.Journey.SearchJourneys(
 			ctx,
 			"SA",
@@ -222,7 +233,7 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("no service on the requested date", func(t *testing.T) {
-		when := windowStart.AddDate(0, 0, 3).Add(8 * time.Hour)
+		when := localMidnight.AddDate(0, 0, 3).Add(8 * time.Hour)
 		journeys, err := testApp.Services.Journey.SearchJourneys(
 			ctx,
 			"SA",
@@ -235,7 +246,7 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("non-boarding call cannot be a boarding point", func(t *testing.T) {
-		when := windowStart.Add(8*time.Hour + 5*time.Minute)
+		when := localMidnight.Add(8*time.Hour + 5*time.Minute)
 		journeys, err := testApp.Services.Journey.SearchJourneys(
 			ctx,
 			"M1",

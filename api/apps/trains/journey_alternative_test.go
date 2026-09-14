@@ -39,13 +39,36 @@ func altFeed(windowStart time.Time) *models.Feed {
 	//nolint:exhaustruct //only the fields the router/overlay read are set
 	return &models.Feed{
 		Stops: []models.Stop{
-			{StopID: "AX", NameFR: "Ax", LocationType: 1},
-			{StopID: "AX1", NameFR: "Ax", ParentStation: "AX", PlatformCode: "1"},
-			{StopID: "MX", NameFR: "Mechelen", LocationType: 1},
-			{StopID: "MX1", NameFR: "Mechelen", ParentStation: "MX", PlatformCode: "1"},
-			{StopID: "MX2", NameFR: "Mechelen", ParentStation: "MX", PlatformCode: "2"},
-			{StopID: "BX", NameFR: "Bx", LocationType: 1},
-			{StopID: "BX1", NameFR: "Bx", ParentStation: "BX", PlatformCode: "1"},
+			{StopID: "AX", NameFR: "Ax", DisplayName: "Ax", LocationType: 1},
+			{
+				StopID:        "AX1",
+				NameFR:        "Ax",
+				DisplayName:   "Ax",
+				ParentStation: "AX",
+				PlatformCode:  "1",
+			},
+			{
+				StopID:       "MX",
+				NameFR:       "Mechelen",
+				DisplayName:  "Mechelen",
+				LocationType: 1,
+			},
+			{
+				StopID: "MX1", NameFR: "Mechelen", DisplayName: "Mechelen",
+				ParentStation: "MX", PlatformCode: "1",
+			},
+			{
+				StopID: "MX2", NameFR: "Mechelen", DisplayName: "Mechelen",
+				ParentStation: "MX", PlatformCode: "2",
+			},
+			{StopID: "BX", NameFR: "Bx", DisplayName: "Bx", LocationType: 1},
+			{
+				StopID:        "BX1",
+				NameFR:        "Bx",
+				DisplayName:   "Bx",
+				ParentStation: "BX",
+				PlatformCode:  "1",
+			},
 		},
 		Routes: []models.Route{{RouteID: "r", ShortName: "IC", RouteType: 2}},
 		Trips: []models.Trip{
@@ -121,9 +144,20 @@ func altFeed(windowStart time.Time) *models.Feed {
 	}
 }
 
+// altLegRefs hand-builds the LegRefs a real SearchJourneys call would have
+// encoded into the journey_id, so it must reproduce idx.fromAbs' reference
+// frame exactly: Brussels-local midnight of windowStart's calendar date
+// (never windowStart's own raw value — it's UTC, per altDayStart's doc
+// comment, and only its Y/M/D are meaningful).
 func altLegRefs(windowStart time.Time) []services.LegRef {
+	brussels, err := time.LoadLocation("Europe/Brussels")
+	if err != nil {
+		panic(err)
+	}
+	y, m, d := windowStart.Date()
+	localMidnight := time.Date(y, m, d, 0, 0, 0, 0, brussels)
 	at := func(sec int) time.Time {
-		return windowStart.Add(time.Duration(8*3600+sec) * time.Second)
+		return localMidnight.Add(time.Duration(8*3600+sec) * time.Second)
 	}
 	return []services.LegRef{
 		{

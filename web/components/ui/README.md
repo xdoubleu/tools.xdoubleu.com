@@ -140,12 +140,12 @@ Disclosure section with a chevron trigger. Keeps its own open state — lift it 
 
 #### `DateInput`
 
-dd/MM/yyyy text field with a native date picker behind the calendar button. Native date inputs render in the browser locale (Safari shows MM/DD for en-US languages), so the visible field is a text input we format ourselves.
+Native `<input type="date">` on every viewport — the browser/OS renders its own locale formatting and picker UI, matching how the time field (`Input type="time"`) already behaves. A `type="date"` input's value is always 'YYYY-MM-DD' or '', so no display/ISO conversion layer is needed.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `value` | `string` | yes | 'YYYY-MM-DD' or '' |
-| `onChange` | `(value: string) => void` | yes | Always receives 'YYYY-MM-DD' or '' — never a partial date. |
+| `onChange` | `(value: string) => void` | yes |  |
 | `onBlur` | `() => void` |  |  |
 | `id` | `string` |  |  |
 | `className` | `string` |  |  |

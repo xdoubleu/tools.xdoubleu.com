@@ -42,6 +42,7 @@ func newTestConversionService(
 	store := objectstore.NewFake()
 	svc := services.NewConversionService(
 		testApp.Logger,
+		testApp.Repositories.Books,
 		testApp.Repositories.BookFiles,
 		store,
 		converter,
@@ -53,13 +54,15 @@ func newTestConversionService(
 // fakePDFConverter is a test double for the PDF→EPUB subprocess. It writes
 // the provided EPUB bytes to outPath so the rest of the pipeline can proceed.
 func fakePDFConverter(epubBytes []byte) services.PDFConverter {
-	return func(_ context.Context, _ string, outPath string) error {
+	return func(
+		_ context.Context, _, outPath, _ string, _ []string,
+	) error {
 		return os.WriteFile(outPath, epubBytes, 0o600)
 	}
 }
 
 // failingPDFConverter is a test double that always returns an error.
-func failingPDFConverter(_ context.Context, _, _ string) error {
+func failingPDFConverter(_ context.Context, _, _, _ string, _ []string) error {
 	return errors.New("pdf converter: simulated failure")
 }
 
@@ -588,6 +591,7 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 
 	conv := services.NewConversionService(
 		testApp.Logger,
+		testApp.Repositories.Books,
 		testApp.Repositories.BookFiles,
 		store,
 		&fakeEPUBConverter{out: []byte("kepub"), err: nil},
@@ -644,6 +648,7 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 
 	conv := services.NewConversionService(
 		testApp.Logger,
+		testApp.Repositories.Books,
 		testApp.Repositories.BookFiles,
 		store,
 		&fakeEPUBConverter{out: []byte("kepub"), err: nil},

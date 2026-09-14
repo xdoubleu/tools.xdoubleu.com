@@ -21,7 +21,14 @@ on top of the generic `ship-pr` skill from the `git-task-flow` plugin
 
 ## 1. Lint
 
-- `cd api && make lint/fix` and/or `cd web && npm run lint` — whichever area changed.
+- API changes confined to a single package under `api/apps/<pkg>`: `cd api
+  && make lint/fix/pkg PKG=apps/<pkg>` instead of the repo-wide target —
+  golines' repo-wide pass in plain `make lint/fix` can reformat unrelated,
+  already-merged files elsewhere in the tree that have no actual lint
+  failure (`api/CLAUDE.md`'s Lint section), which then has to be caught and
+  reverted before the diff is clean. Use plain `cd api && make lint/fix`
+  only when the change spans multiple packages or touches `api/internal`.
+- `cd web && npm run lint` for web changes.
 - `cd kobo-gateway && make lint/fix` for kobo-gateway changes.
 - `cd sentrytools && make lint/fix` for sentrytools changes — and re-run `go mod
   tidy` in `api` afterward if sentrytools' public API changed, since `api`

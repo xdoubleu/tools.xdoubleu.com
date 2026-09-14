@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -17,18 +18,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// convertToEPUB runs goPDFConverter end-to-end and returns the path to the
-// produced EPUB.
+// convertToEPUB runs goPDFConverter end-to-end (with no catalog metadata,
+// i.e. the PDF's own embedded Title/Author or a heading fallback decides
+// content.opf's metadata) and returns the path to the produced EPUB.
 func convertToEPUB(t *testing.T, pdfPath string) string {
 	t.Helper()
+	return convertToEPUBWithCatalog(t, pdfPath, "", nil)
+}
+
+// convertToEPUBWithCatalog runs goPDFConverter end-to-end, passing the given
+// catalog title/authors through as the book's already-known bibliographic
+// metadata (see EnsureKEPUB, issue #1654).
+func convertToEPUBWithCatalog(
+	t *testing.T, pdfPath, catalogTitle string, catalogAuthors []string,
+) string {
+	t.Helper()
 	outPath := filepath.Join(t.TempDir(), "out.epub")
-	err := goPDFConverter(context.Background(), pdfPath, outPath)
+	err := goPDFConverter(
+		context.Background(), pdfPath, outPath, catalogTitle, catalogAuthors,
+	)
 	require.NoError(t, err)
 	return outPath
 }
 
-// readZipEntry returns the bytes of a named entry from a zip file.
-func readZipEntry(t *testing.T, zipPath, name string) []byte {
+// indexXHTMLEntry is the one zip entry every test in this file reads back —
+// the produced EPUB's sole content document.
+const indexXHTMLEntry = "OEBPS/index.xhtml"
+
+// readZipEntry returns the bytes of indexXHTMLEntry from a zip file.
+func readZipEntry(t *testing.T, zipPath string) []byte {
+	t.Helper()
+	zr, err := zip.OpenReader(zipPath)
+	require.NoError(t, err)
+	defer func() { _ = zr.Close() }()
+
+	for _, f := range zr.File {
+		if f.Name == indexXHTMLEntry {
+			rc, openErr := f.Open()
+			require.NoError(t, openErr)
+			defer func() { _ = rc.Close() }()
+			data, readErr := io.ReadAll(rc)
+			require.NoError(t, readErr)
+			return data
+		}
+	}
+	t.Fatalf("zip entry %s not found in %s", indexXHTMLEntry, zipPath)
+	return nil
+}
+
+// readZipEntryNamed returns the bytes of an arbitrary named zip entry — used
+// by tests that need e.g. content.opf rather than the index document.
+func readZipEntryNamed(t *testing.T, zipPath, name string) []byte {
 	t.Helper()
 	zr, err := zip.OpenReader(zipPath)
 	require.NoError(t, err)
@@ -93,7 +133,7 @@ func extractBlocks(t *testing.T, xhtmlDoc string) []extractedBlock {
 		}
 	}
 
-	imgRe := regexp.MustCompile(`<img src="([^"]*)"\s*/?>`)
+	imgRe := regexp.MustCompile(`<img src="([^"]*)"[^>]*/?>`)
 	for _, m := range imgRe.FindAllStringSubmatchIndex(xhtmlDoc, -1) {
 		found = append(found, positioned{
 			pos:   m[0],
@@ -143,7 +183,7 @@ func TestGoPDFConverter_TwoColumn(t *testing.T) {
 	epubPath := convertToEPUB(t, makeTwoColumnPDF(t))
 	requireValidKEPUB(t, epubPath)
 
-	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	xhtml := string(readZipEntry(t, epubPath))
 	blocks := extractBlocks(t, xhtml)
 
 	paragraphs := blockTexts(blocks, "p")
@@ -171,7 +211,7 @@ func TestGoPDFConverter_SingleColumn(t *testing.T) {
 	epubPath := convertToEPUB(t, makeSingleColumnPDF(t))
 	requireValidKEPUB(t, epubPath)
 
-	xhtml := string(readZipEntry(t, epubPath, "OEBPS/index.xhtml"))
+	xhtml := string(readZipEntry(t, epubPath))
 	blocks := extractBlocks(t, xhtml)
 
 	require.Equal(t, []string{singleColHeading}, blockTexts(blocks, "h1"))
@@ -212,6 +252,121 @@ func TestGoPDFConverter_LogoRepeated(t *testing.T) {
 	// The logo repeats on all 3 pages and must dedupe to a single kept
 	// image; the sub-50px image must never appear.
 	require.Equal(t, 1, pngCount)
+}
+
+func TestGoPDFConverter_ImageOnlyMultiPageDeduped(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeImageOnlyMultiPagePDF(t))
+	requireValidKEPUB(t, epubPath)
+
+	names := zipEntryNames(t, epubPath)
+	pngCount := 0
+	for _, n := range names {
+		if strings.HasPrefix(n, "OEBPS/fig-") && strings.HasSuffix(n, ".png") {
+			pngCount++
+		}
+	}
+	// Four of the five image-only pages rasterize to an identical blank
+	// canvas and must dedupe to a single kept image; the filled page
+	// rasterizes differently and is kept separately.
+	require.Equal(t, 2, pngCount)
+}
+
+// imgTagRe/altAttrRe let a test assert every emitted <img> tag carries a
+// non-empty alt attribute without depending on x/net/html's exact attribute
+// reserialization order.
+var (
+	imgTagRe  = regexp.MustCompile(`<img\b[^>]*>`)
+	altAttrRe = regexp.MustCompile(`\balt="([^"]*)"`)
+)
+
+func requireAllImagesHaveAlt(t *testing.T, xhtmlDoc string) {
+	t.Helper()
+	tags := imgTagRe.FindAllString(xhtmlDoc, -1)
+	require.NotEmpty(t, tags, "expected at least one <img> tag in %s", xhtmlDoc)
+	for _, tag := range tags {
+		m := altAttrRe.FindStringSubmatch(tag)
+		require.NotNil(t, m, "img tag missing alt attribute: %s", tag)
+		require.NotEmpty(t, m[1], "img tag has empty alt attribute: %s", tag)
+	}
+}
+
+func TestGoPDFConverter_ImagesHaveAltText(t *testing.T) {
+	t.Parallel()
+
+	// Regular-figure path.
+	figEPUB := convertToEPUB(t, makeTwoColumnPDF(t))
+	requireAllImagesHaveAlt(t, string(readZipEntry(t, figEPUB)))
+
+	// Full-page-fallback path.
+	fallbackEPUB := convertToEPUB(t, makeImageOnlyPDF(t))
+	requireAllImagesHaveAlt(
+		t, string(readZipEntry(t, fallbackEPUB)),
+	)
+}
+
+// TestGoPDFConverter_ProofSlugFooterFiltered reproduces issue #1652: a
+// print-shop proof slug (page number + typesetting date/time) printed at a
+// fixed page-bottom position on every page must be recognized as running
+// production metadata and dropped, while genuine body paragraphs — including
+// one that merely contains a date — survive untouched.
+func TestGoPDFConverter_ProofSlugFooterFiltered(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeProofSlugPDF(t))
+	requireValidKEPUB(t, epubPath)
+
+	xhtml := string(readZipEntry(t, epubPath))
+	blocks := extractBlocks(t, xhtml)
+	paragraphs := blockTexts(blocks, "p")
+
+	var want []string
+	for page := 1; page <= proofSlugPageCount; page++ {
+		want = append(want, fmt.Sprintf(proofSlugBodyParaFmt, page))
+		if page == proofSlugPageCount {
+			want = append(want, proofSlugDateInBodyPara)
+		} else {
+			want = append(want, fmt.Sprintf(proofSlugBodyExtraFmt, page))
+		}
+		want = append(want, fmt.Sprintf(proofSlugBodyClosingFmt, page))
+	}
+	require.Equal(t, want, paragraphs)
+
+	for _, p := range paragraphs {
+		require.NotContains(t, p, "canoe scene ocean scan")
+	}
+}
+
+// TestGoPDFConverter_PrefersCatalogMetadataOverHeading covers issue #1654:
+// the catalog already knows the book's correct title/author (from the
+// user's library entry) by the time a PDF needs converting, so that must
+// win over whatever the PDF extraction pipeline derives on its own — its
+// first large-font heading (often frontmatter, not the real title) and any
+// embedded PDF Title/Author info-dict fields.
+func TestGoPDFConverter_PrefersCatalogMetadataOverHeading(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUBWithCatalog(
+		t,
+		makeSingleColumnPDF(t),
+		"Thinking in Systems: A Primer",
+		[]string{"Donella H. Meadows"},
+	)
+
+	opf := string(readZipEntryNamed(t, epubPath, "OEBPS/content.opf"))
+	require.Contains(t, opf, "<dc:title>Thinking in Systems: A Primer</dc:title>")
+	require.Contains(t, opf, "<dc:creator>Donella H. Meadows</dc:creator>")
+	require.NotContains(t, opf, singleColHeading)
+}
+
+// TestGoPDFConverter_FallsBackWithoutCatalogMetadata verifies the pre-#1654
+// behavior is preserved when no catalog metadata is supplied (e.g. a
+// legacy/edge call site): the PDF's own heading is still used as the title
+// fallback.
+func TestGoPDFConverter_FallsBackWithoutCatalogMetadata(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeSingleColumnPDF(t))
+
+	opf := string(readZipEntryNamed(t, epubPath, "OEBPS/content.opf"))
+	require.Contains(t, opf, "<dc:title>"+singleColHeading+"</dc:title>")
 }
 
 func indexOfBlock(blocks []extractedBlock, tag, text string) int {

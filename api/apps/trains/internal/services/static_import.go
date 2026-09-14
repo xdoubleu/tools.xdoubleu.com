@@ -19,8 +19,10 @@ import (
 // single French-only stop name (issue #1453); version 2 was the first to
 // fill name_nl/name_fr/name_en from translations.txt (#1450); version 3
 // matches those translations by field_value and by unprefixed record_id as
-// well, and records the resulting coverage (issue #1459).
-const ImportParserVersion = 3
+// well, and records the resulting coverage (issue #1459); version 4 adds
+// display_name, a canonical deduped label built only from genuinely-known
+// full names, never a possibly-abbreviated raw fallback (issue #1656).
+const ImportParserVersion = 4
 
 // StaticImportService downloads, validates and imports the SNCB GTFS static
 // timetable into the trains schema. It is driven by jobs.StaticImportJob on

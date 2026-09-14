@@ -30,7 +30,9 @@ const savedCommuteSelect = `
 	SELECT sc.id, sc.user_id, sc.label, sc.origin_stop_id, sc.destination_stop_id,
 	       sc.position, sc.created_at, sc.updated_at,
 	       COALESCE(o.name_nl, ''), COALESCE(o.name_fr, ''), COALESCE(o.name_en, ''),
-	       COALESCE(d.name_nl, ''), COALESCE(d.name_fr, ''), COALESCE(d.name_en, '')
+	       COALESCE(o.display_name, ''),
+	       COALESCE(d.name_nl, ''), COALESCE(d.name_fr, ''), COALESCE(d.name_en, ''),
+	       COALESCE(d.display_name, '')
 	FROM trains.saved_commutes sc
 	LEFT JOIN trains.stops o ON o.stop_id = sc.origin_stop_id
 	LEFT JOIN trains.stops d ON d.stop_id = sc.destination_stop_id
@@ -41,8 +43,9 @@ func scanSavedCommute(row pgx.Row) (models.SavedCommute, error) {
 	err := row.Scan(
 		&sc.ID, &sc.UserID, &sc.Label, &sc.OriginStopID, &sc.DestinationStopID,
 		&sc.Position, &sc.CreatedAt, &sc.UpdatedAt,
-		&sc.Origin.NameNL, &sc.Origin.NameFR, &sc.Origin.NameEN,
+		&sc.Origin.NameNL, &sc.Origin.NameFR, &sc.Origin.NameEN, &sc.Origin.DisplayName,
 		&sc.Destination.NameNL, &sc.Destination.NameFR, &sc.Destination.NameEN,
+		&sc.Destination.DisplayName,
 	)
 	sc.Origin.StopID = sc.OriginStopID
 	sc.Destination.StopID = sc.DestinationStopID
