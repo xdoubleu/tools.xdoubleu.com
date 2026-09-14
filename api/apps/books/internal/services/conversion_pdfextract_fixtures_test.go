@@ -3,6 +3,7 @@ package services
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -289,4 +290,100 @@ func makeImageOnlyMultiPagePDF(t *testing.T) string {
 	pdf.AddPage()
 
 	return savePDF(t, pdf, "image-only-multi-page.pdf")
+}
+
+// proofSlugPageCount is the number of pages in makeProofSlugPDF — high
+// enough to clear removeProofSlugLines' recurrence threshold.
+const proofSlugPageCount = 5
+
+// proofSlugBodyParaFmt/proofSlugBodyExtraFmt are the two genuine body
+// paragraphs placed on every fixture page, distinct per page so a test can
+// assert each one survives filtering.
+const (
+	proofSlugBodyParaFmt = "Body paragraph %d discusses systems thinking " +
+		"concepts and feedback loops in some extra detail here"
+	proofSlugBodyExtraFmt = "Second paragraph %d continues the discussion " +
+		"of stocks and flows within the same system boundary"
+	// proofSlugFooterFmt mirrors the shape from issue #1652 (a short line
+	// with a page-number token, an m/d/yy-style date, and an h:mm:ss-style
+	// time) without the literal all-caps "TIS" book-title prefix — detection
+	// must key on the general shape, never that one book's literal text. Its
+	// filler words deliberately use only x-height lowercase letters (a, c,
+	// e, m, n, o, r, s), never an ascender/descender (b, d, f, g, h, i, j, k,
+	// l, p, q, t, y) or an uppercase letter: fpdf's per-glyph bounding boxes
+	// give ascenders/descenders/digits a taller box than x-height letters,
+	// and this line's roughly even split between letters and digits would
+	// otherwise push its median glyph height over the heading-classification
+	// ratio in this synthetic fixture (real embedded fonts don't skew this
+	// way, per the issue's own report of the line coming out as a <p>),
+	// which would mask the paragraph-level bug this test exists to
+	// reproduce.
+	proofSlugFooterFmt = "canoe scene ocean scan %d sonar %s arena %s"
+	// proofSlugDateInBodyPara is a genuine body paragraph that happens to
+	// contain a date but neither a bare page-number token nor a time — it
+	// must never be mistaken for the proof slug.
+	proofSlugDateInBodyPara = "The revised schedule set the deadline for " +
+		"5/2/09 according to the committee notes"
+	// proofSlugBodyClosingFmt pads each page's extractable non-whitespace
+	// character count past the 200-char image-only-page threshold (whitespace
+	// is dropped before that count, so the other two paragraphs plus the
+	// footer alone fall just short) — without it these pages would each
+	// render as a full-page fallback image instead of exercising the
+	// paragraph/footer-filtering path this test wants.
+	proofSlugBodyClosingFmt = "Closing paragraph %d wraps up the page with " +
+		"a bit more body text so the page is never treated as image-only content"
+)
+
+// makeProofSlugPDF builds a multi-page PDF where every page carries three
+// genuine body paragraphs plus a fixed-position footer line at the bottom
+// of the page shaped like a print-shop proof slug (page number + date +
+// time) — reproducing issue #1652. The last page's second paragraph is
+// replaced with proofSlugDateInBodyPara to check that a paragraph merely
+// containing a date is never swept up by the footer filter. Page numbers,
+// dates, and times reuse the digit shapes from the issue's real-world
+// example (page 72, 5/2/09, 10:37:39) rather than small sequential numbers —
+// fpdf's naive per-glyph advance-width placement (unlike real production
+// PDFs) can otherwise misplace certain digit pairs widely enough to trip the
+// line-grouping word-space heuristic and split a token in two.
+func makeProofSlugPDF(t *testing.T) string {
+	t.Helper()
+	pdf := newFixturePDF()
+
+	// pageNums/dates/times deliberately avoid the digit "1" anywhere: fpdf's
+	// per-glyph advance-width placement (unlike real production PDFs)
+	// misjudges the gap next to a "1" glyph (it's narrower than other
+	// digits) widely enough to trip the line-grouping word-space heuristic
+	// and split the token in two, wherever "1" falls in it.
+	pageNums := []int{72, 73, 74, 75, 76}
+	dates := []string{"5/2/09", "5/3/09", "5/4/09", "5/5/09", "5/6/09"}
+	times := []string{
+		"9:37:22", "9:37:24", "9:37:26", "9:37:28", "9:37:32",
+	}
+
+	for page := range proofSlugPageCount {
+		if page > 0 {
+			pdf.AddPage()
+		}
+		fixtureText(pdf, fixtureLeftX, 80, fixtureBodySize,
+			fmt.Sprintf(proofSlugBodyParaFmt, page+1))
+
+		secondPara := fmt.Sprintf(proofSlugBodyExtraFmt, page+1)
+		if page == proofSlugPageCount-1 {
+			secondPara = proofSlugDateInBodyPara
+		}
+		fixtureText(
+			pdf, fixtureLeftX, 80+fixtureBreakDY, fixtureBodySize, secondPara,
+		)
+		fixtureText(
+			pdf, fixtureLeftX, 80+2*fixtureBreakDY, fixtureBodySize,
+			fmt.Sprintf(proofSlugBodyClosingFmt, page+1),
+		)
+
+		fixtureText(pdf, fixtureLeftX, 760, fixtureBodySize,
+			fmt.Sprintf(
+				proofSlugFooterFmt, pageNums[page], dates[page], times[page],
+			))
+	}
+
+	return savePDF(t, pdf, "proof-slug.pdf")
 }
