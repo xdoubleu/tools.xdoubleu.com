@@ -209,6 +209,67 @@ func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
 	}
 }
 
+// TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine reproduces issue
+// #1651: a chapter-opener page pairs a large decorative title with a much
+// smaller body-text paragraph (e.g. an epigraph) below it. medianCharHeight
+// is computed across the whole page, so the paragraph's many small
+// characters pull the page median toward the small body font, making
+// lineGroupYMidRatio * medH far too tight a window for the title's own
+// glyph-height variance: within one physical title line, a cap-height
+// letter's y-midpoint sits well above an x-height-plus-descender letter's,
+// exceeding that window and fracturing the line into fake sub-lines grouped
+// by glyph-height category — reproducing the "Wh / y" style scrambling from
+// the issue. Geometry below is a simplified stand-in for the production PDF
+// (catalog book 6d0ac153-c7b3-48e9-b245-51dd30d941e3, "Thinking in Systems: A
+// Primer"): a 3-letter title word ("Why") with a cap letter, an ascender, and
+// an x-height letter with a descender, sitting above a 20-character
+// small-font body line.
+func TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine(t *testing.T) {
+	chars := []pdfChar{
+		// Title "Why", large font: W is full cap-height, h an ascender
+		// almost as tall, y an x-height letter with a descender pulling its
+		// box down well below the shared baseline (~500).
+		{text: "W", left: 0, top: 520, right: 14, bottom: 500, font: ""},
+		{text: "h", left: 14, top: 519, right: 24, bottom: 500, font: ""},
+		{text: "y", left: 24, top: 510, right: 34, bottom: 490, font: ""},
+	}
+	// Small-font body paragraph beneath the title — many short-height
+	// characters, so the page's median character height is dominated by
+	// this font rather than the title's.
+	for i := range 20 {
+		left := float64(i) * 6
+		chars = append(chars, pdfChar{
+			text: "e", left: left, top: 406, right: left + 5, bottom: 400, font: "",
+		})
+	}
+
+	lines := groupLines(chars)
+	if len(lines) != 2 {
+		t.Fatalf(
+			"expected 2 lines (title + body paragraph), got %d: %+v",
+			len(lines),
+			lines,
+		)
+	}
+
+	var title *pdfLine
+	for i := range lines {
+		if strings.Contains(lines[i].text, "W") {
+			title = &lines[i]
+		}
+	}
+	if title == nil {
+		t.Fatalf("could not find the title line among: %+v", lines)
+	}
+	if got, want := title.text, "Why"; got != want {
+		t.Fatalf(
+			"title line text = %q, want %q (title glyphs fractured into fake sub-lines)",
+			got,
+			want,
+		)
+	}
+}
+
 // TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines covers the
 // tie-break branch in attachSmallChars: when a small character's box
 // overlaps more than one line's envelope (two lines close enough together

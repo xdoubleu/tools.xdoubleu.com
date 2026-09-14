@@ -180,10 +180,32 @@ func groupLines(chars []pdfChar) []pdfLine {
 	return lines
 }
 
+// clusterNormalCharsOverlapMarginRatio is the small float-rounding tolerance
+// applied to the vertical-interval overlap check in clusterNormalChars — not
+// a line-spacing allowance like lineGroupYMidRatio (that ratio is deliberately
+// too large for this check: applying it here reintroduces the false merge it
+// was tuned to avoid, see the comment below).
+const clusterNormalCharsOverlapMarginRatio = 0.05
+
 // clusterNormalChars groups normal-height characters into lines by
-// y-midpoint proximity: sort by descending midpoint, then join a character
-// to the line being built when its midpoint is within lineGroupYMidRatio *
-// medH of that line's running average midpoint.
+// vertical-interval overlap rather than y-midpoint distance: sort by
+// descending midpoint, then join a character to the line being built when
+// its own [bottom, top] box overlaps the running envelope (min bottom, max
+// top seen so far) of the line, within a small float-rounding margin.
+//
+// A single physical line set in a large or stylized font can span a wide
+// range of y-midpoints — a cap-height letter's midpoint sits well above an
+// x-height letter's, which sits above a descender's — and that spread can
+// exceed lineGroupYMidRatio * medH when medH is calibrated off a much
+// smaller body-text font sharing the page (the chapter-title fracturing in
+// issue #1651). Cap, x-height, and descender glyphs on one baseline all
+// still overlap each other's box near the baseline/x-height band regardless
+// of font size, so overlap keeps them together where midpoint distance
+// would not. Genuinely separate lines set with normal leading still don't
+// overlap, so they still split — this only requires actual box overlap, not
+// lineGroupYMidRatio * medH of slack the way attachSmallChars allows for
+// small punctuation: that much tolerance here would let lines separated by
+// a narrow but real gap merge into one.
 func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 	sorted := make([]pdfChar, len(chars))
 	copy(sorted, chars)
@@ -193,8 +215,8 @@ func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 
 	var groups [][]pdfChar
 	var group []pdfChar
-	var midSum float64
-	threshold := lineGroupYMidRatio * medH
+	var envTop, envBottom float64
+	margin := clusterNormalCharsOverlapMarginRatio * medH
 
 	flush := func() {
 		if len(group) == 0 {
@@ -202,19 +224,19 @@ func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
 		}
 		groups = append(groups, group)
 		group = nil
-		midSum = 0
 	}
 
 	for _, c := range sorted {
-		mid := c.yMid()
-		if len(group) > 0 {
-			avg := midSum / float64(len(group))
-			if diff := avg - mid; diff > threshold || diff < -threshold {
-				flush()
-			}
+		if len(group) > 0 && (c.bottom > envTop+margin || c.top < envBottom-margin) {
+			flush()
+		}
+		if len(group) == 0 {
+			envTop, envBottom = c.top, c.bottom
+		} else {
+			envTop = max(envTop, c.top)
+			envBottom = min(envBottom, c.bottom)
 		}
 		group = append(group, c)
-		midSum += mid
 	}
 	flush()
 
