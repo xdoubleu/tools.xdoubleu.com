@@ -24,6 +24,13 @@
 # This closed the r2_usage_high and failing_main_ci gaps. IssueSentryUnresolved
 # is the exception — it queries the Sentry API directly through the
 # grafana-sentry-datasource plugin (issue #1570), no gauge involved.
+# AutomatedActionStalled (issue #1443) reads
+# automated_action_oldest_open_age_seconds, also exported by the issue-signal
+# collector: the age of the longest-open global.automated_actions row, 0 when
+# none are open. Its 3-hour threshold is well above any run duration observed
+# in #1438's spike (routines complete in minutes) but still same-day — the
+# self-healing routines this catches run a few times a day in batches, so a
+# multi-hour gap with one left open is already abnormal.
 #
 # Still NOT reimplemented: ci_duration_high — Prometheus has no exporter for
 # workflow durations. /monitoring still surfaces it live from its own source.
@@ -551,6 +558,41 @@ groups:
               refId: A
               instant: true
               expr: r2_storage_bytes > 9663676416
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      - uid: automated-action-stalled
+        title: AutomatedActionStalled
+        condition: C
+        labels:
+          severity: critical
+          # See issue-sentry-unresolved's trigger label comment above — a
+          # stalled self-healing routine is itself a bug, and could itself be
+          # the nightly sweep, so this can't wait on a human noticing Slack.
+          trigger: immediate
+        annotations:
+          summary: An automated routine fired and never closed out
+          description: "The oldest open global.automated_actions row is {{ $values.A }}s old, above the 3h stall threshold."
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: automated_action_oldest_open_age_seconds > 10800
           - refId: C
             datasourceUid: __expr__
             model:

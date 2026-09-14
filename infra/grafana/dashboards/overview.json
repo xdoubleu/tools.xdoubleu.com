@@ -273,6 +273,25 @@
         "overrides": []
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Oldest open automated action",
+      "description": "Mirrors the AutomatedActionStalled alert rule exactly — threshold 3h. See global.automated_actions.",
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(automated_action_oldest_open_age_seconds)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 10800 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
     }
   ]
 }
