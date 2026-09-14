@@ -124,6 +124,19 @@ func TestMain(m *testing.M) {
 			to_user_id TEXT NOT NULL UNIQUE,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 		)`,
+		// Mirrors cmd/api/migrations/00050_automated_actions.sql.
+		`CREATE TABLE IF NOT EXISTS global.automated_actions (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			fired_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			trigger_source TEXT NOT NULL
+				CHECK (trigger_source IN ('schedule', 'api', 'manual')),
+			routine_name TEXT NOT NULL,
+			finished_at TIMESTAMPTZ,
+			outcome TEXT
+				CHECK (outcome IN ('succeeded', 'failed', 'no_action_needed')),
+			pr_url TEXT,
+			error TEXT
+		)`,
 	}
 	for _, stmt := range stmts {
 		if _, err := postgresDB.Exec(ctx, stmt); err != nil {

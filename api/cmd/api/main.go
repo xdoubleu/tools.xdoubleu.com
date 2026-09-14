@@ -59,6 +59,7 @@ type Application struct {
 	usageRepo                     *repositories.UsageRepository
 	storageRepo                   *repositories.StorageSnapshotsRepository
 	dbStatsRepo                   *repositories.DBStatsRepository
+	automatedActionsRepo          *repositories.AutomatedActionsRepository
 	logsRepo                      *repositories.LogsRepository
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	githubClient                  github.Client
@@ -443,6 +444,7 @@ func NewApplication(
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
 		dbStatsRepo:                   dbStatsRepo,
+		automatedActionsRepo:          repositories.NewAutomatedActionsRepository(db),
 		logsRepo:                      logsRepo,
 		notificationSettingsRepo:      notificationSettingsRepo,
 		oauthConnRepo:                 oauthConnRepo,

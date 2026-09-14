@@ -39,6 +39,12 @@ service ObservabilityService {
       returns (GetNotificationSettingsResponse);
   rpc UpdateNotificationSettings(UpdateNotificationSettingsRequest)
       returns (UpdateNotificationSettingsResponse);
+  rpc OpenAutomatedAction(OpenAutomatedActionRequest)
+      returns (OpenAutomatedActionResponse);
+  rpc CloseAutomatedAction(CloseAutomatedActionRequest)
+      returns (CloseAutomatedActionResponse);
+  rpc GetAutomatedActions(GetAutomatedActionsRequest)
+      returns (GetAutomatedActionsResponse);
 }
 
 message JobStat {
@@ -464,3 +470,54 @@ message UpdateNotificationSettingsRequest {
 }
 
 message UpdateNotificationSettingsResponse {}
+
+// AutomatedAction is one run of a self-healing routine that executes outside
+// api's own process (e.g. on Anthropic's scheduled-agent infrastructure), so
+// unlike global.job_runs (populated automatically by TrackedJob for
+// in-process jobs) the routine itself must open this row as its first step
+// and close it as its last, via OpenAutomatedAction/CloseAutomatedAction.
+// finished_at/outcome/pr_url/error are all unset while the run is still
+// open.
+message AutomatedAction {
+  int64 id = 1;
+  string fired_at = 2;  // RFC3339
+  string trigger_source = 3;  // "schedule" | "api" | "manual"
+  string routine_name = 4;
+  string finished_at = 5;  // RFC3339, empty while open
+  string outcome = 6;  // "succeeded" | "failed" | "no_action_needed", empty while open
+  string pr_url = 7;
+  string error = 8;
+}
+
+// OpenAutomatedActionRequest records that routine_name has started, fired by
+// trigger_source. Returns the row id CloseAutomatedAction needs to close it
+// out.
+message OpenAutomatedActionRequest {
+  string trigger_source = 1;
+  string routine_name = 2;
+}
+
+message OpenAutomatedActionResponse {
+  int64 id = 1;
+}
+
+// CloseAutomatedActionRequest closes out the row OpenAutomatedAction
+// returned, recording how the run ended. pr_url/error are optional — set
+// pr_url when the routine opened a pull request, error when outcome is
+// "failed".
+message CloseAutomatedActionRequest {
+  int64 id = 1;
+  string outcome = 2;
+  string pr_url = 3;
+  string error = 4;
+}
+
+message CloseAutomatedActionResponse {}
+
+message GetAutomatedActionsRequest {
+  int32 window_days = 1;
+}
+
+message GetAutomatedActionsResponse {
+  repeated AutomatedAction actions = 1;
+}

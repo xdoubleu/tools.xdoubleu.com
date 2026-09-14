@@ -3666,6 +3666,408 @@ func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{61}
 }
 
+// AutomatedAction is one run of a self-healing routine that executes outside
+// api's own process (e.g. on Anthropic's scheduled-agent infrastructure), so
+// unlike global.job_runs (populated automatically by TrackedJob for
+// in-process jobs) the routine itself must open this row as its first step
+// and close it as its last, via OpenAutomatedAction/CloseAutomatedAction.
+// finished_at/outcome/pr_url/error are all unset while the run is still
+// open.
+type AutomatedAction struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	FiredAt       string                 `protobuf:"bytes,2,opt,name=fired_at,json=firedAt,proto3" json:"fired_at,omitempty"`                   // RFC3339
+	TriggerSource string                 `protobuf:"bytes,3,opt,name=trigger_source,json=triggerSource,proto3" json:"trigger_source,omitempty"` // "schedule" | "api" | "manual"
+	RoutineName   string                 `protobuf:"bytes,4,opt,name=routine_name,json=routineName,proto3" json:"routine_name,omitempty"`
+	FinishedAt    string                 `protobuf:"bytes,5,opt,name=finished_at,json=finishedAt,proto3" json:"finished_at,omitempty"` // RFC3339, empty while open
+	Outcome       string                 `protobuf:"bytes,6,opt,name=outcome,proto3" json:"outcome,omitempty"`                         // "succeeded" | "failed" | "no_action_needed", empty while open
+	PrUrl         string                 `protobuf:"bytes,7,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	Error         string                 `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AutomatedAction) Reset() {
+	*x = AutomatedAction{}
+	mi := &file_observability_v1_observability_proto_msgTypes[62]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AutomatedAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AutomatedAction) ProtoMessage() {}
+
+func (x *AutomatedAction) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[62]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AutomatedAction.ProtoReflect.Descriptor instead.
+func (*AutomatedAction) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{62}
+}
+
+func (x *AutomatedAction) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *AutomatedAction) GetFiredAt() string {
+	if x != nil {
+		return x.FiredAt
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetTriggerSource() string {
+	if x != nil {
+		return x.TriggerSource
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetRoutineName() string {
+	if x != nil {
+		return x.RoutineName
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetFinishedAt() string {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetPrUrl() string {
+	if x != nil {
+		return x.PrUrl
+	}
+	return ""
+}
+
+func (x *AutomatedAction) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// OpenAutomatedActionRequest records that routine_name has started, fired by
+// trigger_source. Returns the row id CloseAutomatedAction needs to close it
+// out.
+type OpenAutomatedActionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TriggerSource string                 `protobuf:"bytes,1,opt,name=trigger_source,json=triggerSource,proto3" json:"trigger_source,omitempty"`
+	RoutineName   string                 `protobuf:"bytes,2,opt,name=routine_name,json=routineName,proto3" json:"routine_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenAutomatedActionRequest) Reset() {
+	*x = OpenAutomatedActionRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[63]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenAutomatedActionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenAutomatedActionRequest) ProtoMessage() {}
+
+func (x *OpenAutomatedActionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[63]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenAutomatedActionRequest.ProtoReflect.Descriptor instead.
+func (*OpenAutomatedActionRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{63}
+}
+
+func (x *OpenAutomatedActionRequest) GetTriggerSource() string {
+	if x != nil {
+		return x.TriggerSource
+	}
+	return ""
+}
+
+func (x *OpenAutomatedActionRequest) GetRoutineName() string {
+	if x != nil {
+		return x.RoutineName
+	}
+	return ""
+}
+
+type OpenAutomatedActionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenAutomatedActionResponse) Reset() {
+	*x = OpenAutomatedActionResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[64]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenAutomatedActionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenAutomatedActionResponse) ProtoMessage() {}
+
+func (x *OpenAutomatedActionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[64]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenAutomatedActionResponse.ProtoReflect.Descriptor instead.
+func (*OpenAutomatedActionResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{64}
+}
+
+func (x *OpenAutomatedActionResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+// CloseAutomatedActionRequest closes out the row OpenAutomatedAction
+// returned, recording how the run ended. pr_url/error are optional — set
+// pr_url when the routine opened a pull request, error when outcome is
+// "failed".
+type CloseAutomatedActionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Outcome       string                 `protobuf:"bytes,2,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	PrUrl         string                 `protobuf:"bytes,3,opt,name=pr_url,json=prUrl,proto3" json:"pr_url,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseAutomatedActionRequest) Reset() {
+	*x = CloseAutomatedActionRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[65]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseAutomatedActionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseAutomatedActionRequest) ProtoMessage() {}
+
+func (x *CloseAutomatedActionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[65]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseAutomatedActionRequest.ProtoReflect.Descriptor instead.
+func (*CloseAutomatedActionRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{65}
+}
+
+func (x *CloseAutomatedActionRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *CloseAutomatedActionRequest) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *CloseAutomatedActionRequest) GetPrUrl() string {
+	if x != nil {
+		return x.PrUrl
+	}
+	return ""
+}
+
+func (x *CloseAutomatedActionRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type CloseAutomatedActionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloseAutomatedActionResponse) Reset() {
+	*x = CloseAutomatedActionResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloseAutomatedActionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloseAutomatedActionResponse) ProtoMessage() {}
+
+func (x *CloseAutomatedActionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[66]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloseAutomatedActionResponse.ProtoReflect.Descriptor instead.
+func (*CloseAutomatedActionResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{66}
+}
+
+type GetAutomatedActionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WindowDays    int32                  `protobuf:"varint,1,opt,name=window_days,json=windowDays,proto3" json:"window_days,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAutomatedActionsRequest) Reset() {
+	*x = GetAutomatedActionsRequest{}
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAutomatedActionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAutomatedActionsRequest) ProtoMessage() {}
+
+func (x *GetAutomatedActionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[67]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAutomatedActionsRequest.ProtoReflect.Descriptor instead.
+func (*GetAutomatedActionsRequest) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{67}
+}
+
+func (x *GetAutomatedActionsRequest) GetWindowDays() int32 {
+	if x != nil {
+		return x.WindowDays
+	}
+	return 0
+}
+
+type GetAutomatedActionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Actions       []*AutomatedAction     `protobuf:"bytes,1,rep,name=actions,proto3" json:"actions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAutomatedActionsResponse) Reset() {
+	*x = GetAutomatedActionsResponse{}
+	mi := &file_observability_v1_observability_proto_msgTypes[68]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAutomatedActionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAutomatedActionsResponse) ProtoMessage() {}
+
+func (x *GetAutomatedActionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_observability_v1_observability_proto_msgTypes[68]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAutomatedActionsResponse.ProtoReflect.Descriptor instead.
+func (*GetAutomatedActionsResponse) Descriptor() ([]byte, []int) {
+	return file_observability_v1_observability_proto_rawDescGZIP(), []int{68}
+}
+
+func (x *GetAutomatedActionsResponse) GetActions() []*AutomatedAction {
+	if x != nil {
+		return x.Actions
+	}
+	return nil
+}
+
 var File_observability_v1_observability_proto protoreflect.FileDescriptor
 
 const file_observability_v1_observability_proto_rawDesc = "" +
@@ -3940,12 +4342,38 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"source_key\x18\x01 \x01(\tR\tsourceKey\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"$\n" +
-	"\"UpdateNotificationSettingsResponse*\xac\x01\n" +
+	"\"UpdateNotificationSettingsResponse\"\xee\x01\n" +
+	"\x0fAutomatedAction\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
+	"\bfired_at\x18\x02 \x01(\tR\afiredAt\x12%\n" +
+	"\x0etrigger_source\x18\x03 \x01(\tR\rtriggerSource\x12!\n" +
+	"\froutine_name\x18\x04 \x01(\tR\vroutineName\x12\x1f\n" +
+	"\vfinished_at\x18\x05 \x01(\tR\n" +
+	"finishedAt\x12\x18\n" +
+	"\aoutcome\x18\x06 \x01(\tR\aoutcome\x12\x15\n" +
+	"\x06pr_url\x18\a \x01(\tR\x05prUrl\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"f\n" +
+	"\x1aOpenAutomatedActionRequest\x12%\n" +
+	"\x0etrigger_source\x18\x01 \x01(\tR\rtriggerSource\x12!\n" +
+	"\froutine_name\x18\x02 \x01(\tR\vroutineName\"-\n" +
+	"\x1bOpenAutomatedActionResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"t\n" +
+	"\x1bCloseAutomatedActionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x18\n" +
+	"\aoutcome\x18\x02 \x01(\tR\aoutcome\x12\x15\n" +
+	"\x06pr_url\x18\x03 \x01(\tR\x05prUrl\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\x1e\n" +
+	"\x1cCloseAutomatedActionResponse\"=\n" +
+	"\x1aGetAutomatedActionsRequest\x12\x1f\n" +
+	"\vwindow_days\x18\x01 \x01(\x05R\n" +
+	"windowDays\"Z\n" +
+	"\x1bGetAutomatedActionsResponse\x12;\n" +
+	"\aactions\x18\x01 \x03(\v2!.observability.v1.AutomatedActionR\aactions*\xac\x01\n" +
 	"\x11SecurityAlertType\x12#\n" +
 	"\x1fSECURITY_ALERT_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eSECURITY_ALERT_TYPE_DEPENDABOT\x10\x01\x12%\n" +
 	"!SECURITY_ALERT_TYPE_CODE_SCANNING\x10\x02\x12'\n" +
-	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xd8\x12\n" +
+	"#SECURITY_ALERT_TYPE_SECRET_SCANNING\x10\x032\xb7\x15\n" +
 	"\x14ObservabilityService\x12Z\n" +
 	"\vGetJobStats\x12$.observability.v1.GetJobStatsRequest\x1a%.observability.v1.GetJobStatsResponse\x12`\n" +
 	"\rGetUsageStats\x12&.observability.v1.GetUsageStatsRequest\x1a'.observability.v1.GetUsageStatsResponse\x12f\n" +
@@ -3967,7 +4395,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x12GetProviderOptions\x12+.observability.v1.GetProviderOptionsRequest\x1a,.observability.v1.GetProviderOptionsResponse\x12l\n" +
 	"\x11SetProviderConfig\x12*.observability.v1.SetProviderConfigRequest\x1a+.observability.v1.SetProviderConfigResponse\x12~\n" +
 	"\x17GetNotificationSettings\x120.observability.v1.GetNotificationSettingsRequest\x1a1.observability.v1.GetNotificationSettingsResponse\x12\x87\x01\n" +
-	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
+	"\x1aUpdateNotificationSettings\x123.observability.v1.UpdateNotificationSettingsRequest\x1a4.observability.v1.UpdateNotificationSettingsResponse\x12r\n" +
+	"\x13OpenAutomatedAction\x12,.observability.v1.OpenAutomatedActionRequest\x1a-.observability.v1.OpenAutomatedActionResponse\x12u\n" +
+	"\x14CloseAutomatedAction\x12-.observability.v1.CloseAutomatedActionRequest\x1a..observability.v1.CloseAutomatedActionResponse\x12r\n" +
+	"\x13GetAutomatedActions\x12,.observability.v1.GetAutomatedActionsRequest\x1a-.observability.v1.GetAutomatedActionsResponseB9Z7tools.xdoubleu.com/gen/observability/v1;observabilityv1b\x06proto3"
 
 var (
 	file_observability_v1_observability_proto_rawDescOnce sync.Once
@@ -3982,7 +4413,7 @@ func file_observability_v1_observability_proto_rawDescGZIP() []byte {
 }
 
 var file_observability_v1_observability_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
+var file_observability_v1_observability_proto_msgTypes = make([]protoimpl.MessageInfo, 69)
 var file_observability_v1_observability_proto_goTypes = []any{
 	(SecurityAlertType)(0),                     // 0: observability.v1.SecurityAlertType
 	(*JobStat)(nil),                            // 1: observability.v1.JobStat
@@ -4047,6 +4478,13 @@ var file_observability_v1_observability_proto_goTypes = []any{
 	(*GetNotificationSettingsResponse)(nil),    // 60: observability.v1.GetNotificationSettingsResponse
 	(*UpdateNotificationSettingsRequest)(nil),  // 61: observability.v1.UpdateNotificationSettingsRequest
 	(*UpdateNotificationSettingsResponse)(nil), // 62: observability.v1.UpdateNotificationSettingsResponse
+	(*AutomatedAction)(nil),                    // 63: observability.v1.AutomatedAction
+	(*OpenAutomatedActionRequest)(nil),         // 64: observability.v1.OpenAutomatedActionRequest
+	(*OpenAutomatedActionResponse)(nil),        // 65: observability.v1.OpenAutomatedActionResponse
+	(*CloseAutomatedActionRequest)(nil),        // 66: observability.v1.CloseAutomatedActionRequest
+	(*CloseAutomatedActionResponse)(nil),       // 67: observability.v1.CloseAutomatedActionResponse
+	(*GetAutomatedActionsRequest)(nil),         // 68: observability.v1.GetAutomatedActionsRequest
+	(*GetAutomatedActionsResponse)(nil),        // 69: observability.v1.GetAutomatedActionsResponse
 }
 var file_observability_v1_observability_proto_depIdxs = []int32{
 	1,  // 0: observability.v1.GetJobStatsResponse.stats:type_name -> observability.v1.JobStat
@@ -4074,53 +4512,60 @@ var file_observability_v1_observability_proto_depIdxs = []int32{
 	49, // 22: observability.v1.ListOAuthConnectionsResponse.connections:type_name -> observability.v1.OAuthConnectionStatus
 	48, // 23: observability.v1.SetProviderConfigRequest.config:type_name -> observability.v1.ProviderConfig
 	58, // 24: observability.v1.GetNotificationSettingsResponse.settings:type_name -> observability.v1.NotificationSetting
-	3,  // 25: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
-	6,  // 26: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
-	10, // 27: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
-	12, // 28: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
-	15, // 29: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
-	19, // 30: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
-	25, // 31: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
-	28, // 32: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
-	31, // 33: observability.v1.ObservabilityService.DismissSecurityAlert:input_type -> observability.v1.DismissSecurityAlertRequest
-	22, // 34: observability.v1.ObservabilityService.GetProjectIssuesByStatus:input_type -> observability.v1.GetProjectIssuesByStatusRequest
-	33, // 35: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
-	35, // 36: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
-	39, // 37: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
-	42, // 38: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
-	44, // 39: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
-	50, // 40: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
-	52, // 41: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
-	54, // 42: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
-	56, // 43: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
-	59, // 44: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
-	61, // 45: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
-	4,  // 46: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
-	7,  // 47: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
-	11, // 48: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
-	13, // 49: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
-	16, // 50: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
-	20, // 51: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
-	26, // 52: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
-	29, // 53: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
-	32, // 54: observability.v1.ObservabilityService.DismissSecurityAlert:output_type -> observability.v1.DismissSecurityAlertResponse
-	23, // 55: observability.v1.ObservabilityService.GetProjectIssuesByStatus:output_type -> observability.v1.GetProjectIssuesByStatusResponse
-	34, // 56: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
-	36, // 57: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
-	40, // 58: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
-	43, // 59: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
-	45, // 60: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
-	51, // 61: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
-	53, // 62: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
-	55, // 63: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
-	57, // 64: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
-	60, // 65: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
-	62, // 66: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
-	46, // [46:67] is the sub-list for method output_type
-	25, // [25:46] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	63, // 25: observability.v1.GetAutomatedActionsResponse.actions:type_name -> observability.v1.AutomatedAction
+	3,  // 26: observability.v1.ObservabilityService.GetJobStats:input_type -> observability.v1.GetJobStatsRequest
+	6,  // 27: observability.v1.ObservabilityService.GetUsageStats:input_type -> observability.v1.GetUsageStatsRequest
+	10, // 28: observability.v1.ObservabilityService.GetStorageStats:input_type -> observability.v1.GetStorageStatsRequest
+	12, // 29: observability.v1.ObservabilityService.TriggerStorageScan:input_type -> observability.v1.TriggerStorageScanRequest
+	15, // 30: observability.v1.ObservabilityService.GetDatabaseStats:input_type -> observability.v1.GetDatabaseStatsRequest
+	19, // 31: observability.v1.ObservabilityService.GetFailingPullRequests:input_type -> observability.v1.GetFailingPullRequestsRequest
+	25, // 32: observability.v1.ObservabilityService.GetWorkflowRuns:input_type -> observability.v1.GetWorkflowRunsRequest
+	28, // 33: observability.v1.ObservabilityService.GetSecurityAlerts:input_type -> observability.v1.GetSecurityAlertsRequest
+	31, // 34: observability.v1.ObservabilityService.DismissSecurityAlert:input_type -> observability.v1.DismissSecurityAlertRequest
+	22, // 35: observability.v1.ObservabilityService.GetProjectIssuesByStatus:input_type -> observability.v1.GetProjectIssuesByStatusRequest
+	33, // 36: observability.v1.ObservabilityService.GetSentryIssues:input_type -> observability.v1.GetSentryIssuesRequest
+	35, // 37: observability.v1.ObservabilityService.ResolveSentryIssue:input_type -> observability.v1.ResolveSentryIssueRequest
+	39, // 38: observability.v1.ObservabilityService.GetSlowTransactions:input_type -> observability.v1.GetSlowTransactionsRequest
+	42, // 39: observability.v1.ObservabilityService.GetLogs:input_type -> observability.v1.GetLogsRequest
+	44, // 40: observability.v1.ObservabilityService.GetHealthOverview:input_type -> observability.v1.GetHealthOverviewRequest
+	50, // 41: observability.v1.ObservabilityService.ListOAuthConnections:input_type -> observability.v1.ListOAuthConnectionsRequest
+	52, // 42: observability.v1.ObservabilityService.DisconnectOAuthConnection:input_type -> observability.v1.DisconnectOAuthConnectionRequest
+	54, // 43: observability.v1.ObservabilityService.GetProviderOptions:input_type -> observability.v1.GetProviderOptionsRequest
+	56, // 44: observability.v1.ObservabilityService.SetProviderConfig:input_type -> observability.v1.SetProviderConfigRequest
+	59, // 45: observability.v1.ObservabilityService.GetNotificationSettings:input_type -> observability.v1.GetNotificationSettingsRequest
+	61, // 46: observability.v1.ObservabilityService.UpdateNotificationSettings:input_type -> observability.v1.UpdateNotificationSettingsRequest
+	64, // 47: observability.v1.ObservabilityService.OpenAutomatedAction:input_type -> observability.v1.OpenAutomatedActionRequest
+	66, // 48: observability.v1.ObservabilityService.CloseAutomatedAction:input_type -> observability.v1.CloseAutomatedActionRequest
+	68, // 49: observability.v1.ObservabilityService.GetAutomatedActions:input_type -> observability.v1.GetAutomatedActionsRequest
+	4,  // 50: observability.v1.ObservabilityService.GetJobStats:output_type -> observability.v1.GetJobStatsResponse
+	7,  // 51: observability.v1.ObservabilityService.GetUsageStats:output_type -> observability.v1.GetUsageStatsResponse
+	11, // 52: observability.v1.ObservabilityService.GetStorageStats:output_type -> observability.v1.GetStorageStatsResponse
+	13, // 53: observability.v1.ObservabilityService.TriggerStorageScan:output_type -> observability.v1.TriggerStorageScanResponse
+	16, // 54: observability.v1.ObservabilityService.GetDatabaseStats:output_type -> observability.v1.GetDatabaseStatsResponse
+	20, // 55: observability.v1.ObservabilityService.GetFailingPullRequests:output_type -> observability.v1.GetFailingPullRequestsResponse
+	26, // 56: observability.v1.ObservabilityService.GetWorkflowRuns:output_type -> observability.v1.GetWorkflowRunsResponse
+	29, // 57: observability.v1.ObservabilityService.GetSecurityAlerts:output_type -> observability.v1.GetSecurityAlertsResponse
+	32, // 58: observability.v1.ObservabilityService.DismissSecurityAlert:output_type -> observability.v1.DismissSecurityAlertResponse
+	23, // 59: observability.v1.ObservabilityService.GetProjectIssuesByStatus:output_type -> observability.v1.GetProjectIssuesByStatusResponse
+	34, // 60: observability.v1.ObservabilityService.GetSentryIssues:output_type -> observability.v1.GetSentryIssuesResponse
+	36, // 61: observability.v1.ObservabilityService.ResolveSentryIssue:output_type -> observability.v1.ResolveSentryIssueResponse
+	40, // 62: observability.v1.ObservabilityService.GetSlowTransactions:output_type -> observability.v1.GetSlowTransactionsResponse
+	43, // 63: observability.v1.ObservabilityService.GetLogs:output_type -> observability.v1.GetLogsResponse
+	45, // 64: observability.v1.ObservabilityService.GetHealthOverview:output_type -> observability.v1.GetHealthOverviewResponse
+	51, // 65: observability.v1.ObservabilityService.ListOAuthConnections:output_type -> observability.v1.ListOAuthConnectionsResponse
+	53, // 66: observability.v1.ObservabilityService.DisconnectOAuthConnection:output_type -> observability.v1.DisconnectOAuthConnectionResponse
+	55, // 67: observability.v1.ObservabilityService.GetProviderOptions:output_type -> observability.v1.GetProviderOptionsResponse
+	57, // 68: observability.v1.ObservabilityService.SetProviderConfig:output_type -> observability.v1.SetProviderConfigResponse
+	60, // 69: observability.v1.ObservabilityService.GetNotificationSettings:output_type -> observability.v1.GetNotificationSettingsResponse
+	62, // 70: observability.v1.ObservabilityService.UpdateNotificationSettings:output_type -> observability.v1.UpdateNotificationSettingsResponse
+	65, // 71: observability.v1.ObservabilityService.OpenAutomatedAction:output_type -> observability.v1.OpenAutomatedActionResponse
+	67, // 72: observability.v1.ObservabilityService.CloseAutomatedAction:output_type -> observability.v1.CloseAutomatedActionResponse
+	69, // 73: observability.v1.ObservabilityService.GetAutomatedActions:output_type -> observability.v1.GetAutomatedActionsResponse
+	50, // [50:74] is the sub-list for method output_type
+	26, // [26:50] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_observability_v1_observability_proto_init() }
@@ -4138,7 +4583,7 @@ func file_observability_v1_observability_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_observability_v1_observability_proto_rawDesc), len(file_observability_v1_observability_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   62,
+			NumMessages:   69,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

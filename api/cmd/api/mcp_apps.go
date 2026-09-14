@@ -20,10 +20,12 @@ import (
 // deliberate exception: learningpaths' create_path/update_path/
 // record_progress tools mutate, since agent-authored curricula is that app's
 // core use case → docs/adr-0023-learningpaths-mcp-write-tools.md. The
-// observability tools have their own two mutating exceptions,
+// observability tools have their own three mutating exceptions,
 // resolve_sentry_issue (closes out a Sentry issue an agent just filed a fix
-// for) and dismiss_security_alert (dismisses/resolves a GitHub
-// Dependabot/code-scanning/secret-scanning alert), both admin-gated. Every
+// for), dismiss_security_alert (dismisses/resolves a GitHub
+// Dependabot/code-scanning/secret-scanning alert), and record_action (opens
+// or closes a global.automated_actions run record for a self-healing
+// routine, issue #1441), all admin-gated. Every
 // tool reuses the same OAuth 2.1 resource-server plumbing: the api is both
 // the resource server and, via the embedded internal/oauth2as provider
 // (issue #1039), the authorization server — no external Auth provider
@@ -67,6 +69,26 @@ type dismissSecurityAlertArgs struct {
 	AlertType   string `json:"alert_type"   jsonschema:"see this type's doc comment"`
 	AlertNumber int64  `json:"alert_number" jsonschema:"see get_security_alerts"`
 	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
+}
+
+// recordActionArgs is the input for record_action — the third mutating
+// observability tool, alongside resolve_sentry_issue and
+// dismiss_security_alert. A self-healing routine (running outside api's own
+// process, so nothing else observes it happening) calls this twice: once
+// with Mode "open" as its first step, once with Mode "close" — passing back
+// the ID the open call returned — as its last. TriggerSource ("schedule",
+// "api", or "manual") and RoutineName are required for "open"; ID and
+// Outcome ("succeeded", "failed", or "no_action_needed") are required for
+// "close". PRURL/Error are optional close-mode extras. Fields the given
+// mode doesn't use are ignored.
+type recordActionArgs struct {
+	Mode          string `json:"mode"                     jsonschema:"open or close"`
+	TriggerSource string `json:"trigger_source,omitempty" jsonschema:"see doc comment"`
+	RoutineName   string `json:"routine_name,omitempty"   jsonschema:"see doc comment"`
+	ID            int64  `json:"id,omitempty"             jsonschema:"see doc comment"`
+	Outcome       string `json:"outcome,omitempty"        jsonschema:"see doc comment"`
+	PRURL         string `json:"pr_url,omitempty"         jsonschema:"see doc comment"`
+	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
 }
 
 // projectIssuesByStatusArgs is the input for get_project_issues_by_status.
@@ -117,9 +139,9 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (17 tools, which include the two mutating
-// tools, resolve_sentry_issue and dismiss_security_alert — see
-// registerObservabilityMCPTools).
+// tools registered directly below (19 tools, which include the three mutating
+// tools, resolve_sentry_issue, dismiss_security_alert, and record_action —
+// see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -137,9 +159,10 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 17 admin observability tools —
-// 15 read-only plus the two deliberate mutations, resolve_sentry_issue and
-// dismiss_security_alert. Every tool but prom_query and get_grafana_alerts
+// registerObservabilityMCPTools registers the 19 admin observability tools —
+// 16 read-only plus the three deliberate mutations, resolve_sentry_issue,
+// dismiss_security_alert, and record_action. Every tool but prom_query and
+// get_grafana_alerts
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers; those two (issues #1468, #1564) instead proxy straight
 // to Prometheus's / Grafana's own HTTP API, since their response shapes
@@ -151,6 +174,14 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		"Background job run statistics and recent runs (global.job_runs).",
 		func(ctx context.Context, a windowArgs) (proto.Message, error) {
 			return h.jobStats(ctx, a.WindowDays)
+		})
+	addObsTool(srv, "get_automated_actions",
+		"Run history for self-healing routines (global.automated_actions) — "+
+			"distinct from get_job_stats: these run outside api's own process "+
+			"(e.g. on scheduled-agent infrastructure), so a row only exists "+
+			"because the routine itself opened and closed it via record_action.",
+		func(ctx context.Context, a windowArgs) (proto.Message, error) {
+			return h.automatedActions(ctx, a.WindowDays)
 		})
 	addObsTool(srv, "get_usage_stats",
 		"Per-day request counts and response bytes by app and endpoint "+
@@ -214,25 +245,35 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	registerAlertMCPTools(srv, h)
 }
 
-// registerMutatingObservabilityMCPTools registers the two deliberate
-// mutations, resolve_sentry_issue and dismiss_security_alert, split out of
-// registerObservabilityMCPTools to keep that function under the repo's
-// function-length lint limit.
+// registerMutatingObservabilityMCPTools registers the three deliberate
+// mutations, resolve_sentry_issue, dismiss_security_alert, and
+// record_action, split out of registerObservabilityMCPTools to keep that
+// function under the repo's function-length lint limit.
 func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved. One of two mutating observability "+
-			"tools, alongside dismiss_security_alert.",
+		"Marks a Sentry issue as resolved. One of three mutating observability "+
+			"tools, alongside dismiss_security_alert and record_action.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
 	addObsTool(srv, "dismiss_security_alert",
 		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
-			"secret-scanning security alert. The other mutating observability "+
-			"tool, alongside resolve_sentry_issue.",
+			"secret-scanning security alert. One of three mutating observability "+
+			"tools, alongside resolve_sentry_issue and record_action.",
 		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
 			return h.dismissSecurityAlert(
 				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
 			)
+		})
+	addObsTool(srv, "record_action",
+		"Opens or closes a run record for a self-healing routine "+
+			"(global.automated_actions) — a routine calls this with mode=open "+
+			"as its first step and mode=close as its last, since it executes "+
+			"outside api's own process and nothing else observes it running. "+
+			"The other mutating observability tools, alongside "+
+			"resolve_sentry_issue and dismiss_security_alert.",
+		func(ctx context.Context, a recordActionArgs) (proto.Message, error) {
+			return h.recordAction(ctx, a)
 		})
 }
 
