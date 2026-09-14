@@ -6,6 +6,10 @@ set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS="$ROOT_DIR/.claude/settings.json"
+# The Stop hook command in settings.json is a $CLAUDE_PROJECT_DIR-relative
+# script path (see .claude/hooks/stop-check-unshipped-work.sh); the real
+# harness sets this env var, so the test harness must too.
+export CLAUDE_PROJECT_DIR="$ROOT_DIR"
 
 fail_count=0
 pass() { printf 'PASS: %s\n' "$1"; }
@@ -47,6 +51,8 @@ setup_repo() {
   git -C "$repo" commit -q -m init
   # fabricate an origin/main ref pointing at the same commit
   git -C "$repo" update-ref refs/remotes/origin/main HEAD
+  # a real-shaped origin URL, so the no-gh REST fallback can derive owner/repo
+  git -C "$repo" remote add origin "https://github.com/test-owner/test-repo.git"
   printf '%s' "$repo"
 }
 
@@ -67,6 +73,48 @@ echo "$count"
 EOF
   chmod +x "$STUB_DIR/gh"
 }
+
+# stubs for the no-gh REST-API fallback path -- kept in their own dir
+# (never merged into STUB_DIR, which accumulates a `gh` stub from earlier
+# cases) so the "no gh on PATH" scenario stays genuinely gh-less
+NOGH_STUB_DIR="$WORK/nogh-stub-bin"
+mkdir -p "$NOGH_STUB_DIR"
+
+# stub curl so the no-gh REST-API fallback doesn't hit the network
+curl_stub() {
+  local body="$1"
+  cat > "$NOGH_STUB_DIR/curl" <<EOF
+#!/usr/bin/env bash
+cat <<'BODY'
+$body
+BODY
+EOF
+  chmod +x "$NOGH_STUB_DIR/curl"
+}
+
+# a repo-local git credential helper standing in for whatever helper a real
+# session (gh's own, osxkeychain, a cloud session's) already has configured
+# so `git credential fill` can resolve to it
+credential_stub() {
+  local repo="$1"
+  cat > "$NOGH_STUB_DIR/git-credential-stub" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = "get" ]; then
+  echo "username=stub-user"
+  echo "password=stub-token"
+fi
+EOF
+  chmod +x "$NOGH_STUB_DIR/git-credential-stub"
+  git -C "$repo" config credential.helper "$NOGH_STUB_DIR/git-credential-stub"
+}
+
+# a PATH with real git/jq/etc. (needed for `git credential fill` and JSON
+# parsing to actually work) but no `gh`, simulating a cloud/routine session
+NOGH_WITH_CURL_DIR="$WORK/nogh-with-curl-bin"
+mkdir -p "$NOGH_WITH_CURL_DIR"
+for tool in bash git jq mktemp cat mkdir tr printf sed head; do
+  p=$(command -v "$tool") && ln -sf "$p" "$NOGH_WITH_CURL_DIR/$tool"
+done
 
 # case: stop_hook_active suppresses everything
 repo=$(setup_repo "loop-guard")
@@ -118,19 +166,47 @@ fi
 out2=$(PATH="$STUB_DIR:$PATH" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
 [ -z "$out2" ] && pass "second invocation for same SHA is suppressed" || fail "second invocation for same SHA is suppressed" "$out2"
 
-# case: no gh on PATH -> "can't tell" if a PR exists, so stay silent (issue #1400)
-repo=$(setup_repo "no-gh-case")
+# case: no gh AND no curl on PATH -> truly "can't tell", so stay silent
+repo=$(setup_repo "no-gh-no-curl-case")
 echo y > "$repo/g.txt"
 git -C "$repo" add g.txt
 git -C "$repo" commit -q -m "second commit"
 echo dirty > "$repo/h.txt"
 NOGH_DIR="$WORK/nogh-bin"
 mkdir -p "$NOGH_DIR"
-for tool in bash git jq mktemp cat mkdir tr printf; do
+for tool in bash git jq mktemp cat mkdir tr printf head; do
   p=$(command -v "$tool") && ln -sf "$p" "$NOGH_DIR/$tool"
 done
 out=$(PATH="$NOGH_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
-[ -z "$out" ] && pass "no gh on PATH -> silent (can't tell)" || fail "no gh on PATH -> silent (can't tell)" "$out"
+[ -z "$out" ] && pass "no gh, no curl -> silent (can't tell)" || fail "no gh, no curl -> silent (can't tell)" "$out"
+
+# case: no gh, but the REST-API fallback (curl + git credential fill) finds
+# an existing PR for the branch -> silent, same as the `gh` path would be
+repo=$(setup_repo "no-gh-rest-has-pr-case")
+echo y > "$repo/g.txt"
+git -C "$repo" add g.txt
+git -C "$repo" commit -q -m "second commit"
+echo dirty > "$repo/h.txt"
+credential_stub "$repo"
+curl_stub '[{"number":1}]'
+out=$(PATH="$NOGH_STUB_DIR:$NOGH_WITH_CURL_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+[ -z "$out" ] && pass "no gh, REST fallback finds existing PR -> silent" || fail "no gh, REST fallback finds existing PR -> silent" "$out"
+
+# case: no gh, REST-API fallback finds no PR -> fires block decision, same
+# as the `gh` path would (this is the gap #1440 closes)
+repo=$(setup_repo "no-gh-rest-fires-case")
+echo y > "$repo/g.txt"
+git -C "$repo" add g.txt
+git -C "$repo" commit -q -m "second commit"
+echo dirty > "$repo/h.txt"
+credential_stub "$repo"
+curl_stub '[]'
+out=$(PATH="$NOGH_STUB_DIR:$NOGH_WITH_CURL_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
+if printf '%s' "$out" | jq -e '.decision == "block"' > /dev/null 2>&1; then
+  pass "no gh, REST fallback finds no PR -> fires block decision"
+else
+  fail "no gh, REST fallback finds no PR -> fires block decision" "$out"
+fi
 
 # --- ExitPlanMode hook ---------------------------------------------------
 out=$(bash -c "$EXITPLAN_CMD")
