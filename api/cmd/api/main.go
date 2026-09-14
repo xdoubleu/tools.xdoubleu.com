@@ -324,19 +324,15 @@ func (a feedsOpenItemsAdapter) ListOpenItems(
 }
 
 func newWeeklyDigestJob(
-	sentryClient sentryapi.Client,
-	githubClient github.Client,
 	feedsApp *feeds.Feeds,
 	notificationsSvc *notifications.Service,
 	notificationSettingsRepo *repositories.NotificationSettingsRepository,
-	transactionLatencyRepo *repositories.TransactionLatencyRepository,
 ) *jobs.WeeklyDigestJob {
 	return jobs.NewWeeklyDigestJob(
-		sentryClient, githubClient,
 		feedsHealthAdapter{feeds: feedsApp},
 		feedsOpenItemsAdapter{feeds: feedsApp},
 		notificationsSvc,
-		notificationSettingsRepo, transactionLatencyRepo,
+		notificationSettingsRepo,
 	)
 }
 
@@ -476,8 +472,7 @@ func NewApplication(
 	)
 	app.feedsApp = feedsApp
 	app.weeklyDigestJob = newWeeklyDigestJob(
-		sentryClient, githubClient, feedsApp, notificationsSvc,
-		notificationSettingsRepo, transactionLatencyRepo,
+		feedsApp, notificationsSvc, notificationSettingsRepo,
 	)
 
 	err = app.ApplyMigrations(db)

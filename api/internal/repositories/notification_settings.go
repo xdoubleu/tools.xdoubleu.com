@@ -14,12 +14,8 @@ import (
 type NotificationSource string
 
 const (
-	NotificationSourceSentryIssues         NotificationSource = "sentry_issues"
-	NotificationSourceFailingDependencyPRs NotificationSource = "failing_dependency_prs"
-	NotificationSourceUnhealthyFeeds       NotificationSource = "unhealthy_feeds"
-	NotificationSourceSecurityAlerts       NotificationSource = "security_alerts"
-	NotificationSourceSlowTransactions     NotificationSource = "slow_transactions"
-	NotificationSourceOpenFeedItems        NotificationSource = "open_feed_items"
+	NotificationSourceUnhealthyFeeds NotificationSource = "unhealthy_feeds"
+	NotificationSourceOpenFeedItems  NotificationSource = "open_feed_items"
 )
 
 // NotificationSetting is one row of global.notification_settings.

@@ -289,9 +289,8 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 		})
 	addObsTool(srv, "get_notification_settings",
 		"Per-source enabled/disabled state of the email notifications "+
-			"WeeklyDigestJob sends (sentry_issues, "+
-			"failing_dependency_prs, unhealthy_feeds) — explains why an "+
-			"expected notification email didn't go out.",
+			"WeeklyDigestJob sends (unhealthy_feeds, open_feed_items) — "+
+			"explains why an expected notification email didn't go out.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.notificationSettings(ctx)
 		})

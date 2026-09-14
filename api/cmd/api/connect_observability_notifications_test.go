@@ -26,9 +26,8 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	for _, s := range resp.Msg.Settings {
 		got[s.SourceKey] = s.Enabled
 	}
-	assert.Contains(t, got, "sentry_issues")
-	assert.Contains(t, got, "failing_dependency_prs")
 	assert.Contains(t, got, "unhealthy_feeds")
+	assert.Contains(t, got, "open_feed_items")
 	assert.Equal(t, testApp.config.NotifyEmailTo, resp.Msg.AdminEmail)
 }
 
@@ -50,7 +49,7 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	t.Cleanup(func() { demoteToUser(t) })
 	t.Cleanup(func() {
 		req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
-			SourceKey: "sentry_issues",
+			SourceKey: "open_feed_items",
 			Enabled:   true,
 		})
 		setCookieOnRequest(req, accessToken)
@@ -60,7 +59,7 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	})
 
 	updateReq := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
-		SourceKey: "sentry_issues",
+		SourceKey: "open_feed_items",
 		Enabled:   false,
 	})
 	setCookieOnRequest(updateReq, accessToken)
@@ -77,7 +76,7 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, s := range resp.Msg.Settings {
-		if s.SourceKey == "sentry_issues" {
+		if s.SourceKey == "open_feed_items" {
 			assert.False(t, s.Enabled)
 		}
 	}

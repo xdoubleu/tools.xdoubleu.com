@@ -154,8 +154,8 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0007-dashboard-app-owns-public-sharing`](docs/adr-0007-dashboard-app-owns-public-sharing.md) — the schema-less `dashboard` app
 - [`adr-0008-family-as-single-sharing-concept`](docs/adr-0008-family-as-single-sharing-concept.md) — the one sharing model
 - [`adr-0009-sentrytools-extracted-module`](docs/adr-0009-sentrytools-extracted-module.md) — the local `replace` and its build-context consequence
-- [`adr-0010-two-weekly-digest-emails`](docs/adr-0010-two-weekly-digest-emails.md) — digest split and suppression rules
-- [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — name-shape classification for the `/monitoring` trending list + weekly digest; why WebSocket routes stay listed on purpose (the p95 *alert* moved to Grafana, #1528)
+- [`adr-0010-two-weekly-digest-emails`](docs/adr-0010-two-weekly-digest-emails.md) — digest split and suppression rules; narrowed to one email (feeds only) in #1597 once Grafana covered the other four sections in real time
+- [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — name-shape classification that used to back the weekly digest's slow-transaction section and why WebSocket routes stayed listed on purpose (the p95 *alert* moved to Grafana, #1528); the classification module itself was removed in #1597 once its last reader (the digest section) was dropped
 - [`adr-0012-ubuntu-release-check-on-vps`](docs/adr-0012-ubuntu-release-check-on-vps.md) — the job that became a systemd timer
 - [`adr-0013-diff-scoped-coverage`](docs/adr-0013-diff-scoped-coverage.md) — changed-line coverage and the signature fixup
 - [`adr-0014-start-finish-task-enforcement`](docs/adr-0014-start-finish-task-enforcement.md) — the three hooks; the `Stop` hook's `gh`/no-`gh` PR-existence check (#1440)
