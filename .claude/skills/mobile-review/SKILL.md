@@ -70,6 +70,31 @@ in, so capture a Playwright storage state once and reuse it rather than
 auditing only the login page. `CHROMIUM_EXECUTABLE_PATH` points at an existing
 Chromium where one is already installed.
 
+### Content that needs live backend data, not just a login
+
+`--storage-state` solves the login wall, but some pages need more than a
+session: an admin-only route whose entire body comes from a real DB round
+trip (no seed data, no running Postgres/api in this environment) renders
+nothing but the page's own `Loading…`/error state no matter who's logged
+in — auditing the real URL only ever measures that empty shell, never the
+actual mobile-risk surface (a wide table, a long unbroken string, a small
+inline link).
+
+When that happens, add a **temporary** route under `app/` that renders the
+same client component directly with representative mock props (bypass the
+RPC/SWR fetch entirely), run the audit against that route, then delete it
+before committing — it exists only to get real pixels out of Playwright,
+never to ship. Two gotchas:
+
+- Don't name the folder with a leading `_`/`__` (e.g. `__mobiletest`) —
+  Next.js treats that as a private folder and 404s it. Use a plain
+  unprefixed name instead.
+- Restart/rely on the dev server picking up the new route, then delete it
+  and clear `.next` (`rm -rf .next`) before the final `npm run lint`/`npm
+  run build` — a route added and removed mid-session can leave a stale
+  entry in `.next/dev/types/routes.d.ts` that fails `tsc --noEmit` with a
+  "cannot find module" error for the path that no longer exists.
+
 Run this **before** reading the source. It turns the checklist below from
 "scan the JSX and worry" into "here are three measured failures, plus the
 things a browser cannot see". If the app genuinely can't be started, fall
