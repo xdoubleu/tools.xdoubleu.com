@@ -124,24 +124,40 @@ issue and independent PR via `start-task`/`finish-task` — never stacked on
 this PR. Running the analysis is mandatory every time; most runs should find
 nothing worth acting on, and that's expected.
 
-## When a delegated skill isn't installed (e.g. Claude Code on the web)
+## When a delegated skill isn't installed, or `gh` isn't available
 
-`ship-pr` and `session-retro` come from marketplace plugins a Claude Code
-**on the web** session does not have, and that environment has no `gh`
-either (use the `github` MCP tools). If either skill fails to load, don't
-silently skip or improvise it — say so explicitly, then fall back to the
-floor the root `CLAUDE.md` documents:
+Two distinct things can be missing, and neither implies the other — a
+Claude Code **on the web** session has neither the `ship-pr`/`session-retro`
+marketplace plugins nor a `gh` binary (GitHub access there is via
+`mcp__github__*` tools instead), but check both explicitly (`command -v gh`)
+rather than assuming one from the other. If a skill fails to load, or `gh`
+is missing, don't silently skip or improvise the mechanics — say so
+explicitly, then fall back:
 
-- **No `ship-pr`**: rebase the branch on latest `origin/main`, push, and
-  open a **non-draft** PR whose body closes the tracking issue with a
-  keyword (`Fixes #123`), then watch CI to green. Apply this skill's
-  auto-merge rule above yourself. Do all of this with the `github` MCP
-  tools.
+- **`ship-pr` loaded but `gh` is missing**: follow `ship-pr`'s own "When
+  `gh` isn't available" section (`git-task-flow` plugin) for the exact
+  MCP-tool mapping (PR creation with the `Fixes #123` body, arming
+  auto-merge, polling CI status) instead of re-deriving it here — apply
+  this skill's own auto-merge rule (step 4 above) as the *decision*, the
+  same either way; only the mechanics that enact it change. It also calls
+  out explicitly when auto-merge can't be armed because no MCP tool for it
+  is mounted — don't fake that by merging early or leaving it silently
+  unset.
+- **`ship-pr` itself not installed** (plugin absent): rebase the branch on
+  latest `origin/main`, push, and open a **non-draft** PR whose body closes
+  the tracking issue with a keyword (`Fixes #123`), then watch CI to green
+  — using `mcp__github__*` tools directly if `gh` is also missing, per the
+  same capability mapping `ship-pr`'s own fallback section describes (the
+  plugin not loading doesn't change which MCP tools exist). Apply this
+  skill's auto-merge rule above yourself, and say explicitly in your report
+  if anything (auto-merge, in particular) couldn't be set.
 - **No `session-retro`**: still run the retro *analysis* by hand — review
   this session's tool calls, retries, and CI runs for a concrete
   inefficiency (a doc gap, a missing target, an under-triggered
   skill/tool). Only if something real turns up, ship it as its own issue
-  and PR, never stacked on this one.
+  and PR, never stacked on this one. `session-retro`'s own fix, if any
+  turns up, goes through `start-task`/`finish-task` again and inherits this
+  same fallback.
 
 The `Stop` hook in `.claude/settings.json` can't confirm a PR exists
 without `gh`, so in a web session it treats "can't tell" as "don't block"
