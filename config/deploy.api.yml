@@ -166,12 +166,6 @@ env:
     # deploy the app, so there's exactly one place to rotate each value.
     - STEAM_API_KEY
     - HARDCOVER_API_KEY
-    # Anthropic Admin API key for the Claude Code Analytics endpoint
-    # (issue #1591) — internal/anthropicadmin's calls behind
-    # CollectClaudeCodeUsageJob. Created by an organization admin in the
-    # Anthropic Console. Empty makes every call return
-    # anthropicadmin.ErrNotConfigured (the gauges just stay unset).
-    - ANTHROPIC_ADMIN_API_KEY
     # Belgian Mobility Company APIM subscription key for the SNCB GTFS feed
     # (trains app, issue #1390). Sent as the bmc-partner-key header. Free
     # self-service registration, Standard tier. BMC_HOST has a working

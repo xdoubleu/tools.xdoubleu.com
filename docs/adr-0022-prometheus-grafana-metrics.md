@@ -552,33 +552,6 @@ true window-wide total by construction. `scripts/verify_grafana_image.sh`
 does not need updating — it only asserts the rule name provisions, never
 evaluates it against real Sentry data.
 
-## Phase 14 (#1591): Claude Code cost/usage collector
-
-A new `CollectClaudeCodeUsageJob` (`api/internal/observability/jobs/claude_code_usage_collector.go`)
-mirrors `IssueSignalCollectorJob`'s shape to export daily Claude Code
-token-usage and estimated-cost gauges (`claude_code_tokens_total{model,
-token_type}`, `claude_code_estimated_cost_usd{model}`) from Anthropic's
-Admin API — specifically `GET /v1/organizations/usage_report/claude_code`
-(the Claude Code Analytics endpoint), not the generic
-`usage_report/messages`/`cost_report` endpoints, which only cover metered
-API-key billing and would report nothing for subscription-based (Pro/Max/
-Team) Claude Code usage. A new `api/internal/anthropicadmin/` client
-package authenticates with a single Admin API key
-(`ANTHROPIC_ADMIN_API_KEY`, a plain deploy secret — same pattern as
-`STEAM_API_KEY`, not the encrypted-DB-configurable OAuth pattern the other
-observability integrations use, since there's exactly one Anthropic
-organization here, not a per-admin picked resource). The job polls every
-30 minutes, matched to the endpoint's own documented ~1-hour data
-freshness; an unset key leaves the gauges unset via the same
-`ErrNotConfigured` graceful-degradation pattern as `internal/github`/
-`internal/sentryapi`. A new `infra/grafana/dashboards/claude-code.json`
-dashboard graphs both gauges; no alert rule yet — dashboard-only until real
-numbers are visible. Pushed-based OTel ingestion for local CLI session
-metrics (session count, active time, lines of code, commits) and any
-signal for scheduled-routine triggers were explicitly ruled out of scope:
-the former only ever covers local-device sessions, and no API or telemetry
-signal exists anywhere for the latter.
-
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why
