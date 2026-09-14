@@ -101,7 +101,7 @@ Once a task's changes are complete, use the `finish-task` skill — it covers li
 
 **This is unconditional, and opening the PR is pre-authorized** — the user does not need to ask for one, and a branch that is merely committed and pushed is not a finished task. Should `finish-task` never load for any reason, the floor is still: lint the areas that changed, ≥80% coverage on changed code, `npm run build` for web changes, then a non-draft PR whose body closes the tracking issue with a keyword (`Fixes #123`), then watch CI to green.
 
-An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook (worktree-scope guard on `Edit`/`Write`/`NotebookEdit`) in `.claude/settings.json` enforce this, and `make hooks/test` exercises them. **In a Claude Code on the web session nothing external enforces this** — opening the PR unprompted is the only guardrail left there → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
+An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook (worktree-scope guard on `Edit`/`Write`/`NotebookEdit`) in `.claude/settings.json` enforce this, and `make hooks/test` exercises them. The `Stop` hook (`.claude/hooks/stop-check-unshipped-work.sh`) checks for an existing PR via `gh` when available, and via a direct GitHub REST API call otherwise — authenticated with whatever credential `git credential fill` resolves — so it blocks a shipped-but-unopened PR whether or not `gh` is present, including in a Claude Code on the web session → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
 
 When a change adds or alters a page or component under `web/`, run the `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s mobile-first rule is review-only, so nothing else in the pipeline looks at a 375px viewport.
 
@@ -158,7 +158,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — name-shape classification for the `/monitoring` trending list + weekly digest; why WebSocket routes stay listed on purpose (the p95 *alert* moved to Grafana, #1528)
 - [`adr-0012-ubuntu-release-check-on-vps`](docs/adr-0012-ubuntu-release-check-on-vps.md) — the job that became a systemd timer
 - [`adr-0013-diff-scoped-coverage`](docs/adr-0013-diff-scoped-coverage.md) — changed-line coverage and the signature fixup
-- [`adr-0014-start-finish-task-enforcement`](docs/adr-0014-start-finish-task-enforcement.md) — the two hooks and the web-session gap
+- [`adr-0014-start-finish-task-enforcement`](docs/adr-0014-start-finish-task-enforcement.md) — the three hooks; the `Stop` hook's `gh`/no-`gh` PR-existence check (#1440)
 - [`adr-0015-kobo-gateway-separate-module-and-toolchain-pin`](docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md) — never bump past Go 1.24.x alone
 - [`adr-0016-kobo-gateway-loopback-tls-and-login-item`](docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md) — loopback HTTPS and LaunchAgents
 - [`adr-0017-long-request-handler-deadlines`](docs/adr-0017-long-request-handler-deadlines.md) — deadlines vs the proxy ceiling

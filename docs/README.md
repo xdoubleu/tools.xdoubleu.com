@@ -34,7 +34,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0011](adr-0011-slow-transaction-thresholds.md) | Name-shape classification; WebSocket routes not excluded (p95 alert moved to Grafana in #1528) | #1310, #1320, #1528 |
 | [adr-0012](adr-0012-ubuntu-release-check-on-vps.md) | Local systemd timer replaces the Ubuntu release job | #1134 |
 | [adr-0013](adr-0013-diff-scoped-coverage.md) | Gate on changed-line coverage; the signature-coverage fixup | #1301, #1364, #1376 |
-| [adr-0014](adr-0014-start-finish-task-enforcement.md) | `ExitPlanMode`, `Stop`, and `Edit`/`Write`/`NotebookEdit` hooks enforce the task pairing and worktree scope | #1236, #1238, #1400, #1619 |
+| [adr-0014](adr-0014-start-finish-task-enforcement.md) | `ExitPlanMode`, `Stop`, and `Edit`/`Write`/`NotebookEdit` hooks enforce the task pairing and worktree scope; `Stop`'s PR-existence check works with or without `gh` | #1236, #1238, #1400, #1619, #1440 |
 | [adr-0015](adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md) | Own Go module; `GOTOOLCHAIN=go1.24.13` pin | darwinkit#286 |
 | [adr-0016](adr-0016-kobo-gateway-loopback-tls-and-login-item.md) | Loopback HTTPS for Safari; LaunchAgents over `SMAppService` | — |
 | [adr-0017](adr-0017-long-request-handler-deadlines.md) | Handler deadlines pinned under the edge proxy ceiling | #672, #1113 |

@@ -1,8 +1,8 @@
 # ADR-0014: Enforce the start-task/finish-task pairing with `ExitPlanMode` and `Stop` hooks
 
 - Status: Accepted
-- Issues: #1236, #1238, #1400, #1619
-- Affects: `.claude/settings.json`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, `api/Makefile` (`hooks/test`)
+- Issues: #1236, #1238, #1400, #1619, #1440
+- Affects: `.claude/settings.json`, `.claude/hooks/stop-check-unshipped-work.sh`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, root `Makefile` (`hooks/test`)
 
 ## Context
 
@@ -23,8 +23,17 @@ Two hooks in `.claude/settings.json`:
   not count as having started the task — at the moment it matters. `start-task`
   still runs before the first edit, with the approved plan recorded in the
   tracking issue's `## Plan` section.
-- A **`Stop` hook** blocks stopping in a worktree that has commits ahead of
-  `origin/main` (or uncommitted changes) and no PR, once per commit.
+- A **`Stop` hook** (`.claude/hooks/stop-check-unshipped-work.sh`) blocks
+  stopping in a worktree that has commits ahead of `origin/main` (or
+  uncommitted changes) and no PR, once per commit. It checks for an existing
+  PR via `gh` when available, and via a direct GitHub REST API call
+  otherwise — authenticated with whatever credential `git credential fill`
+  resolves for the repo's configured credential helper, the same credential
+  that already has to exist for the branch to have been pushed in the first
+  place. This introduces no new env var or deploy secret. If neither path
+  can determine an answer (e.g. no `curl`, or no credential helper
+  configured), "can't tell" still means "don't block" (#1400) rather than
+  false-firing.
 - A **`PreToolUse` hook on `Edit`/`Write`/`NotebookEdit`** (#1619) denies a
   write whose target path falls under the repo but outside the session's own
   active worktree — the main checkout or a different worktree of the same
@@ -46,21 +55,27 @@ That was the status quo, and the 14-of-16 figure is what it achieved. The rules
 were already written down; they were being read after the point where they
 applied.
 
-### Blocking harder in web sessions
+### Having the `Stop` hook call an MCP tool directly when `gh` is missing
 
-Not possible — see below.
+Not possible — a hook is a plain script invoked outside any LLM context, so it
+has no access to `mcp__github__*` tools (those exist only inside the agent's
+own tool-call loop). A direct GitHub REST API call, authenticated via
+whatever credential git itself already resolves, is the mechanism a bash
+script actually has available (#1440).
 
 ## Consequences
 
 - **A Claude Code on the web session has neither the marketplace plugins nor
-  `gh`** (GitHub access is via the `github` MCP tools). Both wrapper skills carry
-  a "When a delegated skill isn't installed" section spelling out the in-repo
-  fallback, and the `Stop` hook — unable to confirm a PR exists without `gh` —
-  treats "can't tell" as "don't block" rather than false-firing (#1400).
-
-  **So nothing external forces the PR to be opened in a web session. Doing it
-  unprompted is the only guardrail left there.**
-- Hook changes need `make hooks/test` to stay green.
+  `gh`** (GitHub access for the *agent* is via the `github` MCP tools). Both
+  wrapper skills carry a "When a delegated skill isn't installed" section
+  spelling out the in-repo fallback. The `Stop` hook itself, being a bash
+  script rather than an LLM context, can't call an MCP tool — instead it
+  falls back to a direct GitHub REST API call (see Decision) when `gh` is
+  absent, so the guardrail holds in both environments (#1440). Only the
+  genuine "can't tell" case (no `curl`, or no resolvable credential) still
+  means "don't block" rather than false-firing.
+- Hook changes need `make hooks/test` to stay green — it exercises both the
+  `gh` path and the no-`gh` REST-API fallback.
 
 ## Revisit when
 
