@@ -22,6 +22,19 @@ covers freshness as of session start, not a long session that keeps
 exploring for hours — still run `task-worktree`'s own fetch, don't assume
 the hook already covered it.
 
+**If the session's own worktree is already checked out to a stale/foreign
+branch** — e.g. a prior task's branch, left over from an earlier session in
+the same lineage — running `task-worktree`/`git worktree add` to create a
+*separate* fresh worktree does not help: the `PreToolUse` hook that denies
+`Edit`/`Write`/`NotebookEdit` outside the active worktree scopes to one
+fixed path per session, so an `Edit` inside a second worktree gets denied
+even though the worktree itself was created successfully. Reset the
+existing worktree **in place** instead: confirm `git status --porcelain`
+is clean (stash with `-u` first if not), then `git fetch origin main &&
+git checkout -B <new-branch-name> origin/main` inside that same directory.
+This satisfies "fresh branch off up-to-date main" without violating the
+hook's single-path scope.
+
 ## 2. Create (or find) the tracking issue
 
 Before editing, always create a tracking GitHub issue for the work via the
