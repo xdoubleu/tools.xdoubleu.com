@@ -1,8 +1,25 @@
-# Grafana notification policy (issue #1528, moved to Slack in #1592) — a
-# single flat policy routing every alert to the one 'slack' contact point.
-# There is deliberately no per-severity routing tree: this is a one-admin
-# deployment, and the alert's own severity label plus its summary carry
-# that signal in the Slack message.
+# Grafana notification policy (issue #1528, moved to Slack in #1592;
+# "immediate" routine-fire routing added in #1444). Every alert still
+# reaches the one 'slack' contact point via the default (top-level)
+# receiver below — this is a one-admin deployment, and the alert's own
+# severity label plus its summary carry enough signal in the Slack message
+# that a broad per-severity routing tree isn't worth the complexity.
+#
+# The one deliberate exception is the "immediate" group: alerts labeled
+# trigger=immediate (rules.yml's IssueSentryUnresolved/IssueSecurityAlerts
+# today; #1443's future staleness rule is meant to carry the same label) are
+# bug/security-class problems worth fixing without waiting on a human to
+# read Slack, so they ALSO fire a self-healing routine directly through the
+# "routine-fire" webhook contact point (contactpoints.yml,
+# api/cmd/api/routines_webhook.go). Both child routes below match
+# trigger=immediate; the first has continue:true so Alertmanager-style
+# routing evaluates the second sibling too instead of stopping after the
+# first match — that's what gets the alert delivered to BOTH contact
+# points rather than just one. A non-"immediate" alert matches neither
+# child route and falls through to the top-level 'slack' receiver as
+# before. CI/dependency-class problems (nightly sweep #1446, morning
+# repair #1448) are explicitly NOT part of this group — see issue #1444's
+# "Not this" section.
 apiVersion: 1
 
 policies:
@@ -14,3 +31,23 @@ policies:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+    routes:
+      - receiver: slack
+        matchers:
+          - trigger = immediate
+        continue: true
+        group_by:
+          - grafana_folder
+          - alertname
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+      - receiver: routine-fire
+        matchers:
+          - trigger = immediate
+        group_by:
+          - grafana_folder
+          - alertname
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h

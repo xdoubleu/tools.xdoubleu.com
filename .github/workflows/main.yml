@@ -645,6 +645,9 @@ jobs:
           # (line ~643) — the api's get_grafana_alerts MCP tool authenticates
           # to Grafana's API as `admin` with it (issue #1564).
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          # Bearer token for issue #1444's routine-fire path — see
+          # config/deploy.api.yml.
+          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Grafana (issue #1468) — the third Kamal service on this host,

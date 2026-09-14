@@ -553,6 +553,17 @@ GRAFANA_SLACK_WEBHOOK_URL    (Slack Incoming Webhook URL — the alert contact
                               infra/grafana/provisioning/alerting/contactpoints.yml
                               via the "Deploy grafana via Kamal" step. Replaces
                               the #1528 email contact point)
+ROUTINE_FIRE_TOKEN           (bearer token for issue #1444's routine-fire
+                              path — authenticates both internal/routines.Client's
+                              outbound POST to ROUTINE_FIRE_URL and the inbound
+                              POST /webhooks/grafana-alert route the new
+                              "routine-fire" Grafana contact point targets, see
+                              infra/grafana/provisioning/alerting/contactpoints.yml.
+                              Generate a long random value, e.g.
+                              `openssl rand -hex 32`. Unset leaves the inbound
+                              webhook permanently unauthorized (every request
+                              rejected) and the outbound client sending an
+                              empty bearer token)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear

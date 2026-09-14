@@ -129,6 +129,21 @@ type Config struct {
 	// user session to authenticate with, so this shared secret stands in for
 	// one. Empty disables the endpoint (every request is rejected).
 	ObservabilityIngestSecret string
+
+	// RoutineFireURL is the base URL of the Claude Code routine-fire
+	// webhook (internal/routines.Client POSTs <RoutineFireURL>/<routine
+	// name>/fire), issue #1444. ASSUMPTION: this repo has no access to
+	// Claude Code's routine-fire webhook documentation, so this shape is a
+	// reasonable guess pending confirmation against the real contract.
+	RoutineFireURL string
+	// RoutineFireToken authenticates both directions of issue #1444's
+	// routine-fire path: internal/routines.Client sends it as a bearer
+	// token to RoutineFireURL, and cmd/api's inbound Grafana alert webhook
+	// (POST /webhooks/grafana-alert) requires it as a bearer token on the
+	// way in before translating the alert into a Fire call. Empty disables
+	// the inbound webhook (every request is rejected) the same way
+	// ObservabilityIngestSecret disables its endpoint above.
+	RoutineFireToken string
 }
 
 // parser extracts environment variables and parses them to the right type.
@@ -310,6 +325,11 @@ func New(logger *slog.Logger) Config {
 	)
 	cfg.GrafanaAdminPassword = p.envSecret("GRAFANA_ADMIN_PASSWORD", "")
 	cfg.ObservabilityIngestSecret = p.envSecret("OBSERVABILITY_INGEST_SECRET", "")
+
+	cfg.RoutineFireURL = p.envStr(
+		"ROUTINE_FIRE_URL", "https://api.anthropic.com/api/routines",
+	)
+	cfg.RoutineFireToken = p.envSecret("ROUTINE_FIRE_TOKEN", "")
 
 	return cfg
 }
