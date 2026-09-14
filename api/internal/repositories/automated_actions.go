@@ -90,3 +90,25 @@ func (r *AutomatedActionsRepository) ListRecent(
 
 	return actions, rows.Err()
 }
+
+// OldestOpenFiredAt returns the fired_at timestamp of the longest-open
+// automated_actions row (finished_at IS NULL) — the one a stalled-routine
+// alert should key off, since it is the run that has been running the
+// longest without closing out. Returns database.ErrResourceNotFound when no
+// row is currently open.
+func (r *AutomatedActionsRepository) OldestOpenFiredAt(
+	ctx context.Context,
+) (time.Time, error) {
+	var firedAt time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT fired_at
+		FROM global.automated_actions
+		WHERE finished_at IS NULL
+		ORDER BY fired_at ASC
+		LIMIT 1
+	`).Scan(&firedAt)
+	if err != nil {
+		return time.Time{}, postgres.PgxErrorToHTTPError(err)
+	}
+	return firedAt, nil
+}

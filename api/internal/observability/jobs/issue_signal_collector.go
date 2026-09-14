@@ -57,6 +57,12 @@ var (
 		Help: "On-disk size of each database schema in bytes. postgres_exporter " +
 			"only exposes per-database size, so this is the per-schema breakdown.",
 	}, []string{"schema"})
+	automatedActionOldestOpenAgeSeconds = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "automated_action_oldest_open_age_seconds",
+		Help: "Age in seconds of the longest-open global.automated_actions row " +
+			"(finished_at IS NULL) — a self-healing routine that fired but never " +
+			"closed out. 0 when none are open.",
+	})
 )
 
 // mainBranch is the branch label the workflow-run gauge reports on — only
@@ -90,6 +96,12 @@ type schemaSizer interface {
 	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
 }
 
+// oldestOpenAutomatedActionGetter is the subset of
+// *repositories.AutomatedActionsRepository the stalled-routine gauge needs.
+type oldestOpenAutomatedActionGetter interface {
+	OldestOpenFiredAt(ctx context.Context) (time.Time, error)
+}
+
 // workflowRunsLister is the subset of github.Client the collector needs on
 // top of failingPRLister and securityAlertLister.
 type workflowRunsLister interface {
@@ -110,9 +122,10 @@ type issueSignalGithubClient interface {
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, the latest storage snapshot and per-schema database sizes. A
-// provider that isn't connected leaves its gauge untouched rather than
-// resetting it to zero or failing the run; other errors are logged and
+// GitHub, the latest storage snapshot, per-schema database sizes, and the
+// oldest still-open global.automated_actions row. A provider that isn't
+// connected leaves its gauge untouched rather than resetting it to zero or
+// failing the run; other errors are logged and
 // skipped. Run always returns nil. The Sentry unresolved-issues signal is
 // no longer collected here — Grafana reads it directly through the
 // grafana-sentry-datasource plugin (adr-0022 Phase 7).
@@ -120,17 +133,20 @@ type IssueSignalCollectorJob struct {
 	gh              issueSignalGithubClient
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
+	automatedAction oldestOpenAutomatedActionGetter
 }
 
 func NewIssueSignalCollectorJob(
 	gh issueSignalGithubClient,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
+	automatedAction oldestOpenAutomatedActionGetter,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		gh:              gh,
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
+		automatedAction: automatedAction,
 	}
 }
 
@@ -165,6 +181,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectSecurityAlerts(ctx, logger)
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
+	j.collectAutomatedActionAge(ctx, logger)
 	return nil
 }
 
@@ -282,4 +299,25 @@ func (j *IssueSignalCollectorJob) collectSchemaSizes(
 	for _, s := range sizes {
 		postgresSchemaSizeBytes.WithLabelValues(s.Name).Set(float64(s.SizeBytes))
 	}
+}
+
+// collectAutomatedActionAge sets the stalled-routine gauge to 0 when no
+// automated_actions row is currently open (the healthy state) rather than
+// leaving it at whatever a prior run last observed.
+func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	firedAt, err := j.automatedAction.OldestOpenFiredAt(ctx)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		automatedActionOldestOpenAgeSeconds.Set(0)
+		return
+	}
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load oldest open automated action",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
 }

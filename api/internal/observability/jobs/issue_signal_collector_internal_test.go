@@ -66,6 +66,17 @@ func (s stubSchemaSizer) SchemaSizes(
 	return s.sizes, s.err
 }
 
+type stubAutomatedActionGetter struct {
+	firedAt time.Time
+	err     error
+}
+
+func (s stubAutomatedActionGetter) OldestOpenFiredAt(
+	_ context.Context,
+) (time.Time, error) {
+	return s.firedAt, s.err
+}
+
 func loggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	buf := &bytes.Buffer{}
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
@@ -120,14 +131,16 @@ func resetGauges() {
 	r2StorageBytes.Set(0)
 	githubWorkflowRunDurationSeconds.Reset()
 	postgresSchemaSizeBytes.Reset()
+	automatedActionOldestOpenAgeSeconds.Set(0)
 }
 
 func newStubJob(
 	gh stubGithubClient,
 	storage stubStorageGetter,
 	schemas stubSchemaSizer,
+	automatedAction stubAutomatedActionGetter,
 ) *IssueSignalCollectorJob {
-	return NewIssueSignalCollectorJob(gh, storage, schemas)
+	return NewIssueSignalCollectorJob(gh, storage, schemas, automatedAction)
 }
 
 func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
@@ -138,6 +151,7 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 		},
 		stubStorageGetter{snap: nil, err: nil},
 		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Time{}, err: nil},
 	)
 	assert.Equal(t, "collect-issue-signals", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -178,6 +192,10 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 			},
 			err: nil,
 		},
+		stubAutomatedActionGetter{
+			firedAt: time.Now().Add(-time.Hour),
+			err:     nil,
+		},
 	)
 
 	logger, _ := loggerWithBuf()
@@ -200,6 +218,8 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 		postgresSchemaSizeBytes.WithLabelValues("books")), 0)
 	assert.InDelta(t, 2000.0, testutil.ToFloat64(
 		postgresSchemaSizeBytes.WithLabelValues("games")), 0)
+	assert.InDelta(t, 3600.0,
+		testutil.ToFloat64(automatedActionOldestOpenAgeSeconds), 5)
 }
 
 func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
@@ -221,6 +241,10 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 		// SchemaSizes has no "not configured" sentinel — a nil result is a
 		// clean run that simply resets the gauge, no log.
 		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{
+			firedAt: time.Time{},
+			err:     database.ErrResourceNotFound,
+		},
 	)
 
 	logger, buf := loggerWithBuf()
@@ -229,6 +253,8 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	assert.InDelta(t, 11.0, testutil.ToFloat64(githubFailingPullRequests), 0)
 	assert.InDelta(t, 33.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 44.0, testutil.ToFloat64(r2StorageBytes), 0)
+	assert.InDelta(t, 0.0,
+		testutil.ToFloat64(automatedActionOldestOpenAgeSeconds), 0)
 	assert.Empty(t, buf.String())
 }
 
@@ -246,6 +272,7 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 		},
 		stubStorageGetter{snap: nil, err: boom},
 		stubSchemaSizer{sizes: nil, err: boom},
+		stubAutomatedActionGetter{firedAt: time.Time{}, err: boom},
 	)
 
 	logger, buf := loggerWithBuf()
@@ -266,6 +293,10 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 		},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{
+			firedAt: time.Time{},
+			err:     database.ErrResourceNotFound,
+		},
 	)
 
 	logger, buf := loggerWithBuf()

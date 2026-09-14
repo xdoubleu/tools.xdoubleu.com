@@ -249,6 +249,7 @@ func newCrossAppJobs(
 	githubClient github.Client,
 	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
 	dbStatsRepo *repositories.DBStatsRepository,
+	automatedActionsRepo *repositories.AutomatedActionsRepository,
 ) (
 	*jobs.IssueSignalCollectorJob,
 	*repositories.TransactionLatencyRepository,
@@ -257,7 +258,7 @@ func newCrossAppJobs(
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
-		githubClient, storageSnapshotsRepo, dbStatsRepo,
+		githubClient, storageSnapshotsRepo, dbStatsRepo, automatedActionsRepo,
 	)
 
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(
@@ -413,6 +414,7 @@ func NewApplication(
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
 	dbStatsRepo := repositories.NewDBStatsRepository(db)
+	automatedActionsRepo := repositories.NewAutomatedActionsRepository(db)
 	issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
@@ -420,11 +422,11 @@ func NewApplication(
 		githubClient,
 		storageSnapshotsRepo,
 		dbStatsRepo,
+		automatedActionsRepo,
 	)
 
 	logsRepo := repositories.NewLogsRepository(db)
 
-	automatedActionsRepo := repositories.NewAutomatedActionsRepository(db)
 	routinesClient := routines.NewClient(
 		config.RoutineFireURL, config.RoutineFireToken, automatedActionsRepo,
 	)
