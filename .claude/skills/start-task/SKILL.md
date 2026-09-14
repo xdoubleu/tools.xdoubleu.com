@@ -47,22 +47,33 @@ If a finalized plan exists (from plan mode or otherwise), record it in the
 issue's `## Plan` section via `refine-issue` before the first edit, and move
 Status to "In progress" at that point.
 
-## When a delegated skill isn't installed (e.g. Claude Code on the web)
+## When a delegated skill isn't installed, or `gh` isn't available
 
-`task-worktree` and `refine-issue` come from marketplace plugins that a
-local CLI syncs automatically but a Claude Code **on the web** session does
-not have, and that environment also has no `gh` (GitHub access is via the
-`github` MCP tools). If either skill fails to load, don't silently improvise
-the mechanics — say so explicitly, then fall back:
+Two distinct things can be missing, and neither implies the other — a
+Claude Code **on the web** session has neither the `task-worktree`/
+`refine-issue` marketplace plugins nor a `gh` binary (GitHub access there is
+via `mcp__github__*` tools instead), but check both explicitly (`command -v
+gh`) rather than assuming one from the other; a future environment could
+have one without the other.
 
-- **No `task-worktree`**: create the branch yourself off up-to-date
-  `origin/main` (`EnterWorktree`, or `git worktree add`), never editing the
-  main checkout or reusing an existing branch.
-- **No `refine-issue`**: still create/find a tracking issue (via the
-  `github` MCP tools) and record the plan in its `## Plan` section before
-  the first edit. You can't set the project board's Priority/Status fields
-  without `gh` — note that in your reply so it can be done from a local
-  session later.
+- **No `task-worktree`** (plugin not installed): create the branch yourself
+  off up-to-date `origin/main` (`EnterWorktree`, or `git worktree add`),
+  never editing the main checkout or reusing an existing branch.
+  `task-worktree` never needed `gh` in the first place — branch/worktree
+  creation is plain `git` either way — so a missing `gh` alone doesn't
+  affect this step.
+- **`refine-issue` loaded but `gh` is missing**: follow `refine-issue`'s own
+  "When `gh` isn't available" section (`github-issue-triage` plugin) for the
+  MCP-tool mapping (issue create/edit/label) rather than re-deriving it
+  here — it also calls out explicitly when the project-board Priority/Status
+  fields can't be set because no MCP tool for them is mounted.
+- **`refine-issue` itself not installed** (plugin absent): still create/find
+  a tracking issue and record the plan in its `## Plan` section before the
+  first edit, using `mcp__github__*` tools directly if `gh` is also missing
+  — same capability mapping `refine-issue`'s own fallback section describes,
+  since the plugin not loading doesn't change which MCP tools exist. Note
+  in your reply whatever couldn't be done (project board fields, in
+  particular) so it can be finished from a local session later.
 
 ## Notes
 
