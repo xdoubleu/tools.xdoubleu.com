@@ -389,6 +389,11 @@ groups:
         condition: C
         labels:
           severity: warning
+          # Routes to the "routine-fire" contact point too (policies.yml,
+          # issue #1444) — a bug-class alert can trigger a self-healing
+          # routine immediately, rather than waiting on a human to notice
+          # the Slack message.
+          trigger: immediate
         annotations:
           summary: Unresolved Sentry issues present
           description: "Unresolved Sentry issues detected in the last 90 days ({{ $values.B }} distinct issue(s) in the busiest interval)."
@@ -434,6 +439,8 @@ groups:
         condition: C
         labels:
           severity: critical
+          # See issue-sentry-unresolved's trigger label comment above.
+          trigger: immediate
         annotations:
           summary: Open security alerts present
           description: "{{ $values.A }} open security alert(s) across all severities."

@@ -1,10 +1,11 @@
-# Grafana alerting contact point (issue #1528, moved to Slack in #1592).
-# Grafana — not Prometheus — evaluates and routes every alert now;
-# Prometheus only collects. Alerts post to a Slack Incoming Webhook whose
-# URL is $__env{GRAFANA_SLACK_WEBHOOK_URL} — $__env{} interpolation in a
+# Grafana alerting contact points (issue #1528, moved to Slack in #1592;
+# routine-fire webhook added in #1444). Grafana — not Prometheus —
+# evaluates and routes every alert now; Prometheus only collects. Alerts
+# post to a Slack Incoming Webhook whose URL is
+# $__env{GRAFANA_SLACK_WEBHOOK_URL} — $__env{} interpolation in a
 # provisioning file works with any env var name, not just GF_-prefixed ones.
-# scripts/verify_grafana_image.sh exports a dummy value for that env so
-# provisioning loads cleanly in CI.
+# scripts/verify_grafana_image.sh exports a dummy value for both env vars
+# below so provisioning loads cleanly in CI.
 apiVersion: 1
 
 contactPoints:
@@ -15,3 +16,23 @@ contactPoints:
         type: slack
         settings:
           url: $__env{GRAFANA_SLACK_WEBHOOK_URL}
+  # Fires a self-healing routine directly for the "immediate" alert group
+  # (policies.yml) — issue #1444, the terminal step that used to be an
+  # email a human had to notice. Targets the api service's own inbound
+  # webhook (POST /webhooks/grafana-alert, api/cmd/api/routines_webhook.go),
+  # authenticated with the same ROUTINE_FIRE_TOKEN api/internal/routines.Client
+  # uses outbound. The URL is single-/api/-prefixed (not doubled, unlike
+  # some older api routes) — kamal-proxy forwards it unmodified
+  # (strip_path_prefix: false) and api/cmd/api/kamal_proxy_shim.go strips
+  # exactly one leading /api before dispatch, landing on the mux's
+  # unprefixed "/webhooks/grafana-alert" pattern.
+  - orgId: 1
+    name: routine-fire
+    receivers:
+      - uid: routine-fire-webhook
+        type: webhook
+        settings:
+          url: https://tools.xdoubleu.com/api/webhooks/grafana-alert
+          httpMethod: POST
+          authorization_scheme: Bearer
+          authorization_credentials: $__env{ROUTINE_FIRE_TOKEN}

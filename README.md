@@ -154,6 +154,19 @@ and `mode: "close"` (passing back the id the open call returned) as its
 last, since the routine runs outside api's own process and this is the only
 way its run gets recorded at all.
 
+`record_action`/`get_automated_actions` are the MCP-facing half of that run
+record. `api/internal/routines` (issue #1444) is the separate, non-MCP path
+that starts a run in the first place: a Grafana alert in the "immediate"
+label group (bug/security-class problems — Sentry-unresolved, an open
+security alert) POSTs to `/webhooks/grafana-alert`
+(`api/cmd/api/routines_webhook.go`, bearer-token-authenticated against the
+`ROUTINE_FIRE_TOKEN` secret), which translates the alert's rule
+name/labels/annotations into a call to `routines.Client.Fire` — that call
+opens the `global.automated_actions` row itself (trigger source `api`)
+*before* POSTing the routine's fire webhook, so the record exists even if
+that outbound call fails; only the eventual outcome comes back from the
+routine via `record_action`'s own `mode: "close"`.
+
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 
 ```bash

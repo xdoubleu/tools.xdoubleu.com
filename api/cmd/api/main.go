@@ -33,6 +33,7 @@ import (
 	"tools.xdoubleu.com/internal/observability"
 	"tools.xdoubleu.com/internal/observability/jobs"
 	"tools.xdoubleu.com/internal/repositories"
+	"tools.xdoubleu.com/internal/routines"
 	"tools.xdoubleu.com/internal/sentryapi"
 	"tools.xdoubleu.com/sentrytools"
 )
@@ -60,6 +61,7 @@ type Application struct {
 	storageRepo                   *repositories.StorageSnapshotsRepository
 	dbStatsRepo                   *repositories.DBStatsRepository
 	automatedActionsRepo          *repositories.AutomatedActionsRepository
+	routinesClient                *routines.Client
 	logsRepo                      *repositories.LogsRepository
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	githubClient                  github.Client
@@ -426,6 +428,11 @@ func NewApplication(
 
 	logsRepo := repositories.NewLogsRepository(db)
 
+	automatedActionsRepo := repositories.NewAutomatedActionsRepository(db)
+	routinesClient := routines.NewClient(
+		config.RoutineFireURL, config.RoutineFireToken, automatedActionsRepo,
+	)
+
 	//nolint:exhaustruct //apps/booksApp are set after construction, see below
 	app := &Application{
 		ctx:        ctx,
@@ -444,7 +451,8 @@ func NewApplication(
 		usageRepo:                     repositories.NewUsageRepository(db),
 		storageRepo:                   storageSnapshotsRepo,
 		dbStatsRepo:                   dbStatsRepo,
-		automatedActionsRepo:          repositories.NewAutomatedActionsRepository(db),
+		automatedActionsRepo:          automatedActionsRepo,
+		routinesClient:                routinesClient,
 		logsRepo:                      logsRepo,
 		notificationSettingsRepo:      notificationSettingsRepo,
 		oauthConnRepo:                 oauthConnRepo,

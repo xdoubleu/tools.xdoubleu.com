@@ -204,3 +204,11 @@ env:
     # Grafana over the public host through kamal-proxy since Kamal gives its
     # containers no stable internal network alias (issue #1564).
     - GRAFANA_ADMIN_PASSWORD
+    # Bearer token authenticating both directions of issue #1444's
+    # routine-fire path: internal/routines.Client sends it outbound to
+    # ROUTINE_FIRE_URL, and POST /webhooks/grafana-alert (the Grafana
+    # webhook contact point's target) requires it inbound before
+    # translating an alert into a Fire call. Empty disables the inbound
+    # webhook (every request rejected) the same way
+    # OBSERVABILITY_INGEST_SECRET disables its endpoint above.
+    - ROUTINE_FIRE_TOKEN

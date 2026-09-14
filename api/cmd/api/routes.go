@@ -50,6 +50,15 @@ func (app *Application) Routes() http.Handler {
 		app.observabilityIngestRoute(),
 	)
 
+	// Inbound half of issue #1444's routine-fire path: a Grafana webhook
+	// contact point calls this directly, so — like the ingest route above
+	// — it authenticates via a shared bearer token rather than the cookie
+	// session middleware every RPC route in this file uses.
+	mux.Handle(
+		"POST "+routinesWebhookPath,
+		app.routinesWebhookRoute(),
+	)
+
 	familyPath, familyHandler := familyv1connect.NewFamilyServiceHandler(
 		&familyConnectHandler{app: app},
 		scrub,
