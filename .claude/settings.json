@@ -102,6 +102,16 @@
             "statusMessage": "Reminding to prefer ast-grep..."
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cwd=$(printf '%s' \"$input\" | jq -r '.cwd // empty'); fp=$(printf '%s' \"$input\" | jq -r '.tool_input.file_path // .tool_input.notebook_path // empty'); if [ -z \"$cwd\" ] || [ -z \"$fp\" ]; then exit 0; fi; case \"$cwd\" in */.claude/worktrees/*) ;; *) exit 0 ;; esac; repo_root=\"${cwd%%/.claude/worktrees/*}\"; rest=\"${cwd#*/.claude/worktrees/}\"; wt=\"${rest%%/*}\"; wt_root=\"$repo_root/.claude/worktrees/$wt\"; case \"$fp\" in \"$wt_root\"|\"$wt_root\"/*) exit 0 ;; \"$repo_root\"/*) jq -n --arg fp \"$fp\" --arg root \"$wt_root\" '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:(\"Refusing to write to \" + $fp + \": outside the active worktree for this session (\" + $root + \"). Edit the file inside the worktree, not the main checkout or another worktree.\")}}'; exit 0 ;; *) exit 0 ;; esac",
+            "statusMessage": "Checking edit target stays inside the active worktree..."
+          }
+        ]
       }
     ],
     "PostToolUse": [

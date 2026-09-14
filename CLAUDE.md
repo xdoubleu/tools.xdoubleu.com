@@ -89,7 +89,7 @@ Run a single Go test: `go test ./apps/books/internal/services/... -run TestName 
 
 ## Starting a Task
 
-Before exploring, reading code, or making any change, use the `start-task` skill — it pulls latest `main`, creates a completely fresh worktree (never edit in the main checkout or reuse an existing branch/worktree), and creates/refines the GitHub tracking issue via `refine-issue` before the first edit.
+Before exploring, reading code, or making any change, use the `start-task` skill — it pulls latest `main`, creates a completely fresh worktree (never edit in the main checkout or reuse an existing branch/worktree — a `PreToolUse` hook denies an `Edit`/`Write`/`NotebookEdit` call whose target path falls outside the active worktree), and creates/refines the GitHub tracking issue via `refine-issue` before the first edit.
 
 **Exiting plan mode does not count as having started the task.** `permissions.defaultMode` is `plan`, so nearly every session here begins by planning — and an approved plan is not a substitute for `start-task`, which still runs before the first edit, with the (already-grilled, see below) plan recorded in the tracking issue's `## Plan` section.
 
@@ -101,7 +101,7 @@ Once a task's changes are complete, use the `finish-task` skill — it covers li
 
 **This is unconditional, and opening the PR is pre-authorized** — the user does not need to ask for one, and a branch that is merely committed and pushed is not a finished task. Should `finish-task` never load for any reason, the floor is still: lint the areas that changed, ≥80% coverage on changed code, `npm run build` for web changes, then a non-draft PR whose body closes the tracking issue with a keyword (`Fixes #123`), then watch CI to green.
 
-An `ExitPlanMode` hook and a `Stop` hook in `.claude/settings.json` enforce both halves, and `make hooks/test` exercises them. **In a Claude Code on the web session nothing external enforces this** — opening the PR unprompted is the only guardrail left there → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
+An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook (worktree-scope guard on `Edit`/`Write`/`NotebookEdit`) in `.claude/settings.json` enforce this, and `make hooks/test` exercises them. **In a Claude Code on the web session nothing external enforces this** — opening the PR unprompted is the only guardrail left there → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
 
 When a change adds or alters a page or component under `web/`, run the `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s mobile-first rule is review-only, so nothing else in the pipeline looks at a 375px viewport.
 

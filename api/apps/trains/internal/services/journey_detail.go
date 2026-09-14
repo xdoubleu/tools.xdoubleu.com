@@ -135,7 +135,7 @@ func buildStopDetails(
 		//nolint:exhaustruct //ArrivalDelay/DepartureDelay set below by applyLiveState
 		d := models.StopDetail{
 			StopID:             st.StopID,
-			StopName:           info.NameFR,
+			StopName:           info.DisplayName,
 			Platform:           info.PlatformCode,
 			ScheduledArrival:   &arr,
 			ScheduledDeparture: &dep,

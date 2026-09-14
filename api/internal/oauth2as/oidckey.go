@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"log/slog"
 	"math/big"
 	"net/http"
 )
@@ -58,6 +59,38 @@ func LoadOrGenerateOIDCKey(pemKey string) (*rsa.PrivateKey, bool, error) {
 		)
 	}
 	return rsaKey, false, nil
+}
+
+// LoadOIDCKeyOrDegrade behaves like LoadOrGenerateOIDCKey, except a
+// malformed pemKey is treated the same as an absent one instead of being
+// fatal: it logs at Error level and falls back to an ephemeral key. A
+// misconfigured OAUTH_OIDC_PRIVATE_KEY only degrades the OIDC/Grafana-SSO
+// feature that key feeds — it should not block the whole api process (and
+// therefore every deploy) from starting, the way an unrecovered panic on
+// LoadOrGenerateOIDCKey's error used to (issue #1617).
+func LoadOIDCKeyOrDegrade(logger *slog.Logger, pemKey string) *rsa.PrivateKey {
+	key, generated, err := LoadOrGenerateOIDCKey(pemKey)
+	if err != nil {
+		logger.Error(
+			"OAUTH_OIDC_PRIVATE_KEY is invalid — falling back to an ephemeral "+
+				"OIDC signing key; ID tokens issued before a restart will not "+
+				"verify afterwards and Grafana SSO users will need to re-log-in",
+			"error", err,
+		)
+		var genErr error
+		key, _, genErr = LoadOrGenerateOIDCKey("")
+		if genErr != nil {
+			panic(genErr)
+		}
+		return key
+	}
+	if generated {
+		logger.Warn(
+			"OAUTH_OIDC_PRIVATE_KEY unset — using an ephemeral OIDC signing key; " +
+				"ID tokens issued before a restart will not verify afterwards",
+		)
+	}
+	return key
 }
 
 // OIDCKeyID derives a stable, deterministic key id from the signing key, so

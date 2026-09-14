@@ -4,7 +4,7 @@ import SavedCommutes, { type CommutePair } from '@/components/trains/SavedCommut
 import { SavedCommuteSchema, StationSchema, type SavedCommute } from '@/lib/gen/trains/v1/trains_pb'
 
 const station = (stopId: string, name: string) =>
-  create(StationSchema, { stopId, nameNl: name, nameFr: name, nameEn: name })
+  create(StationSchema, { stopId, nameNl: name, nameFr: name, nameEn: name, displayName: name })
 
 const commute = (over: Partial<SavedCommute> = {}): SavedCommute =>
   create(SavedCommuteSchema, {

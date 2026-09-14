@@ -180,6 +180,7 @@ func parseStops(
 			}
 			return name
 		}
+		displayName := buildDisplayName(primaryLang, name, translated)
 		if _, ok := translated["nl"]; ok {
 			coverage.StopsNL++
 		}
@@ -195,6 +196,7 @@ func parseStops(
 			NameNL:        nameOrFallback("nl"),
 			NameFR:        nameOrFallback("fr"),
 			NameEN:        nameOrFallback("en"),
+			DisplayName:   displayName,
 			LocationType:  rr.getInt(rec, "location_type"),
 			PlatformCode:  rr.get(rec, "platform_code"),
 			UIC:           uicFromStopID(id),
@@ -345,6 +347,49 @@ func normalizeLang(v string) string {
 	default:
 		return ""
 	}
+}
+
+// displayNameLangs is the fixed set buildDisplayName considers, in output
+// order.
+//
+//nolint:gochecknoglobals //fixed language list, package-level by design
+var displayNameLangs = [3]string{"nl", "fr", "en"}
+
+// buildDisplayName joins every language's genuinely-known full name — a real
+// translations.txt row when one exists, plus the primary language's own
+// stop_name when it has none — deduped and " / "-joined. A non-primary
+// language with no translations.txt row is omitted entirely, never filled
+// with the primary's raw stop_name: that raw value is sometimes itself an
+// NMBS-abbreviated/combined bilingual string (e.g. "Brsls Centr / Bxl
+// Centr"), and treating it as a stand-in full name for another language
+// produced duplicate-looking labels (issue #1656). An explicit translation
+// still wins over the raw stop_name even for the primary language itself,
+// matching NameNL/NameFR/NameEN's own fallback rule (issue #1450).
+func buildDisplayName(primaryLang, name string, translated map[string]string) string {
+	primary := normalizeLang(primaryLang)
+	seen := make(map[string]bool, len(displayNameLangs))
+	parts := make([]string, 0, len(displayNameLangs))
+	add := func(n string) {
+		if n == "" || seen[n] {
+			return
+		}
+		seen[n] = true
+		parts = append(parts, n)
+	}
+	if t, ok := translated[primary]; ok {
+		add(t)
+	} else {
+		add(name)
+	}
+	for _, lang := range displayNameLangs {
+		if lang == primary {
+			continue
+		}
+		if t, ok := translated[lang]; ok {
+			add(t)
+		}
+	}
+	return strings.Join(parts, " / ")
 }
 
 func parseRoutes(files map[string]*zip.File) ([]models.Route, error) {

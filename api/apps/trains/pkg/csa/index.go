@@ -14,13 +14,13 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// stopDisplayName is the station name the planner puts on a Leg. The feed
-// carries three (models.Stop.NameNL/FR/EN); SearchJourneys' legs are
-// single-language and use French, the feed's own primary language — the
-// realtime journey-detail page is where all three are surfaced. Keeping the
-// choice here means it is stated once, not in a converter the caller owns.
+// stopDisplayName is the station name the planner puts on a Leg — the same
+// canonical, deduped multilingual label (models.Stop.DisplayName) the
+// station search dropdown renders, so a journey's legs and the picker never
+// disagree (issue #1656). Keeping the choice here means it is stated once,
+// not in a converter the caller owns.
 func stopDisplayName(s models.Stop) string {
-	return s.NameFR
+	return s.DisplayName
 }
 
 type stopIdx int32
@@ -159,8 +159,17 @@ func (idx *Index) buildConnections(
 		if len(pattern) < minStopsForAConnection {
 			continue
 		}
-		const hoursPerDay, secondsPerDay = 24, 86400
-		dayAbs := int64(inst.Date.Sub(idx.epoch).Hours() / hoursPerDay * secondsPerDay)
+		// inst.Date comes from a Postgres DATE column, which pgx scans as
+		// UTC midnight — not idx.loc's local midnight. Diffing it against
+		// idx.epoch directly would be off by the standing UTC offset
+		// whenever loc isn't UTC (e.g. 2 hours during CEST), corrupting
+		// every connection on that date. Rebuilding a local midnight from
+		// just its Y/M/D components (safe regardless of inst.Date's own
+		// zone, since a DATE has no time-of-day to lose) keeps this a
+		// genuine whole-day diff.
+		y, m, d := inst.Date.Date()
+		tripLocalMidnight := time.Date(y, m, d, 0, 0, 0, 0, idx.loc)
+		dayAbs := int64(tripLocalMidnight.Sub(idx.epoch).Seconds())
 		instance := nextInstance
 		nextInstance++
 

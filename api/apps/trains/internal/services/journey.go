@@ -65,10 +65,11 @@ func NewJourneyService(
 	return &JourneyService{logger: logger, repos: repos}
 }
 
-// SearchJourneys returns a Pareto set of journeys from originStopID to
-// destStopID for the given time. It reads the in-memory index built by the
-// background warm-up/refresh; if that hasn't happened yet it returns
-// ErrRouterWarmingUp rather than building it in-request.
+// SearchJourneys returns a window of journeys from originStopID to
+// destStopID around the given time — a few before, a few after (issue
+// #1643). It reads the in-memory index built by the background warm-up/
+// refresh; if that hasn't happened yet it returns ErrRouterWarmingUp rather
+// than building it in-request.
 func (s *JourneyService) SearchJourneys(
 	_ context.Context,
 	originStopID, destStopID string,

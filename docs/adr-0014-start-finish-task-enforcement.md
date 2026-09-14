@@ -1,7 +1,7 @@
 # ADR-0014: Enforce the start-task/finish-task pairing with `ExitPlanMode` and `Stop` hooks
 
 - Status: Accepted
-- Issues: #1236, #1238, #1400
+- Issues: #1236, #1238, #1400, #1619
 - Affects: `.claude/settings.json`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, `api/Makefile` (`hooks/test`)
 
 ## Context
@@ -25,8 +25,18 @@ Two hooks in `.claude/settings.json`:
   tracking issue's `## Plan` section.
 - A **`Stop` hook** blocks stopping in a worktree that has commits ahead of
   `origin/main` (or uncommitted changes) and no PR, once per commit.
+- A **`PreToolUse` hook on `Edit`/`Write`/`NotebookEdit`** (#1619) denies a
+  write whose target path falls under the repo but outside the session's own
+  active worktree — the main checkout or a different worktree of the same
+  repo. This is the same rule root `CLAUDE.md`'s "Starting a Task" section
+  already states ("never edit in the main checkout or reuse an existing
+  branch/worktree") and `task-worktree`'s own skill file already warns about
+  ("a stale prefix silently edits the wrong checkout... `pwd` alone won't
+  catch it") — turned into something the harness enforces at the moment it
+  matters, rather than something only caught after the fact by a diligent
+  `git status`.
 
-Both are exercised by `make hooks/test` (#1238).
+All three are exercised by `make hooks/test` (#1238, #1619).
 
 ## Alternatives considered
 
