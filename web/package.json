@@ -19,8 +19,8 @@
     "generate:ui-catalog:check": "npm run generate:ui-catalog && (git diff --exit-code components/ui/README.md || (echo \"components/ui/README.md is out of date -- run 'npm run generate:ui-catalog' and commit the result.\" && exit 1))"
   },
   "dependencies": {
-    "@connectrpc/connect": "2.1.2",
-    "@connectrpc/connect-web": "2.1.2",
+    "@connectrpc/connect": "2.2.0",
+    "@connectrpc/connect-web": "2.2.0",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",
@@ -42,8 +42,8 @@
     "typescript": "6.0.3"
   },
   "devDependencies": {
-    "@bufbuild/protobuf": "2.14.0",
-    "@bufbuild/protoc-gen-es": "2.14.0",
+    "@bufbuild/protobuf": "2.14.1",
+    "@bufbuild/protoc-gen-es": "2.14.1",
     "@eslint/js": "10.0.1",
     "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "4.3.3",

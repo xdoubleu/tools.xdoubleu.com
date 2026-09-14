@@ -48,7 +48,7 @@ tools/proto:
 # fails the build if they drift.
 tools/proto/local: tools/proto
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
-	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0
 
 lint/proto: tools/proto
 	cd ../proto && buf lint
