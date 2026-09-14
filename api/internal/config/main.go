@@ -58,6 +58,16 @@ type Config struct {
 	AuthIssuer      string
 	SteamAPIKey     string
 	HardcoverAPIKey string
+	// AnthropicAdminAPIKey authenticates internal/anthropicadmin's calls to
+	// the Anthropic Admin API's Claude Code Analytics endpoint (issue
+	// #1591), used by CollectClaudeCodeUsageJob to export daily token-usage
+	// and estimated-cost gauges. Created by an organization admin in the
+	// Anthropic Console — same plain-env-var pattern as SteamAPIKey/
+	// HardcoverAPIKey above, not the encrypted-DB-configurable pattern the
+	// observability OAuth integrations use, since this is a single
+	// rarely-rotated key only this collector needs. Empty makes every call
+	// return anthropicadmin.ErrNotConfigured.
+	AnthropicAdminAPIKey string
 
 	// BMCHost is the Belgian Mobility Company APIM gateway host serving the
 	// GTFS static + realtime feeds (trains app, issue #1390). Kept as config
@@ -291,6 +301,7 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")
+	cfg.AnthropicAdminAPIKey = p.envSecret("ANTHROPIC_ADMIN_API_KEY", "")
 
 	cfg.BMCHost = p.envStr(
 		"BMC_HOST", "api-management-opendata-production.azure-api.net",
