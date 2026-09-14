@@ -46,7 +46,7 @@ func TestPDFCheck(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		start := time.Now()
-		convErr := goPDFConverter(ctx, inPath, outPath)
+		convErr := goPDFConverter(ctx, inPath, outPath, "", nil)
 		elapsed := time.Since(start)
 		cancel()
 

@@ -18,12 +18,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// convertToEPUB runs goPDFConverter end-to-end and returns the path to the
-// produced EPUB.
+// convertToEPUB runs goPDFConverter end-to-end (with no catalog metadata,
+// i.e. the PDF's own embedded Title/Author or a heading fallback decides
+// content.opf's metadata) and returns the path to the produced EPUB.
 func convertToEPUB(t *testing.T, pdfPath string) string {
 	t.Helper()
+	return convertToEPUBWithCatalog(t, pdfPath, "", nil)
+}
+
+// convertToEPUBWithCatalog runs goPDFConverter end-to-end, passing the given
+// catalog title/authors through as the book's already-known bibliographic
+// metadata (see EnsureKEPUB, issue #1654).
+func convertToEPUBWithCatalog(
+	t *testing.T, pdfPath, catalogTitle string, catalogAuthors []string,
+) string {
+	t.Helper()
 	outPath := filepath.Join(t.TempDir(), "out.epub")
-	err := goPDFConverter(context.Background(), pdfPath, outPath)
+	err := goPDFConverter(
+		context.Background(), pdfPath, outPath, catalogTitle, catalogAuthors,
+	)
 	require.NoError(t, err)
 	return outPath
 }
@@ -50,6 +63,28 @@ func readZipEntry(t *testing.T, zipPath string) []byte {
 		}
 	}
 	t.Fatalf("zip entry %s not found in %s", indexXHTMLEntry, zipPath)
+	return nil
+}
+
+// readZipEntryNamed returns the bytes of an arbitrary named zip entry — used
+// by tests that need e.g. content.opf rather than the index document.
+func readZipEntryNamed(t *testing.T, zipPath, name string) []byte {
+	t.Helper()
+	zr, err := zip.OpenReader(zipPath)
+	require.NoError(t, err)
+	defer func() { _ = zr.Close() }()
+
+	for _, f := range zr.File {
+		if f.Name == name {
+			rc, openErr := f.Open()
+			require.NoError(t, openErr)
+			defer func() { _ = rc.Close() }()
+			data, readErr := io.ReadAll(rc)
+			require.NoError(t, readErr)
+			return data
+		}
+	}
+	t.Fatalf("zip entry %s not found in %s", name, zipPath)
 	return nil
 }
 
@@ -299,6 +334,39 @@ func TestGoPDFConverter_ProofSlugFooterFiltered(t *testing.T) {
 	for _, p := range paragraphs {
 		require.NotContains(t, p, "canoe scene ocean scan")
 	}
+}
+
+// TestGoPDFConverter_PrefersCatalogMetadataOverHeading covers issue #1654:
+// the catalog already knows the book's correct title/author (from the
+// user's library entry) by the time a PDF needs converting, so that must
+// win over whatever the PDF extraction pipeline derives on its own — its
+// first large-font heading (often frontmatter, not the real title) and any
+// embedded PDF Title/Author info-dict fields.
+func TestGoPDFConverter_PrefersCatalogMetadataOverHeading(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUBWithCatalog(
+		t,
+		makeSingleColumnPDF(t),
+		"Thinking in Systems: A Primer",
+		[]string{"Donella H. Meadows"},
+	)
+
+	opf := string(readZipEntryNamed(t, epubPath, "OEBPS/content.opf"))
+	require.Contains(t, opf, "<dc:title>Thinking in Systems: A Primer</dc:title>")
+	require.Contains(t, opf, "<dc:creator>Donella H. Meadows</dc:creator>")
+	require.NotContains(t, opf, singleColHeading)
+}
+
+// TestGoPDFConverter_FallsBackWithoutCatalogMetadata verifies the pre-#1654
+// behavior is preserved when no catalog metadata is supplied (e.g. a
+// legacy/edge call site): the PDF's own heading is still used as the title
+// fallback.
+func TestGoPDFConverter_FallsBackWithoutCatalogMetadata(t *testing.T) {
+	t.Parallel()
+	epubPath := convertToEPUB(t, makeSingleColumnPDF(t))
+
+	opf := string(readZipEntryNamed(t, epubPath, "OEBPS/content.opf"))
+	require.Contains(t, opf, "<dc:title>"+singleColHeading+"</dc:title>")
 }
 
 func indexOfBlock(blocks []extractedBlock, tag, text string) int {

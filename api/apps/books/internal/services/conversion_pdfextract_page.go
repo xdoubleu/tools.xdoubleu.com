@@ -150,22 +150,23 @@ func extractDocument(
 	for i, p := range pages {
 		if p.fullPageImage != "" {
 			alt := fmt.Sprintf("Page %d illustration", i+1)
-			pageBlocks[i] = []htmlBlock{{
-				html: fmt.Sprintf(
-					`<img src="%s" alt="%s"/>`,
-					escapeXMLText(p.fullPageImage),
-					escapeXMLText(alt),
-				),
-				tag:  imgTag,
-				text: "",
-			}}
+			pageBlocks[i] = []htmlBlock{
+				{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
+					html: fmt.Sprintf(
+						`<img src="%s" alt="%s"/>`,
+						escapeXMLText(p.fullPageImage),
+						escapeXMLText(alt),
+					),
+					tag:  imgTag,
+					text: "",
+				},
+			}
 			continue
 		}
 		pageBlocks[i] = buildPageBlocks(
 			p.items,
 			p.medLineHeight,
 			p.medCharWidth,
-			docModalHeight,
 		)
 	}
 	pageBlocks = removeProofSlugLines(pageBlocks)
@@ -174,6 +175,7 @@ func extractDocument(
 	for _, pb := range pageBlocks {
 		blocks = append(blocks, pb...)
 	}
+	finalizeHeadings(blocks, docModalHeight)
 	return blocks, nil
 }
 
