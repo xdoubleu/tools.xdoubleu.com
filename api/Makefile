@@ -40,7 +40,7 @@ lint/sql: tools/lint/sql
 	sqlfluff lint --dialect postgres .
 
 tools/proto:
-	go install github.com/bufbuild/buf/cmd/buf@v1.72.0
+	go install github.com/bufbuild/buf/cmd/buf@v1.73.0
 
 # Plugins buf.gen.local.yaml runs against, for environments (e.g. Claude Code
 # on the web) whose network allowlist doesn't reach buf.build. Versions must
