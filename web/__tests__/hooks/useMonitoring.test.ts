@@ -8,7 +8,8 @@ jest.mock('@/lib/client', () => ({
     getProviderOptions: jest.fn(),
     setProviderConfig: jest.fn(),
     getNotificationSettings: jest.fn(),
-    updateNotificationSettings: jest.fn()
+    updateNotificationSettings: jest.fn(),
+    getAutomatedActions: jest.fn()
   }))
 }))
 jest.mock('@/lib/gen/observability/v1/observability_pb', () => ({
@@ -25,7 +26,8 @@ import {
   useProviderOptions,
   useSetProviderConfig,
   useNotificationSettings,
-  useUpdateNotificationSettings
+  useUpdateNotificationSettings,
+  useAutomatedActions
 } from '@/hooks/useMonitoring'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -54,6 +56,21 @@ describe('useNotificationSettings', () => {
       '/monitoring/notification-settings',
       expect.any(Function)
     )
+  })
+})
+
+describe('useAutomatedActions', () => {
+  it('uses the automated-actions SWR key and calls getAutomatedActions with an empty request', () => {
+    const getAutomatedActions = jest.fn().mockResolvedValue({})
+    // @ts-expect-error -- partial client shape
+    mockCreateServiceClient.mockReturnValue({ getAutomatedActions })
+
+    renderHook(() => useAutomatedActions())
+    expect(mockUseSWR).toHaveBeenCalledWith('/monitoring/automated-actions', expect.any(Function))
+
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    fetcher()
+    expect(getAutomatedActions).toHaveBeenCalledWith({})
   })
 })
 

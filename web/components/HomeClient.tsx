@@ -102,6 +102,12 @@ const ALL_APPS: AppLink[] = [
     description: 'Observability'
   },
   {
+    name: 'observability',
+    label: 'Automated actions',
+    href: '/monitoring/observability',
+    description: 'Self-healing routine run history'
+  },
+  {
     name: 'grafana',
     label: 'Grafana',
     href: '/grafana',
@@ -117,11 +123,11 @@ const SECTION_DEFS: { title: string; names: string[] }[] = [
   { title: 'Food', names: ['recipes', 'mealplans', 'shoppinglist'] },
   { title: 'Tools', names: ['watchparty'] },
   { title: 'Account', names: ['settings', 'family'] },
-  { title: 'Admin', names: ['user-management', 'monitoring', 'grafana'] }
+  { title: 'Admin', names: ['user-management', 'monitoring', 'observability', 'grafana'] }
 ]
 
 const ALWAYS_VISIBLE = new Set(['settings', 'family'])
-const ADMIN_ONLY = new Set(['user-management', 'monitoring', 'grafana'])
+const ADMIN_ONLY = new Set(['user-management', 'monitoring', 'observability', 'grafana'])
 
 export default function HomeClient() {
   const { data, error, isLoading } = useCurrentUser()
