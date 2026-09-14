@@ -85,6 +85,23 @@ type LogEntry struct {
 	AttrsJSON []byte
 }
 
+// AutomatedAction is one run of a self-healing routine that executes
+// outside api's own process, so — unlike JobRun, which TrackedJob records
+// automatically — the routine itself opens this row as its first step and
+// closes it as its last. FinishedAt/Outcome/PRURL/Error are all zero/empty
+// while the run is still open.
+type AutomatedAction struct {
+	ID            int64
+	FiredAt       time.Time
+	TriggerSource string
+	RoutineName   string
+	FinishedAt    *time.Time
+	// Outcome is "succeeded" | "failed" | "no_action_needed", empty while open.
+	Outcome string
+	PRURL   string
+	Error   string
+}
+
 // TransactionTrend flags a transaction (API endpoint or frontend page)
 // whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
 // global.transaction_latency_daily rows over two adjacent windows, and

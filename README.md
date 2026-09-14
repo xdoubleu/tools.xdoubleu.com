@@ -119,12 +119,17 @@ app's core use case, not an add-on → [`docs/adr-0023-learningpaths-mcp-write-t
 App tools are
 named `<app>_<rpc>` (e.g. `games_get_steam`, `books_search_library`,
 `recipes_list_recipes`, `trains_search_journeys`); the observability tools are unprefixed
-(`get_job_stats`, `get_usage_stats`, `get_storage_stats`,
+(`get_job_stats`, `get_automated_actions`, `record_action`, `get_usage_stats`, `get_storage_stats`,
 `get_database_stats`, `get_failing_pull_requests`, `get_workflow_runs`,
 `get_security_alerts`, `get_sentry_issues`, `resolve_sentry_issue`,
 `dismiss_security_alert`, `get_slow_transactions`, `prom_query`,
 `get_grafana_alerts`, among
-others). `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
+others). `get_automated_actions` reads `global.automated_actions`
+(issue #1441) — run history for self-healing routines that execute outside
+api's own process (Anthropic's scheduled-agent infrastructure), distinct
+from `get_job_stats`'s in-process `global.job_runs`, which `TrackedJob`
+populates automatically; nothing populates `global.automated_actions`
+except a routine calling `record_action` itself. `prom_query(promql)` (issue #1468) runs an arbitrary PromQL query
 against Prometheus — host CPU/memory/disk, Postgres stats, api's and web's
 own `/metrics` (request/job/Web-Vitals latency histograms, issue #1528) and
 the `github_*`/`r2_*`/`postgres_schema_size_bytes` issue-signal gauges (issue
@@ -137,12 +142,17 @@ it replaced four narrower tools (`get_host_metrics`,
 for alert *state*: alerting is Grafana-managed now and Grafana-managed
 alerts never appear in Prometheus `ALERTS{}`, so it queries Grafana's own
 ruler API for each rule's current state and active instances.
-Two tools are a deliberate
+Three tools are a deliberate
 exception to read-only: `resolve_sentry_issue` marks a Sentry issue
-resolved, and `dismiss_security_alert` dismisses/resolves an open GitHub
+resolved, `dismiss_security_alert` dismisses/resolves an open GitHub
 Dependabot, code-scanning, or secret-scanning alert — so an
 admin-authenticated agent can close out an issue it just filed a fix for, or
-an alert it's already triaged, without switching to github.com/sentry.io.
+an alert it's already triaged, without switching to github.com/sentry.io —
+and `record_action` (issue #1441) opens or closes a `global.automated_actions`
+row: a self-healing routine calls it with `mode: "open"` as its first step
+and `mode: "close"` (passing back the id the open call returned) as its
+last, since the routine runs outside api's own process and this is the only
+way its run gets recorded at all.
 
 Point a local Claude Code at it (OAuth is handled automatically — no header):
 

@@ -57,8 +57,9 @@ var appsToolNames = []string{
 	"learningpaths_list_paths", "learningpaths_get_path",
 	"learningpaths_get_progress", "learningpaths_create_path",
 	"learningpaths_update_path", "learningpaths_record_progress",
-	// observability (17, admin-gated)
-	"get_job_stats", "get_usage_stats", "get_storage_stats", "get_database_stats",
+	// observability (19, admin-gated)
+	"get_job_stats", "get_automated_actions", "record_action",
+	"get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
 	"get_security_alerts", "dismiss_security_alert",
 	"get_sentry_issues", "resolve_sentry_issue", "get_logs",
@@ -257,7 +258,7 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"games_get_recently_active_games", "books_get_library",
 		"feeds_list_feeds", "recipes_list_recipes", "mealplans_list_plans",
 		"shoppinglist_list_categories",
-		"get_job_stats", "get_usage_stats",
+		"get_job_stats", "get_automated_actions", "get_usage_stats",
 		"get_storage_stats", "get_database_stats",
 		"get_failing_pull_requests", "get_workflow_runs", "get_security_alerts",
 		"get_sentry_issues", "get_logs", "get_slow_transactions",
@@ -317,6 +318,9 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 			"item_id": uid, "completed": true,
 		},
 		"resolve_sentry_issue": map[string]any{"issue_id": uid},
+		"record_action": map[string]any{
+			"mode": "open", "trigger_source": "manual", "routine_name": "test-routine",
+		},
 		"dismiss_security_alert": map[string]any{
 			"alert_type":   "dependabot",
 			"alert_number": 1,

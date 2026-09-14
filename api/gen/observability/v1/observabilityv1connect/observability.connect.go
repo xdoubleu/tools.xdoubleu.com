@@ -96,6 +96,15 @@ const (
 	// ObservabilityServiceUpdateNotificationSettingsProcedure is the fully-qualified name of the
 	// ObservabilityService's UpdateNotificationSettings RPC.
 	ObservabilityServiceUpdateNotificationSettingsProcedure = "/observability.v1.ObservabilityService/UpdateNotificationSettings"
+	// ObservabilityServiceOpenAutomatedActionProcedure is the fully-qualified name of the
+	// ObservabilityService's OpenAutomatedAction RPC.
+	ObservabilityServiceOpenAutomatedActionProcedure = "/observability.v1.ObservabilityService/OpenAutomatedAction"
+	// ObservabilityServiceCloseAutomatedActionProcedure is the fully-qualified name of the
+	// ObservabilityService's CloseAutomatedAction RPC.
+	ObservabilityServiceCloseAutomatedActionProcedure = "/observability.v1.ObservabilityService/CloseAutomatedAction"
+	// ObservabilityServiceGetAutomatedActionsProcedure is the fully-qualified name of the
+	// ObservabilityService's GetAutomatedActions RPC.
+	ObservabilityServiceGetAutomatedActionsProcedure = "/observability.v1.ObservabilityService/GetAutomatedActions"
 )
 
 // ObservabilityServiceClient is a client for the observability.v1.ObservabilityService service.
@@ -121,6 +130,9 @@ type ObservabilityServiceClient interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	OpenAutomatedAction(context.Context, *connect.Request[v1.OpenAutomatedActionRequest]) (*connect.Response[v1.OpenAutomatedActionResponse], error)
+	CloseAutomatedAction(context.Context, *connect.Request[v1.CloseAutomatedActionRequest]) (*connect.Response[v1.CloseAutomatedActionResponse], error)
+	GetAutomatedActions(context.Context, *connect.Request[v1.GetAutomatedActionsRequest]) (*connect.Response[v1.GetAutomatedActionsResponse], error)
 }
 
 // NewObservabilityServiceClient constructs a client for the observability.v1.ObservabilityService
@@ -260,6 +272,24 @@ func NewObservabilityServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 			connect.WithClientOptions(opts...),
 		),
+		openAutomatedAction: connect.NewClient[v1.OpenAutomatedActionRequest, v1.OpenAutomatedActionResponse](
+			httpClient,
+			baseURL+ObservabilityServiceOpenAutomatedActionProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("OpenAutomatedAction")),
+			connect.WithClientOptions(opts...),
+		),
+		closeAutomatedAction: connect.NewClient[v1.CloseAutomatedActionRequest, v1.CloseAutomatedActionResponse](
+			httpClient,
+			baseURL+ObservabilityServiceCloseAutomatedActionProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("CloseAutomatedAction")),
+			connect.WithClientOptions(opts...),
+		),
+		getAutomatedActions: connect.NewClient[v1.GetAutomatedActionsRequest, v1.GetAutomatedActionsResponse](
+			httpClient,
+			baseURL+ObservabilityServiceGetAutomatedActionsProcedure,
+			connect.WithSchema(observabilityServiceMethods.ByName("GetAutomatedActions")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -286,6 +316,9 @@ type observabilityServiceClient struct {
 	setProviderConfig          *connect.Client[v1.SetProviderConfigRequest, v1.SetProviderConfigResponse]
 	getNotificationSettings    *connect.Client[v1.GetNotificationSettingsRequest, v1.GetNotificationSettingsResponse]
 	updateNotificationSettings *connect.Client[v1.UpdateNotificationSettingsRequest, v1.UpdateNotificationSettingsResponse]
+	openAutomatedAction        *connect.Client[v1.OpenAutomatedActionRequest, v1.OpenAutomatedActionResponse]
+	closeAutomatedAction       *connect.Client[v1.CloseAutomatedActionRequest, v1.CloseAutomatedActionResponse]
+	getAutomatedActions        *connect.Client[v1.GetAutomatedActionsRequest, v1.GetAutomatedActionsResponse]
 }
 
 // GetJobStats calls observability.v1.ObservabilityService.GetJobStats.
@@ -394,6 +427,21 @@ func (c *observabilityServiceClient) UpdateNotificationSettings(ctx context.Cont
 	return c.updateNotificationSettings.CallUnary(ctx, req)
 }
 
+// OpenAutomatedAction calls observability.v1.ObservabilityService.OpenAutomatedAction.
+func (c *observabilityServiceClient) OpenAutomatedAction(ctx context.Context, req *connect.Request[v1.OpenAutomatedActionRequest]) (*connect.Response[v1.OpenAutomatedActionResponse], error) {
+	return c.openAutomatedAction.CallUnary(ctx, req)
+}
+
+// CloseAutomatedAction calls observability.v1.ObservabilityService.CloseAutomatedAction.
+func (c *observabilityServiceClient) CloseAutomatedAction(ctx context.Context, req *connect.Request[v1.CloseAutomatedActionRequest]) (*connect.Response[v1.CloseAutomatedActionResponse], error) {
+	return c.closeAutomatedAction.CallUnary(ctx, req)
+}
+
+// GetAutomatedActions calls observability.v1.ObservabilityService.GetAutomatedActions.
+func (c *observabilityServiceClient) GetAutomatedActions(ctx context.Context, req *connect.Request[v1.GetAutomatedActionsRequest]) (*connect.Response[v1.GetAutomatedActionsResponse], error) {
+	return c.getAutomatedActions.CallUnary(ctx, req)
+}
+
 // ObservabilityServiceHandler is an implementation of the observability.v1.ObservabilityService
 // service.
 type ObservabilityServiceHandler interface {
@@ -418,6 +466,9 @@ type ObservabilityServiceHandler interface {
 	SetProviderConfig(context.Context, *connect.Request[v1.SetProviderConfigRequest]) (*connect.Response[v1.SetProviderConfigResponse], error)
 	GetNotificationSettings(context.Context, *connect.Request[v1.GetNotificationSettingsRequest]) (*connect.Response[v1.GetNotificationSettingsResponse], error)
 	UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error)
+	OpenAutomatedAction(context.Context, *connect.Request[v1.OpenAutomatedActionRequest]) (*connect.Response[v1.OpenAutomatedActionResponse], error)
+	CloseAutomatedAction(context.Context, *connect.Request[v1.CloseAutomatedActionRequest]) (*connect.Response[v1.CloseAutomatedActionResponse], error)
+	GetAutomatedActions(context.Context, *connect.Request[v1.GetAutomatedActionsRequest]) (*connect.Response[v1.GetAutomatedActionsResponse], error)
 }
 
 // NewObservabilityServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -553,6 +604,24 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 		connect.WithSchema(observabilityServiceMethods.ByName("UpdateNotificationSettings")),
 		connect.WithHandlerOptions(opts...),
 	)
+	observabilityServiceOpenAutomatedActionHandler := connect.NewUnaryHandler(
+		ObservabilityServiceOpenAutomatedActionProcedure,
+		svc.OpenAutomatedAction,
+		connect.WithSchema(observabilityServiceMethods.ByName("OpenAutomatedAction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceCloseAutomatedActionHandler := connect.NewUnaryHandler(
+		ObservabilityServiceCloseAutomatedActionProcedure,
+		svc.CloseAutomatedAction,
+		connect.WithSchema(observabilityServiceMethods.ByName("CloseAutomatedAction")),
+		connect.WithHandlerOptions(opts...),
+	)
+	observabilityServiceGetAutomatedActionsHandler := connect.NewUnaryHandler(
+		ObservabilityServiceGetAutomatedActionsProcedure,
+		svc.GetAutomatedActions,
+		connect.WithSchema(observabilityServiceMethods.ByName("GetAutomatedActions")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/observability.v1.ObservabilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ObservabilityServiceGetJobStatsProcedure:
@@ -597,6 +666,12 @@ func NewObservabilityServiceHandler(svc ObservabilityServiceHandler, opts ...con
 			observabilityServiceGetNotificationSettingsHandler.ServeHTTP(w, r)
 		case ObservabilityServiceUpdateNotificationSettingsProcedure:
 			observabilityServiceUpdateNotificationSettingsHandler.ServeHTTP(w, r)
+		case ObservabilityServiceOpenAutomatedActionProcedure:
+			observabilityServiceOpenAutomatedActionHandler.ServeHTTP(w, r)
+		case ObservabilityServiceCloseAutomatedActionProcedure:
+			observabilityServiceCloseAutomatedActionHandler.ServeHTTP(w, r)
+		case ObservabilityServiceGetAutomatedActionsProcedure:
+			observabilityServiceGetAutomatedActionsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -688,4 +763,16 @@ func (UnimplementedObservabilityServiceHandler) GetNotificationSettings(context.
 
 func (UnimplementedObservabilityServiceHandler) UpdateNotificationSettings(context.Context, *connect.Request[v1.UpdateNotificationSettingsRequest]) (*connect.Response[v1.UpdateNotificationSettingsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.UpdateNotificationSettings is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) OpenAutomatedAction(context.Context, *connect.Request[v1.OpenAutomatedActionRequest]) (*connect.Response[v1.OpenAutomatedActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.OpenAutomatedAction is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) CloseAutomatedAction(context.Context, *connect.Request[v1.CloseAutomatedActionRequest]) (*connect.Response[v1.CloseAutomatedActionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.CloseAutomatedAction is not implemented"))
+}
+
+func (UnimplementedObservabilityServiceHandler) GetAutomatedActions(context.Context, *connect.Request[v1.GetAutomatedActionsRequest]) (*connect.Response[v1.GetAutomatedActionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("observability.v1.ObservabilityService.GetAutomatedActions is not implemented"))
 }
