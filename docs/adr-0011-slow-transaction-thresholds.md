@@ -1,22 +1,21 @@
 # ADR-0011: Classify slow transactions by name shape; don't exclude WebSocket routes
 
-- Status: Accepted; superseded in part by #1528 (the p95 *alert* moved to Grafana — see "Superseded in part" below)
-- Issues: #1310, #1320, #1528
-- Affects: `api/internal/observability/jobs/slow_transactions.go`, `api/internal/communication/wstools/websocket.go`, `web/lib/observability.ts`
+- Status: Superseded by #1597 (the classification module was removed — see "Superseded" below)
+- Issues: #1310, #1320, #1528, #1597
+- Affects (historical): `api/internal/observability/jobs/slow_transactions.go`, `api/internal/communication/wstools/websocket.go`
 
 ## Context
 
-The `/monitoring` trending "currently slow" list and the weekly digest's
-slow-transaction section need to know what kind of thing a transaction is to
-apply the right threshold — but **Sentry project names are admin-configured free
-text**, so there is no reliable metadata to key off. (Originally this classified
-the three per-class rules of `jobs.ThresholdAlertJob`, retired in #1528.)
+The weekly digest's slow-transaction section needed to know what kind of thing
+a transaction is to apply the right threshold — but **Sentry project names are
+admin-configured free text**, so there was no reliable metadata to key off.
+(Originally this classified the three per-class rules of
+`jobs.ThresholdAlertJob`, retired in #1528.)
 
-## Decision
+## Decision (historical — the module this describes was removed in #1597)
 
-`classifyTransaction` in `slow_transactions.go` (mirrored in
-`web/lib/observability.ts`) infers a transaction's class **purely from its name
-shape**:
+`classifyTransaction` in `slow_transactions.go` inferred a transaction's class
+**purely from its name shape**:
 
 | Shape | Class | Threshold | Reasoning |
 |---|---|---|---|
@@ -66,29 +65,41 @@ why classification is name-shape-based.
 
 ## Superseded in part (#1528)
 
-The p95 *latency alert* no longer runs here. `jobs.ThresholdAlertJob`,
+The p95 *latency alert* no longer ran here. `jobs.ThresholdAlertJob`,
 `global.alert_states`, and the `slow_transaction_{http,job,frontend}_high`
-notification sources are gone. Grafana now evaluates request/job/frontend p95
+notification sources were gone. Grafana evaluated request/job/frontend p95
 off real Prometheus histograms (`http_request_duration_seconds`,
-`job_duration_seconds`, `web_vitals_seconds`) and routes breaches through its
+`job_duration_seconds`, `web_vitals_seconds`) and routed breaches through its
 own SMTP contact point (`infra/grafana/provisioning/alerting/`).
 
-What this ADR still governs: the name-shape classification and the
-`NextNodeServer.clientComponentLoading` / WebSocket-route decisions, which
-still gate the `/monitoring` trending list (`currentlySlowTransactions`) and
-the weekly digest's slow-transaction section — both Sentry-derived, and neither
-an alert.
+After #1528, this ADR still governed the name-shape classification and the
+`NextNodeServer.clientComponentLoading` / WebSocket-route decisions, which by
+that point gated only the weekly digest's slow-transaction section — Grafana's
+own histograms never went through this classification, and `GetSlowTransactions`'
+`/monitoring` trending list was always the raw, unclassified `Trends()` output.
+
+## Superseded (#1597)
+
+`WeeklyDigestJob`'s slow-transaction section — the classification's last
+remaining reader — was dropped: Grafana already alerts on p95 regressions in
+real time, so the weekly restatement was redundant (adr-0010). With no reader
+left, `slow_transactions.go` (`classifyTransaction`, `thresholdMsForClass`,
+`slowTransactionExcluded`, `currentlySlowTransactions`) and its test were
+deleted outright rather than kept as dead code. `GetSlowTransactions` and its
+`get_slow_transactions` MCP tool are unaffected — they never used this
+classification.
 
 ## Consequences
 
-- The `progressws` routes are expected to sit permanently in the trending
-  "slow" list. **That is not a bug**, and should not be "fixed" by adding an
-  exclusion.
-- Renaming a transaction can silently reclassify it and change its threshold.
-- The classification lives in two places (`slow_transactions.go`,
-  `web/lib/observability.ts`) that must be kept in sync.
+- Nothing in this repo classifies a Sentry transaction by name shape anymore.
+- The WebSocket-route decision recorded above (don't exclude `progressws`
+  routes) has no remaining code path to apply to; it's kept here purely as a
+  record of the reasoning, should a future consumer reintroduce
+  classification.
 
 ## Revisit when
 
-Sentry offers reliable structured transaction metadata, removing the need to
-infer class from the name.
+A future consumer needs to classify transactions by class again — at which
+point re-derive from this ADR's reasoning rather than reintroducing
+`slow_transactions.go` unchanged, since the removed WebSocket-route
+consequences may no longer all apply.

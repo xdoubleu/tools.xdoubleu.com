@@ -19,9 +19,8 @@ func TestNotificationSettingsListReturnsSeededSources(t *testing.T) {
 	for _, s := range settings {
 		got[s.SourceKey] = s.Enabled
 	}
-	require.Contains(t, got, repositories.NotificationSourceSentryIssues)
-	require.Contains(t, got, repositories.NotificationSourceFailingDependencyPRs)
 	require.Contains(t, got, repositories.NotificationSourceUnhealthyFeeds)
+	require.Contains(t, got, repositories.NotificationSourceOpenFeedItems)
 }
 
 func TestNotificationSettingsIsEnabledDefaultsTrue(t *testing.T) {
@@ -29,7 +28,7 @@ func TestNotificationSettingsIsEnabledDefaultsTrue(t *testing.T) {
 
 	enabled, err := repo.IsEnabled(
 		t.Context(),
-		repositories.NotificationSourceSentryIssues,
+		repositories.NotificationSourceUnhealthyFeeds,
 	)
 	require.NoError(t, err)
 	require.True(t, enabled)
@@ -50,17 +49,17 @@ func TestNotificationSettingsSetEnabledRoundTrips(t *testing.T) {
 	repo := repositories.NewNotificationSettingsRepository(testDB)
 	t.Cleanup(func() {
 		require.NoError(t, repo.SetEnabled(
-			context.Background(), repositories.NotificationSourceSentryIssues, true,
+			context.Background(), repositories.NotificationSourceUnhealthyFeeds, true,
 		))
 	})
 
 	require.NoError(t, repo.SetEnabled(
-		t.Context(), repositories.NotificationSourceSentryIssues, false,
+		t.Context(), repositories.NotificationSourceUnhealthyFeeds, false,
 	))
 
 	enabled, err := repo.IsEnabled(
 		t.Context(),
-		repositories.NotificationSourceSentryIssues,
+		repositories.NotificationSourceUnhealthyFeeds,
 	)
 	require.NoError(t, err)
 	require.False(t, enabled)

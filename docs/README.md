@@ -30,8 +30,8 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0007](adr-0007-dashboard-app-owns-public-sharing.md) | Schema-less `dashboard` app owns public dashboards and share tokens | #737 |
 | [adr-0008](adr-0008-family-as-single-sharing-concept.md) | One `family` concept replaces per-app sharing and contacts | #1349, #1403 |
 | [adr-0009](adr-0009-sentrytools-extracted-module.md) | slog→Sentry glue as its own module via a local `replace` | #926, #1038 |
-| [adr-0010](adr-0010-two-weekly-digest-emails.md) | Weekly digest sends two emails, not one | #1014, #1253, #1355, #1214 |
-| [adr-0011](adr-0011-slow-transaction-thresholds.md) | Name-shape classification; WebSocket routes not excluded (p95 alert moved to Grafana in #1528) | #1310, #1320, #1528 |
+| [adr-0010](adr-0010-two-weekly-digest-emails.md) | Weekly digest split into two emails; monitoring email removed in #1597, leaving one (feeds) | #1014, #1253, #1355, #1214, #1597 |
+| [adr-0011](adr-0011-slow-transaction-thresholds.md) | Name-shape classification; WebSocket routes not excluded (p95 alert moved to Grafana in #1528; module removed in #1597) | #1310, #1320, #1528, #1597 |
 | [adr-0012](adr-0012-ubuntu-release-check-on-vps.md) | Local systemd timer replaces the Ubuntu release job | #1134 |
 | [adr-0013](adr-0013-diff-scoped-coverage.md) | Gate on changed-line coverage; the signature-coverage fixup | #1301, #1364, #1376 |
 | [adr-0014](adr-0014-start-finish-task-enforcement.md) | `ExitPlanMode`, `Stop`, and `Edit`/`Write`/`NotebookEdit` hooks enforce the task pairing and worktree scope; `Stop`'s PR-existence check works with or without `gh` | #1236, #1238, #1400, #1619, #1440 |
