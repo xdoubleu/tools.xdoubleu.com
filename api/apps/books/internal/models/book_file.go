@@ -29,6 +29,7 @@ type KoboSyncBook struct {
 	StorageKey        string
 	Size              int64
 	KoboSyncEnabledAt time.Time
+	ConverterVersion  int16
 }
 
 type BookFile struct {
