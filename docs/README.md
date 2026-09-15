@@ -3,13 +3,18 @@
 The "why" behind this codebase — long-term decisions and the rules that came out
 of them. Nothing else.
 
-**The code is the spec.** How a subsystem works belongs in the code and its
-comments, not here; a prose description of current behavior only rots. Only two
-kinds of document live in this directory:
+**The code is the spec**, for anything the code itself can express — how a
+subsystem works belongs in the code and its comments, not here; a prose
+description of current behavior only rots. Three kinds of document live in
+this directory:
 
 - **ADR** — a decision with alternatives and consequences. No "alternatives
   considered" means it isn't one.
 - **Convention** — a rule contributors and agents must follow.
+- **Spec** — a reproducible record of something that exists *outside* this
+  repo's code and can't be expressed in it (e.g. exact setup steps and
+  prompt text for a claude.ai routine created by hand in an external UI). An
+  ADR without an "alternatives considered" section is a spec instead.
 
 Imperative guidance lives in the `CLAUDE.md` files; past tense — what something
 used to be, what was tried and rejected, which incident produced a rule — lives
@@ -44,6 +49,12 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [adr-0021](adr-0021-oauth-as-general-purpose-oidc-idp.md) | The embedded AS also issues OIDC ID tokens and supports confidential clients (Grafana SSO) | #1469 |
 | [adr-0022](adr-0022-prometheus-grafana-metrics.md) | Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; `prom_query` MCP tool; what got removed; Phase 2 (#1528) — latency histograms + Grafana alerting, `ThresholdAlertJob` retired; Phase 3 (#1529) — issue signals as Prometheus gauges + Grafana `service-health` alerts, `IssueNotifierJob`/`notified_issues` retired; Phase 4 (#1530) — notifications collapsed to email-only, `internal/slack` + `notification_channel_config` removed; Phase 5 (#1554) — `api`/`web` were never scraped at all, so every Phase 2/3 metric was empty; label-based `docker_sd_configs` discovery, `TargetDown`/`TargetMissing` alerts, `app-performance` dashboard; Phase 6 (#1556) — `github_workflow_run_duration_seconds` + `postgres_schema_size_bytes` gauges (the metrics #1554 had nothing to graph), panels only, no alert; Phase 7 (#1570) — `grafana-github-datasource` + `grafana-sentry-datasource` plugins registered as provisioned datasources, only `sentry_unresolved_issues` migrated (alert + panel query the Sentry API through the plugin), GitHub signals stay gauges pending live-query validation | #1468, #1528, #1529, #1530, #1554, #1556, #1570 |
 | [adr-0023](adr-0023-learningpaths-mcp-write-tools.md) | learningpaths' MCP tools are allowed to mutate — the one deliberate exception to "no per-app MCP tool is ever mutating," with an explicit non-precedent statement | #1471, #1473 |
+
+## Specs
+
+| Document | Covers | Issues |
+|---|---|---|
+| [spec-routine-red-pr-repair](spec-routine-red-pr-repair.md) | The morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1448, #1438, #1441 |
 
 ## Conventions
 
