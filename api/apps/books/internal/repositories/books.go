@@ -656,7 +656,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 ) ([]models.KoboSyncBook, error) {
 	query := `
 		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
-		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at)
+		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at), bf.converter_version
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
@@ -682,7 +682,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		var b models.KoboSyncBook
 		if scanErr := rows.Scan(
 			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
-			&b.KoboSyncEnabledAt,
+			&b.KoboSyncEnabledAt, &b.ConverterVersion,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
@@ -1274,7 +1274,8 @@ func (repo *BooksRepository) GetKoboSyncBook(
 	bookID uuid.UUID,
 ) (models.KoboSyncBook, error) {
 	query := `
-		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes
+		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
+		       bf.converter_version
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
@@ -1291,6 +1292,7 @@ func (repo *BooksRepository) GetKoboSyncBook(
 	var b models.KoboSyncBook
 	err := repo.db.QueryRow(ctx, query, userID, bookID).Scan(
 		&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
+		&b.ConverterVersion,
 	)
 	if err != nil {
 		return models.KoboSyncBook{}, postgres.PgxErrorToHTTPError(err)

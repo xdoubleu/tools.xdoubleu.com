@@ -83,6 +83,24 @@ func TestGetKEPUBStatus_EPUBAndKEPUBReady(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, result.HasEPUB)
 	assert.Equal(t, models.FileStatusReady, result.KepubStatus)
+	assert.False(t, result.KepubStale, "a current-version KEPUB row must not be stale")
+}
+
+// TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion covers issue #1696: a
+// ready KEPUB row produced by an older converter version must be reported as
+// stale, so callers know to re-trigger conversion.
+func TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion(t *testing.T) {
+	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
+	insertStaleKEPUBRow(t, bookID, userID)
+
+	result, err := testApp.Services.Books.GetKEPUBStatus(
+		context.Background(), userID, bookID,
+	)
+	require.NoError(t, err)
+	assert.True(t, result.HasEPUB)
+	assert.Equal(t, models.FileStatusReady, result.KepubStatus)
+	assert.True(t, result.KepubStale,
+		"a KEPUB row stamped with an older converter version must be reported stale")
 }
 
 func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
@@ -215,6 +233,29 @@ func TestConnectEnableKoboSync_AlreadyReadyKEPUB_ReturnsReady(t *testing.T) {
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
 	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
+}
+
+// TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting covers issue
+// #1696: a ready KEPUB row produced by an older converter version must be
+// treated the same as no KEPUB at all — conversion re-triggers rather than
+// serving the stale row forever.
+func TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
+	insertStaleKEPUBRow(t, bookID, userID)
+
+	req := connect.NewRequest(&booksv1.EnableKoboSyncRequest{
+		BookId: bookID.String(),
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.EnableKoboSync(ctx, req)
+	require.NoError(t, err)
+	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus,
+		"a stale ready KEPUB must re-trigger conversion, not be served as-is")
 }
 
 func TestConnectEnableKoboSync_PDFOnly_ReturnsConverting(t *testing.T) {
@@ -450,6 +491,35 @@ func TestGetKoboAuthByTokenHash_UpdatesLastSeenAt(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
 	assert.NotNil(t, devices[0].LastSeenAt, "last_seen_at must be set after first auth")
+}
+
+// TestListKoboSyncBooks_ReturnsConverterVersion and
+// TestGetKoboSyncBook_ReturnsConverterVersion cover issue #1696: both queries
+// must surface the KEPUB row's converter_version so callers (the Kobo sync
+// routes) can detect a stale conversion.
+func TestListKoboSyncBooks_ReturnsConverterVersion(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-repo-converter-version-list-" + uuid.NewString()
+	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	insertKEPUBRowWithVersion(t, bookID, owner, 3)
+
+	books, err := testApp.Repositories.Books.ListKoboSyncBooks(ctx, owner)
+	require.NoError(t, err)
+	require.Len(t, books, 1)
+	assert.Equal(t, int16(3), books[0].ConverterVersion)
+}
+
+func TestGetKoboSyncBook_ReturnsConverterVersion(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-repo-converter-version-get-" + uuid.NewString()
+	_, bookID := uploadFileForOwner(t, owner, models.FileFormatEPUB)
+	require.NoError(t, testApp.Services.Books.EnableKoboSync(ctx, owner, bookID))
+	insertKEPUBRowWithVersion(t, bookID, owner, 4)
+
+	book, err := testApp.Repositories.Books.GetKoboSyncBook(ctx, owner, bookID)
+	require.NoError(t, err)
+	assert.Equal(t, int16(4), book.ConverterVersion)
 }
 
 // --- Kobo device: service tests ---
@@ -743,6 +813,29 @@ func TestConnectRequestKEPUBConversion_AlreadyReady_ReturnsReady(t *testing.T) {
 	require.NoError(t, err)
 	// KEPUB already ready — no new conversion should start.
 	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
+}
+
+// TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting covers
+// issue #1696: the in-browser preview trigger must re-convert a ready KEPUB
+// that was produced by an older converter version, instead of treating it as
+// already up to date.
+func TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting(t *testing.T) {
+	client := newBooksTestClient(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
+	insertStaleKEPUBRow(t, bookID, userID)
+
+	req := connect.NewRequest(&booksv1.RequestKEPUBConversionRequest{
+		BookId: bookID.String(),
+	})
+	req.Header().Set("Cookie", accessToken.String())
+
+	resp, err := client.RequestKEPUBConversion(ctx, req)
+	require.NoError(t, err)
+	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus,
+		"a stale ready KEPUB must re-trigger conversion, not be served as-is")
 }
 
 func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(

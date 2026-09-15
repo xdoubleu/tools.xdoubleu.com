@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,7 +16,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 )
+
+// expectedRevisionID mirrors kobo_routes.go's koboRevisionID for a KEPUB row
+// stamped with the current converter version — used to assert the sync
+// manifest's RevisionId/CrossRevisionId reflect a just-converted book
+// (issue #1696).
+func expectedRevisionID(bookID uuid.UUID) string {
+	return fmt.Sprintf("%s-v%d", bookID, services.CurrentKEPUBConverterVersion())
+}
 
 // registerTestDevice registers a new Kobo device for ownerID and returns the
 // raw token. It exists as a helper because all Kobo route tests need a valid
@@ -213,7 +223,7 @@ func TestKoboLibrarySync_UpstreamNon200_FallsBackToOurBooks(t *testing.T) {
 			continue
 		}
 		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
-			if ent["RevisionId"] == bookID.String() {
+			if ent["Id"] == bookID.String() {
 				found = true
 				break
 			}
@@ -277,7 +287,7 @@ func TestKoboLibrarySync_OurBooksPreservedWhenUpstreamDown(t *testing.T) {
 			continue
 		}
 		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
-			if ent["RevisionId"] == bookID.String() {
+			if ent["Id"] == bookID.String() {
 				found = true
 				break
 			}
@@ -518,7 +528,9 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 
 	entitlement, ok := ne["BookEntitlement"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, bookID.String(), entitlement["RevisionId"])
+	assert.Equal(t, bookID.String(), entitlement["Id"])
+	assert.Equal(t, expectedRevisionID(bookID), entitlement["RevisionId"])
+	assert.Equal(t, expectedRevisionID(bookID), entitlement["CrossRevisionId"])
 
 	meta, ok := ne["BookMetadata"].(map[string]any)
 	require.True(t, ok)
@@ -535,6 +547,48 @@ func TestKoboLibrarySync_ReadyKEPUBIncluded(t *testing.T) {
 	dlURL, ok := dl["Url"].(string)
 	require.True(t, ok)
 	assert.Contains(t, dlURL, bookID.String()+"/file")
+}
+
+// TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration covers issue #1696: the
+// library sync handler must fire an async EnsureKEPUB for a kobo-sync book
+// whose ready KEPUB row is stamped with an older converter version, so an
+// already-synced book eventually picks up a pipeline fix without any
+// explicit user action.
+func TestKoboLibrarySync_StaleKEPUB_TriggersRegeneration(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-stale-regen-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	// Downgrade the just-converted KEPUB row's converter version to simulate a
+	// book converted before a pipeline fix landed.
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE books.book_files SET converter_version = 0
+		 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
+		bookID, owner,
+	)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	// The sync handler fires regeneration in a detached goroutine — poll until
+	// the KEPUB row's converter_version reaches current.
+	require.Eventually(t, func() bool {
+		var version int16
+		scanErr := testDB.QueryRow(context.Background(),
+			`SELECT converter_version FROM books.book_files
+			 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
+			bookID, owner,
+		).Scan(&version)
+		return scanErr == nil && version == services.CurrentKEPUBConverterVersion()
+	}, 5*time.Second, 50*time.Millisecond,
+		"a stale KEPUB must be regenerated after a library sync")
 }
 
 // --- Cross-user isolation ---
@@ -1107,7 +1161,7 @@ func TestKoboMetadata_ReturnsDownloadURL(t *testing.T) {
 	require.Len(t, metas, 1)
 
 	meta := metas[0]
-	assert.Equal(t, bookID.String(), meta["RevisionId"])
+	assert.Equal(t, expectedRevisionID(bookID), meta["RevisionId"])
 	assert.Equal(t, "application/x-kobo-epub+zip", meta["ContentType"])
 
 	dlUrls, ok := meta["DownloadUrls"].([]any)
@@ -1231,6 +1285,14 @@ func TestKoboLibrarySync_EntitlementStableAcrossSyncs(t *testing.T) {
 	require.True(t, ok1 && ok2)
 	assert.Equal(t, ap1["From"], ap2["From"],
 		"ActivePeriod.From must be identical across syncs")
+
+	// RevisionId/CrossRevisionId encode ConverterVersion (issue #1696) — they
+	// must stay stable across syncs with no regeneration in between, the same
+	// flicker regression the timestamp fields above guard against.
+	assert.Equal(t, first["RevisionId"], second["RevisionId"],
+		"RevisionId must be identical across syncs with no version change")
+	assert.Equal(t, first["CrossRevisionId"], second["CrossRevisionId"],
+		"CrossRevisionId must be identical across syncs with no version change")
 }
 
 // TestKoboLibrarySync_EntitlementTimestampIsEnableTime asserts that the
@@ -1264,7 +1326,7 @@ func TestKoboLibrarySync_EntitlementTimestampIsEnableTime(t *testing.T) {
 	require.True(t, ok)
 	ent, ok := ne["BookEntitlement"].(map[string]any)
 	require.True(t, ok)
-	assert.Equal(t, bookID.String(), ent["RevisionId"])
+	assert.Equal(t, expectedRevisionID(bookID), ent["RevisionId"])
 
 	created, ok := ent["Created"].(string)
 	require.True(t, ok, "Created must be a string timestamp")
@@ -1313,7 +1375,7 @@ func TestKoboLibrarySync_DisabledBook_EmitsRemoval(t *testing.T) {
 			continue
 		}
 		if ent, entOK := ne["BookEntitlement"].(map[string]any); entOK {
-			assert.NotEqual(t, bookID.String(), ent["RevisionId"],
+			assert.NotEqual(t, bookID.String(), ent["Id"],
 				"disabled book must not still be offered as NewEntitlement")
 		}
 	}

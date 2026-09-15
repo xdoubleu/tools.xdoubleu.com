@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
 )
@@ -70,17 +71,40 @@ func uploadFileForOwner(
 	}
 }
 
-// insertKEPUBRow inserts a KEPUB book_file row directly (no objectstore entry).
+// insertKEPUBRow inserts a ready, current-version KEPUB book_file row
+// directly (no objectstore entry). Use insertStaleKEPUBRow for a row that
+// should be treated as needing regeneration.
 func insertKEPUBRow(t *testing.T, bookID uuid.UUID, ownerID string) {
+	t.Helper()
+	insertKEPUBRowWithVersion(
+		t, bookID, ownerID, services.CurrentKEPUBConverterVersion(),
+	)
+}
+
+// insertStaleKEPUBRow inserts a ready KEPUB book_file row stamped with a
+// converter version older than current, simulating a book converted before
+// a pipeline fix (issue #1696).
+func insertStaleKEPUBRow(t *testing.T, bookID uuid.UUID, ownerID string) {
+	t.Helper()
+	insertKEPUBRowWithVersion(t, bookID, ownerID, 0)
+}
+
+func insertKEPUBRowWithVersion(
+	t *testing.T,
+	bookID uuid.UUID,
+	ownerID string,
+	converterVersion int16,
+) {
 	t.Helper()
 	key := "users/" + ownerID + "/books/" + bookID.String() + "/derived.kepub"
 	f := models.BookFile{ //nolint:exhaustruct //optional fields omitted
-		BookID:     bookID,
-		UserID:     ownerID,
-		Format:     models.FileFormatKEPUB,
-		StorageKey: key,
-		SizeBytes:  8,
-		Status:     models.FileStatusReady,
+		BookID:           bookID,
+		UserID:           ownerID,
+		Format:           models.FileFormatKEPUB,
+		StorageKey:       key,
+		SizeBytes:        8,
+		Status:           models.FileStatusReady,
+		ConverterVersion: converterVersion,
 	}
 	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)

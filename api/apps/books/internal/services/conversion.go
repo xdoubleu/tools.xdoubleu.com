@@ -43,6 +43,21 @@ type PDFConverter func(
 // as stale and regenerates it on next access (issue #594).
 const currentKEPUBConverterVersion int16 = 6
 
+// IsKEPUBStale reports whether a KEPUB row stamped with version was produced
+// by an older converter than the current pipeline. Callers outside this
+// package (e.g. the Kobo sync routes) use this to decide whether to
+// re-trigger EnsureKEPUB for an already-ready row (issue #1696).
+func (s *ConversionService) IsKEPUBStale(version int16) bool {
+	return version < currentKEPUBConverterVersion
+}
+
+// CurrentKEPUBConverterVersion returns the version EnsureKEPUB stamps on a
+// freshly-converted KEPUB row. Exported for tests that need to seed a
+// non-stale row without hardcoding the pipeline version.
+func CurrentKEPUBConverterVersion() int16 {
+	return currentKEPUBConverterVersion
+}
+
 // ConversionService produces KEPUBs from stored EPUBs or PDFs.
 // Callers must use EnsureKEPUB; internal conversion is lazy and idempotent,
 // except that a KEPUB stamped with an older currentKEPUBConverterVersion is

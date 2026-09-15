@@ -1,10 +1,12 @@
 package books
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -270,6 +272,18 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		// to tear down and recreate the entitlement on every sync (the visible
 		// "books briefly disappear" flicker).
 		enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
+		// RevisionId/CrossRevisionId encode ConverterVersion (unlike Id, which
+		// stays the bare book UUID) so a regenerated KEPUB looks like changed
+		// content to the device and it re-downloads (issue #1696). Whether the
+		// firmware actually treats a RevisionId change inside a NewEntitlement
+		// payload as "re-fetch this" isn't verifiable without a physical
+		// device — best-effort, same caveat as buildKoboRemovalEntry below.
+		revisionID := koboRevisionID(id, b.ConverterVersion)
+
+		if b.Format == models.FileFormatKEPUB &&
+			app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
+			app.startKEPUBRegeneration(r.Context(), userID, b.BookID)
+		}
 
 		// json.Marshal cannot fail on this fully-typed struct.
 		// Each entry must be wrapped in the NewEntitlement discriminator key
@@ -283,12 +297,12 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 					Accessibility:   "Full",
 					ActivePeriod:    map[string]string{"From": enabled},
 					Created:         enabled,
-					CrossRevisionId: id,
+					CrossRevisionId: revisionID,
 					Id:              id,
 					IsRemoved:       false,
 					IsHiddenFromUI:  false,
 					PurchasedDate:   enabled,
-					RevisionId:      id,
+					RevisionId:      revisionID,
 					Status:          "Active",
 					Type:            "ebook",
 				},
@@ -415,6 +429,30 @@ func (app *Books) koboFetchUpstreamSync(
 	return items, hdrs
 }
 
+// koboRevisionID derives a version-aware revision identifier from the bare
+// book UUID and its KEPUB ConverterVersion, so a regenerated KEPUB (bumped
+// version) produces a different RevisionId/CrossRevisionId than a stable one
+// — see the callers in koboLibrarySyncHandler and buildKoboMetadata.
+func koboRevisionID(bookID string, converterVersion int16) string {
+	return fmt.Sprintf("%s-v%d", bookID, converterVersion)
+}
+
+// startKEPUBRegeneration fires ConversionService.EnsureKEPUB in a detached
+// goroutine for a KEPUB row already known to be stale (issue #1696).
+// Fire-and-forget: the sync handler's own request deadline must never wait
+// on a PDF re-conversion (ADR-0017), and the result surfaces on a later sync
+// once the row's ConverterVersion (and therefore its RevisionId) updates.
+func (app *Books) startKEPUBRegeneration(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) {
+	convCtx := context.WithoutCancel(ctx)
+	go func() {
+		_, _ = app.Services.Conversion.EnsureKEPUB(convCtx, userID, bookID)
+	}()
+}
+
 // buildKoboMetadata constructs the BookMetadata payload for a kobo-sync book.
 // It is used by both the library sync handler and the dedicated metadata
 // endpoint so the two responses stay byte-identical (the device cross-checks).
@@ -429,7 +467,7 @@ func buildKoboMetadata(b models.KoboSyncBook, libraryBase string) koboBookMetada
 	return koboBookMetadata{
 		Title:       b.Title,
 		ContentType: contentType,
-		RevisionId:  id,
+		RevisionId:  koboRevisionID(id, b.ConverterVersion),
 		Language:    "en",
 		DownloadUrls: []koboDownloadURL{{
 			Format:   downloadFormat,

@@ -643,6 +643,10 @@ type KEPUBStatusResult struct {
 	HasEPUB     bool
 	HasPDF      bool
 	KepubStatus string // "", "converting", "ready", or "failed"
+	// KepubStale is true when KepubStatus is "ready" but the row was produced
+	// by an older converter version — callers should treat this the same as
+	// KepubStatus == "" and re-trigger conversion (issue #1696).
+	KepubStale bool
 }
 
 // GetKEPUBStatus reports whether the book has an EPUB or PDF file and the
@@ -687,6 +691,10 @@ func (s *BookService) GetKEPUBStatus(
 	)
 	if kepubErr == nil {
 		result.KepubStatus = kepub.Status
+		if kepub.Status == models.FileStatusReady &&
+			kepub.ConverterVersion < currentKEPUBConverterVersion {
+			result.KepubStale = true
+		}
 	} else if !errors.Is(kepubErr, database.ErrResourceNotFound) {
 		return nil, kepubErr
 	}
