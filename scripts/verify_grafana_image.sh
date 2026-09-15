@@ -83,7 +83,7 @@ if ! grep -qx "routine-fire" <<<"$cp_names"; then
 fi
 
 echo "==> checking the alert rules provisioned"
-want_rules="FrontendP95High HostCPUHigh HostDiskHigh HostMemoryHigh IssueFailingPRs IssueMainCIRed IssueOrphanedStorage IssueSecurityAlerts IssueSentryUnresolved JobP95High R2UsageHigh RequestP95High TargetDown TargetMissing"
+want_rules="AutomatedActionStalled FrontendP95High HostCPUHigh HostDiskHigh HostMemoryHigh IssueFailingPRs IssueMainCIRed IssueOrphanedStorage IssueSecurityAlerts IssueSentryUnresolved JobP95High R2UsageHigh RequestP95High TargetDown TargetMissing"
 got_rules=$(curl -sf -u admin:admin "$base/api/v1/provisioning/alert-rules" \
   | python3 -c 'import json,sys; print(" ".join(sorted(r["title"] for r in json.load(sys.stdin))))')
 for rule in $want_rules; do

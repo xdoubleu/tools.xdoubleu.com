@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -89,4 +90,40 @@ func TestAutomatedActionsListRecentOrdersNewestFirstAndRespectsWindow(t *testing
 	require.Len(t, runs, 2)
 	assert.Equal(t, "new-routine", runs[0].RoutineName)
 	assert.Equal(t, "old-routine", runs[1].RoutineName)
+}
+
+func TestAutomatedActionsOldestOpenFiredAtNoneOpen(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	_, err := repo.OldestOpenFiredAt(t.Context())
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+}
+
+func TestAutomatedActionsOldestOpenFiredAtReturnsOldestStillOpen(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	// A closed row should be ignored even though it fired earliest.
+	_, err := testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome)
+		VALUES (now() - INTERVAL '3 hours', now(), 'schedule', 'closed-routine',
+		        'succeeded')
+	`)
+	require.NoError(t, err)
+
+	_, err = testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, trigger_source, routine_name)
+		VALUES (now() - INTERVAL '2 hours', 'schedule', 'older-open-routine')
+	`)
+	require.NoError(t, err)
+
+	_, err = repo.Open(t.Context(), "api", "newer-open-routine")
+	require.NoError(t, err)
+
+	firedAt, err := repo.OldestOpenFiredAt(t.Context())
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now().Add(-2*time.Hour), firedAt, time.Minute)
 }
