@@ -687,6 +687,11 @@ jobs:
           # infra/grafana/provisioning/datasources/issue-signals.yml.
           GRAFANA_GITHUB_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_GITHUB_DATASOURCE_TOKEN }}
           GRAFANA_SENTRY_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_SENTRY_DATASOURCE_TOKEN }}
+          # Bearer token for issue #1444's routine-fire path, consumed by
+          # $__env{ROUTINE_FIRE_TOKEN} in
+          # infra/grafana/provisioning/alerting/contactpoints.yml's
+          # "routine-fire" webhook contact point.
+          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
         run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
