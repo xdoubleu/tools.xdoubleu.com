@@ -217,6 +217,46 @@ func TestParseFeed_DisplayNameKeepsDistinctFullNames(t *testing.T) {
 	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
 }
 
+// TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation reproduces
+// issue #1656 still failing in production after #1659: a translations.txt
+// row can genuinely exist for a language yet still hold an NMBS-synthesized
+// combined string rather than a real distinct name for that language — in
+// practice this is nearly always English on a bilingual station, whose
+// "translation" is literally "{French name} / {Dutch name}" or an
+// abbreviated variant. Such a value must never be treated as a distinct
+// DisplayName part, even though the translations.txt row is genuine.
+func TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation(t *testing.T) {
+	files := mocks.SampleFeedFiles()
+	files["stops.txt"] += "1,,,gs:nmbssncb:S8813003,50.85,4.36,Bruxelles-Central\n"
+	files["translations.txt"] += "stop_name,,nl,gs:nmbssncb:S8813003,stops," +
+		"Brussel-Centraal\n" +
+		"stop_name,,en,gs:nmbssncb:S8813003,stops,Brux.-/ Brus-Centr.\n"
+	files["stops.txt"] += "1,,,gs:nmbssncb:S8896800,50.95,3.13,Roulers\n"
+	files["translations.txt"] += "stop_name,,nl,gs:nmbssncb:S8896800,stops," +
+		"Roeselare\n" +
+		"stop_name,,en,gs:nmbssncb:S8896800,stops,Roeselare / Roulers\n"
+
+	raw := mocks.BuildFeedZip(files)
+	feed, err := parseFeed(logging.NewNopLogger(), raw)
+	require.NoError(t, err)
+
+	var brusselsCentral, roeselare models.Stop
+	for _, s := range feed.Stops {
+		switch s.StopID {
+		case "gs:nmbssncb:S8813003":
+			brusselsCentral = s
+		case "gs:nmbssncb:S8896800":
+			roeselare = s
+		}
+	}
+
+	assert.Equal(t, "Bruxelles-Central / Brussel-Centraal", brusselsCentral.DisplayName)
+	assert.NotContains(t, brusselsCentral.DisplayName, "Brux.-/ Brus-Centr.")
+
+	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
+	assert.NotContains(t, roeselare.DisplayName, "Roeselare / Roulers")
+}
+
 func TestParseFeed_TranslationCoverageIsReported(t *testing.T) {
 	raw := mocks.BuildFeedZip(mocks.SampleFeedFiles())
 

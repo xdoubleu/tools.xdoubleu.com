@@ -355,16 +355,32 @@ func normalizeLang(v string) string {
 //nolint:gochecknoglobals //fixed language list, package-level by design
 var displayNameLangs = [3]string{"nl", "fr", "en"}
 
+// isSyntheticCombined reports whether a translations.txt value is itself an
+// NMBS-synthesized multi-language string rather than a genuine
+// single-language name. In practice, NMBS's own English row for a bilingual
+// station is almost always literally "{French name} / {Dutch name}" or an
+// abbreviated variant (e.g. "Brux.-/ Brus-Centr.", "Roeselare / Roulers"),
+// never a real distinct English name — so the row genuinely existing in
+// translations.txt is not, by itself, proof the value is safe to treat as a
+// distinct DisplayName part (issue #1656, still reproducing after #1659). A
+// real single-language Belgian station name never legitimately contains
+// "/", so its presence is used as the signal.
+func isSyntheticCombined(v string) bool {
+	return strings.Contains(v, "/")
+}
+
 // buildDisplayName joins every language's genuinely-known full name — a real
-// translations.txt row when one exists, plus the primary language's own
-// stop_name when it has none — deduped and " / "-joined. A non-primary
-// language with no translations.txt row is omitted entirely, never filled
-// with the primary's raw stop_name: that raw value is sometimes itself an
-// NMBS-abbreviated/combined bilingual string (e.g. "Brsls Centr / Bxl
-// Centr"), and treating it as a stand-in full name for another language
-// produced duplicate-looking labels (issue #1656). An explicit translation
-// still wins over the raw stop_name even for the primary language itself,
-// matching NameNL/NameFR/NameEN's own fallback rule (issue #1450).
+// translations.txt row when one exists and isn't itself a synthetic
+// combined string (see isSyntheticCombined), plus the primary language's
+// own stop_name when it has none — deduped and " / "-joined. A non-primary
+// language with no usable translations.txt row is omitted entirely, never
+// filled with the primary's raw stop_name: that raw value is sometimes
+// itself an NMBS-abbreviated/combined bilingual string (e.g. "Brsls Centr /
+// Bxl Centr"), and treating it as a stand-in full name for another language
+// produced duplicate-looking labels (issue #1656). An explicit, non-synthetic
+// translation still wins over the raw stop_name even for the primary
+// language itself, matching NameNL/NameFR/NameEN's own fallback rule (issue
+// #1450).
 func buildDisplayName(primaryLang, name string, translated map[string]string) string {
 	primary := normalizeLang(primaryLang)
 	seen := make(map[string]bool, len(displayNameLangs))
@@ -376,7 +392,7 @@ func buildDisplayName(primaryLang, name string, translated map[string]string) st
 		seen[n] = true
 		parts = append(parts, n)
 	}
-	if t, ok := translated[primary]; ok {
+	if t, ok := translated[primary]; ok && !isSyntheticCombined(t) {
 		add(t)
 	} else {
 		add(name)
@@ -385,7 +401,7 @@ func buildDisplayName(primaryLang, name string, translated map[string]string) st
 		if lang == primary {
 			continue
 		}
-		if t, ok := translated[lang]; ok {
+		if t, ok := translated[lang]; ok && !isSyntheticCombined(t) {
 			add(t)
 		}
 	}

@@ -19,10 +19,14 @@ import (
 // single French-only stop name (issue #1453); version 2 was the first to
 // fill name_nl/name_fr/name_en from translations.txt (#1450); version 3
 // matches those translations by field_value and by unprefixed record_id as
-// well, and records the resulting coverage (issue #1459); version 4 adds
+// well, and records the resulting coverage (issue #1459); version 4 added
 // display_name, a canonical deduped label built only from genuinely-known
-// full names, never a possibly-abbreviated raw fallback (issue #1656).
-const ImportParserVersion = 4
+// full names, never a possibly-abbreviated raw fallback (issue #1656);
+// version 5 fixes display_name's derivation again — a genuinely-present
+// translations.txt row can itself be an NMBS-synthesized combined string
+// (almost always English on a bilingual station), which v4 didn't detect
+// (issue #1656, still reproducing after the v4 fix shipped).
+const ImportParserVersion = 5
 
 // StaticImportService downloads, validates and imports the SNCB GTFS static
 // timetable into the trains schema. It is driven by jobs.StaticImportJob on
