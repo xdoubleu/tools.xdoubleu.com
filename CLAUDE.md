@@ -171,6 +171,7 @@ numbers: [`docs/README.md`](docs/README.md).
 **Specs**
 
 - [`spec-routine-red-pr-repair`](docs/spec-routine-red-pr-repair.md) — the morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438)
+- [`spec-routine-ready-issues-executor`](docs/spec-routine-ready-issues-executor.md) — the nightly claude.ai routine's exact prompt text (runs `ready-issues-sweep` unattended), its 04:00 schedule offset two hours from the `nightly-maintenance-sweep` routine's 02:00 slot, and required connectors (`tools-apps` MCP server + GitHub), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438)
 
 **Conventions**
 

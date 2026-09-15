@@ -55,6 +55,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | Document | Covers | Issues |
 |---|---|---|
 | [spec-routine-red-pr-repair](spec-routine-red-pr-repair.md) | The morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1448, #1438, #1441 |
+| [spec-routine-ready-issues-executor](spec-routine-ready-issues-executor.md) | The nightly claude.ai routine's exact prompt text, its 04:00 schedule (offset two hours from the maintenance sweep), and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1447, #1438, #1446 |
 
 ## Conventions
 

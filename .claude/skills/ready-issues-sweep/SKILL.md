@@ -1,6 +1,6 @@
 ---
 name: ready-issues-sweep
-description: Pull every issue in the "Ready" column of the GitHub project board and dispatch one isolated subagent per issue to fix it end-to-end (start-task through finish-task, PR opened). Use whenever the user asks to "go over Ready issues", "work through the board", "clear the Ready column", or "fix all Ready issues".
+description: Pull every issue in the "Ready" column of the GitHub project board and dispatch one isolated subagent per issue to fix it end-to-end (start-task through finish-task, PR opened). Use whenever the user asks to "go over Ready issues", "work through the board", "clear the Ready column", or "fix all Ready issues" — also the skill a nightly scheduled routine (issue #1447, `docs/spec-routine-ready-issues-executor.md`) runs unattended.
 ---
 
 # Ready Issues Sweep
@@ -19,7 +19,32 @@ section, keep each issue's exploration/fix/PR cycle out of the main
 session's context. Dispatching in parallel also means ten issues each
 taking N minutes of wall-clock finish in ~N minutes total instead of 10×N.
 
+## Interactive vs. unattended
+
+Unlike `monitoring-sweep`, this skill's per-issue behavior doesn't change
+between the two — a Ready issue is already scoped, so there's no
+detection-only mode to fall back to; every dispatched subagent drives all
+the way to an open PR either way (auto-merge behavior is exactly what
+`finish-task` already decides, unchanged). The distinction only affects
+step 0/step 7's `trigger_source` and step 6's final report: **interactive**
+(a human asked for the sweep, this session, right now) reports the summary
+back to that human; **unattended** (issue #1447's nightly routine —
+`docs/spec-routine-ready-issues-executor.md` — invokes this skill with no
+human watching) has nothing to report to, so the summary instead feeds
+step 7's close call. Whichever prompt invoked this skill states which mode
+applies; if it doesn't say, default to interactive. Either way, nothing in
+this skill's steps ever ends on a question with no one there to answer it.
+
 ## Steps
+
+0. **Open the run record.** Call `record_action(mode: "open", trigger_source:
+   "schedule" in unattended mode / "manual" in interactive mode,
+   routine_name: "ready-issues-executor")` before pulling the board. This is
+   what makes the run show up in `get_automated_actions` history at all —
+   nothing else observes an unattended routine running. Keep the returned
+   `id`; the final step needs it to close the row. In interactive mode this
+   is still worth doing (cheap, keeps the history complete) but isn't the
+   point of the exercise the way it is for the nightly routine.
 
 1. **Pull the Ready column**:
    `get_project_issues_by_status(status="Ready", project_number=<from config>)`.
@@ -77,9 +102,26 @@ taking N minutes of wall-clock finish in ~N minutes total instead of 10×N.
    if "Ready" sweeps keep needing the same cross-issue-conflict check, fold
    that logic in here rather than re-discovering it next time).
 
-6. **Report a final summary to the user** once all subagents have reported
-   back: one line per issue (number → approach → PR URL/status), and call
-   out any that got blocked or need a human decision.
+6. **Report a final summary** once all subagents have reported back: one
+   line per issue (number → approach → PR URL/status), and call out any
+   that got blocked or need a human decision. Interactive mode: this is the
+   reply to the user. Unattended mode: there's no one to reply to — this
+   summary instead becomes the `error`/`pr_url` detail (if any) passed to
+   step 7's close call.
+
+7. **Close the run record.** Call `record_action(mode: "close", id: <the id
+   from step 0>, outcome: ...)` — `"no_action_needed"` if the Ready column
+   was empty, `"succeeded"` if it dispatched subagents and every one
+   resolved to an open PR without the sweep itself erroring out, `"failed"`
+   if the sweep itself couldn't complete (the `read:project` scope issue
+   from step 1, an MCP tool call erroring out, etc. — not the same as an
+   individual issue getting blocked, which is a normal per-issue outcome
+   reported in step 6, not a sweep failure). Set `pr_url` when the run
+   produced exactly one PR worth linking; set `error` with a short reason
+   when outcome is `"failed"`. This is the last step in every run of this
+   skill — a run that opened the row in step 0 and never reaches this step
+   leaves a permanently-open `automated_actions` row, which is its own
+   detectable problem (issue #1443).
 
 ## Notes
 
@@ -91,3 +133,9 @@ taking N minutes of wall-clock finish in ~N minutes total instead of 10×N.
   `/monitoring` page — Sentry, CI, perf, security, storage) and
   `issue-triage`/`refine-issue` (grooming the *Backlog* column into
   well-scoped issues, not fixing already-Ready ones).
+- The nightly routine that runs this skill unattended is documented in
+  `docs/spec-routine-ready-issues-executor.md` — its exact prompt text,
+  schedule, and required connectors, for reproducing the routine setup by
+  hand in the claude.ai routines UI (it cannot be created via the
+  trigger-creation API without silently losing the `tools-apps` connector —
+  #1438's finding).
