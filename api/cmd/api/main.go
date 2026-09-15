@@ -16,7 +16,6 @@ import (
 	"github.com/pressly/goose/v3"
 
 	"tools.xdoubleu.com/apps/feeds"
-	"tools.xdoubleu.com/internal/anthropicadmin"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/communication/httptools"
 	"tools.xdoubleu.com/internal/config"
@@ -73,7 +72,6 @@ type Application struct {
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
-	claudeCodeUsageCollectorJob   *jobs.CollectClaudeCodeUsageJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -249,14 +247,12 @@ func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
 	githubClient github.Client,
-	anthropicAdminClient anthropicadmin.Client,
 	storageSnapshotsRepo *repositories.StorageSnapshotsRepository,
 	dbStatsRepo *repositories.DBStatsRepository,
 ) (
 	*jobs.IssueSignalCollectorJob,
 	*repositories.TransactionLatencyRepository,
 	*jobs.TransactionLatencySnapshotJob,
-	*jobs.CollectClaudeCodeUsageJob,
 ) {
 	transactionLatencyRepo := repositories.NewTransactionLatencyRepository(db)
 
@@ -268,12 +264,8 @@ func newCrossAppJobs(
 		sentryClient, transactionLatencyRepo,
 	)
 
-	claudeCodeUsageCollectorJob := jobs.NewCollectClaudeCodeUsageJob(
-		anthropicAdminClient,
-	)
-
 	return issueSignalCollectorJob, transactionLatencyRepo,
-		transactionLatencySnapshotJob, claudeCodeUsageCollectorJob
+		transactionLatencySnapshotJob
 }
 
 // feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
@@ -360,14 +352,8 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	if err := app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
-	); err != nil {
-		return err
-	}
 	return app.globalJobQueue.AddJob(
-		observability.NewTrackedJob(app.claudeCodeUsageCollectorJob, app.db),
-		noopCallback,
+		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
 	)
 }
 
@@ -427,13 +413,11 @@ func NewApplication(
 	notificationSettingsRepo := repositories.NewNotificationSettingsRepository(db)
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
 	dbStatsRepo := repositories.NewDBStatsRepository(db)
-	anthropicAdminClient := anthropicadmin.New(logger, config.AnthropicAdminAPIKey)
 	issueSignalCollectorJob, transactionLatencyRepo,
-		transactionLatencySnapshotJob, claudeCodeUsageCollectorJob := newCrossAppJobs(
+		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
 		sentryClient,
 		githubClient,
-		anthropicAdminClient,
 		storageSnapshotsRepo,
 		dbStatsRepo,
 	)
@@ -474,7 +458,6 @@ func NewApplication(
 		issueSignalCollectorJob:       issueSignalCollectorJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
-		claudeCodeUsageCollectorJob:   claudeCodeUsageCollectorJob,
 		globalJobQueue: jobqueue.NewJobQueue(
 			ctx, logger, globalJobQueueWorkers, globalJobQueueSize, db,
 		),

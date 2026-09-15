@@ -495,14 +495,6 @@ GRAFANA_ADMIN_PASSWORD       (Grafana's local break-glass admin password,
                               with it)
 STEAM_API_KEY
 HARDCOVER_API_KEY
-ANTHROPIC_ADMIN_API_KEY      (Anthropic Admin API key for the Claude Code
-                              Analytics endpoint, issue #1591 —
-                              internal/anthropicadmin's calls behind
-                              CollectClaudeCodeUsageJob. Created by an
-                              organization admin in the Anthropic Console;
-                              unset leaves the collector's gauges unset,
-                              same graceful-not-connected pattern as
-                              STEAM_API_KEY/HARDCOVER_API_KEY)
 BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key
                               for the SNCB GTFS feed, trains app / issue
                               #1390 — free self-service registration,
