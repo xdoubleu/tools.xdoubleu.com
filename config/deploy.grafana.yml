@@ -161,3 +161,13 @@ env:
     # org:read + project:read + event:read.
     - GRAFANA_GITHUB_DATASOURCE_TOKEN
     - GRAFANA_SENTRY_DATASOURCE_TOKEN
+    # Bearer token for issue #1444's routine-fire path. Consumed by
+    # $__env{ROUTINE_FIRE_TOKEN} in
+    # infra/grafana/provisioning/alerting/contactpoints.yml's "routine-fire"
+    # webhook contact point — not by Grafana settings, same non-GF_
+    # provisioning-interpolation case as GRAFANA_SLACK_WEBHOOK_URL above.
+    # Same repo Secret api's own env.secret: list also declares (api needs
+    # it too, for internal/routines.Client's outbound call and the inbound
+    # POST /webhooks/grafana-alert handler) — one value, two independent
+    # consumers.
+    - ROUTINE_FIRE_TOKEN

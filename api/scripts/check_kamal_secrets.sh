@@ -106,9 +106,10 @@ while IFS= read -r name; do
 		# by $__env{} in infra/grafana/provisioning/datasources/issue-signals.yml
 		# (issue #1570) — not by Grafana settings. Provisioning-file
 		# interpolation accepts any env var name, so the non-GF_ spelling is
-		# deliberate.
+		# deliberate. ROUTINE_FIRE_TOKEN (issue #1444) is read the same way,
+		# by the "routine-fire" webhook contact point in contactpoints.yml.
 		GF_* | RELEASE | KAMAL_*) ;;
-		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN) ;;
+		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN | ROUTINE_FIRE_TOKEN) ;;
 		*)
 			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored (see #1517). Rename it to the GF_* name Grafana expects." >&2
 			status=1
