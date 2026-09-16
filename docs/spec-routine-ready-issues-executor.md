@@ -75,8 +75,19 @@ Ready column, not tonight's.
 ## Routine prompt (paste verbatim)
 
 ```
-Run the ready-issues-sweep skill (.claude/skills/ready-issues-sweep/SKILL.md)
-in its unattended mode. Pull the "Ready" column of the project board,
+Run the ready-issues-sweep skill (.claude/skills/ready-issues-sweep/SKILL.md).
+If Skill({skill: "ready-issues-sweep"}) errors with "Unknown skill", that
+means this session's environment doesn't register repo-local skills (see
+issue #1624) — fall back to reading .claude/skills/ready-issues-sweep/
+SKILL.md directly with the Read tool and follow its steps by hand instead
+of giving up; each dispatched subagent needs the same fallback for
+start-task/finish-task if those are also unresolvable as skills. If any
+subagent finds it has no add_repo tool or no authenticated GitHub push
+access (see issue #1625) and can only reach this public repo via an
+unauthenticated read-only clone, it cannot push a branch or open a PR —
+have it report that as the reason it couldn't complete its issue rather
+than silently stopping. Run it in its unattended mode. Pull the "Ready"
+column of the project board,
 dispatch one isolated subagent per issue exactly as the skill describes,
 and let each subagent drive its issue all the way through start-task and
 finish-task to an open PR. Auto-merge behavior is whatever finish-task
@@ -91,6 +102,27 @@ the id the open call returned) once every dispatched subagent has reported
 back, recording outcome as no_action_needed, succeeded, or failed and a
 short summary of what happened.
 ```
+
+## Known platform constraints (as of 2026-09-16)
+
+Two gaps found by #1438's spike, both still open as #1624 and #1625, bear
+directly on this routine — more so than on the nightly sweep, since this
+one has to end in a pushed branch and PR:
+
+- **#1624** — a routine-fired session may not register repo-local skills
+  through the `Skill` tool at all. The prompt above now has an explicit
+  read-the-file fallback, both for this routine's own skill and for each
+  dispatched subagent's `start-task`/`finish-task`. Conflicting evidence:
+  a Claude Code Remote/web session working on this repo (not itself a
+  fired routine) does list `ready-issues-sweep` and its sibling skills as
+  invocable — needs re-confirming against an actual fired routine.
+- **#1625** — a routine-fired session may have no `add_repo` tool and no
+  authenticated GitHub push access, only an unauthenticated read-only
+  clone (works because this repo is public). Under that constraint this
+  routine's subagents can read code but **cannot push or open a PR at
+  all** — the entire point of this routine — so until #1625 resolves,
+  expect this routine to degrade to "diagnosed but couldn't push" reports
+  rather than real PRs. Same re-confirmation caveat as above.
 
 ## Related
 

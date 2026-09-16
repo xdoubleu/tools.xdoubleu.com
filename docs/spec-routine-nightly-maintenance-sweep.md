@@ -63,8 +63,13 @@ scratch.
 ## Routine prompt (paste verbatim)
 
 ```
-Run the monitoring-sweep skill (.claude/skills/monitoring-sweep/SKILL.md)
-in its unattended/detection-only mode. Pull every monitoring data source
+Run the monitoring-sweep skill (.claude/skills/monitoring-sweep/SKILL.md).
+If Skill({skill: "monitoring-sweep"}) errors with "Unknown skill", that
+means this session's environment doesn't register repo-local skills (see
+issue #1624) — fall back to reading .claude/skills/monitoring-sweep/
+SKILL.md directly with the Read tool and follow its steps by hand instead
+of giving up. Run it in its unattended/detection-only mode. Pull every
+monitoring data source
 per the skill's step 1 — including get_grafana_alerts, which is now the
 ground truth for CI-red and dependency-PR alert state as well as Sentry
 and security-alert state — cluster into independent workstreams, and
@@ -83,6 +88,27 @@ it again with mode=close (using the id the open call returned) once every
 workstream has reported back, recording outcome as no_action_needed,
 succeeded, or failed and a short summary of what happened.
 ```
+
+## Known platform constraints (as of 2026-09-16)
+
+Two gaps found by #1438's spike, both still open as #1624 and #1625, apply
+to this routine:
+
+- **#1624** — a routine-fired Claude Code on the web session may not
+  register repo-local skills through the `Skill` tool at all. The prompt
+  above now has an explicit read-the-file fallback for this. Conflicting
+  evidence: a Claude Code Remote/web session working on this repo (not
+  itself a fired routine) does list `monitoring-sweep` and its sibling
+  skills as invocable — this needs re-confirming against an actual fired
+  routine before #1624 can close.
+- **#1625** — a routine-fired session may have no `add_repo` tool and no
+  authenticated GitHub access, only an unauthenticated read-only clone.
+  This routine only ever files/updates tracking issues via GitHub
+  (`refine-issue`/`gh issue create`, or the `mcp__github__*` write tools)
+  and never pushes code, so it's less exposed than #1447/#1448 — but issue
+  creation still needs an authenticated GitHub connector, not just a
+  clone. Same caveat: this session's own `add_repo` access doesn't prove a
+  fired routine gets the same treatment.
 
 ## Related
 
