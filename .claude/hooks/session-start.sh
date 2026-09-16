@@ -45,9 +45,20 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # --- 4. Pull in web/node_modules if it's missing, so npm run lint/test/build
-# don't fail on a cold checkout.
+# don't fail on a cold checkout. The container's system Node may not match
+# web/package.json's engines.node pin (no version manager is guaranteed to
+# be available to fix that here), and npm install under a mismatched Node
+# silently rewrites package-lock.json (issue #1704) — discard that lockfile
+# drift afterward so a cold session doesn't pick up a spurious diff, while
+# still keeping node_modules populated for the session's own use.
 if [ -d web ] && [ ! -d web/node_modules ]; then
-  (cd web && npm install) >/tmp/claude-bootstrap-npm.log 2>&1 &
+  (
+    cd web && npm install >/tmp/claude-bootstrap-npm.log 2>&1
+    if ! git diff --quiet -- package-lock.json; then
+      echo "session-start: discarding package-lock.json drift from a Node version mismatch (issue #1704)" >>/tmp/claude-bootstrap-npm.log
+      git checkout -- package-lock.json
+    fi
+  ) &
 fi
 
 wait
