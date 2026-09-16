@@ -67,7 +67,17 @@ scratch.
 ## Routine prompt (paste verbatim)
 
 ```
-Run the red-pr-repair skill (.claude/skills/red-pr-repair/SKILL.md). Call
+Run the red-pr-repair skill (.claude/skills/red-pr-repair/SKILL.md). If
+Skill({skill: "red-pr-repair"}) errors with "Unknown skill", that means
+this session's environment doesn't register repo-local skills (see issue
+#1624) — fall back to reading .claude/skills/red-pr-repair/SKILL.md
+directly with the Read tool and follow its steps by hand instead of
+giving up; each dispatched subagent needs the same fallback. If any
+subagent finds it has no add_repo tool or no authenticated GitHub push
+access (see issue #1625) and can only reach this public repo via an
+unauthenticated read-only clone, it cannot push a fixing/unsticking
+commit or comment on the PR — have it report that as the reason it
+couldn't complete rather than silently stopping. Call
 record_action with mode=open, trigger_source=schedule,
 routine_name=red-pr-repair before pulling any data. Pull
 get_failing_pull_requests and filter to PRs carrying the dependencies label
@@ -91,6 +101,28 @@ reported back, call record_action again with mode=close (using the id the
 open call returned), recording outcome as no_action_needed, succeeded, or
 failed, and a short summary of what happened per PR.
 ```
+
+## Known platform constraints (as of 2026-09-16)
+
+Two gaps found by #1438's spike, both still open as #1624 and #1625, bear
+directly on this routine — more so than on the nightly sweep, since this
+one has to end in a pushed commit or PR comment:
+
+- **#1624** — a routine-fired session may not register repo-local skills
+  through the `Skill` tool at all. The prompt above now has an explicit
+  read-the-file fallback, both for this routine's own skill and for each
+  dispatched subagent. Conflicting evidence: a Claude Code Remote/web
+  session working on this repo (not itself a fired routine) does list
+  `red-pr-repair` and its sibling skills as invocable — needs
+  re-confirming against an actual fired routine.
+- **#1625** — a routine-fired session may have no `add_repo` tool and no
+  authenticated GitHub push access, only an unauthenticated read-only
+  clone (works because this repo is public). Under that constraint this
+  routine's subagents can diagnose a failure but **cannot push an
+  unsticking/fixing commit or even leave the explanatory PR comment** the
+  skill falls back to — so until #1625 resolves, expect every red PR this
+  routine looks at to go unaddressed rather than fixed or commented on.
+  Same re-confirmation caveat as above.
 
 ## Related
 

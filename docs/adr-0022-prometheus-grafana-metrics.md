@@ -552,6 +552,26 @@ true window-wide total by construction. `scripts/verify_grafana_image.sh`
 does not need updating — it only asserts the rule name provisions, never
 evaluates it against real Sentry data.
 
+Phase 16 (#1702) found Phase 12's fix hadn't actually worked: live
+production checking (2026-09-16) showed `IssueSentryUnresolved` still
+`Alerting (Error)`, now with `[sse.dataQueryError] failed to execute query
+[A]: 400 Bad Request "is:" queries are not supported in this search`.
+Root cause: Phase 12's `eventsStats` queryType hits Sentry's org-level
+Events/Discover API, which has no issue-resolution-status field —
+`is:unresolved` is only valid against the per-project Issues endpoint
+(confirmed against `api/internal/sentryapi/client.go`'s `fetch()`, which
+already calls that endpoint with the same filter successfully). refId A
+moved back to the `issues` queryType (`issuesQuery: is:unresolved`,
+matching the rule's original pre-Phase-12 shape) to fix the query itself;
+Phase 12's original "wide series" failure — the actual reason `issues` was
+abandoned in the first place — is fixed separately by replacing the
+`reduce`+`threshold` expression pair with a single `classic_conditions`
+expression on refId B, which evaluates query A's row count directly
+(`count(A) > 0`) instead of requiring A to reduce to one value first. The
+annotation reverted to a plain "issues detected" statement, since
+`classic_conditions` doesn't expose a meaningful `$values` count the way
+`reduce` did.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

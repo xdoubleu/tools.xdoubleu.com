@@ -373,27 +373,30 @@ groups:
       # Reads the Sentry API directly through the grafana-sentry-datasource
       # plugin (issue #1570) — no longer a Prometheus gauge.
       #
-      # refId A does NOT use the "issues" queryType, despite that being the
-      # obvious choice for "is there an unresolved issue": an Issues query
-      # returns one row per issue with several numeric columns (Count,
-      # UserCount, ...), and Grafana's expression engine can't collapse
-      # that into the single-value series both `reduce` and `threshold`
-      # require — every evaluation fails with "input data must be a wide
-      # series but got type long", forever, regardless of actual Sentry
-      # state (grafana/sentry-datasource#266, filed 2024, still unresolved
-      # upstream). Instead, A uses the "eventsStats" queryType with
-      # `count_unique(issue)` as its Y-axis: that returns a genuine time
-      # series (one numeric value per time bucket), which `reduce` can
-      # consume without a format error. refId B reduces that series to a
-      # single number via `max` (one bucket already containing >=1 distinct
-      # unresolved issue is enough to alert); refId C is the "> 0" alert
-      # condition. projectIds is left empty so the query spans every
-      # project the token can see. The 90-day window approximates
-      # "currently unresolved" (Sentry scopes a query to the requested
-      # window).
+      # refId A uses the "issues" queryType (issuesQuery: is:unresolved)
+      # against the per-project Sentry Issues endpoint — the same endpoint
+      # api/internal/sentryapi/client.go's fetch() already calls
+      # successfully, and the only one that accepts an `is:` status filter
+      # at all. An earlier revision of this rule tried the "eventsStats"
+      # queryType instead (Sentry's org-level Events/Discover API) to work
+      # around a different error (below), but Discover has no
+      # issue-resolution-status field, so `is:unresolved` 400s there —
+      # confirmed live, not just from docs.
+      #
+      # An Issues query returns one row per issue with several numeric
+      # columns (Count, UserCount, ...), which is why `reduce`+`threshold`
+      # can't be used on it directly: Grafana's expression engine can't
+      # collapse that into the single-value series both require — every
+      # evaluation would fail with "input data must be a wide series but
+      # got type long" (grafana/sentry-datasource#266, filed 2024, still
+      # unresolved upstream). refId B sidesteps this with a
+      # `classic_conditions` expression instead: it evaluates the *row
+      # count* of query A directly ("count(A) > 0"), which works
+      # regardless of A's column shape. projectIds is left empty so the
+      # query spans every project the token can see.
       - uid: issue-sentry-unresolved
         title: IssueSentryUnresolved
-        condition: C
+        condition: B
         labels:
           severity: warning
           # Routes to the "routine-fire" contact point too (policies.yml,
@@ -403,7 +406,7 @@ groups:
           trigger: immediate
         annotations:
           summary: Unresolved Sentry issues present
-          description: "Unresolved Sentry issues detected in the last 90 days ({{ $values.B }} distinct issue(s) in the busiest interval)."
+          description: "Unresolved Sentry issues detected."
         noDataState: OK
         execErrState: Alerting
         data:
@@ -414,32 +417,28 @@ groups:
             datasourceUid: sentry
             model:
               refId: A
-              queryType: eventsStats
-              eventsStatsQuery: is:unresolved
-              eventsStatsYAxis:
-                - count_unique(issue)
+              queryType: issues
+              issuesQuery: is:unresolved
+              issuesLimit: 1000
               projectIds: []
               environments: []
           - refId: B
             datasourceUid: __expr__
             model:
               refId: B
-              type: reduce
-              expression: A
-              reducer: max
-              settings:
-                mode: replaceNN
-                replaceWithValue: 0
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              refId: C
-              type: threshold
-              expression: B
+              type: classic_conditions
               conditions:
                 - evaluator:
                     type: gt
                     params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+                  reducer:
+                    type: count
+                    params: []
+                  type: query
 
       - uid: issue-security-alerts
         title: IssueSecurityAlerts
