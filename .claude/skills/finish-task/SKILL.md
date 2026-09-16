@@ -103,7 +103,55 @@ mechanics of this, this is just a reminder it applies here too (this
 happened to get missed once: issue #727 / PR #728 used a bare `#123`, which
 doesn't auto-close on merge).
 
-## 5. Resolve linked Sentry issues once merged
+## 5. "Needs you": a deferred manual step skips straight-to-Done
+
+Before handing `ship-pr` a closing keyword in step 4, check whether the
+tracking issue's body has a `## Follow-up: your turn` heading — the
+convention `refine-feature`/`refine-issue` issues use to flag a step only the
+user can do (registering with a third-party service, generating an API key,
+creating a webhook, setting a deploy secret via the `wizard` skill). Freeform
+prose elsewhere in the body (e.g. buried in `## Scope`) doesn't count — the
+heading is what makes this detectable at all, so don't try to infer intent
+from prose that doesn't use it.
+
+If that heading is present:
+
+- Give `ship-pr` a **non-closing** reference for this issue instead of a
+  closing keyword — `Part of #123` or `Relates to #123`, never `Fixes #123`/
+  `Closes #123` — so merging the PR does not auto-close it. Say explicitly in
+  the PR body that the issue stays open pending the step under its own
+  `## Follow-up: your turn` heading.
+- Once CI is green and the PR has merged, set the issue's board `Status`
+  field to **"Needs you"** rather than leaving it on whatever it was:
+  ```
+  gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
+    --project-id <PROJECT_ID> --single-select-option-id f83bddc3
+  ```
+  This board is project #8 — a **personal** project, not org-owned, which is
+  why the GitHub MCP server's own field tools can't resolve or write it (see
+  `docs/convention-mcp-gap-first.md`'s #1357 entry, which covers the same
+  read-side gap `get_project_issues_by_status` works around). `<PROJECT_ID>`
+  comes from `gh project view 8 --owner xdoubleu --format json`; `<ITEM_ID>`
+  is *this issue's* item id on that board, from `gh project item-list 8
+  --owner xdoubleu --format json` matched on `content.number`. `Status`
+  field id `PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw` and the "Needs you" option id
+  `f83bddc3` are fixed — they don't need re-discovering each time.
+  Without `gh` (a Claude Code on the web session), the same effect is the
+  `updateProjectV2ItemFieldValue` GraphQL mutation `gh project item-edit`
+  wraps, called directly against `https://api.github.com/graphql`; if
+  nothing in the session can authenticate that call, say so explicitly in
+  the report rather than leaving the board silently unchanged — the same
+  as this skill already does for a missing auto-merge tool below.
+- Leave the issue **open** at "Needs you". Closing it to "Done" once the
+  actual capability is live (the webhook provisioned, the secret set) is the
+  job of whatever walks the user through that step — today that's the
+  `wizard` skill, once it exists in this repo's enabled plugins — not this
+  skill.
+
+If the heading is absent, none of this applies: the issue closes to "Done"
+the normal way via the PR's closing keyword, unchanged from before.
+
+## 6. Resolve linked Sentry issues once merged
 
 Once `ship-pr` reports the PR merged, check the tracking issue's body for
 Sentry permalinks (`https://xdoubleu.sentry.io/issues/<id>/`) — issues filed
@@ -113,7 +161,7 @@ permalinks" heading. For each one found, mark it resolved with the
 permalink). Closing the GitHub issue does not resolve Sentry on its own —
 this step is easy to forget and was missed for issues #770 and #775.
 
-## 6. Run the session retro
+## 7. Run the session retro
 
 Once CI is green, always run the `session-retro` skill (from the
 `session-retro` plugin). It reviews this session's own tool-call/commit/CI

@@ -71,6 +71,17 @@ implementation time.
 - **The first slice must be usable on its own** — the thinnest version of the
   feature the user could actually open in the browser, not scaffolding.
 - Order them, and say in each body which sub-issue it depends on.
+- **A sub-issue that ends in a step only the user can do** (registering with
+  a third-party service, generating an API key, creating a webhook, setting
+  a deploy secret via the `wizard` skill) should say so explicitly under its
+  own `## Follow-up: your turn` heading, not folded into prose under
+  `## Scope`. `finish-task` looks for that exact heading to land the issue
+  in the board's "Needs you" status instead of closing it straight to
+  "Done" once its PR merges — freeform prose doesn't trigger it. This is a
+  pointer, not a new mandatory step: most sub-issues have no deferred step
+  at all, and this only applies to the ones that do. (The same heading
+  applies to any issue `refine-issue` refines directly, not only sub-issues
+  produced here.)
 
 ## 5. Wire up the tree
 
