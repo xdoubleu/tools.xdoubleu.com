@@ -54,9 +54,9 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 
 | Document | Covers | Issues |
 |---|---|---|
-| [spec-routine-red-pr-repair](spec-routine-red-pr-repair.md) | The morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1448, #1438, #1441 |
-| [spec-routine-ready-issues-executor](spec-routine-ready-issues-executor.md) | The nightly claude.ai routine's exact prompt text, its 04:00 schedule (offset two hours from the maintenance sweep), and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1447, #1438, #1446 |
-| [spec-routine-nightly-maintenance-sweep](spec-routine-nightly-maintenance-sweep.md) | The nightly claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438 | #1446, #1438, #1441 |
+| [spec-routine-red-pr-repair](spec-routine-red-pr-repair.md) | The morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438; "Known platform constraints" tracks #1624/#1625 | #1448, #1438, #1441, #1624, #1625 |
+| [spec-routine-ready-issues-executor](spec-routine-ready-issues-executor.md) | The nightly claude.ai routine's exact prompt text, its 04:00 schedule (offset two hours from the maintenance sweep), and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438; "Known platform constraints" has the full #1625 writeup (confirmed resolved for this dispatch path — a worktree subagent of an actual scheduled firing gets a pre-cloned worktree and authenticated `mcp__github__*` tools, no `add_repo` needed) and tracks #1624 | #1447, #1438, #1446, #1624, #1625 |
+| [spec-routine-nightly-maintenance-sweep](spec-routine-nightly-maintenance-sweep.md) | The nightly claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub) for manual creation in the routines UI — the trigger-creation API silently drops connectors, per #1438; "Known platform constraints" tracks #1624/#1625 | #1446, #1438, #1441, #1624, #1625 |
 
 ## Conventions
 

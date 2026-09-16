@@ -104,9 +104,7 @@ failed, and a short summary of what happened per PR.
 
 ## Known platform constraints (as of 2026-09-16)
 
-Two gaps found by #1438's spike, both still open as #1624 and #1625, bear
-directly on this routine — more so than on the nightly sweep, since this
-one has to end in a pushed commit or PR comment:
+Two gaps found by #1438's spike were tracked as #1624 and #1625.
 
 - **#1624** — a routine-fired session may not register repo-local skills
   through the `Skill` tool at all. The prompt above now has an explicit
@@ -115,14 +113,21 @@ one has to end in a pushed commit or PR comment:
   session working on this repo (not itself a fired routine) does list
   `red-pr-repair` and its sibling skills as invocable — needs
   re-confirming against an actual fired routine.
-- **#1625** — a routine-fired session may have no `add_repo` tool and no
-  authenticated GitHub push access, only an unauthenticated read-only
-  clone (works because this repo is public). Under that constraint this
-  routine's subagents can diagnose a failure but **cannot push an
-  unsticking/fixing commit or even leave the explanatory PR comment** the
-  skill falls back to — so until #1625 resolves, expect every red PR this
-  routine looks at to go unaddressed rather than fixed or commented on.
-  Same re-confirmation caveat as above.
+- **#1625 — resolved for the shared dispatch path, confirmed 2026-09-16.**
+  A worktree subagent dispatched by an actual `trigger_source=schedule`
+  routine firing was empirically found to already have a pre-cloned git
+  worktree and authenticated `mcp__github__*` tools (`push_files`,
+  `create_pull_request`, …), plus working non-interactive `git push` —
+  no `add_repo` call needed or available. That confirmation ran inside
+  `ready-issues-executor`, not this routine, but both dispatch through the
+  identical mechanism (a scheduled routine session in the Claude Code
+  CLI/Agent-SDK harness fanning out `Agent`-tool `isolation: "worktree"`
+  subagents), so the same access should apply here too — see
+  `docs/spec-routine-ready-issues-executor.md`'s "Known platform
+  constraints" section for the full writeup, and #1625's closing comment.
+  The bare "Claude Code on the web" runtime #1438's spike tested remains a
+  distinct, more constrained product surface that this finding does not
+  speak to.
 
 ## Related
 

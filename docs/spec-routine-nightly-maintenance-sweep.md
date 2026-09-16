@@ -91,8 +91,7 @@ succeeded, or failed and a short summary of what happened.
 
 ## Known platform constraints (as of 2026-09-16)
 
-Two gaps found by #1438's spike, both still open as #1624 and #1625, apply
-to this routine:
+Two gaps found by #1438's spike were tracked as #1624 and #1625.
 
 - **#1624** — a routine-fired Claude Code on the web session may not
   register repo-local skills through the `Skill` tool at all. The prompt
@@ -101,14 +100,24 @@ to this routine:
   itself a fired routine) does list `monitoring-sweep` and its sibling
   skills as invocable — this needs re-confirming against an actual fired
   routine before #1624 can close.
-- **#1625** — a routine-fired session may have no `add_repo` tool and no
-  authenticated GitHub access, only an unauthenticated read-only clone.
-  This routine only ever files/updates tracking issues via GitHub
-  (`refine-issue`/`gh issue create`, or the `mcp__github__*` write tools)
-  and never pushes code, so it's less exposed than #1447/#1448 — but issue
-  creation still needs an authenticated GitHub connector, not just a
-  clone. Same caveat: this session's own `add_repo` access doesn't prove a
-  fired routine gets the same treatment.
+- **#1625 — resolved for the shared dispatch path, confirmed 2026-09-16.**
+  This routine only ever files/updates tracking issues via GitHub and
+  never pushes code, so it was always less exposed than #1447/#1448 — but
+  the underlying question (does a routine-fired subagent have an
+  authenticated GitHub connector at all, not just a read-only clone) is
+  now answered: a worktree subagent dispatched by an actual
+  `trigger_source=schedule` routine firing was empirically found to have
+  authenticated `mcp__github__*` tools (including issue read/write) and a
+  pre-cloned git worktree, no `add_repo` call needed. That confirmation
+  ran inside `ready-issues-executor`, not this routine, but both dispatch
+  through the identical mechanism (a scheduled routine session in the
+  Claude Code CLI/Agent-SDK harness fanning out `Agent`-tool `isolation:
+  "worktree"` subagents), so the same access should apply here too — see
+  `docs/spec-routine-ready-issues-executor.md`'s "Known platform
+  constraints" section for the full writeup, and #1625's closing comment.
+  The bare "Claude Code on the web" runtime #1438's spike tested remains a
+  distinct, more constrained product surface that this finding does not
+  speak to.
 
 ## Related
 

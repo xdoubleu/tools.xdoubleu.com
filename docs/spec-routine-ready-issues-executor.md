@@ -105,9 +105,9 @@ short summary of what happened.
 
 ## Known platform constraints (as of 2026-09-16)
 
-Two gaps found by #1438's spike, both still open as #1624 and #1625, bear
-directly on this routine — more so than on the nightly sweep, since this
-one has to end in a pushed branch and PR:
+Two gaps found by #1438's spike were tracked as #1624 and #1625. #1625 is
+now resolved for this routine's actual dispatch path (see below); #1624
+remains open pending its own re-confirmation.
 
 - **#1624** — a routine-fired session may not register repo-local skills
   through the `Skill` tool at all. The prompt above now has an explicit
@@ -115,14 +115,44 @@ one has to end in a pushed branch and PR:
   dispatched subagent's `start-task`/`finish-task`. Conflicting evidence:
   a Claude Code Remote/web session working on this repo (not itself a
   fired routine) does list `ready-issues-sweep` and its sibling skills as
-  invocable — needs re-confirming against an actual fired routine.
-- **#1625** — a routine-fired session may have no `add_repo` tool and no
-  authenticated GitHub push access, only an unauthenticated read-only
-  clone (works because this repo is public). Under that constraint this
-  routine's subagents can read code but **cannot push or open a PR at
-  all** — the entire point of this routine — so until #1625 resolves,
-  expect this routine to degrade to "diagnosed but couldn't push" reports
-  rather than real PRs. Same re-confirmation caveat as above.
+  invocable, and #1625's own investigation (below, from inside an actual
+  `trigger_source=schedule` firing of *this* routine) found `Skill({skill:
+  "start-task"})` loaded without an "Unknown skill" error too — one more
+  data point toward #1624 not reproducing here, but that issue's own bar
+  is still open until it does its own confirmation pass.
+- **#1625 — resolved for this routine's dispatch path, confirmed
+  2026-09-16.** The empty-directory/no-`add_repo` runtime #1438's spike
+  found is a **different product surface** — a bare "Claude Code on the
+  web" session fired directly by a routine trigger — from the one this
+  routine (and the others under #1338) actually dispatch into: a scheduled
+  routine session running in the Claude Code CLI/Agent-SDK harness, which
+  the `Agent` tool then fans out from into one `isolation: "worktree"`
+  subagent per Ready-column issue. Verified empirically from inside such a
+  subagent, itself dispatched by an actual `trigger_source=schedule` firing
+  of `ready-issues-sweep`:
+  - The subagent's working directory is already a git worktree checked out
+    on up-to-date `main` — not empty, not non-git.
+  - `mcp__github__*` tools (`push_files`, `create_or_update_file`,
+    `create_pull_request`, `issue_read`, `get_me`, …) are mounted and
+    authenticated as the repo owner — no `add_repo` call needed or
+    available.
+  - A plain `git push` over HTTPS also succeeds non-interactively, **even
+    though** `git config`/`git credential fill` show no
+    `credential.helper`, no `http.extraheader`, and no `~/.netrc` — the
+    environment's outbound-HTTPS proxy evidently authenticates the request
+    transparently, outside git's own credential-resolution chain. Don't
+    infer working push access from a `git config`/`git credential fill`
+    inspection alone; a live `git push` (or the `mcp__github__push_files`
+    equivalent) is the only reliable test.
+  - `gh` is still not installed — GitHub operations go through the
+    `mcp__github__*` tools (or plain `git`/`git push`), never `gh`.
+
+  This does **not** prove the bare "Claude Code on the web" runtime
+  #1438's spike tested now works — only that the dispatch path this
+  routine (and, by the same underlying mechanism, `red-pr-repair` and
+  `monitoring-sweep`/`nightly-maintenance-sweep`) actually uses already has
+  full push/PR access with no attach step required. Full writeup on
+  #1625.
 
 ## Related
 
