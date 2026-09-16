@@ -1,7 +1,7 @@
 # ADR-0014: Enforce the start-task/finish-task pairing with `ExitPlanMode` and `Stop` hooks
 
 - Status: Accepted
-- Issues: #1236, #1238, #1400, #1619, #1440
+- Issues: #1236, #1238, #1400, #1619, #1440, #1706
 - Affects: `.claude/settings.json`, `.claude/hooks/stop-check-unshipped-work.sh`, `.claude/skills/start-task/`, `.claude/skills/finish-task/`, root `Makefile` (`hooks/test`)
 
 ## Context
@@ -10,10 +10,17 @@ Sessions kept skipping the workflow, and the two halves failed together: **14 of
 16 sessions that skipped `start-task` also never ran `finish-task`** — because
 `finish-task` is reached via `start-task`'s hand-off, not independently (#1236).
 
-The specific trigger-stealer: `permissions.defaultMode` is `plan`, so nearly
-every session here begins by planning, and **plan approval consumes
-`start-task`'s trigger**. An approved plan feels like the task has started; the
-whole start/finish pairing is skipped with it.
+The specific trigger-stealer, at the time: `.claude/settings.json` set
+`permissions.defaultMode: "plan"` repo-wide, so nearly every session here began
+by planning, and **plan approval consumed `start-task`'s trigger**. An approved
+plan feels like the task has started; the whole start/finish pairing was
+skipped with it. (`permissions.defaultMode: plan` was later removed — #1706 —
+once epic #1338's unattended self-healing routines started actually hitting
+this repo, and Plan Mode has no way to be approved out of without a human
+present. The three hooks below don't depend on that default, though — they
+fire whenever a session enters plan mode at all, by explicit request or
+otherwise, so they stayed exactly as necessary after the default's removal as
+they were before it.)
 
 ## Decision
 
