@@ -62,6 +62,26 @@ lint/kamal-secrets:
 lint/proto-local-versions:
 	./scripts/check_proto_local_versions.sh
 
+tools/arch:
+	go install github.com/kisielk/godepgraph@v1.0.0
+
+# Mermaid package-dependency diagram of this module, so a change's
+# architectural shape can be eyeballed without reading a diff — both GitHub
+# and Claude Code render Mermaid natively, no Graphviz binary needed.
+# Restricted to this module's own packages (-onlyprefixes): third-party/stdlib
+# deps add volume with no architectural signal here. gen/ (generated
+# protobuf/connect stubs) is excluded the same way for the same reason.
+# Test-only packages (internal/mocks, _test.go files) are already absent since
+# godepgraph doesn't include test packages by default and nothing non-test
+# imports them. This is diagnostic, not a lint rule — nothing fails on what
+# it finds — so its output is a regenerate-on-demand local artifact like
+# coverage.html, not committed.
+arch/diagram: tools/arch
+	godepgraph -format mermaid -s -novendor \
+		-onlyprefixes tools.xdoubleu.com \
+		-ignoreprefixes tools.xdoubleu.com/gen \
+		tools.xdoubleu.com/cmd/api > package-graph.mmd
+
 lint: tools/lint
 	golangci-lint run
 	make lint/sql

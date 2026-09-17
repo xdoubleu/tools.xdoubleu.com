@@ -4,4 +4,5 @@ bin/
 *.out
 coverage.html
 coverage.out*
+package-graph.mmd
 apps/books/internal/services/testdata/pdf.local/
