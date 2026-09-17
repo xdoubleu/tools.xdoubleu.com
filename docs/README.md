@@ -65,6 +65,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 | [convention-comments-describe-current-behavior](convention-comments-describe-current-behavior.md) | No historical or stale claims in code comments | — |
 | [convention-database-queries](convention-database-queries.md) | Never select a wide TEXT column in a list query; read direction | #1027 |
 | [convention-deploy-secrets](convention-deploy-secrets.md) | A deploy secret is declared in three places that must agree | #1390, #1404, #1405 |
+| [convention-feature-review-policy](convention-feature-review-policy.md) | `feature`-labeled work skips human PR review behind a four-part automated quality gate; maintenance work's tiered review rule is unchanged | #1627, #1628, #1629, #1630, #1631, #1632, #1633, #1634, #1635 |
 | [convention-mcp-gap-first](convention-mcp-gap-first.md) | Fix the missing MCP tool before investigating the incident | #1027, #1195, #1214, #1357, #1374, #1377, #1424 |
 | [convention-ui-standards](convention-ui-standards.md) | Web UI rules, theming, the server/client import trap | #1412 |
 
