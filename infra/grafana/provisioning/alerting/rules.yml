@@ -30,7 +30,14 @@
 # none are open. Its 3-hour threshold is well above any run duration observed
 # in #1438's spike (routines complete in minutes) but still same-day — the
 # self-healing routines this catches run a few times a day in batches, so a
-# multi-hour gap with one left open is already abnormal.
+# multi-hour gap with one left open is already abnormal. AutomatedRoutineMissed
+# (issue #1723) is the complementary check: it reads
+# automated_action_seconds_since_last_open{routine}, one series per known
+# routine (issue_signal_collector.go's knownRoutines), and catches a routine
+# whose claude.ai scheduled trigger never fired at all — no
+# automated_actions row is ever opened in that case, so
+# AutomatedActionStalled (which only ever looks at an opened-but-unclosed
+# row) can't see it.
 #
 # Still NOT reimplemented: ci_duration_high — Prometheus has no exporter for
 # workflow durations. /monitoring still surfaces it live from its own source.
@@ -592,6 +599,53 @@ groups:
               refId: A
               instant: true
               expr: automated_action_oldest_open_age_seconds > 10800
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
+      # All three known routines (nightly-maintenance-sweep,
+      # ready-issues-executor, red-pr-repair; docs/spec-routine-*.md) run
+      # once daily, so one shared 27-hour threshold covers all of them — 3h
+      # of buffer past the 24h cadence, mirroring AutomatedActionStalled's
+      # own buffer reasoning above. api has no visibility into claude.ai's
+      # own schedule, so this threshold (like the routine list itself, in
+      # issue_signal_collector.go's knownRoutines) is hardcoded and must be
+      # updated by hand if a routine's cadence ever changes or a routine is
+      # added/removed.
+      - uid: automated-routine-missed
+        title: AutomatedRoutineMissed
+        condition: C
+        labels:
+          severity: critical
+          # See automated-action-stalled's trigger label comment above — a
+          # routine that silently never started could itself be the nightly
+          # sweep that would otherwise have caught this.
+          trigger: immediate
+        annotations:
+          summary: A scheduled routine has not opened a run in over 27 hours
+          description: >-
+            {{ $labels.routine }} last opened a global.automated_actions row
+            {{ $values.A }}s ago, above the 27h threshold — its claude.ai
+            scheduled trigger may never have fired.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: automated_action_seconds_since_last_open > 97200
           - refId: C
             datasourceUid: __expr__
             model:

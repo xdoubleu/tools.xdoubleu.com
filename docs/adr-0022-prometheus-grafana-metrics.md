@@ -572,6 +572,34 @@ annotation reverted to a plain "issues detected" statement, since
 `classic_conditions` doesn't expose a meaningful `$values` count the way
 `reduce` did.
 
+Phase 17 (#1723) closed the complementary gap Phase 15's
+`AutomatedActionStalled` left open: that rule only ever looks at a
+`global.automated_actions` row that was opened and never closed, so it says
+nothing about a routine whose claude.ai scheduled trigger fails before it
+ever calls `record_action(mode=open)` — exactly what happened with
+`nightly-maintenance-sweep`'s first real fire (the session errored on its
+very first turn, before any tool call, so no row was ever created).
+`AutomatedActionsRepository.MostRecentOpenedAt(ctx, routineName)` returns
+the newest row for a routine regardless of open/closed state;
+`IssueSignalCollectorJob` exports it as
+`automated_action_seconds_since_last_open{routine}`, one series per a small
+hardcoded `knownRoutines` list (`nightly-maintenance-sweep`,
+`ready-issues-executor`, `red-pr-repair` — the same three
+`docs/spec-routine-*.md` already document), reporting a large sentinel
+value rather than 0 for a routine that has never opened a row at all, so
+"never started" reads as maximally overdue rather than healthy. A new
+`AutomatedRoutineMissed` rule in `service-health` fires past a shared
+27-hour threshold (24h daily cadence + a 3h buffer, mirroring
+`AutomatedActionStalled`'s own buffer reasoning) — one threshold covers all
+three since they currently all run daily; a routine added later with a
+different cadence would need its own comparison in the rule's PromQL.
+Carries `trigger: immediate` like `AutomatedActionStalled`, reaching both
+`slack` and `routine-fire` through the existing policy. Known accepted
+limitation, unchanged from the issue's own scoping: `api` has no visibility
+into claude.ai's routines UI, so both `knownRoutines` and the rule's
+threshold are hardcoded and must be updated by hand if a routine's schedule
+changes.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

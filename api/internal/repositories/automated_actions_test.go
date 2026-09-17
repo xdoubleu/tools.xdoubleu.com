@@ -127,3 +127,43 @@ func TestAutomatedActionsOldestOpenFiredAtReturnsOldestStillOpen(t *testing.T) {
 	require.NoError(t, err)
 	assert.WithinDuration(t, time.Now().Add(-2*time.Hour), firedAt, time.Minute)
 }
+
+func TestAutomatedActionsMostRecentOpenedAtNeverOpened(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	_, err := repo.MostRecentOpenedAt(t.Context(), "never-run-routine")
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+}
+
+func TestAutomatedActionsMostRecentOpenedAtReturnsNewestForRoutine(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	// An older run of the same routine should be superseded by the newer one.
+	_, err := testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome)
+		VALUES (now() - INTERVAL '2 days', now() - INTERVAL '2 days',
+		        'schedule', 'nightly-maintenance-sweep', 'succeeded')
+	`)
+	require.NoError(t, err)
+
+	// A different routine's row should never be picked up.
+	_, err = repo.Open(t.Context(), "schedule", "ready-issues-executor")
+	require.NoError(t, err)
+
+	_, err = testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome)
+		VALUES (now() - INTERVAL '1 hour', now() - INTERVAL '1 hour',
+		        'schedule', 'nightly-maintenance-sweep', 'succeeded')
+	`)
+	require.NoError(t, err)
+
+	firedAt, err := repo.MostRecentOpenedAt(
+		t.Context(), "nightly-maintenance-sweep",
+	)
+	require.NoError(t, err)
+	assert.WithinDuration(t, time.Now().Add(-time.Hour), firedAt, time.Minute)
+}

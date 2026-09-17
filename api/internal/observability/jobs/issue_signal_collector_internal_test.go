@@ -69,11 +69,30 @@ func (s stubSchemaSizer) SchemaSizes(
 type stubAutomatedActionGetter struct {
 	firedAt time.Time
 	err     error
+
+	// byRoutine, when non-nil, backs MostRecentOpenedAt per routine name
+	// instead of the shared firedAt/err pair above, so a single stub can
+	// exercise different routines independently.
+	byRoutine map[string]stubAutomatedActionGetter
 }
 
 func (s stubAutomatedActionGetter) OldestOpenFiredAt(
 	_ context.Context,
 ) (time.Time, error) {
+	return s.firedAt, s.err
+}
+
+func (s stubAutomatedActionGetter) MostRecentOpenedAt(
+	_ context.Context,
+	routine string,
+) (time.Time, error) {
+	if s.byRoutine != nil {
+		r, ok := s.byRoutine[routine]
+		if !ok {
+			return time.Time{}, database.ErrResourceNotFound
+		}
+		return r.firedAt, r.err
+	}
 	return s.firedAt, s.err
 }
 
@@ -132,6 +151,7 @@ func resetGauges() {
 	githubWorkflowRunDurationSeconds.Reset()
 	postgresSchemaSizeBytes.Reset()
 	automatedActionOldestOpenAgeSeconds.Set(0)
+	automatedActionSecondsSinceLastOpen.Reset()
 }
 
 func newStubJob(
@@ -151,7 +171,7 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 		},
 		stubStorageGetter{snap: nil, err: nil},
 		stubSchemaSizer{sizes: nil, err: nil},
-		stubAutomatedActionGetter{firedAt: time.Time{}, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Time{}, err: nil, byRoutine: nil},
 	)
 	assert.Equal(t, "collect-issue-signals", job.ID())
 	assert.Positive(t, job.RunEvery())
@@ -193,8 +213,9 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 			err: nil,
 		},
 		stubAutomatedActionGetter{
-			firedAt: time.Now().Add(-time.Hour),
-			err:     nil,
+			firedAt:   time.Now().Add(-time.Hour),
+			err:       nil,
+			byRoutine: nil,
 		},
 	)
 
@@ -220,6 +241,10 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 		postgresSchemaSizeBytes.WithLabelValues("games")), 0)
 	assert.InDelta(t, 3600.0,
 		testutil.ToFloat64(automatedActionOldestOpenAgeSeconds), 5)
+	for _, routine := range knownRoutines {
+		assert.InDelta(t, 3600.0, testutil.ToFloat64(
+			automatedActionSecondsSinceLastOpen.WithLabelValues(routine)), 5)
+	}
 }
 
 func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
@@ -242,8 +267,9 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 		// clean run that simply resets the gauge, no log.
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{
-			firedAt: time.Time{},
-			err:     database.ErrResourceNotFound,
+			firedAt:   time.Time{},
+			err:       database.ErrResourceNotFound,
+			byRoutine: nil,
 		},
 	)
 
@@ -255,7 +281,77 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	assert.InDelta(t, 44.0, testutil.ToFloat64(r2StorageBytes), 0)
 	assert.InDelta(t, 0.0,
 		testutil.ToFloat64(automatedActionOldestOpenAgeSeconds), 0)
+	for _, routine := range knownRoutines {
+		assert.InDelta(t, float64(neverOpenedSentinelSeconds), testutil.ToFloat64(
+			automatedActionSecondsSinceLastOpen.WithLabelValues(routine)), 0)
+	}
 	assert.Empty(t, buf.String())
+}
+
+func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
+	resetGauges()
+	job := newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+		},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{
+			firedAt: time.Time{},
+			err:     database.ErrResourceNotFound,
+			byRoutine: map[string]stubAutomatedActionGetter{
+				"nightly-maintenance-sweep": {
+					firedAt:   time.Now().Add(-30 * time.Minute),
+					err:       nil,
+					byRoutine: nil,
+				},
+				"ready-issues-executor": {
+					firedAt:   time.Time{},
+					err:       database.ErrResourceNotFound,
+					byRoutine: nil,
+				},
+				// "red-pr-repair" deliberately omitted so byRoutine's own
+				// not-found fallback (rather than the outer err) is exercised.
+			},
+		},
+	)
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 1800.0, testutil.ToFloat64(
+		automatedActionSecondsSinceLastOpen.
+			WithLabelValues("nightly-maintenance-sweep")), 5)
+	assert.InDelta(t, float64(neverOpenedSentinelSeconds), testutil.ToFloat64(
+		automatedActionSecondsSinceLastOpen.
+			WithLabelValues("ready-issues-executor")), 0)
+	assert.InDelta(t, float64(neverOpenedSentinelSeconds), testutil.ToFloat64(
+		automatedActionSecondsSinceLastOpen.
+			WithLabelValues("red-pr-repair")), 0)
+	assert.Empty(t, buf.String())
+}
+
+func TestIssueSignalCollectorRoutineLivenessLogsNonNotFoundError(t *testing.T) {
+	resetGauges()
+	boom := errors.New("db unreachable")
+	job := newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+		},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{
+			firedAt:   time.Time{},
+			err:       boom,
+			byRoutine: nil,
+		},
+	)
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+	assert.Contains(t, buf.String(), "most recent open")
 }
 
 func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
@@ -272,7 +368,7 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 		},
 		stubStorageGetter{snap: nil, err: boom},
 		stubSchemaSizer{sizes: nil, err: boom},
-		stubAutomatedActionGetter{firedAt: time.Time{}, err: boom},
+		stubAutomatedActionGetter{firedAt: time.Time{}, err: boom, byRoutine: nil},
 	)
 
 	logger, buf := loggerWithBuf()
@@ -294,8 +390,9 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{
-			firedAt: time.Time{},
-			err:     database.ErrResourceNotFound,
+			firedAt:   time.Time{},
+			err:       database.ErrResourceNotFound,
+			byRoutine: nil,
 		},
 	)
 
