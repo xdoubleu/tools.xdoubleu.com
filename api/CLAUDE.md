@@ -27,6 +27,7 @@ make proto/generate/local          # same, via locally-installed plugins instead
 make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
 make lint/proto                    # buf lint — also part of make lint / lint/fix
 make lint/proto-local-versions     # fail if a proto/generate/local plugin version (api/Makefile, web/package.json) drifts from buf.gen.yaml's `remote:` pin — also part of make lint
+make arch/diagram                  # Mermaid package-dependency diagram of this module (`godepgraph`, auto-installed by the `tools/arch` prereq) → package-graph.mmd; diagnostic only, gitignored like coverage.html, not a lint rule
 
 go test ./apps/books/... -run TestFunctionName   # single test
 ```

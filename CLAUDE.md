@@ -54,6 +54,7 @@ make lint                  # golangci-lint + sqlfluff + buf lint + migration-ver
 make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
+make arch/diagram           # Mermaid package-dependency diagram (godepgraph, auto-installed) → api/package-graph.mmd, not committed
 docker-compose down
 
 # Web (from web/)
