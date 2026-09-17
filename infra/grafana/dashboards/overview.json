@@ -292,6 +292,25 @@
         "overrides": []
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 15,
+      "type": "stat",
+      "title": "Longest since a routine last started",
+      "description": "Mirrors the AutomatedRoutineMissed alert rule exactly — threshold 27h, worst case across the three known routines. See global.automated_actions.",
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(automated_action_seconds_since_last_open)" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "red", "value": 97200 } ] }
+        },
+        "overrides": []
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
     }
   ]
 }

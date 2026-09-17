@@ -63,7 +63,39 @@ var (
 			"(finished_at IS NULL) — a self-healing routine that fired but never " +
 			"closed out. 0 when none are open.",
 	})
+	automatedActionSecondsSinceLastOpen = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_seconds_since_last_open",
+		Help: "Seconds since routine last opened a global.automated_actions row " +
+			"via record_action(mode=open), by routine name — detects a scheduled " +
+			"routine that never even started (e.g. its claude.ai trigger itself " +
+			"failed to fire), which a stalled-but-opened row can't catch. A " +
+			"routine that has never opened a row at all reports a very large " +
+			"value rather than 0, so it reads as overdue rather than healthy.",
+	}, []string{"routine"})
 )
+
+// knownRoutines is the fixed set of scheduled claude.ai routines whose
+// liveness automated_action_seconds_since_last_open tracks, one series per
+// name. api has no visibility into claude.ai's own routines UI/schedule, so
+// this list — and each one's cadence, encoded as a threshold in
+// infra/grafana/provisioning/alerting/rules.yml's AutomatedRoutineMissed
+// rule — has to be hardcoded and kept in sync by hand against
+// docs/spec-routine-*.md.
+//
+//nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
+var knownRoutines = []string{
+	"nightly-maintenance-sweep",
+	"ready-issues-executor",
+	"red-pr-repair",
+}
+
+// neverOpenedSentinelSeconds is the value automated_action_seconds_since_last_open
+// reports for a routine that has never once opened an automated_actions row
+// (repositories.AutomatedActionsRepository.MostRecentOpenedAt returns
+// database.ErrResourceNotFound). It is deliberately far past any routine's
+// alert threshold rather than 0, since "never started" is the unhealthy case
+// this gauge exists to catch, not the healthy one.
+const neverOpenedSentinelSeconds = 1 << 30
 
 // mainBranch is the branch label the workflow-run gauge reports on — only
 // failures on the default branch are tracked.
@@ -102,6 +134,21 @@ type oldestOpenAutomatedActionGetter interface {
 	OldestOpenFiredAt(ctx context.Context) (time.Time, error)
 }
 
+// mostRecentOpenedAtGetter is the subset of
+// *repositories.AutomatedActionsRepository the never-started-routine gauge
+// needs.
+type mostRecentOpenedAtGetter interface {
+	MostRecentOpenedAt(ctx context.Context, routineName string) (time.Time, error)
+}
+
+// automatedActionGetter is the subset of
+// *repositories.AutomatedActionsRepository the collector needs across both
+// automated-action gauges.
+type automatedActionGetter interface {
+	oldestOpenAutomatedActionGetter
+	mostRecentOpenedAtGetter
+}
+
 // workflowRunsLister is the subset of github.Client the collector needs on
 // top of failingPRLister and securityAlertLister.
 type workflowRunsLister interface {
@@ -122,25 +169,25 @@ type issueSignalGithubClient interface {
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, the latest storage snapshot, per-schema database sizes, and the
-// oldest still-open global.automated_actions row. A provider that isn't
-// connected leaves its gauge untouched rather than resetting it to zero or
-// failing the run; other errors are logged and
-// skipped. Run always returns nil. The Sentry unresolved-issues signal is
-// no longer collected here — Grafana reads it directly through the
-// grafana-sentry-datasource plugin (adr-0022 Phase 7).
+// GitHub, the latest storage snapshot, per-schema database sizes, the oldest
+// still-open global.automated_actions row, and each known routine's most
+// recent open row. A provider that isn't connected leaves its gauge
+// untouched rather than resetting it to zero or failing the run; other
+// errors are logged and skipped. Run always returns nil. The Sentry
+// unresolved-issues signal is no longer collected here — Grafana reads it
+// directly through the grafana-sentry-datasource plugin (adr-0022 Phase 7).
 type IssueSignalCollectorJob struct {
 	gh              issueSignalGithubClient
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
-	automatedAction oldestOpenAutomatedActionGetter
+	automatedAction automatedActionGetter
 }
 
 func NewIssueSignalCollectorJob(
 	gh issueSignalGithubClient,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
-	automatedAction oldestOpenAutomatedActionGetter,
+	automatedAction automatedActionGetter,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		gh:              gh,
@@ -182,6 +229,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
 	j.collectAutomatedActionAge(ctx, logger)
+	j.collectRoutineLiveness(ctx, logger)
 	return nil
 }
 
@@ -320,4 +368,33 @@ func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
 		return
 	}
 	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
+}
+
+// collectRoutineLiveness sets automated_action_seconds_since_last_open for
+// every known routine — the "did it even start" complement to
+// collectAutomatedActionAge above (which only ever sees a routine that has
+// already opened at least one row). A routine that has never opened a row
+// reports neverOpenedSentinelSeconds rather than 0, since that absence is
+// itself the failure mode this gauge exists to surface.
+func (j *IssueSignalCollectorJob) collectRoutineLiveness(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	for _, routine := range knownRoutines {
+		firedAt, err := j.automatedAction.MostRecentOpenedAt(ctx, routine)
+		if errors.Is(err, database.ErrResourceNotFound) {
+			automatedActionSecondsSinceLastOpen.
+				WithLabelValues(routine).Set(neverOpenedSentinelSeconds)
+			continue
+		}
+		if err != nil {
+			logger.ErrorContext(ctx,
+				"issue-signal-collector: failed to load most recent open "+
+					"automated action",
+				slog.String("routine", routine), essentialogger.ErrAttr(err))
+			continue
+		}
+		automatedActionSecondsSinceLastOpen.
+			WithLabelValues(routine).Set(time.Since(firedAt).Seconds())
+	}
 }

@@ -112,3 +112,28 @@ func (r *AutomatedActionsRepository) OldestOpenFiredAt(
 	}
 	return firedAt, nil
 }
+
+// MostRecentOpenedAt returns the fired_at timestamp of the most recent
+// automated_actions row opened for routineName, regardless of whether it has
+// since closed out. This is the timestamp a "did this routine even start"
+// liveness gauge keys off — unlike OldestOpenFiredAt above, which only ever
+// looks at still-open rows and so says nothing about a routine that has
+// never once opened a row. Returns database.ErrResourceNotFound when
+// routineName has never opened a row at all.
+func (r *AutomatedActionsRepository) MostRecentOpenedAt(
+	ctx context.Context,
+	routineName string,
+) (time.Time, error) {
+	var firedAt time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT fired_at
+		FROM global.automated_actions
+		WHERE routine_name = $1
+		ORDER BY fired_at DESC
+		LIMIT 1
+	`, routineName).Scan(&firedAt)
+	if err != nil {
+		return time.Time{}, postgres.PgxErrorToHTTPError(err)
+	}
+	return firedAt, nil
+}
