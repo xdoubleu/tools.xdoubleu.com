@@ -8,6 +8,7 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
+    - depguard
     - dupl
     - durationcheck
     - errcheck
@@ -67,6 +68,87 @@ linters:
     cyclop:
       max-complexity: 30
       package-average: 10
+    depguard:
+      rules:
+        # One rule per app under api/apps/: deny that app's internal/ tree
+        # from any file outside apps/<name>/. Scoping the deny to the
+        # internal/ prefix (rather than the whole apps/<name> package) is
+        # what implements the dashboard/learningpaths carve-out described in
+        # docs/adr-0007-dashboard-app-owns-public-sharing.md and
+        # api/CLAUDE.md's learningpaths section without any special-casing:
+        # their existing imports of other apps' top-level exported packages
+        # (e.g. tools.xdoubleu.com/apps/books) stay allowed, only reaching
+        # into apps/books/internal/... would be denied.
+        no-cross-app-internal-books:
+          list-mode: lax
+          files:
+            - "!**/apps/books/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/books/internal
+              desc: apps/books/internal is private to the books app; use its exported package API instead
+        no-cross-app-internal-dashboard:
+          list-mode: lax
+          files:
+            - "!**/apps/dashboard/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/dashboard/internal
+              desc: apps/dashboard/internal is private to the dashboard app; use its exported package API instead
+        no-cross-app-internal-feeds:
+          list-mode: lax
+          files:
+            - "!**/apps/feeds/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/feeds/internal
+              desc: apps/feeds/internal is private to the feeds app; use its exported package API instead
+        no-cross-app-internal-games:
+          list-mode: lax
+          files:
+            - "!**/apps/games/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/games/internal
+              desc: apps/games/internal is private to the games app; use its exported package API instead
+        no-cross-app-internal-learningpaths:
+          list-mode: lax
+          files:
+            - "!**/apps/learningpaths/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/learningpaths/internal
+              desc: apps/learningpaths/internal is private to the learningpaths app; use its exported package API instead
+        no-cross-app-internal-mealplans:
+          list-mode: lax
+          files:
+            - "!**/apps/mealplans/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/mealplans/internal
+              desc: apps/mealplans/internal is private to the mealplans app; use its exported package API instead
+        no-cross-app-internal-recipes:
+          list-mode: lax
+          files:
+            - "!**/apps/recipes/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/recipes/internal
+              desc: apps/recipes/internal is private to the recipes app; use its exported package API instead
+        no-cross-app-internal-shoppinglist:
+          list-mode: lax
+          files:
+            - "!**/apps/shoppinglist/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/shoppinglist/internal
+              desc: apps/shoppinglist/internal is private to the shoppinglist app; use its exported package API instead
+        no-cross-app-internal-trains:
+          list-mode: lax
+          files:
+            - "!**/apps/trains/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/trains/internal
+              desc: apps/trains/internal is private to the trains app; use its exported package API instead
+        no-cross-app-internal-watchparty:
+          list-mode: lax
+          files:
+            - "!**/apps/watchparty/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/watchparty/internal
+              desc: apps/watchparty/internal is private to the watchparty app; use its exported package API instead
     errcheck:
       check-type-assertions: true
     exhaustive:
