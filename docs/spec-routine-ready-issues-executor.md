@@ -118,11 +118,22 @@ one has to end in a pushed branch and PR:
   invocable — needs re-confirming against an actual fired routine.
 - **#1625** — a routine-fired session may have no `add_repo` tool and no
   authenticated GitHub push access, only an unauthenticated read-only
-  clone (works because this repo is public). Under that constraint this
-  routine's subagents can read code but **cannot push or open a PR at
-  all** — the entire point of this routine — so until #1625 resolves,
-  expect this routine to degrade to "diagnosed but couldn't push" reports
-  rather than real PRs. Same re-confirmation caveat as above.
+  clone (works because this repo is public). **Re-confirmed 2026-09-17
+  against a real dispatched subagent** — this skill's own step 3, working
+  issue #1625 itself as part of a `ready-issues-sweep` run: the subagent's
+  worktree had a git remote with working push credentials already attached
+  (a throwaway branch pushed cleanly; oddly, deleting that same branch with
+  `git push --delete` got a `403` — push and delete aren't symmetric, but
+  push is what this routine actually needs) plus the full `mcp__github__*`
+  tool set (`create_pull_request`, `create_branch`,
+  `create_or_update_file`, …). No `add_repo` tool exists in this
+  environment or was needed — access was already there. This is one data
+  point from one dispatch, not a platform guarantee, but it means the
+  constraint this section used to warn about did not reproduce at the
+  layer that actually pushes and opens PRs. See #1625 for the full
+  writeup. A future subagent that does hit the no-access case should still
+  report it explicitly per the routine prompt's own fallback instruction
+  rather than assume this note still holds.
 
 ## Related
 
