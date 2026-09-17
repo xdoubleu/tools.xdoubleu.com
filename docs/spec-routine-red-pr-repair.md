@@ -117,12 +117,18 @@ one has to end in a pushed commit or PR comment:
   re-confirming against an actual fired routine.
 - **#1625** — a routine-fired session may have no `add_repo` tool and no
   authenticated GitHub push access, only an unauthenticated read-only
-  clone (works because this repo is public). Under that constraint this
-  routine's subagents can diagnose a failure but **cannot push an
-  unsticking/fixing commit or even leave the explanatory PR comment** the
-  skill falls back to — so until #1625 resolves, expect every red PR this
-  routine looks at to go unaddressed rather than fixed or commented on.
-  Same re-confirmation caveat as above.
+  clone (works because this repo is public). **Partially re-confirmed
+  2026-09-17**: a subagent dispatched the identical way (`isolation:
+  "worktree"`, via the `Agent` tool) by the sibling `ready-issues-sweep`
+  routine — while working issue #1625 itself — found a git remote with
+  working push credentials already attached and the full `mcp__github__*`
+  tool set, no `add_repo` call needed or available. This routine's own
+  subagents are dispatched through the same mechanism, so the same result
+  is expected here too, but it hasn't been directly observed on a
+  `red-pr-repair` dispatch — see #1625 for the full writeup and re-check
+  directly the next time this routine actually fires. Until then, treat
+  the pessimistic read above as superseded-but-unconfirmed rather than
+  still-expected.
 
 ## Related
 

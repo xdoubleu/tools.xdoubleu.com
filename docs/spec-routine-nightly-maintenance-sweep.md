@@ -107,8 +107,17 @@ to this routine:
   (`refine-issue`/`gh issue create`, or the `mcp__github__*` write tools)
   and never pushes code, so it's less exposed than #1447/#1448 — but issue
   creation still needs an authenticated GitHub connector, not just a
-  clone. Same caveat: this session's own `add_repo` access doesn't prove a
-  fired routine gets the same treatment.
+  clone. **Partially re-confirmed 2026-09-17**: a subagent dispatched by
+  the sibling `ready-issues-sweep` routine (`isolation: "worktree"`, via
+  the `Agent` tool) — while working issue #1625 itself — had the full
+  `mcp__github__*` tool set available, including the write tools
+  (`add_issue_comment`, `create_or_update_file`, …) this routine's own
+  issue-filing step needs, plus working git push credentials it didn't
+  even need. That's the same underlying MCP server this routine relies on,
+  so the same access is expected here, but this routine's own dispatch
+  path (it doesn't fan out to worktree-isolated subagents the way
+  #1447/#1448 do) hasn't been directly observed — see #1625 for the full
+  writeup.
 
 ## Related
 
