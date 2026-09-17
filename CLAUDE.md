@@ -105,6 +105,18 @@ An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook (worktree-scope g
 
 When a change adds or alters a page or component under `web/`, run the `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s mobile-first rule is review-only, so nothing else in the pipeline looks at a 375px viewport.
 
+**Two tracks decide whether a PR gets human review at all.** Maintenance work
+(`enhancement`/`bug`/`chore`, epic #1338) keeps the tiered rule above
+unchanged. Feature work (`feature` label, epic #1627) skips human review
+entirely — `refine-feature` applies the label, `finish-task` reads it back
+and, when present, runs an automated quality gate (`code-review` skill, Go
+`depguard` + web `dependency-cruiser` boundary lints, generated Mermaid
+diagrams, diff-scoped mutation testing) in place of a reviewer, then
+auto-merges unconditionally on green CI and posts a Slack summary once the
+whole feature epic closes, via the `notify_slack` MCP tool. `ci-pass` is
+still required on both tracks. See
+[`docs/convention-feature-review-policy.md`](docs/convention-feature-review-policy.md).
+
 `start-task`/`finish-task` are thin, project-specific wrappers around generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins` marketplace repo — declared in `.claude/settings.json`'s `extraKnownMarketplaces`/`enabledPlugins`. `refine-issue`/`issue-triage`'s repo/project-board/label config lives in `.claude/github-triage.config.json`, not in the skill files — edit that file, not the plugin, when this repo's board/labels change.
 
 ## CI
@@ -179,6 +191,7 @@ numbers: [`docs/README.md`](docs/README.md).
 - [`convention-comments-describe-current-behavior`](docs/convention-comments-describe-current-behavior.md)
 - [`convention-database-queries`](docs/convention-database-queries.md) — wide TEXT columns; allowed cross-schema read direction
 - [`convention-deploy-secrets`](docs/convention-deploy-secrets.md) — the three lists that must agree
+- [`convention-feature-review-policy`](docs/convention-feature-review-policy.md) — `feature`-labeled work skips human PR review behind a four-part automated quality gate (`code-review` skill, Go `depguard`, web `dependency-cruiser`, generated Mermaid diagrams, diff-scoped mutation testing); maintenance work's tiered review rule (#1338) is unchanged; `ci-pass` stays required either way
 - [`convention-mcp-gap-first`](docs/convention-mcp-gap-first.md) — fix the tool before the incident; open gaps
 - [`convention-ui-standards`](docs/convention-ui-standards.md) — UI rules, theming, the server/client import trap
 
