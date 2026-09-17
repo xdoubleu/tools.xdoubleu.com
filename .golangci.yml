@@ -8,6 +8,7 @@ linters:
     - bodyclose
     - copyloopvar
     - cyclop
+    - depguard
     - dupl
     - durationcheck
     - errcheck
@@ -67,6 +68,75 @@ linters:
     cyclop:
       max-complexity: 30
       package-average: 10
+    # One rule per api/apps/<name>: nothing outside apps/<name>/** may import
+    # apps/<name>/internal/... . dashboard and learningpaths hold live
+    # references to other apps' exported top-level packages (e.g.
+    # *games.Games, *books.Books) — that's fine and untouched by these rules,
+    # which only ever match the "/internal" import path, never the app's
+    # top-level package. See docs/adr-0007-dashboard-app-owns-public-sharing.md
+    # and api/CLAUDE.md's learningpaths section.
+    depguard:
+      rules:
+        apps-books-internal:
+          files:
+            - "!**/apps/books/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/books/internal
+              desc: apps/books/internal is private to the books app
+        apps-dashboard-internal:
+          files:
+            - "!**/apps/dashboard/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/dashboard/internal
+              desc: apps/dashboard/internal is private to the dashboard app
+        apps-feeds-internal:
+          files:
+            - "!**/apps/feeds/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/feeds/internal
+              desc: apps/feeds/internal is private to the feeds app
+        apps-games-internal:
+          files:
+            - "!**/apps/games/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/games/internal
+              desc: apps/games/internal is private to the games app
+        apps-learningpaths-internal:
+          files:
+            - "!**/apps/learningpaths/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/learningpaths/internal
+              desc: apps/learningpaths/internal is private to the learningpaths app
+        apps-mealplans-internal:
+          files:
+            - "!**/apps/mealplans/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/mealplans/internal
+              desc: apps/mealplans/internal is private to the mealplans app
+        apps-recipes-internal:
+          files:
+            - "!**/apps/recipes/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/recipes/internal
+              desc: apps/recipes/internal is private to the recipes app
+        apps-shoppinglist-internal:
+          files:
+            - "!**/apps/shoppinglist/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/shoppinglist/internal
+              desc: apps/shoppinglist/internal is private to the shoppinglist app
+        apps-trains-internal:
+          files:
+            - "!**/apps/trains/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/trains/internal
+              desc: apps/trains/internal is private to the trains app
+        apps-watchparty-internal:
+          files:
+            - "!**/apps/watchparty/**"
+          deny:
+            - pkg: tools.xdoubleu.com/apps/watchparty/internal
+              desc: apps/watchparty/internal is private to the watchparty app
     errcheck:
       check-type-assertions: true
     exhaustive:
