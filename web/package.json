@@ -76,7 +76,7 @@
     "ws": "8.21.3",
     "@xmldom/xmldom": "0.9.12",
     "browserslist": "4.28.9",
-    "baseline-browser-mapping": "2.11.23"
+    "baseline-browser-mapping": "2.11.24"
   },
   "engines": {
     "node": "24.x"
