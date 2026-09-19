@@ -61,7 +61,13 @@ scratch.
    - GitHub — to check out PR branches, push fixing/unsticking commits,
      comment on PRs it can't fix, and read PR/check state directly (`gh pr
      checkout`, `gh run view --log-failed`, `gh pr comment`).
-5. Prompt: paste the block below **verbatim** into the routine's prompt
+5. Permission mode: set the routine's trigger to **bypass permissions**
+   (skip the normal per-tool-call approval prompt) — see
+   [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md).
+   With no human present, the default permission mode stalls the routine
+   forever on its first `Edit`/`Write`/`Bash` call outside the interactive
+   allowlist in `.claude/settings.json`.
+6. Prompt: paste the block below **verbatim** into the routine's prompt
    field.
 
 ## Routine prompt (paste verbatim)
@@ -144,3 +150,6 @@ one has to end in a pushed commit or PR comment:
   `docs/spec-ci-pipeline.md` file, which no longer exists after the docs
   consolidation in #1464 — the same content now lives directly in
   `CLAUDE.md`.
+- [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md)
+  — why this routine's trigger runs with permissions bypassed rather than
+  the normal interactive prompt flow.

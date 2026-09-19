@@ -57,7 +57,14 @@ scratch.
      duplicate/false positive).
    - GitHub — to file/update tracking issues via `refine-issue`/`gh
      issue create` and to read/dispatch against the project board.
-5. Prompt: paste the block below **verbatim** into the routine's prompt
+5. Permission mode: set the routine's trigger to **bypass permissions**
+   (skip the normal per-tool-call approval prompt) — see
+   [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md).
+   With no human present, the default permission mode stalls the routine
+   forever on its first mutating call (`record_action`,
+   `resolve_sentry_issue`/`dismiss_security_alert`, `gh issue create`)
+   outside the interactive allowlist in `.claude/settings.json`.
+6. Prompt: paste the block below **verbatim** into the routine's prompt
    field.
 
 ## Routine prompt (paste verbatim)
@@ -133,3 +140,6 @@ to this routine:
 - `docs/adr-0022-prometheus-grafana-metrics.md` — why alerting lives in
   Grafana and `get_grafana_alerts` is the read path Prometheus `ALERTS{}`
   cannot answer.
+- [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md)
+  — why this routine's trigger runs with permissions bypassed rather than
+  the normal interactive prompt flow.

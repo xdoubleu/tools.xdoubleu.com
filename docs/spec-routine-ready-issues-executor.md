@@ -69,7 +69,15 @@ Ready column, not tonight's.
      and for every subagent's `start-task`/`finish-task` pass: creating
      branches, refining/adopting tracking issues, opening PRs, and watching
      CI.
-5. Prompt: paste the block below **verbatim** into the routine's prompt
+5. Permission mode: set the routine's trigger to **bypass permissions**
+   (skip the normal per-tool-call approval prompt) — see
+   [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md).
+   With no human present, the default permission mode stalls the routine
+   forever on its first `Edit`/`Write`/`Bash` call outside the interactive
+   allowlist in `.claude/settings.json` — this routine in particular drives
+   every Ready-column issue all the way through `start-task`/`finish-task`
+   to an open PR, which needs far more than that allowlist covers.
+6. Prompt: paste the block below **verbatim** into the routine's prompt
    field.
 
 ## Routine prompt (paste verbatim)
@@ -150,3 +158,6 @@ one has to end in a pushed branch and PR:
   opened but never closed) is itself a detectable monitoring problem; the
   same reasoning `monitoring-sweep`'s spec records for its own routine
   applies here.
+- [`docs/adr-0024-unattended-routine-permission-mode.md`](adr-0024-unattended-routine-permission-mode.md)
+  — why this routine's trigger runs with permissions bypassed rather than
+  the normal interactive prompt flow.
