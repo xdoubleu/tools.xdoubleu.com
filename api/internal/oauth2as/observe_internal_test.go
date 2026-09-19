@@ -14,45 +14,78 @@ func TestOAuthErrorLevel(t *testing.T) {
 	tests := []struct {
 		name      string
 		grantType string
-		code      int
+		rfcErr    *fosite.RFC6749Error
 		want      string
 	}{
 		{
 			name:      "server fault is always an error",
 			grantType: authorizationCodeGrant,
-			code:      http.StatusInternalServerError,
+			//nolint:exhaustruct //only CodeField drives this case
+			rfcErr: &fosite.RFC6749Error{CodeField: http.StatusInternalServerError},
+			want:   "ERROR",
+		},
+		{
+			// The whole point of the policy: fosite's theft-response to a
+			// replayed refresh token revokes the entire token family, not
+			// just this one request — a client that held a working session
+			// just lost it (issue #1177).
+			name:      "refresh grant reuse detected is an error despite being a 4xx",
+			grantType: refreshTokenGrant,
+			rfcErr:    fosite.ErrInvalidGrant.WithWrap(fosite.ErrInactiveToken),
 			want:      "ERROR",
 		},
 		{
-			// The whole point of the policy: a client that held a working
-			// session just lost it (issue #1177).
-			name:      "failed refresh grant is an error despite being a 4xx",
+			// A plain expired refresh token is routine housekeeping (issue
+			// #1715) — the expected outcome of a session nobody kept alive,
+			// not evidence one just broke.
+			name:      "refresh grant plain expiry stays a warning",
 			grantType: refreshTokenGrant,
-			code:      http.StatusBadRequest,
-			want:      "ERROR",
+			rfcErr:    fosite.ErrInvalidGrant.WithWrap(fosite.ErrTokenExpired),
+			want:      "WARN",
+		},
+		{
+			// A refresh token fosite never finds — malformed, tampered,
+			// already deleted by a prior revocation, or a scanner probing
+			// /oauth2/token with a self-registered client_id — carries no
+			// more signal than any other stranger hitting the endpoint
+			// (issue #1715).
+			name:      "refresh grant not found stays a warning",
+			grantType: refreshTokenGrant,
+			rfcErr:    fosite.ErrInvalidGrant.WithWrap(fosite.ErrNotFound),
+			want:      "WARN",
+		},
+		{
+			// No cause at all still defaults to a warning — the escalation
+			// requires a *positive* reuse-detected match, not merely being a
+			// refresh_token grant.
+			name:      "refresh grant with no identifiable cause stays a warning",
+			grantType: refreshTokenGrant,
+			//nolint:exhaustruct //only CodeField drives this case
+			rfcErr: &fosite.RFC6749Error{CodeField: http.StatusBadRequest},
+			want:   "WARN",
 		},
 		{
 			name:      "routine 4xx stays a warning",
 			grantType: authorizationCodeGrant,
-			code:      http.StatusBadRequest,
-			want:      "WARN",
+			//nolint:exhaustruct //only CodeField drives this case
+			rfcErr: &fosite.RFC6749Error{CodeField: http.StatusBadRequest},
+			want:   "WARN",
 		},
 		{
 			// No grant_type at all — the /oauth2/authorize leg, or a request
 			// fosite rejected before parsing the form.
 			name:      "missing grant type stays a warning",
 			grantType: "",
-			code:      http.StatusUnauthorized,
-			want:      "WARN",
+			//nolint:exhaustruct //only CodeField drives this case
+			rfcErr: &fosite.RFC6749Error{CodeField: http.StatusUnauthorized},
+			want:   "WARN",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//nolint:exhaustruct //only CodeField drives oauthErrorLevel
-			rfcErr := &fosite.RFC6749Error{CodeField: tt.code}
 			assert.Equal(
-				t, tt.want, oauthErrorLevel(tt.grantType, rfcErr).String(),
+				t, tt.want, oauthErrorLevel(tt.grantType, tt.rfcErr).String(),
 			)
 		})
 	}

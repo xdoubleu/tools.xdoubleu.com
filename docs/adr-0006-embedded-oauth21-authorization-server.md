@@ -45,12 +45,23 @@ invisible until a user reported it.
 
 Log levels are deliberately split:
 
-- A **failed `refresh_token` grant logs at Error** (so the root `sentrytools`
-  `LogHandler` reports it) even though it's a 400. Unlike any other 4xx there, it
-  takes a refresh token this server itself issued, so it always means a working
-  client just lost its session.
-- **Every other 4xx** — expired code, bad PKCE verifier, denied consent, scanners
-  probing `/oauth2/*` — stays at **Warn**, so it can't bury that signal.
+- A **failed `refresh_token` grant logs at Error only when fosite detected
+  genuine reuse** — a rotated-out token replayed past
+  `storage.go`'s 30s `refreshTokenReuseGracePeriod`
+  (`refreshTokenReuseDetected` in `observe.go`, `errors.Is`-matched against
+  `fosite.ErrInactiveToken`) — even though it's a 400. That's the one
+  refresh-token failure that's a genuinely new signal: fosite responds to it
+  by revoking the *entire* token family, not just rejecting one request, so it
+  always means a working client just lost its whole session.
+- **Every other refresh_token failure** — plain expiry, or a token fosite never
+  found (malformed, tampered, already revoked, or a scanner probing
+  `/oauth2/token` with a self-registered `client_id`, since dynamic client
+  registration is public) — is routine, same as **every other 4xx**: expired
+  authorization code, bad PKCE verifier, denied consent. All of these stay at
+  **Warn**, so they can't bury the one signal above. This was tightened in
+  issue #1715 after a single expired/not-found refresh-token rejection reached
+  Sentry as an Error — the original "every refresh_token failure is Error"
+  policy over-fired on exactly the routine cases this split now excludes.
 
 ## Alternatives considered
 

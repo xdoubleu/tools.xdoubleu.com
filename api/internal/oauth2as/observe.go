@@ -2,6 +2,7 @@ package oauth2as
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -18,8 +19,8 @@ const (
 )
 
 // The two grant types this server registers every client for.
-// refreshTokenGrant is the one whose rejection always means a client that
-// previously held a working session just lost it — see oauthErrorLevel.
+// refreshTokenGrant's rejections get their own, more granular alerting
+// policy than every other grant type — see oauthErrorLevel.
 const (
 	authorizationCodeGrant = "authorization_code"
 	refreshTokenGrant      = "refresh_token"
@@ -71,24 +72,44 @@ func logOAuthError(
 // forwards, so this is the whole alerting policy in one place:
 //
 //   - 5xx is always a server fault.
-//   - A failed refresh_token grant is Error even though it's a 400. Unlike
-//     every other 4xx here it can't be caused by a stranger hitting the
-//     endpoint — it takes a real refresh token this server itself issued, so
-//     invalid_grant/invalid_scope here means a working client just lost its
-//     session. That is exactly the #1177 failure mode and the one signal
-//     worth alerting on.
-//   - Everything else 4xx is routine: an expired authorization code, a
-//     mistyped PKCE verifier, a denied consent, or the steady background of
-//     internet scanners probing /oauth2/*. Alerting on those would bury the
-//     case above in noise.
+//   - A failed refresh_token grant is Error only when it's refresh-token
+//     *reuse* fosite detected past the rotation grace period
+//     (refreshTokenReuseDetected) — the one refresh-token failure that is a
+//     genuinely new signal, since fosite responds to it by revoking the
+//     entire token family, not just rejecting one request. That is exactly
+//     the shape of the #1177 failure mode (a working client abruptly losing
+//     its whole session) and the one worth alerting on.
+//   - Every other refresh_token rejection — the token simply expired, was
+//     never found (a stale/tampered/already-revoked value, indistinguishable
+//     from the steady background of scanners probing /oauth2/token with a
+//     self-registered client_id), or was replayed within the grace period
+//     and treated as a harmless retry — is routine housekeeping, not a bug:
+//     it's the expected outcome of a session nobody kept alive, not evidence
+//     one just broke (issue #1715). Escalating every one of these buried the
+//     one genuine signal above in noise.
+//   - Everything else 4xx is likewise routine: an expired authorization
+//     code, a mistyped PKCE verifier, a denied consent, or the same scanner
+//     background noise.
 func oauthErrorLevel(grantType string, rfcErr *fosite.RFC6749Error) slog.Level {
 	if rfcErr.CodeField >= http.StatusInternalServerError {
 		return slog.LevelError
 	}
-	if grantType == refreshTokenGrant {
+	if grantType == refreshTokenGrant && refreshTokenReuseDetected(rfcErr) {
 		return slog.LevelError
 	}
 	return slog.LevelWarn
+}
+
+// refreshTokenReuseDetected reports whether rfcErr is fosite's theft-response
+// to a rotated-out refresh token being replayed past
+// refreshTokenReuseGracePeriod (storage.go) — RefreshTokenGrantHandler.
+// HandleTokenEndpointRequest wraps fosite.ErrInactiveToken as rfcErr's cause
+// in exactly that case (see flow_refresh.go in ory/fosite). errors.Is walks
+// past the errorsx.WithStack/*RFC6749Error wrapping fosite adds on the way
+// down to that cause, so this matches regardless of which RFC6749Error
+// ended up on top (WithHint/WithWrap return copies, not the same pointer).
+func refreshTokenReuseDetected(rfcErr *fosite.RFC6749Error) bool {
+	return errors.Is(rfcErr, fosite.ErrInactiveToken)
 }
 
 // requesterIdentity pulls the two non-secret identifying fields — grant type
