@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,6 +23,13 @@ var ErrNoPostsFound = errors.New("no post links found on page")
 // maxDiscoveredLinks caps how many candidate post links discoverPostLinks
 // returns from one index page.
 const maxDiscoveredLinks = 30
+
+// maxScrapePages caps how many index pages (the first page, plus discovered
+// "next page" links) one scrape run fetches — some blogs (e.g. Uber's
+// engineering blog, issue #1748) spread their current posts across more than
+// one paginated index page, and this bounds request volume and protects
+// against a pagination loop on a misbehaving site.
+const maxScrapePages = 3
 
 // minPostLinkTextLen is the minimum trimmed anchor-text length to look
 // title-like rather than a nav/utility link ("Home", "More", "Sign in").
@@ -198,7 +206,7 @@ func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
 		return nil, false
 	}
 	resolved := base.ResolveReference(ref)
-	if resolved.Scheme != "http" && resolved.Scheme != "https" {
+	if !isHTTPScheme(resolved.Scheme) {
 		return nil, false
 	}
 	if !strings.EqualFold(resolved.Host, base.Host) {
@@ -289,6 +297,157 @@ func pageTitle(body []byte) string {
 	return title
 }
 
+// nextPageLinkTexts are the trimmed, lowercased anchor text or aria-label
+// values that mark an <a> as pointing at the next pagination page when it
+// carries no rel="next" attribute.
+//
+//nolint:gochecknoglobals // static lookup table, read-only after init
+var nextPageLinkTexts = map[string]bool{
+	"next": true, "next page": true, "next posts": true,
+	"older posts": true, "older": true, "more posts": true,
+	"load more": true, "»": true, "›": true,
+}
+
+// hasRelNext reports whether n's space-separated rel attribute contains
+// "next" — the standard way both <link> and <a> elements mark pagination.
+func hasRelNext(n *html.Node) bool {
+	return slices.Contains(
+		slices.Collect(strings.FieldsSeq(strings.ToLower(nodeAttr(n, "rel")))),
+		"next",
+	)
+}
+
+// isNextPageCandidate reports whether n looks like a "next page" link: a
+// <link rel="next"> (typically in <head>), or an <a> with rel="next" or
+// title-like pagination text/aria-label.
+func isNextPageCandidate(n *html.Node) bool {
+	if n.Type != html.ElementNode {
+		return false
+	}
+	if n.Data == "link" {
+		return hasRelNext(n)
+	}
+	if n.Data != "a" {
+		return false
+	}
+	if hasRelNext(n) {
+		return true
+	}
+	text := strings.ToLower(strings.TrimSpace(nodeText(n)))
+	aria := strings.ToLower(strings.TrimSpace(nodeAttr(n, "aria-label")))
+	return nextPageLinkTexts[text] || nextPageLinkTexts[aria]
+}
+
+// discoverNextPageURL looks for a same-domain "next page" link on an already
+// fetched index page (see isNextPageCandidate) and resolves it against
+// pageURL. It never guesses a pagination URL pattern — only a link actually
+// present on the page is followed.
+func discoverNextPageURL(pageURL string, body []byte) (string, bool) {
+	base, err := url.Parse(pageURL)
+	if err != nil {
+		return "", false
+	}
+	doc, err := html.Parse(bytes.NewReader(body))
+	if err != nil {
+		return "", false
+	}
+
+	n := findNode(doc, isNextPageCandidate)
+	if n == nil {
+		return "", false
+	}
+	href := strings.TrimSpace(nodeAttr(n, "href"))
+	if href == "" {
+		return "", false
+	}
+	ref, err := url.Parse(href)
+	if err != nil {
+		return "", false
+	}
+
+	resolved := base.ResolveReference(ref)
+	if !isHTTPScheme(resolved.Scheme) {
+		return "", false
+	}
+	if !strings.EqualFold(resolved.Host, base.Host) {
+		return "", false
+	}
+	resolved.Fragment = ""
+	return resolved.String(), true
+}
+
+// fetchPaginatedPostLinks discovers post links on an already fetched first
+// page, then follows any discoverable "next page" link (discoverNextPageURL)
+// up to maxScrapePages total pages, merging and deduping links across pages
+// (capped overall at maxDiscoveredLinks) — the paginated counterpart to a
+// single discoverPostLinks call. A later page that fails to fetch or yields
+// no post links simply ends pagination rather than failing the whole call,
+// since the first page already succeeded.
+func (s *FeedService) fetchPaginatedPostLinks(
+	ctx context.Context,
+	firstPageURL string,
+	firstPageBody []byte,
+) ([]discoveredLink, error) {
+	links, err := discoverPostLinks(firstPageURL, firstPageBody)
+	if err != nil {
+		return nil, err
+	}
+
+	seen := make(map[string]bool, len(links))
+	out := make([]discoveredLink, 0, len(links))
+	for _, link := range links {
+		seen[link.URL] = true
+		out = append(out, link)
+	}
+
+	pageURL, body := firstPageURL, firstPageBody
+	for page := 1; page < maxScrapePages && len(out) < maxDiscoveredLinks; page++ {
+		nextURL, ok := discoverNextPageURL(pageURL, body)
+		if !ok {
+			break
+		}
+
+		nextFinalURL, nextBody, pageLinks, ok := s.fetchScrapePage(ctx, nextURL)
+		if !ok {
+			// A later page failing to fetch or yielding no post links just
+			// ends pagination — the first page already succeeded, so this
+			// is a degraded result, not an error.
+			break
+		}
+
+		for _, link := range pageLinks {
+			if len(out) >= maxDiscoveredLinks || seen[link.URL] {
+				continue
+			}
+			seen[link.URL] = true
+			out = append(out, link)
+		}
+		pageURL, body = nextFinalURL, nextBody
+	}
+
+	return out, nil
+}
+
+// fetchScrapePage fetches one index page and discovers its post links, for
+// use by fetchPaginatedPostLinks' pagination loop — ok is false on any fetch
+// or discovery failure, which the caller treats as the end of pagination.
+func (s *FeedService) fetchScrapePage(
+	ctx context.Context,
+	pageURL string,
+) (string, []byte, []discoveredLink, bool) {
+	res, err := s.webFetch.Get(
+		ctx, pageURL, fetchOptions(0, "text/html,application/xhtml+xml"),
+	)
+	if err != nil {
+		return "", nil, nil, false
+	}
+	links, err := discoverPostLinks(res.FinalURL, res.Body)
+	if err != nil {
+		return "", nil, nil, false
+	}
+	return res.FinalURL, res.Body, links, true
+}
+
 // CreateScrape validates the URL by fetching it and discovering at least one
 // post link, then stores the feed (source_type "scrape") and imports its
 // current contents as a first batch in the background — mirrors Create's
@@ -309,7 +468,7 @@ func (s *FeedService) CreateScrape(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNoPostsFound, err)
 	}
-	links, err := discoverPostLinks(res.FinalURL, res.Body)
+	links, err := s.fetchPaginatedPostLinks(ctx, res.FinalURL, res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +520,7 @@ func (s *FeedService) pollScrapeFeed(
 		return 0, nil
 	}
 
-	links, err := discoverPostLinks(res.FinalURL, res.Body)
+	links, err := s.fetchPaginatedPostLinks(ctx, res.FinalURL, res.Body)
 	if err != nil {
 		s.recordFetchResult(ctx, feed.ID, nil, err)
 		return 0, err

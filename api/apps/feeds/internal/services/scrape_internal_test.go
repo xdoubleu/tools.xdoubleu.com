@@ -1,13 +1,17 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 )
 
 const blogIndexHTML = `
@@ -175,6 +179,150 @@ func TestDiscoverPostLinksExcludesBareShortCategoryPills(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "https://example.com/research/some-actual-report", links[0].URL)
+}
+
+func TestDiscoverNextPageURLRelNextLink(t *testing.T) {
+	html := `
+	<html><head><link rel="next" href="/blog?page=2"></head>
+	<body><main></main></body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog?page=2", next)
+}
+
+func TestDiscoverNextPageURLAnchorText(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/posts/some-post">Some post with a long title</a>
+	</main>
+	<nav class="pagination">
+		<a href="/blog/page/2">Older Posts</a>
+	</nav>
+	</body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog/page/2", next)
+}
+
+func TestDiscoverNextPageURLAriaLabel(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/blog/page/2" aria-label="Next">›</a>
+	</main></body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog/page/2", next)
+}
+
+func TestDiscoverNextPageURLNoneFound(t *testing.T) {
+	_, ok := discoverNextPageURL("https://example.com/blog", []byte(blogIndexHTML))
+	assert.False(t, ok)
+}
+
+func TestDiscoverNextPageURLOffDomainRejected(t *testing.T) {
+	html := `
+	<html><body>
+		<a rel="next" href="https://other.example/blog?page=2">Next</a>
+	</body></html>
+	`
+	_, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	assert.False(t, ok)
+}
+
+func TestFetchPaginatedPostLinksFollowsNextPageAndDedupes(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	webFetch.SetHTML("https://example.com/blog", `
+		<html><body><main>
+			<a href="/posts/page1-post">A post found on the very first page</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetHTML("https://example.com/blog?page=2", `
+		<html><body><main>
+			<a href="/posts/page2-post">A post found on the second page</a>
+			<a href="/posts/page1-post">A post found on the very first page (dup)</a>
+		</main>
+		</body></html>
+	`)
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog",
+		webFetch.Responses["https://example.com/blog"].Body,
+	)
+	require.NoError(t, err)
+
+	urls := make([]string, len(links))
+	for i, l := range links {
+		urls[i] = l.URL
+	}
+	assert.Equal(t, []string{
+		"https://example.com/posts/page1-post",
+		"https://example.com/posts/page2-post",
+	}, urls)
+	assert.Equal(t, []string{"https://example.com/blog?page=2"}, webFetch.Calls)
+}
+
+func TestFetchPaginatedPostLinksStopsWhenNextPageHasNoPosts(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	firstPage := []byte(`
+		<html><body><main>
+			<a href="/posts/only-post">The only post on this whole site</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetBody("https://example.com/blog?page=2", "text/html", []byte(`
+		<html><body><nav><a href="/">Home</a></nav></body></html>
+	`))
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog", firstPage,
+	)
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, "https://example.com/posts/only-post", links[0].URL)
+}
+
+func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	page := func(n int) string {
+		return "https://example.com/blog?page=" + strconv.Itoa(n)
+	}
+	firstPage := []byte(`
+		<html><body><main>
+			<a href="/posts/page-1-post">A post found on page number one</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	for n := 2; n <= 5; n++ {
+		next := n + 1
+		webFetch.SetHTML(page(n), `
+			<html><body><main>
+				<a href="/posts/page-`+strconv.Itoa(
+			n,
+		)+`-post">A post discovered on page number `+strconv.Itoa(
+			n,
+		)+`</a>
+			</main>
+			<a rel="next" href="/blog?page=`+strconv.Itoa(next)+`">Next</a>
+			</body></html>
+		`)
+	}
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog", firstPage,
+	)
+	require.NoError(t, err)
+	assert.Len(t, links, maxScrapePages)
+	assert.Equal(t, []string{page(2), page(3)}, webFetch.Calls)
 }
 
 func TestPageTitle(t *testing.T) {
