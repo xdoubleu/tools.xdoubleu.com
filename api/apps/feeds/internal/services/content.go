@@ -36,6 +36,11 @@ func isHTMLContentType(ct string) bool {
 	return ct == "text/html" || ct == "application/xhtml+xml" || ct == ""
 }
 
+// isHTTPScheme reports whether scheme is "http" or "https".
+func isHTTPScheme(scheme string) bool {
+	return scheme == "http" || scheme == "https"
+}
+
 // canonicalURL normalizes a URL for use as a dedup key: lowercases scheme and
 // host, drops the fragment and any utm_* tracking query params.
 func canonicalURL(raw string) (string, error) {
@@ -43,7 +48,7 @@ func canonicalURL(raw string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("%w: %s", ErrUnsupportedURL, raw)
 	}
-	if u.Scheme != "http" && u.Scheme != "https" {
+	if !isHTTPScheme(u.Scheme) {
 		return "", fmt.Errorf("%w: %q", ErrUnsupportedURL, u.Scheme)
 	}
 	u.Scheme = strings.ToLower(u.Scheme)
