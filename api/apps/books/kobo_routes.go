@@ -265,52 +265,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	ourEntries := make([]json.RawMessage, len(books))
 	for i, b := range books {
-		id := b.BookID.String()
-		// Use the time kobo-sync was enabled for this book so the entitlement
-		// payload is byte-identical on every sync. time.Now() would produce a
-		// different Created/PurchasedDate each request, causing the Kobo firmware
-		// to tear down and recreate the entitlement on every sync (the visible
-		// "books briefly disappear" flicker).
-		enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
-		// RevisionId/CrossRevisionId encode ConverterVersion (unlike Id, which
-		// stays the bare book UUID) so a regenerated KEPUB looks like changed
-		// content to the device and it re-downloads (issue #1696). Whether the
-		// firmware actually treats a RevisionId change inside a NewEntitlement
-		// payload as "re-fetch this" isn't verifiable without a physical
-		// device — best-effort, same caveat as buildKoboRemovalEntry below.
-		revisionID := koboRevisionID(id, b.ConverterVersion)
-
-		if b.Format == models.FileFormatKEPUB &&
-			app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
-			app.startKEPUBRegeneration(r.Context(), userID, b.BookID)
-		}
-
-		// json.Marshal cannot fail on this fully-typed struct.
-		// Each entry must be wrapped in the NewEntitlement discriminator key
-		// so the Kobo firmware recognises it — a bare payload is silently ignored.
-		// DownloadUrls lives inside BookMetadata per the Kobo store protocol.
-		// ReadingState must be non-nil so the firmware participates in
-		// reading-state sync and issues PUT …/state on progress changes.
-		raw, _ := json.Marshal(koboNewEntitlement{
-			NewEntitlement: koboSyncEntry{
-				BookEntitlement: koboBookEntitlement{
-					Accessibility:   "Full",
-					ActivePeriod:    map[string]string{"From": enabled},
-					Created:         enabled,
-					CrossRevisionId: revisionID,
-					Id:              id,
-					IsRemoved:       false,
-					IsHiddenFromUI:  false,
-					PurchasedDate:   enabled,
-					RevisionId:      revisionID,
-					Status:          "Active",
-					Type:            "ebook",
-				},
-				BookMetadata: buildKoboMetadata(b, libraryBase),
-				ReadingState: buildKoboState(id, stateByBook[b.BookID]),
-			},
-		})
-		ourEntries[i] = raw
+		ourEntries[i] = app.buildKoboSyncEntry(r, userID, b, stateByBook, libraryBase)
 	}
 
 	removals, err := app.Services.Books.ListKoboRemovals(r.Context(), userID)
@@ -344,6 +299,83 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		all = []json.RawMessage{}
 	}
 	koboWriteJSON(w, all)
+}
+
+// buildKoboSyncEntry builds a single book's entitlement payload for the
+// library sync response.
+//
+// RevisionId/CrossRevisionId encode ConverterVersion (unlike Id, which stays
+// the bare book UUID) so a regenerated KEPUB looks like changed content to
+// the device (issue #1696). b.LastSyncedRevision records what we last told
+// the device this book's revision was; a book synced before with a
+// different revision is wrapped in ChangedEntitlement instead of
+// NewEntitlement so the firmware replaces the existing entry rather than
+// adding a duplicate (issue #1734) — the same discriminator
+// buildKoboRemovalEntry already uses.
+func (app *Books) buildKoboSyncEntry(
+	r *http.Request,
+	userID string,
+	b models.KoboSyncBook,
+	stateByBook map[uuid.UUID]*models.BookReadingState,
+	libraryBase string,
+) json.RawMessage {
+	id := b.BookID.String()
+	// Use the time kobo-sync was enabled for this book so the entitlement
+	// payload is byte-identical on every sync. time.Now() would produce a
+	// different Created/PurchasedDate each request, causing the Kobo firmware
+	// to tear down and recreate the entitlement on every sync (the visible
+	// "books briefly disappear" flicker).
+	enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
+	revisionID := koboRevisionID(id, b.ConverterVersion)
+	isReplace := b.LastSyncedRevision != "" && b.LastSyncedRevision != revisionID
+
+	if b.Format == models.FileFormatKEPUB &&
+		app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {
+		app.startKEPUBRegeneration(r.Context(), userID, b.BookID)
+	}
+
+	entry := koboSyncEntry{
+		BookEntitlement: koboBookEntitlement{
+			Accessibility:   "Full",
+			ActivePeriod:    map[string]string{"From": enabled},
+			Created:         enabled,
+			CrossRevisionId: revisionID,
+			Id:              id,
+			IsRemoved:       false,
+			IsHiddenFromUI:  false,
+			PurchasedDate:   enabled,
+			RevisionId:      revisionID,
+			Status:          "Active",
+			Type:            "ebook",
+		},
+		BookMetadata: buildKoboMetadata(b, libraryBase),
+		ReadingState: buildKoboState(id, stateByBook[b.BookID]),
+	}
+
+	// json.Marshal cannot fail on this fully-typed struct.
+	// Each entry must be wrapped in the NewEntitlement/ChangedEntitlement
+	// discriminator key so the Kobo firmware recognises it — a bare payload
+	// is silently ignored. DownloadUrls lives inside BookMetadata per the
+	// Kobo store protocol. ReadingState must be non-nil so the firmware
+	// participates in reading-state sync and issues PUT …/state on progress
+	// changes.
+	var raw []byte
+	if isReplace {
+		raw, _ = json.Marshal(koboChangedEntitlement{ChangedEntitlement: entry})
+	} else {
+		raw, _ = json.Marshal(koboNewEntitlement{NewEntitlement: entry})
+	}
+
+	if b.LastSyncedRevision != revisionID {
+		if updErr := app.Services.Books.UpdateKoboLastSyncedRevision(
+			r.Context(), userID, b.BookID, revisionID,
+		); updErr != nil {
+			app.Logger.Error("failed to update kobo last synced revision",
+				"error", updErr, "bookID", b.BookID)
+		}
+	}
+
+	return raw
 }
 
 // koboProxyHandler is the catch-all for paths we don't own: it proxies the
