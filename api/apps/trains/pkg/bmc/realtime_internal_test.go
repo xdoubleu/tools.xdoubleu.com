@@ -44,7 +44,8 @@ func TestFetchRealtime_RequestsProtobufAndSendsKey(t *testing.T) {
 
 // TestFetchRealtime_RejectsNonProtobuf guards against the gateway's
 // documented JSON-by-default fallback (issue #1389) silently corrupting a
-// naive delay parse — a non-protobuf Content-Type must fail loudly.
+// naive delay parse — a non-protobuf Content-Type must be rejected as a
+// typed, distinguishable error rather than parsed.
 func TestFetchRealtime_RejectsNonProtobuf(t *testing.T) {
 	withHTTPScheme(t)
 	srv := httptest.NewServer(http.HandlerFunc(
@@ -56,7 +57,33 @@ func TestFetchRealtime_RejectsNonProtobuf(t *testing.T) {
 
 	c := New(logging.NewNopLogger(), hostOf(t, srv), "k")
 	_, err := c.FetchRealtime(context.Background(), FeedTripUpdate)
+
+	var ct *UnexpectedContentTypeError
+	require.True(t, errors.As(err, &ct))
+	assert.Equal(t, FeedTripUpdate, ct.Feed)
+	assert.Contains(t, ct.ContentType, "application/json")
 	require.ErrorContains(t, err, "expected protobuf")
+}
+
+// TestFetchRealtime_RejectsHTMLErrorPage covers the production case (issue
+// #1711): the gateway serving an HTML error page with a 200 status during
+// overload or an SNCB-side backend error, rather than the documented JSON
+// fallback.
+func TestFetchRealtime_RejectsHTMLErrorPage(t *testing.T) {
+	withHTTPScheme(t)
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_, _ = w.Write([]byte("<html><body>Service Unavailable</body></html>"))
+		}))
+	defer srv.Close()
+
+	c := New(logging.NewNopLogger(), hostOf(t, srv), "k")
+	_, err := c.FetchRealtime(context.Background(), FeedTripUpdate)
+
+	var ct *UnexpectedContentTypeError
+	require.True(t, errors.As(err, &ct))
+	assert.Equal(t, "text/html; charset=utf-8", ct.ContentType)
 }
 
 func TestFetchRealtime_RateLimited(t *testing.T) {

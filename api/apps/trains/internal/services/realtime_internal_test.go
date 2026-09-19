@@ -121,6 +121,20 @@ func TestRealtimeService_Poll_UpstreamServerErrorIsNotAnError(t *testing.T) {
 	require.NoError(t, svc.Poll(context.Background()))
 }
 
+func TestRealtimeService_Poll_UnexpectedContentTypeIsNotAnError(t *testing.T) {
+	m := &mocks.MockBMCClient{ //nolint:exhaustruct //only RealtimeErr set
+		RealtimeErr: &bmc.UnexpectedContentTypeError{
+			Feed:        bmc.FeedTripUpdate,
+			ContentType: "text/html; charset=utf-8",
+		},
+	}
+	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
+
+	err := svc.Poll(context.Background())
+	require.NoError(t, err)
+	assert.Nil(t, svc.Snapshot().Trips)
+}
+
 func TestRealtimeService_Poll_UpstreamClientErrorFails(t *testing.T) {
 	m := &mocks.MockBMCClient{ //nolint:exhaustruct //only RealtimeErr set
 		RealtimeErr: &bmc.UpstreamError{StatusCode: 400},
@@ -222,5 +236,9 @@ func TestIsBackoffable(t *testing.T) {
 	assert.True(t, isBackoffable(&bmc.RateLimitedError{RetryAfter: time.Second}))
 	assert.True(t, isBackoffable(&bmc.UpstreamError{StatusCode: 502}))
 	assert.False(t, isBackoffable(&bmc.UpstreamError{StatusCode: 404}))
+	assert.True(t, isBackoffable(&bmc.UnexpectedContentTypeError{
+		Feed:        bmc.FeedTripUpdate,
+		ContentType: "text/html; charset=utf-8",
+	}))
 	assert.False(t, isBackoffable(errors.New("boom")))
 }

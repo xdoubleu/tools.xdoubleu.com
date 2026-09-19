@@ -82,6 +82,25 @@ type RealtimeResult struct {
 	Body []byte
 }
 
+// UnexpectedContentTypeError is a 200 response whose Content-Type is neither
+// protobuf nor the documented JSON fallback (issue #1389) — observed in
+// production as an HTML error page returned with a 200 status during
+// gateway overload or an SNCB-side backend error (issue #1711). Distinct
+// from UpstreamError (which is keyed on status code) so callers can back off
+// and retry next poll instead of failing the job over a transient, non-HTTP-
+// error-coded gateway hiccup.
+type UnexpectedContentTypeError struct {
+	Feed        string
+	ContentType string
+}
+
+func (e *UnexpectedContentTypeError) Error() string {
+	return fmt.Sprintf(
+		"bmc: expected protobuf response for %s, got content-type %q",
+		e.Feed, e.ContentType,
+	)
+}
+
 // Client fetches feeds from the BMC gateway.
 type Client interface {
 	// FetchStatic downloads the SNCB GTFS static zip, honouring the

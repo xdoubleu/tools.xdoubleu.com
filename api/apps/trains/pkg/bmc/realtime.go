@@ -48,14 +48,14 @@ func (c *client) FetchRealtime(
 	}
 
 	// The gateway is documented (issue #1389) to serve JSON by default, with
-	// int64s that would silently corrupt a naive delay parse — fail loudly
-	// rather than parsing whatever came back if protobuf wasn't honoured.
+	// int64s that would silently corrupt a naive delay parse, and observed
+	// (issue #1711) to serve an HTML error page under overload or a backend
+	// error, still with a 200 status — assert the Content-Type and return a
+	// typed error rather than parsing whatever came back if protobuf wasn't
+	// honoured, so the caller can tell this apart from a real decode bug.
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "protobuf") {
-		return nil, fmt.Errorf(
-			"bmc: expected protobuf response for %s, got content-type %q",
-			feed, contentType,
-		)
+		return nil, &UnexpectedContentTypeError{Feed: feed, ContentType: contentType}
 	}
 
 	body, err := io.ReadAll(io.LimitReader(resp.Body, maxRealtimeBytes+1))

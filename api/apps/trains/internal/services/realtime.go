@@ -66,12 +66,13 @@ func (s *RealtimeService) Snapshot() models.Snapshot {
 }
 
 // Poll fetches trip-update on every call and alerts on a slower cadence,
-// then replaces the in-memory snapshot wholesale. A rate-limited or 5xx
-// gateway response is logged and this poll is skipped rather than failing
-// the job — the next scheduled run retries, which is the backoff issue
-// #1393 asks for given a job cadence far below the gateway's quota. Any
-// other error (a decode failure, most likely) is returned so it surfaces
-// on the monitoring page instead of failing silently.
+// then replaces the in-memory snapshot wholesale. A rate-limited, 5xx, or
+// non-protobuf-200 (issue #1711) gateway response is logged and this poll is
+// skipped rather than failing the job — the next scheduled run retries,
+// which is the backoff issue #1393 asks for given a job cadence far below
+// the gateway's quota. Any other error (a decode failure, most likely) is
+// returned so it surfaces on the monitoring page instead of failing
+// silently.
 func (s *RealtimeService) Poll(ctx context.Context) error {
 	if s.bmc == nil {
 		return nil
@@ -213,5 +214,10 @@ func isBackoffable(err error) bool {
 		const serverErrorFloor = 500
 		return upstream.StatusCode >= serverErrorFloor
 	}
-	return false
+	// A 200 whose body isn't protobuf is the gateway serving an HTML error
+	// page (or its documented JSON fallback) while still claiming success —
+	// a transient overload/backend-error condition, not a real decode bug
+	// (issue #1711).
+	var badContentType *bmc.UnexpectedContentTypeError
+	return errors.As(err, &badContentType)
 }
