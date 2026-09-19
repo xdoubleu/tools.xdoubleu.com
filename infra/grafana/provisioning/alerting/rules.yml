@@ -20,10 +20,14 @@
 # The service-health group (issue #1540) reads the gauges the issue-signal
 # collector exports (api/internal/observability/jobs/issue_signal_collector.go,
 # #1539): github_failing_pull_requests, github_workflow_run_failed{branch},
-# github_open_security_alerts{severity}, r2_orphaned_objects, r2_storage_bytes.
-# This closed the r2_usage_high and failing_main_ci gaps. IssueSentryUnresolved
-# is the exception — it queries the Sentry API directly through the
-# grafana-sentry-datasource plugin (issue #1570), no gauge involved.
+# github_open_security_alerts{severity}, sentry_unresolved_issues,
+# r2_orphaned_objects, r2_storage_bytes. This closed the r2_usage_high and
+# failing_main_ci gaps. IssueSentryUnresolved briefly queried the Sentry API
+# directly through the grafana-sentry-datasource plugin instead of a gauge
+# (issue #1570) — reverted in #1726 once that turned out to never evaluate
+# (no Grafana SSE expression can consume the Sentry Issues endpoint's
+# wide-series response); the plugin/datasource itself stays provisioned for
+# the read-only panel on the sentry dashboard.
 # AutomatedActionStalled (issue #1443) reads
 # automated_action_oldest_open_age_seconds, also exported by the issue-signal
 # collector: the age of the longest-open global.automated_actions row, 0 when
@@ -377,33 +381,26 @@ groups:
                     type: gt
                     params: [0]
 
-      # Reads the Sentry API directly through the grafana-sentry-datasource
-      # plugin (issue #1570) — no longer a Prometheus gauge.
-      #
-      # refId A uses the "issues" queryType (issuesQuery: is:unresolved)
-      # against the per-project Sentry Issues endpoint — the same endpoint
-      # api/internal/sentryapi/client.go's fetch() already calls
-      # successfully, and the only one that accepts an `is:` status filter
-      # at all. An earlier revision of this rule tried the "eventsStats"
-      # queryType instead (Sentry's org-level Events/Discover API) to work
-      # around a different error (below), but Discover has no
-      # issue-resolution-status field, so `is:unresolved` 400s there —
-      # confirmed live, not just from docs.
-      #
-      # An Issues query returns one row per issue with several numeric
-      # columns (Count, UserCount, ...), which is why `reduce`+`threshold`
-      # can't be used on it directly: Grafana's expression engine can't
-      # collapse that into the single-value series both require — every
-      # evaluation would fail with "input data must be a wide series but
-      # got type long" (grafana/sentry-datasource#266, filed 2024, still
-      # unresolved upstream). refId B sidesteps this with a
-      # `classic_conditions` expression instead: it evaluates the *row
-      # count* of query A directly ("count(A) > 0"), which works
-      # regardless of A's column shape. projectIds is left empty so the
-      # query spans every project the token can see.
+      # Reads sentry_unresolved_issues, a Prometheus gauge
+      # IssueSignalCollectorJob populates from sentryapi.Client.
+      # ListUnresolvedIssues (issue #1726) — the same shape as every other
+      # rule in this group. This rule previously (issue #1570) queried the
+      # Sentry API directly through the grafana-sentry-datasource plugin's
+      # "issues" queryType, to avoid staleness from the gauge's poll
+      # interval; that never actually evaluated. The Sentry Issues endpoint
+      # returns one row per issue with several numeric columns (Count,
+      # UserCount, ...) — a "wide series" — and Grafana's SSE engine fails
+      # converting that response for *any* downstream expression with
+      # "input data must be a wide series but got type long"
+      # (grafana/sentry-datasource#266, filed 2024, still unresolved
+      # upstream) before the expression itself (reduce, threshold, or
+      # classic_conditions — all three were tried, across #1608 and #1703)
+      # ever runs. The `sentry` datasource/plugin stays provisioned for the
+      # read-only table panel on the sentry dashboard, where "wide series"
+      # is not a constraint — only alert *evaluation* hits it.
       - uid: issue-sentry-unresolved
         title: IssueSentryUnresolved
-        condition: B
+        condition: C
         labels:
           severity: warning
           # Routes to the "routine-fire" contact point too (policies.yml,
@@ -413,39 +410,29 @@ groups:
           trigger: immediate
         annotations:
           summary: Unresolved Sentry issues present
-          description: "Unresolved Sentry issues detected."
+          description: "{{ $values.A }} unresolved Sentry issue(s)."
         noDataState: OK
         execErrState: Alerting
         data:
           - refId: A
             relativeTimeRange:
-              from: 7776000
+              from: 600
               to: 0
-            datasourceUid: sentry
+            datasourceUid: prometheus
             model:
               refId: A
-              queryType: issues
-              issuesQuery: is:unresolved
-              issuesLimit: 1000
-              projectIds: []
-              environments: []
-          - refId: B
+              instant: true
+              expr: sentry_unresolved_issues > 0
+          - refId: C
             datasourceUid: __expr__
             model:
-              refId: B
-              type: classic_conditions
+              refId: C
+              type: threshold
+              expression: A
               conditions:
                 - evaluator:
                     type: gt
                     params: [0]
-                  operator:
-                    type: and
-                  query:
-                    params: [A]
-                  reducer:
-                    type: count
-                    params: []
-                  type: query
 
       - uid: issue-security-alerts
         title: IssueSecurityAlerts

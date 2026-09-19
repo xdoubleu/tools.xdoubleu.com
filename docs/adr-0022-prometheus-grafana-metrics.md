@@ -600,6 +600,33 @@ into claude.ai's routines UI, so both `knownRoutines` and the rule's
 threshold are hardcoded and must be updated by hand if a routine's schedule
 changes.
 
+Phase 18 (#1726) reverts Phase 9's `IssueSentryUnresolved` migration off a
+Prometheus gauge, after live checking (2026-09-19, `get_grafana_alerts`)
+confirmed the rule was still `Alerting (Error)` with the *same* error Phase
+12 first hit: `[sse.readDataError] [A] got error: input data must be a wide
+series but got type long (input refid)`, now attributed to refId A itself
+rather than to whichever expression consumed it. That attribution is the
+key fact this phase adds: the failure happens while Grafana's SSE engine
+reads/converts the Sentry Issues query's own response, before any
+downstream expression (`reduce`, `threshold`, or Phase 16's
+`classic_conditions`) ever runs — so no choice of downstream expression can
+route around it. Phase 12's original `reduce`+`threshold` pipeline and
+Phase 16's `classic_conditions` pipeline were two different attempts at the
+same doomed shape: any SSE expression graph with the Sentry `issues`
+queryType as its data source fails identically, confirming
+`grafana/sentry-datasource#266` (filed 2024) is still unresolved upstream.
+`IssueSignalCollectorJob` gets back a `sentry_unresolved_issues` gauge, fed
+by `sentryapi.Client.ListUnresolvedIssues` (the same client/method
+`WeeklyDigestJob`, `get_sentry_issues`, and `resolve_sentry_issue` already
+use) — the exact gauge Phase 9 removed — and the rule reverts to the same
+one-query-plus-`threshold` shape every other `service-health` gauge rule
+uses (`sentry_unresolved_issues > 0`). This is scoped to the *alert* only:
+the `sentry` datasource plugin and its read-only table panel on the
+`sentry` dashboard (Phase 10) are untouched, since a dashboard panel renders
+"long"-format table data fine — only alert *evaluation* (Grafana's
+expression engine) cannot consume it. Phase 9's other migrated signal
+(GitHub, still gauge-only) is unaffected.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

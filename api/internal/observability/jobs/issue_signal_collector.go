@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // Issue-signal gauges, registered on client_golang's default registry which
@@ -51,6 +52,14 @@ var (
 	r2StorageBytes = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "r2_storage_bytes",
 		Help: "Total R2 storage size in bytes from the latest storage snapshot.",
+	})
+	sentryUnresolvedIssues = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues",
+		Help: "Unresolved Sentry issues across the configured projects. Backs " +
+			"the IssueSentryUnresolved Grafana alert directly (rather than that " +
+			"rule querying the grafana-sentry-datasource plugin itself), since " +
+			"no Grafana SSE expression can evaluate the Sentry Issues " +
+			"endpoint's wide-series response (grafana/sentry-datasource#266).",
 	})
 	postgresSchemaSizeBytes = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "postgres_schema_size_bytes",
@@ -128,6 +137,12 @@ type schemaSizer interface {
 	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
 }
 
+// sentryIssuesLister is the subset of sentryapi.Client the unresolved-issues
+// gauge needs.
+type sentryIssuesLister interface {
+	ListUnresolvedIssues(ctx context.Context) ([]sentryapi.Issue, error)
+}
+
 // oldestOpenAutomatedActionGetter is the subset of
 // *repositories.AutomatedActionsRepository the stalled-routine gauge needs.
 type oldestOpenAutomatedActionGetter interface {
@@ -169,15 +184,14 @@ type issueSignalGithubClient interface {
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, the latest storage snapshot, per-schema database sizes, the oldest
-// still-open global.automated_actions row, and each known routine's most
-// recent open row. A provider that isn't connected leaves its gauge
-// untouched rather than resetting it to zero or failing the run; other
-// errors are logged and skipped. Run always returns nil. The Sentry
-// unresolved-issues signal is no longer collected here — Grafana reads it
-// directly through the grafana-sentry-datasource plugin (adr-0022 Phase 7).
+// GitHub, Sentry, the latest storage snapshot, per-schema database sizes,
+// the oldest still-open global.automated_actions row, and each known
+// routine's most recent open row. A provider that isn't connected leaves its
+// gauge untouched rather than resetting it to zero or failing the run; other
+// errors are logged and skipped. Run always returns nil.
 type IssueSignalCollectorJob struct {
 	gh              issueSignalGithubClient
+	sentry          sentryIssuesLister
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
 	automatedAction automatedActionGetter
@@ -185,12 +199,14 @@ type IssueSignalCollectorJob struct {
 
 func NewIssueSignalCollectorJob(
 	gh issueSignalGithubClient,
+	sentry sentryIssuesLister,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
 	automatedAction automatedActionGetter,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		gh:              gh,
+		sentry:          sentry,
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
 		automatedAction: automatedAction,
@@ -226,6 +242,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectFailingPullRequests(ctx, logger)
 	j.collectWorkflowRuns(ctx, logger)
 	j.collectSecurityAlerts(ctx, logger)
+	j.collectSentryUnresolvedIssues(ctx, logger)
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
 	j.collectAutomatedActionAge(ctx, logger)
@@ -312,6 +329,31 @@ func (j *IssueSignalCollectorJob) collectSecurityAlerts(
 	for severity, count := range bySeverity {
 		githubOpenSecurityAlerts.WithLabelValues(severity).Set(float64(count))
 	}
+}
+
+// collectSentryUnresolvedIssues sets sentryUnresolvedIssues from
+// sentryapi.Client.ListUnresolvedIssues — the same client and method
+// WeeklyDigestJob and the get_sentry_issues/resolve_sentry_issue MCP tools
+// already use. The gauge backs the IssueSentryUnresolved Grafana rule
+// directly rather than that rule querying the grafana-sentry-datasource
+// plugin's Issues endpoint itself, since no Grafana SSE expression can
+// consume that endpoint's wide-series response (confirmed live and recorded
+// in adr-0022 Phase 18).
+func (j *IssueSignalCollectorJob) collectSentryUnresolvedIssues(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	issues, err := j.sentry.ListUnresolvedIssues(ctx)
+	if errors.Is(err, sentryapi.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list unresolved Sentry issues",
+			err, sentryapi.IsTransientAPIError(err))
+		return
+	}
+	sentryUnresolvedIssues.Set(float64(len(issues)))
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(
