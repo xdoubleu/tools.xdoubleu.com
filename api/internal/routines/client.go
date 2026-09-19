@@ -32,20 +32,24 @@ var errEmptyRoutineName = errors.New("routine name is required")
 // Grafana webhook handler) indefinitely.
 const defaultTimeout = 10 * time.Second
 
-// automatedActionOpener is the one repository method Client depends on —
-// narrowed to make Client trivially fakeable in tests without a real
-// database.
-type automatedActionOpener interface {
+// automatedActionRecorder is the subset of
+// *repositories.AutomatedActionsRepository Client depends on — narrowed to
+// make Client trivially fakeable in tests without a real database.
+type automatedActionRecorder interface {
 	Open(ctx context.Context, triggerSource, routineName string) (int64, error)
+	Close(ctx context.Context, id int64, outcome, prURL, errorText string) error
 }
 
 // Client fires a Claude Code routine's webhook, recording the attempt in
 // global.automated_actions before making the outbound call. Writing that
 // row first — with code this codebase controls — is what makes the record
-// trustworthy: it exists even if the outbound call below fails, and only
-// the eventual outcome (succeeded/failed/no_action_needed) has to come back
-// from the routine itself, via a later CloseAutomatedAction call it makes
-// on its own.
+// trustworthy: it exists even if the outbound call below fails. When the
+// outbound call succeeds, the eventual outcome (succeeded/failed/
+// no_action_needed) comes back from the routine itself, via a later
+// CloseAutomatedAction call it makes on its own — but when the outbound
+// call itself fails, the routine was never invoked and can never make that
+// call, so Fire closes the row out itself (issue #1725) rather than
+// leaving it open forever.
 type Client struct {
 	// BaseURL is the routine-fire webhook's base URL; Fire posts to
 	// <BaseURL>/<routineName>/fire.
@@ -55,7 +59,7 @@ type Client struct {
 	// HTTPClient defaults to a client with defaultTimeout if left nil.
 	HTTPClient *http.Client
 
-	automatedActions automatedActionOpener
+	automatedActions automatedActionRecorder
 }
 
 // NewClient builds a Client backed by the given automated_actions
@@ -86,13 +90,16 @@ type firePayload struct {
 // then POSTs text as that routine's context to its fire webhook. The
 // automated_actions row is written before the outbound call is attempted,
 // so a run is recorded even if the call below fails — see the Client
-// doc comment.
+// doc comment. If the outbound call fails, Fire closes that same row out
+// itself (outcome "failed") before returning, since a routine that was
+// never successfully invoked can never close it on its own.
 func (c *Client) Fire(ctx context.Context, routineName, text string) error {
 	if routineName == "" {
 		return errEmptyRoutineName
 	}
 
-	if _, err := c.automatedActions.Open(ctx, "api", routineName); err != nil {
+	id, err := c.automatedActions.Open(ctx, "api", routineName)
+	if err != nil {
 		return fmt.Errorf(
 			"recording automated action for routine %q: %w",
 			routineName,
@@ -100,6 +107,16 @@ func (c *Client) Fire(ctx context.Context, routineName, text string) error {
 		)
 	}
 
+	if fireErr := c.postFire(ctx, routineName, text); fireErr != nil {
+		return c.closeStranded(ctx, id, routineName, fireErr)
+	}
+
+	return nil
+}
+
+// postFire builds and sends the outbound POST to routineName's fire
+// webhook.
+func (c *Client) postFire(ctx context.Context, routineName, text string) error {
 	// firePayload's only field is a plain string, which json.Marshal can
 	// never fail to encode — no error path to handle or test here.
 	body, _ := json.Marshal(firePayload{Text: text})
@@ -132,4 +149,34 @@ func (c *Client) Fire(ctx context.Context, routineName, text string) error {
 	}
 
 	return nil
+}
+
+// closeStranded closes out an automated_actions row that Fire opened but
+// could never hand off to the routine — the outbound call itself failed
+// (fireErr), so the routine was never invoked and can never call
+// CloseAutomatedAction on its own (issue #1725). Left open, such a row
+// would stall indefinitely, noticed only hours later by
+// AutomatedActionStalled. Uses a context detached from ctx's own
+// cancellation (but not its values) plus a fresh timeout, so a
+// canceled/timed-out request context — quite possibly the reason
+// postFire just failed — doesn't also block this recovery call. If the
+// close itself fails too, both errors are joined and returned, and the
+// row is left open — the same pre-existing situation
+// AutomatedActionStalled exists to catch.
+func (c *Client) closeStranded(
+	ctx context.Context, id int64, routineName string, fireErr error,
+) error {
+	closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), defaultTimeout)
+	defer cancel()
+
+	if closeErr := c.automatedActions.Close(
+		closeCtx, id, "failed", "", fireErr.Error(),
+	); closeErr != nil {
+		return errors.Join(fireErr, fmt.Errorf(
+			"closing stranded automated action %d for routine %q: %w",
+			id, routineName, closeErr,
+		))
+	}
+
+	return fireErr
 }
