@@ -15,6 +15,8 @@ import (
 	"unicode"
 
 	"golang.org/x/time/rate"
+
+	"tools.xdoubleu.com/apps/books/pkg/authorname"
 )
 
 //nolint:gochecknoglobals // overridable in tests
@@ -226,7 +228,7 @@ func marcToExternalBook(rec marcRecord) ExternalBook {
 			if a := df.subfieldA(); a != "" {
 				// Trim trailing comma/period that MARC appends to personal names.
 				cleaned := strings.TrimRight(strings.TrimSpace(a), ",.")
-				book.Authors = append(book.Authors, flipLastFirst(cleaned))
+				book.Authors = append(book.Authors, authorname.Normalize(cleaned))
 			}
 		case "020":
 			if book.ISBN13 == nil {
@@ -255,24 +257,6 @@ func marcToExternalBook(rec marcRecord) ExternalBook {
 	}
 
 	return book
-}
-
-// flipLastFirst converts a MARC "Last, First" personal name to the
-// "First Last" form the other metadata providers use. Names without a comma
-// are already in that form; names with two or more commas (suffixes like
-// "King, Martin Luther, Jr") are returned unchanged rather than flipped
-// wrong.
-func flipLastFirst(name string) string {
-	last, first, found := strings.Cut(name, ",")
-	if !found || strings.Contains(first, ",") {
-		return name
-	}
-	last = strings.TrimSpace(last)
-	first = strings.TrimSpace(first)
-	if last == "" || first == "" {
-		return name
-	}
-	return first + " " + last
 }
 
 // normalizeISBN strips all non-digit characters from an ISBN string.
