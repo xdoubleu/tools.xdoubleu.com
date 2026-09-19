@@ -546,8 +546,10 @@ GRAFANA_GITHUB_DATASOURCE_TOKEN  (fine-grained GitHub PAT scoped to this
 GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
                               + event:read, for the grafana-sentry-datasource
                               plugin; issue #1570 — same wiring as above.
-                              Backs the IssueSentryUnresolved alert + the
-                              Sentry dashboard's panel)
+                              Backs the Sentry dashboard's live panel; the
+                              IssueSentryUnresolved alert itself reads the
+                              sentry_unresolved_issues Prometheus gauge
+                              instead as of issue #1709)
 GRAFANA_SLACK_WEBHOOK_URL    (Slack Incoming Webhook URL — the alert contact
                               point, issue #1592 — read by $__env{} in
                               infra/grafana/provisioning/alerting/contactpoints.yml

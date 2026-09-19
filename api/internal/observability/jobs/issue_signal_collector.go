@@ -13,6 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/github"
 	essentialogger "tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 // Issue-signal gauges, registered on client_golang's default registry which
@@ -57,6 +58,11 @@ var (
 		Help: "On-disk size of each database schema in bytes. postgres_exporter " +
 			"only exposes per-database size, so this is the per-schema breakdown.",
 	}, []string{"schema"})
+	sentryUnresolvedIssues = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sentry_unresolved_issues",
+		Help: "Unresolved Sentry issues across every project the connected " +
+			"token can see.",
+	})
 	automatedActionOldestOpenAgeSeconds = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "automated_action_oldest_open_age_seconds",
 		Help: "Age in seconds of the longest-open global.automated_actions row " +
@@ -163,21 +169,26 @@ type issueSignalGithubClient interface {
 	workflowRunsLister
 }
 
+// unresolvedIssueLister is the subset of sentryapi.Client the Sentry gauge
+// needs.
+type unresolvedIssueLister interface {
+	ListUnresolvedIssues(ctx context.Context) ([]sentryapi.Issue, error)
+}
+
 // runEvery is the poll interval shared by the timer-driven observability
 // jobs in this package; "realtime" here means "within a few minutes", not
 // sub-second.
 const runEvery = 5 * time.Minute
 
 // IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, the latest storage snapshot, per-schema database sizes, the oldest
-// still-open global.automated_actions row, and each known routine's most
-// recent open row. A provider that isn't connected leaves its gauge
-// untouched rather than resetting it to zero or failing the run; other
-// errors are logged and skipped. Run always returns nil. The Sentry
-// unresolved-issues signal is no longer collected here — Grafana reads it
-// directly through the grafana-sentry-datasource plugin (adr-0022 Phase 7).
+// GitHub, Sentry, the latest storage snapshot, per-schema database sizes,
+// the oldest still-open global.automated_actions row, and each known
+// routine's most recent open row. A provider that isn't connected leaves
+// its gauge untouched rather than resetting it to zero or failing the run;
+// other errors are logged and skipped. Run always returns nil.
 type IssueSignalCollectorJob struct {
 	gh              issueSignalGithubClient
+	sentry          unresolvedIssueLister
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
 	automatedAction automatedActionGetter
@@ -185,12 +196,14 @@ type IssueSignalCollectorJob struct {
 
 func NewIssueSignalCollectorJob(
 	gh issueSignalGithubClient,
+	sentry unresolvedIssueLister,
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
 	automatedAction automatedActionGetter,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		gh:              gh,
+		sentry:          sentry,
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
 		automatedAction: automatedAction,
@@ -226,6 +239,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectFailingPullRequests(ctx, logger)
 	j.collectWorkflowRuns(ctx, logger)
 	j.collectSecurityAlerts(ctx, logger)
+	j.collectSentryIssues(ctx, logger)
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
 	j.collectAutomatedActionAge(ctx, logger)
@@ -312,6 +326,32 @@ func (j *IssueSignalCollectorJob) collectSecurityAlerts(
 	for severity, count := range bySeverity {
 		githubOpenSecurityAlerts.WithLabelValues(severity).Set(float64(count))
 	}
+}
+
+// collectSentryIssues sets sentry_unresolved_issues from the same Sentry
+// Issues endpoint api/internal/sentryapi/client.go's ListUnresolvedIssues
+// already calls successfully elsewhere (get_sentry_issues,
+// resolve_sentry_issue, WeeklyDigestJob). A Prometheus gauge is deliberately
+// used here rather than alerting off the grafana-sentry-datasource plugin
+// directly: that plugin's Issues query returns one row per issue with
+// several numeric columns, which Grafana's SSE layer can't convert into a
+// series any expression node (reduce, threshold, classic_conditions) can
+// evaluate — confirmed live, see issue #1709.
+func (j *IssueSignalCollectorJob) collectSentryIssues(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	issues, err := j.sentry.ListUnresolvedIssues(ctx)
+	if errors.Is(err, sentryapi.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list unresolved Sentry issues",
+			err, sentryapi.IsTransientAPIError(err))
+		return
+	}
+	sentryUnresolvedIssues.Set(float64(len(issues)))
 }
 
 func (j *IssueSignalCollectorJob) collectStorage(
