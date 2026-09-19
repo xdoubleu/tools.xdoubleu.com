@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net"
 	"sync"
 	"time"
 
@@ -66,13 +67,13 @@ func (s *RealtimeService) Snapshot() models.Snapshot {
 }
 
 // Poll fetches trip-update on every call and alerts on a slower cadence,
-// then replaces the in-memory snapshot wholesale. A rate-limited, 5xx, or
-// non-protobuf-200 (issue #1711) gateway response is logged and this poll is
-// skipped rather than failing the job — the next scheduled run retries,
-// which is the backoff issue #1393 asks for given a job cadence far below
-// the gateway's quota. Any other error (a decode failure, most likely) is
-// returned so it surfaces on the monitoring page instead of failing
-// silently.
+// then replaces the in-memory snapshot wholesale. A rate-limited, 5xx,
+// non-protobuf-200 (issue #1711), or network-timeout (issue #1712) gateway
+// response is logged and this poll is skipped rather than failing the job —
+// the next scheduled run retries, which is the backoff issue #1393 asks for
+// given a job cadence far below the gateway's quota. Any other error (a
+// decode failure, most likely) is returned so it surfaces on the monitoring
+// page instead of failing silently.
 func (s *RealtimeService) Poll(ctx context.Context) error {
 	if s.bmc == nil {
 		return nil
@@ -203,7 +204,11 @@ func (s *RealtimeService) fetchAlerts(ctx context.Context) ([]models.Alert, erro
 
 // isBackoffable reports whether err is a transient gateway condition the
 // next scheduled poll should simply retry, rather than a bug worth failing
-// the job over.
+// the job over. A network-level timeout (e.g. the gateway not answering
+// within the client's request timeout, surfaced as a *url.Error whose
+// Timeout() is true) is included alongside rate-limiting and 5xx responses:
+// it is exactly as transient, and the 30s poll cadence is already the retry
+// (issue #1712).
 func isBackoffable(err error) bool {
 	var rateLimited *bmc.RateLimitedError
 	if errors.As(err, &rateLimited) {
@@ -219,5 +224,12 @@ func isBackoffable(err error) bool {
 	// a transient overload/backend-error condition, not a real decode bug
 	// (issue #1711).
 	var badContentType *bmc.UnexpectedContentTypeError
-	return errors.As(err, &badContentType)
+	if errors.As(err, &badContentType) {
+		return true
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
 }
