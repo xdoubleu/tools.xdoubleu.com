@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/ledongthuc/pdf"
+
+	"tools.xdoubleu.com/apps/books/pkg/authorname"
 )
 
 const (
@@ -165,8 +167,10 @@ func opfToMetadata(meta opfMetadata) Metadata {
 		m.Title = strings.TrimSpace(meta.Titles[0])
 	}
 	for _, c := range meta.Creators {
+		// Dublin Core dc:creator conventionally orders personal names
+		// "Lastname, Firstname"; flip it to match the other providers.
 		if s := strings.TrimSpace(c); s != "" {
-			m.Authors = append(m.Authors, s)
+			m.Authors = append(m.Authors, authorname.Normalize(s))
 		}
 	}
 	if len(meta.Languages) > 0 {
@@ -234,7 +238,7 @@ func extractPDF(r io.ReaderAt, size int64) (Metadata, error) {
 		m.Title = title
 	}
 	if author := info.Key("Author").Text(); author != "" {
-		m.Authors = []string{author}
+		m.Authors = []string{authorname.Normalize(author)}
 	}
 	return m, nil
 }
