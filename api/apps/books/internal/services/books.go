@@ -674,6 +674,17 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
+// UpdateKoboLastSyncedRevision records the RevisionId just sent to the
+// device for bookID, so the next sync can tell whether it changed.
+func (s *BookService) UpdateKoboLastSyncedRevision(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	revision string,
+) error {
+	return s.books.UpdateKoboLastSyncedRevision(ctx, userID, bookID, revision)
+}
+
 // ListKoboRemovals returns books tombstoned for active removal from the
 // user's Kobo device.
 func (s *BookService) ListKoboRemovals(

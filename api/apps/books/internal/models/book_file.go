@@ -30,6 +30,9 @@ type KoboSyncBook struct {
 	Size              int64
 	KoboSyncEnabledAt time.Time
 	ConverterVersion  int16
+	// LastSyncedRevision is the RevisionId last sent to the device for this
+	// book, empty when it has never been synced before.
+	LastSyncedRevision string
 }
 
 type BookFile struct {
