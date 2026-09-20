@@ -80,8 +80,6 @@ type Config struct {
 	GithubOAuthClientSecret string
 	SentryOAuthClientID     string
 	SentryOAuthClientSecret string
-	DOOAuthClientID         string
-	DOOAuthClientSecret     string
 	// TodoistOAuthClientID/Secret register this app once with Todoist
 	// (issue #1475); unlike the observability integrations above, each
 	// user's own connection is stored per-user in

@@ -631,8 +631,6 @@ jobs:
           GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_SECRET }}
           SENTRY_OAUTH_CLIENT_ID: ${{ secrets.SENTRY_OAUTH_CLIENT_ID }}
           SENTRY_OAUTH_CLIENT_SECRET: ${{ secrets.SENTRY_OAUTH_CLIENT_SECRET }}
-          DO_OAUTH_CLIENT_ID: ${{ secrets.DO_OAUTH_CLIENT_ID }}
-          DO_OAUTH_CLIENT_SECRET: ${{ secrets.DO_OAUTH_CLIENT_SECRET }}
           TODOIST_OAUTH_CLIENT_ID: ${{ secrets.TODOIST_OAUTH_CLIENT_ID }}
           TODOIST_OAUTH_CLIENT_SECRET: ${{ secrets.TODOIST_OAUTH_CLIENT_SECRET }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
@@ -917,6 +915,7 @@ jobs:
       contains(needs.*.result, 'failure')
     name: Notify red-pr-repair of a red main branch
     runs-on: ubuntu-latest
+    environment: production
     permissions:
       contents: read
     steps:
