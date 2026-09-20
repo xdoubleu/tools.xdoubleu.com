@@ -32,7 +32,7 @@ const mobileFirstRestrictedSyntax = [
 
 export default [
   {
-    ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**']
+    ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**', '.stryker-tmp', 'reports']
   },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,

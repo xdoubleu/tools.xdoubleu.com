@@ -54,6 +54,8 @@ cd api && docker-compose down
 | `make test` | Run all tests |
 | `make test/cov/report` | Generate coverage report (HTML) |
 | `make test/cov/per-pkg` | Per-package coverage with merged summary |
+| `make test/mutation/diff` | Mutation testing (gremlins) scoped to Go packages changed vs `origin/main` |
+| `make test/mutation` | Mutation testing (gremlins), full repo (slow one-time baseline, not routine) |
 | `make lint` | Run all linters (Go + SQL) |
 | `make lint/fix` | Auto-fix linting issues |
 
@@ -74,6 +76,8 @@ cd api && docker-compose down
 | `npm run build` | Build the standalone production server |
 | `npm test` | Run tests |
 | `npm run test:cov` | Run tests with coverage |
+| `npm run test:mutation:diff` | Mutation testing (StrykerJS) scoped to TS/TSX files changed vs `origin/main` |
+| `npm run test:mutation` | Mutation testing (StrykerJS), full repo (slow one-time baseline, not routine) |
 | `npm run lint` | Run ESLint + Prettier |
 | `npm run generate` | Regenerate TypeScript ConnectRPC clients from proto definitions (output: `web/lib/gen/`, committed) |
 | `npm run lint:fix` | Auto-fix ESLint issues and reformat with Prettier |

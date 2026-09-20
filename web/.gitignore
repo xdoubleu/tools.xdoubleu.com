@@ -2,6 +2,9 @@ node_modules/
 .next/
 out/
 coverage/
+.stryker-tmp/
+reports/
+stryker.log
 .env*.local
 next-env.d.ts
 
