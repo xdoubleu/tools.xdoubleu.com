@@ -565,7 +565,13 @@ ROUTINE_FIRE_TOKEN           (bearer token for issue #1444's routine-fire
                               `openssl rand -hex 32`. Unset leaves the inbound
                               webhook permanently unauthorized (every request
                               rejected) and the outbound client sending an
-                              empty bearer token)
+                              empty bearer token. As of issue #1722 this is
+                              also a plain GitHub Actions secret (not only a
+                              Kamal deploy secret): main.yml's
+                              notify-main-ci-red job authenticates the same
+                              inbound webhook directly from CI the moment a
+                              push-to-main job fails, without waiting on
+                              Grafana/Prometheus's evaluation cycle)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear
