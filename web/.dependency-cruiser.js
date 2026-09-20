@@ -60,7 +60,7 @@ module.exports = {
     {
       name: 'no-react-in-lib',
       comment:
-        "lib/** (excluding lib/gen/) must stay framework-agnostic — no react/react-dom import — so a Server Component can safely import from lib/ for an unrelated constant (docs/convention-ui-standards.md's server/client import trap). #1731 tracks moving the two current violators (real React hooks living under lib/) into hooks/.",
+        "lib/** (excluding lib/gen/) must stay framework-agnostic — no react/react-dom import — so a Server Component can safely import from lib/ for an unrelated constant (docs/convention-ui-standards.md's server/client import trap). The two real React hooks that used to live under lib/ (#1731) moved into hooks/.",
       severity: 'error',
       from: {
         path: '^lib/',
@@ -73,12 +73,7 @@ module.exports = {
           // (useState/useEffect/etc.) this rule targets. Excluding it here
           // is a deliberate narrowing of the rule to its documented intent,
           // not a grandfathered violation.
-          '^lib/server/',
-          // #1731: real React hooks (useState/useEffect/useRef/useCallback)
-          // living under lib/ instead of hooks/. Remove these two lines once
-          // #1731 moves them into hooks/.
-          '^lib/progressSocket\\.ts$',
-          '^lib/trains/journeySocket\\.ts$'
+          '^lib/server/'
         ]
       },
       to: {

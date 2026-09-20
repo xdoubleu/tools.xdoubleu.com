@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import JourneyLegCard from '@/components/trains/JourneyLegCard'
 import JourneyAlternativePanel from '@/components/trains/JourneyAlternativePanel'
 import { useJourneyDetail } from '@/hooks/useTrains'
-import { useJourneyLive } from '@/lib/trains/journeySocket'
+import { useJourneyLive } from '@/hooks/useJourneySocket'
 
 export default function JourneyDetailClient({ journeyId }: { journeyId: string }) {
   const { data, error, isLoading, mutate } = useJourneyDetail(journeyId)

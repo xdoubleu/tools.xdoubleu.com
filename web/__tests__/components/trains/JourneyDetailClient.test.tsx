@@ -7,7 +7,7 @@ const mockUseJourneyLive = jest.fn()
 jest.mock('@/hooks/useTrains', () => ({
   useJourneyDetail: (journeyId: string) => mockUseJourneyDetail(journeyId)
 }))
-jest.mock('@/lib/trains/journeySocket', () => ({
+jest.mock('@/hooks/useJourneySocket', () => ({
   useJourneyLive: (journeyId: string, refetch: () => void) => mockUseJourneyLive(journeyId, refetch)
 }))
 
