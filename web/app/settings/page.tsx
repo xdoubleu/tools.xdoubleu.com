@@ -378,6 +378,13 @@ export default function SettingsPage() {
 
       <AppearanceSection />
 
+      <section>
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">Privacy</h2>
+        <p className="text-sm text-subtle">
+          Usage analytics and session recording are enabled to help improve the app.
+        </p>
+      </section>
+
       <McpSetupSection />
 
       {recoveryCodes && (

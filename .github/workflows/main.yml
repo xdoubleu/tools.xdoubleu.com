@@ -587,6 +587,9 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          # PostHog Cloud (EU) client-side project API key (issue #1638) —
+          # see config/deploy.web.yml's env.secret comment.
+          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
           # Gates GET /metrics on the web container (issue #1555) — see
           # config/deploy.web.yml. Same repo Secret also feeds the api and,
           # as TF_VAR_observability_ingest_secret, OpenTofu's Prometheus.

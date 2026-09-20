@@ -52,12 +52,19 @@ env:
     ENV: production
     WEB_URL: https://tools.xdoubleu.com
     API_URL: https://tools.xdoubleu.com/api
+    # PostHog Cloud EU ingestion host (issue #1638) — same value everywhere,
+    # not environment-specific, unlike the project key below.
+    POSTHOG_HOST: https://eu.i.posthog.com
   secret:
     # Deploy-time SHA — Kamal doesn't inject one, so the deploy-kamal CI job
     # passes github.sha explicitly (export it yourself for a manual
     # deploy). Feeds web/components/Footer.tsx's version display.
     - RELEASE
     - SENTRY_DSN_WEB
+    # PostHog Cloud (EU) client-side project API key (issue #1638) — not
+    # secret in the sense of an attacker-usable credential (it ships in the
+    # browser bundle regardless), same treatment as SENTRY_DSN_WEB above.
+    - POSTHOG_KEY
     # Shared secret gating GET /metrics (web/app/metrics/route.ts, issue
     # #1555) — `web` is the kamal-proxy catch-all, so /metrics is otherwise
     # publicly readable. Prometheus's `web` scrape job sends it as a bearer

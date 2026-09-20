@@ -1,14 +1,21 @@
 /**
  * @jest-environment node
  *
- * lib/env.ts's getApiUrl/getSentryDsn/getRelease/getKoboGatewayRelease all
- * branch on `typeof window`; env.test.ts (jsdom) only ever exercises the
- * browser branch. This file runs under Node so `window` is genuinely
- * undefined, covering the process.env fallback each one falls back to on
- * the server.
+ * lib/env.ts's getApiUrl/getSentryDsn/getRelease/getKoboGatewayRelease/
+ * getPostHogKey/getPostHogHost all branch on `typeof window`; env.test.ts
+ * (jsdom) only ever exercises the browser branch. This file runs under
+ * Node so `window` is genuinely undefined, covering the process.env
+ * fallback each one falls back to on the server.
  */
 
-import { getApiUrl, getSentryDsn, getRelease, getKoboGatewayRelease } from '@/lib/env'
+import {
+  getApiUrl,
+  getSentryDsn,
+  getRelease,
+  getKoboGatewayRelease,
+  getPostHogKey,
+  getPostHogHost
+} from '@/lib/env'
 
 const originalEnv = process.env
 
@@ -47,4 +54,20 @@ it('getKoboGatewayRelease reads process.env.KOBO_GATEWAY_RELEASE on the server, 
 
   delete process.env.KOBO_GATEWAY_RELEASE
   expect(getKoboGatewayRelease()).toBe('dev')
+})
+
+it('getPostHogKey reads process.env.POSTHOG_KEY on the server, defaulting to empty string', () => {
+  process.env.POSTHOG_KEY = 'phc_serverkey'
+  expect(getPostHogKey()).toBe('phc_serverkey')
+
+  delete process.env.POSTHOG_KEY
+  expect(getPostHogKey()).toBe('')
+})
+
+it('getPostHogHost reads process.env.POSTHOG_HOST on the server, defaulting to empty string', () => {
+  process.env.POSTHOG_HOST = 'https://eu.i.posthog.com'
+  expect(getPostHogHost()).toBe('https://eu.i.posthog.com')
+
+  delete process.env.POSTHOG_HOST
+  expect(getPostHogHost()).toBe('')
 })
