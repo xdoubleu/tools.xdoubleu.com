@@ -25,7 +25,7 @@ jest.mock('swr', () => ({
   useSWRConfig: () => ({ mutate })
 }))
 
-import MealPlanEntryForm from '@/components/recipes/MealPlanEntryForm'
+import MealPlanEntryForm from '@/components/mealplans/MealPlanEntryForm'
 import { create } from '@bufbuild/protobuf'
 import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 

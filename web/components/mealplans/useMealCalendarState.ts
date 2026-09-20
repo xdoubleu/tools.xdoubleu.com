@@ -16,7 +16,7 @@ import type {
 } from '@/hooks/useMealPlans'
 import type { Plan, PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
-import { MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
+import { MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 
 export interface MealSuggestion {
   recipe: Recipe

@@ -1,4 +1,4 @@
-import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/recipes/mealPlanCalendar'
+import { getWeekDates, formatMealDate, MEAL_SLOTS } from '@/lib/mealplans/mealPlanCalendar'
 
 describe('mealPlanCalendar', () => {
   describe('MEAL_SLOTS', () => {

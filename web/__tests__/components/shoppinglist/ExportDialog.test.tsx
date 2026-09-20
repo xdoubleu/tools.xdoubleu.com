@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import ExportDialog from '@/components/recipes/ExportDialog'
-import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
+import ExportDialog from '@/components/shoppinglist/ExportDialog'
+import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 
 // The dialog no longer fetches meal-plan items or ingredient groups — those are
 // owned by the landing page and passed in via the mealItems prop.

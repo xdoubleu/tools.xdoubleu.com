@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import CategoryManager from '@/components/recipes/CategoryManager'
+import CategoryManager from '@/components/shoppinglist/CategoryManager'
 
 const mutate = jest.fn().mockResolvedValue(undefined)
 const createCategory = jest.fn().mockResolvedValue({})

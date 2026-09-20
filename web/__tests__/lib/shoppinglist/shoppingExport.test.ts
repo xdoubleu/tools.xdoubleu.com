@@ -12,7 +12,7 @@ import {
   type Category,
   type ShoppingItem,
   type ItemOrigin
-} from '@/lib/recipes/shoppingExport'
+} from '@/lib/shoppinglist/shoppingExport'
 
 const customItems: ShoppingItem[] = [{ id: 'c1', amount: '0.5', unit: 'tsp', name: 'salt' }]
 

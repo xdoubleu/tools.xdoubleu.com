@@ -9,7 +9,7 @@ jest.mock('@/hooks/useMealPlans', () => ({
   useMealSuggestions: jest.fn(() => ({ data: undefined }))
 }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'http://localhost' }))
-jest.mock('@/lib/recipes/mealPlanCalendar', () => {
+jest.mock('@/lib/mealplans/mealPlanCalendar', () => {
   const week = Array.from({ length: 7 }, (_, i) => {
     const d = new Date('2026-05-25')
     d.setDate(d.getDate() + i)
@@ -29,7 +29,7 @@ import {
   useMoveMeal,
   useMealSuggestions
 } from '@/hooks/useMealPlans'
-import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
+import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { create } from '@bufbuild/protobuf'
 import {
   PlanSchema,
