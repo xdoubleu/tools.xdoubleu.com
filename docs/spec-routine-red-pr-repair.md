@@ -2,7 +2,8 @@
 
 - Status: code-side done; the routine itself needs manual setup (see below)
 - Issues: #1448, part of epic #1338. Depends on #1439 (merged) and #1446
-  (structural template, PR #1684).
+  (structural template, PR #1684). Extended by #1722 (a second, CI-fired
+  trigger path for a red `main` branch — see below).
 
 ## What this is
 
@@ -19,6 +20,34 @@ fixes it, unsticks it (the Codecov-stall case), or leaves it open with an
 explanatory comment — it never merges anything beyond what the existing
 auto-merge rule already would, and it never closes/abandons a PR it can't
 fix.
+
+## The second trigger path: a red `main` branch (#1722)
+
+The 07:00 schedule below is still the only way this routine's PR-sweep entry
+point (Entry point 1 in the skill) ever runs. But `main` itself going red is
+a distinct, more urgent signal — `main` deploys without re-testing
+(`CLAUDE.md`'s CI section), so waiting up to ~7 hours for the morning
+schedule to notice a red push-to-main build is too slow. Rather than adding
+`trigger: immediate` to a Grafana rule (which still routes through
+Prometheus's scrape interval and Grafana's evaluation cycle), `.github/
+workflows/main.yml`'s `notify-main-ci-red` job POSTs directly to the same
+`/webhooks/grafana-alert` route (`api/cmd/api/routines_webhook.go`) that
+Grafana's own `routine-fire` contact point targets, the moment any
+push-to-main build/test/deploy job fails — skipping that evaluation latency
+entirely for this one signal. The payload is shaped exactly like a Grafana
+alerting webhook body (`labels.routine: "red-pr-repair"`), so
+`routines_webhook.go` needed no changes; only `main.yml` gained the new job,
+authenticated with the same `ROUTINE_FIRE_TOKEN` bearer token already used
+for the Grafana contact point (now also stored as a plain GitHub Actions
+secret, per `infra/README.md`'s note on that secret).
+
+This still can't push straight to `main` — `CLAUDE.md`'s hard constraint
+that nothing bypasses PR review and CI on `main` is unchanged. What this
+buys is `red-pr-repair` starting its diagnosis and getting a fix up for
+review sooner, not skipping review. See the skill's own "Entry point 2: a
+red `main` branch" section for exactly how this differs from the PR-sweep
+flow (a new branch/PR against `main` instead of an existing PR's branch, no
+Codecov-stall case since that failure mode is `pull_request`-only).
 
 This is a spec, not an ADR — there's no alternative design being weighed
 here, just a reproducible record of exactly what to paste into the
@@ -144,3 +173,9 @@ one has to end in a pushed commit or PR comment:
   `docs/spec-ci-pipeline.md` file, which no longer exists after the docs
   consolidation in #1464 — the same content now lives directly in
   `CLAUDE.md`.
+- `.github/workflows/main.yml`'s `notify-main-ci-red` job and
+  `api/cmd/api/routines_webhook.go` — the CI-fired trigger path added in
+  #1722 for a red `main` branch, distinct from this doc's 07:00 schedule.
+- `infra/grafana/provisioning/alerting/contactpoints.yml` — the
+  "routine-fire" contact point `notify-main-ci-red` POSTs to the same
+  inbound route as, just triggered from CI instead of a Grafana rule.

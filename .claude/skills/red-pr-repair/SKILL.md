@@ -1,6 +1,6 @@
 ---
 name: red-pr-repair
-description: Drive every currently-red PR that carries the `dependencies` label or a `claude/`-prefixed branch back to green — diagnose the CI failure, push a fixing or unsticking commit (including the documented Codecov-stall workaround), or leave an explanatory comment on a PR that can't be fixed — never abandoning it. Use whenever the user asks to "fix the red PRs", "unstall the dependency PRs", "check why the Renovate/claude PRs are failing", or "run the red-PR repair sweep" — also the skill a morning scheduled routine (issue #1448, `docs/spec-routine-red-pr-repair.md`) runs unattended every day.
+description: Drive every currently-red PR that carries the `dependencies` label or a `claude/`-prefixed branch back to green — diagnose the CI failure, push a fixing or unsticking commit (including the documented Codecov-stall workaround), or leave an explanatory comment on a PR that can't be fixed — never abandoning it. Also handles a red `main` branch itself, fired immediately by CI via the routine-fire webhook rather than waiting for the daily sweep. Use whenever the user asks to "fix the red PRs", "unstall the dependency PRs", "check why the Renovate/claude PRs are failing", or "run the red-PR repair sweep" — also the skill a morning scheduled routine (issue #1448, `docs/spec-routine-red-pr-repair.md`) runs unattended every day, and the skill `main.yml`'s `notify-main-ci-red` job fires immediately on a red push-to-main build (issue #1722).
 ---
 
 # Red PR Repair
@@ -12,6 +12,12 @@ session. This closes the other half of #1338's self-healing loop:
 `monitoring-sweep`/`ready-issues-sweep` get a CVE bump or a Ready-column
 issue as far as an open PR — this skill is what keeps that PR from silently
 stalling red overnight with no one watching it.
+
+Issue #1722 added a second, distinct entry point (see "Entry point 2: a red
+`main` branch" below) for `main`'s own tip going red, fired immediately from
+CI rather than discovered on the next scheduled sweep.
+
+## Entry point 1: the PR sweep (default)
 
 ## Scope
 
@@ -164,6 +170,54 @@ question that waits on a response.
    run of this skill — a run that opened the row in step 1 and never reaches
    this step leaves a permanently-open `automated_actions` row, which is its
    own detectable problem (issue #1443).
+
+## Entry point 2: a red `main` branch
+
+Triggered by `.github/workflows/main.yml`'s `notify-main-ci-red` job, which
+POSTs to the existing `/webhooks/grafana-alert` route
+(`api/cmd/api/routines_webhook.go`) the moment any push-to-main build/test/
+deploy job fails — the same inbound webhook Grafana's `routine-fire` contact
+point targets, just triggered directly from CI instead of waiting on
+Prometheus/Grafana's evaluation cycle. `main.yml`'s CI section explains why
+this matters: **`main` deploys without re-testing**, so a red push-to-main
+job is closer in urgency to a production bug than to a red PR sitting
+overnight — the daily 07:00 sweep (Entry point 1) would otherwise be the
+first thing to notice it.
+
+The fired routine's context (from the webhook payload's `text`) names the
+commit SHA, the failing job(s), and the Actions run URL — read that instead
+of re-deriving it from scratch. This entry point is diagnosed exactly like
+Entry point 1's step 3 (Codecov-stall check first, then a determinable fix,
+then a no-fix comment as the last resort) with one structural difference:
+
+- **There is no existing PR or branch to check out.** Create a fresh branch
+  off `origin/main` (`start-task`-style, or `git fetch origin main && git
+  checkout -B fix-main-ci-<short-description> origin/main` if `start-task`
+  isn't available in this session) at the failing commit's tip, make the
+  fix there, and open a **new PR against `main`**, gated by normal CI —
+  never push straight to `main` itself. That hard constraint is unchanged
+  by how urgently this fires: `CLAUDE.md` is explicit that nothing bypasses
+  PR review and CI on `main`. The "immediate" part is starting the
+  diagnosis and getting a fix up for CI sooner, not skipping CI itself.
+- If the Codecov-stall pattern applies here, it doesn't — that failure mode
+  is specific to `ci-pass`, which only runs on `pull_request`/
+  `workflow_dispatch`, never on `push` (`main.yml`'s `ci-pass` job:
+  `if: always() && github.event_name != 'push'`). A red push-to-main job is
+  always a real build/test/deploy failure, not a stuck Codecov check-suite.
+- If no determinable fix exists, leave a comment on a new tracking issue
+  (there's no PR to comment on yet) describing what was investigated and
+  why it couldn't be resolved automatically, same as Entry point 1's
+  no-fix case.
+- **Still call `record_action` yourself, same as Entry point 1's steps 1
+  and 6** — `trigger_source: "webhook"` (distinct from `"schedule"`/
+  `"manual"`, so `get_automated_actions` can tell the two entry points
+  apart), `routine_name: "red-pr-repair"`. This is a separate row from the
+  one `routines.Client.Fire` (`api/internal/routines/client.go`) already
+  opened with `trigger_source: "api"` before POSTing the webhook — that one
+  only tracks whether api's own outbound HTTP call to fire this routine
+  succeeded, not whether the routine's diagnosis itself did. Skipping this
+  session's own open/close call would leave the actual work unrecorded, the
+  same gap issue #1443 exists to catch.
 
 ## Notes
 

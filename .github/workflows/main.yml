@@ -869,3 +869,79 @@ jobs:
                 curl -sf -X DELETE "https://api.hetzner.cloud/v1/images/$id" \
                   -H "Authorization: Bearer $HCLOUD_TOKEN"
               done
+
+  # Issue #1722: main deploys without re-testing (see this file's own header
+  # comment and root CLAUDE.md's CI section), so a red push-to-main build/
+  # test/deploy job is closer in urgency to a production bug than to a red
+  # PR sitting overnight — waiting for the red-pr-repair routine's 07:00
+  # scheduled run (docs/spec-routine-red-pr-repair.md) could mean up to ~7
+  # hours of nobody diagnosing it. `/webhooks/grafana-alert`
+  # (api/cmd/api/routines_webhook.go) is a generic bearer-token-authenticated
+  # endpoint that accepts an Alertmanager-shaped payload and fires a named
+  # routine — nothing about it is Grafana-specific, so this job POSTs to it
+  # directly the moment any push-to-main job fails, skipping Prometheus/
+  # Grafana's scrape-and-evaluate latency entirely for this one signal. This
+  # still can't push straight to main itself (CLAUDE.md is explicit that
+  # nothing does) — it only gets red-pr-repair started diagnosing sooner, so
+  # its fix still lands as a normal PR gated by CI.
+  #
+  # `needs` lists every job that actually runs on a push-to-main event
+  # (everything else here is `pull_request`/`workflow_dispatch`-only) so
+  # `always()` waits for all of them before checking for a failure.
+  notify-main-ci-red:
+    needs:
+      [
+        build-api,
+        build-web,
+        build-grafana,
+        build-kobo-gateway,
+        api-test,
+        web-test,
+        kobo-gateway-test,
+        sentrytools-test,
+        infra-apply,
+        deploy-kamal,
+      ]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      contains(needs.*.result, 'failure')
+    name: Notify red-pr-repair of a red main branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # labels.routine selects the routine routines_webhook.go fires
+      # (red-pr-repair is already a knownRoutines entry, see
+      # api/internal/observability/jobs/issue_signal_collector.go) — same
+      # shape Grafana's own routine-fire contact point posts
+      # (infra/grafana/provisioning/alerting/contactpoints.yml), just built
+      # here instead of evaluated by a Prometheus rule.
+      - name: POST failing-job context to the routine-fire webhook
+        env:
+          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          NEEDS_JSON: ${{ toJson(needs) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          failing_jobs=$(echo "$NEEDS_JSON" | jq -r '
+            to_entries | map(select(.value.result == "failure")) | map(.key) | join(", ")
+          ')
+          payload=$(jq -n \
+            --arg summary "main branch CI is red" \
+            --arg description "Push to main at $COMMIT_SHA failed. Failing job(s): $failing_jobs. Run: $RUN_URL" \
+            --arg url "$RUN_URL" \
+            '{
+              status: "firing",
+              alerts: [{
+                status: "firing",
+                labels: {alertname: "MainCIRed", routine: "red-pr-repair"},
+                annotations: {summary: $summary, description: $description},
+                generatorURL: $url
+              }]
+            }')
+          curl -sf -X POST "https://tools.xdoubleu.com/api/webhooks/grafana-alert" \
+            -H "Authorization: Bearer $ROUTINE_FIRE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload"
