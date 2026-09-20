@@ -30,10 +30,7 @@ var cgnat = netip.MustParsePrefix("100.64.0.0/10") //nolint:gochecknoglobals //c
 // pass cfg.Env != config.ProdEnv, since tests and local development legitimately
 // fetch from httptest servers on loopback.
 func Client(timeout time.Duration, maxRedirects int, allowPrivate bool) *http.Client {
-	dialer := &net.Dialer{ //nolint:exhaustruct //defaults are fine
-		Timeout:   timeout,
-		KeepAlive: 30 * time.Second, //nolint:mnd //net/http's own default
-	}
+	dialer := newDialer(timeout)
 	if !allowPrivate {
 		dialer.Control = control
 	}
@@ -54,6 +51,15 @@ func Client(timeout time.Duration, maxRedirects int, allowPrivate bool) *http.Cl
 			}
 			return nil
 		},
+	}
+}
+
+// newDialer builds the net.Dialer Client wraps, split out so its KeepAlive
+// setting (net/http's own default) is directly unit-testable.
+func newDialer(timeout time.Duration) *net.Dialer {
+	return &net.Dialer{ //nolint:exhaustruct //defaults are fine
+		Timeout:   timeout,
+		KeepAlive: 30 * time.Second, //nolint:mnd //net/http's own default
 	}
 }
 

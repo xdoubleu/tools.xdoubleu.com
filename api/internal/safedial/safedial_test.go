@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -117,15 +118,19 @@ func TestClientBlocksRedirectToLoopback(t *testing.T) {
 }
 
 func TestClientStopsAfterMaxRedirects(t *testing.T) {
+	var requestCount atomic.Int32
+
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
+			requestCount.Add(1)
 			http.Redirect(w, r, srv.URL, http.StatusFound)
 		},
 	))
 	defer srv.Close()
 
-	client := safedial.Client(5*time.Second, 2, true)
+	const maxRedirects = 2
+	client := safedial.Client(5*time.Second, maxRedirects, true)
 
 	req, err := http.NewRequestWithContext(
 		context.Background(), http.MethodGet, srv.URL, nil,
@@ -134,4 +139,7 @@ func TestClientStopsAfterMaxRedirects(t *testing.T) {
 
 	_, err = client.Do(req)
 	require.ErrorContains(t, err, "stopped after 2 redirects")
+	// The client must give up exactly maxRedirects requests in, not one
+	// hop early or late.
+	assert.Equal(t, int32(maxRedirects), requestCount.Load())
 }

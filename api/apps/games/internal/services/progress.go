@@ -78,11 +78,22 @@ func (s *ProgressService) GetCompletionRateDistribution(
 		return nil, nil, err
 	}
 
-	// 11 buckets: [0-9], [10-19], ..., [90-99], [100]
-	const buckets = 11
+	counts, bucketGames := bucketCompletionRates(games)
+	return counts, bucketGames, nil
+}
+
+// distributionBuckets is the fixed bucket count backing both
+// bucketCompletionRates and DistributionLabels: [0-9], [10-19], ..., [90-99],
+// [100].
+const distributionBuckets = 11
+
+// bucketCompletionRates sorts games into completion-rate buckets and orders
+// each bucket by rate, then name. Split out from GetCompletionRateDistribution
+// so the bucketing math is unit-testable without a database.
+func bucketCompletionRates(games []models.Game) ([]int, [][]models.Game) {
 	const maxCompletionRate = 100.0
-	counts := make([]int, buckets)
-	bucketGames := make([][]models.Game, buckets)
+	counts := make([]int, distributionBuckets)
+	bucketGames := make([][]models.Game, distributionBuckets)
 	for i := range bucketGames {
 		bucketGames[i] = []models.Game{}
 	}
@@ -95,9 +106,9 @@ func (s *ProgressService) GetCompletionRateDistribution(
 
 		var bucket int
 		if rate >= maxCompletionRate {
-			bucket = buckets - 1 // last bucket
+			bucket = distributionBuckets - 1 // last bucket
 		} else {
-			bucket = int(math.Floor(rate / (buckets - 1)))
+			bucket = int(math.Floor(rate / (distributionBuckets - 1)))
 		}
 		counts[bucket]++
 		bucketGames[bucket] = append(bucketGames[bucket], game)
@@ -114,7 +125,7 @@ func (s *ProgressService) GetCompletionRateDistribution(
 		})
 	}
 
-	return counts, bucketGames, nil
+	return counts, bucketGames
 }
 
 func DistributionLabels() []string {
