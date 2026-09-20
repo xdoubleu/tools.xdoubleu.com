@@ -55,6 +55,8 @@ make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfl
 make test/cov/report        # coverage report
 make build                  # go build ./cmd/api
 make arch/diagram           # Mermaid package-dependency diagram (godepgraph, auto-installed) → api/package-graph.mmd, not committed
+make test/mutation/diff      # gremlins mutation testing scoped to Go packages changed vs origin/main
+make test/mutation           # gremlins mutation testing, full repo (slow one-time baseline, not routine)
 docker-compose down
 
 # Web (from web/)
@@ -63,6 +65,8 @@ npm test                    # jest
 npm run lint                 # eslint + tsc --noEmit + prettier --check + knip + syncpack
 npm run lint:fix
 npm run build                # required before finishing web tasks, see below
+npm run test:mutation:diff    # StrykerJS mutation testing scoped to TS/TSX files changed vs origin/main
+npm run test:mutation        # StrykerJS mutation testing, full repo (slow one-time baseline, not routine)
 npm run generate             # regenerate lib/gen/ ConnectRPC clients from proto
 
 # Kobo Gateway (from kobo-gateway/, macOS only — cgo + AppKit)

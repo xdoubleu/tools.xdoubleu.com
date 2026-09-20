@@ -75,3 +75,14 @@ Not an option — `golines` enforces the 88-char limit repo-wide.
 
 Go's coverage tooling opens function blocks at the `func` keyword itself, making
 the fixup unnecessary.
+
+## Related: diff-scoped mutation testing (#1632)
+
+`make test/mutation/diff` (api) and `npm run test:mutation:diff` (web) reuse
+this ADR's git-diff-against-`origin/main` mechanism — `diff_coverage_go.py`'s
+and `diff_coverage_ts.py`'s `get_changed_lines` (via new
+`tools/diff_packages_go.py` / `tools/diff_files_ts.py` wrappers) — to scope
+`gremlins`/`StrykerJS` mutation testing to changed packages/files instead of
+changed lines. Coverage percentage alone doesn't prove a new test asserts
+anything meaningful; mutation testing is the complementary check. See
+`docs/convention-feature-review-policy.md`'s automated quality gate.
