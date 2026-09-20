@@ -357,6 +357,20 @@ jobs:
       - name: make lint/conflict-markers
         run: make lint/conflict-markers
 
+  # Unconditional for the same reason as conflict-markers above: a workflow
+  # YAML edit can land alongside any other change, not just one gated by the
+  # `changes` path filter (issue #1791). No build step, cheap to always run.
+  workflow-lint:
+    if: github.event_name != 'push'
+    name: GitHub Actions Workflow Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: make lint/workflows
+        run: make lint/workflows
+
   ci-pass:
     needs:
       [
@@ -375,6 +389,7 @@ jobs:
         kobo-gateway-test,
         sentrytools-test,
         conflict-markers,
+        workflow-lint,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
