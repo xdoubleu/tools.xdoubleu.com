@@ -78,6 +78,7 @@ make build / make dist / make test / make lint/fix
 make lint/infra             # validate infra/prometheus.yml + the OpenTofu config
 make lint/grafana           # static check of the provisioned dashboard JSON
 make grafana/verify         # boot the Grafana image, assert provisioning loads
+make lint/workflows         # validate every .github/workflows/*.yml parses as YAML
 
 # Proto (when any .proto file changes, run BOTH generators)
 cd api && make proto/generate   # regenerates api/gen/

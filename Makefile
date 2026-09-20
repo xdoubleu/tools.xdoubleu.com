@@ -26,3 +26,9 @@ lint/infra:
 # type, not gated by main.yml's path filters like the targets above.
 lint/conflict-markers:
 	./scripts/lint_conflict_markers.sh
+
+# Fail if any .github/workflows/*.yml doesn't parse as YAML (issue #1791) —
+# run unconditionally in CI, not gated by main.yml's path filters, since a
+# workflow edit can land alongside any other change.
+lint/workflows:
+	./scripts/lint_workflows.sh
