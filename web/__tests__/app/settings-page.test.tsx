@@ -82,6 +82,13 @@ describe('SettingsPage', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
+  it('shows the passive analytics/session-recording disclosure with no opt-out', () => {
+    render(<SettingsPage />)
+    expect(
+      screen.getByText('Usage analytics and session recording are enabled to help improve the app.')
+    ).toBeInTheDocument()
+  })
+
   describe('MFA enrollment recovery codes', () => {
     it('shows the recovery codes dialog after enrollment returns codes', async () => {
       mockMFAEnroll.mockResolvedValue({ qrSvg: '<svg></svg>', secret: 'SECRET', factorId: 'f1' })
