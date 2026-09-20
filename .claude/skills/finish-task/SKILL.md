@@ -58,8 +58,46 @@ across the boundary in a plain `lib/` module with no React imports.
 
 Run `ship-pr` for the rebase-on-main → push → open-PR → CI-watch mechanics
 (force-with-lease reasoning, never `--draft`, issue closing-keyword
-requirement, etc. all live there — don't re-derive them here). Give it this
-repo's own auto-merge rule instead of its generic default:
+requirement, etc. all live there — don't re-derive them here). Which
+auto-merge rule to hand it branches first on whether the tracking issue
+carries the `feature` label — check the issue's labels before choosing a
+branch, don't infer it from the diff's shape. See
+[`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)
+for the full rationale behind the two tracks below; this section is just
+the mechanics.
+
+### Branch A — issue is `feature`-labeled: quality gate, then unconditional auto-merge
+
+No human reviews this PR at all, regardless of size or how many of Branch
+B's "larger/architectural" signals it would otherwise trip — skip the
+`## Manual review needed` section entirely on this branch. In its place, an
+automated quality gate stands in for the reviewer. Run all of the following
+and fix everything each one turns up **before opening the PR** — or, if
+something only surfaces after the PR is already open, before enabling
+auto-merge:
+
+1. Run the `code-review` skill against the diff and apply its findings —
+   the same skill a human reviewer would otherwise have been asked to run
+   by hand.
+2. Run the architecture-boundary lints for whichever side changed: `cd api
+   && make lint` (Go `depguard` app-isolation rules) and/or `cd web && npm
+   run lint` (`dependency-cruiser` server/client and route-segregation
+   rules). Fix every violation.
+3. Regenerate the dependency diagrams for whichever side changed: `cd api
+   && make arch/diagram` and/or `cd web && npm run arch:diagram`. These
+   feed the Slack summary in step 6a below.
+4. Run the diff-scoped mutation-testing targets for whichever side
+   changed: `cd api && make test/mutation/diff` and/or `cd web && npm run
+   test:mutation:diff`. Kill every surviving mutant the run reports — a
+   passing coverage percentage alone doesn't prove a new test asserts
+   anything, and nothing else in this pipeline checks that once no human
+   reads the diff.
+
+Once the gate is clean, tell `ship-pr` to enable auto-merge unconditionally
+— its own Step 2 already covers doing this in the same breath as creating
+the PR.
+
+### Branch B — issue is not `feature`-labeled: the existing tiered rule, unchanged
 
 - **Small, code-only changes** — no `CLAUDE.md`, Makefile/npm-script, lint
   config, CI workflow, or script edits, AND none of the "larger/architectural"
@@ -160,6 +198,32 @@ permalinks" heading. For each one found, mark it resolved with the
 `resolve_sentry_issue` MCP tool (`issue_id` = the numeric id from the
 permalink). Closing the GitHub issue does not resolve Sentry on its own —
 this step is easy to forget and was missed for issues #770 and #775.
+
+## 6a. Feature epic completion: the Slack summary
+
+Only applies when the tracking issue just merged is `feature`-labeled (see
+step 4's Branch A) **and** has a parent issue. Once `ship-pr` reports the
+PR merged, check whether any other sub-issues under that same parent are
+still open — via the project board, or the parent issue's own sub-issue
+listing (`sub_issue_write`/`issue_read`'s `get_sub_issues`). If at least one
+sibling is still open, stop here: nothing more to do until the last one
+closes.
+
+If none are still open — this was the last sub-issue of the feature epic —
+call the `notify_slack` MCP tool (`message` required, `title` optional)
+with a summary covering: what was built across the epic, the key design
+decisions (pull these from the sub-issues' own PRs/commits, not just this
+one), and how to try it. Include the two generated Mermaid diagrams from
+step 4's Branch A (`make arch/diagram` / `npm run arch:diagram` output) when
+they're available for this epic's changes.
+
+This is a **completion** checkpoint, distinct from `refine-feature`'s
+checkpoint at the *start* of a feature epic (the exhaustive grilling
+interview during issue refinement, before any code is written). The two
+never overlap: `refine-feature` never sends a Slack message, and this step
+never re-runs a grilling interview. The summary is sent exactly once per
+epic, by `finish-task`, when the last sibling sub-issue closes — never
+per-sub-issue-PR, and never re-sent by any other skill.
 
 ## 7. Run the session retro
 
