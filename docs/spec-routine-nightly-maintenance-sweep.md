@@ -76,7 +76,11 @@ and security-alert state — cluster into independent workstreams, and
 dispatch one subagent per workstream. Each subagent should root-cause its
 problem and file or update one refined GitHub tracking issue describing
 the root cause and a concrete suggested fix — never write a code fix,
-never open a PR, never create a branch. When a signal can't be judged for
+never open a PR, never create a branch. Always label the filed/updated
+issue `bug` in addition to any topic/scope labels — ready-issues-executor
+only picks up `bug`-labeled Ready-column issues, so an issue filed without
+that label sits forever with nobody fixing it or noticing (#1767). When a
+signal can't be judged for
 lack of context, or looks like a false positive, file or update an issue
 proposing a concrete infra/grafana/provisioning/alerting/rules.yml change
 (threshold, added label, richer annotation) instead of silently skipping
