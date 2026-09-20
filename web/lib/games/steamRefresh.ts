@@ -1,5 +1,5 @@
 import { useRefreshSteam } from '@/hooks/useGames'
-import { useProgressSocket } from '@/lib/progressSocket'
+import { useProgressSocket } from '@/hooks/useProgressSocket'
 
 export interface SteamRefreshState {
   connected: boolean

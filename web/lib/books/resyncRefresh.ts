@@ -1,5 +1,5 @@
 import { useStartResync } from '@/hooks/useBooks'
-import { useProgressSocket, type ProgressState } from '@/lib/progressSocket'
+import { useProgressSocket, type ProgressState } from '@/hooks/useProgressSocket'
 
 export type ResyncRefreshState = ProgressState
 

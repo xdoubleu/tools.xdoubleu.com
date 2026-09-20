@@ -4,7 +4,7 @@ jest.mock('@/lib/env', () => ({
   getApiUrl: jest.fn(() => 'https://api.test')
 }))
 
-import { useJourneyLive } from '@/lib/trains/journeySocket'
+import { useJourneyLive } from '@/hooks/useJourneySocket'
 import { getApiUrl } from '@/lib/env'
 
 const mockGetApiUrl = jest.mocked(getApiUrl)
