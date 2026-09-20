@@ -115,9 +115,13 @@ building one would duplicate a read surface PostHog already exposes.
    - **Scope**: whichever app the flow belongs to (`reading`, `games`,
      `recipes`, `mealplans`, `shoppinglist`) when unambiguous, else
      `platform` (the config's own fallback).
-   - **Priority**: P2 — these are proposals for existing-but-imperfect
-     flows, not something actively broken (a broken flow is
-     `monitoring-sweep`'s territory, P0/P1).
+   - **Priority**: follow `refine-issue`'s own P0/P1/P2 rule (defined in
+     `.claude/github-triage.config.json`'s `priorityRule`) rather than
+     hardcoding one here, the same way `sentry-triage` defers to it — a
+     finding on an already-shipped, working flow ordinarily lands P1
+     ("improves existing, working functionality"); reserve P0 for the rare
+     case a finding reveals something actually broken, not just suboptimal
+     (that's usually `monitoring-sweep`'s territory instead).
 
 6. **Close the run record.** Call `record_action(mode: "close", id: <the id
    from step 0>, outcome: ...)` — `"no_action_needed"` if no threshold was

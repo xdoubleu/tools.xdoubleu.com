@@ -22,9 +22,13 @@ import sys
 THRESHOLD = 80
 MODULE_PREFIX = 'tools.xdoubleu.com/'
 
-# Coverage.out itself already excludes _mock.go and /gen/ (see
-# api/Makefile's test/cov/report), so nothing extra to filter there beyond
-# skipping test files, which are never instrumented as coverage targets.
+# coverage.out itself already excludes _mock.go and /gen/ (see api/Makefile's
+# test/cov/report), but is_relevant() below filters them too -- it's also
+# reused by diff_packages_go.py, which reads the raw git diff directly
+# rather than a pre-filtered coverage.out, so without this a generated
+# proto file changed alongside real source (any RPC field addition) gets
+# handed to `gremlins unleash`, which can't gather coverage on the gen/
+# package at all.
 
 
 def run_git(args, cwd):
@@ -35,7 +39,11 @@ def run_git(args, cwd):
 
 
 def is_relevant(path):
-    return path.endswith('.go') and not path.endswith('_test.go')
+    if not path.endswith('.go') or path.endswith('_test.go'):
+        return False
+    if path.endswith('_mock.go') or '/gen/' in path or path.startswith('gen/'):
+        return False
+    return True
 
 
 # ALL_LINES marks a file whose every instrumented line counts as changed --

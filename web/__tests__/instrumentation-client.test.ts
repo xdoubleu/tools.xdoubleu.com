@@ -40,10 +40,12 @@ describe('instrumentation-client', () => {
 
     require('../instrumentation-client')
 
-    expect(mockPostHogInit).toHaveBeenCalledWith(
-      'phc_abc123',
-      expect.objectContaining({ api_host: 'https://eu.i.posthog.com' })
-    )
+    expect(mockPostHogInit).toHaveBeenCalledWith('phc_abc123', {
+      api_host: 'https://eu.i.posthog.com',
+      person_profiles: 'identified_only',
+      capture_pageview: true,
+      capture_pageleave: true
+    })
   })
 
   it('skips PostHog initialization when no key is configured', () => {

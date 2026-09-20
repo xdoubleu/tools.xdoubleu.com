@@ -61,6 +61,36 @@ describe('SWRProvider', () => {
     expect(posthog.identify).not.toHaveBeenCalled()
   })
 
+  it('re-identifies when the current user id changes', () => {
+    const userA = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-a'
+    })
+    const userB = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-b'
+    })
+
+    const { rerender } = render(
+      <SWRProvider currentUser={userA}>
+        <Probe />
+      </SWRProvider>
+    )
+    expect(posthog.identify).toHaveBeenCalledWith('user-a')
+
+    jest.mocked(posthog.get_distinct_id).mockReturnValue('user-a')
+    rerender(
+      <SWRProvider currentUser={userB}>
+        <Probe />
+      </SWRProvider>
+    )
+    expect(posthog.identify).toHaveBeenCalledWith('user-b')
+  })
+
   it('does not identify when there is no current user', () => {
     render(
       <SWRProvider currentUser={null}>
