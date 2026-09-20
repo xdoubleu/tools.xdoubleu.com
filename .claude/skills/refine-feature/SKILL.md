@@ -45,6 +45,16 @@ slice is in the first cut. Anything a careful reader of the codebase would
 answer the same way, decide yourself and record it in the parent's
 `## Decisions` section so it can be argued with later.
 
+**For feature-track work (the `feature` label, see step 5), this grilling
+round is the *only* pre-merge checkpoint the user gets.** Every PR that
+lands under a feature epic auto-merges without further human review
+([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)) —
+there is no reviewer downstream to catch a decision that was glossed over
+here. Run the interview accordingly: genuinely exhaustive, not a formality
+to get past before writing issues. A choice left unresolved at this step
+doesn't get a second look later; it ships as whatever the sub-issue's
+implementer happened to assume.
+
 ## 3. Write the parent issue
 
 Match the house style of a refined issue here (see #1380 for the shape):
@@ -89,12 +99,26 @@ Create the parent first, then each child with `parent_issue_number` set (or
 attach afterwards with `sub_issue_write`). Run every issue through
 `refine-issue` for labels/Priority/Status so nothing lands off the board.
 
+**Apply the `feature` label to the parent and to every sub-issue this skill
+produces.** This is what `finish-task` reads back to pick the no-review,
+auto-merging pipeline over the maintenance track's tiered rule
+([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md))
+— a sub-issue that's missing the label falls through to the maintenance
+track by default, which is the wrong pipeline for feature work, not a safe
+fallback. Add it alongside whatever labels `refine-issue` assigns; it never
+substitutes for `refine-issue`'s own label/Priority/Status pass.
+
 Note the known limitation from root `CLAUDE.md` (issue #1357): this board is
 a **personal** project, so `list_issue_fields`/`field_filters` don't resolve
 its fields. Board columns are read via `get_project_issues_by_status`; if no
 tool in this session can *write* the board fields, say so plainly and leave
 the user the one manual step, rather than reporting the issues as fully
 triaged.
+
+**Note:** this skill's job ends at the issue tree. `finish-task` — not
+`refine-feature` — is what posts the end-of-epic Slack summary, once every
+sub-issue under a feature epic has merged. Don't add a Slack step here; the
+two skills would drift on whose job it is.
 
 ## 6. Close the loop
 
