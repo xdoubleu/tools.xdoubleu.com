@@ -239,7 +239,7 @@ func renderFullPage(
 	defer renderResp.Cleanup()
 
 	var buf bytes.Buffer
-	if err = png.Encode(&buf, renderResp.Result.Image); err != nil {
+	if err = png.Encode(&buf, renderResp.Result.RenderedImage); err != nil {
 		return "", fmt.Errorf("encode full page png: %w", err)
 	}
 
