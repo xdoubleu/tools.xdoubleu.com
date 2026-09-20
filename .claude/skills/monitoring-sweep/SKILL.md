@@ -176,6 +176,15 @@ have each drive its own outcome independently.
      workstream — root cause, evidence gathered, and a concrete suggested
      fix, detailed enough that #1447's later execution pass doesn't have to
      re-investigate from scratch. Do not create a branch, do not open a PR.
+     **Always include the `bug` label** (from
+     `.claude/github-triage.config.json`'s type taxonomy) alongside whatever
+     topic/scope labels apply — every workstream this skill investigates is,
+     by definition, something already working that's now broken, matching
+     the board's own P0/`bug` framing (`priorityRule`). Skipping this label
+     means the issue sits in Ready forever: `ready-issues-executor` (#1744)
+     filters to `bug`-labeled issues only and silently skips anything else,
+     with no human ever seeing the skip (#1767 is the tracking issue for the
+     first time this bit a batch of performance-regression findings).
    - Close the loop on the monitoring page's own *signal* data, in both
      modes, via whichever mutating tool applies — `resolve_sentry_issue` for
      Sentry (interactive mode: only after the fix is confirmed correct, not
