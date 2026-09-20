@@ -116,7 +116,7 @@ export default [
     }
   },
   {
-    files: ['*.config.js'],
+    files: ['*.config.js', '.dependency-cruiser.js'],
     languageOptions: {
       sourceType: 'commonjs',
       globals: {
