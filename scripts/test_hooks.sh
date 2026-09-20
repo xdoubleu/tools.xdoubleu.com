@@ -317,9 +317,27 @@ fi
 out=$(run_editguard "$(jq -n --arg cwd "$wt" '{cwd:$cwd, tool_input:{file_path:"/tmp/scratch.txt"}}')")
 [ -z "$out" ] && pass "edit outside the repo entirely is silent" || fail "edit outside the repo entirely is silent" "$out"
 
-# case: cwd not under .claude/worktrees/ (no worktree in play) never fires
+# case: cwd not under .claude/worktrees/ and not even a repo never fires
 out=$(run_editguard "$(jq -n '{cwd:"/tmp/not-a-worktree", tool_input:{file_path:"/tmp/not-a-worktree/x.md"}}')")
-[ -z "$out" ] && pass "edit guard silent outside a worktree session" || fail "edit guard silent outside a worktree session" "$out"
+[ -z "$out" ] && pass "edit guard silent outside any repo" || fail "edit guard silent outside any repo" "$out"
+
+# case: cwd is the main checkout of a real repo (never entered a worktree
+# at all this session) -- the actual incident this guards against
+main_repo="$WORK/main-checkout"
+mkdir -p "$main_repo"
+git init -q -b main "$main_repo"
+git -C "$main_repo" config user.email test@example.com
+git -C "$main_repo" config user.name test
+echo x > "$main_repo/f.txt"
+git -C "$main_repo" add f.txt
+git -C "$main_repo" commit -q -m init
+
+out=$(run_editguard "$(jq -n --arg cwd "$main_repo" --arg fp "$main_repo/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
+  pass "edit in the main checkout of a repo, never having entered a worktree -> denied"
+else
+  fail "edit in the main checkout of a repo, never having entered a worktree -> denied" "$out"
+fi
 
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
