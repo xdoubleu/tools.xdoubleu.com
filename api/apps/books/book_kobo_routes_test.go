@@ -695,6 +695,87 @@ func TestKoboLibrarySync_RevisionChanged_UsesChangedEntitlement(t *testing.T) {
 		"a subsequent unchanged sync must return to NewEntitlement")
 }
 
+// TestKoboBackfillLastSyncedRevision_ThenRevisionChanges_UsesChangedEntitlement
+// covers issue #1734 reopened: migration 00016 added kobo_last_synced_revision
+// as NULL on every existing row, including books that were already
+// kobo-sync-enabled — and therefore already present on the device — before
+// the column existed. koboLibrarySyncHandler reads NULL/"" as "never synced",
+// so without a backfill, that book's very next revision change (a KEPUB
+// regeneration) is answered with NewEntitlement, duplicating it on-device
+// instead of replacing it — reproducing the exact bug #1756 was meant to fix.
+// Migration 00017 backfills those pre-existing rows to their current revision
+// so the handler recognises them as already synced; this test runs that same
+// backfill query (rather than relying on goose, which only runs each
+// migration once, before this test's data exists) against a book left in
+// that pre-backfill state, then asserts the next revision bump correctly
+// produces ChangedEntitlement.
+func TestKoboBackfillLastSyncedRevision_ThenRevisionChanges_UsesChangedEntitlement(
+	t *testing.T,
+) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	owner := "kobo-sync-backfill-" + uuid.NewString()
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	// setupKoboSyncBook enables kobo-sync without ever syncing, which is
+	// exactly the pre-00016 state: kobo_sync_enabled_at set,
+	// kobo_last_synced_revision NULL. Run migration 00018's backfill query
+	// directly against it.
+	_, err := testDB.Exec(context.Background(),
+		`UPDATE books.user_books ub
+		 SET kobo_last_synced_revision = ub.book_id::text || '-v' || bf.converter_version
+		 FROM books.book_files bf
+		 WHERE bf.book_id = ub.book_id
+		   AND bf.user_id = ub.user_id
+		   AND bf.status = 'ready'
+		   AND bf.format = CASE
+		       WHEN 'kobo-format-pdf' = ANY(ub.tags) THEN 'pdf'
+		       ELSE 'kepub'
+		   END
+		   AND ub.kobo_sync_enabled_at IS NOT NULL
+		   AND ub.kobo_last_synced_revision IS NULL`,
+	)
+	require.NoError(t, err)
+
+	var backfilled string
+	require.NoError(t, testDB.QueryRow(context.Background(),
+		`SELECT kobo_last_synced_revision FROM books.user_books
+		 WHERE book_id = $1 AND user_id = $2`,
+		bookID, owner,
+	).Scan(&backfilled))
+	assert.NotEmpty(t, backfilled,
+		"backfill must stamp an already-enabled book's current revision")
+
+	// Bump the KEPUB row's converter_version to simulate a regenerated EPUB.
+	_, err = testDB.Exec(context.Background(),
+		`UPDATE books.book_files SET converter_version = converter_version + 1
+		 WHERE book_id = $1 AND user_id = $2 AND format = 'kepub'`,
+		bookID, owner,
+	)
+	require.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(
+		koboReq(t, http.MethodGet, koboURL(ts, rawToken, "/v1/library/sync"), nil),
+	)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	var entries []map[string]any
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&entries))
+	require.Len(t, entries, 1)
+
+	_, isNew := entries[0]["NewEntitlement"]
+	assert.False(t, isNew,
+		"a backfilled, already-on-device book must not resync as NewEntitlement")
+
+	ce, ok := entries[0]["ChangedEntitlement"].(map[string]any)
+	require.True(t, ok, "a changed revision must be wrapped in ChangedEntitlement")
+	entitlement, ok := ce["BookEntitlement"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, bookID.String(), entitlement["Id"])
+}
+
 // --- Cross-user isolation ---
 
 func TestKoboLibrarySync_UserACannotSeeUserBBooks(t *testing.T) {
