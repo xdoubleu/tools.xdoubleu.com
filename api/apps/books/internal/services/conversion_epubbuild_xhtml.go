@@ -27,24 +27,79 @@ var disallowedElements = map[string]struct{}{
 	"form":   {},
 }
 
+// tocEntry is one chapter-level entry in the generated nav.xhtml TOC: an
+// <h1> in the article body, identified by an anchor id assigned by
+// assignHeadingIDs.
+type tocEntry struct {
+	ID    string
+	Title string
+}
+
 // buildArticleXHTML parses htmlBytes, sanitizes the tree in place, collects
 // the images it references (already downloaded as siblings of the source
-// file by localizeImages), and serializes the result as XHTML.
+// file by localizeImages), assigns anchor ids to every <h1> for the nav
+// document's TOC, and serializes the result as XHTML.
 func buildArticleXHTML(
 	htmlBytes []byte, imgDir string,
-) (string, []epubImage, error) {
+) (string, []epubImage, []tocEntry, error) {
 	root, err := xhtml.Parse(bytes.NewReader(htmlBytes))
 	if err != nil {
-		return "", nil, fmt.Errorf("parse input html: %w", err)
+		return "", nil, nil, fmt.Errorf("parse input html: %w", err)
 	}
 
 	images := sanitizeAndCollectImages(root, imgDir)
+	toc := assignHeadingIDs(root)
 
 	doc, err := renderXHTMLDocument(root)
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
-	return doc, images, nil
+	return doc, images, toc, nil
+}
+
+// assignHeadingIDs walks the article body, giving every <h1> an anchor id
+// ("heading-N") and returning the ordered list of chapter entries for the
+// nav document's TOC — without this, nav.xhtml had no way to link to any
+// chapter, only the book as a whole (issue #1698).
+func assignHeadingIDs(root *xhtml.Node) []tocEntry {
+	var entries []tocEntry
+	count := 0
+
+	var walk func(*xhtml.Node)
+	walk = func(n *xhtml.Node) {
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			if child.Type == xhtml.ElementNode && child.Data == "h1" {
+				id := fmt.Sprintf("heading-%d", count)
+				count++
+				setAttr(child, "id", id)
+				entries = append(
+					entries, tocEntry{ID: id, Title: textContent(child)},
+				)
+			}
+			walk(child)
+		}
+	}
+	walk(root)
+
+	return entries
+}
+
+// textContent concatenates all text descendant nodes of n, e.g. to recover
+// a heading's plain-text title for use outside the article body (the nav
+// document link text).
+func textContent(n *xhtml.Node) string {
+	var b strings.Builder
+	var walk func(*xhtml.Node)
+	walk = func(n *xhtml.Node) {
+		if n.Type == xhtml.TextNode {
+			b.WriteString(n.Data)
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(n)
+	return b.String()
 }
 
 // sanitizeAndCollectImages walks the parsed document, removing disallowed

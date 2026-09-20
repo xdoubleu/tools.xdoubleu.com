@@ -61,7 +61,7 @@ func goHTMLConverter(
 	}
 
 	imgDir := filepath.Dir(inPath)
-	indexXHTML, images, err := buildArticleXHTML(htmlBytes, imgDir)
+	indexXHTML, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func goHTMLConverter(
 	}
 	defer func() { _ = out.Close() }()
 
-	if err = writeEPUBZip(out, meta, images, indexXHTML, imgDir); err != nil {
+	if err = writeEPUBZip(out, meta, images, toc, indexXHTML, imgDir); err != nil {
 		return fmt.Errorf("write epub zip: %w", err)
 	}
 	return nil
@@ -85,6 +85,7 @@ func writeEPUBZip(
 	w io.Writer,
 	meta ArticleMeta,
 	images []epubImage,
+	toc []tocEntry,
 	indexXHTML, imgDir string,
 ) error {
 	zw := zip.NewWriter(w)
@@ -103,7 +104,7 @@ func writeEPUBZip(
 		return err
 	}
 	if err := writeEntry(
-		zw, "OEBPS/nav.xhtml", buildNavXHTML(meta.Title),
+		zw, "OEBPS/nav.xhtml", buildNavXHTML(meta.Title, toc),
 	); err != nil {
 		return err
 	}
@@ -223,7 +224,11 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 	return b.String()
 }
 
-func buildNavXHTML(title string) string {
+// buildNavXHTML renders the EPUB nav document's TOC as one chapter link per
+// toc entry (assignHeadingIDs), falling back to a single link to the whole
+// book when the article has no <h1> headings at all (e.g. a short feed
+// article) — see issue #1698, which the single-link case predates.
+func buildNavXHTML(title string, toc []tocEntry) string {
 	escaped := escapeXMLText(title)
 
 	var b strings.Builder
@@ -237,9 +242,18 @@ func buildNavXHTML(title string) string {
 	b.WriteString("<body>\n")
 	b.WriteString(`  <nav epub:type="toc" id="toc">` + "\n")
 	b.WriteString("    <ol>\n")
-	b.WriteString(
-		`      <li><a href="index.xhtml">` + escaped + "</a></li>\n",
-	)
+	if len(toc) == 0 {
+		b.WriteString(
+			`      <li><a href="index.xhtml">` + escaped + "</a></li>\n",
+		)
+	} else {
+		for _, entry := range toc {
+			b.WriteString(
+				`      <li><a href="index.xhtml#` + entry.ID + `">` +
+					escapeXMLText(entry.Title) + "</a></li>\n",
+			)
+		}
+	}
 	b.WriteString("    </ol>\n")
 	b.WriteString("  </nav>\n")
 	b.WriteString("</body>\n")
