@@ -648,6 +648,11 @@ jobs:
           # Bearer token for issue #1444's routine-fire path — see
           # config/deploy.api.yml.
           ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          # Slack Incoming Webhook URL the notify_slack MCP tool posts
+          # epic-complete summaries to (issue #1628) — see
+          # config/deploy.api.yml. Distinct from GRAFANA_SLACK_WEBHOOK_URL
+          # below, Grafana's own alerting secret.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Grafana (issue #1468) — the third Kamal service on this host,

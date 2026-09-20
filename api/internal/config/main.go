@@ -144,6 +144,14 @@ type Config struct {
 	// the inbound webhook (every request is rejected) the same way
 	// ObservabilityIngestSecret disables its endpoint above.
 	RoutineFireToken string
+
+	// SlackWebhookURL is a Slack Incoming Webhook URL used by the
+	// notify_slack MCP tool (internal/slackwebhook, issue #1628) to post
+	// epic-complete summaries. Deliberately separate from
+	// GRAFANA_SLACK_WEBHOOK_URL, which is a distinct app-deploy-scoped
+	// secret Grafana's own alerting uses. Empty disables the tool (every
+	// call returns slackwebhook.ErrNotConfigured).
+	SlackWebhookURL string
 }
 
 // parser extracts environment variables and parses them to the right type.
@@ -330,6 +338,8 @@ func New(logger *slog.Logger) Config {
 		"ROUTINE_FIRE_URL", "https://api.anthropic.com/api/routines",
 	)
 	cfg.RoutineFireToken = p.envSecret("ROUTINE_FIRE_TOKEN", "")
+
+	cfg.SlackWebhookURL = p.envSecret("SLACK_WEBHOOK_URL", "")
 
 	return cfg
 }

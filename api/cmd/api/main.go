@@ -35,6 +35,7 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 	"tools.xdoubleu.com/internal/routines"
 	"tools.xdoubleu.com/internal/sentryapi"
+	"tools.xdoubleu.com/internal/slackwebhook"
 	"tools.xdoubleu.com/sentrytools"
 )
 
@@ -66,6 +67,7 @@ type Application struct {
 	notificationSettingsRepo      *repositories.NotificationSettingsRepository
 	githubClient                  github.Client
 	sentryClient                  sentryapi.Client
+	slackClient                   slackwebhook.Client
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
@@ -428,6 +430,8 @@ func NewApplication(
 
 	logsRepo := repositories.NewLogsRepository(db)
 
+	slackClient := slackwebhook.New(config.SlackWebhookURL)
+
 	routinesClient := routines.NewClient(
 		config.RoutineFireURL, config.RoutineFireToken, automatedActionsRepo,
 	)
@@ -458,6 +462,7 @@ func NewApplication(
 		oauthState:                    oauthconn.NewStateStore(),
 		githubClient:                  githubClient,
 		sentryClient:                  sentryClient,
+		slackClient:                   slackClient,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
