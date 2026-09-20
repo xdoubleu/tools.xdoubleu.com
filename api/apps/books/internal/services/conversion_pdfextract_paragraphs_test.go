@@ -104,3 +104,32 @@ func TestFinalizeHeadings_ZeroModalHeight(t *testing.T) {
 	finalizeHeadings(blocks, 0)
 	assert.Equal(t, "p", blocks[0].tag)
 }
+
+// TestFinalizeHeadings_DemotesLowercaseStartCandidate reproduces issue
+// #1698's marginal-pull-quote/mid-sentence false positives: a height-ratio
+// heading candidate whose text starts with a lowercase letter (never true of
+// a real title) must be demoted to "p", while an isolated, properly
+// capitalized heading of the same size stays a heading.
+func TestFinalizeHeadings_DemotesLowercaseStartCandidate(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Chapter One: Systems Thinking", modal*1.5), // real heading
+		textBlock("Body paragraph one of the chapter.", modal),
+		textBlock(
+			"reinforcing loop", // marginal pull-quote fragment
+			modal*1.5,
+		),
+		textBlock("Body paragraph two of the chapter.", modal),
+		textBlock(
+			"which is why the system oscillates", // run-on fragment
+			modal*1.2,
+		),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag, "real heading must stay a heading")
+	assert.Equal(t, "p", blocks[2].tag, "lowercase-start candidate must be demoted")
+	assert.Equal(t, "p", blocks[4].tag, "lowercase-start candidate must be demoted")
+}

@@ -217,7 +217,11 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 // such lists were misclassified as headings roughly two orders of magnitude
 // more often than real chapter/section boundaries occur (issue #1654). A
 // non-paragraph block (e.g. an image) breaks a run, since it can't itself be
-// a citation-list entry.
+// a citation-list entry. A candidate whose text starts with a lowercase
+// letter is demoted to "p" outright, since a real title/heading never starts
+// mid-sentence — this catches large-font marginal pull-quote words and
+// run-on paragraph fragments that the height ratio alone misclassifies
+// (issue #1698).
 func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	tags := make([]string, len(blocks))
 	for i, b := range blocks {
@@ -225,6 +229,9 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 			continue
 		}
 		tags[i] = headingCandidateTag(b.medHeight, docModalCharHeight)
+		if tags[i] != "p" && startsLowercase(b.text) {
+			tags[i] = "p"
+		}
 	}
 
 	demoteHeadingRuns(blocks, tags)
@@ -254,6 +261,14 @@ func headingCandidateTag(medHeight, docModalCharHeight float64) string {
 	default:
 		return "p"
 	}
+}
+
+// startsLowercase reports whether text's first rune is a lowercase letter.
+// Text with no leading letter (empty, or starting with punctuation/digits)
+// is not considered lowercase-started.
+func startsLowercase(text string) bool {
+	r, _ := utf8.DecodeRuneInString(text)
+	return r != utf8.RuneError && unicode.IsLower(r)
 }
 
 // demoteHeadingRuns rewrites tags in place, flattening any run of 2+
