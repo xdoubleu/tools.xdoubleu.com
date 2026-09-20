@@ -20,12 +20,13 @@ import (
 // deliberate exception: learningpaths' create_path/update_path/
 // record_progress tools mutate, since agent-authored curricula is that app's
 // core use case → docs/adr-0023-learningpaths-mcp-write-tools.md. The
-// observability tools have their own three mutating exceptions,
+// observability tools have their own four mutating exceptions,
 // resolve_sentry_issue (closes out a Sentry issue an agent just filed a fix
 // for), dismiss_security_alert (dismisses/resolves a GitHub
-// Dependabot/code-scanning/secret-scanning alert), and record_action (opens
+// Dependabot/code-scanning/secret-scanning alert), record_action (opens
 // or closes a global.automated_actions run record for a self-healing
-// routine, issue #1441), all admin-gated. Every
+// routine, issue #1441), and notify_slack (posts a summary to a configured
+// Slack Incoming Webhook, issue #1628), all admin-gated. Every
 // tool reuses the same OAuth 2.1 resource-server plumbing: the api is both
 // the resource server and, via the embedded internal/oauth2as provider
 // (issue #1039), the authorization server — no external Auth provider
@@ -91,6 +92,14 @@ type recordActionArgs struct {
 	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
 }
 
+// notifySlackArgs is the input for notify_slack — the fourth mutating
+// observability tool. Message is the summary body; Title, when given, is
+// bolded on its own line above it.
+type notifySlackArgs struct {
+	Message string `json:"message"         jsonschema:"the summary to post to Slack"`
+	Title   string `json:"title,omitempty" jsonschema:"optional bolded title line"`
+}
+
 // projectIssuesByStatusArgs is the input for get_project_issues_by_status.
 type projectIssuesByStatusArgs struct {
 	ProjectNumber int32  `json:"project_number,omitempty" jsonschema:"board number"`
@@ -139,9 +148,9 @@ func (app *Application) appsMCPHandler() http.Handler {
 
 // newAppsMCPServer builds one MCP server: every app that implements
 // MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (19 tools, which include the three mutating
-// tools, resolve_sentry_issue, dismiss_security_alert, and record_action —
-// see registerObservabilityMCPTools).
+// tools registered directly below (20 tools, which include the four mutating
+// tools, resolve_sentry_issue, dismiss_security_alert, record_action, and
+// notify_slack — see registerObservabilityMCPTools).
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -159,10 +168,10 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 19 admin observability tools —
-// 16 read-only plus the three deliberate mutations, resolve_sentry_issue,
-// dismiss_security_alert, and record_action. Every tool but prom_query and
-// get_grafana_alerts
+// registerObservabilityMCPTools registers the 20 admin observability tools —
+// 16 read-only plus the four deliberate mutations, resolve_sentry_issue,
+// dismiss_security_alert, record_action, and notify_slack. Every tool but
+// prom_query and get_grafana_alerts
 // wraps a shared internal ObservabilityService method also used by the
 // Connect handlers; those two (issues #1468, #1564) instead proxy straight
 // to Prometheus's / Grafana's own HTTP API, since their response shapes
@@ -245,21 +254,23 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	registerAlertMCPTools(srv, h)
 }
 
-// registerMutatingObservabilityMCPTools registers the three deliberate
-// mutations, resolve_sentry_issue, dismiss_security_alert, and
-// record_action, split out of registerObservabilityMCPTools to keep that
+// registerMutatingObservabilityMCPTools registers the four deliberate
+// mutations, resolve_sentry_issue, dismiss_security_alert, record_action,
+// and notify_slack, split out of registerObservabilityMCPTools to keep that
 // function under the repo's function-length lint limit.
 func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved. One of three mutating observability "+
-			"tools, alongside dismiss_security_alert and record_action.",
+		"Marks a Sentry issue as resolved. One of four mutating observability "+
+			"tools, alongside dismiss_security_alert, record_action, and "+
+			"notify_slack.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
 	addObsTool(srv, "dismiss_security_alert",
 		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
-			"secret-scanning security alert. One of three mutating observability "+
-			"tools, alongside resolve_sentry_issue and record_action.",
+			"secret-scanning security alert. One of four mutating observability "+
+			"tools, alongside resolve_sentry_issue, record_action, and "+
+			"notify_slack.",
 		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
 			return h.dismissSecurityAlert(
 				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
@@ -270,10 +281,19 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 			"(global.automated_actions) — a routine calls this with mode=open "+
 			"as its first step and mode=close as its last, since it executes "+
 			"outside api's own process and nothing else observes it running. "+
-			"The other mutating observability tools, alongside "+
-			"resolve_sentry_issue and dismiss_security_alert.",
+			"One of four mutating observability tools, alongside "+
+			"resolve_sentry_issue, dismiss_security_alert, and notify_slack.",
 		func(ctx context.Context, a recordActionArgs) (proto.Message, error) {
 			return h.recordAction(ctx, a)
+		})
+	addObsTool(srv, "notify_slack",
+		"Posts a summary to a configured Slack Incoming Webhook — used to "+
+			"announce an epic-complete summary from either a local Claude Code "+
+			"session or Claude Code on the web, since the send happens "+
+			"server-side. One of four mutating observability tools, alongside "+
+			"resolve_sentry_issue, dismiss_security_alert, and record_action.",
+		func(ctx context.Context, a notifySlackArgs) (proto.Message, error) {
+			return h.notifySlack(ctx, a.Title, a.Message)
 		})
 }
 

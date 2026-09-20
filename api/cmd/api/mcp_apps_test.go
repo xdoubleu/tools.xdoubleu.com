@@ -57,7 +57,7 @@ var appsToolNames = []string{
 	"learningpaths_list_paths", "learningpaths_get_path",
 	"learningpaths_get_progress", "learningpaths_create_path",
 	"learningpaths_update_path", "learningpaths_record_progress",
-	// observability (19, admin-gated)
+	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
 	"get_failing_pull_requests", "get_workflow_runs",
@@ -65,7 +65,7 @@ var appsToolNames = []string{
 	"get_sentry_issues", "resolve_sentry_issue", "get_logs",
 	"get_slow_transactions", "prom_query", "get_grafana_alerts",
 	"get_oauth_connections", "get_notification_settings",
-	"get_project_issues_by_status",
+	"get_project_issues_by_status", "notify_slack",
 }
 
 // appsNetworkTools reach out to external providers, so the call tests skip them
@@ -326,6 +326,7 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 			"alert_number": 1,
 			"reason":       "not_used",
 		},
+		"notify_slack": map[string]any{"message": "test summary"},
 	}
 
 	session := appsMCPSession(t, accessToken.Value)

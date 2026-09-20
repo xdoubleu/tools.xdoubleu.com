@@ -572,6 +572,15 @@ ROUTINE_FIRE_TOKEN           (bearer token for issue #1444's routine-fire
                               inbound webhook directly from CI the moment a
                               push-to-main job fails, without waiting on
                               Grafana/Prometheus's evaluation cycle)
+SLACK_WEBHOOK_URL            (Slack Incoming Webhook URL the notify_slack MCP
+                              tool posts epic-complete summaries to, issue
+                              #1628 — internal/slackwebhook. Deliberately
+                              separate from GRAFANA_SLACK_WEBHOOK_URL above,
+                              a distinct app-deploy-scoped secret Grafana's
+                              own alerting uses. Unset leaves the tool
+                              returning ErrNotConfigured. Provisioned by
+                              creating a Slack Incoming Webhook in the target
+                              workspace — see the `wizard` skill)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear

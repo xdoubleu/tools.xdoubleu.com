@@ -156,7 +156,7 @@ Rules when touching a handler or anything that mutates a user:
 
 ### Apps MCP Server
 
-Every app's own read RPCs, plus 19 admin-gated observability tools (including `prom_query(promql)` against Prometheus, issue #1468, `get_grafana_alerts` for Grafana-managed alert-rule state, issue #1564, and `record_action`/`get_automated_actions` for `global.automated_actions` run history from self-healing routines that execute outside api's own process, issue #1441), are exposed
+Every app's own read RPCs, plus 20 admin-gated observability tools (including `prom_query(promql)` against Prometheus, issue #1468, `get_grafana_alerts` for Grafana-managed alert-rule state, issue #1564, `record_action`/`get_automated_actions` for `global.automated_actions` run history from self-healing routines that execute outside api's own process, issue #1441, and `notify_slack` for posting an epic-complete summary to a configured Slack Incoming Webhook, issue #1628), are exposed
 to a local Claude CLI over a largely read-only MCP server at `/apps/mcp`
 (`cmd/api/mcp_apps.go`). Apps opt in via `MCPToolProvider`
 (`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`), each wrapping only its
