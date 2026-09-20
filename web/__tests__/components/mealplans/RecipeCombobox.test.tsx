@@ -1,7 +1,7 @@
 import React from 'react'
 import { create } from '@bufbuild/protobuf'
 import { render, screen, fireEvent } from '@testing-library/react'
-import RecipeCombobox from '@/components/recipes/RecipeCombobox'
+import RecipeCombobox from '@/components/mealplans/RecipeCombobox'
 import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 
 const recipes = [

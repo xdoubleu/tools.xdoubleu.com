@@ -1,4 +1,4 @@
-import PlansListClient from '@/components/recipes/PlansListClient'
+import PlansListClient from '@/components/mealplans/PlansListClient'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'

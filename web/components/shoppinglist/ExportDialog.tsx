@@ -13,8 +13,8 @@ import {
   toExportGroups,
   prepareForExport,
   formatOrigins
-} from '@/lib/recipes/shoppingExport'
-import type { ShoppingItem, StoreGrouping } from '@/lib/recipes/shoppingExport'
+} from '@/lib/shoppinglist/shoppingExport'
+import type { ShoppingItem, StoreGrouping } from '@/lib/shoppinglist/shoppingExport'
 import {
   Dialog,
   DialogContent,

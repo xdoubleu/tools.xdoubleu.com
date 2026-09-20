@@ -1,7 +1,7 @@
 'use client'
 
-import { prepareForExport, formatOrigins } from '@/lib/recipes/shoppingExport'
-import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
+import { prepareForExport, formatOrigins } from '@/lib/shoppinglist/shoppingExport'
+import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 
 interface MealPlanItemsPreviewProps {
   mealItems: ShoppingItem[]

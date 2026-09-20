@@ -23,7 +23,7 @@ jest.mock('next/link', () => {
   )
 })
 
-jest.mock('@/components/recipes/MealPlanCalendar', () => {
+jest.mock('@/components/mealplans/MealPlanCalendar', () => {
   return function MockCalendar() {
     return <div data-testid="meal-plan-calendar">calendar-mock</div>
   }

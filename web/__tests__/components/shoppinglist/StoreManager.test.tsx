@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import StoreManager from '@/components/recipes/StoreManager'
+import StoreManager from '@/components/shoppinglist/StoreManager'
 
 // jsdom returns zeroed getBoundingClientRect, so @dnd-kit's pointer/keyboard
 // sensors can't compute positions. Mock DndContext to expose onDragEnd via a

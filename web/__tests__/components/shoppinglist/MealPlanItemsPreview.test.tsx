@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
-import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
+import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 
 describe('MealPlanItemsPreview', () => {
   it('combines items sharing a name and unit across recipes and lists origins', () => {

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import MealPlanMealChip from '@/components/recipes/MealPlanMealChip'
+import MealPlanMealChip from '@/components/mealplans/MealPlanMealChip'
 import { create } from '@bufbuild/protobuf'
 import { PlanMealSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'

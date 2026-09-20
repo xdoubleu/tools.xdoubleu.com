@@ -1,7 +1,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ShoppingList from '@/components/recipes/ShoppingList'
-import type { ShoppingItem } from '@/lib/recipes/shoppingExport'
+import ShoppingList from '@/components/shoppinglist/ShoppingList'
+import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 
 describe('ShoppingList', () => {
   const items: ShoppingItem[] = [

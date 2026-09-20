@@ -10,7 +10,7 @@ jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
 }))
 
 import { useUpdatePlan } from '@/hooks/useMealPlans'
-import PlanForm from '@/components/recipes/PlanForm'
+import PlanForm from '@/components/mealplans/PlanForm'
 import { create } from '@bufbuild/protobuf'
 import { PlanSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
 

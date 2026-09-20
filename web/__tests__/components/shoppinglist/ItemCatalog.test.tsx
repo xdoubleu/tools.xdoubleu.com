@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ItemCatalog from '@/components/recipes/ItemCatalog'
+import ItemCatalog from '@/components/shoppinglist/ItemCatalog'
 
 const mutate = jest.fn().mockResolvedValue(undefined)
 const setItemCategory = jest.fn().mockResolvedValue({})

@@ -16,7 +16,7 @@ jest.mock('next/link', () => {
   )
 })
 
-import PlansListClient from '@/components/recipes/PlansListClient'
+import PlansListClient from '@/components/mealplans/PlansListClient'
 import { useMealPlans } from '@/hooks/useMealPlans'
 import { create } from '@bufbuild/protobuf'
 import { PlanSchema, ListPlansResponseSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'

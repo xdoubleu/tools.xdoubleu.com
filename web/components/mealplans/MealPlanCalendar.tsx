@@ -1,6 +1,6 @@
 'use client'
 
-import { getWeekDates } from '@/lib/recipes/mealPlanCalendar'
+import { getWeekDates } from '@/lib/mealplans/mealPlanCalendar'
 import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanEntryForm from './MealPlanEntryForm'

@@ -16,7 +16,7 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/recipes/PlansListClient', () => ({
+jest.mock('@/components/mealplans/PlansListClient', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
