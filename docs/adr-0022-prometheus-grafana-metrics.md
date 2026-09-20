@@ -600,7 +600,31 @@ into claude.ai's routines UI, so both `knownRoutines` and the rule's
 threshold are hardcoded and must be updated by hand if a routine's schedule
 changes.
 
-Phase 18 (#1717) found `TargetMissing` firing for `job="grafana"` despite the
+Phase 18 (#1709) reverted Phase 9's `IssueSentryUnresolved` migration onto
+the `grafana-sentry-datasource` plugin, after live checking via
+`get_grafana_alerts` found the rule still `Alerting (Error)` with Phase 16's
+exact original failure (`[sse.readDataError] [A] got error: input data must
+be a wide series but got type long`), attributed to refId **A** — the Sentry
+query itself, not refId B's expression. That placement of the error is the
+finding that closes this out for good: it proves the failure happens while
+Grafana's SSE layer tries to convert the Issues endpoint's one-row-per-issue,
+several-numeric-column response into any series shape, *before* any
+expression node (Phase 12's `reduce`+`threshold`, Phase 16's
+`classic_conditions`, or #1726's proposed `reduce`+`count_non_null`) ever
+runs — so no choice of refId B expression was ever going to fix it, and
+neither Phase 12 nor Phase 16 could have worked. `IssueSignalCollectorJob`
+gained back a `sentry_unresolved_issues` gauge (`sentryapi.Client
+.ListUnresolvedIssues`, the same client `TransactionLatencySnapshotJob`
+already uses), and `IssueSentryUnresolved` reverted to the plain
+Prometheus-instant-query-plus-`threshold` shape every other `service-health`
+rule already uses successfully — its *original* pre-Phase-9 shape.
+`overview.json`'s mirroring tile moved with it, from the plugin query to
+`max(sentry_unresolved_issues)`. The `grafana-sentry-datasource` plugin and
+its datasource stay provisioned unchanged: `sentry.json`'s own stat panel
+(a browser-side `count` reduce, never a backend SSE expression) was never
+broken by this bug and still uses it for a live, ungauged view.
+
+Phase 19 (#1717) found `TargetMissing` firing for `job="grafana"` despite the
 scrape job's `docker_sd_configs`/label/network config all being correct — a
 different failure mode than Phase 5's assumed-DNS-alias bug, confirmed live
 via `prom_query`: `prometheus_sd_discovered_targets` (Prometheus's own raw,

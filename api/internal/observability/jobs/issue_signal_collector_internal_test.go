@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/sentryapi"
 )
 
 type stubGithubClient struct {
@@ -42,6 +43,17 @@ func (g stubGithubClient) ListSecurityAlerts(
 	_ context.Context,
 ) ([]github.SecurityAlert, error) {
 	return g.alerts, g.alertsErr
+}
+
+type stubSentryClient struct {
+	issues []sentryapi.Issue
+	err    error
+}
+
+func (s stubSentryClient) ListUnresolvedIssues(
+	_ context.Context,
+) ([]sentryapi.Issue, error) {
+	return s.issues, s.err
 }
 
 type stubStorageGetter struct {
@@ -152,15 +164,17 @@ func resetGauges() {
 	postgresSchemaSizeBytes.Reset()
 	automatedActionOldestOpenAgeSeconds.Set(0)
 	automatedActionSecondsSinceLastOpen.Reset()
+	sentryUnresolvedIssues.Set(0)
 }
 
 func newStubJob(
 	gh stubGithubClient,
+	sentry stubSentryClient,
 	storage stubStorageGetter,
 	schemas stubSchemaSizer,
 	automatedAction stubAutomatedActionGetter,
 ) *IssueSignalCollectorJob {
-	return NewIssueSignalCollectorJob(gh, storage, schemas, automatedAction)
+	return NewIssueSignalCollectorJob(gh, sentry, storage, schemas, automatedAction)
 }
 
 func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
@@ -169,6 +183,7 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
 		},
+		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: nil},
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{firedAt: time.Time{}, err: nil, byRoutine: nil},
@@ -200,6 +215,11 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 			},
 			alertsErr: nil,
 		},
+		stubSentryClient{
+			//nolint:exhaustruct //only the count of issues drives the gauge
+			issues: []sentryapi.Issue{{}, {}, {}},
+			err:    nil,
+		},
 		stubStorageGetter{
 			//nolint:exhaustruct //only OrphanCount/TotalSizeBytes are read
 			snap: &models.StorageSnapshot{OrphanCount: 7, TotalSizeBytes: 123456},
@@ -229,6 +249,7 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 		testutil.ToFloat64(githubOpenSecurityAlerts.WithLabelValues("high")), 0)
 	assert.InDelta(t, 1.0,
 		testutil.ToFloat64(githubOpenSecurityAlerts.WithLabelValues("low")), 0)
+	assert.InDelta(t, 3.0, testutil.ToFloat64(sentryUnresolvedIssues), 0)
 	assert.InDelta(t, 7.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 123456.0, testutil.ToFloat64(r2StorageBytes), 0)
 	assert.InDelta(t, 0.42, testutil.ToFloat64(
@@ -252,6 +273,7 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	githubFailingPullRequests.Set(11)
 	r2OrphanedObjects.Set(33)
 	r2StorageBytes.Set(44)
+	sentryUnresolvedIssues.Set(22)
 
 	job := newStubJob(
 		stubGithubClient{
@@ -262,6 +284,7 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 			alerts:    nil,
 			alertsErr: github.ErrNotConfigured,
 		},
+		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		// SchemaSizes has no "not configured" sentinel — a nil result is a
 		// clean run that simply resets the gauge, no log.
@@ -279,6 +302,7 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 	assert.InDelta(t, 11.0, testutil.ToFloat64(githubFailingPullRequests), 0)
 	assert.InDelta(t, 33.0, testutil.ToFloat64(r2OrphanedObjects), 0)
 	assert.InDelta(t, 44.0, testutil.ToFloat64(r2StorageBytes), 0)
+	assert.InDelta(t, 22.0, testutil.ToFloat64(sentryUnresolvedIssues), 0)
 	assert.InDelta(t, 0.0,
 		testutil.ToFloat64(automatedActionOldestOpenAgeSeconds), 0)
 	for _, routine := range knownRoutines {
@@ -295,6 +319,7 @@ func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
 		},
+		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{
@@ -340,6 +365,7 @@ func TestIssueSignalCollectorRoutineLivenessLogsNonNotFoundError(t *testing.T) {
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
 		},
+		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{
@@ -366,6 +392,7 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 			alerts:    nil,
 			alertsErr: boom,
 		},
+		stubSentryClient{issues: nil, err: boom},
 		stubStorageGetter{snap: nil, err: boom},
 		stubSchemaSizer{sizes: nil, err: boom},
 		stubAutomatedActionGetter{firedAt: time.Time{}, err: boom, byRoutine: nil},
@@ -387,6 +414,7 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 			alerts:    nil,
 			alertsErr: nil,
 		},
+		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{

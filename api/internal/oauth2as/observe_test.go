@@ -62,10 +62,13 @@ func attrs(record slog.Record) map[string]string {
 }
 
 // TestObserve_RefreshGrantFailureLogsAtError is the alerting policy's whole
-// point: a rejected refresh_token grant means a client that held a working
-// session just lost it (issue #1177), so it must be Error — the level the
-// root sentrytools module's LogHandler forwards to Sentry — even though the
-// HTTP response is a 400.
+// point: replaying a refresh token past the rotation grace period makes
+// fosite revoke the *entire* token family, not just reject this one
+// request — a client that held a working session just lost it (issue
+// #1177) — so that specific failure must be Error, the level the root
+// sentrytools module's LogHandler forwards to Sentry, even though the HTTP
+// response is a 400. Every other refresh-grant failure shape stays at Warn
+// (TestObserve_RefreshGrantNotFoundLogsAtWarn) — issue #1715.
 func TestObserve_RefreshGrantFailureLogsAtError(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -123,6 +126,34 @@ func TestObserve_RefreshGrantFailureLogsAtError(t *testing.T) {
 	assert.Equal(t, "refresh_token", gotAttrs["grant_type"])
 	assert.Equal(t, client.ID, gotAttrs["client_id"])
 	assert.NotEmpty(t, gotAttrs["oauth_error"])
+}
+
+// TestObserve_RefreshGrantNotFoundLogsAtWarn covers the regression issue
+// #1715 reported: a refresh_token grant fosite rejects as invalid_grant
+// isn't automatically alerting-worthy — a token that never existed
+// (tampered, or a scanner probing /oauth2/token with a self-registered
+// client_id) is routine, indistinguishable from any other stranger hitting
+// the endpoint, and must stay at Warn like every other 4xx.
+func TestObserve_RefreshGrantNotFoundLogsAtWarn(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+
+	srv.logs.reset()
+
+	resp, _ := srv.exchangeToken(t, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {"never-issued-refresh-token"},
+		"client_id":     {client.ID},
+	})
+	require.NotEqual(t, http.StatusOK, resp.StatusCode)
+
+	records := srv.logs.all()
+	require.Len(t, records, 1)
+	assert.Equal(t, slog.LevelWarn, records[0].Level)
+
+	gotAttrs := attrs(records[0])
+	assert.Equal(t, "refresh_token", gotAttrs["grant_type"])
+	assert.Equal(t, "invalid_grant", gotAttrs["oauth_error"])
 }
 
 // TestObserve_AuthorizationCodeFailureLogsAtWarn guards the other half of the

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"net/url"
 	"testing"
 	"time"
 
@@ -135,6 +136,25 @@ func TestRealtimeService_Poll_UnexpectedContentTypeIsNotAnError(t *testing.T) {
 	assert.Nil(t, svc.Snapshot().Trips)
 }
 
+// TestRealtimeService_Poll_TimeoutIsNotAnError covers issue #1712: a
+// Client.Timeout-induced context deadline exceeded (surfaced as a *url.Error
+// whose Timeout() is true, exactly what http.Client.Do returns and what the
+// production Sentry report showed) must back off like a rate-limit or 5xx
+// response, not fail the job.
+func TestRealtimeService_Poll_TimeoutIsNotAnError(t *testing.T) {
+	m := &mocks.MockBMCClient{ //nolint:exhaustruct //only RealtimeErr set
+		RealtimeErr: &url.Error{
+			Op:  "Get",
+			URL: "https://example.com/api/gtfs/feed/nmbssncb/rt/trip-update",
+			Err: context.DeadlineExceeded,
+		},
+	}
+	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
+
+	require.NoError(t, svc.Poll(context.Background()))
+	assert.Nil(t, svc.Snapshot().Trips)
+}
+
 func TestRealtimeService_Poll_UpstreamClientErrorFails(t *testing.T) {
 	m := &mocks.MockBMCClient{ //nolint:exhaustruct //only RealtimeErr set
 		RealtimeErr: &bmc.UpstreamError{StatusCode: 400},
@@ -241,4 +261,24 @@ func TestIsBackoffable(t *testing.T) {
 		ContentType: "text/html; charset=utf-8",
 	}))
 	assert.False(t, isBackoffable(errors.New("boom")))
+
+	// issue #1712: a Client.Timeout error (context deadline exceeded while
+	// awaiting headers) is exactly what http.Client.Do returns as a
+	// *url.Error whose Timeout() is true — it must back off like a
+	// rate-limit or 5xx response.
+	timeoutErr := &url.Error{
+		Op:  "Get",
+		URL: "https://example.com",
+		Err: context.DeadlineExceeded,
+	}
+	assert.True(t, isBackoffable(timeoutErr))
+
+	// A non-timeout network error (e.g. connection refused) is not wrapped
+	// in anything reporting Timeout() == true, so it stays non-backoffable.
+	nonTimeoutErr := &url.Error{
+		Op:  "Get",
+		URL: "https://example.com",
+		Err: errors.New("connection refused"),
+	}
+	assert.False(t, isBackoffable(nonTimeoutErr))
 }
