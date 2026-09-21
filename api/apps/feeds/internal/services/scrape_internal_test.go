@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -115,6 +116,110 @@ func TestCandidatePostURLRejections(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "https://example.com/posts/only-real-post-here", links[0].URL)
+}
+
+func TestDiscoverPostLinksExcludesLocaleSwitcherLink(t *testing.T) {
+	// Regression test for issue #1748: a language switcher whose entry
+	// links to the same page in another locale (same path, one segment
+	// swapped for another locale-code-shaped segment) is not wrapped in
+	// nav/header/footer/aside on Uber's own blog index, and its anchor
+	// text is long enough to otherwise pass the bare-link title bar.
+	html := `
+	<html><body>
+	<div class="language-switcher">
+		<a href="/be/fr/blog/engineering/?id=222">French, Français (France)</a>
+		<a href="/be/de/blog/engineering/?id=160">German, Deutsch (Germany)</a>
+	</div>
+	<main>
+		<a href="/be/en/blog/junit-migration/">
+			How Uber Executed A JUnit Migration at Massive Scale
+		</a>
+	</main>
+	</body></html>
+	`
+	links, err := discoverPostLinks(
+		"https://www.uber.com/be/en/blog/engineering", []byte(html),
+	)
+	require.NoError(t, err)
+
+	urls := make([]string, len(links))
+	for i, l := range links {
+		urls[i] = l.URL
+	}
+	assert.Equal(t, []string{
+		"https://www.uber.com/be/en/blog/junit-migration/",
+	}, urls)
+}
+
+func TestDiscoverPostLinksExcludesLocaleSwitcherLinkRegardlessOfQueryString(
+	t *testing.T,
+) {
+	// The same locale-switcher href observed with a different volatile
+	// query string each poll (issue #1748) must be rejected every time,
+	// not just deduped after the fact — canonicalURL only strips utm_*
+	// params, so a query-string-only difference would otherwise defeat
+	// GUID dedup and flood the feed with "new" duplicate items.
+	queries := []string{
+		"",
+		"?id=222",
+		"?id=160",
+		"?countryiso2=us%2525255cu0022",
+		"?id=0XB7q&userId=_msv+_31_7734666612221001011",
+	}
+	for _, q := range queries {
+		html := `<html><body><main>` +
+			`<a href="/be/fr/blog/engineering/` + q + `">French, Français (France)</a>` +
+			`</main></body></html>`
+		_, err := discoverPostLinks(
+			"https://www.uber.com/be/en/blog/engineering", []byte(html),
+		)
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, ErrNoPostsFound))
+	}
+}
+
+func TestIsLocaleAlternateRequiresSameSegmentCountAndSingleLocaleDiff(t *testing.T) {
+	base, err := url.Parse("https://www.uber.com/be/en/blog/engineering")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		resolved string
+		want     bool
+	}{
+		{
+			name:     "single locale segment swap",
+			resolved: "https://www.uber.com/be/fr/blog/engineering",
+			want:     true,
+		},
+		{
+			name:     "region-qualified locale segment swap",
+			resolved: "https://www.uber.com/be/en-US/blog/engineering",
+			want:     true,
+		},
+		{
+			name:     "different segment count is not an alternate",
+			resolved: "https://www.uber.com/be/en/blog/engineering/page/2",
+			want:     false,
+		},
+		{
+			name:     "differing non-locale-shaped segment is a real post",
+			resolved: "https://www.uber.com/be/en/blog/junit-migration",
+			want:     false,
+		},
+		{
+			name:     "more than one differing segment is not an alternate",
+			resolved: "https://www.uber.com/xx/fr/blog/engineering",
+			want:     false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			resolved, parseErr := url.Parse(tc.resolved)
+			require.NoError(t, parseErr)
+			assert.Equal(t, tc.want, isLocaleAlternate(resolved, base))
+		})
+	}
 }
 
 func TestDiscoverPostLinksTimeOnlyCardStripsDateFromTitle(t *testing.T) {
