@@ -17,7 +17,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/klippa-app/go-pdfium v1.20.0
+	github.com/klippa-app/go-pdfium v1.20.3
 	github.com/ledongthuc/pdf v0.0.0-20260907135840-6c8c28e0e8a0
 	github.com/mmcdole/gofeed v1.4.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
