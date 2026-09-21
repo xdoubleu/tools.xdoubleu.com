@@ -54,6 +54,8 @@ cd api && docker-compose down
 | `make test` | Run all tests |
 | `make test/cov/report` | Generate coverage report (HTML) |
 | `make test/cov/per-pkg` | Per-package coverage with merged summary |
+| `make test/mutation/diff` | Mutation testing (gremlins) scoped to Go packages changed vs `origin/main` |
+| `make test/mutation` | Mutation testing (gremlins), full repo (slow one-time baseline, not routine) |
 | `make lint` | Run all linters (Go + SQL) |
 | `make lint/fix` | Auto-fix linting issues |
 
@@ -74,6 +76,8 @@ cd api && docker-compose down
 | `npm run build` | Build the standalone production server |
 | `npm test` | Run tests |
 | `npm run test:cov` | Run tests with coverage |
+| `npm run test:mutation:diff` | Mutation testing (StrykerJS) scoped to TS/TSX files changed vs `origin/main` |
+| `npm run test:mutation` | Mutation testing (StrykerJS), full repo (slow one-time baseline, not routine) |
 | `npm run lint` | Run ESLint + Prettier |
 | `npm run generate` | Regenerate TypeScript ConnectRPC clients from proto definitions (output: `web/lib/gen/`, committed) |
 | `npm run lint:fix` | Auto-fix ESLint issues and reformat with Prettier |
@@ -258,6 +262,21 @@ each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment'
 (`http://localhost:3000` dev, `https://tools.xdoubleu.com` prod). See
 [api/CLAUDE.md](api/CLAUDE.md) for the exact rule and how to apply it. This must be
 re-applied if a bucket is recreated.
+
+**PostHog Cloud (EU) product analytics + session replay (issue #1638):** a
+materially different telemetry path from the aggregate-only Web Vitals beacon
+(`web/app/_components/web-vitals.tsx` → `web_vitals_seconds`) — PostHog
+autocaptures the whole `web/` app and records full sessions the moment its
+provider initializes (`web/instrumentation-client.ts`), per-user identified
+via `posthog.identify()` once signed in (`web/components/SWRProvider.tsx`).
+On by default for every family member, no opt-in/consent gate — a one-line
+passive disclosure lives in `/settings`. Needs a PostHog Cloud account (EU
+region, not US) and a project created by hand — no API creates these — then
+its client key set as the `POSTHOG_KEY` repo Secret; `POSTHOG_HOST` is the
+fixed EU ingestion host (`https://eu.i.posthog.com`), set as plain `env.clear`
+in [`config/deploy.web.yml`](config/deploy.web.yml). Entirely separate from
+the Prometheus/Grafana host-metrics path — see
+[`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md).
 
 **GitHub/Sentry/DigitalOcean OAuth (observability integrations, issue #440):** each
 provider needs its own OAuth App registered once, with callback URL

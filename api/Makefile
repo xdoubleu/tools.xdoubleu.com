@@ -156,6 +156,40 @@ pdf/check:
 test/pprof:
 	go test -p 1 ./... -cpuprofile cpu.prof -memprofile mem.prof -bench ./cmd/api
 
+tools/mutation:
+	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+
+# Diff-scoped mutation testing (issue #1632): resolves the changed Go
+# package directories vs origin/main via tools/diff_packages_go.py (reusing
+# diff_coverage_go.py's get_changed_lines -- the same
+# git-diff-against-origin/main mechanism adr-0013's diff-scoped coverage
+# already established, rather than a second diff-detection implementation),
+# then runs gremlins only against those packages -- one `gremlins unleash`
+# invocation per package, since it accepts only a single path argument.
+# --diff additionally scopes individual mutants to changed lines within
+# each package, using gremlins' own `git diff --merge-base` mechanism --
+# the same merge-base comparison, so the two scoping layers agree on what
+# counts as "changed". .gremlins.yaml (repo config) excludes gen/ and
+# *_mock.go, mirroring test/cov/report's own exclusions.
+test/mutation/diff: tools/mutation
+	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
+	if [ -z "$$pkgs" ]; then \
+		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
+	else \
+		status=0; \
+		for pkg in $$pkgs; do \
+			echo "Diff-scoped mutation testing: $$pkg"; \
+			gremlins unleash --diff origin/main "$$pkg" || status=1; \
+		done; \
+		exit $$status; \
+	fi
+
+# One-time full-repo baseline (see docs/adr-0013-diff-scoped-coverage.md and
+# issue #1632) -- much slower than test/mutation/diff above since it exercises
+# the whole test suite per mutant; not meant to run routinely.
+test/mutation: tools/mutation
+	gremlins unleash ./...
+
 test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
 	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out.filtered

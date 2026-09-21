@@ -2,6 +2,9 @@
 
 - Status: code-side done; the routine itself needs manual setup (see below)
 - Issues: #1447, part of epic #1338. Depends on #1440, #1446 (both merged).
+  #1744 restricted this routine's scope to `bug`-labeled issues only — see
+  "Bug-only scope" below. The live routine's own prompt text still needs to
+  be updated by hand to match (see that section).
 
 ## What this is
 
@@ -24,6 +27,24 @@ here, just a reproducible record of exactly what to paste into the
 claude.ai routines UI, per this repo's own convention that an ADR without
 an "alternatives considered" section is a spec instead
 (`docs/TEMPLATE-adr.md`).
+
+## Bug-only scope
+
+Issue #1744: the routine's first real run picked up Ready-column issues
+indiscriminately, including issues that weren't bug fixes. An unattended
+routine implementing a brand-new feature with nobody in the loop at any
+point is a materially different risk than it fixing an already-diagnosed
+bug. The `ready-issues-sweep` skill's step 1 now checks each Ready-column
+issue's type label against `.claude/github-triage.config.json`'s
+`labels.types` taxonomy before dispatching a subagent, and skips anything
+not labeled `bug`, noting the skip in the run's final summary. The routine
+prompt below reflects this explicitly. The live routine's own prompt field
+can only be edited by hand at claude.ai/code/routines/&lt;id&gt; — an
+`update_trigger` call to edit it directly was refused ("this routine was
+created via 'http_api', not by an agent... only you can edit it"), so
+whoever owns the routine still needs to paste the updated prompt block
+below into it to match this doc; this change alone doesn't update the live
+routine.
 
 ## Why this can't be created through the trigger-creation API
 
@@ -87,7 +108,10 @@ access (see issue #1625) and can only reach this public repo via an
 unauthenticated read-only clone, it cannot push a branch or open a PR —
 have it report that as the reason it couldn't complete its issue rather
 than silently stopping. Run it in its unattended mode. Pull the "Ready"
-column of the project board,
+column of the project board. Before dispatching, check each issue's type
+label against .claude/github-triage.config.json's labels.types taxonomy and
+skip anything not labeled "bug" — note each skipped issue and its actual
+label in the final summary. For the rest,
 dispatch one isolated subagent per issue exactly as the skill describes,
 and let each subagent drive its issue all the way through start-task and
 finish-task to an open PR. Auto-merge behavior is whatever finish-task

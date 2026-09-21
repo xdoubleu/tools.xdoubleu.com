@@ -96,6 +96,43 @@ func TestGoHTMLConverter_ContainerPointsAtOPF(t *testing.T) {
 	assert.Contains(t, container, `full-path="OEBPS/content.opf"`)
 }
 
+// TestGoHTMLConverter_NavListsChapterHeadings reproduces issue #1698: the
+// generated nav.xhtml must list one TOC entry per <h1> in the article body,
+// each linking to that heading's own anchor, not just a single book-title
+// entry.
+func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body>"+
+		"<h1>Chapter One</h1><p>Body one.</p>"+
+		"<h1>Chapter Two</h1><p>Body two.</p>"+
+		"</body></html>", nil)
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{Title: "Book", Authors: nil})
+
+	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
+	assert.Contains(t, nav, `<a href="index.xhtml#heading-0">Chapter One</a>`)
+	assert.Contains(t, nav, `<a href="index.xhtml#heading-1">Chapter Two</a>`)
+	assert.NotContains(
+		t, nav, `<a href="index.xhtml">Book</a>`,
+		"fallback single entry must not appear when real headings exist",
+	)
+
+	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
+	assert.Contains(t, index, `id="heading-0"`)
+	assert.Contains(t, index, `id="heading-1"`)
+}
+
+// TestGoHTMLConverter_NavFallsBackWithNoHeadings verifies a document with no
+// <h1> at all (e.g. a short feed article) still gets a usable single-entry
+// TOC linking to the whole book, rather than an empty nav.
+func TestGoHTMLConverter_NavFallsBackWithNoHeadings(t *testing.T) {
+	inPath := writeArticleFixture(
+		t, "<html><body><p>Just one short paragraph.</p></body></html>", nil,
+	)
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{Title: "Article", Authors: nil})
+
+	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
+	assert.Contains(t, nav, `<a href="index.xhtml">Article</a>`)
+}
+
 func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body><p>hi</p></body></html>", nil)
 	zr := convertToEPUBZip(t, inPath, ArticleMeta{

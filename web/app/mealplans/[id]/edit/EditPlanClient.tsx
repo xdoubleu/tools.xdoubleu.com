@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useMealPlan } from '@/hooks/useMealPlans'
-import PlanForm from '@/components/recipes/PlanForm'
+import PlanForm from '@/components/mealplans/PlanForm'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
 

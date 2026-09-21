@@ -8,15 +8,15 @@ import {
   useAllMealPlanExportItems,
   useAllPlanIngredientGroups
 } from '@/hooks/useShoppingList'
-import ShoppingList from '@/components/recipes/ShoppingList'
-import ExportDialog from '@/components/recipes/ExportDialog'
+import ShoppingList from '@/components/shoppinglist/ShoppingList'
+import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
 import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
 import { PageContainer } from '@/components/ui/page-container'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
-import type { ShoppingItem as ShoppingItemExport } from '@/lib/recipes/shoppingExport'
+import type { ShoppingItem as ShoppingItemExport } from '@/lib/shoppinglist/shoppingExport'
 import type { ShoppingItem } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 
 function toExportItem(item: ShoppingItem): ShoppingItemExport {

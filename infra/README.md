@@ -546,8 +546,10 @@ GRAFANA_GITHUB_DATASOURCE_TOKEN  (fine-grained GitHub PAT scoped to this
 GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
                               + event:read, for the grafana-sentry-datasource
                               plugin; issue #1570 — same wiring as above.
-                              Backs the IssueSentryUnresolved alert + the
-                              Sentry dashboard's panel)
+                              Backs the Sentry dashboard's live panel; the
+                              IssueSentryUnresolved alert itself reads the
+                              sentry_unresolved_issues Prometheus gauge
+                              instead as of issue #1709)
 GRAFANA_SLACK_WEBHOOK_URL    (Slack Incoming Webhook URL — the alert contact
                               point, issue #1592 — read by $__env{} in
                               infra/grafana/provisioning/alerting/contactpoints.yml
@@ -563,7 +565,22 @@ ROUTINE_FIRE_TOKEN           (bearer token for issue #1444's routine-fire
                               `openssl rand -hex 32`. Unset leaves the inbound
                               webhook permanently unauthorized (every request
                               rejected) and the outbound client sending an
-                              empty bearer token)
+                              empty bearer token. As of issue #1722 this is
+                              also a plain GitHub Actions secret (not only a
+                              Kamal deploy secret): main.yml's
+                              notify-main-ci-red job authenticates the same
+                              inbound webhook directly from CI the moment a
+                              push-to-main job fails, without waiting on
+                              Grafana/Prometheus's evaluation cycle)
+SLACK_WEBHOOK_URL            (Slack Incoming Webhook URL the notify_slack MCP
+                              tool posts epic-complete summaries to, issue
+                              #1628 — internal/slackwebhook. Deliberately
+                              separate from GRAFANA_SLACK_WEBHOOK_URL above,
+                              a distinct app-deploy-scoped secret Grafana's
+                              own alerting uses. Unset leaves the tool
+                              returning ErrNotConfigured. Provisioned by
+                              creating a Slack Incoming Webhook in the target
+                              workspace — see the `wizard` skill)
 ```
 
 Every name a deploy config's `env.secret:` list references must also appear

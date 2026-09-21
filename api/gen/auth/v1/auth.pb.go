@@ -930,7 +930,11 @@ type GetCurrentUserResponse struct {
 	HasMfa    bool                   `protobuf:"varint,3,opt,name=has_mfa,json=hasMfa,proto3" json:"has_mfa,omitempty"`
 	// Public profile display name; empty when unset (share links require this
 	// to be set first, see dashboard.v1.DashboardService).
-	DisplayName   string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	// Stable per-user identifier (models.User.ID), used client-side as the
+	// PostHog distinct_id via posthog.identify() so product analytics and
+	// session replay resolve to the same person across sessions/devices.
+	UserId        string `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -989,6 +993,13 @@ func (x *GetCurrentUserResponse) GetHasMfa() bool {
 func (x *GetCurrentUserResponse) GetDisplayName() string {
 	if x != nil {
 		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *GetCurrentUserResponse) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -1206,13 +1217,14 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x16UpdatePasswordResponse\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x17\n" +
-	"\x15GetCurrentUserRequest\"\x87\x01\n" +
+	"\x15GetCurrentUserRequest\"\xa0\x01\n" +
 	"\x16GetCurrentUserResponse\x12\x12\n" +
 	"\x04role\x18\x01 \x01(\tR\x04role\x12\x1d\n" +
 	"\n" +
 	"app_access\x18\x02 \x03(\tR\tappAccess\x12\x17\n" +
 	"\ahas_mfa\x18\x03 \x01(\bR\x06hasMfa\x12!\n" +
-	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\"O\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x17\n" +
+	"\auser_id\x18\x05 \x01(\tR\x06userId\"O\n" +
 	"\x14ResetPasswordRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\x17\n" +

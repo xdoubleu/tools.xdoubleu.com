@@ -14,6 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/unicat"
 	"tools.xdoubleu.com/internal/database"
@@ -1244,6 +1245,8 @@ func (s *BookService) writeResyncResult(
 	authors []string,
 	metadataSource string,
 ) error {
+	authors = authorname.NormalizeAll(authors)
+
 	if dbErr := s.resyncSource.RefreshBookExternalData(
 		ctx,
 		book.ID,

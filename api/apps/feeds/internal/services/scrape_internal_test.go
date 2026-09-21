@@ -1,13 +1,18 @@
 package services
 
 import (
+	"context"
 	"errors"
+	"log/slog"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/apps/feeds/internal/mocks"
 )
 
 const blogIndexHTML = `
@@ -113,6 +118,110 @@ func TestCandidatePostURLRejections(t *testing.T) {
 	assert.Equal(t, "https://example.com/posts/only-real-post-here", links[0].URL)
 }
 
+func TestDiscoverPostLinksExcludesLocaleSwitcherLink(t *testing.T) {
+	// Regression test for issue #1748: a language switcher whose entry
+	// links to the same page in another locale (same path, one segment
+	// swapped for another locale-code-shaped segment) is not wrapped in
+	// nav/header/footer/aside on Uber's own blog index, and its anchor
+	// text is long enough to otherwise pass the bare-link title bar.
+	html := `
+	<html><body>
+	<div class="language-switcher">
+		<a href="/be/fr/blog/engineering/?id=222">French, Français (France)</a>
+		<a href="/be/de/blog/engineering/?id=160">German, Deutsch (Germany)</a>
+	</div>
+	<main>
+		<a href="/be/en/blog/junit-migration/">
+			How Uber Executed A JUnit Migration at Massive Scale
+		</a>
+	</main>
+	</body></html>
+	`
+	links, err := discoverPostLinks(
+		"https://www.uber.com/be/en/blog/engineering", []byte(html),
+	)
+	require.NoError(t, err)
+
+	urls := make([]string, len(links))
+	for i, l := range links {
+		urls[i] = l.URL
+	}
+	assert.Equal(t, []string{
+		"https://www.uber.com/be/en/blog/junit-migration/",
+	}, urls)
+}
+
+func TestDiscoverPostLinksExcludesLocaleSwitcherLinkRegardlessOfQueryString(
+	t *testing.T,
+) {
+	// The same locale-switcher href observed with a different volatile
+	// query string each poll (issue #1748) must be rejected every time,
+	// not just deduped after the fact — canonicalURL only strips utm_*
+	// params, so a query-string-only difference would otherwise defeat
+	// GUID dedup and flood the feed with "new" duplicate items.
+	queries := []string{
+		"",
+		"?id=222",
+		"?id=160",
+		"?countryiso2=us%2525255cu0022",
+		"?id=0XB7q&userId=_msv+_31_7734666612221001011",
+	}
+	for _, q := range queries {
+		html := `<html><body><main>` +
+			`<a href="/be/fr/blog/engineering/` + q + `">French, Français (France)</a>` +
+			`</main></body></html>`
+		_, err := discoverPostLinks(
+			"https://www.uber.com/be/en/blog/engineering", []byte(html),
+		)
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, ErrNoPostsFound))
+	}
+}
+
+func TestIsLocaleAlternateRequiresSameSegmentCountAndSingleLocaleDiff(t *testing.T) {
+	base, err := url.Parse("https://www.uber.com/be/en/blog/engineering")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name     string
+		resolved string
+		want     bool
+	}{
+		{
+			name:     "single locale segment swap",
+			resolved: "https://www.uber.com/be/fr/blog/engineering",
+			want:     true,
+		},
+		{
+			name:     "region-qualified locale segment swap",
+			resolved: "https://www.uber.com/be/en-US/blog/engineering",
+			want:     true,
+		},
+		{
+			name:     "different segment count is not an alternate",
+			resolved: "https://www.uber.com/be/en/blog/engineering/page/2",
+			want:     false,
+		},
+		{
+			name:     "differing non-locale-shaped segment is a real post",
+			resolved: "https://www.uber.com/be/en/blog/junit-migration",
+			want:     false,
+		},
+		{
+			name:     "more than one differing segment is not an alternate",
+			resolved: "https://www.uber.com/xx/fr/blog/engineering",
+			want:     false,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			resolved, parseErr := url.Parse(tc.resolved)
+			require.NoError(t, parseErr)
+			assert.Equal(t, tc.want, isLocaleAlternate(resolved, base))
+		})
+	}
+}
+
 func TestDiscoverPostLinksTimeOnlyCardStripsDateFromTitle(t *testing.T) {
 	html := `
 	<html><body><main>
@@ -175,6 +284,150 @@ func TestDiscoverPostLinksExcludesBareShortCategoryPills(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, links, 1)
 	assert.Equal(t, "https://example.com/research/some-actual-report", links[0].URL)
+}
+
+func TestDiscoverNextPageURLRelNextLink(t *testing.T) {
+	html := `
+	<html><head><link rel="next" href="/blog?page=2"></head>
+	<body><main></main></body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog?page=2", next)
+}
+
+func TestDiscoverNextPageURLAnchorText(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/posts/some-post">Some post with a long title</a>
+	</main>
+	<nav class="pagination">
+		<a href="/blog/page/2">Older Posts</a>
+	</nav>
+	</body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog/page/2", next)
+}
+
+func TestDiscoverNextPageURLAriaLabel(t *testing.T) {
+	html := `
+	<html><body><main>
+		<a href="/blog/page/2" aria-label="Next">›</a>
+	</main></body></html>
+	`
+	next, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	require.True(t, ok)
+	assert.Equal(t, "https://example.com/blog/page/2", next)
+}
+
+func TestDiscoverNextPageURLNoneFound(t *testing.T) {
+	_, ok := discoverNextPageURL("https://example.com/blog", []byte(blogIndexHTML))
+	assert.False(t, ok)
+}
+
+func TestDiscoverNextPageURLOffDomainRejected(t *testing.T) {
+	html := `
+	<html><body>
+		<a rel="next" href="https://other.example/blog?page=2">Next</a>
+	</body></html>
+	`
+	_, ok := discoverNextPageURL("https://example.com/blog", []byte(html))
+	assert.False(t, ok)
+}
+
+func TestFetchPaginatedPostLinksFollowsNextPageAndDedupes(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	webFetch.SetHTML("https://example.com/blog", `
+		<html><body><main>
+			<a href="/posts/page1-post">A post found on the very first page</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetHTML("https://example.com/blog?page=2", `
+		<html><body><main>
+			<a href="/posts/page2-post">A post found on the second page</a>
+			<a href="/posts/page1-post">A post found on the very first page (dup)</a>
+		</main>
+		</body></html>
+	`)
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog",
+		webFetch.Responses["https://example.com/blog"].Body,
+	)
+	require.NoError(t, err)
+
+	urls := make([]string, len(links))
+	for i, l := range links {
+		urls[i] = l.URL
+	}
+	assert.Equal(t, []string{
+		"https://example.com/posts/page1-post",
+		"https://example.com/posts/page2-post",
+	}, urls)
+	assert.Equal(t, []string{"https://example.com/blog?page=2"}, webFetch.Calls)
+}
+
+func TestFetchPaginatedPostLinksStopsWhenNextPageHasNoPosts(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	firstPage := []byte(`
+		<html><body><main>
+			<a href="/posts/only-post">The only post on this whole site</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetBody("https://example.com/blog?page=2", "text/html", []byte(`
+		<html><body><nav><a href="/">Home</a></nav></body></html>
+	`))
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog", firstPage,
+	)
+	require.NoError(t, err)
+	require.Len(t, links, 1)
+	assert.Equal(t, "https://example.com/posts/only-post", links[0].URL)
+}
+
+func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	page := func(n int) string {
+		return "https://example.com/blog?page=" + strconv.Itoa(n)
+	}
+	firstPage := []byte(`
+		<html><body><main>
+			<a href="/posts/page-1-post">A post found on page number one</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	for n := 2; n <= 5; n++ {
+		next := n + 1
+		webFetch.SetHTML(page(n), `
+			<html><body><main>
+				<a href="/posts/page-`+strconv.Itoa(
+			n,
+		)+`-post">A post discovered on page number `+strconv.Itoa(
+			n,
+		)+`</a>
+			</main>
+			<a rel="next" href="/blog?page=`+strconv.Itoa(next)+`">Next</a>
+			</body></html>
+		`)
+	}
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog", firstPage,
+	)
+	require.NoError(t, err)
+	assert.Len(t, links, maxScrapePages)
+	assert.Equal(t, []string{page(2), page(3)}, webFetch.Calls)
 }
 
 func TestPageTitle(t *testing.T) {

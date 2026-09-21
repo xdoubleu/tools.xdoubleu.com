@@ -600,6 +600,52 @@ into claude.ai's routines UI, so both `knownRoutines` and the rule's
 threshold are hardcoded and must be updated by hand if a routine's schedule
 changes.
 
+Phase 18 (#1709) reverted Phase 9's `IssueSentryUnresolved` migration onto
+the `grafana-sentry-datasource` plugin, after live checking via
+`get_grafana_alerts` found the rule still `Alerting (Error)` with Phase 16's
+exact original failure (`[sse.readDataError] [A] got error: input data must
+be a wide series but got type long`), attributed to refId **A** — the Sentry
+query itself, not refId B's expression. That placement of the error is the
+finding that closes this out for good: it proves the failure happens while
+Grafana's SSE layer tries to convert the Issues endpoint's one-row-per-issue,
+several-numeric-column response into any series shape, *before* any
+expression node (Phase 12's `reduce`+`threshold`, Phase 16's
+`classic_conditions`, or #1726's proposed `reduce`+`count_non_null`) ever
+runs — so no choice of refId B expression was ever going to fix it, and
+neither Phase 12 nor Phase 16 could have worked. `IssueSignalCollectorJob`
+gained back a `sentry_unresolved_issues` gauge (`sentryapi.Client
+.ListUnresolvedIssues`, the same client `TransactionLatencySnapshotJob`
+already uses), and `IssueSentryUnresolved` reverted to the plain
+Prometheus-instant-query-plus-`threshold` shape every other `service-health`
+rule already uses successfully — its *original* pre-Phase-9 shape.
+`overview.json`'s mirroring tile moved with it, from the plugin query to
+`max(sentry_unresolved_issues)`. The `grafana-sentry-datasource` plugin and
+its datasource stay provisioned unchanged: `sentry.json`'s own stat panel
+(a browser-side `count` reduce, never a backend SSE expression) was never
+broken by this bug and still uses it for a live, ungauged view.
+
+Phase 19 (#1717) found `TargetMissing` firing for `job="grafana"` despite the
+scrape job's `docker_sd_configs`/label/network config all being correct — a
+different failure mode than Phase 5's assumed-DNS-alias bug, confirmed live
+via `prom_query`: `prometheus_sd_discovered_targets` (Prometheus's own raw,
+pre-relabel per-job discovery count) had entries for `api`/`web` but none at
+all for `grafana`, meaning the *running* Prometheus process had no such job
+loaded — not that the job discovered zero matching containers. Root cause:
+`infra/main.tf`'s `null_resource.prometheus` uploads `prometheus.yml` via a
+`file` provisioner, then runs `docker compose up -d`, which only
+recreates/restarts a container when the *compose service definition*
+changes (image, env, volumes, ...) — it has no way to notice that a
+bind-mounted config file's *content* changed with no compose-level change,
+so a prometheus.yml-only edit (like adding the `grafana` job) re-uploads the
+file but never tells the already-running process to reload it. Phase 5's own
+`api`/`web` `docker_sd_configs` migration only "worked" because that same
+change also added the Docker-socket mount to `prometheus-compose.yml`, which
+did force a recreate — masking this gap until a config-only change exposed
+it. Fixed by sending Prometheus a `SIGHUP` (`docker compose kill -s HUP
+prometheus`) after `up -d`, its documented live-reload mechanism, run
+unconditionally since it only executes when one of the resource's own
+triggers already changed.
+
 ## Consequences
 
 - All alerting now lives in one place (Grafana). A contributor asking "why

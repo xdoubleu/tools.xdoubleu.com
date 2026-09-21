@@ -5,6 +5,8 @@ declare global {
       SENTRY_DSN_WEB: string
       RELEASE: string
       KOBO_GATEWAY_RELEASE: string
+      POSTHOG_KEY: string
+      POSTHOG_HOST: string
     }
   }
 }
@@ -34,6 +36,20 @@ export function getKoboGatewayRelease(): string {
     return window.__ENV__?.KOBO_GATEWAY_RELEASE ?? 'dev'
   }
   return process.env.KOBO_GATEWAY_RELEASE ?? 'dev'
+}
+
+// PostHog Cloud (EU) product analytics + session replay — a materially
+// different telemetry path from the Web Vitals beacon above, see root
+// CLAUDE.md. The client key is not secret (it ships in the browser bundle
+// regardless), same treatment as getSentryDsn() above.
+export function getPostHogKey(): string {
+  if (typeof window !== 'undefined') return window.__ENV__?.POSTHOG_KEY ?? ''
+  return process.env.POSTHOG_KEY ?? ''
+}
+
+export function getPostHogHost(): string {
+  if (typeof window !== 'undefined') return window.__ENV__?.POSTHOG_HOST ?? ''
+  return process.env.POSTHOG_HOST ?? ''
 }
 
 // getObservabilityIngestSecret authenticates web's own server-side POSTs to

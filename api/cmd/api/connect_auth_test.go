@@ -280,6 +280,15 @@ func TestGetCurrentUser_ReturnsAppAccess_WithGrant(t *testing.T) {
 	assert.Contains(t, resp.Msg.AppAccess, "backlog")
 }
 
+func TestGetCurrentUser_ReturnsUserId(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, accessToken)
+	resp, err := client.GetCurrentUser(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, testUserID, resp.Msg.UserId)
+}
+
 func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
 	promoteToAdmin(t)
 	defer demoteToUser(t)

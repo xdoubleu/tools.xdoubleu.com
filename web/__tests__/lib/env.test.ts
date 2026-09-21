@@ -2,7 +2,14 @@
  * @jest-environment jsdom
  */
 
-import { getRelease, getApiUrl, getSentryDsn, getKoboGatewayRelease } from '@/lib/env'
+import {
+  getRelease,
+  getApiUrl,
+  getSentryDsn,
+  getKoboGatewayRelease,
+  getPostHogKey,
+  getPostHogHost
+} from '@/lib/env'
 
 describe('getRelease', () => {
   const originalEnv = process.env
@@ -13,7 +20,14 @@ describe('getRelease', () => {
     process.env = { ...originalEnv }
     // Reset window.__ENV__ for each test
     if (typeof window !== 'undefined') {
-      window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+      window.__ENV__ = {
+        API_URL: '',
+        SENTRY_DSN_WEB: '',
+        RELEASE: '',
+        KOBO_GATEWAY_RELEASE: '',
+        POSTHOG_KEY: '',
+        POSTHOG_HOST: ''
+      }
     }
   })
 
@@ -27,7 +41,9 @@ describe('getRelease', () => {
       API_URL: '',
       SENTRY_DSN_WEB: '',
       RELEASE: 'abc123def456',
-      KOBO_GATEWAY_RELEASE: ''
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
 
     const release = getRelease()
@@ -35,14 +51,28 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when window.__ENV__.RELEASE is not set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
+    }
 
     const release = getRelease()
     expect(release).toBe('')
   })
 
   it('returns empty string when window.__ENV__ is not defined', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
+    }
 
     const release = getRelease()
     expect(release).toBe('')
@@ -53,7 +83,9 @@ describe('getRelease', () => {
       API_URL: '',
       SENTRY_DSN_WEB: '',
       RELEASE: 'browser-release',
-      KOBO_GATEWAY_RELEASE: ''
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
     process.env.RELEASE = 'process-release'
 
@@ -62,7 +94,14 @@ describe('getRelease', () => {
   })
 
   it('returns empty string when neither is set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
+    }
     delete process.env.RELEASE
 
     const release = getRelease()
@@ -89,14 +128,23 @@ describe('getKoboGatewayRelease', () => {
       API_URL: '',
       SENTRY_DSN_WEB: '',
       RELEASE: '',
-      KOBO_GATEWAY_RELEASE: 'def789abc012'
+      KOBO_GATEWAY_RELEASE: 'def789abc012',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
 
     expect(getKoboGatewayRelease()).toBe('def789abc012')
   })
 
   it('defaults to dev when window.__ENV__.KOBO_GATEWAY_RELEASE is not set', () => {
-    window.__ENV__ = { API_URL: '', SENTRY_DSN_WEB: '', RELEASE: '', KOBO_GATEWAY_RELEASE: '' }
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
+    }
 
     expect(getKoboGatewayRelease()).toBe('')
   })
@@ -119,7 +167,9 @@ describe('getApiUrl', () => {
       API_URL: 'https://api.example.com',
       SENTRY_DSN_WEB: '',
       RELEASE: '',
-      KOBO_GATEWAY_RELEASE: ''
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
 
     const apiUrl = getApiUrl()
@@ -137,7 +187,9 @@ describe('getSentryDsn', () => {
       API_URL: '',
       SENTRY_DSN_WEB: 'https://sentry.example.com/dsn',
       RELEASE: '',
-      KOBO_GATEWAY_RELEASE: ''
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
 
     const sentryDsn = getSentryDsn()
@@ -149,5 +201,57 @@ describe('getSentryDsn', () => {
     window.__ENV__ = undefined as any
 
     expect(getSentryDsn()).toBe('')
+  })
+})
+
+describe('getPostHogKey', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  it('returns window.__ENV__.POSTHOG_KEY when available', () => {
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: 'phc_abc123',
+      POSTHOG_HOST: ''
+    }
+
+    expect(getPostHogKey()).toBe('phc_abc123')
+  })
+
+  it('returns empty string when window.__ENV__ itself is undefined', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    window.__ENV__ = undefined as any
+
+    expect(getPostHogKey()).toBe('')
+  })
+})
+
+describe('getPostHogHost', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  it('returns window.__ENV__.POSTHOG_HOST when available', () => {
+    window.__ENV__ = {
+      API_URL: '',
+      SENTRY_DSN_WEB: '',
+      RELEASE: '',
+      KOBO_GATEWAY_RELEASE: '',
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: 'https://eu.i.posthog.com'
+    }
+
+    expect(getPostHogHost()).toBe('https://eu.i.posthog.com')
+  })
+
+  it('returns empty string when window.__ENV__ itself is undefined', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-type-assertion
+    window.__ENV__ = undefined as any
+
+    expect(getPostHogHost()).toBe('')
   })
 })

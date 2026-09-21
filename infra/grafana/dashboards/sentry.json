@@ -24,7 +24,7 @@
           "queryType": "issues",
           "issuesQuery": "is:unresolved",
           "issuesLimit": 1000,
-          "projectIds": [],
+          "projectIds": [4508563162529792, 4511772433580032, 4511418363871233],
           "environments": []
         }
       ],

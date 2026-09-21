@@ -124,7 +124,7 @@ func extractBlocks(t *testing.T, xhtmlDoc string) []extractedBlock {
 	var found []positioned
 
 	for _, tag := range []string{"h1", "h2", "p"} {
-		re := regexp.MustCompile(`(?s)<` + tag + `>(.*?)</` + tag + `>`)
+		re := regexp.MustCompile(`(?s)<` + tag + `[^>]*>(.*?)</` + tag + `>`)
 		for _, m := range re.FindAllStringSubmatchIndex(xhtmlDoc, -1) {
 			found = append(found, positioned{
 				pos:   m[0],

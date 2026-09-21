@@ -15,7 +15,13 @@ alerts, orphaned storage — becomes a refined GitHub tracking issue on the
 board. It never opens a PR or writes a code fix itself; that's a later,
 separate slice (issue #1447) that turns a refined issue into a PR the same
 way `ready-issues-sweep` does. This keeps a bad or over-eager sweep from
-turning directly into a bad PR with no human review before it lands.
+turning directly into a bad PR with no human review before it lands. The
+same run also drives the skill's step 2, a standing backstop (issue #1786)
+that cross-checks recently-closed GitHub issues against still-unresolved
+Sentry issues and resolves the ones `finish-task`'s own step 6 missed — the
+one piece of this routine that acts directly (`resolve_sentry_issue`)
+rather than only filing a tracking issue, since there's no code fix left to
+review.
 
 This is a spec, not an ADR — there's no alternative design being weighed
 here, just a reproducible record of exactly what to paste into the
@@ -72,11 +78,21 @@ of giving up. Run it in its unattended/detection-only mode. Pull every
 monitoring data source
 per the skill's step 1 — including get_grafana_alerts, which is now the
 ground truth for CI-red and dependency-PR alert state as well as Sentry
-and security-alert state — cluster into independent workstreams, and
+and security-alert state. Then run the skill's step 2, the Sentry
+resolution backstop: list closed GitHub issues from roughly the last 14
+days, check any whose body has a Sentry permalink against the unresolved
+list already pulled in step 1, and for any still unresolved with real
+evidence the fix shipped and stopped recurring, call resolve_sentry_issue
+directly — this is a two-call fix, not a workstream, so do not dispatch a
+subagent for it. Then cluster the rest into independent workstreams, and
 dispatch one subagent per workstream. Each subagent should root-cause its
 problem and file or update one refined GitHub tracking issue describing
 the root cause and a concrete suggested fix — never write a code fix,
-never open a PR, never create a branch. When a signal can't be judged for
+never open a PR, never create a branch. Always label the filed/updated
+issue `bug` in addition to any topic/scope labels — ready-issues-executor
+only picks up `bug`-labeled Ready-column issues, so an issue filed without
+that label sits forever with nobody fixing it or noticing (#1767). When a
+signal can't be judged for
 lack of context, or looks like a false positive, file or update an issue
 proposing a concrete infra/grafana/provisioning/alerting/rules.yml change
 (threshold, added label, richer annotation) instead of silently skipping

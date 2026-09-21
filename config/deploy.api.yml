@@ -180,8 +180,6 @@ env:
     - GITHUB_OAUTH_CLIENT_SECRET
     - SENTRY_OAUTH_CLIENT_ID
     - SENTRY_OAUTH_CLIENT_SECRET
-    - DO_OAUTH_CLIENT_ID
-    - DO_OAUTH_CLIENT_SECRET
     - TODOIST_OAUTH_CLIENT_ID
     - TODOIST_OAUTH_CLIENT_SECRET
     - ENCRYPTION_KEY
@@ -212,3 +210,9 @@ env:
     # webhook (every request rejected) the same way
     # OBSERVABILITY_INGEST_SECRET disables its endpoint above.
     - ROUTINE_FIRE_TOKEN
+    # Slack Incoming Webhook URL the notify_slack MCP tool
+    # (internal/slackwebhook, issue #1628) posts epic-complete summaries
+    # to. Deliberately separate from GRAFANA_SLACK_WEBHOOK_URL
+    # (config/deploy.grafana.yml), a distinct app-deploy-scoped secret
+    # Grafana's own alerting uses.
+    - SLACK_WEBHOOK_URL

@@ -24,15 +24,15 @@ jest.mock('@/components/SWRFallback', () => ({
   default: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }))
 
-jest.mock('@/components/recipes/CategoryManager', () => ({
+jest.mock('@/components/shoppinglist/CategoryManager', () => ({
   __esModule: true,
   default: () => <div data-testid="client" />
 }))
-jest.mock('@/components/recipes/ItemCatalog', () => ({
+jest.mock('@/components/shoppinglist/ItemCatalog', () => ({
   __esModule: true,
   default: () => <div data-testid="item-catalog" />
 }))
-jest.mock('@/components/recipes/StoreManager', () => ({
+jest.mock('@/components/shoppinglist/StoreManager', () => ({
   __esModule: true,
   default: () => <div data-testid="store-manager" />
 }))

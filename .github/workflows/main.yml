@@ -357,6 +357,20 @@ jobs:
       - name: make lint/conflict-markers
         run: make lint/conflict-markers
 
+  # Unconditional for the same reason as conflict-markers above: a workflow
+  # YAML edit can land alongside any other change, not just one gated by the
+  # `changes` path filter (issue #1791). No build step, cheap to always run.
+  workflow-lint:
+    if: github.event_name != 'push'
+    name: GitHub Actions Workflow Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: make lint/workflows
+        run: make lint/workflows
+
   ci-pass:
     needs:
       [
@@ -375,6 +389,7 @@ jobs:
         kobo-gateway-test,
         sentrytools-test,
         conflict-markers,
+        workflow-lint,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -516,7 +531,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "4.0.6"
+          ruby-version: "4.0.7"
           bundler-cache: true
 
       # Not webfactory/ssh-agent: it pipes the secret into `ssh-add -`
@@ -587,6 +602,9 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
+          # PostHog Cloud (EU) client-side project API key (issue #1638) —
+          # see config/deploy.web.yml's env.secret comment.
+          POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
           # Gates GET /metrics on the web container (issue #1555) — see
           # config/deploy.web.yml. Same repo Secret also feeds the api and,
           # as TF_VAR_observability_ingest_secret, OpenTofu's Prometheus.
@@ -628,8 +646,6 @@ jobs:
           GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_SECRET }}
           SENTRY_OAUTH_CLIENT_ID: ${{ secrets.SENTRY_OAUTH_CLIENT_ID }}
           SENTRY_OAUTH_CLIENT_SECRET: ${{ secrets.SENTRY_OAUTH_CLIENT_SECRET }}
-          DO_OAUTH_CLIENT_ID: ${{ secrets.DO_OAUTH_CLIENT_ID }}
-          DO_OAUTH_CLIENT_SECRET: ${{ secrets.DO_OAUTH_CLIENT_SECRET }}
           TODOIST_OAUTH_CLIENT_ID: ${{ secrets.TODOIST_OAUTH_CLIENT_ID }}
           TODOIST_OAUTH_CLIENT_SECRET: ${{ secrets.TODOIST_OAUTH_CLIENT_SECRET }}
           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
@@ -648,6 +664,11 @@ jobs:
           # Bearer token for issue #1444's routine-fire path — see
           # config/deploy.api.yml.
           ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          # Slack Incoming Webhook URL the notify_slack MCP tool posts
+          # epic-complete summaries to (issue #1628) — see
+          # config/deploy.api.yml. Distinct from GRAFANA_SLACK_WEBHOOK_URL
+          # below, Grafana's own alerting secret.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
       # Grafana (issue #1468) — the third Kamal service on this host,
@@ -869,3 +890,80 @@ jobs:
                 curl -sf -X DELETE "https://api.hetzner.cloud/v1/images/$id" \
                   -H "Authorization: Bearer $HCLOUD_TOKEN"
               done
+
+  # Issue #1722: main deploys without re-testing (see this file's own header
+  # comment and root CLAUDE.md's CI section), so a red push-to-main build/
+  # test/deploy job is closer in urgency to a production bug than to a red
+  # PR sitting overnight — waiting for the red-pr-repair routine's 07:00
+  # scheduled run (docs/spec-routine-red-pr-repair.md) could mean up to ~7
+  # hours of nobody diagnosing it. `/webhooks/grafana-alert`
+  # (api/cmd/api/routines_webhook.go) is a generic bearer-token-authenticated
+  # endpoint that accepts an Alertmanager-shaped payload and fires a named
+  # routine — nothing about it is Grafana-specific, so this job POSTs to it
+  # directly the moment any push-to-main job fails, skipping Prometheus/
+  # Grafana's scrape-and-evaluate latency entirely for this one signal. This
+  # still can't push straight to main itself (CLAUDE.md is explicit that
+  # nothing does) — it only gets red-pr-repair started diagnosing sooner, so
+  # its fix still lands as a normal PR gated by CI.
+  #
+  # `needs` lists every job that actually runs on a push-to-main event
+  # (everything else here is `pull_request`/`workflow_dispatch`-only) so
+  # `always()` waits for all of them before checking for a failure.
+  notify-main-ci-red:
+    needs:
+      [
+        build-api,
+        build-web,
+        build-grafana,
+        build-kobo-gateway,
+        api-test,
+        web-test,
+        kobo-gateway-test,
+        sentrytools-test,
+        infra-apply,
+        deploy-kamal,
+      ]
+    if: |
+      always() &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      contains(needs.*.result, 'failure')
+    name: Notify red-pr-repair of a red main branch
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      # labels.routine selects the routine routines_webhook.go fires
+      # (red-pr-repair is already a knownRoutines entry, see
+      # api/internal/observability/jobs/issue_signal_collector.go) — same
+      # shape Grafana's own routine-fire contact point posts
+      # (infra/grafana/provisioning/alerting/contactpoints.yml), just built
+      # here instead of evaluated by a Prometheus rule.
+      - name: POST failing-job context to the routine-fire webhook
+        env:
+          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
+          NEEDS_JSON: ${{ toJson(needs) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          failing_jobs=$(echo "$NEEDS_JSON" | jq -r '
+            to_entries | map(select(.value.result == "failure")) | map(.key) | join(", ")
+          ')
+          payload=$(jq -n \
+            --arg summary "main branch CI is red" \
+            --arg description "Push to main at $COMMIT_SHA failed. Failing job(s): $failing_jobs. Run: $RUN_URL" \
+            --arg url "$RUN_URL" \
+            '{
+              status: "firing",
+              alerts: [{
+                status: "firing",
+                labels: {alertname: "MainCIRed", routine: "red-pr-repair"},
+                annotations: {summary: $summary, description: $description},
+                generatorURL: $url
+              }]
+            }')
+          curl -sf -X POST "https://tools.xdoubleu.com/api/webhooks/grafana-alert" \
+            -H "Authorization: Bearer $ROUTINE_FIRE_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

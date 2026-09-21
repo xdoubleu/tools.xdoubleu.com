@@ -13,7 +13,7 @@
 # existing KAMAL_REGISTRY_USERNAME/PASSWORD GHCR credentials.
 #
 # Bumping Grafana's version means bumping the tag below.
-FROM grafana/grafana:13.2.1
+FROM grafana/grafana:13.2.2
 
 # Backend datasource plugins for the GitHub and Sentry APIs (issue #1570), so
 # Grafana queries those providers directly instead of the api binary polling

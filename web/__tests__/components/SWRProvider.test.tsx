@@ -1,10 +1,16 @@
 import { render, screen } from '@testing-library/react'
 import useSWR from 'swr'
 import { create } from '@bufbuild/protobuf'
+import posthog from 'posthog-js'
 import SWRProvider from '@/components/SWRProvider'
 import { swrKeys } from '@/lib/swrKeys'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 import type { GetCurrentUserResponse } from '@/lib/gen/auth/v1/auth_pb'
+
+jest.mock('posthog-js', () => ({
+  __esModule: true,
+  default: { identify: jest.fn(), get_distinct_id: jest.fn(() => 'anon-id') }
+}))
 
 function Probe() {
   const { data } = useSWR<GetCurrentUserResponse>(
@@ -15,6 +21,86 @@ function Probe() {
 }
 
 describe('SWRProvider', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    jest.mocked(posthog.get_distinct_id).mockReturnValue('anon-id')
+  })
+
+  it('identifies the PostHog distinct_id with the current user id', () => {
+    const user = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-123'
+    })
+
+    render(
+      <SWRProvider currentUser={user}>
+        <Probe />
+      </SWRProvider>
+    )
+
+    expect(posthog.identify).toHaveBeenCalledWith('user-123')
+  })
+
+  it('does not re-identify when already identified as the current user', () => {
+    const user = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-123'
+    })
+    jest.mocked(posthog.get_distinct_id).mockReturnValue('user-123')
+
+    render(
+      <SWRProvider currentUser={user}>
+        <Probe />
+      </SWRProvider>
+    )
+
+    expect(posthog.identify).not.toHaveBeenCalled()
+  })
+
+  it('re-identifies when the current user id changes', () => {
+    const userA = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-a'
+    })
+    const userB = create(GetCurrentUserResponseSchema, {
+      role: 'admin',
+      appAccess: [],
+      hasMfa: false,
+      userId: 'user-b'
+    })
+
+    const { rerender } = render(
+      <SWRProvider currentUser={userA}>
+        <Probe />
+      </SWRProvider>
+    )
+    expect(posthog.identify).toHaveBeenCalledWith('user-a')
+
+    jest.mocked(posthog.get_distinct_id).mockReturnValue('user-a')
+    rerender(
+      <SWRProvider currentUser={userB}>
+        <Probe />
+      </SWRProvider>
+    )
+    expect(posthog.identify).toHaveBeenCalledWith('user-b')
+  })
+
+  it('does not identify when there is no current user', () => {
+    render(
+      <SWRProvider currentUser={null}>
+        <Probe />
+      </SWRProvider>
+    )
+
+    expect(posthog.identify).not.toHaveBeenCalled()
+  })
+
   it('exposes the server-fetched user as fallback for the current-user key', () => {
     const user = create(GetCurrentUserResponseSchema, {
       role: 'admin',

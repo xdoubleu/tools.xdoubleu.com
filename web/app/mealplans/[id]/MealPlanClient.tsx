@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { getApiUrl } from '@/lib/env'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
-import MealPlanCalendar from '@/components/recipes/MealPlanCalendar'
+import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 

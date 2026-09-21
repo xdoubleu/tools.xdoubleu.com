@@ -59,6 +59,18 @@ this skill's steps ever ends on a question with no one there to answer it.
    scope and end the sweep for this run, rather than reporting a false
    "nothing to do" or blocking on a question no one is there to answer.
 
+   **Filter to `bug`-labeled issues only.** Check each issue's type label
+   (`.claude/github-triage.config.json`'s `labels.types`) against the
+   list before dispatching a subagent for it — skip anything not labeled
+   `bug`. An issue reaching Ready means a human or a prior triage step
+   judged it scoped, but for `enhancement`/`feature`/`chore`/
+   `documentation` work that judgment doesn't extend to "safe to implement
+   fully unattended": a brand-new feature (or any non-bug-fix) landing with
+   nobody in the loop at any point is a materially different risk than this
+   skill fixing an already-diagnosed bug. Note each skipped issue (number
+   and its actual type label) in step 6's final summary instead of
+   dispatching a subagent for it.
+
 2. **Skim titles for genuine overlap** (two issues that would touch the same
    files/area) and note it in each affected subagent's prompt so they're
    aware a sibling agent is touching nearby code — but default to one

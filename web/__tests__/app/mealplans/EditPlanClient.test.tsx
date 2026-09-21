@@ -15,7 +15,7 @@ jest.mock('next/link', () => {
   )
 })
 
-jest.mock('@/components/recipes/PlanForm', () => ({
+jest.mock('@/components/mealplans/PlanForm', () => ({
   __esModule: true,
   default: () => <div data-testid="plan-form" />
 }))

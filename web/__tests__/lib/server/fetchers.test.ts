@@ -77,6 +77,21 @@ describe('fetchOrNull', () => {
     expect(mockCaptureException).toHaveBeenCalledWith(err)
   })
 
+  it('returns null without reporting Unimplemented from a raw HTTP 404 (deploy-skew artifact)', async () => {
+    const err = new ConnectError('HTTP 404', Code.Unimplemented)
+    await expect(fetchOrNull(async () => Promise.reject(err))).resolves.toBeNull()
+    expect(mockCaptureException).not.toHaveBeenCalled()
+  })
+
+  it('reports a genuine Unimplemented ConnectError that is not the raw-404 shape', async () => {
+    const err = new ConnectError(
+      'learningpaths.v1.LearningPathsService.ListLearningPaths is not implemented',
+      Code.Unimplemented
+    )
+    await expect(fetchOrNull(async () => Promise.reject(err))).resolves.toBeNull()
+    expect(mockCaptureException).toHaveBeenCalledWith(err)
+  })
+
   it('rethrows non-Connect errors', async () => {
     await expect(
       fetchOrNull(async () => {

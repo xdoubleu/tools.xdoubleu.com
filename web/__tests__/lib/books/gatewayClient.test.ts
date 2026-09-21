@@ -164,7 +164,9 @@ describe('gatewayNeedsUpdate', () => {
       API_URL: '',
       SENTRY_DSN_WEB: '',
       RELEASE: '',
-      KOBO_GATEWAY_RELEASE: koboGatewayRelease
+      KOBO_GATEWAY_RELEASE: koboGatewayRelease,
+      POSTHOG_KEY: '',
+      POSTHOG_HOST: ''
     }
   }
 

@@ -104,3 +104,90 @@ func TestFinalizeHeadings_ZeroModalHeight(t *testing.T) {
 	finalizeHeadings(blocks, 0)
 	assert.Equal(t, "p", blocks[0].tag)
 }
+
+// TestFinalizeHeadings_DemotesLowercaseStartCandidate reproduces issue
+// #1698's marginal-pull-quote/mid-sentence false positives: a height-ratio
+// heading candidate whose text starts with a lowercase letter (never true of
+// a real title) must be demoted to "p", while an isolated, properly
+// capitalized heading of the same size stays a heading.
+func TestFinalizeHeadings_DemotesLowercaseStartCandidate(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Chapter One: Systems Thinking", modal*1.5), // real heading
+		textBlock("Body paragraph one of the chapter.", modal),
+		textBlock(
+			"reinforcing loop", // marginal pull-quote fragment
+			modal*1.5,
+		),
+		textBlock("Body paragraph two of the chapter.", modal),
+		textBlock(
+			"which is why the system oscillates", // run-on fragment
+			modal*1.2,
+		),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag, "real heading must stay a heading")
+	assert.Equal(t, "p", blocks[2].tag, "lowercase-start candidate must be demoted")
+	assert.Equal(t, "p", blocks[4].tag, "lowercase-start candidate must be demoted")
+}
+
+// TestFinalizeHeadings_DemotesLoopDiagramLabel reproduces the follow-up
+// #1766 explicitly left open: a handful of very short all-caps
+// systems-diagram loop labels ("B", "R B", "B B") from the reference book
+// ("Thinking in Systems") are large enough to clear the heading height
+// ratio, isolated (so demoteHeadingRuns's run-of-2+ guard never fires), and
+// all-uppercase (so startsLowercase never fires either) — yet they are not
+// real headings and must not pollute the generated EPUB chapter TOC.
+func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Chapter One: Systems Thinking", modal*1.5), // real heading
+		textBlock("Body paragraph one of the chapter.", modal),
+		textBlock("B", modal*1.5),   // single balancing-loop label
+		textBlock("R B", modal*1.5), // reinforcing + balancing loop labels
+		textBlock("B B", modal*1.5), // two balancing-loop labels
+		textBlock("Body paragraph two of the chapter.", modal),
+		textBlock("Appendix", modal*1.5), // real short heading stays a heading
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag, "real heading must stay a heading")
+	assert.Equal(t, "p", blocks[2].tag, `"B" loop label must be demoted`)
+	assert.Equal(t, "p", blocks[3].tag, `"R B" loop label must be demoted`)
+	assert.Equal(t, "p", blocks[4].tag, `"B B" loop label must be demoted`)
+	assert.Equal(
+		t,
+		"h1",
+		blocks[6].tag,
+		"a real short all-caps heading must not be demoted",
+	)
+}
+
+// TestIsLoopDiagramLabel covers isLoopDiagramLabel's boundary cases directly:
+// single/multi single-letter tokens match, while real words (even short
+// all-caps ones) and lowercase/mixed-case text don't.
+func TestIsLoopDiagramLabel(t *testing.T) {
+	tests := map[string]bool{
+		"B":        true,
+		"R B":      true,
+		"B B":      true,
+		"R":        true,
+		"":         false,
+		"Appendix": false,
+		"NOTES":    false,
+		"BB":       false, // not space-separated single-letter tokens
+		"b b":      false, // lowercase
+		"B b":      false, // mixed case
+		" B ":      true,  // surrounding whitespace is trimmed
+	}
+	for text, want := range tests {
+		assert.Equalf(
+			t, want, isLoopDiagramLabel(text), "isLoopDiagramLabel(%q)", text,
+		)
+	}
+}

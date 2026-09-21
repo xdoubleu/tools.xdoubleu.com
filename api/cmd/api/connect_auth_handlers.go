@@ -248,6 +248,7 @@ func (h *authConnectHandler) GetCurrentUser(
 	resp.Msg.AppAccess = appAccess
 	resp.Msg.HasMfa = user.HasMFA
 	resp.Msg.DisplayName = displayName
+	resp.Msg.UserId = user.ID
 	return resp, nil
 }
 

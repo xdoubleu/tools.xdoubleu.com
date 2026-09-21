@@ -14,6 +14,7 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/internal/repositories"
+	"tools.xdoubleu.com/apps/books/pkg/authorname"
 	"tools.xdoubleu.com/apps/books/pkg/books"
 	"tools.xdoubleu.com/apps/books/pkg/hardcover"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
@@ -512,6 +513,7 @@ func (s *BookService) ImportFromCSV(
 	ubList := make([]models.UserBook, len(entries))
 	for i, e := range entries {
 		bookList[i] = e.Book
+		bookList[i].Authors = authorname.NormalizeAll(e.Book.Authors)
 		ubList[i] = e.UserBook
 		ubList[i].UserID = userID
 	}
@@ -656,7 +658,7 @@ func externalToBook(ext SourceProposal) models.Book {
 
 	return models.Book{ //nolint:exhaustruct //optional fields
 		Title:          ext.Title,
-		Authors:        ext.Authors,
+		Authors:        authorname.NormalizeAll(ext.Authors),
 		ISBN13:         isbn13,
 		CoverURL:       coverURL,
 		Description:    description,
@@ -672,6 +674,17 @@ func (s *BookService) ListKoboSyncBooks(
 	userID string,
 ) ([]models.KoboSyncBook, error) {
 	return s.books.ListKoboSyncBooks(ctx, userID)
+}
+
+// UpdateKoboLastSyncedRevision records the RevisionId just sent to the
+// device for bookID, so the next sync can tell whether it changed.
+func (s *BookService) UpdateKoboLastSyncedRevision(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	revision string,
+) error {
+	return s.books.UpdateKoboLastSyncedRevision(ctx, userID, bookID, revision)
 }
 
 // ListKoboRemovals returns books tombstoned for active removal from the
