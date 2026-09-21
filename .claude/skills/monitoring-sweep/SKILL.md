@@ -1,6 +1,6 @@
 ---
 name: monitoring-sweep
-description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep" — also the skill a nightly scheduled routine (issue #1446, `docs/spec-routine-nightly-maintenance-sweep.md`) runs unattended.
+description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Also runs a standing backstop that cross-checks recently-closed GitHub issues against still-unresolved Sentry issues, catching a skipped `finish-task` step 6. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep" — also the skill a nightly scheduled routine (issue #1446, `docs/spec-routine-nightly-maintenance-sweep.md`) runs unattended.
 ---
 
 # Monitoring Sweep
@@ -20,7 +20,7 @@ worked example of how granular the subagent split should be.
 - **Interactive** (a human is asking for the sweep, this session, right
   now — the common case): each dispatched subagent drives its problem all
   the way to a merged/mergeable PR (`start-task` → fix → `finish-task`,
-  step 4 below).
+  step 5 below).
 - **Unattended** (issue #1446's nightly scheduled routine —
   `docs/spec-routine-nightly-maintenance-sweep.md` — invokes this skill
   with no human watching, and there is nothing to hand control back to in
@@ -37,7 +37,7 @@ worked example of how granular the subagent split should be.
 - Unattended mode never ends on "ask the user" or waits on a human
   response — every decision point below that would otherwise need one
   instead resolves to "file/update a tracking issue and move on" (see step
-  3's self-correcting instruction). A routine session that stalls waiting
+  4's self-correcting instruction). A routine session that stalls waiting
   for input never gets one.
 
 ## Why subagents, not inline fixes
@@ -57,7 +57,7 @@ have each drive its own outcome independently.
    routine_name: "nightly-maintenance-sweep")` before pulling any data.
    This is what makes the run show up in `get_automated_actions` history at
    all — nothing else observes an unattended routine running. Keep the
-   returned `id`; step 8 needs it to close the row. In interactive mode this
+   returned `id`; step 9 needs it to close the row. In interactive mode this
    is still worth doing (cheap, and keeps the history complete) but isn't
    the point of the exercise the way it is for the nightly routine.
 
@@ -105,7 +105,41 @@ have each drive its own outcome independently.
    `get_grafana_alerts` plus each gauge shows what Grafana is alerting on
    before you dig into the detail tools.
 
-2. **Cluster into independent workstreams.** Don't dispatch one subagent per
+2. **Sentry resolution backstop.** Cross-check closed GitHub issues against
+   still-unresolved Sentry issues — independent of anything the
+   `/monitoring` page currently reports non-zero, since a Sentry issue whose
+   fix shipped but whose `resolve_sentry_issue` call got forgotten doesn't
+   move any page count on its own; closing it out is the only thing that
+   would. This exists because `finish-task`'s own step 6 ("Resolve linked
+   Sentry issues once merged") has no enforcement and has been missed three
+   times now (#770, #775, #1786) — this step is the backstop that catches a
+   miss after the fact, not a redesign of step 6 itself.
+   - `list_issues(state: "CLOSED", since: <~14 days back>, fields: ["number",
+     "title", "body", "closed_at", "html_url"])` against this repo. Two
+     sweeps a day apart comfortably fall inside a 14-day window even if a run
+     or two gets missed; going further back just re-checks issues an earlier
+     sweep already confirmed clean.
+   - For each closed issue whose body contains a Sentry permalink
+     (`https://xdoubleu.sentry.io/issues/<id>/`), extract the numeric id and
+     check it against step 1's `get_sentry_issues` unresolved list (already
+     pulled this run — don't call it again).
+   - Still unresolved despite the tracking issue being closed: don't resolve
+     it off the closure alone — a closed issue can mean "won't fix" or
+     "duplicate" as easily as "fixed," and resolving a Sentry issue whose
+     underlying error is still live just hides a real problem. Only call
+     `resolve_sentry_issue(issue_id)` when there's actual evidence the fix
+     shipped and the error stopped recurring — the Sentry issue's own
+     `lastSeen`/`count` predating the GitHub issue's `closed_at`, or the
+     tracking issue's body/comments confirming the fix merged and the error
+     stayed quiet since. When that evidence isn't there, leave it unresolved
+     and flag it in step 8's final summary for human review instead.
+   - This is a direct fix, not a root-cause investigation — call
+     `resolve_sentry_issue` inline here rather than dispatching a subagent
+     for it; there's no code left to write, since the code-side fix already
+     merged. Only the ones you can't resolve need to surface anywhere else
+     (the final summary), never a workstream of their own in step 3.
+
+3. **Cluster into independent workstreams.** Don't dispatch one subagent per
    raw data row — group by root cause and by which part of the codebase
    they'll touch, so parallel subagents never collide on the same files:
    - One Sentry issue = usually one workstream (unless two issues share an
@@ -124,7 +158,7 @@ have each drive its own outcome independently.
      `dependabot-triage` skill (see below) rather than inventing per-alert
      subagents yourself.
 
-3. **Before dispatching, decide what's actually fixable now vs. what needs a
+4. **Before dispatching, decide what's actually fixable now vs. what needs a
    human call.** Never dispatch a fix subagent for these — in either mode,
    file (or, for the security-alert cases, let `dependabot-triage` file) a
    tracking issue explaining why it needs a human decision, and keep
@@ -151,7 +185,7 @@ have each drive its own outcome independently.
    sweep that can't act on a signal and says nothing about why produces the
    same recurring blind spot a missing MCP tool does.
 
-4. **Dispatch one `Agent` call per workstream, in parallel, each with
+5. **Dispatch one `Agent` call per workstream, in parallel, each with
    `isolation: "worktree"`** so they don't collide on the same git working
    tree. Each prompt must be fully self-contained (the subagent has none of
    this session's context), must state which mode applies, and must tell it
@@ -198,17 +232,17 @@ have each drive its own outcome independently.
      URL(s) (interactive) or the tracking issue number it filed/updated
      (unattended).
 
-5. **Wait-for-completion behavior differs by mode.** Interactive: do not
+6. **Wait-for-completion behavior differs by mode.** Interactive: do not
    poll the subagents — they run in the background and this session gets a
-   completion notification per agent, so continue other work (like step 6)
+   completion notification per agent, so continue other work (like step 7)
    or answer the user in the meantime rather than sleeping or re-checking.
    Unattended: there is no other work to hand back to and no user to answer
    in the meantime, so the orchestrating session stays open and reacts to
    each subagent's completion notification as it arrives (still without
-   spin-polling) — step 8 needs every workstream's outcome before it can
+   spin-polling) — step 9 needs every workstream's outcome before it can
    close the run record accurately.
 
-6. **Once dispatched, consider whether a new reusable sub-skill is
+7. **Once dispatched, consider whether a new reusable sub-skill is
    warranted.** If a workstream turned out to be a well-defined, likely-to-
    recur pattern (bulk security-alert triage was the first one — see
    `dependabot-triage`), extract it into its own `.claude/skills/<name>/`
@@ -218,18 +252,20 @@ have each drive its own outcome independently.
    the idea in the run's own summary/report instead, for a human or a later
    interactive session to act on.
 
-7. **Report a final summary** once all subagents have reported back: one
+8. **Report a final summary** once all subagents have reported back: one
    line per workstream (issue → root cause → outcome → PR/tracking-issue
-   link), any items that still need a human decision, any
-   `rules.yml`-change issue(s) filed under the self-correcting instruction,
-   and confirmation that Sentry issues were resolved / alerts dismissed as
-   applicable. Interactive mode: this is the reply to the user. Unattended
-   mode: there's no one to reply to — this summary instead becomes the
-   `error`/`pr_url` detail (if any) passed to step 8's close call, and the
-   full text is worth leaving in the last-filed/updated tracking issue's
-   comments so it's visible without needing the routine's own transcript.
+   link), step 2's Sentry-backstop resolutions and any it couldn't resolve
+   and flagged for human review, any items that still need a human decision,
+   any `rules.yml`-change issue(s) filed under the self-correcting
+   instruction, and confirmation that Sentry issues were resolved / alerts
+   dismissed as applicable. Interactive mode: this is the reply to the user.
+   Unattended mode: there's no one to reply to — this summary instead
+   becomes the `error`/`pr_url` detail (if any) passed to step 9's close
+   call, and the full text is worth leaving in the last-filed/updated
+   tracking issue's comments so it's visible without needing the routine's
+   own transcript.
 
-8. **Close the run record.** Call `record_action(mode: "close", id: <the id
+9. **Close the run record.** Call `record_action(mode: "close", id: <the id
    from step 0>, outcome: ...)` — `"no_action_needed"` if the sweep found
    nothing currently non-zero, `"succeeded"` if it dispatched workstreams
    and every one resolved to either a PR/mergeable state (interactive) or a
