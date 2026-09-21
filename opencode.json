@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["api/CLAUDE.md", "web/CLAUDE.md", "kobo-gateway/CLAUDE.md"],
+  "mcp": {
+    "tools-apps": {
+      "type": "remote",
+      "url": "https://tools.xdoubleu.com/api/apps/mcp"
+    }
+  }
+}
