@@ -5,34 +5,17 @@ jest.mock('@/components/monitoring/ObservabilityClient', () => () => (
   <div data-testid="observability-client" />
 ))
 
-jest.mock('@/lib/server/client', () => ({
-  createServerClient: jest.fn(async () => ({
-    getAutomatedActions: jest.fn(async () => ({}))
-  }))
-}))
-
-jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: jest.fn(async () => null)
-}))
-
-jest.mock('@/components/SWRFallback', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>
-}))
-
 import MonitoringObservabilityPage from '@/app/monitoring/observability/page'
 
 describe('MonitoringObservabilityPage', () => {
-  it('renders the observability client', async () => {
-    render(await MonitoringObservabilityPage())
-    expect(screen.getByTestId('observability-client')).toBeInTheDocument()
-  })
-
-  it('passes prefetched automated actions as SWR fallback when available', async () => {
-    const { fetchOrNull } = jest.requireMock('@/lib/server/fetchers')
-    fetchOrNull.mockImplementation((fn: () => unknown) => fn())
-
-    render(await MonitoringObservabilityPage())
+  it('renders the observability client with no server-side data prefetch', () => {
+    // Issue #1714: this page no longer awaits GetAutomatedActions during
+    // SSR (see the comment in app/monitoring/observability/page.tsx), so
+    // rendering it needs no fetchOrNull/SWRFallback mocking at all —
+    // ObservabilityClient's own SWR hook (covered by
+    // ObservabilityClient.test.tsx) owns the client-side fetch and loading
+    // state.
+    render(<MonitoringObservabilityPage />)
     expect(screen.getByTestId('observability-client')).toBeInTheDocument()
   })
 })
