@@ -197,7 +197,9 @@ by `sentry-triage` or `refine-issue` often list them under a "Sentry
 permalinks" heading. For each one found, mark it resolved with the
 `resolve_sentry_issue` MCP tool (`issue_id` = the numeric id from the
 permalink). Closing the GitHub issue does not resolve Sentry on its own —
-this step is easy to forget and was missed for issues #770 and #775.
+this step is easy to forget and was missed for issues #770, #775, and #1786.
+`monitoring-sweep`'s step 2 is a standing backstop that catches a miss like
+this after the fact (issue #1786) — it doesn't replace doing this step here.
 
 ## 6a. Feature epic completion: the Slack summary
 
