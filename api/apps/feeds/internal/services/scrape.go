@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -194,8 +195,9 @@ func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 }
 
 // candidatePostURL resolves an <a> node's href and checks it against the
-// scrape heuristic's URL-shape rules: http(s), same domain as base, and not
-// a listing/utility path.
+// scrape heuristic's URL-shape rules: http(s), same domain as base, not a
+// listing/utility path, and not a language-alternate link for the current
+// page (isLocaleAlternate).
 func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
 	href := strings.TrimSpace(nodeAttr(n, "href"))
 	if href == "" || strings.HasPrefix(href, "#") {
@@ -223,8 +225,47 @@ func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
 			return nil, false
 		}
 	}
+	if isLocaleAlternate(resolved, base) {
+		return nil, false
+	}
 
 	return resolved, true
+}
+
+// localeSegmentPattern matches a URL path segment shaped like a language
+// code: bare (e.g. "en", "fr") or region-qualified (e.g. "en-US", "pt-BR").
+var localeSegmentPattern = regexp.MustCompile(`(?i)^[a-z]{2}(-[a-z]{2})?$`)
+
+// isLocaleAlternate reports whether resolved looks like a same-page link to
+// a different language/locale of the page at base: same segment count,
+// differing from base's path in exactly one segment, with both differing
+// segments shaped like a language/region code. Many localized sites expose
+// a language switcher as a plain in-page <a> — not wrapped in
+// nav/header/footer/aside, so collectPostLinks' chrome skip never catches
+// it — whose visible text (e.g. "French, Français (France)") is long enough
+// to otherwise pass the post-link title heuristic, and whose href can carry
+// a volatile per-request query string that defeats canonicalURL's
+// utm_-only dedup, flooding the feed with duplicate "posts" every poll
+// (issue #1748).
+func isLocaleAlternate(resolved, base *url.URL) bool {
+	baseSegs := strings.Split(strings.Trim(base.Path, "/"), "/")
+	segs := strings.Split(strings.Trim(resolved.Path, "/"), "/")
+	if len(segs) != len(baseSegs) || len(segs) == 0 {
+		return false
+	}
+
+	diffs := 0
+	for i, seg := range segs {
+		if seg == baseSegs[i] {
+			continue
+		}
+		if !localeSegmentPattern.MatchString(seg) ||
+			!localeSegmentPattern.MatchString(baseSegs[i]) {
+			return false
+		}
+		diffs++
+	}
+	return diffs == 1
 }
 
 // nodeText concatenates all text within n's subtree, space-separated.
