@@ -1,24 +1,22 @@
-import SWRFallback from '@/components/SWRFallback'
-import { createServerClient } from '@/lib/server/client'
-import { fetchOrNull } from '@/lib/server/fetchers'
-import { swrKeys } from '@/lib/swrKeys'
-import { ObservabilityService } from '@/lib/gen/observability/v1/observability_pb'
 import { PageContainer } from '@/components/ui/page-container'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
-export default async function MonitoringObservabilityPage() {
-  const client = await createServerClient(ObservabilityService)
-  const automatedActions = await fetchOrNull(() => client.getAutomatedActions({}))
-
-  const fallback: Record<string, unknown> = {}
-  if (automatedActions) fallback[swrKeys.monitoringAutomatedActions] = automatedActions
-
+// No server-side prefetch here (contrast the RSC + SWRFallback pattern
+// documented in web/CLAUDE.md's "Data Flow"): issue #1714 traced a 341% p95
+// regression on this page to GetAutomatedActions being awaited on the SSR
+// critical path. An EXPLAIN ANALYZE against a synthetic 2M-row
+// global.automated_actions table showed the query itself runs in
+// sub-millisecond time even at that scale (00052_automated_actions_covering_index.sql
+// tightened it further), so the added latency was the extra network round
+// trip itself, not the query — removing the blocking prefetch and letting
+// ObservabilityClient's own SWR hook fetch client-side (it already renders a
+// "Loading…" state with no data) takes that round trip off the page's
+// response path entirely.
+export default function MonitoringObservabilityPage() {
   return (
     <PageContainer className="p-6">
-      <SWRFallback fallback={fallback}>
-        <h1 className="mb-6 text-3xl font-bold">Observability</h1>
-        <ObservabilityClient />
-      </SWRFallback>
+      <h1 className="mb-6 text-3xl font-bold">Observability</h1>
+      <ObservabilityClient />
     </PageContainer>
   )
 }
