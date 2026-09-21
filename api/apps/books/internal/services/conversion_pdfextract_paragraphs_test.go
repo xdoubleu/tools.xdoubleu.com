@@ -133,3 +133,61 @@ func TestFinalizeHeadings_DemotesLowercaseStartCandidate(t *testing.T) {
 	assert.Equal(t, "p", blocks[2].tag, "lowercase-start candidate must be demoted")
 	assert.Equal(t, "p", blocks[4].tag, "lowercase-start candidate must be demoted")
 }
+
+// TestFinalizeHeadings_DemotesLoopDiagramLabel reproduces the follow-up
+// #1766 explicitly left open: a handful of very short all-caps
+// systems-diagram loop labels ("B", "R B", "B B") from the reference book
+// ("Thinking in Systems") are large enough to clear the heading height
+// ratio, isolated (so demoteHeadingRuns's run-of-2+ guard never fires), and
+// all-uppercase (so startsLowercase never fires either) — yet they are not
+// real headings and must not pollute the generated EPUB chapter TOC.
+func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Chapter One: Systems Thinking", modal*1.5), // real heading
+		textBlock("Body paragraph one of the chapter.", modal),
+		textBlock("B", modal*1.5),   // single balancing-loop label
+		textBlock("R B", modal*1.5), // reinforcing + balancing loop labels
+		textBlock("B B", modal*1.5), // two balancing-loop labels
+		textBlock("Body paragraph two of the chapter.", modal),
+		textBlock("Appendix", modal*1.5), // real short heading stays a heading
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag, "real heading must stay a heading")
+	assert.Equal(t, "p", blocks[2].tag, `"B" loop label must be demoted`)
+	assert.Equal(t, "p", blocks[3].tag, `"R B" loop label must be demoted`)
+	assert.Equal(t, "p", blocks[4].tag, `"B B" loop label must be demoted`)
+	assert.Equal(
+		t,
+		"h1",
+		blocks[6].tag,
+		"a real short all-caps heading must not be demoted",
+	)
+}
+
+// TestIsLoopDiagramLabel covers isLoopDiagramLabel's boundary cases directly:
+// single/multi single-letter tokens match, while real words (even short
+// all-caps ones) and lowercase/mixed-case text don't.
+func TestIsLoopDiagramLabel(t *testing.T) {
+	tests := map[string]bool{
+		"B":        true,
+		"R B":      true,
+		"B B":      true,
+		"R":        true,
+		"":         false,
+		"Appendix": false,
+		"NOTES":    false,
+		"BB":       false, // not space-separated single-letter tokens
+		"b b":      false, // lowercase
+		"B b":      false, // mixed case
+		" B ":      true,  // surrounding whitespace is trimmed
+	}
+	for text, want := range tests {
+		assert.Equalf(
+			t, want, isLoopDiagramLabel(text), "isLoopDiagramLabel(%q)", text,
+		)
+	}
+}
