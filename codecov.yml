@@ -46,10 +46,17 @@ comment:
 # below threshold for reasons unrelated to its own hand-written code (found
 # while shipping issue #1217 — a new response message's getters alone
 # dropped patch coverage from ~78% to ~74%).
+#
+# go.mod/go.sum are dependency files, not code. They're updated by dependency
+# bots like Renovate and don't need test coverage (the code that uses those
+# dependencies is already covered). A dependency update PR should not fail
+# coverage checks just because it added/changed go.mod/go.sum lines.
 ignore:
   - "kobo-gateway/cmd/kobo-gateway/menubar_darwin.go"
   - "api/gen/**"
   - "web/lib/gen/**"
+  - "api/go.mod"
+  - "api/go.sum"
 
 flags:
   api:
