@@ -202,6 +202,61 @@ func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 	assert.Equal(t, services.ImportParserVersion, info.ParserVersion)
 }
 
+// TestStaticImport_ResumesConditionalGetAfterVersionBump is the assertion
+// issue #1710 calls for: a version-mismatch forced reimport (see the test
+// above) is a one-time cost only if the *next* run actually resumes the
+// cheap conditional-GET path using the validators that forced reimport just
+// stored. Without this, "the next run reuses conditional GET" was only ever
+// asserted in prose (the issue body), never in code.
+func TestStaticImport_ResumesConditionalGetAfterVersionBump(t *testing.T) {
+	ctx := context.Background()
+	cfg := testhelper.NewTestConfig()
+	cfg.BMCPartnerKey = "test-key"
+	bmcClient := mocks.NewMockBMCClient(mocks.BuildFeedZip(mocks.SampleFeedFiles()))
+	app := trains.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		bmcClient,
+	)
+
+	// First run: nothing stored yet, unconditional fetch, stamps the current
+	// parser version and stores the mock's ETag.
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+
+	// Simulate a prior importer's rows, same as
+	// TestStaticImport_ParserVersionMismatchForcesReimport: this forces a
+	// second, unconditional fetch.
+	_, err := testDB.Exec(ctx,
+		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
+	require.NoError(t, err)
+
+	bmcClient.Calls = nil
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+	require.Len(t, bmcClient.Calls, 1)
+	assert.Empty(t, bmcClient.Calls[0].ETag,
+		"version mismatch: validators dropped, forced unconditional fetch")
+
+	info, err := app.Repositories.Feed.GetFeedInfo(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, info)
+	assert.Equal(t, services.ImportParserVersion, info.ParserVersion,
+		"the forced reimport stamps the current importer")
+	require.NotEmpty(t, info.ETag,
+		"the forced reimport also stores fresh validators to resume from")
+
+	// Third run: parser version now matches what the forced reimport just
+	// stored, so this run must send that stored ETag rather than fetching
+	// unconditionally again — this is what makes the version bump's cost a
+	// one-time migration rather than a persistently slow importer.
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+	require.Len(t, bmcClient.Calls, 2)
+	assert.Equal(t, info.ETag, bmcClient.Calls[1].ETag,
+		"parser version now matches: conditional GET resumed using the "+
+			"validators the forced reimport just stored")
+}
+
 func TestStaticImport_MissingKeyIsSkippedNotFailed(t *testing.T) {
 	ctx := context.Background()
 	testBMC.Err = bmc.ErrNotConfigured
