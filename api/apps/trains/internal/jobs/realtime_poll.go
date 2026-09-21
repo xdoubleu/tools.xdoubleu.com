@@ -29,6 +29,15 @@ func (j *RealtimePollJob) RunEvery() time.Duration {
 	return pollInterval
 }
 
+// pollTimeout bounds one poll cycle so a slow step — a slow SNCB response,
+// or a trains.trips read blocked behind trains-static-import's TRUNCATE
+// lock (issue #1720) — can't run past the next scheduled tick. It leaves
+// the same margin against RunEvery's 30s cadence that ADR-0017's
+// deployLogsCtxTimeout leaves against its own proxy ceiling.
+const pollTimeout = 20 * time.Second
+
 func (j *RealtimePollJob) Run(ctx context.Context, _ *slog.Logger) error {
+	ctx, cancel := context.WithTimeout(ctx, pollTimeout)
+	defer cancel()
 	return j.svc.Poll(ctx)
 }

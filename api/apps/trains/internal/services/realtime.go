@@ -90,6 +90,14 @@ func (s *RealtimeService) Poll(ctx context.Context) error {
 
 	trips, unresolved, err := s.resolveTripUpdates(ctx, rawTrips)
 	if err != nil {
+		if isBackoffable(err) {
+			s.logger.Warn(
+				"trains: realtime trip-update resolve backing off",
+				"error",
+				err,
+			)
+			return nil
+		}
 		return err
 	}
 	if unresolved > 0 {
@@ -202,14 +210,21 @@ func (s *RealtimeService) fetchAlerts(ctx context.Context) ([]models.Alert, erro
 	return decodeAlerts(res.Body)
 }
 
-// isBackoffable reports whether err is a transient gateway condition the
-// next scheduled poll should simply retry, rather than a bug worth failing
-// the job over. A network-level timeout (e.g. the gateway not answering
-// within the client's request timeout, surfaced as a *url.Error whose
-// Timeout() is true) is included alongside rate-limiting and 5xx responses:
-// it is exactly as transient, and the 30s poll cadence is already the retry
-// (issue #1712).
+// isBackoffable reports whether err is a transient condition the next
+// scheduled poll should simply retry, rather than a bug worth failing the
+// job over. A network-level timeout (e.g. the gateway not answering within
+// the client's request timeout, surfaced as a *url.Error whose Timeout() is
+// true) is included alongside rate-limiting and 5xx responses: it is
+// exactly as transient, and the 30s poll cadence is already the retry
+// (issue #1712). A bare context.DeadlineExceeded — RealtimePollJob's own
+// pollTimeout tripping mid-call — is included too: pgx surfaces a query
+// cancelled by context expiry this way rather than as a net.Error, which is
+// what a trains.trips read blocked behind trains-static-import's TRUNCATE
+// lock looks like once the poll's own deadline cuts it off (issue #1720).
 func isBackoffable(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
 	var rateLimited *bmc.RateLimitedError
 	if errors.As(err, &rateLimited) {
 		return true

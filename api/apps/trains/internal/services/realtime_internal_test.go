@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -36,6 +37,17 @@ func (s stubTripResolver) ShortNamesByTripIDs(
 //nolint:gochecknoglobals //fixed test fixture
 var testTripResolver = stubTripResolver{"trip-1": "L1", "trip-2": "L2"}
 
+// erroringTripResolver stands in for a trains.trips read blocked behind
+// trains-static-import's TRUNCATE lock and then cut off by
+// RealtimePollJob's pollTimeout (issue #1720) — it always fails with err.
+type erroringTripResolver struct{ err error }
+
+func (e erroringTripResolver) ShortNamesByTripIDs(
+	_ context.Context, _ []string,
+) (map[string]string, error) {
+	return nil, e.err
+}
+
 func tripUpdateBody(t *testing.T, tripID string) []byte {
 	t.Helper()
 	//nolint:exhaustruct //only the fields under test are set
@@ -58,19 +70,21 @@ func alertBody(t *testing.T, id string) []byte {
 	return marshalFeed(t, msg)
 }
 
-func newTestMock(t *testing.T, tripID, alertID string) *mocks.MockBMCClient {
+// newTestMock always publishes "trip-1"/"alert-1" fixtures — every caller
+// just needs a resolvable trip and a single alert, never a different id.
+func newTestMock(t *testing.T) *mocks.MockBMCClient {
 	t.Helper()
 	//nolint:exhaustruct //Result/Err/Calls/RealtimeErr not needed here
 	return &mocks.MockBMCClient{
 		RealtimeResults: map[string]*bmc.RealtimeResult{
-			bmc.FeedTripUpdate: {Body: tripUpdateBody(t, tripID)},
-			bmc.FeedAlert:      {Body: alertBody(t, alertID)},
+			bmc.FeedTripUpdate: {Body: tripUpdateBody(t, "trip-1")},
+			bmc.FeedAlert:      {Body: alertBody(t, "alert-1")},
 		},
 	}
 }
 
 func TestRealtimeService_Poll_BuildsSnapshot(t *testing.T) {
-	m := newTestMock(t, "trip-1", "alert-1")
+	m := newTestMock(t)
 	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
 
 	require.NoError(t, svc.Poll(context.Background()))
@@ -91,7 +105,7 @@ func TestRealtimeService_Poll_BuildsSnapshot(t *testing.T) {
 }
 
 func TestRealtimeService_Poll_KeepsPriorAlertsBetweenAlertPolls(t *testing.T) {
-	m := newTestMock(t, "trip-1", "alert-1")
+	m := newTestMock(t)
 	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
 
 	require.NoError(t, svc.Poll(context.Background()))
@@ -153,6 +167,40 @@ func TestRealtimeService_Poll_TimeoutIsNotAnError(t *testing.T) {
 
 	require.NoError(t, svc.Poll(context.Background()))
 	assert.Nil(t, svc.Snapshot().Trips)
+}
+
+// TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError covers issue
+// #1720: a trains.trips read blocked behind trains-static-import's
+// TRUNCATE lock and then cut off by the poll's own context deadline must
+// back off like an upstream timeout, keeping the previous snapshot rather
+// than failing the job — resolveTripUpdates previously had no backoff path
+// at all, so this error used to be an unconditional hard failure.
+func TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError(t *testing.T) {
+	m := newTestMock(t)
+	svc := NewRealtimeService(
+		logging.NewNopLogger(), m,
+		erroringTripResolver{err: context.DeadlineExceeded},
+	)
+
+	require.NoError(t, svc.Poll(context.Background()))
+	assert.Nil(
+		t,
+		svc.Snapshot().Trips,
+		"the (empty) prior snapshot must be kept, not overwritten",
+	)
+}
+
+// TestRealtimeService_Poll_TripResolveNonTimeoutErrorFails ensures a real
+// (non-timeout) resolve failure still fails the job rather than being
+// silently swallowed by the new backoff path.
+func TestRealtimeService_Poll_TripResolveNonTimeoutErrorFails(t *testing.T) {
+	m := newTestMock(t)
+	svc := NewRealtimeService(
+		logging.NewNopLogger(), m,
+		erroringTripResolver{err: errors.New("db: connection refused")},
+	)
+
+	require.Error(t, svc.Poll(context.Background()))
 }
 
 func TestRealtimeService_Poll_UpstreamClientErrorFails(t *testing.T) {
@@ -217,7 +265,7 @@ func (m *alertErroringMock) FetchRealtime(
 // registered listener must run once per successful poll, after the
 // snapshot is already swapped in.
 func TestRealtimeService_Poll_FiresOnUpdateListeners(t *testing.T) {
-	m := newTestMock(t, "trip-1", "alert-1")
+	m := newTestMock(t)
 	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
 
 	var calls int
@@ -281,4 +329,12 @@ func TestIsBackoffable(t *testing.T) {
 		Err: errors.New("connection refused"),
 	}
 	assert.False(t, isBackoffable(nonTimeoutErr))
+
+	// issue #1720: pgx surfaces a query cancelled by the poll's own
+	// pollTimeout as a bare context.DeadlineExceeded (or an error wrapping
+	// it), not a net.Error — this must back off too, exactly like a
+	// trains.trips read blocked behind trains-static-import's TRUNCATE
+	// lock and then cut off by the deadline.
+	assert.True(t, isBackoffable(context.DeadlineExceeded))
+	assert.True(t, isBackoffable(fmt.Errorf("query: %w", context.DeadlineExceeded)))
 }
