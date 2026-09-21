@@ -59,24 +59,39 @@ func (r *FeedRepository) GetFeedInfo(
 	return info, nil
 }
 
-// staged is the ordered set of tables ImportFeed replaces. TRUNCATE + COPY
-// inside a single transaction is an atomic swap for readers under MVCC: a
-// router querying the schema sees the complete old feed until COMMIT, then
-// the complete new one — never a half-replaced mix (issue #1390).
+// stagedTables is the ordered set of bare table names ImportFeed replaces —
+// each one has a live `trains.<name>` table and a `trains.<name>_staging`
+// mirror (identical columns/PK/indexes, migration 00008_staging_tables.sql).
 //
 //nolint:gochecknoglobals //fixed table list, package-level by design
 var stagedTables = []string{
-	"trains.stop_times",
-	"trains.calendar_dates",
-	"trains.transfers",
-	"trains.trips",
-	"trains.routes",
-	"trains.stops",
+	"stop_times", "calendar_dates", "transfers", "trips", "routes", "stops",
 }
 
-// ImportFeed replaces the entire trains timetable with feed in one
-// transaction.
+// ImportFeed replaces the entire trains timetable with feed. It runs in two
+// phases, never taking a lock on a live table for longer than a metadata-only
+// rename: PopulateStaging does the slow TRUNCATE + COPY entirely against the
+// `_staging` tables, which nothing else ever queries, then SwapStagingIn
+// renames each staging table into its live counterpart's name. A single
+// TRUNCATE-then-COPY transaction against the live tables directly (the
+// previous approach) held Postgres's TRUNCATE ACCESS EXCLUSIVE lock — which,
+// unlike UPDATE/DELETE, conflicts with even a plain SELECT — for the whole
+// multi-minute import, blocking every concurrent read of those tables
+// (issue #1718).
 func (r *FeedRepository) ImportFeed(
+	ctx context.Context,
+	feed *models.Feed,
+) error {
+	if err := r.PopulateStaging(ctx, feed); err != nil {
+		return err
+	}
+	return r.SwapStagingIn(ctx, feed.Info)
+}
+
+// PopulateStaging truncates and repopulates the `_staging` tables with feed,
+// entirely independent of the live tables — safe to run for as long as the
+// import takes without affecting any concurrent reader.
+func (r *FeedRepository) PopulateStaging(
 	ctx context.Context,
 	feed *models.Feed,
 ) error {
@@ -86,8 +101,12 @@ func (r *FeedRepository) ImportFeed(
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	truncateList := make([]string, len(stagedTables))
+	for i, t := range stagedTables {
+		truncateList[i] = fmt.Sprintf("trains.%s_staging", t)
+	}
 	if _, err = tx.Exec(
-		ctx, fmt.Sprintf("TRUNCATE %s", strings.Join(stagedTables, ", ")),
+		ctx, fmt.Sprintf("TRUNCATE %s", strings.Join(truncateList, ", ")),
 	); err != nil {
 		return err
 	}
@@ -110,7 +129,50 @@ func (r *FeedRepository) ImportFeed(
 	if err = copyTransfers(ctx, tx, feed.Transfers); err != nil {
 		return err
 	}
-	if err = upsertFeedInfo(ctx, tx, feed.Info); err != nil {
+
+	return tx.Commit(ctx)
+}
+
+// SwapStagingIn atomically promotes the populated `_staging` tables to be
+// the live tables, and demotes the previous live tables back to `_staging`
+// (PopulateStaging truncates them on the next import). Each table is swapped
+// via a 3-way rename — live→tmp, staging→live, tmp→staging — which is
+// metadata-only and needs an ACCESS EXCLUSIVE lock on the live table for
+// only as long as the rename itself takes, not the size of the data it
+// carries. info is written in the same transaction so a reader never
+// observes new timetable rows against stale feed_info metadata.
+func (r *FeedRepository) SwapStagingIn(
+	ctx context.Context,
+	info models.FeedInfo,
+) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	for _, t := range stagedTables {
+		tmp := t + "_swap_tmp"
+		if _, err = tx.Exec(
+			ctx, fmt.Sprintf("ALTER TABLE trains.%s RENAME TO %s", t, tmp),
+		); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(
+			ctx,
+			fmt.Sprintf("ALTER TABLE trains.%s_staging RENAME TO %s", t, t),
+		); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(
+			ctx,
+			fmt.Sprintf("ALTER TABLE trains.%s RENAME TO %s_staging", tmp, t),
+		); err != nil {
+			return err
+		}
+	}
+
+	if err = upsertFeedInfo(ctx, tx, info); err != nil {
 		return err
 	}
 
@@ -140,7 +202,7 @@ func (r *FeedRepository) CountTripsResolvingOn(
 
 func copyStops(ctx context.Context, tx pgx.Tx, rows []models.Stop) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "stops"},
+		pgx.Identifier{schemaName, "stops_staging"},
 		[]string{
 			"stop_id", "parent_station", "name_nl", "name_fr", "name_en",
 			"display_name", "location_type", "platform_code", "uic", "lat", "lon",
@@ -159,7 +221,7 @@ func copyStops(ctx context.Context, tx pgx.Tx, rows []models.Stop) error {
 
 func copyRoutes(ctx context.Context, tx pgx.Tx, rows []models.Route) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "routes"},
+		pgx.Identifier{schemaName, "routes_staging"},
 		[]string{"route_id", "short_name", "long_name", "route_type"},
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			r := rows[i]
@@ -173,7 +235,7 @@ func copyRoutes(ctx context.Context, tx pgx.Tx, rows []models.Route) error {
 
 func copyTrips(ctx context.Context, tx pgx.Tx, rows []models.Trip) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "trips"},
+		pgx.Identifier{schemaName, "trips_staging"},
 		[]string{
 			"trip_id", "route_id", "service_id", "trip_short_name",
 			"trip_headsign", "direction_id",
@@ -191,7 +253,7 @@ func copyTrips(ctx context.Context, tx pgx.Tx, rows []models.Trip) error {
 
 func copyStopTimes(ctx context.Context, tx pgx.Tx, rows []models.StopTime) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "stop_times"},
+		pgx.Identifier{schemaName, "stop_times_staging"},
 		[]string{
 			"trip_id", "stop_sequence", "stop_id", "arrival_seconds",
 			"departure_seconds", "pickup_type", "drop_off_type",
@@ -211,7 +273,7 @@ func copyCalendarDates(
 	ctx context.Context, tx pgx.Tx, rows []models.CalendarDate,
 ) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "calendar_dates"},
+		pgx.Identifier{schemaName, "calendar_dates_staging"},
 		[]string{"service_id", "date", "exception_type"},
 		pgx.CopyFromSlice(len(rows), func(i int) ([]any, error) {
 			cd := rows[i]
@@ -223,7 +285,7 @@ func copyCalendarDates(
 
 func copyTransfers(ctx context.Context, tx pgx.Tx, rows []models.Transfer) error {
 	_, err := tx.CopyFrom(ctx,
-		pgx.Identifier{schemaName, "transfers"},
+		pgx.Identifier{schemaName, "transfers_staging"},
 		[]string{
 			"from_stop_id", "to_stop_id", "transfer_type", "min_transfer_time",
 		},
