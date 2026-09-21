@@ -16,11 +16,13 @@ this directory:
   prompt text for a claude.ai routine created by hand in an external UI). An
   ADR without an "alternatives considered" section is a spec instead.
 
-Imperative guidance lives in the `CLAUDE.md` files; past tense — what something
-used to be, what was tried and rejected, which incident produced a rule — lives
-here. Start from `TEMPLATE-adr.md` or `TEMPLATE-convention.md`, keep it short,
-and register a new document in the root `CLAUDE.md` index (that index is what
-makes it discoverable, since only `CLAUDE.md` files load automatically).
+Imperative guidance lives in the root `AGENTS.md` (harness-neutral) and the
+`CLAUDE.md` files (Claude Code-specific); past tense — what something used to
+be, what was tried and rejected, which incident produced a rule — lives here.
+Start from `TEMPLATE-adr.md` or `TEMPLATE-convention.md`, keep it short, and
+register a new document in the index below **and** in the root `AGENTS.md`'s
+own copy of it (that pair is what makes it discoverable, since only
+`AGENTS.md`/`CLAUDE.md` files load automatically for a coding agent).
 
 ## Decisions (ADRs)
 
@@ -66,6 +68,7 @@ makes it discoverable, since only `CLAUDE.md` files load automatically).
 |---|---|---|
 | [convention-comments-describe-current-behavior](convention-comments-describe-current-behavior.md) | No historical or stale claims in code comments | — |
 | [convention-database-queries](convention-database-queries.md) | Never select a wide TEXT column in a list query; read direction | #1027 |
+| [convention-task-lifecycle](convention-task-lifecycle.md) | The harness-neutral start-task/finish-task workflow contract, shared by Claude Code and OpenCode | #1811 |
 | [convention-deploy-secrets](convention-deploy-secrets.md) | A deploy secret is declared in three places that must agree | #1390, #1404, #1405 |
 | [convention-feature-review-policy](convention-feature-review-policy.md) | `feature`-labeled work skips human PR review behind a four-part automated quality gate; maintenance work's tiered review rule is unchanged | #1627, #1628, #1629, #1630, #1631, #1632, #1633, #1634, #1635 |
 | [convention-mcp-gap-first](convention-mcp-gap-first.md) | Fix the missing MCP tool before investigating the incident | #1027, #1195, #1214, #1357, #1374, #1377, #1424 |

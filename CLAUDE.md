@@ -1,210 +1,168 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Claude Code-specific guidance for this repository. **Read
+[`AGENTS.md`](AGENTS.md) first** — it's the shared repository contract
+(architecture, commands, conventions, MCP, production safety, git/worktree
+expectations, the docs index) that applies to any coding agent working here,
+Claude Code included. This file covers only what's genuinely specific to
+Claude Code: skill orchestration, the enforcement hooks, and Plan Mode.
 
-## Monorepo Overview
-
-Go 1.26 backend (`api/`) serving multiple apps from a single binary, paired with a Next.js 16 / React 19 frontend (`web/`, standalone Node server). Apps share a single HTTP mux and expose ConnectRPC endpoints. Each app owns its own PostgreSQL schema; shared proto definitions live in `proto/`. A separate macOS-only Go module, `kobo-gateway/`, ships as a downloadable menu-bar helper (own `CLAUDE.md`). `sentrytools/` is a tiny third Go module holding slog→Sentry glue `api` pulls in via a local `replace` directive → [`docs/adr-0009-sentrytools-extracted-module.md`](docs/adr-0009-sentrytools-extracted-module.md).
-
-Apps: **games**, **books** (Go package `apps/books`, schema `books`, proto `books.v1`), **feeds**, **watchparty**, **recipes**, **mealplans**, **shoppinglist**, **dashboard** (no schema of its own), **trains** (SNCB/NMBS, schema `trains`, proto `trains.v1` — daily GTFS static ingest, a CSA journey planner, and a GTFS-Realtime poll job overlaying delays/cancellations/alerts; `web/app/trains` and `web/app/trains/[journeyId]` are its user-visible pages), **learningpaths** (agent-authorable learning curricula, schema `learningpaths`, proto `learningpaths.v1` — a `LearningPath` of ordered `Module`s of ordered `Item`s, scoped by `user_id` alone with no family sharing; `web/app/learningpaths` is its user-visible UI). All apps are registered in `api/cmd/api/apps.go` (implements the `App` interface: `Routes`, `ApplyMigrations`, `GetName`, `GetDisplayName`, `GetDomain`, `Start`) — **migrations run sequentially in registration order**, so schema dependencies between apps dictate the list order. **dashboard** owns the public Games and Reading dashboards and the share-token lifecycle, reaching other apps only through exported methods on their structs → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](docs/adr-0007-dashboard-app-owns-public-sharing.md).
-
-Shared Go code lives in `api/internal/` (auth, config, encryption, family, observability, github, sentryapi, mailer, oauthconn, mcptools, repositories, safedial, testhelper). Any outbound fetch of a
-**user-supplied URL** must go through `api/internal/safedial` — its dialer
-refuses non-public IPs, which is what keeps books/feeds from being
-turned into an SSRF pivot against the container's own network. Each app under `api/apps/<name>/` follows: `internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, and (where relevant) `pkg/`.
-
-**Deploy shape:** `api` and `web` build their own images and deploy as two independent Kamal services behind one shared kamal-proxy instance and domain, routed by path prefix. `api` strips its own `/api` prefix in-process (`api/cmd/api/kamal_proxy_shim.go`) so `/.well-known/*` reaches it untouched; `web` is the catch-all. **Deploy order is web-then-api and is required, not preferred** → [`docs/adr-0001-two-service-kamal-deploy.md`](docs/adr-0001-two-service-kamal-deploy.md). A third Kamal service, `grafana` (`config/deploy.grafana.yml`), joined the same shared proxy/domain at `/grafana` in issue #1468 — order relative to it doesn't matter, only web-then-api is fixed → [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md). Grafana deploys a thin wrapper image (`infra/grafana.Dockerfile`) that bakes in the Prometheus datasource + dashboards from `infra/grafana/` (issue #1527), plus the `grafana-github-datasource` / `grafana-sentry-datasource` backend plugins and their provisioned datasources (issue #1570; GitHub signals stay Prometheus gauges, and Sentry unresolved-issues *alerting* reverted to a gauge too in issue #1709 after the plugin's Issues query proved impossible for Grafana's alert-expression engine to evaluate — the plugin itself stays provisioned for the Sentry dashboard's live panel and ad-hoc exploration) — the dashboard JSON is the source of truth (`allowUiUpdates:false`), checked by `make lint/grafana` (static JSON) and `make grafana/verify` (boots the image, asserts provisioning loaded), both also run by `build-grafana.yml`; a change under `infra/grafana/` rebuilds the image via `main.yml`'s `grafana_dockerfile` path filter. `make lint/infra` is the equivalent pre-merge gate for `infra/prometheus.yml` and the OpenTofu config (`main.yml`'s `infra-lint` job, issue #1561) — necessary because `infra-apply` runs only after merge and would not fail on a malformed `prometheus.yml` anyway. Grafana SSO is admin-only (the OIDC `role` claim in `api/internal/oauth2as/claims.go` is emitted only for admins) → [`docs/adr-0021-oauth-as-general-purpose-oidc-idp.md`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md).
-
-`web` also ships PostHog Cloud (EU) product analytics + session replay (issue #1638) — a materially different telemetry path from the aggregate-only Web Vitals beacon that feeds `web_vitals_seconds`: per-user autocapture and full session recording, on by default for every family member with a one-line passive disclosure in `/settings`, no consent gate → [`docs/adr-0024-posthog-product-analytics.md`](docs/adr-0024-posthog-product-analytics.md). A weekly scheduled routine (issue #1639) mines it for friction signals and files proposed UX-improvement issues — it never applies a UI change or opens a PR itself → [`docs/spec-routine-posthog-ux-discovery.md`](docs/spec-routine-posthog-ux-discovery.md).
-
-**Long-request handler deadlines:** a handler that outlives the edge proxy's response timeout gets its connection reset before it writes a byte — no server log, no Sentry event. `deployLogsCtxTimeout` (`api/cmd/api/routes.go`) = 20s and `liveLogDeadline` (`api/internal/digitalocean/logs_live.go`) = 8s. Raising either means also raising `proxy.response_timeout` in `config/deploy.api.yml`; nothing tests this → [`docs/adr-0017-long-request-handler-deadlines.md`](docs/adr-0017-long-request-handler-deadlines.md).
-
-A largely read-only **MCP server** at `/apps/mcp` exposes each app's own read RPCs as `<app>_<rpc>` tools plus 20 unprefixed admin observability tools (including `prom_query(promql)` against Prometheus, issue #1468, and `get_grafana_alerts` for Grafana-managed alert-rule state, which never reaches Prometheus `ALERTS{}`, issue #1564), so a local Claude CLI can pull production domain data and system health as context. App tools are gated by the caller's own per-app access and return only that user's data; observability tools require admin. The `trains_*` tools are the one exception to "only that user's data" — still access-gated, but the SNCB/NMBS timetable and its realtime overlay are public, so every holder sees the same rows. `trains_get_journey_detail` reports only the *current* live state; the realtime feed is replaced wholesale every 30s and nothing is retained, so "why didn't it offer an alternative this morning?" stays unanswerable without a persisted-history feature (raised on epic #1388, out of scope for #1397). Four are deliberate mutations (`resolve_sentry_issue`, `dismiss_security_alert`, `record_action` — the last opens/closes a `global.automated_actions` row so a self-healing routine running outside api's own process, e.g. on Anthropic's scheduled-agent infrastructure, gets a run record at all; its read counterpart is `get_automated_actions`, distinct from `get_job_stats`'s in-process `global.job_runs`, issue #1441 — and `notify_slack`, which posts an epic-complete summary to a configured Slack Incoming Webhook so the send works identically from a local session and Claude Code on the web, issue #1628); no per-app tool is ever mutating. Auth flow in [`docs/adr-0006-embedded-oauth21-authorization-server.md`](docs/adr-0006-embedded-oauth21-authorization-server.md) and `README.md`. The same embedded AS (`api/internal/oauth2as/`) also acts as an OIDC IdP — RS256 ID tokens, `openid`/`profile`/`email` scopes, confidential clients, a static Grafana SSO client with a role claim → [`docs/adr-0021-oauth-as-general-purpose-oidc-idp.md`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md).
-
-**MCP coverage gaps:** if the user describes a production issue and there's no MCP tool that surfaces it, or an existing tool returns wrong/incomplete data, fix that gap first (add/correct the tool) before investigating the issue itself — otherwise the same blind spot just recurs next time. Record the case in [`docs/convention-mcp-gap-first.md`](docs/convention-mcp-gap-first.md), which also lists the known open gaps.
-
-## Code Navigation (ast-grep, LSP)
-
-**Prefer `ast-grep` over `grep`/`rg` for code searches** — it understands syntax trees, so results are exact (no false positives from comments/strings). Reserve `grep`/`rg` for non-code files (logs, configs, docs).
-
-```bash
-ast-grep run --pattern 'func FunctionName($$$) $$$' --lang go
-ast-grep run --pattern 'const $VAR: TypeName = $$$' --lang typescript
-ast-grep run --pattern '...' --lang go api/apps/recipes/   # scope to a subtree
-```
-
-`$NAME` matches one node, `$$$` matches zero or more, `$$` matches one complex expression.
-
-**Once you have a concrete symbol, prefer the `LSP` tool's go-to-definition/find-references over `ast-grep`** — LSP resolves interfaces, generics, and shadowing correctly (gopls/typescript-language-server understand bindings), which ast-grep's pure syntax matching can't guarantee: a structural pattern can over- or under-match without semantic resolution. The two aren't interchangeable, though — `ast-grep` is for structural pattern search with no starting symbol ("find every call shaped like X across the tree," "find every struct matching this field pattern"), which LSP has no equivalent for. Use LSP when navigating from a known symbol; use `ast-grep` when searching by shape.
-
-**Comments must describe current behavior, not history.** Never write a comment that references removed code, superseded architecture, or frames a landed change as still-pending — a stale claim actively misleads the next reader (human or Claude). If historical context genuinely explains *why* the current code looks the way it does, phrase it so it stays true regardless of when it's read ("replicating what X used to provide", never "X hasn't happened yet") → [`docs/convention-comments-describe-current-behavior.md`](docs/convention-comments-describe-current-behavior.md).
-
-**Do not read `api/gen/`, `api/internal/mocks/`, `api/apps/*/internal/mocks/`, or `web/lib/gen/`** to discover field names, RPC signatures, or mock signatures — read the corresponding `.proto` file in `proto/` or the source interface instead; it's smaller and is the source of truth.
+Nothing below duplicates `AGENTS.md` — where a rule applies to any agent, it
+lives there, not here.
 
 ## Delegating to Subagents
 
-Prefer the `Agent` tool for noisy, multi-step, or bulk data-gathering — a grep sweep across many files, a log/CI trawl, an MCP call whose raw output is large (e.g. `mcp__tools-apps__get_logs`, `get_sentry_issues`), or open-ended codebase exploration for a research question — rather than doing it inline in the main session; have the subagent return only the distilled findings. This is the same principle plan mode already applies via the `Explore` agent type, extended to non-plan-mode work: keep raw, mostly-discarded tool output out of the main context, not just the final answer.
-
-## Commands
-
-```bash
-# API (from api/)
-docker-compose up -d       # start Postgres (needed before running/testing)
-make run                   # go run ./cmd/api
-make test                  # go test -p 1 ./...
-make lint                  # golangci-lint + sqlfluff + buf lint + migration-version check (duplicate or out-of-order) + Kamal deploy-secret consistency check
-make lint/fix               # auto-fix (golines, golangci-lint --fix, gci, sqlfluff, buf lint)
-make test/cov/report        # coverage report
-make build                  # go build ./cmd/api
-make arch/diagram           # Mermaid package-dependency diagram (godepgraph, auto-installed) → api/package-graph.mmd, not committed
-make test/mutation/diff      # gremlins mutation testing scoped to Go packages changed vs origin/main
-make test/mutation           # gremlins mutation testing, full repo (slow one-time baseline, not routine)
-docker-compose down
-
-# Web (from web/)
-npm run dev
-npm test                    # jest
-npm run lint                 # eslint + tsc --noEmit + prettier --check + knip + syncpack
-npm run lint:fix
-npm run build                # required before finishing web tasks, see below
-npm run test:mutation:diff    # StrykerJS mutation testing scoped to TS/TSX files changed vs origin/main
-npm run test:mutation        # StrykerJS mutation testing, full repo (slow one-time baseline, not routine)
-npm run generate             # regenerate lib/gen/ ConnectRPC clients from proto
-
-# Kobo Gateway (from kobo-gateway/, macOS only — cgo + AppKit)
-make build / make dist / make test / make lint/fix
-
-# Infra (from the repo root; needs Docker + tofu)
-make lint/infra             # validate infra/prometheus.yml + the OpenTofu config
-make lint/grafana           # static check of the provisioned dashboard JSON
-make grafana/verify         # boot the Grafana image, assert provisioning loads
-make lint/workflows         # validate every .github/workflows/*.yml parses as YAML
-
-# Proto (when any .proto file changes, run BOTH generators)
-cd api && make proto/generate   # regenerates api/gen/
-cd web && npm run generate      # regenerates web/lib/gen/
-cd api && make proto/check      # regenerate + fail if that changed anything uncommitted (mirrors CI)
-cd web && npm run generate:check
-cd api && make proto/generate/local   # same output, without reaching buf.build — for environments that can't (e.g. Claude Code on the web)
-cd web && npm run generate:local
-```
-
-Generated stubs (`api/gen/`, `web/lib/gen/`) ARE committed. Both directories are fully excluded from every lint/fix tool in this repo (gci's `--skip-generated`, golangci-lint's `formatters.exclusions.paths: (^|/)gen/`, web's `.prettierignore` and eslint `ignores`), so there's no ordering dependency between regenerating and running lint/fix — run them in either order. `make proto/check` / `npm run generate:check` run the exact same regenerate-then-diff CI's proto-staleness check (`proto-check.yml`) does, so use those to verify locally rather than reasoning about the exclusion config by hand. Run `make lint/proto` to also catch `buf lint` issues (e.g. RPC response types must be named `<Method>Response`) before pushing.
-
-**Prefer the commands above over ad-hoc equivalents.** If a check/build/verification isn't covered by an existing `make`/`npm run` target, add one to the relevant `Makefile`/`package.json` rather than improvising it with raw tool invocations, and if an existing target doesn't do quite what's needed, fix the target itself. This file documents *what* a command does and *why*, never *how* — re-deriving a command's mechanics in prose here is exactly what let a stale claim (a false ordering requirement between `make proto/generate` and `make lint/fix`) drift out of sync between this file and `api/CLAUDE.md` until `make proto/check`/`npm run generate:check` replaced both explanations with one command.
-
-Run a single Go test: `go test ./apps/books/internal/services/... -run TestName -v` (from `api/`). Single Jest test: `npx jest path/to/file.test.ts -t "test name"` (from `web/`).
+Prefer the `Agent` tool for noisy, multi-step, or bulk data-gathering — a
+grep sweep across many files, a log/CI trawl, an MCP call whose raw output
+is large (e.g. `mcp__tools-apps__get_logs`, `get_sentry_issues`), or
+open-ended codebase exploration for a research question — rather than doing
+it inline in the main session; have the subagent return only the distilled
+findings. This is the same principle plan mode already applies via the
+`Explore` agent type, extended to non-plan-mode work: keep raw,
+mostly-discarded tool output out of the main context, not just the final
+answer. (`AGENTS.md`'s equivalent guidance is the harness-neutral version of
+this same rule — this section is the Claude-specific mechanism for it.)
 
 ## Starting a Task
 
-Before exploring, reading code, or making any change, use the `start-task` skill — it pulls latest `main`, creates a completely fresh worktree (never edit in the main checkout or reuse an existing branch/worktree — a `PreToolUse` hook denies an `Edit`/`Write`/`NotebookEdit` call whose target path falls outside the active worktree), and creates/refines the GitHub tracking issue via `refine-issue` before the first edit.
+Before exploring, reading code, or making any change, use the `start-task`
+skill — it pulls latest `main`, creates a completely fresh worktree (never
+edit in the main checkout or reuse an existing branch/worktree — a
+`PreToolUse` hook denies an `Edit`/`Write`/`NotebookEdit` call whose target
+path falls outside the active worktree), and creates/refines the GitHub
+tracking issue via `refine-issue` before the first edit. The underlying
+workflow it implements — fresh branch off up-to-date main, a tracking issue
+before the first edit — is documented harness-neutrally in
+[`docs/convention-task-lifecycle.md`](docs/convention-task-lifecycle.md);
+this section and `start-task`/`refine-issue` are Claude Code's own
+mechanism for it (worktree hook enforcement, the `github-issue-triage`
+marketplace plugin, project-board Priority/Status fields).
 
-**Exiting plan mode does not count as having started the task.** Whenever a session does go through plan mode — by explicit request, or because the user's client defaults to it — an approved plan is not a substitute for `start-task`, which still runs before the first edit, with the (already-grilled, see below) plan recorded in the tracking issue's `## Plan` section. (`permissions.defaultMode: plan` used to be set repo-wide for exactly this reason, until it started trapping unattended routine sessions in Plan Mode with no one able to approve them out of it — see `docs/adr-0014-start-finish-task-enforcement.md`.)
+**Exiting plan mode does not count as having started the task.** Whenever a
+session does go through plan mode — by explicit request, or because the
+user's client defaults to it — an approved plan is not a substitute for
+`start-task`, which still runs before the first edit, with the
+(already-grilled, see below) plan recorded in the tracking issue's `## Plan`
+section. (`permissions.defaultMode: plan` used to be set repo-wide for
+exactly this reason, until it started trapping unattended routine sessions
+in Plan Mode with no one able to approve them out of it — see
+`docs/adr-0014-start-finish-task-enforcement.md`.)
 
-**Grill the scope during planning, before `ExitPlanMode` — not after.** When a task goes through plan mode, invoke the `grilling` skill (the round-by-round design-tree interview) against the plan during Phase 3 (Review), and settle its whole frontier before calling `ExitPlanMode`. Record that grilling happened, and its settled decisions, in the Final Plan file written in Phase 4 — a fresh session or subagent resuming the work has no memory of the planning conversation and needs this to avoid re-grilling from scratch. `start-task`'s `refine-issue` step then transcribes that already-settled plan into the issue's `## Plan` section and states in one line that it was pre-grilled during planning — it does not re-run the round-by-round interview. `refine-issue`'s (and `issue-triage`'s/`refine-feature`'s) own full grilling step still applies in full whenever a task skips plan mode entirely, or when the plan changes materially after approval (a reopened issue, a new `## Plan` revision, scope discovered mid-implementation) — in those cases nothing was grilled yet, or what was grilled is now stale. This is unconditional in both directions: a plan-mode task cannot exit plan mode without a completed grilling round, and a non-plan-mode (or materially changed) task cannot skip `refine-issue`'s own grilling; there is no "looks trivial" escape hatch either way.
+**Grill the scope during planning, before `ExitPlanMode` — not after.** When
+a task goes through plan mode, invoke the `grilling` skill (the
+round-by-round design-tree interview) against the plan during Phase 3
+(Review), and settle its whole frontier before calling `ExitPlanMode`.
+Record that grilling happened, and its settled decisions, in the Final Plan
+file written in Phase 4 — a fresh session or subagent resuming the work has
+no memory of the planning conversation and needs this to avoid re-grilling
+from scratch. `start-task`'s `refine-issue` step then transcribes that
+already-settled plan into the issue's `## Plan` section and states in one
+line that it was pre-grilled during planning — it does not re-run the
+round-by-round interview. `refine-issue`'s (and `issue-triage`'s/
+`refine-feature`'s) own full grilling step still applies in full whenever a
+task skips plan mode entirely, or when the plan changes materially after
+approval (a reopened issue, a new `## Plan` revision, scope discovered
+mid-implementation) — in those cases nothing was grilled yet, or what was
+grilled is now stale. This is unconditional in both directions: a plan-mode
+task cannot exit plan mode without a completed grilling round, and a
+non-plan-mode (or materially changed) task cannot skip `refine-issue`'s own
+grilling; there is no "looks trivial" escape hatch either way.
 
 ## Finishing a Task
 
-Once a task's changes are complete, use the `finish-task` skill — it covers lint, coverage, the web build, opening the PR (including the auto-merge decision), watching CI to green, and the mandatory `session-retro` that follows.
+Once a task's changes are complete, use the `finish-task` skill — it covers
+lint, coverage, the web build, opening the PR (including the auto-merge
+decision), watching CI to green, and the mandatory `session-retro` that
+follows. Its lint/coverage/build/PR/CI-green requirements are the same ones
+`docs/convention-task-lifecycle.md` states harness-neutrally; `finish-task`
+is Claude Code's own mechanism for enforcing them (the `ship-pr`/
+`session-retro` marketplace plugins, the auto-merge/feature-review-policy
+decision, the Slack epic-completion summary).
 
-**This is unconditional, and opening the PR is pre-authorized** — the user does not need to ask for one, and a branch that is merely committed and pushed is not a finished task. Should `finish-task` never load for any reason, the floor is still: lint the areas that changed, ≥80% coverage on changed code, `npm run build` for web changes, then a non-draft PR whose body closes the tracking issue with a keyword (`Fixes #123`), then watch CI to green.
+**This is unconditional, and opening the PR is pre-authorized** — the user
+does not need to ask for one, and a branch that is merely committed and
+pushed is not a finished task. Should `finish-task` never load for any
+reason, the floor is still: lint the areas that changed, ≥80% coverage on
+changed code, `npm run build` for web changes, then a non-draft PR whose
+body closes the tracking issue with a keyword (`Fixes #123`), then watch CI
+to green.
 
-An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook (worktree-scope guard on `Edit`/`Write`/`NotebookEdit`) in `.claude/settings.json` enforce this, and `make hooks/test` exercises them. The `Stop` hook (`.claude/hooks/stop-check-unshipped-work.sh`) checks for an existing PR via `gh` when available, and via a direct GitHub REST API call otherwise — authenticated with whatever credential `git credential fill` resolves — so it blocks a shipped-but-unopened PR whether or not `gh` is present, including in a Claude Code on the web session → [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
+An `ExitPlanMode` hook, a `Stop` hook, and a `PreToolUse` hook
+(worktree-scope guard on `Edit`/`Write`/`NotebookEdit`) in
+`.claude/settings.json` enforce this, and `make hooks/test` exercises them.
+The `Stop` hook (`.claude/hooks/stop-check-unshipped-work.sh`) checks for an
+existing PR via `gh` when available, and via a direct GitHub REST API call
+otherwise — authenticated with whatever credential `git credential fill`
+resolves — so it blocks a shipped-but-unopened PR whether or not `gh` is
+present, including in a Claude Code on the web session →
+[`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
+These hooks are Claude Code-only mechanics with no OpenCode equivalent
+today — see "OpenCode" below.
 
-When a change adds or alters a page or component under `web/`, run the `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s mobile-first rule is review-only, so nothing else in the pipeline looks at a 375px viewport.
+When a change adds or alters a page or component under `web/`, run the
+`mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s
+mobile-first rule is review-only, so nothing else in the pipeline looks at a
+375px viewport.
 
-**Two tracks decide whether a PR gets human review at all.** Maintenance work
-(`enhancement`/`bug`/`chore`, epic #1338) keeps the tiered rule above
-unchanged. Feature work (`feature` label, epic #1627) skips human review
-entirely — `refine-feature` applies the label, `finish-task` reads it back
-and, when present, runs an automated quality gate (`code-review` skill, Go
-`depguard` + web `dependency-cruiser` boundary lints, generated Mermaid
-diagrams, diff-scoped mutation testing) in place of a reviewer, then
-auto-merges unconditionally on green CI and posts a Slack summary once the
-whole feature epic closes, via the `notify_slack` MCP tool. `ci-pass` is
-still required on both tracks. See
+**Two tracks decide whether a PR gets human review at all.** Maintenance
+work (`enhancement`/`bug`/`chore`) keeps the tiered rule above unchanged.
+Feature work (`feature` label) skips human review entirely —
+`refine-feature` applies the label, `finish-task` reads it back and, when
+present, runs an automated quality gate (`code-review` skill, Go `depguard`
++ web `dependency-cruiser` boundary lints, generated Mermaid diagrams,
+diff-scoped mutation testing) in place of a reviewer, then auto-merges
+unconditionally on green CI and posts a Slack summary once the whole
+feature epic closes, via the `notify_slack` MCP tool. `ci-pass` is still
+required on both tracks. See
 [`docs/convention-feature-review-policy.md`](docs/convention-feature-review-policy.md).
 
-`start-task`/`finish-task` are thin, project-specific wrappers around generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`, `issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins` marketplace repo — declared in `.claude/settings.json`'s `extraKnownMarketplaces`/`enabledPlugins`. `refine-issue`/`issue-triage`'s repo/project-board/label config lives in `.claude/github-triage.config.json`, not in the skill files — edit that file, not the plugin, when this repo's board/labels change.
+`start-task`/`finish-task` are thin, project-specific wrappers around
+generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`,
+`issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins`
+marketplace repo — declared in `.claude/settings.json`'s
+`extraKnownMarketplaces`/`enabledPlugins`. `refine-issue`/`issue-triage`'s
+repo/project-board/label config lives in
+`.claude/github-triage.config.json`, not in the skill files — edit that
+file, not the plugin, when this repo's board/labels change.
 
-## CI
+## Other Claude-Only Automation Skills
 
-`.github/workflows/main.yml` orchestrates reusable workflows (`proto-check`, `build-api`, `build-web`, `build-kobo-gateway`, `api-lint`, `web-lint`, `kobo-gateway-lint`, `api-test`, `web-test`, `kobo-gateway-test`) gated by a `changes` path filter. `kobo-gateway-*` jobs run on `macos-14` (cgo/AppKit). On PRs the full suite runs and **`ci-pass` is the required check**; on push to `main` the lint jobs don't re-run but the build jobs do, since they produce the deploy artifacts, and `deploy-kamal` then deploys.
+`.claude/skills/` also carries a set of operational skills with no
+OpenCode equivalent — they're wired to Claude-specific mechanics (the
+`Agent`/subagent tool, claude.ai scheduled routines, MCP tools scoped to
+this Claude session) that OpenCode has no parallel for today:
+`dependabot-triage`, `monitoring-sweep`, `posthog-ux-discovery`,
+`postmortem`, `ready-issues-sweep`, `red-pr-repair`, `refine-feature`,
+`sentry-triage`, `subissue-sweep`. See each skill's own frontmatter
+description for what it does; they stay Claude-only, documented here as a
+known gap rather than force-ported.
 
-The `api`/`web`/`kobo_gateway` filters exclude `**/*.md`, so a docs-only PR triggers none of the build/lint/test jobs and `ci-pass` skips Codecov entirely.
+## MCP
 
-**Because `main` deploys without re-testing, never push directly to `main`** — only merge PRs whose CI passed. When editing any `.github/workflows/*.yml`, ensure its own `pull_request` trigger includes `.github/workflows/**` in its `paths` filter (docker-build workflows are the deliberate exception — push-to-main only).
+Connect Claude Code to the apps MCP server — OAuth is handled automatically,
+no header needed:
 
-**Never add a cache or artifact write to a workflow reachable from `pull_request` or `workflow_dispatch`.** kobo-gateway builds on `macos-14` and reaches `build-web.yml` as a workflow-run artifact; only `save-kobo-gateway-cache.yml` ever writes its cache → [`docs/adr-0002-kobo-gateway-ci-cache-split.md`](docs/adr-0002-kobo-gateway-ci-cache-split.md). The `kobo_gateway` path filter feeds `build-kobo-gateway` and `build-web`'s own gate — keep it in sync if `kobo-gateway/` moves. `build-web.yml` **cannot** be dispatched standalone; use `main.yml`'s own `workflow_dispatch`.
+```bash
+claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/mcp
+```
 
-Images are cached via BuildKit's `type=gha,scope=<component>` — **no hand-computed `hashFiles()` cache key anywhere in this path** → [`docs/adr-0003-buildkit-gha-cache-over-hashfiles.md`](docs/adr-0003-buildkit-gha-cache-over-hashfiles.md). `RELEASE` is a runtime container `ENV` for `api`/`web`; only `kobo-gateway` is compile-stamped, so its bundled release can legitimately lag the deploy → [`docs/adr-0004-runtime-release-env-vs-compile-stamp.md`](docs/adr-0004-runtime-release-env-vs-compile-stamp.md).
+See `AGENTS.md`'s MCP section for what the server exposes and the shared
+OAuth 2.1 flow; this is only the Claude-specific connection command
+(OpenCode's equivalent is its own `mcp` block in `opencode.json`).
 
-**The deploy-secret list is declared in three places that must agree** — `config/deploy.{api,web}.yml`'s `env.secret:`, `.kamal/secrets`, and each `Deploy <svc> via Kamal` step's `env:` block in `main.yml`. `make lint/kamal-secrets` fails the PR when they disagree; a mismatch otherwise only surfaces at deploy time on `main` → [`docs/convention-deploy-secrets.md`](docs/convention-deploy-secrets.md). `infra/README.md` is the single source of truth for the full secrets list.
+## OpenCode
 
-`golangci-lint` runs across all three Go modules (`api`, `kobo-gateway`, `sentrytools`) off one shared **root** `.golangci.yml` — its config search walks up from the working directory. A change to `sentrytools/` can break `api` without touching `api/`'s subtree, so that path filter is OR'd into `api`'s own gate → [`docs/adr-0009-sentrytools-extracted-module.md`](docs/adr-0009-sentrytools-extracted-module.md).
+This repository also supports [OpenCode](https://opencode.ai) as a second,
+fully independent development harness against OpenRouter models — see
+`opencode.json`, `.opencode/command/`, and `AGENTS.md`. Nothing about that
+setup changes how Claude Code works here: every hook, skill, and command in
+this file and `.claude/` continues to apply exactly as before. The two
+harnesses share `AGENTS.md`, the `/apps/mcp` server, and
+`docs/convention-task-lifecycle.md`; they do not share skills, hooks, or
+commands, since those are each harness's own orchestration mechanism.
 
-If `ci-pass` fails with "Timed out waiting for Codecov to report", Codecov's check-suite is stuck — push a new (even empty) commit; rerunning the job never helps (there is no API to rerequest another app's check-suite).
-
-## Docs Impact
-
-When a change touches project structure, packages, Make/npm targets, shared services, or architecture conventions, update this file and `README.md` in the same change.
-
-**Keep documentation lean.** `docs/` holds long-term decisions (ADRs) and
-conventions only — never a prose description of how a subsystem currently works.
-**The code is the spec**: behavior belongs in the code and its comments, where it
-cannot drift. The rule of thumb: *imperative mood stays in a `CLAUDE.md`; past
-tense — what something used to be, what was tried and rejected, which issue
-produced a rule — moves to `docs/`.* Register a new document in both
-`docs/README.md` and the index below; that index is what makes it discoverable,
-since only `CLAUDE.md` files load automatically.
-
-## Documented Decisions (`docs/`)
-
-Read the relevant file before changing the area it covers. Full index with issue
-numbers: [`docs/README.md`](docs/README.md).
-
-**Decisions (ADRs)**
-
-- [`adr-0001-two-service-kamal-deploy`](docs/adr-0001-two-service-kamal-deploy.md) — two Kamal services, one proxy; the required web-then-api deploy order
-- [`adr-0002-kobo-gateway-ci-cache-split`](docs/adr-0002-kobo-gateway-ci-cache-split.md) — why only a `workflow_run` job may write the cache
-- [`adr-0003-buildkit-gha-cache-over-hashfiles`](docs/adr-0003-buildkit-gha-cache-over-hashfiles.md) — image layer caching
-- [`adr-0004-runtime-release-env-vs-compile-stamp`](docs/adr-0004-runtime-release-env-vs-compile-stamp.md) — how `RELEASE` is set per artifact
-- [`adr-0005-first-party-auth-replacing-gotrue`](docs/adr-0005-first-party-auth-replacing-gotrue.md) — sessions, refresh-token rotation, 2FA
-- [`adr-0006-embedded-oauth21-authorization-server`](docs/adr-0006-embedded-oauth21-authorization-server.md) — fosite AS; `offline_access` granted server-side
-- [`adr-0007-dashboard-app-owns-public-sharing`](docs/adr-0007-dashboard-app-owns-public-sharing.md) — the schema-less `dashboard` app
-- [`adr-0008-family-as-single-sharing-concept`](docs/adr-0008-family-as-single-sharing-concept.md) — the one sharing model
-- [`adr-0009-sentrytools-extracted-module`](docs/adr-0009-sentrytools-extracted-module.md) — the local `replace` and its build-context consequence
-- [`adr-0010-two-weekly-digest-emails`](docs/adr-0010-two-weekly-digest-emails.md) — digest split and suppression rules; narrowed to one email (feeds only) in #1597 once Grafana covered the other four sections in real time
-- [`adr-0011-slow-transaction-thresholds`](docs/adr-0011-slow-transaction-thresholds.md) — name-shape classification that used to back the weekly digest's slow-transaction section and why WebSocket routes stayed listed on purpose (the p95 *alert* moved to Grafana, #1528); the classification module itself was removed in #1597 once its last reader (the digest section) was dropped
-- [`adr-0012-ubuntu-release-check-on-vps`](docs/adr-0012-ubuntu-release-check-on-vps.md) — the job that became a systemd timer
-- [`adr-0013-diff-scoped-coverage`](docs/adr-0013-diff-scoped-coverage.md) — changed-line coverage and the signature fixup
-- [`adr-0014-start-finish-task-enforcement`](docs/adr-0014-start-finish-task-enforcement.md) — the three hooks; the `Stop` hook's `gh`/no-`gh` PR-existence check (#1440)
-- [`adr-0015-kobo-gateway-separate-module-and-toolchain-pin`](docs/adr-0015-kobo-gateway-separate-module-and-toolchain-pin.md) — never bump past Go 1.24.x alone
-- [`adr-0016-kobo-gateway-loopback-tls-and-login-item`](docs/adr-0016-kobo-gateway-loopback-tls-and-login-item.md) — loopback HTTPS and LaunchAgents
-- [`adr-0017-long-request-handler-deadlines`](docs/adr-0017-long-request-handler-deadlines.md) — deadlines vs the proxy ceiling
-- [`adr-0018-completion-average-population`](docs/adr-0018-completion-average-population.md) — a delisted game counts unless a listed game took its achievements
-- [`adr-0019-trains-in-memory-router-and-dual-gtfs-feeds`](docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md) — router warmed off the request path; static and realtime feeds correlated by `(trip_short_name, service date)`, never `trip_id`
-- [`adr-0020-ui-configured-alert-delivery-channel`](docs/adr-0020-ui-configured-alert-delivery-channel.md) — one global email/Slack switch for alerts; webhook URL DB-encrypted and UI-set, not a deploy secret; digests stay email-only. **Superseded by #1530** — alerting moved to Grafana, the fan-out lost its last producer, so `notifications` is email-only again (`slack` client, `notification_channel_config`, its RPC and UI all removed)
-- [`adr-0021-oauth-as-general-purpose-oidc-idp`](docs/adr-0021-oauth-as-general-purpose-oidc-idp.md) — the embedded AS also issues OIDC ID tokens (RS256, `/oauth2/jwks`) and supports confidential clients; the static Grafana SSO client and its admin-only role claim
-- [`adr-0022-prometheus-grafana-metrics`](docs/adr-0022-prometheus-grafana-metrics.md) — Prometheus + Grafana replace the hand-rolled host/CI/storage metrics pipeline; the `prom_query` MCP tool; what got removed and what was verified to stay; datasource + dashboards provisioned from `infra/grafana/` (#1527); Phase 2 (#1528) — api/web latency histograms, all alerting unified in Grafana provisioning, `ThresholdAlertJob`/`alert_states` retired; Phase 3 (#1529) — six GitHub/Sentry/R2 issue signals exported as Prometheus gauges by `IssueSignalCollectorJob` + a Grafana `service-health` alert group, `IssueNotifierJob`/`global.notified_issues` retired; Phase 4 (#1530) — with no fan-out producer left, notification delivery collapsed to email-only: `internal/slack`, `global.notification_channel_config`, the `UpdateNotificationChannel` RPC and the channel UI all removed, superseding adr-0020; Phase 5 (#1554) — `api`/`web` had **never** been scraped (the assumed Kamal network alias does not exist), so every Phase 2/3 metric was empty from the day it shipped; discovery is now label-based `docker_sd_configs`, `TargetDown`/`TargetMissing` replace the per-job down rules (`absent()` catches the missing-target case `up == 0` cannot), and `app-performance` restores per-route/per-job/Web-Vitals panels; Phase 6 (#1556) — `IssueSignalCollectorJob` now also exports `github_workflow_run_duration_seconds{workflow}` and `postgres_schema_size_bytes{schema}` (the two pre-Grafana overviews that had no metric), each with an `app-performance` panel and no alert; Phase 7 (#1564) — `get_grafana_alerts` MCP tool reads Grafana-managed alert-rule state (invisible to `prom_query` since those alerts never land in `ALERTS{}`) over Grafana's public URL with admin basic-auth, the same "no internal alias" constraint Phase 5 hit; Phase 8 (#1574) — `overview.json`/`api-runtime.json` panels wrap every raw per-`instance` expr in `min`/`max by (job)`, since Phase 5's docker_sd `instance` label is the Kamal container name and churns every deploy (a new Overview row per deploy otherwise); Phase 9 (#1570) — `grafana-github-datasource` + `grafana-sentry-datasource` plugins registered as provisioned datasources; only `sentry_unresolved_issues` migrated (its alert + panel query the Sentry API through the plugin, gauge + `collectSentryIssues` removed), every GitHub signal stays a gauge pending live-query validation (follow-up on #1570); two new Grafana deploy secrets `GRAFANA_{GITHUB,SENTRY}_DATASOURCE_TOKEN`; Phase 10 (#1580) — `service-health.json` had the same per-redeploy-churn bug Phase 8 fixed elsewhere, just missed (fixed the same way); the four broader dashboards split into nine single-domain ones (`overview`, `host`, `postgres`, `api`, `web`, `github`, `sentry`, `r2`, `grafana-prometheus`), `overview.json` rebuilt as a one-tile-per-rule mirror of `rules.yml` (dropping the dead `ALERTS{}`-based panel), and a new `grafana` Prometheus scrape job (`metrics_path: /grafana/metrics`, confirmed live) feeds Grafana's own health into the new `grafana-prometheus` dashboard; also confirmed the app's own GitHub/Sentry OAuth connections remain required — the datasource plugins are a separate read-only path that doesn't replace `/monitoring` or the MCP tools built on those clients; Phase 11 (#1592) — the alert contact point moved from email to a Grafana-native Slack Incoming Webhook per user preference (`contactpoints.yml`/`policies.yml`'s `email` receiver → `slack`, `GRAFANA_SLACK_WEBHOOK_URL` replacing `NOTIFY_EMAIL_TO` in `deploy.grafana.yml`'s secret list only — `NOTIFY_EMAIL_TO` itself stays required for `api`'s own mailer), reversing the Slack rejection Phase 2's Decision text recorded; Phase 12 (#1608) — fixed `IssueSentryUnresolved`, which had evaluated as a permanent `Alerting (Error)` since Phase 9: its `issues` queryType + `reduce`(count) pipeline can never succeed (`grafana/sentry-datasource#266` — an Issues query returns multiple numeric columns, not the single-value series `reduce`/`threshold` require), fixed by switching refId A to the `eventsStats` queryType with `count_unique(issue)` as its Y-axis (a genuine per-bucket time series) and refId B's reducer from `count` to `max`; Phase 13 (#1444) — `api/internal/routines.Client` lets a Grafana-detected problem fire a self-healing routine directly, the terminal step that used to be an email: it writes the `global.automated_actions` row (issue #1441) *before* the outbound call, so the record is trustworthy even if the routine itself never receives it; `POST /webhooks/grafana-alert` (`api/cmd/api/routines_webhook.go`) is the inbound half a new `routine-fire` Grafana contact point targets directly, bearer-token-authenticated via the new `ROUTINE_FIRE_TOKEN` secret; `policies.yml` label-matches `trigger: immediate` (set on `IssueSentryUnresolved`/`IssueSecurityAlerts`, and meant to extend to #1443's future staleness rule) to route to **both** `slack` and `routine-fire` via sibling routes with `continue: true`, leaving every other alert on the Phase 11 flat-to-Slack default; supersedes #1445's app-side per-source dispatch-mode column, since Grafana's own routing tree now owns that decision; Phase 15 (#1443) — closed the gap Phase 13's `trigger: immediate` label anticipated: `IssueSignalCollectorJob` now also exports `automated_action_oldest_open_age_seconds` (age of the longest-open `global.automated_actions` row, 0 when none are open, via a new `AutomatedActionsRepository.OldestOpenFiredAt` query), and a new `AutomatedActionStalled` rule in the `service-health` group fires past a 3h threshold — chosen well above #1438's observed run durations (minutes) but still same-day, since these routines run a few times a day in batches; carries `trigger: immediate` so it reaches both `slack` and `routine-fire` through Phase 13's existing policy with no further routing changes; no new `notification_settings` row or bespoke re-arming — Grafana's native alert state machine (firing/resolved) is the only source of truth, same as every other Grafana-managed rule; Phase 16 (#1702) — Phase 12's fix hadn't actually worked: live checking found `IssueSentryUnresolved` still `Alerting (Error)`, now on a different failure (`eventsStats` hits Sentry's Events/Discover API, which rejects `is:unresolved` — that filter is only valid against the per-project Issues endpoint, confirmed against `api/internal/sentryapi/client.go`'s own working `fetch()` call). refId A moved back to the `issues` queryType; Phase 12's original wide-series failure is fixed separately with a `classic_conditions` expression on refId B (evaluates A's row count directly) instead of `reduce`+`threshold`; Phase 17 (#1723) — closed the complementary gap to Phase 15's `AutomatedActionStalled` (which only ever catches a row that opened and never closed): `AutomatedActionsRepository.MostRecentOpenedAt(routineName)` backs a new `automated_action_seconds_since_last_open{routine}` gauge, one series per a hardcoded `knownRoutines` list (the same three `docs/spec-routine-*.md` document), reporting a large sentinel rather than 0 for a routine that has never opened a row at all so "never started" reads as overdue; a new `AutomatedRoutineMissed` rule fires past a shared 27h threshold (24h daily cadence + 3h buffer) and carries `trigger: immediate` like `AutomatedActionStalled`; Phase 18 (#1709) reverted Phase 9's `IssueSentryUnresolved` migration onto the `grafana-sentry-datasource` plugin — live checking still found it `Alerting (Error)` with Phase 16's exact original failure, now confirmed attributed to refId A (the Sentry query itself) rather than the expression on top of it, proving no `reduce`/`threshold`/`classic_conditions` choice on refId B could ever have fixed it; `IssueSignalCollectorJob` regained a `sentry_unresolved_issues` gauge via `sentryapi.Client.ListUnresolvedIssues`, and the alert reverted to the plain Prometheus-instant-query-plus-`threshold` shape every other `service-health` rule uses — its original pre-Phase-9 shape; the plugin/datasource stay provisioned unchanged, since the Sentry dashboard's own live panel uses a browser-side reduce and was never broken by this bug; Phase 19 (#1717) — `TargetMissing` fired for `job="grafana"` despite correct scrape-job config: `docker compose up -d` in `infra/main.tf`'s `null_resource.prometheus` never recreates a container for a content-only change to a bind-mounted config file, so the running Prometheus process never reloaded `prometheus.yml` after the `grafana` job was added to it; fixed by sending Prometheus a `SIGHUP` after `up -d` to force a live config reload
-- [`adr-0023-learningpaths-mcp-write-tools`](docs/adr-0023-learningpaths-mcp-write-tools.md) — learningpaths' MCP tools are allowed to mutate, the one deliberate exception to "no per-app MCP tool is ever mutating," with an explicit non-precedent statement
-- [`adr-0024-posthog-product-analytics`](docs/adr-0024-posthog-product-analytics.md) — PostHog Cloud (EU) product analytics + session replay, on by default for every family member with no consent gate; `window.__ENV__` runtime injection reused over PostHog's suggested build-time `NEXT_PUBLIC_*` vars; new `auth.v1.GetCurrentUserResponse.user_id` field feeds `posthog.identify()`
-
-**Specs**
-
-- [`spec-routine-red-pr-repair`](docs/spec-routine-red-pr-repair.md) — the morning claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438)
-- [`spec-routine-ready-issues-executor`](docs/spec-routine-ready-issues-executor.md) — the nightly claude.ai routine's exact prompt text (runs `ready-issues-sweep` unattended), its 04:00 schedule offset two hours from the `nightly-maintenance-sweep` routine's 02:00 slot, and required connectors (`tools-apps` MCP server + GitHub), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438)
-- [`spec-routine-nightly-maintenance-sweep`](docs/spec-routine-nightly-maintenance-sweep.md) — the nightly claude.ai routine's exact prompt text and required connectors (`tools-apps` MCP server + GitHub), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438)
-- [`spec-routine-posthog-ux-discovery`](docs/spec-routine-posthog-ux-discovery.md) — the weekly claude.ai routine's exact prompt text (runs `posthog-ux-discovery` unattended) and required connectors (`tools-apps` MCP server + GitHub + PostHog's own MCP server), for manual creation in the routines UI — the trigger-creation API silently drops connectors (#1438); produces no findings until #1638 has a full week of usage data
-
-**Conventions**
-
-- [`convention-comments-describe-current-behavior`](docs/convention-comments-describe-current-behavior.md)
-- [`convention-database-queries`](docs/convention-database-queries.md) — wide TEXT columns; allowed cross-schema read direction
-- [`convention-deploy-secrets`](docs/convention-deploy-secrets.md) — the three lists that must agree
-- [`convention-feature-review-policy`](docs/convention-feature-review-policy.md) — `feature`-labeled work skips human PR review behind a four-part automated quality gate (`code-review` skill, Go `depguard`, web `dependency-cruiser`, generated Mermaid diagrams, diff-scoped mutation testing); maintenance work's tiered review rule (#1338) is unchanged; `ci-pass` stays required either way
-- [`convention-mcp-gap-first`](docs/convention-mcp-gap-first.md) — fix the tool before the incident; open gaps
-- [`convention-ui-standards`](docs/convention-ui-standards.md) — UI rules, theming, the server/client import trap
-
-Host-layer decisions stay in [`infra/README.md`](infra/README.md), the single
-source of truth for the deploy-secret list.
+Two things Claude Code has that OpenCode has no equivalent for today, so
+they stay Claude Code-only rather than being weakened to fit both: the
+`PreToolUse`/`Stop`/`ExitPlanMode` hook enforcement described above, and the
+claude.ai-scheduled routine automation the skills in "Other Claude-Only
+Automation Skills" depend on.

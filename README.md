@@ -330,4 +330,26 @@ mail.
 
 ## Contributing
 
-Refer to [CLAUDE.md](CLAUDE.md) for detailed development guidelines, testing practices, and linting standards. Always run `make lint/fix` (from `api/`) before committing.
+Refer to [AGENTS.md](AGENTS.md) for the shared repository contract (architecture, commands, conventions, MCP, production safety) that applies to any coding agent working here, and [CLAUDE.md](CLAUDE.md) for Claude Code-specific orchestration on top of it. Always run `make lint/fix` (from `api/`) before committing.
+
+## Agent Infrastructure
+
+This repo supports two coding-agent harnesses side by side:
+
+- **Claude Code** — `CLAUDE.md` + `.claude/` (skills, hooks, settings).
+- **OpenCode** (against OpenRouter models) — `opencode.json` +
+  `.opencode/command/`.
+
+Both read [`AGENTS.md`](AGENTS.md) as the shared repository contract, and
+both can connect to the read-mostly `/apps/mcp` MCP server described below
+over the same MCP OAuth 2.1 flow — Claude Code via `claude mcp add`, OpenCode
+by adding the server to `opencode.json`'s `mcp` block (already done in this
+repo's own config) and completing its own OAuth authorization on first use.
+The harness-neutral "start a task"/"finish a task" workflow both are
+expected to follow lives in
+[`docs/convention-task-lifecycle.md`](docs/convention-task-lifecycle.md);
+each harness has its own thin mechanism for it (`start-task`/`finish-task`
+skills + enforcement hooks for Claude Code, `.opencode/command/start-task.md`
++ `.opencode/command/finish-task.md` for OpenCode). No OpenRouter model is
+pinned in `opencode.json` — set `OPENROUTER_API_KEY` and pick a model at
+the CLI, same as any other OpenCode project.
