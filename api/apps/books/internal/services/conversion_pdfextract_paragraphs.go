@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -221,7 +222,12 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 // letter is demoted to "p" outright, since a real title/heading never starts
 // mid-sentence — this catches large-font marginal pull-quote words and
 // run-on paragraph fragments that the height ratio alone misclassifies
-// (issue #1698).
+// (issue #1698). A candidate consisting only of single uppercase-letter
+// tokens (e.g. "B", "R B", "B B") is demoted the same way: a real
+// title/heading is never shaped like that, but a systems-diagram's loop
+// labels (B for a balancing loop, R for reinforcing) are, and large embedded
+// diagram callouts push their height ratio well past the heading threshold
+// (issue #1698 follow-up left open by #1766).
 func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	tags := make([]string, len(blocks))
 	for i, b := range blocks {
@@ -229,7 +235,7 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 			continue
 		}
 		tags[i] = headingCandidateTag(b.medHeight, docModalCharHeight)
-		if tags[i] != "p" && startsLowercase(b.text) {
+		if tags[i] != "p" && (startsLowercase(b.text) || isLoopDiagramLabel(b.text)) {
 			tags[i] = "p"
 		}
 	}
@@ -269,6 +275,18 @@ func headingCandidateTag(medHeight, docModalCharHeight float64) string {
 func startsLowercase(text string) bool {
 	r, _ := utf8.DecodeRuneInString(text)
 	return r != utf8.RuneError && unicode.IsLower(r)
+}
+
+// loopDiagramLabelRe matches text made up of one or more single uppercase
+// ASCII letters separated by single spaces ("B", "R B", "B B", …) — the
+// shape of a systems-diagram loop-label callout, never of a real
+// title/heading (see finalizeHeadings, issue #1698).
+var loopDiagramLabelRe = regexp.MustCompile(`^[A-Z](?: [A-Z])*$`)
+
+// isLoopDiagramLabel reports whether text (after trimming surrounding
+// whitespace) matches loopDiagramLabelRe.
+func isLoopDiagramLabel(text string) bool {
+	return loopDiagramLabelRe.MatchString(strings.TrimSpace(text))
 }
 
 // demoteHeadingRuns rewrites tags in place, flattening any run of 2+
