@@ -27,13 +27,16 @@ type EPUBConverter interface {
 }
 
 // PDFConverter converts a PDF file at inPath to an EPUB file at outPath.
-// catalogTitle/catalogAuthors are the book's already-known catalog
+// identifier is the book's stable unique-identifier (stamped into the EPUB's
+// dc:identifier so regenerated files keep the same internal identity, issue
+// #1734). catalogTitle/catalogAuthors are the book's already-known catalog
 // title/author, which take priority over anything the PDF conversion could
 // otherwise derive from the PDF itself (issue #1654). The interface exists
 // for test injection; production uses goPDFConverter, a pure-Go pipeline
 // built on go-pdfium (see conversion_pdfextract.go).
 type PDFConverter func(
-	ctx context.Context, inPath, outPath, catalogTitle string, catalogAuthors []string,
+	ctx context.Context, inPath, outPath, identifier, catalogTitle string,
+	catalogAuthors []string,
 ) error
 
 // currentKEPUBConverterVersion identifies the current KEPUB conversion
@@ -41,7 +44,7 @@ type PDFConverter func(
 // change to either would produce different output for existing content —
 // EnsureKEPUB then treats any book_files row stamped with an older version
 // as stale and regenerates it on next access (issue #594).
-const currentKEPUBConverterVersion int16 = 9
+const currentKEPUBConverterVersion int16 = 10
 
 // IsKEPUBStale reports whether a KEPUB row stamped with version was produced
 // by an older converter than the current pipeline. Callers outside this
@@ -229,7 +232,8 @@ func (s *ConversionService) prepareEPUBData(
 	}
 
 	epubData, convertErr := s.getEPUBBytes(
-		ctx, sourceFile.StorageKey, sourceFormat, book.Title, book.Authors,
+		ctx, sourceFile.StorageKey, sourceFormat, bookID.String(), book.Title,
+		book.Authors,
 	)
 	if convertErr != nil {
 		s.logger.ErrorContext(ctx, "source preparation failed",
@@ -328,12 +332,14 @@ func (s *ConversionService) resolveSourceFile(
 // getEPUBBytes returns raw EPUB bytes ready for kepubify.
 // When the source is an EPUB it downloads it directly.
 // When the source is a PDF it downloads to a temp file, calls convertPDF
-// (passing the book's catalog title/authors through, per issue #1654) to
-// produce a temp EPUB, reads that, then cleans up both temp files.
+// (passing the book's stable identifier and catalog title/authors through,
+// per issues #1734 and #1654) to produce a temp EPUB, reads that, then
+// cleans up both temp files.
 func (s *ConversionService) getEPUBBytes(
 	ctx context.Context,
 	storageKey string,
 	sourceFormat string,
+	bookID string,
 	catalogTitle string,
 	catalogAuthors []string,
 ) ([]byte, error) {
@@ -371,7 +377,7 @@ func (s *ConversionService) getEPUBBytes(
 	defer func() { _ = os.Remove(epubPath) }()
 
 	if convErr := s.convertPDF(
-		ctx, pdfPath, epubPath, catalogTitle, catalogAuthors,
+		ctx, pdfPath, epubPath, bookID, catalogTitle, catalogAuthors,
 	); convErr != nil {
 		return nil, fmt.Errorf("pdf to epub: %w", convErr)
 	}
