@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -152,4 +153,45 @@ func TestMCPTools_RequireAppAccess(t *testing.T) {
 		sharedmodels.User{ID: "no-access"},
 	)
 	require.Error(t, mcptools.RequireAppAccess(ctx, mcpAppName))
+}
+
+// TestMCPAuthoringGuide_ResourceExistsAndReads verifies the authoring guide is
+// exposed as a real MCP resource (so any resource-reading client — Claude
+// Code, OpenCode — can pull the whole guidebook) and that its text carries the
+// authoring workflow and curation rubric, and that the write-tool descriptions
+// embed the same essentials for clients that only read tool metadata (e.g. a
+// ChatGPT-style connector). The resource handler is called directly; no MCP
+// transport or database is needed.
+func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
+	// The write-tool descriptions carry the workflow essentials on the tools
+	// themselves — the surface a ChatGPT-style connector reads.
+	require.Contains(t, mcpCreatePathDescription, "confirm the full proposed tree")
+	require.Contains(t, mcpCreatePathDescription, "modules")
+	require.Contains(t, mcpUpdatePathDescription, "Wholesale-replaces")
+	require.Contains(t, mcpUpdatePathDescription, "learningpaths_get_path")
+	require.Contains(t, mcpRecordProgressDescription, "item_id")
+
+	// The full guidebook is reachable through the handler with the expected
+	// URI, MIME type, and authoring-workflow/rubric content.
+	res, err := authoringGuideHandler(context.Background(),
+		//nolint:exhaustruct // the handler ignores the request, so no fields needed
+		&mcp.ReadResourceRequest{})
+	require.NoError(t, err)
+	require.Len(t, res.Contents, 1)
+	c := res.Contents[0]
+	assert.Equal(t, authoringGuideURI, c.URI)
+	assert.Equal(t, authoringGuideMIME, c.MIMEType)
+	assert.Contains(t, c.Text, "## Authoring workflow")
+	assert.Contains(t, c.Text, "## Curation rubric")
+	assert.Contains(t, c.Text, "learningpaths_create_path")
+	assert.Contains(t, c.Text, "confirm the full proposed tree")
+}
+
+// TestMCPAuthoringGuide_RegisteredOnServer ensures registerAuthoringGuideResource
+// attaches the resource without panicking (an invalid/relative URI panics in
+// srv.AddResource), so the guide is actually present on the live apps server.
+func TestMCPAuthoringGuide_RegisteredOnServer(t *testing.T) {
+	//nolint:exhaustruct // Name/Version identify the server; nothing else matters here
+	srv := mcp.NewServer(&mcp.Implementation{Name: "test"}, nil)
+	require.NotPanics(t, func() { registerAuthoringGuideResource(srv) })
 }
