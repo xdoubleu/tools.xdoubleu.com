@@ -1,6 +1,7 @@
 package repositories_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -189,6 +190,20 @@ func TestAutomatedActionsCloseStaleNoneOpen(t *testing.T) {
 	ids, err := repo.CloseStale(t.Context(), time.Now().Add(-24*time.Hour))
 	require.NoError(t, err)
 	assert.Empty(t, ids)
+}
+
+func TestAutomatedActionsCloseStaleQueryError(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	// A cancelled context surfaces as a query error from the pool, the
+	// only error branch of CloseStale no valid SQL can reach.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	ids, err := repo.CloseStale(ctx, time.Now().Add(-24*time.Hour))
+	require.Error(t, err)
+	assert.Nil(t, ids)
 }
 
 func TestAutomatedActionsMostRecentOpenedAtNeverOpened(t *testing.T) {
