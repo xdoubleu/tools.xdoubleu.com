@@ -151,7 +151,11 @@ func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
 		textBlock("R B", modal*1.5), // reinforcing + balancing loop labels
 		textBlock("B B", modal*1.5), // two balancing-loop labels
 		textBlock("Body paragraph two of the chapter.", modal),
-		textBlock("Appendix", modal*1.5), // real short heading stays a heading
+		// A real short all-caps heading stays a heading. It's sized like a
+		// title-page heading (3x body): a one-worder at mid-band size is an
+		// embedded figure label and is demoted — see
+		// TestFinalizeHeadings_DemotesSingleWordMidBandHeading (issue #1698).
+		textBlock("Appendix", modal*3.0),
 	}
 
 	finalizeHeadings(blocks, modal)
@@ -166,6 +170,44 @@ func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
 		blocks[6].tag,
 		"a real short all-caps heading must not be demoted",
 	)
+}
+
+// TestFinalizeHeadings_KeepsTwoLineTitlePair reproduces the reopened issue
+// #1698's "Leverage Points—" chapter: its title wraps onto two lines at the
+// same title-page size. A similar-size pair only counts as list entries
+// when a member has an entry's text shape (punctuation, figure reference,
+// …); a two-line title has none and both lines must keep the title as h1.
+func TestFinalizeHeadings_KeepsTwoLineTitlePair(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("— SIX —", modal*1.32),
+		textBlock("Leverage Points—", modal*2.09),
+		textBlock("Places to I ntervene in a System", modal*2.09),
+		textBlock("Body paragraph after the title page.", modal),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[1].tag)
+	assert.Equal(t, "h1", blocks[2].tag)
+}
+
+// TestFinalizeHeadings_KeepsEllipsisTitle verifies a title ending in a
+// spaced typographic ellipsis ("System Traps . . .") is not treated as a
+// sentence (the trailing dots are the book's ellipsis, not sentence-ending
+// punctuation) and stays h1.
+func TestFinalizeHeadings_KeepsEllipsisTitle(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("System Traps . . .", modal*2.09),
+		textBlock("Body paragraph.", modal),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag)
 }
 
 // TestIsLoopDiagramLabel covers isLoopDiagramLabel's boundary cases directly:
@@ -190,4 +232,168 @@ func TestIsLoopDiagramLabel(t *testing.T) {
 			t, want, isLoopDiagramLabel(text), "isLoopDiagramLabel(%q)", text,
 		)
 	}
+}
+
+// TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine reproduces the
+// reopened issue #1698's missing-chapters half: on a chapter title page the
+// big title ("The Basics", ~2× body height) sits directly beside its
+// decoration banner ("— ONE —", ~1.3× body height, an h2-sized candidate).
+// The run guard must not flatten such a dissimilar pair — only adjacent
+// candidates rendered at the same size (list/citation entries) look like a
+// list — so the title survives as the TOC's chapter entry.
+func TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("— ONE —", modal*1.32),    // banner line (h2-sized candidate)
+		textBlock("The Basics", modal*2.09), // real chapter title
+		textBlock("Body paragraph after the title page.", modal),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(
+		t, "h1", blocks[1].tag,
+		"chapter title beside a differently-sized banner line must stay h1",
+	)
+}
+
+// TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights verifies the #1654
+// bibliography guard: three consecutive large-font entries at a similar
+// size are a list regardless of their text shapes — none ends in sentence
+// punctuation, yet all must stay plain paragraphs.
+func TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Real Heading", modal*1.5),
+		textBlock("Body paragraph.", modal),
+		textBlock("Entry one", modal*1.5),
+		textBlock("Entry two", modal*1.45),
+		textBlock("Entry three", modal*1.5),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag)
+	for i := 2; i < len(blocks); i++ {
+		assert.Equalf(t, "p", blocks[i].tag,
+			"block %d (%q) is part of a 3+ candidate run", i, blocks[i].text)
+	}
+}
+
+// TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates verifies that a
+// size jump between consecutive candidates splits the chain: each side is
+// judged in isolation, so two one-off large lines at different sizes stay
+// headings (this is what a chapter title page's banner + title look like).
+func TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("A Real Heading", modal*1.5),
+		textBlock("Another One-Word Label", modal*1.2),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag)
+	assert.Equal(t, "h2", blocks[1].tag)
+}
+
+// TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates verifies the
+// two-member edge: two consecutive candidates at the same (similar) size are
+// a list fragment and are demoted, while two consecutive candidates at
+// clearly different sizes are not.
+func TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Body paragraph.", modal),
+		textBlock("Citation one.", modal*1.5),
+		textBlock("Citation two.", modal*1.45),
+		textBlock("Body paragraph.", modal),
+		textBlock("— TWO —", modal*1.32),
+		textBlock("A Brief Visit to the Systems Zoo", modal*2.71),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "p", blocks[1].tag)
+	assert.Equal(t, "p", blocks[2].tag, "similar-size pair must be demoted")
+	assert.Equal(
+		t, "h1", blocks[5].tag,
+		"dissimilar-size pair (banner + chapter title) must keep the title",
+	)
+}
+
+// TestFinalizeHeadings_DemotesSentencePunctuationHeading reproduces the
+// reopened issue #1698's pull-quote/fragment TOC entries: an h1-sized
+// candidate ending in sentence punctuation (after trimming closing quotes)
+// is a sentence, never a heading. Numbered-list items ("13. …") and short
+// questions ("Why?") share the shape.
+func TestFinalizeHeadings_DemotesSentencePunctuationHeading(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("THE WAY OUT", modal*1.61), // real small-caps heading
+		textBlock("Body paragraph.", modal),
+		textBlock(
+			"The one who had felt its feet and legs said: "+
+				"“It is mighty and firm, like a pillar.”",
+			modal*1.5,
+		),
+		textBlock("13. Defy the disciplines.", modal*1.42), // numbered list item
+		textBlock("Why?", modal*1.5),                       // question fragment
+		textBlock("Body paragraph.", modal),
+		textBlock("Appendix", modal*3.09), // real heading
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "h1", blocks[0].tag)
+	assert.Equal(t, "p", blocks[2].tag, "quoted sentence must be demoted")
+	assert.Equal(t, "p", blocks[3].tag, "numbered list item must be demoted")
+	assert.Equal(t, "p", blocks[4].tag, "question fragment must be demoted")
+	assert.Equal(t, "h1", blocks[6].tag)
+}
+
+// TestFinalizeHeadings_DemotesFigureReferenceHeading reproduces the
+// reopened issue #1698's caption/cross-reference fragments ("Delays,
+// Figure 30:", "(see Figure 39)."): an h1-sized candidate referencing a
+// figure number is part of a caption, not a heading.
+func TestFinalizeHeadings_DemotesFigureReferenceHeading(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Delays, Figure 30:", modal*1.42),
+		textBlock("(see Figure 39).", modal*1.5),
+		textBlock("Body paragraph.", modal),
+		textBlock("Stabilizing Loops—Balancing Feedback", modal*1.54),
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "p", blocks[0].tag)
+	assert.Equal(t, "p", blocks[1].tag)
+	assert.Equal(t, "h1", blocks[3].tag)
+}
+
+// TestFinalizeHeadings_DemotesSingleWordMidBandHeading reproduces the
+// reopened issue #1698's diagram-label fragments ("Cooling"): a one-word h1
+// candidate at mid-band size (between body text and real title-page type)
+// is an embedded figure label, not a heading; real one-word headings appear
+// only at title-page size.
+func TestFinalizeHeadings_DemotesSingleWordMidBandHeading(t *testing.T) {
+	const modal = 10.0
+
+	blocks := []htmlBlock{
+		textBlock("Cooling", modal*1.49),
+		textBlock("Body paragraph.", modal),
+		textBlock("Appendix", modal*3.09), // real one-word heading, title-page size
+	}
+
+	finalizeHeadings(blocks, modal)
+
+	assert.Equal(t, "p", blocks[0].tag)
+	assert.Equal(t, "h1", blocks[2].tag)
 }
