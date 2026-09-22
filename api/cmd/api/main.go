@@ -71,6 +71,7 @@ type Application struct {
 	oauthConnRepo                 *repositories.OAuthConnectionsRepository
 	oauthState                    *oauthconn.StateStore
 	issueSignalCollectorJob       *jobs.IssueSignalCollectorJob
+	automatedActionSweepJob       *jobs.AutomatedActionSweepJob
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
@@ -351,6 +352,12 @@ func startCrossAppJobs(app *Application) error {
 		return err
 	}
 	if err := app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.automatedActionSweepJob, app.db),
+		noopCallback,
+	); err != nil {
+		return err
+	}
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.transactionLatencySnapshotJob, app.db),
 		noopCallback,
 	); err != nil {
@@ -418,6 +425,9 @@ func NewApplication(
 	storageSnapshotsRepo := repositories.NewStorageSnapshotsRepository(db)
 	dbStatsRepo := repositories.NewDBStatsRepository(db)
 	automatedActionsRepo := repositories.NewAutomatedActionsRepository(db)
+	automatedActionSweepJob := jobs.NewAutomatedActionSweepJob(
+		automatedActionsRepo,
+	)
 	issueSignalCollectorJob, transactionLatencyRepo,
 		transactionLatencySnapshotJob := newCrossAppJobs(
 		db,
@@ -464,6 +474,7 @@ func NewApplication(
 		sentryClient:                  sentryClient,
 		slackClient:                   slackClient,
 		issueSignalCollectorJob:       issueSignalCollectorJob,
+		automatedActionSweepJob:       automatedActionSweepJob,
 		transactionLatencyRepo:        transactionLatencyRepo,
 		transactionLatencySnapshotJob: transactionLatencySnapshotJob,
 		globalJobQueue: jobqueue.NewJobQueue(

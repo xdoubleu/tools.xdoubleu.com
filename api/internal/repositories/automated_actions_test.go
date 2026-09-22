@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/models"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -126,6 +127,68 @@ func TestAutomatedActionsOldestOpenFiredAtReturnsOldestStillOpen(t *testing.T) {
 	firedAt, err := repo.OldestOpenFiredAt(t.Context())
 	require.NoError(t, err)
 	assert.WithinDuration(t, time.Now().Add(-2*time.Hour), firedAt, time.Minute)
+}
+
+func TestAutomatedActionsCloseStale(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	// A row old enough to be past any reasonable cutoff...
+	_, err := testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, trigger_source, routine_name)
+		VALUES (now() - INTERVAL '25 hours', 'schedule', 'stalled-routine')
+	`)
+	require.NoError(t, err)
+
+	// ...a still-open row younger than the cutoff must survive the sweep.
+	freshID, err := repo.Open(t.Context(), "schedule", "running-routine")
+	require.NoError(t, err)
+
+	// ...and an old row that a routine closed itself must never be touched.
+	_, err = testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome)
+		VALUES (now() - INTERVAL '30 hours', now() - INTERVAL '5 hours',
+		        'schedule', 'closed-routine', 'succeeded')
+	`)
+	require.NoError(t, err)
+
+	ids, err := repo.CloseStale(t.Context(), time.Now().Add(-24*time.Hour))
+	require.NoError(t, err)
+	require.Len(t, ids, 1)
+
+	runs, err := repo.ListRecent(t.Context(), time.Now().Add(-48*time.Hour), 10)
+	require.NoError(t, err)
+	require.Len(t, runs, 3)
+
+	byName := make(map[string]models.AutomatedAction, len(runs))
+	for _, run := range runs {
+		byName[run.RoutineName] = run
+	}
+
+	stalled := byName["stalled-routine"]
+	assert.NotNil(t, stalled.FinishedAt)
+	assert.Equal(t, "failed", stalled.Outcome)
+	assert.NotEmpty(t, stalled.Error)
+
+	running := byName["running-routine"]
+	assert.Nil(t, running.FinishedAt)
+	assert.Empty(t, running.Outcome)
+	assert.Equal(t, freshID, running.ID)
+
+	closed := byName["closed-routine"]
+	assert.Equal(t, "succeeded", closed.Outcome)
+	assert.Empty(t, closed.Error)
+}
+
+func TestAutomatedActionsCloseStaleNoneOpen(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	ids, err := repo.CloseStale(t.Context(), time.Now().Add(-24*time.Hour))
+	require.NoError(t, err)
+	assert.Empty(t, ids)
 }
 
 func TestAutomatedActionsMostRecentOpenedAtNeverOpened(t *testing.T) {
