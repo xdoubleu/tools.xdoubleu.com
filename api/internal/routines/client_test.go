@@ -148,6 +148,31 @@ func TestFire_WebhookReturnsErrorStatus_ClosesStrandedActionAsFailed(t *testing.
 	assert.Contains(t, recorder.lastErrorText, "unexpected status 500")
 }
 
+// TestFire_WebhookReturnsErrorStatus_ErrorIncludesURLAndBody exercises
+// issue #1798's fix: with the real routine-fire endpoint contract still
+// unverified (see the package doc comment), the exact URL posted to and
+// the response body sent back are the two concrete diagnostic facts folded
+// into the error, since either logging or the resulting Sentry event is
+// the only place anyone will see them.
+func TestFire_WebhookReturnsErrorStatus_ErrorIncludesURLAndBody(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(`{"error":"not found"}`))
+		},
+	))
+	defer server.Close()
+
+	client, recorder := newTestClient(server.URL, "token")
+
+	err := client.Fire(t.Context(), "immediate-response", "text")
+	require.Error(t, err)
+	assert.Equal(t, "failed", recorder.lastOutcome)
+	assert.Contains(t, recorder.lastErrorText, "unexpected status 404")
+	assert.Contains(t, recorder.lastErrorText, server.URL+"/immediate-response/fire")
+	assert.Contains(t, recorder.lastErrorText, `{"error":"not found"}`)
+}
+
 func TestFire_WebhookUnreachable_ClosesStrandedActionAsFailed(t *testing.T) {
 	client, recorder := newTestClient("http://127.0.0.1:0", "token")
 

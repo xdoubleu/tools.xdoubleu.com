@@ -9,6 +9,17 @@
 // auth, JSON body {"text": "..."} — is a reasonable, documented-as-a-guess
 // external API call; revisit it against the real contract once that's
 // confirmed.
+//
+// Issue #1798 confirmed live that this guess is wrong — every fire attempt
+// gets back a 404 (also reported from a different angle by #1808) — but no
+// doc, ADR, or comment anywhere in this repo records what the real
+// endpoint shape should be instead, so there is nothing to correct *to*
+// with real confidence; swapping in another unverified guess would only
+// trade one unconfirmed URL for another. Until the real contract is known,
+// postFire instead captures the exact URL it posted to and the response
+// body Anthropic sent back, both folded into the returned/logged (and
+// therefore Sentry-reported) error — the response body is the most likely
+// source of an actual clue for whoever fixes this for real next.
 package routines
 
 import (
@@ -17,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -143,8 +155,17 @@ func (c *Client) postFire(ctx context.Context, routineName, text string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= http.StatusMultipleChoices {
+		// The response body is read on the error path only — on success
+		// it's discarded unread, same as before. Anthropic's routine-fire
+		// endpoint contract isn't documented anywhere this repo can reach
+		// (see the package doc comment), so the URL actually posted to and
+		// whatever body came back are the two concrete facts most likely
+		// to help diagnose *why* next time, folded straight into the error
+		// this function's caller logs (and therefore reports to Sentry).
+		raw, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf(
-			"firing routine %q: unexpected status %d", routineName, resp.StatusCode,
+			"firing routine %q: unexpected status %d from %s: %s",
+			routineName, resp.StatusCode, url, string(raw),
 		)
 	}
 
