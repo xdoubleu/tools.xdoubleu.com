@@ -1,10 +1,26 @@
 #!/usr/bin/env python3
 """
 Report line coverage for api/ Go files changed vs origin/main, scoped to
-the changed lines only, from a `go tool cover` profile — approximating
-what CI's codecov/patch check gates on so a locally-missed branch shows up
-before push instead of after a CI round trip. See diff_coverage_ts.py for
-the equivalent over web/'s lcov coverage reports.
+the changed lines only, from a `go tool cover` profile — a first
+approximation of what CI's codecov/patch check gates on. See
+diff_coverage_ts.py for the equivalent over web/'s lcov coverage reports.
+
+Codecov's exact patch accounting cannot be replicated locally (issue
+#1868: it false-greened twice on PR #1861): Codecov counts an
+unexplained subset of the diff's changed lines and marks lines partial
+whose every covering block was hit locally. Two numbers are therefore
+reported per file:
+
+- the primary percentage — the pass/fail gate — counts a changed line
+  covered when every block touching it was hit (go-cover line
+  semantics, partial lines get no credit);
+- a conservative secondary percentage counts a changed line covered
+  only when it is the start or end line of a >0-count block with no
+  0-count block touching it, treating interior lines of hit blocks as
+  misses. On #1861's pushes this boundary-only view is what matched
+  Codecov's hit attribution, so a big gap between the two numbers is a
+  hint the local result is optimistic — not a prediction of Codecov's
+  number.
 
 Usage:
     python3 ../tools/diff_coverage_go.py coverage.out
@@ -100,13 +116,21 @@ def get_changed_lines(repo_root, project_dir):
 
 
 def parse_profile(profile_path):
-    """Returns {relative_path: {line_number: (hit, miss)}}, where hit/miss
-    each report whether some block touching that line had count>0 / count==0
-    respectively. A physical line can host more than one Go coverage block
-    (e.g. an `if err != nil {` condition plus its body) that disagree on
-    hit/miss -- Codecov's own patch check marks that line "partial" and
-    gives it no coverage credit, so callers must require hit and not miss
-    for a line to count as covered, rather than a plain max(count)."""
+    """Returns {relative_path: {line_number: (hit, miss, boundary)}}.
+    hit/miss each report whether some block touching that line had
+    count>0 / count==0 respectively. A physical line can host more than
+    one Go coverage block (e.g. an `if err != nil {` condition plus its
+    body) that disagree on hit/miss -- Codecov's own patch check marks
+    that line "partial" and gives it no coverage credit, so callers must
+    require hit and not miss for a line to count as covered, rather than
+    a plain max(count).
+
+    boundary reports whether some count>0 block starts or ends on the
+    line. Interior lines of a fully-hit block carry hit=True yet Codecov
+    still marked them partial on PR #1861, while its counted hits were
+    consistently block start/end lines -- the conservative secondary
+    percentage in main() uses this to flag local results that look
+    better than Codecov's accounting would produce."""
     files = {}
     block_re = re.compile(
         r'^(\S+):(\d+)\.\d+,(\d+)\.(\d+) \d+ (\d+)$'
@@ -130,12 +154,17 @@ def parse_profile(profile_path):
 
             file_lines = files.setdefault(rel_path, {})
             for line_no in range(start_line, last_line + 1):
-                hit, miss = file_lines.get(line_no, (False, False))
+                hit, miss, boundary = file_lines.get(line_no, (False, False, False))
                 if count > 0:
                     hit = True
+                    # Start/end lines of a hit block are what Codecov's
+                    # counted hits matched on PR #1861; interior lines
+                    # only. A single-line block is both start and end.
+                    if line_no == start_line or line_no == last_line:
+                        boundary = True
                 else:
                     miss = True
-                file_lines[line_no] = (hit, miss)
+                file_lines[line_no] = (hit, miss, boundary)
 
     return files
 
@@ -198,18 +227,39 @@ def main():
         # A line counts as covered only when every block touching it was
         # hit -- a line with both a hit and a miss block is "partial" in
         # Codecov's own accounting and gets no credit there either.
-        covered = sum(1 for hit, miss in instrumented.values() if hit and not miss)
+        covered = sum(
+            1 for hit, miss, _ in instrumented.values() if hit and not miss
+        )
+        # Conservative view: only block start/end lines of hit blocks
+        # count, mirroring what matched Codecov's hit attribution on
+        # issue #1868's PR #1861 investigation. Interior lines of hit
+        # blocks, which Codecov marked partial there, count as misses.
+        conservative = sum(
+            1 for hit, miss, boundary in instrumented.values()
+            if hit and not miss and boundary
+        )
         total = len(instrumented)
         line_pct = (covered / total) * 100.0
+        cons_pct = (conservative / total) * 100.0
 
         is_flagged = line_pct < THRESHOLD
         mark = '✗' if is_flagged else '✓'
         if is_flagged:
             flagged += 1
 
-        print(f'  {mark} {path:<60} {line_pct:5.1f}% of {total} changed lines')
+        print(
+            f'  {mark} {path:<60} {line_pct:5.1f}% of {total} changed lines'
+            f'  (conservative: {cons_pct:5.1f}%)'
+        )
 
     print()
+    print(
+        'The gate uses the primary percentage; the conservative percentage\n'
+        'counts only block start/end lines of hit blocks (issue #1868).\n'
+        'On validated PRs (#1869, #1863) Codecov\'s reported patch coverage\n'
+        'fell between the two, so a large gap between them means the local\n'
+        'result is optimistic -- but neither predicts Codecov\'s number.\n'
+    )
     if flagged:
         print(f'{flagged} file(s) below {THRESHOLD}% threshold on changed lines.')
         sys.exit(1)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 Report line/branch coverage for web/ TS/TSX files changed vs origin/main,
-scoped to the changed lines only, from an lcov.info report -- mirroring
-what CI's codecov/patch check gates on so a locally-missed branch shows up
-before push instead of after a CI round trip. See diff_coverage_go.py for
-the equivalent over api/'s Go coverage profiles.
+scoped to the changed lines only, from an lcov.info report -- a first
+approximation of what CI's codecov/patch check gates on (read as a
+heuristic: Codecov's exact patch accounting cannot be replicated locally,
+see diff_coverage_go.py's docstring). See diff_coverage_go.py for the
+equivalent over api/'s Go coverage profiles.
 
 Scoping to changed lines is what keeps this honest: scoring a changed
 file's entire line set instead would fail a one-line edit to a file with
