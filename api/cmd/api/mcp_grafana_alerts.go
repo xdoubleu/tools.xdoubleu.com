@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -37,6 +38,14 @@ var errGrafanaNotConfigured = errors.New(
 	"GRAFANA_ADMIN_PASSWORD not configured",
 )
 
+// grafanaAlertsArgs are get_grafana_alerts's optional arguments.
+type grafanaAlertsArgs struct {
+	// RuleName, when set, restricts the response to the one rule with this
+	// exact name — the common "is alert X firing?" check, which otherwise
+	// pays for every provisioned rule's full state in one response.
+	RuleName string `json:"rule_name,omitempty"`
+}
+
 // registerGrafanaAlertsMCPTool registers get_grafana_alerts — the read path
 // for Grafana-managed alert-rule state. All alerting moved to Grafana in
 // issue #1528, and Grafana-managed alerts never appear in Prometheus
@@ -47,18 +56,21 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "get_grafana_alerts",
-		Description: "Returns every provisioned Grafana alert rule's current " +
-			"state (Normal/Pending/Alerting/NoData/Error) plus its labels, " +
+		Description: "Returns provisioned Grafana alert rules' current state " +
+			"(Normal/Pending/Alerting/NoData/Error) plus their labels, " +
 			"annotations and active instances, from Grafana's " +
 			"Prometheus-compatible ruler API. All alerting is Grafana-managed " +
 			"(issue #1528) and Grafana-managed alerts never appear in " +
 			"Prometheus ALERTS{}, so prom_query cannot confirm or investigate " +
-			"a firing alert — this tool can. Returns Grafana's raw API JSON " +
-			"({\"status\":\"success\",\"data\":{\"groups\":[...]}}).",
+			"a firing alert — this tool can. Pass rule_name to check one rule " +
+			"(\"is alert X firing?\") instead of pulling every rule's state. " +
+			"Returns Grafana's raw API JSON " +
+			"({\"status\":\"success\",\"data\":{\"groups\":[...]}}), filtered " +
+			"to groups containing the requested rule when rule_name is set.",
 	}, func(
 		ctx context.Context,
 		_ *mcp.CallToolRequest,
-		_ noArgs,
+		args grafanaAlertsArgs,
 	) (*mcp.CallToolResult, any, error) {
 		if err := requireAdmin(ctx); err != nil {
 			return nil, nil, err
@@ -66,6 +78,9 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 		body, err := grafanaAlerts(
 			ctx, app.config.GrafanaURL, app.config.GrafanaAdminPassword,
 		)
+		if err == nil && args.RuleName != "" {
+			body, err = filterGrafanaRules(body, args.RuleName)
+		}
 		if err != nil {
 			return nil, nil, err
 		}
@@ -107,4 +122,57 @@ func grafanaAlerts(
 	defer resp.Body.Close()
 
 	return io.ReadAll(resp.Body)
+}
+
+// filterGrafanaRules keeps only the rule groups containing the rule named
+// ruleName, preserving Grafana's response envelope and everything inside the
+// surviving groups. A name that matches no rule yields an empty groups list
+// rather than an error — "no such rule" is a normal answer, not a failure.
+// The filtering happens after the fetch (the upstream endpoint offers no
+// server-side rule filter), so the cost saved is response size, not the
+// round trip.
+func filterGrafanaRules(body []byte, ruleName string) ([]byte, error) {
+	// Groups stay as raw JSON — the filter only reads each group's rule
+	// names to decide membership, and re-emits the group untouched.
+	var payload struct {
+		Data struct {
+			Groups []json.RawMessage `json:"groups"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+
+	filtered := make([]json.RawMessage, 0, len(payload.Data.Groups))
+	for _, group := range payload.Data.Groups {
+		var rules struct {
+			Rules []struct {
+				Name string `json:"name"`
+			} `json:"rules"`
+		}
+		if err := json.Unmarshal(group, &rules); err != nil {
+			return nil, err
+		}
+		for _, rule := range rules.Rules {
+			if rule.Name == ruleName {
+				filtered = append(filtered, group)
+				break
+			}
+		}
+	}
+
+	// Re-marshal through a generic map so any envelope fields the filter
+	// struct doesn't model survive the round trip untouched.
+	var envelope map[string]any
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return nil, err
+	}
+	data, ok := envelope["data"].(map[string]any)
+	if !ok {
+		data = map[string]any{}
+		envelope["data"] = data
+	}
+	data["groups"] = filtered
+
+	return json.Marshal(envelope)
 }

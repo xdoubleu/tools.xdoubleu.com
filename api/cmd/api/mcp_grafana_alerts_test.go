@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -116,4 +117,109 @@ func TestAppsMCPGrafanaAlerts_NonAdmin(t *testing.T) {
 		Arguments: map[string]any{},
 	})
 	assert.Contains(t, toolMessage(res, err), "admin access required")
+}
+
+func TestFilterGrafanaRules_MatchingRuleKeepsWholeGroup(t *testing.T) {
+	body := `{"status":"success","data":{"groups":[` +
+		`{"name":"host","rules":[{"name":"HostCPUHigh","state":"inactive",` +
+		`"alerts":[]}]},` +
+		`{"name":"service-health","rules":[{"name":"IssueSentryUnresolved",` +
+		`"state":"firing","alerts":[]}]}` +
+		`]}}`
+
+	filtered, err := filterGrafanaRules([]byte(body), "IssueSentryUnresolved")
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(filtered, &got))
+	data, ok := got["data"].(map[string]any)
+	require.True(t, ok)
+	groups, ok := data["groups"].([]any)
+	require.True(t, ok)
+	require.Len(t, groups, 1)
+	// The surviving group must come back whole, not just its name.
+	asJSON, err := json.Marshal(groups[0])
+	require.NoError(t, err)
+	assert.Contains(t, string(asJSON), `"firing"`)
+	assert.Equal(t, "success", got["status"])
+}
+
+func TestFilterGrafanaRules_NoMatchYieldsEmptyGroups(t *testing.T) {
+	filtered, err := filterGrafanaRules([]byte(grafanaRulesJSON), "Nope")
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(filtered, &got))
+	data, ok := got["data"].(map[string]any)
+	require.True(t, ok)
+	groups, ok := data["groups"].([]any)
+	require.True(t, ok)
+	assert.Empty(t, groups)
+}
+
+func TestFilterGrafanaRules_InvalidJSON(t *testing.T) {
+	_, err := filterGrafanaRules([]byte("not json"), "Nope")
+	require.Error(t, err)
+}
+
+func TestFilterGrafanaRules_MalformedGroup(t *testing.T) {
+	// A group that isn't valid JSON is a real upstream anomaly, not an
+	// empty match — surface it as an error rather than dropping the group.
+	_, err := filterGrafanaRules(
+		[]byte(`{"data":{"groups":["{oops"]}}`), "Nope",
+	)
+	require.Error(t, err)
+}
+
+func TestFilterGrafanaRules_MissingDataEnvelope(t *testing.T) {
+	// An upstream response with no data object still round-trips: the
+	// filter materializes an empty data.groups rather than panicking.
+	filtered, err := filterGrafanaRules([]byte(`{"status":"success"}`), "Nope")
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(filtered, &got))
+	data, ok := got["data"].(map[string]any)
+	require.True(t, ok)
+	groups, ok := data["groups"].([]any)
+	require.True(t, ok)
+	assert.Empty(t, groups)
+}
+
+func TestAppsMCPGrafanaAlerts_RuleNameFilter(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	srv := httptest.NewServer(http.HandlerFunc(func(
+		w http.ResponseWriter, _ *http.Request,
+	) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":"success","data":{"groups":[` +
+			`{"name":"a","rules":[{"name":"RuleOne","state":"inactive"}]},` +
+			`{"name":"b","rules":[{"name":"RuleTwo","state":"alerting"}]}` +
+			`]}}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	originalURL := testApp.config.GrafanaURL
+	originalPW := testApp.config.GrafanaAdminPassword
+	testApp.config.GrafanaURL = srv.URL
+	testApp.config.GrafanaAdminPassword = "test-pw"
+	t.Cleanup(func() {
+		testApp.config.GrafanaURL = originalURL
+		testApp.config.GrafanaAdminPassword = originalPW
+	})
+
+	session := appsMCPSession(t, accessToken.Value)
+	//nolint:exhaustruct // only Name/Arguments are needed to call the tool
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "get_grafana_alerts",
+		Arguments: map[string]any{"rule_name": "RuleTwo"},
+	})
+	require.NoError(t, err)
+	assert.False(t, res.IsError)
+	msg := toolMessage(res, nil)
+	assert.Contains(t, msg, `"name":"b"`)
+	assert.Contains(t, msg, "alerting")
+	assert.NotContains(t, msg, "RuleOne")
 }
