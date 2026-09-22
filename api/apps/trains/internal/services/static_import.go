@@ -4,9 +4,27 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
+	"tools.xdoubleu.com/internal/observability"
+)
+
+// StaticImportJobID is the job-queue ID of jobs.StaticImportJob. It lives
+// here, next to the phase instrumentation that reports under it, so the
+// metric labels and the job's ID cannot drift apart.
+const StaticImportJobID = "trains-static-import"
+
+// Phase names reported under StaticImportJobID via
+// observability.ObserveJobPhase. They split a run into the fetch from the
+// BMC gateway, the in-process parse, and the DB import (staging COPY plus
+// table swap), so prom_query can attribute a slow run to one of the three
+// (issue #1818).
+const (
+	phaseFetch  = "fetch"
+	phaseParse  = "parse"
+	phaseImport = "import"
 )
 
 // ImportParserVersion identifies what this importer writes. It is stored
@@ -73,7 +91,10 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 		opts.LastModified = stored.LastModified
 	}
 
+	fetchStart := time.Now()
 	res, err := s.bmc.FetchStatic(ctx, opts)
+	fetchDur := time.Since(fetchStart)
+	observability.ObserveJobPhase(StaticImportJobID, phaseFetch, fetchDur)
 	if errors.Is(err, bmc.ErrNotConfigured) {
 		s.logger.WarnContext(ctx,
 			"trains: BMC_PARTNER_KEY not set — static import skipped")
@@ -87,7 +108,10 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 		return nil
 	}
 
+	parseStart := time.Now()
 	feed, err := parseFeed(s.logger, res.Body)
+	parseDur := time.Since(parseStart)
+	observability.ObserveJobPhase(StaticImportJobID, phaseParse, parseDur)
 	if err != nil {
 		return err
 	}
@@ -95,9 +119,20 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 	feed.Info.LastModified = res.LastModified
 	feed.Info.ParserVersion = ImportParserVersion
 
-	if err = s.repos.Feed.ImportFeed(ctx, feed); err != nil {
+	importStart := time.Now()
+	err = s.repos.Feed.ImportFeed(ctx, feed)
+	importDur := time.Since(importStart)
+	observability.ObserveJobPhase(StaticImportJobID, phaseImport, importDur)
+	if err != nil {
 		return err
 	}
+
+	s.logger.InfoContext(ctx, "trains: static import phase durations",
+		slog.String("job", StaticImportJobID),
+		slog.Duration("fetch", fetchDur),
+		slog.Duration("parse", parseDur),
+		slog.Duration("import", importDur),
+	)
 
 	s.logger.InfoContext(ctx, "trains: static feed imported",
 		slog.String("feed_version", feed.Info.FeedVersion),

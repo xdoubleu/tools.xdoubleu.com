@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -140,6 +141,66 @@ func TestStaticImport_UnchangedFeedIsNoOp(t *testing.T) {
 	count, err := testApp.Repositories.Feed.CountTripsResolvingOn(ctx, date)
 	require.NoError(t, err)
 	assert.Equal(t, 2, count, "no-op run leaves the timetable intact")
+}
+
+// TestStaticImport_RecordsPhaseDurations is the assertion issue #1818 calls
+// for: a full import must attribute its runtime across the fetch, parse and
+// import (staging COPY + swap) phases in the job_phase_duration_seconds
+// histogram, so prom_query can split a slow run without reading job logs.
+// The parse phase is a locally-measured ~2.4s even on a feed larger than the
+// BMC one, so this is what makes the remaining ~120s attributable to the
+// fetch or the COPY.
+func TestStaticImport_RecordsPhaseDurations(t *testing.T) {
+	ctx := context.Background()
+	cfg := testhelper.NewTestConfig()
+	cfg.BMCPartnerKey = "test-key"
+	bmcClient := mocks.NewMockBMCClient(mocks.BuildFeedZip(mocks.SampleFeedFiles()))
+	app := trains.NewInner(
+		sharedmocks.NewMockedAuthService(userID),
+		logging.NewNopLogger(),
+		cfg,
+		testDB,
+		bmcClient,
+	)
+
+	// Force a full import: a stored parser_version older than the current
+	// importer drops the conditional-GET validators, so the run cannot
+	// short-circuit on the mock's 304.
+	_, err := testDB.Exec(ctx,
+		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
+	require.NoError(t, err)
+
+	require.NoError(t, app.Services.StaticImport.Import(ctx))
+
+	for _, phase := range []string{"fetch", "parse", "import"} {
+		assert.Positive(t, jobPhaseSampleCount(t, services.StaticImportJobID, phase),
+			"phase %q must be recorded in job_phase_duration_seconds", phase)
+	}
+}
+
+// jobPhaseSampleCount returns the observed-sample count for the
+// job_phase_duration_seconds series of one job/phase pair.
+func jobPhaseSampleCount(t *testing.T, job, phase string) uint64 {
+	t.Helper()
+
+	families, err := prometheus.DefaultGatherer.Gather()
+	require.NoError(t, err)
+
+	for _, mf := range families {
+		if mf.GetName() != "job_phase_duration_seconds" {
+			continue
+		}
+		for _, m := range mf.GetMetric() {
+			labels := map[string]string{}
+			for _, l := range m.GetLabel() {
+				labels[l.GetName()] = l.GetValue()
+			}
+			if labels["job"] == job && labels["phase"] == phase {
+				return m.GetHistogram().GetSampleCount()
+			}
+		}
+	}
+	return 0
 }
 
 // TestStaticImport_ParserVersionMismatchForcesReimport is the assertion

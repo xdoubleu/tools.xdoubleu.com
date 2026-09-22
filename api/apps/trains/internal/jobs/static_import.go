@@ -5,6 +5,8 @@ import (
 	"context"
 	"log/slog"
 	"time"
+
+	"tools.xdoubleu.com/apps/trains/internal/services"
 )
 
 // staticImporter is the slice of services.StaticImportService the job needs.
@@ -23,7 +25,7 @@ func NewStaticImportJob(svc staticImporter) *StaticImportJob {
 	return &StaticImportJob{svc: svc}
 }
 
-func (j *StaticImportJob) ID() string { return "trains-static-import" }
+func (j *StaticImportJob) ID() string { return services.StaticImportJobID }
 
 func (j *StaticImportJob) RunEvery() time.Duration {
 	const hoursInDay = 24

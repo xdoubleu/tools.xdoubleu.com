@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/jackc/pgx/v5"
 
 	"tools.xdoubleu.com/apps/trains/internal/models"
@@ -105,32 +106,64 @@ func (r *FeedRepository) PopulateStaging(
 	for i, t := range stagedTables {
 		truncateList[i] = fmt.Sprintf("trains.%s_staging", t)
 	}
-	if _, err = tx.Exec(
+
+	ctx, span := startStep(ctx, "db.trains.truncate_staging")
+	_, err = tx.Exec(
 		ctx, fmt.Sprintf("TRUNCATE %s", strings.Join(truncateList, ", ")),
-	); err != nil {
+	)
+	span.Finish()
+	if err != nil {
 		return err
 	}
 
-	if err = copyStops(ctx, tx, feed.Stops); err != nil {
+	if err = copyTable(ctx, tx, "stops", feed.Stops, copyStops); err != nil {
 		return err
 	}
-	if err = copyRoutes(ctx, tx, feed.Routes); err != nil {
+	if err = copyTable(ctx, tx, "routes", feed.Routes, copyRoutes); err != nil {
 		return err
 	}
-	if err = copyTrips(ctx, tx, feed.Trips); err != nil {
+	if err = copyTable(ctx, tx, "trips", feed.Trips, copyTrips); err != nil {
 		return err
 	}
-	if err = copyStopTimes(ctx, tx, feed.StopTimes); err != nil {
+	if err = copyTable(ctx, tx, "stop_times", feed.StopTimes, copyStopTimes); err != nil {
 		return err
 	}
-	if err = copyCalendarDates(ctx, tx, feed.CalendarDates); err != nil {
+	if err = copyTable(
+		ctx, tx, "calendar_dates", feed.CalendarDates, copyCalendarDates,
+	); err != nil {
 		return err
 	}
-	if err = copyTransfers(ctx, tx, feed.Transfers); err != nil {
+	if err = copyTable(ctx, tx, "transfers", feed.Transfers, copyTransfers); err != nil {
 		return err
 	}
 
 	return tx.Commit(ctx)
+}
+
+// startStep opens a Sentry span for one import step, so each step's
+// duration is attributed inside the trains-static-import Sentry transaction
+// the job already reports under (issue #1818). sentry.StartSpan attaches as
+// a child of whatever span the context carries; off a job's transaction (or
+// without Sentry initialized) the span is inert, so untraced callers such as
+// integration tests pay nothing.
+func startStep(ctx context.Context, op string) (context.Context, *sentry.Span) {
+	span := sentry.StartSpan(ctx, op)
+	return span.Context(), span
+}
+
+// copyTable runs one table's COPY under its own Sentry child span. The
+// generic is the row slice type; fn performs the actual CopyFrom.
+func copyTable[Rows any](
+	ctx context.Context,
+	tx pgx.Tx,
+	table string,
+	rows []Rows,
+	fn func(context.Context, pgx.Tx, []Rows) error,
+) error {
+	spanCtx, span := startStep(ctx, "db.trains.copy."+table)
+	err := fn(spanCtx, tx, rows)
+	span.Finish()
+	return err
 }
 
 // SwapStagingIn atomically promotes the populated `_staging` tables to be
@@ -150,6 +183,9 @@ func (r *FeedRepository) SwapStagingIn(
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
+
+	ctx, span := startStep(ctx, "db.trains.swap_staging")
+	defer span.Finish()
 
 	for _, t := range stagedTables {
 		tmp := t + "_swap_tmp"
