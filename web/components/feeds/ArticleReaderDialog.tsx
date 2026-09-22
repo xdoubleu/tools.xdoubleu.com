@@ -99,6 +99,8 @@ export default function FeedArticleReaderDialog({
         open={open}
         onOpenChange={onOpenChange}
         html={html}
+        // Feeds fills the whole viewport on desktop (issue #1867).
+        bleedDesktop
         proseClassName="[&_img]:cursor-zoom-in"
         scrollRef={checkAutoRead}
         onScroll={(e) => checkAutoRead(e.currentTarget)}

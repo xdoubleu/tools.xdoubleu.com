@@ -27,6 +27,12 @@ interface ArticleReaderDialogProps {
   scrollRef?: (el: HTMLDivElement | null) => void
   onScroll?: UIEventHandler<HTMLDivElement>
   onContentClick?: MouseEventHandler<HTMLDivElement>
+  /**
+   * Fill the whole viewport on desktop (`lg+`), edge to edge, instead of the
+   * centered card the dialog primitive defaults to from `sm` up. The prose
+   * column stays capped at its readable width (issue #1867 — feeds only).
+   */
+  bleedDesktop?: boolean
 }
 
 // Full-screen in-app reader scaffold shared by the books and feeds readers:
@@ -44,14 +50,28 @@ export default function ArticleReaderDialog({
   children,
   scrollRef,
   onScroll,
-  onContentClick
+  onContentClick,
+  bleedDesktop = false
 }: ArticleReaderDialogProps) {
+  // The dialog primitive's default is full-bleed below `sm` and a centered
+  // card from `sm` up (components/ui/dialog.tsx). `bleedDesktop` opts the
+  // feeds reader back into full-bleed — edge to edge, full height — from
+  // `lg` up (issue #1867); the prose stays capped via max-w-prose regardless.
+  // The default (books reader) keeps the centered-card classes exactly.
+  const dialogClassName = bleedDesktop
+    ? cn(
+        'max-w-none w-full p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col',
+        // Neutralize every `sm:` centering rule from the primitive's
+        // fullscreenContentClass at `lg`, so the dialog fills the viewport
+        // edge to edge instead of collapsing into the centered card.
+        'lg:inset-0 lg:h-full lg:w-full lg:max-w-none lg:max-h-full',
+        'lg:rounded-none lg:translate-x-0 lg:translate-y-0'
+      )
+    : 'max-w-2xl lg:max-w-4xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col'
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        side="fullscreen"
-        className="max-w-2xl lg:max-w-4xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col"
-      >
+      <DialogContent side="fullscreen" className={dialogClassName}>
         <DialogHeader className="items-start gap-3">
           <div className="min-w-0 flex-1">
             <DialogTitle className="leading-tight">{title}</DialogTitle>
