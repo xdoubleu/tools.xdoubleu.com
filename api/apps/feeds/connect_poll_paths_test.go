@@ -21,7 +21,10 @@ func TestPollScrapeFeed_PollPaths(t *testing.T) {
 	base := uniqueBlogBase()
 	indexURL := base + "/blog-poll-paths"
 	postURL := base + "/posts/poll-paths-post"
-	mockWebFetch.SetHTML(indexURL, blogIndexHTML(postURL, "A poll paths post with a long title"))
+	mockWebFetch.SetHTML(
+		indexURL,
+		blogIndexHTML(postURL, "A poll paths post with a long title"),
+	)
 	mockWebFetch.SetHTML(postURL, articlePageHTML("Poll Paths Post"))
 
 	client := newFeedsClient(t)

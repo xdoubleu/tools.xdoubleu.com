@@ -555,10 +555,10 @@ func (s *FeedService) CreateScrape(
 	}
 	// Page-1 discovery doubles as URL validation: at least one post-like
 	// link must exist for the URL to be a blog index at all.
-	if _, err := discoverPostLinksWithLocaleBase(
+	if _, discErr := discoverPostLinksWithLocaleBase(
 		res.FinalURL, res.FinalURL, res.Body,
-	); err != nil {
-		return nil, err
+	); discErr != nil {
+		return nil, discErr
 	}
 
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
