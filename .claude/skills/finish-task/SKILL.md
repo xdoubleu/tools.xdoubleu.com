@@ -1,6 +1,14 @@
 ---
 name: finish-task
-description: Run the required final steps to ship a code change on tools.xdoubleu.com — lint, coverage, build, open the PR (with the right auto-merge call), watch CI to green, and reflect on doc/tooling gaps. Use whenever code changes in this repo are complete — committed, or ready to commit — whether or not the user asked for a PR; also when asked to "finish up", "wrap this up", "open a PR", "ship this". Always prefer this over calling `ship-pr` directly: this skill wraps it with the repo's own lint/coverage/build steps and auto-merge rule.
+description: >-
+  Run the required final steps to ship a code change on tools.xdoubleu.com —
+  lint, coverage, build, open the PR (with the right auto-merge call), watch
+  CI to green, and reflect on doc/tooling gaps. Use whenever code changes in
+  this repo are complete — committed, or ready to commit — whether or not the
+  user asked for a PR; also when asked to "finish up", "wrap this up", "open a
+  PR", "ship this". Always prefer this over calling `ship-pr` directly: this
+  skill wraps it with the repo's own lint/coverage/build steps and auto-merge
+  rule.
 ---
 
 # Finish Task
@@ -17,7 +25,7 @@ that are the reason issue #1236 exists.
 
 This repo layers its own lint/coverage/build steps and auto-merge threshold
 on top of the generic `ship-pr` skill from the `git-task-flow` plugin
-(`xdoubleu/xdoubleu-claude-plugins` marketplace).
+(`xdoubleu/skills` marketplace).
 
 ## 1. Lint
 
@@ -25,7 +33,7 @@ on top of the generic `ship-pr` skill from the `git-task-flow` plugin
   && make lint/fix/pkg PKG=apps/<pkg>` instead of the repo-wide target —
   golines' repo-wide pass in plain `make lint/fix` can reformat unrelated,
   already-merged files elsewhere in the tree that have no actual lint
-  failure (`api/CLAUDE.md`'s Lint section), which then has to be caught and
+  failure (`api/AGENTS.md`'s Lint section), which then has to be caught and
   reverted before the diff is clean. Use plain `cd api && make lint/fix`
   only when the change spans multiple packages or touches `api/internal`.
 - `cd web && npm run lint` for web changes.
@@ -40,7 +48,7 @@ Target ≥80% on changed code.
 
 - API: `cd api && docker-compose up -d && make test/cov/report`. **Leave the
   container running** — do not `docker-compose down` afterwards. Every
-  worktree shares one Postgres container (see `api/CLAUDE.md`'s Testing
+  worktree shares one Postgres container (see `api/AGENTS.md`'s Testing
   Notes), so stopping it kills the database any concurrent session is
   mid-test against, which surfaces as unrelated failures in whatever suite
   that session happened to be running (issue #1205).

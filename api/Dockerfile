@@ -1,7 +1,7 @@
 # Builds a standalone image for the api binary only — never run directly,
 # only used as a `COPY --from=` source by the root Dockerfile, which
 # assembles api/gateway/web into the single merged deploy image. See root
-# CLAUDE.md's CI section and root Dockerfile.
+# AGENTS.md's CI section and root Dockerfile.
 #
 # Build context is the REPO ROOT, not api/ (see build-api.yml's
 # `context: .` / `file: ./api/Dockerfile`) — api/go.mod's local `replace

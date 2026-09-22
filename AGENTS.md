@@ -3,7 +3,7 @@
 The repository contract for any coding agent working in this repo — Claude
 Code, OpenCode, or anything else. Harness-specific orchestration lives
 elsewhere: `CLAUDE.md` (Claude Code) and `opencode.json` /
-`.opencode/command/` (OpenCode) both build on top of this file rather than
+`.opencode/plugins/` (OpenCode) both build on top of this file rather than
 repeating it. If you're looking for skill/hook/command mechanics, this is
 the wrong file.
 
@@ -18,14 +18,12 @@ Shared Go code lives in `api/internal/` (auth, config, encryption, family, obser
 refuses non-public IPs, which is what keeps books/feeds from being
 turned into an SSRF pivot against the container's own network. Each app under `api/apps/<name>/` follows: `internal/{models,repositories,services,jobs,helper,mocks}`, `migrations/`, and (where relevant) `pkg/`.
 
-Read `api/CLAUDE.md`, `web/CLAUDE.md`, and `kobo-gateway/CLAUDE.md` before
-working in those subtrees — despite the filename, their content is
-harness-neutral project knowledge (package layout, per-module commands,
-testing quirks), not Claude-specific instructions. They keep the
-`CLAUDE.md` name because Claude Code's own nested-context loading depends on
-that literal filename; OpenCode is pointed at the same files directly via
-`opencode.json`'s `instructions` array rather than duplicating their
-content here.
+Read `api/AGENTS.md`, `web/AGENTS.md`, and `kobo-gateway/AGENTS.md` before
+working in those subtrees — harness-neutral project knowledge (package
+layout, per-module commands, testing quirks) in the standard nested location
+both harnesses discover: Claude Code (≥2.1.277) loads a nested `AGENTS.md`
+on demand when it opens a file in that subtree, and OpenCode is pointed at
+the same files via `opencode.json`'s `instructions` array.
 
 **Deploy shape:** `api` and `web` build their own images and deploy as two independent Kamal services behind one shared kamal-proxy instance and domain, routed by path prefix. `api` strips its own `/api` prefix in-process (`api/cmd/api/kamal_proxy_shim.go`) so `/.well-known/*` reaches it untouched; `web` is the catch-all. **Deploy order is web-then-api and is required, not preferred** → [`docs/adr-0001-two-service-kamal-deploy.md`](docs/adr-0001-two-service-kamal-deploy.md). A third Kamal service, `grafana` (`config/deploy.grafana.yml`), joined the same shared proxy/domain at `/grafana` — order relative to it doesn't matter, only web-then-api is fixed → [`docs/adr-0022-prometheus-grafana-metrics.md`](docs/adr-0022-prometheus-grafana-metrics.md).
 
@@ -37,7 +35,7 @@ content here.
 - Any outbound fetch of a **user-supplied URL** must go through `api/internal/safedial`, never a bare `http.Client` — see above.
 - Never skip, disable, or quarantine a test, and never bypass hooks/signing (`--no-verify`, `--no-gpg-sign`) to force a change through, unless a human explicitly asks for that specific exception.
 - The deploy-secret list is declared in three places that must agree — `config/deploy.{api,web}.yml`'s `env.secret:`, `.kamal/secrets`, and each `Deploy <svc> via Kamal` step's `env:` block in `main.yml`. `make lint/kamal-secrets` checks this → [`docs/convention-deploy-secrets.md`](docs/convention-deploy-secrets.md). `infra/README.md` is the single source of truth for the full secrets list.
-- A migration that changes the meaning of an existing column for already-existing rows needs a backfill, or an explicit comment saying why one isn't needed (`api/CLAUDE.md`'s Testing Notes has the concrete case).
+- A migration that changes the meaning of an existing column for already-existing rows needs a backfill, or an explicit comment saying why one isn't needed (`api/AGENTS.md`'s Testing Notes has the concrete case).
 
 ## Code Navigation and Conventions
 
@@ -114,15 +112,19 @@ The full harness-neutral workflow contract — fresh branch off up-to-date
 PR requirements, CI-green requirement — is written up once in
 [`docs/convention-task-lifecycle.md`](docs/convention-task-lifecycle.md).
 Read it before starting or shipping a change. Claude Code and OpenCode each
-enforce and execute it through their own mechanism (skills/hooks for
-Claude Code, commands for OpenCode) — those mechanisms are documented in
-`CLAUDE.md` and `.opencode/command/` respectively, not here.
+enforce and execute it through their own mechanism — `start-task`/
+`finish-task` skills plus the enforcement hooks in `.claude/settings.json`
+for Claude Code; the same skills (OpenCode reads `.claude/skills/` via
+compatibility discovery, with their generic dependencies installed under
+`.agents/skills/`) plus the `.opencode/plugins/repo-guard` plugin for
+OpenCode. Those mechanisms are documented in `CLAUDE.md` and `README.md`'s
+"Agent Infrastructure" section respectively, not here.
 
 ## MCP
 
 `/apps/mcp` (`api/cmd/api/mcp_apps.go`) is a streamable-HTTP MCP server exposing each app's own read RPCs as `<app>_<rpc>` tools plus ~20 unprefixed admin observability tools (`prom_query`, `get_grafana_alerts`, `get_sentry_issues`, `get_failing_pull_requests`, etc.), so any MCP-capable coding agent can pull production domain data and system health in as context. App tools are gated by the caller's own per-app access and return only that user's data; observability tools require admin access. No per-app tool mutates except `learningpaths`' three write tools (agent-authored curricula is that app's core use case) → [`docs/adr-0023-learningpaths-mcp-write-tools.md`](docs/adr-0023-learningpaths-mcp-write-tools.md); four unprefixed tools are deliberate mutations (`resolve_sentry_issue`, `dismiss_security_alert`, `record_action`, `notify_slack`), all admin-gated.
 
-Auth is first-party **MCP OAuth 2.1** — the api is both the resource server and, via its embedded `ory/fosite`-backed authorization server, the authorization server itself (RFC 7591 dynamic client registration, RFC 8414 metadata). Any MCP client that speaks OAuth 2.1 discovery + PKCE against a streamable-HTTP server can connect the same way, with no server-side change or per-client configuration needed — this is what makes the server usable from more than one harness. See `README.md`'s "Apps MCP server" section and [`docs/adr-0006-embedded-oauth21-authorization-server.md`](docs/adr-0006-embedded-oauth21-authorization-server.md) for the full flow; harness-specific connection instructions (`claude mcp add ...` vs. `opencode.json`'s `mcp` block) live in `CLAUDE.md` / `opencode.json` respectively.
+Auth is first-party **MCP OAuth 2.1** — the api is both the resource server and, via its embedded `ory/fosite`-backed authorization server, the authorization server itself (RFC 7591 dynamic client registration, RFC 8414 metadata). Any MCP client that speaks OAuth 2.1 discovery + PKCE against a streamable-HTTP server can connect the same way, with no server-side change or per-client configuration needed — this is what makes the server usable from more than one harness. See `README.md`'s "Apps MCP server" section and [`docs/adr-0006-embedded-oauth21-authorization-server.md`](docs/adr-0006-embedded-oauth21-authorization-server.md) for the full flow; harness-specific connection instructions (`claude mcp add ...` vs. `opencode.json`'s `mcp.servers` block) live in `CLAUDE.md` / `opencode.json` respectively.
 
 **MCP coverage gaps:** if a production issue has no MCP tool that surfaces it, or an existing tool returns wrong/incomplete data, fix that gap first (add/correct the tool) before investigating the issue itself — otherwise the same blind spot just recurs next time. Record the case in [`docs/convention-mcp-gap-first.md`](docs/convention-mcp-gap-first.md), which also lists the known open gaps.
 

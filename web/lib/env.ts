@@ -40,7 +40,7 @@ export function getKoboGatewayRelease(): string {
 
 // PostHog Cloud (EU) product analytics + session replay — a materially
 // different telemetry path from the Web Vitals beacon above, see root
-// CLAUDE.md. The client key is not secret (it ships in the browser bundle
+// AGENTS.md. The client key is not secret (it ships in the browser bundle
 // regardless), same treatment as getSentryDsn() above.
 export function getPostHogKey(): string {
   if (typeof window !== 'undefined') return window.__ENV__?.POSTHOG_KEY ?? ''

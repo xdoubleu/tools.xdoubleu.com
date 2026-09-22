@@ -5,7 +5,7 @@
 
 ## Rule
 
-One or two sentences. This is the part that gets quoted into a CLAUDE.md.
+One or two sentences. This is the part that gets quoted into AGENTS.md.
 
 ## Why
 

@@ -1,11 +1,17 @@
+@AGENTS.md
+
 # CLAUDE.md
 
-Claude Code-specific guidance for this repository. **Read
-[`AGENTS.md`](AGENTS.md) first** — it's the shared repository contract
-(architecture, commands, conventions, MCP, production safety, git/worktree
-expectations, the docs index) that applies to any coding agent working here,
-Claude Code included. This file covers only what's genuinely specific to
-Claude Code: skill orchestration, the enforcement hooks, and Plan Mode.
+Claude Code-specific guidance for this repository. The `@AGENTS.md` import on
+line 1 loads the shared repository contract (architecture, commands,
+conventions, MCP, production safety, git/worktree expectations, the docs
+index) that applies to any coding agent working here. The import — not a
+prose "read AGENTS.md first" pointer, and not Claude Code's native AGENTS.md
+fallback — is what guarantees the contract is loaded: the fallback only
+applies when no `CLAUDE.md` exists on the path, and a prose pointer depends
+on Claude choosing to open the file. This file covers only what's genuinely
+specific to Claude Code: skill orchestration, the enforcement hooks, and
+Plan Mode.
 
 Nothing below duplicates `AGENTS.md` — where a rule applies to any agent, it
 lives there, not here.
@@ -96,8 +102,10 @@ otherwise — authenticated with whatever credential `git credential fill`
 resolves — so it blocks a shipped-but-unopened PR whether or not `gh` is
 present, including in a Claude Code on the web session →
 [`docs/adr-0014-start-finish-task-enforcement.md`](docs/adr-0014-start-finish-task-enforcement.md).
-These hooks are Claude Code-only mechanics with no OpenCode equivalent
-today — see "OpenCode" below.
+OpenCode's counterparts live in `.opencode/plugins/repo-guard/` (a port of
+the worktree guard, the session-start ff-merge, and — as an idle nudge
+rather than a blocking stop — the unshipped-work check, sharing the Stop
+hook's per-commit dedupe state) — see "OpenCode" below.
 
 When a change adds or alters a page or component under `web/`, run the
 `mobile-review` skill before `finish-task` — `docs/convention-ui-standards.md`'s
@@ -118,24 +126,25 @@ required on both tracks. See
 
 `start-task`/`finish-task` are thin, project-specific wrappers around
 generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`,
-`issue-triage`) published from the `xdoubleu/xdoubleu-claude-plugins`
+`issue-triage`) published from the `xdoubleu/skills`
 marketplace repo — declared in `.claude/settings.json`'s
 `extraKnownMarketplaces`/`enabledPlugins`. `refine-issue`/`issue-triage`'s
 repo/project-board/label config lives in
 `.claude/github-triage.config.json`, not in the skill files — edit that
 file, not the plugin, when this repo's board/labels change.
 
-## Other Claude-Only Automation Skills
+## Other Automation Skills
 
-`.claude/skills/` also carries a set of operational skills with no
-OpenCode equivalent — they're wired to Claude-specific mechanics (the
-`Agent`/subagent tool, claude.ai scheduled routines, MCP tools scoped to
-this Claude session) that OpenCode has no parallel for today:
+`.claude/skills/` also carries a set of operational skills:
 `dependabot-triage`, `monitoring-sweep`, `posthog-ux-discovery`,
 `postmortem`, `ready-issues-sweep`, `red-pr-repair`, `refine-feature`,
 `sentry-triage`, `subissue-sweep`. See each skill's own frontmatter
-description for what it does; they stay Claude-only, documented here as a
-known gap rather than force-ported.
+description for what it does. OpenCode loads them too (compatibility
+discovery) and has equivalents for the mechanics they use — subagent
+fan-out, the same `/apps/mcp` tools — so they can run interactively from
+either harness. What stays Claude-only is the unattended trigger: the
+claude.ai-scheduled routines (`docs/spec-routine-*.md`) that fire some of
+them on a schedule.
 
 ## MCP
 
@@ -148,21 +157,32 @@ claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/m
 
 See `AGENTS.md`'s MCP section for what the server exposes and the shared
 OAuth 2.1 flow; this is only the Claude-specific connection command
-(OpenCode's equivalent is its own `mcp` block in `opencode.json`).
+(OpenCode's equivalent is the `mcp.servers` block in `opencode.json`).
 
 ## OpenCode
 
 This repository also supports [OpenCode](https://opencode.ai) as a second,
 fully independent development harness against OpenRouter models — see
-`opencode.json`, `.opencode/command/`, and `AGENTS.md`. Nothing about that
+`opencode.json`, `.opencode/plugins/`, and `AGENTS.md`. Nothing about that
 setup changes how Claude Code works here: every hook, skill, and command in
 this file and `.claude/` continues to apply exactly as before. The two
-harnesses share `AGENTS.md`, the `/apps/mcp` server, and
-`docs/convention-task-lifecycle.md`; they do not share skills, hooks, or
-commands, since those are each harness's own orchestration mechanism.
+harnesses share `AGENTS.md`, the `/apps/mcp` server,
+`docs/convention-task-lifecycle.md`, and the `.claude/skills/` project
+skills (OpenCode reads them via compatibility discovery); they do not share
+hooks or plugin mechanics, since those are each harness's own orchestration
+mechanism. The generic marketplace skills `start-task`/`finish-task`
+delegate to (`task-worktree`, `ship-pr`, `refine-issue`, `issue-triage`,
+`session-retro`) plus mattpocock's `grilling`/`code-review` are installed
+for OpenCode under `.agents/skills/` via `npx skills add` (tracked in
+`skills-lock.json`, refreshed with `npx skills update`) — the same skills
+Claude Code gets from its marketplace plugins, so `.claude/skills/` must not
+grow its own copies.
 
-Two things Claude Code has that OpenCode has no equivalent for today, so
-they stay Claude Code-only rather than being weakened to fit both: the
-`PreToolUse`/`Stop`/`ExitPlanMode` hook enforcement described above, and the
-claude.ai-scheduled routine automation the skills in "Other Claude-Only
-Automation Skills" depend on.
+OpenCode's enforcement counterpart is `.opencode/plugins/repo-guard/`: a
+port of the worktree-scope edit guard, the session-start main ff-merge, and
+the unshipped-work check (the last as an idle nudge rather than a blocking
+stop, sharing the Stop hook's per-commit dedupe state). Two things remain
+Claude Code-only with no OpenCode equivalent: the claude.ai-scheduled
+routine automation the skills in "Other Automation Skills"
+depend on, and the `ExitPlanMode` reminder hook (OpenCode's plan/build
+agent switch has no hookable exit event).

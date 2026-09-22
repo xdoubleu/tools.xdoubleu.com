@@ -32,3 +32,10 @@ lint/conflict-markers:
 # workflow edit can land alongside any other change.
 lint/workflows:
 	./scripts/lint_workflows.sh
+
+# Fail if any agent SKILL.md frontmatter is invalid YAML or lacks a
+# name/description (issue #1817 — OpenCode silently drops a skill whose
+# frontmatter doesn't parse) — run unconditionally in CI like lint/workflows,
+# since a skill edit is not covered by main.yml's path filters.
+lint/skills:
+	./scripts/lint_skills.sh

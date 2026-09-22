@@ -29,7 +29,7 @@ jobs:
       # read a version from at runtime — unlike api/gateway/web). A cache
       # hit reuses whatever was built (and stamped) the last time
       # kobo-gateway/ source actually changed, including the RELEASE file
-      # below. See root CLAUDE.md's CI section.
+      # below. See root AGENTS.md's CI section.
       #
       # This job only ever restores (never writes) the cache — a
       # pull_request run (including from a fork) executes the workflow and

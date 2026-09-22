@@ -10,7 +10,7 @@ sub-issues, each shippable on its own via `start-task`/`finish-task`. Produces
 **no code** — the deliverable is the issue tree.
 
 This layers a decomposition step on top of the generic `refine-issue` skill
-(from the `github-issue-triage` plugin, `xdoubleu/xdoubleu-claude-plugins`
+(from the `github-issue-triage` plugin, `xdoubleu/skills`
 marketplace). `refine-issue` still owns repo/board config, the label lists,
 and the P0/P1/P2 rule via `.claude/github-triage.config.json` — never redefine
 any of that here. Use it for every individual issue this skill creates.

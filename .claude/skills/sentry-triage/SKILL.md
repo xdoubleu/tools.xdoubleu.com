@@ -6,7 +6,7 @@ description: Check unresolved Sentry issues, file a GitHub issue describing the 
 # Sentry Triage
 
 Reads unresolved Sentry issues via the `mcp__tools-apps__get_sentry_issues` MCP
-tool (see CLAUDE.md's "Apps MCP server" section), investigates each one's
+tool (see README.md's "Apps MCP server" section), investigates each one's
 actual root cause in this codebase, and uses `refine-issue` to file/update a
 GitHub tracking issue with a proposed fix. Once a tracking issue's fix has
 already shipped (issue closed, still showing unresolved in Sentry — e.g. it
@@ -32,7 +32,7 @@ this skill closes the loop by calling `mcp__tools-apps__resolve_sentry_issue`
 
 3. **For each untracked Sentry issue, investigate before writing anything**:
    read the culprit/stack trace context, find the actual code path in this repo
-   (use `ast-grep`, not `grep`, per CLAUDE.md), and identify the real root cause —
+   (use `ast-grep`, not `grep`, per AGENTS.md), and identify the real root cause —
    don't paraphrase the Sentry title as the issue body.
 
 4. **File or update a GitHub issue via `refine-issue`** (config for this repo

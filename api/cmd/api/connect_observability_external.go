@@ -250,7 +250,7 @@ func (h *obsConnectHandler) DismissSecurityAlert(
 
 // dismissSecurityAlert is the second deliberate mutation in this otherwise
 // read-only observability surface, alongside resolveSentryIssue below —
-// see api/CLAUDE.md's "Apps MCP Server" section. Takes the internal
+// see api/AGENTS.md's "Apps MCP Server" section. Takes the internal
 // github.SecurityAlertType (rather than the proto enum) so the MCP tool,
 // whose alert_type input already matches those string values, can call it
 // directly without a round trip through the proto enum.

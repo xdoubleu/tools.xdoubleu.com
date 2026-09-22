@@ -14,7 +14,7 @@ import (
 const mcpAppName = "learningpaths"
 
 // This app deliberately breaks the "MCP app tools are read-only" convention
-// (see api/CLAUDE.md, adr-0023): agent-authored curricula is the feature, not
+// (see api/AGENTS.md, adr-0023): agent-authored curricula is the feature, not
 // an add-on, so learningpaths_create_path/update_path/record_progress below
 // mutate. Every mutating tool still goes through RequireAppAccess and, like
 // every read tool, only ever touches the calling user's own data — the

@@ -74,7 +74,7 @@ linters:
     # *games.Games, *books.Books) — that's fine and untouched by these rules,
     # which only ever match the "/internal" import path, never the app's
     # top-level package. See docs/adr-0007-dashboard-app-owns-public-sharing.md
-    # and api/CLAUDE.md's learningpaths section.
+    # and api/AGENTS.md's learningpaths section.
     depguard:
       rules:
         apps-books-internal:

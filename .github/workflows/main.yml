@@ -371,6 +371,20 @@ jobs:
       - name: make lint/workflows
         run: make lint/workflows
 
+  # Unconditional for the same reason as workflow-lint: a SKILL.md frontmatter
+  # edit can land alongside any other change, and invalid frontmatter makes
+  # both agent harnesses silently drop the skill (issue #1817).
+  skills-lint:
+    if: github.event_name != 'push'
+    name: Agent Skill Frontmatter Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: make lint/skills
+        run: make lint/skills
+
   ci-pass:
     needs:
       [
@@ -390,6 +404,7 @@ jobs:
         sentrytools-test,
         conflict-markers,
         workflow-lint,
+        skills-lint,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -892,7 +907,7 @@ jobs:
               done
 
   # Issue #1722: main deploys without re-testing (see this file's own header
-  # comment and root CLAUDE.md's CI section), so a red push-to-main build/
+  # comment and root AGENTS.md's CI section), so a red push-to-main build/
   # test/deploy job is closer in urgency to a production bug than to a red
   # PR sitting overnight — waiting for the red-pr-repair routine's 07:00
   # scheduled run (docs/spec-routine-red-pr-repair.md) could mean up to ~7
@@ -902,7 +917,7 @@ jobs:
   # routine — nothing about it is Grafana-specific, so this job POSTs to it
   # directly the moment any push-to-main job fails, skipping Prometheus/
   # Grafana's scrape-and-evaluate latency entirely for this one signal. This
-  # still can't push straight to main itself (CLAUDE.md is explicit that
+  # still can't push straight to main itself (AGENTS.md is explicit that
   # nothing does) — it only gets red-pr-repair started diagnosing sooner, so
   # its fix still lands as a normal PR gated by CI.
   #

@@ -18,7 +18,7 @@ export default function SWRProvider({
   currentUser: GetCurrentUserResponse | null
   children: React.ReactNode
 }) {
-  // Ties PostHog's distinct_id to the real user (root CLAUDE.md's PostHog
+  // Ties PostHog's distinct_id to the real user (root AGENTS.md's PostHog
   // decision — every family member is individually identified). A no-op
   // when PostHog wasn't initialized (missing key) or already identified as
   // this user.

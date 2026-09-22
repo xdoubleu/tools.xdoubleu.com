@@ -191,7 +191,7 @@ have each drive its own outcome independently.
    this session's context), must state which mode applies, and must tell it
    to:
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`, e.g.
-     `web/CLAUDE.md` or `api/CLAUDE.md`) first.
+     `web/AGENTS.md` or `api/AGENTS.md`) first.
    - State the exact symptom/data you already gathered (IDs, counts,
      timestamps, URLs, the relevant `get_grafana_alerts` rule state) so it
      doesn't have to re-derive what you already know — but tell it to

@@ -10,8 +10,12 @@ documented separately per harness:
   the `start-task`/`finish-task` skills, and the `PreToolUse`/`Stop`/
   `ExitPlanMode` hooks in `.claude/settings.json`
   ([`adr-0014`](adr-0014-start-finish-task-enforcement.md)).
-- OpenCode: `.opencode/command/start-task.md` and
-  `.opencode/command/finish-task.md`.
+- OpenCode: the same `start-task`/`finish-task` skills (read from
+  `.claude/skills/` via compatibility discovery; their generic marketplace
+  dependencies installed under `.agents/skills/`, tracked in
+  `skills-lock.json`) and the `.opencode/plugins/repo-guard` plugin, which
+  ports the worktree-scope edit guard, the session-start main ff-merge, and
+  the unshipped-work check (as an idle nudge rather than a blocking stop).
 
 Nothing here should be duplicated into either harness adapter — they should
 reference this file for *what* the workflow requires and only add *how*
@@ -38,8 +42,8 @@ their own harness carries it out.
    per-module targets (`make lint`/`make lint/fix` for `api/`, `npm run
    lint`/`npm run lint:fix` for `web/`, `make lint/fix` for
    `kobo-gateway/`).
-2. **≥80% coverage on changed code.** `api/CLAUDE.md`'s `make
-   test/cov/report`/`make test/cov/diff` and `web/CLAUDE.md`'s `npm run
+2. **≥80% coverage on changed code.** `api/AGENTS.md`'s `make
+   test/cov/report`/`make test/cov/diff` and `web/AGENTS.md`'s `npm run
    test:cov`/`npm run test:cov:diff` approximate what CI's coverage gate
    checks — run the diff-scoped variant before pushing to catch a gap
    locally instead of after a CI round trip.

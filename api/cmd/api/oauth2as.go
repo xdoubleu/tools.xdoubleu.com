@@ -61,7 +61,7 @@ func (app *Application) oauth2SessionUserResolver() oauth2as.SessionUserResolver
 		}
 
 		// Prefer the DB role/display-name/email; the bare auth-schema user
-		// always resolves to RoleUser with no display name (api/CLAUDE.md).
+		// always resolves to RoleUser with no display name (api/AGENTS.md).
 		if dbUser, dbErr := app.appUsersRepo.GetByID(r.Context(), user.ID); dbErr == nil {
 			resolved.Email = dbUser.Email
 			resolved.DisplayName = dbUser.DisplayName
