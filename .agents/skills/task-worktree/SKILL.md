@@ -24,7 +24,11 @@ Prefer the `EnterWorktree` tool if available. Otherwise:
 
 ```bash
 git fetch origin <default>
-git worktree add ../<descriptive-branch-name> -b <descriptive-branch-name> origin/<default>
+# Create the worktree under .claude/worktrees/ — both harnesses' edit-guard
+# hooks (Claude's PreToolUse hook, OpenCode's repo-guard plugin) only admit
+# worktrees at that location and deny edits to any other worktree's files.
+git worktree add .claude/worktrees/<descriptive-branch-name> \
+  -b <descriptive-branch-name> origin/<default>
 ```
 
 then switch into it (`EnterWorktree({ path: "<new-worktree-path>" })` if that
@@ -42,8 +46,9 @@ under you by a concurrent process at any point (observed in practice: a
 branch mid-session, costing several tool calls — `git reflog`, `git worktree
 list`, restoring an unrelated file some other branch had modified — just to
 notice and recover). Instead, use `git worktree add` with an **absolute**
-path outside that pinned directory (e.g. under the repo's own
-`.claude/worktrees/`, or a sibling of it) exactly as the snippet above
+path outside that pinned directory, still **under the repo's own
+`.claude/worktrees/`** (a worktree elsewhere — a sibling of it, for example —
+gets its edits denied by the same guard), exactly as the snippet above
 shows, and use that absolute path for every subsequent tool call. Never
 reuse or branch-switch a directory this session did not create itself via
 `EnterWorktree`/`git worktree add`.
