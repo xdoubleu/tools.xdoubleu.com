@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564, #1616
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564, #1616, #1818
 
 ## Rule
 
@@ -105,3 +105,14 @@ answerable with direct database access.
   from a bad rotation) surfaces only as a container crash, after the fact.
   Fix tracked in #1616 (pending); the panic-vs-degrade behavior fix is
   tracked separately in #1617.
+- **#1818 — a slow job measured only end to end.** `trains-static-import`
+  regressed to ~125s p95 and the issue could only list candidate causes
+  (BMC fetch? parse? COPY?) because `job_duration_seconds` measures whole
+  runs and nothing split a run into phases — `prom_query` could confirm the
+  regression but not attribute it. `job_phase_duration_seconds` (labels
+  `job_name`, `phase`) now records each phase of a run via
+  `observability.ObserveJobPhase`, and the Sentry transaction the job
+  already reports under carries per-step spans. The general lesson: **for a
+  job whose runtime has distinguishable steps, end-to-end duration is not
+  attribution coverage — record the split when the steps exist, not when the
+  incident forces it.**
