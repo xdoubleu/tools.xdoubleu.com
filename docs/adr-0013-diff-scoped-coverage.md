@@ -1,7 +1,7 @@
 # ADR-0013: Gate on coverage of changed lines, not whole-file percentages
 
 - Status: Accepted
-- Issues: #1301, #1364, #1376
+- Issues: #1301, #1364, #1376, #1868
 - Affects: `tools/diff_coverage_ts.py`, `tools/diff_coverage_go.py`, `tools/merge_coverage.py`, `tools/extend_signature_coverage.py`, `api/Makefile`, `web/package.json`
 
 ## Context
@@ -22,8 +22,14 @@ Gate on coverage of the **lines changed vs `origin/main`**, matching what CI's
 - `make test/cov/per-pkg` merges per-package Go profiles via
   `tools/merge_coverage.py`
 
-Run these **before pushing**, to catch an uncovered branch locally instead of
-after a CI round trip.
+Run these **before pushing**, but read the local numbers as a first
+approximation, not a prediction of Codecov's result: Codecov's patch check
+counts an unexplained subset of the diff's changed lines and marks lines
+partial that every covering block hit locally, so the two can diverge in
+both directions (issue #1868: `codecov/patch` failed twice on PR #1861
+while `make test/cov/diff` passed; its hit attribution matched a
+conservative block-boundary-only view, which `diff_coverage_go.py` now
+reports alongside its primary number).
 
 `diff_coverage_ts.py` exits non-zero on any changed file whose *changed lines*
 fall under 80% line/branch coverage, **or that has no coverage data at all** —
