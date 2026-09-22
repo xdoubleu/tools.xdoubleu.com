@@ -123,6 +123,19 @@ question that waits on a response.
         but a subagent fixing one already-identified failure absolutely
         should confirm its own fix before pushing), commit, and push to
         the PR branch.
+        **A merge conflict hit while pushing is not exempt from this
+        verification — it needs the same local-run step, not a lighter
+        one.** Resolving a conflict is itself a fix, even when it surfaces
+        after the "real" fix was already confirmed: don't treat a
+        conflict-resolution push as a formality. After resolving, re-run
+        the *specific* test(s) that cover the conflicting file(s) — not
+        just "the relevant lint/test commands" in the abstract — before
+        pushing the resolution. This is called out separately because
+        issue #1807's actual failure mode was exactly this: a conflict in
+        a generated table (a version→hash map) resolved by hand-writing a
+        placeholder value instead of the real computed one, pushed without
+        re-running the test that covered it, which would have caught it
+        immediately.
      3. **No determinable fix.** Leave the PR exactly as it is — still
         open, still red — and post a `gh pr comment` explaining what was
         investigated, what's actually failing, and why it couldn't be
@@ -158,9 +171,10 @@ question that waits on a response.
    sweep`'s unattended mode has one per workstream — the PRs themselves,
    via the comments left in step 3, are where the trail lives).
 
-6. **Close the run record.** Call `record_action(mode: "close", id: <the id
-   from step 1>, outcome: ...)` — `"no_action_needed"` if the candidate set
-   was empty, `"succeeded"` if every candidate PR resolved to fixed, unstuck,
+6. **Close the run record only after every push it's reporting on has
+   actually landed.** Call `record_action(mode: "close", id: <the id from
+   step 1>, outcome: ...)` — `"no_action_needed"` if the candidate set was
+   empty, `"succeeded"` if every candidate PR resolved to fixed, unstuck,
    or a left-with-comment report without the *routine itself* erroring out
    (a PR the routine correctly couldn't fix is still a successful run of the
    routine — that's outcome (c) working as designed, not a routine failure),
@@ -170,6 +184,21 @@ question that waits on a response.
    run of this skill — a run that opened the row in step 1 and never reaches
    this step leaves a permanently-open `automated_actions` row, which is its
    own detectable problem (issue #1443).
+
+   **Don't call this the moment a fix is confirmed locally if a push is
+   still outstanding.** A push can itself hit a merge conflict (`main`
+   moved in the interim) that requires further work — resolving it,
+   re-verifying per step 3 case 2 above, and pushing again — after the fix
+   was already confirmed and before it's actually on the branch. If step 6
+   runs before that conflict-resolution push lands, the row closes
+   `"succeeded"` while the branch is still broken, and nothing reopens it
+   (issue #1807: a `record_action` row closed `"succeeded"` four minutes
+   before a since-mangled merge-conflict push went out, leaving no record
+   that anything had gone wrong). Treat "the push landed clean" — not "the
+   fix was verified locally" — as the actual completion signal for that PR
+   before including it in this close call; if a conflict-resolution push
+   itself fails or can't be verified, that PR's outcome is `"failed"`
+   (with `error` describing it), not `"succeeded"`.
 
 ## Entry point 2: a red `main` branch
 
