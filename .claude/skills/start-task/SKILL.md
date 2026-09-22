@@ -107,6 +107,24 @@ If a finalized plan exists (from plan mode or otherwise), record it in the
 issue's `## Plan` section via `refine-issue` before the first edit, and move
 Status to "In progress" at that point.
 
+For this repo's board (project #8), the ids for moving an issue's Status to
+"In progress" are fixed and need no re-discovery — mirror how `finish-task`
+documents the same board's ids:
+
+```
+gh project item-edit --id <ITEM_ID> \
+  --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
+  --project-id PVT_kwHOAzw7nc4BdsAm \
+  --single-select-option-id 47fc9ee4
+```
+
+`<ITEM_ID>` is the issue's item id on the board, from `gh project item-list 8
+--owner xdoubleu --format json` matched on `content.number`. Per
+`docs/convention-mcp-gap-first.md`'s #1357 entry, project #8 is a **personal**
+project, so the GitHub MCP server's own field tools can't write it —
+`gh project item-edit` (or the `updateProjectV2ItemFieldValue` GraphQL mutation
+it wraps) is the path.
+
 ## When a delegated skill isn't installed, or `gh` isn't available
 
 Two distinct things can be missing, and neither implies the other — a
