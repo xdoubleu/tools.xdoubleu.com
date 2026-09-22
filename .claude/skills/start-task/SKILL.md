@@ -37,6 +37,18 @@ hook's single-path scope.
 
 ## 2. Create (or find) the tracking issue
 
+**Check for a prior attempt before anything else.** When the tracking issue
+already exists — especially on a retry/reiterate request — pull its full
+history: `gh issue view <n> --comments`, linked PRs via `gh pr list
+--search "<n>" --state all`, and branches/commits via `git log --all
+--grep=<n>`. If a previous attempt exists, don't start fresh as if it
+didn't: read the prior PR's diff, review comments, and CI failures, work
+out *why it didn't land or didn't fix the problem*, and record that as a
+short "Why attempt #N failed" analysis on the issue (via `refine-issue`,
+in or before its `## Plan` section) **before writing any code**. The new
+attempt must differ from the old one in response to that analysis —
+re-running a failed approach with cosmetic changes is not a retry.
+
 Before editing, always create a tracking GitHub issue for the work via the
 `refine-issue` skill (from the `github-issue-triage` plugin — its config for
 this repo lives in `.claude/github-triage.config.json`), not a bare `gh
