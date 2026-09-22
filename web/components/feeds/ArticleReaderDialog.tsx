@@ -81,12 +81,19 @@ export default function FeedArticleReaderDialog({
 
   // Auto-mark-read once the reader is scrolled to the end of the content
   // (issue #716); the button's own undo window still lets the user revert.
+  // The content must actually be scrollable (issue #1887): an article that
+  // already fits in the viewport has no end to reach, so it must never be
+  // auto-marked read just for opening — otherwise a short article in the
+  // full-screen desktop reader is marked read the moment it appears.
   const checkAutoRead = (el: HTMLDivElement | null) => {
     if (!el || !html || el.clientHeight === 0) return
     reportProgress(
       Math.min(100, Math.round(((el.scrollTop + el.clientHeight) / el.scrollHeight) * 100))
     )
-    if (el.scrollHeight - el.scrollTop - el.clientHeight <= AUTO_READ_THRESHOLD_PX) {
+    if (
+      el.scrollHeight > el.clientHeight &&
+      el.scrollHeight - el.scrollTop - el.clientHeight <= AUTO_READ_THRESHOLD_PX
+    ) {
       markReadRef.current?.markRead()
     }
   }
