@@ -29,8 +29,9 @@ interface ArticleReaderDialogProps {
   onContentClick?: MouseEventHandler<HTMLDivElement>
   /**
    * Fill the whole viewport on desktop (`lg+`), edge to edge, instead of the
-   * centered card the dialog primitive defaults to from `sm` up. The prose
-   * column stays capped at its readable width (issue #1867 — feeds only).
+   * centered card the dialog primitive defaults to from `sm` up. When set, the
+   * prose also spans the full width (issue #1867 — feeds only). Without it the
+   * prose stays capped at a readable line length.
    */
   bleedDesktop?: boolean
 }
@@ -55,9 +56,9 @@ export default function ArticleReaderDialog({
 }: ArticleReaderDialogProps) {
   // The dialog primitive's default is full-bleed below `sm` and a centered
   // card from `sm` up (components/ui/dialog.tsx). `bleedDesktop` opts the
-  // feeds reader back into full-bleed — edge to edge, full height — from
-  // `lg` up (issue #1867); the prose stays capped via max-w-prose regardless.
-  // The default (books reader) keeps the centered-card classes exactly.
+  // feeds reader back into full-bleed — edge to edge, full height and width —
+  // from `lg` up (issue #1867). The default (books reader) keeps the
+  // centered-card classes exactly.
   const dialogClassName = bleedDesktop
     ? cn(
         'max-w-none w-full p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col',
@@ -100,10 +101,12 @@ export default function ArticleReaderDialog({
 
           {html && (
             <div
-              // Capped to a readable line length inside the wider `lg`
-              // dialog; below `lg` the dialog itself is the cap.
+              // Without `bleedDesktop` the prose is capped to a readable line
+              // length and centered inside the `lg` card; with it the prose
+              // spans the full-bleed desktop dialog edge to edge.
               className={cn(
-                'prose prose-sm max-w-none lg:max-w-prose lg:mx-auto text-fg p-1',
+                'prose prose-sm max-w-none text-fg p-1',
+                !bleedDesktop && 'lg:max-w-prose lg:mx-auto',
                 proseClassName
               )}
               // Article bodies originate from ingested third-party HTML —
