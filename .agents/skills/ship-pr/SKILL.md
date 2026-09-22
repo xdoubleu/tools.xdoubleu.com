@@ -94,6 +94,14 @@ until out=$(gh pr checks --watch --fail-fast 2>&1); do
     sleep 10
     continue
   fi
+  # A transient gh transport failure (connection reset by peer, HTTP 5xx
+  # from api.github.com) is not a check result — retry, like the poll loop
+  # below tolerates flaky gh calls. Only a genuinely failed check run
+  # (exit 1 with failing checks listed, or any other exit) ends the watch.
+  if grep -qE "connection reset by peer|EOF|HTTP 5|internal server error" <<<"$out"; then
+    sleep 10
+    continue
+  fi
   echo "$out"
   exit "$code"
 done
