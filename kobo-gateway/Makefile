@@ -22,7 +22,13 @@ test/cov: test/cov/report
 	open ./coverage.html
 
 tools/lint:
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+	# GOTOOLCHAIN=auto for the tool build only: golangci-lint's own go.mod may
+	# require a Go newer than this module's pin (adr-0015). CI never hits this
+	# because golangci-lint-action installs a prebuilt binary; without the
+	# override a Renovate bump of the tool silently breaks the local target
+	# only (issue #1828). Every build/test of this module still runs under
+	# the pinned toolchain exported at the top of this Makefile.
+	GOTOOLCHAIN=auto go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 
 lint: tools/lint
 	golangci-lint run
