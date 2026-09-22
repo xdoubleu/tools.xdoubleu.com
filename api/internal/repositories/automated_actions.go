@@ -50,6 +50,48 @@ func (r *AutomatedActionsRepository) Close(
 	return err
 }
 
+// staleActionSweepError is the error text CloseStale records on the rows it
+// closes — the routine that opened the row never reached its own close call,
+// so the recorded outcome describes the sweep's inference, not a run result
+// the routine reported.
+const staleActionSweepError = "stale open row auto-closed by api's " +
+	"automated-action sweep: the routine that opened this row never closed it"
+
+// CloseStale closes every still-open automated_actions row that fired before
+// cutoff — recording outcome=failed with staleActionSweepError as the error
+// text — and returns the ids it closed. This bounds how long a row a routine
+// opened but never closed can keep the AutomatedActionStalled alert firing
+// (issue #1796). The cutoff duration lives with the caller (the sweep job),
+// not here.
+func (r *AutomatedActionsRepository) CloseStale(
+	ctx context.Context,
+	cutoff time.Time,
+) ([]int64, error) {
+	rows, err := r.db.Query(ctx, `
+		UPDATE global.automated_actions
+		SET finished_at = now(),
+		    outcome = 'failed',
+		    error = $1
+		WHERE finished_at IS NULL AND fired_at < $2
+		RETURNING id
+	`, staleActionSweepError, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err = rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, rows.Err()
+}
+
 // ListRecent returns the most recent runs since the given time, newest
 // first.
 func (r *AutomatedActionsRepository) ListRecent(
