@@ -124,6 +124,10 @@ feature epic closes, via the `notify_slack` MCP tool. `ci-pass` is still
 required on both tracks. See
 [`docs/convention-feature-review-policy.md`](docs/convention-feature-review-policy.md).
 
+Product skills — authoring/using tools.xdoubleu.com features via its `/apps/mcp`
+tools, aimed at end-user/ChatGPT-style agents — live separately in the
+repo-root `skills/` directory, not in `.claude/skills/`. See `skills/README.md`.
+
 `start-task`/`finish-task` are thin, project-specific wrappers around
 generic skills (`task-worktree`, `ship-pr`, `session-retro`, `refine-issue`,
 `issue-triage`) published from the `xdoubleu/skills`
