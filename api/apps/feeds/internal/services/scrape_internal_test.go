@@ -394,6 +394,53 @@ func TestFetchPaginatedPostLinksStopsWhenNextPageHasNoPosts(t *testing.T) {
 	assert.Equal(t, "https://example.com/posts/only-post", links[0].URL)
 }
 
+// Regression for issue #1748's third reopen: Uber's language-switcher
+// widget is site-wide chrome, so it renders on page 2's markup too — but
+// page 2's own URL carries extra path segments, so the locale-alternate
+// check must be anchored to the pagination run's first-page URL, not each
+// page's own.
+func TestFetchPaginatedPostLinksFiltersLocaleSwitcherOnLaterPages(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	switcher := `
+		<a href="/be/fr/blog/engineering/">French, Français (France)</a>
+		<a href="/be/en-US/blog/engineering/">English, United States</a>
+	`
+	webFetch.SetHTML("https://www.uber.com/be/en/blog/engineering", `
+		<html><body><main>
+			<a href="/be/en/blog/engineering/page-one-post">A post found on the first page</a>
+		</main>
+		`+switcher+`
+		<a rel="next" href="/be/en/blog/engineering/page/2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetHTML("https://www.uber.com/be/en/blog/engineering/page/2", `
+		<html><body><main>
+			<a href="/be/en/blog/engineering/junit-migration-at-scale">
+				How Uber Executed A JUnit Migration at Massive Scale
+			</a>
+		</main>
+		`+switcher+`
+		</body></html>
+	`)
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(),
+		"https://www.uber.com/be/en/blog/engineering",
+		webFetch.Responses["https://www.uber.com/be/en/blog/engineering"].Body,
+	)
+	require.NoError(t, err)
+
+	urls := make([]string, len(links))
+	for i, l := range links {
+		urls[i] = l.URL
+	}
+	assert.Equal(t, []string{
+		"https://www.uber.com/be/en/blog/engineering/page-one-post",
+		"https://www.uber.com/be/en/blog/engineering/junit-migration-at-scale",
+	}, urls)
+}
+
 func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	page := func(n int) string {
