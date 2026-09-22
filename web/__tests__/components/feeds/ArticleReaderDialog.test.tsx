@@ -78,7 +78,7 @@ describe('ArticleReaderDialog', () => {
     expect(markRead).toHaveBeenCalledTimes(1)
   })
 
-  it('auto-marks read on mount when the content already fits without scrolling', () => {
+  it('does not auto-mark read on mount when the content already fits without scrolling', () => {
     const clientHeight = jest
       .spyOn(HTMLElement.prototype, 'clientHeight', 'get')
       .mockReturnValue(300)
@@ -97,7 +97,9 @@ describe('ArticleReaderDialog', () => {
       />
     )
 
-    expect(markRead).toHaveBeenCalledTimes(1)
+    // Non-scrollable content (scrollHeight < clientHeight) has no end to
+    // reach, so it must not be auto-marked read just for opening (issue #1887).
+    expect(markRead).not.toHaveBeenCalled()
 
     clientHeight.mockRestore()
     scrollHeight.mockRestore()
