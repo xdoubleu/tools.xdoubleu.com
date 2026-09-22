@@ -59,9 +59,12 @@ func getPDFiumPool() (pdfium.Pool, error) {
 // goHTMLConverter for EPUB assembly. catalogTitle/catalogAuthors are the
 // book's already-known bibliographic metadata (its catalog title/author, per
 // EnsureKEPUB) and take priority over anything documentMeta could otherwise
-// derive from the PDF itself — see documentMeta (issue #1654).
+// derive from the PDF itself — see documentMeta (issue #1654). identifier is
+// the book's stable unique-identifier, stamped into the EPUB's dc:identifier
+// so regenerated files keep the same internal identity (issue #1734).
 func goPDFConverter(
-	ctx context.Context, inPath, outPath, catalogTitle string, catalogAuthors []string,
+	ctx context.Context, inPath, outPath, identifier, catalogTitle string,
+	catalogAuthors []string,
 ) error {
 	select {
 	case pdfSem <- struct{}{}:
@@ -115,6 +118,7 @@ func goPDFConverter(
 		instance,
 		docResp.Document,
 		blocks,
+		identifier,
 		catalogTitle,
 		catalogAuthors,
 	)
@@ -152,7 +156,7 @@ func renderHTML(blocks []htmlBlock) string {
 // fixed placeholder.
 func documentMeta(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, blocks []htmlBlock,
-	catalogTitle string, catalogAuthors []string,
+	identifier, catalogTitle string, catalogAuthors []string,
 ) ArticleMeta {
 	title := catalogTitle
 	if title == "" {
@@ -171,8 +175,9 @@ func documentMeta(
 	}
 
 	return ArticleMeta{
-		Title:   title,
-		Authors: authors,
+		Title:      title,
+		Authors:    authors,
+		Identifier: identifier,
 	}
 }
 

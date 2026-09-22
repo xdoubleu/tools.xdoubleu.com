@@ -186,10 +186,16 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 	b.WriteString(
 		`  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">` + "\n",
 	)
-	b.WriteString(
-		`    <dc:identifier id="pub-id">urn:uuid:` + uuid.NewString() +
-			"</dc:identifier>\n",
-	)
+	b.WriteString("    <dc:identifier id=\"pub-id\">urn:uuid:")
+	if meta.Identifier != "" {
+		b.WriteString(meta.Identifier)
+	} else {
+		// Only tests and callers without a stable identity reach this; a
+		// per-book identity is required for the Kobo firmware to correlate
+		// regenerated files with the book it already has (issue #1734).
+		b.WriteString(uuid.NewString())
+	}
+	b.WriteString("</dc:identifier>\n")
 	b.WriteString(
 		"    <dc:title>" + escapeXMLText(meta.Title) + "</dc:title>\n",
 	)

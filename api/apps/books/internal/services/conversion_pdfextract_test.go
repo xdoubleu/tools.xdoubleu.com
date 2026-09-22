@@ -35,7 +35,8 @@ func convertToEPUBWithCatalog(
 	t.Helper()
 	outPath := filepath.Join(t.TempDir(), "out.epub")
 	err := goPDFConverter(
-		context.Background(), pdfPath, outPath, catalogTitle, catalogAuthors,
+		context.Background(), pdfPath, outPath, "00000000-0000-0000-0000-000000000001",
+		catalogTitle, catalogAuthors,
 	)
 	require.NoError(t, err)
 	return outPath
@@ -355,6 +356,13 @@ func TestGoPDFConverter_PrefersCatalogMetadataOverHeading(t *testing.T) {
 	require.Contains(t, opf, "<dc:title>Thinking in Systems: A Primer</dc:title>")
 	require.Contains(t, opf, "<dc:creator>Donella H. Meadows</dc:creator>")
 	require.NotContains(t, opf, singleColHeading)
+
+	// Issue #1734: the caller-supplied stable identifier is stamped into the
+	// OPF's dc:identifier, so a regenerated PDF-sourced KEPUB keeps the same
+	// internal identity the firmware can correlate with the book it has.
+	const wantID = "00000000-0000-0000-0000-000000000001"
+	require.Contains(t, opf,
+		`<dc:identifier id="pub-id">urn:uuid:`+wantID+"</dc:identifier>")
 }
 
 // TestGoPDFConverter_FallsBackWithoutCatalogMetadata verifies the pre-#1654

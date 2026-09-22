@@ -55,14 +55,16 @@ func newTestConversionService(
 // the provided EPUB bytes to outPath so the rest of the pipeline can proceed.
 func fakePDFConverter(epubBytes []byte) services.PDFConverter {
 	return func(
-		_ context.Context, _, outPath, _ string, _ []string,
+		_ context.Context, _, outPath, _, _ string, _ []string,
 	) error {
 		return os.WriteFile(outPath, epubBytes, 0o600)
 	}
 }
 
 // failingPDFConverter is a test double that always returns an error.
-func failingPDFConverter(_ context.Context, _, _, _ string, _ []string) error {
+func failingPDFConverter(
+	_ context.Context, _, _, _, _ string, _ []string,
+) error {
 	return errors.New("pdf converter: simulated failure")
 }
 
