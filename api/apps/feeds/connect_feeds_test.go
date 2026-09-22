@@ -605,15 +605,16 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	// The initial import ingests maxItemsPerPoll and leaves the overflow
+	// unseen — the uncapped pagination walk resurfaces it on the next poll
+	// (issue #1842), so marking it seen here would drop it forever.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) &&
-		countSeenRows(t, created.Msg.Feed.Id) < len(postURLs) {
+		countSeenRows(t, created.Msg.Feed.Id) < 20 {
 		time.Sleep(20 * time.Millisecond)
 	}
-	require.Equal(
-		t, len(postURLs), countSeenRows(t, created.Msg.Feed.Id),
-		"every discovered link should be marked seen",
-	)
+	require.Equal(t, 20, countSeenRows(t, created.Msg.Feed.Id),
+		"the per-poll cap's worth should be seen; overflow stays pending")
 
 	resp, err := client.ListFeedItems(
 		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
@@ -632,6 +633,28 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 		withContent,
 		"only the per-poll cap's worth should be listed",
 	)
+
+	// The next poll backfills the leftover five: they were left unseen, so
+	// the (uncapped) index walk finds them again.
+	require.NoError(t, testApp.RunPollNow(context.Background()))
+	require.Eventually(t, func() bool {
+		return countSeenRows(t, created.Msg.Feed.Id) == len(postURLs)
+	}, 5*time.Second, 20*time.Millisecond,
+		"the next poll must pick up the pending overflow — never mark it seen")
+
+	resp, err = client.ListFeedItems(
+		context.Background(), connect.NewRequest(&feedsv1.ListFeedItemsRequest{}),
+	)
+	require.NoError(t, err)
+	withContent = 0
+	for _, item := range resp.Msg.Items {
+		if item.FeedId != created.Msg.Feed.Id {
+			continue
+		}
+		withContent++
+	}
+	assert.Equal(t, len(postURLs), withContent,
+		"the second poll must backfill what the first poll's cap deferred")
 }
 
 func TestCreateFeed_Scrape_TitleUsesAnchorText(t *testing.T) {
