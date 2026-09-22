@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -441,7 +442,12 @@ func TestFetchPaginatedPostLinksFiltersLocaleSwitcherOnLaterPages(t *testing.T) 
 	}, urls)
 }
 
-func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
+// The walk must exhaust the site's pagination, not stop at a page cap —
+// issue #1842: a ceiling made older posts unreachable forever. The walk
+// ends when a page contributes nothing new (newest-first indexes: later
+// pages can't either), here simulated by the last page repeating an
+// already-seen post.
+func TestFetchPaginatedPostLinksWalksUntilNoNewLinks(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	page := func(n int) string {
 		return "https://example.com/blog?page=" + strconv.Itoa(n)
@@ -453,18 +459,22 @@ func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
 		<a rel="next" href="/blog?page=2">Next</a>
 		</body></html>
 	`)
-	for n := 2; n <= 5; n++ {
+	const lastPage = 5
+	for n := 2; n <= lastPage; n++ {
 		next := n + 1
+		hrefs := `<a href="/posts/page-` + strconv.Itoa(n) +
+			`-post">A post discovered on page number ` + strconv.Itoa(n) + `</a>`
+		if n == lastPage {
+			hrefs = `<a href="/posts/page-1-post">A post found on page number one</a>`
+			next = 0
+		}
+		nextHTML := ""
+		if next != 0 {
+			nextHTML = `<a rel="next" href="/blog?page=` +
+				strconv.Itoa(next) + `">Next</a>`
+		}
 		webFetch.SetHTML(page(n), `
-			<html><body><main>
-				<a href="/posts/page-`+strconv.Itoa(
-			n,
-		)+`-post">A post discovered on page number `+strconv.Itoa(
-			n,
-		)+`</a>
-			</main>
-			<a rel="next" href="/blog?page=`+strconv.Itoa(next)+`">Next</a>
-			</body></html>
+			<html><body><main>`+hrefs+`</main>`+nextHTML+`</body></html>
 		`)
 	}
 
@@ -473,8 +483,46 @@ func TestFetchPaginatedPostLinksCapsAtMaxScrapePages(t *testing.T) {
 		context.Background(), "https://example.com/blog", firstPage,
 	)
 	require.NoError(t, err)
-	assert.Len(t, links, maxScrapePages)
-	assert.Equal(t, []string{page(2), page(3)}, webFetch.Calls)
+	assert.Len(t, links, lastPage-1)
+	wanted := []string{"/posts/page-1-post"}
+	for n := 2; n < lastPage; n++ {
+		wanted = append(wanted, "/posts/page-"+strconv.Itoa(n)+"-post")
+	}
+	urls := make([]string, 0, len(links))
+	for _, l := range links {
+		urls = append(urls, strings.TrimPrefix(l.URL, "https://example.com"))
+	}
+	assert.Equal(t, wanted, urls)
+	assert.Len(t, webFetch.Calls, lastPage-1,
+		"every pagination page up to the exhausted one must be fetched")
+}
+
+// A misbehaving site whose "next page" links form a cycle must not walk it
+// forever — the visited-set ends the walk.
+func TestFetchPaginatedPostLinksStopsOnPaginationLoop(t *testing.T) {
+	webFetch := mocks.NewMockWebFetchClient()
+	firstPage := []byte(`
+		<html><body><main>
+			<a href="/posts/page-1-post">A post found on page number one</a>
+		</main>
+		<a rel="next" href="/blog?page=2">Next</a>
+		</body></html>
+	`)
+	webFetch.SetHTML("https://example.com/blog?page=2", `
+		<html><body><main>
+			<a href="/posts/page-2-post">A post discovered on page number two</a>
+		</main>
+		<a rel="next" href="/blog">Next</a>
+		</body></html>
+	`)
+
+	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	links, err := s.fetchPaginatedPostLinks(
+		context.Background(), "https://example.com/blog", firstPage,
+	)
+	require.NoError(t, err)
+	assert.Len(t, links, 2)
+	assert.Equal(t, []string{"https://example.com/blog?page=2"}, webFetch.Calls)
 }
 
 func TestPageTitle(t *testing.T) {

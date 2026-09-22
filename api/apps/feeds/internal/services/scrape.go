@@ -14,6 +14,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 )
 
 // ErrNoPostsFound is returned when discoverPostLinks finds no plausible post
@@ -22,15 +23,11 @@ import (
 var ErrNoPostsFound = errors.New("no post links found on page")
 
 // maxDiscoveredLinks caps how many candidate post links discoverPostLinks
-// returns from one index page.
+// returns from a single index page — a guard against noise floods from
+// listing-style pages, not a discovery ceiling: the paginated walk
+// (fetchPaginatedPostLinks) merges every page's full share. Real post
+// indexes put far fewer than 30 post links on one page.
 const maxDiscoveredLinks = 30
-
-// maxScrapePages caps how many index pages (the first page, plus discovered
-// "next page" links) one scrape run fetches — some blogs (e.g. Uber's
-// engineering blog, issue #1748) spread their current posts across more than
-// one paginated index page, and this bounds request volume and protects
-// against a pagination loop on a misbehaving site.
-const maxScrapePages = 3
 
 // minPostLinkTextLen is the minimum trimmed anchor-text length to look
 // title-like rather than a nav/utility link ("Home", "More", "Sign in").
@@ -445,14 +442,20 @@ func discoverNextPageURL(pageURL string, body []byte) (string, bool) {
 
 // fetchPaginatedPostLinks discovers post links on an already fetched first
 // page, then follows any discoverable "next page" link (discoverNextPageURL)
-// up to maxScrapePages total pages, merging and deduping links across pages
-// (capped overall at maxDiscoveredLinks) — the paginated counterpart to a
-// single discoverPostLinks call. Every page's locale-alternate check is
-// anchored to the first page's URL (see discoverPostLinksWithLocaleBase), so
-// a site-wide language switcher is filtered on later paginated pages too. A
-// later page that fails to fetch or yields no post links simply ends
-// pagination rather than failing the whole call, since the first page
-// already succeeded.
+// until pagination is exhausted, merging and deduping links across pages —
+// the paginated counterpart to a single discoverPostLinks call. The walk is
+// uncapped (issue #1842: a pagination ceiling makes older posts unreachable
+// forever) but not unbounded: it stops when a page contributes no
+// not-yet-seen-in-this-walk link, when a "next page" URL repeats (loop
+// protection), or on any fetch/discovery failure — all degraded results,
+// never errors, since the first page already succeeded. The zero-new-links
+// stop is correct for newest-first post indexes: once a page yields nothing
+// new, every later page is older and cannot either. A misbehaving index
+// ordering posts differently just ends the walk early — coverage shrinks to
+// the pages walked, never grows wrong content. Every page's locale-alternate
+// check is anchored to the first page's URL (see
+// discoverPostLinksWithLocaleBase), so a site-wide language switcher is
+// filtered on later paginated pages too.
 func (s *FeedService) fetchPaginatedPostLinks(
 	ctx context.Context,
 	firstPageURL string,
@@ -472,29 +475,33 @@ func (s *FeedService) fetchPaginatedPostLinks(
 		out = append(out, link)
 	}
 
+	visitedPages := map[string]bool{firstPageURL: true}
 	pageURL, body := firstPageURL, firstPageBody
-	for page := 1; page < maxScrapePages && len(out) < maxDiscoveredLinks; page++ {
+	for {
 		nextURL, ok := discoverNextPageURL(pageURL, body)
-		if !ok {
+		if !ok || visitedPages[nextURL] {
 			break
 		}
+		visitedPages[nextURL] = true
 
 		nextFinalURL, nextBody, pageLinks, ok := s.fetchScrapePage(
 			ctx, nextURL, firstPageURL,
 		)
 		if !ok {
-			// A later page failing to fetch or yielding no post links just
-			// ends pagination — the first page already succeeded, so this
-			// is a degraded result, not an error.
 			break
 		}
 
+		newOnPage := 0
 		for _, link := range pageLinks {
-			if len(out) >= maxDiscoveredLinks || seen[link.URL] {
+			if seen[link.URL] {
 				continue
 			}
 			seen[link.URL] = true
+			newOnPage++
 			out = append(out, link)
+		}
+		if newOnPage == 0 {
+			break
 		}
 		pageURL, body = nextFinalURL, nextBody
 	}
@@ -525,10 +532,13 @@ func (s *FeedService) fetchScrapePage(
 }
 
 // CreateScrape validates the URL by fetching it and discovering at least one
-// post link, then stores the feed (source_type "scrape") and imports its
-// current contents as a first batch in the background — mirrors Create's
-// detached-import shape, see its comment for why the import is not part of
-// the response.
+// post link on the first index page, then stores the feed (source_type
+// "scrape") and imports its contents as a first batch in the background —
+// mirrors Create's detached-import shape, see its comment for why the import
+// is not part of the response. The validation walk deliberately stays on the
+// first page: the detached import runs the full uncapped pagination walk
+// (fetchPaginatedPostLinks), which on a deeply paginated index would blow
+// the request deadline many times over.
 func (s *FeedService) CreateScrape(
 	ctx context.Context,
 	userID, rawURL string,
@@ -544,9 +554,13 @@ func (s *FeedService) CreateScrape(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNoPostsFound, err)
 	}
-	links, err := s.fetchPaginatedPostLinks(ctx, res.FinalURL, res.Body)
-	if err != nil {
-		return nil, err
+	// Page-1 discovery doubles as URL validation: at least one post-like
+	// link must exist for the URL to be a blog index at all.
+	_, discErr := discoverPostLinksWithLocaleBase(
+		res.FinalURL, res.FinalURL, res.Body,
+	)
+	if discErr != nil {
+		return nil, discErr
 	}
 
 	//nolint:exhaustruct // fetch state starts empty; ids are DB-owned
@@ -563,17 +577,35 @@ func (s *FeedService) CreateScrape(
 	// ponytail: detached goroutine, not a job-queue task — a process restart
 	// mid-import can drop it; the hourly poll-feeds job backfills.
 	importFeed := *feed
-	go func() {
-		importCtx := context.WithoutCancel(ctx)
-		s.ingestDiscoveredLinks(importCtx, importFeed, links)
-		s.recordFetchResult(importCtx, importFeed.ID, res, nil)
-	}()
+	go s.importScrapeFeed(ctx, importFeed, res)
+
 	return feed, nil
+}
+
+// importScrapeFeed is CreateScrape's detached first-batch import: it walks
+// the index's full pagination (the walk re-runs page-1 discovery on the same
+// body validation already succeeded on, so a walk error here is not
+// reachable; a walk that merely degrades — a later page failing — returns a
+// partial result, which is imported as-is), ingests the discovered links,
+// and records the fetch result that arms the feed's conditional GET.
+func (s *FeedService) importScrapeFeed(
+	ctx context.Context,
+	feed models.Feed,
+	res *webfetch.Result,
+) {
+	importCtx := context.WithoutCancel(ctx)
+	walked, _ := s.fetchPaginatedPostLinks(importCtx, res.FinalURL, res.Body)
+	s.ingestDiscoveredLinks(importCtx, feed, walked)
+	s.recordFetchResult(importCtx, feed.ID, res, nil)
 }
 
 // pollScrapeFeed fetches one scrape feed's index page (conditional GET) and
 // ingests any newly discovered post links — the scrape counterpart to
-// pollFeedRSS.
+// pollFeedRSS. Discovery is the full paginated index walk
+// (fetchPaginatedPostLinks), uncapped: because post indexes are
+// newest-first, the walk both reaches every post (no pagination ceiling —
+// issue #1842) and doubles as category membership, so a scrape feed only
+// ever sees posts listed on the index page it was created from.
 func (s *FeedService) pollScrapeFeed(
 	ctx context.Context,
 	feed models.Feed,
@@ -611,7 +643,10 @@ func (s *FeedService) pollScrapeFeed(
 // maxItemsPerPoll — the scrape counterpart to processItems. Most discovered
 // links carry no publish date (only cards with a parseable <time> element
 // do, see candidateLink), so overflow ordering is just page (DOM) order
-// rather than newest-first.
+// rather than newest-first. Candidates past the cap are left unseen: the
+// uncapped index walk resurfaces them on the next poll, so marking them
+// seen would permanently drop posts (issue #1842's backfill in particular —
+// a deep site takes many polls to fully ingest).
 func (s *FeedService) ingestDiscoveredLinks(
 	ctx context.Context,
 	feed models.Feed,
@@ -644,7 +679,6 @@ func (s *FeedService) ingestDiscoveredLinks(
 			return ingested
 		}
 		if i >= maxItemsPerPoll {
-			s.markSeenError(ctx, feed.ID, guid, "skipped: over per-poll cap")
 			continue
 		}
 		if s.ingestDiscoveredLink(ctx, feed, byGUID[guid], guid) {
