@@ -31,6 +31,12 @@ type pdfLine struct {
 	// so paragraph grouping can force a break at the column boundary instead
 	// of continuing to compare gap/indent against a line from another column.
 	col int
+	// chars is the line's own character boxes, retained so its text can be
+	// re-joined with a different space-gap threshold once the document-wide
+	// modal character height is known — see rebuildHeadingLineText (issue
+	// #1698: tracked small-caps display headings letter-space wide enough
+	// to clear the body-text threshold).
+	chars []pdfChar
 }
 
 //nolint:mnd // midpoint of a bounding box
@@ -89,6 +95,12 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 const (
 	lineGroupYMidRatio = 0.5
 	lineSpaceGapRatio  = 0.25
+	// headingSpaceRatio is the space-gap threshold used when re-joining
+	// heading-sized lines: tracked display headings letter-space up to
+	// ~0.28 * their line height while their word gaps start at ~0.65, so
+	// only body text's tighter 0.25 threshold mis-splits their words
+	// (issue #1698).
+	headingSpaceRatio = 0.45
 )
 
 // median returns the middle value of a sorted-in-place copy of vs, or 0 for
@@ -318,25 +330,60 @@ func firstRune(s string) rune {
 
 // needsRunBoundarySpace reports whether a space belongs between two
 // horizontally-adjacent characters already known to sit on the same line:
-// either the physical gap between their boxes exceeds lineSpaceGapRatio *
-// medH (the original geometric check), or they come from different
-// font/style runs (prev.font != c.font, both known) and both sides of the
-// boundary are alphabetic. The latter catches #1653: PDFium reports no
-// whitespace glyph at a run boundary that falls mid-word-gap (e.g. "of" in
-// one run, "Growth" in an adjacent italic run), so the geometric gap alone
-// can be far too small to notice — but a run boundary between two letters
-// reliably is a word boundary in body text. Font information is unset
-// (empty string on both sides) unless CollectFontInformation was requested,
-// so this never fires without it — buildLine falls back to the pre-#1653
-// gap-only behavior.
-func needsRunBoundarySpace(prev, c pdfChar, medH float64) bool {
-	if c.left-prev.right > lineSpaceGapRatio*medH {
+// either the physical gap between their boxes exceeds spaceRatio * medH
+// (body text uses lineSpaceGapRatio; heading-sized lines are re-joined
+// with headingSpaceRatio — see rebuildHeadingLineText), or they come from
+// different font/style runs (prev.font != c.font, both known) and both
+// sides of the boundary are alphabetic. The latter catches #1653: PDFium
+// reports no whitespace glyph at a run boundary that falls mid-word-gap
+// (e.g. "of" in one run, "Growth" in an adjacent italic run), so the
+// geometric gap alone can be far too small to notice — but a run boundary
+// between two letters reliably is a word boundary in body text. Font
+// information is unset (empty string on both sides) unless
+// CollectFontInformation was requested, so this never fires without it —
+// buildLine falls back to the pre-#1653 gap-only behavior.
+func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
+	gap := c.left - prev.right
+	if gap > spaceRatio*medH {
+		return true
+	}
+	// A heading line re-joined with the raised ratio still spaces the
+	// sub-band between the two ratios — every real word space observed in
+	// tracked display headings sits there except one shape: a full-height
+	// capital immediately followed by a much shorter lowercase letter is
+	// the line's small-caps initial continuing its own word ("I" +
+	// "ntroduction"), not a word boundary (#1698).
+	if gap > lineSpaceGapRatio*medH && !isSmallCapsInitial(prev, c) {
 		return true
 	}
 	if prev.font == "" || c.font == "" || prev.font == c.font {
 		return false
 	}
 	return unicode.IsLetter(lastRune(prev.text)) && unicode.IsLetter(firstRune(c.text))
+}
+
+// smallCapsInitialRatio is how much taller than the following character a
+// heading capital must be for the pair to read as a small-caps word's
+// full-height initial rather than a word boundary: title-case lines space
+// between same-height capitals and lowercase letters, while a tracked
+// small-caps word's initial is far taller than its x-height continuation.
+const smallCapsInitialRatio = 0.3
+
+// isSmallCapsInitial reports whether prev is a single uppercase character
+// rendered significantly taller than the lowercase character c — the
+// signature of a small-caps word's initial, never of a word boundary.
+func isSmallCapsInitial(prev, c pdfChar) bool {
+	if prev.text != strings.ToUpper(prev.text) || len([]rune(prev.text)) != 1 {
+		return false
+	}
+	if !unicode.IsUpper(firstRune(prev.text)) || !unicode.IsLower(firstRune(c.text)) {
+		return false
+	}
+	prevH, curH := prev.top-prev.bottom, c.top-c.bottom
+	if prevH <= 0 || curH <= 0 {
+		return false
+	}
+	return prevH-curH > smallCapsInitialRatio*prevH
 }
 
 // buildLine sorts a line's characters left-to-right, joins their text
@@ -357,16 +404,10 @@ func buildLine(chars []pdfChar) pdfLine {
 		medH = 1
 	}
 
-	var b strings.Builder
 	left, right := chars[0].left, chars[0].right
 	top, bottom := chars[0].top, chars[0].bottom
 
-	for i, c := range chars {
-		if i > 0 && needsRunBoundarySpace(chars[i-1], c, medH) {
-			b.WriteByte(' ')
-		}
-		b.WriteString(c.text)
-
+	for _, c := range chars {
 		left = min(left, c.left)
 		right = max(right, c.right)
 		top = max(top, c.top)
@@ -375,11 +416,62 @@ func buildLine(chars []pdfChar) pdfLine {
 
 	// colRightEdge/colModalXStart/col are set later by assignColumns.
 	return pdfLine{ //nolint:exhaustruct // set later by assignColumns
-		text:             b.String(),
+		text:             joinChars(chars, lineSpaceGapRatio),
 		left:             left,
 		top:              top,
 		right:            right,
 		bottom:           bottom,
 		medianCharHeight: medH,
+		chars:            chars,
+	}
+}
+
+// joinChars builds a line's text from its character boxes, inserting a
+// space between consecutive characters whose gap exceeds spaceRatio * the
+// line's median character height, or whose font runs differ across an
+// alphabetic boundary (the #1653 run check, always applied).
+func joinChars(chars []pdfChar, spaceRatio float64) string {
+	medH := medianCharHeight(chars)
+	if medH <= 0 {
+		medH = 1
+	}
+
+	var b strings.Builder
+	for i, c := range chars {
+		if i > 0 && needsRunBoundarySpace(chars[i-1], c, medH, spaceRatio) {
+			b.WriteByte(' ')
+		}
+		b.WriteString(c.text)
+	}
+	return b.String()
+}
+
+// rebuildHeadingLineText re-joins the text of every heading-sized line
+// (character height at least headingH1Ratio * the document's modal body-text
+// height) with headingSpaceRatio as the space-gap threshold, in place.
+//
+// Tracked display headings letter-space their glyphs: in the reference book,
+// a small-caps heading's inter-letter gaps reach 0.28 * the line's own
+// character height — above the body-text threshold of 0.25 — while its word
+// gaps start at 0.65, so the body-text ratio splits words like
+// "I ntroduction" and "N otes" (#1698). Body-sized lines keep the body-text
+// threshold: there, word gaps dip as low as 0.12 * line height, inside the
+// letter-gap range, so only the cleanly-separable heading band gets the
+// higher ratio.
+func rebuildHeadingLineText(pages []pageResult, docModalHeight float64) {
+	if docModalHeight <= 0 {
+		return
+	}
+	threshold := headingH1Ratio * docModalHeight
+	for _, p := range pages {
+		for _, item := range p.items {
+			if item.line == nil || len(item.line.chars) < 2 {
+				continue
+			}
+			if item.line.medianCharHeight < threshold {
+				continue
+			}
+			item.line.text = joinChars(item.line.chars, headingSpaceRatio)
+		}
 	}
 }
