@@ -553,8 +553,11 @@ func (s *FeedService) CreateScrape(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNoPostsFound, err)
 	}
-	links, err := discoverPostLinksWithLocaleBase(res.FinalURL, res.FinalURL, res.Body)
-	if err != nil {
+	// Page-1 discovery doubles as URL validation: at least one post-like
+	// link must exist for the URL to be a blog index at all.
+	if _, err := discoverPostLinksWithLocaleBase(
+		res.FinalURL, res.FinalURL, res.Body,
+	); err != nil {
 		return nil, err
 	}
 
@@ -574,12 +577,11 @@ func (s *FeedService) CreateScrape(
 	importFeed := *feed
 	go func() {
 		importCtx := context.WithoutCancel(ctx)
-		walked, walkErr := s.fetchPaginatedPostLinks(
-			importCtx, res.FinalURL, res.Body,
-		)
-		if walkErr != nil {
-			walked = links // first page already validated; import that much
-		}
+		// The walk re-runs page-1 discovery on the same body validation
+		// just succeeded on, so a walk error here is not reachable; a walk
+		// that merely degrades (a later page failing) returns a partial
+		// result, which is imported as-is.
+		walked, _ := s.fetchPaginatedPostLinks(importCtx, res.FinalURL, res.Body)
 		s.ingestDiscoveredLinks(importCtx, importFeed, walked)
 		s.recordFetchResult(importCtx, importFeed.ID, res, nil)
 	}()
