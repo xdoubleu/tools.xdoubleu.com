@@ -27,7 +27,14 @@ describe('ArticleReaderDialog', () => {
     expect(cls).toContain('lg:rounded-none')
   })
 
-  it('caps the prose column at a readable width inside the wide dialog', () => {
+  it('caps the prose column at a readable width only when not bleeding (books reader)', () => {
+    render(<ArticleReaderDialog title="T" open onOpenChange={jest.fn()} html="<p>Body</p>" />)
+    const proseEl = [...document.querySelectorAll('.prose')].find((el) => el.textContent == 'Body')
+    expect(proseEl?.className).toContain('lg:max-w-prose')
+    expect(proseEl?.className).toContain('lg:mx-auto')
+  })
+
+  it('spans the prose edge to edge inside the full-bleed desktop dialog', () => {
     render(
       <ArticleReaderDialog
         title="T"
@@ -38,8 +45,11 @@ describe('ArticleReaderDialog', () => {
       />
     )
     const proseEl = [...document.querySelectorAll('.prose')].find((el) => el.textContent == 'Body')
-    expect(proseEl?.className).toContain('lg:max-w-prose')
-    expect(proseEl?.className).toContain('lg:mx-auto')
+    // The underlying max-w-none (typography's 65ch default cleared) stays; the
+    // centered lg:max-w-prose / lg:mx-auto cap must not be applied.
+    expect(proseEl?.className).toContain('max-w-none')
+    expect(proseEl?.className).not.toContain('lg:max-w-prose')
+    expect(proseEl?.className).not.toContain('lg:mx-auto')
   })
 
   it('renders the sanitized article body', () => {
