@@ -676,15 +676,17 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
-// UpdateKoboLastSyncedRevision records the RevisionId just sent to the
-// device for bookID, so the next sync can tell whether it changed.
-func (s *BookService) UpdateKoboLastSyncedRevision(
+// UpdateKoboLastSyncedConverterVersion records the KEPUB converter version
+// just sent to the device for bookID, so the next sync can tell whether the
+// file was regenerated since.
+func (s *BookService) UpdateKoboLastSyncedConverterVersion(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-	revision string,
+	converterVersion int16,
 ) error {
-	return s.books.UpdateKoboLastSyncedRevision(ctx, userID, bookID, revision)
+	return s.books.UpdateKoboLastSyncedConverterVersion(
+		ctx, userID, bookID, converterVersion)
 }
 
 // ListKoboRemovals returns books tombstoned for active removal from the

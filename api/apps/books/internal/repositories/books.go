@@ -657,7 +657,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	query := `
 		SELECT b.id, b.title, b.authors, bf.format, bf.storage_key, bf.size_bytes,
 		       COALESCE(ub.kobo_sync_enabled_at, ub.added_at), bf.converter_version,
-		       COALESCE(ub.kobo_last_synced_revision, '')
+		       ub.kobo_last_synced_converter_version
 		FROM books.user_books ub
 		JOIN books.books b ON b.id = ub.book_id
 		JOIN books.book_files bf
@@ -683,7 +683,7 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 		var b models.KoboSyncBook
 		if scanErr := rows.Scan(
 			&b.BookID, &b.Title, &b.Authors, &b.Format, &b.StorageKey, &b.Size,
-			&b.KoboSyncEnabledAt, &b.ConverterVersion, &b.LastSyncedRevision,
+			&b.KoboSyncEnabledAt, &b.ConverterVersion, &b.LastSyncedConverterVersion,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
@@ -695,20 +695,21 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
-// UpdateKoboLastSyncedRevision records the RevisionId just sent to the
-// device for bookID, so the next sync can tell whether it changed.
-func (repo *BooksRepository) UpdateKoboLastSyncedRevision(
+// UpdateKoboLastSyncedConverterVersion records the KEPUB converter version
+// just sent to the device for bookID, so the next sync can tell whether the
+// file was regenerated since.
+func (repo *BooksRepository) UpdateKoboLastSyncedConverterVersion(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
-	revision string,
+	converterVersion int16,
 ) error {
 	query := `
 		UPDATE books.user_books
-		SET kobo_last_synced_revision = $3
+		SET kobo_last_synced_converter_version = $3
 		WHERE user_id = $1 AND book_id = $2
 	`
-	_, err := repo.db.Exec(ctx, query, userID, bookID, revision)
+	_, err := repo.db.Exec(ctx, query, userID, bookID, converterVersion)
 	return postgres.PgxErrorToHTTPError(err)
 }
 
