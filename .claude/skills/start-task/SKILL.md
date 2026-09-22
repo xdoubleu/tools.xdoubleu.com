@@ -55,6 +55,29 @@ this repo lives in `.claude/github-triage.config.json`), not a bare `gh
 issue create`, so Priority/Status/labels get set — do this even for work
 that wasn't explicitly requested as an "issue", e.g. tooling/doc changes.
 
+## 3. Reproduce the production state before planning a fix
+
+For a bug fix — before writing any code, and as input to the `## Plan`
+section — reproduce the state the bug actually lives in locally:
+
+- **Pull the affected production rows** through the app's read MCP tools
+  (`feeds_list_items`, `get_sentry_issues`, `prom_query`, …). A bug's
+  user-visible symptom often *is* stale/corrupt data that no discovery-side
+  code fix removes, so the fix needs both the preventive change and a
+  cleanup, and only the production rows tell you that (issue #1748: four
+  heuristic fixes shipped while six stale junk rows kept the symptom alive).
+- **When the bug's medium is external input you can't control** — a third
+  party's HTML, an upstream API payload — capture the **real bytes** and
+  commit them as test fixtures (gzipped under `testdata/`), fetched
+  **through the app's own HTTP client** (same User-Agent/Accept headers):
+  sites serve bots and browsers different responses, so a plain `curl`
+  fixture isn't what production parses. A hand-written synthetic fixture is
+  not a reproduction — it encodes assumptions, which is precisely what a
+  failing fix is made of.
+- Record what the reproduction showed in the issue's `## Plan` (or the
+  "Why attempt #N failed" analysis) — the plan should name the stale-data
+  cleanup and the real-bytes fixture explicitly, not just the code change.
+
 **An issue with an empty body is never self-explanatory.** If the tracking issue
 exists but has no body — only a title — stop and ask the user what they actually
 want before planning, exploring further, or editing anything. A title states a

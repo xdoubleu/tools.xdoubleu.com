@@ -93,7 +93,7 @@ auto-merge:
    rules). Fix every violation.
 3. Regenerate the dependency diagrams for whichever side changed: `cd api
    && make arch/diagram` and/or `cd web && npm run arch:diagram`. These
-   feed the Slack summary in step 6a below.
+   feed the Slack summary in step 7a below.
 4. Run the diff-scoped mutation-testing targets for whichever side
    changed: `cd api && make test/mutation/diff` and/or `cd web && npm run
    test:mutation:diff`. Kill every surviving mutant the run reports — a
@@ -149,7 +149,27 @@ mechanics of this, this is just a reminder it applies here too (this
 happened to get missed once: issue #727 / PR #728 used a bare `#123`, which
 doesn't auto-close on merge).
 
-## 5. "Needs you": a deferred manual step skips straight-to-Done
+## 5. Bug-fix acceptance: close on observation, never on a green suite
+
+When the tracking issue is a bug report, a passing suite does not close it —
+the symptom usually lives in production data or third-party responses that no
+test or CI check can see (issue #1748: two attempts were closed on
+self-verification while the user still saw the bug, because the visible
+problem was stale rows no code fix removed). Before giving `ship-pr` a
+closing keyword:
+
+- **Verify the symptom is actually gone in production**, via the relevant
+  MCP read tool (`feeds_list_items`, `get_sentry_issues`, `prom_query`, …)
+  or the app's own UI — *after* the fix has deployed. If deploy timing means
+  the fix isn't live yet, say that explicitly and leave the check as a named
+  post-deploy step in the PR body rather than declaring the issue fixed.
+- **If verification is genuinely impossible** (third-party behavior, physical
+  device — see `api/AGENTS.md`'s "unverifiable without hardware" rule), state
+  that explicitly in the PR/issue and treat the user's confirmation as the
+  acceptance check, not a formality.
+- Otherwise give `ship-pr` the closing keyword as normal.
+
+## 6. "Needs you": a deferred manual step skips straight-to-Done
 
 Before handing `ship-pr` a closing keyword in step 4, check whether the
 tracking issue's body has a `## Follow-up: your turn` heading — the
@@ -197,7 +217,7 @@ If that heading is present:
 If the heading is absent, none of this applies: the issue closes to "Done"
 the normal way via the PR's closing keyword, unchanged from before.
 
-## 6. Resolve linked Sentry issues once merged
+## 7. Resolve linked Sentry issues once merged
 
 Once `ship-pr` reports the PR merged, check the tracking issue's body for
 Sentry permalinks (`https://xdoubleu.sentry.io/issues/<id>/`) — issues filed
@@ -209,7 +229,7 @@ this step is easy to forget and was missed for issues #770, #775, and #1786.
 `monitoring-sweep`'s step 2 is a standing backstop that catches a miss like
 this after the fact (issue #1786) — it doesn't replace doing this step here.
 
-## 6a. Feature epic completion: the Slack summary
+## 7a. Feature epic completion: the Slack summary
 
 Only applies when the tracking issue just merged is `feature`-labeled (see
 step 4's Branch A) **and** has a parent issue. Once `ship-pr` reports the
@@ -235,7 +255,7 @@ never re-runs a grilling interview. The summary is sent exactly once per
 epic, by `finish-task`, when the last sibling sub-issue closes — never
 per-sub-issue-PR, and never re-sent by any other skill.
 
-## 7. Run the session retro
+## 8. Run the session retro
 
 Once CI is green, always run the `session-retro` skill (from the
 `session-retro` plugin). It reviews this session's own tool-call/commit/CI
