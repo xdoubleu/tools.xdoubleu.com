@@ -14,6 +14,7 @@ import (
 	"golang.org/x/net/html"
 
 	"tools.xdoubleu.com/apps/feeds/internal/models"
+	"tools.xdoubleu.com/apps/feeds/pkg/webfetch"
 )
 
 // ErrNoPostsFound is returned when discoverPostLinks finds no plausible post
@@ -555,9 +556,10 @@ func (s *FeedService) CreateScrape(
 	}
 	// Page-1 discovery doubles as URL validation: at least one post-like
 	// link must exist for the URL to be a blog index at all.
-	if _, discErr := discoverPostLinksWithLocaleBase(
+	_, discErr := discoverPostLinksWithLocaleBase(
 		res.FinalURL, res.FinalURL, res.Body,
-	); discErr != nil {
+	)
+	if discErr != nil {
 		return nil, discErr
 	}
 
@@ -575,17 +577,26 @@ func (s *FeedService) CreateScrape(
 	// ponytail: detached goroutine, not a job-queue task — a process restart
 	// mid-import can drop it; the hourly poll-feeds job backfills.
 	importFeed := *feed
-	go func() {
-		importCtx := context.WithoutCancel(ctx)
-		// The walk re-runs page-1 discovery on the same body validation
-		// just succeeded on, so a walk error here is not reachable; a walk
-		// that merely degrades (a later page failing) returns a partial
-		// result, which is imported as-is.
-		walked, _ := s.fetchPaginatedPostLinks(importCtx, res.FinalURL, res.Body)
-		s.ingestDiscoveredLinks(importCtx, importFeed, walked)
-		s.recordFetchResult(importCtx, importFeed.ID, res, nil)
-	}()
+	go s.importScrapeFeed(ctx, importFeed, res)
+
 	return feed, nil
+}
+
+// importScrapeFeed is CreateScrape's detached first-batch import: it walks
+// the index's full pagination (the walk re-runs page-1 discovery on the same
+// body validation already succeeded on, so a walk error here is not
+// reachable; a walk that merely degrades — a later page failing — returns a
+// partial result, which is imported as-is), ingests the discovered links,
+// and records the fetch result that arms the feed's conditional GET.
+func (s *FeedService) importScrapeFeed(
+	ctx context.Context,
+	feed models.Feed,
+	res *webfetch.Result,
+) {
+	importCtx := context.WithoutCancel(ctx)
+	walked, _ := s.fetchPaginatedPostLinks(importCtx, res.FinalURL, res.Body)
+	s.ingestDiscoveredLinks(importCtx, feed, walked)
+	s.recordFetchResult(importCtx, feed.ID, res, nil)
 }
 
 // pollScrapeFeed fetches one scrape feed's index page (conditional GET) and
