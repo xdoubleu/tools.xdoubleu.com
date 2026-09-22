@@ -33,8 +33,8 @@ type mcpPathIDArgs struct {
 }
 
 type mcpItemArg struct {
-	Type        string `json:"type,omitempty"      jsonschema:"item type, e.g. read/do"`
-	Description string `json:"description"         jsonschema:"item description"`
+	Type        string `json:"type,omitempty"      jsonschema:"read/do/checkpoint..."`
+	Description string `json:"description"         jsonschema:"what to do"`
 	Completed   bool   `json:"completed,omitempty" jsonschema:"already completed"`
 }
 
@@ -44,13 +44,13 @@ type mcpModuleArg struct {
 }
 
 type mcpResourceArg struct {
-	Text string `json:"text" jsonschema:"freeform resource text, e.g. a URL"`
+	Text string `json:"text" jsonschema:"freeform resource, e.g. URL"`
 }
 
 type mcpCreatePathArgs struct {
 	Title     string           `json:"title"               jsonschema:"path title"`
-	Goal      string           `json:"goal,omitempty"      jsonschema:"path goal"`
-	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring routine"`
+	Goal      string           `json:"goal,omitempty"      jsonschema:"outcome sought"`
+	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring cadence"`
 	Modules   []mcpModuleArg   `json:"modules,omitempty"   jsonschema:"ordered modules"`
 	Resources []mcpResourceArg `json:"resources,omitempty" jsonschema:"freeform resources"`
 }
@@ -58,8 +58,8 @@ type mcpCreatePathArgs struct {
 type mcpUpdatePathArgs struct {
 	ID        string           `json:"id"                  jsonschema:"path id"`
 	Title     string           `json:"title"               jsonschema:"path title"`
-	Goal      string           `json:"goal,omitempty"      jsonschema:"path goal"`
-	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring routine"`
+	Goal      string           `json:"goal,omitempty"      jsonschema:"outcome sought"`
+	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring cadence"`
 	Modules   []mcpModuleArg   `json:"modules,omitempty"   jsonschema:"replaces prior"`
 	Resources []mcpResourceArg `json:"resources,omitempty" jsonschema:"replaces prior"`
 }
@@ -87,18 +87,48 @@ func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpGetProgress)
 
 	addWriteTool(srv, "learningpaths_create_path",
-		"Creates a new learning path with its modules, items, and resources. "+
-			"Mutating — see this app's ADR for why.",
-		h.mcpCreatePath)
+		mcpCreatePathDescription, h.mcpCreatePath)
 	addWriteTool(srv, "learningpaths_update_path",
-		"Wholesale-replaces a learning path's title/goal/routine/modules/"+
-			"resources (the full tree, not a partial patch). Mutating — see "+
-			"this app's ADR for why.",
-		h.mcpUpdatePath)
+		mcpUpdatePathDescription, h.mcpUpdatePath)
 	addWriteTool(srv, "learningpaths_record_progress",
-		"Marks a single item complete or incomplete without resending the "+
-			"whole tree. Mutating — see this app's ADR for why.",
-		h.mcpRecordProgress)
+		mcpRecordProgressDescription, h.mcpRecordProgress)
+
+	registerAuthoringGuideResource(srv)
+}
+
+// registerAuthoringGuideResource exposes the full learning-paths authoring
+// guidebook as the learningpaths://authoring-guide MCP resource, so clients
+// that read resources (Claude Code, OpenCode) can pull the whole data model,
+// workflow, and curation rubric in one fetch. The tool descriptions registered
+// above carry the essentials for clients that only look at tool metadata
+// (e.g. a ChatGPT-style connector). The resource is read-only guidance text —
+// no user data and no mutation — so it applies no app-access gate and uses the
+// same OAuth scoping every other handler already sits behind.
+func registerAuthoringGuideResource(srv *mcp.Server) {
+	//nolint:exhaustruct // name/URI/MIMEType/i18n are the fields this resource needs
+	srv.AddResource(&mcp.Resource{
+		Name:     "Learning paths authoring guide",
+		URI:      authoringGuideURI,
+		MIMEType: authoringGuideMIME,
+		Description: "How to author, refine, and track a learning path on " +
+			"tools.xdoubleu.com: the data model, the learningpaths_* MCP tools, " +
+			"the create workflow, and the curation rubric.",
+	}, authoringGuideHandler)
+}
+
+// authoringGuideHandler is the ResourceHandler that serves the
+// authoring-guide resource. It is a package-level function (not a closure) so
+// the test can call it directly without going through an MCP transport.
+func authoringGuideHandler(_ context.Context, _ *mcp.ReadResourceRequest,
+) (*mcp.ReadResourceResult, error) {
+	//nolint:exhaustruct // a read of static text sets only URI/MIMEType/Text
+	return &mcp.ReadResourceResult{Contents: []*mcp.ResourceContents{
+		{
+			URI:      authoringGuideURI,
+			MIMEType: authoringGuideMIME,
+			Text:     learningPathsAuthoringGuide,
+		},
+	}}, nil
 }
 
 // addWriteTool registers one mutating tool. It mirrors mcptools.AddReadTool

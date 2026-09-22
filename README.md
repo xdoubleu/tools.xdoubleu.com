@@ -348,11 +348,6 @@ This repo supports two coding-agent harnesses side by side:
   `npx skills add xdoubleu/skills …` / `npx skills add mattpocock/skills …`
   (tracked in `skills-lock.json`; refresh with `npx skills update`).
 
-Product skills — authoring the running product through its `/apps/mcp`
-tools, aimed at end-user/ChatGPT-style agents — live in the repo-root
-`skills/` directory (currently `skills/learning-paths/`), separate from
-the dev-workflow `.claude/skills/`. See `skills/README.md`.
-
 Both read [`AGENTS.md`](AGENTS.md) as the shared repository contract, and
 both can connect to the read-mostly `/apps/mcp` MCP server described below
 over the same MCP OAuth 2.1 flow — Claude Code via `claude mcp add`, OpenCode
