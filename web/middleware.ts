@@ -12,9 +12,24 @@ export function middleware() {
   const connectSrc = ["'self'", '*.sentry.io', 'https://*.r2.cloudflarestorage.com', GATEWAY_URL]
   if (process.env.API_URL) connectSrc.push(process.env.API_URL)
 
+  const scriptSrc = ["'self'", "'unsafe-inline'"]
+
+  // PostHog Cloud: the SDK captures events/flags/replays to POSTHOG_HOST and
+  // loads its config.js from that host's -assets sibling. Empty in local dev
+  // (no key configured), mirroring getPostHogHost().
+  const postHogHost = process.env.POSTHOG_HOST
+  if (postHogHost) {
+    const postHogAssetsHost = postHogHost.replace(
+      /^https:\/\/([a-z-]+)\.i\./,
+      'https://$1-assets.i.'
+    )
+    connectSrc.push(postHogHost, postHogAssetsHost)
+    scriptSrc.push(postHogAssetsHost)
+  }
+
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    `script-src ${scriptSrc.join(' ')}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
