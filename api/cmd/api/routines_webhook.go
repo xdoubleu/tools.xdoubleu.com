@@ -22,6 +22,13 @@ const routinesWebhookPath = "/webhooks/grafana-alert"
 // receives the alert's full context (rule name, labels, annotations) and
 // decides what to do, rather than provisioning a separate routine per
 // alert rule.
+//
+// A misfiring routine name is not why these fires fail: get_automated_actions
+// history showed every triggerSource "api" fire 404ing identically,
+// including one for the known-good, manually-created ready-issues-executor
+// routine. The failure lives in the outbound endpoint contract in
+// internal/routines (see its package doc — the real contract is unconfirmed
+// and still unfixed, tracked by #1808), not in this name.
 const defaultImmediateRoutineName = "immediate-response"
 
 // grafanaWebhookAlert is one entry of a Grafana alerting webhook's `alerts`
