@@ -31,9 +31,12 @@ git worktree add .claude/worktrees/<descriptive-branch-name> \
   -b <descriptive-branch-name> origin/<default>
 ```
 
-then switch into it (`EnterWorktree({ path: "<new-worktree-path>" })` if that
-tool is available, or note the path for the session to use directly
-otherwise).
+then switch into it: `EnterWorktree({ path: "<new-worktree-path>" })` in
+Claude Code, or `tools.opencode.session_move({ directory: <path> })` in
+OpenCode — creating the worktree alone is not enough there, because the
+repo-guard plugin scopes Edit/Write to the session's own working directory,
+so first edits from a session still sitting in the main checkout are denied
+until the session itself has been moved into the worktree.
 
 **If `EnterWorktree` errors that it "cannot create a worktree from a
 subagent with a cwd override"**, the session's working directory is already
