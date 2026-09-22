@@ -86,7 +86,14 @@ this skill's steps ever ends on a question with no one there to answer it.
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`, e.g.
      `web/AGENTS.md` or `api/AGENTS.md`) first.
    - Read the issue itself (`issue_read` / the issue URL) for the actual
-     scope — the board title is a short label, not the full spec.
+     scope — the board title is a short label, not the full spec. **Read the
+     issue's live state and comments**, not just a cached first look: check
+     `state`/`stateReason` and all comments, and treat `REOPENED`-with-comment
+     as *not done*. A merged PR that once closed the issue is not proof it
+     stays fixed — the issue may have been reopened (e.g. #1867 was
+     merged-then-reopened). If the issue already has prior attempts, follow
+     `start-task` step 1 and record a "Why attempt #N failed" analysis on it,
+     then take a materially different approach.
    - Follow the repo's real workflow exactly: `start-task` (fresh worktree
      off main, refines/confirms the tracking issue — this issue already
      exists, so `start-task` should adopt it rather than filing a new one)

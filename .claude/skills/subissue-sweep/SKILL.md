@@ -61,7 +61,12 @@ it.
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`, e.g.
      `web/AGENTS.md` or `api/AGENTS.md`) first.
    - Read the sub-issue itself (its URL or number) for the actual scope —
-     a title is a label, not the full spec.
+     a title is a label, not the full spec. **Read its live state and
+     comments, not a cached first look**: check `state`/`stateReason` and all
+     comments, and treat `REOPENED`-with-comment as *not done* — a merged PR
+     that once closed it is not proof it stays fixed (e.g. #1867 was
+     merged-then-reopened). If prior attempts exist, follow `start-task` step
+     1 and record a "Why attempt #N failed" analysis before continuing.
    - Run `start-task` to adopt the existing sub-issue into a fresh worktree
      (it already exists, so `start-task` should adopt it rather than filing
      a new one).
@@ -72,7 +77,10 @@ it.
      — the bug turns out to already be fixed by prior work — report that
      instead of inventing new changes or scope-creeping into an adjacent
      improvement, and close the sub-issue with a comment explaining why,
-     rather than opening a PR.
+     rather than opening a PR. Only conclude "already fixed" after ruling out
+     a reopen: confirm the sub-issue's live `state`
+     is not `REOPENED` and that no post-merge comment re-opened the ask — a
+     reopened issue is "still broken", not "already fixed".
    - Run `finish-task` (lint, ≥80% changed-line coverage, build if `web/`
      changed, open a non-draft PR with `Fixes #<n>`, decide on auto-merge,
      watch CI to green).
