@@ -44,7 +44,7 @@ type PDFConverter func(
 // change to either would produce different output for existing content —
 // EnsureKEPUB then treats any book_files row stamped with an older version
 // as stale and regenerates it on next access (issue #594).
-const currentKEPUBConverterVersion int16 = 10
+const currentKEPUBConverterVersion int16 = 11
 
 // IsKEPUBStale reports whether a KEPUB row stamped with version was produced
 // by an older converter than the current pipeline. Callers outside this
