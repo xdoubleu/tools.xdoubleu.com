@@ -8,6 +8,7 @@ import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
 import { useFeedItem, useUpdateItem } from '@/hooks/useFeeds'
+import { ConnectError, Code } from '@connectrpc/connect'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 // How close to the bottom (px) counts as "reached the end" (issue #716).
@@ -39,8 +40,11 @@ export default function FeedArticleReaderDialog({
   onMarkRead,
   onSettled
 }: FeedArticleReaderDialogProps) {
-  const { data: itemData, isLoading } = useFeedItem(open && item.hasContent ? item.id : null)
+  const { data: itemData, isLoading, error } = useFeedItem(open && item.hasContent ? item.id : null)
   const html = itemData?.item?.contentHtml ?? ''
+  // A cached list can reference an item deleted (or whose feed is gone)
+  // between listing and opening (issue #1819) — the fetch then 404s.
+  const notFound = error instanceof ConnectError && error.code === Code.NotFound
   const [zoomedSrc, setZoomedSrc] = useState<string | null>(null)
   const markReadRef = useRef<FeedItemMarkReadHandle>(null)
   const updateItem = useUpdateItem()
@@ -125,7 +129,16 @@ export default function FeedArticleReaderDialog({
           </p>
         )}
 
-        {item.hasContent && isLoading && <p className="text-muted p-4">Loading…</p>}
+        {item.hasContent && notFound && (
+          <p className="text-danger p-4">
+            This article is no longer available — it may have been deleted.
+          </p>
+        )}
+
+        {item.hasContent && isLoading && !error && <p className="text-muted p-4">Loading…</p>}
+        {item.hasContent && error && !notFound && (
+          <p className="text-danger p-4">Failed to load the article.</p>
+        )}
       </ArticleReaderDialog>
 
       <Dialog open={zoomedSrc !== null} onOpenChange={() => setZoomedSrc(null)}>

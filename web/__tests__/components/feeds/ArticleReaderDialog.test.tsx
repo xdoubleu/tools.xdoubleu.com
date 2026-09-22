@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { forwardRef, useImperativeHandle } from 'react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
 import { ItemSchema } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const markRead = jest.fn()
@@ -20,11 +21,13 @@ jest.mock('@/components/feeds/FeedItemMarkReadButton', () => ({
 // hasContent (issue #1027). readerItem() registers the body this stub serves.
 let mockBody = ''
 let mockLoading = false
+let mockError: unknown = undefined
 jest.mock('@/hooks/useFeeds', () => ({
   useUpdateItem: () => updateItem,
   useFeedItem: (id: string | null) => ({
     data: id && mockBody ? { item: { contentHtml: mockBody } } : undefined,
-    isLoading: mockLoading
+    isLoading: mockLoading,
+    error: mockError
   })
 }))
 
@@ -45,6 +48,7 @@ describe('ArticleReaderDialog', () => {
     updateItem.mockResolvedValue({})
     mockBody = ''
     mockLoading = false
+    mockError = undefined
   })
 
   it('auto-marks the item read once scrolled to the end of the content', () => {
@@ -164,6 +168,41 @@ describe('ArticleReaderDialog', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
     // hasContent is true, so the "nothing stored" fallback must stay hidden.
     expect(screen.queryByText(/No in-app content stored/)).not.toBeInTheDocument()
+  })
+
+  it('shows a not-found message when the body fetch 404s (stale cached item)', () => {
+    const item = readerItem({ id: 'item-1', title: 'Gone', contentHtml: '<p>Body</p>' })
+    // SWR surfaces the rejected fetch's ConnectError (issue #1819).
+    mockError = new ConnectError('[not_found] resource not found', Code.NotFound)
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText(/no longer available/i)).toBeInTheDocument()
+    // The body has not arrived, so the loading state must be gone.
+    expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('shows a generic error message when the body fetch fails for another reason', () => {
+    const item = readerItem({ id: 'item-1', title: 'Broken', contentHtml: '<p>Body</p>' })
+    mockError = new ConnectError('boom', Code.Internal)
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+
+    expect(screen.getByText(/Failed to load the article/i)).toBeInTheDocument()
   })
 
   it('fetches nothing while the dialog is closed', () => {
