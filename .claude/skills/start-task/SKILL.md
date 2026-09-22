@@ -39,6 +39,13 @@ covers freshness as of session start, not a long session that keeps
 exploring for hours — still run `task-worktree`'s own fetch, don't assume
 the hook already covered it.
 
+**OpenCode only:** the edit guard scopes to one fixed path per session, and
+the session must live inside it — after creating a worktree, re-point the
+session with `tools.opencode.session_move` before the first edit (creating
+the worktree alone leaves edits denied). If a second worktree is needed
+later in the same session, `session_move` may refuse to re-point again; apply
+changes there via git (`git apply`) from the current session instead.
+
 **If the session's own worktree is already checked out to a stale/foreign
 branch** — e.g. a prior task's branch, left over from an earlier session in
 the same lineage — running `task-worktree`/`git worktree add` to create a
