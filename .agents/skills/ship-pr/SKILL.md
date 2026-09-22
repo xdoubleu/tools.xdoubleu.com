@@ -88,7 +88,7 @@ reporting statuses. Wrap the watch in a small retry so that specific message
 doesn't get mistaken for "no checks are required on this PR":
 
 ```bash
-until out=$(gh pr checks --watch --fail-fast 2>&1); do
+until out=$(gh pr checks --watch --fail-fast 2>&1 | tail -60); do
   code=$?
   if [ "$code" = 1 ] && grep -q "no checks reported" <<<"$out"; then
     sleep 10
@@ -107,6 +107,11 @@ until out=$(gh pr checks --watch --fail-fast 2>&1); do
 done
 echo "$out"
 ```
+
+`--watch` re-prints the full check table on every 10s refresh; piping
+through `tail -60` keeps only the final statuses (and any `--fail-fast`
+failure listing, which lands at the end) instead of feeding the whole
+per-refresh history back into the session.
 
 `--fail-fast` returns on the first failure instead of sitting through the
 remaining checks. Exit status is the result: `0` all passed, `8` still
