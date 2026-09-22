@@ -99,9 +99,29 @@ type discoveredLink struct {
 // listing/utility page. There is no per-site configuration — this is
 // best-effort and will miss or misfire on unusual page layouts.
 func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
+	return discoverPostLinksWithLocaleBase(pageURL, pageURL, body)
+}
+
+// discoverPostLinksWithLocaleBase is discoverPostLinks with a separate
+// locale-comparison base: localeBaseURL is the URL that isLocaleAlternate
+// judges language-switcher links against. A paginated index run fetches
+// page 2+ with that page's own URL as its href-resolution base, but a
+// site-wide language switcher rendered on a later page must still be judged
+// against the run's original first-page URL — the paginated page's extra
+// path segments (e.g. /page/2) would break isLocaleAlternate's
+// same-segment-count check and let the switcher's links through as bogus
+// posts (issue #1748).
+func discoverPostLinksWithLocaleBase(
+	pageURL, localeBaseURL string,
+	body []byte,
+) ([]discoveredLink, error) {
 	base, err := url.Parse(pageURL)
 	if err != nil {
 		return nil, fmt.Errorf("%w: bad page url", ErrNoPostsFound)
+	}
+	localeBase, err := url.Parse(localeBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("%w: bad locale base url", ErrNoPostsFound)
 	}
 
 	doc, err := html.Parse(bytes.NewReader(body))
@@ -111,7 +131,7 @@ func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
 
 	out := []discoveredLink{}
 	seen := make(map[string]bool)
-	collectPostLinks(doc, base, seen, &out)
+	collectPostLinks(doc, base, localeBase, seen, &out)
 
 	if len(out) > maxDiscoveredLinks {
 		out = out[:maxDiscoveredLinks]
@@ -126,7 +146,7 @@ func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
 // DOM order, skipping site-chrome subtrees.
 func collectPostLinks(
 	n *html.Node,
-	base *url.URL,
+	base, localeBase *url.URL,
 	seen map[string]bool,
 	out *[]discoveredLink,
 ) {
@@ -134,13 +154,13 @@ func collectPostLinks(
 		return
 	}
 	if n.Type == html.ElementNode && n.Data == "a" {
-		if link, ok := candidateLink(n, base); ok && !seen[link.URL] {
+		if link, ok := candidateLink(n, base, localeBase); ok && !seen[link.URL] {
 			seen[link.URL] = true
 			*out = append(*out, link)
 		}
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		collectPostLinks(c, base, seen, out)
+		collectPostLinks(c, base, localeBase, seen, out)
 	}
 }
 
@@ -153,8 +173,11 @@ func collectPostLinks(
 // neither a nested <time> nor heading — no structural signal it's an
 // article card rather than a plain nav/filter link — must clear the higher
 // minBarePostLinkTextLen bar instead of minPostLinkTextLen.
-func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
-	resolved, ok := candidatePostURL(n, base)
+func candidateLink(
+	n *html.Node,
+	base, localeBase *url.URL,
+) (discoveredLink, bool) {
+	resolved, ok := candidatePostURL(n, base, localeBase)
 	if !ok {
 		//nolint:exhaustruct // rejection sentinel; caller only reads ok
 		return discoveredLink{}, false
@@ -196,9 +219,12 @@ func candidateLink(n *html.Node, base *url.URL) (discoveredLink, bool) {
 
 // candidatePostURL resolves an <a> node's href and checks it against the
 // scrape heuristic's URL-shape rules: http(s), same domain as base, not a
-// listing/utility path, and not a language-alternate link for the current
-// page (isLocaleAlternate).
-func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
+// listing/utility path, and not a language-alternate link for localeBase
+// (isLocaleAlternate).
+func candidatePostURL(
+	n *html.Node,
+	base, localeBase *url.URL,
+) (*url.URL, bool) {
 	href := strings.TrimSpace(nodeAttr(n, "href"))
 	if href == "" || strings.HasPrefix(href, "#") {
 		return nil, false
@@ -225,7 +251,7 @@ func candidatePostURL(n *html.Node, base *url.URL) (*url.URL, bool) {
 			return nil, false
 		}
 	}
-	if isLocaleAlternate(resolved, base) {
+	if isLocaleAlternate(resolved, localeBase) {
 		return nil, false
 	}
 
@@ -421,15 +447,20 @@ func discoverNextPageURL(pageURL string, body []byte) (string, bool) {
 // page, then follows any discoverable "next page" link (discoverNextPageURL)
 // up to maxScrapePages total pages, merging and deduping links across pages
 // (capped overall at maxDiscoveredLinks) — the paginated counterpart to a
-// single discoverPostLinks call. A later page that fails to fetch or yields
-// no post links simply ends pagination rather than failing the whole call,
-// since the first page already succeeded.
+// single discoverPostLinks call. Every page's locale-alternate check is
+// anchored to the first page's URL (see discoverPostLinksWithLocaleBase), so
+// a site-wide language switcher is filtered on later paginated pages too. A
+// later page that fails to fetch or yields no post links simply ends
+// pagination rather than failing the whole call, since the first page
+// already succeeded.
 func (s *FeedService) fetchPaginatedPostLinks(
 	ctx context.Context,
 	firstPageURL string,
 	firstPageBody []byte,
 ) ([]discoveredLink, error) {
-	links, err := discoverPostLinks(firstPageURL, firstPageBody)
+	links, err := discoverPostLinksWithLocaleBase(
+		firstPageURL, firstPageURL, firstPageBody,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -448,7 +479,9 @@ func (s *FeedService) fetchPaginatedPostLinks(
 			break
 		}
 
-		nextFinalURL, nextBody, pageLinks, ok := s.fetchScrapePage(ctx, nextURL)
+		nextFinalURL, nextBody, pageLinks, ok := s.fetchScrapePage(
+			ctx, nextURL, firstPageURL,
+		)
 		if !ok {
 			// A later page failing to fetch or yielding no post links just
 			// ends pagination — the first page already succeeded, so this
@@ -470,11 +503,13 @@ func (s *FeedService) fetchPaginatedPostLinks(
 }
 
 // fetchScrapePage fetches one index page and discovers its post links, for
-// use by fetchPaginatedPostLinks' pagination loop — ok is false on any fetch
-// or discovery failure, which the caller treats as the end of pagination.
+// use by fetchPaginatedPostLinks' pagination loop — localeBaseURL is the
+// pagination run's first-page URL anchoring isLocaleAlternate (see
+// discoverPostLinksWithLocaleBase). ok is false on any fetch or discovery
+// failure, which the caller treats as the end of pagination.
 func (s *FeedService) fetchScrapePage(
 	ctx context.Context,
-	pageURL string,
+	pageURL, localeBaseURL string,
 ) (string, []byte, []discoveredLink, bool) {
 	res, err := s.webFetch.Get(
 		ctx, pageURL, fetchOptions(0, "text/html,application/xhtml+xml"),
@@ -482,7 +517,7 @@ func (s *FeedService) fetchScrapePage(
 	if err != nil {
 		return "", nil, nil, false
 	}
-	links, err := discoverPostLinks(res.FinalURL, res.Body)
+	links, err := discoverPostLinksWithLocaleBase(res.FinalURL, localeBaseURL, res.Body)
 	if err != nil {
 		return "", nil, nil, false
 	}
