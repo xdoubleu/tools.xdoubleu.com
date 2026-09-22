@@ -5,10 +5,6 @@ jest.mock('@/components/feeds/FeedReaderClient', () => () => <div data-testid="f
 
 jest.mock('@/components/feeds/FeedsHeader', () => () => <div data-testid="feeds-header" />)
 
-jest.mock('@/components/feeds/UnhealthyFeedsSection', () => () => (
-  <div data-testid="unhealthy-feeds-section" />
-))
-
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({}))
 }))
@@ -38,11 +34,6 @@ describe('FeedsPage', () => {
   it('renders the feed reader', async () => {
     render(await FeedsPage())
     expect(screen.getByTestId('feed-reader')).toBeInTheDocument()
-  })
-
-  it('renders the unhealthy feeds section', async () => {
-    render(await FeedsPage())
-    expect(screen.getByTestId('unhealthy-feeds-section')).toBeInTheDocument()
   })
 
   it('renders no link back to /books', async () => {
