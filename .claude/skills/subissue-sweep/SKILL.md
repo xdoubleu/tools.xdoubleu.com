@@ -59,7 +59,7 @@ it.
    "worktree"`** so they don't collide on the same git working tree. Each
    prompt must be fully self-contained and must tell it to:
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`, e.g.
-     `web/CLAUDE.md` or `api/CLAUDE.md`) first.
+     `web/AGENTS.md` or `api/AGENTS.md`) first.
    - Read the sub-issue itself (its URL or number) for the actual scope —
      a title is a label, not the full spec.
    - Run `start-task` to adopt the existing sub-issue into a fresh worktree

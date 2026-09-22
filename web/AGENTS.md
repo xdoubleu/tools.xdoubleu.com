@@ -33,7 +33,7 @@ Two rules that bite if broken:
 ```bash
 npm ci                                      # first command in a fresh worktree — node_modules/ is gitignored, so every other command here fails without it
 npm run dev
-npm run build                              # required before finishing web tasks, see root CLAUDE.md
+npm run build                              # required before finishing web tasks, see root AGENTS.md
 npm run lint                                # eslint → tsc --noEmit → prettier --check → knip → syncpack lint
 npm run lint:fix                            # eslint --fix + prettier --write
 npm test                                    # jest
@@ -76,7 +76,7 @@ module with no React imports (as `lib/theme.ts` does).
 
 Client for the local kobo-gateway macOS menu-bar helper
 (`https://127.0.0.1:41132`, self-signed cert trusted on first launch; server in
-`kobo-gateway/`, its own Go module — see `kobo-gateway/CLAUDE.md`). The browser
+`kobo-gateway/`, its own Go module — see `kobo-gateway/AGENTS.md`). The browser
 makes all authenticated API calls itself and only hands the gateway a resulting
 sync URL; the gateway patches the USB-mounted Kobo's config file directly.
 

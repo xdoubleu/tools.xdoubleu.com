@@ -13,7 +13,7 @@ Every other app's MCP tool set (`recipes_*`, `books_*`, `feeds_*`,
 `RequireAppAccess` and returns JSON, with no write path. The two existing
 mutations on the combined `/apps/mcp` server, `resolve_sentry_issue` and
 `dismiss_security_alert`, are admin-only observability tools with no per-app
-equivalent — `api/CLAUDE.md` states the invariant plainly: "no per-app tool is
+equivalent — `api/AGENTS.md` states the invariant plainly: "no per-app tool is
 ever mutating."
 
 learningpaths (#1471/#1472) breaks that invariant on purpose.
@@ -77,7 +77,7 @@ scoping every read tool already relies on:
 
 ## Consequences
 
-- `api/CLAUDE.md`'s Apps MCP Server description now carries an explicit
+- `api/AGENTS.md`'s Apps MCP Server description now carries an explicit
   carve-out instead of an absolute "read-only" claim — anyone skimming that
   file sees the exception named at the point where the invariant is stated,
   not just here.

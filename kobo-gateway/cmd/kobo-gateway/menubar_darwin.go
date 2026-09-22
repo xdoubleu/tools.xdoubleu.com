@@ -100,7 +100,7 @@ func runUI(
 
 		// requestNotificationAuth's OS prompt is silent/unreliable in
 		// practice (#456 — it can error out with no visible sign to the
-		// user, see gateway/CLAUDE.md). On a genuine first install, back it
+		// user, see gateway/AGENTS.md). On a genuine first install, back it
 		// up with our own alert that can't be missed and links straight to
 		// the System Settings pane if the OS one didn't land.
 		if firstLaunch && runningInAppBundle(execPath) {
@@ -258,7 +258,7 @@ const notificationSettingsURL = "x-apple.systempreferences:" +
 // promptEnableNotifications shows a first-launch alert steering the user to
 // enable notifications, backing up requestNotificationAuth's OS prompt —
 // that one can silently error with no visible sign at all (#456, see
-// gateway/CLAUDE.md), so this alert is the guaranteed-visible fallback that
+// gateway/AGENTS.md), so this alert is the guaranteed-visible fallback that
 // actually satisfies "the user was asked." Runs its own nested run loop
 // (Alert.RunModal), safe to call from runUI's setup callback before the
 // main run loop starts spinning.

@@ -76,7 +76,7 @@ question that waits on a response.
    self-contained (the subagent has none of this session's context) and
    must tell it to:
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`,
-     e.g. `api/CLAUDE.md` or `web/CLAUDE.md`) first.
+     e.g. `api/AGENTS.md` or `web/AGENTS.md`) first.
    - State the exact PR number, branch name, and the specific failing
      check(s)/conclusion you already pulled — but verify against the PR's
      current state before acting, since CI state can change between the

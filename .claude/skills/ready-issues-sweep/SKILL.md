@@ -84,7 +84,7 @@ this skill's steps ever ends on a question with no one there to answer it.
    self-contained (the subagent has none of this session's context) and
    must tell it to:
    - Read root `CLAUDE.md` (and the relevant subtree's own `CLAUDE.md`, e.g.
-     `web/CLAUDE.md` or `api/CLAUDE.md`) first.
+     `web/AGENTS.md` or `api/AGENTS.md`) first.
    - Read the issue itself (`issue_read` / the issue URL) for the actual
      scope — the board title is a short label, not the full spec.
    - Follow the repo's real workflow exactly: `start-task` (fresh worktree

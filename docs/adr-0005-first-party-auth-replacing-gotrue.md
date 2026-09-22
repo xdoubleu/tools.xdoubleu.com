@@ -72,7 +72,7 @@ no operator step could be forgotten or half-applied.
   stay write-through; skipping the delete/insert reintroduces unrevokable
   sessions.
 - Token resolution is local, so a per-token TTL cache sits in front of it — see
-  `api/CLAUDE.md`'s Auth notes for the invalidation rules that follow.
+  `api/AGENTS.md`'s Auth notes for the invalidation rules that follow.
 
 ## Revisit when
 

@@ -2,10 +2,10 @@
   "model": "sonnet",
   "autoMemoryEnabled": false,
   "extraKnownMarketplaces": {
-    "xdoubleu-claude-plugins": {
+    "xdoubleu-skills": {
       "source": {
         "source": "github",
-        "repo": "xdoubleu/xdoubleu-claude-plugins"
+        "repo": "xdoubleu/skills"
       }
     },
     "claude-plugins-official": {
@@ -22,11 +22,11 @@
     }
   },
   "enabledPlugins": {
-    "git-task-flow@xdoubleu-claude-plugins": true,
-    "session-retro@xdoubleu-claude-plugins": true,
-    "git-cleanup@xdoubleu-claude-plugins": true,
-    "github-issue-triage@xdoubleu-claude-plugins": true,
-    "skill-lifecycle@xdoubleu-claude-plugins": true,
+    "git-task-flow@xdoubleu-skills": true,
+    "session-retro@xdoubleu-skills": true,
+    "git-cleanup@xdoubleu-skills": true,
+    "github-issue-triage@xdoubleu-skills": true,
+    "skill-lifecycle@xdoubleu-skills": true,
     "claude-md-management@claude-plugins-official": true,
     "mattpocock-skills@mattpocock": true
   },

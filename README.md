@@ -260,7 +260,7 @@ the dashboard JSON is the source of truth, checked by `make lint/grafana` and
 **R2 bucket CORS:** the in-browser EPUB/KEPUB book preview reads file bytes client-side, so
 each R2 bucket must have a CORS rule allowing `GET`/`HEAD` from its environment's web origin
 (`http://localhost:3000` dev, `https://tools.xdoubleu.com` prod). See
-[api/CLAUDE.md](api/CLAUDE.md) for the exact rule and how to apply it. This must be
+[api/AGENTS.md](api/AGENTS.md) for the exact rule and how to apply it. This must be
 re-applied if a bucket is recreated.
 
 **PostHog Cloud (EU) product analytics + session replay (issue #1638):** a
@@ -295,7 +295,7 @@ hosted — it survived DO's decommissioning as a host (#1113).
 
 Until all six vars are set, the api logs a startup warning per missing provider and
 its "Connect" button on `/monitoring` fails with a provider-side error instead of
-one from this app. See [api/CLAUDE.md](api/CLAUDE.md) for the full connect-flow
+one from this app. See [api/AGENTS.md](api/AGENTS.md) for the full connect-flow
 mechanics.
 
 **Issue-signal alerting (issues #561, #1529):** the realtime "email me the first
@@ -336,20 +336,28 @@ Refer to [AGENTS.md](AGENTS.md) for the shared repository contract (architecture
 
 This repo supports two coding-agent harnesses side by side:
 
-- **Claude Code** — `CLAUDE.md` + `.claude/` (skills, hooks, settings).
+- **Claude Code** — `CLAUDE.md` (which imports `AGENTS.md`) + `.claude/`
+  (skills, hooks, settings), plus plugins from the `xdoubleu/skills`
+  marketplace.
 - **OpenCode** (against OpenRouter models) — `opencode.json` +
-  `.opencode/command/`.
+  `.opencode/plugins/` (the `repo-guard` enforcement port), reading the same
+  `.claude/skills/` project skills via compatibility discovery, with their
+  generic marketplace dependencies (`ship-pr`, `task-worktree`,
+  `refine-issue`, `issue-triage`, `session-retro`, `grilling`,
+  `code-review`) installed under `.agents/skills/` via
+  `npx skills add xdoubleu/skills …` / `npx skills add mattpocock/skills …`
+  (tracked in `skills-lock.json`; refresh with `npx skills update`).
 
 Both read [`AGENTS.md`](AGENTS.md) as the shared repository contract, and
 both can connect to the read-mostly `/apps/mcp` MCP server described below
 over the same MCP OAuth 2.1 flow — Claude Code via `claude mcp add`, OpenCode
-by adding the server to `opencode.json`'s `mcp` block (already done in this
-repo's own config) and completing its own OAuth authorization on first use.
+via `opencode.json`'s `mcp.servers` block (already done in this repo's own
+config), completing its own OAuth authorization on first use.
 The harness-neutral "start a task"/"finish a task" workflow both are
 expected to follow lives in
 [`docs/convention-task-lifecycle.md`](docs/convention-task-lifecycle.md);
 each harness has its own thin mechanism for it (`start-task`/`finish-task`
-skills + enforcement hooks for Claude Code, `.opencode/command/start-task.md`
-+ `.opencode/command/finish-task.md` for OpenCode). No OpenRouter model is
+skills + enforcement hooks for Claude Code; the same skills + the
+`repo-guard` plugin for OpenCode). No OpenRouter model is
 pinned in `opencode.json` — set `OPENROUTER_API_KEY` and pick a model at
 the CLI, same as any other OpenCode project.

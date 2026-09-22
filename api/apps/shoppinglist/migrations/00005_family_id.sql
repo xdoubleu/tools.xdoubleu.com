@@ -4,7 +4,7 @@
 -- phase 2 of #1349): every family member gets full read/write on the
 -- family's one shopping list, replacing shoppinglist_access's per-grant
 -- can_edit model entirely. stores/store_categories stay user_id-private per
--- the shoppinglist CLAUDE.md note: a store is tied to one person's shopping
+-- the api/AGENTS.md shoppinglist note: a store is tied to one person's shopping
 -- route, not the family's shared catalog.
 ALTER TABLE shoppinglist.custom_items ADD COLUMN family_id UUID;
 ALTER TABLE shoppinglist.categories ADD COLUMN family_id UUID;

@@ -1,6 +1,6 @@
 # Standalone deploy image for the web service (#1038 — deployed
 # independently under Kamal, routed by kamal-proxy alongside api; see
-# config/deploy.web.yml and root CLAUDE.md's Deploy shape section).
+# config/deploy.web.yml and root AGENTS.md's Deploy shape section).
 FROM node:24-alpine AS builder
 
 ARG RELEASE=dev
@@ -42,7 +42,7 @@ WORKDIR /app
 COPY --from=builder /app/.next/standalone ./
 
 # Next standalone only serves public/ when it sits next to server.js; see
-# this file's "Static Downloads" note in web/CLAUDE.md — web/public does not
+# this file's "Static Downloads" note in web/AGENTS.md — web/public does not
 # exist in the repo otherwise. The kobo-gateway .dmg + raw binary are built
 # on macOS by build-kobo-gateway.yml and placed here by build-web.yml before
 # `docker build` runs.

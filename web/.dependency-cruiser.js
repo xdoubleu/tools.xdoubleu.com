@@ -59,7 +59,7 @@ module.exports = {
         path: '^lib/',
         pathNot: [
           '^lib/gen/',
-          // lib/server/ is the RSC-only ConnectRPC transport (web/CLAUDE.md's
+          // lib/server/ is the RSC-only ConnectRPC transport (web/AGENTS.md's
           // "Data Flow (RSC + SWR)"), and its only React import is
           // `cache` from 'react' — a server-safe API valid inside Server
           // Components, not one of the client-only hooks

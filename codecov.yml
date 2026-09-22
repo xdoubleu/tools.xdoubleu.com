@@ -33,7 +33,7 @@ comment:
   require_changes: true
 
 # menubar_darwin.go is pure AppKit/cgo status-bar code with no window server
-# session under go test (see kobo-gateway/CLAUDE.md) — it's exercised
+# session under go test (see kobo-gateway/AGENTS.md) — it's exercised
 # manually, not by go test, so it's permanently 0% and shouldn't count
 # against patch coverage on every kobo-gateway PR that touches it.
 #

@@ -18,7 +18,7 @@ const (
 // loginItemPlistTemplate is a LaunchAgent that runs execPath at login and
 // relaunches it on any abnormal exit (SuccessfulExit false) — a panic, a
 // listener error, or the darwinkit AppKit bridge's SIGABRT (see
-// gateway/CLAUDE.md) all leave the process dead with nothing to bring it
+// gateway/AGENTS.md) all leave the process dead with nothing to bring it
 // back otherwise. A clean exit (the user quit from the menu, which exits 0)
 // is not relaunched. launchd's default throttle prevents a crash-loop from
 // hammering.

@@ -18,7 +18,7 @@ saying a change "hasn't happened yet" is worse than no comment once it has: the
 reader trusts it and reasons from a false premise.
 
 This is also why decision history belongs in `docs/` rather than in comments or
-CLAUDE.md prose — a document can be dated and superseded; an inline comment
+AGENTS.md prose — a document can be dated and superseded; an inline comment
 silently rots.
 
 ## Worked examples

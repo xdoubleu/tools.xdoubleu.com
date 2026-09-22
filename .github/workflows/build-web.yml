@@ -8,7 +8,7 @@ name: Build Web Workflow
 # workflow alone has no such job and fails outright at that step. To trigger
 # a web build manually, use main.yml's own workflow_dispatch instead — it
 # chains build-kobo-gateway ahead of build-web correctly (see root
-# CLAUDE.md's CI section, issue #1347).
+# AGENTS.md's CI section, issue #1347).
 on:
   workflow_call:
 
