@@ -50,7 +50,7 @@ export default function ArticleReaderDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         side="fullscreen"
-        className="max-w-2xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[85vh] sm:p-5 flex flex-col"
+        className="max-w-2xl lg:max-w-4xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col"
       >
         <DialogHeader className="items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -80,7 +80,12 @@ export default function ArticleReaderDialog({
 
           {html && (
             <div
-              className={cn('prose prose-sm max-w-none text-fg p-1', proseClassName)}
+              // Capped to a readable line length inside the wider `lg`
+              // dialog; below `lg` the dialog itself is the cap.
+              className={cn(
+                'prose prose-sm max-w-none lg:max-w-prose lg:mx-auto text-fg p-1',
+                proseClassName
+              )}
               // Article bodies originate from ingested third-party HTML —
               // always sanitize before rendering.
               dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
