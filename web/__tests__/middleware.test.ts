@@ -4,9 +4,13 @@
 // next/server needs the real Request/Response globals, which jsdom lacks.
 import { middleware } from '@/middleware'
 
-function connectSrc(): string {
+function cspDirective(name: string): string {
   const csp = middleware().headers.get('Content-Security-Policy') ?? ''
-  return csp.split('; ').find((d) => d.startsWith('connect-src ')) ?? ''
+  return csp.split('; ').find((d) => d.startsWith(`${name} `)) ?? ''
+}
+
+function connectSrc(): string {
+  return cspDirective('connect-src')
 }
 
 describe('middleware CSP', () => {
@@ -24,5 +28,22 @@ describe('middleware CSP', () => {
     process.env.API_URL = 'https://example.com/api'
     expect(connectSrc()).toContain('https://example.com/api')
     delete process.env.API_URL
+  })
+
+  it('allows PostHog Cloud EU when POSTHOG_HOST is configured (#1857)', () => {
+    // The SDK captures to POSTHOG_HOST and loads its config.js from the
+    // host's -assets sibling, which 'self' doesn't cover — without both,
+    // every page view silently fails with CSP errors and PostHog ingests
+    // nothing.
+    process.env.POSTHOG_HOST = 'https://eu.i.posthog.com'
+    expect(connectSrc()).toContain('https://eu.i.posthog.com')
+    expect(connectSrc()).toContain('https://eu-assets.i.posthog.com')
+    expect(cspDirective('script-src')).toContain('https://eu-assets.i.posthog.com')
+    delete process.env.POSTHOG_HOST
+  })
+
+  it('adds no PostHog directives when POSTHOG_HOST is unset', () => {
+    expect(connectSrc()).not.toContain('posthog.com')
+    expect(cspDirective('script-src')).not.toContain('posthog.com')
   })
 })
