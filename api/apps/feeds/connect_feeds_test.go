@@ -1286,6 +1286,20 @@ func TestUpdateItem_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
+// TestGetFeedItem_NotFound covers the stale-list case (issue #1819): the
+// frontend's cached list can reference an item deleted between listing and
+// opening, so the body fetch 404s — the handler logs it and maps to
+// CodeNotFound.
+func TestGetFeedItem_NotFound(t *testing.T) {
+	client := newFeedsClient(t)
+	_, err := client.GetFeedItem(
+		context.Background(),
+		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: uuid.NewString()}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
+}
+
 // TestUpdateItem_ReadProgressClampsAndMonotonic covers issue #798's
 // read-completion signal: values are clamped to [0,100] and never lowered
 // by a later, smaller update.

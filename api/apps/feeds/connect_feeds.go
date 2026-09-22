@@ -339,6 +339,13 @@ func (h *feedsConnectHandler) GetFeedItem(
 
 	item, err := h.app.Services.Feeds.GetItem(ctx, user.ID, itemID)
 	if err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			// A cached list can reference an item deleted (or whose feed is
+			// gone) between listing and opening; not_found produces no Sentry
+			// event, so log it to keep these 404s diagnosable.
+			h.app.Logger.WarnContext(ctx, "feed item not found",
+				"item_id", itemID, "user_id", user.ID)
+		}
 		return nil, feedErrorToConnect(err)
 	}
 	return connect.NewResponse(&feedsv1.GetFeedItemResponse{
