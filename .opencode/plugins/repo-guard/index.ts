@@ -88,7 +88,10 @@ function guardEdit(dir: string, abs: string): string | undefined {
     return undefined
   }
   if (abs === dir || abs.startsWith(dir + "/")) {
-    return `Refusing to edit ${abs}: this session is in the main checkout (${dir}), not a worktree. Run the start-task skill to create a fresh worktree off up-to-date main before editing.`
+    // The cwd may still be a legitimate git worktree — the guard only
+    // recognizes worktrees under the repo's .claude/worktrees/ tree, so say
+    // that (and the escape hatch) instead of mislabeling it "main checkout".
+    return `Refusing to edit ${abs}: this session's directory (${dir}) is not a worktree under the repo's .claude/worktrees/ tree, which is the only location this guard recognizes. Create one via the start-task skill, or move an existing worktree there: git worktree move <worktree-path> <repo-root>/.claude/worktrees/<name> (then re-point the session at it).`
   }
   return undefined
 }
