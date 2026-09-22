@@ -17,16 +17,28 @@ Impact" note if that plugin isn't installed yet).
 issue already exists — especially on a retry/reiterate request — pull its
 full history: `gh issue view <n> --comments`, linked PRs via `gh pr list
 --search "<n>" --state all`, and branches/commits via `git log --all
---grep=<n>`. If a previous attempt exists, don't start fresh as if it
-didn't: read the prior PR's diff, review comments, and CI failures, work
-out *why it didn't land or didn't fix the problem*, and record that as a
-short "Why attempt #N failed" analysis on the issue (via `refine-issue`,
-in or before its `## Plan` section) **before writing any code**. The new
-attempt must differ from the old one in response to that analysis —
-re-running a failed approach with cosmetic changes is not a retry. A
-sibling session's PR may already have landed most of the plan; discovering
-that only after the worktree exists and work has begun wastes the setup
-and risks duplicating it.
+--grep=<n>`.
+
+**Always fetch the issue's *current* live state, not just its PR/branch
+history.** Run `gh issue view <n> --json state,stateReason,comments` and read
+the actual `state`/`stateReason` (e.g. `OPEN`/`REOPENED`) and every comment.
+**A merged PR that closed the issue is strong proof of *nothing*** — the issue
+may have been reopened afterward (merged-then-reopened; issue #1867: PR #1871
+widened a reader dialog, the owner reopened with "still seems like a small
+screen" and the real fix was never attempted). Never report "already
+fixed"/"already merged" from PR history alone; the live `state` and comments
+are the source of truth.
+
+If a previous attempt exists — *including one that merged and closed the
+issue* — treat it as prior work, not as done: read the prior PR's diff, review
+comments, and CI failures, work out *why it didn't land or didn't fix the
+problem*, and record that as a short "Why attempt #N failed" analysis on the
+issue (via `refine-issue`, in or before its `## Plan` section) **before writing
+any code**. The new attempt must differ from the old one in response to that
+analysis — re-running a failed approach with cosmetic changes is not a retry. A
+sibling session's PR may already have landed most of the plan; discovering that
+only after the worktree exists and work has begun wastes the setup and risks
+duplicating it.
 
 ## 2. Fresh worktree off up-to-date main
 
