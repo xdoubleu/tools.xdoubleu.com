@@ -11,7 +11,24 @@ generic `task-worktree` skill from the `git-task-flow` plugin
 (`xdoubleu/skills` marketplace — see root `CLAUDE.md`'s "Docs
 Impact" note if that plugin isn't installed yet).
 
-## 1. Fresh worktree off up-to-date main
+## 1. Check for a prior attempt before anything else
+
+**Before any setup — including the worktree in step 2.** When the tracking
+issue already exists — especially on a retry/reiterate request — pull its
+full history: `gh issue view <n> --comments`, linked PRs via `gh pr list
+--search "<n>" --state all`, and branches/commits via `git log --all
+--grep=<n>`. If a previous attempt exists, don't start fresh as if it
+didn't: read the prior PR's diff, review comments, and CI failures, work
+out *why it didn't land or didn't fix the problem*, and record that as a
+short "Why attempt #N failed" analysis on the issue (via `refine-issue`,
+in or before its `## Plan` section) **before writing any code**. The new
+attempt must differ from the old one in response to that analysis —
+re-running a failed approach with cosmetic changes is not a retry. A
+sibling session's PR may already have landed most of the plan; discovering
+that only after the worktree exists and work has begun wastes the setup
+and risks duplicating it.
+
+## 2. Fresh worktree off up-to-date main
 
 Run `task-worktree` first — it covers pulling latest `main` and creating a
 completely fresh worktree (never edit in the main checkout or reuse an
@@ -35,19 +52,7 @@ git checkout -B <new-branch-name> origin/main` inside that same directory.
 This satisfies "fresh branch off up-to-date main" without violating the
 hook's single-path scope.
 
-## 2. Create (or find) the tracking issue
-
-**Check for a prior attempt before anything else.** When the tracking issue
-already exists — especially on a retry/reiterate request — pull its full
-history: `gh issue view <n> --comments`, linked PRs via `gh pr list
---search "<n>" --state all`, and branches/commits via `git log --all
---grep=<n>`. If a previous attempt exists, don't start fresh as if it
-didn't: read the prior PR's diff, review comments, and CI failures, work
-out *why it didn't land or didn't fix the problem*, and record that as a
-short "Why attempt #N failed" analysis on the issue (via `refine-issue`,
-in or before its `## Plan` section) **before writing any code**. The new
-attempt must differ from the old one in response to that analysis —
-re-running a failed approach with cosmetic changes is not a retry.
+## 3. Create (or find) the tracking issue
 
 Before editing, always create a tracking GitHub issue for the work via the
 `refine-issue` skill (from the `github-issue-triage` plugin — its config for
@@ -55,7 +60,7 @@ this repo lives in `.claude/github-triage.config.json`), not a bare `gh
 issue create`, so Priority/Status/labels get set — do this even for work
 that wasn't explicitly requested as an "issue", e.g. tooling/doc changes.
 
-## 3. Reproduce the production state before planning a fix
+## 4. Reproduce the production state before planning a fix
 
 For a bug fix — before writing any code, and as input to the `## Plan`
 section — reproduce the state the bug actually lives in locally:
