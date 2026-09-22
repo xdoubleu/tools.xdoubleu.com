@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useFeeds } from '@/hooks/useFeeds'
+import { useCurrentUser } from '@/hooks/useAuth'
 import FeedManager from '@/components/feeds/FeedManager'
 import { Button } from '@/components/ui/button'
 
@@ -15,6 +16,8 @@ import { Button } from '@/components/ui/button'
 // swrKeys.feeds key.
 export default function FeedsHeader() {
   const { data } = useFeeds()
+  const { data: currentUser } = useCurrentUser()
+  const isAdmin = currentUser?.role === 'admin'
   const [open, setOpen] = useState(false)
   const [touched, setTouched] = useState(false)
 
@@ -33,6 +36,14 @@ export default function FeedsHeader() {
           >
             Stats
           </Link>
+          {isAdmin && (
+            <Link
+              href="/feeds/health"
+              className="text-sm text-accent underline-offset-4 hover:underline"
+            >
+              Health
+            </Link>
+          )}
           <Link
             href="/feeds/settings"
             className="text-sm text-accent underline-offset-4 hover:underline"

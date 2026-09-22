@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import UnhealthyFeedsSection from '@/components/feeds/UnhealthyFeedsSection'
+import UnhealthyFeeds from '@/components/feeds/UnhealthyFeeds'
 
 const mockUseCurrentUser = jest.fn()
 const mockUseUnhealthyFeeds = jest.fn()
@@ -12,7 +12,7 @@ jest.mock('@/hooks/useFeeds', () => ({
   useUnhealthyFeeds: (enabled: boolean) => mockUseUnhealthyFeeds(enabled)
 }))
 
-describe('UnhealthyFeedsSection', () => {
+describe('UnhealthyFeeds', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseUnhealthyFeeds.mockReturnValue({ data: undefined })
@@ -20,21 +20,21 @@ describe('UnhealthyFeedsSection', () => {
 
   it('renders nothing for a non-admin viewer, and fetches nothing', () => {
     mockUseCurrentUser.mockReturnValue({ data: { role: 'user' } })
-    const { container } = render(<UnhealthyFeedsSection />)
+    const { container } = render(<UnhealthyFeeds />)
     expect(container).toBeEmptyDOMElement()
     expect(mockUseUnhealthyFeeds).toHaveBeenCalledWith(false)
   })
 
   it('renders nothing while the current user is unknown', () => {
     mockUseCurrentUser.mockReturnValue({ data: undefined })
-    const { container } = render(<UnhealthyFeedsSection />)
+    const { container } = render(<UnhealthyFeeds />)
     expect(container).toBeEmptyDOMElement()
   })
 
   it('renders the card and fetches for an admin viewer', () => {
     mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' } })
     mockUseUnhealthyFeeds.mockReturnValue({ data: { feeds: [] } })
-    render(<UnhealthyFeedsSection />)
+    render(<UnhealthyFeeds />)
     expect(screen.getByText('Unhealthy feeds')).toBeInTheDocument()
     expect(mockUseUnhealthyFeeds).toHaveBeenCalledWith(true)
   })

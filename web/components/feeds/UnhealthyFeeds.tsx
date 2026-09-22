@@ -6,7 +6,7 @@ import FeedsCard from './FeedsCard'
 
 // GetUnhealthyFeeds reports every user's feeds, not just the caller's own, so
 // it's admin-only server-side — only render/fetch it for an admin viewer.
-export default function UnhealthyFeedsSection() {
+export default function UnhealthyFeeds() {
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'
   const unhealthyFeeds = useUnhealthyFeeds(isAdmin)
