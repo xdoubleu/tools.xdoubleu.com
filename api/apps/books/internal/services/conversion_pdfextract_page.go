@@ -145,6 +145,7 @@ func extractDocument(
 	}
 
 	docModalHeight := computeModalCharHeight(pages)
+	rebuildHeadingLineText(pages, docModalHeight)
 
 	pageBlocks := make([][]htmlBlock, len(pages))
 	for i, p := range pages {

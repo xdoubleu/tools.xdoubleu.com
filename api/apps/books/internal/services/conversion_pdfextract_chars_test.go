@@ -4,6 +4,8 @@ package services
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestGroupLines_CommaStaysOnLine reproduces issue #594: a comma's bounding
@@ -309,6 +311,169 @@ func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T
 		t.Fatalf(
 			"expected the quotation mark to attach to the closer 'hi' line, got %q",
 			line1.text,
+		)
+	}
+}
+
+// TestRebuildHeadingLineText_MergesTrackedSmallCaps reproduces issue #1698's
+// "I ntroduction" artifact: a tracked small-caps display heading renders its
+// initial as a full-height capital whose letter gap (0.28 * line height)
+// clears the body-text space threshold (0.25), splitting the word. Once the
+// line is known to be heading-sized (>= headingH1Ratio * the document's
+// modal body-text height), the higher headingSpaceRatio must re-join it,
+// while a body-sized line with the same absolute gaps keeps the body
+// threshold and its own spaces.
+func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
+	// A small-caps heading line: full-height "I" then small-caps
+	// "ntroduction" with a 2.9pt letter gap; the word gap to the next word
+	// is 6.6pt. Line median char height is 10.4, so at the body-text ratio
+	// (0.25 * 10.4 = 2.6) the 2.9pt letter gap wrongly inserts a space.
+	headingChars := []pdfChar{
+		{text: "I", left: 153.5, right: 155.4, top: 110.2, bottom: 92.6, font: ""},
+		{text: "n", left: 158.3, right: 167.2, top: 105.2, bottom: 94.8, font: ""},
+		{text: "t", left: 168.8, right: 175.2, top: 105.2, bottom: 94.8, font: ""},
+		{text: "r", left: 176.9, right: 182.3, top: 105.2, bottom: 94.8, font: ""},
+		{text: "o", left: 183.3, right: 193.5, top: 105.2, bottom: 94.8, font: ""},
+		{text: "d", left: 195.5, right: 205.4, top: 105.2, bottom: 94.8, font: ""},
+		{text: "u", left: 208.0, right: 216.9, top: 105.2, bottom: 94.8, font: ""},
+		{text: "c", left: 219.2, right: 228.1, top: 105.2, bottom: 94.8, font: ""},
+		{text: "t", left: 228.8, right: 235.3, top: 105.2, bottom: 94.8, font: ""},
+		{text: "i", left: 236.8, right: 239.2, top: 105.2, bottom: 94.8, font: ""},
+		{text: "o", left: 241.3, right: 251.5, top: 105.2, bottom: 94.8, font: ""},
+		{text: "n", left: 253.8, right: 262.7, top: 105.2, bottom: 94.8, font: ""},
+		{text: "T", left: 269.3, right: 282.9, top: 110.2, bottom: 92.6, font: ""},
+		{text: "i", left: 283.6, right: 286.0, top: 105.2, bottom: 94.8, font: ""},
+		{text: "t", left: 287.0, right: 293.4, top: 105.2, bottom: 94.8, font: ""},
+		{text: "l", left: 294.4, right: 296.8, top: 105.2, bottom: 94.8, font: ""},
+		{text: "e", left: 297.8, right: 307.1, top: 105.2, bottom: 94.8, font: ""},
+	}
+	heading := buildLine(headingChars)
+	if got, want := heading.text, "I ntroduction Title"; got != want {
+		t.Fatalf("pre-rebuild heading text = %q, want %q", got, want)
+	}
+
+	// A body-text line: letter gap 0.9 (under the body threshold) and word
+	// gap 4.7 (over it) — the body line must be untouched by the rebuild.
+	bodyChars := []pdfChar{
+		{text: "h", left: 100, right: 106, top: 52.5, bottom: 47.5, font: ""},
+		{text: "i", left: 106.9, right: 110, top: 53.9, bottom: 51.1, font: ""},
+		{text: "w", left: 114.7, right: 122.3, top: 52.4, bottom: 47.6, font: ""},
+		{text: "o", left: 123.1, right: 129.1, top: 52.5, bottom: 47.5, font: ""},
+		{text: "r", left: 129.9, right: 133.4, top: 52.5, bottom: 47.5, font: ""},
+		{text: "d", left: 134.2, right: 139.4, top: 53.9, bottom: 51.1, font: ""},
+	}
+	body := buildLine(bodyChars)
+
+	pages := []pageResult{
+		{items: []streamItem{ //nolint:exhaustruct // only line matters
+			{line: &heading}, //nolint:exhaustruct // line/figure union
+			{line: &body},    //nolint:exhaustruct // line/figure union
+		}},
+	}
+	rebuildHeadingLineText(pages, 5.0) // modal body height 5.0
+
+	if got := heading.text; got != "Introduction Title" {
+		t.Fatalf(
+			"heading text after rebuild = %q, want %q (tracked letters must re-join)",
+			got, "Introduction Title",
+		)
+	}
+	if got, want := body.text, "hi word"; got != want {
+		t.Fatalf(
+			"body text after rebuild = %q, want %q (body lines untouched)",
+			got,
+			want,
+		)
+	}
+}
+
+// TestIsSmallCapsInitial covers isSmallCapsInitial's boundary cases
+// directly: a tall capital over a much shorter lowercase letter is the
+// small-caps initial signature, while lowercase or punctuation
+// predecessors, uppercase continuations, and same-height pairs (title
+// case) are not — and zero-height boxes can't be judged.
+func TestIsSmallCapsInitial(t *testing.T) {
+	tests := map[string]struct {
+		prev, c pdfChar
+		want    bool
+	}{
+		"tall cap over small-caps continuation": {
+			prev: pdfChar{text: "I", left: 0, right: 2, top: 110, bottom: 92, font: ""},
+			c:    pdfChar{text: "n", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			want: true, // 18 vs 10: 44% taller
+		},
+		"title-case same-height cap over lowercase": {
+			prev: pdfChar{
+				text:   "I",
+				left:   0,
+				right:  2,
+				top:    110,
+				bottom: 102,
+				font:   "",
+			},
+			c: pdfChar{
+				text:   "w",
+				left:   3,
+				right:  9,
+				top:    110,
+				bottom: 100,
+				font:   "",
+			},
+			want: false,
+		},
+		"cap over capital continuation": {
+			prev: pdfChar{text: "A", left: 0, right: 2, top: 110, bottom: 92, font: ""},
+			c: pdfChar{
+				text:   "N",
+				left:   3,
+				right:  9,
+				top:    110,
+				bottom: 102,
+				font:   "",
+			},
+			want: false, // word boundary in an all-caps heading
+		},
+		"lowercase predecessor": {
+			prev: pdfChar{text: "g", left: 0, right: 2, top: 110, bottom: 92, font: ""},
+			c:    pdfChar{text: "m", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			want: false,
+		},
+		"multi-char predecessor": {
+			prev: pdfChar{
+				text:   "TH",
+				left:   0,
+				right:  2,
+				top:    110,
+				bottom: 92,
+				font:   "",
+			},
+			c:    pdfChar{text: "e", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			want: false,
+		},
+		"zero-height boxes": {
+			prev: pdfChar{
+				text:   "I",
+				left:   0,
+				right:  2,
+				top:    100,
+				bottom: 100,
+				font:   "",
+			},
+			c: pdfChar{
+				text:   "n",
+				left:   3,
+				right:  9,
+				top:    100,
+				bottom: 100,
+				font:   "",
+			},
+			want: false,
+		},
+	}
+	for name, tc := range tests {
+		assert.Equalf(
+			t, tc.want, isSmallCapsInitial(tc.prev, tc.c),
+			"isSmallCapsInitial(%+v, %+v) [%s]", tc.prev, tc.c, name,
 		)
 	}
 }
