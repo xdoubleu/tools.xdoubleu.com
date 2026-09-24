@@ -74,7 +74,7 @@
     "react-is": "19.3.0",
     "syncpack": "15.3.3",
     "tailwindcss": "4.3.3",
-    "typescript-eslint": "8.70.0"
+    "typescript-eslint": "8.70.1"
   },
   "overrides": {
     "nanoid": "6.0.1",
