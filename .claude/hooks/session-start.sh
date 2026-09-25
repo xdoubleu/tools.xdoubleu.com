@@ -61,5 +61,32 @@ if [ -d web ] && [ ! -d web/node_modules ]; then
   ) &
 fi
 
+# --- 5. GOTOOLCHAIN=auto's per-module toolchain download (fetched here
+# because this container's preinstalled Go is older than api/go.mod's `go`
+# directive) ships without `go tool covdata` — an open upstream bug
+# (golang/go#75031, targeted for Go 1.27) — which makes `make
+# test/cov/report` exit 1 even though every individual test passes. The
+# real fix (a full official release, as CI's actions/setup-go installs) is
+# unreachable here: this environment's network policy blocks
+# dl.google.com. Work around it by building covdata from the source tree
+# the partial module download does ship, with that same module's own `go`
+# binary, dropping the result into the module's own pkg/tool dir. See
+# api/AGENTS.md's Testing Notes for the full writeup.
+(
+  cd api || exit 0
+  SWITCHED_GOROOT="$(go env GOROOT 2>/dev/null)"
+  GOOSARCH="$(go env GOOS 2>/dev/null)_$(go env GOARCH 2>/dev/null)"
+  COVDATA_BIN="$SWITCHED_GOROOT/pkg/tool/$GOOSARCH/covdata"
+  if [ -n "$SWITCHED_GOROOT" ] && [ ! -x "$COVDATA_BIN" ] &&
+    [ -d "$SWITCHED_GOROOT/src/cmd/covdata" ] && [ -x "$SWITCHED_GOROOT/bin/go" ]; then
+    chmod -R u+w "$SWITCHED_GOROOT" 2>/dev/null
+    (
+      cd "$SWITCHED_GOROOT/src/cmd/covdata" &&
+        GOROOT="$SWITCHED_GOROOT" GOTOOLCHAIN=local "$SWITCHED_GOROOT/bin/go" build -o "$COVDATA_BIN" .
+    ) >/tmp/claude-bootstrap-covdata.log 2>&1
+    chmod -R a-w "$SWITCHED_GOROOT" 2>/dev/null
+  fi
+) &
+
 wait
 exit 0
