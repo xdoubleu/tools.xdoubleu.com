@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
-# Validate that every GitHub Actions workflow file parses as YAML before
-# merge (issue #1791 — a session-retro finding: two separate sessions
-# independently ran the same ad-hoc `python3 -c "import yaml; ..."` snippet
-# to sanity-check a main.yml edit, because no build-tool target existed for
-# it despite the same pattern already covering infra/prometheus.yml
-# (lint/infra) and the Grafana dashboards (lint/grafana).
-#
-# Run via `make lint/workflows`; also run by main.yml's own workflow-lint job.
+# Validate that every .github/workflows/*.yml parses as YAML.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

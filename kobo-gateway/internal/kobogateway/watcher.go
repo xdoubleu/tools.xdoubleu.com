@@ -13,9 +13,8 @@ type KoboEvent struct {
 	Kobo      Kobo
 }
 
-// DiffKobos compares two FindKobos snapshots (keyed by VolumePath) and
-// returns the connect/disconnect events between them. Order is not
-// meaningful to callers, so disconnects are reported before connects.
+// DiffKobos returns the connect/disconnect events between two FindKobos
+// snapshots (keyed by VolumePath), disconnects first.
 func DiffKobos(prev, curr []Kobo) []KoboEvent {
 	prevByPath := make(map[string]Kobo, len(prev))
 	for _, k := range prev {
@@ -44,12 +43,10 @@ func DiffKobos(prev, curr []Kobo) []KoboEvent {
 	return events
 }
 
-// ShortReleaseLen matches web/components/Footer.tsx's truncation, the only
-// other place a release SHA is shown to a user rather than compared.
+// ShortReleaseLen matches web/components/Footer.tsx's truncation.
 const ShortReleaseLen = 7
 
-// ShortRelease truncates a full commit SHA for display; short values (e.g.
-// the literal "dev" in local builds) pass through unchanged.
+// ShortRelease truncates a SHA for display; short values pass through.
 func ShortRelease(release string) string {
 	if len(release) <= ShortReleaseLen {
 		return release
@@ -58,10 +55,7 @@ func ShortRelease(release string) string {
 	return release[:ShortReleaseLen]
 }
 
-// KoboTooltip renders the status-bar tooltip text for the current
-// connect/disconnect state, prefixed with the running release (truncated
-// for display — the full SHA is still what gatewayNeedsUpdate compares) so
-// it's visible on hover without opening the menu.
+// KoboTooltip renders the status-bar tooltip, prefixed with the short release.
 func KoboTooltip(ev KoboEvent, release string) string {
 	release = ShortRelease(release)
 
@@ -105,9 +99,7 @@ func Watch(
 ) <-chan KoboEvent {
 	events := make(chan KoboEvent)
 
-	// Snapshot synchronously before starting the goroutine, so callers get a
-	// deterministic starting point instead of racing whatever filesystem
-	// change they make right after calling Watch.
+	// Snapshot synchronously so callers get a deterministic starting point.
 	prev, _ := FindKobos(volumesRoot)
 
 	go func() {

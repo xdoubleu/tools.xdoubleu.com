@@ -8,9 +8,7 @@ import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import UnhealthyFeeds from '@/components/feeds/UnhealthyFeeds'
 import { PageContainer } from '@/components/ui/page-container'
 
-// GetUnhealthyFeeds reports every user's feeds, not just the caller's own, so
-// the api denies it for a non-admin viewer — fetchOrNull then yields null and
-// the client boundary below renders nothing for that viewer.
+// Admin-only RPC: non-admins get null and nothing renders.
 export default async function FeedHealthPage() {
   const feedsClient = await createServerClient(FeedService)
   const unhealthyFeeds = await fetchOrNull(() => feedsClient.getUnhealthyFeeds({}))

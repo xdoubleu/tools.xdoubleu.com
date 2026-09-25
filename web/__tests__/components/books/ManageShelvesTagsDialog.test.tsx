@@ -17,7 +17,6 @@ jest.mock('@/hooks/useBooks', () => ({
 
 jest.mock('swr', () => ({ mutate: jest.fn() }))
 
-// LibrarySidebar is imported for its types — no DOM output needed
 jest.mock('@/components/books/LibrarySidebar', () => ({
   buildShelves: jest.fn(),
   buildTags: jest.fn()
@@ -100,11 +99,9 @@ describe('ManageShelvesTagsDialog', () => {
   it('renders the dialog with built-in and custom shelves', () => {
     renderDialog()
     expect(screen.getByText('Edit shelves & tags')).toBeInTheDocument()
-    // Built-in shelves section
     expect(screen.getByText('Built-in shelves')).toBeInTheDocument()
     expect(screen.getByText('Currently reading')).toBeInTheDocument()
     expect(screen.getByText('Want to read')).toBeInTheDocument()
-    // Custom shelf
     expect(screen.getByText('Custom shelves')).toBeInTheDocument()
     expect(screen.getByText('classics')).toBeInTheDocument()
   })

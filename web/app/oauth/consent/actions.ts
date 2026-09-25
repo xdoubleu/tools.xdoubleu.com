@@ -4,11 +4,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { decideAuthorization } from '@/lib/oauth2as/consentClient'
 
-// Server actions backing the OAuth consent screen. Each forwards the
-// signed-in user's session cookie, records the consent decision by POSTing
-// back to /oauth2/authorize with the original authorization-request query
-// params, and sends the browser to the URL fosite responds with (carrying
-// the authorization code on approval, or an access_denied error on denial).
+// Consent server actions: POST the decision back to /oauth2/authorize with
+// the session cookie and original params, then follow fosite's redirect.
 
 async function decide(requestQuery: string, decision: 'allow' | 'deny'): Promise<void> {
   const store = await cookies()

@@ -14,7 +14,6 @@ import { cn } from '@/lib/cn'
 interface PopoverProps {
   trigger: (props: { open: boolean; onClick: () => void }) => ReactNode
   children: ReactNode
-  /** Extra classes applied to the panel wrapper. */
   className?: string
   /** Alignment of the panel relative to the trigger. Defaults to "right". */
   align?: 'left' | 'right'
@@ -34,13 +33,9 @@ interface PanelCoords {
 const MARGIN = 8 // px clearance from viewport edges
 
 /**
- * A lightweight popover primitive: a trigger + a portaled fixed-position panel
- * that closes on outside-click and Escape. The panel is rendered via
- * createPortal to document.body so it is never clipped by an ancestor
- * overflow container (e.g. the library table's overflow-x-auto wrapper).
- *
- * The panel flips upward automatically when there is not enough space below
- * the trigger, and its height is capped to the available viewport space.
+ * Trigger plus a portalled fixed panel (never clipped by overflow ancestors)
+ * that closes on outside click and Escape, flips upward when space below is
+ * short, and caps its height to the viewport.
  */
 export function Popover({ trigger, children, className, align = 'right' }: PopoverProps) {
   const [open, setOpen] = useState(false)
@@ -73,12 +68,10 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
     setCoords(c)
   }, [align])
 
-  // Recompute on open
   useEffect(() => {
     if (open) computeCoords()
   }, [open, computeCoords])
 
-  // Recompute on scroll/resize while open
   useEffect(() => {
     if (!open) return
     window.addEventListener('scroll', computeCoords, true)
@@ -89,7 +82,7 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
     }
   }, [open, computeCoords])
 
-  // Close on outside click — must exclude both trigger and panel
+  // Outside click must exclude both trigger and panel.
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent) => {
@@ -102,7 +95,6 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
     return () => document.removeEventListener('mousedown', handler)
   }, [open, close])
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {

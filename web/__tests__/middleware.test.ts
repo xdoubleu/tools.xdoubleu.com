@@ -15,12 +15,10 @@ function connectSrc(): string {
 
 describe('middleware CSP', () => {
   it('allows the local kobo-gateway origin', () => {
-    // Without this the books page can't reach the gateway at all (#960).
     expect(connectSrc()).toContain('https://127.0.0.1:41132')
   })
 
   it('allows Cloudflare R2 for browser-side book file uploads', () => {
-    // The upload PUT goes straight to an R2 presigned URL (#1572).
     expect(connectSrc()).toContain('https://*.r2.cloudflarestorage.com')
   })
 
@@ -31,10 +29,7 @@ describe('middleware CSP', () => {
   })
 
   it('allows PostHog Cloud EU when POSTHOG_HOST is configured (#1857)', () => {
-    // The SDK captures to POSTHOG_HOST and loads its config.js from the
-    // host's -assets sibling, which 'self' doesn't cover — without both,
-    // every page view silently fails with CSP errors and PostHog ingests
-    // nothing.
+    // The SDK also loads config from the host's -assets sibling.
     process.env.POSTHOG_HOST = 'https://eu.i.posthog.com'
     expect(connectSrc()).toContain('https://eu.i.posthog.com')
     expect(connectSrc()).toContain('https://eu-assets.i.posthog.com')

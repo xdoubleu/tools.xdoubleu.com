@@ -22,9 +22,7 @@ export interface TagEntry {
 
 export function buildShelves(library: LibraryResponse): Shelf[] {
   const allBooks = flattenLibrary(library)
-  // The backend has no dedicated LibraryResponse field for dropped books —
-  // they arrive as a generic shelf named "dropped". Pull it out and render
-  // it as a fixed shelf with a proper label instead of the raw status value.
+  // Dropped books arrive as a generic "dropped" shelf; render it as a fixed shelf.
   const droppedShelf = library.shelves.find((s) => s.name === 'dropped')
   const fixed: Shelf[] = [
     {
@@ -119,7 +117,6 @@ export default function LibrarySidebar({
 }: LibrarySidebarProps) {
   return (
     <>
-      {/* Desktop: vertical sidebar */}
       <nav
         className="hidden md:flex flex-col gap-1 min-w-44 shrink-0"
         aria-label="Library navigation"
@@ -165,7 +162,6 @@ export default function LibrarySidebar({
         )}
       </nav>
 
-      {/* Mobile: horizontal scrollable chip rows */}
       <div className="flex md:hidden flex-col gap-2">
         <div
           className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"

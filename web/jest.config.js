@@ -26,8 +26,7 @@ const customJestConfig = {
     '!**/*.d.ts'
   ],
   coverageReporters: ['text', 'lcov'],
-  // Ratchet: set just below current global coverage so drops fail the build.
-  // Raise these as coverage improves (docs target ≥80% on changed code).
+  // Ratchet: just below current coverage; raise as it improves.
   coverageThreshold: {
     global: {
       statements: 77,

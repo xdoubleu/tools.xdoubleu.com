@@ -23,10 +23,8 @@ function shareUrl(kind: DashboardShareKind, token: string) {
   return `${window.location.origin}/dashboard/${kind}/${token}`
 }
 
-// DashboardShareButton opens a public, read-only dashboard link for one
-// dashboard (games or reading) — its own token, independent of the other
-// dashboard's. Sharing requires a display name (set in Settings) so
-// visitors know whose dashboard they're viewing.
+// Opens one dashboard's public read-only link (own token). Requires a
+// display name so visitors know whose it is.
 export default function DashboardShareButton({ kind }: { kind: DashboardShareKind }) {
   const { data: user } = useCurrentUser()
   const { data, mutate } = useDashboardShare(kind)

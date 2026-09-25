@@ -1,9 +1,8 @@
 import { Badge, type BadgeProps } from '@/components/ui/badge'
 
 /**
- * The four states a stop call can honestly render as (issue #1394) — "no
- * live data" must never collapse into "on time", and a skipped/cancelled
- * stop must always read as distinct and prominent.
+ * "No live data" must never read as "on time", and skipped/cancelled stops
+ * must stand out.
  */
 function labelFor(
   status: string,

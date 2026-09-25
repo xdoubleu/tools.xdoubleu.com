@@ -22,10 +22,8 @@ interface AddManualBookDialogProps {
   onAdded: () => void
 }
 
-// Rendered only while the "add manually" flow is active (see BooksLibrary) —
-// unlike BookDialog, which stays mounted and toggles via `open={!!book}`,
-// this component owns its own form state, so the parent conditionally
-// mounts/unmounts it instead of passing an `open` flag.
+// Owns its form state, so the parent mounts it conditionally instead of
+// passing `open`.
 export default function AddManualBookDialog({
   initialTitle = '',
   onClose,

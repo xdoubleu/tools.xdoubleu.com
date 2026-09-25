@@ -1,20 +1,14 @@
 /**
- * Utilities for detecting per-field catalog conflicts within a duplicate group
- * and building the resolved-metadata payload for MergeBooks.
- *
- * Mirrors the fields scored by metadataCompleteness in book_matching.go —
- * cover is detected by presence (proxy URLs differ by bookId so cannot be
- * compared directly; use resolvedCoverSourceBookId on the proto request).
+ * Per-field conflict detection for a duplicate group and the resolved-metadata
+ * payload for MergeBooks. Mirrors metadataCompleteness in book_matching.go;
+ * cover is compared by presence (proxy URLs differ by bookId).
  */
 
 import { create } from '@bufbuild/protobuf'
 import type { Book } from '@/lib/gen/books/v1/library_pb'
 import { BookSchema } from '@/lib/gen/books/v1/library_pb'
 
-// ---------------------------------------------------------------------------
-// Duck-typed interfaces (avoids importing branded proto Message types so tests
-// can pass plain fixture objects without unsafe assertions)
-// ---------------------------------------------------------------------------
+// Duck-typed so tests can pass plain fixtures instead of proto Messages.
 
 interface DupBook {
   id: string
@@ -37,19 +31,12 @@ export interface DupGroup {
   reason: string
 }
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export type BookConflictField =
   'title' | 'authors' | 'isbn13' | 'description' | 'pageCount' | 'cover' | 'status'
 
 export interface FieldChoice {
-  /** bookId of the UserBook entry whose value wins for this field. */
   bookId: string
-  /** Human-readable value for display in the picker. */
   displayValue: string
-  /** Whether this entry actually has a value for the field. */
   hasValue: boolean
 }
 
@@ -57,10 +44,6 @@ export interface FieldConflict {
   field: BookConflictField
   choices: FieldChoice[]
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function authorsKey(authors: string[]): string {
   return [...authors].sort().join('\x00')
@@ -80,7 +63,6 @@ function fieldValue(entry: DupEntry, field: BookConflictField): string {
     case 'pageCount':
       return book && book.pageCount > 0 ? String(book.pageCount) : ''
     case 'cover':
-      // Compare by presence only — proxy URLs differ by bookId.
       return book?.coverUrl ? 'present' : ''
     case 'status':
       return entry.status
@@ -119,13 +101,10 @@ export const ALL_CONFLICT_FIELDS: BookConflictField[] = [
   'pageCount'
 ]
 
-// ---------------------------------------------------------------------------
-// Status ranking (mirrors statusRank in book_matching.go)
-// ---------------------------------------------------------------------------
+// Mirrors statusRank in book_matching.go; lower is worse.
 
 const BUILT_IN_STATUSES = new Set(['to-read', 'currently-reading', 'read', 'dropped'])
 
-// Built-in rank map — lower is worse.
 const BUILTIN_RANK: Record<string, number> = {
   read: 3,
   'currently-reading': 2,
@@ -140,9 +119,9 @@ function statusRank(status: string): number {
 }
 
 /**
- * Returns the bookId of the entry whose status would win under the same
- * auto-consolidation rule as the backend (custom shelf > read > currently-reading
- * > to-read > dropped).  Falls back to entries[0] on a tie.
+ * Returns the bookId whose status wins under the backend's consolidation rule
+ * (custom shelf > read > currently-reading > to-read > dropped); ties pick
+ * entries[0].
  */
 export function pickAutoStatusBookId(group: DupGroup): string {
   let best = group.entries[0]
@@ -154,11 +133,7 @@ export function pickAutoStatusBookId(group: DupGroup): string {
   return best?.bookId ?? ''
 }
 
-/**
- * Given the per-field choices map, returns the resolved status string to send
- * to the backend.  Returns undefined when the status field has no choice set
- * (auto-consolidation handles it).
- */
+/** Resolved status to send, or undefined to let auto-consolidation decide. */
 export function resolveStatusChoice(
   group: DupGroup,
   fieldChoices: Partial<Record<BookConflictField, string>>
@@ -169,14 +144,7 @@ export function resolveStatusChoice(
   return entry?.status
 }
 
-// ---------------------------------------------------------------------------
-// Public API
-// ---------------------------------------------------------------------------
-
-/**
- * Returns fields whose values differ across entries in the group.
- * Fields where all entries agree are excluded.
- */
+/** Returns fields whose values differ across entries in the group. */
 export function detectConflicts(group: DupGroup): FieldConflict[] {
   const conflicts: FieldConflict[] = []
 
@@ -203,9 +171,8 @@ export function detectConflicts(group: DupGroup): FieldConflict[] {
 }
 
 /**
- * Builds the resolved Book metadata object from the per-field choices map.
- * coverUrl and status are intentionally excluded — pass resolvedCoverSourceBookId
- * and resolvedStatus separately.
+ * Builds resolved Book metadata from the choices map, excluding coverUrl and
+ * status (sent as resolvedCoverSourceBookId / resolvedStatus).
  */
 export function buildResolvedMetadata(
   group: DupGroup,
@@ -213,12 +180,9 @@ export function buildResolvedMetadata(
 ): Book {
   const bookById = new Map(group.entries.filter((e) => e.book).map((e) => [e.bookId, e.book!]))
 
-  // Start from the winner entry's book as the base.
   const winner = group.entries[0]?.book
   if (!winner) return create(BookSchema)
 
-  // coverUrl and status are intentionally excluded — cover is controlled via
-  // resolvedCoverSourceBookId, status via resolvedStatus on MergeBooksRequest.
   const resolved = create(BookSchema, {
     title: winner.title,
     authors: winner.authors,

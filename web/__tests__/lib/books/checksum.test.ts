@@ -1,9 +1,7 @@
 /**
  * @jest-environment node
  *
- * Run in the Node.js environment (not jsdom) so that File, File.arrayBuffer,
- * and crypto.subtle are all available natively (Node.js 18+). This avoids the
- * need for jsdom polyfills for those APIs.
+ * Node provides File and crypto.subtle natively.
  */
 import { sha256Hex } from '@/lib/books/checksum'
 

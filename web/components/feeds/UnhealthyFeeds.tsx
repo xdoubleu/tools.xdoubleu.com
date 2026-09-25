@@ -4,8 +4,7 @@ import { useCurrentUser } from '@/hooks/useAuth'
 import { useUnhealthyFeeds } from '@/hooks/useFeeds'
 import FeedsCard from './FeedsCard'
 
-// GetUnhealthyFeeds reports every user's feeds, not just the caller's own, so
-// it's admin-only server-side — only render/fetch it for an admin viewer.
+// Admin-only RPC (covers every user's feeds).
 export default function UnhealthyFeeds() {
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'

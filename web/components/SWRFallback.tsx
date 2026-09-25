@@ -3,11 +3,9 @@
 import { SWRConfig, unstable_serialize, type SWRConfigValue } from 'swr'
 import type { Arguments } from 'swr'
 
-// Injects server-fetched data into the SWR cache for the given keys without
-// touching hook or component signatures. Merges with any parent fallback
-// (e.g. the root layout's current-user entry) instead of replacing it.
-// String keys go in `fallback` directly; tuple/object keys go in `keyed`
-// and are serialized here (unstable_serialize is client-only).
+// Injects server-fetched data into the SWR cache, merging with any parent
+// fallback. Tuple/object keys go in `keyed` and are serialized here
+// (unstable_serialize is client-only).
 export default function SWRFallback({
   fallback,
   keyed = [],

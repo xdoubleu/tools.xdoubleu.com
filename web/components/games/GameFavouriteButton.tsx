@@ -12,14 +12,13 @@ interface GameFavouriteButtonProps {
   className?: string
 }
 
-// Optimistic flip with rollback on error, then revalidate the game and library
-// caches. Presentation comes from the shared ToggleIconButton primitive.
+// Optimistic flip with rollback, then revalidate game and library caches.
 export default function GameFavouriteButton({ game, className }: GameFavouriteButtonProps) {
   const [favourite, setFavourite] = useState(game.favourite)
   const setGameFavourite = useSetGameFavourite()
 
   const handleClick = async (e: MouseEvent) => {
-    // Stop the click from bubbling to a wrapping card <Link> (card view).
+    // Don't trigger a wrapping card <Link>.
     e.preventDefault()
     e.stopPropagation()
 

@@ -25,8 +25,7 @@ export function JourneyRow({ journey }: { journey: Journey }) {
   const trains = journey.legs.map((leg) => leg.tripShortName).join(', ')
 
   if (!journey.journeyId) {
-    // Defensive fallback — the api always sets journey_id, but a row with
-    // none can't open a detail page.
+    // The api always sets journey_id; without one there's no detail page.
     return (
       <Card className="p-4">
         <JourneyRowContent journey={journey} trains={trains} />
@@ -72,7 +71,7 @@ interface JourneyResultsProps {
   journeys: Journey[]
 }
 
-/** The route overview list, plus the empty/degraded states called out in issue #1392. */
+/** Route overview list plus its empty/degraded states. */
 export default function JourneyResults({
   ready,
   isLoading,

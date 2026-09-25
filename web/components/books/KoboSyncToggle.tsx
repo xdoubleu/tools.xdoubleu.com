@@ -60,16 +60,16 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
   }
 
   const handleFormatChange = async (sendPDF: boolean) => {
-    // Optimistic flip — respond instantly like the sync checkbox does.
+    // Optimistic flip.
     setWantsPDF(sendPDF)
     setToggling(true)
     setError(null)
     try {
       if (sendPDF) {
-        // Add kobo-format-pdf tag to serve raw PDF.
+        // The tag serves raw PDF.
         await toggleTag(bookId, 'kobo-format-pdf')
       } else {
-        // Remove kobo-format-pdf; re-trigger conversion so the KEPUB is ready.
+        // Re-trigger conversion so the KEPUB is ready.
         await toggleTag(bookId, 'kobo-format-pdf')
         await enableKoboSync(bookId)
         mutate(swrKeys.kepubStatus(bookId))

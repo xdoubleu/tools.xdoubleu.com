@@ -94,7 +94,6 @@ describe('GamesDashboardPublicClient', () => {
     const link = screen.getByRole('link', { name: 'Browse full library' })
     expect(link).toHaveAttribute('href', '/dashboard/games/tok-1/library')
 
-    // The grouped game grid now lives on its own route.
     expect(screen.queryByPlaceholderText('Search games…')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Not Started (1)' })).not.toBeInTheDocument()
   })

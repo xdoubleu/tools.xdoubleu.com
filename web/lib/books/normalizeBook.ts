@@ -1,9 +1,4 @@
-/**
- * Client-side normalization helpers for grouping catalog books in the resync
- * UI. The logic mirrors the Go implementation in
- * api/apps/books/internal/services/book_matching.go so that grouping is
- * consistent with the backend duplicate-detection heuristics.
- */
+/** Grouping normalization mirroring api/apps/books/internal/services/book_matching.go. */
 
 /** Normalize a raw string: NFD + strip diacritics, lowercase, alphanumeric only. */
 function normalizeString(s: string): string {
@@ -20,10 +15,8 @@ const PARENTHETICAL_RE = /[([][^)\]]*[)\]]/g
 const LEADING_ARTICLE_RE = /^(the|an?)\s+/i
 
 /**
- * Matches a volume/edition/part marker plus its number, e.g. "Volume 2",
- * "Vol. 2", "Book 3", "Part 1", "Edition 4" — case-insensitive. Deliberately
- * narrower than "any number": a Goodreads shelf marker like "(Series, #1)"
- * has no such keyword and must stay stripped as noise.
+ * Matches a volume/edition/part keyword plus number. Requires the keyword so
+ * shelf markers like "(Series, #1)" stay stripped.
  */
 const VOLUME_NUMBER_RE = /\b(?:volume|vol|book|part|edition|ed)\.?\s*#?\s*(\d+)/gi
 
@@ -32,11 +25,7 @@ function volumeNumbers(s: string): string[] {
   return [...s.matchAll(VOLUME_NUMBER_RE)].map((m) => m[1] ?? '')
 }
 
-/**
- * Returns the volume/edition/part numbers present in raw but not accounted
- * for in main (multiset difference), space-joined — i.e. numbers that
- * annotation-stripping discarded.
- */
+/** Volume numbers in raw missing from main (multiset difference), space-joined. */
 function lostVolumeNumbers(raw: string, main: string): string {
   const mainCounts = new Map<string, number>()
   for (const n of volumeNumbers(main)) mainCounts.set(n, (mainCounts.get(n) ?? 0) + 1)
@@ -53,11 +42,9 @@ function lostVolumeNumbers(raw: string, main: string): string {
 }
 
 /**
- * Normalize a book title for grouping. Strips subtitle/series/edition noise
- * (everything after the first ':'/';'/' - ', plus any "(...)"/"[...]"
- * segment) and a leading article, matching the Go normalizeTitle logic. A
- * volume/edition/part number lost to that stripping (e.g. "Title: Volume 2")
- * is appended back, so distinct volumes never normalize to the same title.
+ * Normalizes a title like Go's normalizeTitle: strips subtitle, "(...)"/"[...]"
+ * and a leading article, then re-appends any lost volume number so volumes
+ * stay distinct.
  */
 export function normalizeTitle(s: string): string {
   let stripped = s.split(':')[0] ?? s
@@ -73,10 +60,8 @@ export function normalizeTitle(s: string): string {
 }
 
 /**
- * Normalize an author name to its last-name token for grouping, matching the
- * Go normalizeAuthor logic:
- *  - "Last, First…" (comma present) → everything before the first comma
- *  - "First… Last"  (no comma)      → the last whitespace-delimited token
+ * Last-name token, like Go's normalizeAuthor: before the first comma if
+ * present, else the last word.
  */
 export function normalizeAuthor(s: string): string {
   const t = s.trim()
@@ -91,15 +76,12 @@ export function normalizeAuthor(s: string): string {
   return normalizeString(lastName)
 }
 
-/**
- * Compute a grouping key for an ISBN-less book entry.
- * Returns null when a key cannot be derived (no title or no authors).
- */
+/** Grouping key for an ISBN-less book, or null without title/authors. */
 export function isbnLessGroupKey(title: string, authors: readonly string[]): string | null {
   const nt = normalizeTitle(title)
   if (!nt) return null
 
-  // Use only the first author's last name, matching buildSearchQuery behaviour.
+  // First author only, matching buildSearchQuery.
   const firstAuthor = authors[0]
   if (!firstAuthor) return null
   const na = normalizeAuthor(firstAuthor)

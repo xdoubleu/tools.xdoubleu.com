@@ -17,11 +17,8 @@ jest.mock('@/hooks/useLearningPaths', () => ({
   useUpdateLearningPath: () => mockUpdateLearningPath
 }))
 
-// ResourceLinkPicker itself is covered by its own test file — mock it here
-// as a thin control surface so LearningPathForm's own link/unlink wiring
-// (linkResourceBook/linkResourceFeedItem/unlinkResource, and what ends up in
-// the submitted payload) can be exercised without driving its internal
-// search UI.
+// Thin stand-in so the form's link/unlink wiring can be tested without
+// driving the picker's search UI (covered by its own tests).
 jest.mock('@/components/learningpaths/ResourceLinkPicker', () => {
   return function MockResourceLinkPicker(props: {
     linkedBook?: { id: string; title: string }

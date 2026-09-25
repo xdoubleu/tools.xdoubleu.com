@@ -11,9 +11,7 @@ interface BookArticleReaderDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-// In-app reader for a library book's stored content (paper/article ingests
-// with content_html) — fetches by bookId and renders the shared reader
-// scaffold in components/ArticleReaderDialog.tsx.
+// Reader for a library book's stored content_html.
 export default function BookArticleReaderDialog({
   bookId,
   title,

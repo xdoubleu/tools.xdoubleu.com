@@ -41,7 +41,6 @@ export default function BooksTableToolbar({
 
   return (
     <div className="flex items-center gap-2">
-      {/* Columns toggle */}
       <Popover
         align="left"
         trigger={({ open, onClick }) => (
@@ -68,7 +67,6 @@ export default function BooksTableToolbar({
         </div>
       </Popover>
 
-      {/* Filters */}
       <Popover
         align="left"
         trigger={({ open, onClick }) => (
@@ -83,7 +81,6 @@ export default function BooksTableToolbar({
         )}
       >
         <div className="space-y-3 min-w-40">
-          {/* Ownership group */}
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide">Ownership</p>
             <div className="flex flex-col gap-1">
@@ -102,7 +99,6 @@ export default function BooksTableToolbar({
             </div>
           </div>
 
-          {/* Format group */}
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide">Format</p>
             <div className="flex flex-col gap-1">
@@ -121,7 +117,6 @@ export default function BooksTableToolbar({
             </div>
           </div>
 
-          {/* Kobo group */}
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide">Kobo</p>
             <div className="flex flex-col gap-1">

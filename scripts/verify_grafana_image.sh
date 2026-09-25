@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# Boot the Grafana wrapper image and assert its baked-in provisioning
-# actually loads (issue #1533). `make lint/grafana` only statically checks
-# the dashboard JSON; a malformed provisioning YAML, a dashboard
-# schemaVersion Grafana rejects, or a bad datasource block otherwise only
-# shows up as a silent `level=error` line in Grafana's log after deploy.
-#
-# Run via `make grafana/verify`; also run by build-grafana.yml.
+# Boot the Grafana wrapper image and assert its provisioning loads without
+# a `level=error` log line (lint/grafana only checks the JSON statically).
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

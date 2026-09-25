@@ -1,6 +1,4 @@
-# Entries that aren't literal key text are paths to .pub files — read them
-# here so terraform.tfvars can hold `~/.ssh/id.pub` instead of a key blob
-# (.tfvars isn't shell-interpolated, so `$(cat ...)` can't do this).
+# Non-literal entries are .pub paths (tfvars can't interpolate `$(cat ...)`).
 locals {
   deploy_ssh_public_keys = [
     for key in var.deploy_ssh_public_keys :
@@ -8,8 +6,7 @@ locals {
   ]
 }
 
-# Network firewall: a real Tofu-managed resource, attached to the manually
-# created server by ID. See infra/README.md for the manual server-creation step.
+# Attached by ID to the manually created server (infra/README.md).
 resource "hcloud_firewall" "vps" {
   name = "tools-xdoubleu-com-vps"
 
@@ -40,25 +37,9 @@ resource "hcloud_firewall_attachment" "vps" {
   server_ids  = [var.server_id]
 }
 
-# OS-level hardening: cloud-init can't be used since the server is created
-# manually (it only runs on first boot), so this connects as `deploy` (which
-# harden.sh's own first run already created, with passwordless sudo) and
-# runs the idempotent script via `sudo`. Re-runs automatically whenever
-# harden.sh changes.
-#
-# NOT root, deliberately: harden.sh's own last step sets PermitRootLogin no,
-# so root SSH only ever works on a server's very first-ever hardening run,
-# before that line takes effect. Any resource that keeps trying to reconnect
-# as root after that (a past version of this one did, twice — first via a
-# keys_hash trigger, then simply because harden.sh's own content changed)
-# fails auth forever and just hangs/retries. Since every server this repo
-# manages has already been through that first bootstrap, deploy+sudo is
-# always available going forward and root never needs to work again.
-#
-# Bootstrapping a genuinely new server from scratch (deploy doesn't exist
-# yet) needs a one-time manual step first, outside Tofu: SSH in as root
-# using the key set at server-creation time and run harden.sh by hand once
-# — see infra/README.md's server-creation section.
+# Runs the idempotent harden.sh as `deploy` via sudo; re-runs when it changes.
+# Never root: harden.sh sets PermitRootLogin no, so root SSH only works on a
+# brand-new server's first run, which is a manual step (infra/README.md).
 resource "null_resource" "harden" {
   triggers = {
     script_hash = filesha256("${path.module}/harden.sh")
@@ -84,10 +65,7 @@ resource "null_resource" "harden" {
   }
 }
 
-# Authorizes new/changed keys after the initial bootstrap above — connects
-# as `deploy` (already trusted once null_resource.harden has run once),
-# never root, so this can safely re-run any time deploy_ssh_public_keys
-# changes without hitting the permanent root-lockout problem described above.
+# Authorizes key changes as `deploy`, never root, so it can re-run any time.
 resource "null_resource" "deploy_keys" {
   depends_on = [null_resource.harden]
 
@@ -104,8 +82,7 @@ resource "null_resource" "deploy_keys" {
 
   provisioner "remote-exec" {
     inline = [
-      # POSIX sh only: remote-exec runs this with /bin/sh (dash on Ubuntu),
-      # so no herestrings (`<<<`) — dash exits 2 on those.
+      # POSIX sh only: remote-exec uses dash, which rejects `<<<`.
       <<-EOT
         AUTH_KEYS=/home/deploy/.ssh/authorized_keys
         echo '${join("\n", local.deploy_ssh_public_keys)}' | while IFS= read -r key; do
@@ -117,9 +94,7 @@ resource "null_resource" "deploy_keys" {
   }
 }
 
-# Postgres superuser password. Kept in local Tofu state (never committed,
-# never used in CI, same trust boundary as the rest of infra/) rather than
-# passed in externally — retrieve it with `tofu output -raw postgres_password`.
+# Kept in local Tofu state; read with `tofu output -raw postgres_password`.
 resource "random_password" "postgres" {
   length  = 32
   special = false # avoid shell-quoting issues in .env / remote-exec
@@ -130,12 +105,8 @@ output "postgres_password" {
   sensitive = true
 }
 
-# Shared Docker network (issue #1033) between Postgres and the
-# Kamal-deployed app — postgres-compose.yml declares it `external: true`, so
-# it must exist before `docker compose up` runs there. Created here (not left
-# for `kamal setup` to create) to break that circular dependency: Postgres
-# needs this network before it can start, but Kamal's own deploy needs
-# Postgres reachable for its health check before it can run.
+# Postgres needs this external network to start, and Kamal needs Postgres
+# for its health check, so it's created here rather than by `kamal setup`.
 resource "null_resource" "kamal_network" {
   depends_on = [null_resource.harden]
 
@@ -147,18 +118,13 @@ resource "null_resource" "kamal_network" {
   }
 
   provisioner "remote-exec" {
-    # Idempotent — `kamal setup` also creates this network if it doesn't
-    # find one, so re-running either side is safe regardless of order.
+    # `kamal setup` also creates it if missing, so order doesn't matter.
     inline = ["docker network create kamal || true"]
   }
 }
 
-# Uploads the release-upgrade-check script and its env file (issue #1194),
-# then (re)starts the timer harden.sh already enabled — the timer unit
-# exists after harden.sh runs, but the script/env it depends on lives here
-# so editing either doesn't require touching harden.sh's own trigger hash.
-# Runs as `deploy`, using sudo for the root-owned destinations, same as the
-# other post-harden resources here.
+# Uploads the script/env for the timer harden.sh enables, kept here so edits
+# don't change harden.sh's trigger hash.
 resource "null_resource" "release_upgrade_check" {
   depends_on = [null_resource.harden]
 
@@ -202,9 +168,7 @@ resource "null_resource" "release_upgrade_check" {
   }
 }
 
-# Stands up self-hosted Postgres (issue #1031) via Docker Compose, following
-# the same file+remote-exec pattern as null_resource.harden above. Runs as
-# `deploy`, not root, since harden.sh already put it in the docker group.
+# Runs as `deploy` (in the docker group via harden.sh).
 resource "null_resource" "postgres" {
   depends_on = [null_resource.harden, null_resource.kamal_network]
 
@@ -244,10 +208,7 @@ resource "null_resource" "postgres" {
   }
 }
 
-# Stands up node_exporter (issue #1040) for the observability app's host
-# metrics, following the same file+remote-exec pattern as null_resource.
-# postgres above. No secrets involved, so unlike postgres there's no .env
-# file provisioner.
+# Host metrics exporter; no secrets, so no .env file.
 resource "null_resource" "node_exporter" {
   depends_on = [null_resource.harden, null_resource.kamal_network]
 
@@ -278,37 +239,20 @@ resource "null_resource" "node_exporter" {
   }
 }
 
-# Stands up Prometheus + postgres_exporter (issue #1468), the second half of
-# the metrics stack alongside node_exporter above. postgres_exporter needs
-# DATA_SOURCE_NAME (a read connection string), so this follows
-# null_resource.postgres's file+.env pattern rather than node_exporter's
-# secret-free one, reusing the same Tofu-generated random_password.postgres
-# — no new credential to provision or rotate separately.
+# Prometheus + postgres_exporter; reuses random_password.postgres for
+# postgres_exporter's DATA_SOURCE_NAME.
 resource "null_resource" "prometheus" {
   depends_on = [null_resource.harden, null_resource.kamal_network, null_resource.postgres]
 
   triggers = {
     compose_hash = filesha256("${path.module}/prometheus-compose.yml")
     config_hash  = filesha256("${path.module}/prometheus.yml")
-    # Alert rules are no longer Prometheus's — Grafana owns alerting now,
-    # provisioned into its wrapper image (infra/grafana/provisioning/
-    # alerting/, issue #1528). Prometheus only collects.
-    # Not the password itself (that's sensitive) — same "does the secret
-    # value's hash change" trick null_resource.postgres uses.
+    # Hash, not the password itself.
     password_hash = sha256(random_password.postgres.result)
-    # Same trick for the /metrics bearer token (issue #1555) — re-uploads
-    # web_ingest_secret and restarts Prometheus when the value rotates.
+    # Restarts Prometheus when the /metrics bearer token rotates.
     ingest_secret_hash = sha256(var.observability_ingest_secret)
-    # The host-side setup commands (the remote-exec below) live in a script
-    # file rather than remote-exec's inline list so their *content*
-    # participates in `triggers`: a null_resource only re-runs its
-    # provisioners when a `triggers` value changes, and an inline
-    # provisioner edit changes no trigger — the merged change then never
-    # executes on any future apply (exactly what happened to the SIGHUP line
-    # itself: #1759 added it inline, no trigger changed, the Sep-20 apply
-    # skipped the provisioners, and the running Prometheus was never
-    # reloaded — issue #1821). Hashing the script into `triggers` makes any
-    # edit to it force a provisioner re-run on the next apply.
+    # Setup commands live in a file so edits change a trigger; an inline
+    # remote-exec edit changes no trigger and never runs.
     setup_hash = filesha256("${path.module}/prometheus-setup.sh")
   }
 
@@ -340,10 +284,7 @@ resource "null_resource" "prometheus" {
     destination = "/home/deploy/prometheus/.env"
   }
 
-  # Bearer token the `web` scrape job in prometheus.yml sends so it can read
-  # the now-gated GET /metrics on the web container (issue #1555). Written
-  # raw (no trailing newline — Prometheus trims credentials_file whitespace
-  # anyway) and mounted read-only by prometheus-compose.yml.
+  # Bearer token for the `web` scrape job; mounted read-only.
   provisioner "file" {
     content     = var.observability_ingest_secret
     destination = "/home/deploy/prometheus/web_ingest_secret"
@@ -354,8 +295,7 @@ resource "null_resource" "prometheus" {
     destination = "/home/deploy/prometheus/prometheus-setup.sh"
   }
 
-  # Everything here lives in prometheus-setup.sh (see setup_hash in
-  # `triggers` for why an inline remote-exec list cannot be used).
+  # See setup_hash in `triggers`.
   provisioner "remote-exec" {
     inline = ["cd /home/deploy/prometheus && bash prometheus-setup.sh"]
   }

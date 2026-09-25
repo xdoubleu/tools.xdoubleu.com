@@ -118,7 +118,6 @@ export default function ManageShelvesTagsDialog({
     }
   }
 
-  // All shelves valid as a reassignment target (built-in + other custom shelves)
   const deleteTargets = [
     ...BOOK_STATUSES,
     ...customShelves
@@ -136,7 +135,6 @@ export default function ManageShelvesTagsDialog({
 
         {error && <p className="mb-3 text-sm text-danger">{error}</p>}
 
-        {/* Built-in shelves — read-only */}
         <section className="mb-4">
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
             Built-in shelves
@@ -154,7 +152,6 @@ export default function ManageShelvesTagsDialog({
           </div>
         </section>
 
-        {/* Custom shelves — editable */}
         <section className="mb-4">
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
             Custom shelves
@@ -270,7 +267,6 @@ export default function ManageShelvesTagsDialog({
           </div>
         </section>
 
-        {/* Tags — editable */}
         <section>
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">Tags</h3>
           {tags.length === 0 && <p className="text-sm text-muted">No tags yet.</p>}

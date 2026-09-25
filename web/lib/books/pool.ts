@@ -1,14 +1,7 @@
 /**
- * runPool runs up to `limit` concurrent calls to `worker` over `items`.
- *
- * Workers pull items from a shared index — each worker loops until the list is
- * exhausted, then resolves. The function resolves once every item has been
- * processed. Worker errors propagate: if any worker throws, the rejection is
- * forwarded from runPool (matching Promise.all behaviour).
- *
- * Safe in a single-threaded JS environment: the shared index is read and
- * incremented in the same synchronous step before any `await`, so there are
- * no data races.
+ * runPool runs up to `limit` concurrent `worker` calls over `items`, rejecting
+ * like Promise.all if any throws. The shared index is claimed synchronously
+ * before any `await`, so there's no race.
  */
 export async function runPool<T>(
   items: T[],

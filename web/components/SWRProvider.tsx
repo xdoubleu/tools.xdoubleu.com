@@ -6,11 +6,8 @@ import posthog from 'posthog-js'
 import { swrKeys } from '@/lib/swrKeys'
 import type { GetCurrentUserResponse } from '@/lib/gen/auth/v1/auth_pb'
 
-// Bridges server-fetched data into the SWR cache. The layout fetches the
-// current user once per request and provides it as fallback for every
-// consumer of swrKeys.currentUser (Navbar, HomeClient, settings, ...);
-// hooks still revalidate client-side, which keeps the browser-side token
-// refresh path alive when the server fetch came back null.
+// Seeds the SWR cache with server-fetched data (e.g. the current user);
+// hooks still revalidate, keeping the browser-side token refresh alive.
 export default function SWRProvider({
   currentUser,
   children
@@ -18,10 +15,7 @@ export default function SWRProvider({
   currentUser: GetCurrentUserResponse | null
   children: React.ReactNode
 }) {
-  // Ties PostHog's distinct_id to the real user (root AGENTS.md's PostHog
-  // decision — every family member is individually identified). A no-op
-  // when PostHog wasn't initialized (missing key) or already identified as
-  // this user.
+  // Identify the PostHog user (every family member individually).
   useEffect(() => {
     if (currentUser?.userId && posthog.get_distinct_id() !== currentUser.userId) {
       posthog.identify(currentUser.userId)

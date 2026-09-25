@@ -28,8 +28,7 @@ import { Select } from '@/components/ui/select'
 
 interface ExportDialogProps {
   customItems: ShoppingItem[]
-  // Meal-plan items are fetched once on the landing page (which also owns the
-  // ingredient-group exclusion) and passed in. The dialog only picks the store.
+  // Fetched and group-filtered on the landing page.
   mealItems: ShoppingItem[]
   onClose: () => void
 }

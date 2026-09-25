@@ -18,12 +18,8 @@ variable "deploy_ssh_public_keys" {
   description = "SSH public keys to authorize on the new non-root deploy user — your own key plus a dedicated, unencrypted CI deploy key (webfactory/ssh-agent runs headless and can't unlock a passphrase-protected key, so CI needs its own). Each entry is either the key's literal text (ssh-.../ecdsa-...) or a path to a .pub file (~ allowed), which Tofu reads for you."
   type        = list(string)
 
-  # terraform.tfvars is not shell-interpolated, so an entry written as
-  # "$(cat ~/.ssh/id.pub)" stays that literal string — harden.sh then appends
-  # it to authorized_keys, where sshd silently ignores it and the key it was
-  # meant to authorize simply never works (hit for real on the CI deploy key,
-  # issue #1036). Paths are read by local.deploy_ssh_public_keys in main.tf;
-  # a literal "$(cat ...)" is neither, so still fail at plan time.
+  # tfvars isn't shell-interpolated, so a literal "$(cat ...)" would be
+  # silently ignored by sshd; reject it. Paths are read in main.tf.
   validation {
     condition     = alltrue([for key in var.deploy_ssh_public_keys : can(regex("^(ssh-|ecdsa-)", key)) || can(file(pathexpand(key)))])
     error_message = "Each entry must be the public key's literal text (ssh-/ecdsa-) or a readable path to a .pub file — not a $(cat ...) shell substitution, since .tfvars files are not shell-interpolated."
@@ -52,10 +48,5 @@ variable "observability_ingest_secret" {
   sensitive   = true
 }
 
-# No *app* secrets here. Tofu provisions the host (firewall, hardening,
-# deploy keys, Postgres, and — see above — the release-upgrade-check timer)
-# and nothing else — the app itself is deployed only
-# by .github/workflows/main.yml's deploy-kamal job, which reads every app
-# secret from repo Secrets (see infra/README.md's CI section). They used to
-# be duplicated here to feed a local `kamal setup`, which meant rotating any
-# one of them in two places.
+# No app secrets: Tofu provisions the host; main.yml's deploy-kamal job
+# deploys the app with repo Secrets.

@@ -17,18 +17,14 @@ import { swrKeys } from '@/lib/swrKeys'
 interface BookProgressFormProps {
   userBook: UserBook
   onSaved?: () => void
-  /** Called after a successful save, and on Cancel/Escape — lets an embedding popover/toggle close itself. */
+  /** Called after save and on Cancel/Escape, so a popover can close itself. */
   onClose?: () => void
 }
 
 /**
- * The reading-progress edit form: a mode select (pages/percent) plus a
- * numeric input, committed via the Save button or Enter — never on blur, since
- * a mobile numeric keypad often has no key that fires a real Enter keydown,
- * and blurring into the Cancel button would otherwise save right before the
- * value is discarded. Shared between the card view's click-to-toggle usage
- * (`BookProgressEditor`) and the library table's "Progress" column popover
- * (`BookProgressCell`).
+ * Reading-progress form (pages/percent), committed via Save or Enter — never
+ * on blur: mobile keypads often lack Enter, and blurring into Cancel would
+ * save first.
  */
 export default function BookProgressForm({ userBook, onSaved, onClose }: BookProgressFormProps) {
   const [progressMode, setProgressMode] = useState(defaultProgressMode(userBook))

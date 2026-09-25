@@ -6,12 +6,7 @@ import BookProgressBar from '@/components/books/BookProgressBar'
 import BookProgressForm from '@/components/books/BookProgressForm'
 import { Button } from '@/components/ui/button'
 
-/**
- * Reading progress display: the progress bar, tapped to open the exact-entry
- * `BookProgressForm`. Built for the reading dashboard's currently-reading
- * cards, where a trip to the detail page (especially on mobile) is the main
- * cost of correcting progress.
- */
+/** Progress bar that opens `BookProgressForm` on tap, for dashboard cards. */
 export default function BookQuickProgress({
   userBook,
   onSaved

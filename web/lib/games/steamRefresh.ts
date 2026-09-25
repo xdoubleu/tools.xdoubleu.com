@@ -8,11 +8,8 @@ export interface SteamRefreshState {
   refresh: () => void
 }
 
-// useSteamRefresh subscribes to the games progress WebSocket for the "steam"
-// topic, mirroring the original pre-migration refresh widget: it reports the
-// live refreshing state and last refresh time, exposes a trigger that kicks off
-// a server-side Steam sync, and invokes onSynced once a sync completes so the
-// caller can re-fetch the freshly synced data.
+// useSteamRefresh tracks the "steam" topic on the games progress WebSocket,
+// triggers a server-side sync, and calls onSynced when it completes.
 export function useSteamRefresh(onSynced?: () => void): SteamRefreshState {
   const triggerRefresh = useRefreshSteam()
   const { connected, isRefreshing, lastRefresh, refresh } = useProgressSocket(

@@ -24,66 +24,43 @@ import (
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
 )
 
-// iconTemplate is a monochrome PNG rendered as a status-bar template
-// image (macOS tints it automatically for light/dark menu bars).
+// iconTemplate is a monochrome template image; macOS tints it.
 //
 //go:embed assets/menubar-template.png
 var iconTemplate []byte
 
-// menubarIconSize is the on-screen point size of the status-bar glyph. The
-// embedded PNG is drawn at 2x that for Retina displays (see
-// assets/menubar-template.png, 36x36px); without an explicit size AppKit
-// renders the image at its native pixel size, which towers over the rest of
-// the menu bar and effectively looks blank/missing at a glance.
+// menubarIconSize is the glyph's point size; without it AppKit draws the 2x
+// PNG at pixel size, far too large.
 const menubarIconSize = 18
 
-// The following package-level vars hold menu-bar state that must survive
-// across a status-item rebuild (see buildStatusItem) and are only ever
-// read/written on the main AppKit queue — either from runUI's setup (which
-// itself runs on the main thread, see runtime.LockOSThread in main.go) or
-// from blocks dispatched via dispatch.MainQueue()/DispatchAsync. No lock is
-// needed as long as that invariant holds.
+// Menu-bar state that survives a status-item rebuild. Only touched on the
+// main AppKit queue, so no lock is needed.
 //
 //nolint:gochecknoglobals // must outlive runUI's setup closure, see below.
 var (
-	// statusItem holds the menu-bar status item. objc.Retain (below) retains
-	// the underlying NSStatusItem but also installs a Go finalizer that
-	// releases it once its Go wrapper is garbage-collected — a local variable
-	// inside runUI's setup closure becomes unreachable as soon as that
-	// closure returns, so the item would be finalized (and the icon vanish)
-	// a few GC cycles after launch. Keeping a package-level reference to it
-	// prevents that GC.
-	statusItem appkit.StatusItem
-	// statusButton/statusLine are the live parts of the item that
-	// applyKoboEvent updates on every connect/disconnect.
+	// statusItem is package-level so objc.Retain's GC finalizer never releases
+	// it (and the icon vanishes) after runUI's setup closure returns.
+	statusItem   appkit.StatusItem
 	statusButton appkit.StatusBarButton
 	statusLine   appkit.MenuItem
-	// lastKoboEvent is the most recent event applied to the status item, so
-	// a rebuild (e.g. after wake) can restore it instead of resetting to
-	// "No Kobo connected".
+	// lastKoboEvent lets a rebuild restore the current state.
 	lastKoboEvent kobogateway.KoboEvent
 )
 
-// init wires the platform-agnostic notify seam (see notify.go) to the real
-// UNUserNotificationCenter call, so server.go's self-update lifecycle
-// notifications (#456) actually reach the menu bar on macOS.
+// init wires notify.go's seam to UNUserNotificationCenter.
 //
 //nolint:gochecknoinits //only way to wire notify.go's seam before main runs
 func init() {
 	notify = postNotification
 }
 
-// notifyAuthOnce guards requesting notification authorization: it only
-// needs to happen once per process, regardless of how many times the status
-// item is rebuilt.
+// notifyAuthOnce requests notification authorization once per process.
 //
 //nolint:gochecknoglobals // one-shot guard, see requestNotificationAuth.
 var notifyAuthOnce sync.Once
 
-// runUI shows a menu-bar status item so the running gateway is visible, and
-// blocks until the app quits — either via the Quit menu item or the process
-// being asked to stop (self-update requesting a restart). Must run on the
-// main OS thread (see runtime.LockOSThread in main).
+// runUI shows the menu-bar status item and blocks until the app quits. Must
+// run on the main OS thread.
 func runUI(
 	release string,
 	stop <-chan struct{},
@@ -98,21 +75,14 @@ func runUI(
 		buildStatusItem(release, homeDir, execPath)
 		requestNotificationAuth(execPath)
 
-		// requestNotificationAuth's OS prompt is silent/unreliable in
-		// practice (#456 — it can error out with no visible sign to the
-		// user, see gateway/AGENTS.md). On a genuine first install, back it
-		// up with our own alert that can't be missed and links straight to
-		// the System Settings pane if the OS one didn't land.
+		// The OS prompt can fail silently, so back it up with our own alert on
+		// first install.
 		if firstLaunch && runningInAppBundle(execPath) {
 			promptEnableNotifications()
 		}
 
-		// macOS can drop a status item's on-screen presence across
-		// sleep/wake even though the Go-side reference (and the retained
-		// NSStatusItem) stays alive — the well-known "icon vanishes after
-		// sleep" class of bug. Rebuilding the item from scratch on wake is
-		// the reliable fix; a bare SetVisible toggle does not reliably
-		// bring it back.
+		// macOS can drop a status item across sleep/wake; rebuilding it is the
+		// reliable fix (SetVisible isn't).
 		appkit.Workspace_SharedWorkspace().NotificationCenter().
 			AddObserverForNameObjectQueueUsingBlock(
 				foundation.NotificationName("NSWorkspaceDidWakeNotification"),
@@ -130,11 +100,7 @@ func runUI(
 			<-stop
 
 			if restarting {
-				// NSApplication.terminate: below exits the process directly
-				// and never returns control to serve(), so its restart/exec
-				// tail (main.go) is unreachable from here (#627) — exec the
-				// updated binary ourselves instead of asking AppKit to
-				// terminate.
+				// terminate: never returns to serve()'s restart tail, so exec here.
 				if err := execUpdatedBinary(); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 				}
@@ -149,24 +115,11 @@ func runUI(
 	})
 }
 
-// execUpdatedBinary restarts into the binary that self-update just wrote to
-// disk. Inside a real .app bundle, it relaunches through `open -n` — a
-// bare syscall.Exec keeps the same PID and replaces the process image
-// in-place, bypassing LaunchServices entirely, so WindowServer never
-// re-registers the process as a fresh app launch under the new (re-signed)
-// binary's identity. That's what silently breaks NSStatusItem and
-// UNUserNotificationCenter after a self-update restart (#669) even though
-// the process comes back up — both depend on a proper LaunchServices launch.
-// `open -n` performs exactly that, then the caller's existing app.Terminate
-// cleanly exits this process. A raw dev binary has no bundle to open, so it
-// falls back to the previous in-place exec.
-//
-// Duplicates serve()'s own restart tail (main.go) rather than sharing it:
-// that tail is only ever reached from the headless test path and stays
-// covered there, whereas this whole file is already excluded from coverage
-// (see codecov.yml) as untestable AppKit code — sharing a function would
-// turn main.go's already-uncovered lines into a "new" diff every time this
-// file changes, failing patch coverage for no behavioral reason.
+// execUpdatedBinary relaunches the updated binary. In a .app bundle it uses
+// `open -n`: an in-place syscall.Exec bypasses LaunchServices, breaking
+// NSStatusItem and notifications. A dev binary falls back to syscall.Exec.
+// Duplicates serve()'s restart tail on purpose: this file is excluded from
+// coverage, so sharing would churn main.go's patch coverage.
 func execUpdatedBinary() error {
 	executable, err := os.Executable()
 	if err != nil {
@@ -184,10 +137,8 @@ func execUpdatedBinary() error {
 	return syscall.Exec(executable, os.Args, os.Environ())
 }
 
-// buildStatusItem creates a fresh NSStatusItem (icon, tooltip, menu) and
-// installs it as the package-level statusItem, restoring lastKoboEvent so a
-// rebuild (see the wake observer in runUI) doesn't reset the visible state
-// back to "No Kobo connected". Must run on the main AppKit thread/queue.
+// buildStatusItem creates a fresh status item and restores lastKoboEvent.
+// Must run on the main AppKit queue.
 func buildStatusItem(release, homeDir, execPath string) {
 	statusItem = appkit.StatusBar_SystemStatusBar().
 		StatusItemWithLength(appkit.VariableStatusItemLength)
@@ -248,20 +199,14 @@ func buildStatusItem(release, homeDir, execPath string) {
 	applyKoboEvent(lastKoboEvent, release, false)
 }
 
-// notificationSettingsURL deep-links straight to System Settings' Notifications
-// pane — the documented URL scheme for opening a specific settings pane
-// programmatically (there's no public API to jump to a single app's page
-// within it, so this lands one level up).
+// notificationSettingsURL opens System Settings' Notifications pane (no API
+// deep-links to a single app).
 const notificationSettingsURL = "x-apple.systempreferences:" +
 	"com.apple.preference.notifications"
 
 // promptEnableNotifications shows a first-launch alert steering the user to
-// enable notifications, backing up requestNotificationAuth's OS prompt —
-// that one can silently error with no visible sign at all (#456, see
-// gateway/AGENTS.md), so this alert is the guaranteed-visible fallback that
-// actually satisfies "the user was asked." Runs its own nested run loop
-// (Alert.RunModal), safe to call from runUI's setup callback before the
-// main run loop starts spinning.
+// enable notifications, since the OS prompt can fail silently. Runs its own
+// modal loop, so it's safe before the main run loop starts.
 func promptEnableNotifications() {
 	defer guard("promptEnableNotifications")
 
@@ -304,9 +249,7 @@ func toggleLoginItem(item appkit.MenuItem, homeDir, execPath string) {
 	refreshLoginItemState(item, homeDir)
 }
 
-// watchKobos renders each connect/disconnect on the status button's tooltip
-// and the menu's status line, and posts a best-effort notification. AppKit
-// calls must happen on the main queue, so each event is redispatched there.
+// watchKobos shows each connect/disconnect, redispatching to the main queue.
 func watchKobos(events <-chan kobogateway.KoboEvent, release string) {
 	for ev := range events {
 		dispatch.MainQueue().DispatchAsync(func() {
@@ -317,10 +260,8 @@ func watchKobos(events <-chan kobogateway.KoboEvent, release string) {
 	}
 }
 
-// applyKoboEvent updates the live status button/menu line from ev and
-// records it in lastKoboEvent so a status-item rebuild can restore it.
-// notify controls whether a toast is posted — false when re-applying the
-// last known event after a rebuild, since that isn't a new connect/disconnect.
+// applyKoboEvent updates the status item from ev and records it; notify is
+// false when re-applying after a rebuild.
 func applyKoboEvent(ev kobogateway.KoboEvent, release string, notify bool) {
 	lastKoboEvent = ev
 
@@ -332,12 +273,8 @@ func applyKoboEvent(ev kobogateway.KoboEvent, release string, notify bool) {
 	}
 }
 
-// requestNotificationAuth asks the user to allow notifications, once per
-// process. A nil completion handler is passed deliberately — marshalling a
-// Go func as an ObjC completion block is the main risk area in this file,
-// and the result isn't needed: postNotification's delivery calls are
-// themselves best-effort, so whether the user granted or denied is
-// discovered implicitly (granted notifications show up; denied ones don't).
+// requestNotificationAuth asks once per process. The completion handler is
+// nil to avoid marshalling a Go func as an ObjC block; the result isn't needed.
 func requestNotificationAuth(execPath string) {
 	if !runningInAppBundle(execPath) {
 		return
@@ -363,17 +300,9 @@ func requestNotificationAuth(execPath string) {
 	})
 }
 
-// postNotification shows a best-effort local notification via
-// UNUserNotificationCenter (the modern, non-deprecated notification API —
-// the previous implementation used NSUserNotification, which is deprecated
-// and no longer reliably delivers on current macOS). darwinkit doesn't
-// generate bindings for UserNotifications.framework, so this calls it
-// directly through objc.Call, same approach darwinkit's own notification
-// example uses for the legacy API.
-//
-// Notifications only work inside a real .app bundle (see
-// runningInAppBundle) — UNUserNotificationCenter throws when the process
-// has no bundle proxy, which is the case for a raw dev binary.
+// postNotification posts a best-effort UNUserNotificationCenter toast via
+// objc.Call (darwinkit has no UserNotifications bindings). Only works inside
+// a .app bundle; it throws otherwise.
 func postNotification(title, body string) {
 	if !runningInAppBundle(currentExecPath()) {
 		return
@@ -392,9 +321,7 @@ func postNotification(title, body string) {
 			objc.Call[objc.Void](content, objc.Sel("setBody:"), body)
 		}
 
-		// A fresh identifier per call so toasts stack instead of replacing
-		// each other (a delivered notification with a reused identifier is
-		// silently coalesced/updated by UNUserNotificationCenter).
+		// Unique identifier so toasts stack instead of coalescing.
 		identifier := fmt.Sprintf("kobo-gateway-%d", notificationSeq())
 
 		request := objc.Call[objc.Object](
@@ -415,7 +342,7 @@ func postNotification(title, body string) {
 	})
 }
 
-// notificationSeqCounter backs notificationSeq; see postNotification.
+// notificationSeqCounter backs notificationSeq.
 //
 //nolint:gochecknoglobals // simple monotonic counter, only ever incremented.
 var notificationSeqCounter uint64
@@ -426,11 +353,7 @@ func notificationSeq() uint64 {
 	return notificationSeqCounter
 }
 
-// currentExecPath re-resolves the running executable's path for
-// postNotification, which has no access to runUI's execPath parameter
-// (watchKobos/applyKoboEvent don't thread it through, and threading it
-// through just to gate a best-effort toast isn't worth the extra
-// parameters on every call in the chain).
+// currentExecPath re-resolves the executable path for postNotification.
 func currentExecPath() string {
 	path, err := os.Executable()
 	if err != nil {

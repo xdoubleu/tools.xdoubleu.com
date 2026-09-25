@@ -28,7 +28,7 @@ export default function ResyncWizard() {
   const notFoundCount = proposals.filter((p) => p.sources.length === 0).length
   const visible = onlyNotFound ? proposals.filter((p) => p.sources.length === 0) : proposals
 
-  // Clamp after the list shrinks (e.g. applying the last book on the page).
+  // Clamp after the list shrinks.
   useEffect(() => {
     if (index > 0 && index >= visible.length) setIndex(visible.length - 1)
   }, [index, visible.length])
@@ -40,7 +40,6 @@ export default function ResyncWizard() {
     setOverride(undefined)
   }, [currentBookId])
 
-  // Live re-fetch with the admin's tweaked title/author terms.
   const {
     data: liveData,
     isLoading: liveLoading,
@@ -54,17 +53,15 @@ export default function ResyncWizard() {
   async function handleApply(choice: string, choiceIndex: number) {
     if (!current) return
     if (override) {
-      // ApplyBookSource re-runs the tweaked search server-side and also
-      // clears the stored proposal, so the wizard advances exactly as below.
+      // Also clears the stored proposal, so the wizard advances as below.
       await applySource(current.bookId, choice, choiceIndex, override)
     } else {
-      // The stored wizard proposal always has one candidate per source.
       await applyChoice(current.bookId, choice)
     }
     await mutate(swrKeys.resyncProposals)
     await mutate(swrKeys.books)
     await mutate(swrKeys.bookSourceStats)
-    // The list shrinks by one — stay on the same index to see the next book.
+    // The list shrinks, so the same index shows the next book.
   }
 
   if (isLoading) return <p className="text-xs text-muted">Loading…</p>
@@ -93,7 +90,7 @@ export default function ResyncWizard() {
       </Card>
     )
   }
-  // Briefly undefined the render after the list shrinks, before the clamp effect runs.
+  // Undefined for one render before the clamp effect runs.
   if (!current) return null
 
   const displayed = override && liveData?.proposal ? liveData.proposal : current

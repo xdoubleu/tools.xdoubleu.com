@@ -34,10 +34,8 @@ const URL_PLACEHOLDER: Record<'rss' | 'scrape', string> = {
   scrape: 'https://example.com/blog'
 }
 
-// AddFeedForm subscribes to an RSS/Atom feed, mints a per-feed inbound email
-// alias for newsletters with no public feed (issue #595), or scrapes a page
-// with no real feed for post-like links (issue #751). Shared by the /feeds
-// page's FeedManager and the reading library's unified add dialog.
+// Subscribes to an RSS/Atom feed, mints an inbound email alias for
+// newsletters, or scrapes a page without a feed.
 export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
   const createFeed = useCreateFeed()
   const [mode, setMode] = useState<Mode>('rss')

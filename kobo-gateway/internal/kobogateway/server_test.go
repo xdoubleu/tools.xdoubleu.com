@@ -486,9 +486,7 @@ func TestUpdateFailure(t *testing.T) {
 }
 
 func TestUpdateWithoutNotifierDoesNotPanic(t *testing.T) {
-	// SetNotifier is optional — NewServer's default no-op must be safe to
-	// call, covering callers (e.g. the "update" CLI subcommand) that never
-	// install one.
+	// NewServer's default no-op notifier must be safe to call.
 	gateway := newTestServer(t.TempDir(), nil)
 
 	assert.NotPanics(t, func() {

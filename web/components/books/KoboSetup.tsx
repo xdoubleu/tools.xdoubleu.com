@@ -4,11 +4,7 @@ import KoboGatewaySetup from '@/components/books/KoboGatewaySetup'
 import KoboGatewayDownload from '@/components/books/KoboGatewayDownload'
 import { useGatewayStatus } from '@/hooks/useKoboGateway'
 
-/**
- * Kobo setup is entirely gateway-driven: the local kobo-gateway macOS app
- * does the file work over USB. Background-polls for the gateway (see
- * useGatewayStatus) and shows the download card until it's found.
- */
+/** Gateway-driven Kobo setup; shows the download card until the gateway is found. */
 export default function KoboSetup() {
   const { data: status } = useGatewayStatus()
 

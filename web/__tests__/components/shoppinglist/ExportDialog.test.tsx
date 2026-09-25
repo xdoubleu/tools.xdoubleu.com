@@ -3,8 +3,6 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 
-// The dialog no longer fetches meal-plan items or ingredient groups — those are
-// owned by the landing page and passed in via the mealItems prop.
 jest.mock('@/hooks/useShoppingList', () => ({
   useStores: () => ({
     data: { stores: [{ id: 'store-1', name: 'Colruyt' }] },
@@ -100,8 +98,7 @@ describe('ExportDialog', () => {
     fireEvent.change(screen.getByLabelText('Order by store (optional)'), {
       target: { value: 'store-1' }
     })
-    // garlic (from the meal plan) maps to no category at all — exactly one item,
-    // so the message must read "1 item has" with the space intact (not "1 itemhas")
+    // Exactly one item, so it must read "1 item has".
     expect(
       screen.getByText('1 item has no category assigned and will appear under "Other".')
     ).toBeInTheDocument()
@@ -197,7 +194,6 @@ describe('ExportDialog', () => {
       fireEvent.click(screen.getByRole('button', { name: /Share to Apple Notes/ }))
     })
     expect(mockShare).toHaveBeenCalled()
-    // no error thrown
   })
 
   it('Download .txt triggers file download', () => {

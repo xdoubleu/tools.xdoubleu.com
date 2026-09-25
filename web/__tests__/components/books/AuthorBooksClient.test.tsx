@@ -162,7 +162,6 @@ describe('AuthorBooksClient', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([taggedBook], []))
     render(<AuthorBooksClient name="Frank Herbert" />)
-    // Component renders without error — tag collection ran
     expect(screen.getByText('Dune Messiah')).toBeInTheDocument()
   })
 

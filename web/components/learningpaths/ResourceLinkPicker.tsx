@@ -7,12 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MenuItem } from '@/components/ui/menu-item'
 
-// ResourceLinkPicker lets a learning path resource attach an existing books
-// library entry or feeds item alongside its freeform text (#1474). Search
-// results here are only ever the caller's own data (useSearchLibrary /
-// useFeedItems are both scoped server-side to the authenticated user), so
-// picking a result is guaranteed to resolve for Create/UpdateLearningPath's
-// server-side link validation.
+// Attaches a library book or feed item to a resource. Results come only from
+// the caller's own data, so they pass the server's link validation.
 interface LinkedBookValue {
   id: string
   title: string
@@ -168,9 +164,7 @@ function FeedItemLinkSearch({
   onPick: (value: LinkedFeedItemValue) => void
   onCancel: () => void
 }) {
-  // No server-side text search for feed items — filter the already-cached
-  // full list client-side, matching feed item counts small enough this
-  // stays instant.
+  // No server-side feed item search; filter the cached list client-side.
   const { data } = useFeedItems(false)
   const [query, setQuery] = useState('')
 

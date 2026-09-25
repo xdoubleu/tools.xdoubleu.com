@@ -185,7 +185,6 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    // 'Vegetables' header should appear exactly once even though its ingredients are non-consecutive
     expect(screen.getAllByText('Vegetables')).toHaveLength(1)
     expect(screen.getAllByText('Meat')).toHaveLength(1)
     expect(screen.getByText('Onion')).toBeInTheDocument()
@@ -225,12 +224,10 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    // The group heading and its item live inside the same container...
     const heading = screen.getByRole('heading', { name: 'Sauce', level: 3 })
     const groupContainer = heading.parentElement
     if (!groupContainer) throw new Error('expected group container')
     expect(within(groupContainer).getByText('Onion')).toBeInTheDocument()
-    // ...while the ungrouped ingredient sits outside that container.
     expect(within(groupContainer).queryByText('Salt')).not.toBeInTheDocument()
     expect(screen.getByText('Salt')).toBeInTheDocument()
   })
@@ -267,12 +264,10 @@ describe('RecipeClient', () => {
     })
 
     render(<RecipeClient id="r1" />)
-    // The ungrouped ingredient is wrapped in the same rounded card shell as grouped ones,
-    // just without a header — climb to the bordered card container.
+    // Ungrouped ingredients use the same card shell, without a header.
     const saltCard = screen.getByText('Salt').closest('.rounded-2xl')
     if (!(saltCard instanceof HTMLElement)) throw new Error('expected ungrouped card')
     expect(saltCard).toHaveClass('border')
-    // It has no group heading of its own.
     expect(within(saltCard).queryByRole('heading')).not.toBeInTheDocument()
   })
 

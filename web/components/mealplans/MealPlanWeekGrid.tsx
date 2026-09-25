@@ -23,8 +23,7 @@ interface MealPlanWeekGridProps {
   onFillDay: (date: string) => void
 }
 
-// MealPlanWeekGrid renders the week as a stacked-by-day list on mobile and a
-// 7-column grid on desktop. All interaction state lives in the parent.
+// Stacked by day on mobile, a 7-column grid on desktop; state lives in the parent.
 export default function MealPlanWeekGrid({
   weekDates,
   recipes,
@@ -88,7 +87,6 @@ export default function MealPlanWeekGrid({
   return (
     <div className="flex flex-col gap-4 items-start">
       <div className="w-full min-w-0">
-        {/* Mobile: stacked by day */}
         <div className={`sm:hidden space-y-3 text-xs${swappingMeal ? ' cursor-crosshair' : ''}`}>
           {weekDates.map((date) => {
             const formattedDate = formatMealDate(date)
@@ -124,7 +122,6 @@ export default function MealPlanWeekGrid({
           })}
         </div>
 
-        {/* Desktop: 7-column grid */}
         <div
           className={`hidden sm:block overflow-x-auto${swappingMeal ? ' cursor-crosshair' : ''}`}
         >

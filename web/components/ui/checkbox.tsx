@@ -5,10 +5,7 @@ interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'typ
   label?: string
 }
 
-/**
- * Native `<input type="checkbox">` with the shared styling. Pass `label` to get
- * the wrapping `<label>` too; omit it when the call site supplies its own.
- */
+/** Styled native checkbox; pass `label` to get the wrapping `<label>`. */
 const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   ({ label, className, id, ...props }, ref) => {
     const inputEl = (

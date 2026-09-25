@@ -1,8 +1,7 @@
 import { swrKeys } from '@/lib/swrKeys'
 
-// These assertions pin every key to the exact literal it replaced. SWR
-// serializes keys, so any drift here silently splits the cache between
-// readers and invalidators — do not "clean up" these strings.
+// Pins every key to its exact literal: SWR serializes keys, so drift splits
+// the cache between readers and invalidators.
 describe('swrKeys', () => {
   it('static keys match their historical literals', () => {
     expect(swrKeys.currentUser).toBe('/auth/current-user')

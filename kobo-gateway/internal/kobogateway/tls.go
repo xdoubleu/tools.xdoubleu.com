@@ -116,14 +116,12 @@ func trustCertArgs(certPath string) []string {
 	return []string{"add-trusted-cert", "-r", "trustRoot", "-p", "ssl", certPath}
 }
 
-// EnsureTrusted prompts the user (via the macOS Keychain UI) to trust the
-// gateway's self-signed cert, once. A marker file in dir skips the prompt on
-// subsequent launches; the marker is only written after `security` succeeds,
-// so a cancelled prompt retries next launch.
+// EnsureTrusted prompts once, via the Keychain UI, to trust the self-signed
+// cert. The marker file is written only after `security` succeeds, so a
+// cancelled prompt retries next launch.
 //
-// ponytail: trusts to the login keychain (no sudo); escalate to the System
-// keychain (-d -k /Library/Keychains/System.keychain) only if Safari still
-// rejects the cert after this.
+// ponytail: login keychain (no sudo); escalate to the System keychain only
+// if Safari still rejects the cert.
 func EnsureTrusted(dir, certPath string, out io.Writer) error {
 	markerPath := filepath.Join(dir, trustedMarker)
 	if _, err := os.Stat(markerPath); err == nil {

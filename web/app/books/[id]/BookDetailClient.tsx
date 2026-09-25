@@ -82,7 +82,6 @@ export default function BookDetailClient({ id }: { id: string }) {
 
       {book && userBook && (
         <>
-          {/* Header */}
           <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="shrink-0">
               <BookCover coverUrl={book.coverUrl} title={book.title} size="lg" />
@@ -94,7 +93,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <p className="mt-1 text-lg text-muted">{book.authors.join(', ')}</p>
               )}
 
-              {/* Rating + favourite + page count */}
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {userBook.status === 'read' && (
                   <>
@@ -130,7 +128,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </p>
               )}
 
-              {/* Shelf, ownership + tags — inline editing, no popover */}
               <div className="mt-4 space-y-4">
                 <BookShelfTagFields
                   userBook={userBook}
@@ -143,7 +140,6 @@ export default function BookDetailClient({ id }: { id: string }) {
             </div>
           </div>
 
-          {/* Description */}
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Description</h2>
             {book.description ? (
@@ -173,7 +169,6 @@ export default function BookDetailClient({ id }: { id: string }) {
             </section>
           )}
 
-          {/* Reading info */}
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-3">Your reading</h2>
             <div className="rounded-2xl border border-border bg-card shadow-card p-4 flex flex-col gap-4">
@@ -188,9 +183,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <BookReadDatesEditor userBook={userBook} onSaved={handleSaved} />
               )}
 
-              {/* Kobo sync — only shown when a syncable file exists (same
-                  check the preview buttons below use), not the own-digital
-                  tag, which can drift out of sync with the actual files. */}
+              {/* Keyed off actual files (like the preview buttons), not the own-digital tag, which can drift. */}
               {(userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
                 <div>
                   <p className="text-xs text-muted mb-1">Kobo sync</p>
@@ -203,7 +196,6 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              {/* File preview buttons */}
               {(userBook.formats.includes('pdf') || userBook.formats.includes('epub')) && (
                 <div>
                   <p className="text-xs text-muted mb-1">Preview</p>

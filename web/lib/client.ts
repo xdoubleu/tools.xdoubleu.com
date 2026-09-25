@@ -5,8 +5,8 @@ import { getApiUrl } from './env'
 
 export const transport = createConnectTransport({
   baseUrl: getApiUrl(),
-  // Binary format avoids base64 inflation for bytes fields (e.g. ebook uploads).
-  // Without this, a 75 MB file becomes ~100 MB on the wire and trips the server cap.
+  // Binary avoids base64 inflation of bytes fields (a 75 MB upload would
+  // exceed the server cap).
   useBinaryFormat: true,
   fetch: (input, init) =>
     fetch(input, {
@@ -15,8 +15,7 @@ export const transport = createConnectTransport({
     })
 })
 
-// Clients are stateless wrappers around the shared transport, so one instance
-// per service descriptor is reused for the lifetime of the page.
+// One client per service, reused for the page's lifetime.
 const clients = new Map<DescService, Client<DescService>>()
 
 export function createServiceClient<T extends DescService>(service: T): Client<T> {

@@ -10,9 +10,7 @@ on:
 jobs:
   lint-go:
     name: Kobo Gateway Go Lint
-    # menubar_darwin.go is //go:build darwin-tagged — linting from Linux
-    # would silently only cover the !darwin stub (menubar_other.go), same
-    # reasoning as kobo-gateway-test.yml/build-kobo-gateway.yml running here.
+    # menubar_darwin.go is darwin-only; Linux would lint only the stub.
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v7

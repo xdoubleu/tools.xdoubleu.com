@@ -13,13 +13,9 @@ interface ExternalBookCardProps {
   book: ExternalBookResult
 }
 
-// Card for a search result not yet in the library. Visually distinct from
-// BookCard via the source badge; clicking opens the external detail page
-// instead of a library book page.
-//
-// provider_id is the result's ISBN13 (see protoExternalBook) — both
-// configured providers only support fetch-by-ISBN, so a result with no ISBN
-// has no detail page to link to and renders as a plain, non-clickable card.
+// Card for a not-in-library search result, linking to its external page.
+// provider_id is the ISBN13; without one there's no detail page, so it's
+// not clickable.
 export default function ExternalBookCard({ book }: ExternalBookCardProps) {
   const content = (
     <>

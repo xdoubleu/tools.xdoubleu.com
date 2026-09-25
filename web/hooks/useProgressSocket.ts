@@ -38,9 +38,8 @@ function buildProgressWsUrl(apiUrl: string, app: ProgressApp): string {
   return `${wsBase}/${app}/api/progress`
 }
 
-// useProgressSocket subscribes to an app's job-progress WebSocket for a single
-// topic, exposes the live refreshing/count state, and calls onSynced once a
-// run completes (isRefreshing transitions from true → false).
+// useProgressSocket subscribes to one job-progress topic and calls onSynced
+// when a run completes.
 export function useProgressSocket(
   app: ProgressApp,
   topic: string,
@@ -83,11 +82,9 @@ export function useProgressSocket(
 
         if (parsed.isRefreshing) {
           wasRefreshing.current = true
-          // Update live count if the server sent one.
           setProcessed(parsed.processed ?? null)
           setTotal(parsed.total ?? null)
         } else {
-          // Run finished — clear counts and fire onSynced if we were running.
           setProcessed(null)
           setTotal(null)
           if (wasRefreshing.current) {
@@ -97,9 +94,8 @@ export function useProgressSocket(
         }
       }
 
-      // A sync can outlive an idle socket; reconnecting and re-subscribing means
-      // the reconnect's initial state message still delivers the completion
-      // (isRefreshing -> false), which re-enables the button and refetches.
+      // A sync can outlive the socket; the reconnect's initial state still
+      // delivers completion.
       ws.onclose = () => {
         setConnected(false)
         if (!stopped) {

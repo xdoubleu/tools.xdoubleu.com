@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
-"""Validate the provisioned Grafana dashboards (issue #1527).
+"""Validate the provisioned Grafana dashboards (nothing else checks them).
 
-Nothing else in the pipeline looks at infra/grafana/dashboards/*.json, and a
-malformed dashboard only surfaces as a silent "Dashboard provisioning" error
-in Grafana's logs after deploy. This checks the invariants that matter:
-
-  * the file is valid JSON
-  * it has a non-empty `uid` and `title`, and no two dashboards share a `uid`
-  * every panel references a provisioned datasource by uid (`prometheus`,
-    `github` or `sentry` — see infra/grafana/provisioning/datasources/)
-  * every Prometheus panel target carries a non-empty `expr` (plugin
-    datasources use their own query fields, not `expr`)
-
-Run via `make lint/grafana` (wired into `make lint`).
+Each file must be valid JSON with a non-empty, unique `uid` and a `title`;
+every panel must use a provisioned datasource uid; every Prometheus target
+needs a non-empty `expr`. Run via `make lint/grafana`.
 """
 
 from __future__ import annotations
@@ -22,9 +13,7 @@ import sys
 from pathlib import Path
 
 DASHBOARD_DIR = Path(__file__).resolve().parent.parent / "infra" / "grafana" / "dashboards"
-# uids provisioned in infra/grafana/provisioning/datasources/. `prometheus`
-# is the default; `github`/`sentry` are the backend plugin datasources
-# added in issue #1570.
+# Datasource uids provisioned in infra/grafana/provisioning/datasources/.
 DATASOURCE_UIDS = frozenset({"prometheus", "github", "sentry"})
 
 
@@ -70,8 +59,7 @@ def validate_file(path: Path, seen_uids: dict[str, str]) -> list[str]:
                     f"{label}: target {target.get('refId', '?')} datasource uid "
                     f"{tds_uid!r} not in {sorted(DATASOURCE_UIDS)}"
                 )
-            # Only Prometheus targets use `expr`; the github/sentry plugin
-            # datasources carry their own query fields (queryType, …).
+            # Only Prometheus targets use `expr`.
             panel_uid = ds.get("uid") if isinstance(ds, dict) else None
             effective_uid = tds_uid or panel_uid or "prometheus"
             if effective_uid == "prometheus" and not str(target.get("expr", "")).strip():

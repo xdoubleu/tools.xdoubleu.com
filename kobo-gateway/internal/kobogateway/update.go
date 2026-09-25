@@ -22,15 +22,13 @@ const (
 
 	downloadTimeout = 60 * time.Second
 
-	// maxBinarySize caps the self-update download (the real binary is a
-	// few MB) so a misbehaving server cannot exhaust memory or disk.
+	// maxBinarySize caps the download (the real binary is a few MB).
 	maxBinarySize = 512 << 20
 )
 
-// Updater implements UpdateRunner by downloading the latest binary from a
-// trusted origin and atomically replacing the running executable. The
-// download uses Go's HTTP client, so the new file carries no
-// com.apple.quarantine attribute and Gatekeeper is not re-triggered.
+// Updater implements UpdateRunner by atomically replacing the running
+// executable. Go's HTTP client sets no quarantine attribute, so Gatekeeper
+// isn't re-triggered.
 type Updater struct {
 	client *http.Client
 	// executablePath is os.Executable, injectable for tests.
@@ -82,12 +80,8 @@ func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
 	return nil
 }
 
-// resignBundle re-applies the ad-hoc code signature package.sh puts on the
-// .app bundle at build time. That signature covers Contents/MacOS/kobo-gateway
-// (per package.sh's own comment, it must be the last edit to the bundle
-// before signing), so overwriting the binary above invalidates the seal
-// unless it's redone here. A raw dev binary run outside a bundle has nothing
-// to re-sign.
+// resignBundle re-applies package.sh's ad-hoc signature, which covers the
+// binary just overwritten. A raw dev binary has nothing to re-sign.
 func resignBundle(ctx context.Context, executable string) error {
 	appDir := AppBundlePath(executable)
 	if appDir == "" {
@@ -97,10 +91,8 @@ func resignBundle(ctx context.Context, executable string) error {
 	return exec.CommandContext(ctx, "codesign", "--force", "--sign", "-", appDir).Run()
 }
 
-// AppBundlePath returns the .app bundle directory containing executable
-// (e.g. executable=".../KoboGateway.app/Contents/MacOS/kobo-gateway" returns
-// ".../KoboGateway.app"), or "" if it isn't running inside one — e.g. a raw
-// dev binary built by `make build` rather than packaged by `make dist`.
+// AppBundlePath returns the .app bundle directory containing executable, or
+// "" for a raw dev binary.
 func AppBundlePath(executable string) string {
 	appDir := filepath.Dir(filepath.Dir(filepath.Dir(executable))) // .../KoboGateway.app
 	if filepath.Ext(appDir) != ".app" {

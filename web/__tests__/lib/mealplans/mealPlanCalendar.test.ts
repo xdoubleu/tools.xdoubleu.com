@@ -15,13 +15,11 @@ describe('mealPlanCalendar', () => {
 
     it('should start from today at offset 0', () => {
       jest.useFakeTimers()
-      // June 3 2026 is a Wednesday — the window should start on that day.
-      // Use local-time constructor to avoid UTC-offset shifting the date
+      // June 3 2026 is a Wednesday; local-time constructor avoids UTC shifts.
       jest.setSystemTime(new Date(2026, 5, 3, 12, 0, 0))
       try {
         const dates = getWeekDates(0)
         expect(formatMealDate(dates[0])).toBe('2026-06-03')
-        // Each subsequent date should be 1 day later (Math.round handles DST hour shifts)
         for (let i = 1; i < 7; i++) {
           const diff = Math.round(
             (dates[i].getTime() - dates[i - 1].getTime()) / (1000 * 60 * 60 * 24)
@@ -51,7 +49,6 @@ describe('mealPlanCalendar', () => {
       const thisWeek = getWeekDates(0)
       const nextWeek = getWeekDates(1)
 
-      // nextWeek[0] should be 7 days after thisWeek[0]
       const dayDiff = Math.round(
         (nextWeek[0].getTime() - thisWeek[0].getTime()) / (1000 * 60 * 60 * 24)
       )

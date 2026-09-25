@@ -1,9 +1,5 @@
-// Central registry of SWR cache keys.
-//
-// Query hooks (readers) and mutate() calls (invalidators) must both go
-// through this registry: SWR serializes keys, so a reader and an invalidator
-// that drift apart silently stop revalidating each other. Values must stay
-// byte-identical to the literals they replaced.
+// SWR cache keys. Readers and mutate() calls must both use these: SWR
+// serializes keys, so drift silently breaks revalidation.
 
 export const swrKeys = {
   currentUser: '/auth/current-user',
@@ -12,8 +8,7 @@ export const swrKeys = {
   monitoringNotificationSettings: '/monitoring/notification-settings',
   monitoringAutomatedActions: '/monitoring/automated-actions',
   family: '/family',
-  // Must stay off the /api prefix: the DO ingress routes /api/* to the Go
-  // api service, so a path under /api never reaches this Next.js route.
+  // Not under /api: kamal-proxy routes that to the Go service.
   webRelease: '/release',
 
   trainsFeedInfo: '/trains/feed-info',
@@ -42,8 +37,7 @@ export const swrKeys = {
   booksProgress: (dateStart?: string, dateEnd?: string) =>
     ['/books/progress', dateStart, dateEnd] as const,
   koboDevices: '/books/kobo/devices',
-  // Local-only key (no server round-trip) for polling the kobo-gateway
-  // helper's /status — see lib/books/gatewayClient.ts.
+  // Local-only key for polling the kobo-gateway's /status.
   gatewayStatus: '/books/kobo/gateway-status',
   koboDeviceLogs: (id: string) => ['/books/kobo/logs', id] as const,
   bookDuplicates: '/books/duplicates',
@@ -70,15 +64,10 @@ export const swrKeys = {
   feeds: '/feeds',
   feedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
-  // One item's article body, fetched only when the reader opens it — list
-  // responses no longer carry content_html (issue #1027). Deliberately
-  // singular so mutateFeedItems' '/feeds/items' prefix sweep doesn't also
-  // drop every cached body.
+  // Singular so mutateFeedItems' '/feeds/items' prefix sweep keeps bodies.
   feedItem: (id: string) => `/feeds/item/${id}`,
   feedStats: '/feeds/stats',
-  // Owner's own reading dashboard feeds widget — a handful of unread items
-  // via the authenticated FeedService, separate from the public
-  // dashboardFeedsSummary above.
+  // Owner's reading-dashboard feeds widget.
   feedsSummary: '/feeds/summary',
   unhealthyFeeds: '/feeds/unhealthy',
 

@@ -9,9 +9,7 @@ interface FeedBookmarkButtonProps {
   bookmarked: boolean
 }
 
-// FeedBookmarkButton toggles an item's bookmarked flag directly (Item is
-// self-contained — no library/book linkage to go through, unlike
-// BookFavouriteButton).
+// Toggles an item's bookmarked flag directly.
 export default function FeedBookmarkButton({ itemId, bookmarked }: FeedBookmarkButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(bookmarked)
   const updateItem = useUpdateItem()

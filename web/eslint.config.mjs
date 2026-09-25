@@ -3,13 +3,8 @@ import nextPlugin from '@next/eslint-plugin-next'
 import typescriptEslint from 'typescript-eslint'
 import js from '@eslint/js'
 
-// Mechanically-checkable mobile-first violations from docs/convention-ui-standards.md
-// and the mobile-review skill — each is a class-string shape a Playwright
-// audit can only guess at from source, so it's enforced here instead.
-// grid-cols-2 is intentionally excluded: components/ui/stat.tsx's
-// StatTileGrid deliberately runs two-up on mobile, and that pattern is
-// reused (BooksDashboardView, GamesDashboardView, GamesStatsPanel) as an
-// established design choice, not a bug.
+// Class-string shapes of mobile-first violations (docs/convention-ui-standards.md).
+// grid-cols-2 is allowed: StatTileGrid runs two-up on mobile by design.
 const mobileFirstRestrictedSyntax = [
   {
     selector:
@@ -54,10 +49,8 @@ export default [
     }
   },
   {
-    // Every interactive control goes through a components/ui/ primitive, so
-    // focus rings, disabled states and theming stay consistent. See
-    // docs/convention-ui-standards.md. components/ui/ itself is exempt below —
-    // the primitives are what render the real elements.
+    // Interactive controls go through components/ui/ primitives
+    // (docs/convention-ui-standards.md).
     files: ['components/**/*.tsx', 'app/**/*.tsx'],
     rules: {
       'no-restricted-syntax': [
@@ -91,7 +84,6 @@ export default [
     }
   },
   {
-    // The primitives themselves must render the real elements.
     files: ['components/ui/**/*.tsx'],
     rules: {
       'no-restricted-syntax': [
@@ -105,7 +97,6 @@ export default [
     }
   },
   {
-    // Build/codegen scripts run under Node, not in the browser.
     files: ['scripts/**/*.mjs'],
     languageOptions: {
       globals: {

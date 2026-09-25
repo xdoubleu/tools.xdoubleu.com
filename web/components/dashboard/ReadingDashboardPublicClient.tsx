@@ -45,7 +45,7 @@ export default function ReadingDashboardPublicClient({
           <DashboardBookCard userBook={ub} />
         </div>
       )}
-      // feeds hidden from the reading dashboard for now — see issue #1382
+      // Feeds are hidden from the reading dashboard for now.
       actions={
         <>
           {data?.lastSyncedAt ? (

@@ -1,21 +1,16 @@
-// Custom (recipe-less) meal entries store hand-typed items as a newline-separated
-// list in `customName`. Each line is `name`, `name<TAB>amount`, or
-// `name<TAB>amount<TAB>unit`. The tab separator is used because it cannot be
-// typed into a single-line text input.
+// Custom meal entries store items newline-separated in `customName`, each
+// `name[<TAB>amount[<TAB>unit]]` (tab can't be typed in a text input).
 
 export interface CustomItem {
   name: string
   amount: string
   unit?: string
-  // UI-only: the category chosen in the entry form. It is written to the
-  // name->category catalog on save and is never encoded into `customName`.
+  // UI-only: saved to the name->category catalog, never encoded.
   categoryId?: string
 }
 
 const SEP = '\t'
 
-// parseCustomItems decodes a stored `customName` into structured items, dropping
-// blank lines.
 export function parseCustomItems(customName: string): CustomItem[] {
   return customName
     .split('\n')
@@ -28,8 +23,6 @@ export function parseCustomItems(customName: string): CustomItem[] {
     })
 }
 
-// encodeCustomItems joins structured items back into the stored newline format,
-// dropping items with a blank name.
 export function encodeCustomItems(items: CustomItem[]): string {
   return items
     .map((it) => ({ name: it.name.trim(), amount: it.amount.trim(), unit: (it.unit ?? '').trim() }))
@@ -42,15 +35,12 @@ export function encodeCustomItems(items: CustomItem[]): string {
     .join('\n')
 }
 
-// formatCustomItemLabel renders an item for display, e.g. "2 kg apples" or "apples".
 export function formatCustomItemLabel(item: CustomItem): string {
   if (!item.amount) return item.name
   const unit = item.unit?.trim()
   return unit ? `${item.amount} ${unit} ${item.name}` : `${item.amount} ${item.name}`
 }
 
-// formatCustomNameLabel renders a whole stored `customName` for display, one
-// item per line, stripping the tab separator.
 export function formatCustomNameLabel(customName: string): string {
   return parseCustomItems(customName).map(formatCustomItemLabel).join('\n')
 }

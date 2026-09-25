@@ -11,8 +11,7 @@ const tooltipContentStyle = {
   color: 'var(--color-fg)'
 }
 
-// formatInterval renders a mean posting gap as a compact human string; 0
-// means the feed has fewer than 2 items to establish a cadence yet.
+// 0 means fewer than 2 items, so no cadence yet.
 function formatInterval(hours: number): string {
   if (hours <= 0) return 'not enough data yet'
   if (hours < 24) return `every ~${Math.round(hours)}h`

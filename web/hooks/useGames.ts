@@ -59,9 +59,7 @@ export function useSetGameFavourite() {
   return (gameId: number, favourite: boolean) => client.setGameFavourite({ gameId, favourite })
 }
 
-// Stable identity matters here: SteamGameClient's high-poll setInterval effect
-// depends on this function, so a new one per render would restart the timer on
-// every render and the poll would never fire.
+// Must be stable: SteamGameClient's poll interval depends on it.
 export function useRefreshSteamGame() {
   const client = useMemo(() => createServiceClient(GamesService), [])
   return useCallback((gameId: number) => client.refreshSteamGame({ gameId }), [client])

@@ -1,14 +1,7 @@
 name: Build Web Workflow
 
-# No workflow_dispatch of its own (unlike build-api.yml/build-kobo-gateway.yml):
-# the "download kobo-gateway-dist" step below only finds that artifact when a
-# build-kobo-gateway job already ran in the SAME workflow run, which is only
-# ever true when main.yml calls this via workflow_call (it runs
-# build-kobo-gateway first via `needs:`) — a bare manual dispatch of this
-# workflow alone has no such job and fails outright at that step. To trigger
-# a web build manually, use main.yml's own workflow_dispatch instead — it
-# chains build-kobo-gateway ahead of build-web correctly (see root
-# AGENTS.md's CI section, issue #1347).
+# No workflow_dispatch: the kobo-gateway-dist artifact only exists when
+# main.yml ran build-kobo-gateway in the same run. Dispatch main.yml instead.
 on:
   workflow_call:
 
@@ -24,22 +17,8 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
-      # kobo-gateway.dmg + the raw binary, built on macOS by
-      # build-kobo-gateway.yml earlier in this same workflow run (see
-      # kobo-gateway/cmd/kobo-gateway/menubar_darwin.go for why it can't
-      # build here). The RELEASE file records the actual release baked into
-      # this artifact — can be older than this build's SHA when
-      # kobo-gateway/ was unchanged and its build was cache-skipped.
-      # Downloaded as an artifact rather than restored from
-      # build-kobo-gateway.yml's own cache key: that used to race the other
-      # job's cache-populating save, which only ran in its post-job step at
-      # the very end of its run, while this restore fired almost
-      # immediately (issue #1192). An artifact produced by a job this one
-      # `needs:` (main.yml) has no such race — it's simply unavailable
-      # until that job finishes, same as any other build dependency.
-      # Staged here (rather than in the now-deleted docker.yml assembly
-      # job) since web/Dockerfile is the sole assembler of web/public/
-      # since #1038.
+      # Built on macOS by build-kobo-gateway in this run. Its RELEASE file may be
+      # older than this SHA when that build cache-hit.
       - uses: actions/download-artifact@v8
         with:
           name: kobo-gateway-dist
@@ -58,21 +37,14 @@ jobs:
           rm web/public/downloads/RELEASE
 
       - uses: docker/setup-buildx-action@v4
-      # Only needed to push — PRs build (validating the image compiles) but
-      # never push, and node:24-alpine is public, so no auth is needed to
-      # pull it.
+      # Only needed to push; PRs build without pushing.
       - if: github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # web reads RELEASE from the container env at runtime (web/lib/env.ts)
-      # for its own app code, but next.config.ts still inlines it into
-      # NEXT_PUBLIC_RELEASE for the Sentry release tag on server/edge error
-      # reports — so a reused (unchanged) image correctly keeps tagging
-      # errors with whatever release web/ last actually changed at, same
-      # per-component-release philosophy as web/components/Footer.tsx.
+      # next.config.ts inlines RELEASE into NEXT_PUBLIC_RELEASE for Sentry.
       - uses: docker/build-push-action@v7
         with:
           context: ./web
@@ -80,11 +52,8 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}/web:latest
             ghcr.io/${{ github.repository }}/web:${{ github.sha }}
-          # Kamal's `validate_image` step (kamal build/deploy) rejects any
-          # image pulled without this exact label — it normally stamps it
-          # itself via `kamal build`, but we build via buildx directly and
-          # deploy with --skip-push. Must match `service:` in
-          # config/deploy.web.yml.
+          # Kamal's `validate_image` requires this label (we build with buildx and
+          # deploy with --skip-push). Must match `service:` in config/deploy.web.yml.
           labels: service=tools-xdoubleu-com-web
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max

@@ -11,9 +11,7 @@ export default function BooksSection() {
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
   const router = useRouter()
   const searchParams = useSearchParams()
-  // The query lives in the URL (?q=) rather than component state so that
-  // navigating to a book and hitting Back restores it — component state
-  // resets on remount, the URL doesn't.
+  // The query lives in ?q= so Back restores it after visiting a book.
   const query = searchParams.get('q') ?? ''
   const setQuery = (value: string) => {
     const params = new URLSearchParams(searchParams)

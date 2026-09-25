@@ -4,10 +4,8 @@ import { useReportWebVitals } from 'next/web-vitals'
 
 type ReportWebVitalsCallback = Parameters<typeof useReportWebVitals>[0]
 
-// reportWebVital beacons one Core Web Vitals sample to POST /metrics, where
-// it lands in the web_vitals_seconds histogram Grafana's FrontendP95High
-// alert evaluates (issue #1528). The reference is module-level so
-// useReportWebVitals doesn't re-report on every render.
+// Beacons each Web Vitals sample to POST /metrics. Module-level so
+// useReportWebVitals doesn't re-report every render.
 const reportWebVital: ReportWebVitalsCallback = (metric) => {
   const body = JSON.stringify({ name: metric.name, value: metric.value })
 

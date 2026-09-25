@@ -123,9 +123,7 @@ describe('SourceStats', () => {
     expect(screen.queryByRole('button', { name: '0' })).not.toBeInTheDocument()
   })
 
-  // With only two configured sources (UniCat, Hardcover), the sole overlap
-  // combo always spans every source — comboLabel renders it as "All sources"
-  // rather than a specific pair.
+  // With two sources the only overlap spans all, labelled "All sources".
   it('renders an overlap section and opens a dialog for the combo', () => {
     mockStatsData.data = {
       sources: [

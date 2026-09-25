@@ -49,9 +49,8 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase()
 }
 
-// Combines meal plan items (those with recipeName) that share the same
-// normalized name and unit into a single item with summed amounts and origins.
-// Custom items (no recipeName) pass through unchanged.
+// Sums meal-plan items sharing normalized name and unit; custom items pass
+// through.
 function combineItems(items: ShoppingItem[]): ShoppingItem[] {
   const result: ShoppingItem[] = []
   const mealByKey = new Map<string, ShoppingItem[]>()
@@ -89,12 +88,8 @@ function combineItems(items: ShoppingItem[]): ShoppingItem[] {
   return result
 }
 
-// Merges custom and meal plan items, combines meal items that share the same
-// ingredient name and unit across recipes, then upgrades units. Combining runs
-// on the original source units (e.g. grams): upgrading first would convert a
-// large amount (1500 g → 1.5 kg, common for bulk-prep recipes) while a smaller
-// amount of the same ingredient stays in grams, so the units would diverge and
-// the two lines would never combine.
+// Combines before upgrading units, so 1500 g and 200 g still merge instead
+// of diverging into kg and g.
 function mergeItems(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined
@@ -102,8 +97,7 @@ function mergeItems(
   return combineItems([...customItems, ...(mealItems ?? [])]).map(upgradeUnit)
 }
 
-// Returns the fully prepared (merged, combined, unit-upgraded) item list for
-// the given custom and meal plan items. Exported for use in the export preview.
+// Merged, combined, unit-upgraded list; also used by the export preview.
 export function prepareForExport(
   customItems: ShoppingItem[],
   mealItems?: ShoppingItem[]
@@ -155,28 +149,19 @@ export interface CategoryGroup {
   items: ShoppingItem[]
 }
 
-// Items that can't be placed in the store's walk-through order are collected
-// under this trailing bucket in the exported list.
 const OTHER_CATEGORY = 'Other'
 
-// The outcome of bucketing items against a store's ordered categories. `groups`
-// holds the items that map to a category present in this store, in walk-through
-// order. The remaining items can't be ordered and are split so the UI can warn
-// about each case distinctly:
-//   - `uncategorized`: the item's name maps to no category at all.
-//   - `unordered`: the item has a category, but it isn't part of this store's
-//     ordering, so we can't tell where it falls in the walk-through.
+// Items bucketed by store walk-through order. Leftovers are split so the UI
+// can warn separately: `uncategorized` maps to no category, `unordered` has
+// one this store doesn't order.
 export interface StoreGrouping {
   groups: CategoryGroup[]
   uncategorized: ShoppingItem[]
   unordered: ShoppingItem[]
 }
 
-// groupByStore merges the custom and meal items, then buckets them by the
-// category their (normalized) name maps to, emitting the buckets in the store's
-// walk-through order. Categories with no items are omitted. Items that can't be
-// placed are returned separately, split by whether they lack a category
-// entirely or carry one that this store doesn't order.
+// groupByStore buckets merged items by category in the store's order,
+// omitting empty categories.
 export function groupByStore(
   customItems: ShoppingItem[],
   mealItems: ShoppingItem[] | undefined,
@@ -211,10 +196,7 @@ export function groupByStore(
   return { groups, uncategorized, unordered }
 }
 
-// toExportGroups flattens a StoreGrouping into the list passed to the grouped
-// formatters: the store-ordered groups followed by a single trailing "Other"
-// group holding every item that couldn't be ordered (both uncategorized and
-// not-ordered-by-this-store items).
+// toExportGroups appends one trailing "Other" group for all leftovers.
 export function toExportGroups(grouping: StoreGrouping): CategoryGroup[] {
   const other = [...grouping.uncategorized, ...grouping.unordered]
   if (other.length === 0) return grouping.groups
@@ -238,9 +220,7 @@ export function formatGroupedAsTxt(groups: CategoryGroup[]): string {
   return formatGroupedForClipboard(groups)
 }
 
-// Apple Notes is exported as a flat list without store category headers: Notes
-// renders better as a single checklist, so the store ordering is preserved only
-// in the order of the items, not as section titles.
+// Apple Notes gets a flat checklist; store order survives only as item order.
 export function formatGroupedForAppleNotes(
   groups: CategoryGroup[],
   date: Date = new Date()

@@ -6,11 +6,8 @@ import { JourneyRow } from '@/components/trains/JourneyResults'
 import type { JourneyAlternative } from '@/lib/gen/trains/v1/trains_pb'
 
 /**
- * Inline re-plan surfaced on the live journey page when a positive realtime
- * signal shows the planned journey no longer works (issue #1395): the reason
- * it broke, the re-planned itinerary in the same overview-row shape as a
- * search result, and a confirm action that switches the page to it. Absence
- * of live data never produces one — that decision is made server-side.
+ * Inline re-plan shown when realtime data shows the planned journey broke:
+ * the reason, the new itinerary, and a confirm action. Decided server-side.
  */
 export default function JourneyAlternativePanel({
   alternative

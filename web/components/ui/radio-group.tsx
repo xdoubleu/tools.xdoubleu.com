@@ -79,11 +79,7 @@ RadioGroupItem.displayName = 'RadioGroupItem'
 
 type RadioProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
-/**
- * A bare styled radio input, for call sites that supply their own label and
- * layout (a selectable card, a visually-hidden control behind custom visuals)
- * and so can't use `RadioGroupItem`'s built-in label.
- */
+/** A bare styled radio for call sites that supply their own label and layout. */
 const Radio = forwardRef<HTMLInputElement, RadioProps>(({ className, ...props }, ref) => (
   <input ref={ref} type="radio" className={cn(radioClass, className)} {...props} />
 ))

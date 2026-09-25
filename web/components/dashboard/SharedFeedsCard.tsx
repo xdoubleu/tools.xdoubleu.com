@@ -2,15 +2,8 @@ import { Card } from '@/components/ui/card'
 import RssIcon from '@/components/RssIcon'
 import type { SharedFeed } from '@/lib/gen/dashboard/v1/reading_pb'
 
-// SharedFeedsCard is the public reading dashboard's feeds widget — just the
-// owner's subscribed feed names, linked to their public URL when they have
-// one (email feeds don't). Unlike the private dashboard's
-// ReadingFeedsSummaryCard, it carries no read/unread state, which isn't
-// meaningful to a visitor of someone else's shared profile.
-//
-// Laid out as a header row plus one feed name per line (see
-// ReadingFeedsSummaryCard's issue #1356 note) rather than every name wrapped
-// into a single dense line.
+// Public dashboard's feeds widget: feed names linked to their public URL
+// (email feeds have none). No read state for visitors.
 export default function SharedFeedsCard({ feeds }: { feeds?: SharedFeed[] }) {
   if (!feeds || feeds.length === 0) return null
 

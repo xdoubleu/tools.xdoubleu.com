@@ -10,11 +10,8 @@ interface RecoveryCodesDialogProps {
   onDismiss: () => void
 }
 
-// One-time screen for the recovery codes MFAEnrollVerify/RegenerateRecoveryCodes
-// return — the api never surfaces these again after this response, so the
-// user must explicitly confirm they've saved them before the dialog closes.
-// Deliberately has no onOpenChange/backdrop-click dismissal: the only way out
-// is the "I've saved these" confirmation below.
+// One-time display of recovery codes (never shown again); only the
+// "I've saved these" confirmation closes it.
 export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesDialogProps) {
   const [copied, setCopied] = useState(false)
   const [confirmed, setConfirmed] = useState(false)
@@ -26,11 +23,7 @@ export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesD
   }
 
   return (
-    // open is a fixed literal (not tied to any state we update), and
-    // onOpenChange is a no-op — so an outside click or Escape (Radix's
-    // default dismissal, which this component doesn't expose an override
-    // for) can't actually close this dialog; the "Done" button below is the
-    // only way out.
+    // Fixed open and no-op onOpenChange: Escape/outside clicks can't close it.
     <Dialog open modal onOpenChange={() => {}}>
       <DialogContent>
         <DialogHeader>

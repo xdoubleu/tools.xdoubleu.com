@@ -94,12 +94,10 @@ describe('BookFavouriteButton', () => {
     mockUpdateBookStatus.mockRejectedValue(new Error('fail'))
     render(<BookFavouriteButton userBook={makeBook()} />)
 
-    // Start not pressed
     expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
     fireEvent.click(screen.getByRole('button'))
 
     await waitFor(() => {
-      // After rejection, should revert to not pressed
       expect(screen.getByRole('button')).toHaveAttribute('aria-pressed', 'false')
     })
   })

@@ -6,18 +6,8 @@ import RssIcon from '@/components/RssIcon'
 import { cn } from '@/lib/cn'
 import type { FeedsSummary } from '@/hooks/useFeeds'
 
-// ReadingFeedsSummaryCard is the private (owner) reading dashboard's feeds
-// widget (issue #737) — an unread count plus a few recent items, linking out
-// to the full /feeds app. The public dashboard uses SharedFeedsCard instead,
-// since a visitor gets no read state and no href into the authenticated
-// /feeds app.
-//
-// A single flex-wrap row of the title, count, and every item title jammed
-// together read as one cramped, indistinct line right above the rest of the
-// dashboard (issue #1356) — laid out here as a proper card instead, with a
-// header row (icon, title, unread badge) and each recent item on its own
-// line so it reads like the other dashboard cards rather than a stray strip
-// of text.
+// Owner's reading-dashboard feeds widget: unread count plus recent items,
+// linking to /feeds. The public dashboard uses SharedFeedsCard.
 export default function ReadingFeedsSummaryCard({
   summary,
   href

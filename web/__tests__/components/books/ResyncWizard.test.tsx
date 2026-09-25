@@ -110,11 +110,9 @@ describe('ResyncWizard', () => {
   it('renders the current book title and each source card', () => {
     mockProposalsData.data = { proposals: [makeProposal('b1', 'Dune')] }
     render(<ResyncWizard />)
-    // "Dune" appears both as the page heading and as the Library card's title
-    // field value.
+    // Heading and Library card title.
     expect(screen.getAllByText('Dune').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Library')).toBeInTheDocument()
-    // "UniCat" appears both as the source card label and the radio option.
     expect(screen.getAllByText('UniCat').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByText('Book 1 of 1')).toBeInTheDocument()
   })
@@ -182,7 +180,6 @@ describe('ResyncWizard', () => {
     expect(screen.getAllByText('Obscure Book').length).toBeGreaterThanOrEqual(1)
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
 
-    // Toggling off restores the full list.
     fireEvent.click(screen.getByRole('button', { name: 'Not found only (1)' }))
     expect(screen.getByText('Book 1 of 2')).toBeInTheDocument()
   })

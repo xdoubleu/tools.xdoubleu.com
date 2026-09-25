@@ -4,10 +4,7 @@ import { type MouseEvent, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
-/**
- * Amber-when-on treatment shared by every glyph toggle (favourite, bookmark,
- * rating star) so "this is set" reads the same everywhere.
- */
+/** Amber-when-on treatment shared by every glyph toggle. */
 const toggleGlyphClass = (active: boolean) =>
   active ? 'text-amber-500' : 'text-border hover:text-amber-400 active:text-amber-400'
 
@@ -19,15 +16,11 @@ interface ToggleIconButtonProps {
   label: string
   /** `aria-label` while on, e.g. "Remove from favourites". */
   activeLabel: string
-  /** The glyph — a character or an inline `<svg>`. */
   children: ReactNode
   className?: string
 }
 
-/**
- * A single on/off glyph button (favourite heart, bookmark flag). Exposes the
- * state as `aria-pressed` so it announces as a toggle rather than an action.
- */
+/** On/off glyph button; `aria-pressed` makes it announce as a toggle. */
 function ToggleIconButton({
   active,
   onToggle,

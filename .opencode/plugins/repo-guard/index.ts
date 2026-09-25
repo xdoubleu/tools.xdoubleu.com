@@ -1,35 +1,9 @@
-// repo-guard — OpenCode port of the task-lifecycle enforcement hooks that
-// Claude Code runs from .claude/settings.json (issue #1817). Three guards,
-// mirroring their Claude counterparts' semantics exactly:
-//
-// 1. Worktree-scope edit guard (Claude: PreToolUse on Edit/Write/NotebookEdit).
-//    A session inside .claude/worktrees/<wt> may only edit files under that
-//    worktree; a session in the main checkout may not edit repo files at all
-//    until start-task creates a worktree. Enforced via permission.hook, which
-//    runs after configured rules and can flip allow → deny.
-//
-// 2. Session-start main fast-forward (Claude: inline SessionStart hook).
-//    Plugin setup runs when OpenCode loads this location, which is the
-//    service-start analogue of Claude's per-session hook: fetch origin/main
-//    and ff-merge it when the main checkout is on main and clean.
-//
-// 3. Unshipped-work check (Claude: Stop hook). Approximated — OpenCode has no
-//    blocking stop, so this arms a waiter on every admitted prompt that fires
-//    when the session next goes idle, and nudges the session with a synthetic
-//    message instead of blocking. The check itself reuses the Claude script
-//    (.claude/hooks/stop-check-unshipped-work.sh) verbatim, including its
-//    per-commit state file under the git common dir, so the two harnesses
-//    share dedupe state: a commit already flagged by one is not re-flagged
-//    by the other.
-//
-// The grep→ast-grep reminder hook is deliberately not ported: AGENTS.md
-// states the rule, and OpenCode hooks have no per-tool context injection.
-//
-// No `@opencode/plugin` import: the loader resolves bare imports relative to
-// this directory, which has no node_modules, and `Plugin.define` is an
-// identity helper — a plain `{ id, setup }` default export is the same
-// contract. The structural types below mirror the documented Context
-// (opencode.ai/v2/docs/build/plugins); keep them in sync if the API moves.
+// repo-guard — OpenCode port of .claude/settings.json's lifecycle hooks:
+// 1. worktree-scope edit guard (permission.hook can flip allow → deny);
+// 2. main ff-merge on plugin setup;
+// 3. unshipped-work nudge on idle, reusing stop-check-unshipped-work.sh and
+//    its per-commit dedupe state. No `@opencode/plugin` import: this dir has
+//    no node_modules; types mirror opencode.ai's plugin docs.
 import { execFileSync } from "node:child_process"
 import { join } from "node:path"
 
@@ -73,7 +47,6 @@ function inWorktree(dir: string): boolean {
   return dir.includes(WORKTREE_MARKER)
 }
 
-// Port of the PreToolUse worktree-scope guard in .claude/settings.json.
 // Returns a denial reason, or undefined when the edit is allowed.
 function guardEdit(dir: string, abs: string): string | undefined {
   const idx = dir.indexOf(WORKTREE_MARKER)
@@ -88,17 +61,13 @@ function guardEdit(dir: string, abs: string): string | undefined {
     return undefined
   }
   if (abs === dir || abs.startsWith(dir + "/")) {
-    // The cwd may still be a legitimate git worktree — the guard only
-    // recognizes worktrees under the repo's .claude/worktrees/ tree, so say
-    // that (and the escape hatch) instead of mislabeling it "main checkout".
+    // The cwd may be a worktree outside .claude/worktrees/; say so.
     return `Refusing to edit ${abs}: this session's directory (${dir}) is not a worktree under the repo's .claude/worktrees/ tree, which is the only location this guard recognizes. Create one via the start-task skill, or move an existing worktree there: git worktree move <worktree-path> <repo-root>/.claude/worktrees/<name> (then re-point the session at it).`
   }
   return undefined
 }
 
-// Port of the inline SessionStart ff-merge hook in .claude/settings.json:
-// best-effort, silent on every failure, never touches a dirty or non-main
-// checkout, and skipped inside worktrees (those are task branches by design).
+// Best-effort; skips dirty, non-main, and worktree checkouts.
 function fastForwardMain(dir: string): void {
   if (inWorktree(dir)) return
   try {
@@ -112,13 +81,12 @@ function fastForwardMain(dir: string): void {
     if (dirty.trim()) return
     git(dir, "merge", "--ff-only", "origin/main", "--quiet")
   } catch {
-    // Best-effort backstop, same as the Claude hook: any failure is a no-op.
+    // best-effort
   }
 }
 
-// Runs the shared Stop-hook script against a session directory. Returns the
-// block reason when the branch has finished-but-unshipped work, else
-// undefined ("can't tell" also means don't fire, per the script's own rule).
+// Returns the block reason for unshipped work, else undefined (including
+// "can't tell").
 function unshippedWorkReason(dir: string): string | undefined {
   if (!inWorktree(dir)) return undefined
   const script = join(dir, ".claude/hooks/stop-check-unshipped-work.sh")
@@ -164,11 +132,8 @@ export default {
       }
     })
 
-    // 3. Unshipped-work check. Armed on every admitted prompt; the waiter
-    //    resolves when that session next goes idle. The script's per-commit
-    //    state file makes repeat firings (multiple waiters, multiple idles)
-    //    idempotent, and the synthetic message it may trigger re-enters the
-    //    prompt hook without looping: same commit → already flagged → silent.
+    // 3. Unshipped-work check, armed per prompt and fired on idle. The
+    //    per-commit state file makes repeats and re-entry idempotent.
     await ctx.session.hook("prompt", (event) => {
       const sessionID = event.sessionID
       void (async () => {
@@ -183,7 +148,7 @@ export default {
             })
           }
         } catch {
-          // Session removed, interrupted, or script missing — never block on it.
+          // Never block on a missing session or script.
         }
       })()
     })

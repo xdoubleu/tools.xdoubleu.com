@@ -14,10 +14,8 @@ export function useTodoistConnection() {
   )
 }
 
-// useConnectTodoist returns a function that fetches an authorize URL and
-// navigates the browser there — the OAuth callback that completes the flow
-// is a plain HTTP redirect route (see api/apps/learningpaths/routes.go), not
-// a ConnectRPC method, so there's nothing more for the client to await.
+// useConnectTodoist navigates to the authorize URL; the callback is a plain
+// HTTP redirect route, so there's nothing to await.
 export function useConnectTodoist() {
   const client = useMemo(() => createServiceClient(TodoistService), [])
   return useCallback(async () => {

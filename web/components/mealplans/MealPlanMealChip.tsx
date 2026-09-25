@@ -43,13 +43,10 @@ export default function MealPlanMealChip({
   const menuRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Approximate height of the 3-item menu; used to decide flip direction.
   const MENU_HEIGHT = 140
 
-  // The menu is rendered in a portal with `position: fixed` so it never
-  // contributes to the document's scroll height — opening it on a chip at the
-  // bottom of the list can no longer grow the page and force a sudden scroll.
-  // We still flip it upward when there isn't enough room below in the viewport.
+  // Portalled and position: fixed so opening near the bottom can't grow the
+  // page; flips upward when there's no room below.
   const computePosition = useCallback(() => {
     const el = menuRef.current
     if (!el) return
@@ -96,7 +93,6 @@ export default function MealPlanMealChip({
     }
   }, [menuOpen, computePosition])
 
-  // Collapse any expansion / close the menu whenever we leave the chip's normal state.
   useEffect(() => {
     if (inSwapMode) {
       setExpanded(false)

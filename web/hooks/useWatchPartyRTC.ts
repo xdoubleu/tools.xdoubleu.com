@@ -34,10 +34,8 @@ interface UseWatchPartyRTCResult {
   toggleSelfCam: () => void
 }
 
-// useWatchPartyRTC wires the browser side of a watch-party room: media and
-// peer-connection management lives in lib/watchparty/rtcMedia, WebSocket
-// signalling in lib/watchparty/rtcSignaling; this hook owns the React state,
-// the mutable session refs, and the socket lifecycle (connect + reconnect).
+// useWatchPartyRTC owns a watch-party room's React state, session refs, and
+// socket lifecycle; media lives in rtcMedia and signalling in rtcSignaling.
 export function useWatchPartyRTC({
   id,
   role,

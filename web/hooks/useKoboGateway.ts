@@ -4,11 +4,7 @@ import { swrKeys } from '@/lib/swrKeys'
 
 const POLL_INTERVAL_MS = 2000
 
-/**
- * Polls the local kobo-gateway helper for its status. Resolves to `null`
- * data (not an error) when the gateway isn't reachable, so callers show a
- * download prompt instead of an error state.
- */
+/** Polls the local kobo-gateway; unreachable resolves to `null`, not an error. */
 export function useGatewayStatus() {
   return useSWR<GatewayStatus | null>(swrKeys.gatewayStatus, () => probeGateway(), {
     refreshInterval: POLL_INTERVAL_MS

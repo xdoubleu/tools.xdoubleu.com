@@ -128,9 +128,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
 
   const client = createServiceClient(ShoppingListService)
 
-  // Initialize order from server data, but only once per storeId so that local
-  // reordering state isn't wiped on every SWR re-fetch (which may return a new
-  // object reference each time).
+  // Initialize order once per storeId so SWR refetches don't wipe local reordering.
   const lastInitializedStoreId = useRef<string>('')
   useEffect(() => {
     if (storeCategoriesData && storeId !== lastInitializedStoreId.current) {
@@ -143,8 +141,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
   const available = allCategories.filter((c) => !order.some((o) => o.id === c.id))
 
   const sensors = useSensors(
-    // A small activation distance lets taps still reach the × button without
-    // accidentally starting a drag.
+    // Small activation distance so taps still reach the × button.
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )

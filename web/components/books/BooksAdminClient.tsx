@@ -32,7 +32,6 @@ export default function BooksAdminClient() {
       />
       <h1 className="mb-6 text-3xl font-bold">Books admin tools</h1>
 
-      {/* Find duplicates */}
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Find duplicates
@@ -52,7 +51,6 @@ export default function BooksAdminClient() {
         </Button>
       </section>
 
-      {/* Scan for differences */}
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Scan for metadata differences
@@ -124,7 +122,6 @@ export default function BooksAdminClient() {
         )}
       </section>
 
-      {/* Resync wizard */}
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Review flagged books
@@ -136,7 +133,6 @@ export default function BooksAdminClient() {
         <ResyncWizard />
       </section>
 
-      {/* Source stats */}
       <section className="mt-10 border-t border-border pt-8">
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
           Source stats

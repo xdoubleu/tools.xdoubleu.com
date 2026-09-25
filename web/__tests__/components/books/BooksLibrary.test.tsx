@@ -12,10 +12,8 @@ import {
 const mockSearchExternal = jest.fn()
 const mockCreateBook = jest.fn()
 
-// AddManualBookDialog (rendered from the "No results." empty state) also
-// calls useLibrary for its custom-shelf options — stub it with a minimal
-// shape rather than a real proto message, since jest.mock factories can't
-// reference out-of-scope imports (they're hoisted above the imports).
+// AddManualBookDialog also calls useLibrary; jest.mock factories can't use
+// imports, so stub a minimal shape.
 jest.mock('@/hooks/useBooks', () => ({
   ...jest.requireActual('@/hooks/useBooks'),
   useSearchExternal: () => mockSearchExternal,
@@ -103,7 +101,6 @@ function makeLibrary(
   })
 }
 
-// Helper: render BooksLibrary with the required search prop.
 function renderLibrary(
   library: ReturnType<typeof makeLibrary>,
   opts: { searchQuery?: string } = {}
@@ -204,11 +201,10 @@ describe('BooksLibrary', () => {
     const library = makeLibrary({ reading: [taggedBook], wishlist: [wishlistTagged] })
     renderLibrary(library)
 
-    // Select a shelf first
     fireEvent.click(screen.getAllByText('Currently reading')[0])
     expect(screen.queryByText('Wishlist Tagged')).not.toBeInTheDocument()
 
-    // Selecting a tag should show books from ALL shelves matching the tag
+    // A tag spans all shelves.
     fireEvent.click(screen.getAllByText('fantasy')[0])
     expect(screen.getByText('Tagged')).toBeInTheDocument()
     expect(screen.getByText('Wishlist Tagged')).toBeInTheDocument()
@@ -275,12 +271,10 @@ describe('BooksLibrary', () => {
     const library = makeLibrary({ reading: [favTagged, taggedOnly] })
     renderLibrary(library)
 
-    // Select favourites shelf
     fireEvent.click(screen.getAllByText('Favourites')[0])
     expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
     expect(screen.queryByText('Tagged Only')).not.toBeInTheDocument()
 
-    // Selecting a tag clears the shelf and shows all books with that tag
     fireEvent.click(screen.getAllByText('fantasy')[0])
     expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
     expect(screen.getByText('Tagged Only')).toBeInTheDocument()
@@ -293,7 +287,6 @@ describe('BooksLibrary', () => {
     })
     const library = makeLibrary({ reading: [favBook] })
     renderLibrary(library)
-    // Should default to currently-reading (not favourites)
     const header = screen.getByRole('heading')
     expect(header.textContent).not.toMatch(/Favourites/)
   })
@@ -319,20 +312,14 @@ describe('BooksLibrary', () => {
     expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument()
   })
 
-  // ---------------------------------------------------------------------------
-  // Search-filter behaviour
-  // ---------------------------------------------------------------------------
-
   it('filters across all shelves by title when searchQuery is set', () => {
     renderLibrary(makeLibrary(), { searchQuery: 'dune' })
     expect(screen.getByText('Dune')).toBeInTheDocument()
-    // Other books must be hidden
     expect(screen.queryByText('Hyperion')).not.toBeInTheDocument()
     expect(screen.queryByText('Foundation')).not.toBeInTheDocument()
   })
 
   it('filters by author substring when searchQuery is set', () => {
-    // Build a library with two books with distinct unique authors.
     const bookA = create(UserBookSchema, {
       id: 'a1',
       status: 'currently-reading',
@@ -438,9 +425,7 @@ describe('BooksLibrary', () => {
   })
 
   it('opens the manual-add dialog even when a search returns an (unwanted) match', () => {
-    // resultCount > 0 here (Dune matches), so the old no-results-only
-    // affordance would never have shown — the persistent button must still
-    // work regardless of whether the search found something.
+    // Shown even when the search found something.
     renderLibrary(makeLibrary(), { searchQuery: 'dune' })
     fireEvent.click(screen.getByRole('button', { name: 'Add book' }))
     expect(screen.getByRole('heading', { name: 'Add book manually' })).toBeInTheDocument()

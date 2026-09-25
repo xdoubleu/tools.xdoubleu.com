@@ -77,8 +77,7 @@ describe('BooksTableToolbar', () => {
     })
 
     it('shows checked state for visible columns and unchecked for hidden ones', () => {
-      // Only cover and title are visible (both alwaysVisible, so not in toggle list).
-      // All other toggleable columns should be unchecked.
+      // Only the alwaysVisible columns, so every toggle is unchecked.
       const onlyAlways = new Set<ColumnKey>(['cover', 'title'])
       renderToolbar({ visibleColumns: onlyAlways })
       fireEvent.click(screen.getByRole('button', { name: 'Columns' }))

@@ -10,11 +10,7 @@ export interface DashboardChartState<V extends string> {
   setEnd: (v: string) => void
 }
 
-/**
- * Shared chart view + date-range state for the private and public dashboards.
- * Lives in the wrapper (the progress hook above the view needs start/end), so
- * there is one declaration site and the tab/date UI can't drift between them.
- */
+/** Chart view + date-range state shared by the private and public dashboards. */
 export function useDashboardChartState<V extends string>(defaultView: V): DashboardChartState<V> {
   const [view, setView] = useState<V>(defaultView)
   const [start, setStart] = useState(oneYearAgo())

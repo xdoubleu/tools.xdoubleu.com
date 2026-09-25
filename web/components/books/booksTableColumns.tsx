@@ -55,7 +55,7 @@ export interface BookColumn {
   renderCell: (ub: UserBook, ctx: CellContext) => ReactNode
 }
 
-/** Caps rendered author lines so rows with many co-authors don't grow the row height unpredictably. */
+/** Caps author lines so many co-authors don't grow the row. */
 const MAX_AUTHORS_SHOWN = 2
 
 export function nextDir(current: SortDir): SortDir {
@@ -104,7 +104,7 @@ export function sortBooks(books: UserBook[], sort: SortState): UserBook[] {
   })
 }
 
-/** All 12 columns. Order here is the display order in the table. */
+/** Display order of the table's columns. */
 export const ALL_COLUMNS: BookColumn[] = [
   {
     key: 'cover',
@@ -273,7 +273,6 @@ export const ALL_COLUMNS: BookColumn[] = [
   }
 ]
 
-/** Default visible set: all columns. Users narrow via the Columns toolbar toggle. */
 export const DEFAULT_VISIBLE_COLUMNS: ColumnKey[] = [
   'cover',
   'title',

@@ -11,11 +11,8 @@ interface BookProgressCellProps {
 }
 
 /**
- * Library-table "Progress" column cell — lets a currently-reading book's
- * progress be updated inline from the table row, without navigating to the
- * book detail page. Uses the shared Popover primitive (as the "Shelf & tags"
- * column does) so the edit form portals out of the table's overflow-x-auto
- * wrapper and stays positioned within the viewport on mobile.
+ * Inline progress editor for the library table. The Popover portals out of
+ * the table's overflow wrapper so it stays on-screen on mobile.
  */
 export default function BookProgressCell({ userBook, onSaved }: BookProgressCellProps) {
   if (userBook.status !== 'currently-reading') return null

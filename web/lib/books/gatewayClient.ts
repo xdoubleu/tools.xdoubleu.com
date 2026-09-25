@@ -1,34 +1,23 @@
 /**
- * Client for the local kobo-gateway: a downloadable macOS helper that
- * exposes a loopback-only HTTPS API (self-signed cert, trusted on first
- * launch — see gateway/internal/kobogateway/tls.go) that the books page
- * drives. The browser keeps making all authenticated API calls itself and
- * hands only the resulting sync URL to the gateway, which patches the
- * USB-mounted Kobo's config file. HTTPS (not HTTP) is required so Safari,
- * which blocks HTTPS pages from fetching plain-HTTP loopback URLs, can
- * reach it too.
+ * Client for the local kobo-gateway's loopback HTTPS API (HTTPS so Safari
+ * allows it from an HTTPS page). The browser makes all authenticated calls
+ * and hands only the sync URL to the gateway, which patches the Kobo config.
  */
 
 import { getKoboGatewayRelease } from '@/lib/env'
 
 const GATEWAY_PORT = 41132
-// Exported so middleware.ts can allow it in the CSP connect-src — without
-// that the browser blocks every request below (issue #960).
+// middleware.ts allows this in the CSP connect-src.
 export const GATEWAY_URL = `https://127.0.0.1:${GATEWAY_PORT}`
 
 /**
- * Minimum gateway protocol version this web app can drive. When a probe
- * reports an older version the UI triggers a self-update via updateGateway.
- * Only bump this for genuine HTTP API/file-handling breaks — routine
- * releases are instead caught by the release (build SHA) check in
- * gatewayNeedsUpdate below.
+ * Minimum gateway protocol version; older triggers a self-update. Bump only
+ * for HTTP API/file-handling breaks — gatewayNeedsUpdate's release check
+ * catches routine releases.
  */
 export const REQUIRED_GATEWAY_VERSION = 2
 
-// The .dmg is what the download button offers (drag-to-Applications, menu
-// bar app). The self-updater (updateGateway below) fetches the raw binary
-// at /downloads/kobo-gateway-darwin-arm64 instead, to replace the running
-// executable in place — see gateway/internal/kobogateway/update.go.
+// The download button's .dmg; the self-updater fetches the raw binary instead.
 export const GATEWAY_DOWNLOAD_PATH = '/downloads/kobo-gateway.dmg'
 
 export interface GatewayKobo {
@@ -53,7 +42,6 @@ async function gatewayFetch<T>(path: string, init?: RequestInit): Promise<T> {
         : `Gateway request failed (${res.status})`
     throw new Error(message)
   }
-  // Response shapes are defined by the gateway (api/internal/kobogateway/types.go).
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion
   return body as T
 }
@@ -66,11 +54,7 @@ function gatewayPost<T>(path: string, payload: Record<string, unknown>): Promise
   })
 }
 
-/**
- * Detects a running gateway. Resolves to null on any failure (not
- * installed, not running, blocked fetch, timeout) so callers can fall back
- * to the other setup flows.
- */
+/** Detects a running gateway; resolves to null on any failure. */
 export async function probeGateway(timeoutMs = 1500): Promise<GatewayStatus | null> {
   try {
     return await gatewayFetch<GatewayStatus>('/status', {
@@ -96,29 +80,22 @@ export function revertGateway(
 }
 
 /**
- * True when the installed gateway should self-update: either it's below the
- * required protocol version, or its release (build SHA) doesn't match the
- * release of the kobo-gateway artifact actually bundled in this deploy
- * (getKoboGatewayRelease() — not this web build's own release, since
- * kobo-gateway's build can be skipped/cached when its source is unchanged,
- * so it can legitimately lag behind web's release). Routine releases (icon
- * fixes, login-item changes, etc.) don't bump GatewayVersion, so this check
- * is what actually delivers them to installed gateways.
+ * True when the gateway is below the required protocol version or its release
+ * differs from the bundled artifact's (getKoboGatewayRelease(), which can lag
+ * web's own release when its build cache-hit).
  */
 export function gatewayNeedsUpdate(status: GatewayStatus): boolean {
   if (status.version < REQUIRED_GATEWAY_VERSION) return true
 
   const current = getKoboGatewayRelease()
-  // Local/dev builds have no deployed binary to fetch — skip the check.
   if (current === 'dev' || status.release === 'dev') return false
 
   return status.release !== current
 }
 
 /**
- * Asks the gateway to download the latest binary from this web origin,
- * replace itself, and restart. Callers should poll probeGateway afterwards
- * until the new version reports in.
+ * Asks the gateway to download the latest binary, replace itself, and
+ * restart; poll probeGateway afterwards.
  */
 export function updateGateway(): Promise<{ updating: boolean }> {
   return gatewayPost('/update', {})

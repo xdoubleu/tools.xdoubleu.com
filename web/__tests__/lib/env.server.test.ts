@@ -1,11 +1,7 @@
 /**
  * @jest-environment node
  *
- * lib/env.ts's getApiUrl/getSentryDsn/getRelease/getKoboGatewayRelease/
- * getPostHogKey/getPostHogHost all branch on `typeof window`; env.test.ts
- * (jsdom) only ever exercises the browser branch. This file runs under
- * Node so `window` is genuinely undefined, covering the process.env
- * fallback each one falls back to on the server.
+ * Covers lib/env.ts's server (`window` undefined) branches.
  */
 
 import {

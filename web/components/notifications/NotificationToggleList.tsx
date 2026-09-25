@@ -31,11 +31,8 @@ function sourceDescription(sourceKey: string): string {
   return SOURCE_DESCRIPTIONS[sourceKey] ?? ''
 }
 
-// NotificationToggleList renders one checkbox per source_key in sourceKeys,
-// shared by the monitoring and feeds notification-settings pages (issue
-// #1228) — each page passes its own allowlist of source keys so a source
-// added directly to global.notification_settings doesn't silently leak into
-// the wrong app's page.
+// One checkbox per allowlisted source_key; each page passes its own list so
+// new sources don't leak onto the wrong page.
 export default function NotificationToggleList({
   data,
   sourceKeys

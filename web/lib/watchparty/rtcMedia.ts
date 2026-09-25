@@ -1,7 +1,6 @@
 import type { TrackType } from '@/lib/watchparty/types'
 
-// Plain `{ current }` boxes so these modules stay React-free; the hook passes
-// its useRef objects straight in.
+// Plain `{ current }` boxes keep this React-free; the hook passes its refs.
 export interface RTCRefs {
   ws: { current: WebSocket | null }
   /** Outgoing cam connection (our cam → peer). */
@@ -48,9 +47,8 @@ export interface MediaController {
   startCamera: () => Promise<void>
 }
 
-// createMediaController owns peer-connection construction (including the
-// ontrack UI wiring and failure recovery) and local media capture. Signalling
-// messages are handled separately by createSignalHandler.
+// createMediaController builds peer connections (with ontrack wiring and
+// failure recovery) and captures local media; signalling is separate.
 export function createMediaController(deps: MediaControllerDeps): MediaController {
   const { refs, role, send, mainVideoRef, selfCamRef, remoteCamRef, onSharingChange, setError } =
     deps
@@ -183,7 +181,7 @@ export function createMediaController(deps: MediaControllerDeps): MediaControlle
     }
   }
 
-  // Presenter-only: screen sharing
+  // Presenter-only.
   async function startScreen() {
     setError(null)
     try {

@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# Idempotent OS hardening for the Hetzner VPS (issue #1030). Run as root via
-# the null_resource remote-exec provisioner in main.tf; safe to re-run.
+# Idempotent OS hardening for the Hetzner VPS; run by main.tf's provisioner.
 set -euo pipefail
 
-# Ubuntu's needrestart pops an interactive whiptail dialog after any apt-get
-# install that touches a running service — that blocks forever over this
-# non-interactive SSH remote-exec, since nothing can answer the prompt.
-# NEEDRESTART_MODE=a auto-restarts services instead of asking.
+# NEEDRESTART_MODE=a: needrestart's interactive prompt would hang remote-exec.
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 
@@ -27,8 +23,7 @@ done <<<"$DEPLOY_PUBLIC_KEYS"
 chmod 600 "$AUTH_KEYS"
 chown deploy:deploy "$AUTH_KEYS"
 
-# deploy has no password (SSH is key-only, and useradd leaves the account
-# locked), so sudo needs to be passwordless or it's simply unusable.
+# deploy has no password (key-only SSH), so sudo must be passwordless.
 echo "deploy ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/deploy
 chmod 440 /etc/sudoers.d/deploy
 visudo -cf /etc/sudoers.d/deploy
@@ -83,16 +78,8 @@ EOF
 systemctl enable --now unattended-upgrades
 
 # --- release-upgrade-check timer ------------------------------------------------------------
-# unattended-upgrades above deliberately never runs do-release-upgrade — a
-# full OS release upgrade is too risky to automate unattended on a
-# single-instance box with no HA — so nothing else would ever notice a new
-# LTS becoming available. This checks locally, on the box itself, on a
-# timer, so no external system ever needs to SSH in just to ask (issue
-# #1194 — replaces a prior api-side job that polled Canonical's feed
-# against a hardcoded, never-updated baseline and fired stale alerts).
-# release-upgrade-check.sh itself is uploaded by Tofu's own file
-# provisioner (see main.tf) since it isn't part of this repo-checkout-free
-# script; only the systemd units live here.
+# unattended-upgrades never runs do-release-upgrade, so this timer reports new
+# LTS releases. The script itself is uploaded by main.tf.
 cat >/etc/systemd/system/release-upgrade-check.service <<'EOF'
 [Unit]
 Description=Check for a new Ubuntu LTS release and email if one is available
@@ -118,9 +105,8 @@ systemctl daemon-reload
 systemctl enable --now release-upgrade-check.timer
 
 # --- sshd hardening ------------------------------------------------------------
-# Validate before touching the running daemon, and confirm it's still
-# listening after the reload — a bad reload here can permanently lock out
-# every SSH path (root already disabled, deploy not yet trusted).
+# Validate before reloading and confirm sshd still listens: a bad reload
+# locks out every SSH path.
 SSHD_CONFIG=/etc/ssh/sshd_config.d/99-hardening.conf
 cat >"$SSHD_CONFIG" <<'EOF'
 PasswordAuthentication no

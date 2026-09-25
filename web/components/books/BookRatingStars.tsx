@@ -29,7 +29,7 @@ export default function BookRatingStars({
 
   const handleClick = async (star: number) => {
     if (readOnly) return
-    // Clicking the current rating clears it (toggle off)
+    // Clicking the current rating clears it.
     const newRating = star === rating ? 0 : star
     const prev = rating
     setRating(newRating)
@@ -68,8 +68,7 @@ export default function BookRatingStars({
             'h-auto w-auto p-0 leading-none hover:bg-transparent',
             size === 'md' ? 'text-lg' : 'text-sm',
             star <= displayed ? 'text-amber-400' : 'text-border',
-            // Read-only stars are a rating display, so they must stay legible
-            // rather than taking the Button's dimmed disabled treatment.
+            // Read-only stars must stay legible, not dimmed like disabled buttons.
             readOnly ? 'cursor-default disabled:opacity-100' : 'hover:text-amber-400'
           )}
         >

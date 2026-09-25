@@ -93,7 +93,6 @@ describe('GamesSearch', () => {
       target: { value: 'a' }
     })
 
-    // Hades (inProgress), Bastion (completed), Transistor (notStarted) all contain 'a'
     expect(screen.getByText('Hades')).toBeInTheDocument()
     expect(screen.getByText('Bastion')).toBeInTheDocument()
     expect(screen.getByText('Transistor')).toBeInTheDocument()

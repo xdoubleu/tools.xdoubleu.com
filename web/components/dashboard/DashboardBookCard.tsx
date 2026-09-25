@@ -4,8 +4,7 @@ import BookProgressBar from '@/components/books/BookProgressBar'
 import { Card } from '@/components/ui/card'
 import { statusLabel, displayTags } from '@/lib/books/bookShelves'
 
-// Read-only book card for the public reading dashboard: no link (book
-// detail pages are owner-only), no favourite toggle or status editing.
+// No link: book detail pages are owner-only.
 export default function DashboardBookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
   if (!book) return null

@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 
-// Excluded items collect under this trailing group; it is collapsed by default.
 const NOT_EXPORTED = 'Not exported'
 const UNASSIGNED = 'Unassigned'
 
@@ -19,9 +18,8 @@ interface CatalogGroup {
   items: ItemName[]
 }
 
-// Partitions the catalog names into collapsible groups: an "Unassigned" group
-// first, then each category alphabetically, then a trailing "Not exported"
-// group holding every excluded name regardless of category.
+// "Unassigned" first, then categories alphabetically, then "Not exported"
+// (collapsed) for every excluded name.
 function buildGroups(names: ItemName[], categoryNames: Map<string, string>): CatalogGroup[] {
   const notExported: ItemName[] = []
   const byCategory = new Map<string, ItemName[]>()

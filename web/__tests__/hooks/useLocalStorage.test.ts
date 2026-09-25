@@ -23,7 +23,6 @@ describe('useLocalStorage', () => {
   it('reads a pre-existing value from localStorage on mount', () => {
     localStorage.setItem('test:key', JSON.stringify('hello'))
     const { result } = renderHook(() => useLocalStorage('test:key', 'default'))
-    // useEffect fires during render in RTL
     expect(result.current[0]).toBe('hello')
   })
 

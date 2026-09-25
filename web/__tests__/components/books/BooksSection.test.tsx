@@ -5,10 +5,8 @@ jest.mock('@/hooks/useBooks', () => ({
   useLibrary: jest.fn()
 }))
 
-// The query lives in ?q= (see BooksSection), not component state, so the
-// mock tracks it as a module-level URLSearchParams that router.replace
-// mutates — a re-render then picks up the new value, mirroring how Next's
-// real useSearchParams reflects a navigation.
+// The query lives in ?q=; router.replace mutates this and a re-render picks
+// it up, like a real navigation.
 let currentSearchParams = new URLSearchParams()
 const mockReplace = jest.fn((url: string) => {
   const qIndex = url.indexOf('?')
@@ -154,8 +152,7 @@ describe('BooksSection', () => {
     fireEvent.change(screen.getByPlaceholderText('Search books…'), {
       target: { value: 'dune' }
     })
-    // The query lives in the URL, not component state — router.replace updated
-    // it, so a re-render is needed to observe it (mirrors real navigation).
+    // The query lives in the URL, so re-render to observe it.
     rerender(<BooksSection />)
     expect(screen.getByTestId('books-library')).toHaveAttribute('data-search-query', 'dune')
   })

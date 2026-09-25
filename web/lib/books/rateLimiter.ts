@@ -1,6 +1,5 @@
-// Timestamp-based token bucket, mirroring golang.org/x/time/rate's
-// semantics — used to pace client requests below a server-side rate limit
-// instead of only reacting to it after the fact.
+// Token bucket (golang.org/x/time/rate semantics) for pacing requests below a
+// server rate limit.
 export function createRateLimiter(ratePerSecond: number, burst: number) {
   let tokens = burst
   let last = Date.now()

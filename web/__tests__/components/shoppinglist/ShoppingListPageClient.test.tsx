@@ -9,8 +9,7 @@ const updateShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
 const listMutate = jest.fn().mockResolvedValue(undefined)
 const categoriesMutate = jest.fn().mockResolvedValue(undefined)
 
-// Mutable meal-plan mock state (mock-prefixed so jest.mock's factory may close
-// over it); reset in beforeEach and overridden per-test.
+// Mutable meal-plan mock state (mock-prefixed for jest.mock); reset per test.
 let mockMealExport: { data: { items: unknown[] }; isLoading: boolean } = {
   data: { items: [] },
   isLoading: false
@@ -29,7 +28,6 @@ jest.mock('@/hooks/useShoppingList', () => ({
   }),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
-  // Consumed by ExportDialog once the export dialog is opened.
   useStores: () => ({ data: { stores: [] }, isLoading: false }),
   useStoreCategories: () => ({ data: undefined, isLoading: false }),
   useItemCategories: () => ({ data: { items: [] }, isLoading: false })
@@ -160,8 +158,7 @@ describe('ShoppingPage meal-plan section', () => {
     render(<ShoppingListPageClient />)
 
     expect(screen.getByText('Exclude ingredient groups')).toBeInTheDocument()
-    // The editable list also renders per-item checkboxes; the group filter's is
-    // the one whose <label> carries the group + recipe name.
+    // The group filter's checkbox label carries the group + recipe name.
     const checkbox = screen.getByRole('checkbox', { name: /Sauce/ })
     expect(checkbox).toBeChecked()
     fireEvent.click(checkbox)
@@ -186,8 +183,6 @@ describe('ShoppingPage meal-plan section', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Export' }))
     expect(screen.getByText('Export Shopping List')).toBeInTheDocument()
-    // The meal item flows into the dialog's preview, and the dialog no longer owns
-    // the ingredient-group controls.
     expect(screen.getByText('Order by store (optional)')).toBeInTheDocument()
     expect(screen.queryByText('Exclude ingredient groups')).not.toBeInTheDocument()
 

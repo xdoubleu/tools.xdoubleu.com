@@ -116,8 +116,7 @@ describe('ReadingDashboard', () => {
   it('links reading cards to the book detail page', () => {
     mockLibrary()
     const { container } = render(<ReadingDashboard />)
-    // The card link is a stretched overlay, so it's a sibling of the title
-    // rather than its ancestor — the progress controls sit above it.
+    // The card link is a stretched overlay sibling, not an ancestor.
     expect(container.querySelector('a[href="/books/1"]')).toBeInTheDocument()
   })
 
@@ -133,8 +132,7 @@ describe('ReadingDashboard', () => {
     render(<ReadingDashboard />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark as completed' }))
-    // Radix marks the rest of the page inert while the dialog is open, so
-    // only the dialog's own confirm button remains an accessible match.
+    // Radix makes the rest of the page inert while the dialog is open.
     fireEvent.click(await screen.findByRole('button', { name: 'Mark as completed' }))
 
     await waitFor(() =>
@@ -162,9 +160,7 @@ describe('ReadingDashboard', () => {
   it('shows YTD chart by default and reveals date inputs when All time is selected', () => {
     mockLibrary()
     render(<ReadingDashboard />)
-    // From/To inputs are hidden in YTD view
     expect(screen.queryByLabelText('From')).not.toBeInTheDocument()
-    // switch to All time
     fireEvent.click(screen.getByRole('tab', { name: 'All time' }))
     const from = screen.getByLabelText('From')
     fireEvent.change(from, { target: { value: '2026-01-01' } })

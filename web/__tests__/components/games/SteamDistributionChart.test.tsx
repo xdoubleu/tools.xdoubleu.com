@@ -2,9 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 
-// Mock recharts so that the Bar receives the chart `data` (forwarded from
-// BarChart) and renders one clickable element per entry. This lets the test
-// exercise the real onClick -> onBucketClick wiring.
+// Renders one clickable element per data entry to exercise onBucketClick.
 jest.mock('recharts', () => {
   const ReactLib = require('react')
   const Bar = ({ onClick, data }: { onClick?: (entry: unknown) => void; data?: unknown[] }) => (

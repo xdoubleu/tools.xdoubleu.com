@@ -37,9 +37,8 @@ export interface SignalHandlerDeps {
   createPC: (trackType: TrackType, direction?: 'send' | 'recv') => RTCPeerConnection
 }
 
-// createSignalHandler returns the WebSocket onmessage handler: it demuxes
-// offer/answer/candidate messages per track type, queueing ICE candidates that
-// arrive before the matching remote description is set.
+// createSignalHandler demuxes offer/answer/candidate messages per track,
+// queueing ICE candidates that precede the remote description.
 export function createSignalHandler(deps: SignalHandlerDeps) {
   const { refs, role, send, createPC } = deps
 

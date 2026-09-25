@@ -251,7 +251,6 @@ describe('GamesDashboard', () => {
     mockNoProgress()
     render(<GamesDashboard />)
 
-    // Distribution is the default view.
     expect(screen.getByTestId('distribution-chart')).toBeInTheDocument()
     expect(screen.queryByText('No progress data for this range.')).not.toBeInTheDocument()
 
@@ -275,8 +274,7 @@ describe('GamesDashboard', () => {
     })
     render(<GamesDashboard />)
 
-    // Distribution view (default): the chart wrapper has a fixed height on
-    // mobile and only fills its flex parent at lg.
+    // Fixed height on mobile; fills its flex parent at lg.
     const distWrapper = screen.getByTestId('distribution-chart').parentElement!
     expect(distWrapper).toHaveClass('h-72', 'lg:h-full', 'lg:flex-1')
 

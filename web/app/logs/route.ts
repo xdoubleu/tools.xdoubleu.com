@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getApiUrl, getObservabilityIngestSecret } from '@/lib/env'
 
-// Proxies client-side log batches (lib/logger.ts) to the api's shared-secret
-// ingest endpoint, attaching OBSERVABILITY_INGEST_SECRET server-side so the
-// browser never sees it. Deliberately off the /api prefix — kamal-proxy
-// routes everything under /api to the Go api service, so a route there would
-// never actually reach this Next.js handler (see swrKeys.webRelease).
+// Proxies client log batches to the api's ingest, adding
+// OBSERVABILITY_INGEST_SECRET server-side. Not under /api: kamal-proxy
+// routes that to the Go service.
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -23,7 +21,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       body
     })
   } catch {
-    // Best-effort: a dropped log batch isn't worth failing the caller over.
+    // Best-effort.
   }
 
   return new NextResponse(null, { status: 204 })

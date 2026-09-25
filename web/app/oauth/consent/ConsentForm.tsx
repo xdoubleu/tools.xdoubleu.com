@@ -11,8 +11,7 @@ interface ConsentFormProps {
   scope: string
 }
 
-// Human-readable labels for the standard OAuth scopes this server issues.
-// Unknown scopes fall back to their raw value so nothing is silently hidden.
+// Unknown scopes show their raw value.
 const scopeLabels: Record<string, string> = {
   openid: 'Verify your identity',
   email: 'Read your email address',

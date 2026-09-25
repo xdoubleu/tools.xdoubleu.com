@@ -173,9 +173,8 @@ describe('shoppingExport', () => {
     })
 
     it('combines same-name items when one recipe crosses the unit-upgrade threshold', () => {
-      // A bulk-prep recipe contributes ≥1000 g of an ingredient that another
-      // recipe also uses in a smaller amount. Both must still combine into one
-      // line; the upgrade to kg happens only on the summed total.
+      // ≥1000 g in one recipe and less in another must still combine; kg applies
+      // only to the total.
       const items: ShoppingItem[] = [
         { amount: '1500', unit: 'g', name: 'flour', recipeName: 'Bulk Prep' },
         { amount: '600', unit: 'g', name: 'flour', recipeName: 'Recipe B' }
@@ -317,7 +316,6 @@ describe('shoppingExport', () => {
       expect(groups.map((g) => g.category)).toEqual(['Produce', 'Baking'])
       expect(groups[0].items.map((i) => i.name)).toEqual(['sugar'])
       expect(groups[1].items.map((i) => i.name)).toEqual(['salt', 'flour'])
-      // butter maps to no category at all
       expect(uncategorized.map((i) => i.name)).toEqual(['butter'])
       expect(unordered).toEqual([])
     })
@@ -327,7 +325,7 @@ describe('shoppingExport', () => {
         { amount: '1', unit: '', name: 'frozen pizza' },
         { amount: '2', unit: '', name: 'apples' }
       ]
-      // frozen pizza has a real category, but the store does not order "cat-frozen"
+      // Has a category, but the store doesn't order it.
       const { groups, uncategorized, unordered } = groupByStore(
         items,
         undefined,

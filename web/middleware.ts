@@ -5,18 +5,13 @@ import { GATEWAY_URL } from '@/lib/books/gatewayClient'
 export function middleware() {
   const response = NextResponse.next()
 
-  // GATEWAY_URL: the books page talks to the local kobo-gateway helper over
-  // loopback HTTPS, which 'self' doesn't cover.
-  // *.r2.cloudflarestorage.com: book file uploads PUT directly to a Cloudflare
-  // R2 presigned URL from the browser.
+  // GATEWAY_URL: loopback kobo-gateway. R2: direct presigned upload PUTs.
   const connectSrc = ["'self'", '*.sentry.io', 'https://*.r2.cloudflarestorage.com', GATEWAY_URL]
   if (process.env.API_URL) connectSrc.push(process.env.API_URL)
 
   const scriptSrc = ["'self'", "'unsafe-inline'"]
 
-  // PostHog Cloud: the SDK captures events/flags/replays to POSTHOG_HOST and
-  // loads its config.js from that host's -assets sibling. Empty in local dev
-  // (no key configured), mirroring getPostHogHost().
+  // PostHog captures to POSTHOG_HOST and loads config from its -assets sibling.
   const postHogHost = process.env.POSTHOG_HOST
   if (postHogHost) {
     const postHogAssetsHost = postHogHost.replace(
@@ -33,7 +28,7 @@ export function middleware() {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
-    // Book preview: PDFs render in an <iframe> pointed at a presigned R2 URL.
+    // PDF previews use an <iframe> on a presigned R2 URL.
     "frame-src 'self' https://*.r2.cloudflarestorage.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",

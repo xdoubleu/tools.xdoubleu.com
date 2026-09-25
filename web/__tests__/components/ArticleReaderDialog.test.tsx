@@ -45,8 +45,7 @@ describe('ArticleReaderDialog', () => {
       />
     )
     const proseEl = [...document.querySelectorAll('.prose')].find((el) => el.textContent == 'Body')
-    // The underlying max-w-none (typography's 65ch default cleared) stays; the
-    // centered lg:max-w-prose / lg:mx-auto cap must not be applied.
+    // max-w-none stays; the centered lg cap must not apply.
     expect(proseEl?.className).toContain('max-w-none')
     expect(proseEl?.className).not.toContain('lg:max-w-prose')
     expect(proseEl?.className).not.toContain('lg:mx-auto')

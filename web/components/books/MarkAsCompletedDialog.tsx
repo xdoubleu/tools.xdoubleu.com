@@ -18,9 +18,8 @@ interface MarkAsCompletedDialogProps {
 }
 
 /**
- * Confirms moving a currently-reading book to "read", stamping today's date
- * (the server sets `finishedAt` when `updateBookStatus` transitions status to
- * `read`) while letting the user set a rating and favourite in the same call.
+ * Moves a currently-reading book to "read" (the server stamps `finishedAt`),
+ * with rating and favourite in the same call.
  */
 export default function MarkAsCompletedDialog({
   userBook,

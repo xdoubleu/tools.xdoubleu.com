@@ -8,10 +8,8 @@ Sentry.init({
   tracesSampleRate: 1.0
 })
 
-// Product analytics + session replay (root AGENTS.md's PostHog decision) —
-// autocapture and session recording on by default for every family member,
-// no opt-in/consent gate. A missing key (e.g. local dev) leaves PostHog
-// uninitialized rather than erroring.
+// PostHog analytics + session replay for every family member, no consent
+// gate. No key (local dev) leaves it uninitialized.
 const postHogKey = getPostHogKey()
 if (postHogKey) {
   posthog.init(postHogKey, {

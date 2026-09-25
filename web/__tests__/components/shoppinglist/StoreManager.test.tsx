@@ -2,9 +2,8 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import StoreManager from '@/components/shoppinglist/StoreManager'
 
-// jsdom returns zeroed getBoundingClientRect, so @dnd-kit's pointer/keyboard
-// sensors can't compute positions. Mock DndContext to expose onDragEnd via a
-// test trigger button, which exercises the real handleDragEnd + arrayMove logic.
+// jsdom has no layout, so @dnd-kit can't drag; a trigger button calls
+// onDragEnd to exercise the real reorder logic.
 jest.mock('@dnd-kit/core', () => {
   const actual = jest.requireActual('@dnd-kit/core')
   return {
@@ -97,7 +96,6 @@ describe('StoreManager', () => {
   it('reorders categories on drag and saves the new order', async () => {
     render(<StoreManager />)
     fireEvent.click(screen.getByRole('button', { name: 'Edit order' }))
-    // Drag Dairy above Vegetables so the order becomes Dairy, Vegetables.
     fireEvent.click(screen.getByRole('button', { name: 'drag Dairy above Vegetables' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save order' }))
     await waitFor(() =>

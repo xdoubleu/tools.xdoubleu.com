@@ -8,8 +8,7 @@ import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { Category } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 
-// Sentinel category id that switches the category select into "create a new
-// category" mode, revealing the name input below it.
+// Sentinel select value that reveals the new-category name input.
 const NEW_CATEGORY = '__new__'
 
 interface AddItemFormProps {
@@ -42,8 +41,6 @@ export default function AddItemForm({
         unit: newUnit.trim(),
         name
       })
-      // Resolve the effective category id: either an existing selection or a
-      // brand-new category created inline from the add form.
       let categoryId = newCategoryId
       if (newCategoryId === NEW_CATEGORY) {
         const trimmed = newCategoryName.trim()
@@ -54,8 +51,7 @@ export default function AddItemForm({
           await onCategoriesChanged()
         }
       }
-      // The category lives in the name->category catalog, not on the item, so
-      // assigning it here makes it persist by name across every list and export.
+      // Categories live in the name->category catalog, so this persists by name.
       if (categoryId) {
         await client.setItemCategory({ name, categoryId })
       }

@@ -136,9 +136,7 @@ describe('useJourneyLive', () => {
     expect(result.current.connected).toBe(false)
   })
 
-  // The core reconnect-after-sleep requirement (issue #1394): the page
-  // becoming visible again must force a fresh socket AND refetch, not just
-  // wait for the next push.
+  // Becoming visible again forces a fresh socket and a refetch.
   it('forces a reconnect and refetch when the page becomes visible again', () => {
     const refetch = jest.fn().mockResolvedValue(undefined)
     renderHook(() => useJourneyLive('journey-1', refetch))

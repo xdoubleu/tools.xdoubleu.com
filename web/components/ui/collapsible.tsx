@@ -13,10 +13,7 @@ interface CollapsibleProps {
   triggerClassName?: string
 }
 
-/**
- * Disclosure section with a chevron trigger. Keeps its own open state — lift it
- * out only if something outside needs to drive it.
- */
+/** Disclosure section with a chevron trigger and its own open state. */
 function Collapsible({
   title,
   defaultCollapsed = true,

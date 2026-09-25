@@ -180,8 +180,7 @@ describe('FeedReaderClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 
-    // Simulate the SWR revalidation triggered by the mutation resolving: the
-    // unread-only fetch no longer includes this item server-side.
+    // Revalidation drops the item from the unread-only fetch.
     mockUseFeedItems.mockReturnValue({
       data: { items: [], hasMore: false },
       error: undefined,
@@ -203,8 +202,7 @@ describe('FeedReaderClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 
-    // Simulate the SWR revalidation dropping the item server-side, then the
-    // undo window elapsing while the reader is still open.
+    // Revalidation drops the item, then the undo window elapses mid-read.
     mockUseFeedItems.mockReturnValue({
       data: { items: [], hasMore: false },
       error: undefined,
@@ -233,7 +231,6 @@ describe('FeedReaderClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Item 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
 
-    // The mutation's revalidation drops the item from the unread-only fetch.
     mockUseFeedItems.mockReturnValue({
       data: { items: [], hasMore: false },
       error: undefined,
@@ -247,8 +244,7 @@ describe('FeedReaderClient', () => {
   })
 
   it('settles a late undo window without error once the reader is already closed', () => {
-    // The item stays in the fetched page (e.g. the show-read view), so its
-    // card — and its undo timer — outlive the reader being closed.
+    // The item stays in the page, so its card and undo timer outlive the reader.
     mockUseFeedItems.mockReturnValue({
       data: { items: [item('1')], hasMore: false },
       error: undefined,

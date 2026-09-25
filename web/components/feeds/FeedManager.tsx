@@ -84,7 +84,6 @@ function FeedRow({ feed }: { feed: Feed }) {
   )
 }
 
-// FeedManager lists the user's RSS/Atom and email-newsletter subscriptions.
 export default function FeedManager() {
   const { data, error, isLoading } = useFeeds()
 

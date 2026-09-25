@@ -1,10 +1,7 @@
 import { getApiUrl } from '@/lib/env'
 
-// Server-only client for the OAuth 2.1 consent flow (issue #1039), talking
-// directly to this api's own embedded fosite authorization server instead of
-// Supabase's proprietary `supabase.auth.oauth` endpoints. Both calls are
-// plain fetches — no ConnectRPC framing, since /oauth2/* is plain HTTP per
-// RFC 6749/7591/9207, not a Connect procedure.
+// Server-only client for the OAuth consent flow against the api's embedded
+// fosite server; plain fetches, since /oauth2/* isn't a Connect procedure.
 
 export interface ConsentInfo {
   clientId: string
@@ -18,11 +15,8 @@ interface ConsentInfoResponse {
   scope: string
 }
 
-// GET /oauth2/consent-info: echoes back the pending authorization request's
-// client name and requested scope, keyed by client_id. Unauthenticated on
-// this leg (see api/internal/oauth2as/handlers.go's ConsentInfoHandler) — it
-// only reveals public client-registration details, never anything scoped to
-// the signed-in user.
+// GET /oauth2/consent-info: the pending request's client name and scope.
+// Unauthenticated; reveals only public client-registration details.
 export async function getConsentInfo(query: URLSearchParams): Promise<ConsentInfo | null> {
   const clientId = query.get('client_id')
   if (!clientId) return null
@@ -36,17 +30,10 @@ export async function getConsentInfo(query: URLSearchParams): Promise<ConsentInf
   return { clientId: data.client_id, clientName: data.client_name, scope: data.scope }
 }
 
-// POST /oauth2/authorize with the original authorization-request query
-// params (echoed by the redirect that sent the browser to the consent page
-// in the first place — see AuthorizeHandler) plus consent=allow|deny. The
-// session cookie is forwarded so the handler can re-verify it server-side as
-// defense in depth before minting a code.
-//
-// fosite's WriteAuthorizeResponse/WriteAuthorizeError reply with a real
-// HTTP redirect (302 + Location) to the OAuth client's own redirect_uri, so
-// this follows manually (redirect: 'manual') rather than letting fetch chase
-// it — the caller hands the Location straight to Next's redirect() so the
-// *browser* ends up there, not this server-side fetch.
+// POST /oauth2/authorize with the original params plus consent=allow|deny,
+// forwarding the session cookie for re-verification. fosite replies with a
+// 302, so redirect: 'manual' hands the Location to Next's redirect() for the
+// browser to follow.
 export async function decideAuthorization(
   query: URLSearchParams,
   decision: 'allow' | 'deny',

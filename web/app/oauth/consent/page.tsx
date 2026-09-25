@@ -4,13 +4,9 @@ import { PageContainer } from '@/components/ui/page-container'
 import { getConsentInfo } from '@/lib/oauth2as/consentClient'
 import ConsentForm from './ConsentForm'
 
-// OAuth 2.1 consent screen. The api's own embedded fosite authorization
-// server (issue #1039, replacing Supabase) redirects the browser here with
-// the pending authorization request's own query params (client_id, scope,
-// state, redirect_uri, code_challenge, ...) — see AuthorizeHandler in
-// api/internal/oauth2as/handlers.go. This page runs server-side so it can
-// read the HttpOnly session cookie and, on approval, echo those same params
-// back to /oauth2/authorize alongside the user's decision.
+// OAuth 2.1 consent screen. The api's authorization server redirects here
+// with the pending request's params; on approval they're echoed back to
+// /oauth2/authorize. Server-side so it can read the HttpOnly session cookie.
 
 interface ConsentPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>

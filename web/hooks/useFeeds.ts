@@ -14,7 +14,6 @@ import type {
   GetUnhealthyFeedsResponse
 } from '@/lib/gen/feeds/v1/feeds_pb'
 
-// FEEDS_SUMMARY_ITEM_LIMIT bounds the reading dashboard's feeds widget.
 const FEEDS_SUMMARY_ITEM_LIMIT = 5
 
 interface FeedsSummaryItem {
@@ -28,24 +27,14 @@ export interface FeedsSummary {
   items: FeedsSummaryItem[]
 }
 
-// RSS/Atom and email-newsletter feed subscriptions, standalone from the
-// reading library (issue #734) — items are self-contained, so mutations
-// only ever invalidate feeds-scoped keys.
-
-// Items are paginated per unreadOnly variant (two independent SWR keys), so
-// a mutation invalidates both rather than tracking which one is on-screen.
-// Only for mutations that change which items exist (create/delete/refresh) —
-// per-item state changes use patchCachedItem instead, which avoids refetching
-// a whole page.
+// Invalidates both unreadOnly variants. Only for create/delete/refresh;
+// per-item changes use patchCachedItem.
 function mutateFeedItems() {
   return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
 }
 
-// patchCachedItem writes an updated item into every cached list page in
-// place, with revalidate:false. UpdateItem already returns the new row, so
-// refetching the list to learn what we were just told is pure waste — and it
-// used to fire on every debounced scroll tick, re-pulling a page of items
-// each time (issue #1027).
+// patchCachedItem writes UpdateItem's returned row into every cached page
+// without refetching.
 function patchCachedItem(updated: Item) {
   return mutate(
     (key) => typeof key === 'string' && key.startsWith('/feeds/items'),
@@ -60,11 +49,8 @@ function patchCachedItem(updated: Item) {
   )
 }
 
-// noAutoRevalidate stops SWR re-running these fetches on every tab focus and
-// reconnect, matching useGames/useAuth. Feed pages are server-prefetched into
-// the SWR cache already, so the default behaviour meant re-pulling a whole
-// page of items for no new information — a large share of the egress that
-// exhausted the Supabase quota in issue #1027.
+// No refetch on focus/reconnect: pages are server-prefetched and refetching
+// wastes egress.
 const noAutoRevalidate = {
   revalidateOnFocus: false,
   revalidateOnReconnect: false
@@ -79,11 +65,8 @@ export function useFeeds() {
   )
 }
 
-// useUnhealthyFeeds reports every user's feeds currently failing to poll —
-// admin-only server-side, shown on the feeds app's own page rather than
-// monitoring's. enabled gates the fetch on the caller already knowing the
-// viewer is an admin, so a non-admin viewing /feeds never issues (and gets
-// denied) a request it has no use for.
+// useUnhealthyFeeds lists every user's failing feeds (admin-only); enabled
+// keeps non-admins from sending a request that would be denied.
 export function useUnhealthyFeeds(enabled: boolean) {
   const client = createServiceClient(FeedService)
   return useSWR<GetUnhealthyFeedsResponse, Error>(enabled ? swrKeys.unhealthyFeeds : null, () =>
@@ -100,9 +83,7 @@ export function useFeedItems(unreadOnly: boolean, feedId?: string, bookmarkedOnl
   )
 }
 
-// useFeedItem fetches one item's article body. List responses carry only a
-// hasContent flag (issue #1027), so the reader pulls the body when it opens
-// an article and SWR keeps it cached for the rest of the session.
+// useFeedItem fetches one article body; list responses only carry hasContent.
 export function useFeedItem(itemId: string | null) {
   const client = createServiceClient(FeedService)
   return useSWR<GetFeedItemResponse, Error>(
@@ -171,9 +152,7 @@ export interface UpdateItemInput {
   readProgressPct?: number
 }
 
-// useUpdateItem partially updates an item's read/dismissed/bookmarked/
-// read-progress state (proto3 field-presence, so unset keys are left
-// unchanged server-side).
+// useUpdateItem partially updates an item; unset keys are left unchanged.
 export function useUpdateItem() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
@@ -186,8 +165,7 @@ export function useUpdateItem() {
   )
 }
 
-// useFeedStats fetches issue #798's per-feed posting-cadence/read-completion
-// stats plus the trailing-90-day items-per-day histogram.
+// useFeedStats fetches per-feed cadence/read stats and the 90-day histogram.
 export function useFeedStats() {
   const client = createServiceClient(FeedService)
   return useSWR<GetFeedStatsResponse, Error>(
@@ -197,13 +175,8 @@ export function useFeedStats() {
   )
 }
 
-// useFeedsSummary backs the reading dashboard's feeds widget (issue #737):
-// a handful of recent unread items plus an unread count. There's no
-// dedicated summary RPC for the owner's own authenticated view — unlike the
-// public dashboard's GetSharedFeedsSummary, this composes two existing
-// FeedService calls instead. The unread count is a best-effort estimate
-// (per-feed item_count * (1 - read_rate), rounded and summed) rather than an
-// exact count, which is an acceptable tradeoff for a summary widget.
+// useFeedsSummary backs the reading dashboard's feeds widget. The unread count
+// is an estimate: sum of item_count * (1 - read_rate).
 export function useFeedsSummary() {
   const itemsClient = createServiceClient(FeedService)
   const {

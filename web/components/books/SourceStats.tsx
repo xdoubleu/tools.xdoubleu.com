@@ -18,9 +18,7 @@ function sourceLabel(source: string): string {
   return SOURCE_LABELS[source] ?? source
 }
 
-// TOTAL_SOURCES is the number of external metadata providers (UniCat,
-// Hardcover) — SOURCE_LABELS also carries the '' "Keep library" entry, which
-// is excluded here.
+// External providers only; excludes the '' "Keep library" entry.
 const TOTAL_SOURCES = Object.keys(SOURCE_LABELS).filter((s) => s !== '').length
 
 function comboLabel(sources: string[]): string {
@@ -28,8 +26,7 @@ function comboLabel(sources: string[]): string {
   return sources.map(sourceLabel).join(' + ')
 }
 
-// ExactSourcesDialog lists the actual books found by exactly the given set
-// of sources — one source is a Unique count, two or three is an overlap combo.
+// Books found by exactly the given set of sources.
 function ExactSourcesDialog({
   sources,
   onOpenChange
@@ -72,10 +69,8 @@ function ExactSourcesDialog({
   )
 }
 
-// SourceStats reports per-source coverage (how many books the last scan
-// found in each source), uniqueness (how many books were found ONLY in that
-// source), and pairwise/all-three overlap. Clicking a count opens the list
-// of those books.
+// SourceStats shows per-source coverage, uniqueness and overlap from the last
+// scan; clicking a count lists those books.
 export default function SourceStats() {
   const { data, isLoading, error } = useSourceStats()
   const [openSources, setOpenSources] = useState<string[] | null>(null)

@@ -92,7 +92,6 @@ describe('ReadingDashboardPublicClient', () => {
     const link = screen.getByRole('link', { name: 'Browse full library' })
     expect(link).toHaveAttribute('href', '/dashboard/reading/tok-1/library')
 
-    // The inline library (search + shelf sidebar) now lives on its own route.
     expect(screen.queryByPlaceholderText('Search books…')).not.toBeInTheDocument()
     expect(screen.queryByText('custom-shelf')).not.toBeInTheDocument()
   })
@@ -101,8 +100,7 @@ describe('ReadingDashboardPublicClient', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ReadingDashboardPublicClient token="tok-1" />)
 
-    // Reading Book appears once (currently-reading strip); library-only books
-    // like the wishlist entry are not shown on the dashboard.
+    // Library-only books aren't on the dashboard.
     expect(screen.getAllByText('Reading Book')).toHaveLength(1)
     expect(screen.queryByText('Wishlist Book')).not.toBeInTheDocument()
   })
