@@ -61,6 +61,8 @@ Check the tracking issue before handing `ship-pr` a reference:
 `ship-pr` owns rebase → push → non-draft PR → CI watch. Pick the auto-merge
 rule from the issue's **labels**, not the diff
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
+**Unattended** (routine or subagent): never auto-merge, either track
+([`docs/convention-unattended-agent-trust.md`](../../../docs/convention-unattended-agent-trust.md)).
 
 **A — `feature` label: quality gate, then unconditional auto-merge.** No
 `## Manual review needed` section. Before opening the PR (or before arming
@@ -94,8 +96,7 @@ Then tell `ship-pr` to enable auto-merge.
   **every** triggered signal, each with a specific "what to double check"
   (e.g. migration: backward-compatible with deployed code).
 
-Board Status edits (project #8 is personal, so GitHub MCP field tools can't
-write it):
+Board Status edits (project #8 is personal; GitHub MCP can't write it):
 
 ```
 gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
