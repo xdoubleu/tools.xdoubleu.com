@@ -51,7 +51,7 @@ func RegisterClient(
 		RedirectURIs:   metadata.RedirectURIs,
 		GrantTypes:     []string{authorizationCodeGrant, refreshTokenGrant},
 		ResponseTypes:  []string{"code"},
-		Scopes:         []string{OfflineAccessScope},
+		Scopes:         []string{OfflineAccessScope, OpenIDScope},
 		Audience:       nil,
 		Public:         true,
 	}

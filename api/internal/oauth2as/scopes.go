@@ -9,12 +9,15 @@ import (
 
 // The scopes this authorization server understands.
 //
-//   - OfflineAccessScope is what fosite requires among a request's *granted*
-//     scopes before the token endpoint will issue a refresh token. Every
-//     dynamically-registered (MCP) client carries it (see RegisterClient).
-//   - OpenIDScope / ProfileScope / EmailScope drive OIDC ID-token issuance
-//     and its claims (issue #1469); only clients that register them — today
-//     just the static Grafana SSO client — may request them.
+//   - OfflineAccessScope and OpenIDScope are what fosite requires among a
+//     request's *granted* scopes before the token endpoint will issue a
+//     refresh token / ID token respectively. Every dynamically-registered
+//     (MCP) client carries both (see RegisterClient), so any MCP client may
+//     request openid and receive a minimal ID token (subject + admin role
+//     claim only — see addProfileClaims).
+//   - ProfileScope / EmailScope layer email/name claims onto that ID token
+//     (issue #1469); only clients that register them — today just the
+//     static Grafana SSO client — may request them.
 const (
 	OpenIDScope        = "openid"
 	ProfileScope       = "profile"

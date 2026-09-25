@@ -130,6 +130,65 @@ func TestOIDC_AuthorizationCodeFlow_IssuesVerifiableIDToken(t *testing.T) {
 	assert.Equal(t, oauth2as.OIDCKeyID(srv.key), jwks.Keys[0]["kid"])
 }
 
+// TestOIDC_DynamicallyRegisteredClient_CanRequestOpenID covers issue #1882:
+// a client created through RFC 7591 dynamic registration (every MCP client,
+// including ChatGPT's connector) must be able to request the openid scope
+// and receive a minimal ID token, without the invalid_scope error that
+// happened while RegisterClient only granted offline_access.
+func TestOIDC_DynamicallyRegisteredClient_CanRequestOpenID(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+
+	verifier, challenge := pkcePair(t)
+	code := srv.authorizeAndGetCodeWithScope(
+		t, client, challenge, "dyn-oidc-state-01", "openid offline_access",
+	)
+
+	resp, out := srv.exchangeOIDCToken(t, url.Values{
+		"grant_type":    {"authorization_code"},
+		"code":          {code},
+		"redirect_uri":  {client.RedirectURIs[0]},
+		"client_id":     {client.ID},
+		"code_verifier": {verifier},
+	}, [2]string{})
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.NotEmpty(t, out.IDToken, "openid scope should yield an id token")
+	require.NotEmpty(t, out.RefreshToken)
+
+	tok, err := jwt.Parse(out.IDToken, func(_ *jwt.Token) (any, error) {
+		return &srv.key.PublicKey, nil
+	})
+	require.NoError(t, err)
+	require.True(t, tok.Valid)
+	claims, ok := tok.Claims.(jwt.MapClaims)
+	require.True(t, ok)
+	assert.Equal(t, srv.userID, claims["sub"])
+	// A dynamically-registered client is never granted profile/email, so the
+	// ID token stays minimal regardless of what was requested.
+	assert.NotContains(t, claims, "email")
+	assert.NotContains(t, claims, "name")
+
+	// Requesting a scope the dynamic client isn't registered for (profile)
+	// must still fail — this fix only adds openid, not profile/email.
+	_, challenge2 := pkcePair(t)
+	q := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {client.ID},
+		"redirect_uri":          {client.RedirectURIs[0]},
+		"code_challenge":        {challenge2},
+		"code_challenge_method": {"S256"},
+		"state":                 {"dyn-oidc-state-02"},
+		"scope":                 {"openid profile"},
+		"consent":               {"allow"},
+	}
+	errResp, err := noRedirectClient().Get(srv.ts.URL + "/oauth2/authorize?" + q.Encode())
+	require.NoError(t, err)
+	defer errResp.Body.Close()
+	errLoc, err := url.Parse(errResp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, "invalid_scope", errLoc.Query().Get("error"))
+}
+
 func TestOIDC_ConfidentialClient_SecretIsEnforced(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := grafanaConfidentialClient(t, srv)
