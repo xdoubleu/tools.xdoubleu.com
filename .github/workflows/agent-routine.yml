@@ -112,6 +112,7 @@ jobs:
           ROUTINE_PROMPT: ${{ inputs.prompt }}
           ROUTINE: ${{ inputs.routine }}
           MODEL: ${{ vars.ROUTINES_MODEL }}
+          VARIANT: ${{ vars.ROUTINES_VARIANT || 'low' }}
         run: |
           mcp=$(jq -n --arg url "$APPS_BASE_URL/apps/mcp" '{"tools-apps": {type: "remote",
             url: $url, oauth: false,
@@ -137,7 +138,7 @@ jobs:
 
           $ROUTINE_PROMPT"
           opencode run --auto \
-            --model "openrouter/${MODEL}" \
+            --model "openrouter/${MODEL}" --variant "$VARIANT" \
             --title "$ROUTINE $GITHUB_RUN_ID" \
             --format json "$prompt" \
             > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log"
