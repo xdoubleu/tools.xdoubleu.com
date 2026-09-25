@@ -18,13 +18,10 @@ const (
 	FormatEPUB = "epub"
 	FormatPDF  = "pdf"
 
-	// magicPrefixLen is the number of bytes read for format detection.
 	magicPrefixLen = 4
 
-	// maxZipEntries caps the number of entries scanned in an EPUB zip.
 	maxZipEntries = 10_000
-	// maxXMLReadBytes caps decompressed bytes read from any single XML file
-	// inside an EPUB (container.xml and the OPF) to guard against zip bombs.
+	// maxXMLReadBytes caps each decompressed XML file (zip bomb guard).
 	maxXMLReadBytes = 1 << 20 // 1 MB
 )
 
@@ -36,17 +33,14 @@ type Metadata struct {
 	Language *string
 }
 
-// DetectFormat returns FormatEPUB or FormatPDF based on magic bytes,
-// filename extension, or MIME type (checked in that order).
-// Returns empty string when the format cannot be determined.
+// DetectFormat detects EPUB/PDF by magic bytes, then extension, then MIME
+// type; "" when unknown.
 func DetectFormat(magic []byte, filename, contentType string) string {
 	if len(magic) >= magicPrefixLen {
-		// PK\x03\x04 = zip/EPUB
 		if magic[0] == 0x50 && magic[1] == 0x4B &&
 			magic[2] == 0x03 && magic[3] == 0x04 {
 			return FormatEPUB
 		}
-		// %PDF
 		if bytes.Equal(magic[:magicPrefixLen], []byte("%PDF")) {
 			return FormatPDF
 		}
@@ -67,9 +61,8 @@ func DetectFormat(magic []byte, filename, contentType string) string {
 	return ""
 }
 
-// DetectFormatFromMagic returns FormatEPUB or FormatPDF based solely on the
-// first four magic bytes of data. Returns empty string when neither matches.
-// Use this on the server path — never trust filename or content-type alone.
+// DetectFormatFromMagic detects EPUB/PDF by magic bytes only. Use this on the
+// server path.
 func DetectFormatFromMagic(data []byte) string {
 	if len(data) < magicPrefixLen {
 		return ""
@@ -83,8 +76,7 @@ func DetectFormatFromMagic(data []byte) string {
 	return ""
 }
 
-// Extract reads bibliographic metadata from r.
-// format must be FormatEPUB or FormatPDF.
+// Extract reads metadata from r; format must be FormatEPUB or FormatPDF.
 func Extract(
 	format string,
 	r io.ReaderAt,
@@ -99,8 +91,6 @@ func Extract(
 		return Metadata{}, fmt.Errorf("ebookmeta: unsupported format %q", format)
 	}
 }
-
-// --- EPUB ---
 
 type epubContainer struct {
 	Rootfiles []epubRootfile `xml:"rootfiles>rootfile"`
@@ -167,8 +157,7 @@ func opfToMetadata(meta opfMetadata) Metadata {
 		m.Title = strings.TrimSpace(meta.Titles[0])
 	}
 	for _, c := range meta.Creators {
-		// Dublin Core dc:creator conventionally orders personal names
-		// "Lastname, Firstname"; flip it to match the other providers.
+		// dc:creator is conventionally "Last, First"; flip it to match the providers.
 		if s := strings.TrimSpace(c); s != "" {
 			m.Authors = append(m.Authors, authorname.Normalize(s))
 		}
@@ -225,8 +214,6 @@ func zipFile(zr *zip.Reader, name string) *zip.File {
 	return nil
 }
 
-// --- PDF ---
-
 func extractPDF(r io.ReaderAt, size int64) (Metadata, error) {
 	reader, err := pdf.NewReader(r, size)
 	if err != nil {
@@ -243,11 +230,8 @@ func extractPDF(r io.ReaderAt, size int64) (Metadata, error) {
 	return m, nil
 }
 
-// --- ISBN detection ---
-
 var nonISBNRe = regexp.MustCompile(`[^\dX]`)
 
-// classifyISBN returns (*isbn13, *isbn10) — at most one non-nil — detected from value.
 func classifyISBN(_ string, value string) (*string, *string) {
 	clean := nonISBNRe.ReplaceAllString(
 		strings.ToUpper(strings.TrimSpace(value)), "",

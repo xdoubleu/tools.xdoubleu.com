@@ -21,7 +21,6 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// fakeEPUBConverter is a test double that returns fixed KEPUB bytes.
 type fakeEPUBConverter struct {
 	out []byte
 	err error
@@ -31,10 +30,8 @@ func (f *fakeEPUBConverter) Convert(_ context.Context, _ []byte) ([]byte, error)
 	return f.out, f.err
 }
 
-// newTestConversionService constructs a ConversionService using the real DB
-// repository from testApp, a fresh fake objectstore, and controlled converters.
-// Pass nil for convertPDF to use the default (goPDFConverter), or supply a
-// fake for tests that exercise the PDF path.
+// newTestConversionService uses testApp's DB, a fresh fake store, and the
+// given converters (nil convertPDF selects goPDFConverter).
 func newTestConversionService(
 	converter services.EPUBConverter,
 	convertPDF services.PDFConverter,
@@ -51,8 +48,7 @@ func newTestConversionService(
 	return svc, store
 }
 
-// fakePDFConverter is a test double for the PDF→EPUB subprocess. It writes
-// the provided EPUB bytes to outPath so the rest of the pipeline can proceed.
+// fakePDFConverter writes epubBytes to outPath.
 func fakePDFConverter(epubBytes []byte) services.PDFConverter {
 	return func(
 		_ context.Context, _, outPath, _, _ string, _ []string,
@@ -61,14 +57,12 @@ func fakePDFConverter(epubBytes []byte) services.PDFConverter {
 	}
 }
 
-// failingPDFConverter is a test double that always returns an error.
 func failingPDFConverter(
 	_ context.Context, _, _, _, _ string, _ []string,
 ) error {
 	return errors.New("pdf converter: simulated failure")
 }
 
-// failingPutStore wraps FakeClient but makes Put always fail.
 type failingPutStore struct{ *objectstore.FakeClient }
 
 func (f *failingPutStore) Put(
@@ -77,7 +71,6 @@ func (f *failingPutStore) Put(
 	return errors.New("put: simulated failure")
 }
 
-// failingGetStore wraps FakeClient but makes Get always fail.
 type failingGetStore struct{ *objectstore.FakeClient }
 
 func (f *failingGetStore) Get(_ context.Context, _ string) (io.ReadCloser, error) {
@@ -90,8 +83,6 @@ func (f *failingGetStore) PresignGet(
 	return "", errors.New("presign: simulated failure")
 }
 
-// seedEPUBFile stores a minimal EPUB in the given store and inserts a book_files
-// row so EnsureKEPUB has a source to convert.
 func seedEPUBFile(
 	t *testing.T,
 	store *objectstore.FakeClient,
@@ -127,8 +118,6 @@ func seedEPUBFile(
 	return bf
 }
 
-// --- EnsureKEPUB tests ---
-
 func TestEnsureKEPUB_ConvertSuccess(t *testing.T) {
 	book := addUniqueBook(t)
 	kepubBytes := []byte("fake kepub content")
@@ -150,7 +139,6 @@ func TestEnsureKEPUB_ConvertSuccess(t *testing.T) {
 	assert.Equal(t, int64(len(kepubBytes)), result.SizeBytes)
 	assert.NotNil(t, result.SourceFileID)
 
-	// Verify the KEPUB bytes were actually stored.
 	stored, ok := store.GetContent(result.StorageKey)
 	assert.True(t, ok, "kepub file should be in objectstore")
 	assert.Equal(t, kepubBytes, stored)
@@ -171,14 +159,11 @@ func TestEnsureKEPUB_Idempotent(t *testing.T) {
 	second, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
 	require.NoError(t, err)
 
-	// Second call returns the same row without re-converting.
 	assert.Equal(t, first.ID, second.ID)
 }
 
-// TestEnsureKEPUB_StaleConverterVersion_Regenerates covers issue #594: a
-// KEPUB row produced by an older converter (ConverterVersion 0, the
-// migration default for pre-existing rows) must be regenerated rather than
-// returned as-is, so a converter fix reaches already-converted books.
+// TestEnsureKEPUB_StaleConverterVersion_Regenerates: a row from an older
+// converter (0 is the migration default) is regenerated.
 func TestEnsureKEPUB_StaleConverterVersion_Regenerates(t *testing.T) {
 	book := addUniqueBook(t)
 	conv, store := newTestConversionService(
@@ -227,8 +212,6 @@ func TestEnsureKEPUB_StaleConverterVersion_Regenerates(t *testing.T) {
 	)
 }
 
-// seedPDFFile stores a minimal PDF in the given store and inserts a book_files
-// row so EnsureKEPUB has a PDF source to convert.
 func seedPDFFile(
 	t *testing.T,
 	store *objectstore.FakeClient,
@@ -267,7 +250,6 @@ func seedPDFFile(
 func TestEnsureKEPUB_PDFOnly_ConvertSuccess(t *testing.T) {
 	book := addUniqueBook(t)
 	kepubBytes := []byte("pdf-sourced kepub")
-	// fakePDFConverter writes a minimal EPUB so kepubify gets valid input.
 	epubBytes := buildEPUBBytes("PDF Book", "PDF Author", "")
 	conv, store := newTestConversionService(
 		&fakeEPUBConverter{out: kepubBytes, err: nil},
@@ -343,7 +325,6 @@ func TestEnsureKEPUB_ConvertError_MarksFailedStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "convert epub to kepub")
 
-	// The book_files row inserted during conversion must be marked failed.
 	files, listErr := testApp.Repositories.BookFiles.ListByBook(
 		context.Background(), userID, book.ID,
 	)
@@ -359,7 +340,6 @@ func TestEnsureKEPUB_ConvertError_MarksFailedStatus(t *testing.T) {
 	assert.Equal(t, models.FileStatusFailed, kepubRow.Status)
 }
 
-// TestBooksFilesRepo_UpdateAfterConversion verifies the new repository method.
 func TestBooksFilesRepo_UpdateAfterConversion(t *testing.T) {
 	book := addUniqueBook(t)
 
@@ -400,8 +380,7 @@ func TestBooksFilesRepo_UpdateAfterConversion(t *testing.T) {
 //nolint:gochecknoglobals //mirrors the pattern of userID in app_test.go
 var user2ID = "5001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 
-// countingConverter wraps a fakeEPUBConverter and records how many times
-// Convert is called. Used to assert that cross-user dedup skips conversion.
+// countingConverter counts Convert calls.
 type countingConverter struct {
 	calls int
 	out   []byte
@@ -413,10 +392,8 @@ func (c *countingConverter) Convert(_ context.Context, _ []byte) ([]byte, error)
 	return c.out, c.err
 }
 
-// seedEPUBFileForUser stores a canonical EPUB blob in the given store and
-// inserts a book_files row for the specified user with the given checksum.
-// The storage key is the content-addressed canonical path (books/<checksum>.epub)
-// so that both source and derived canonical key follow the same scheme.
+// seedEPUBFileForUser stores a canonical EPUB blob and a book_files row for
+// the user with the given checksum.
 func seedEPUBFileForUser(
 	t *testing.T,
 	store *objectstore.FakeClient,
@@ -429,7 +406,7 @@ func seedEPUBFileForUser(
 	epubData := buildEPUBBytes("Dedup Book", "Dedup Author", "")
 	key := "books/" + checksum + ".epub"
 
-	// Put the blob only once — both users share the same canonical object.
+	// Both users share the canonical object.
 	if _, exists := store.GetContent(key); !exists {
 		require.NoError(t, store.Put(
 			context.Background(), key,
@@ -454,13 +431,11 @@ func seedEPUBFileForUser(
 	return bf
 }
 
-// TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum verifies that when the
-// source file has a checksum, the KEPUB is stored at the canonical per-book key
-// books/<bookID>/<checksum>.kepub (not a per-user path).
+// TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum: the KEPUB lands at
+// books/<bookID>/<checksum>.kepub.
 func TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum(t *testing.T) {
 	book := addUniqueBook(t)
-	// Use the book ID as a unique-per-run checksum so parallel test runs do not
-	// share the same canonical key across different reading.
+	// Unique per run so runs don't share a canonical key.
 	checksum := book.ID.String()
 	conv, store := newTestConversionService(
 		&fakeEPUBConverter{out: []byte("canonical kepub"), err: nil},
@@ -481,14 +456,11 @@ func TestEnsureKEPUB_CanonicalKey_WhenSourceHasChecksum(t *testing.T) {
 	assert.Equal(t, models.FileStatusReady, result.Status)
 }
 
-// TestEnsureKEPUB_CrossUserDedup_SkipsConversion verifies that when a second
-// user requests a KEPUB for a book whose source has the same checksum as an
-// already-converted canonical blob, no conversion is performed; the second user
-// gets a new row pointing at the same canonical storage key.
+// TestEnsureKEPUB_CrossUserDedup_SkipsConversion: a second user with the same
+// source checksum reuses the blob without converting.
 func TestEnsureKEPUB_CrossUserDedup_SkipsConversion(t *testing.T) {
 	book := addUniqueBook(t)
-	// Use the book ID as a unique-per-run checksum so parallel test runs do not
-	// share the same canonical key across different reading.
+	// Unique per run so runs don't share a canonical key.
 	checksum := book.ID.String()
 	counter := &countingConverter{
 		calls: 0,
@@ -497,17 +469,14 @@ func TestEnsureKEPUB_CrossUserDedup_SkipsConversion(t *testing.T) {
 	}
 	conv, store := newTestConversionService(counter, nil)
 
-	// Both users own the same source EPUB (shared canonical blob).
 	seedEPUBFileForUser(t, store, book.ID, userID, checksum)
 	seedEPUBFileForUser(t, store, book.ID, user2ID, checksum)
 
-	// User 1: cold path — conversion runs.
 	result1, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, counter.calls, "converter must run exactly once for user 1")
 	assert.Equal(t, "books/"+book.ID.String()+"/"+checksum+".kepub", result1.StorageKey)
 
-	// User 2: warm path — canonical blob already exists; converter must NOT run.
 	result2, err := conv.EnsureKEPUB(context.Background(), user2ID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, counter.calls, "converter must not run again for user 2 (dedup)")
@@ -518,10 +487,8 @@ func TestEnsureKEPUB_CrossUserDedup_SkipsConversion(t *testing.T) {
 	assert.Equal(t, models.FileStatusReady, result2.Status)
 }
 
-// TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser covers issue #594:
-// when the shared canonical KEPUB blob itself was produced by an older
-// converter, a second user hitting the dedup path must not be handed that
-// stale blob — the conversion must run again and the canonical blob refreshed.
+// TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser: a stale shared blob
+// is reconverted, not handed to the second user.
 func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
 	book := addUniqueBook(t)
 	checksum := book.ID.String()
@@ -539,7 +506,6 @@ func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, counter.calls)
 
-	// Simulate a canonical blob produced by an older converter.
 	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
 		context.Background(),
 		canonical.ID,
@@ -548,8 +514,6 @@ func TestEnsureKEPUB_StaleCanonicalBlob_ReconvertsForNewUser(t *testing.T) {
 		0,
 	))
 
-	// A second user must not be handed the stale canonical blob; conversion
-	// must run again and refresh the canonical content.
 	result2, err := conv.EnsureKEPUB(context.Background(), user2ID, book.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 2, counter.calls, "converter must run again for the stale blob")
@@ -565,7 +529,7 @@ func TestEnsureKEPUB_StorePutFails_MarksFailedStatus(t *testing.T) {
 	inner := objectstore.NewFake()
 	store := &failingPutStore{FakeClient: inner}
 
-	// Seed the EPUB into the inner fake so Get succeeds but Put fails.
+	// Get succeeds but Put fails.
 	epubData := buildEPUBBytes("PutFail Book", "PutFail Author", "")
 	key := fmt.Sprintf("users/%s/books/%s/seed.epub", userID, book.ID)
 	require.NoError(
@@ -659,7 +623,6 @@ func TestEnsureKEPUB_StoreGetFails_MarksFailedStatus(t *testing.T) {
 
 	_, err = conv.EnsureKEPUB(context.Background(), userID, book.ID)
 	require.Error(t, err)
-	// Get failure surfaces as "prepare epub source: download epub: ..."
 	assert.Contains(t, err.Error(), "prepare epub source")
 
 	files, listErr := testApp.Repositories.BookFiles.ListByBook(

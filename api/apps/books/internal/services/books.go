@@ -22,17 +22,12 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// ErrExternalNotFound is returned by GetExternal when the named provider is
-// unavailable (unset API key) or has no matching book.
+// ErrExternalNotFound is returned when the provider is unavailable or has no match.
 var ErrExternalNotFound = errors.New("external book not found")
 
-// externalSearchMaxCandidates caps how many results per provider SearchExternal
-// keeps — the free-text external search shows a flat list, unlike the resync
-// wizard which only needs the single best match per source.
 const externalSearchMaxCandidates = 10
 
-// Source name constants for the two configured metadata providers, plus
-// "manual" for hand-entered books that carry no source provenance.
+// Source names; "manual" marks hand-entered books with no provenance.
 const (
 	sourceHardcover = "hardcover"
 	sourceUniCat    = "unicat"
@@ -47,7 +42,6 @@ type BookService struct {
 	readingState *repositories.BookReadingStateRepository
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
-	// resyncSource is the repository dependency for the metadata-resync path.
 	resyncSource ResyncSource
 }
 
@@ -62,14 +56,9 @@ func (s *BookService) SearchLibrary(
 	return s.books.SearchLibrary(ctx, userID, query, limit, offset)
 }
 
-// SearchExternal searches every configured provider (Hardcover, UniCat) for
-// books matching query and merges their results — no single-provider fallback,
-// each source's matches are kept side by side (same fan-out searchProviders
-// uses for the resync wizard). Callers driving an interactive, precision-
-// sensitive search (the free-text search bar, the MCP search tool) should
-// narrow the result with FilterExternalByQuery; tryExternalLookup deliberately
-// doesn't, since it wants providers' own best-effort top hit for an inexact,
-// filename-derived title.
+// SearchExternal fans out to every configured provider and keeps each source's
+// matches side by side. Interactive callers should narrow with
+// FilterExternalByQuery; tryExternalLookup wants the providers' raw top hit.
 func (s *BookService) SearchExternal(
 	ctx context.Context,
 	query string,
@@ -84,12 +73,9 @@ func (s *BookService) SearchExternal(
 	return proposals
 }
 
-// FilterExternalByQuery keeps the proposals whose title+authors account for
-// every normalised word of query, so a multi-word interactive search (e.g.
-// "Dune Herbert") narrows to candidates matching both the title and the
-// author instead of every title match regardless of a typed author — providers
-// alone only search title. Falls through unfiltered when query has no
-// matchable tokens.
+// FilterExternalByQuery keeps proposals whose title+authors contain every
+// normalised query word (providers only search title). Unfiltered when query
+// has no tokens.
 func FilterExternalByQuery(query string, proposals []SourceProposal) []SourceProposal {
 	tokens := titleTokens(query)
 	if len(tokens) == 0 {
@@ -106,7 +92,6 @@ func FilterExternalByQuery(query string, proposals []SourceProposal) []SourcePro
 	return out
 }
 
-// containsAllTokens reports whether every token is a substring of haystack.
 func containsAllTokens(haystack string, tokens []string) bool {
 	for _, t := range tokens {
 		if !strings.Contains(haystack, t) {
@@ -116,10 +101,8 @@ func containsAllTokens(haystack string, tokens []string) bool {
 	return true
 }
 
-// GetExternal fetches a single book from an external provider by ISBN13 (the
-// provider-scoped ID for both Hardcover and UniCat), for the not-in-library
-// detail page. Returns ErrExternalNotFound when the provider is unknown,
-// unconfigured, or has no matching book.
+// GetExternal fetches one book from a provider by ISBN13 (the provider-scoped
+// ID), returning ErrExternalNotFound when unavailable or unmatched.
 func (s *BookService) GetExternal(
 	ctx context.Context,
 	provider string,
@@ -166,17 +149,14 @@ func (s *BookService) GetExternal(
 	}
 }
 
-// SetBookISBN sets the isbn13 of the given catalog book.
-// Returns database.ErrResourceNotFound when the book doesn't exist, or
-// database.ErrResourceConflict when another catalog row already holds the ISBN.
+// SetBookISBN sets a catalog book's isbn13, returning ErrResourceConflict when
+// another row already holds it.
 func (s *BookService) SetBookISBN(
 	ctx context.Context,
 	bookID uuid.UUID,
 	isbn13 string,
 ) error {
-	// Normalize before the pre-check and write so that hyphenated input
-	// ("978-94-6310-738-9") matches the same unique index entry as the
-	// plain form ("9789463107389") that providers store.
+	// Normalize so hyphenated input hits the same unique index entry.
 	isbn13 = normalizeISBN(isbn13)
 
 	book, err := s.books.GetBookByID(ctx, bookID)
@@ -192,8 +172,6 @@ func (s *BookService) SetBookISBN(
 	return s.books.UpdateBookByID(ctx, *book)
 }
 
-// checkISBNConflict rejects isbn13 when it is already assigned to a catalog
-// row other than bookID. Returns database.ErrResourceConflict in that case.
 func (s *BookService) checkISBNConflict(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -209,12 +187,8 @@ func (s *BookService) checkISBNConflict(
 	return nil
 }
 
-// UpdateBook overwrites a catalog book's metadata with the admin-supplied
-// values, and syncs the cover cache to match rawCoverURL — fetching and
-// caching it when non-empty, or clearing the cached cover when empty.
-// Returns database.ErrResourceNotFound when the book doesn't exist, or
-// database.ErrResourceConflict when metadata.ISBN13 is already assigned to
-// another catalog row.
+// UpdateBook overwrites a catalog book's metadata and syncs the cover cache to
+// rawCoverURL (cleared when empty). Returns ErrResourceConflict on a taken ISBN.
 func (s *BookService) UpdateBook(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -262,10 +236,7 @@ func (s *BookService) AddToLibrary(
 		return nil, err
 	}
 
-	// Eager-fetch into R2 now so the cover proxy never needs a live fetch.
-	// ponytail: re-fetches even if this exact cover was already cached by a
-	// prior add of the same book — harmless (R2 Put just overwrites), and
-	// simpler than diffing against the pre-upsert cover.
+	// Eager-fetch into R2 so the cover proxy never needs a live fetch.
 	if book.CoverURL != nil && *book.CoverURL != "" {
 		if cacheErr := s.cacheCoverFromURL(ctx, saved.ID, *book.CoverURL); cacheErr != nil {
 			s.logger.WarnContext(ctx, "failed to cache book cover",
@@ -301,11 +272,8 @@ func (s *BookService) UpdateStatus(
 	return s.registerCustomShelf(ctx, userID, ub.Status)
 }
 
-// registerCustomShelf records a custom (non-built-in) status in the shelves
-// registry so it persists even after its last book is moved off it. Built-in
-// statuses are never stored — dropped is always shown regardless of the
-// registry (see groupByStatus), and the other three have their own dedicated
-// LibraryResponse field and can never disappear either way.
+// registerCustomShelf records a custom status so the shelf persists after its
+// last book leaves. Built-in statuses are never stored.
 func (s *BookService) registerCustomShelf(
 	ctx context.Context,
 	userID, status string,
@@ -364,9 +332,8 @@ func (s *BookService) ToggleTag(
 	if tag != models.TagKoboSync {
 		return nil
 	}
-	// Disabling kobo-sync leaves any already-downloaded copy on the device;
-	// tombstone it so the next sync actively removes it. Re-enabling clears
-	// a stale tombstone from a prior disable.
+	// Disabling leaves the copy on the device, so tombstone it; re-enabling clears
+	// a stale tombstone.
 	if koboSyncEnabled {
 		return s.books.DeleteKoboRemoval(ctx, userID, bookID)
 	}
@@ -381,10 +348,8 @@ func (s *BookService) GetUserBook(
 	return s.books.GetUserBook(ctx, userID, bookID)
 }
 
-// builtInStatuses are the fixed reading-state values that map to the three
-// top-level library buckets. They cannot be renamed or deleted via the
-// shelf-management RPCs because they carry semantic meaning (progress gating,
-// rating unlock, etc.).
+// builtInStatuses carry semantics (progress gating, rating unlock), so shelf
+// RPCs can't rename or delete them.
 //
 //nolint:gochecknoglobals // effectively a constant set
 var builtInStatuses = map[string]bool{
@@ -394,8 +359,7 @@ var builtInStatuses = map[string]bool{
 	models.StatusDropped: true,
 }
 
-// ListShelves returns every custom shelf name registered for the user,
-// including shelves with zero books currently on them.
+// ListShelves returns every registered custom shelf, including empty ones.
 func (s *BookService) ListShelves(
 	ctx context.Context,
 	userID string,
@@ -403,8 +367,7 @@ func (s *BookService) ListShelves(
 	return s.books.ListShelves(ctx, userID)
 }
 
-// CreateShelf registers a new custom shelf with no books on it yet. Returns
-// an error if the name is empty or a built-in status.
+// CreateShelf registers a new empty custom shelf.
 func (s *BookService) CreateShelf(
 	ctx context.Context,
 	userID string,
@@ -420,7 +383,6 @@ func (s *BookService) CreateShelf(
 }
 
 // RenameShelf renames a custom shelf (= status) across the user's library.
-// Returns an error if old or new name is a built-in status.
 func (s *BookService) RenameShelf(
 	ctx context.Context,
 	userID string,
@@ -439,9 +401,8 @@ func (s *BookService) RenameShelf(
 	return s.books.RenameShelf(ctx, userID, oldName, newName)
 }
 
-// DeleteShelf moves all books on a custom shelf (= status) to targetName,
-// effectively deleting the shelf. Returns an error if name or targetName is
-// a built-in status (built-in target is allowed — e.g. move to "to-read").
+// DeleteShelf moves every book on a custom shelf to targetName, which may be
+// a built-in status.
 func (s *BookService) DeleteShelf(
 	ctx context.Context,
 	userID string,
@@ -497,8 +458,7 @@ func (s *BookService) GetLibrary(
 	return s.books.GetLibrary(ctx, userID)
 }
 
-// ImportFromCSV parses a Goodreads CSV export and upserts all entries into the library.
-// Returns the number of entries successfully imported.
+// ImportFromCSV upserts a Goodreads CSV export and returns the imported count.
 func (s *BookService) ImportFromCSV(
 	ctx context.Context,
 	userID string,
@@ -569,12 +529,9 @@ func countDatesOn(dates []time.Time, dateStr string) int {
 	return count
 }
 
-// enrichByISBN best-effort fills missing description/page-count/cover on a
-// search result by looking it up by ISBN13 in whichever configured providers
-// haven't already answered — a provider's search results can be less complete
-// than its ISBN-keyed lookup (UniCat especially). Run when a book is added to
-// the library. Lookup failures are logged and the original proposal is
-// returned unchanged — enrichment never blocks an add.
+// enrichByISBN best-effort fills missing fields on a search result via the
+// other providers' ISBN lookup, which can be more complete than search
+// (UniCat especially). Failures never block an add.
 func (s *BookService) enrichByISBN(
 	ctx context.Context,
 	ext SourceProposal,
@@ -612,8 +569,6 @@ func (s *BookService) enrichByISBN(
 	return ext
 }
 
-// fillStrIfEmpty returns src's value when cur is empty and src is set,
-// otherwise cur unchanged.
 func fillStrIfEmpty(cur string, src *string) string {
 	if cur == "" && src != nil {
 		return *src
@@ -621,8 +576,6 @@ func fillStrIfEmpty(cur string, src *string) string {
 	return cur
 }
 
-// fillIntIfZero returns src's value when cur is zero and src is set,
-// otherwise cur unchanged.
 func fillIntIfZero(cur int, src *int) int {
 	if cur == 0 && src != nil {
 		return *src
@@ -648,8 +601,7 @@ func externalToBook(ext SourceProposal) models.Book {
 		pageCount = &ext.PageCount
 	}
 
-	// Record provenance only for books whose metadata actually came from a
-	// source — hand-entered books (Source "manual"/"") stay NULL.
+	// Hand-entered books (Source "manual"/"") keep a NULL metadata source.
 	var metadataSource *string
 	if ext.Source != "" && ext.Source != sourceManual {
 		source := ext.Source
@@ -667,8 +619,7 @@ func externalToBook(ext SourceProposal) models.Book {
 	}
 }
 
-// ListKoboSyncBooks returns every book the user has enabled Kobo sync for and
-// that has a ready KEPUB — the exact set served by the sync protocol routes.
+// ListKoboSyncBooks returns the user's kobo-sync books that have a ready KEPUB.
 func (s *BookService) ListKoboSyncBooks(
 	ctx context.Context,
 	userID string,
@@ -676,9 +627,8 @@ func (s *BookService) ListKoboSyncBooks(
 	return s.books.ListKoboSyncBooks(ctx, userID)
 }
 
-// UpdateKoboLastSyncedConverterVersion records the KEPUB converter version
-// just sent to the device for bookID, so the next sync can tell whether the
-// file was regenerated since.
+// UpdateKoboLastSyncedConverterVersion records the converter version last sent
+// to the device, so the next sync can detect a regenerated file.
 func (s *BookService) UpdateKoboLastSyncedConverterVersion(
 	ctx context.Context,
 	userID string,
@@ -689,8 +639,7 @@ func (s *BookService) UpdateKoboLastSyncedConverterVersion(
 		ctx, userID, bookID, converterVersion)
 }
 
-// ListKoboRemovals returns books tombstoned for active removal from the
-// user's Kobo device.
+// ListKoboRemovals returns books tombstoned for removal from the user's Kobo.
 func (s *BookService) ListKoboRemovals(
 	ctx context.Context,
 	userID string,
@@ -698,9 +647,8 @@ func (s *BookService) ListKoboRemovals(
 	return s.books.ListKoboRemovals(ctx, userID)
 }
 
-// GetKoboSyncBook returns a single kobo-sync book by ID for the user.
-// Returns database.ErrResourceNotFound when the book is not in the user's
-// kobo-sync list or has no ready file.
+// GetKoboSyncBook returns one kobo-sync book with a ready file, or
+// ErrResourceNotFound.
 func (s *BookService) GetKoboSyncBook(
 	ctx context.Context,
 	userID string,
@@ -709,8 +657,7 @@ func (s *BookService) GetKoboSyncBook(
 	return s.books.GetKoboSyncBook(ctx, userID, bookID)
 }
 
-// UpdateReadingProgress upserts a resumable reading position for a book.
-// source must be one of web/kobo/manual; percent is clamped to 0-100.
+// UpdateReadingProgress upserts a resumable reading position (source web/kobo/manual).
 func (s *BookService) UpdateReadingProgress(
 	ctx context.Context,
 	userID string,
@@ -744,9 +691,7 @@ func (s *BookService) UpdateReadingProgress(
 		return err
 	}
 
-	// Reflect progress on the library entry and promote from to-read / dropped
-	// → currently-reading whenever progress is non-zero. No-op for books
-	// already reading, read, or not in the library at all.
+	// Non-zero progress promotes to-read/dropped to currently-reading.
 	if percent > 0 {
 		return s.books.UpdateLibraryProgress(ctx, userID, bookID, percent)
 	}
@@ -762,8 +707,7 @@ func (s *BookService) GetReadingState(
 	return s.readingState.Get(ctx, userID, bookID)
 }
 
-// SetContentHTML stores the readability-extracted article body for a book,
-// enabling in-app reading independent of any EPUB file.
+// SetContentHTML stores a book's readability-extracted article body.
 func (s *BookService) SetContentHTML(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -772,8 +716,7 @@ func (s *BookService) SetContentHTML(
 	return s.books.SetBookContentHTML(ctx, bookID, html)
 }
 
-// SetAddedAt overwrites a user's library-add timestamp for a book — used to
-// retroactively correct RSS items' added_at against the feed's own pubDate.
+// SetAddedAt overwrites a user's library-add timestamp for a book.
 func (s *BookService) SetAddedAt(
 	ctx context.Context,
 	userID string,
@@ -783,8 +726,7 @@ func (s *BookService) SetAddedAt(
 	return s.books.UpdateUserBookAddedAt(ctx, userID, bookID, addedAt)
 }
 
-// GetContentHTML returns the stored article HTML for a book in the caller's
-// own library, or "" if none was ever stored for it.
+// GetContentHTML returns the stored article HTML, or "" if none.
 func (s *BookService) GetContentHTML(
 	ctx context.Context,
 	userID string,
@@ -800,9 +742,8 @@ func (s *BookService) GetContentHTML(
 	return *html, nil
 }
 
-// ListReadingStates returns all reading states for the user, indexed by
-// book ID. Use this instead of per-book GetReadingState when processing a
-// batch of books to avoid N+1 queries.
+// ListReadingStates returns all the user's reading states by book ID, avoiding
+// N+1 GetReadingState calls.
 func (s *BookService) ListReadingStates(
 	ctx context.Context,
 	userID string,
@@ -819,9 +760,8 @@ func (s *BookService) ListReadingStates(
 	return index, nil
 }
 
-// UpdateProgress validates and persists reading-progress for a user_book. The
-// mode selects which value is authoritative: pages mode tracks current_page,
-// percent mode tracks progress_percent (clamped to 0-100).
+// UpdateProgress persists progress: pages mode tracks current_page, percent
+// mode tracks progress_percent (clamped 0-100).
 func (s *BookService) UpdateProgress(
 	ctx context.Context,
 	userID string,
@@ -848,10 +788,8 @@ func (s *BookService) UpdateProgress(
 	)
 }
 
-// tombstoneIfKoboSynced records a removal tombstone when bookID currently has
-// the kobo-sync tag. Deleting a kobo-synced book leaves a copy on the device
-// with nothing left server-side to un-sync it later, so this must run before
-// the book is actually deleted.
+// tombstoneIfKoboSynced tombstones a kobo-synced book. Must run before the
+// delete, or the device copy can never be un-synced.
 func (s *BookService) tombstoneIfKoboSynced(
 	ctx context.Context,
 	userID string,
@@ -870,17 +808,11 @@ func (s *BookService) tombstoneIfKoboSynced(
 	return s.books.UpsertKoboRemoval(ctx, userID, bookID)
 }
 
-// RemoveFromLibrary removes a single book from the caller's own library:
-// their uploaded files (DB rows + R2 objects, refcount-safe), reading state,
-// and user_books entry. If the book is no longer referenced by any user's
-// library afterwards, the shared catalog row and its R2 objects (files and
-// cover) are deleted too. R2 deletes are best-effort — a failed object delete
-// is logged and skipped; the daily storage scan sweeps any leftovers.
+// RemoveFromLibrary removes a book and the caller's files and reading state;
+// the catalog row and its R2 objects go too once no library references it.
+// R2 deletes are best-effort; the daily storage scan sweeps leftovers.
 //
-// move complexity, not reduce it (see tombstoneIfKoboSynced for the one
-// piece that was genuinely separable).
-//
-//nolint:gocognit // linear cleanup sequence; splitting further would only
+//nolint:gocognit // linear cleanup sequence
 func (s *BookService) RemoveFromLibrary(
 	ctx context.Context,
 	userID string,
@@ -903,7 +835,6 @@ func (s *BookService) RemoveFromLibrary(
 		if f.StorageKey == "" {
 			continue
 		}
-		// Only delete the R2 object when no other row still references it.
 		remaining, countErr := s.bookFiles.CountByStorageKey(ctx, f.StorageKey)
 		if countErr != nil {
 			s.logger.Warn("failed to count references for book file",
@@ -944,20 +875,15 @@ func (s *BookService) RemoveFromLibrary(
 	return nil
 }
 
-// ListCatalogBooks returns all catalog books ordered by title. Used by the
-// admin selective-resync tool.
+// ListCatalogBooks returns all catalog books ordered by title.
 func (s *BookService) ListCatalogBooks(
 	ctx context.Context,
 ) ([]models.Book, error) {
 	return s.books.ListCatalogBooks(ctx)
 }
 
-// FindDuplicates returns groups of catalog entries judged to be duplicates of
-// the same book. It scans the entire catalog (not just the caller's library)
-// with the caller's user_book data overlaid, so catalog-level duplicates are
-// visible even when the user has only one (or none) of them in their library.
-// Callers that need to act on a match can pass the returned BookIDs to
-// MergeBooks regardless of whether the entry is in their own library.
+// FindDuplicates groups likely-duplicate books across the whole catalog, with
+// the caller's user_book data overlaid.
 func (s *BookService) FindDuplicates(
 	ctx context.Context,
 	userID string,
@@ -969,13 +895,9 @@ func (s *BookService) FindDuplicates(
 	return FindDuplicateGroups(lib), nil
 }
 
-// consolidateUserBookData merges all loserBookIDs into the winner for a single
-// user. It is ownership-tolerant: if the user doesn't own the winner a new
-// user_books row is created for them; if they don't own a particular loser that
-// loser is silently skipped for this user.
-//
-// Returns the storage_keys of any duplicate book_files that were deleted so the
-// caller can do a global refcount-safe R2 cleanup after all users are processed.
+// consolidateUserBookData merges loserBookIDs into the winner for one user,
+// creating a winner row if needed and skipping unowned losers. Returns the
+// storage keys of deleted duplicate files for global R2 cleanup.
 //
 //nolint:cyclop,funlen,gocognit,gocyclo // per-user merge; cannot split further
 func (s *BookService) consolidateUserBookData(
@@ -985,7 +907,6 @@ func (s *BookService) consolidateUserBookData(
 	loserBookIDs []uuid.UUID,
 	statusOverride *string,
 ) ([]string, error) {
-	// Load winner row; seed a zero entry if this user doesn't own it yet.
 	winner, err := s.books.GetUserBook(ctx, userID, winnerBookID)
 	winnerOwned := true
 	if err != nil {
@@ -1002,7 +923,6 @@ func (s *BookService) consolidateUserBookData(
 		}
 	}
 
-	// Load each loser; union data into winner, collect owned loser IDs.
 	var ownedLosers []uuid.UUID
 	for _, loserID := range loserBookIDs {
 		loser, loserErr := s.books.GetUserBook(ctx, userID, loserID)
@@ -1053,7 +973,6 @@ func (s *BookService) consolidateUserBookData(
 		}
 	}
 
-	// Nothing to do if this user has no ownership stake at all.
 	if !winnerOwned && len(ownedLosers) == 0 {
 		return nil, nil
 	}
@@ -1066,7 +985,6 @@ func (s *BookService) consolidateUserBookData(
 		return nil, fmt.Errorf("upsert winner for user %s: %w", userID, err)
 	}
 
-	// Repoint / dedup book_files from each owned loser.
 	var deletedKeys []string
 	for _, loserID := range ownedLosers {
 		keys, repointErr := s.bookFiles.RepointAndDedup(
@@ -1080,7 +998,6 @@ func (s *BookService) consolidateUserBookData(
 		deletedKeys = append(deletedKeys, keys...)
 	}
 
-	// Consolidate reading state.
 	winnerState, err := s.readingState.Get(ctx, userID, winnerBookID)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		return deletedKeys, fmt.Errorf(
@@ -1115,7 +1032,6 @@ func (s *BookService) consolidateUserBookData(
 		}
 	}
 
-	// Delete loser user_books rows.
 	for _, loserID := range ownedLosers {
 		if delErr := s.books.DeleteUserBook(ctx, userID, loserID); delErr != nil {
 			return deletedKeys, fmt.Errorf(
@@ -1127,23 +1043,10 @@ func (s *BookService) consolidateUserBookData(
 	return deletedKeys, nil
 }
 
-// MergeBooks is a global admin merge: it consolidates loserBookIDs into
-// winnerBookID for every user who owns any of the involved books, then deletes
-// the now-orphaned loser catalog rows.
-//
-// For each affected user:
-//  1. Union tags, finished_at, shelf_positions; prefer the highest-ranked
-//     status; keep winner's rating / progress, fall back to loser's if unset.
-//  2. Repoint book_files from each owned loser to the winner.
-//  3. Consolidate reading state.
-//  4. Delete loser user_books rows.
-//
-// After all users: delete orphaned loser catalog rows, apply resolvedMetadata
-// and resolvedCoverSourceBookID. resolvedStatus applies only to the caller's
-// winner entry.
-//
-// Returns (deletedFiles, affectedUserIDs, error). R2 objects are only deleted
-// when no other row still references them.
+// MergeBooks consolidates loserBookIDs into winnerBookID for every owning user,
+// then deletes the loser catalog rows and applies the resolved overrides.
+// resolvedStatus applies only to the caller's entry. R2 objects are deleted
+// only when no other row references them.
 //
 //nolint:gocognit // global multi-entity merge; cannot split further
 func (s *BookService) MergeBooks(
@@ -1159,7 +1062,6 @@ func (s *BookService) MergeBooks(
 		return 0, nil, nil
 	}
 
-	// Collect all users who own any of the involved catalog books.
 	allIDs := append([]uuid.UUID{winnerBookID}, loserBookIDs...)
 	affectedUsers, err := s.books.ListUserBookOwners(ctx, allIDs)
 	if err != nil {
@@ -1176,7 +1078,6 @@ func (s *BookService) MergeBooks(
 		affectedUsers = append(affectedUsers, callerID)
 	}
 
-	// Per-user consolidation.
 	var allDeletedKeys []string
 	for _, uid := range affectedUsers {
 		var override *string
@@ -1192,7 +1093,6 @@ func (s *BookService) MergeBooks(
 		allDeletedKeys = append(allDeletedKeys, keys...)
 	}
 
-	// Refcount-safe R2 cleanup (global — after all users' files are repointed).
 	var totalDeletedFiles uint32
 	seen := make(map[string]bool, len(allDeletedKeys))
 	for _, key := range allDeletedKeys {
@@ -1216,7 +1116,6 @@ func (s *BookService) MergeBooks(
 		}
 	}
 
-	// Delete now-orphaned loser catalog rows.
 	for _, loserID := range loserBookIDs {
 		if _, delErr := s.books.DeleteOrphanedBook(ctx, loserID); delErr != nil {
 			return totalDeletedFiles, affectedUsers, fmt.Errorf(
@@ -1225,7 +1124,6 @@ func (s *BookService) MergeBooks(
 		}
 	}
 
-	// Apply catalog-level overrides.
 	if resolvedMetadata != nil {
 		resolvedMetadata.ID = winnerBookID
 		if updateErr := s.books.UpdateBookByID(ctx, *resolvedMetadata); updateErr != nil {
@@ -1248,8 +1146,8 @@ func (s *BookService) MergeBooks(
 	return totalDeletedFiles, affectedUsers, nil
 }
 
-// applyCoverSource copies the source book's cover_url onto the winner catalog
-// row and eagerly refreshes the winner's R2 cover cache to match.
+// applyCoverSource copies the source book's cover onto the winner and
+// refreshes its R2 cover cache.
 func (s *BookService) applyCoverSource(
 	ctx context.Context,
 	winnerBookID uuid.UUID,

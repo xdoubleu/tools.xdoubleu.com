@@ -19,60 +19,47 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// ErrInvalidFormat is returned when the uploaded file's magic bytes do not
-// match any supported format (epub, pdf).
+// ErrInvalidFormat is returned when the magic bytes match no supported format.
 var ErrInvalidFormat = errors.New("unsupported or unrecognized file format")
 
 // ErrFileTooLarge is returned when the declared file size exceeds MaxUploadBytes.
 var ErrFileTooLarge = errors.New("file exceeds maximum allowed size")
 
-// ErrInvalidUploadID is returned when the upload_id does not belong to the
-// requesting user (i.e. does not start with "users/<userID>/uploads/").
+// ErrInvalidUploadID is returned when upload_id isn't under the caller's
+// users/<userID>/uploads/ prefix.
 var ErrInvalidUploadID = errors.New("invalid or unauthorized upload_id")
 
-// ErrUploadMissing is returned by FinalizeUpload when the client skipped the
-// PUT (because CreateUpload reported already_exists) but the referenced blob
-// is no longer available. The client should retry the full upload flow.
+// ErrUploadMissing is returned when the client skipped the PUT (already_exists)
+// but the blob is gone; the client should retry the full upload.
 var ErrUploadMissing = errors.New("upload missing: retry the upload")
 
-// ErrUnrecognizedBook is returned when an uploaded file's metadata does not
-// match any known book (no ISBN/title+author match and no external result).
-// The upload is rejected and the temp object is removed from the bucket.
+// ErrUnrecognizedBook is returned when an upload matches no known book; the
+// temp object is removed.
 var ErrUnrecognizedBook = errors.New("book could not be recognized from metadata")
 
-// MaxUploadBytes is the server-side cap on a single raw upload (250 MB).
-// Keep in sync with MAX_UPLOAD_BYTES in web/lib/backlog/zipFiles.ts.
+// MaxUploadBytes caps one raw upload. Keep in sync with MAX_UPLOAD_BYTES in
+// web/lib/backlog/zipFiles.ts.
 const MaxUploadBytes = 250 * 1024 * 1024
 
-// uploadPresignTTL is how long the presigned PUT URL remains valid.
-// Generous to handle large files on slow connections.
 const uploadPresignTTL = 60 * time.Minute
 
-// magicBytesLen is the number of leading bytes needed to detect file format.
 const magicBytesLen = 4
 
-// maxFilenameBytes caps the stored original_filename to avoid overly long values.
 const maxFilenameBytes = 255
 
-// booksFolderPrefix is the R2 prefix under which per-book asset folders live.
-// Every book's files (epub/pdf/kepub/cover) are stored under
-// books/<bookID>/<name>.
+// booksFolderPrefix is where every book's files live: books/<bookID>/<name>.
 const booksFolderPrefix = "books/"
 
-// bookFileKey returns the canonical R2 key for a book file:
-//
-//	books/<bookID>/<checksum><ext>
+// bookFileKey returns books/<bookID>/<checksum><ext>.
 func bookFileKey(bookID fmt.Stringer, checksum, ext string) string {
 	return booksFolderPrefix + bookID.String() + "/" + checksum + ext
 }
 
-// bookCoverKey returns the R2 key used to cache a book's cover image.
 func bookCoverKey(bookID fmt.Stringer) string {
 	return booksFolderPrefix + bookID.String() + "/cover.jpg"
 }
 
-// bookCoverMissingKey returns the R2 key used as a negative-cache marker when
-// a book has no cover (or its stored cover URL returns 404).
+// bookCoverMissingKey marks a book as having no cover (negative cache).
 func bookCoverMissingKey(bookID fmt.Stringer) string {
 	return booksFolderPrefix + bookID.String() + "/cover.missing"
 }
@@ -88,11 +75,9 @@ type UploadFileResult struct {
 	MatchedExisting bool
 }
 
-// CreateUpload validates the declared file size, checks for an existing blob
-// with the same checksum, and (when the content is new) allocates a storage
-// key under the user's uploads/ prefix and returns a short-lived presigned R2
-// PUT URL. When alreadyExists is true, uploadID and url are empty and the
-// client must skip the PUT then call FinalizeUpload directly.
+// CreateUpload validates the size and, unless a blob with the checksum already
+// exists, returns a presigned R2 PUT URL. When alreadyExists is true the
+// client skips the PUT and calls FinalizeUpload directly.
 func (s *BookService) CreateUpload(
 	ctx context.Context,
 	userID string,
@@ -105,8 +90,6 @@ func (s *BookService) CreateUpload(
 		return "", "", false, ErrFileTooLarge
 	}
 
-	// A non-empty checksum lets us skip the upload entirely when a canonical
-	// blob for this content already exists in the store.
 	if checksum != "" {
 		_, lookupErr := s.bookFiles.FindByChecksumGlobal(ctx, checksum)
 		if lookupErr == nil {
@@ -132,10 +115,8 @@ func (s *BookService) CreateUpload(
 	return uploadID, presignURL, false, nil
 }
 
-// FinalizeUpload processes a file that the client has already PUT directly to
-// R2 (or that was skipped because the content already existed). It deduplicates
-// by checksum globally across all users and stores a single canonical R2 object
-// per unique file content.
+// FinalizeUpload processes an uploaded (or skipped, already-existing) file,
+// storing one canonical R2 object per content checksum across all users.
 func (s *BookService) FinalizeUpload(
 	ctx context.Context,
 	userID string,
@@ -146,7 +127,6 @@ func (s *BookService) FinalizeUpload(
 	titleOverride string,
 	authorOverride string,
 ) (*UploadFileResult, error) {
-	// Fast path: the content already has a canonical blob in the store.
 	existing, err := s.bookFiles.FindByChecksumGlobal(ctx, checksum)
 	if err == nil {
 		return s.finalizeDuplicate(ctx, userID, uploadID, filename, checksum, existing)
@@ -155,17 +135,13 @@ func (s *BookService) FinalizeUpload(
 		return nil, err
 	}
 
-	// Slow path: new content — bytes must be in R2 under the upload key.
 	return s.finalizeNew(
 		ctx, userID, uploadID, filename, checksum, titleOverride, authorOverride,
 	)
 }
 
-// attachToCatalogBook adds an existing catalog book to userID's library if
-// they don't already have it there, returning the resulting user_book. book
-// must already be a fetched catalog entry (e.g. from
-// GetCatalogWithUserOverlay) — its data is reused for a newly-created row
-// instead of an extra round trip to re-fetch it.
+// attachToCatalogBook adds an already-fetched catalog book to the user's
+// library unless present, returning the user_book.
 func (s *BookService) attachToCatalogBook(
 	ctx context.Context,
 	userID string,
@@ -193,9 +169,8 @@ func (s *BookService) attachToCatalogBook(
 	return &newUB, nil
 }
 
-// finalizeDuplicate handles an upload where a canonical blob for the checksum
-// already exists. It creates (or returns) the calling user's book_files row
-// pointing at the existing blob, without transferring any bytes.
+// finalizeDuplicate points the user's book_files row at the existing blob,
+// transferring no bytes.
 func (s *BookService) finalizeDuplicate(
 	ctx context.Context,
 	userID string,
@@ -204,7 +179,6 @@ func (s *BookService) finalizeDuplicate(
 	checksum string,
 	existing *models.BookFile,
 ) (*UploadFileResult, error) {
-	// Resolve or create the user's user_book entry for the existing book.
 	matchedExisting := true
 	ub, err := s.books.GetUserBook(ctx, userID, existing.BookID)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -231,7 +205,6 @@ func (s *BookService) finalizeDuplicate(
 		return nil, tagErr
 	}
 
-	// Return the user's existing row if they already have this exact file.
 	row, lookupErr := s.bookFiles.FindByChecksum(
 		ctx, userID, existing.BookID, existing.Format, checksum,
 	)
@@ -247,11 +220,8 @@ func (s *BookService) finalizeDuplicate(
 		return nil, lookupErr
 	}
 
-	// Reuse the existing blob: rows always use the per-book folder scheme, so
-	// the new row can point at the same key.
 	destKey := existing.StorageKey
 
-	// Insert a new row pointing at the per-book folder key.
 	bf, insertErr := s.bookFiles.Insert(
 		ctx,
 		models.BookFile{ //nolint:exhaustruct //optional fields
@@ -278,7 +248,6 @@ func (s *BookService) finalizeDuplicate(
 	}, nil
 }
 
-// uploadedFile holds the results of downloading and validating an upload object.
 type uploadedFile struct {
 	tmp      *os.File
 	size     int64
@@ -287,9 +256,8 @@ type uploadedFile struct {
 	checksum string
 }
 
-// loadUploadedFile streams the R2 object at uploadID to a temp file, validates
-// the magic bytes, extracts ebook metadata, and computes the SHA-256 checksum.
-// The caller is responsible for closing and removing tmp.
+// loadUploadedFile streams the upload to a temp file, validates magic bytes,
+// extracts metadata and checksums it. The caller closes and removes tmp.
 func (s *BookService) loadUploadedFile(
 	ctx context.Context,
 	uploadID string,
@@ -342,9 +310,8 @@ func (s *BookService) loadUploadedFile(
 	}, nil
 }
 
-// finalizeNew handles an upload where the content is genuinely new: validates
-// the bytes, extracts metadata, copies the blob to its canonical content-
-// addressed key, and inserts the book_files row.
+// finalizeNew validates new content, copies it to its content-addressed key,
+// and inserts the book_files row.
 func (s *BookService) finalizeNew(
 	ctx context.Context,
 	userID string,
@@ -354,13 +321,11 @@ func (s *BookService) finalizeNew(
 	titleOverride string,
 	authorOverride string,
 ) (*UploadFileResult, error) {
-	// 1. Ownership: upload_id must be under this user's uploads/ prefix.
 	prefix := fmt.Sprintf("users/%s/uploads/", userID)
 	if !strings.HasPrefix(uploadID, prefix) {
 		return nil, ErrInvalidUploadID
 	}
 
-	// 2–6. Download, validate magic bytes, extract metadata, compute checksum.
 	uf, err := s.loadUploadedFile(ctx, uploadID)
 	if err != nil {
 		if errors.Is(err, ErrInvalidFormat) {
@@ -377,10 +342,8 @@ func (s *BookService) finalizeNew(
 		filename = filename[:maxFilenameBytes]
 	}
 
-	// A caller-supplied title/author (from the "unrecognized book" recovery
-	// UI) always wins; otherwise fall back to a filename-derived title when
-	// the file's own metadata has none (common for PDFs with no /Info
-	// dictionary Title set — see issue #394).
+	// A caller-supplied title/author (recovery UI) wins; otherwise fall back to
+	// the filename when metadata has no title (common for PDFs).
 	meta := uf.meta
 	if titleOverride != "" {
 		meta.Title = titleOverride
@@ -391,7 +354,6 @@ func (s *BookService) finalizeNew(
 		meta.Authors = []string{authorOverride}
 	}
 
-	// 7. Match existing user_book or upsert a new one.
 	ub, matchedExisting, err := s.recognizeBook(ctx, userID, meta)
 	if err != nil {
 		if errors.Is(err, ErrUnrecognizedBook) {
@@ -400,12 +362,11 @@ func (s *BookService) finalizeNew(
 		return nil, err
 	}
 
-	// 8. Ensure own-digital tag.
 	if tagErr := s.ensureTag(ctx, userID, ub.BookID, models.TagOwnDigital); tagErr != nil {
 		return nil, tagErr
 	}
 
-	// 9. Dedup within (user, book, format) — handles a concurrent finalizeNew.
+	// Dedup within (user, book, format) against a concurrent finalizeNew.
 	dupe, dupeErr := s.bookFiles.FindByChecksum(
 		ctx, userID, ub.BookID, uf.format, uf.checksum,
 	)
@@ -421,7 +382,6 @@ func (s *BookService) finalizeNew(
 		return nil, dupeErr
 	}
 
-	// 10. Copy to per-book canonical key; delete the temp upload.
 	canonicalKey := bookFileKey(ub.BookID, uf.checksum, extForFormat(uf.format))
 	bgCtx := context.WithoutCancel(ctx)
 	if copyErr := s.objectStore.Copy(bgCtx, uploadID, canonicalKey); copyErr != nil {
@@ -429,7 +389,6 @@ func (s *BookService) finalizeNew(
 	}
 	_ = s.objectStore.Delete(bgCtx, uploadID)
 
-	// 11. Insert book_files row at the canonical key.
 	bf, err := s.bookFiles.Insert(
 		ctx,
 		models.BookFile{ //nolint:exhaustruct //optional fields
@@ -454,18 +413,15 @@ func (s *BookService) finalizeNew(
 	}, nil
 }
 
-// titleFromFilename derives a best-effort title from an uploaded file's
-// original filename, for use when the file's own metadata has none (e.g. a
-// PDF with no /Info dictionary Title set). Strips the extension and turns
-// "-"/"_" separators into spaces; does nothing to split run-together words.
+// titleFromFilename derives a best-effort title: extension stripped, "-"/"_"
+// turned into spaces.
 func titleFromFilename(filename string) string {
 	base := strings.TrimSuffix(filename, filepath.Ext(filename))
 	base = strings.NewReplacer("-", " ", "_", " ").Replace(base)
 	return strings.TrimSpace(base)
 }
 
-// cleanupTempUpload deletes a temp upload object if one was uploaded (i.e.
-// uploadID is non-empty and owned by userID). Best-effort; errors are ignored.
+// cleanupTempUpload best-effort deletes a temp upload owned by userID.
 func cleanupTempUpload(
 	ctx context.Context,
 	s *BookService,
@@ -489,8 +445,6 @@ func checksumFile(f *os.File) (string, error) {
 	return fmt.Sprintf("%x", hasher.Sum(nil)), nil
 }
 
-// extForContentType returns a file extension for the given MIME type, falling
-// back to the filename extension when the MIME type is not recognised.
 func extForContentType(contentType, filename string) string {
 	switch contentType {
 	case "application/epub+zip":
@@ -508,7 +462,6 @@ func extForContentType(contentType, filename string) string {
 	return ""
 }
 
-// extForFormat returns the canonical file extension for a known format.
 func extForFormat(format string) string {
 	switch format {
 	case models.FileFormatEPUB:
@@ -521,24 +474,15 @@ func extForFormat(format string) string {
 	return ""
 }
 
-// recognizeBook matches meta to an existing user_book or creates a new one.
-// Matching is attempted in order from most to least precise:
-//  1. ISBN13 exact match
-//  2. Exact case-insensitive title + first author
-//  3. Catalog-wide normalized title + author last-name overlap, exact then
-//     fuzzy (strips subtitles, folds diacritics, handles "Last, First" vs
-//     "First Last" formatting, tolerates reordered/series-suffixed titles) —
-//     searches every catalog book, not just ones already in this user's
-//     library, so the same book uploaded a second time in a different format
-//     attaches to the existing catalog entry instead of spawning a duplicate
-//  4. External search across configured providers (creates a new library
-//     entry, matchedExisting=false)
+// recognizeBook matches meta to a user_book, most precise first: ISBN13, exact
+// title + first author, catalog-wide normalized/fuzzy title + author (so a
+// second format attaches to the existing entry), then an external search
+// (matchedExisting=false).
 func (s *BookService) recognizeBook(
 	ctx context.Context,
 	userID string,
 	meta ebookmeta.Metadata,
 ) (*models.UserBook, bool, error) {
-	// 1. Match by ISBN13.
 	if meta.ISBN13 != nil {
 		ub, err := s.books.FindUserBookByISBN13(ctx, userID, *meta.ISBN13)
 		if err == nil {
@@ -549,7 +493,6 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 2. Exact case-insensitive title + first author.
 	if meta.Title != "" && len(meta.Authors) > 0 {
 		ub, err := s.books.FindUserBookByTitleAndAuthor(
 			ctx, userID, meta.Title, meta.Authors[0],
@@ -562,9 +505,7 @@ func (s *BookService) recognizeBook(
 		}
 	}
 
-	// 3. Catalog-wide normalized title + author overlap, exact then fuzzy.
-	// Fetches the whole catalog once; the list is small relative to the cost
-	// of the external HTTP round-trip(s) that would otherwise follow.
+	// The whole catalog is cheap compared to the external round trips that follow.
 	catalog, err := s.books.GetCatalogWithUserOverlay(ctx, userID)
 	if err != nil {
 		return nil, false, err
@@ -574,18 +515,14 @@ func (s *BookService) recognizeBook(
 		return ub, attachErr == nil, attachErr
 	}
 
-	// 4. Try the configured providers when a title is available.
 	if ub := s.tryExternalLookup(ctx, userID, meta); ub != nil {
 		return ub, false, nil
 	}
 
-	// No match — reject the upload.
 	return nil, false, ErrUnrecognizedBook
 }
 
-// tryExternalLookup searches every configured provider and adds the top
-// result to the library. Returns nil when there is no title, no results, or
-// the add fails.
+// tryExternalLookup adds the providers' top result to the library, or returns nil.
 func (s *BookService) tryExternalLookup(
 	ctx context.Context,
 	userID string,
@@ -615,7 +552,6 @@ func (s *BookService) tryExternalLookup(
 	return ub
 }
 
-// ensureTag adds tag to the user_book if not already present.
 func (s *BookService) ensureTag(
 	ctx context.Context,
 	userID string,
@@ -643,15 +579,13 @@ type KEPUBStatusResult struct {
 	HasEPUB     bool
 	HasPDF      bool
 	KepubStatus string // "", "converting", "ready", or "failed"
-	// KepubStale is true when KepubStatus is "ready" but the row was produced
-	// by an older converter version — callers should treat this the same as
-	// KepubStatus == "" and re-trigger conversion (issue #1696).
+	// KepubStale means a "ready" KEPUB from an older converter version; treat it
+	// as missing and re-trigger conversion.
 	KepubStale bool
 }
 
-// GetKEPUBStatus reports whether the book has an EPUB or PDF file and the
-// status of its derived KEPUB. Used by the Kobo-sync toggle to gate the UI
-// and poll conversion progress.
+// GetKEPUBStatus reports whether the book has an EPUB/PDF and its KEPUB's
+// status, for the Kobo-sync toggle.
 func (s *BookService) GetKEPUBStatus(
 	ctx context.Context,
 	userID string,
@@ -702,10 +636,8 @@ func (s *BookService) GetKEPUBStatus(
 	return result, nil
 }
 
-// GetKoboFileFormat returns the file format to serve to the Kobo device for the
-// given book. Returns "pdf" when the user has set the kobo-format-pdf tag,
-// "kepub" otherwise. Returns ErrResourceNotFound when the user_book does not
-// exist.
+// GetKoboFileFormat returns "pdf" with the kobo-format-pdf tag, else "kepub";
+// ErrResourceNotFound when the user_book doesn't exist.
 func (s *BookService) GetKoboFileFormat(
 	ctx context.Context,
 	userID string,
@@ -732,7 +664,6 @@ func (s *BookService) EnableKoboSync(
 	if err := s.ensureTag(ctx, userID, bookID, models.TagKoboSync); err != nil {
 		return err
 	}
-	// Clear any stale removal tombstone from a prior disable.
 	return s.books.DeleteKoboRemoval(ctx, userID, bookID)
 }
 
@@ -745,10 +676,9 @@ type GetBookFileResult struct {
 	Format    string
 }
 
-// GetBookFile returns a short-lived presigned URL for the book's stored file.
-// format is optional; when empty the first ready pdf/epub is returned.
-// Returns database.ErrResourceNotFound when no matching file exists (including
-// when the file belongs to a different user — callers must not distinguish).
+// GetBookFile returns a presigned URL for the book's file (first ready pdf/epub
+// when format is empty). ErrResourceNotFound also covers another user's file;
+// callers must not distinguish.
 func (s *BookService) GetBookFile(
 	ctx context.Context,
 	userID string,
@@ -795,8 +725,7 @@ func (s *BookService) resolveBookFile(
 	return nil, database.ErrResourceNotFound
 }
 
-// FormatsByUser returns a map of book ID → ready file formats (pdf/epub) for a
-// user's entire library in a single query.
+// FormatsByUser returns book ID -> ready formats for the user's whole library.
 func (s *BookService) FormatsByUser(
 	ctx context.Context,
 	userID string,

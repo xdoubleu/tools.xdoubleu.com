@@ -18,9 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// ---------------------------------------------------------------------------
-// BuildResyncProposals: per-book scan status (found flags + last_resync_at)
-// ---------------------------------------------------------------------------
+// BuildResyncProposals: per-book scan status (found flags + last_resync_at).
 
 func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	id := uuid.New()
@@ -39,7 +37,7 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 			byISBN: &unicat.ExternalBook{Title: "Found In UniCat Only"},
 		},
 		//nolint:exhaustruct // zero-value: byISBN nil -> ErrNotFound, empty
-		// search fallback -> a clean, resolved "not found" (not unresolved)
+		// Search fallback: a resolved "not found", not unresolved.
 		hardcover:   &fakeHCClient{},
 		objectStore: objectstore.NewFake(),
 	}
@@ -58,9 +56,8 @@ func TestBuildResyncProposals_RecordsScanStatus(t *testing.T) {
 	assert.False(t, *call.hcFound)
 }
 
-// TestBuildResyncProposals_Hardcover_FoundByISBN verifies the hardcover branch:
-// a configured hardcover client that resolves the ISBN produces a "hardcover"
-// proposal and records hardcover_found = true.
+// TestBuildResyncProposals_Hardcover_FoundByISBN checks the proposal and
+// hardcover_found = true.
 func TestBuildResyncProposals_Hardcover_FoundByISBN(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
@@ -140,14 +137,11 @@ func TestBuildResyncProposals_ScanStatusError_NonFatal(t *testing.T) {
 	assert.Contains(t, repo.replaced, id)
 }
 
-// ---------------------------------------------------------------------------
-// Override search: manual title/author steering, guards skipped
-// ---------------------------------------------------------------------------
+// Override search: manual title/author steering, guards skipped.
 
 func TestGetBookSources_Override_ForcesSearchAndSkipsGuards(t *testing.T) {
 	bookID := uuid.New()
 	isbn := "9780140449112"
-	// Stored title is way off; the guard would reject the search result.
 	book := models.Book{ //nolint:exhaustruct // partial
 		ID:      bookID,
 		Title:   "Completely Wrong Stored Title",
@@ -343,11 +337,8 @@ func TestSyncBookSource_Override_UnknownIndexNotFound(t *testing.T) {
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
-// TestGetBookSources_Override_Hardcover_FiltersByAuthor: Hardcover's Typesense
-// query is title-only (see pkg/hardcover extractSearchTerms), so the author
-// must be applied as a post-fetch filter — without it the override search
-// shows same-titled books by unrelated authors (the "The Fall" / Albert Camus
-// regression: UniCat filters server-side via inauthor:, Hardcover can't).
+// TestGetBookSources_Override_Hardcover_FiltersByAuthor: Hardcover's query is
+// title-only, so the author must be filtered post-fetch.
 func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID, Title: "The Fall"} //nolint:exhaustruct // partial
@@ -381,9 +372,8 @@ func TestGetBookSources_Override_Hardcover_FiltersByAuthor(t *testing.T) {
 	assert.Equal(t, []string{"Albert Camus"}, proposal.Sources[0].Authors)
 }
 
-// TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered: with no author
-// anywhere (book has none, no override), there is nothing to filter on — the
-// override search keeps Hardcover's relevance-ordered candidates as-is.
+// TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered: with no author,
+// candidates pass as-is.
 func TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ID: bookID, Title: "The Fall"} //nolint:exhaustruct // partial
@@ -410,12 +400,9 @@ func TestGetBookSources_Override_Hardcover_NoAuthor_Unfiltered(t *testing.T) {
 		"no author to filter on: all hardcover candidates must be kept")
 }
 
-// TestGetBookSources_Hardcover_WutheringHeights_Regression pins the #374
-// scenario end to end: Hardcover's index ranks a critical companion whose
-// *title* contains the author name above the real novel. The post-fetch
-// author filter must keep the real novel (diacritic-folded "Brontë" matches
-// the stored "Bronte") and drop the critic's companion — on both the guarded
-// no-override path and the manual override path.
+// TestGetBookSources_Hardcover_WutheringHeights_Regression: a companion titled
+// after the author must be dropped and the real novel kept ("Brontë" folds to
+// "Bronte"), on both guarded and override paths.
 func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 	bookID := uuid.New()
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -441,7 +428,6 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
-	// Guarded path (no override).
 	proposal, err := svc.GetBookSources(
 		context.Background(), logging.NewNopLogger(), bookID, "", "",
 	)
@@ -450,7 +436,6 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 	assert.Equal(t, "hardcover", proposal.Sources[0].Source)
 	assert.Equal(t, "Wuthering Heights", proposal.Sources[0].Title)
 
-	// Manual override path.
 	proposal, err = svc.GetBookSources(
 		context.Background(), logging.NewNopLogger(), bookID,
 		"Wuthering Heights", "Emily Bronte",
@@ -461,9 +446,7 @@ func TestGetBookSources_Hardcover_WutheringHeights_Regression(t *testing.T) {
 	assert.Equal(t, "Wuthering Heights", proposal.Sources[0].Title)
 }
 
-// ---------------------------------------------------------------------------
-// externalToBook: creation provenance
-// ---------------------------------------------------------------------------
+// externalToBook: creation provenance.
 
 func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 	//nolint:exhaustruct // partial
@@ -483,9 +466,7 @@ func TestExternalToBook_MetadataSourceProvenance(t *testing.T) {
 		"hand-entered books must not claim source provenance")
 }
 
-// ---------------------------------------------------------------------------
-// GetSourceStats: service passthrough
-// ---------------------------------------------------------------------------
+// GetSourceStats: service passthrough.
 
 func TestGetSourceStats_Passthrough(t *testing.T) {
 	want := &repositories.SourceStats{ //nolint:exhaustruct // partial

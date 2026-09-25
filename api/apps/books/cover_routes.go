@@ -11,20 +11,12 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 )
 
-// coverCtxTimeout bounds the whole cover read path — R2 HeadObject, the DB
-// lookup, the self-heal fetch+upload, and PresignGet — below the server's
-// global 10s httpWriteTimeout (cmd/api/main.go). Without it, a slow or
-// hanging R2/DB call can run past that write deadline: the write then
-// silently fails (no error, no log line — see the deployLogsCtxTimeout
-// comment in cmd/api/routes.go for the same failure mode), leaving the
-// browser's <img> request hanging with neither a cover nor a clean error to
-// trigger the placeholder. coverFetchTimeout (book_covers.go) only bounds
-// the external cover-source fetch half of this path; this bounds the rest.
+// coverCtxTimeout bounds the whole cover read path below the server's 10s
+// write timeout; past it the write fails silently and the <img> hangs.
+// coverFetchTimeout covers only the external fetch.
 const coverCtxTimeout = 8 * time.Second
 
-// coverRoutes mounts the public book-cover proxy endpoint.
-// No auth is required — covers are public data and the response is suitable
-// for CDN caching.
+// coverRoutes mounts the public, CDN-cacheable cover proxy; no auth.
 func (app *Books) coverRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		"GET /"+prefix+"/api/cover/{bookId}",
@@ -32,10 +24,8 @@ func (app *Books) coverRoutes(prefix string, mux *http.ServeMux) {
 	)
 }
 
-// coverHandler handles GET /{prefix}/api/cover/{bookId}.
-// Covers are fetched into R2 eagerly at write time (add/resync/merge — see
-// BookService.cacheCoverFromURL), so this only ever reads R2: a hit issues a
-// 302 redirect to a presigned URL, a miss returns 404.
+// coverHandler handles GET /{prefix}/api/cover/{bookId}: 302 to a presigned
+// R2 URL on a hit, 404 on a miss.
 func (app *Books) coverHandler(w http.ResponseWriter, r *http.Request) {
 	bookID, err := uuid.Parse(r.PathValue("bookId"))
 	if err != nil {

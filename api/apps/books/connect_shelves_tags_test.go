@@ -41,7 +41,6 @@ func TestConnectToggleTag_RemoveTag(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// First add a tag
 	addReq := connect.NewRequest(&booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "mystery",
@@ -50,7 +49,6 @@ func TestConnectToggleTag_RemoveTag(t *testing.T) {
 	_, err := client.ToggleTag(ctx, addReq)
 	require.NoError(t, err)
 
-	// Then remove it
 	removeReq := connect.NewRequest(&booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "mystery",
@@ -92,8 +90,7 @@ func TestConnectCreateShelf_Success(t *testing.T) {
 	_, err := client.CreateShelf(ctx, req)
 	require.NoError(t, err)
 
-	// The shelf must show up in the library with zero books, since nothing
-	// was ever assigned to it.
+	// Registered shelves appear even with zero books.
 	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
 	libReq.Header().Set("Cookie", accessToken.String())
 	libResp, err := client.GetLibrary(ctx, libReq)
@@ -135,9 +132,8 @@ func TestConnectCreateShelf_EmptyName(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// TestConnectShelf_PersistsWhenEmptied covers the core "shelves I'm lacking"
-// fix: a custom shelf registered via UpdateBookStatus must keep showing up
-// in GetLibrary even after its last book is moved off it.
+// TestConnectShelf_PersistsWhenEmptied: a custom shelf survives losing its
+// last book.
 func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	book := addTestBook(t, "PersistShelfBook")
 	require.NotNil(t, book)
@@ -154,7 +150,6 @@ func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	_, err := client.UpdateBookStatus(ctx, statusReq)
 	require.NoError(t, err)
 
-	// Move the book back off the shelf.
 	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
@@ -178,10 +173,8 @@ func TestConnectShelf_PersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "temporary-shelf should persist after being emptied")
 }
 
-// TestConnectShelf_DroppedPersistsWhenEmptied covers issue #593: dropped has
-// no dedicated LibraryResponse field (it flows through as an ordinary named
-// shelf), so it must be registered like a custom shelf or it vanishes once
-// its last book is moved off.
+// TestConnectShelf_DroppedPersistsWhenEmptied: dropped is registered like a
+// custom shelf.
 func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	book := addTestBook(t, "DroppedShelfBook")
 	require.NotNil(t, book)
@@ -198,7 +191,6 @@ func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	_, err := client.UpdateBookStatus(ctx, statusReq)
 	require.NoError(t, err)
 
-	// Move the book back off the shelf.
 	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
@@ -222,11 +214,8 @@ func TestConnectShelf_DroppedPersistsWhenEmptied(t *testing.T) {
 	assert.True(t, found, "dropped shelf should persist after being emptied")
 }
 
-// TestConnectLibrary_DroppedAlwaysPresent covers the retroactive half of
-// issue #593: a shelf already emptied before the shelves registry existed
-// (or simply never touched) has no books.shelves row and no user_books row
-// to derive one from, so GetLibrary must surface "dropped" as a fixed shelf
-// regardless of registry or book-history state.
+// TestConnectLibrary_DroppedAlwaysPresent: dropped appears even with no
+// registry or book history.
 func TestConnectLibrary_DroppedAlwaysPresent(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -256,7 +245,6 @@ func TestConnectRenameShelf_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Give the book a custom shelf via UpdateBookStatus with a custom status.
 	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: "custom-shelf",
@@ -265,7 +253,6 @@ func TestConnectRenameShelf_Success(t *testing.T) {
 	_, err := client.UpdateBookStatus(ctx, statusReq)
 	require.NoError(t, err)
 
-	// Rename the custom shelf.
 	renameReq := connect.NewRequest(&booksv1.RenameShelfRequest{
 		OldName: "custom-shelf",
 		NewName: "renamed-shelf",
@@ -275,8 +262,7 @@ func TestConnectRenameShelf_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
 
-	// Move the book off the renamed shelf: it must persist under its new
-	// name (the registry entry moved with the rename), not the old one.
+	// The registry entry moved with the rename.
 	backReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: models.StatusToRead,
@@ -358,7 +344,6 @@ func TestConnectDeleteShelf_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Assign a custom shelf.
 	statusReq := connect.NewRequest(&booksv1.UpdateBookStatusRequest{
 		BookId: book.BookID.String(),
 		Status: "shelf-to-delete",
@@ -367,7 +352,6 @@ func TestConnectDeleteShelf_Success(t *testing.T) {
 	_, err := client.UpdateBookStatus(ctx, statusReq)
 	require.NoError(t, err)
 
-	// Delete the shelf, moving books to to-read.
 	deleteReq := connect.NewRequest(&booksv1.DeleteShelfRequest{
 		Name:       "shelf-to-delete",
 		TargetName: models.StatusToRead,
@@ -377,7 +361,7 @@ func TestConnectDeleteShelf_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, resp.Msg.Moved, uint32(1))
 
-	// The deleted shelf must not reappear, even as an empty shelf.
+	// The deleted shelf must not reappear, even empty.
 	libReq := connect.NewRequest(&booksv1.GetLibraryRequest{})
 	libReq.Header().Set("Cookie", accessToken.String())
 	libResp, err := client.GetLibrary(ctx, libReq)
@@ -411,7 +395,6 @@ func TestConnectRenameTag_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Add a tag first.
 	tagReq := connect.NewRequest(&booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "old-tag",
@@ -420,7 +403,6 @@ func TestConnectRenameTag_Success(t *testing.T) {
 	_, err := client.ToggleTag(ctx, tagReq)
 	require.NoError(t, err)
 
-	// Rename the tag.
 	renameReq := connect.NewRequest(&booksv1.RenameTagRequest{
 		OldName: "old-tag",
 		NewName: "new-tag",
@@ -455,7 +437,6 @@ func TestConnectDeleteTag_Success(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Add a tag first.
 	tagReq := connect.NewRequest(&booksv1.ToggleTagRequest{
 		BookId: book.BookID.String(),
 		Tag:    "tag-to-delete",
@@ -464,7 +445,6 @@ func TestConnectDeleteTag_Success(t *testing.T) {
 	_, err := client.ToggleTag(ctx, tagReq)
 	require.NoError(t, err)
 
-	// Delete the tag.
 	deleteReq := connect.NewRequest(&booksv1.DeleteTagRequest{
 		Name: "tag-to-delete",
 	})

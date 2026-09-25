@@ -7,8 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// textBlock builds a minimal paragraph htmlBlock for finalizeHeadings tests,
-// bypassing PDF extraction entirely.
 func textBlock(text string, medHeight float64) htmlBlock {
 	return htmlBlock{ //nolint:exhaustruct // html/tag filled in by finalizeHeadings
 		text:      text,
@@ -17,20 +15,14 @@ func textBlock(text string, medHeight float64) htmlBlock {
 	}
 }
 
-// imgBlockForTest builds a minimal image htmlBlock (isText: false), used to
-// verify that a figure breaks a run of large-font text blocks.
 func imgBlockForTest() htmlBlock {
 	return htmlBlock{ //nolint:exhaustruct // only tag/isText matter here
 		tag: imgTag,
 	}
 }
 
-// TestFinalizeHeadings_DemotesRunOfLargeFontCitations reproduces issue
-// #1654's bibliography over-fire: a document with one real, isolated
-// large-font chapter heading plus a run of several large-font
-// bibliography-style citation lines (e.g. a frontmatter "Other books by this
-// author" list) must classify only the real heading as h1/h2 — the citation
-// run, despite exceeding the same height ratio, must stay plain paragraphs.
+// TestFinalizeHeadings_DemotesRunOfLargeFontCitations: a run of large-font
+// citation lines stays "p"; only the isolated real heading is promoted.
 func TestFinalizeHeadings_DemotesRunOfLargeFontCitations(t *testing.T) {
 	const modal = 10.0
 
@@ -78,9 +70,7 @@ func TestFinalizeHeadings_DemotesRunOfLargeFontCitations(t *testing.T) {
 	}
 }
 
-// TestFinalizeHeadings_ImageBreaksRun verifies that a figure between two
-// large-font paragraphs prevents them from being treated as one run, so each
-// is judged in isolation.
+// TestFinalizeHeadings_ImageBreaksRun: a figure splits a run.
 func TestFinalizeHeadings_ImageBreaksRun(t *testing.T) {
 	const modal = 10.0
 
@@ -96,20 +86,15 @@ func TestFinalizeHeadings_ImageBreaksRun(t *testing.T) {
 	assert.Equal(t, "p", blocks[2].tag)
 }
 
-// TestFinalizeHeadings_ZeroModalHeight verifies the no-body-text-baseline
-// edge case (e.g. an all-heading-sized page) falls back to plain paragraphs
-// rather than dividing by zero.
+// TestFinalizeHeadings_ZeroModalHeight: no body baseline yields plain paragraphs.
 func TestFinalizeHeadings_ZeroModalHeight(t *testing.T) {
 	blocks := []htmlBlock{textBlock("Some text", 12)}
 	finalizeHeadings(blocks, 0)
 	assert.Equal(t, "p", blocks[0].tag)
 }
 
-// TestFinalizeHeadings_DemotesLowercaseStartCandidate reproduces issue
-// #1698's marginal-pull-quote/mid-sentence false positives: a height-ratio
-// heading candidate whose text starts with a lowercase letter (never true of
-// a real title) must be demoted to "p", while an isolated, properly
-// capitalized heading of the same size stays a heading.
+// TestFinalizeHeadings_DemotesLowercaseStartCandidate: a lowercase-start
+// candidate is demoted.
 func TestFinalizeHeadings_DemotesLowercaseStartCandidate(t *testing.T) {
 	const modal = 10.0
 
@@ -134,13 +119,8 @@ func TestFinalizeHeadings_DemotesLowercaseStartCandidate(t *testing.T) {
 	assert.Equal(t, "p", blocks[4].tag, "lowercase-start candidate must be demoted")
 }
 
-// TestFinalizeHeadings_DemotesLoopDiagramLabel reproduces the follow-up
-// #1766 explicitly left open: a handful of very short all-caps
-// systems-diagram loop labels ("B", "R B", "B B") from the reference book
-// ("Thinking in Systems") are large enough to clear the heading height
-// ratio, isolated (so demoteHeadingRuns's run-of-2+ guard never fires), and
-// all-uppercase (so startsLowercase never fires either) — yet they are not
-// real headings and must not pollute the generated EPUB chapter TOC.
+// TestFinalizeHeadings_DemotesLoopDiagramLabel: isolated all-caps loop labels
+// ("R B") are demoted.
 func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
 	const modal = 10.0
 
@@ -151,10 +131,7 @@ func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
 		textBlock("R B", modal*1.5), // reinforcing + balancing loop labels
 		textBlock("B B", modal*1.5), // two balancing-loop labels
 		textBlock("Body paragraph two of the chapter.", modal),
-		// A real short all-caps heading stays a heading. It's sized like a
-		// title-page heading (3x body): a one-worder at mid-band size is an
-		// embedded figure label and is demoted — see
-		// TestFinalizeHeadings_DemotesSingleWordMidBandHeading (issue #1698).
+		// Title-page size: a mid-band one-worder would be demoted as a figure label.
 		textBlock("Appendix", modal*3.0),
 	}
 
@@ -172,11 +149,8 @@ func TestFinalizeHeadings_DemotesLoopDiagramLabel(t *testing.T) {
 	)
 }
 
-// TestFinalizeHeadings_KeepsTwoLineTitlePair reproduces the reopened issue
-// #1698's "Leverage Points—" chapter: its title wraps onto two lines at the
-// same title-page size. A similar-size pair only counts as list entries
-// when a member has an entry's text shape (punctuation, figure reference,
-// …); a two-line title has none and both lines must keep the title as h1.
+// TestFinalizeHeadings_KeepsTwoLineTitlePair: a same-size two-line title with
+// no list shape stays h1.
 func TestFinalizeHeadings_KeepsTwoLineTitlePair(t *testing.T) {
 	const modal = 10.0
 
@@ -193,10 +167,8 @@ func TestFinalizeHeadings_KeepsTwoLineTitlePair(t *testing.T) {
 	assert.Equal(t, "h1", blocks[2].tag)
 }
 
-// TestFinalizeHeadings_KeepsEllipsisTitle verifies a title ending in a
-// spaced typographic ellipsis ("System Traps . . .") is not treated as a
-// sentence (the trailing dots are the book's ellipsis, not sentence-ending
-// punctuation) and stays h1.
+// TestFinalizeHeadings_KeepsEllipsisTitle: a trailing ". . ." isn't sentence
+// punctuation.
 func TestFinalizeHeadings_KeepsEllipsisTitle(t *testing.T) {
 	const modal = 10.0
 
@@ -210,9 +182,7 @@ func TestFinalizeHeadings_KeepsEllipsisTitle(t *testing.T) {
 	assert.Equal(t, "h1", blocks[0].tag)
 }
 
-// TestIsLoopDiagramLabel covers isLoopDiagramLabel's boundary cases directly:
-// single/multi single-letter tokens match, while real words (even short
-// all-caps ones) and lowercase/mixed-case text don't.
+// TestIsLoopDiagramLabel covers isLoopDiagramLabel's boundary cases.
 func TestIsLoopDiagramLabel(t *testing.T) {
 	tests := map[string]bool{
 		"B":        true,
@@ -234,13 +204,8 @@ func TestIsLoopDiagramLabel(t *testing.T) {
 	}
 }
 
-// TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine reproduces the
-// reopened issue #1698's missing-chapters half: on a chapter title page the
-// big title ("The Basics", ~2× body height) sits directly beside its
-// decoration banner ("— ONE —", ~1.3× body height, an h2-sized candidate).
-// The run guard must not flatten such a dissimilar pair — only adjacent
-// candidates rendered at the same size (list/citation entries) look like a
-// list — so the title survives as the TOC's chapter entry.
+// TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine: a title beside its
+// dissimilar-size banner survives.
 func TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine(t *testing.T) {
 	const modal = 10.0
 
@@ -258,10 +223,8 @@ func TestFinalizeHeadings_KeepsChapterTitleBesideBannerLine(t *testing.T) {
 	)
 }
 
-// TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights verifies the #1654
-// bibliography guard: three consecutive large-font entries at a similar
-// size are a list regardless of their text shapes — none ends in sentence
-// punctuation, yet all must stay plain paragraphs.
+// TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights: 3+ similar-size
+// candidates are a list regardless of shape.
 func TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights(t *testing.T) {
 	const modal = 10.0
 
@@ -282,10 +245,8 @@ func TestFinalizeHeadings_DemotesRunOfThreeSimilarHeights(t *testing.T) {
 	}
 }
 
-// TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates verifies that a
-// size jump between consecutive candidates splits the chain: each side is
-// judged in isolation, so two one-off large lines at different sizes stay
-// headings (this is what a chapter title page's banner + title look like).
+// TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates: a size jump splits
+// the chain.
 func TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates(t *testing.T) {
 	const modal = 10.0
 
@@ -300,10 +261,8 @@ func TestFinalizeHeadings_KeepsIsolatedDissimilarCandidates(t *testing.T) {
 	assert.Equal(t, "h2", blocks[1].tag)
 }
 
-// TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates verifies the
-// two-member edge: two consecutive candidates at the same (similar) size are
-// a list fragment and are demoted, while two consecutive candidates at
-// clearly different sizes are not.
+// TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates covers the
+// two-member edge.
 func TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates(t *testing.T) {
 	const modal = 10.0
 
@@ -326,11 +285,8 @@ func TestFinalizeHeadings_DemotesPairOfSimilarLargeCandidates(t *testing.T) {
 	)
 }
 
-// TestFinalizeHeadings_DemotesSentencePunctuationHeading reproduces the
-// reopened issue #1698's pull-quote/fragment TOC entries: an h1-sized
-// candidate ending in sentence punctuation (after trimming closing quotes)
-// is a sentence, never a heading. Numbered-list items ("13. …") and short
-// questions ("Why?") share the shape.
+// TestFinalizeHeadings_DemotesSentencePunctuationHeading: sentence-shaped
+// candidates (incl. "13. …", "Why?") are demoted.
 func TestFinalizeHeadings_DemotesSentencePunctuationHeading(t *testing.T) {
 	const modal = 10.0
 
@@ -357,10 +313,8 @@ func TestFinalizeHeadings_DemotesSentencePunctuationHeading(t *testing.T) {
 	assert.Equal(t, "h1", blocks[6].tag)
 }
 
-// TestFinalizeHeadings_DemotesFigureReferenceHeading reproduces the
-// reopened issue #1698's caption/cross-reference fragments ("Delays,
-// Figure 30:", "(see Figure 39)."): an h1-sized candidate referencing a
-// figure number is part of a caption, not a heading.
+// TestFinalizeHeadings_DemotesFigureReferenceHeading: figure references are
+// captions, not headings.
 func TestFinalizeHeadings_DemotesFigureReferenceHeading(t *testing.T) {
 	const modal = 10.0
 
@@ -378,11 +332,8 @@ func TestFinalizeHeadings_DemotesFigureReferenceHeading(t *testing.T) {
 	assert.Equal(t, "h1", blocks[3].tag)
 }
 
-// TestFinalizeHeadings_DemotesSingleWordMidBandHeading reproduces the
-// reopened issue #1698's diagram-label fragments ("Cooling"): a one-word h1
-// candidate at mid-band size (between body text and real title-page type)
-// is an embedded figure label, not a heading; real one-word headings appear
-// only at title-page size.
+// TestFinalizeHeadings_DemotesSingleWordMidBandHeading: a mid-band one-word h1
+// is a figure label.
 func TestFinalizeHeadings_DemotesSingleWordMidBandHeading(t *testing.T) {
 	const modal = 10.0
 

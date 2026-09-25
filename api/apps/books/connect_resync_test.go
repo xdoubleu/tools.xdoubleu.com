@@ -13,8 +13,7 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
-// TestConnectStartResync_Success verifies that an authenticated admin can
-// trigger the resync scan endpoint and get a 200 response.
+// TestConnectStartResync_Success checks an admin can start a scan.
 func TestConnectStartResync_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -28,9 +27,8 @@ func TestConnectStartResync_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-// TestConnectStartResync_Force verifies the force flag round-trips through
-// the RPC without erroring — the job itself asserts the flag is honored (see
-// internal/jobs' ResyncMetadataJob tests).
+// TestConnectStartResync_Force checks the force flag round-trips; the job
+// tests check it's honored.
 func TestConnectStartResync_Force(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -44,16 +42,9 @@ func TestConnectStartResync_Force(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-// TestBuildResyncProposals_Service exercises the service layer end-to-end
-// against the real DB. AddToLibrary enriches a new book from the same mocked
-// Hardcover client resync later queries (see enrichByISBN), so a freshly
-// seeded book already agrees with the mock on every field resync would
-// otherwise supply — a title-only mismatch alone is a mere difference, not a
-// gap, and must not be flagged (see encodeIfFlagged). The test blanks the
-// seeded book's description directly in the DB to create a genuine gap the
-// mock source can fill, so the book is surfaced. BuildResyncProposals never
-// writes to a book or the cover cache — that only happens through
-// ApplyResyncChoice.
+// TestBuildResyncProposals_Service: adding a book already enriches it from
+// the mock, so the test blanks its description to create a gap worth
+// flagging. The scan itself never writes to the book.
 func TestBuildResyncProposals_Service(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -87,7 +78,6 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, exists, "a scan must never touch the cover cache — it only reads")
 
-	// The scan must persist per-source found flags and bump last_resync_at.
 	scanned, err := testApp.Repositories.Books.GetBookByID(ctx, book.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, scanned.HardcoverFound)
@@ -107,7 +97,6 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	}
 	assert.True(t, found, "the seeded book must be flagged as differing")
 
-	// Dismissing the proposal (source == "") must not write anything.
 	err = testApp.Services.Books.ApplyResyncChoice(ctx, testApp.Logger, book.BookID, "")
 	require.NoError(t, err)
 
@@ -116,8 +105,7 @@ func TestBuildResyncProposals_Service(t *testing.T) {
 	assert.True(t, exists, "dismissing a proposal must not touch the cover cache")
 }
 
-// TestConnectCancelResync_NonAdmin_PermissionDenied verifies CancelResync is
-// admin-gated like every other resync RPC.
+// TestConnectCancelResync_NonAdmin_PermissionDenied checks the admin gate.
 func TestConnectCancelResync_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.CancelResyncRequest{})
@@ -130,9 +118,7 @@ func TestConnectCancelResync_NonAdmin_PermissionDenied(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-// TestConnectCancelResync_Admin_NoopWhenNothingRunning verifies calling
-// CancelResync while no scan is in progress succeeds without effect — there's
-// nothing to stop.
+// TestConnectCancelResync_Admin_NoopWhenNothingRunning checks the no-op.
 func TestConnectCancelResync_Admin_NoopWhenNothingRunning(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.CancelResyncRequest{})
@@ -143,11 +129,8 @@ func TestConnectCancelResync_Admin_NoopWhenNothingRunning(t *testing.T) {
 	assert.NotNil(t, resp)
 }
 
-// TestListCatalogBooks_OrdersLeastCoveredFirst verifies the scan order fix:
-// a book with no sources confirmed found (the quota-starved case under a
-// full-catalog force resync) must sort before a book already confirmed found
-// by every source, so a rate-limited or interrupted run spends its budget on
-// the books that most need checking rather than the already-covered ones.
+// TestListCatalogBooks_OrdersLeastCoveredFirst: uncovered books sort before
+// fully covered ones.
 func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	ctx := context.Background()
 	id := uuid.New()
@@ -191,11 +174,8 @@ func TestListCatalogBooks_OrdersLeastCoveredFirst(t *testing.T) {
 	)
 }
 
-// TestUpdateResyncScanStatus_NilFlagPreservesPriorValue verifies the
-// COALESCE-preserve write: a nil flag (source not resolved this pass — not
-// configured, skipped, or errored) must never clobber an already-known found
-// value. Regression for a throttled/errored scan silently flipping a known
-// "found" source back to "not found".
+// TestUpdateResyncScanStatus_NilFlagPreservesPriorValue: a nil flag never
+// clobbers a known value.
 func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	ctx := context.Background()
 	book := addTestBookWithISBN(
@@ -212,8 +192,6 @@ func TestUpdateResyncScanStatus_NilFlagPreservesPriorValue(t *testing.T) {
 	require.NotNil(t, scanned.UniCatFound)
 	assert.True(t, *scanned.UniCatFound)
 
-	// A second pass with all-nil flags (every source unresolved this time)
-	// must leave the previously-known true values untouched.
 	require.NoError(t, testApp.Repositories.Books.UpdateResyncScanStatus(
 		ctx, book.BookID, nil, nil,
 	))

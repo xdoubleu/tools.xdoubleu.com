@@ -23,8 +23,7 @@ func newBooksTestClient(t *testing.T) booksTestClient {
 	return newBooksClientFor(ts.URL, connect.WithHTTPGet())
 }
 
-// booksTestClient bundles all four books service clients so tests can call
-// any RPC through one value, mirroring the pre-split single-service client.
+// booksTestClient bundles the four books service clients.
 type booksTestClient struct {
 	booksv1connect.LibraryServiceClient
 	booksv1connect.BookFilesServiceClient
@@ -32,7 +31,6 @@ type booksTestClient struct {
 	booksv1connect.CatalogServiceClient
 }
 
-// newBooksClientFor builds a composite client against the given base URL.
 func newBooksClientFor(url string, opts ...connect.ClientOption) booksTestClient {
 	return booksTestClient{
 		LibraryServiceClient: booksv1connect.NewLibraryServiceClient(
@@ -62,7 +60,6 @@ func TestConnectGetLibrary(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.NotNil(t, resp.Msg.Library)
-	// Library may have books from previous tests, just check it's not nil
 }
 
 func TestConnectGetLibrary_WithBooks(t *testing.T) {
@@ -155,10 +152,8 @@ func TestConnectSearchLibrary_WithResults(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Books)
 }
 
-// TestConnectSearchLibrary_TitleAndAuthorNarrows guards bug #853: a query
-// combining a title word and an author word must match the book (each word
-// found somewhere across title/author), not fail because neither field
-// contains the whole combined string as one substring.
+// TestConnectSearchLibrary_TitleAndAuthorNarrows: each word may match title
+// or author.
 func TestConnectSearchLibrary_TitleAndAuthorNarrows(t *testing.T) {
 	addTestBookNoISBN(t, "NarrowSearchTitle")
 
@@ -186,11 +181,8 @@ func TestConnectSearchLibrary_TitleAndAuthorNarrows(t *testing.T) {
 	assert.Empty(t, resp.Msg.Books)
 }
 
-// TestConnectSearchLibrary_Pagination scopes its fixture titles with a
-// per-run unique token so the exact-count assertions below can't be thrown
-// off by another test's books that happen to also match a generic
-// "PaginatedBook"-style substring (all books share the same test userID and
-// nothing resets the library between tests in this package).
+// TestConnectSearchLibrary_Pagination uses a per-run token in titles so other
+// tests' books can't skew the exact counts.
 func TestConnectSearchLibrary_Pagination(t *testing.T) {
 	prefix := "PaginatedBook-" + uuid.NewString()
 	addTestBookNoISBN(t, prefix+"-One")
@@ -252,13 +244,10 @@ func TestConnectSearchExternal_WithQuery(t *testing.T) {
 	resp, err := client.SearchExternal(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
-	// Results may be empty depending on mock data
 }
 
-// TestConnectSearchExternal_TitleAndAuthorNarrows guards bug #853: a query
-// combining a title word with the wrong author must drop the mock's canned
-// "The Odyssey" / "Homer" result, while the matching title+author combination
-// keeps it.
+// TestConnectSearchExternal_TitleAndAuthorNarrows: a wrong author drops the
+// mock's result; the right one keeps it.
 func TestConnectSearchExternal_TitleAndAuthorNarrows(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -286,9 +275,7 @@ func TestConnectGetExternalBook_Found(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// testApp is wired with the Hardcover mock, which resolves any ISBN to a
-	// canned book — provider_id is the ISBN13 by convention (see
-	// protoExternalBook).
+	// The Hardcover mock resolves any ISBN; provider_id is the ISBN13.
 	req := connect.NewRequest(&booksv1.GetExternalBookRequest{
 		Provider:   "hardcover",
 		ProviderId: "9780140447934",

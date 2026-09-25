@@ -21,50 +21,33 @@ import (
 )
 
 // EPUBConverter converts raw EPUB bytes into KEPUB bytes.
-// The interface exists for test injection; production uses kepubifyConverter.
 type EPUBConverter interface {
 	Convert(ctx context.Context, epubData []byte) ([]byte, error)
 }
 
-// PDFConverter converts a PDF file at inPath to an EPUB file at outPath.
-// identifier is the book's stable unique-identifier (stamped into the EPUB's
-// dc:identifier so regenerated files keep the same internal identity, issue
-// #1734). catalogTitle/catalogAuthors are the book's already-known catalog
-// title/author, which take priority over anything the PDF conversion could
-// otherwise derive from the PDF itself (issue #1654). The interface exists
-// for test injection; production uses goPDFConverter, a pure-Go pipeline
-// built on go-pdfium (see conversion_pdfextract.go).
+// PDFConverter converts the PDF at inPath to an EPUB at outPath. identifier is
+// stamped into dc:identifier so regenerated files keep their identity;
+// catalogTitle/catalogAuthors override anything derived from the PDF.
 type PDFConverter func(
 	ctx context.Context, inPath, outPath, identifier, catalogTitle string,
 	catalogAuthors []string,
 ) error
 
-// currentKEPUBConverterVersion identifies the current KEPUB conversion
-// pipeline (goPDFConverter + kepubify usage). Bump it by hand whenever a
-// change to either would produce different output for existing content —
-// EnsureKEPUB then treats any book_files row stamped with an older version
-// as stale and regenerates it on next access (issue #594).
+// currentKEPUBConverterVersion: bump by hand whenever the pipeline would
+// produce different output; older rows are then regenerated on access.
 const currentKEPUBConverterVersion int16 = 12
 
-// IsKEPUBStale reports whether a KEPUB row stamped with version was produced
-// by an older converter than the current pipeline. Callers outside this
-// package (e.g. the Kobo sync routes) use this to decide whether to
-// re-trigger EnsureKEPUB for an already-ready row (issue #1696).
+// IsKEPUBStale reports whether version predates the current pipeline.
 func (s *ConversionService) IsKEPUBStale(version int16) bool {
 	return version < currentKEPUBConverterVersion
 }
 
-// CurrentKEPUBConverterVersion returns the version EnsureKEPUB stamps on a
-// freshly-converted KEPUB row. Exported for tests that need to seed a
-// non-stale row without hardcoding the pipeline version.
+// CurrentKEPUBConverterVersion returns the version EnsureKEPUB stamps.
 func CurrentKEPUBConverterVersion() int16 {
 	return currentKEPUBConverterVersion
 }
 
-// ConversionService produces KEPUBs from stored EPUBs or PDFs.
-// Callers must use EnsureKEPUB; internal conversion is lazy and idempotent,
-// except that a KEPUB stamped with an older currentKEPUBConverterVersion is
-// treated as stale and regenerated rather than returned as-is.
+// ConversionService produces KEPUBs from stored EPUBs or PDFs via EnsureKEPUB.
 type ConversionService struct {
 	logger      *slog.Logger
 	books       *repositories.BooksRepository
@@ -74,9 +57,8 @@ type ConversionService struct {
 	convertPDF  PDFConverter
 }
 
-// NewConversionService constructs a ConversionService. Pass nil for converter
-// or convertPDF to use the default implementations (kepubify and
-// goPDFConverter respectively).
+// NewConversionService constructs a ConversionService; nil converter/convertPDF
+// select the defaults.
 func NewConversionService(
 	logger *slog.Logger,
 	books *repositories.BooksRepository,
@@ -101,17 +83,14 @@ func NewConversionService(
 	}
 }
 
-// EnsureKEPUB returns the existing KEPUB book_files row for (userID, bookID),
-// or creates one by converting the stored EPUB or PDF. If neither is stored the
-// call returns a FailedPrecondition error.
+// EnsureKEPUB returns the KEPUB row for (userID, bookID), converting the stored
+// EPUB or PDF if needed; FailedPrecondition when neither exists.
 func (s *ConversionService) EnsureKEPUB(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 ) (*models.BookFile, error) {
-	// Return existing KEPUB (covers idempotency / concurrent callers), unless
-	// it was produced by an older converter version — then delete it and fall
-	// through to regenerate, same as the not-found case.
+	// A stale existing KEPUB is deleted and regenerated.
 	existing, err := s.bookFiles.GetByBookAndFormat(
 		ctx, userID, bookID, models.FileFormatKEPUB,
 	)
@@ -126,15 +105,11 @@ func (s *ConversionService) EnsureKEPUB(
 		return nil, err
 	}
 
-	// Resolve the source file: prefer EPUB, fall back to PDF.
 	sourceFile, sourceFormat, err := s.resolveSourceFile(ctx, userID, bookID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check whether a canonical KEPUB blob already exists for this source
-	// content. If so, insert a row for this user and return immediately; no
-	// conversion is needed. Also returns the canonical key for use below.
 	shared, canonicalKey, err := s.resolveCanonicalKEPUB(
 		ctx,
 		userID,
@@ -148,8 +123,7 @@ func (s *ConversionService) EnsureKEPUB(
 		return shared, nil
 	}
 
-	// Insert a placeholder row so concurrent callers and the UI can observe the
-	// "converting" state via GetByBookAndFormat.
+	// Placeholder row exposes the "converting" state to concurrent callers and the UI.
 	sourceID := sourceFile.ID
 	kepubRow, err := s.bookFiles.Insert(
 		ctx,
@@ -184,8 +158,7 @@ func (s *ConversionService) EnsureKEPUB(
 		return nil, fmt.Errorf("convert epub to kepub: %w", convertErr)
 	}
 
-	// Use the canonical key when available; fall back to a per-user path for
-	// source files without a checksum (e.g. legacy or test-seeded rows).
+	// Sources without a checksum fall back to a per-user key.
 	key := canonicalKey
 	if key == "" {
 		key = fmt.Sprintf(
@@ -212,10 +185,7 @@ func (s *ConversionService) EnsureKEPUB(
 	return kepubRow, nil
 }
 
-// prepareEPUBData loads the book's catalog title/authors and uses them
-// (per issue #1654) when preparing raw EPUB bytes from the resolved source
-// file, wrapping any failure in an error already logged with enough context
-// to diagnose it.
+// prepareEPUBData prepares EPUB bytes using the catalog title/authors.
 func (s *ConversionService) prepareEPUBData(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -247,13 +217,9 @@ func (s *ConversionService) prepareEPUBData(
 	return epubData, nil
 }
 
-// resolveCanonicalKEPUB checks whether a canonical KEPUB blob already exists
-// for the given source file's checksum. Returns (row, canonicalKey, nil) where:
-//   - row != nil: dedup hit — a ready row was inserted for userID; caller returns it.
-//   - row == nil, canonicalKey != "": cache miss — caller should convert and Put
-//     the result at canonicalKey.
-//   - row == nil, canonicalKey == "": source has no checksum — caller falls back
-//     to a per-user storage key.
+// resolveCanonicalKEPUB looks up a shared KEPUB by source checksum. A non-nil
+// row is a dedup hit; otherwise convert and Put at canonicalKey, or use a
+// per-user key when canonicalKey is "" (no checksum).
 func (s *ConversionService) resolveCanonicalKEPUB(
 	ctx context.Context,
 	userID string,
@@ -273,11 +239,9 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 		return nil, "", err
 	}
 	if globalRow.ConverterVersion < currentKEPUBConverterVersion {
-		// The shared blob itself is stale; don't hand it to more users.
 		return nil, canonicalKey, nil
 	}
 
-	// Hit: insert a ready row for this user pointing at the shared canonical blob.
 	sourceID := sourceFile.ID
 	row, insertErr := s.bookFiles.Insert(
 		ctx,
@@ -295,9 +259,7 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 	return row, canonicalKey, insertErr
 }
 
-// resolveSourceFile finds the best available source file for KEPUB conversion:
-// EPUB is preferred; PDF is used as a fallback. Returns FailedPrecondition when
-// neither is available.
+// resolveSourceFile prefers EPUB, then PDF; FailedPrecondition when neither.
 func (s *ConversionService) resolveSourceFile(
 	ctx context.Context,
 	userID string,
@@ -329,12 +291,8 @@ func (s *ConversionService) resolveSourceFile(
 	)
 }
 
-// getEPUBBytes returns raw EPUB bytes ready for kepubify.
-// When the source is an EPUB it downloads it directly.
-// When the source is a PDF it downloads to a temp file, calls convertPDF
-// (passing the book's stable identifier and catalog title/authors through,
-// per issues #1734 and #1654) to produce a temp EPUB, reads that, then
-// cleans up both temp files.
+// getEPUBBytes returns EPUB bytes for kepubify, converting a PDF source via
+// temp files.
 func (s *ConversionService) getEPUBBytes(
 	ctx context.Context,
 	storageKey string,
@@ -347,7 +305,6 @@ func (s *ConversionService) getEPUBBytes(
 		return s.downloadBytes(ctx, storageKey)
 	}
 
-	// PDF path: download to temp file, convert to temp EPUB, read, clean up.
 	pdfTmp, err := os.CreateTemp("", "bookpdf-*.pdf")
 	if err != nil {
 		return nil, fmt.Errorf("create pdf temp file: %w", err)
@@ -389,7 +346,6 @@ func (s *ConversionService) getEPUBBytes(
 	return data, nil
 }
 
-// downloadBytes streams an object from the object store into memory.
 func (s *ConversionService) downloadBytes(
 	ctx context.Context,
 	storageKey string,
@@ -407,7 +363,6 @@ func (s *ConversionService) downloadBytes(
 	return data, nil
 }
 
-// kepubifyConverter is the production EPUBConverter backed by kepubify.
 type kepubifyConverter struct {
 	c *kepubpkg.Converter
 }

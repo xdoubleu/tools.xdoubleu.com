@@ -51,17 +51,10 @@ func (h *booksConnectHandler) GetBookFile(
 	}), nil
 }
 
-// maybeStartKEPUBConversion checks whether a background KEPUB conversion should
-// be started for the given book and user. If no KEPUB row exists yet, or the
-// existing one is ready but stamped with an older converter version
-// (statusResult.KepubStale, issue #1696), and a convertible source (EPUB or
-// PDF) is available, it launches EnsureKEPUB in a detached goroutine and
-// returns models.FileStatusConverting; otherwise it returns the current
-// kepubStatus unchanged.
-//
-// whenKEPUBOnly controls the wantsKEPUB gate: pass true to respect the user's
-// raw-PDF preference (EnableKoboSync), false to always convert regardless
-// (RequestKEPUBConversion for in-browser preview).
+// maybeStartKEPUBConversion launches EnsureKEPUB in the background when the
+// KEPUB is missing or stale and a source exists, returning
+// FileStatusConverting; otherwise kepubStatus unchanged. whenKEPUBOnly true
+// respects the raw-PDF preference; false always converts (preview).
 func (h *booksConnectHandler) maybeStartKEPUBConversion(
 	ctx context.Context,
 	userID string,

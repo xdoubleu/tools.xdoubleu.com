@@ -28,10 +28,7 @@ func groupByStatus(
 	userBooks []models.UserBook,
 	registeredShelves []string,
 ) []bookShelf {
-	// Dropped is intentionally excluded here: unlike the other three
-	// statuses it has no dedicated LibraryResponse field, so it flows
-	// through as a shelf named "dropped" instead of disappearing from the
-	// library.
+	// Dropped has no LibraryResponse field, so it flows through as a shelf.
 	standard := map[string]bool{
 		models.StatusToRead:  true,
 		models.StatusReading: true,
@@ -48,18 +45,15 @@ func groupByStatus(
 		}
 		seen[ub.Status] = append(seen[ub.Status], ub)
 	}
-	// Registered shelves with no books yet (or currently) still get a shelf
-	// entry, just with an empty Books slice, so they don't vanish from the UI.
+	// Registered shelves appear even when empty.
 	for _, name := range registeredShelves {
 		if _, ok := seen[name]; !ok {
 			seen[name] = nil
 			order = append(order, name)
 		}
 	}
-	// Dropped is always shown, exactly like a fixed built-in shelf,
-	// regardless of the registry: a shelf already emptied before the shelves
-	// registry existed has no user_books row left to register it from, so
-	// depending on the registry alone can never recover it (issue #593).
+	// Dropped is always shown: shelves emptied before the registry existed can't
+	// be recovered from it.
 	alwaysShown := []string{models.StatusDropped}
 	for _, name := range alwaysShown {
 		if _, ok := seen[name]; !ok {
@@ -130,12 +124,8 @@ func (app *Books) buildLibraryData(
 	}, nil
 }
 
-// BuildSharedLibrary assembles the reading dashboard's library payload for a
-// user, plus their most recent Kobo device sync time (empty string when the
-// owner has no Kobo devices — Kobo sync is the books equivalent of a
-// refresh). This is the one exported entry point the dashboard app
-// (api/apps/dashboard) uses to build its public reading dashboard, keeping
-// books' own shelving/formats logic un-duplicated.
+// BuildSharedLibrary builds the reading dashboard's library payload plus the
+// latest Kobo sync time ("" with no devices), for the dashboard app.
 func (app *Books) BuildSharedLibrary(
 	ctx context.Context,
 	userID string,
@@ -163,14 +153,9 @@ func (app *Books) BuildSharedLibrary(
 	}, lastSyncedAt, nil
 }
 
-// GetLibraryBookByID looks up a single library entry by book ID, scoped to
-// userID — the single-item counterpart to BuildSharedLibrary, used by the
-// learningpaths app (api/apps/learningpaths) to resolve a resource linked to
-// a books entry, following the same exported-methods-only cross-app pattern
-// as dashboard. Returns database.ErrResourceNotFound both when bookID
-// doesn't exist and when it belongs to a different user — the repository
-// query filters by user_id and book_id together, so a foreign-owned book
-// simply doesn't match rather than leaking its existence.
+// GetLibraryBookByID returns one of userID's library entries, for
+// learningpaths. ErrResourceNotFound also covers another user's book, so
+// existence never leaks.
 func (app *Books) GetLibraryBookByID(
 	ctx context.Context,
 	userID string,
@@ -184,9 +169,7 @@ func (app *Books) GetLibraryBookByID(
 	return protoUserBook(*ub, app.clients.PublicAPIBaseURL), nil
 }
 
-// BuildSharedProgress assembles the reading dashboard's progress-chart
-// payload for a user over the given date range — the exported counterpart
-// used by the dashboard app's public reading dashboard.
+// BuildSharedProgress builds the reading dashboard's progress-chart payload.
 func (app *Books) BuildSharedProgress(
 	ctx context.Context,
 	userID string,

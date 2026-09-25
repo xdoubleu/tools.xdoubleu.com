@@ -11,16 +11,13 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/services"
 )
 
-// maxBodyCapture caps how many bytes of each request/response body are kept for
-// debug logging. Bodies still flow through untouched to the handler and the
-// upstream proxy; only the captured copy is truncated.
+// maxBodyCapture caps the captured copy of each body; the stream is untouched.
 const maxBodyCapture = 64 * 1024
 
 type koboLogCtxKey struct{}
 
-// koboLogHolder accumulates the captured request/response for a single Kobo
-// request. koboAuth fills in deviceID/enabled once the token is resolved; the
-// tee reader and response recorder only capture while enabled is true.
+// koboLogHolder collects one request's capture; koboAuth sets
+// deviceID/enabled, and capture happens only while enabled.
 type koboLogHolder struct {
 	enabled  bool
 	deviceID string
@@ -29,14 +26,11 @@ type koboLogHolder struct {
 	status   int
 }
 
-// koboLogHolderFrom returns the holder installed by koboLogged, or nil.
 func koboLogHolderFrom(ctx context.Context) *koboLogHolder {
 	h, _ := ctx.Value(koboLogCtxKey{}).(*koboLogHolder)
 	return h
 }
 
-// capWrite copies up to the remaining capacity of buf (bounded by
-// maxBodyCapture) so a single body can never buffer more than the cap.
 func capWrite(buf *bytes.Buffer, p []byte) {
 	remaining := maxBodyCapture - buf.Len()
 	if remaining <= 0 {
@@ -48,9 +42,7 @@ func capWrite(buf *bytes.Buffer, p []byte) {
 	buf.Write(p)
 }
 
-// koboBodyTee wraps the request body and, while the holder is enabled, copies
-// read bytes into the holder's request buffer (capped). The full stream still
-// reaches the handler/proxy unchanged.
+// koboBodyTee copies read bytes into the holder while enabled.
 type koboBodyTee struct {
 	rc     io.ReadCloser
 	holder *koboLogHolder
@@ -66,9 +58,8 @@ func (t *koboBodyTee) Read(p []byte) (int, error) {
 
 func (t *koboBodyTee) Close() error { return t.rc.Close() }
 
-// koboResponseRecorder wraps the ResponseWriter to capture the status code
-// (always) and, while enabled, the response body (capped). All writes pass
-// through to the real writer, so redirects and proxy io.Copy are unaffected.
+// koboResponseRecorder always records the status and, while enabled, the
+// body; writes pass through unchanged.
 type koboResponseRecorder struct {
 	http.ResponseWriter
 	holder *koboLogHolder
@@ -86,11 +77,8 @@ func (rec *koboResponseRecorder) Write(p []byte) (int, error) {
 	return rec.ResponseWriter.Write(p)
 }
 
-// redactKoboToken replaces the raw bearer token segment in a captured request
-// path with a placeholder. The token is the device's live sync credential —
-// it must never be persisted (even in the in-memory debug log the device
-// owner can view) per the "plaintext never stored" rule documented in
-// kobo_routes.go.
+// redactKoboToken masks the token in a captured path: it is the device's live
+// credential and must never be stored, even in the debug log.
 func redactKoboToken(path, token string) string {
 	if token == "" {
 		return path
@@ -98,9 +86,8 @@ func redactKoboToken(path, token string) string {
 	return strings.Replace(path, "/"+token+"/", "/redacted/", 1)
 }
 
-// koboLogged wraps a Kobo device-facing handler so that, when debug logging is
-// enabled for the authenticated device, the request endpoint + body and the
-// response status + body are captured into the in-memory KoboLogStore.
+// koboLogged captures a device's requests and responses into KoboLogStore
+// when debug logging is on for it.
 func (app *Books) koboLogged(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		//nolint:exhaustruct // zero values are the intended initial state

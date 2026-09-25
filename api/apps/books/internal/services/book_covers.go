@@ -12,24 +12,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// ErrCoverNotFound is returned by GetBookCover when no cover is cached for the
-// book (either the book has no stored cover URL, or the eager fetch that
-// happens when the URL is set found nothing to store).
+// ErrCoverNotFound is returned when no cover is cached for the book.
 var ErrCoverNotFound = errors.New("cover not found")
 
-// coverPresignTTL is how long the presigned cover URL is valid. The browser
-// and CDN can cache within this window.
 const coverPresignTTL = 24 * time.Hour
 
-// maxCoverBytes caps the size of a downloaded cover image — a defensive limit
-// against a misbehaving or malicious source returning something huge.
+// maxCoverBytes guards against a source returning something huge.
 const maxCoverBytes = 20 * 1024 * 1024
 
-// coverFetchTimeout bounds outbound cover downloads. GetBookCover's read-time
-// self-heal (added for #760) calls cacheCoverFromURL inline in the public
-// cover handler, so a slow/dead source must fail fast into ErrCoverNotFound
-// rather than hang past the server's write timeout and leave the browser
-// with neither an image nor a clean 404 to fall back to.
+// coverFetchTimeout: GetBookCover's self-heal fetches inline in the public
+// cover handler, so a dead source must fail fast rather than outlive the
+// server's write timeout.
 const coverFetchTimeout = 5 * time.Second
 
 // GetBookCoverResult holds the outcome of a successful GetBookCover call.
@@ -38,13 +31,9 @@ type GetBookCoverResult struct {
 	ExpiresAt time.Time
 }
 
-// GetBookCover resolves a book cover from R2 — covers are fetched eagerly
-// into R2 whenever a book's CoverURL is set or changes (see
-// cacheCoverFromURL and its call sites in books.go / book_resync.go). On a
-// cache miss, it retries that eager fetch once here: the eager fetch is
-// best-effort and swallows errors, so a transient failure (timeout, 429)
-// otherwise leaves a book with a CoverURL but no R2 object until the next
-// full resync or a manual metadata sync.
+// GetBookCover reads the cover from R2. On a miss it retries the best-effort
+// eager fetch once, so a transient failure doesn't leave the book coverless
+// until the next resync.
 func (s *BookService) GetBookCover(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -83,12 +72,9 @@ func (s *BookService) presignCover(
 	}, nil
 }
 
-// cacheCoverFromURL downloads the image at coverURL and stores it in R2 under
-// bookID's cover key, replacing whatever was cached before. Called any time a
-// book gains or changes a CoverURL (add-to-library, resync apply, merge
-// cover-source) so the read path (GetBookCover) never needs a live fetch.
-// Errors are the caller's to log — a failed cover fetch should never block the
-// write it's attached to.
+// cacheCoverFromURL stores coverURL's image as bookID's cover, so the read
+// path never needs a live fetch. Callers log errors; a cover failure never
+// blocks the write.
 func (s *BookService) cacheCoverFromURL(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -132,9 +118,7 @@ func (s *BookService) cacheCoverFromURL(
 	)
 }
 
-// clearCoverCache deletes any cached cover image and negative-cache marker for
-// bookID — used when a book's CoverURL is blanked (no source supplied a cover)
-// so a stale image doesn't linger in R2.
+// clearCoverCache deletes a book's cached cover and negative-cache marker.
 func (s *BookService) clearCoverCache(ctx context.Context, bookID uuid.UUID) error {
 	if err := s.objectStore.Delete(ctx, bookCoverKey(bookID)); err != nil {
 		return fmt.Errorf("delete cover: %w", err)

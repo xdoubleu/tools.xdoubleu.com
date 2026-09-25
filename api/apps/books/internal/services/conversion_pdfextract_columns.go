@@ -2,9 +2,8 @@ package services
 
 import "sort"
 
-// gutterYBins/gutterXBins discretize the page into a grid used to find the
-// vertical gutter between columns (step 2 of the text algorithm). Fine
-// enough to resolve a typical ~10-20pt column gutter on a ~600x800pt page.
+// Step 2: the page grid used to find the column gutter, fine enough for a
+// ~10-20pt gutter on a ~600x800pt page.
 const (
 	gutterYBins            = 100
 	gutterXBins            = 200
@@ -12,18 +11,13 @@ const (
 	gutterMinWidthFraction = 0.04
 	gutterMidLow           = 0.35
 	gutterMidHigh          = 0.65
-	// midpointDivisor halves a (left, right) or (start, end) pair to find its
-	// center — used for both the gutter's midpoint and column-assignment
-	// midpoints below.
-	midpointDivisor = 2
-	// roundHalfUp nudges a truncating int conversion into round-half-up.
-	roundHalfUp = 0.5
+	midpointDivisor        = 2
+	roundHalfUp            = 0.5
 )
 
-// findGutter locates the widest vertical strip of the page that contains no
-// character boxes across at least 80% of the page height. The page is
-// two-column only if that gutter is at least 4% of the page width and its
-// midpoint falls between 35% and 65% of the page width.
+// findGutter finds the widest strip empty across >= 80% of the page height.
+// The page is two-column only if it is >= 4% of the width and centered
+// between 35% and 65%.
 func findGutter(
 	chars []pdfChar,
 	pageWidth, pageHeight float64,
@@ -84,8 +78,7 @@ func clampBin(v, upper int) int {
 	return v
 }
 
-// widestEmptyRun returns the [start,end) x-bin range of the widest run of
-// columns empty for at least gutterMinEmptyFraction of the page's rows.
+// widestEmptyRun returns the [start,end) x-bins of the widest mostly-empty run.
 func widestEmptyRun(occupied [][]bool) (int, int) {
 	xBins := len(occupied[0])
 	yBins := len(occupied)
@@ -118,9 +111,8 @@ func widestEmptyRun(occupied [][]bool) (int, int) {
 	return bestStart, bestEnd
 }
 
-// colStats holds the per-column typographic constants used by the
-// paragraph-break heuristics: the column's right text margin and its modal
-// (most common) line start, used to detect a short line or an indent.
+// colStats holds a column's right margin and modal line start, for detecting
+// short lines and indents.
 type colStats struct {
 	rightEdge   float64
 	modalXStart float64
@@ -152,10 +144,8 @@ func roundTo(v float64, step float64) float64 {
 	return float64(int(v/step+roundHalfUp)) * step
 }
 
-// assignColumns splits lines into left/right columns (step 3: reading
-// order), applies each column's stats to every line in it, and sorts each
-// column top-to-bottom. On a single-column page all lines are the "left"
-// column and right is empty.
+// assignColumns splits lines into left/right columns, applies column stats,
+// and sorts each top-to-bottom. Single-column pages use left only.
 func assignColumns(
 	lines []pdfLine, gutterLeft, gutterRight float64, twoColumn bool,
 ) ([]pdfLine, []pdfLine) {

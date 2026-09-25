@@ -13,15 +13,8 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 )
 
-// newServerR2 starts a minimal S3-compatible httptest server and returns
-// an R2 client pointed at it. The caller must call srv.Close().
-//
-// The mock server handles:
-//
-//	PUT  /bucket/key  → 200
-//	GET  /bucket/key  → 200 + stored body (or 404)
-//	HEAD /bucket/key  → 200 (or 404)
-//	DELETE /bucket/key → 204
+// newServerR2 starts a minimal S3-compatible server (PUT/GET/HEAD/DELETE) and
+// returns an R2 client for it. The caller must call srv.Close().
 func newServerR2(t *testing.T) (*httptest.Server, objectstore.Client) {
 	t.Helper()
 
@@ -67,9 +60,8 @@ func newServerR2(t *testing.T) (*httptest.Server, objectstore.Client) {
 	return srv, client
 }
 
-// TestR2Put_NoChecksumHeaders asserts that Put does not send the SDK's default
-// CRC32 checksum headers (X-Amz-Sdk-Checksum-Algorithm / X-Amz-Checksum-Crc32).
-// Cloudflare R2 rejects those headers with 403 AccessDenied.
+// TestR2Put_NoChecksumHeaders: R2 rejects the SDK's default CRC32 checksum
+// headers with 403.
 func TestR2Put_NoChecksumHeaders(t *testing.T) {
 	t.Parallel()
 

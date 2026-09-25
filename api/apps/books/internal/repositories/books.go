@@ -79,8 +79,7 @@ func (repo *BooksRepository) FindBookByTitleAndAuthor(
 	return book, nil
 }
 
-// GetBookByID returns the book with the given ID.
-// Returns database.ErrResourceNotFound when no book matches.
+// GetBookByID returns the book with the given ID, or ErrResourceNotFound.
 func (repo *BooksRepository) GetBookByID(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -100,8 +99,8 @@ func (repo *BooksRepository) GetBookByID(
 	return book, nil
 }
 
-// GetCatalogBookByISBN13 returns the catalog book with the given ISBN-13.
-// Returns database.ErrResourceNotFound when no book matches.
+// GetCatalogBookByISBN13 returns the catalog book with the ISBN-13, or
+// ErrResourceNotFound.
 func (repo *BooksRepository) GetCatalogBookByISBN13(
 	ctx context.Context,
 	isbn13 string,
@@ -121,10 +120,8 @@ func (repo *BooksRepository) GetCatalogBookByISBN13(
 	return book, nil
 }
 
-// UpdateBookByID overwrites the catalog fields of an existing book row, matched
-// strictly by its primary key. Unlike UpsertBook this never matches on the
-// isbn13 unique index, so it is safe to use when the resolved ISBN differs from
-// the current winner's ISBN.
+// UpdateBookByID overwrites a book's catalog fields by primary key only, never
+// the isbn13 index, so it is safe when the resolved ISBN differs.
 func (repo *BooksRepository) UpdateBookByID(
 	ctx context.Context,
 	book models.Book,
@@ -157,9 +154,8 @@ func (repo *BooksRepository) UpdateBookByID(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// DeleteOrphanedBook deletes a catalog book row only when no user_books row
-// still references it. The returned bool reports whether a row was actually
-// deleted, so callers know whether to also clean up the book's R2 objects.
+// DeleteOrphanedBook deletes a catalog book only when no user_books row
+// references it, reporting whether it did (so callers clean up R2).
 func (repo *BooksRepository) DeleteOrphanedBook(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -216,10 +212,8 @@ func (repo *BooksRepository) UpsertUserBook(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpdateUserBookAddedAt overwrites added_at on an already-existing user_book
-// row — used to retroactively correct RSS items ingested before #679 taught
-// UpsertUserBook to set it from the feed item's own pubDate (its ON CONFLICT
-// clause never touches added_at, so re-upserting can't fix existing rows).
+// UpdateUserBookAddedAt overwrites added_at on an existing user_book; the
+// upsert's ON CONFLICT never touches added_at.
 func (repo *BooksRepository) UpdateUserBookAddedAt(
 	ctx context.Context,
 	userID string,
@@ -332,7 +326,6 @@ func (repo *BooksRepository) BatchUpsert(
 		return nil
 	}
 
-	// 🔒 Hard guard: must align
 	if len(books) != len(userBooks) {
 		return fmt.Errorf(
 			"books and userBooks length mismatch: %d vs %d",
@@ -341,9 +334,7 @@ func (repo *BooksRepository) BatchUpsert(
 		)
 	}
 
-	// ---------------------------
-	// 1. UPSERT BOOKS
-	// ---------------------------
+	// 1. Upsert books.
 	upsertBookQuery := `
 		INSERT INTO books.books
 		    (title, authors, isbn13, cover_url, description, page_count)
@@ -387,16 +378,12 @@ func (repo *BooksRepository) BatchUpsert(
 		return fmt.Errorf("book batch close: %w", err)
 	}
 
-	// ---------------------------
-	// 2. ASSIGN BOOK IDs
-	// ---------------------------
+	// 2. Assign book IDs.
 	for i := range userBooks {
 		userBooks[i].BookID = uuid.MustParse(bookIDs[i])
 	}
 
-	// ---------------------------
-	// 3. UPSERT USER_BOOKS
-	// ---------------------------
+	// 3. Upsert user_books.
 	upsertUserBookQuery := `
 		INSERT INTO books.user_books
 		    (user_id, book_id, status, tags, shelf_positions,
@@ -478,11 +465,8 @@ func (repo *BooksRepository) GetUserBook(
 	return &ub, nil
 }
 
-// SearchLibrary does a case-insensitive search across the user's own reading,
-// requiring every whitespace-separated word of query to match the title or an
-// author (in any combination) so a query like "Dune Herbert" narrows to books
-// whose title contains "Dune" AND whose authors contain "Herbert", rather than
-// matching the whole multi-word string as one substring against either field.
+// SearchLibrary requires every query word to match the title or an author, so
+// "Dune Herbert" matches title "Dune" by author "Herbert".
 func (repo *BooksRepository) SearchLibrary(
 	ctx context.Context,
 	userID string,
@@ -520,7 +504,7 @@ func (repo *BooksRepository) SearchLibrary(
 	return page, hasMore, nil
 }
 
-// FindUserBookByISBN13 finds the user's library entry for a book with the given ISBN13.
+// FindUserBookByISBN13 finds the user's library entry for an ISBN13.
 func (repo *BooksRepository) FindUserBookByISBN13(
 	ctx context.Context,
 	userID string,
@@ -552,8 +536,8 @@ func (repo *BooksRepository) FindUserBookByISBN13(
 	return &ub, nil
 }
 
-// FindUserBookByTitleAndAuthor finds a user_book using case-insensitive exact
-// matching on title and at least one author.
+// FindUserBookByTitleAndAuthor matches title and at least one author exactly,
+// case-insensitively.
 func (repo *BooksRepository) FindUserBookByTitleAndAuthor(
 	ctx context.Context,
 	userID string,
@@ -590,8 +574,7 @@ func (repo *BooksRepository) FindUserBookByTitleAndAuthor(
 	return &ub, nil
 }
 
-// DeleteUserBook removes a single user_book row.
-// It does NOT touch books.books (the shared catalog).
+// DeleteUserBook removes a single user_book row, never the shared catalog row.
 func (repo *BooksRepository) DeleteUserBook(
 	ctx context.Context,
 	userID string,
@@ -602,11 +585,9 @@ func (repo *BooksRepository) DeleteUserBook(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpdateTags replaces the tag list for a user_book.
-// koboSync must be true when the resulting tag list contains the kobo-sync
-// tag so that kobo_sync_enabled_at is set (on first enable) or preserved
-// (when other tags change while kobo-sync stays). Passing false clears the
-// column so a re-enable gets a fresh timestamp.
+// UpdateTags replaces a user_book's tags. koboSync must be true when the tags
+// include kobo-sync so kobo_sync_enabled_at is set or preserved; false clears
+// it so a re-enable gets a fresh timestamp.
 func (repo *BooksRepository) UpdateTags(
 	ctx context.Context,
 	userID string,
@@ -628,8 +609,7 @@ func (repo *BooksRepository) UpdateTags(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpdateFinishedAt overwrites a user_book's finished_at date array. Unlike
-// UpsertUserBook, this always replaces the array (no COALESCE) so removing a
+// UpdateFinishedAt replaces finished_at outright (no COALESCE) so removing a
 // date works.
 func (repo *BooksRepository) UpdateFinishedAt(
 	ctx context.Context,
@@ -647,9 +627,8 @@ func (repo *BooksRepository) UpdateFinishedAt(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListKoboSyncBooks returns all books for a user that have the kobo-sync tag
-// and a ready file to serve to the Kobo device. The file format is chosen
-// per-book: "pdf" when the kobo-format-pdf tag is present, "kepub" otherwise.
+// ListKoboSyncBooks returns the user's kobo-sync books with a ready file:
+// "pdf" with the kobo-format-pdf tag, else "kepub".
 func (repo *BooksRepository) ListKoboSyncBooks(
 	ctx context.Context,
 	userID string,
@@ -695,9 +674,8 @@ func (repo *BooksRepository) ListKoboSyncBooks(
 	return out, nil
 }
 
-// UpdateKoboLastSyncedConverterVersion records the KEPUB converter version
-// just sent to the device for bookID, so the next sync can tell whether the
-// file was regenerated since.
+// UpdateKoboLastSyncedConverterVersion records the converter version last sent
+// to the device.
 func (repo *BooksRepository) UpdateKoboLastSyncedConverterVersion(
 	ctx context.Context,
 	userID string,
@@ -713,8 +691,7 @@ func (repo *BooksRepository) UpdateKoboLastSyncedConverterVersion(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpsertKoboRemoval records that bookID must be actively removed from the
-// user's Kobo device on the next sync. A no-op if already tombstoned.
+// UpsertKoboRemoval tombstones bookID for removal on the next Kobo sync.
 func (repo *BooksRepository) UpsertKoboRemoval(
 	ctx context.Context,
 	userID string,
@@ -729,8 +706,7 @@ func (repo *BooksRepository) UpsertKoboRemoval(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// DeleteKoboRemoval clears a book's removal tombstone, e.g. when kobo-sync
-// is re-enabled or the book is re-added after having been removed.
+// DeleteKoboRemoval clears a book's removal tombstone.
 func (repo *BooksRepository) DeleteKoboRemoval(
 	ctx context.Context,
 	userID string,
@@ -741,8 +717,7 @@ func (repo *BooksRepository) DeleteKoboRemoval(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListKoboRemovals returns all books tombstoned for removal from the user's
-// Kobo device.
+// ListKoboRemovals returns books tombstoned for removal from the user's Kobo.
 func (repo *BooksRepository) ListKoboRemovals(
 	ctx context.Context,
 	userID string,
@@ -773,8 +748,7 @@ func (repo *BooksRepository) ListKoboRemovals(
 	return out, nil
 }
 
-// ListBooksWithISBN13 returns all catalog books that have a non-null ISBN13.
-// Kept for backward compatibility; prefer ListBooksMissingMetadata for resync.
+// ListBooksWithISBN13 returns all catalog books with a non-null ISBN13.
 func (repo *BooksRepository) ListBooksWithISBN13(
 	ctx context.Context,
 ) ([]models.Book, error) {
@@ -804,17 +778,9 @@ func (repo *BooksRepository) ListBooksWithISBN13(
 	return books, nil
 }
 
-// RefreshBookExternalData overwrites a book's externally-sourced fields with
-// exactly one chosen source's values — cover_url, description, page_count,
-// title, and authors are written as-is, so a field the source doesn't supply
-// (empty string / zero) blanks the column rather than preserving whatever an
-// earlier, different source left behind.
-//
-// isbn13 is the one exception: it is never blanked. A non-empty isbn13 only
-// overwrites the existing value when no other book in the catalog already has
-// that ISBN (the NOT EXISTS guard) — preventing a unique-constraint error
-// from a fuzzy title/author match attaching the wrong ISBN. An empty isbn13,
-// or one that collides, leaves the column untouched.
+// RefreshBookExternalData writes one source's fields as-is, blanking whatever
+// it doesn't supply. isbn13 is never blanked and only written when no other
+// book holds it, so a fuzzy match can't attach a conflicting ISBN.
 func (repo *BooksRepository) RefreshBookExternalData(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -854,12 +820,8 @@ func (repo *BooksRepository) RefreshBookExternalData(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// UpdateResyncScanStatus records one scan pass's per-source found flags. A
-// nil flag means the source wasn't resolved this pass — not configured, not
-// attempted, skipped because already known, or its call errored — and must
-// leave the column unchanged (COALESCE) rather than overwrite a
-// previously-known value with NULL/false. Only a source that was actually
-// queried and answered this pass writes a fresh true/false.
+// UpdateResyncScanStatus records per-source found flags; a nil flag leaves the
+// column unchanged (COALESCE).
 func (repo *BooksRepository) UpdateResyncScanStatus(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -880,17 +842,13 @@ func (repo *BooksRepository) UpdateResyncScanStatus(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ListCatalogBooks returns all catalog books ordered least-covered-first (by
-// count of sources with a confirmed found = true), then title. Used by the
-// admin resync wizard scan so a run that's interrupted or rate-limited
-// spends its budget on the books that most need it — never-scanned and
-// not-yet-found books sort first, already-well-covered books last.
+// ListCatalogBooks orders catalog books least-covered first, then title, so an
+// interrupted or rate-limited resync spends its budget where it's needed.
 func (repo *BooksRepository) ListCatalogBooks(
 	ctx context.Context,
 ) ([]models.Book, error) {
-	// URL-ingested items have no ISBN and generic titles — scanning them
-	// against the book metadata sources would only produce garbage proposals
-	// and burn the rate-limited request budget.
+	// URL-ingested items have no ISBN and generic titles; scanning them only
+	// yields garbage proposals and burns rate limits.
 	query := `
 		SELECT ` + bookColumns + `
 		FROM books.books
@@ -921,9 +879,8 @@ func (repo *BooksRepository) ListCatalogBooks(
 	return books, nil
 }
 
-// sourceColumns maps a source name to its found column — the fixed,
-// known set of GetSourceStats sources. Never build SQL from unvalidated
-// input directly; exactSourcesPredicate only emits column names from here.
+// sourceColumns maps source names to found columns; SQL column names come only
+// from here.
 //
 //nolint:gochecknoglobals // fixed lookup table, never mutated
 var sourceColumns = map[string]string{
@@ -931,12 +888,9 @@ var sourceColumns = map[string]string{
 	"hardcover": "hardcover_found",
 }
 
-// exactSourcesPredicate returns the SQL boolean expression matching books
-// found by exactly the given set of sources — found (IS TRUE) for each named
-// source, confirmed absent (IS FALSE) for every other known source. A source
-// still unknown (NULL) never satisfies IS FALSE, so an unresolved source
-// correctly excludes a book from any exact-set match (see SourceStats' doc).
-// Rejects an empty set or any name outside sourceColumns.
+// exactSourcesPredicate matches books found (IS TRUE) by exactly the given
+// sources and confirmed absent (IS FALSE) from the rest, so an unresolved
+// (NULL) source excludes the book. Rejects empty or unknown names.
 func exactSourcesPredicate(sources []string) (string, error) {
 	if len(sources) == 0 {
 		return "", database.ErrResourceNotFound
@@ -962,9 +916,8 @@ func exactSourcesPredicate(sources []string) (string, error) {
 	return strings.Join(clauses, " AND "), nil
 }
 
-// ListBooksInExactSources returns the catalog books found by exactly the
-// given set of sources (a single source is GetSourceStats' *Unique books; two
-// or three sources is an overlap combo), ordered by title.
+// ListBooksInExactSources returns books found by exactly the given sources,
+// ordered by title.
 func (repo *BooksRepository) ListBooksInExactSources(
 	ctx context.Context,
 	sources []string,
@@ -1001,17 +954,13 @@ func (repo *BooksRepository) ListBooksInExactSources(
 	return books, nil
 }
 
-// GetCatalogWithUserOverlay returns all catalog books as UserBook entries.
-// Books that the given user has added to their library carry their real
-// user_book values; books not in the library have empty status/tags/etc.
-// This is used by catalog-wide duplicate detection (FindDuplicates).
+// GetCatalogWithUserOverlay returns every catalog book as a UserBook, with the
+// user's own values where they have it in their library.
 func (repo *BooksRepository) GetCatalogWithUserOverlay(
 	ctx context.Context,
 	userID string,
 ) ([]models.UserBook, error) {
-	// Column order and types must match scanUserBookWithBook. COALESCE provides
-	// zero-like defaults for ub columns that are NULL when the user has not
-	// added a catalog book to their library.
+	// Column order must match scanUserBookWithBook.
 	query := `
 		SELECT
 		    COALESCE(ub.id, '00000000-0000-0000-0000-000000000000'::uuid),
@@ -1039,9 +988,7 @@ func (repo *BooksRepository) GetCatalogWithUserOverlay(
 	return repo.queryUserBooks(ctx, query, userID)
 }
 
-// ListUserBookOwners returns the distinct user_ids that have a user_books row
-// for any of the given book IDs. Used by the global merge to discover all
-// affected users before iterating.
+// ListUserBookOwners returns the distinct users owning any of the given books.
 func (repo *BooksRepository) ListUserBookOwners(
 	ctx context.Context,
 	bookIDs []uuid.UUID,
@@ -1082,8 +1029,7 @@ func (repo *BooksRepository) ListUserBookOwners(
 	return owners, nil
 }
 
-// GetBooksByIDs returns the catalog books whose IDs are in the given slice.
-// Missing IDs are silently ignored.
+// GetBooksByIDs returns the catalog books with the given IDs, ignoring missing ones.
 func (repo *BooksRepository) GetBooksByIDs(
 	ctx context.Context,
 	ids []uuid.UUID,
@@ -1092,8 +1038,7 @@ func (repo *BooksRepository) GetBooksByIDs(
 		return nil, nil
 	}
 
-	// pgx has no encode plan for []uuid.UUID; convert to []string and cast in
-	// SQL so Postgres knows the element type.
+	// pgx has no encode plan for []uuid.UUID; pass strings and cast in SQL.
 	strIDs := make([]string, len(ids))
 	for i, id := range ids {
 		strIDs[i] = id.String()
@@ -1125,8 +1070,7 @@ func (repo *BooksRepository) GetBooksByIDs(
 	return books, nil
 }
 
-// ListShelves returns every custom shelf name registered for the user,
-// including shelves with zero books on them.
+// ListShelves returns every registered custom shelf, including empty ones.
 func (repo *BooksRepository) ListShelves(
 	ctx context.Context,
 	userID string,
@@ -1152,9 +1096,8 @@ func (repo *BooksRepository) ListShelves(
 	return names, nil
 }
 
-// EnsureShelf registers a custom shelf name for the user if it isn't already
-// registered, so it persists in ListShelves even once it has no books left.
-// The caller is responsible for rejecting built-in status values.
+// EnsureShelf registers a custom shelf name so it persists with no books.
+// Callers reject built-in statuses.
 func (repo *BooksRepository) EnsureShelf(
 	ctx context.Context,
 	userID string,
@@ -1172,10 +1115,8 @@ func (repo *BooksRepository) EnsureShelf(
 	return nil
 }
 
-// RenameShelf updates the status of every user_book with status == oldName to
-// newName, and moves the shelf's registry entry along with it. Returns the
-// number of user_books rows affected.
-// The caller is responsible for rejecting built-in status values.
+// RenameShelf moves every book and the registry entry from oldName to newName,
+// returning the rows affected. Callers reject built-in statuses.
 func (repo *BooksRepository) RenameShelf(
 	ctx context.Context,
 	userID string,
@@ -1192,12 +1133,8 @@ func (repo *BooksRepository) RenameShelf(
 		return 0, postgres.PgxErrorToHTTPError(err)
 	}
 
-	// Drop the old registry entry and (re-)register the new name in one
-	// statement, rather than UPDATE-ing the row in place: newName might
-	// already be registered (e.g. an empty shelf someone created
-	// separately), and an in-place UPDATE would violate the (user_id, name)
-	// primary key in that case. Deleting then inserting merges into the
-	// existing entry instead of erroring.
+	// Delete then insert rather than UPDATE: newName may already be registered,
+	// which would violate the (user_id, name) key.
 	registryQuery := `
 		WITH removed AS (
 			DELETE FROM books.shelves WHERE user_id = $1 AND name = $2
@@ -1214,9 +1151,8 @@ func (repo *BooksRepository) RenameShelf(
 	return uint32(tag.RowsAffected()), nil
 }
 
-// DeleteShelf reassigns every book on shelf oldName to targetName and removes
-// oldName from the shelf registry. Returns the number of rows moved.
-// The caller is responsible for rejecting built-in status values.
+// DeleteShelf moves every book on oldName to targetName and unregisters
+// oldName, returning the rows moved. Callers reject built-in statuses.
 func (repo *BooksRepository) DeleteShelf(
 	ctx context.Context,
 	userID string,
@@ -1242,8 +1178,7 @@ func (repo *BooksRepository) DeleteShelf(
 	return uint32(tag.RowsAffected()), nil
 }
 
-// RenameTag replaces every occurrence of oldName in the tags array with
-// newName across the user's library. Returns the number of rows affected.
+// RenameTag renames a tag across the user's library, returning rows affected.
 func (repo *BooksRepository) RenameTag(
 	ctx context.Context,
 	userID string,
@@ -1263,8 +1198,7 @@ func (repo *BooksRepository) RenameTag(
 	return uint32(tag.RowsAffected()), nil
 }
 
-// DeleteTag removes every occurrence of name from the tags array across the
-// user's library. Returns the number of rows affected.
+// DeleteTag removes a tag across the user's library, returning rows affected.
 func (repo *BooksRepository) DeleteTag(
 	ctx context.Context,
 	userID string,
@@ -1283,10 +1217,8 @@ func (repo *BooksRepository) DeleteTag(
 	return uint32(tag.RowsAffected()), nil
 }
 
-// GetKoboSyncBook returns the single kobo-sync book matching bookID for the
-// user. It uses the same eligibility criteria as ListKoboSyncBooks: the book
-// must have the kobo-sync tag and a ready file. Returns
-// database.ErrResourceNotFound when no matching row exists.
+// GetKoboSyncBook returns one book under ListKoboSyncBooks' criteria, or
+// ErrResourceNotFound.
 func (repo *BooksRepository) GetKoboSyncBook(
 	ctx context.Context,
 	userID string,

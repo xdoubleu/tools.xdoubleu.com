@@ -20,13 +20,10 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// ErrProposalNotFound is returned by ApplyResyncChoice when the book has no
-// pending proposal — it was already applied/dismissed, or a scan never
-// flagged it in the first place.
+// ErrProposalNotFound is returned when the book has no pending proposal.
 var ErrProposalNotFound = errors.New("resync proposal not found")
 
-// ResyncSource is the narrow subset of BooksRepository the resync path depends
-// on. Declared as an interface so tests can supply a fake instead of a real DB.
+// ResyncSource is the subset of BooksRepository the resync path depends on.
 type ResyncSource interface {
 	ListCatalogBooks(ctx context.Context) ([]models.Book, error)
 	GetBookByID(ctx context.Context, bookID uuid.UUID) (*models.Book, error)
@@ -61,10 +58,8 @@ type ResyncSource interface {
 	DeleteResyncProposal(ctx context.Context, bookID uuid.UUID) error
 }
 
-// SourceProposal is one candidate metadata set for a catalog book: either the
-// current library values (Source == "") or one external provider's proposal
-// ("unicat" | "hardcover"). Zero-value fields mean the source didn't supply
-// that field.
+// SourceProposal is one candidate metadata set for a catalog book: the library's
+// current values (Source == "") or one provider's proposal.
 type SourceProposal struct {
 	Source      string   `json:"source"`
 	CoverURL    string   `json:"cover_url,omitempty"`
@@ -73,43 +68,25 @@ type SourceProposal struct {
 	ISBN13      string   `json:"isbn13,omitempty"`
 	Title       string   `json:"title,omitempty"`
 	Authors     []string `json:"authors,omitempty"`
-	// Index is this candidate's ordinal position (0-based) among other
-	// SourceProposals sharing the same Source. Always 0 except for the manual
-	// override search, which can return up to 5 candidates per source (see
-	// topCandidates).
+	// Index is the 0-based ordinal among proposals from the same Source; nonzero
+	// only for the manual override search (see topCandidates).
 	Index int `json:"index,omitempty"`
-	// Differs lists which fields differ from the library values. Computed at
-	// read time (never persisted), empty for the library's own SourceProposal.
+	// Differs is computed at read time, never persisted.
 	Differs []string `json:"-"`
 }
 
-// ResyncProposal pairs a catalog book with the source proposals that differ
-// from it, for the admin resync wizard to step through.
+// ResyncProposal pairs a catalog book with its differing source proposals.
 type ResyncProposal struct {
 	BookID  string
 	Library SourceProposal
 	Sources []SourceProposal
 }
 
-// BuildResyncProposals scans the whole catalog and, for every book, fetches
-// each external source independently — no priority merge, every source that
-// returns a match is kept as its own candidate. Two situations get a book
-// flagged for the admin resync wizard to review: at least one source
-// disagrees with the library, or every configured source came up empty for a
-// searchable book (a coverage gap — the wizard shows these with no source
-// cards so an admin can spot books that may need a new source added).
-// Nothing is written to a book here. Re-running replaces the whole table, so
-// books that now agree with every source (or were fixed by a prior wizard
-// pass) drop out automatically.
-//
-// onProgress is called with (processed, total) after each book, first call
-// always (0, total). Pass nil to skip progress reporting. A per-book fetch
-// failure is logged and collected but does not abort the scan.
-//
-// force bypasses the skip-if-known cache (see scanOptions) so every source is
-// queried fresh for every book, even ones already resolved true or false —
-// the escape hatch for books stuck unresolved after a rate-limit trip or a
-// stale cached miss.
+// BuildResyncProposals fetches every source independently for every catalog
+// book and flags a book when a source is more complete than the library or no
+// source found it (a coverage gap). Nothing is written to books; the proposals
+// table is replaced wholesale. force bypasses the skip-if-known cache (see
+// scanOptions). onProgress may be nil.
 func (s *BookService) BuildResyncProposals(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -126,8 +103,7 @@ func (s *BookService) BuildResyncProposals(
 		onProgress(0, total)
 	}
 
-	// Same concurrency cap as the old resync loop: the client-side rate
-	// limiters are the real throttle, this just bounds in-flight goroutines.
+	// The client-side rate limiters are the real throttle; this bounds goroutines.
 	const concurrency = 5
 
 	//nolint:exhaustruct // errs/mu zero values fine
@@ -140,8 +116,6 @@ func (s *BookService) BuildResyncProposals(
 	for _, book := range books {
 		b := book
 		eg.Go(func() error {
-			// Cancelled (StartResync's Cancel RPC, or app shutdown): stop
-			// picking up new books, let already in-flight ones finish.
 			if egCtx.Err() != nil {
 				return nil //nolint:nilerr // cancellation is not a failure
 			}
@@ -157,11 +131,8 @@ func (s *BookService) BuildResyncProposals(
 	}
 	_ = eg.Wait()
 
-	// Cancelled mid-run: books already processed keep the scan-status
-	// writes recordScanStatus already committed, but the proposals table is
-	// left untouched — replacing it with a partial scan's results would
-	// erase proposals from books this run never got to. Not an error: the
-	// caller asked to stop.
+	// Cancelled mid-run: keep the old proposals table, since a partial scan would
+	// erase proposals for books this run never reached.
 	if ctx.Err() != nil {
 		return len(acc.entries), nil //nolint:nilerr // cancellation is not a failure
 	}
@@ -173,9 +144,7 @@ func (s *BookService) BuildResyncProposals(
 	return len(acc.entries), errors.Join(acc.errs...)
 }
 
-// resyncAccumulator collects one BuildResyncProposals run's per-book results
-// under a single mutex, since scanBookForResync runs concurrently across
-// books.
+// resyncAccumulator collects per-book results from concurrent scans.
 type resyncAccumulator struct {
 	mu      sync.Mutex
 	entries map[uuid.UUID][]byte
@@ -194,10 +163,6 @@ func (a *resyncAccumulator) addError(err error) {
 	a.mu.Unlock()
 }
 
-// scanBookForResync fetches one book's candidate proposals from every
-// configured source, records them into acc when the book should be flagged,
-// persists the scan status, and backfills the R2 cover cache — the per-book
-// unit of work BuildResyncProposals runs concurrently.
 func (s *BookService) scanBookForResync(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -220,10 +185,8 @@ func (s *BookService) scanBookForResync(
 	s.ensureCoverCached(ctx, book)
 }
 
-// ensureCoverCached fetches a book's cover into R2 when it has a CoverURL but
-// no cached R2 object yet — the backfill for books added before covers were
-// fetched eagerly at write time. Runs on every full resync pass; best-effort,
-// errors are swallowed since a cover miss must never fail the scan.
+// ensureCoverCached backfills the R2 cover for books with a CoverURL but no
+// cached object. Best-effort: a cover miss must never fail the scan.
 func (s *BookService) ensureCoverCached(ctx context.Context, book models.Book) {
 	if book.CoverURL == nil || *book.CoverURL == "" {
 		return
@@ -235,12 +198,9 @@ func (s *BookService) ensureCoverCached(ctx context.Context, book models.Book) {
 	_ = s.cacheCoverFromURL(ctx, book.ID, *book.CoverURL)
 }
 
-// recordScanStatus persists one scan pass's per-source found flags on the
-// book. A nil flag leaves the column unchanged in the DB (see
-// UpdateResyncScanStatus) and covers every case where the source wasn't
-// actually resolved this pass: not configured, the book wasn't searchable (no
-// ISBN and no title), skipped because already known, or its call errored —
-// unresolved carries those last two (see scanOptions / fetchByISBN).
+// recordScanStatus persists per-source found flags. A nil flag leaves the
+// column unchanged: the source wasn't resolved this pass (unconfigured,
+// unsearchable, skipped as known, or errored).
 func (s *BookService) recordScanStatus(
 	ctx context.Context,
 	book models.Book,
@@ -276,23 +236,14 @@ func (s *BookService) recordScanStatus(
 	)
 }
 
-// encodeIfFlagged returns the JSON-marshaled proposals and true when the book
-// should be surfaced to the wizard — either a source is strictly more
-// complete than what the book currently has (worth switching to, since
-// applying a source now replaces the book's metadata wholesale — see
-// applySelectedSource), or every configured, queryable source came up empty (a
-// coverage gap worth knowing about, e.g. to decide whether a new source is
-// needed). A source that merely differs, or covers the same or fewer fields,
-// is never flagged — switching to it would be a lateral or backward move.
-// Books nobody could search (no ISBN and no title) are never flagged: nothing
-// was actually attempted. A nil, true result signals a marshal failure that
-// the caller should log.
+// encodeIfFlagged returns the marshaled proposals and true when a source is
+// strictly more complete than the book (applying replaces metadata wholesale,
+// so a lateral source isn't worth it) or every queryable source came up empty.
+// Unsearchable books are never flagged. (nil, true) means marshal failure.
 func encodeIfFlagged(book models.Book, proposals []SourceProposal) ([]byte, bool) {
 	attempted := (book.ISBN13 != nil && *book.ISBN13 != "") || book.Title != ""
-	// anyKnownFound guards against a false "not found anywhere": an
-	// incremental scan (scanOptions.known) skips re-querying a source that's
-	// already confirmed found, so this pass's proposals can be empty for a
-	// book that's actually well covered — that must never read as a gap.
+	// An incremental scan skips already-found sources, so empty proposals must not
+	// read as a gap for a book that's actually covered.
 	notFoundAnywhere := attempted && len(proposals) == 0 && !anyKnownFound(book)
 	if !notFoundAnywhere && !anySourceMoreComplete(book, proposals) {
 		return nil, false
@@ -304,16 +255,12 @@ func encodeIfFlagged(book models.Book, proposals []SourceProposal) ([]byte, bool
 	return raw, true
 }
 
-// anyKnownFound reports whether any source was already confirmed to have
-// this book as of the last scan.
 func anyKnownFound(book models.Book) bool {
 	isTrue := func(b *bool) bool { return b != nil && *b }
 	return isTrue(book.UniCatFound) ||
 		isTrue(book.HardcoverFound)
 }
 
-// bookFieldCount counts how many of the comparable metadata fields the
-// library book currently has filled in.
 func bookFieldCount(book models.Book) int {
 	count := 0
 	if book.Title != "" {
@@ -337,8 +284,6 @@ func bookFieldCount(book models.Book) int {
 	return count
 }
 
-// proposalFieldCount counts how many of the same fields a source proposal
-// supplies.
 func proposalFieldCount(p SourceProposal) int {
 	count := 0
 	if p.Title != "" {
@@ -362,10 +307,8 @@ func proposalFieldCount(p SourceProposal) int {
 	return count
 }
 
-// anySourceMoreComplete reports whether any candidate source supplies
-// strictly more of the comparable fields than the book currently has —
-// applying is single-source (see applySelectedSource), so a source that's
-// merely different, or no more complete, is never worth switching to.
+// anySourceMoreComplete reports whether any source supplies strictly more
+// comparable fields than the book has.
 func anySourceMoreComplete(book models.Book, proposals []SourceProposal) bool {
 	current := bookFieldCount(book)
 	for _, p := range proposals {
@@ -376,18 +319,9 @@ func anySourceMoreComplete(book models.Book, proposals []SourceProposal) bool {
 	return false
 }
 
-// scanOptions gates the bulk BuildResyncProposals pass. known lets a source's
-// call be skipped once that source has already been resolved for the book —
-// true or false, doesn't matter, either answer is on record — with
-// UpdateResyncScanStatus's preserve-on-unknown write, the found columns are a
-// durable cache, so a steady-state scan only re-queries sources with no
-// answer yet. BuildResyncProposals' force param leaves known empty for every
-// book, bypassing the cache entirely for one run — the escape hatch for
-// books stuck unresolved after a rate-limit trip or a stale cached miss
-// (skip-if-known never re-checks a resolved source for drift otherwise, e.g.
-// a book gaining a cover later).
-// nil means on-demand mode (GetBookSources / ApplyBookSource): always query
-// every source fresh, no skip.
+// scanOptions gates the bulk scan. known skips sources already resolved (true
+// or false) for the book, so found columns act as a durable cache; force
+// leaves it empty. nil means on-demand mode: query every source fresh.
 type scanOptions struct {
 	known map[string]bool
 }
@@ -396,10 +330,8 @@ func (opts *scanOptions) skipKnown(source string) bool {
 	return opts != nil && opts.known[source]
 }
 
-// knownFor returns the set of sources already resolved for this book as of
-// the last scan — true or false, doesn't matter, a non-nil found column means
-// that source has an answer on record — or an empty set when force bypasses
-// the cache for this run.
+// knownFor returns the sources already resolved for this book, or an empty
+// set when force bypasses the cache.
 func knownFor(book models.Book, force bool) map[string]bool {
 	known := map[string]bool{}
 	if force {
@@ -414,14 +346,9 @@ func knownFor(book models.Book, force bool) map[string]bool {
 	return known
 }
 
-// fetchSourceProposals fetches each configured provider's view of one catalog
-// book, independently — no gap-filling across providers. ISBN lookups are
-// used when the book has an ISBN13 (definitive match); otherwise a
-// title/author search is used, gated by the same match guards the old resync
-// path used (titleAuthorMatch / selectTitleOnlyMatch) so an unrelated book
-// sharing a title is never proposed. The second return value names every
-// source that wasn't actually resolved this pass (skipped or errored) — see
-// recordScanStatus.
+// fetchSourceProposals fetches each provider's view of one book independently:
+// by ISBN13 when present, otherwise a guarded title/author search. The second
+// result names sources not resolved this pass (see recordScanStatus).
 func (s *BookService) fetchSourceProposals(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -437,12 +364,9 @@ func (s *BookService) fetchSourceProposals(
 	return s.fetchBySearch(ctx, logger, book, opts)
 }
 
-// fetchByISBN queries every configured provider's GetByISBN independently and
-// keeps every result — no fallback chaining, each provider stands on its own,
-// except Hardcover and UniCat also fall back to a guarded title+author search
-// on a miss: Hardcover's edition-level ISBN coverage is sparse compared to its
-// Typesense work index (see fetchHardcoverByISBN), and UniCat's ISBN index
-// misses books its title/author index has (see fetchUniCatByISBN).
+// fetchByISBN queries each provider by ISBN independently; Hardcover and UniCat
+// fall back to a guarded title+author search on a miss because their ISBN
+// indexes miss books their title indexes have.
 func (s *BookService) fetchByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -495,16 +419,9 @@ func (s *BookService) fetchByISBN(
 	return out, unresolved
 }
 
-// fetchUniCatByISBN queries UniCat for one ISBN, honoring opts' skip-if-known.
-// UniCat has no daily quota, so only the skip-if-known cache gates it. Returns
-// the proposal (nil if UniCat has no match) and whether the source is
-// unresolved this pass (skipped or errored) — see recordScanStatus.
-//
-// On an ISBN miss, falls back to a guarded title+author search: UniCat's
-// ISBN index (020$a) is populated from the physical item catalogued, which
-// can miss editions the union catalog otherwise has under a different ISBN
-// or none at all. Without this, a book UniCat indexes by title never gets a
-// resync proposal at all.
+// fetchUniCatByISBN queries UniCat by ISBN (gated only by skip-if-known),
+// falling back to a guarded search: its ISBN index (020$a) reflects only the
+// physical item catalogued.
 func (s *BookService) fetchUniCatByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -539,10 +456,6 @@ func (s *BookService) fetchUniCatByISBN(
 	return &p, false
 }
 
-// fetchUniCatBySearchFallback runs a guarded title+author search when
-// UniCat's ISBN lookup misses. Matched with the same matchSearchResult guard
-// the title-search resync path uses, so an unrelated same-titled book is
-// never proposed.
 func (s *BookService) fetchUniCatBySearchFallback(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -569,17 +482,9 @@ func (s *BookService) fetchUniCatBySearchFallback(
 	return &p, false
 }
 
-// fetchHardcoverByISBN queries Hardcover for one ISBN, honoring opts'
-// skip-if-known. Hardcover has no daily quota, so there is no circuit breaker —
-// only the skip-if-known cache gates it (like UniCat).
-// Returns the proposal (nil if Hardcover has no match) and whether the source
-// is unresolved this pass (skipped or errored) — see recordScanStatus.
-//
-// On an ISBN miss, falls back to a guarded title+author search: Hardcover's
-// edition-level ISBN coverage is sparse (niche/non-US/self-published editions
-// are often absent from its editions table), while its Typesense work index —
-// the same one "Search with these terms" uses — is comprehensive. Without
-// this, a book Hardcover indexes by title never gets a resync proposal at all.
+// fetchHardcoverByISBN queries Hardcover by ISBN (gated only by
+// skip-if-known), falling back to a guarded search: its edition-level ISBN
+// coverage is sparse while its Typesense work index is comprehensive.
 func (s *BookService) fetchHardcoverByISBN(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -609,10 +514,6 @@ func (s *BookService) fetchHardcoverByISBN(
 	return &p, false
 }
 
-// fetchHardcoverBySearchFallback runs a guarded title+author search when
-// Hardcover's ISBN lookup misses. Matched with the same matchSearchResult
-// guard the title-search resync path uses, so an unrelated same-titled book
-// is never proposed.
 func (s *BookService) fetchHardcoverBySearchFallback(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -639,11 +540,8 @@ func (s *BookService) fetchHardcoverBySearchFallback(
 	return &p, false
 }
 
-// fetchBySearch queries every configured provider's Search independently and
-// keeps the first accepted match per provider: title+author matching
-// (titleAuthorMatch) when the book has authors, otherwise the ambiguity-
-// guarded title-only match (selectTitleOnlyMatch) — the same guards the old
-// resync path used.
+// fetchBySearch keeps the first guarded match per provider (titleAuthorMatch,
+// or selectTitleOnlyMatch when the book has no authors).
 func (s *BookService) fetchBySearch(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -660,10 +558,7 @@ func (s *BookService) fetchBySearch(
 	)
 }
 
-// single adapts a one-candidate picker to the []titleOnlyCandidate picker
-// shape searchProviders expects, for callers that must keep the existing
-// one-candidate-per-source behavior (the wizard scan and the guarded
-// on-demand search).
+// single adapts a one-candidate picker to the multi-candidate picker shape.
 func single(
 	pick func([]titleOnlyCandidate) (titleOnlyCandidate, bool),
 ) func([]titleOnlyCandidate) []titleOnlyCandidate {
@@ -675,10 +570,8 @@ func single(
 	}
 }
 
-// topCandidates returns a picker that keeps the first n candidates in a
-// provider's own relevance order, unguarded — used by the manual override
-// search ("Search with these terms") so the admin can review multiple
-// candidates per source instead of just the top hit.
+// topCandidates keeps the first n candidates unguarded, for the manual
+// override search.
 func topCandidates(n int) func([]titleOnlyCandidate) []titleOnlyCandidate {
 	return func(candidates []titleOnlyCandidate) []titleOnlyCandidate {
 		if len(candidates) > n {
@@ -688,21 +581,11 @@ func topCandidates(n int) func([]titleOnlyCandidate) []titleOnlyCandidate {
 	}
 }
 
-// searchProviders queries every configured provider's Search with one query
-// and keeps the candidates pick selects per provider (0 or more), each
-// becoming its own SourceProposal with Index set to its ordinal position
-// within that provider's results.
+// searchProviders queries every provider with one query and keeps what pick
+// selects. authors filters Hardcover only: its Typesense query is title-only
+// and author-blind, while UniCat filters server-side via inauthor:.
 //
-// authors is applied as a post-fetch filter to Hardcover's candidates only:
-// its Typesense query is title-only (see pkg/hardcover extractSearchTerms)
-// and its API allows no fuzzy author operators, so unlike UniCat — whose
-// query carries inauthor: and filters server-side — Hardcover results arrive
-// author-blind and same-titled books by unrelated authors must be dropped
-// here.
-//
-// further would only hide the fixed-order merge that must stay next to them.
-//
-//nolint:gocognit // two independent concurrent source searches; splitting
+//nolint:gocognit // two independent concurrent source searches
 func (s *BookService) searchProviders(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -778,22 +661,10 @@ func (s *BookService) searchProviders(
 	return out, unresolved
 }
 
-// fetchProposals routes between the standard guarded search and the override
-// search used when an admin manually steers the query on an unmatched book.
-// Unlike the bulk resync scan (fetchSourceProposals, ISBN-first), the
-// on-demand book-page path always matches by title+author search — even for
-// a book that already has an ISBN. This keeps the picker's candidate set
-// stable across repeated applies: filling in an ISBN on one apply must not
-// flip a later fetch onto a different (often empty) ISBN-keyed candidate set,
-// which used to make a second sync fail with "source not found".
-// An override always uses the search path too and skips the match guards.
-// ponytail: override takes each provider's top 5 results with the title
-// unguarded — the admin reviews the full candidates before applying. The
-// author IS filtered (searchProviders' Hardcover post-fetch filter; OL and
-// UniCat filter server-side via inauthor:) after unfiltered Hardcover
-// results misfired in practice ("The Fall" / Albert Camus showed five
-// unrelated same-titled books); tighten the title the same way if it too
-// misfires.
+// fetchProposals is the on-demand book-page path. It always matches by
+// title+author search, even with an ISBN, so the candidate set stays stable
+// across repeated applies. An override takes each provider's top N unguarded
+// (author still filtered) for the admin to review.
 const overrideMaxCandidates = 5
 
 func (s *BookService) fetchProposals(
@@ -803,9 +674,7 @@ func (s *BookService) fetchProposals(
 	overrideTitle string,
 	overrideAuthor string,
 ) []SourceProposal {
-	// nil opts: this is the on-demand book-page path, not the bulk scan — it
-	// must always query every configured provider fresh, never skip a
-	// resolved source or trip the GB breaker.
+	// On-demand: query every provider fresh, never skip or trip the breaker.
 	if overrideTitle == "" && overrideAuthor == "" {
 		if book.Title == "" {
 			return nil
@@ -830,9 +699,8 @@ func (s *BookService) fetchProposals(
 	return proposals
 }
 
-// matchSearchResult picks the best-matching candidate from one provider's
-// search results: the first title+author match when the book has authors
-// (highest confidence), otherwise the ambiguity-guarded title-only match.
+// matchSearchResult picks the first title+author match when the book has
+// authors, otherwise the ambiguity-guarded title-only match.
 func matchSearchResult(
 	book models.Book,
 	candidates []titleOnlyCandidate,
@@ -859,11 +727,8 @@ func ucCandidates(results []unicat.ExternalBook) []titleOnlyCandidate {
 	return out
 }
 
-// filterByAuthor keeps the candidates that share a normalised author last
-// name with one of authors (the same author semantics titleAuthorMatch uses,
-// so diacritics fold and "Last, First" forms match). With no authors to
-// filter on — or none that normalise to anything — candidates pass through
-// unchanged.
+// filterByAuthor keeps candidates sharing a normalised author last name with
+// authors; with no usable authors, all candidates pass.
 func filterByAuthor(
 	candidates []titleOnlyCandidate,
 	authors []string,
@@ -901,8 +766,6 @@ func hcCandidates(results []hardcover.ExternalBook) []titleOnlyCandidate {
 	return out
 }
 
-// appendPicked converts one provider's picked candidates into SourceProposals
-// and appends them to out.
 func appendPicked(
 	out []SourceProposal,
 	source string,
@@ -911,9 +774,6 @@ func appendPicked(
 	return append(out, newSourceProposalsFromCandidates(source, picked)...)
 }
 
-// newSourceProposalsFromCandidates converts every candidate pick selected for
-// one provider into its own SourceProposal, numbering them by their position
-// in candidates (their ordinal within that provider's results).
 func newSourceProposalsFromCandidates(
 	source string,
 	candidates []titleOnlyCandidate,
@@ -952,11 +812,7 @@ func newSourceProposalFromCandidate(
 }
 
 // computeDifferences reports which fields of p differ from the library book.
-// A field only counts as a difference when the source actually supplied a
-// value: cover/isbn only flag when the library is missing that field (a
-// source's cover/ISBN can't be judged "better" than an existing one), while
-// title/authors/description/page_count flag on any non-empty mismatch —
-// // ponytail: cover flagged only when library lacks one, no "better cover" guess.
+// Only supplied values count; cover/isbn flag only when the library lacks one.
 func computeDifferences(book models.Book, p SourceProposal) []string {
 	var diffs []string
 
@@ -1006,8 +862,6 @@ func derefStr(s *string) string {
 	return *s
 }
 
-// libraryProposal builds the Source == "" SourceProposal view of a catalog
-// book's current values.
 func libraryProposal(book models.Book) SourceProposal {
 	p := SourceProposal{ //nolint:exhaustruct // Source "" is the library row
 		Title:   book.Title,
@@ -1028,10 +882,8 @@ func libraryProposal(book models.Book) SourceProposal {
 	return p
 }
 
-// ListResyncProposals returns every book flagged by the last BuildResyncProposals
-// scan, with each source's Differs recomputed against the book's current
-// library values (so an edit made outside the wizard between scan and review
-// is reflected rather than shown stale).
+// ListResyncProposals returns the flagged books with Differs recomputed
+// against current library values.
 func (s *BookService) ListResyncProposals(
 	ctx context.Context,
 ) ([]ResyncProposal, error) {
@@ -1070,11 +922,8 @@ func decodeResyncProposalRow(
 	}, nil
 }
 
-// ApplyResyncChoice resolves one book's pending proposal: source == "" keeps
-// the library row unchanged (the proposal is simply dismissed); otherwise the
-// chosen provider's fields are written onto the book. An existing ISBN13 is
-// never overwritten, even if the chosen source disagrees — same rule the old
-// resync path enforced.
+// ApplyResyncChoice resolves one book's pending proposal: source == "" just
+// dismisses it; otherwise the chosen provider's fields are written.
 func (s *BookService) ApplyResyncChoice(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1109,25 +958,12 @@ func (s *BookService) applyChosenSource(
 		return fmt.Errorf("decode resync proposals for book %s: %w", row.Book.ID, err)
 	}
 
-	// Wizard proposals are always one candidate per source (index 0).
 	return s.applySelectedSource(ctx, logger, row.Book, sources, source, 0)
 }
 
-// applySelectedSource writes the chosen source's fields onto book, replacing
-// the book's metadata wholesale — a field the chosen source doesn't supply is
-// blanked, not left as whatever an earlier, different source wrote. isbn13 is
-// the one exception (see RefreshBookExternalData): it is never blanked, and
-// only overwrites an existing value when the source actually supplies one
-// (the repo's dup guard prevents attaching an ISBN already used elsewhere).
-// Shared by the stored-proposal path (ApplyResyncChoice) and the live
-// per-book path (SyncBookSource). Returns ErrProposalNotFound if no proposal
-// matches (source, index).
-//
-// ponytail: index identifies a candidate by its ordinal position within its
-// source, relying on the provider returning the same order on the apply-time
-// re-fetch as it did when GetBookSources first showed the candidates to the
-// admin — the same stability the pre-existing index-0-only apply already
-// depended on. Add a stable per-candidate id if this ever misfires.
+// applySelectedSource replaces the book's metadata wholesale with the chosen
+// source's; isbn13 is never blanked. index relies on the provider returning
+// the same order on re-fetch as when the admin saw the candidates.
 func (s *BookService) applySelectedSource(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1154,10 +990,8 @@ func (s *BookService) applySelectedSource(
 	)
 }
 
-// GetBookSources fetches every configured provider's live view of one book
-// for the admin book-page source selector — same fetch logic the wizard's
-// scan uses (fetchSourceProposals), just for a single book on demand instead
-// of the whole catalog.
+// GetBookSources fetches every provider's live view of one book for the admin
+// source selector.
 func (s *BookService) GetBookSources(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1185,10 +1019,8 @@ func (s *BookService) GetBookSources(
 	}, nil
 }
 
-// SyncBookSource live-fetches one book's sources and applies the chosen one —
-// the book-page equivalent of ApplyResyncChoice, usable on any book without
-// requiring a prior wizard scan to have flagged it. Also clears any pending
-// wizard proposal for the book, since it's now resolved.
+// SyncBookSource live-fetches one book's sources, applies the chosen one, and
+// clears any pending wizard proposal.
 func (s *BookService) SyncBookSource(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1206,7 +1038,6 @@ func (s *BookService) SyncBookSource(
 		return err
 	}
 
-	// "" keeps the library row unchanged — same as ApplyResyncChoice's dismiss.
 	if source != "" {
 		sources := s.fetchProposals(ctx, logger, *book, overrideTitle, overrideAuthor)
 		err = s.applySelectedSource(ctx, logger, *book, sources, source, index)
@@ -1215,8 +1046,6 @@ func (s *BookService) SyncBookSource(
 		}
 	}
 
-	// Best-effort: dismiss any pending wizard proposal now that this book has
-	// been resolved live. A missing proposal is not an error here.
 	if err = s.resyncSource.DeleteResyncProposal(ctx, bookID); err != nil &&
 		!errors.Is(err, database.ErrResourceNotFound) {
 		logger.WarnContext(
@@ -1230,9 +1059,8 @@ func (s *BookService) SyncBookSource(
 	return nil
 }
 
-// writeResyncResult persists the chosen fields and refreshes the R2 cover
-// cache when the cover URL actually changes — including when the new source
-// blanks a cover the book previously had.
+// writeResyncResult persists the fields and refreshes the R2 cover when the
+// cover URL changes (including to blank).
 func (s *BookService) writeResyncResult(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -1280,17 +1108,14 @@ func (s *BookService) writeResyncResult(
 	return nil
 }
 
-// GetSourceStats reports per-source scan coverage and uniqueness over the
-// whole catalog, for the admin source-stats report.
+// GetSourceStats reports per-source scan coverage and uniqueness.
 func (s *BookService) GetSourceStats(
 	ctx context.Context,
 ) (*repositories.SourceStats, error) {
 	return s.resyncSource.GetSourceStats(ctx)
 }
 
-// ListBooksInExactSources returns the catalog books found by exactly the
-// given set of sources, for drilling into a GetSourceStats unique_count (one
-// source) or overlap combo (two or three sources).
+// ListBooksInExactSources returns the books found by exactly the given sources.
 func (s *BookService) ListBooksInExactSources(
 	ctx context.Context,
 	sources []string,
@@ -1298,9 +1123,7 @@ func (s *BookService) ListBooksInExactSources(
 	return s.resyncSource.ListBooksInExactSources(ctx, sources)
 }
 
-// buildSearchQuery builds a search query string for title+first-author searches.
 func buildSearchQuery(title string, authors []string) string {
-	// Use only the first author to keep the query focused.
 	author := ""
 	if len(authors) > 0 {
 		author = authors[0]
@@ -1311,9 +1134,8 @@ func buildSearchQuery(title string, authors []string) string {
 	return fmt.Sprintf("intitle:%q inauthor:%q", title, author)
 }
 
-// titleAuthorMatch returns true when resultTitle normalises to the same string
-// as bookTitle AND at least one of resultAuthors shares a normalised last name
-// with one of bookAuthors. Returns false when either title normalises to "".
+// titleAuthorMatch reports whether normalised titles match and at least one
+// author last name overlaps. False when either title normalises to "".
 func titleAuthorMatch(
 	bookTitle string,
 	bookAuthors []string,
@@ -1328,7 +1150,6 @@ func titleAuthorMatch(
 		return false
 	}
 
-	// Build set of normalised last names from the library book.
 	bookLastNames := make(map[string]struct{}, len(bookAuthors))
 	for _, a := range bookAuthors {
 		if n := normalizeAuthor(a); n != "" {
@@ -1339,7 +1160,6 @@ func titleAuthorMatch(
 		return false
 	}
 
-	// Check for overlap with the result's authors.
 	for _, a := range resultAuthors {
 		if n := normalizeAuthor(a); n != "" {
 			if _, ok := bookLastNames[n]; ok {
@@ -1350,9 +1170,7 @@ func titleAuthorMatch(
 	return false
 }
 
-// titleOnlyCandidate holds the metadata fields from a provider search result
-// used by selectTitleOnlyMatch. All three external providers expose the same
-// set of fields; this common type avoids duplicating the helper per provider.
+// titleOnlyCandidate is the provider-neutral search result shape.
 type titleOnlyCandidate struct {
 	title       string
 	authors     []string
@@ -1362,14 +1180,8 @@ type titleOnlyCandidate struct {
 	pageCount   *int
 }
 
-// selectTitleOnlyMatch filters candidates to those whose normalised title
-// equals bookTitle, then applies an ambiguity guard: if two or more
-// title-matching candidates have non-empty, fully-disjoint normalised author
-// sets (indicating genuinely different books that share a title), the function
-// returns (zero, false) so that no metadata is written. When exactly one title
-// match exists, or all title-matching candidates share at least one common
-// author (same book in different editions), the first match is returned as
-// (match, true).
+// selectTitleOnlyMatch returns the first title match, unless two matches have
+// fully disjoint author sets (likely different books), in which case none.
 //
 //nolint:gocognit // pairwise disjoint-author check; split would not reduce complexity
 func selectTitleOnlyMatch(
@@ -1395,9 +1207,7 @@ func selectTitleOnlyMatch(
 		return matching[0], true
 	}
 
-	// Ambiguity guard: build per-candidate normalised author sets and check
-	// for any fully-disjoint pair — a pair with no common author name is
-	// strong evidence that the same title belongs to two different books.
+	// A pair with no common author means two different books share the title.
 	authorSets := make([]map[string]struct{}, len(matching))
 	for i, m := range matching {
 		set := make(map[string]struct{}, len(m.authors))

@@ -19,14 +19,12 @@ import (
 const realBaseURL = "https://api.hardcover.app/v1/graphql"
 
 func TestMain(m *testing.M) {
-	// Speed up retries in all tests in this package.
 	hardcover.SetBackoffBase(1 * time.Millisecond)
 	os.Exit(m.Run())
 }
 
-// buildServer starts an httptest.Server that serves handler and overrides the
-// package-level baseURL to point at it. The returned func closes the server and
-// restores the original baseURL.
+// buildServer points baseURL at an httptest server serving handler; the
+// returned func closes it and restores baseURL.
 func buildServer(handler http.Handler) func() {
 	srv := httptest.NewServer(handler)
 	hardcover.SetBaseURL(srv.URL)
@@ -68,15 +66,12 @@ func TestGetByISBN_Found(t *testing.T) {
 	require.NotNil(t, got.Description)
 	assert.Equal(t, "An epic poem.", *got.Description)
 	require.NotNil(t, got.PageCount)
-	// Edition pages win over the book's page count.
 	assert.Equal(t, 541, *got.PageCount)
 	require.NotNil(t, got.CoverURL)
-	// Edition cover wins over the book's cover.
 	assert.Equal(t, "https://hardcover.app/edition-cover.jpg", *got.CoverURL)
 }
 
-// TestGetByISBN_FallsBackToBook verifies that when the edition omits title,
-// pages and cover, the parent book's values fill the gaps.
+// TestGetByISBN_FallsBackToBook: book values fill edition gaps.
 func TestGetByISBN_FallsBackToBook(t *testing.T) {
 	body := isbnResponse(t, &editionFixture{
 		Title:       "",
@@ -108,8 +103,7 @@ func TestGetByISBN_FallsBackToBook(t *testing.T) {
 	assert.Equal(t, "https://hardcover.app/book-cover.jpg", *got.CoverURL)
 }
 
-// TestGetByISBN_FlatContributorName covers the flat "name" fallback used when
-// cached_contributors is not nested under an author object.
+// TestGetByISBN_FlatContributorName covers the flat "name" contributor shape.
 func TestGetByISBN_FlatContributorName(t *testing.T) {
 	body := isbnResponse(
 		t,
@@ -236,21 +230,16 @@ func TestSearch_ReturnsResults(t *testing.T) {
 	require.NotNil(t, results[0].PageCount)
 	assert.Equal(t, 221, *results[0].PageCount)
 
-	// Search results must carry an ISBN13 (borrowed from a representative
-	// edition) so the frontend can link to them; results with no edition
-	// ISBN correctly stay ISBN-less rather than erroring.
+	// ISBN is borrowed from a representative edition; none is fine.
 	require.NotNil(t, results[0].ISBN13)
 	assert.Equal(t, "9780000000001", *results[0].ISBN13)
 	assert.Nil(t, results[1].ISBN13)
 }
 
-// TestSearch_PreservesRelevanceOrder guards against the regression where
-// booksByIDsQuery (which has no order_by) returns rows in Hasura's own
-// default order instead of the Typesense relevance order the IDs arrived in.
-// Search must reorder the hydrated books back to that relevance order.
+// TestSearch_PreservesRelevanceOrder: hydrated books are reordered to the
+// Typesense relevance order.
 func TestSearch_PreservesRelevanceOrder(t *testing.T) {
-	// Typesense ranks id 2 first, but the books-by-id response comes back in
-	// ascending-id order (id 1 first) — the order Hasura defaults to.
+	// Typesense ranks id 2 first; Hasura returns ascending ids.
 	books := searchResponse(t, []bookFixture{
 		//nolint:exhaustruct // only fields under test
 		{ID: 1, Title: "Least Relevant"},
@@ -269,14 +258,8 @@ func TestSearch_PreservesRelevanceOrder(t *testing.T) {
 	assert.Equal(t, "Least Relevant", results[1].Title)
 }
 
-// TestSearch_DropsAuthor_SendsTitleOnly verifies the Typesense query is
-// title-only even when the caller's query has an inauthor: token. Hardcover's
-// Typesense index weights the title field highest, so appending the author
-// as free text surfaces books whose *title* contains the author name (e.g.
-// critical companions like "Emily Brontë: Wuthering Heights") above the real
-// work — confirmed against the live API for "Wuthering Heights"/"Emily
-// Bronte", where the combined query dropped the actual novel from the top 5
-// entirely. Author disambiguation happens after the fetch (titleAuthorMatch).
+// TestSearch_DropsAuthor_SendsTitleOnly: the Typesense query is title-only,
+// since adding the author ranks author-titled companions above the work.
 func TestSearch_DropsAuthor_SendsTitleOnly(t *testing.T) {
 	var captured struct {
 		Variables map[string]any `json:"variables"`
@@ -294,15 +277,10 @@ func TestSearch_DropsAuthor_SendsTitleOnly(t *testing.T) {
 	_, err := c.Search(context.Background(), `intitle:"Dune" inauthor:"Herbert"`)
 	require.NoError(t, err)
 	assert.Equal(t, "Dune", captured.Variables["query"])
-	// The title-only query needs depth: for a common title, the right
-	// author's book may sit well below the top 5, and the caller's post-fetch
-	// author filter needs candidates to work with.
 	assert.Equal(t, float64(25), captured.Variables["perPage"])
 }
 
-// TestSearch_NoAuthor_SendsTitleOnly verifies an authorless query still
-// searches (title-only), matching buildSearchQuery's output for books with
-// no known author.
+// TestSearch_NoAuthor_SendsTitleOnly checks authorless queries still search.
 func TestSearch_NoAuthor_SendsTitleOnly(t *testing.T) {
 	var captured struct {
 		Variables map[string]any `json:"variables"`
@@ -340,8 +318,7 @@ func TestSearch_NoTitle_SkipsRequest(t *testing.T) {
 	assert.False(t, called, "search without a title must not hit the API")
 }
 
-// TestSearch_NoIDs_SkipsSecondRequest verifies that when the Typesense search
-// returns no IDs, Search returns early without querying books by ID.
+// TestSearch_NoIDs_SkipsSecondRequest checks the early return.
 func TestSearch_NoIDs_SkipsSecondRequest(t *testing.T) {
 	requests := 0
 	cleanup := buildServer(
@@ -360,9 +337,7 @@ func TestSearch_NoIDs_SkipsSecondRequest(t *testing.T) {
 	assert.Equal(t, 1, requests, "no ids means the books-by-id request must be skipped")
 }
 
-// TestSearch_403_PropagatesError guards the reported regression: Hardcover's
-// server rejects ilike/like/similar/regex operators with a 403, and that
-// error must bubble up rather than being swallowed.
+// TestSearch_403_PropagatesError: Hardcover's 403 must bubble up.
 func TestSearch_403_PropagatesError(t *testing.T) {
 	cleanup := buildServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -425,8 +400,7 @@ func TestGetByISBN_ContextCanceled(t *testing.T) {
 }
 
 func TestGetByISBN_NetworkError(t *testing.T) {
-	// Point to a port where nothing listens — httpClient.Do fails with a
-	// *url.Error (connection refused), covering the isTransientErr url.Error path.
+	// Nothing listens here: covers isTransientErr's url.Error path.
 	hardcover.SetBaseURL("http://127.0.0.1:1")
 	defer hardcover.SetBaseURL(realBaseURL)
 
@@ -434,8 +408,6 @@ func TestGetByISBN_NetworkError(t *testing.T) {
 	_, err := c.GetByISBN(context.Background(), "9780000000000")
 	require.Error(t, err)
 }
-
-// --- helpers ---
 
 type editionFixture struct {
 	Title       string
@@ -530,8 +502,8 @@ func searchResponse(t *testing.T, books []bookFixture) json.RawMessage {
 	return mustJSON(t, resp)
 }
 
-// searchIDsThenBooksHandler serves the two-request Search flow: the first
-// POST (search by title) gets ids, the second POST (books by id) gets booksBody.
+// searchIDsThenBooksHandler answers the ID search with ids, then the
+// books-by-id request with booksBody.
 func searchIDsThenBooksHandler(
 	t *testing.T,
 	ids []int,
