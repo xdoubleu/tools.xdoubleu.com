@@ -115,8 +115,7 @@ describe('isbnLessGroupKey', () => {
   it('treats books with the same last name as matching', () => {
     const key1 = isbnLessGroupKey('Dune', ['Frank Herbert'])
     const key2 = isbnLessGroupKey('Dune', ['Brian Herbert'])
-    // Different first names but same last name — should produce the same key
-    // (mirrors the Go normalizeAuthor last-name-only logic).
+    // Same last name → same key.
     expect(key1).toBe(key2)
   })
 

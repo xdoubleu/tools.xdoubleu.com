@@ -1,11 +1,6 @@
-// Package jobqueue schedules recurring background jobs. Unlike the
-// now-removed essentia threading.JobQueue this used to sit on top of --
-// whose AddJob always ran a job immediately and whose due-checking lived
-// only in memory, both reset on every process restart -- it checks
-// global.job_runs (the same table observability.TrackedJob already writes
-// run history to) as the durable record of when a job last succeeded, so a
-// restart doesn't re-run everything regardless of RunEvery. Execution still
-// goes through threading.WorkerPool (issue #912), which has no such bug.
+// Package jobqueue schedules recurring background jobs. Due-ness is read from
+// global.job_runs, so a restart doesn't re-run every job. Execution goes
+// through threading.WorkerPool.
 package jobqueue
 
 import (
@@ -21,15 +16,12 @@ import (
 	"tools.xdoubleu.com/internal/threading"
 )
 
-// tickInterval is how often the scheduler checks whether a job is due.
-// ponytail: fixed floor instead of replicating essentia's old
-// dynamic-smallest-period sleep -- every job's RunEvery is minutes-to-days,
-// so 30s is precise enough; revisit if a job ever needs sub-30s scheduling.
+// tickInterval is how often the scheduler checks for due jobs; every RunEvery
+// is minutes or longer, so 30s is precise enough.
 //
 //nolint:gochecknoglobals //overridden directly by tests, see jobqueue_internal_test.go
 var tickInterval = 30 * time.Second
 
-// jobRunsReader is the slice of repositories.JobRunsRepository JobQueue needs.
 type jobRunsReader interface {
 	LastSuccessAt(ctx context.Context, jobID string) (*time.Time, error)
 }
@@ -68,8 +60,7 @@ func NewJobQueue(
 	}
 }
 
-// AddJob registers a recurring job. It does not run the job immediately --
-// the scheduler only runs it once it's due, per global.job_runs.
+// AddJob registers a recurring job; it only runs once due per global.job_runs.
 func (q *JobQueue) AddJob(job threading.Job, callback threading.CallbackFunc) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -163,8 +154,7 @@ func (qj *queuedJob) isDue() bool {
 	if qj.running.Load() {
 		return false
 	}
-	// Jobs that don't implement threading.Scheduled are trigger-only: the
-	// scheduler tick never runs them, only an explicit ForceRun does.
+	// Jobs without threading.Scheduled are trigger-only (ForceRun).
 	scheduled, ok := qj.job.(threading.Scheduled)
 	if !ok {
 		return false

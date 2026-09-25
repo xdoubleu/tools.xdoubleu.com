@@ -12,10 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestRepository_CreateUser exercises the usersStore.CreateUser path — not
-// reachable through LocalService (no sign-up flow exists yet, issue #1039
-// covers sign-in against pre-seeded users only) but still part of the
-// interface's committed surface and worth verifying directly.
+// CreateUser isn't reachable through LocalService (no sign-up flow).
 func TestRepository_CreateUser(t *testing.T) {
 	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(db.Close)

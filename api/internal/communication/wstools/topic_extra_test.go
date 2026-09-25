@@ -16,9 +16,6 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// TestTopicEnqueueEventDeliversAndUnsubscribesOnClose exercises Topic's
-// EnqueueEvent (delivering to a live subscriber) and the UnSubscribe path
-// that fires automatically once a subscriber's connection is closed.
 func TestTopicEnqueueEventDeliversAndUnsubscribesOnClose(t *testing.T) {
 	t.Parallel()
 
@@ -46,12 +43,8 @@ func TestTopicEnqueueEventDeliversAndUnsubscribesOnClose(t *testing.T) {
 		wsjson.Write(dialCtx, conn, testSubscribeMsg{TopicName: "exists"}),
 	)
 
-	// Subscribe runs in the server's own goroutine, racing this test; a fixed
-	// sleep before publishing (matching essentia's own WebSocketTester) is
-	// simpler and safer than polling with short-lived read contexts --
-	// coder/websocket closes the connection outright once a Read's context
-	// expires, so a short-timeout retry loop would kill the connection on
-	// its first miss instead of just moving on.
+	// Subscribe races this test. A read with a short deadline would close the
+	// connection (coder/websocket), so sleep instead of polling.
 	time.Sleep(200 * time.Millisecond)
 	topic.EnqueueEvent(testResponse{Ok: true})
 
@@ -63,8 +56,6 @@ func TestTopicEnqueueEventDeliversAndUnsubscribesOnClose(t *testing.T) {
 
 	require.NoError(t, conn.CloseNow())
 
-	// EnqueueEvent after the client disconnected should not panic; the write
-	// failure routes through ServerErrorResponse -> isCloseError -> UnSubscribe.
 	assert.NotPanics(t, func() {
 		topic.EnqueueEvent(testResponse{Ok: true})
 		time.Sleep(50 * time.Millisecond)

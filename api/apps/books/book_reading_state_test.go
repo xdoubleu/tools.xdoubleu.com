@@ -14,10 +14,6 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// ---------------------------------------------------------------------------
-// Repository tests
-// ---------------------------------------------------------------------------
-
 func TestReadingStateRepo_Upsert_Get(t *testing.T) {
 	book := addUniqueBook(t)
 	ctx := context.Background()
@@ -58,7 +54,6 @@ func TestReadingStateRepo_Upsert_Updates(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Upsert again with new values
 	err = testApp.Repositories.ReadingState.Upsert(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
@@ -152,10 +147,6 @@ func TestReadingStateRepo_Upsert_NilLocation(t *testing.T) {
 	assert.Equal(t, models.ReadingSourceManual, got.Source)
 }
 
-// ---------------------------------------------------------------------------
-// Connect handler tests
-// ---------------------------------------------------------------------------
-
 func TestConnectUpdateReadingProgress_Valid(t *testing.T) {
 	book := addUniqueBook(t)
 	client := newBooksTestClient(t)
@@ -232,7 +223,6 @@ func TestConnectGetReadingState_Found(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx := context.Background()
 
-	// Set state first
 	setReq := connect.NewRequest(&booksv1.UpdateReadingProgressRequest{
 		BookId:  book.ID.String(),
 		Source:  models.ReadingSourceManual,
@@ -242,7 +232,6 @@ func TestConnectGetReadingState_Found(t *testing.T) {
 	_, err := client.UpdateReadingProgress(ctx, setReq)
 	require.NoError(t, err)
 
-	// Get it back
 	getReq := connect.NewRequest(&booksv1.GetReadingStateRequest{
 		BookId: book.ID.String(),
 	})
@@ -266,7 +255,7 @@ func TestConnectGetReadingState_NotFound(t *testing.T) {
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// No state set — service returns ErrResourceNotFound, handler wraps as Internal
+	// No state: ErrResourceNotFound, wrapped as Internal.
 	_, err := client.GetReadingState(ctx, req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
@@ -286,11 +275,7 @@ func TestConnectGetReadingState_InvalidBookID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// ---------------------------------------------------------------------------
-// Auto-promote tests (status promotion when progress > 0)
-// ---------------------------------------------------------------------------
-
-// seedUserBook creates a user_book row for the global userID with the given status.
+// seedUserBook creates a user_book for userID with the given status.
 func seedUserBook(t *testing.T, bookID uuid.UUID, status string) {
 	t.Helper()
 	require.NoError(t, testApp.Repositories.Books.UpsertUserBook(
@@ -316,8 +301,7 @@ func getUserBookStatus(t *testing.T, bookID uuid.UUID) string {
 	return ub.Status
 }
 
-// seedUserBookProgress creates a user_book row and seeds an explicit progress
-// mode/page on it, so tests can verify a Kobo percent push overrides pages mode.
+// seedUserBookProgress seeds a user_book with an explicit progress mode/page.
 func seedUserBookProgress(
 	t *testing.T, bookID uuid.UUID, status, progressMode string, currentPage int,
 ) {
@@ -328,8 +312,7 @@ func seedUserBookProgress(
 	))
 }
 
-// TestUpdateReadingProgress_PromotesToReading_FromToRead verifies that a book
-// with status "to-read" is promoted to "currently-reading" when progress > 0.
+// TestUpdateReadingProgress_PromotesToReading_FromToRead checks promotion.
 func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusToRead)
@@ -342,9 +325,8 @@ func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
 
-// TestUpdateReadingProgress_UpdatesLibraryProgress verifies that a Kobo/web
-// progress push writes user_books.progress_percent (what the library UI shows),
-// switching a pages-mode book to percent mode without touching current_page.
+// TestUpdateReadingProgress_UpdatesLibraryProgress: a push writes
+// progress_percent and switches to percent mode, leaving current_page.
 func TestUpdateReadingProgress_UpdatesLibraryProgress(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBookProgress(t, book.ID, models.StatusToRead, models.ProgressModePages, 42)
@@ -366,8 +348,7 @@ func TestUpdateReadingProgress_UpdatesLibraryProgress(t *testing.T) {
 	assert.Equal(t, 42, ub.CurrentPage) // untouched — Kobo only reports percent
 }
 
-// TestUpdateReadingProgress_PromotesToReading_FromDropped verifies that a
-// dropped book is revived to "currently-reading" when progress > 0.
+// TestUpdateReadingProgress_PromotesToReading_FromDropped checks revival.
 func TestUpdateReadingProgress_PromotesToReading_FromDropped(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusDropped)
@@ -380,8 +361,7 @@ func TestUpdateReadingProgress_PromotesToReading_FromDropped(t *testing.T) {
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
 
-// TestUpdateReadingProgress_NoPromote_AlreadyReading confirms a book already
-// "currently-reading" keeps its status unchanged.
+// TestUpdateReadingProgress_NoPromote_AlreadyReading checks no change.
 func TestUpdateReadingProgress_NoPromote_AlreadyReading(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusReading)
@@ -394,8 +374,7 @@ func TestUpdateReadingProgress_NoPromote_AlreadyReading(t *testing.T) {
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
 
-// TestUpdateReadingProgress_NoPromote_AlreadyRead confirms a finished book is
-// not demoted back to "currently-reading".
+// TestUpdateReadingProgress_NoPromote_AlreadyRead checks no demotion.
 func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusRead)
@@ -415,8 +394,7 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	assert.Equal(t, 80, ub.ProgressPercent)       // progress still recorded
 }
 
-// TestUpdateReadingProgress_NoPromote_ZeroPercent confirms that a 0% progress
-// update does not promote the book (Kobo sends 0 on initial open/sync).
+// TestUpdateReadingProgress_NoPromote_ZeroPercent: Kobo sends 0 on open.
 func TestUpdateReadingProgress_NoPromote_ZeroPercent(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusToRead)

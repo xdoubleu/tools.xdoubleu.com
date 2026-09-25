@@ -37,10 +37,7 @@ func TestUsageLabels(t *testing.T) {
 			wantOK:       true,
 		},
 		{
-			// ConnectRPC handlers are mounted at their bare generated
-			// service path, not under a literal /<appName>/ prefix
-			// (api/apps/*/routes.go) — the app name has to be recovered
-			// from the dotted proto package instead.
+			// Bare ConnectRPC path: app comes from the proto package.
 			name:         "unprefixed connectrpc path",
 			method:       http.MethodPost,
 			path:         "/books.v1.BooksService/ListBooks",
@@ -157,9 +154,8 @@ func TestCountingResponseWriterTotalsBody(t *testing.T) {
 	assert.Equal(t, "hello world", rec.Body.String())
 }
 
-// The api has one server-streaming RPC (GetDeployLogs) and WebSocket
-// upgrades (internal/progressws). Both break if the usage wrapper hides
-// Flusher/Hijacker from the underlying writer, so assert it forwards them.
+// TestCountingResponseWriterPreservesStreamingInterfaces: Flusher/Hijacker
+// must be forwarded.
 func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
 	w := &countingResponseWriter{ResponseWriter: httptest.NewRecorder(), written: 0}
 
@@ -168,14 +164,12 @@ func TestCountingResponseWriterPreservesStreamingInterfaces(t *testing.T) {
 	_, isHijacker := any(w).(http.Hijacker)
 	assert.True(t, isHijacker, "must expose http.Hijacker for WebSocket upgrades")
 
-	// Flush must reach the wrapped writer rather than being swallowed.
 	rec := httptest.NewRecorder()
 	flushing := &countingResponseWriter{ResponseWriter: rec, written: 0}
 	flushing.Flush()
 	assert.True(t, rec.Flushed)
 
-	// httptest.ResponseRecorder is not a Hijacker, so the wrapper reports
-	// that rather than panicking.
+	// ResponseRecorder isn't a Hijacker; expect an error, not a panic.
 	_, _, err := w.Hijack()
 	require.ErrorIs(t, err, http.ErrNotSupported)
 }

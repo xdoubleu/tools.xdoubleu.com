@@ -7,10 +7,6 @@ import {
   type DupGroup
 } from '@/components/books/duplicateConflicts'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function makeBook(
   overrides: Partial<{
     id: string
@@ -55,10 +51,6 @@ function makeEntry(bookId: string, book: ReturnType<typeof makeBook>, status = '
 function makeGroup(entries: ReturnType<typeof makeEntry>[], reason = 'isbn13'): DupGroup {
   return { entries, reason }
 }
-
-// ---------------------------------------------------------------------------
-// detectConflicts
-// ---------------------------------------------------------------------------
 
 describe('detectConflicts', () => {
   it('returns empty when all fields agree', () => {
@@ -163,10 +155,6 @@ describe('detectConflicts', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// pickAutoStatusBookId
-// ---------------------------------------------------------------------------
-
 describe('pickAutoStatusBookId', () => {
   it('prefers a custom shelf over built-in read status', () => {
     const book = makeBook({ id: 'x' })
@@ -223,10 +211,6 @@ describe('pickAutoStatusBookId', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// resolveStatusChoice
-// ---------------------------------------------------------------------------
-
 describe('resolveStatusChoice', () => {
   it('returns the status of the chosen entry', () => {
     const book = makeBook({ id: 'x' })
@@ -252,10 +236,6 @@ describe('resolveStatusChoice', () => {
     expect(resolveStatusChoice(g, choices)).toBeUndefined()
   })
 })
-
-// ---------------------------------------------------------------------------
-// buildResolvedMetadata
-// ---------------------------------------------------------------------------
 
 describe('buildResolvedMetadata', () => {
   it('returns winner fields when all choices point to winner', () => {
@@ -308,8 +288,7 @@ describe('buildResolvedMetadata', () => {
       pageCount: 'w'
     }
     const result = buildResolvedMetadata(g, choices)
-    // coverUrl must be empty in resolved metadata (proto object always has the
-    // field, but we must not copy any source book's URL into it)
+    // No source book's cover URL is copied in.
     expect(result.coverUrl).toBe('')
   })
 

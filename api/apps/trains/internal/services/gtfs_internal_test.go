@@ -22,7 +22,7 @@ func TestParseGTFSTime(t *testing.T) {
 		// > 24h is legal GTFS for after-midnight service.
 		{"25:15:00", 25*3600 + 15*60, true},
 		{"36:00:00", 36 * 3600, true},
-		// publisher bug — 87:39:00 is 3.6 days, rejected.
+		// Publisher bug: 3.6 days, rejected.
 		{"87:39:00", 0, false},
 		{"", 0, false},
 		{"8:30", 0, false},
@@ -90,7 +90,6 @@ func TestParseFeed_TrapsAndBounds(t *testing.T) {
 	for _, cd := range feed.CalendarDates {
 		assert.Equal(t, 1, cd.ExceptionType)
 	}
-	// the 87:39:00 row is dropped; the three valid rows survive.
 	assert.Len(t, feed.StopTimes, 3)
 
 	var nonBoarding int
@@ -126,50 +125,38 @@ func TestParseFeed_StopNamesMultilingual(t *testing.T) {
 		}
 	}
 
-	// matched by its full record_id: translations.txt supplies nl/en, and fr
-	// comes from stop_name, the feed's primary language (feed_lang=fr).
+	// Full record_id match; fr comes from the primary stop_name.
 	assert.Equal(t, "Brussel-Zuid", brusselsSouth.NameNL)
 	assert.Equal(t, "Bruxelles-Midi", brusselsSouth.NameFR)
 	assert.Equal(t, "Brussels-South", brusselsSouth.NameEN)
 
-	// matched by a record_id the gateway's "gs:nmbssncb:" prefix was never
-	// added to. The fr translation wins over stop_name even though fr is the
-	// primary language — an explicit translation always beats the fallback.
+	// Bare record_id match. An explicit fr translation beats the primary
+	// stop_name.
 	assert.Equal(t, "Anvers-Central", antwerp.NameFR)
 	assert.Equal(t, "Antwerpen-Centraal", antwerp.NameNL)
 	assert.Equal(t, "Antwerpen-Centraal", antwerp.NameEN)
 
-	// matched by field_value rather than by any record id (issue #1459).
+	// field_value match.
 	assert.Equal(t, "Gand-Saint-Pierre", ghent.NameFR)
 	assert.Equal(t, "Ghent-Sint-Pieters", ghent.NameEN)
-	// nl is not translated for this stop, so it falls back to stop_name.
 	assert.Equal(t, "Gent-Sint-Pieters", ghent.NameNL)
 
-	// a field_value match is on the name, so the station's platform — which
-	// shares that stop_name — is translated by the very same rows.
+	// field_value matches the name, so the platform sharing it is translated too.
 	assert.Equal(t, "Gand-Saint-Pierre", ghentPlatform.NameFR)
 	assert.Equal(t, "Ghent-Sint-Pieters", ghentPlatform.NameEN)
 
-	// a record_id match, by contrast, reaches only the record it names: the
-	// station's platform keeps the untranslated stop_name in all three.
+	// A record_id match reaches only the record it names.
 	assert.Equal(t, "Bruxelles-Midi", brusselsPlatform.NameNL)
 	assert.Equal(t, "Bruxelles-Midi", brusselsPlatform.NameEN)
 
-	// DisplayName never falls back to the primary stop_name for a language
-	// translations.txt doesn't cover: it only shows genuinely-known full
-	// names. Ghent has no nl translation, so its label is fr/en only;
-	// Antwerp's only translation is its own primary language (fr), which
-	// overrides the raw stop_name rather than sitting alongside it, so its
-	// label is that one translation.
+	// DisplayName only shows genuinely-known names: Ghent has no nl translation;
+	// Antwerp's fr translation replaces its raw stop_name.
 	assert.Equal(t, "Gand-Saint-Pierre / Ghent-Sint-Pieters", ghent.DisplayName)
 	assert.Equal(t, "Anvers-Central", antwerp.DisplayName)
 }
 
-// TestParseFeed_DisplayNameDedupesAbbreviatedFallback reproduces issue
-// #1656: a station whose primary raw stop_name is itself an
-// already-abbreviated/combined bilingual string (as NMBS's feed sometimes
-// publishes) must not leak that string into DisplayName as a spurious extra
-// part for a language translations.txt doesn't cover.
+// TestParseFeed_DisplayNameDedupesAbbreviatedFallback: an abbreviated
+// bilingual raw stop_name must not leak into DisplayName.
 func TestParseFeed_DisplayNameDedupesAbbreviatedFallback(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] += "1,,,gs:nmbssncb:S8811305,50.85,4.35,Brsls Centr / Bxl Centr\n"
@@ -188,17 +175,13 @@ func TestParseFeed_DisplayNameDedupesAbbreviatedFallback(t *testing.T) {
 		}
 	}
 
-	// The genuine fr/nl translations are used; the abbreviated raw
-	// stop_name is not a stand-in for the untranslated en, so it never
-	// appears anywhere in DisplayName.
 	assert.Equal(t, "Bruxelles-Central / Brussel-Centraal", brusselsCentral.DisplayName)
 	assert.NotContains(t, brusselsCentral.DisplayName, "Brsls Centr")
 	assert.NotContains(t, brusselsCentral.DisplayName, "Bxl Centr")
 }
 
-// TestParseFeed_DisplayNameKeepsDistinctFullNames guards the flip side of
-// the #1656 fix: two genuinely different full-language names (no
-// abbreviation, no fallback involved) must both still show up.
+// TestParseFeed_DisplayNameKeepsDistinctFullNames: distinct full names in two
+// languages both show.
 func TestParseFeed_DisplayNameKeepsDistinctFullNames(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] += "1,,,gs:nmbssncb:S8896008,50.95,3.13,Roulers\n"
@@ -217,14 +200,8 @@ func TestParseFeed_DisplayNameKeepsDistinctFullNames(t *testing.T) {
 	assert.Equal(t, "Roulers / Roeselare", roeselare.DisplayName)
 }
 
-// TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation reproduces
-// issue #1656 still failing in production after #1659: a translations.txt
-// row can genuinely exist for a language yet still hold an NMBS-synthesized
-// combined string rather than a real distinct name for that language — in
-// practice this is nearly always English on a bilingual station, whose
-// "translation" is literally "{French name} / {Dutch name}" or an
-// abbreviated variant. Such a value must never be treated as a distinct
-// DisplayName part, even though the translations.txt row is genuine.
+// TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation: a genuine
+// translations.txt row holding "{French} / {Dutch}" is not a DisplayName part.
 func TestParseFeed_DisplayNameRejectsSyntheticCombinedTranslation(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] += "1,,,gs:nmbssncb:S8813003,50.85,4.36,Bruxelles-Central\n"
@@ -263,25 +240,18 @@ func TestParseFeed_TranslationCoverageIsReported(t *testing.T) {
 	feed, err := parseFeed(logging.NewNopLogger(), raw)
 	require.NoError(t, err)
 
-	// The six usable stop_name rows in the fixture; every other row is
-	// skipped before it is counted.
+	// The fixture's six usable stop_name rows.
 	assert.Equal(t, 6, feed.Info.Translations.Rows)
-	// One of those names a stop this feed does not contain.
 	assert.Equal(t, 1, feed.Info.Translations.RowsUnmatched)
 
-	// Brussels-South (by record_id).
 	assert.Equal(t, 1, feed.Info.Translations.StopsNL)
-	// Antwerp (by bare record_id) plus Ghent's station and its platform
-	// (both by field_value).
+	// Antwerp by bare record_id, Ghent station and platform by field_value.
 	assert.Equal(t, 3, feed.Info.Translations.StopsFR)
-	// Brussels-South plus Ghent's station and its platform.
 	assert.Equal(t, 3, feed.Info.Translations.StopsEN)
 }
 
-// A feed whose translations.txt keys rows by an id this feed's stops.txt
-// never uses is exactly the production failure of issue #1459: the import
-// succeeds, every name silently stays monolingual, and only the coverage
-// counters say so.
+// TestParseFeed_UnmatchedTranslationsAreCountedNotSilent: rows keyed by ids
+// the feed never uses must show in the coverage counters.
 func TestParseFeed_UnmatchedTranslationsAreCountedNotSilent(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["translations.txt"] = "field_name,field_value,language,record_id," +
@@ -302,8 +272,7 @@ func TestParseFeed_UnmatchedTranslationsAreCountedNotSilent(t *testing.T) {
 	assert.Equal(t, 0, feed.Info.Translations.StopsEN)
 }
 
-// record_id and field_value are mutually exclusive in GTFS; a publisher that
-// sets both gets the more specific of the two.
+// TestParseFeed_RecordIDWinsOverFieldValue: record_id wins when both are set.
 func TestParseFeed_RecordIDWinsOverFieldValue(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["translations.txt"] = "field_name,field_value,language,record_id," +
@@ -324,8 +293,7 @@ func TestParseFeed_RecordIDWinsOverFieldValue(t *testing.T) {
 
 func TestParseTranslations_MalformedRowPropagatesError(t *testing.T) {
 	files := mocks.SampleFeedFiles()
-	// a bare quote mid-field is a real encoding/csv parse error, distinct
-	// from the io.EOF that ends a well-formed file.
+	// A bare quote mid-field is a real csv error, not io.EOF.
 	files["translations.txt"] = "field_name,field_value,language,record_id," +
 		"table_name,translation\n" +
 		"stop_name,,nl,gs:nmbssncb:S8814001,stops,broken\"value\n"
@@ -349,8 +317,7 @@ func TestParseFeed_MissingTranslationsIsNotAnError(t *testing.T) {
 	assert.Equal(t, 0, feed.Info.Translations.RowsUnmatched)
 }
 
-// A stops.txt row with no stop_id is skipped rather than stored under an
-// empty key, where it would collide with every other such row.
+// TestParseFeed_StopWithoutIDIsSkipped: no empty-key collisions.
 func TestParseFeed_StopWithoutIDIsSkipped(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +
@@ -365,9 +332,7 @@ func TestParseFeed_StopWithoutIDIsSkipped(t *testing.T) {
 	assert.Equal(t, "gs:nmbssncb:S8814001", feed.Stops[0].StopID)
 }
 
-// A stop with a blank stop_name has nothing for a field_value row to match
-// on, so that candidate is skipped rather than looked up under the empty
-// key — which would otherwise collide with every other unnamed stop.
+// TestParseFeed_BlankStopNameMatchesNoFieldValueRow: no empty-key lookup.
 func TestParseFeed_BlankStopNameMatchesNoFieldValueRow(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +
@@ -382,13 +347,12 @@ func TestParseFeed_BlankStopNameMatchesNoFieldValueRow(t *testing.T) {
 
 	require.Len(t, feed.Stops, 1)
 	assert.Empty(t, feed.Stops[0].NameNL)
-	// The row identified neither a record nor a value, so it was never
-	// indexed and cannot be reported unmatched either.
+	// Neither a record nor a value, so never indexed.
 	assert.Equal(t, 0, feed.Info.Translations.Rows)
 }
 
-// A malformed stops.txt is a real parse error, not a skipped row: failing
-// the whole import beats silently storing a truncated timetable.
+// TestParseFeed_MalformedStopsRowPropagatesError: fail rather than store a
+// truncated timetable.
 func TestParseFeed_MalformedStopsRowPropagatesError(t *testing.T) {
 	files := mocks.SampleFeedFiles()
 	files["stops.txt"] = "location_type,parent_station,platform_code,stop_id," +

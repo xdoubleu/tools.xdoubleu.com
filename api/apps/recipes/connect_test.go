@@ -145,9 +145,7 @@ func TestGetRecipe_WithServingScale(t *testing.T) {
 	assert.Equal(t, "4", getResp.Msg.ScaledIngredients[0].Amount)
 }
 
-// TestGetRecipe_OtherFamilyDenied stages a recipe belonging to an unrelated
-// family (a fresh random family_id, not userID's) directly in the database
-// and confirms userID cannot access it.
+// TestGetRecipe_OtherFamilyDenied: a recipe in another family is inaccessible.
 func TestGetRecipe_OtherFamilyDenied(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
@@ -470,11 +468,8 @@ func TestListRecipes_WithItems(t *testing.T) {
 	assert.False(t, drafts["Listed Recipe"])
 }
 
-// TestListRecipes_Pagination verifies Limit/Offset bound the page and
-// HasMore reflects whether more rows exist beyond it. Recipe names are
-// prefixed to sort after every other recipe this shared-fixture suite may
-// have already created for userID, so the three new rows land contiguously
-// at the end of the alphabetical order used by ListForUser.
+// TestListRecipes_Pagination checks Limit/Offset/HasMore. Names sort last so
+// the new rows are contiguous in the shared fixture.
 func TestListRecipes_Pagination(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
@@ -538,11 +533,8 @@ func TestDeleteRecipe_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
-// TestFamilyMember_GrantsAccess creates a recipe owned by another user, joins
-// them into userID's family directly in the DB (the mock auth always
-// authenticates the server as userID, so the family membership must be
-// staged directly), then exercises the access paths through the handler as
-// userID.
+// TestFamilyMember_GrantsAccess stages another user's recipe and family
+// membership via SQL (mock auth is always userID), then checks access.
 func TestFamilyMember_GrantsAccess(t *testing.T) {
 	client := setupRecipesClient(getRoutes())
 	ctx := contextWithUser(
@@ -572,7 +564,6 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 	).Scan(&recipeID)
 	require.NoError(t, err)
 
-	// ListRecipes surfaces the family member's recipe.
 	listResp, err := client.ListRecipes(
 		ctx, connect.NewRequest(&recipesv1.ListRecipesRequest{}),
 	)
@@ -585,8 +576,7 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 	}
 	assert.True(t, inList, "family member's recipe should appear in userID's list")
 
-	// GetRecipe grants full edit rights but ownership display stays with the
-	// creator.
+	// Full edit rights, but ownership stays with the creator.
 	getResp, err := client.GetRecipe(
 		ctx, connect.NewRequest(&recipesv1.GetRecipeRequest{Id: recipeID}),
 	)
@@ -594,8 +584,6 @@ func TestFamilyMember_GrantsAccess(t *testing.T) {
 	assert.False(t, getResp.Msg.IsOwner)
 	assert.True(t, getResp.Msg.CanEdit)
 
-	// Any family member may update the recipe; ownership stays with the
-	// creator.
 	_, err = client.UpdateRecipe(
 		ctx, connect.NewRequest(&recipesv1.UpdateRecipeRequest{
 			Id: recipeID, Name: "Edited By Family Member",

@@ -150,10 +150,7 @@ func TestObservabilityGetAutomatedActions_NonAdmin(t *testing.T) {
 	requirePermissionDenied(t, err)
 }
 
-// TestAppsMCPRecordActionOpenAndClose exercises the record_action MCP tool
-// end to end: an open call followed by a close call referencing the id the
-// open call returned, matching how a scheduled routine is expected to use
-// it (issue #1441).
+// TestAppsMCPRecordActionOpenAndClose: open then close by the returned id.
 func TestAppsMCPRecordActionOpenAndClose(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })

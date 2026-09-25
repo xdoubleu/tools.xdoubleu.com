@@ -7,14 +7,9 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 )
 
-// Routes registers only the two public, token-gated dashboard RPCs —
-// deliberately NOT wrapped in auth middleware, since access is gated by the
-// dashboard share token instead (resolved in connect_public.go). The
-// owner-facing token CRUD (dashboard.v1.DashboardService) is registered
-// separately in cmd/api/routes.go behind generic auth.Access, same as every
-// other logged-in-user-scoped RPC (e.g. family) — see api/AGENTS.md's
-// "Public Dashboard Sharing" section for why it isn't gated by this app's
-// own AppAccess.
+// Routes registers the two public dashboard RPCs, gated by share token rather
+// than auth. The owner-facing token CRUD is registered in cmd/api/routes.go
+// behind auth.Access.
 func (a *Dashboard) Routes(_ string, mux *http.ServeMux) {
 	scrub := iapp.ScrubInternalErrors(a.Logger)
 	handler := &publicConnectHandler{app: a}

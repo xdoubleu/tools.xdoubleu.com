@@ -8,25 +8,19 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// logInserter is the slice of *repositories.LogsRepository LogRepoHandler
-// needs.
 type logInserter interface {
 	Insert(ctx context.Context, entry models.LogEntry) error
 }
 
-// LogRepoHandler tees every slog record into global.log_entries (via the
-// injected inserter) in addition to forwarding it to the wrapped handler,
-// so api's own logs are queryable from the same table web's forwarded logs
-// land in (issue #1040). The DB write is best-effort: a failure is silently
-// dropped rather than recursively logged, which would risk a log storm if
-// the database itself is the problem.
+// LogRepoHandler tees every record into global.log_entries alongside the
+// wrapped handler. Insert failures are dropped, never logged, to avoid a log
+// storm when the DB is the problem.
 type LogRepoHandler struct {
 	next     slog.Handler
 	inserter logInserter
 }
 
-// NewLogRepoHandler wraps next, inserting every record as source "api" via
-// inserter before forwarding to next.
+// NewLogRepoHandler wraps next, inserting records as source "api".
 func NewLogRepoHandler(next slog.Handler, inserter logInserter) *LogRepoHandler {
 	return &LogRepoHandler{next: next, inserter: inserter}
 }
@@ -54,9 +48,7 @@ func (h *LogRepoHandler) insertBestEffort(record slog.Record) {
 		}
 	}
 
-	// context.Background(), not ctx: a request context is often already
-	// canceled by the time deferred logging runs, and a canceled context
-	// would silently drop every log line's DB write.
+	// Background, not ctx: request contexts are often canceled by now.
 	_ = h.inserter.Insert(context.Background(), models.LogEntry{
 		OccurredAt: record.Time,
 		Source:     "api",

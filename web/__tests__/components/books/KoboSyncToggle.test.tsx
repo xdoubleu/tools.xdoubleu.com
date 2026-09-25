@@ -156,7 +156,7 @@ describe('KoboSyncToggle', () => {
       fireEvent.click(checkbox)
     })
 
-    // prop stays false, but local state should have flipped
+    // The prop stays false, but local state flipped.
     expect(checkbox).toBeChecked()
   })
 
@@ -288,17 +288,15 @@ describe('KoboSyncToggle', () => {
 
     it('flips PDF radio to checked immediately (optimistic) on click', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      // Delay the mutation so we can observe the optimistic state.
       mockToggleTag.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({}), 200))
       )
 
       render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} />)
-      // Initially KEPUB is selected.
       expect(screen.getByTestId('kobo-format-kepub')).toBeChecked()
       expect(screen.getByTestId('kobo-format-pdf')).not.toBeChecked()
 
-      // Click PDF — optimistic flip should happen before mutation resolves.
+      // The optimistic flip happens before the mutation resolves.
       fireEvent.click(screen.getByTestId('kobo-format-pdf'))
 
       expect(screen.getByTestId('kobo-format-pdf')).toBeChecked()
@@ -317,7 +315,6 @@ describe('KoboSyncToggle', () => {
       })
 
       await waitFor(() => {
-        // Radio should roll back to KEPUB.
         expect(screen.getByTestId('kobo-format-kepub')).toBeChecked()
         expect(screen.getByTestId('kobo-format-pdf')).not.toBeChecked()
         expect(screen.getByText('network error')).toBeInTheDocument()

@@ -9,11 +9,9 @@ import (
 )
 
 func (app *WatchParty) Routes(prefix string, mux *http.ServeMux) {
-	// WebSocket routes
 	apiPrefix := fmt.Sprintf("/%s/api", prefix)
 	app.wsRoutes(apiPrefix, mux)
 
-	// ConnectRPC routes
 	path, handler := watchpartyv1connect.NewRoomServiceHandler(
 		&roomConnectHandler{app: app},
 		iapp.ScrubInternalErrors(app.Logger),

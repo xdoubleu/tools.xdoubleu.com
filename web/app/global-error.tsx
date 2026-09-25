@@ -20,10 +20,7 @@ export default function GlobalError({ error }: GlobalErrorProps) {
         <div className="flex min-h-screen flex-col items-center justify-center gap-4">
           <h1 className="text-2xl font-bold">Something went wrong</h1>
           <p className="text-sm text-muted">{error?.message || 'An unexpected error occurred'}</p>
-          {/* Not reset(): a root-layout error means the layout's own data
-              fetch threw, and reset() only clears client error-boundary
-              state without re-running that fetch (see issue #852) — a full
-              reload is what actually retries it. */}
+          {/* Not reset(): it doesn't re-run the root layout's failed fetch; reload does. */}
           <Button onClick={() => window.location.reload()}>Try again</Button>
         </div>
       </body>

@@ -316,8 +316,7 @@ func TestPlanList_ScopesToUsersFamily(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Every PlanService method resolves the caller's family before touching the
-// repo; a family-resolution failure must propagate.
+// A family-resolution failure must propagate from every method.
 func TestFamilyResolutionErrors_Propagate(t *testing.T) {
 	familyErr := errors.New("family error")
 	//nolint:exhaustruct //unset fields are the fixture defaults

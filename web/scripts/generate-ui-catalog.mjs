@@ -29,7 +29,12 @@ function jsDocOf(node, text) {
     .replace(/^\/\*\*/, '')
     .replace(/\*\/$/, '')
     .split('\n')
-    .map((l) => l.replace(/^\s*\*ked?/, '').replace(/^\s*\*\s?/, '').trim())
+    .map((l) =>
+      l
+        .replace(/^\s*\*ked?/, '')
+        .replace(/^\s*\*\s?/, '')
+        .trim()
+    )
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -169,17 +174,11 @@ Run \`npm run generate:ui-catalog\` from web/ after changing components/ui/.
 Source: web/components/ui/*.tsx (JSDoc + exported prop types).
 -->
 
-Generated from the \`*.tsx\` files in this directory. The rule that makes these
-primitives mandatory is
-[\`docs/convention-ui-standards.md\`](../../../docs/convention-ui-standards.md).
+Every shared UI primitive. **Check here before building a component**; if
+nothing fits, add a primitive here — ESLint blocks styling raw elements at call
+sites ([\`docs/convention-ui-standards.md\`](../../../docs/convention-ui-standards.md)).
 
-The complete inventory of shared UI primitives. **Check here before building a
-new component** — the design system's failure mode is not a missing rule, it's
-not knowing what already exists. If nothing here fits, add a primitive rather
-than styling a raw element at the call site; ESLint blocks the latter.
-
-Prop tables list each component's own props. "Also accepts" means the remaining
-props are forwarded to the underlying element.
+"Also accepts" props are forwarded to the underlying element.
 
 ## Primitives
 

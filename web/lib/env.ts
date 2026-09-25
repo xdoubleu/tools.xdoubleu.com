@@ -26,11 +26,9 @@ export function getRelease(): string {
   return process.env.RELEASE ?? 'dev'
 }
 
-// getKoboGatewayRelease returns the release actually baked into the
-// kobo-gateway .dmg/binary currently bundled in this deploy — can lag
-// behind getRelease() when kobo-gateway's own build was skipped (unchanged
-// source). gatewayNeedsUpdate compares against this, not getRelease(), so
-// it detects a genuinely newer kobo-gateway build rather than every deploy.
+// getKoboGatewayRelease returns the bundled kobo-gateway's release, which can
+// lag getRelease() when its build cache-hit; gatewayNeedsUpdate compares
+// against this.
 export function getKoboGatewayRelease(): string {
   if (typeof window !== 'undefined') {
     return window.__ENV__?.KOBO_GATEWAY_RELEASE ?? 'dev'
@@ -38,10 +36,7 @@ export function getKoboGatewayRelease(): string {
   return process.env.KOBO_GATEWAY_RELEASE ?? 'dev'
 }
 
-// PostHog Cloud (EU) product analytics + session replay — a materially
-// different telemetry path from the Web Vitals beacon above, see root
-// AGENTS.md. The client key is not secret (it ships in the browser bundle
-// regardless), same treatment as getSentryDsn() above.
+// PostHog Cloud (EU) client key; ships in the bundle anyway.
 export function getPostHogKey(): string {
   if (typeof window !== 'undefined') return window.__ENV__?.POSTHOG_KEY ?? ''
   return process.env.POSTHOG_KEY ?? ''
@@ -52,13 +47,9 @@ export function getPostHogHost(): string {
   return process.env.POSTHOG_HOST ?? ''
 }
 
-// getObservabilityIngestSecret authenticates web's own server-side POSTs to
-// the api's shared-secret log ingest endpoint (OBSERVABILITY_INGEST_SECRET,
-// see api/cmd/api/observability_ingest.go). Deliberately has no window.__ENV__
-// fallback, unlike every other getter here — this must never reach the
-// browser bundle. Callers on the client must instead route through
-// app/logs/route.ts, which calls this server-side and attaches the header
-// itself (lib/logger.ts does exactly this).
+// getObservabilityIngestSecret authenticates web's server-side log POSTs.
+// No window.__ENV__ fallback: it must never reach the browser (clients go
+// through app/logs/route.ts).
 export function getObservabilityIngestSecret(): string {
   if (typeof window !== 'undefined') return ''
   return process.env.OBSERVABILITY_INGEST_SECRET ?? ''

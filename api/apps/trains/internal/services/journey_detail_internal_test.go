@@ -170,10 +170,8 @@ func TestBuildStopDetails_NoLiveDataIsNeverOnTime(t *testing.T) {
 	a.False(details[0].IsAlightStop)
 }
 
-// TestBuildStopDetails_StopNameUsesDisplayName guards against regressing to
-// the old French-only label (issue #1656): a live journey's stop list must
-// show the same canonical DisplayName the station search dropdown renders,
-// not NameFR alone.
+// TestBuildStopDetails_StopNameUsesDisplayName: stops show DisplayName, not
+// NameFR.
 func TestBuildStopDetails_StopNameUsesDisplayName(t *testing.T) {
 	//nolint:exhaustruct //only fields relevant to this stop's position are set
 	pattern := []models.StopTime{

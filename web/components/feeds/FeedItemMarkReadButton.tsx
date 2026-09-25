@@ -19,11 +19,8 @@ export interface FeedItemMarkReadHandle {
   markRead: () => void
 }
 
-// FeedItemMarkReadButton marks an item read with a brief Undo window
-// (issue #476), now against the item's own persisted read_at (issue #734)
-// instead of a library book's status. Also triggerable imperatively (issue
-// #716) so scrolling to the end of an item auto-marks it read via the same
-// undo flow as the manual button.
+// Marks an item read with a brief Undo window; also triggerable imperatively
+// (auto-read on scrolling to the end).
 const FeedItemMarkReadButton = forwardRef<FeedItemMarkReadHandle, FeedItemMarkReadButtonProps>(
   function FeedItemMarkReadButton({ itemId, onMarkRead, onSettled }, ref) {
     const [justRead, setJustRead] = useState(false)

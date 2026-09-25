@@ -35,12 +35,11 @@ func TestAddPoint_BackfillsEarlierDate(t *testing.T) {
 	totals := map[int]int{1: 4}
 	g := helper.NewAchievementsGrapher(totals)
 
-	// Add a point 3 days in the past — should backfill dates between then and today
+	// A point 3 days back backfills the dates up to today.
 	past := time.Now().UTC().AddDate(0, 0, -3)
 	g.AddPoint(past, 1)
 
 	labels, _ := g.ToSlices()
-	// Should have at least 4 dates (the 3 past days + today)
 	assert.GreaterOrEqual(t, len(labels), 4)
 }
 
@@ -85,13 +84,12 @@ func TestAddPoint_MultipleGames(t *testing.T) {
 func TestToSlices_EmptyGrapher(t *testing.T) {
 	g := helper.NewAchievementsGrapher(map[int]int{})
 	labels, values := g.ToSlices()
-	// Always has at least today seeded
 	assert.NotEmpty(t, labels)
 	assert.Len(t, values, len(labels))
 }
 
 func TestToSlices_ZeroTotalAchievements(t *testing.T) {
-	// If total is 0 for a game, completionRate is NaN (0/0) → should not panic
+	// A 0 total gives NaN (0/0); must not panic.
 	totals := map[int]int{99: 0}
 	g := helper.NewAchievementsGrapher(totals)
 	g.AddPoint(time.Now().UTC(), 99)

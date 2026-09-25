@@ -4,13 +4,9 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { GATEWAY_DOWNLOAD_PATH } from '@/lib/books/gatewayClient'
 
-/**
- * Prompts for the kobo-gateway menu-bar app — the only way to set up a
- * Kobo (there is no in-browser fallback). macOS-only (the app is
- * darwin/arm64); other platforms get a short explanatory note instead.
- */
+/** Prompts for the kobo-gateway app (the only Kobo setup path); macOS-only. */
 export default function KoboGatewayDownload() {
-  // Read in an effect so SSR and the first client render stay identical.
+  // Read in an effect so SSR and first render match.
   const [isMac, setIsMac] = useState<boolean | null>(null)
 
   useEffect(() => {

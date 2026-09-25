@@ -13,7 +13,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   hardcover: 'Hardcover'
 }
 
-// cover_url is rendered as an image via BookCover, not as a text field.
+// cover_url renders via BookCover.
 const FIELDS = ['title', 'authors', 'description', 'page_count', 'isbn13']
 
 function fieldValue(s: SourceBook, field: string): string {
@@ -33,9 +33,7 @@ function fieldValue(s: SourceBook, field: string): string {
   }
 }
 
-// SourceCard shows one candidate's cover and fields, highlighting the ones
-// that differ from the library row (differs is empty for the library card
-// itself).
+// Highlights fields differing from the library row.
 function SourceCard({ label, source }: { label: string; source: SourceBook }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-3 text-sm">
@@ -70,16 +68,11 @@ interface SourceCompareProps {
   proposal: ResyncProposal
   onApply: (source: string, index: number) => Promise<void>
   applyLabel: (choice: string) => string
-  // When set, renders editable title/author search fields so the admin can
-  // re-run the live source search with tweaked terms (for books whose stored
-  // title/author is slightly off and matches nothing).
+  // Shows editable search terms to re-run the live search.
   onSearch?: (title: string, author: string) => void
 }
 
-// choiceValue/parseChoice encode a (source, index) pair as the RadioGroup's
-// single string value. "" always means "keep library" (index is irrelevant
-// there); every other source defaults to index 0 unless a manual override
-// search produced multiple candidates for it.
+// Encodes (source, index) as one RadioGroup value; "" means keep library.
 function choiceValue(source: string, index: number): string {
   return source === '' ? '' : `${source}:${index}`
 }
@@ -90,8 +83,6 @@ function parseChoice(value: string): { source: string; index: number } {
   return { source: value.slice(0, sepIndex), index: Number(value.slice(sepIndex + 1)) }
 }
 
-// SearchOverrideForm lets the admin steer the source search with hand-tweaked
-// title/author terms.
 function SearchOverrideForm({
   proposal,
   onSearch
@@ -129,10 +120,8 @@ function SearchOverrideForm({
   )
 }
 
-// SourceCompare renders one book's library row alongside its external source
-// candidates, with a radio picker and apply action. Shared by the resync
-// wizard (stepping through flagged books) and the book detail page's
-// on-demand "sync source" control (any single book).
+// One book's library row versus its source candidates, with a picker and
+// apply. Shared by the resync wizard and the book page's sync control.
 export default function SourceCompare({
   proposal,
   onApply,
@@ -143,8 +132,7 @@ export default function SourceCompare({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Grouped by source: normally one candidate per source, but a manual
-  // override search ("Search with these terms") can return up to 5.
+  // Usually one candidate per source; an override search can return up to 5.
   const groups = new Map<string, SourceBook[]>()
   for (const s of proposal.sources) {
     groups.set(s.source, [...(groups.get(s.source) ?? []), s])

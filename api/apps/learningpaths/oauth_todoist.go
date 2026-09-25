@@ -5,11 +5,8 @@ import (
 	"net/http"
 )
 
-// todoistOAuthCallbackRoute completes the per-user Todoist OAuth flow
-// (issue #1475) — the browser-facing leg Todoist's own redirect invokes
-// with ?code=&state=, mirroring api/cmd/api/oauth_admin.go's shape for the
-// admin-scoped GitHub/Sentry integrations. Mounted in routes.go, gated by
-// Auth.Access.
+// todoistOAuthCallbackRoute is the browser leg of the per-user Todoist OAuth
+// flow (?code=&state=), mounted behind Auth.Access in routes.go.
 func (a *LearningPaths) todoistOAuthCallbackRoute() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.URL.Query().Get("state")

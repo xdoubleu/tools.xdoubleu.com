@@ -11,8 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/feeds"
 )
 
-// findFeedsApp locates the concrete *feeds.Feeds among testApp.apps, the
-// same instance NewApplication wired into feedsHealthAdapter.
+// findFeedsApp returns the *feeds.Feeds in testApp.apps.
 func findFeedsApp(t *testing.T) *feeds.Feeds {
 	t.Helper()
 	for _, a := range *testApp.apps {
@@ -24,11 +23,8 @@ func findFeedsApp(t *testing.T) *feeds.Feeds {
 	return nil
 }
 
-// TestFeedsHealthAdapterListUnhealthy exercises the same adapter wired into
-// app.weeklyDigestJob by newWeeklyDigestJob, proving it maps a real
-// feeds.UnhealthyFeed into jobs.UnhealthyFeed correctly end to end (issue
-// #1014) — the job itself won't run within a test's lifetime since its
-// RunEvery is 7 days.
+// TestFeedsHealthAdapterListUnhealthy checks the adapter maps
+// feeds.UnhealthyFeed to jobs.UnhealthyFeed.
 func TestFeedsHealthAdapterListUnhealthy(t *testing.T) {
 	ctx := context.Background()
 	feedsApp := findFeedsApp(t)
@@ -58,10 +54,8 @@ func TestFeedsHealthAdapterListUnhealthy(t *testing.T) {
 	assert.True(t, found)
 }
 
-// TestFeedsOpenItemsAdapterListOpenItems exercises the same adapter wired
-// into app.weeklyDigestJob by newWeeklyDigestJob, proving it maps a real
-// unread item count into jobs.OpenFeedItem correctly end to end (issue
-// #1355).
+// TestFeedsOpenItemsAdapterListOpenItems checks the adapter maps unread item
+// counts to jobs.OpenFeedItem.
 func TestFeedsOpenItemsAdapterListOpenItems(t *testing.T) {
 	ctx := context.Background()
 	feedsApp := findFeedsApp(t)

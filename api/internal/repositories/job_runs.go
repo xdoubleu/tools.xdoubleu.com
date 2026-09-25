@@ -8,8 +8,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// jobRunsRetention bounds global.job_runs; older rows are pruned on insert
-// so no separate cleanup job is needed.
+// jobRunsRetention bounds global.job_runs; pruned on insert.
 const jobRunsRetention = 90 * 24 * time.Hour
 
 type JobRunsRepository struct {
@@ -36,8 +35,7 @@ func (r *JobRunsRepository) Insert(ctx context.Context, run models.JobRun) error
 	return err
 }
 
-// LastSuccessAt returns the start time of the most recent successful run of
-// jobID, or nil if it has never run successfully.
+// LastSuccessAt returns the start of jobID's last successful run, or nil.
 func (r *JobRunsRepository) LastSuccessAt(
 	ctx context.Context,
 	jobID string,

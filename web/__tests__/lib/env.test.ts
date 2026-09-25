@@ -18,7 +18,6 @@ describe('getRelease', () => {
   beforeEach(() => {
     jest.resetModules()
     process.env = { ...originalEnv }
-    // Reset window.__ENV__ for each test
     if (typeof window !== 'undefined') {
       window.__ENV__ = {
         API_URL: '',

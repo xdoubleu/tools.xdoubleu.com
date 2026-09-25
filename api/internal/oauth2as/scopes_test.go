@@ -11,11 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestOAuth2Flow_NoScopeRequested_StillIssuesRefreshToken is the regression
-// test for issue #1177: MCP clients routinely send no scope parameter, and
-// before grantOfflineAccess that meant an empty GrantedScope, no refresh
-// token, and a forced interactive re-authentication once the access token
-// expired an hour later.
+// With no scope requested, a refresh token must still be issued.
 func TestOAuth2Flow_NoScopeRequested_StillIssuesRefreshToken(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -37,8 +33,6 @@ func TestOAuth2Flow_NoScopeRequested_StillIssuesRefreshToken(t *testing.T) {
 	require.NotEmpty(t, out.RefreshToken)
 	assert.Equal(t, "bearer", strings.ToLower(out.TokenType))
 
-	// And that refresh token must actually work, so the client can stay
-	// authenticated without another trip through the consent screen.
 	refreshResp, refreshOut := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken},
@@ -49,9 +43,6 @@ func TestOAuth2Flow_NoScopeRequested_StillIssuesRefreshToken(t *testing.T) {
 	assert.NotEmpty(t, refreshOut.RefreshToken)
 }
 
-// TestConsentInfoHandler_ReportsEffectiveScope: the consent screen must show
-// the scope approving will actually grant, not the raw request parameter,
-// now that offline_access is added on top of whatever the client asked for.
 func TestConsentInfoHandler_ReportsEffectiveScope(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)

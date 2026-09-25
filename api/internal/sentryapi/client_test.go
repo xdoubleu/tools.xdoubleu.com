@@ -34,7 +34,6 @@ func stubNotConnected() oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
 }
 
-// stubConfigStore stands in for *repositories.OAuthConnectionsRepository.
 type stubConfigStore struct {
 	conn *models.OAuthConnection
 	err  error
@@ -442,8 +441,7 @@ func TestResolveIssue_NotConfigured(t *testing.T) {
 }
 
 func TestResolveIssue_TokenNotConnected(t *testing.T) {
-	// Config resolves fine (a connection+config row exists), so the token
-	// func's ErrNotConnected here can only mean a stale granted scope.
+	// Config resolves, so ErrNotConnected here means a stale scope.
 	c := sentryapi.New(
 		logging.NewNopLogger(), stubNotConnected(), configWith("org", "proj"),
 	)

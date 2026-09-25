@@ -25,8 +25,7 @@ type FamilyMember struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Email  string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
-	// display_name is the member's own chosen name, shown to the rest of the
-	// family in place of their email. Empty when they haven't set one.
+	// The member's chosen name, shown instead of their email; empty if unset.
 	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -190,11 +189,10 @@ func (*GetFamilyRequest) Descriptor() ([]byte, []int) {
 type GetFamilyResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Members []*FamilyMember        `protobuf:"bytes,1,rep,name=members,proto3" json:"members,omitempty"`
-	// incoming_invite is set when the caller has a pending invite to join
-	// another family.
+	// Set when the caller has a pending invite to another family.
 	IncomingInvite *FamilyInvite `protobuf:"bytes,2,opt,name=incoming_invite,json=incomingInvite,proto3" json:"incoming_invite,omitempty"`
-	// self_display_name is the caller's own chosen name within their family
-	// (empty when unset). The caller is not included in members.
+	// The caller's own chosen name (empty if unset); the caller is not in
+	// members.
 	SelfDisplayName string `protobuf:"bytes,3,opt,name=self_display_name,json=selfDisplayName,proto3" json:"self_display_name,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache

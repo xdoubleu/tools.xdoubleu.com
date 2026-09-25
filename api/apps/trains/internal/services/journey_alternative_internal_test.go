@@ -13,7 +13,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
-// base is a fixed wall-clock the fixtures below hang scheduled times off.
+// base anchors the fixtures' scheduled times.
 //
 //nolint:gochecknoglobals //fixed test anchor
 var altBase = time.Date(2026, 6, 1, 8, 0, 0, 0, brusselsLoc)
@@ -22,8 +22,7 @@ func tPtr(t time.Time) *time.Time { return &t }
 
 func iPtr(n int) *int { return &n }
 
-// twoLegRefs is a Brussels→transfer→destination itinerary: leg A arrives at
-// stop M at 08:30, leg B leaves M at 08:40.
+// twoLegRefs: leg A arrives at M 08:30, leg B leaves M 08:40.
 func twoLegRefs() []LegRef {
 	return []LegRef{
 		{
@@ -63,8 +62,7 @@ func stop(
 	}
 }
 
-// fixedTransfer stands in for JourneyService.MinTransferSeconds with a
-// constant 5-minute change everywhere.
+// fixedTransfer is a constant 5-minute change.
 func fixedTransfer(_, _ string) int { return 300 }
 
 func TestDetectJourneyBreak_NoLiveDataNeverFires(t *testing.T) {
@@ -92,8 +90,7 @@ func TestDetectJourneyBreak_MissedConnection(t *testing.T) {
 	refs := twoLegRefs()
 	aArr := altBase.Add(30 * time.Minute)
 	bDep := altBase.Add(40 * time.Minute)
-	// Leg A now arrives 8 minutes late (08:38); with a 5-minute change it
-	// can't make leg B's 08:40 departure.
+	// Leg A arrives 08:38; with a 5-minute change it misses 08:40.
 	legs := []models.LegDetail{
 		legDetail(
 			"A",
@@ -121,7 +118,6 @@ func TestDetectJourneyBreak_DelayedButConnectionStillMade(t *testing.T) {
 	refs := twoLegRefs()
 	aArr := altBase.Add(30 * time.Minute)
 	bDep := altBase.Add(40 * time.Minute)
-	// 2 minutes late, 5-minute change, 10-minute window — still fine.
 	legs := []models.LegDetail{
 		legDetail(
 			"A",

@@ -34,11 +34,8 @@ type client struct {
 
 var _ Client = (*client)(nil)
 
-// NewClient builds a Client that resolves a live bearer token via tokenFn
-// (an oauthconn.TokenFunc bound to one specific user's connection — see
-// api/apps/learningpaths/internal/repositories/oauth_connections.go) on
-// every call, so a rotated/refreshed token is always used without the
-// caller having to manage it.
+// NewClient builds a Client that resolves a fresh token via tokenFn (bound to
+// one user's connection) on every call.
 func NewClient(tokenFn oauthconn.TokenFunc) Client {
 	return &client{
 		httpClient: &http.Client{Timeout: requestTimeout},

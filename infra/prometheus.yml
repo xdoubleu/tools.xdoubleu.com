@@ -1,55 +1,22 @@
-# Prometheus's own config (issue #1468) — uploaded to
-# /home/deploy/prometheus/prometheus.yml by null_resource.prometheus
-# (infra/main.tf) and mounted read-only into the container by
-# infra/prometheus-compose.yml. Prometheus only collects: alerting is
-# Grafana's, provisioned into its wrapper image
-# (infra/grafana/provisioning/alerting/, issue #1528). No rule_files here.
+# Uploaded by null_resource.prometheus (infra/main.tf). Prometheus only
+# collects; alerting lives in infra/grafana/provisioning/alerting/.
 global:
   scrape_interval: 30s
   evaluation_interval: 30s
 
 scrape_configs:
-  # api's own /metrics (api/cmd/api/metrics.go) and web's
-  # (web/app/metrics/route.ts) — both Kamal-managed app containers, found by
-  # Docker service discovery rather than by hostname (issue #1554).
-  #
-  # These two jobs used to be static_configs pointed at the `service:` names
-  # (tools-xdoubleu-com-api:8000 / tools-xdoubleu-com-web:3000), on the
-  # assumption that Kamal gives each app container a network alias equal to
-  # its service name. It does not — Kamal names containers
-  # <service>-<role>-<version>, so Docker's embedded DNS never resolved
-  # either hostname and BOTH targets were down from the day they were added
-  # until #1554, silently zeroing every metric Phase 2 (#1528) and Phase 3
-  # (#1529) added.
-  #
-  # The `service` label is the stable identifier to match on instead: Kamal's
-  # own `validate_image` step refuses to deploy an image that doesn't carry
-  # it (see config/deploy.grafana.yml's header and infra/grafana.Dockerfile),
-  # so it is guaranteed present on every container Kamal runs and is not
-  # affected by container naming or the deployed version tag.
-  #
-  # Each job keeps the same `job` label the static config produced, so all
-  # existing dashboards (infra/grafana/dashboards/) and alert rules
-  # (infra/grafana/provisioning/alerting/rules.yml) keep working unchanged.
-  #
-  # During a deploy Kamal briefly runs the old and new container at once and
-  # both are discovered; the duplicate resolves itself when the old container
-  # goes away, and `instance` differs so neither sample is lost.
+  # Kamal app containers are found via Docker SD on the `service` label, which
+  # Kamal requires on every image; container names are
+  # <service>-<role>-<version>, so no stable DNS alias exists. The `job` label
+  # matches what dashboards and alert rules expect.
   - job_name: api
     docker_sd_configs: &app_sd
       - host: unix:///var/run/docker.sock
-        # Only containers currently running — without this, Prometheus also
-        # discovers Kamal's stopped previous-version containers and reports
-        # them as permanently down targets.
+        # Otherwise stopped previous-version containers show as down targets.
         filters:
           - name: status
             values: ["running"]
-        # Docker SD emits a target per exposed port, and synthesizes one on
-        # this `port` for a container that exposes none. Both api and web
-        # expose exactly one port (api/Dockerfile, web/Dockerfile), so each
-        # yields a single target either way; the port here is irrelevant
-        # regardless, since the relabel rules below rewrite __address__ to the
-        # container IP and the app_port outright.
+        # Irrelevant: relabeling rewrites __address__ to the container IP and port.
         port: 0
     relabel_configs:
       - source_labels: [__meta_docker_container_label_service]
@@ -61,21 +28,13 @@ scrape_configs:
       - source_labels: [__meta_docker_network_ip]
         target_label: __address__
         replacement: "$1:8000"
-      # Docker reports container names with a leading slash; strip it so
-      # `instance` reads as the plain container name.
+      # Strip Docker's leading slash from the container name.
       - source_labels: [__meta_docker_container_name]
         regex: "/?(.*)"
         target_label: instance
         replacement: "$1"
-    # job_duration_seconds carries its own `job` label naming the background
-    # job (api/internal/observability/trackedjob.go). That collides with the
-    # `job` label Prometheus attaches from this scrape config, so Prometheus
-    # renames the exposed one to `exported_job` — meaning a panel written the
-    # obvious way, `sum by (job) (...)`, silently groups every background job
-    # into a single "api" series instead of breaking them out.
-    #
-    # Rename it to something that says what it is, so the dashboards
-    # (infra/grafana/dashboards/api.json) can read naturally.
+    # job_duration_seconds' own `job` label collides with the scrape label and
+    # would become `exported_job`; rename it for the dashboards.
     metric_relabel_configs:
       - source_labels: [exported_job]
         target_label: job_name
@@ -84,12 +43,8 @@ scrape_configs:
 
   - job_name: web
     docker_sd_configs: *app_sd
-    # `web` is the kamal-proxy catch-all, so its GET /metrics is reachable
-    # from the public internet — web/app/metrics/route.ts gates it on this
-    # bearer token (issue #1555). The file is the OBSERVABILITY_INGEST_SECRET
-    # value, written to the host by null_resource.prometheus (infra/main.tf)
-    # and mounted read-only (infra/prometheus-compose.yml). If the secret is
-    # unset the web side fails open, so an empty file here still scrapes fine.
+    # web's /metrics is public via the catch-all, so it's gated on this token.
+    # An unset secret fails open on the web side.
     authorization:
       type: Bearer
       credentials_file: /etc/prometheus/web_ingest_secret
@@ -103,23 +58,14 @@ scrape_configs:
       - source_labels: [__meta_docker_network_ip]
         target_label: __address__
         replacement: "$1:3000"
-      # Docker reports container names with a leading slash; strip it so
-      # `instance` reads as the plain container name.
+      # Strip Docker's leading slash from the container name.
       - source_labels: [__meta_docker_container_name]
         regex: "/?(.*)"
         target_label: instance
         replacement: "$1"
 
-  # Grafana's own /metrics (issue #1580) — same docker_sd pattern as api/web
-  # above, since Grafana is also a Kamal service (config/deploy.grafana.yml)
-  # rather than a docker-compose accessory. metrics_path must be
-  # /grafana/metrics, not the Prometheus default /metrics: unlike the
-  # assumption this comment originally made, GF_SERVER_SERVE_FROM_SUB_PATH
-  # (config/deploy.grafana.yml) *does* apply to /metrics too — a bare
-  # /metrics request 301-redirects to /grafana/metrics (confirmed by
-  # booting the wrapper image locally with the same env vars deploy.grafana.yml
-  # sets), even though this scrape talks to the container IP directly and
-  # never goes through kamal-proxy's public path_prefix routing.
+  # /grafana/metrics: GF_SERVER_SERVE_FROM_SUB_PATH also applies to /metrics,
+  # even when scraped by container IP.
   - job_name: grafana
     metrics_path: /grafana/metrics
     docker_sd_configs: *app_sd
@@ -138,21 +84,12 @@ scrape_configs:
         target_label: instance
         replacement: "$1"
 
-  # The three jobs below stay static_configs on purpose: they are plain
-  # docker-compose accessories with stable container names, not Kamal
-  # services, so nothing renames them per deploy and Docker SD would buy
-  # nothing.
-  #
-  # Host CPU/memory/disk (issue #1040's node_exporter, now scraped by
-  # Prometheus directly instead of api's own removed
-  # HostMetricsSnapshotJob/hostmetrics.go).
+  # Compose accessories have stable names, so static_configs suffice.
   - job_name: node
     static_configs:
       - targets: ["node-exporter:9100"]
 
-  # Postgres server-level stats (connections, transactions, replication
-  # lag, table/index bloat, etc.) — a new accessory alongside node_exporter,
-  # infra/prometheus-compose.yml.
+  # Postgres server-level stats.
   - job_name: postgres
     static_configs:
       - targets: ["postgres-exporter:9187"]

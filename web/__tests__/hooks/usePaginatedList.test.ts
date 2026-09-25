@@ -3,9 +3,7 @@ import { usePaginatedList } from '@/hooks/usePaginatedList'
 
 describe('usePaginatedList', () => {
   it('starts with the initial page', () => {
-    // `initial` held stable across re-renders, as a real caller must (see
-    // the hook's doc comment) — an inline literal would be a new reference
-    // on every state-driven re-render and loop.
+    // Stable across re-renders, as the hook requires.
     const initial = { items: [1, 2], hasMore: true }
     const { result } = renderHook(() => usePaginatedList(initial, jest.fn()))
     expect(result.current.items).toEqual([1, 2])
@@ -40,9 +38,7 @@ describe('usePaginatedList', () => {
   })
 
   it('merges a revalidated first page instead of dropping loaded pages, when the leading items still match', async () => {
-    // Simulates a background SWR revalidation: same logical items, but a
-    // fresh object per fetch (as a real ConnectRPC response would be) —
-    // reference equality alone would treat this as a genuinely new page.
+    // Revalidation returns fresh objects for the same items.
     const fetchPage = jest.fn().mockResolvedValue({ items: [{ id: '3' }], hasMore: false })
     const { result, rerender } = renderHook(
       ({ initial }: { initial: { items: { id: string }[]; hasMore: boolean } }) =>
@@ -55,8 +51,7 @@ describe('usePaginatedList', () => {
     })
     expect(result.current.items).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
 
-    // Revalidation returns the same leading items (new object references,
-    // possibly with refreshed fields) — the loaded third page must survive.
+    // Same leading items: the loaded third page must survive.
     rerender({ initial: { items: [{ id: '1' }, { id: '2' }], hasMore: true } })
     expect(result.current.items).toEqual([{ id: '1' }, { id: '2' }, { id: '3' }])
   })

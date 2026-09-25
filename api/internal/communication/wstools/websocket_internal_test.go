@@ -10,12 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestAcceptWithHandshakeSpan_NoHubOnContext exercises the branch where the
-// request context carries no Sentry hub (sentry.GetHubFromContext returns
-// nil), falling back to sentry.CurrentHub() — the case a request that never
-// went through sentryhttp's middleware (e.g. this bare httptest request)
-// hits. It must not panic even though no client is configured, and still
-// reports the accept failure.
+// No hub on the context: falls back to sentry.CurrentHub() without panicking.
 func TestAcceptWithHandshakeSpan_NoHubOnContext(t *testing.T) {
 	t.Parallel()
 
@@ -28,10 +23,6 @@ func TestAcceptWithHandshakeSpan_NoHubOnContext(t *testing.T) {
 	assert.Nil(t, conn)
 }
 
-// TestAcceptWithHandshakeSpan_WithHubOnContext exercises the branch where
-// the request context already carries a hub (sentry.GetHubFromContext
-// returns non-nil) — the normal production path, since sentryhttp's
-// middleware always sets one before this handler runs.
 func TestAcceptWithHandshakeSpan_WithHubOnContext(t *testing.T) {
 	t.Parallel()
 

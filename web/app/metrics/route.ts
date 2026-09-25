@@ -3,17 +3,10 @@ import { timingSafeEqual } from 'node:crypto'
 import { getObservabilityIngestSecret } from '@/lib/env'
 import { metricsRegistry, recordWebVital } from '@/lib/server/metrics'
 
-// GET /metrics is scraped by Prometheus over the internal Docker network (the
-// "web" job in infra/prometheus.yml). `web` is the kamal-proxy catch-all, so
-// the endpoint is also reachable from the public internet — it is gated on a
-// bearer token (OBSERVABILITY_INGEST_SECRET, the same shared secret
-// app/logs/route.ts uses; infra/prometheus.yml's `web` job sends it as
-// `Authorization: Bearer`). When the secret is unset the gate is skipped
-// rather than closed, matching app/logs/route.ts and keeping a missing-secret
-// misconfiguration from silently zeroing every `web_*` metric (issue #1555).
-//
-// POST /metrics is the same-origin browser Web Vitals beacon
-// (app/_components/web-vitals.tsx) and stays unauthenticated by design.
+// GET: Prometheus scrape. Public via the kamal-proxy catch-all, so gated on
+// OBSERVABILITY_INGEST_SECRET as a bearer token; skipped when unset so a
+// missing secret doesn't zero every metric.
+// POST: the unauthenticated same-origin Web Vitals beacon.
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 

@@ -16,12 +16,8 @@ const (
 )
 
 // loginItemPlistTemplate is a LaunchAgent that runs execPath at login and
-// relaunches it on any abnormal exit (SuccessfulExit false) — a panic, a
-// listener error, or the darwinkit AppKit bridge's SIGABRT (see
-// gateway/AGENTS.md) all leave the process dead with nothing to bring it
-// back otherwise. A clean exit (the user quit from the menu, which exits 0)
-// is not relaunched. launchd's default throttle prevents a crash-loop from
-// hammering.
+// relaunches it after any abnormal exit (panic, SIGABRT); a clean quit exits
+// 0 and isn't relaunched.
 const loginItemPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -49,10 +45,8 @@ func LoginItemPath(homeDir string) string {
 	return filepath.Join(homeDir, "Library", "LaunchAgents", loginItemLabel+".plist")
 }
 
-// loginItemPlist renders the LaunchAgent plist that launches execPath at
-// login. execPath is XML-escaped — an unescaped "&"/"<"/">" in the path
-// (e.g. an app installed under a folder with an ampersand in its name) would
-// otherwise produce malformed XML that launchd silently rejects.
+// loginItemPlist renders the plist; execPath is XML-escaped since launchd
+// silently rejects malformed XML.
 func loginItemPlist(execPath string) string {
 	var escaped bytes.Buffer
 	_ = xml.EscapeText(&escaped, []byte(execPath))
@@ -76,9 +70,7 @@ func writeLoginItemPlist(homeDir, execPath string) error {
 	return nil
 }
 
-// EnableLoginItem writes the LaunchAgent plist so execPath launches at every
-// login, and asks launchctl to pick it up immediately (best-effort — a
-// failure there still leaves the plist in place for the next login).
+// EnableLoginItem writes the plist and best-effort loads it via launchctl.
 func EnableLoginItem(homeDir, execPath string) error {
 	if err := writeLoginItemPlist(homeDir, execPath); err != nil {
 		return err
@@ -89,14 +81,9 @@ func EnableLoginItem(homeDir, execPath string) error {
 	return nil
 }
 
-// SyncLoginItem rewrites an already-installed LaunchAgent plist to match the
-// current template (e.g. to pick up a new KeepAlive policy on an existing
-// install whose plist predates it) without touching launchctl — a
-// bootout/bootstrap cycle would SIGTERM the very process calling this,
-// killing the gateway mid-startup. The refreshed KeepAlive policy takes
-// effect once launchd next reloads the plist (next login/reboot). Does
-// nothing when the login item isn't enabled, so a user who disabled
-// autostart isn't silently re-opted-in.
+// SyncLoginItem rewrites an installed plist to the current template without
+// launchctl (a bootout would SIGTERM this process); it applies at next load.
+// Does nothing when the login item is disabled.
 func SyncLoginItem(homeDir, execPath string) error {
 	if !LoginItemEnabled(homeDir) {
 		return nil
@@ -119,29 +106,23 @@ func DisableLoginItem(homeDir string) error {
 	return nil
 }
 
-// LoginItemEnabled reports whether the LaunchAgent plist is currently
-// installed.
+// LoginItemEnabled reports whether the plist is installed.
 func LoginItemEnabled(homeDir string) bool {
 	_, err := os.Stat(LoginItemPath(homeDir))
 
 	return err == nil
 }
 
-// IsFirstLaunch reports whether the gateway has never run before on this
-// machine (the same marker file EnsureInitialLoginItem writes). Callers must
-// check this before EnsureInitialLoginItem, which creates the marker — used
-// to gate the one-time "enable notifications" prompt (#456) onto the actual
-// install/first-launch moment, not every subsequent run.
+// IsFirstLaunch reports whether the gateway has never run on this machine.
+// Check it before EnsureInitialLoginItem, which creates the marker.
 func IsFirstLaunch(markerDir string) bool {
 	_, err := os.Stat(filepath.Join(markerDir, loginItemMarkerFile))
 
 	return os.IsNotExist(err)
 }
 
-// EnsureInitialLoginItem registers the login item exactly once, the first
-// time the gateway ever runs (tracked by a marker file in markerDir,
-// alongside the TLS cert). After that first run, the user's own choice via
-// the menu-bar toggle (Enable/DisableLoginItem) is left alone.
+// EnsureInitialLoginItem registers the login item only on the very first
+// run; after that the user's menu-bar choice stands.
 func EnsureInitialLoginItem(markerDir, homeDir, execPath string) error {
 	markerPath := filepath.Join(markerDir, loginItemMarkerFile)
 	if _, err := os.Stat(markerPath); err == nil {
@@ -159,10 +140,7 @@ func EnsureInitialLoginItem(markerDir, homeDir, execPath string) error {
 	return os.WriteFile(markerPath, []byte("initialized\n"), loginItemFilePerm)
 }
 
-// launchctl runs the given launchctl args, best-effort. A var (not a plain
-// func call) so export_test.go can swap in a no-op under go test — there's
-// no real gui/<uid> session there and shelling out would just fail noisily
-// on every CI run.
+// launchctl is a var so tests can stub it (no gui/<uid> session there).
 //
 //nolint:gochecknoglobals // test seam, see export_test.go
 var launchctl = func(args ...string) {
@@ -170,8 +148,8 @@ var launchctl = func(args ...string) {
 	exec.Command("launchctl", args...).Run()
 }
 
-// bootstrapLoginItem/bootoutLoginItem best-effort nudge launchctl so the
-// change takes effect immediately instead of at next login.
+// bootstrapLoginItem/bootoutLoginItem apply the change now instead of at
+// next login.
 func bootstrapLoginItem(path string) {
 	launchctl("bootstrap", loginItemDomain(), path)
 }

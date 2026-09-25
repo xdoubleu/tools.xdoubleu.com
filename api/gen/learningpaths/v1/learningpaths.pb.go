@@ -25,8 +25,7 @@ type Item struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ModuleId string                 `protobuf:"bytes,2,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
-	// Freeform for now (e.g. "read", "study", "do", "checkpoint") rather than
-	// an enum — kept simple until real usage shows a fixed set is warranted.
+	// Freeform (e.g. "read", "study", "do", "checkpoint").
 	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
 	Description   string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
 	SortOrder     int32  `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
@@ -183,10 +182,8 @@ func (x *Module) GetItems() []*Item {
 	return nil
 }
 
-// LinkedBook is the resolved, read-only state of a resource's linked books
-// library entry (#1474) — populated on Get/List only, when linked_book_id
-// still resolves for the caller; never set by the client and ignored on
-// Create/Update.
+// LinkedBook is the read-only resolved state of a resource's linked books
+// entry, set on reads when it still resolves; ignored on Create/Update.
 type LinkedBook struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Title           string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
@@ -255,8 +252,7 @@ func (x *LinkedBook) GetCoverUrl() string {
 	return ""
 }
 
-// LinkedFeedItem is the resolved, read-only state of a resource's linked
-// feeds item (#1474) — same populate-on-read-only rule as LinkedBook.
+// LinkedFeedItem is the feeds counterpart to LinkedBook.
 type LinkedFeedItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
@@ -325,13 +321,8 @@ func (x *LinkedFeedItem) GetBookmarked() bool {
 	return false
 }
 
-// Resources are freeform text entries by default (e.g. "Book: ...",
-// "https://..."). Setting linked_book_id or linked_feed_item_id instead
-// links the resource to an existing books library entry or feeds item
-// (#1474) — additive to the freeform text field, which most resources still
-// use (a physical book, a plain website, etc. have nothing to link to).
-// Setting both, or setting one while text is also non-empty, is allowed;
-// text becomes a caller-supplied caption alongside the resolved link state.
+// Resource is freeform text, optionally linked to a books entry or feeds
+// item via linked_book_id/linked_feed_item_id; text then acts as a caption.
 type Resource struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -438,8 +429,7 @@ type LearningPath struct {
 	UserId string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	Title  string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Goal   string                 `protobuf:"bytes,4,opt,name=goal,proto3" json:"goal,omitempty"`
-	// Freeform description of the recurring routine (e.g. "30 min every
-	// weekday morning").
+	// Freeform recurring routine (e.g. "30 min every weekday morning").
 	Routine       string      `protobuf:"bytes,5,opt,name=routine,proto3" json:"routine,omitempty"`
 	CreatedAt     string      `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string      `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
@@ -1062,9 +1052,8 @@ func (*DeleteLearningPathResponse) Descriptor() ([]byte, []int) {
 	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{15}
 }
 
-// RecordItemProgress toggles a single item's completion flag without
-// resending the whole tree — the dedicated path both the "check an item off"
-// UI action and an MCP tool (learningpaths_record_progress, #1473) use.
+// RecordItemProgress toggles one item's completion without resending the
+// tree.
 type RecordItemProgressRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
@@ -1153,8 +1142,7 @@ func (*RecordItemProgressResponse) Descriptor() ([]byte, []int) {
 	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{17}
 }
 
-// ModuleProgress is one module's completion count within a
-// GetLearningPathProgressResponse.
+// ModuleProgress is one module's completion count.
 type ModuleProgress struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1267,11 +1255,8 @@ func (x *GetLearningPathProgressRequest) GetId() string {
 	return ""
 }
 
-// GetLearningPathProgressResponse reports completion counts derived
-// server-side from current item state, both overall and per module — added
-// in #1473 so the learningpaths_get_progress MCP tool (and any future UI
-// progress bar) reads a real RPC instead of re-deriving counts from
-// GetLearningPath's full tree.
+// GetLearningPathProgressResponse reports server-derived completion counts,
+// overall and per module.
 type GetLearningPathProgressResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	LearningPathId string                 `protobuf:"bytes,1,opt,name=learning_path_id,json=learningPathId,proto3" json:"learning_path_id,omitempty"`
@@ -1348,12 +1333,8 @@ func (x *GetLearningPathProgressResponse) GetModules() []*ModuleProgress {
 	return nil
 }
 
-// TodoistService (issue #1475) lets a user connect their own Todoist account
-// and send a single path item to it as a task, one-way (no sync-back —
-// completing the Todoist task never flips the item's own `completed` flag).
-// A separate service, not folded into LearningPathsService, mirroring how
-// books.v1 splits LibraryService/BookFilesService/KoboService/CatalogService
-// by concern rather than one service per app.
+// TodoistService connects a user's own Todoist account and sends single
+// items to it as tasks, one-way (completing a task never flips `completed`).
 type ConnectTodoistRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1392,10 +1373,8 @@ func (*ConnectTodoistRequest) Descriptor() ([]byte, []int) {
 
 type ConnectTodoistResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// authorize_url is where the client should navigate the browser to start
-	// Todoist's OAuth2 authorization-code flow. The callback leg that
-	// completes the flow is a plain HTTP redirect route, not a ConnectRPC
-	// method — see learningpaths' routes.go.
+	// Where to send the browser to start Todoist's OAuth2 flow; the callback
+	// is a plain HTTP route (routes.go).
 	AuthorizeUrl  string `protobuf:"bytes,1,opt,name=authorize_url,json=authorizeUrl,proto3" json:"authorize_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1645,9 +1624,7 @@ func (x *SendItemToTodoistRequest) GetItemId() string {
 
 type SendItemToTodoistResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// todoist_task_id is Todoist's own id for the created task, echoed back
-	// only for the caller's confirmation UI — nothing here is retained
-	// server-side to correlate the two systems, per "no two-way sync".
+	// Todoist's id for the created task, for confirmation only; not stored.
 	TodoistTaskId string `protobuf:"bytes,1,opt,name=todoist_task_id,json=todoistTaskId,proto3" json:"todoist_task_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

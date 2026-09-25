@@ -3,15 +3,9 @@
 # or if a migration added on this branch isn't numbered above every migration
 # that already existed in its directory at the branch point.
 #
-# Goose tracks applied migrations by version number, not filename, so a
-# duplicate number is not an error to it — it treats the version as already
-# applied and skips the second file silently, recording success while the
-# schema change never runs. Two branches each adding e.g. 00022_*.sql pass CI
-# independently; the collision only exists once the second one rebases, which
-# is exactly when this check fires. A non-duplicate out-of-order insert (main
-# already has 00023_*.sql, this branch adds 00022_*.sql) doesn't collide, but
-# it still silently changes goose's run order relative to what the author
-# tested against, so it's caught separately below.
+# Goose tracks applied migrations by version, so it silently skips a
+# duplicate-numbered file. An out-of-order insert doesn't collide but silently
+# changes run order relative to what the author tested.
 set -euo pipefail
 
 status=0
@@ -51,10 +45,8 @@ if merge_base=$(git merge-base "$base_ref" HEAD 2>/dev/null); then
 	for dir in cmd/api/migrations apps/*/migrations; do
 		[ -d "$dir" ] || continue
 
-		# An app whose migrations/ directory did not exist at the branch
-		# point (a brand-new app's first migration) has no base tree to list
-		# — treat its base max as 0. Without the `|| true` the failing
-		# `git show` aborts the whole script under `set -e`/pipefail.
+		# A brand-new app has no base migrations/ tree: base max is 0, and
+		# `|| true` keeps the failing `git show` from aborting under set -e.
 		base_tree=$(git show "$merge_base:${repo_prefix}${dir}" 2>/dev/null || true)
 		base_max=$(
 			printf '%s\n' "$base_tree" |

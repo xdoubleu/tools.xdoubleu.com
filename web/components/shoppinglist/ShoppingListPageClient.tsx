@@ -43,9 +43,7 @@ export default function ShoppingListPageClient() {
     Array.from(excludedGroups)
   )
 
-  // Map the aggregated meal-plan export items into the shared ShoppingItem shape
-  // once, so both the read-only landing preview and the ExportDialog work off a
-  // single source of truth (and a single SWR fetch).
+  // Mapped once so the preview and ExportDialog share one source and fetch.
   const mealItems: ShoppingItemExport[] = useMemo(
     () =>
       (mealExportData?.items ?? []).map((item) => ({

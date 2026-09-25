@@ -1,10 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import BookCover from '@/components/books/BookCover'
 
-// ---------------------------------------------------------------------------
-// Duck-typed interfaces — avoids importing branded proto Message types so
-// tests can pass plain fixture objects without unsafe type assertions.
-// ---------------------------------------------------------------------------
+// Duck-typed so tests can pass plain fixtures instead of proto Messages.
 
 interface DupBook {
   id: string
@@ -23,31 +20,16 @@ export interface DupUserBook {
   formats: string[]
 }
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function isbnDisplay(isbn13: string): string {
   if (isbn13) return `ISBN ${isbn13}`
   return 'No ISBN'
 }
 
-// ---------------------------------------------------------------------------
-// DuplicateBookSummary
-// ---------------------------------------------------------------------------
-
 interface DuplicateBookSummaryProps {
   ub: DupUserBook
 }
 
-/**
- * Renders a single UserBook entry inside the "Find duplicates" dialog.
- * Shows every field that the winner-selection algorithm weighs so the admin
- * can see at a glance why one entry was auto-picked and which to keep.
- */
-// ---------------------------------------------------------------------------
-// Metadata quality helpers (mirrors metadataCompleteness in book_matching.go)
-// ---------------------------------------------------------------------------
+// Metadata quality helpers (mirror metadataCompleteness in book_matching.go).
 
 interface MetadataField {
   label: string
@@ -78,7 +60,6 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
   const fields = metadataFields(book)
   const score = fields.filter((f) => f.present).length
 
-  // Identity/value tokens: ISBN and page count.
   const metaTokens: string[] = [isbn]
   if (book.pageCount > 0) metaTokens.push(`${book.pageCount}p`)
 
@@ -89,10 +70,8 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
         <p className="text-sm font-medium leading-tight">{book.title}</p>
         <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>
 
-        {/* Identity metadata line */}
         <p className="text-xs text-subtle mt-0.5">{metaTokens.join(' · ')}</p>
 
-        {/* Metadata quality breakdown */}
         <div className="flex flex-wrap gap-1 mt-1">
           <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle">
             Metadata {score}/5
@@ -104,7 +83,6 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
           ))}
         </div>
 
-        {/* Ownership / format badges */}
         <div className="flex flex-wrap gap-1 mt-1">
           <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle capitalize">
             {ub.status}

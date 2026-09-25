@@ -1,123 +1,54 @@
 # web/ — Frontend
 
-Next.js 16 App Router app, React 19, TypeScript strict, built as a standalone
-Node server (`output: 'standalone'` in `next.config.ts`, run via `node
-server.js`). Run all `npm` commands from this directory.
+Next.js 16 App Router, React 19, TypeScript strict, standalone Node server (`output: 'standalone'`). Run `npm` commands from this directory; shared commands are in the root `AGENTS.md`.
 
 ## Layout
 
-- `app/` — one route folder per app/domain, matching the API's service boundaries (`games/`, `books/`, `feeds/`, `recipes/`, `mealplans/`, `shoppinglist/`, `watchparty/`, `trains/`, plus `auth/`, `family/`, `monitoring/`, `dashboard/`, `settings/`, `sharing/`, `user-management/`, `oauth/consent/`). `dashboard/{games,reading}/` holds both the private (owner) and public (token-shared) Games/Reading dashboards — `games/`/`books/` no longer have a dashboard-shaped route of their own, only library/detail/settings pages → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
-- `components/` — shared cross-app components at the root (`Navbar.tsx`, `HomeClient.tsx`, `SWRFallback.tsx`, `SWRProvider.tsx`, …) plus one subfolder per domain mirroring `app/`, and `components/ui/` for shadcn-style primitives.
-- `lib/` — `client.ts` (browser ConnectRPC transport), `server/` (RSC-only transport + fetchers), `swrKeys.ts` (SWR cache key registry), `env.ts`, `cn.ts`, `gen/` (generated ConnectRPC clients — read the `.proto` source instead), plus one subfolder per domain (`books/`, `recipes/`, `games/`, `watchparty/`, `oauth2as/`).
-- `hooks/` — one SWR data-fetching hook file per domain, plus non-SWR client hooks (e.g. WebSocket-based ones like `useJourneySocket.ts`, `useProgressSocket.ts`) that also need `hooks/`'s client-safe boundary.
+- `app/` — one route folder per app/domain. `dashboard/{games,reading}/` holds both owner and public (token-shared) dashboards → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
+- `components/` — shared components at the root, one subfolder per domain, primitives in `components/ui/`.
+- `lib/` — `client.ts` (browser transport), `server/` (RSC transport + fetchers), `swrKeys.ts`, `env.ts`, `cn.ts`, per-domain subfolders; `gen/` is generated (read the `.proto` instead).
+- `hooks/` — SWR hooks per domain, plus client-only WebSocket hooks.
 
-## Data Flow (RSC + SWR)
+## Data flow (RSC + SWR)
 
-Two parallel ConnectRPC client stacks, one per rendering context — `lib/client.ts`
-(browser, binary format, `credentials: 'include'`, memoized per service) and
-`lib/server/client.ts` (RSC-only, built per request, wrapped in React's `cache()`,
-10s timeout). Server components prefetch via `fetchOrNull`
-(`lib/server/fetchers.ts`) and hand results to a client boundary as SWR fallback
-data through `<SWRFallback>`. The RSC transport **never forwards the
-refresh-token cookie** — an RSC can't persist a rotated one.
+`lib/client.ts` (browser, binary, `credentials: 'include'`) and `lib/server/client.ts` (RSC, per request via `cache()`, 10s timeout). Server components prefetch with `fetchOrNull` (`lib/server/fetchers.ts`) and pass results as SWR fallback via `<SWRFallback>`.
 
-Two rules that bite if broken:
-
-- **The RSC transport must never forward the refresh-token cookie.** An RSC can't persist rotated cookies, so a server-triggered refresh would invalidate the session the browser still holds.
-- **`lib/swrKeys.ts` is *the* registry of SWR cache keys** — query hooks and `mutate()` invalidations must both go through it; a key literal written inline anywhere else silently splits the cache from its invalidator. A `<SWRFallback>` key must mirror the client hook's key exactly.
-
-`lib/env.ts`'s `getApiUrl()` reads `window.__ENV__.API_URL` in the browser (injected by an inline script in `app/layout.tsx`, since the same standalone build is deployed with different env per environment) and `process.env.API_URL` on the server.
+- **The RSC transport must never forward the refresh-token cookie** — an RSC can't persist a rotated one, so a server-side refresh kills the browser's session.
+- **Every SWR key goes through `lib/swrKeys.ts`**, for both hooks and `mutate()`; an inline literal splits the cache from its invalidator. `<SWRFallback>` keys must match the hook's exactly.
+- `getApiUrl()` (`lib/env.ts`) reads `window.__ENV__.API_URL` in the browser (injected in `app/layout.tsx`, since one build serves every environment) and `process.env.API_URL` on the server.
 
 ## Commands
 
 ```bash
-npm ci                                      # first command in a fresh worktree — node_modules/ is gitignored, so every other command here fails without it
-npm run dev
-npm run build                              # required before finishing web tasks, see root AGENTS.md
-npm run lint                                # eslint → tsc --noEmit → prettier --check → knip → syncpack lint
-npm run lint:fix                            # eslint --fix + prettier --write
-npm test                                    # jest
-npm run test:cov                            # jest --coverage
-npm run test:cov:diff                        # jest --coverage, then scope the report to lines changed vs origin/main
-npx jest path/to/file.test.ts -t "name"     # single test
-npm run generate                            # buf generate — regenerate lib/gen/ from proto (pair with `make proto/generate` in api/)
-npm run generate:local                      # same, via the locally-installed protoc-gen-es instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `make proto/generate/local` in api/)
-npm run generate:check                      # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
-npm run mobile:audit -- /trains /books      # Playwright at 375x667, both themes: horizontal overflow, tap-target size/spacing, iOS input zoom (needs `npm run dev` running and `npx playwright install chromium`); used by the mobile-review skill
-npm run generate:ui-catalog                 # regenerate components/ui/README.md from components/ui/*.tsx
-npm run generate:ui-catalog:check           # regenerate + fail if stale (part of npm run lint)
+npm ci                                  # first, in a fresh worktree
+npm run test:cov:diff                   # coverage on lines changed vs origin/main — run before pushing (matches codecov/patch)
+npm run mobile:audit -- /trains /books  # 375x667 Playwright audit; needs `npm run dev` + `npx playwright install chromium`
+npm run generate:ui-catalog             # regenerate components/ui/README.md (lint fails if stale)
 ```
 
-## UI Standards
+## UI rules → [`convention-ui-standards`](../docs/convention-ui-standards.md)
 
-Mobile-first Tailwind (no fixed-pixel widths); Server Components by default;
-every interactive control uses a `components/ui/` shadcn-style primitive —
-**ESLint fails the build on a raw `<button>`/`<input>`/`<select>`/`<textarea>`
-outside `components/ui/`**, so check the generated inventory in
-[`components/ui/README.md`](components/ui/README.md) before writing a new
-component, and add a primitive rather than styling a raw element at a call site.
-Regenerate it with `npm run generate:ui-catalog` whenever `components/ui/`
-changes (`npm run lint` fails if it's stale). Merge class overrides with `cn()`
-from `lib/cn.ts`; clickable cards use
-`interactiveCardClass` from `components/ui/card.tsx`. Page-level loading is
-`<p className="text-muted">Loading…</p>`, errors
-`<p className="text-danger">Failed to load X.</p>`, and pending buttons swap to a
-`…`-suffixed present participle — always the typographic `…`, never `...`.
-Tailwind v4 CSS-first theming (no `tailwind.config.ts`); dark tokens key off
-`:root[data-theme='dark']`, owned by `lib/theme.ts` → [`docs/convention-ui-standards.md`](../docs/convention-ui-standards.md).
+- **ESLint rejects raw `<button>`/`<input>`/`<select>`/`<textarea>` outside `components/ui/`.** Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive rather than styling a raw element.
+- Merge classes with `cn()`; clickable cards use `interactiveCardClass` (`components/ui/card.tsx`).
+- Loading: `<p className="text-muted">Loading…</p>`; errors: `<p className="text-danger">Failed to load X.</p>`; pending buttons use a present participle with the typographic `…`, never `...`.
+- Tailwind v4 CSS-first (no `tailwind.config.ts`); dark tokens key off `:root[data-theme='dark']`, owned by `lib/theme.ts`.
+- **A Server Component must never import a file that pulls in client-only hooks**, even for a constant. Only `next build` catches it — put shared constants in a React-free `lib/` module.
 
-**A Server Component must never import from a file that pulls in client-only
-hooks** — even for an unrelated shared constant. Next's server/client boundary
-check rejects it, and that check is enforced **only by `next build`**, not
-`tsc`/ESLint/Jest. Put constants shared across the boundary in a plain `lib/`
-module with no React imports (as `lib/theme.ts` does).
+## kobo-gateway client (`lib/books/gatewayClient.ts`)
 
-## kobo-gateway Client (`lib/books/gatewayClient.ts`)
+Talks to the local helper at `https://127.0.0.1:41132` (see `kobo-gateway/AGENTS.md`). The browser makes all authenticated API calls and hands the gateway only a sync URL.
 
-Client for the local kobo-gateway macOS menu-bar helper
-(`https://127.0.0.1:41132`, self-signed cert trusted on first launch; server in
-`kobo-gateway/`, its own Go module — see `kobo-gateway/AGENTS.md`). The browser
-makes all authenticated API calls itself and only hands the gateway a resulting
-sync URL; the gateway patches the USB-mounted Kobo's config file directly.
+- Bump `REQUIRED_GATEWAY_VERSION` (with Go's `GatewayVersion`) **only for protocol breaks**; routine updates flow through `gatewayNeedsUpdate` comparing against `getKoboGatewayRelease()` → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md).
+- `public/` is assembled at Docker build time (`build-web.yml` stages the kobo-gateway artifacts), **so the download route 404s under `npm run dev`** → [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
 
-`REQUIRED_GATEWAY_VERSION` is a floor for **genuine protocol breaks only** — bump
-it alongside `GatewayVersion` in the Go code only then. `gatewayNeedsUpdate` also
-compares the gateway's `release` stamp against `getKoboGatewayRelease()`, the
-release of the artifact actually bundled in this deploy rather than web's own,
-which is what delivers routine (non-protocol) updates → [`docs/adr-0004-runtime-release-env-vs-compile-stamp.md`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md).
+## OAuth consent (`app/oauth/consent/`)
 
-## Static Downloads
+Drives the api's embedded fosite AS directly; the pending request's query params are echoed verbatim both ways — don't normalize or default them here.
 
-`web/public/` does not exist in the repo — it's assembled at Docker build time.
-`build-web.yml` stages the kobo-gateway `.dmg` and raw binary into
-`web/public/downloads/` before `docker build` runs, and `web/Dockerfile` just
-`COPY`s them. **So the download route 404s under `npm run dev`** unless you build
-`kobo-gateway/` locally first and copy the artifacts in yourself → [`docs/adr-0002-kobo-gateway-ci-cache-split.md`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
+## Files and tests
 
-## OAuth Consent Screen (`app/oauth/consent/`)
-
-Server-rendered OAuth 2.1 consent screen for the apps MCP server, driving the
-api's own embedded fosite authorization server directly. Needs no env config
-beyond the existing `API_URL`; the pending request's query params are echoed
-verbatim in both directions — this is not the place to normalize or default
-them.
-
-## File Size & Splits
-
-TypeScript/TSX files over ~300 lines need a split before adding more code:
-
-- Components — split by UI concern (e.g. `MealPlanCalendar.tsx` → `MealPlanMealChip.tsx`, `MealPlanEntryForm.tsx`)
-- Hooks — split by data domain
-- Utility files — split by concern
-
-## Testing
-
-Jest + React Testing Library. Target ≥80% coverage on `components/`, `lib/`,
-`hooks/` (`lib/gen/` excluded). `npm run test:cov` for the full report, or
-`npm run test:cov:diff` to scope it to lines changed vs `origin/main` — **run
-this before pushing**; it matches what CI's `codecov/patch` gates on and exits
-non-zero on a changed file under 80% or with no coverage data at all
-→ [`docs/adr-0013-diff-scoped-coverage.md`](../docs/adr-0013-diff-scoped-coverage.md).
+- Split TS/TSX files over ~300 lines before adding code (components by UI concern, hooks by data domain).
+- Jest + React Testing Library; ≥80% coverage on `components/`, `lib/`, `hooks/` → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

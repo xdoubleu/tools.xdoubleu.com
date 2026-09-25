@@ -88,8 +88,7 @@ function openAddDialog() {
   fireEvent.click(screen.getAllByRole('button', { name: '+' })[0])
 }
 
-// The add dialog now opens on the Recipe tab by default; switch to Custom for
-// the free-text entry tests.
+// The add dialog opens on the Recipe tab; switch to Custom.
 function openAddDialogCustom() {
   openAddDialog()
   fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
@@ -260,7 +259,6 @@ describe('MealPlanCalendar', () => {
   it('does not submit when custom item is empty', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialogCustom()
-    // Item 1 is empty
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).not.toHaveBeenCalled())
   })
@@ -399,10 +397,8 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    // Select the meal for swapping via its actions menu
     startSwap()
-    // In swap mode the "+" buttons are hidden; click the cell div directly.
-    // All cells have hover:border-accent class in swap mode; index 1 is the first empty slot.
+    // "+" buttons are hidden in swap mode; index 1 is the first empty slot.
     const swapCells = document.querySelectorAll('[class*="hover:border-accent"]')
     fireEvent.click(swapCells[1])
 
@@ -448,7 +444,6 @@ describe('MealPlanCalendar', () => {
       />
     )
 
-    // Pick m1 (Eggs) for swapping, then tap m2 (Pancakes) to swap positions.
     startSwap()
     const target = screen
       .getAllByText(/Pancakes/)
@@ -458,10 +453,8 @@ describe('MealPlanCalendar', () => {
     await waitFor(() => expect(mockMoveMeal).toHaveBeenCalledTimes(2))
     const first = mockMoveMeal.mock.calls[0][0]
     const second = mockMoveMeal.mock.calls[1][0]
-    // Picked meal moves to the target's slot.
     expect(first.mealId).toBe('m1')
     expect(first.newDate).toBe('2026-05-26')
-    // Target meal moves back to the picked meal's original slot.
     expect(second.mealId).toBe('m2')
     expect(second.newDate).toBe('2026-05-25')
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
@@ -484,11 +477,10 @@ describe('MealPlanCalendar', () => {
 
     render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
 
-    // Start a swap via the actions menu
     startSwap()
     expect(screen.getByText(/Swapping/i)).toBeInTheDocument()
 
-    // In swap mode, clicking the same chip body cancels. The item has the 'wrap-break-word' class.
+    // Clicking the same chip body cancels the swap.
     const mealItem = screen
       .getAllByText(/Eggs/)
       .find((el) => el.classList.contains('wrap-break-word'))!
@@ -725,11 +717,9 @@ describe('MealPlanCalendar', () => {
       />
     )
     openAddDialogCustom()
-    // Fill first item
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Chicken' }
     })
-    // Add second item
     fireEvent.click(screen.getByRole('button', { name: /\+ Add item/i }))
     fireEvent.change(screen.getByPlaceholderText('Item 2'), {
       target: { value: 'Rice' }
@@ -811,8 +801,7 @@ describe('MealPlanCalendar', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: /^Fill day$/i }))
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
-    // The test mock limits MEAL_SLOTS to ['breakfast'], so one call is expected
-    // per slot; verify it targets the clicked date and every mocked slot.
+    // The mock limits MEAL_SLOTS to ['breakfast'].
     for (const call of mockAddMeal.mock.calls) {
       expect(call[0].mealDate).toBe('2026-05-25')
       expect(call[0].customName).toBe('Leftovers')

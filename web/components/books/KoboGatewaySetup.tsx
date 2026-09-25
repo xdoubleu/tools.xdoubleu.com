@@ -35,10 +35,8 @@ interface KoboGatewaySetupProps {
 }
 
 /**
- * Gateway-driven Kobo setup: the local kobo-gateway does the file work while
- * this component keeps making the authenticated API calls. Gateway
- * reachability and the connected-Kobo list come from useGatewayStatus's
- * background polling — there's no manual re-check, the UI just updates.
+ * Gateway-driven Kobo setup: the gateway does the file work, this component
+ * makes the authenticated API calls. Status comes from useGatewayStatus polling.
  */
 export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: KoboGatewaySetupProps) {
   const { mutate: mutateGatewayStatus } = useGatewayStatus()
@@ -105,9 +103,8 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
   }
 
   /**
-   * Reverts the conf via the gateway and revokes the matching device token.
-   * Mirrors handleRevert in KoboSetup: an explicit device ID (post-configure)
-   * wins; otherwise the device is matched by serial.
+   * Reverts via the gateway and revokes the device token (explicit device ID
+   * wins, else matched by serial), like KoboSetup's handleRevert.
    */
   async function handleRevert(
     kobo: GatewayKobo,

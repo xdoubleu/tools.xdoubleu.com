@@ -99,10 +99,7 @@ func TestLogRepoHandler_WithAttrs_PreservesInserter(t *testing.T) {
 	inserter := newFakeLogInserter()
 	handler := NewLogRepoHandler(next, inserter)
 
-	// Bound via WithAttrs, "component" lives in the handler's own state, not
-	// the record itself, so it won't reach insertBestEffort's JSON — this
-	// test only asserts the wrapped handler still routes through to the
-	// inserter and to next.
+	// WithAttrs state isn't part of the record, so this only checks routing.
 	withAttrs := handler.WithAttrs([]slog.Attr{slog.String("component", "test")})
 	logger := slog.New(withAttrs)
 	logger.Info("with component attr")

@@ -38,12 +38,9 @@ var accessToken = http.Cookie{
 	Value: "access",
 }
 
-// fakeStore is the shared in-memory object store used by testApp.
-// Tests can Put bytes directly then call FinalizeUpload to simulate R2 uploads.
 var fakeStore *objectstore.FakeClient //nolint:gochecknoglobals //needed for tests
 
-// mockWebFetch is testApp's external-content client; ingest and feed tests
-// register canned responses on it.
+// mockWebFetch serves canned responses for ingest and feed tests.
 //
 //nolint:gochecknoglobals //needed for tests
 var mockWebFetch *mocks.MockWebFetchClient
@@ -85,10 +82,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// ensureGlobalJobRuns mirrors cmd/api/migrations/00005_observability.sql's
-// job_runs table so this package's Start()/jobqueue.AddJob calls can look up
-// a job's last successful run before the cmd/api package has applied the
-// global migrations.
+// ensureGlobalJobRuns mirrors cmd/api's job_runs table, which this package's
+// tests need before the global migrations run.
 func ensureGlobalJobRuns(db postgres.DB) {
 	ctx := context.Background()
 	if _, err := db.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS global"); err != nil {
@@ -114,9 +109,8 @@ func getRoutes() http.Handler {
 	return testhelper.BuildMux(testApp)
 }
 
-// getRoutesWithKoboUpstream creates a Backlog instance identical to testApp
-// but with a custom KoboStoreBaseURL (for proxy/merge tests).
-// It shares the same DB so tokens generated via testApp are recognised.
+// getRoutesWithKoboUpstream is testApp with a custom KoboStoreBaseURL, sharing
+// its DB so testApp's tokens work.
 func getRoutesWithKoboUpstream(t *testing.T, upstreamURL string) http.Handler {
 	t.Helper()
 	clients := books.Clients{
@@ -141,15 +135,12 @@ func TestGetDisplayName(t *testing.T) {
 	assert.Equal(t, "Books", testApp.GetDisplayName())
 }
 
-// goodreadsCSVForImport is a minimal Goodreads CSV for import testing.
-//
 //nolint:lll // CSV rows are inherently long
 const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclusive Shelf,Bookshelves with positions,Date Read
 99001,Import Test Book,Import Author,"=""0140449116""","=""9780140449112""",4,read,"read (#1)",2023/05/20
 `
 
-// addTestBookNoISBN adds a book without an ISBN so each call creates a distinct
-// catalog entry (ISBN is the dedup key; without it each ProviderID gets its own row).
+// addTestBookNoISBN adds an ISBN-less book, so each call gets its own catalog row.
 func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
 	t.Helper()
 	ext := services.SourceProposal{ //nolint:exhaustruct //ISBN intentionally absent

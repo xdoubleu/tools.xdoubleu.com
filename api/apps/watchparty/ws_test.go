@@ -16,8 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 )
 
-// dialSignaling opens a WebSocket to the signaling endpoint and sends the
-// initial subscribe message. The returned conn is the caller's to close.
+// dialSignaling opens a signaling WebSocket and sends the subscribe message.
 func dialSignaling(
 	t *testing.T,
 	srv *httptest.Server,
@@ -48,8 +47,7 @@ func makeTrackMsg(msgType dtos.Type, trackType string) dtos.TrackMessage {
 	}
 }
 
-// TestSignalingPresenterOfferRelayedToViewer verifies that an offer sent by
-// the presenter is forwarded to the viewer.
+// TestSignalingPresenterOfferRelayedToViewer: offers reach the viewer.
 func TestSignalingPresenterOfferRelayedToViewer(t *testing.T) {
 	app, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -80,8 +78,7 @@ func TestSignalingPresenterOfferRelayedToViewer(t *testing.T) {
 	assert.Equal(t, "cam", received.TrackType)
 }
 
-// TestSignalingViewerAnswerRelayedToPresenter verifies that an answer sent by
-// the viewer is forwarded to the presenter.
+// TestSignalingViewerAnswerRelayedToPresenter: answers reach the presenter.
 func TestSignalingViewerAnswerRelayedToPresenter(t *testing.T) {
 	app, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -111,9 +108,8 @@ func TestSignalingViewerAnswerRelayedToPresenter(t *testing.T) {
 	assert.Equal(t, "screen", received.TrackType)
 }
 
-// TestSignalingPresenterOfferBufferedBeforeViewerConnects verifies that an
-// offer sent before the viewer's WebSocket connects is buffered and delivered
-// once the viewer connects.
+// TestSignalingPresenterOfferBufferedBeforeViewerConnects: an early offer is
+// buffered until the viewer connects.
 func TestSignalingPresenterOfferBufferedBeforeViewerConnects(t *testing.T) {
 	app, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -123,7 +119,6 @@ func TestSignalingPresenterOfferBufferedBeforeViewerConnects(t *testing.T) {
 	roomCode := app.Services.Room.CreateRoom(ctx, userID)
 	app.Services.Room.JoinViewer(ctx, roomCode, userID)
 
-	// Presenter connects first and sends an offer before viewer WS connects.
 	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
 	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
 
@@ -132,7 +127,6 @@ func TestSignalingPresenterOfferBufferedBeforeViewerConnects(t *testing.T) {
 	offer := makeTrackMsg(dtos.Offer, "cam")
 	require.NoError(t, wsjson.Write(ctx, presConn, offer))
 
-	// Viewer connects after the offer was already sent.
 	viewConn := dialSignaling(t, srv, roomCode, dtos.Viewer)
 	defer viewConn.CloseNow() //nolint:errcheck // cleanup in test
 
@@ -145,9 +139,8 @@ func TestSignalingPresenterOfferBufferedBeforeViewerConnects(t *testing.T) {
 	assert.Equal(t, "cam", received.TrackType)
 }
 
-// TestSignalingAbruptDisconnectDoesNotPanic verifies that an abrupt WebSocket
-// close (no clean close frame, simulating a dropped connection) causes the
-// server-side read loop to exit without panicking.
+// TestSignalingAbruptDisconnectDoesNotPanic: a close without a close frame
+// ends the read loop cleanly.
 func TestSignalingAbruptDisconnectDoesNotPanic(t *testing.T) {
 	app, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -161,7 +154,6 @@ func TestSignalingAbruptDisconnectDoesNotPanic(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	// Abrupt close without a clean WebSocket close frame.
 	_ = presConn.CloseNow()
 
 	// The viewer connects; the room is still intact and must not panic.
@@ -172,9 +164,8 @@ func TestSignalingAbruptDisconnectDoesNotPanic(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 }
 
-// TestSignalingDisconnectBeforeSubscribe verifies that closing the WebSocket
-// before sending the subscribe message is handled gracefully — specifically it
-// exercises the wstools.ServerErrorResponse path in WsSignalingHandler.
+// TestSignalingDisconnectBeforeSubscribe covers the ServerErrorResponse path
+// when the socket closes before subscribing.
 func TestSignalingDisconnectBeforeSubscribe(t *testing.T) {
 	_, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -193,9 +184,8 @@ func TestSignalingDisconnectBeforeSubscribe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-// TestSignalingPresenterJoinsNonExistentRoom verifies that connecting as a
-// presenter to a room that does not exist causes the server to respond with an
-// error — exercises the JoinPresenter-failure branch in handlePresenter.
+// TestSignalingPresenterJoinsNonExistentRoom covers handlePresenter's
+// JoinPresenter-failure branch.
 func TestSignalingPresenterJoinsNonExistentRoom(t *testing.T) {
 	_, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -212,15 +202,13 @@ func TestSignalingPresenterJoinsNonExistentRoom(t *testing.T) {
 	sub := map[string]string{"roomCode": "NOROOM", "role": "presenter"}
 	require.NoError(t, wsjson.Write(ctx, conn, sub))
 
-	// Server sends an error response and closes the connection.
 	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	var msg any
 	_ = wsjson.Read(readCtx, conn, &msg)
 }
 
-// TestSignalingInvalidRoleRejected verifies that an unknown role in the
-// subscribe message does not cause a panic — the handler simply does nothing.
+// TestSignalingInvalidRoleRejected: an unknown role must not panic.
 func TestSignalingInvalidRoleRejected(t *testing.T) {
 	_, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -236,19 +224,16 @@ func TestSignalingInvalidRoleRejected(t *testing.T) {
 	sub := map[string]string{"roomCode": "XXXXXX", "role": "unknown"}
 	require.NoError(t, wsjson.Write(ctx, conn, sub))
 
-	// Server should close the connection with a validation error response.
 	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	var msg any
 	err = wsjson.Read(readCtx, conn, &msg)
-	// Any outcome (close frame or error message) is acceptable; we only care
-	// that the handler does not panic.
+	// Any outcome is fine; only a panic fails.
 	_ = err
 }
 
-// TestSignalingViewerReconnectReceivesBufferedOffer verifies that when a
-// viewer reconnects after the presenter has sent an offer while the viewer
-// was disconnected, the viewer receives the buffered offer.
+// TestSignalingViewerReconnectReceivesBufferedOffer: a reconnecting viewer
+// gets the offer sent while it was away.
 func TestSignalingViewerReconnectReceivesBufferedOffer(t *testing.T) {
 	app, routes := newTestApp()
 	srv := httptest.NewServer(routes)
@@ -263,11 +248,9 @@ func TestSignalingViewerReconnectReceivesBufferedOffer(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	// Presenter sends an offer while viewer is not connected.
 	offer := makeTrackMsg(dtos.Offer, "cam")
 	require.NoError(t, wsjson.Write(ctx, presConn, offer))
 
-	// Now viewer connects and should receive the buffered offer.
 	viewConn := dialSignaling(t, srv, roomCode, dtos.Viewer)
 	defer viewConn.CloseNow() //nolint:errcheck // cleanup in test
 

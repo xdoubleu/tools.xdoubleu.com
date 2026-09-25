@@ -15,22 +15,16 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
 )
 
-// altDayStart anchors the fixture window: UTC midnight of the current
-// Europe/Brussels calendar day. Keeping it a UTC instant preserves the
-// consistent +offset csa.Build's epoch and the DATE-typed calendar_dates
-// column both pick up (as journey_test.go's UTC-midnight anchor does), while
-// pinning the day to Brussels means services.serviceDateOf and
-// RealtimeService's Brussels-local fallback date agree on the service date
-// even in the late-evening UTC window that flakes the sibling overlay tests
-// (#1523).
+// altDayStart is UTC midnight of the current Brussels calendar day: a UTC
+// instant keeps csa.Build's epoch and DATE columns consistent, while the
+// Brussels day keeps service-date lookups agreeing late in the UTC day.
 func altDayStart() time.Time {
 	loc, _ := time.LoadLocation("Europe/Brussels")
 	now := time.Now().In(loc)
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 }
 
-// altFeed is a two-leg itinerary with a same-station change and a later
-// third train available as a fallback from the transfer platform:
+// altFeed: two legs with a same-station change, plus a fallback train:
 //   - IC1: AX1 08:00 → MX1 08:30
 //   - IC2: MX2 08:40 → BX1 09:20   (change MX1→MX2, default 180s)
 //   - IC3: MX1 09:00 → BX1 09:45   (the re-plan target)
@@ -144,11 +138,8 @@ func altFeed(windowStart time.Time) *models.Feed {
 	}
 }
 
-// altLegRefs hand-builds the LegRefs a real SearchJourneys call would have
-// encoded into the journey_id, so it must reproduce idx.fromAbs' reference
-// frame exactly: Brussels-local midnight of windowStart's calendar date
-// (never windowStart's own raw value — it's UTC, per altDayStart's doc
-// comment, and only its Y/M/D are meaningful).
+// altLegRefs hand-builds the LegRefs SearchJourneys would encode, in
+// idx.fromAbs' frame: Brussels-local midnight of windowStart's Y/M/D.
 func altLegRefs(windowStart time.Time) []services.LegRef {
 	brussels, err := time.LoadLocation("Europe/Brussels")
 	if err != nil {
@@ -177,9 +168,8 @@ func altLegRefs(windowStart time.Time) []services.LegRef {
 	}
 }
 
-// stopUpdateBody builds a trip-update feed with one StopTimeUpdate for
-// tripID at stopSequence. arrivalDelay is applied only when rel is
-// SCHEDULED; pass NO_DATA to assert the overlay stays absent.
+// stopUpdateBody builds a one-StopTimeUpdate trip-update feed; arrivalDelay
+// applies only when rel is SCHEDULED.
 func stopUpdateBody(
 	t *testing.T,
 	tripID string,
@@ -227,8 +217,7 @@ func TestGetJourneyDetail_MissedConnectionSurfacesAlternative(t *testing.T) {
 	windowStart := seedAltFeed(ctx, t)
 
 	t.Cleanup(func() { testBMC.RealtimeResults = nil })
-	// IC1 arrives at MX1 (seq 2) 8 minutes late — the 180s change to IC2's
-	// 08:40 departure is no longer makeable.
+	// IC1 arrives 8 minutes late, missing the 180s change to IC2.
 	testBMC.RealtimeResults = map[string]*bmc.RealtimeResult{
 		bmc.FeedTripUpdate: {Body: stopUpdateBody(
 			t, "t1", 2, 480, gtfs.TripUpdate_StopTimeUpdate_SCHEDULED,
@@ -255,8 +244,7 @@ func TestGetJourneyDetail_NoDataNeverSurfacesAlternative(t *testing.T) {
 	windowStart := seedAltFeed(ctx, t)
 
 	t.Cleanup(func() { testBMC.RealtimeResults = nil })
-	// A trip update exists for IC1, but its arrival at MX1 carries NO_DATA —
-	// the ~2/3 case (#1393). It must not be read as a broken connection.
+	// NO_DATA on IC1's arrival must not read as a broken connection.
 	testBMC.RealtimeResults = map[string]*bmc.RealtimeResult{
 		bmc.FeedTripUpdate: {Body: stopUpdateBody(
 			t, "t1", 2, 0, gtfs.TripUpdate_StopTimeUpdate_NO_DATA,

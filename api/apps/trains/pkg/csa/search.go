@@ -8,52 +8,36 @@ import (
 	"time"
 )
 
-// maxTransfersSearched bounds how many extra trips a search will try
-// before giving up on finding a strictly-better (fewer transfers) option —
-// 652 stops does not need more, and the page this feeds only needs a
-// handful of alternatives (issue #1391).
+// maxTransfersSearched bounds the extra trips tried when looking for
+// fewer-transfer options.
 const maxTransfersSearched = 3
 
-// maxJourneyResults caps the total window returned to callers — enough for
-// windowBefore + windowAfter (issue #1643) without ever trimming the window
-// itself before the caller sees it.
+// maxJourneyResults caps the returned window (windowBefore + windowAfter).
 const maxJourneyResults = 8
 
-// windowBefore/windowAfter are how many distinct journeys SearchJourneys
-// tries to surface strictly before/after the requested time, in addition to
-// whatever searchOnce already finds at the requested time itself — issue
-// #1643's "show a few options around the filled out time", since a single
-// Pareto-optimal result is not what a real journey-search UI shows.
+// windowBefore/windowAfter: how many journeys to surface before/after the
+// requested time, beyond what searchOnce finds at it.
 const windowBefore = 3
 const windowAfter = 3
 
-// beforeAnchorOffsets are how far back searchOnce is re-run, in order, to
-// find windowBefore distinct earlier departures/arrivals. CSA is a
-// forward-only algorithm, so there is no backward search — probing from
-// progressively earlier anchor times and keeping what lands before the
-// requested time is the practical alternative.
+// beforeAnchorOffsets are the earlier anchors searchOnce is re-run from.
+// CSA only scans forward, so earlier options come from earlier anchors.
 var beforeAnchorOffsets = []time.Duration{ //nolint:gochecknoglobals //readonly config
 	1 * time.Hour, 2 * time.Hour, 4 * time.Hour,
 }
 
-// arriveByLookback bounds how far before an "arrive by" request the search
-// starts scanning connections from.
 const arriveByLookback = 3 * time.Hour
 
-// searchHorizon bounds how far past the requested time the search looks
-// for a journey — this is "a window around the requested time" (issue
-// #1391), not an open-ended search of the whole rolling window: a station
-// pair with no service today should come back empty rather than surface an
-// option days later.
+// searchHorizon bounds how far past the requested time to look, so a pair
+// with no service today returns empty rather than days later.
 const searchHorizon = 20 * time.Hour
 
 // ErrUnknownStop is returned when the origin or destination stop id isn't
 // in the index.
 var ErrUnknownStop = errors.New("trains: unknown stop id")
 
-// Leg is one boarded train, from where the passenger gets on to where they
-// get off. TripShortName/RouteShortName identify the train to a user —
-// nothing here is a trip_id.
+// Leg is one boarded train. Identified by TripShortName/RouteShortName,
+// never trip_id.
 type Leg struct {
 	TripShortName  string
 	RouteShortName string
@@ -86,13 +70,9 @@ type hop struct {
 	from       stopIdx
 }
 
-// SearchJourneys returns a window of journeys from originID to destID
-// around when: whatever searchOnce finds at when itself, plus up to
-// windowBefore earlier and windowAfter later distinct journeys (issue
-// #1643), merged, deduplicated and sorted by departure time (arrival time
-// for arriveBy). For arriveBy=true only the "before" side is widened — a
-// journey arriving after the requested deadline contradicts the search
-// intent, so no "after" probing happens in that mode.
+// SearchJourneys returns journeys around when: searchOnce's result plus up
+// to windowBefore earlier and windowAfter later, deduped and sorted. arriveBy
+// only widens before, since later arrivals miss the deadline.
 func (idx *Index) SearchJourneys(
 	originID, destID string, when time.Time, arriveBy bool,
 ) ([]Journey, error) {
@@ -120,9 +100,7 @@ func (idx *Index) SearchJourneys(
 	return w.all, nil
 }
 
-// widenBefore probes progressively earlier anchor times (beforeAnchorOffsets)
-// until w holds windowBefore distinct journeys strictly before when, or the
-// anchors run out.
+// widenBefore probes earlier anchors until windowBefore journeys precede when.
 func (idx *Index) widenBefore(
 	w *journeyWindow, originID, destID string, when time.Time, arriveBy bool,
 ) {
@@ -144,11 +122,8 @@ func (idx *Index) widenBefore(
 	}
 }
 
-// widenAfter probes progressively later anchor times (beforeAnchorOffsets,
-// reused as a forward offset here) until w holds windowAfter distinct
-// journeys departing at/after when (on top of whatever searchOnce already
-// found there), or the anchors run out. Only called for arriveBy=false — an
-// "after" journey has no meaning relative to an arrival deadline.
+// widenAfter probes later anchors (reusing beforeAnchorOffsets) until
+// windowAfter journeys depart at/after when.
 func (idx *Index) widenAfter(
 	w *journeyWindow,
 	originID, destID string,
@@ -177,8 +152,7 @@ func filterJourneys(js []Journey, keep func(Journey) bool) []Journey {
 	return out
 }
 
-// journeyWindow accumulates journeys found from more than one search
-// anchor, deduplicating by journeyKey.
+// journeyWindow accumulates journeys across anchors, deduped by journeyKey.
 type journeyWindow struct {
 	all  []Journey
 	seen map[string]bool
@@ -212,10 +186,7 @@ func (w *journeyWindow) count(match func(Journey) bool) int {
 	return n
 }
 
-// journeyKey is a stable dedup key for a Journey found from more than one
-// search anchor — mirrors what services.EncodeJourneyID keys on (the leg
-// sequence), built here from Journey's own fields since pkg/csa cannot
-// import the services package.
+// journeyKey keys a Journey by its leg sequence, like EncodeJourneyID.
 func journeyKey(j Journey) string {
 	var b strings.Builder
 	for _, l := range j.Legs {
@@ -233,13 +204,8 @@ func journeyKey(j Journey) string {
 	return b.String()
 }
 
-// searchOnce returns a Pareto set over (arrival time, transfer count) for
-// journeys from originID to destID: the earliest arrival, plus slower
-// options with fewer changes. when is either a departure time
-// (arriveBy=false) or a desired arrival time (arriveBy=true, approximated
-// by scanning a lookback window ending at when and keeping only results
-// that land on or before it). SearchJourneys calls this once at when and
-// again at a handful of earlier/later anchor times to build a window.
+// searchOnce returns a Pareto set over (arrival, transfers). For arriveBy,
+// it scans a lookback window ending at when and keeps results arriving by it.
 func (idx *Index) searchOnce(
 	originID, destID string, when time.Time, arriveBy bool,
 ) ([]Journey, error) {
@@ -300,11 +266,8 @@ func (idx *Index) searchOnce(
 	return journeys, nil
 }
 
-// scanPass runs one Connection Scan sweep in place over arrival/parent,
-// allowing at most one additional trip beyond whatever arrival/parent
-// already reflect from the previous pass — see SearchJourneys' doc comment
-// for why repeating this bounded sweep yields a Pareto frontier over
-// (arrival time, transfer count).
+// scanPass runs one Connection Scan sweep allowing one more trip than the
+// previous pass; repeating it yields the Pareto frontier.
 func (idx *Index) scanPass(
 	arrival []int64, parent []hop, startAbs, deadlineAbs int64,
 ) {
@@ -344,11 +307,8 @@ func bestAmong(arrival []int64, dests []stopIdx) (int64, stopIdx) {
 	return best, bestStop
 }
 
-// relaxFootpaths propagates arrival[from]+walkTime to footpath-adjacent
-// stops, for every from in seeds — called both to seed origin platforms
-// and, inline during the connection scan, whenever a stop's arrival
-// improves, so a same-station change is available to later connections in
-// the same pass.
+// relaxFootpaths propagates arrival[from]+walkTime to footpath neighbours of
+// seeds; also called mid-scan so same-station changes are usable in the pass.
 func (idx *Index) relaxFootpaths(arrival []int64, parent []hop, seeds []stopIdx) {
 	for _, from := range seeds {
 		base := arrival[from]
@@ -366,8 +326,8 @@ func (idx *Index) relaxFootpaths(arrival []int64, parent []hop, seeds []stopIdx)
 	}
 }
 
-// reconstruct walks the parent chain from dest back to an origin hop,
-// merging consecutive connections that share an instance into one Leg.
+// reconstruct walks parents from dest, merging same-instance connections
+// into one Leg.
 func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 	type step struct {
 		conn       connection
@@ -390,7 +350,6 @@ func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 		steps = append(steps, step{conn: h.conn})
 		cur = h.from
 	}
-	// reverse
 	for i, j := 0, len(steps)-1; i < j; i, j = i+1, j-1 {
 		steps[i], steps[j] = steps[j], steps[i]
 	}
@@ -437,20 +396,15 @@ func (idx *Index) reconstruct(parent []hop, dest stopIdx) Journey {
 	}
 }
 
-// sameInstance reports whether appending conn to this leg would just be
-// riding the same train onward — matched on trip identity, held only
-// inside the search, never persisted (issue #1391 / #1388's trip_id rule).
-// The metadata-index match used here is what the caller sees; the actual
-// per-day instance identity is checked by the caller not re-entering
-// footpaths between elementary connections of the same trip.
+// sameInstance reports whether conn continues this leg's train.
 func (l Leg) sameInstance(c connection, idx *Index) bool {
 	return l.AlightStopID == idx.stopByIdx(c.depStop).StopID &&
 		l.TripShortName == idx.tripMetas[c.meta].shortName &&
 		l.RouteShortName == idx.tripMetas[c.meta].routeShortName
 }
 
-// paretoFilter keeps only journeys where no other returned journey both
-// arrives no later and uses no more transfers, sorted by arrival time.
+// paretoFilter keeps journeys not dominated on (arrival, transfers), sorted
+// by arrival.
 func paretoFilter(journeys []Journey) []Journey {
 	var out []Journey
 	for _, j := range journeys {

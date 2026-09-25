@@ -1,17 +1,7 @@
 #!/usr/bin/env bash
-# Validate every agent SKILL.md frontmatter before merge (issue #1817 —
-# finish-task's description was an unquoted YAML plain scalar containing
-# ": ", which parses as invalid YAML; OpenCode silently drops a skill whose
-# frontmatter fails to parse, and Claude Code degrades it, so the closing
-# half of the task lifecycle vanished with no error anywhere. A convention
-# that can only be violated silently will be.)
-#
-# Checks, for every SKILL.md in the repo's skill sources (.claude/skills,
-# .agents/skills, .opencode/skills): the frontmatter parses as YAML, and
-# both `name` and a non-empty `description` are present — a skill without a
-# description is never advertised to the model by either harness.
-#
-# Run via `make lint/skills`; also run by main.yml's unconditional lint job.
+# Validate SKILL.md frontmatter in .claude/skills, .agents/skills and
+# .opencode/skills: must parse as YAML with `name` and a non-empty
+# `description`, or harnesses silently drop the skill.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

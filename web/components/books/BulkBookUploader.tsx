@@ -9,15 +9,9 @@ import { cn } from '@/lib/cn'
 import { isBookFile, filesFromDataTransfer, MAX_UPLOAD_BYTES } from '@/lib/books/zipFiles'
 import { runPool } from '@/lib/books/pool'
 
-// A file whose metadata couldn't be recognized (rather than any other
-// upload error) can be retried with a manually typed title/author — see
-// issue #394. Matched by message text since the server maps every
-// FinalizeBookUpload failure reason to the same CodeInvalidArgument.
+// Unrecognized-metadata failures can be retried with a typed title/author.
+// Matched by text: every FinalizeBookUpload failure is InvalidArgument.
 const UNRECOGNIZED_BOOK_TEXT = 'could not be recognized from metadata'
-
-// ---------------------------------------------------------------------------
-// Upload phase state
-// ---------------------------------------------------------------------------
 
 type FailedUpload = {
   file: File
@@ -39,17 +33,11 @@ type UploadPhase =
   | { kind: 'done'; progress: UploadProgress }
   | { kind: 'error'; message: string }
 
-// ---------------------------------------------------------------------------
-// BulkBookUploader
-// ---------------------------------------------------------------------------
-
 export default function BulkBookUploader() {
   const uploadBookFile = useUploadBookFile()
   const [phase, setPhase] = useState<UploadPhase>({ kind: 'idle' })
   const [dragging, setDragging] = useState(false)
 
-  // Number of files to upload concurrently. Modest to avoid saturating the
-  // user's upstream and the server's per-file processing.
   const UPLOAD_CONCURRENCY = 4
 
   async function processFiles(files: File[]) {
@@ -239,10 +227,6 @@ export default function BulkBookUploader() {
   )
 }
 
-// ---------------------------------------------------------------------------
-// UploadProgressDisplay
-// ---------------------------------------------------------------------------
-
 interface UploadProgressDisplayProps {
   progress: UploadProgress
   done: boolean
@@ -291,10 +275,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
   )
 }
 
-// ---------------------------------------------------------------------------
-// FailedFileRecovery — lets the user retry an unrecognized upload with a
-// manually typed title/author (issue #394).
-// ---------------------------------------------------------------------------
+// Retries an unrecognized upload with a typed title/author.
 
 interface FailedFileRecoveryProps {
   item: FailedUpload

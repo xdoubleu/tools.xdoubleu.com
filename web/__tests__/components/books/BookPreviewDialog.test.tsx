@@ -13,7 +13,6 @@ jest.mock('swr', () => ({
 }))
 
 jest.mock('next/dynamic', () => () => {
-  // Return a stub component synchronously so tests don't need async import resolution.
   const Stub = (props: {
     url?: unknown
     epubInitOptions?: { openAs?: unknown }
@@ -153,8 +152,7 @@ describe('BookPreviewDialog', () => {
     expect(reader).toBeInTheDocument()
     expect(reader).toHaveAttribute('data-url', 'https://r2.example.com/book.epub')
     expect(reader).toHaveAttribute('data-open-as', 'epub')
-    // Always opens at spine index 0 rather than trusting the book's own TOC,
-    // which can point to a nonexistent spine item (issue #1594).
+    // Opens at spine index 0, not the book's possibly broken TOC.
     expect(reader).toHaveAttribute('data-location', '0')
   })
 
@@ -168,7 +166,6 @@ describe('BookPreviewDialog', () => {
         onOpenChange={jest.fn()}
       />
     )
-    // When closed, the hook should receive null so it doesn't fetch.
     expect(mockUseGetBookFile).toHaveBeenCalledWith(null, null)
   })
 
@@ -329,9 +326,8 @@ describe('BookPreviewDialog', () => {
   })
 
   describe('unmount-during-fetch race guard (#1158)', () => {
-    // Assert against the registered listener directly rather than dispatching a real
-    // 'unhandledrejection' event on `window` — the guard's cleanup delays real removal by
-    // 10s (see component), which would otherwise leak a listener across tests.
+    // Check the registered listener directly: the guard delays removal by 10s
+    // and would leak across tests.
     function getRegisteredHandler(addSpy: jest.SpiedFunction<typeof window.addEventListener>) {
       const call = addSpy.mock.calls.find(([type]) => type === 'unhandledrejection')
       return call?.[1]

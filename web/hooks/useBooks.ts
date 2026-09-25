@@ -59,8 +59,7 @@ export function useSearchLibrary() {
   const client = useMemo(() => createServiceClient(LibraryService), [])
   return useCallback(
     (query: string) =>
-      // A type-ahead widget (BookSearchBar), not a listing page — bounding
-      // the match count is enough, no "load more" UI needed here.
+      // Type-ahead only: a bounded match count, no "load more".
       client
         .searchLibrary({ query, limit: DEFAULT_PAGE_SIZE })
         .then((r: SearchLibraryResponse) => r),
@@ -76,9 +75,7 @@ export function useSearchExternal() {
   )
 }
 
-// useExternalBook fetches a single not-in-library book from a provider (e.g.
-// Hardcover) for the external book detail page. Null args disable the
-// fetch (route params not resolved yet).
+// useExternalBook fetches one not-in-library provider book; null args skip.
 export function useExternalBook(provider: string | null, providerId: string | null) {
   const client = createServiceClient(LibraryService)
   return useSWR<GetExternalBookResponse, Error>(
@@ -135,16 +132,12 @@ export type UploadBookFileOverride = {
   authorOverride?: string
 }
 
-// Paces requests below the API's global per-IP limiter (10 req/s, burst 30,
-// shared across all site traffic) so bulk imports don't outrun it — see
-// issue #824/#828/#833. withRateLimitRetry's backoff below stays as a
-// secondary safety net for whatever it doesn't fully absorb.
+// Paces uploads below the API's per-IP limiter (10 req/s, burst 30);
+// withRateLimitRetry is the fallback.
 const uploadLimiter = createRateLimiter(3, 6)
 
-// withRateLimitRetry retries a Connect RPC on Code.ResourceExhausted (the
-// mapping of the API's HTTP 429), which BulkBookUploader's concurrent
-// create+finalize calls can trip under a large import (issue #824) even
-// though each is a legitimate request. Backs off instead of failing the file.
+// withRateLimitRetry backs off on ResourceExhausted (HTTP 429) instead of
+// failing the file.
 async function withRateLimitRetry<T>(call: () => Promise<T>): Promise<T> {
   const maxAttempts = 4
   for (let attempt = 0; ; attempt++) {
@@ -162,12 +155,9 @@ async function withRateLimitRetry<T>(call: () => Promise<T>): Promise<T> {
 export function useUploadBookFile() {
   const client = createServiceClient(BookFilesService)
   return async (file: File, override?: UploadBookFileOverride): Promise<UploadBookFileResult> => {
-    // 0. Compute file hash so the server can skip a duplicate upload.
     const checksum = await sha256Hex(file)
 
-    // 1. Ask the server whether the content already exists.
-    //    When alreadyExists is true the server already has the blob, so the
-    //    client skips the PUT and goes straight to Finalize.
+    // alreadyExists: the server has the blob, so skip the PUT.
     const { uploadId, url, alreadyExists } = await withRateLimitRetry(() =>
       client.createBookUpload({
         filename: file.name,
@@ -178,7 +168,7 @@ export function useUploadBookFile() {
     )
 
     if (!alreadyExists) {
-      // 2. PUT the file directly to R2, bypassing the API server and DO ingress.
+      // PUT directly to R2, bypassing the API.
       const putResp = await fetch(url, {
         method: 'PUT',
         body: file,
@@ -189,10 +179,8 @@ export function useUploadBookFile() {
       }
     }
 
-    // 3. Tell the API to validate, register, and recognise the file.
-    //    On FailedPrecondition the blob disappeared between Create and Finalize
-    //    (race condition); retry the full flow once without the checksum shortcut
-    //    so the client uploads the bytes this time.
+    // FailedPrecondition: the blob vanished between Create and Finalize; retry
+    // once without the checksum shortcut.
     try {
       const result = await withRateLimitRetry(() =>
         client.finalizeBookUpload({
@@ -210,13 +198,11 @@ export function useUploadBookFile() {
       }
     } catch (err) {
       if (alreadyExists && err instanceof ConnectError && err.code === Code.FailedPrecondition) {
-        // The canonical blob was deleted between Create and Finalize; upload now.
         const retry = await withRateLimitRetry(() =>
           client.createBookUpload({
             filename: file.name,
             contentType: file.type || 'application/octet-stream',
             size: BigInt(file.size)
-            // No checksum: force a fresh upload URL.
           })
         )
         const putResp = await fetch(retry.url, {
@@ -351,9 +337,8 @@ export interface SourceSearchOverride {
   author: string
 }
 
-// useBookSources live-fetches one book's candidate sources for the book-page
-// admin sync control. enabled gates the fetch behind a user action (the
-// live fetch hits every configured provider, so it shouldn't run on mount).
+// useBookSources live-fetches a book's candidate sources from every
+// provider; enabled defers it to a user action.
 export function useBookSources(bookId: string, enabled: boolean, override?: SourceSearchOverride) {
   const client = createServiceClient(CatalogService)
   return useSWR<GetBookSourcesResponse, Error>(

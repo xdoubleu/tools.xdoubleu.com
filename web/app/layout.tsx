@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // themeInitScript writes data-theme on <html> before hydration
+    // themeInitScript sets data-theme before hydration.
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta

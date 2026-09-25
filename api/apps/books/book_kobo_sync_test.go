@@ -21,13 +21,11 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// tokenHash hashes a raw token the same way the service does (sha256 hex).
+// tokenHash hashes a raw token like the service (sha256 hex).
 func tokenHash(raw string) string {
 	h := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(h[:])
 }
-
-// --- service-level tests for GetKEPUBStatus ---
 
 func TestGetKEPUBStatus_NoFiles(t *testing.T) {
 	book := addUniqueBook(t)
@@ -86,9 +84,8 @@ func TestGetKEPUBStatus_EPUBAndKEPUBReady(t *testing.T) {
 	assert.False(t, result.KepubStale, "a current-version KEPUB row must not be stale")
 }
 
-// TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion covers issue #1696: a
-// ready KEPUB row produced by an older converter version must be reported as
-// stale, so callers know to re-trigger conversion.
+// TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion: an older converter
+// version is reported as stale.
 func TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 	insertStaleKEPUBRow(t, bookID, userID)
@@ -106,7 +103,6 @@ func TestGetKEPUBStatus_EPUBAndKEPUBReady_StaleVersion(t *testing.T) {
 func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatEPUB)
 
-	// Insert a converting KEPUB row (simulates an in-progress conversion).
 	convertingRow := models.BookFile{ //nolint:exhaustruct //optional fields
 		BookID:     bookID,
 		UserID:     userID,
@@ -125,8 +121,6 @@ func TestGetKEPUBStatus_EPUBAndKEPUBConverting(t *testing.T) {
 	assert.True(t, result.HasEPUB)
 	assert.Equal(t, models.FileStatusConverting, result.KepubStatus)
 }
-
-// --- service-level tests for GetKoboFileFormat ---
 
 func TestGetKoboFileFormat_DefaultKEPUB(t *testing.T) {
 	ub := addTestBook(t, "KoboFmtDefault-"+uuid.NewString())
@@ -153,8 +147,6 @@ func TestGetKoboFileFormat_PDFTag_ReturnsPDF(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, models.FileFormatPDF, format)
 }
-
-// --- service-level tests for EnableKoboSync ---
 
 func TestEnableKoboSync_SetsTag(t *testing.T) {
 	ub := addTestBook(t, "KoboSyncTag-"+uuid.NewString())
@@ -193,8 +185,6 @@ func TestEnableKoboSync_Idempotent(t *testing.T) {
 	}
 	assert.Equal(t, 1, count, "kobo-sync tag must appear exactly once")
 }
-
-// --- handler-level tests ---
 
 func TestConnectEnableKoboSync_EPUBBook_ReturnsConverting(t *testing.T) {
 	client := newBooksTestClient(t)
@@ -235,10 +225,8 @@ func TestConnectEnableKoboSync_AlreadyReadyKEPUB_ReturnsReady(t *testing.T) {
 	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
 }
 
-// TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting covers issue
-// #1696: a ready KEPUB row produced by an older converter version must be
-// treated the same as no KEPUB at all — conversion re-triggers rather than
-// serving the stale row forever.
+// TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting: a stale KEPUB
+// re-triggers conversion.
 func TestConnectEnableKoboSync_StaleReadyKEPUB_ReturnsConverting(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -272,7 +260,6 @@ func TestConnectEnableKoboSync_PDFOnly_ReturnsConverting(t *testing.T) {
 
 	resp, err := client.EnableKoboSync(ctx, req)
 	require.NoError(t, err)
-	// PDF-only books default to wanting KEPUB, so conversion is triggered.
 	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
 }
 
@@ -351,8 +338,6 @@ func TestConnectGetKEPUBStatus_InvalidBookID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-// --- Kobo device: repo tests ---
-
 func TestCreateKoboDevice_AndLookup(t *testing.T) {
 	const isolatedUser = "kobo-device-repo-user-" // keep deterministic; unique test
 	ctx := context.Background()
@@ -426,7 +411,6 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Token must be valid before deletion.
 	gotUID, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
 	require.NoError(t, err)
 	assert.Equal(t, ownerID, gotUID)
@@ -438,8 +422,6 @@ func TestDeleteKoboDevice_RevokesToken(t *testing.T) {
 		testApp.Repositories.KoboDevices.DeleteKoboDevice(ctx, ownerID, deviceID),
 	)
 
-	// Token must be invalid (not found) after deletion — TDD: this fails before
-	// DeleteKoboDevice is implemented correctly.
 	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
 		"token must be invalidated after device deletion")
@@ -461,7 +443,6 @@ func TestDeleteKoboDevice_WrongUser_NotFound(t *testing.T) {
 	deviceID, err := uuid.Parse(device.ID)
 	require.NoError(t, err)
 
-	// Different user tries to delete the device.
 	err = testApp.Repositories.KoboDevices.DeleteKoboDevice(
 		ctx, "someone-else-"+uuid.NewString(), deviceID,
 	)
@@ -483,7 +464,6 @@ func TestGetKoboAuthByTokenHash_UpdatesLastSeenAt(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, device.LastSeenAt, "last_seen_at must be nil before first auth")
 
-	// Authenticate — should touch last_seen_at.
 	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
 	require.NoError(t, err)
 
@@ -493,10 +473,8 @@ func TestGetKoboAuthByTokenHash_UpdatesLastSeenAt(t *testing.T) {
 	assert.NotNil(t, devices[0].LastSeenAt, "last_seen_at must be set after first auth")
 }
 
-// TestListKoboSyncBooks_ReturnsConverterVersion and
-// TestGetKoboSyncBook_ReturnsConverterVersion cover issue #1696: both queries
-// must surface the KEPUB row's converter_version so callers (the Kobo sync
-// routes) can detect a stale conversion.
+// TestListKoboSyncBooks_ReturnsConverterVersion checks converter_version is
+// surfaced for stale detection.
 func TestListKoboSyncBooks_ReturnsConverterVersion(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-repo-converter-version-list-" + uuid.NewString()
@@ -522,8 +500,6 @@ func TestGetKoboSyncBook_ReturnsConverterVersion(t *testing.T) {
 	assert.Equal(t, int16(4), book.ConverterVersion)
 }
 
-// --- Kobo device: service tests ---
-
 func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 	ctx := context.Background()
 	ownerID := "kobo-svc-device-" + uuid.NewString()
@@ -539,7 +515,6 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 	assert.NotEmpty(t, rawToken)
 	assert.NotEmpty(t, device.ID)
 
-	// Raw token must not appear verbatim in the DB.
 	var count int
 	err = testDB.QueryRow(ctx,
 		`SELECT COUNT(*) FROM books.kobo_devices
@@ -549,7 +524,6 @@ func TestRegisterKoboDevice_RawTokenNeverStoredAndLookupWorks(t *testing.T) {
 	require.NoError(t, err)
 	assert.Zero(t, count, "raw token must not be stored in the database")
 
-	// Hash of the raw token must resolve to the user.
 	gotUserID, _, err := testApp.Services.Kobo.GetKoboAuthByTokenHash(
 		ctx, tokenHash(rawToken),
 	)
@@ -580,7 +554,6 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Both tokens must independently resolve to the same user.
 	gotA, _, err := testApp.Services.Kobo.GetKoboAuthByTokenHash(
 		ctx,
 		tokenHash(rawA),
@@ -596,9 +569,7 @@ func TestRegisterKoboDevice_MultipleDevicesIndependent(t *testing.T) {
 	assert.Equal(t, ownerID, gotB)
 }
 
-// TestDisconnectKoboDevice_RevokesToken is the TDD anchor for the revoke path:
-// it is written before the disconnect RPC existed, asserting that after a
-// device is disconnected its sync token returns 401 from the Kobo sync route.
+// TestDisconnectKoboDevice_RevokesToken: a disconnected device's token gets 401.
 func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 	ctx := context.Background()
 	ts := httptest.NewServer(getRoutes())
@@ -615,7 +586,6 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Token must work before disconnect.
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
 	)
@@ -635,7 +605,6 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 		testApp.Services.Kobo.DisconnectKoboDevice(ctx, ownerID, deviceID),
 	)
 
-	// Token must be rejected after disconnect.
 	resp2, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodPost, koboURL(ts, rawToken, "/v1/initialization"), nil),
 	)
@@ -644,8 +613,6 @@ func TestDisconnectKoboDevice_RevokesToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp2.StatusCode,
 		"token must be invalid (401) after disconnect")
 }
-
-// --- Kobo device: connect handler tests ---
 
 func newKoboTestClient(t *testing.T) booksTestClient {
 	t.Helper()
@@ -683,7 +650,6 @@ func TestConnectRegisterKoboDevice_TokenLookupAfterRegister(t *testing.T) {
 	resp, err := newKoboTestClient(t).RegisterKoboDevice(ctx, req)
 	require.NoError(t, err)
 
-	// The returned token must resolve to the correct user.
 	hash := tokenHash(resp.Msg.RawToken)
 	gotUserID, _, err := testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(
 		ctx, hash,
@@ -697,7 +663,6 @@ func TestConnectListKoboDevices_ReturnsRegisteredDevices(t *testing.T) {
 	defer cancel()
 	client := newKoboTestClient(t)
 
-	// Register two devices.
 	for _, name := range []string{"Kobo 1", "Kobo 2"} {
 		regReq := connect.NewRequest(&booksv1.RegisterKoboDeviceRequest{Name: name})
 		regReq.Header().Set("Cookie", accessToken.String())
@@ -709,7 +674,7 @@ func TestConnectListKoboDevices_ReturnsRegisteredDevices(t *testing.T) {
 	listReq.Header().Set("Cookie", accessToken.String())
 	listResp, err := client.ListKoboDevices(ctx, listReq)
 	require.NoError(t, err)
-	// At least the two we registered; other tests may have added more for userID.
+	// Other tests may have added more devices for userID.
 	assert.GreaterOrEqual(t, len(listResp.Msg.Devices), 2)
 }
 
@@ -718,7 +683,6 @@ func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
 	defer cancel()
 	client := newKoboTestClient(t)
 
-	// Register a device to disconnect.
 	regReq := connect.NewRequest(
 		&booksv1.RegisterKoboDeviceRequest{Name: "To Remove"},
 	)
@@ -727,13 +691,11 @@ func TestConnectDisconnectKoboDevice_RemovesDevice(t *testing.T) {
 	require.NoError(t, err)
 	deviceID := regResp.Msg.Device.Id
 
-	// Disconnect it.
 	discReq := connect.NewRequest(&booksv1.DisconnectKoboDeviceRequest{Id: deviceID})
 	discReq.Header().Set("Cookie", accessToken.String())
 	_, err = client.DisconnectKoboDevice(ctx, discReq)
 	require.NoError(t, err)
 
-	// Token must now be invalid.
 	hash := tokenHash(regResp.Msg.RawToken)
 	_, _, err = testApp.Repositories.KoboDevices.GetKoboAuthByTokenHash(ctx, hash)
 	assert.True(t, errors.Is(err, database.ErrResourceNotFound),
@@ -770,8 +732,6 @@ func TestConnectDisconnectKoboDevice_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr.Code())
 }
 
-// --- RequestKEPUBConversion handler tests ---
-
 func TestConnectRequestKEPUBConversion_PDFOnly_ReturnsConverting(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -786,10 +746,9 @@ func TestConnectRequestKEPUBConversion_PDFOnly_ReturnsConverting(t *testing.T) {
 
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	// Conversion must be triggered regardless of kobo-format-pdf preference.
 	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
 
-	// Must NOT set the kobo-sync tag — this is a pure preview trigger.
+	// Must not set kobo-sync: this is a pure preview trigger.
 	ub, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
 	require.NoError(t, err)
 	assert.False(t, ub.HasTag(models.TagKoboSync),
@@ -811,14 +770,11 @@ func TestConnectRequestKEPUBConversion_AlreadyReady_ReturnsReady(t *testing.T) {
 
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
-	// KEPUB already ready — no new conversion should start.
 	assert.Equal(t, models.FileStatusReady, resp.Msg.KepubStatus)
 }
 
-// TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting covers
-// issue #1696: the in-browser preview trigger must re-convert a ready KEPUB
-// that was produced by an older converter version, instead of treating it as
-// already up to date.
+// TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting: preview
+// re-converts a stale KEPUB.
 func TestConnectRequestKEPUBConversion_StaleReadyKEPUB_ReturnsConverting(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -845,7 +801,6 @@ func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Upload a PDF and tag the book with kobo-format-pdf (user prefers raw PDF for sync).
 	_, bookID := uploadFileForOwner(t, userID, models.FileFormatPDF)
 	err := testApp.Repositories.Books.UpdateTags(
 		context.Background(), userID, bookID, []string{models.TagKoboFormatPDF},
@@ -858,8 +813,7 @@ func TestConnectRequestKEPUBConversion_PDFWithKoboFormatPDFTag_StillConverts(
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// Even though the user's Kobo sync preference is "raw PDF", preview must
-	// still trigger conversion so the user can judge the output.
+	// Preview converts even when the sync preference is raw PDF.
 	resp, err := client.RequestKEPUBConversion(ctx, req)
 	require.NoError(t, err)
 	assert.Equal(t, models.FileStatusConverting, resp.Msg.KepubStatus)
@@ -882,10 +836,7 @@ func TestConnectRequestKEPUBConversion_InvalidBookID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-// --- UpdateTags kobo_sync_enabled_at repository tests ---
-
-// TestUpdateTags_SetsKoboSyncEnabledAt asserts that UpdateTags writes
-// kobo_sync_enabled_at when the new tag list contains kobo-sync.
+// TestUpdateTags_SetsKoboSyncEnabledAt checks enabling sets the timestamp.
 func TestUpdateTags_SetsKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsEnabledAt-"+uuid.NewString())
@@ -910,13 +861,11 @@ func TestUpdateTags_SetsKoboSyncEnabledAt(t *testing.T) {
 	)
 }
 
-// TestUpdateTags_PreservesKoboSyncEnabledAt asserts that a subsequent tag
-// edit that keeps kobo-sync does not overwrite the original enable timestamp.
+// TestUpdateTags_PreservesKoboSyncEnabledAt checks other tag edits keep it.
 func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsPreserveAt-"+uuid.NewString())
 
-	// Enable kobo-sync.
 	require.NoError(t, testApp.Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{models.TagKoboSync},
 		true,
@@ -930,7 +879,6 @@ func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 		userID, ub.BookID,
 	).Scan(&first))
 
-	// Add another tag while keeping kobo-sync.
 	require.NoError(t, testApp.Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID,
 		[]string{models.TagKoboSync, models.TagKoboFormatPDF},
@@ -949,13 +897,11 @@ func TestUpdateTags_PreservesKoboSyncEnabledAt(t *testing.T) {
 		"kobo_sync_enabled_at must not change when kobo-sync tag is kept")
 }
 
-// TestUpdateTags_ClearsKoboSyncEnabledAt asserts that removing the kobo-sync
-// tag sets kobo_sync_enabled_at back to NULL.
+// TestUpdateTags_ClearsKoboSyncEnabledAt checks removing kobo-sync clears it.
 func TestUpdateTags_ClearsKoboSyncEnabledAt(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "TagsClearAt-"+uuid.NewString())
 
-	// Enable then disable.
 	require.NoError(t, testApp.Repositories.Books.UpdateTags(
 		ctx, userID, ub.BookID, []string{models.TagKoboSync},
 		true,
@@ -976,8 +922,6 @@ func TestUpdateTags_ClearsKoboSyncEnabledAt(t *testing.T) {
 	assert.Nil(t, enabledAt,
 		"kobo_sync_enabled_at must be NULL after kobo-sync tag is removed")
 }
-
-// --- kobo_removals tombstone: repository tests ---
 
 func TestKoboRemoval_UpsertListDelete_RoundTrip(t *testing.T) {
 	ctx := context.Background()
@@ -1015,11 +959,7 @@ func TestKoboRemoval_Upsert_IdempotentOnConflict(t *testing.T) {
 	require.Len(t, removals, 1, "re-upserting the same book must not duplicate")
 }
 
-// --- kobo_removals tombstone: service tests (disable / re-enable) ---
-
-// TestToggleTag_DisableKoboSync_WritesTombstone is the TDD anchor: it asserts
-// that disabling kobo-sync via ToggleTag records a removal tombstone so the
-// device gets an active removal on its next sync, not silence.
+// TestToggleTag_DisableKoboSync_WritesTombstone checks disabling tombstones the book.
 func TestToggleTag_DisableKoboSync_WritesTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalDisable-"+uuid.NewString())
@@ -1039,9 +979,7 @@ func TestToggleTag_DisableKoboSync_WritesTombstone(t *testing.T) {
 	assert.True(t, found, "disabling kobo-sync must tombstone the book for removal")
 }
 
-// TestEnableKoboSync_ClearsStaleTombstone verifies that re-enabling kobo-sync
-// after a disable clears the removal tombstone (the book is going back onto
-// the device, so it must not also be scheduled for removal).
+// TestEnableKoboSync_ClearsStaleTombstone checks re-enabling clears it.
 func TestEnableKoboSync_ClearsStaleTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalReenable-"+uuid.NewString())
@@ -1059,9 +997,7 @@ func TestEnableKoboSync_ClearsStaleTombstone(t *testing.T) {
 	}
 }
 
-// TestToggleTag_ReenableViaToggle_ClearsTombstone verifies the DeleteKoboRemoval
-// branch of ToggleTag itself (not EnableKoboSync): toggling kobo-sync back on
-// after a ToggleTag-driven disable must clear the tombstone too.
+// TestToggleTag_ReenableViaToggle_ClearsTombstone covers ToggleTag's own clear.
 func TestToggleTag_ReenableViaToggle_ClearsTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalToggleReenable-"+uuid.NewString())
@@ -1080,10 +1016,7 @@ func TestToggleTag_ReenableViaToggle_ClearsTombstone(t *testing.T) {
 	}
 }
 
-// TestRemoveFromLibrary_NoUserBookRow_NoError verifies that deleting a book
-// with no user_books row at all (already removed, or never added) tolerates
-// the not-found and proceeds rather than failing the whole deletion — there's
-// nothing to tombstone if the book was never in this user's library.
+// TestRemoveFromLibrary_NoUserBookRow_NoError tolerates a missing user_books row.
 func TestRemoveFromLibrary_NoUserBookRow_NoError(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-removal-no-userbook-" + uuid.NewString()
@@ -1094,9 +1027,7 @@ func TestRemoveFromLibrary_NoUserBookRow_NoError(t *testing.T) {
 		"removing a book with no user_books row must not error")
 }
 
-// TestToggleTag_UnrelatedTag_DoesNotTombstone verifies that toggling a
-// non-kobo-sync tag (e.g. kobo-format-pdf) never touches the removal
-// tombstone.
+// TestToggleTag_UnrelatedTag_DoesNotTombstone checks other tags leave tombstones alone.
 func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
 	ctx := context.Background()
 	ub := addTestBook(t, "KoboRemovalUnrelated-"+uuid.NewString())
@@ -1120,10 +1051,8 @@ func TestToggleTag_UnrelatedTag_DoesNotTombstone(t *testing.T) {
 	}
 }
 
-// TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone verifies that deleting
-// a book that's currently kobo-synced tombstones it for removal, since the
-// catalog row (and possibly the user_books row) is gone afterwards and can no
-// longer signal a disable.
+// TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone checks deleting a synced
+// book tombstones it.
 func TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-removal-delete-" + uuid.NewString()
@@ -1144,8 +1073,7 @@ func TestRemoveFromLibrary_KoboSyncedBook_WritesTombstone(t *testing.T) {
 		"deleting a kobo-synced book must tombstone it for removal")
 }
 
-// TestRemoveFromLibrary_NonSyncedBook_NoTombstone verifies that deleting a
-// book that was never kobo-synced does not create a spurious tombstone.
+// TestRemoveFromLibrary_NonSyncedBook_NoTombstone checks no spurious tombstone.
 func TestRemoveFromLibrary_NonSyncedBook_NoTombstone(t *testing.T) {
 	ctx := context.Background()
 	owner := "kobo-removal-delete-nosync-" + uuid.NewString()

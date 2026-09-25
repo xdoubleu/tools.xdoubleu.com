@@ -1,8 +1,6 @@
 # gremlins mutation-testing config, shared by `make test/mutation` (full
-# baseline) and `make test/mutation/diff` (issue #1632). Mirrors coverage.out's
-# own exclusions (see `test/cov/report`'s Makefile target): generated
-# ConnectRPC/protobuf stubs and mocks carry no hand-written logic worth
-# mutating.
+# baseline) and `make test/mutation/diff`. Mirrors coverage.out's exclusions
+# (generated stubs and mocks).
 unleash:
   exclude-files:
     - "(^|/)gen/"

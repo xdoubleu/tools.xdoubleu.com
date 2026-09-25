@@ -11,8 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// FeedsRepository stores RSS/Atom subscriptions and email-relay newsletter
-// subscriptions (feeds.feeds).
+// FeedsRepository stores feed subscriptions (feeds.feeds).
 type FeedsRepository struct {
 	db postgres.DB
 }
@@ -49,8 +48,7 @@ func scanFeed(row pgx.Row) (*models.Feed, error) {
 	return &f, nil
 }
 
-// List returns the user's feeds ordered by title, then URL (untitled feeds
-// sort together instead of first).
+// List returns the user's feeds ordered by title, then URL.
 func (repo *FeedsRepository) List(
 	ctx context.Context,
 	userID string,
@@ -64,8 +62,7 @@ func (repo *FeedsRepository) List(
 	return repo.queryFeeds(ctx, query, userID)
 }
 
-// ListAll returns every pollable (rss/scrape) feed across all users, for the
-// background poll job — email feeds are push-only and never polled.
+// ListAll returns every pollable (rss/scrape) feed across all users.
 func (repo *FeedsRepository) ListAll(ctx context.Context) ([]models.Feed, error) {
 	query := `
 		SELECT ` + feedColumns + `
@@ -76,8 +73,7 @@ func (repo *FeedsRepository) ListAll(ctx context.Context) ([]models.Feed, error)
 	return repo.queryFeeds(ctx, query)
 }
 
-// ListUnhealthy returns every feed currently failing to poll, across all
-// users, for the weekly digest job (issue #1014).
+// ListUnhealthy returns every failing feed across all users.
 func (repo *FeedsRepository) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
 	query := `
 		SELECT ` + feedColumns + `
@@ -132,10 +128,8 @@ func (repo *FeedsRepository) GetByID(
 	return f, nil
 }
 
-// Insert creates a feed. A duplicate (user_id, url) maps to
-// database.ErrResourceConflict via the unique constraint; for email feeds
-// (url is empty) a duplicate inbound_token hash maps to the same error via
-// the feeds_inbound_token_idx unique index.
+// Insert creates a feed. A duplicate (user_id, url), or inbound_token for
+// email feeds, maps to database.ErrResourceConflict.
 func (repo *FeedsRepository) Insert(
 	ctx context.Context,
 	feed models.Feed,
@@ -165,10 +159,8 @@ func (repo *FeedsRepository) Insert(
 	return f, nil
 }
 
-// GetByInboundTokenHash resolves an email feed by its inbound alias token's
-// SHA-256 hash, for the unauthenticated Resend webhook handler — there is no
-// user_id to scope by at that point.
-// Returns database.ErrResourceNotFound when no feed matches.
+// GetByInboundTokenHash resolves an email feed by its token hash, unscoped
+// (the webhook has no user). Returns database.ErrResourceNotFound if none.
 func (repo *FeedsRepository) GetByInboundTokenHash(
 	ctx context.Context,
 	hash string,
@@ -185,7 +177,7 @@ func (repo *FeedsRepository) GetByInboundTokenHash(
 	return f, nil
 }
 
-// Update changes the user-editable fields (title).
+// Update changes the feed's title.
 func (repo *FeedsRepository) Update(
 	ctx context.Context,
 	userID string,
@@ -207,10 +199,7 @@ func (repo *FeedsRepository) Update(
 	return nil
 }
 
-// Delete removes the feed; its items cascade (feeds.items.feed_id ON DELETE
-// CASCADE) — unlike reading's former FeedsRepository, there is no library
-// linkage to preserve, so deleting a feed always deletes every item it
-// ingested, read/bookmarked or not.
+// Delete removes the feed; all its items cascade.
 func (repo *FeedsRepository) Delete(
 	ctx context.Context,
 	userID string,
@@ -227,13 +216,9 @@ func (repo *FeedsRepository) Delete(
 	return nil
 }
 
-// SetFetchResult records the outcome of a poll: the conditional-GET
-// validators on success (fetchErr nil), or the error message on failure
-// (validators kept so an intermittently failing feed still short-circuits
-// once it recovers unchanged). last_fetched_at is always bumped.
-// consecutive_failures increments on failure and resets to 0 on success —
-// the returned row lets the caller act on the post-update streak (issue
-// #799) without a second round trip.
+// SetFetchResult records a poll outcome: validators on success, the error on
+// failure (validators kept). It bumps last_fetched_at and updates
+// consecutive_failures, returning the row so the caller sees the streak.
 func (repo *FeedsRepository) SetFetchResult(
 	ctx context.Context,
 	id uuid.UUID,
@@ -258,10 +243,8 @@ func (repo *FeedsRepository) SetFetchResult(
 	return f, nil
 }
 
-// MarkNotified records that a problem email has been sent for this feed, so
-// SetFetchResult's caller doesn't re-send while the problem persists (issue
-// #799). Only called after mailer.Client.SendTo succeeds — a failed send is
-// retried on the next poll.
+// MarkNotified records a sent problem email; called only after a successful
+// send, so a failed one retries next poll.
 func (repo *FeedsRepository) MarkNotified(ctx context.Context, id uuid.UUID) error {
 	_, err := repo.db.Exec(
 		ctx, `UPDATE feeds.feeds SET notified_at = now() WHERE id = $1`, id,
@@ -269,8 +252,7 @@ func (repo *FeedsRepository) MarkNotified(ctx context.Context, id uuid.UUID) err
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ClearNotified clears a feed's outstanding-problem marker once it recovers
-// (issue #799).
+// ClearNotified clears a feed's outstanding-problem marker.
 func (repo *FeedsRepository) ClearNotified(ctx context.Context, id uuid.UUID) error {
 	_, err := repo.db.Exec(
 		ctx, `UPDATE feeds.feeds SET notified_at = NULL WHERE id = $1`, id,

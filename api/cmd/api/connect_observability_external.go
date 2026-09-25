@@ -14,15 +14,11 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// currentSlowTransactionsLimit caps how many transactions GetSlowTransactions'
-// "current" (live) section returns — the slowest ones are what the dashboard
-// card actually shows.
+// currentSlowTransactionsLimit caps GetSlowTransactions' live section.
 const currentSlowTransactionsLimit = 20
 
-// These handlers surface the three external observability signals. Each GUARDS
-// its source: an unset token yields configured=false and an upstream failure is
-// logged and downgraded to an empty section, so one broken source never fails
-// the whole response.
+// Each external-signal handler guards its source: an unset token yields
+// configured=false; an upstream failure logs and returns an empty section.
 
 func (h *obsConnectHandler) GetFailingPullRequests(
 	ctx context.Context,
@@ -126,11 +122,8 @@ func (h *obsConnectHandler) workflowRuns(
 	return resp
 }
 
-// failedJobNames names the jobs that failed within run, fetched from GitHub
-// only for a failed push-to-main run (see WorkflowRun.failed_jobs' doc
-// comment) — every other run returns nil without an extra API call. A fetch
-// failure here is logged and swallowed rather than degrading the whole
-// response: the run itself still shows as failed, just without job detail.
+// failedJobNames fetches failed job names only for a failed push-to-main run.
+// Fetch errors are logged and swallowed.
 func (h *obsConnectHandler) failedJobNames(
 	ctx context.Context, run github.WorkflowRun,
 ) []string {
@@ -212,8 +205,7 @@ func (h *obsConnectHandler) securityAlerts(
 	return resp
 }
 
-// securityAlertTypeToProto maps a github.SecurityAlertType to its proto enum
-// value, defaulting to unspecified for an unrecognized/zero-value type.
+// securityAlertTypeToProto maps an alert type, defaulting to unspecified.
 func securityAlertTypeToProto(
 	t github.SecurityAlertType,
 ) observabilityv1.SecurityAlertType {
@@ -248,12 +240,9 @@ func (h *obsConnectHandler) DismissSecurityAlert(
 	return connect.NewResponse(resp), nil
 }
 
-// dismissSecurityAlert is the second deliberate mutation in this otherwise
-// read-only observability surface, alongside resolveSentryIssue below —
-// see api/AGENTS.md's "Apps MCP Server" section. Takes the internal
-// github.SecurityAlertType (rather than the proto enum) so the MCP tool,
-// whose alert_type input already matches those string values, can call it
-// directly without a round trip through the proto enum.
+// dismissSecurityAlert is one of the deliberate mutations on the observability
+// surface. Takes github.SecurityAlertType so the MCP tool can pass its
+// alert_type string straight through.
 func (h *obsConnectHandler) dismissSecurityAlert(
 	ctx context.Context,
 	alertType github.SecurityAlertType,
@@ -358,9 +347,8 @@ func (h *obsConnectHandler) resolveSentryIssue(
 ) (*observabilityv1.ResolveSentryIssueResponse, error) {
 	if err := h.app.sentryClient.ResolveIssue(ctx, issueID); err != nil {
 		if errors.Is(err, sentryapi.ErrReauthRequired) {
-			// Distinct from ErrNotConfigured/CodeFailedPrecondition below: the
-			// web UI uses this code to prompt an explicit reconnect instead of
-			// silently treating the connection as unconfigured (issue #791).
+			// CodeUnauthenticated (not FailedPrecondition) makes the UI prompt a
+			// reconnect.
 			return nil, connect.NewError(connect.CodeUnauthenticated, err)
 		}
 		if errors.Is(err, sentryapi.ErrNotConfigured) {
@@ -385,12 +373,9 @@ func (h *obsConnectHandler) GetSlowTransactions(
 	return connect.NewResponse(resp), nil
 }
 
-// slowTransactions combines two independent sections: current is live from
-// Sentry (guarded the same way sentryIssues/failingPullRequests are — an
-// unset token yields configured=false, an upstream failure is logged and
-// downgraded to an empty section), and trending is computed from stored
-// history (global.transaction_latency_daily), fetched regardless of whether
-// Sentry is currently reachable so past regressions stay visible.
+// slowTransactions combines current (live from Sentry, guarded like the other
+// external sections) with trending (from stored history, fetched even when
+// Sentry is unreachable).
 func (h *obsConnectHandler) slowTransactions(
 	ctx context.Context,
 ) (*observabilityv1.GetSlowTransactionsResponse, error) {
@@ -431,10 +416,8 @@ func (h *obsConnectHandler) slowTransactions(
 	return resp, nil
 }
 
-// protoSlowTransactions sorts stats slowest-first and caps it to
-// currentSlowTransactionsLimit — ListTransactionStats returns a broad
-// sample (not necessarily pre-sorted after project filtering), this is the
-// "current" view's own ordering.
+// protoSlowTransactions sorts slowest-first and caps to
+// currentSlowTransactionsLimit.
 func protoSlowTransactions(
 	stats []sentryapi.TransactionStat,
 ) []*observabilityv1.SlowTransaction {

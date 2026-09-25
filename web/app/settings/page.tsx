@@ -32,7 +32,6 @@ export default function SettingsPage() {
   const mfaUnenroll = useMFAUnenroll()
   const regenerateRecoveryCodes = useRegenerateRecoveryCodes()
 
-  // Display name section
   const [displayName, setDisplayName] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
@@ -42,14 +41,12 @@ export default function SettingsPage() {
     if (data) setDisplayName(data.displayName)
   }, [data])
 
-  // Password section
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwSaving, setPwSaving] = useState(false)
   const [pwSaved, setPwSaved] = useState(false)
   const [pwError, setPwError] = useState('')
 
-  // MFA section
   const [mfaState, setMfaState] = useState<MFAEnrollState>('idle')
   const [mfaQr, setMfaQr] = useState('')
   const [mfaSecret, setMfaSecret] = useState('')
@@ -193,7 +190,6 @@ export default function SettingsPage() {
     <PageContainer size="narrow" className="p-6 space-y-10">
       <h1 className="text-3xl font-bold">Account Settings</h1>
 
-      {/* Display name */}
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
           Display Name
@@ -233,7 +229,6 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      {/* Password */}
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
           Change Password
@@ -283,7 +278,6 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      {/* MFA */}
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
           Two-Factor Authentication

@@ -1,100 +1,67 @@
 # infra
 
-OpenTofu config for the Hetzner VPS (issue #1030) that hosts the self-hosted
-stack (app + Postgres — see #1029, which replaced DO App Platform +
-Supabase). Manages the firewall, OS-level hardening, and self-hosted Postgres
-(issue #1031); the server itself is created manually. Self-hosted GoTrue
-(issue #1032) used to be part of this stack too — issue #1039 replaced it
-with a first-party implementation in `api` itself, so it's gone from here
-entirely (see "GoTrue is gone" below).
+OpenTofu config for the Hetzner VPS that hosts the self-hosted stack: the
+firewall, OS-level hardening, and self-hosted Postgres plus the metrics
+accessories. The server itself is created manually.
 
-**Tofu provisions the host; it does not deploy the app.** The app is
-deployed by `.github/workflows/main.yml`'s `deploy-kamal` job on every push
-to `main`, which is also where every app secret lives (as repo Secrets) —
-see "Deploy the app via Kamal" below. Tofu used to run `kamal setup` itself
-and carry a duplicate copy of all 25 app secrets as tfvars; that was removed
-in #1113.
-
-**Tofu applies automatically in CI, same as the app deploy** (issues
-#1053/#1057/#1058/#1060). State lives in Cloudflare R2, not on any one
-laptop — see "Remote state" below — and `.github/workflows/main.yml`'s
-`infra-apply` job runs `tofu apply` on every push to `main` that touches
-`infra/**`, with no manual approval step. Local `tofu plan`/`apply` still
-work (see "Apply" below) for iterating on a change before opening a PR, or
-as the manual escape hatch if CI is down — same relationship local Kamal
-commands have to `deploy-kamal`.
+- **Tofu provisions the host; it does not deploy the app.** The app is
+  deployed by `.github/workflows/main.yml`'s `deploy-kamal` job on every push
+  to `main`, and every app secret lives there as an Environment secret — see
+  "Deploy the app via Kamal". Secrets are never duplicated as tfvars.
+- **Tofu applies automatically in CI.** State lives in Cloudflare R2 ("Remote
+  state"); the `infra-apply` job runs `tofu apply` on every push to `main`
+  that touches `infra/**`, with no manual approval. Local `tofu plan`/`apply`
+  ("Apply") are for iterating before a PR, or the escape hatch if CI is down.
 
 ## Remote state
 
-State is stored in a dedicated Cloudflare R2 bucket (S3-compatible), not
-the app's own `R2_BUCKET` — a separate bucket and a separate, narrowly
-scoped API token, so a leaked credential for one doesn't imply access to
-the other. `infra/versions.tf`'s `backend "s3"` block holds everything
-that isn't account-specific (bucket name, `use_lockfile` for locking — R2
-has no DynamoDB-equivalent, so this relies on OpenTofu 1.10+'s native
-S3-backend lockfile locking — and the `skip_*` flags R2's API needs since
-it isn't a full AWS S3 implementation). The endpoint URL embeds your
-Cloudflare account ID, which isn't hardcoded into a committed file; it's
-supplied at `tofu init` time via `-backend-config`.
+State lives in a dedicated R2 bucket with its own narrowly scoped token —
+separate from the app's `R2_BUCKET`, so one leaked credential doesn't imply the
+other. `infra/versions.tf`'s `backend "s3"` block holds the bucket name,
+`use_lockfile` (OpenTofu 1.10+ native locking; R2 has no DynamoDB equivalent),
+and the `skip_*` flags R2 needs. The endpoint embeds the Cloudflare account ID,
+so it's supplied at `tofu init` via `-backend-config`.
 
 **One-time setup:**
 
-1. Cloudflare dashboard → R2 → create a bucket (e.g.
-   `tools-xdoubleu-com-tfstate`), matching the `bucket` name in
-   `infra/versions.tf`.
-2. R2 → Manage API tokens → create a token scoped to **only** that bucket,
-   Object Read & Write. Note the Access Key ID/Secret Access Key pair R2
-   gives you (its S3-compatible credentials, not the Cloudflare API token
-   itself) and your account's R2 endpoint
-   (`https://<account-id>.r2.cloudflarestorage.com`).
+1. Cloudflare → R2 → create a bucket (e.g. `tools-xdoubleu-com-tfstate`)
+   matching `bucket` in `infra/versions.tf`.
+2. R2 → Manage API tokens → token scoped to **only** that bucket, Object Read &
+   Write. Note its S3-compatible Access Key ID / Secret Access Key and the
+   endpoint (`https://<account-id>.r2.cloudflarestorage.com`).
 3. `cp infra/backend.hcl.example infra/backend.hcl` (gitignored) and fill in
    the endpoint.
-4. Migrate the existing local state up:
+4. Migrate existing local state:
    ```bash
    cd infra
    export AWS_ACCESS_KEY_ID=<r2 access key id>
    export AWS_SECRET_ACCESS_KEY=<r2 secret access key>
    tofu init -backend-config=backend.hcl -migrate-state
    ```
-   Confirm `tofu plan` shows no diff afterward — that proves the migrated
-   state matches reality, not just that the migration command succeeded.
+   Confirm `tofu plan` shows no diff afterward.
 
-Every local `tofu` command from then on needs those same two env vars set
-(and `-backend-config=backend.hcl` on `init`, once per checkout/`.terraform`
-directory) — `tofu plan`/`apply` themselves take no extra flags for this.
+Every local `tofu` command needs those two env vars (and
+`-backend-config=backend.hcl` on `init`, once per `.terraform` directory).
 
 ## One-time setup
 
 1. **Create the server** in the [Hetzner Console](https://console.hetzner.cloud/):
-   New server → location `Falkenstein (fsn1)` → image `Ubuntu 26.04` → type
-   `CX23` (2 vCPU / 4 GB, same tier as `CX22` — use whichever of the two is
-   available in your region) → paste your SSH public key under "SSH keys"
-   → create. Note the server ID and public IPv4 shown after creation.
-   Hetzner adds that key to root's `authorized_keys`, which is needed for
-   exactly one thing: `null_resource.harden`'s very first run, which creates
-   the `deploy` user and then permanently disables root SSH
-   (`PermitRootLogin no`). Every run after that — including re-running
-   `harden.sh` itself when it changes — connects as `deploy` (with
-   passwordless sudo) instead, since root never works again past that
-   first run. If you're bootstrapping a brand-new server and something
-   goes wrong before that first run completes, SSH in as root manually and
-   run `harden.sh` by hand to get `deploy` set up, then let Tofu take over.
-2. **Get an API token**: Hetzner Console → Security → API Tokens → generate
-   (read+write).
-3. Install OpenTofu (`brew install opentofu` or see
+   location `Falkenstein (fsn1)`, image `Ubuntu 26.04`, type `CX23` (or `CX22`,
+   same tier), your SSH public key under "SSH keys". Note the server ID and
+   public IPv4. Root's key is used only by `null_resource.harden`'s first run,
+   which creates the `deploy` user and disables root SSH (`PermitRootLogin no`);
+   every later run connects as `deploy`. If bootstrapping fails before that
+   first run completes, SSH in as root and run `harden.sh` by hand.
+2. **API token**: Hetzner Console → Security → API Tokens → generate (read+write).
+3. Install OpenTofu (`brew install opentofu` or
    [opentofu.org](https://opentofu.org/docs/intro/install/)).
-4. **Load your SSH key into `ssh-agent`** — the hardening provisioner
-   connects via the agent (`ssh-add --apple-use-keychain ~/.ssh/<key>`),
-   since it can't read a passphrase-protected key file directly.
+4. **Load your SSH key into `ssh-agent`** (`ssh-add --apple-use-keychain
+   ~/.ssh/<key>`) — the provisioner can't read a passphrase-protected key file.
 
 ## Apply
 
-Tofu doesn't persist `-var` values between runs, so passing them on every
-`plan`/`apply` gets old fast. Copy `terraform.tfvars.example` to
-`terraform.tfvars` (gitignored — never commit it) and fill in real values;
-Tofu auto-loads it, so `plan`/`apply` need no `-var` flags at all. `init`
-needs the R2 backend credentials from "Remote state" above and
-`-backend-config=backend.hcl` (once per checkout/`.terraform` directory):
+Copy `terraform.tfvars.example` to `terraform.tfvars` (gitignored — never
+commit it); Tofu auto-loads it, so `plan`/`apply` need no `-var` flags:
 
 ```bash
 cd infra
@@ -106,7 +73,7 @@ tofu plan
 tofu apply
 ```
 
-Or, without a `terraform.tfvars` file, pass everything explicitly each time:
+Or pass everything explicitly:
 
 ```bash
 cd infra
@@ -120,386 +87,225 @@ tofu apply <same -var flags as plan>
 ```
 
 This attaches the firewall (22/80/443 only) and runs `harden.sh` over SSH:
-creates a non-root `deploy` user (passwordless sudo + docker groups, your
-public key authorized), installs Docker, enables `fail2ban`, configures
-`ufw`, configures `unattended-upgrades` for automatic security-only patches
-with a scheduled 04:00 UTC reboot window if a kernel update needs one, and
-disables root/password SSH login. It then stands up self-hosted
-Postgres — see below.
+non-root `deploy` user (passwordless sudo + docker group), Docker, `fail2ban`,
+`ufw`, `unattended-upgrades` (security-only, 04:00 UTC reboot window when a
+kernel update needs it), and root/password SSH disabled. Then it stands up the
+accessories below. `harden.sh` is idempotent — re-applying is always safe.
 
-`harden.sh` is idempotent — re-running `tofu apply` after editing it (or with
-no changes at all) is safe.
+**Getting notified of a new Ubuntu LTS release:** `unattended-upgrades` never
+runs `do-release-upgrade` (too risky unattended on a single box). Instead
+`release-upgrade-check.sh` + the `release-upgrade-check.timer`/`.service`
+systemd units (installed by `harden.sh`, configured by
+`null_resource.release_upgrade_check`) run weekly **on the VPS**, calling
+`do-release-upgrade -c`, and email `release_check_email_to` via Resend using
+`release_check_resend_api_key`/`release_check_email_from`. In CI those come
+from the `RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` secrets as `TF_VAR_*`;
+they're written to a file on the VPS, not passed to a container. See
+[ADR-0012](../docs/adr-0012-ubuntu-release-check-on-vps.md).
 
-**Getting notified of a new Ubuntu LTS release (issue #1194, replacing the
-prior #1134 attempt):** `unattended-upgrades` only ever patches within the
-current release — it deliberately never runs `do-release-upgrade`, since
-automating a full OS release upgrade on a single-instance box with no HA is
-too risky. A first attempt (`UbuntuReleaseJob`, issue #1134) polled
-Canonical's meta-release feed from the `api` process and compared it
-against a hardcoded baseline constant that had to be bumped by hand after
-every real upgrade — nobody did, so it fired a stale/wrong alert. It was
-removed. Instead, `release-upgrade-check.sh` + the
-`release-upgrade-check.timer`/`.service` systemd units (installed by
-`harden.sh`, uploaded/configured by `null_resource.release_upgrade_check`
-in `main.tf`) run **locally on the VPS itself**, weekly, calling
-`do-release-upgrade -c` directly — so it always reflects whatever the box
-actually thinks, with no hardcoded baseline to drift and no external system
-needing to SSH in just to check. When (and only when) a release genuinely
-is available, the script emails `release_check_email_to` via Resend's HTTP API
-using `release_check_resend_api_key`/`release_check_email_from` (Tofu
-variables — see `terraform.tfvars.example` for local `tofu`/`plan` runs, or
-the `infra-apply` CI job, which feeds them in as `TF_VAR_*` from the same
-`RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` environment secrets
-`deploy-kamal` already uses for `api`/`web` — see that section below;
-delivered to the VPS as a file by a Tofu provisioner rather than passed to
-a container, since nothing here goes through `deploy-kamal` itself, but
-there's no reason for a second Resend key/account). To confirm the
-timer is scheduled:
-`systemctl list-timers release-upgrade-check.timer` on the VPS; to trigger
-it manually: `sudo systemctl start release-upgrade-check.service`.
+```bash
+systemctl list-timers release-upgrade-check.timer   # confirm scheduled
+sudo systemctl start release-upgrade-check.service  # trigger manually
+```
 
 ## Stand up Postgres
 
-The same `tofu apply` above also creates `null_resource.postgres`, which
-uploads `postgres-compose.yml` and a generated `.env` (a Tofu-managed
-`random_password`) to `/home/deploy/postgres/` and runs
-`docker compose up -d` as the `deploy` user (issue #1031). Runs plain
-`postgres:17` — not the `supabase/postgres` image — since the latter's
-built-in `auth`/`storage`/`realtime` schemas are a generic starter
-baseline that doesn't match a real project's actual migration history,
-and its `postgres` role isn't a true superuser, which blocks fixing that
-mismatch by hand. See the image comment in `postgres-compose.yml` for the
-full reasoning — moot for GoTrue now that it's gone for good (issue #1039),
-but still relevant if self-hosted Storage/Realtime are ever in scope.
+`null_resource.postgres` uploads `postgres-compose.yml` and a generated `.env`
+(Tofu-managed `random_password`) to `/home/deploy/postgres/` and runs
+`docker compose up -d` as `deploy`. It runs plain `postgres:17`, not
+`supabase/postgres` — see the image comment in `postgres-compose.yml`.
 
-Postgres is **not** exposed publicly — it's bound to `127.0.0.1:5432` on the
-VPS only. Retrieve the generated password with:
+Postgres is bound to `127.0.0.1:5432` only, never public. Password:
 
 ```bash
 tofu output -raw postgres_password
 ```
 
-Re-running `apply` after editing `postgres-compose.yml` redeploys it;
-rotating the password (`tofu apply -replace=random_password.postgres <same
--var flags>`) also forces a redeploy so the running container picks it up.
+Re-applying after editing `postgres-compose.yml` redeploys it; rotating the
+password (`tofu apply -replace=random_password.postgres <same -var flags>`)
+also forces a redeploy.
 
-**Changing the image on an already-running instance** doesn't reset an
-existing data volume. If you need a clean slate (e.g. retrying a
-migration), wipe the volume and let it start fresh:
+Changing the image doesn't reset an existing data volume. For a clean slate:
 
 ```bash
 ssh deploy@<ip> "cd postgres && docker compose down -v && docker compose up -d"
 ```
 
-## Stand up node_exporter (issue #1040)
+## Stand up node_exporter
 
-The same `tofu apply` above also creates `null_resource.node_exporter`,
-which uploads `node-exporter-compose.yml` to `/home/deploy/node-exporter/`
-and runs `docker compose up -d` as the `deploy` user — this is the piece
-the observability app's `get_host_metrics` MCP tool/RPC reads from. `api`
-scrapes it every 60s over the shared `kamal` Docker network at
-`node-exporter:9100` (`NODE_EXPORTER_URL`'s default, see
-`api/internal/config/main.go`), so nothing needs configuring per deploy.
+`null_resource.node_exporter` uploads `node-exporter-compose.yml` to
+`/home/deploy/node-exporter/` and runs `docker compose up -d`. No published
+port and no secrets — reachable only from containers on the `kamal` network.
+Re-applying after editing the compose file redeploys it. Host metrics are read
+via Grafana (`/grafana`) or the `prom_query` MCP tool.
 
-Like Postgres, it has no publicly exposed port — reachable only from
-containers on the `kamal` network. Unlike Postgres, it takes no secrets
-(no `.env` provisioner). Re-running `apply` after editing
-`node-exporter-compose.yml` redeploys it.
+## Stand up Prometheus + postgres_exporter + Grafana
 
-Host metrics are read via Grafana (at `/grafana`) or the `prom_query` MCP
-tool (issue #1468) now, not a `get_host_metrics` RPC — see the next section.
+`null_resource.prometheus` uploads `prometheus-compose.yml`, `prometheus.yml`,
+and a generated `.env` (postgres_exporter's `DATA_SOURCE_NAME`) to
+`/home/deploy/prometheus/` and runs `docker compose up -d`. Prometheus only
+collects; **alerting is Grafana's** (`infra/grafana/provisioning/alerting/`).
+Neither Prometheus nor postgres_exporter publishes a host port.
 
-## Stand up Prometheus + postgres_exporter + Grafana (issue #1468)
+It also uploads a `web_ingest_secret` file (`OBSERVABILITY_INGEST_SECRET`, via
+`TF_VAR_observability_ingest_secret`) that `prometheus.yml`'s `web` job sends
+as a bearer token, since `web`'s `GET /metrics` requires it. `deploy-kamal`
+`needs` `infra-apply`, so Prometheus sends the token before `web` requires it.
 
-The same `tofu apply` above also creates `null_resource.prometheus`, which
-uploads `prometheus-compose.yml`, `prometheus.yml`, and a generated `.env`
-(postgres_exporter's `DATA_SOURCE_NAME`, built from the
-same Tofu-managed `random_password.postgres` node_exporter's sibling resource
-above doesn't need) to `/home/deploy/prometheus/` and runs `docker compose up
--d` — the pipeline that replaced `internal/observability`'s hand-rolled
-snapshot jobs/threshold rules. Prometheus only collects: **alerting is
-Grafana's**, provisioned into its wrapper image
-(`infra/grafana/provisioning/alerting/` — rules, contact point, notification
-policy; issue #1528). Like node_exporter, neither Prometheus nor
-postgres_exporter has a published host port at all — reachable only from
-containers already on the `kamal` Docker network (Grafana, and `api`'s
-`prom_query` MCP tool).
+Grafana is **not** Tofu-managed: it's a third Kamal service
+(`config/deploy.grafana.yml`, deployed by `deploy-kamal`) because it needs the
+public `/grafana` path through kamal-proxy. Its wrapper image
+(`infra/grafana.Dockerfile`, built by `build-grafana.yml`) bakes in the
+datasources, plugins, dashboards, and alerting from `infra/grafana/`.
+Dashboard JSON under `infra/grafana/dashboards/` is the source of truth
+(`allowUiUpdates: false`) — edit it and redeploy. `make lint/grafana` and
+`make grafana/verify` check it (also run by `build-grafana.yml`). Rationale:
+[ADR-0022](../docs/adr-0022-prometheus-grafana-metrics.md).
 
-`null_resource.prometheus` also uploads a `web_ingest_secret` file — the
-`OBSERVABILITY_INGEST_SECRET` value, passed in as
-`TF_VAR_observability_ingest_secret` by the `infra-apply` job — which
-`prometheus.yml`'s `web` scrape job reads via `credentials_file` and sends as
-a bearer token, because `web`'s `GET /metrics` is gated on it now (issue
-#1555; `web` is the kamal-proxy catch-all, so it was otherwise world-readable).
-`deploy-kamal` `needs` `infra-apply`, so Prometheus starts sending the token
-before the new `web` starts requiring it.
+Re-applying redeploys the Prometheus accessory; `kamal deploy -c
+config/deploy.grafana.yml` (or a push to `main` touching `infra/grafana/**` or
+`infra/grafana.Dockerfile`) redeploys Grafana.
 
-Grafana itself is **not** a Tofu-managed accessory — it's a third Kamal
-service (`config/deploy.grafana.yml`, deployed by `.github/workflows/main.yml`'s
-`deploy-kamal` job like `api`/`web`) because it needs a public path
-(`/grafana`) through the shared kamal-proxy instance, which only routes to
-Kamal-managed containers. It deploys a thin wrapper image this repo builds
-and pushes to GHCR (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue
-#1509) that also bakes in the Prometheus datasource, dashboards, (issue
-#1528) the alerting provisioning, and (issue #1570) the
-`grafana-github-datasource` / `grafana-sentry-datasource` plugins plus their
-provisioned datasources from
-`infra/grafana/` (issue #1527). The dashboard JSON under
-`infra/grafana/dashboards/` is the single source of truth — `allowUiUpdates`
-is `false`, so an admin's UI edits can't be saved over the provisioned copy;
-edit the JSON and redeploy. `make lint/grafana` (static JSON) and `make
-grafana/verify` (boots the image, asserts the datasources, dashboards, alert
-rules, and contact point all provision) check it, both also run by
-`build-grafana.yml`. See `config/deploy.grafana.yml`'s own header comment for how
-its `proxy.path_prefix`/`GF_SERVER_ROOT_URL` are wired, and
-`docs/adr-0022-prometheus-grafana-metrics.md` for the full rationale
-(Prometheus over VictoriaMetrics, Grafana owning graphs/alerting, what got
-removed).
-
-Re-running `apply` after editing `prometheus-compose.yml`/`prometheus.yml`
-redeploys the accessory; re-running `kamal
-deploy -c config/deploy.grafana.yml` (or pushing to `main`, which rebuilds
-the image when `infra/grafana/**` or `infra/grafana.Dockerfile` changed)
-redeploys Grafana.
-
-If `prom_query` reports a target `down`, check `ssh deploy@<ip> docker ps` for
-`prometheus`/`postgres-exporter`/`node-exporter` all running.
-
-If the `api` or `web` target is **missing entirely** rather than down, the
-problem is Docker service discovery, not the container. Those two jobs find
-their containers by the `service` Docker label (`infra/prometheus.yml`), which
-needs three things to hold: the container carries the label
-(`docker inspect -f '{{.Config.Labels.service}}' <container>`), it is attached
-to the `kamal` network, and Prometheus can read the Docker socket. The last one
-is the easiest to get wrong — the image runs as `nobody`, so
+**Troubleshooting:** if `prom_query` reports a target `down`, check
+`ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`.
+If the `api` or `web` target is **missing entirely**, Docker service discovery
+is broken. It needs: the `service` label on the container
+(`docker inspect -f '{{.Config.Labels.service}}' <container>`), attachment to
+the `kamal` network, and Docker-socket access — the image runs as `nobody`, so
 `null_resource.prometheus` passes the host's docker gid via `DOCKER_GID` into
-the compose file's `group_add`. `docker logs prometheus | grep docker_sd` shows
-a permission error plainly if that has broken.
+`group_add`. `docker logs prometheus | grep docker_sd` shows a permission
+error plainly. The `TargetMissing` alert fires on this case.
 
-This *was* the one part of the wiring worth confirming by hand after the first
-real deploy — and #1554 is what it cost when nobody did: `api` and `web` were
-never scraped at all for the whole retention window. The `TargetMissing` alert
-now reports this case instead of relying on someone remembering to check.
+## GoTrue is gone
 
-## GoTrue is gone (issue #1039)
+Auth (password sign-in, TOTP MFA, the MCP OAuth 2.1 authorization server) is
+first-party in `api` (`api/internal/auth`, `api/internal/oauth2as`) against its
+own `auth` schema; there is no `gotrue` container. The one-time cutover was
+automatic (`api/cmd/api/migrations/00017_auth_schema.sql`), and the
+`auth_gotrue_legacy` fallback schema has since been dropped by
+`00019_drop_auth_gotrue_legacy.sql`. See
+[ADR-0005](../docs/adr-0005-first-party-auth-replacing-gotrue.md).
 
-This section used to describe standing up a self-hosted `gotrue` service in
-`postgres-compose.yml` (issue #1032). As of issue #1039, auth (password
-sign-in, TOTP MFA, and the MCP OAuth 2.1 authorization server) is entirely
-first-party — `api/internal/auth` and `api/internal/oauth2as` against
-`api`'s own `auth` Postgres schema — and `api` never talks to a `gotrue`
-container at all. The `gotrue` service has been removed from
-`postgres-compose.yml`, and its `gotrue_*`/`resend_api_key` Tofu variables
-were removed from `variables.tf`/`main.tf` at the time (a differently-named
-`release_check_resend_api_key` variable exists again as of issue #1194, for
-the unrelated release-upgrade-check timer below — see that section).
+## Deploy the app via Kamal
 
-The one-time cutover this used to require by hand (renaming the
-Supabase-restored `auth` schema out of the way, running a standalone
-migration script) is now **fully automatic**: `api/cmd/api/migrations/
-00017_auth_schema.sql` detects a GoTrue-shaped `auth` schema (via the
-presence of `auth.instances`, a table name only GoTrue/Supabase ever
-creates) and renames it to `auth_gotrue_legacy` before creating the new
-tables; `api/internal/legacyauth` then copies existing users' bcrypt
-password hashes and verified TOTP factors across, idempotently, every time
-`api` boots. A normal deploy of this change is the entire cutover — no
-maintenance window, no manual `psql`/script step.
+**Deploys happen in CI** (next section); nothing under `infra/` runs Kamal.
+This section is the one-time bootstrap and the manual escape hatch.
 
-`auth_gotrue_legacy` itself is never dropped by any of this — it's left in
-place in Postgres as a rollback fallback. If a rollback is ever needed:
-redeploy the previous `api`/`web` images, then manually
-`ALTER SCHEMA auth_gotrue_legacy RENAME TO auth;` (undoing that migration's
-`DROP TABLE`s on the new schema first, via `goose down`, if it already ran).
-
-## Deploy the app via Kamal (issue #1033)
-
-**Deploys happen in CI, not here** — see the next section. Tofu stops at the
-host; nothing under `infra/` runs Kamal. This section covers the one-time
-bootstrap and the manual escape hatch.
-
-Since cutover (#1034) the app is served on the real domain, not the raw IP:
-`config/deploy.api.yml`/`config/deploy.web.yml` both set
-`proxy.host: tools.xdoubleu.com` + `proxy.ssl: true`, so kamal-proxy obtains
-and renews a Let's Encrypt cert itself over the HTTP-01 challenge (port 80,
-already open in `hcloud_firewall.vps`) — nothing to configure per deploy.
-`api` and `web` deploy as two independent Kamal services sharing that one
-kamal-proxy instance and domain (issue #1038) — kamal-proxy routes
-`/api/*`/`/.well-known/*` to `api` (`config/deploy.api.yml`'s
-`proxy.path_prefix`) and everything else to `web`. Postgres stays exactly as
-OpenTofu manages it above (**not** a Kamal accessory) — the app containers
-Kamal starts reach it over the shared `kamal` Docker network
-`null_resource.kamal_network` creates before Postgres comes up (see that
-resource's comment in `infra/main.tf` for why the ordering matters).
+`config/deploy.api.yml`/`config/deploy.web.yml` set
+`proxy.host: tools.xdoubleu.com` + `proxy.ssl: true`, so kamal-proxy
+obtains and renews a Let's Encrypt cert over HTTP-01 (port 80). `api` and `web`
+are two independent Kamal services sharing one kamal-proxy: `/api/*` and
+`/.well-known/*` go to `api` (`proxy.path_prefix`), everything else to `web`.
+Postgres stays Tofu-managed (not a Kamal accessory); app containers reach it
+over the `kamal` Docker network `null_resource.kamal_network` creates first
+(see its comment in `infra/main.tf`).
 
 ### One-time bootstrap
 
-The CI job runs `kamal deploy` for each of `api`/`web`, which assumes
-kamal-proxy is already installed on the host. A fresh host needs
-`kamal setup -c config/deploy.api.yml` **and**
-`kamal setup -c config/deploy.web.yml` once, by hand — each deploys that one
-service for the first time; kamal-proxy itself only actually installs on
-whichever runs first (idempotent on the second). This has already been done
-for the current VPS — you only need it if you rebuild the box.
+`deploy-kamal` runs `kamal deploy`, which assumes kamal-proxy is installed. A
+fresh host needs, once, by hand:
+
+```bash
+bundle exec kamal setup -c config/deploy.api.yml
+bundle exec kamal setup -c config/deploy.web.yml
+```
+
+Already done for the current VPS — only needed if the box is rebuilt.
 
 ### Manual deploy or rollback
 
-Also how you'd deploy if CI is down. Needs Ruby 3.0+ and `bundle install`
-(the repo's `Gemfile` pins the Kamal version CI uses — don't `gem install
-kamal` separately and drift). **On macOS the system Ruby at `/usr/bin/ruby`
-doesn't qualify** (stuck on 2.6, root-owned gem dir); `brew install ruby` and
-put it ahead of the system one on `PATH`.
-
-`config/deploy.api.yml`/`config/deploy.web.yml` are committed and read
-as-is — Kamal evaluates each as ERB, so there is no render step; each just
-needs the right environment and its own `-c` flag.
+Needs Ruby 3.0+ and `bundle install` (the `Gemfile` pins CI's Kamal version —
+don't `gem install kamal`). On macOS, system Ruby (2.6) doesn't qualify;
+`brew install ruby` and put it first on `PATH`. The configs are ERB, read as-is
+with their own `-c` flag.
 
 ```bash
-# 1. The two values config/deploy.api.yml/deploy.web.yml both read via ERB
+# 1. Values both configs read via ERB
 export KAMAL_SERVER_IP=<vps ip> KAMAL_REGISTRY_USERNAME=<ghcr user>
 
-# 2. Every name .kamal/secrets references — same values as the repo Secrets
-#    in the CI job's env: block, which is where they actually live. Both
-#    deploys read from the same .kamal/secrets file; each config's own
-#    env.secret only pulls the names it references.
+# 2. Every name .kamal/secrets references — same values as the Environment
+#    secrets below
 export RELEASE=<full sha> DB_DSN=... KAMAL_REGISTRY_PASSWORD=...   # etc.
 
-# 3. Deploy specific already-built images (--skip-push: CI built and pushed
-#    them; the tag is the full commit SHA, per build-api.yml/build-web.yml)
+# 3. Deploy already-built images (tag = full commit SHA)
 bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version=<sha>
 bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version=<sha>
 ```
 
-`bundle exec kamal config -c config/deploy.api.yml` (or `.web.yml`) renders
-everything without deploying — use it to check the environment is complete
-before a real run.
+`bundle exec kamal config -c config/deploy.api.yml` (or `.web.yml`) renders the
+config without deploying — use it to check the environment is complete.
 
-To roll back, pass an earlier `--version` (or `bundle exec kamal rollback -c
-config/deploy.api.yml`/`.web.yml`) — each service rolls back independently,
-without touching the other. Kamal will not cut traffic to a container that
-fails its `/health` readiness probe — a bad deploy leaves the previous
-container serving rather than taking the site down.
+Roll back with an earlier `--version` or `bundle exec kamal rollback -c
+config/deploy.api.yml`/`.web.yml`; each service rolls back independently.
+Kamal won't cut traffic to a container failing its `/health` probe, so a bad
+deploy leaves the previous one serving.
 
-Verify with `curl https://tools.xdoubleu.com/api/version` (api) and
-`curl https://tools.xdoubleu.com/` (web) plus a real sign-in through the app.
+Verify with `curl https://tools.xdoubleu.com/api/version`,
+`curl https://tools.xdoubleu.com/`, and a real sign-in.
 
-## Automate Kamal deploys in CI (issue #1036)
+## Automate Kamal deploys in CI
 
-`.github/workflows/main.yml`'s `deploy-kamal` job is **the** deploy: it runs
-on every push to `main`, and since cutover (#1034) DNS resolves to this VPS,
-so a failure there means `main` didn't ship and fails the workflow — no
-`continue-on-error`. The DigitalOcean App Platform `deploy` job that used to
-run alongside it was removed in #1113, together with `do-app.yaml` and the
-`DO_ACCESS_TOKEN`/`DO_APP_ID` secrets.
+`main.yml`'s `deploy-kamal` job is **the** deploy: every push to `main`, no
+`continue-on-error`. It runs `kamal deploy` (not `setup`) against
+`config/deploy.api.yml` and `config/deploy.web.yml` (and Grafana), over SSH via
+an `ssh-agent` loaded with `KAMAL_SSH_KEY`.
 
-The repo Secrets listed below are the **single source of truth** for every
-app secret — they are deliberately not duplicated as tfvars.
-It runs `kamal deploy` (not `setup`) twice — once against
-`config/deploy.api.yml`, once against `config/deploy.web.yml` (issue
-#1038's two independent-service split) — against the already-bootstrapped
-host, authenticating over SSH via a real `ssh-agent`
-(started by the job's own "Load the deploy SSH key" step, loading
-`KAMAL_SSH_KEY`) — same auth mechanism as the local `tofu apply` path, just
-with the key coming from a repo secret instead of whatever's already loaded
-in your own agent.
+**CI deploy key.** The CI agent is headless and can't unlock a passphrase, so
+use a dedicated unencrypted key. Add its public half to
+`deploy_ssh_public_keys` in `terraform.tfvars`, re-`tofu apply`, then store the
+private half:
 
-That agent runs headless in CI and can't unlock a
-passphrase-protected key, so don't reuse your own key here — generate a
-dedicated, unencrypted CI deploy key, add its public half to
-`deploy_ssh_public_keys` in `terraform.tfvars` (alongside your own key) and
-re-`tofu apply` so `harden.sh` authorizes it on the VPS, then store the
-private half as `KAMAL_SSH_KEY` below:
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/kamal_ci_deploy -N "" -C "kamal-ci-deploy"
 gh secret set KAMAL_SSH_KEY --repo <owner>/<repo> --env production < ~/.ssh/kamal_ci_deploy
 ```
 
-Set it from the file like that rather than pasting into the web UI — the UI
-strips the key's trailing newline, and OpenSSH rejects the resulting PEM with
-`Error loading key "(stdin)": error in libcrypto` (issue #1106). The workflow
-now re-adds the newline defensively, but a key pasted with other damage
-(passphrase-protected, the `.pub` half, a PuTTY `.ppk`) still fails — the
-`deploy-kamal` job says so explicitly when it does.
+Set it from the file, not the web UI — the UI strips the trailing newline
+(`Error loading key "(stdin)": error in libcrypto`). The workflow re-adds it,
+but a passphrase-protected key, the `.pub` half, or a `.ppk` still fails, and
+`deploy-kamal` says so.
 
-In `terraform.tfvars`, write each entry as either a **path** to the `.pub`
-file (`"~/.ssh/kamal_ci_deploy.pub"` — `main.tf`'s `local.deploy_ssh_public_keys`
-reads it) or the key's literal text. What does *not* work is
-`"$(cat ~/.ssh/kamal_ci_deploy.pub)"`: unlike the
-`-var 'deploy_ssh_public_keys=["'"$(cat ...)"'"]'` form above (where your shell
-expands it before Tofu ever sees it), a `.tfvars` file is not shell-interpolated,
-so that entry would be appended to the VPS's `authorized_keys` as that exact
-string — sshd then ignores the unparsable line and the key never works.
-`variables.tf` has a `validation` block rejecting it at plan time.
+In `terraform.tfvars`, each `deploy_ssh_public_keys` entry is a **path** to the
+`.pub` file (`"~/.ssh/kamal_ci_deploy.pub"`) or the key's literal text — never
+`"$(cat ...)"`: tfvars aren't shell-interpolated, so that string would land in
+`authorized_keys` verbatim. A `validation` block in `variables.tf` rejects it.
 
-**One-time setup**, GitHub repo Settings → Environments → `production` →
-Environment secrets (not the repo-level Secrets tab — the `deploy-kamal`
-job runs with `environment: production`, an Environment branch-restricted
-to `main` with no required reviewers, so only a push to `main` can ever
-populate its `secrets.*` context). All of these — including
-`KAMAL_SERVER_IP` and `KAMAL_REGISTRY_USERNAME` — are Secrets, not
-Variables: this repo is public, and GitHub only masks Secrets from
-workflow logs, not Variables, and `KAMAL_SERVER_IP` in particular gets
-echoed into a `ssh-keyscan` command, so a Variable would leak the VPS's IP
-into a public log. Same
-values as the matching `terraform.tfvars` entries below, under these exact
-names (two are prefixed since GitHub Actions rejects secret names starting
-with `GITHUB_`; the app-level env var Kamal actually sets on the container
-is unaffected, only the GitHub-side secret name changes). `KAMAL_SERVER_IP`
-and `KAMAL_REGISTRY_USERNAME` match `server_ip`/the GHCR user; the rest are
-app secrets that exist **only** here — they are not tfvars:
+**One-time setup:** GitHub Settings → Environments → `production` →
+Environment secrets (not repo-level Secrets). `deploy-kamal` runs with
+`environment: production`, branch-restricted to `main`, so only a push to
+`main` can read them. All of these are Secrets, not Variables — the repo is
+public and only Secrets are masked in logs (`KAMAL_SERVER_IP` is echoed into
+`ssh-keyscan`). Names prefixed `KAMAL_GITHUB_*`/`GRAFANA_GITHUB_*` exist
+because GitHub rejects secret names starting with `GITHUB_`; the container env
+var keeps its unprefixed name. App secrets exist **only** here:
+
 ```
 KAMAL_SERVER_IP              (same value as server_ip in terraform.tfvars)
-KAMAL_REGISTRY_USERNAME      (GHCR username; required by Kamal's config
-                              schema even though the app image is a public
-                              package needing no auth to pull)
-KAMAL_SSH_KEY                (the dedicated CI deploy key's private half —
-                              its public half is one entry in
-                              deploy_ssh_public_keys in terraform.tfvars)
+KAMAL_REGISTRY_USERNAME      (GHCR username; required by Kamal's schema even
+                              though the images are public)
+KAMAL_SSH_KEY                (CI deploy key's private half; public half is in
+                              deploy_ssh_public_keys)
 KAMAL_DB_DSN                 (postgres://postgres:<tofu output -raw
                               postgres_password>@postgres:5432/postgres —
-                              Tofu generates the password but nothing outside
-                              its state can read it, so copy it in once here;
-                              rotating it means updating both)
-KAMAL_REGISTRY_PASSWORD      (also authenticates Grafana's own wrapper image
-                              pull, issue #1509 — ghcr.io/.../grafana is a
-                              third public GHCR package alongside api/web,
-                              built by build-grafana.yml/infra/grafana.Dockerfile
-                              rather than pulled from Docker Hub directly, so
-                              no separate registry credentials are needed)
-JWT_SECRET                   (signs api's self-issued session JWTs, issue
-                              #1039 — rotating it signs everyone out)
-OAUTH_HMAC_SECRET            (keys the embedded MCP OAuth 2.1 authorization
-                              server's token strategy, issue #1039 —
-                              rotating it invalidates every issued MCP token)
-OAUTH_OIDC_PRIVATE_KEY       (PEM RSA private key signing the AS's OIDC ID
-                              tokens, issue #1469 — public half at
-                              /oauth2/jwks; unset ⇒ ephemeral key per boot,
-                              rotating it re-logs-in Grafana users.
+                              copy it in once; rotating means updating both)
+KAMAL_REGISTRY_PASSWORD      (also pulls the Grafana wrapper image from GHCR)
+JWT_SECRET                   (signs api session JWTs — rotating signs everyone out)
+OAUTH_HMAC_SECRET            (MCP OAuth AS token strategy — rotating invalidates
+                              every issued MCP token)
+OAUTH_OIDC_PRIVATE_KEY       (PEM RSA key signing OIDC ID tokens, public half at
+                              /oauth2/jwks; unset ⇒ ephemeral per boot.
                               openssl genpkey -algorithm RSA
                               -pkeyopt rsa_keygen_bits:2048)
-OAUTH_GRAFANA_CLIENT_SECRET  (plaintext secret for the static confidential
-                              "grafana" OAuth client, issue #1469 — the api
+OAUTH_GRAFANA_CLIENT_SECRET  (static "grafana" OAuth client secret; api
                               reconciles its bcrypt hash on boot; unset ⇒
-                              Grafana SSO unusable. Also read by the
-                              "Deploy grafana via Kamal" step, issue #1468 —
-                              same value, both sides of the OAuth pair, but
-                              passed to that container as
-                              GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET, the only
-                              spelling Grafana reads, issue #1517)
-GRAFANA_ADMIN_PASSWORD       (Grafana's local break-glass admin password,
-                              issue #1468 — config/deploy.grafana.yml's
-                              GF_SECURITY_ADMIN_PASSWORD; SSO via
-                              generic_oauth is the normal path in. Also
-                              delivered to the api container under this same
-                              name, issue #1564 — the get_grafana_alerts MCP
-                              tool authenticates to Grafana's API as `admin`
-                              with it)
+                              Grafana SSO unusable. Also passed to Grafana as
+                              GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET)
+GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
+                              also given to api for get_grafana_alerts)
 STEAM_API_KEY
 HARDCOVER_API_KEY
-BMC_PARTNER_KEY              (Belgian Mobility Company APIM subscription key
-                              for the SNCB GTFS feed, trains app / issue
-                              #1390 — free self-service registration,
-                              Standard tier; sent as the bmc-partner-key
-                              header)
+BMC_PARTNER_KEY              (SNCB GTFS feed subscription key, trains app;
+                              sent as the bmc-partner-key header)
 R2_ACCOUNT_ID
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
@@ -510,149 +316,79 @@ KAMAL_GITHUB_OAUTH_CLIENT_ID       (→ GITHUB_OAUTH_CLIENT_ID on the container)
 KAMAL_GITHUB_OAUTH_CLIENT_SECRET   (→ GITHUB_OAUTH_CLIENT_SECRET)
 SENTRY_OAUTH_CLIENT_ID
 SENTRY_OAUTH_CLIENT_SECRET
-TODOIST_OAUTH_CLIENT_ID      (learningpaths' per-user Todoist connect flow,
-                              issue #1475 — the app's own client id/secret
-                              only; each user's own connection is stored in
-                              learningpaths.oauth_connections, not here)
+TODOIST_OAUTH_CLIENT_ID      (learningpaths' Todoist connect flow; the app's own
+                              client id — per-user tokens live in the DB)
 TODOIST_OAUTH_CLIENT_SECRET
 ENCRYPTION_KEY
-RESEND_API_KEY               (also reused, unchanged, as Grafana's SMTP
-                              contact-point password — issue #1468 — via
-                              the "Deploy grafana via Kamal" step's
-                              GF_SMTP_PASSWORD env key)
-EMAIL_FROM                   (also reused as Grafana's GF_SMTP_FROM_ADDRESS,
-                              issue #1468)
-NOTIFY_EMAIL_TO              (admin recipient for api's notification emails)
+RESEND_API_KEY               (also Grafana's SMTP password, GF_SMTP_PASSWORD)
+EMAIL_FROM                   (also Grafana's GF_SMTP_FROM_ADDRESS)
+NOTIFY_EMAIL_TO              (admin recipient for api notification emails)
 EMAIL_INBOUND_DOMAIN
 EMAIL_INBOUND_SECRET
-OBSERVABILITY_INGEST_SECRET  (shared secret gating POST
-                              /api/observability/logs, the plain-HTTP
-                              endpoint web forwards its own logs through,
-                              issue #1040 — web holds no admin session to
-                              authenticate a Connect call with. Also gates
-                              GET /metrics on the web container as a bearer
-                              token (issue #1555) and, reused as
-                              TF_VAR_observability_ingest_secret in the
-                              infra-apply job, is written to the VPS for
-                              Prometheus's `web` scrape job to send —
-                              one repo Secret, three consumers)
-GRAFANA_GITHUB_DATASOURCE_TOKEN  (fine-grained GitHub PAT scoped to this
-                              repo, for the grafana-github-datasource plugin;
-                              issue #1570 — read by $__env{} in
-                              infra/grafana/provisioning/datasources/issue-signals.yml
-                              via the "Deploy grafana via Kamal" step. Named
-                              GRAFANA_* because GitHub Actions forbids a repo
-                              secret named GITHUB_*)
-GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry auth token, org:read + project:read
-                              + event:read, for the grafana-sentry-datasource
-                              plugin; issue #1570 — same wiring as above.
-                              Backs the Sentry dashboard's live panel; the
-                              IssueSentryUnresolved alert itself reads the
-                              sentry_unresolved_issues Prometheus gauge
-                              instead as of issue #1709)
-GRAFANA_SLACK_WEBHOOK_URL    (Slack Incoming Webhook URL — the alert contact
-                              point, issue #1592 — read by $__env{} in
-                              infra/grafana/provisioning/alerting/contactpoints.yml
-                              via the "Deploy grafana via Kamal" step. Replaces
-                              the #1528 email contact point)
-ROUTINE_FIRE_TOKEN           (bearer token for issue #1444's routine-fire
-                              path — authenticates both internal/routines.Client's
-                              outbound POST to ROUTINE_FIRE_URL and the inbound
-                              POST /webhooks/grafana-alert route the new
-                              "routine-fire" Grafana contact point targets, see
-                              infra/grafana/provisioning/alerting/contactpoints.yml.
-                              Generate a long random value, e.g.
-                              `openssl rand -hex 32`. Unset leaves the inbound
-                              webhook permanently unauthorized (every request
-                              rejected) and the outbound client sending an
-                              empty bearer token. As of issue #1722 this is
-                              also a plain GitHub Actions secret (not only a
-                              Kamal deploy secret): main.yml's
-                              notify-main-ci-red job authenticates the same
-                              inbound webhook directly from CI the moment a
-                              push-to-main job fails, without waiting on
-                              Grafana/Prometheus's evaluation cycle)
-SLACK_WEBHOOK_URL            (Slack Incoming Webhook URL the notify_slack MCP
-                              tool posts epic-complete summaries to, issue
-                              #1628 — internal/slackwebhook. Deliberately
-                              separate from GRAFANA_SLACK_WEBHOOK_URL above,
-                              a distinct app-deploy-scoped secret Grafana's
-                              own alerting uses. Unset leaves the tool
-                              returning ErrNotConfigured. Provisioned by
-                              creating a Slack Incoming Webhook in the target
-                              workspace — see the `wizard` skill)
+OBSERVABILITY_INGEST_SECRET  (gates POST /api/observability/logs and web's
+                              GET /metrics; also TF_VAR_observability_ingest_secret
+                              for Prometheus's web scrape job)
+GRAFANA_GITHUB_DATASOURCE_TOKEN  (fine-grained PAT scoped to this repo, for
+                              grafana-github-datasource; read via $__env{} in
+                              infra/grafana/provisioning/datasources/issue-signals.yml)
+GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry token, org:read + project:read +
+                              event:read, for grafana-sentry-datasource)
+GRAFANA_SLACK_WEBHOOK_URL    (Slack webhook for the alert contact point,
+                              infra/grafana/provisioning/alerting/contactpoints.yml)
+ROUTINE_FIRE_TOKEN           (bearer token for internal/routines.Client's POST to
+                              ROUTINE_FIRE_URL and the inbound
+                              POST /webhooks/grafana-alert; `openssl rand -hex 32`.
+                              Unset ⇒ inbound webhook rejects everything. Also a
+                              plain Actions secret for main.yml's
+                              notify-main-ci-red job)
+SLACK_WEBHOOK_URL            (Slack webhook the notify_slack MCP tool posts to;
+                              separate from GRAFANA_SLACK_WEBHOOK_URL. Unset ⇒
+                              ErrNotConfigured)
+POSTHOG_KEY                  (web's PostHog Cloud EU project key; POSTHOG_HOST
+                              is plain env.clear in config/deploy.web.yml)
 ```
 
-Every name a deploy config's `env.secret:` list references must also appear
-in `.kamal/secrets` **and** in the matching `Deploy <svc> via Kamal` step's
-`env:` block in `main.yml` — otherwise `kamal deploy` aborts on `main` with
-`Secret 'X' not found in .kamal/secrets` (post-merge, untested; this is how
-`BMC_PARTNER_KEY` shipped broken in #1390, fixed in #1404). `api`'s
-`make lint/kamal-secrets` (`api/scripts/check_kamal_secrets.sh`, run by the
-`API Kamal Secrets Lint` CI job on any `config/deploy.*.yml` or workflow
-change) fails the PR when those three lists disagree — issue #1405. A brand
-new secret still needs adding to all three by hand, plus creating the
-Environment secret above; the check only catches a name that was missed in
-one of them.
+Every name in a deploy config's `env.secret:` must also be in `.kamal/secrets`
+**and** the matching `Deploy <svc> via Kamal` step's `env:` in `main.yml`, or
+`kamal deploy` aborts post-merge. `make lint/kamal-secrets` catches a
+mismatch; a new secret still needs adding to all three plus the Environment
+secret above → [convention-deploy-secrets](../docs/convention-deploy-secrets.md).
 
-**Verify**: push a trivial change to `main`, confirm `deploy-kamal` runs and
-succeeds in the Actions tab, then `curl https://tools.xdoubleu.com/health`.
+**Verify**: push a trivial change to `main`, confirm `deploy-kamal` succeeds,
+then `curl https://tools.xdoubleu.com/health`.
 
-**External uptime monitoring** (also part of #1036, not automatable from
-here — a manual account-setup step): an UptimeRobot free-tier monitor, 5
-minute interval, against `https://tools.xdoubleu.com/health`.
+**External uptime monitoring** (manual account setup): an UptimeRobot
+free-tier monitor, 5-minute interval, on `https://tools.xdoubleu.com/health`.
 
-## Automate infra apply in CI (issues #1053/#1057/#1058/#1060)
+## Automate infra apply in CI
 
-`.github/workflows/main.yml`'s `infra-apply` job runs on every push to
-`main` that touches `infra/**` (`environment: production`, the same
-branch-restricted Environment `deploy-kamal` uses — only a push to `main`
-can populate its secrets). It:
+`main.yml`'s `infra-apply` job runs on every push to `main` touching
+`infra/**` (`environment: production`). It:
 
-1. Loads the same `KAMAL_SSH_KEY` deploy-kamal uses (already one of the
-   authorized `deploy_ssh_public_keys` entries) and trusts the VPS host
-   key, same steps as `deploy-kamal`.
+1. Loads `KAMAL_SSH_KEY` and trusts the VPS host key.
 2. `tofu init`s against the R2 backend.
-3. **Snapshots the VPS** via the Hetzner API
-   (`POST /servers/{id}/actions/create_image`) and polls until the snapshot
-   is actually ready (up to 30 min — a full VPS snapshot regularly takes
-   well over 5), labeled `purpose=ci-pre-apply` so later steps (and a human
-   browsing the Hetzner console) can tell CI's snapshots apart from any you
-   take by hand. The step publishes the image id only once that poll
-   succeeds, so a poll timeout can't leave step 5 rebuilding from a
-   still-building image.
+3. **Snapshots the VPS** (`POST /servers/{id}/actions/create_image`), labeled
+   `purpose=ci-pre-apply`, polling up to 30 min until ready; the image id is
+   published only once ready.
 4. `tofu apply -auto-approve`.
-5. **On failure**, calls the Hetzner API to rebuild the server from that
-   snapshot (`POST /servers/{id}/actions/rebuild`) automatically, then lets
-   the job stay failed. This is a real but lossy rollback: rebuilding from a
-   snapshot causes a few minutes of downtime and discards anything written
-   (including to Postgres) between the snapshot and the failure — accepted
-   because there's no clean "fix forward" undo for a broken `harden.sh` or
-   `postgres-compose.yml` mutation applied over SSH, unlike the app's own
-   deploy (Kamal already won't cut traffic to a container that fails its
-   health check).
-6. **Always** prunes old CI snapshots, keeping only the newest 5.
+5. **On failure**, rebuilds the server from that snapshot
+   (`POST /servers/{id}/actions/rebuild`) and stays failed. This is lossy
+   (minutes of downtime, anything written since the snapshot is lost) —
+   accepted because a broken `harden.sh`/compose mutation has no clean undo.
+6. **Always** prunes old CI snapshots, keeping the newest 5.
 
-There is deliberately **no manual approval gate** — not even scoped to the
-Postgres-touching resources — and deliberately no PR-time `tofu plan`
-check either: running `tofu plan` against the real remote state from a
-`pull_request` trigger would need the same credentials as `apply`
-(including `HCLOUD_TOKEN` and the R2 write key), but `production`'s branch
-restriction — the whole point of putting these secrets there instead of
-plain repo Secrets — means a PR run can't reach them without either
-duplicating the credentials outside that Environment (undoing the
-protection) or accepting that a PR could read them. The automatic
-snapshot/restore above is the safety net instead.
+There is deliberately **no approval gate and no PR-time `tofu plan`**: a plan
+against real state needs the same credentials as `apply`, which live in the
+branch-restricted `production` Environment a PR can't reach. The
+snapshot/restore is the safety net.
 
-**If the auto-restore step itself doesn't run** (e.g. the job was
-cancelled mid-apply, before reaching that step): restore manually from the
-Hetzner console (Servers → the VPS → Snapshots → find the newest
-`ci-pre-apply`-labeled one → Rebuild from Image) or via the same API call
-the workflow uses, with `$HCLOUD_TOKEN` and the image ID from either the
-console or `curl https://api.hetzner.cloud/v1/images?type=snapshot&label_selector=purpose=ci-pre-apply`.
+**If auto-restore didn't run** (e.g. job cancelled mid-apply): Hetzner console
+→ the VPS → Snapshots → newest `ci-pre-apply` → Rebuild from Image, or the same
+API call with `$HCLOUD_TOKEN` and an image id from
+`curl https://api.hetzner.cloud/v1/images?type=snapshot&label_selector=purpose=ci-pre-apply`.
 
-**One-time setup**, GitHub repo Settings → Environments → `production` →
-Environment secrets, alongside `deploy-kamal`'s existing ones:
+**One-time setup**, `production` Environment secrets, alongside the ones above:
+
 ```
 HCLOUD_TOKEN                   (Hetzner Cloud API token, read+write)
 INFRA_SERVER_ID                (same value as server_id in terraform.tfvars)
@@ -660,68 +396,33 @@ TF_STATE_R2_ACCESS_KEY_ID       (the scoped R2 token's Access Key ID)
 TF_STATE_R2_SECRET_ACCESS_KEY   (the scoped R2 token's Secret Access Key)
 TF_STATE_R2_ENDPOINT            (same value as in infra/backend.hcl)
 ```
-`RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` are reused from
-`deploy-kamal`'s existing secrets (→ `TF_VAR_release_check_resend_api_key`/
-`_email_from`/`_email_to` — see the release-upgrade-check section above) —
-no new values needed.
-Plus two repo-level Variables (Settings → Secrets and variables → Actions
-→ Variables tab — not Secrets, since neither value is sensitive: public
-keys and the app's own public URL):
+
+`KAMAL_SERVER_IP` and `RESEND_API_KEY`/`EMAIL_FROM`/`NOTIFY_EMAIL_TO` (→
+`TF_VAR_release_check_*`) are reused. Plus one repo-level **Variable**
+(Settings → Secrets and variables → Actions → Variables; not sensitive):
+
 ```
 INFRA_DEPLOY_SSH_PUBLIC_KEYS   (JSON array of literal key text, e.g.
                                 '["ssh-ed25519 AAAA... me", "ssh-ed25519 AAAA... kamal-ci-deploy"]' —
-                                same keys as deploy_ssh_public_keys in
-                                terraform.tfvars, but as literal text: the
-                                CI runner has no access to your local
-                                ~/.ssh/*.pub files to read a path from)
+                                same keys as deploy_ssh_public_keys, as text,
+                                since CI can't read your ~/.ssh/*.pub files)
 ```
-`KAMAL_SERVER_IP` is reused from `deploy-kamal`'s existing secrets — no new
-value needed.
 
-**Verify**: push a trivial change to `infra/harden.sh` (a comment edit is
-enough), confirm `infra-apply` runs and succeeds in the Actions tab, and
-that a new snapshot appears in the Hetzner console labeled
-`ci-pre-apply`.
+**Verify**: push a comment-only change to `infra/harden.sh`, confirm
+`infra-apply` succeeds and a new `ci-pre-apply` snapshot appears in Hetzner.
 
-## Cutover (issue #1034)
+## Cutover
 
-Done — `tools.xdoubleu.com` resolves to the VPS and the app serves from it.
-For the record, all it took was:
-
-1. Point Cloudflare's A/AAAA records for the apex at the VPS's IP, leaving
-   every other record (Resend's SPF/DKIM/DMARC in particular) untouched.
-2. `proxy.host`/`proxy.ssl` in `config/deploy.yml` (now
-   `config/deploy.api.yml`/`config/deploy.web.yml` post-#1038), plus
-   `WEB_URL`/`API_URL` moved off the raw IP onto `https://tools.xdoubleu.com`
-   — then the next deploy picks it up and kamal-proxy issues the cert on its
-   next boot. Watch it happen with
-   `ssh deploy@<ip> docker logs kamal-proxy -f`; a stuck challenge shows up
-   there rather than in the app's own logs.
-
-**DigitalOcean is decommissioned** (#1113): the `deploy` job, `do-app.yaml`,
-and the `DO_ACCESS_TOKEN`/`DO_APP_ID` secrets are gone, and the App Platform
-app itself can be deleted. The separate DigitalOcean monitoring *feature*
-(`api/internal/digitalocean`, `DO_OAUTH_CLIENT_ID`/`SECRET`) was removed
-later, in issue #1040, once host metrics moved to scraping node_exporter
-directly.
-
-**Update (issue #1039):** `api` no longer talks to Supabase or GoTrue at
-all — password auth, TOTP MFA, and the MCP OAuth 2.1 authorization server
-(`api/cmd/api/mcp.go`'s issuer) are now first-party, backed by `api`'s own
-`auth` Postgres schema (`api/internal/auth`, `api/internal/oauth2as`). The
-`SUPABASE_*`/`GOTRUE_URL` secrets have been removed from
-`config/deploy.api.yml`, and the `gotrue` **container** itself has been
-removed from `infra/` entirely — see "GoTrue is gone" above. The cutover
-(renaming the legacy schema, copying existing users' password hashes/TOTP
-factors) is automatic, run by `api` on every boot; there is no separate
-follow-up step left to do.
+Done. For reference, it was: point Cloudflare's apex A/AAAA records at the VPS
+(leaving Resend's SPF/DKIM/DMARC untouched), and set `proxy.host`/`proxy.ssl`
+plus `WEB_URL`/`API_URL` to `https://tools.xdoubleu.com`. kamal-proxy issues
+the cert on its next boot; watch it with `ssh deploy@<ip> docker logs
+kamal-proxy -f`. DigitalOcean App Platform is decommissioned.
 
 ## Migrate data from Supabase (one-time)
 
-Run once, after `tofu apply` has stood up Postgres, against an existing
-plain-SQL `pg_dump` of the source database (including Supabase's `auth`
-schema, not just the app schemas). Streams straight into `psql` on the VPS
-via SSH — the file never touches disk on the VPS:
+After `tofu apply` has stood up Postgres, stream a plain-SQL `pg_dump`
+(including Supabase's `auth` schema) into `psql` on the VPS:
 
 ```bash
 ssh deploy@<ip> docker ps   # confirm the postgres container's name
@@ -730,18 +431,15 @@ ssh deploy@<ip> "docker exec -i <container> psql --username=postgres --dbname=po
   <path-to-dump-file>
 ```
 
-If the dump was produced by a newer `pg_dump` (PostgreSQL 17+), it may be
-wrapped in `\restrict <token>` / `\unrestrict <token>` lines — a safety
-feature that, once triggered, blocks every other backslash command in the
-file (including version-conditional `\if`/`\endif` guards pg_dump itself
-inserts), silently skipping whatever they guard. Strip both lines before
-restoring if so:
+A PostgreSQL 17+ `pg_dump` may wrap the file in `\restrict`/`\unrestrict`
+lines, which silently skip every other backslash command (including
+`\if`/`\endif`). Strip them first:
 
 ```bash
 sed -i '' '/^\\restrict /d; /^\\unrestrict /d' <path-to-dump-file>
 ```
 
-Supabase's own database is untouched throughout, so this is safe to re-run.
+The source database is untouched, so this is safe to re-run.
 
 ## Verify
 
@@ -754,17 +452,14 @@ systemctl is-active unattended-upgrades   # active
 cat /etc/apt/apt.conf.d/20auto-upgrades   # both Periodic settings "1"
 sudo unattended-upgrade --dry-run --debug # shows planned actions, no changes made
 
-# Postgres: tunnel in (never exposed publicly) and check the migrated data
+# Postgres: tunnel in (never exposed publicly)
 ssh -L 5432:localhost:5432 deploy@<ip>
 # in another shell, using the password from `tofu output -raw postgres_password`:
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dt auth.*'
 psql "postgres://postgres:<password>@localhost:5432/postgres" -c '\dn'
-# auth_gotrue_legacy (the one-time GoTrue rollback fallback, see "GoTrue is
-# gone" above) was dropped by 00019_drop_auth_gotrue_legacy.sql and should
-# no longer appear in \dn's output.
+# auth_gotrue_legacy should not appear in \dn's output.
 
-# Auth (first-party as of #1039, no separate service to tunnel to — go
-# through the app itself): sign in with an existing migrated account
+# Auth goes through the app itself: sign in with an existing account
 curl -X POST https://tools.xdoubleu.com/api/auth.v1.AuthService/SignIn \
   -H 'Content-Type: application/json' \
   -d '{"email":"<existing-account-email>","password":"<...>"}'
@@ -776,8 +471,6 @@ curl -X POST https://tools.xdoubleu.com/api/auth.v1.AuthService/SignIn \
 tofu destroy <same -var flags as apply>
 ```
 
-Only removes the Tofu-managed firewall/attachment — `null_resource.harden`
-and `null_resource.postgres` have no destroy-time provisioner, so the
-running container, its data volume, and the OS-level hardening are left in
-place on the box. The server itself was created manually and must be
-deleted separately in the console.
+Only removes the firewall/attachment — the `null_resource`s have no
+destroy-time provisioner, so containers, data volumes, and hardening stay on
+the box. Delete the server itself in the console.

@@ -33,17 +33,13 @@ type TOTPEnrollment struct {
 	QRSVG  string
 }
 
-// MFAChallenge stands in for the challenge concept GoTrue exposed
-// server-side. pquerna/otp has no equivalent — TOTP verification only needs
-// the code and the stored secret — so this is an intentional simplification:
-// a fresh synthetic ID is generated purely to preserve the existing two-step
-// ChallengeMFA -> VerifyMFA(challengeID) call shape the Connect handlers use.
+// MFAChallenge is a synthetic ID that only preserves the two-step
+// ChallengeMFA -> VerifyMFA call shape; TOTP itself needs no challenge.
 type MFAChallenge struct {
 	ID uuid.UUID
 }
 
-// HasVerifiedTOTP returns the factor ID of the verified TOTP factor for the
-// user resolved from accessToken, or (zero, false) if none / token invalid.
+// HasVerifiedTOTP returns the verified TOTP factor ID for the token's user.
 func (service *LocalService) HasVerifiedTOTP(
 	ctx context.Context,
 	accessToken string,
@@ -59,10 +55,7 @@ func (service *LocalService) HasVerifiedTOTP(
 	return factor.ID, true
 }
 
-// EnrollTOTP begins TOTP enrollment for the user resolved from accessToken
-// and returns the QR code (SVG-wrapped PNG), fallback secret, and factor ID.
-// Any pre-existing unverified TOTP factor is deleted first so a repeated
-// enrollment attempt doesn't leave stale rows behind.
+// EnrollTOTP begins TOTP enrollment, deleting any unverified factor first.
 func (service *LocalService) EnrollTOTP(
 	ctx context.Context,
 	accessToken string,
@@ -114,9 +107,7 @@ func (service *LocalService) EnrollTOTP(
 	}, nil
 }
 
-// renderQRSVG renders a QR code for otpURL as an SVG wrapping a base64 PNG —
-// go-qrcode has no native SVG output, and this keeps the return type the
-// callers (an <img>-shaped QrSvg proto field) already expect.
+// renderQRSVG wraps a base64 PNG QR code in SVG; go-qrcode has no SVG output.
 func renderQRSVG(otpURL string) (string, error) {
 	png, err := qrcode.Encode(otpURL, qrcode.Medium, totpQRSize)
 	if err != nil {
@@ -130,8 +121,7 @@ func renderQRSVG(otpURL string) (string, error) {
 	), nil
 }
 
-// ChallengeMFA returns a fresh synthetic challenge ID — see MFAChallenge's
-// doc comment for why this is a no-op beyond that.
+// ChallengeMFA returns a fresh synthetic challenge ID (see MFAChallenge).
 func (service *LocalService) ChallengeMFA(
 	_ context.Context,
 	_ string,
@@ -144,11 +134,8 @@ func (service *LocalService) ChallengeMFA(
 	return &MFAChallenge{ID: id}, nil
 }
 
-// VerifyMFA validates a TOTP code (or, failing that, an unused recovery
-// code) against the given factor. It also completes enrollment: an
-// unverified factor is marked verified on the first successful code. On
-// success it evicts the cache and mints fresh aal2 access and refresh
-// tokens.
+// VerifyMFA validates a TOTP code or unused recovery code, marks an
+// unverified factor verified, and mints fresh aal2 tokens.
 func (service *LocalService) VerifyMFA(
 	ctx context.Context,
 	accessToken string,
@@ -177,10 +164,8 @@ func (service *LocalService) VerifyMFA(
 		return nil, nil, err
 	}
 
-	// A malformed code (e.g. a recovery code's "XXXXX-XXXXX" shape rather
-	// than 6 digits) makes ValidateCustom return an error — treated the same
-	// as an invalid TOTP code here, not fatal, so the recovery-code fallback
-	// below still gets a chance to run.
+	// A malformed code (e.g. a recovery code) errors here; ignore it so the
+	// recovery-code fallback still runs.
 	//nolint:exhaustruct //Encoder uses the library default
 	valid, _ := totp.ValidateCustom(
 		code, string(secret), time.Now(), totp.ValidateOpts{
@@ -219,8 +204,7 @@ func (service *LocalService) VerifyMFA(
 	return &newAccessToken, &newRefreshToken, nil
 }
 
-// tryRecoveryCode checks code against every unused recovery code for
-// userID, consuming (marking used) the first match.
+// tryRecoveryCode consumes the first unused recovery code matching code.
 func (service *LocalService) tryRecoveryCode(
 	ctx context.Context,
 	userID, code string,
@@ -240,8 +224,7 @@ func (service *LocalService) tryRecoveryCode(
 	return false
 }
 
-// UnenrollTOTP removes every TOTP factor and recovery code for the user
-// resolved from accessToken.
+// UnenrollTOTP removes every TOTP factor and recovery code for the user.
 func (service *LocalService) UnenrollTOTP(
 	ctx context.Context,
 	accessToken string,
@@ -260,8 +243,8 @@ func (service *LocalService) UnenrollTOTP(
 	return service.usersStore.DeleteRecoveryCodes(ctx, c.Subject)
 }
 
-// GenerateRecoveryCodes replaces the user's recovery codes with a fresh set
-// of 10 and returns their plaintext (only ever available once).
+// GenerateRecoveryCodes replaces the user's recovery codes with 10 new ones,
+// returning the plaintext once.
 func (service *LocalService) GenerateRecoveryCodes(
 	ctx context.Context,
 	accessToken string,
@@ -299,8 +282,6 @@ func (service *LocalService) GenerateRecoveryCodes(
 	return codes, nil
 }
 
-// generateRecoveryCode returns a 10-character alphanumeric code grouped as
-// "XXXXX-XXXXX".
 func generateRecoveryCode() (string, error) {
 	buf := make([]byte, recoveryCodeBytes)
 	if _, err := rand.Read(buf); err != nil {

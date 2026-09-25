@@ -1,11 +1,6 @@
-// Package dashboard centralizes public dashboard sharing (issue #737):
-// hardcoded Games and Reading (books+feeds) dashboards, each shareable via
-// an opaque token. It owns no schema of its own — no config/widget
-// framework exists yet, so there is nothing to persist beyond the tokens
-// already stored in global.profile_shares — and reaches games/books/feeds
-// only through the exported methods those apps expose (BuildSharedSteam,
-// BuildSharedLibrary, BuildSharedFeeds, ...), never their internal packages or
-// schemas directly.
+// Package dashboard owns public sharing of the Games and Reading dashboards
+// via opaque tokens. It has no schema and reaches other apps only through
+// their exported methods (docs/adr-0007-dashboard-app-owns-public-sharing.md).
 package dashboard
 
 import (
@@ -33,8 +28,7 @@ type Dashboard struct {
 }
 
 // New constructs the dashboard app. gamesApp/booksApp/feedsApp must already
-// be constructed — dashboard registers after them in cmd/api/apps.go so
-// these live references exist by the time it's built.
+// be constructed (registration order in cmd/api/apps.go).
 func New(
 	authService auth.Service,
 	logger *slog.Logger,

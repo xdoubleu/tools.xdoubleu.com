@@ -65,10 +65,8 @@ func (s *ProgressService) GetCurrentSteamCompletionRate(
 	return value, nil
 }
 
-// GetCompletionRateDistribution buckets the games taking part in the
-// library-wide averages, so the chart and the headline rate beside it can never
-// describe different libraries
-// (docs/adr-0018-completion-average-population.md).
+// GetCompletionRateDistribution buckets the averaged games, so the chart
+// matches the headline rate (docs/adr-0018-completion-average-population.md).
 func (s *ProgressService) GetCompletionRateDistribution(
 	ctx context.Context,
 	userID string,
@@ -82,14 +80,11 @@ func (s *ProgressService) GetCompletionRateDistribution(
 	return counts, bucketGames, nil
 }
 
-// distributionBuckets is the fixed bucket count backing both
-// bucketCompletionRates and DistributionLabels: [0-9], [10-19], ..., [90-99],
-// [100].
+// distributionBuckets: [0-9], [10-19], ..., [90-99], [100].
 const distributionBuckets = 11
 
-// bucketCompletionRates sorts games into completion-rate buckets and orders
-// each bucket by rate, then name. Split out from GetCompletionRateDistribution
-// so the bucketing math is unit-testable without a database.
+// bucketCompletionRates buckets games by completion rate, each bucket ordered
+// by rate then name.
 func bucketCompletionRates(games []models.Game) ([]int, [][]models.Game) {
 	const maxCompletionRate = 100.0
 	counts := make([]int, distributionBuckets)

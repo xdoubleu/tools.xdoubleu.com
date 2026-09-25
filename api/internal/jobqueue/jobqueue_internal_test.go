@@ -30,7 +30,6 @@ func (r *fakeRepo) LastSuccessAt(_ context.Context, jobID string) (*time.Time, e
 	return r.last[jobID], nil
 }
 
-// fakeJob has no RunEvery method, so it's trigger-only — see threading.Scheduled.
 type fakeJob struct {
 	id    string
 	calls *atomicInt

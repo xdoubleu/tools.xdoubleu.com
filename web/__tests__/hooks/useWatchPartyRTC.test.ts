@@ -5,8 +5,6 @@ jest.mock('@/lib/watchparty/roomUtils', () => ({
   buildWsUrl: jest.fn(() => 'ws://localhost:8000/ws')
 }))
 
-// ── WebSocket mock ─────────────────────────────────────────────────────────────
-
 class MockWebSocket {
   static OPEN = 1
   readyState = 0
@@ -35,8 +33,6 @@ class MockWebSocket {
 let mockWs: MockWebSocket
 let mockWebSocketFn: jest.Mock
 let mockRTCPeerConnectionFn: jest.Mock
-
-// ── RTCPeerConnection mock ─────────────────────────────────────────────────────
 
 class MockPC {
   connectionState = 'new'
@@ -68,8 +64,6 @@ class MockPC {
   }
 }
 
-// ── MediaStream / track mocks ──────────────────────────────────────────────────
-
 function makeMockTrack(kind: 'audio' | 'video') {
   return { kind, enabled: true, stop: jest.fn(), onended: null as (() => void) | null }
 }
@@ -85,8 +79,6 @@ function makeMockStream() {
     _video: videoTrack
   }
 }
-
-// ── Setup ──────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
   jest.useFakeTimers()
@@ -125,11 +117,7 @@ afterEach(() => {
   jest.clearAllMocks()
 })
 
-// ── Import hook after mocks ───────────────────────────────────────────────────
-
 import { useWatchPartyRTC } from '@/hooks/useWatchPartyRTC'
-
-// ── Tests ──────────────────────────────────────────────────────────────────────
 
 function makeRefs() {
   const mainVideoRef = { current: null as HTMLVideoElement | null }

@@ -21,9 +21,7 @@ const (
 	oauth2asTestResponseType        = "code"
 )
 
-// TestOAuth2MetadataHandler covers the hand-rolled RFC 8414 authorization
-// server metadata document at /.well-known/oauth-authorization-server,
-// wired up in oauth2as.go's oauth2MetadataHandler.
+// TestOAuth2MetadataHandler covers the RFC 8414 metadata document.
 func TestOAuth2MetadataHandler(t *testing.T) {
 	ts := connectServer(t)
 
@@ -48,22 +46,17 @@ func TestOAuth2MetadataHandler(t *testing.T) {
 	assert.Equal(t, []any{
 		"none", "client_secret_basic", "client_secret_post",
 	}, out["token_endpoint_auth_methods_supported"])
-	// Issue #1177: without offline_access advertised, a client never requests
-	// it, so no refresh token is issued and it has to re-authenticate
-	// interactively once the access token expires. Issue #1469 adds the OIDC
-	// scopes for the Grafana SSO client.
+	// offline_access must be advertised or clients never get refresh tokens.
 	assert.Equal(t, []any{"openid", "profile", "email", "offline_access"},
 		out["scopes_supported"])
 
-	// Issue #1469: OIDC discovery fields.
 	assert.Equal(t, issuer+oauth2JWKSPath, out["jwks_uri"])
 	assert.Equal(t, []any{"RS256"}, out["id_token_signing_alg_values_supported"])
 	assert.Equal(t, []any{"public"}, out["subject_types_supported"])
 }
 
-// TestOIDCDiscoveryAndJWKS covers the issue #1469 additions: the
-// openid-configuration alias serves the same document, and /oauth2/jwks
-// exposes one RS256 signing key.
+// TestOIDCDiscoveryAndJWKS: the openid-configuration alias serves the same
+// document and /oauth2/jwks exposes one RS256 key.
 func TestOIDCDiscoveryAndJWKS(t *testing.T) {
 	ts := connectServer(t)
 
@@ -89,13 +82,9 @@ func TestOIDCDiscoveryAndJWKS(t *testing.T) {
 	assert.NotEmpty(t, jwks.Keys[0]["kid"])
 }
 
-// TestOAuth2Metadata_PathInsertionAlias covers issue #1141: in production,
-// APIURL (and therefore AuthIssuer, which defaults to it) has a path
-// ("/api"), so RFC 8414/9728 require a discovering client to insert
-// /.well-known/... *before* that path rather than trust the bare path
-// TestOAuth2MetadataHandler above exercises. routes.go registers that "/api"
-// alias unconditionally for both the AS metadata and the protected-resource
-// metadata document, regardless of the configured APIURL/AuthIssuer shape.
+// TestOAuth2Metadata_PathInsertionAlias: with an issuer path ("/api"), RFC
+// 8414/9728 clients insert /.well-known/... before it; routes.go registers
+// that alias.
 func TestOAuth2Metadata_PathInsertionAlias(t *testing.T) {
 	ts := connectServer(t)
 
@@ -112,9 +101,8 @@ func TestOAuth2Metadata_PathInsertionAlias(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp2.StatusCode)
 }
 
-// oauth2asRegisterTestClient registers a fresh dynamic client against the
-// real /oauth2/register route (wired via app.oauth2as.store in routes.go)
-// and returns its client ID and redirect URI.
+// oauth2asRegisterTestClient registers a dynamic client, returning its ID and
+// redirect URI.
 func oauth2asRegisterTestClient(
 	t *testing.T, ts string,
 ) (string, string) {
@@ -150,10 +138,8 @@ func oauth2asPKCEChallenge(t *testing.T) string {
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
-// TestOAuth2Authorize_SessionResolver_NoCookie covers
-// app.oauth2SessionUserResolver's ok=false branch (oauth2as.go): consenting
-// without a valid accessToken cookie must be rejected as unauthorized rather
-// than silently granting a token for no one.
+// TestOAuth2Authorize_SessionResolver_NoCookie: consent without a valid
+// cookie is unauthorized.
 func TestOAuth2Authorize_SessionResolver_NoCookie(t *testing.T) {
 	ts := connectServer(t)
 	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)
@@ -185,10 +171,8 @@ func TestOAuth2Authorize_SessionResolver_NoCookie(t *testing.T) {
 	assert.Equal(t, "request_unauthorized", loc.Query().Get("error"))
 }
 
-// TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode covers
-// app.oauth2SessionUserResolver's ok=true branch: a real accessToken cookie
-// resolves via the already-wired auth service and the flow completes with an
-// authorization code.
+// TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode: a real cookie
+// completes the flow with a code.
 func TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode(t *testing.T) {
 	ts := connectServer(t)
 	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)
@@ -228,8 +212,8 @@ func TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode(t *testing.T) {
 	assert.NotEmpty(t, loc.Query().Get("code"))
 }
 
-// TestOAuth2Authorize_SessionResolver_InvalidCookie covers the resolver's
-// GetUser-fails sub-branch specifically (as opposed to no cookie at all).
+// TestOAuth2Authorize_SessionResolver_InvalidCookie: an invalid cookie is
+// rejected.
 func TestOAuth2Authorize_SessionResolver_InvalidCookie(t *testing.T) {
 	ts := connectServer(t)
 	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)
@@ -269,9 +253,7 @@ func TestOAuth2Authorize_SessionResolver_InvalidCookie(t *testing.T) {
 }
 
 // TestOAuth2Authorize_NoConsentYet_RedirectsToWebConsentPage covers the
-// no-consent-decision-yet branch of AuthorizeHandler as reached through the
-// real cmd/api route (rather than oauth2as's own package tests, which build
-// their own bare mux).
+// no-consent branch via the real cmd/api route.
 func TestOAuth2Authorize_NoConsentYet_RedirectsToWebConsentPage(t *testing.T) {
 	ts := connectServer(t)
 	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)

@@ -1,5 +1,4 @@
-// Package middleware provides configurable middleware and predefined lists,
-// such as [Minimal], [Default] and [DefaultWithSentry].
+// Package middleware provides middleware and predefined chains.
 package middleware
 
 import (
@@ -12,10 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/sentrytools"
 )
 
-// Minimal provides a predefined chain of useful middleware.
-// Being:
-//   - [Logger]
-//   - [Recover]
+// Minimal is [Logger] and [Recover].
 func Minimal(logger *slog.Logger) []alice.Constructor {
 	return []alice.Constructor{
 		Logger(logger),
@@ -23,12 +19,7 @@ func Minimal(logger *slog.Logger) []alice.Constructor {
 	}
 }
 
-// Default provides a predefined chain of useful middleware.
-// Being:
-//   - All middleware from [Minimal]
-//   - [helmet.Helmet]
-//   - [CORS]
-//   - [RateLimit]
+// Default is [Minimal] plus helmet, [CORS] and [RateLimit].
 func Default(
 	logger *slog.Logger,
 	allowedOrigins []string,
@@ -37,13 +28,8 @@ func Default(
 	return defaultBase(logger, allowedOrigins, nil, extraHeaders...)
 }
 
-// DefaultWithSentry provides a predefined chain of useful middleware.
-// Being:
-//   - All middleware from [Default]
-//   - [sentrytools.Middleware]
-//
-// Call [tools.xdoubleu.com/sentrytools.Init] at application startup before
-// using this so that Sentry is initialised exactly once.
+// DefaultWithSentry is [Default] plus [sentrytools.Middleware]. Call
+// [tools.xdoubleu.com/sentrytools.Init] first.
 func DefaultWithSentry(
 	logger *slog.Logger,
 	allowedOrigins []string,

@@ -1,35 +1,27 @@
 package hardcover
 
-// ExternalBook is the normalised representation returned by this package.
-// Fields are nil/empty when the Hardcover record has no value for them. The
-// shape matches the other provider packages' ExternalBook so the resync
-// candidate mapping is identical across providers.
+// ExternalBook is the normalised Hardcover result, shaped like the other
+// providers' ExternalBook.
 type ExternalBook struct {
 	Title    string
 	Authors  []string
 	ISBN13   *string
 	CoverURL *string
-	// Description may contain Markdown/HTML — callers strip tags when plain
-	// text is needed.
+	// Description may contain Markdown/HTML.
 	Description *string
 	PageCount   *int
 }
 
-// --- Hardcover GraphQL request/response types ---
-
-// graphQLRequest is the POST body sent to the GraphQL endpoint.
 type graphQLRequest struct {
 	Query     string         `json:"query"`
 	Variables map[string]any `json:"variables"`
 }
 
-// graphQLError is one entry in a GraphQL response's top-level errors array. A
-// GraphQL endpoint returns HTTP 200 even for query errors, reporting them here.
+// graphQLError is a GraphQL error; the endpoint returns 200 even for these.
 type graphQLError struct {
 	Message string `json:"message"`
 }
 
-// isbnResponse is the response shape for the GetByISBN query.
 type isbnResponse struct {
 	Data struct {
 		Editions []edition `json:"editions"`
@@ -37,7 +29,6 @@ type isbnResponse struct {
 	Errors []graphQLError `json:"errors"`
 }
 
-// searchResponse is the response shape for the booksByIDsQuery half of Search.
 type searchResponse struct {
 	Data struct {
 		Books []book `json:"books"`
@@ -45,10 +36,7 @@ type searchResponse struct {
 	Errors []graphQLError `json:"errors"`
 }
 
-// searchIDsResponse is the response shape for the searchIDsQuery half of
-// Search (the Typesense-backed lookup).
-// ponytail: IDs assumed []int (Hardcover book.id is an Int); switch to
-// []json.Number if a live response turns out to send them as strings.
+// searchIDsResponse is the Typesense half of Search. IDs are assumed []int.
 type searchIDsResponse struct {
 	Data struct {
 		Search struct {
@@ -58,8 +46,7 @@ type searchIDsResponse struct {
 	Errors []graphQLError `json:"errors"`
 }
 
-// edition is a specific published edition of a book. It carries the ISBN and
-// may override the parent book's title/pages/cover.
+// edition carries the ISBN and may override the book's title/pages/cover.
 type edition struct {
 	Title  string       `json:"title"`
 	Pages  int          `json:"pages"`
@@ -68,34 +55,25 @@ type edition struct {
 	Book   *book        `json:"book"`
 }
 
-// book is a work-level record. cached_image and cached_contributors are
-// denormalised JSON fields Hardcover exposes so callers avoid deep relation
-// joins that would exceed the API's max query depth of 3.
+// book is a work-level record; the cached_* fields avoid joins past the
+// API's max query depth of 3.
 type book struct {
-	// ID is only populated by booksByIDsQuery (used to restore Typesense's
-	// relevance order); isbnQuery's nested book{} doesn't select it, so it's
-	// zero there — harmless, since GetByISBN doesn't use ID.
+	// ID is only selected by booksByIDsQuery.
 	ID          int          `json:"id"`
 	Title       string       `json:"title"`
 	Pages       int          `json:"pages"`
 	Description string       `json:"description"`
 	CachedImage *cachedImage `json:"cached_image"`
-	// Editions is only populated by booksByIDsQuery (limit 1, isbn_13 only) —
-	// a work-level record has no ISBN of its own, so Search borrows one
-	// representative edition's ISBN13 to make results linkable.
+	// Editions is only selected by booksByIDsQuery (one, for its ISBN13).
 	Editions          []edition           `json:"editions"`
 	CachedContributor []cachedContributor `json:"cached_contributors"`
 }
 
-// cachedImage is the denormalised image JSON ({"url": "..."}). Also the shape
-// of the edition-level image relation's selected fields.
 type cachedImage struct {
 	URL string `json:"url"`
 }
 
-// cachedContributor is one entry of a book's cached_contributors JSON array.
-// Hardcover nests the author under an "author" object; a flat "name" is
-// tolerated as a fallback in case the cached shape changes.
+// cachedContributor nests the author; a flat "name" is a fallback.
 type cachedContributor struct {
 	Author struct {
 		Name string `json:"name"`
@@ -103,8 +81,6 @@ type cachedContributor struct {
 	Name string `json:"name"`
 }
 
-// name returns the contributor's display name, preferring the nested author
-// name and falling back to a flat name field.
 func (c cachedContributor) name() string {
 	if c.Author.Name != "" {
 		return c.Author.Name

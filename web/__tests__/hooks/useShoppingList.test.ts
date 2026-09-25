@@ -39,8 +39,7 @@ import {
 
 const mockUseSWR = jest.mocked(useSWR)
 
-// Extract and invoke the SWR fetcher function captured in mock.calls.
-// Using typeof guard to narrow without an unsafe type assertion.
+// Invoke the captured SWR fetcher (typeof guard avoids an unsafe assertion).
 async function callFetcher() {
   const fetcher = mockUseSWR.mock.calls[0]?.[1]
   if (typeof fetcher === 'function') await fetcher()

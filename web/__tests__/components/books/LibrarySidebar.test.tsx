@@ -194,7 +194,6 @@ describe('LibrarySidebar', () => {
         onManage={jest.fn()}
       />
     )
-    // Count "4" should appear next to the fantasy tag
     expect(screen.getAllByText('4').length).toBeGreaterThan(0)
     expect(screen.getAllByText('1').length).toBeGreaterThan(0)
   })
@@ -211,8 +210,6 @@ describe('LibrarySidebar', () => {
         onManage={jest.fn()}
       />
     )
-    // The active nav item gets accent styling; shelf items should not be active
-    // At minimum, no shelf should appear active while a tag is selected
     expect(screen.getAllByText('fantasy').length).toBeGreaterThan(0)
   })
 

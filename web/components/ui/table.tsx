@@ -48,7 +48,6 @@ function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElemen
   )
 }
 
-// SortableHeader renders a column header button with an asc/desc/none indicator.
 type SortDir = 'asc' | 'desc' | null
 
 interface SortableHeaderProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'> {

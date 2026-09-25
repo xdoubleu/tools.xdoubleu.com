@@ -10,11 +10,10 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// ActiveTrip is defined in the models package (models.ActiveTrip); this
-// alias keeps the repository's own return types readable.
+// ActiveTrip aliases models.ActiveTrip.
 type ActiveTrip = models.ActiveTrip
 
-// AllStops returns every stop (652 in this feed — cheap to load whole).
+// AllStops returns every stop (a few hundred; cheap to load whole).
 func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT stop_id, parent_station, name_nl, name_fr, name_en,
@@ -50,8 +49,7 @@ func (r *FeedRepository) AllStops(ctx context.Context) ([]models.Stop, error) {
 	return out, rows.Err()
 }
 
-// AllTransfers returns every transfers.txt row (small — station-pair
-// footpaths, not per stop_time).
+// AllTransfers returns every transfers.txt row.
 func (r *FeedRepository) AllTransfers(ctx context.Context) ([]models.Transfer, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT from_stop_id, to_stop_id, transfer_type, min_transfer_time
@@ -75,9 +73,8 @@ func (r *FeedRepository) AllTransfers(ctx context.Context) ([]models.Transfer, e
 	return out, rows.Err()
 }
 
-// ActiveTripsInWindow resolves, from calendar_dates only, every trip whose
-// service runs on some date in [start, end] (inclusive) — the router's
-// rolling window (issue #1391). It returns one row per (trip, date).
+// ActiveTripsInWindow returns one row per (trip, date) running in
+// [start, end], resolved from calendar_dates only.
 func (r *FeedRepository) ActiveTripsInWindow(
 	ctx context.Context, start, end time.Time,
 ) ([]ActiveTrip, error) {
@@ -118,11 +115,8 @@ func (r *FeedRepository) ActiveTripsInWindow(
 	return out, rows.Err()
 }
 
-// ShortNamesByTripIDs maps each of tripIDs to its trips.trip_short_name in
-// the current static import, omitting any that don't resolve or carry no
-// short name. RealtimeService.Poll uses it to re-key the GTFS-RT snapshot
-// off (trip_short_name, service date) instead of trusting the realtime
-// feed's trip_id to match the static feed's (issue #1484).
+// ShortNamesByTripIDs maps trip_ids to trip_short_name, omitting unresolved
+// ones. Poll uses it to re-key realtime data off the static feed.
 func (r *FeedRepository) ShortNamesByTripIDs(
 	ctx context.Context, tripIDs []string,
 ) (map[string]string, error) {
@@ -151,14 +145,8 @@ func (r *FeedRepository) ShortNamesByTripIDs(
 	return out, rows.Err()
 }
 
-// TripByShortNameOnDate resolves the trip_id running trip_short_name on
-// date, the same way ActiveTripsInWindow resolves a whole window — used to
-// map a live journey's boarded trip back to its full stop_times pattern for
-// the day it actually ran (issue #1394). Returns (nil, nil) when no active
-// trip matches (the timetable changed, or an old journey page is still open
-// past the router's rolling window). Ordered by trip_id so a short name
-// served by more than one stopping-pattern variant on a date resolves
-// deterministically.
+// TripByShortNameOnDate resolves the trip running trip_short_name on date,
+// or (nil, nil) when none matches. Ordered by trip_id for determinism.
 func (r *FeedRepository) TripByShortNameOnDate(
 	ctx context.Context, tripShortName string, date time.Time,
 ) (*ActiveTrip, error) {
@@ -194,9 +182,7 @@ func (r *FeedRepository) TripByShortNameOnDate(
 	return &at, nil
 }
 
-// StopsByIDs returns the stops matching ids — used to attach names/platforms
-// to a journey detail's stop calls without loading the full stops table
-// (issue #1394).
+// StopsByIDs returns the stops matching ids.
 func (r *FeedRepository) StopsByIDs(
 	ctx context.Context, ids []string,
 ) ([]models.Stop, error) {
@@ -238,10 +224,8 @@ func (r *FeedRepository) StopsByIDs(
 	return out, rows.Err()
 }
 
-// StopTimesForTrips returns every stop_times row for tripIDs, ordered by
-// trip then stop_sequence — the caller (the router builder) batches this
-// over the trip IDs resolved by ActiveTripsInWindow rather than ever
-// scanning the full ~0.8M-row table (convention-database-queries.md).
+// StopTimesForTrips returns stop_times for tripIDs ordered by trip and
+// sequence; callers batch it rather than scanning the full table.
 func (r *FeedRepository) StopTimesForTrips(
 	ctx context.Context, tripIDs []string,
 ) ([]models.StopTime, error) {

@@ -28,20 +28,17 @@ var userID = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 //nolint:gochecknoglobals //needed for tests
 var testDB postgres.DB
 
-// mockWebFetch is testApp's external-content client; RSS/email ingest tests
-// register canned responses on it.
+// mockWebFetch is testApp's external-content client.
 //
 //nolint:gochecknoglobals //needed for tests
 var mockWebFetch *mocks.MockWebFetchClient
 
-// appUsersRepo backs the issue #799 problem-email alert's owner-email
-// lookup; exported for other test files in this package to seed a user.
+// appUsersRepo lets tests seed users for the problem-email lookup.
 //
 //nolint:gochecknoglobals //needed for tests
 var appUsersRepo *sharedrepos.AppUsersRepository
 
-// userEmail is userID's address in global.app_users, seeded by
-// ensureGlobalAppUsers below.
+// userEmail is userID's address, seeded by ensureGlobalAppUsers.
 const userEmail = "feeds-test-user@example.com"
 
 func TestMain(m *testing.M) {
@@ -58,9 +55,7 @@ func TestMain(m *testing.M) {
 	appUsersRepo = sharedrepos.NewAppUsersRepository(postgresDB)
 
 	mockWebFetch = mocks.NewMockWebFetchClient()
-	// Not-configured mailer for the shared testApp — existing tests don't
-	// expect any email to actually send; dedicated notify tests build their
-	// own FeedService with an httptest-backed mailer instead.
+	// Not-configured mailer; notify tests build their own FeedService.
 	testApp = feeds.NewInner(
 		auth,
 		logging.NewNopLogger(),
@@ -88,10 +83,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// ensureGlobalAppUsers mirrors cmd/api/migrations/00001_init.sql so this
-// package's tests can run before the cmd/api package has applied the global
-// migrations (same pattern as apps/books/connect_public_test.go), then
-// seeds userID with an email for the notify-email lookup.
+// ensureGlobalAppUsers mirrors cmd/api's global migrations so these tests can
+// run first, then seeds userID with an email.
 func ensureGlobalAppUsers(db postgres.DB) {
 	ctx := context.Background()
 	stmts := []string{
@@ -108,9 +101,7 @@ func ensureGlobalAppUsers(db postgres.DB) {
 			app_name TEXT NOT NULL,
 			PRIMARY KEY (user_id, app_name)
 		)`,
-		// Mirrors cmd/api/migrations/00005_observability.sql so Start()'s
-		// jobqueue.AddJob can look up a job's last successful run before the
-		// cmd/api package has applied the global migrations.
+		// Mirrors cmd/api/migrations/00005_observability.sql for jobqueue.
 		`CREATE TABLE IF NOT EXISTS global.job_runs (
 			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 			job_id TEXT NOT NULL,

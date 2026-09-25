@@ -22,16 +22,14 @@ type steamRangeArgs struct {
 	DateEnd   string `json:"date_end,omitempty"   jsonschema:"window end (YYYY-MM-DD)"`
 }
 
-// bucketArgs indexes services.DistributionLabels, which has 11 entries: 0 is
-// 0-9%, rising in tens, and 10 is the fully-completed (100%) bucket. Keep the
-// documented range in step with that list — an agent that trusts a narrower
-// range silently drops every game in the bucket it was told does not exist.
+// bucketArgs indexes services.DistributionLabels (0 = 0-9%, ..., 10 = 100%).
+// Keep the documented range in step with it, or agents miss buckets.
 type bucketArgs struct {
 	Bucket int32 `json:"bucket,omitempty" jsonschema:"bucket (0-10; 10=100%)"`
 }
 
-// RegisterMCPTools exposes the games app's read-only RPCs on the combined apps
-// MCP server. Every tool returns the calling user's own Steam data.
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
+// the caller.
 func (a *Games) RegisterMCPTools(srv *mcp.Server) {
 	h := &gamesConnectHandler{app: a}
 

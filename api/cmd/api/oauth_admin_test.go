@@ -12,9 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// withStubProvider temporarily points the "sentry" provider entry at a
-// fixed oauth2.Config (e.g. an httptest server), restoring the real one
-// afterwards, so callback-exchange tests never hit the real network.
+// withStubProvider points "sentry" at conf until cleanup.
 func withStubProvider(t *testing.T, conf *oauth2.Config) {
 	t.Helper()
 	original := oauthProviders["sentry"]

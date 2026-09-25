@@ -25,10 +25,7 @@ interface StatTileProps {
   className?: string
 }
 
-/**
- * One labelled number in a stats row. Use for a single scalar reading; anything
- * with its own structure belongs in a `SectionCard` instead.
- */
+/** One labelled number in a stats row; structured content belongs in a `SectionCard`. */
 function StatTile({ label, value, tone = 'default', hint, href, className }: StatTileProps) {
   const body = (
     <>

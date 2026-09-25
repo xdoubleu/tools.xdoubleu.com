@@ -109,9 +109,7 @@ func TestSelfUpdateUnreachableServer(t *testing.T) {
 }
 
 func TestSelfUpdateSkipsResignOutsideBundle(t *testing.T) {
-	// writeFakeExecutable puts the binary directly in t.TempDir(), so its
-	// grandparent-grandparent dir is not a ".app" — resignBundle must be a
-	// no-op and SelfUpdate must succeed without codesign being available.
+	// Not inside a ".app", so resignBundle is a no-op and codesign isn't needed.
 	downloads := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = w.Write(machO64Header("new"))
@@ -130,8 +128,7 @@ func TestSelfUpdateFailsWhenResignFails(t *testing.T) {
 		t.Skip("codesign not available")
 	}
 
-	// No Info.plist, so codesign rejects this as an unrecognized bundle
-	// format — exercises SelfUpdate's resignBundle error path.
+	// No Info.plist: codesign rejects the bundle, exercising the error path.
 	appDir := filepath.Join(t.TempDir(), "KoboGateway.app")
 	macOSDir := filepath.Join(appDir, "Contents", "MacOS")
 	require.NoError(t, os.MkdirAll(macOSDir, 0o755))
@@ -162,8 +159,7 @@ func TestSelfUpdateResignsAppBundle(t *testing.T) {
 	executable := filepath.Join(macOSDir, "kobo-gateway")
 	require.NoError(t, os.WriteFile(executable, machO64Header("old"), 0o755))
 
-	// codesign requires a minimal Info.plist to recognize this as a bundle
-	// at all ("bundle format unrecognized" otherwise).
+	// codesign needs a minimal Info.plist to recognize the bundle.
 	infoPlist := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>

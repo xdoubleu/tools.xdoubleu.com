@@ -22,10 +22,8 @@ func newTestTodoistService(
 ) (*TodoistService, *mocks.MockTodoistClient) {
 	//nolint:exhaustruct //endpoint URLs, not credentials
 	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}
-	// A repository with a nil db/sealer is safe here: SendItem's own code
-	// path never calls either (ForUser only builds a value, it doesn't
-	// query; the mock Client swapped in below never invokes the TokenFunc
-	// that would).
+	// nil db/sealer is safe: SendItem never queries, and the mock Client
+	// never invokes the TokenFunc.
 	repo := repositories.NewOAuthConnectionsRepository(nil, nil)
 	svc := NewTodoistService(repo, store, conf, oauthconn.NewStateStore())
 
@@ -93,9 +91,7 @@ func TestHandleCallback_UnknownStateErrors(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestHandleCallback_ExchangeFailure covers the token-exchange error branch
-// without a real Todoist network call: TokenURL points at a closed local
-// port, so the connection is refused immediately.
+// TestHandleCallback_ExchangeFailure: TokenURL points at a closed port.
 func TestHandleCallback_ExchangeFailure(t *testing.T) {
 	//nolint:exhaustruct //endpoint URLs, not credentials
 	conf := &oauth2.Config{

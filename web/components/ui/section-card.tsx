@@ -14,11 +14,7 @@ interface SectionCardProps {
   contentClassName?: string
 }
 
-/**
- * A `Card` with the standard title/description/action header already composed.
- * Reach for this instead of assembling `Card` + `CardHeader` + `CardTitle` by
- * hand — that hand-assembly is what drifted across the monitoring cards.
- */
+/** A `Card` with the standard title/description/action header; don't hand-assemble one. */
 function SectionCard({
   title,
   description,

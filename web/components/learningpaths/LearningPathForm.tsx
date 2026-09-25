@@ -27,10 +27,8 @@ interface ModuleRow {
   items: ItemRow[]
 }
 
-// ResourceRow is additive to the freeform text field (#1474) — a resource
-// can carry text, a link to a books/feeds entry, or both. linkedBookTitle/
-// linkedFeedItemTitle are display-only (the server resolves the canonical
-// title on every read); only the *Id fields round-trip to the request.
+// A resource can carry text, a books/feeds link, or both. Linked titles are
+// display-only; only the *Id fields are sent.
 interface ResourceRow {
   text: string
   linkedBookId?: string

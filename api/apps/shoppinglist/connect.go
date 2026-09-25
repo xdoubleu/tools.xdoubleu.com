@@ -29,9 +29,7 @@ func getUser(ctx context.Context) *sharedmodels.User {
 	return contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 }
 
-// callerID authenticates the caller and returns their user ID. Every data
-// RPC acts on the caller's family shopping list, resolved inside the service
-// layer from this user ID.
+// callerID returns the authenticated caller's user ID.
 func (h *shoppingConnectHandler) callerID(ctx context.Context) (string, error) {
 	user := getUser(ctx)
 	if user == nil {

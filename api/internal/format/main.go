@@ -10,10 +10,8 @@ import (
 	"time"
 )
 
-// ToAmount formats an amount for display as its exact value, with no rounding.
-// Trailing zeros (and a dangling decimal point) are trimmed, so 0.5 -> "0.5"
-// and 1.0 -> "1". The value is capped at 3 decimals, which matches the web
-// formatter and absorbs float noise like 0.1+0.2.
+// ToAmount formats f without rounding, trimming trailing zeros; capped at 3
+// decimals to match the web formatter and absorb float noise.
 func ToAmount(f float64) string {
 	if f <= 0 {
 		return "0"
@@ -57,8 +55,7 @@ var recurOrdinals = map[int]string{ //nolint:gochecknoglobals // read-only looku
 	1: "first", 2: "second", 3: "third", 4: "fourth", 5: "fifth", -1: "last",
 }
 
-// RecurInputDisplay converts a stored recur rule (e.g. "weekday:4") to its
-// human-readable form (e.g. "every thursday").
+// RecurInputDisplay renders a recur rule ("weekday:4" -> "every thursday").
 func RecurInputDisplay(rule string) string {
 	if rule == "" {
 		return ""

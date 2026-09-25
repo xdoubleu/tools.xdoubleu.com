@@ -37,8 +37,7 @@ export default function MonitoringSettingsClient() {
     router.replace(
       params.size > 0 ? `/monitoring/connections?${params}` : '/monitoring/connections'
     )
-    // oauthConnections/router deliberately excluded: this should run once per
-    // incoming URL, not on every SWR/router identity change.
+    // Once per incoming URL, not on SWR/router identity changes.
   }, [searchParams])
 
   return (

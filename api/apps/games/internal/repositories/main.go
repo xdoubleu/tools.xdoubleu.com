@@ -9,9 +9,8 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// Querier is the subset of operations shared by postgres.DB and pgx.Tx. Write
-// methods take a Querier so they can run either directly on the pool or inside a
-// transaction; pass nil to default to the repository's own connection.
+// Querier is the subset shared by postgres.DB and pgx.Tx; write methods take
+// one (nil = the repository's connection).
 type Querier interface {
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)

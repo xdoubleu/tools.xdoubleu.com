@@ -153,8 +153,7 @@ func (r *BookFilesRepository) Delete(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// AllStorageKeys returns every distinct storage key referenced by a book
-// file, across all users — the set of R2 objects that are NOT orphaned.
+// AllStorageKeys returns every storage key referenced by any book file.
 func (r *BookFilesRepository) AllStorageKeys(
 	ctx context.Context,
 ) ([]string, error) {
@@ -216,9 +215,8 @@ func (r *BookFilesRepository) UpdateAfterConversion(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// FindByChecksumGlobal returns any book_files row with the given checksum,
-// regardless of user or book. Used for global content-addressed deduplication.
-// Returns database.ErrResourceNotFound when no row matches.
+// FindByChecksumGlobal returns any row with the checksum, or
+// ErrResourceNotFound.
 func (r *BookFilesRepository) FindByChecksumGlobal(
 	ctx context.Context,
 	checksum string,
@@ -248,11 +246,8 @@ func (r *BookFilesRepository) FindByChecksumGlobal(
 	return f, nil
 }
 
-// FindByStorageKeyGlobal returns any ready book_files row with the given
-// storage key, regardless of user or book. Used for cross-user KEPUB
-// deduplication: if another user already converted the same source, their
-// canonical blob can be reused. Returns database.ErrResourceNotFound when no
-// ready row matches.
+// FindByStorageKeyGlobal returns any ready row with the key, for cross-user
+// KEPUB reuse, or ErrResourceNotFound.
 func (r *BookFilesRepository) FindByStorageKeyGlobal(
 	ctx context.Context,
 	storageKey string,
@@ -282,9 +277,7 @@ func (r *BookFilesRepository) FindByStorageKeyGlobal(
 	return f, nil
 }
 
-// CountByStorageKey returns the number of book_files rows that reference the
-// given storage key. Used for refcount-safe deletion: only delete the R2
-// object when this count drops to 0.
+// CountByStorageKey counts rows referencing key; delete the R2 object only at 0.
 func (r *BookFilesRepository) CountByStorageKey(
 	ctx context.Context,
 	storageKey string,
@@ -336,8 +329,7 @@ func (r *BookFilesRepository) FindByChecksum(
 	return f, nil
 }
 
-// FormatsByUser returns a map of book ID → sorted list of ready file formats
-// (pdf, epub only — kepub is excluded) for all of a user's books in one query.
+// FormatsByUser returns book ID -> sorted ready formats (pdf, epub; no kepub).
 func (r *BookFilesRepository) FormatsByUser(
 	ctx context.Context,
 	userID string,
@@ -374,19 +366,15 @@ func (r *BookFilesRepository) FormatsByUser(
 	return result, nil
 }
 
-// RepointAndDedup moves all of fromBookID's files to toBookID for a given
-// user. Files whose (format, checksum) pair already exists on toBookID are
-// deleted instead of repointed (they are exact duplicates). The storage_keys
-// of deleted duplicate rows are returned so the caller can do a refcount-safe
-// R2 cleanup.
+// RepointAndDedup moves a user's files from fromBookID to toBookID, deleting
+// exact (format, checksum) duplicates and returning their storage keys for R2
+// cleanup.
 func (r *BookFilesRepository) RepointAndDedup(
 	ctx context.Context,
 	userID string,
 	fromBookID uuid.UUID,
 	toBookID uuid.UUID,
 ) ([]string, error) {
-	// 1. Delete duplicate files (same format+checksum already on winner).
-	//    Collect their storage_keys for R2 cleanup.
 	deleteQuery := `
 		DELETE FROM books.book_files f
 		USING (
@@ -420,7 +408,6 @@ func (r *BookFilesRepository) RepointAndDedup(
 	}
 	rows.Close()
 
-	// 2. Repoint remaining files from loser to winner.
 	repointQuery := `
 		UPDATE books.book_files
 		SET book_id = $3, updated_at = now()

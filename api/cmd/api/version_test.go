@@ -66,6 +66,5 @@ func TestVersionEndpointWithRelease(t *testing.T) {
 
 	var response map[string]string
 	require.NoError(t, json.NewDecoder(rs.Body).Decode(&response))
-	// Verify the release value matches the config
 	assert.Equal(t, testApp.config.Release, response["release"])
 }

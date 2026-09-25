@@ -15,9 +15,7 @@ import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
 const LAST_VISIT_KEY = 'feeds:lastVisit'
 
-// Items ingested after the visitor's previous visit are "new"; older unread
-// items have just been sitting there already seen. Tracked client-side via
-// localStorage since the backend has no per-visit read receipt.
+// Items newer than the previous visit are "new"; tracked in localStorage.
 function readAndBumpLastVisit(): number {
   if (typeof window === 'undefined') return Date.now()
   const stored = window.localStorage.getItem(LAST_VISIT_KEY)
@@ -28,8 +26,7 @@ function readAndBumpLastVisit(): number {
 export default function FeedReaderClient() {
   const [showRead, setShowRead] = useState(false)
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
-  // Bookmarks are a keep-list, not an inbox: a bookmarked item stays relevant
-  // after it's read, so the bookmarked view ignores the unread filter.
+  // Bookmarks are a keep-list, so that view ignores the unread filter.
   const unreadOnly = !showRead && !bookmarkedOnly
   const [selectedFeedId, setSelectedFeedId] = useState<string | undefined>(undefined)
 
@@ -51,10 +48,8 @@ export default function FeedReaderClient() {
     loadMore
   } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
 
-  // Marking read revalidates feedItems immediately, so an unread-only fetch
-  // drops the item server-side well before the undo window elapses —
-  // pendingRead pins the last-known item so its card (and still-open Undo
-  // affordance) stays visible until handleSettled removes the pin.
+  // Revalidation drops a read item before the undo window ends; pendingRead
+  // keeps its card (and Undo) visible until handleSettled.
   const [pendingRead, setPendingRead] = useState<Map<string, Item>>(new Map())
 
   const items = useMemo(() => {
@@ -169,18 +164,14 @@ function FeedReaderCard({
   const noContent = !item.hasContent
   const handleMarkRead = useCallback(() => onMarkRead(item), [onMarkRead, item])
 
-  // Settling while the reader is open would drop the item from the unread
-  // list and unmount this card's dialog out from under the reader (issue
-  // #863) — so ignore the undo window elapsing until the reader closes.
+  // Settling while the reader is open would unmount its dialog, so wait.
   const handleReaderSettled = useCallback(
     (itemId: string) => {
       if (!readerOpen) onSettled(itemId)
     },
     [readerOpen, onSettled]
   )
-  // Closing the reader always settles: a read item lingering (pinned to the
-  // end of the grid) for the rest of the undo window is issue #913. Undo
-  // only ever lives inside the open reader anyway. No-ops when unpinned.
+  // Closing the reader always settles (Undo only lives in the reader).
   const handleOpenChange = useCallback(
     (next: boolean) => {
       setReaderOpen(next)
@@ -204,8 +195,7 @@ function FeedReaderCard({
               type="button"
               variant="link"
               onClick={() => handleOpenChange(true)}
-              // justify-start alone only left-aligns the flex item; a wrapped
-              // title's lines still follow the button's UA text-align: center.
+              // A wrapped title still inherits the button's text-align: center.
               className="h-auto justify-start p-0 text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
             >
               {item.title}

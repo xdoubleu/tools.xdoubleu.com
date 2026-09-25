@@ -68,7 +68,7 @@ describe('BookShelfTagFields', () => {
         knownTags={[]}
       />
     )
-    // 'to-read' is built-in — should appear exactly once (from BOOK_STATUSES), not twice
+    // Built-in, so it appears exactly once.
     expect(screen.getAllByRole('button', { name: 'Want to read' })).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'sci-fi' })).toBeInTheDocument()
   })
@@ -116,7 +116,6 @@ describe('BookShelfTagFields', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Read' }))
     await waitFor(() => expect(screen.getByText('Failed to update status.')).toBeInTheDocument())
-    // Should have reverted: 'Want to read' pill should be active again
     expect(screen.getByRole('button', { name: 'Want to read' })).toHaveAttribute(
       'aria-pressed',
       'true'

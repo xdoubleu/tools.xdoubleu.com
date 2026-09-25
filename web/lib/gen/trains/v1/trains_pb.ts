@@ -13,9 +13,8 @@ export const file_trains_v1_trains: GenFile = /*@__PURE__*/
   fileDesc("ChZ0cmFpbnMvdjEvdHJhaW5zLnByb3RvEgl0cmFpbnMudjEihgIKA0xlZxIXCg90cmlwX3Nob3J0X25hbWUYASABKAkSGAoQcm91dGVfc2hvcnRfbmFtZRgCIAEoCRIQCghoZWFkc2lnbhgDIAEoCRIVCg1ib2FyZF9zdG9wX2lkGAQgASgJEhcKD2JvYXJkX3N0b3BfbmFtZRgFIAEoCRIWCg5ib2FyZF9wbGF0Zm9ybRgGIAEoCRISCgpib2FyZF90aW1lGAcgASgJEhYKDmFsaWdodF9zdG9wX2lkGAggASgJEhgKEGFsaWdodF9zdG9wX25hbWUYCSABKAkSFwoPYWxpZ2h0X3BsYXRmb3JtGAogASgJEhMKC2FsaWdodF90aW1lGAsgASgJInwKB0pvdXJuZXkSHAoEbGVncxgBIAMoCzIOLnRyYWlucy52MS5MZWcSFgoOZGVwYXJ0dXJlX3RpbWUYAiABKAkSFAoMYXJyaXZhbF90aW1lGAMgASgJEhEKCXRyYW5zZmVycxgEIAEoBRISCgpqb3VybmV5X2lkGAUgASgJIkIKBUFsZXJ0EgoKAmlkGAEgASgJEhMKC2hlYWRlcl90ZXh0GAIgASgJEhgKEGRlc2NyaXB0aW9uX3RleHQYAyABKAkizgEKCFN0b3BDYWxsEg8KB3N0b3BfaWQYASABKAkSEQoJc3RvcF9uYW1lGAIgASgJEhAKCHBsYXRmb3JtGAMgASgJEhkKEXNjaGVkdWxlZF9hcnJpdmFsGAQgASgJEhsKE3NjaGVkdWxlZF9kZXBhcnR1cmUYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDWRlbGF5X3NlY29uZHMYByABKAUSFQoNaXNfYm9hcmRfc3RvcBgIIAEoCBIWCg5pc19hbGlnaHRfc3RvcBgJIAEoCCKpAQoJTGVnRGV0YWlsEhcKD3RyaXBfc2hvcnRfbmFtZRgBIAEoCRIYChByb3V0ZV9zaG9ydF9uYW1lGAIgASgJEhAKCGhlYWRzaWduGAMgASgJEhEKCWNhbmNlbGxlZBgEIAEoCBIiCgVzdG9wcxgFIAMoCzITLnRyYWlucy52MS5TdG9wQ2FsbBIgCgZhbGVydHMYBiADKAsyEC50cmFpbnMudjEuQWxlcnQiYQoSSm91cm5leUFsdGVybmF0aXZlEg4KBnJlYXNvbhgBIAEoCRIWCg5mcm9tX3N0b3BfbmFtZRgCIAEoCRIjCgdqb3VybmV5GAMgASgLMhIudHJhaW5zLnYxLkpvdXJuZXkiqQEKDUpvdXJuZXlEZXRhaWwSEgoKam91cm5leV9pZBgBIAEoCRIiCgRsZWdzGAIgAygLMhQudHJhaW5zLnYxLkxlZ0RldGFpbBIWCg5kZXBhcnR1cmVfdGltZRgDIAEoCRIUCgxhcnJpdmFsX3RpbWUYBCABKAkSMgoLYWx0ZXJuYXRpdmUYBSABKAsyHS50cmFpbnMudjEuSm91cm5leUFsdGVybmF0aXZlIi0KF0dldEpvdXJuZXlEZXRhaWxSZXF1ZXN0EhIKCmpvdXJuZXlfaWQYASABKAkiRQoYR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEikKB2pvdXJuZXkYASABKAsyGC50cmFpbnMudjEuSm91cm5leURldGFpbCJtChVTZWFyY2hKb3VybmV5c1JlcXVlc3QSFgoOb3JpZ2luX3N0b3BfaWQYASABKAkSGwoTZGVzdGluYXRpb25fc3RvcF9pZBgCIAEoCRIMCgR0aW1lGAMgASgJEhEKCWFycml2ZV9ieRgEIAEoCCI+ChZTZWFyY2hKb3VybmV5c1Jlc3BvbnNlEiQKCGpvdXJuZXlzGAEgAygLMhIudHJhaW5zLnYxLkpvdXJuZXkiYwoHU3RhdGlvbhIPCgdzdG9wX2lkGAEgASgJEg8KB25hbWVfbmwYAiABKAkSDwoHbmFtZV9mchgDIAEoCRIPCgduYW1lX2VuGAQgASgJEhQKDGRpc3BsYXlfbmFtZRgFIAEoCSImChVTZWFyY2hTdGF0aW9uc1JlcXVlc3QSDQoFcXVlcnkYASABKAkiPgoWU2VhcmNoU3RhdGlvbnNSZXNwb25zZRIkCghzdGF0aW9ucxgBIAMoCzISLnRyYWlucy52MS5TdGF0aW9uIhQKEkdldEZlZWRJbmZvUmVxdWVzdCJ2ChNHZXRGZWVkSW5mb1Jlc3BvbnNlEhQKDGZlZWRfdmVyc2lvbhgBIAEoCRITCgtpbXBvcnRlZF9hdBgCIAEoCRI0Cgx0cmFuc2xhdGlvbnMYAyABKAsyHi50cmFpbnMudjEuVHJhbnNsYXRpb25Db3ZlcmFnZSKSAQoTVHJhbnNsYXRpb25Db3ZlcmFnZRIbChN0cmFuc2xhdGVkX3N0b3BzX25sGAEgASgFEhsKE3RyYW5zbGF0ZWRfc3RvcHNfZnIYAiABKAUSGwoTdHJhbnNsYXRlZF9zdG9wc19lbhgDIAEoBRIMCgRyb3dzGAQgASgFEhYKDnJvd3NfdW5tYXRjaGVkGAUgASgFIogBCgxTYXZlZENvbW11dGUSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSIgoGb3JpZ2luGAMgASgLMhIudHJhaW5zLnYxLlN0YXRpb24SJwoLZGVzdGluYXRpb24YBCABKAsyEi50cmFpbnMudjEuU3RhdGlvbhIQCghwb3NpdGlvbhgFIAEoBSIaChhMaXN0U2F2ZWRDb21tdXRlc1JlcXVlc3QiTAoZTGlzdFNhdmVkQ29tbXV0ZXNSZXNwb25zZRIvCg5zYXZlZF9jb21tdXRlcxgBIAMoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiXwoZQ3JlYXRlU2F2ZWRDb21tdXRlUmVxdWVzdBINCgVsYWJlbBgBIAEoCRIWCg5vcmlnaW5fc3RvcF9pZBgCIAEoCRIbChNkZXN0aW5hdGlvbl9zdG9wX2lkGAMgASgJIkwKGkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEi4KDXNhdmVkX2NvbW11dGUYASABKAsyFy50cmFpbnMudjEuU2F2ZWRDb21tdXRlIkgKGVVwZGF0ZVNhdmVkQ29tbXV0ZVJlcXVlc3QSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcG9zaXRpb24YAyABKAUiTAoaVXBkYXRlU2F2ZWRDb21tdXRlUmVzcG9uc2USLgoNc2F2ZWRfY29tbXV0ZRgBIAEoCzIXLnRyYWlucy52MS5TYXZlZENvbW11dGUiJwoZRGVsZXRlU2F2ZWRDb21tdXRlUmVxdWVzdBIKCgJpZBgBIAEoCSIcChpEZWxldGVTYXZlZENvbW11dGVSZXNwb25zZTLwBQoMVHJhaW5TZXJ2aWNlElUKDlNlYXJjaEpvdXJuZXlzEiAudHJhaW5zLnYxLlNlYXJjaEpvdXJuZXlzUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hKb3VybmV5c1Jlc3BvbnNlElUKDlNlYXJjaFN0YXRpb25zEiAudHJhaW5zLnYxLlNlYXJjaFN0YXRpb25zUmVxdWVzdBohLnRyYWlucy52MS5TZWFyY2hTdGF0aW9uc1Jlc3BvbnNlEkwKC0dldEZlZWRJbmZvEh0udHJhaW5zLnYxLkdldEZlZWRJbmZvUmVxdWVzdBoeLnRyYWlucy52MS5HZXRGZWVkSW5mb1Jlc3BvbnNlElsKEEdldEpvdXJuZXlEZXRhaWwSIi50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlcXVlc3QaIy50cmFpbnMudjEuR2V0Sm91cm5leURldGFpbFJlc3BvbnNlEl4KEUxpc3RTYXZlZENvbW11dGVzEiMudHJhaW5zLnYxLkxpc3RTYXZlZENvbW11dGVzUmVxdWVzdBokLnRyYWlucy52MS5MaXN0U2F2ZWRDb21tdXRlc1Jlc3BvbnNlEmEKEkNyZWF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5DcmVhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkNyZWF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKElVwZGF0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5VcGRhdGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLlVwZGF0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlEmEKEkRlbGV0ZVNhdmVkQ29tbXV0ZRIkLnRyYWlucy52MS5EZWxldGVTYXZlZENvbW11dGVSZXF1ZXN0GiUudHJhaW5zLnYxLkRlbGV0ZVNhdmVkQ29tbXV0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vdHJhaW5zL3YxO3RyYWluc3YxYgZwcm90bzM");
 
 /**
- * Leg is one boarded train, from where the passenger gets on to where they
- * get off. trip_short_name/route_short_name identify the train to a
- * user — trip_id itself churns daily and is never exposed here.
+ * Leg is one boarded train, board to alight. trip_id churns daily and is
+ * never exposed; trip_short_name/route_short_name identify the train.
  *
  * @generated from message trains.v1.Leg
  */
@@ -110,9 +109,8 @@ export type Journey = Message<"trains.v1.Journey"> & {
   transfers: number;
 
   /**
-   * Opaque id identifying this exact journey (trip_short_name + board/alight
-   * stop and time per leg), decodable back into GetJourneyDetailRequest with
-   * no server-side storage — never a raw trip_id, which churns daily.
+   * Opaque, stateless id decodable into GetJourneyDetailRequest; never a raw
+   * trip_id.
    *
    * @generated from field: string journey_id = 5;
    */
@@ -156,8 +154,7 @@ export const AlertSchema: GenMessage<Alert> = /*@__PURE__*/
   messageDesc(file_trains_v1_trains, 2);
 
 /**
- * StopCall is the scheduled and (if published) live state of one stop along
- * a journey detail leg.
+ * StopCall is one stop's scheduled and live state on a journey detail leg.
  *
  * @generated from message trains.v1.StopCall
  */
@@ -192,8 +189,8 @@ export type StopCall = Message<"trains.v1.StopCall"> & {
   scheduledDeparture: string;
 
   /**
-   * One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
-   * models.DelayState. "unknown" must never be rendered as "on_time".
+   * "on_time", "delayed", "unknown", "skipped" or "cancelled".
+   * "unknown" must never be rendered as "on_time".
    *
    * @generated from field: string status = 6;
    */
@@ -225,8 +222,8 @@ export const StopCallSchema: GenMessage<StopCall> = /*@__PURE__*/
   messageDesc(file_trains_v1_trains, 3);
 
 /**
- * LegDetail is one boarded train's full live state: every stop between
- * where the passenger boards and alights, plus any alerts attached to it.
+ * LegDetail is one boarded train's live state: every stop from board to
+ * alight, plus alerts.
  *
  * @generated from message trains.v1.LegDetail
  */
@@ -247,8 +244,7 @@ export type LegDetail = Message<"trains.v1.LegDetail"> & {
   headsign: string;
 
   /**
-   * Whole-trip cancellation — distinct from an individual StopCall's
-   * "skipped" (partial cancellation).
+   * Whole-trip cancellation, unlike a StopCall's "skipped".
    *
    * @generated from field: bool cancelled = 4;
    */
@@ -273,19 +269,16 @@ export const LegDetailSchema: GenMessage<LegDetail> = /*@__PURE__*/
   messageDesc(file_trains_v1_trains, 4);
 
 /**
- * JourneyAlternative is a re-planned itinerary surfaced when a positive
- * realtime signal shows the journey as planned no longer works — a missed
- * connection, a cancelled leg, a skipped board/alight stop, or a final
- * arrival slipping past a threshold. Absence of live data (NO_DATA) never
- * produces one. The re-plan runs from the next still-reachable station, at
- * the actual (live) time there, to the original destination (issue #1395).
+ * JourneyAlternative is a re-plan from the next reachable station at its live
+ * time, surfaced only on a positive realtime signal that the journey broke
+ * (missed connection, cancellation, skipped stop, or arrival slipping too
+ * far); never on missing live data.
  *
  * @generated from message trains.v1.JourneyAlternative
  */
 export type JourneyAlternative = Message<"trains.v1.JourneyAlternative"> & {
   /**
-   * Passenger-facing explanation of what broke, e.g.
-   * "You'll miss the 17:42 at Mechelen by 4 min".
+   * Passenger-facing reason, e.g. "You'll miss the 17:42 at Mechelen by 4 min".
    *
    * @generated from field: string reason = 1;
    */
@@ -299,9 +292,8 @@ export type JourneyAlternative = Message<"trains.v1.JourneyAlternative"> & {
   fromStopName: string;
 
   /**
-   * The re-planned itinerary, same shape as a search result so the overview
-   * row renders it unchanged. Unset when the router found no alternative —
-   * the reason is still worth showing on its own.
+   * The re-planned itinerary; unset when none was found (reason still
+   * applies).
    *
    * @generated from field: trains.v1.Journey journey = 3;
    */
@@ -316,8 +308,8 @@ export const JourneyAlternativeSchema: GenMessage<JourneyAlternative> = /*@__PUR
   messageDesc(file_trains_v1_trains, 5);
 
 /**
- * JourneyDetail is the full live state of one previously-searched journey —
- * the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+ * JourneyDetail is the live state of a searched journey, kept fresh over a
+ * websocket.
  *
  * @generated from message trains.v1.JourneyDetail
  */
@@ -343,8 +335,7 @@ export type JourneyDetail = Message<"trains.v1.JourneyDetail"> & {
   arrivalTime: string;
 
   /**
-   * Set only when a positive realtime signal shows the planned journey is
-   * broken (issue #1395); unset otherwise.
+   * Set only when realtime data shows the planned journey is broken.
    *
    * @generated from field: trains.v1.JourneyAlternative alternative = 5;
    */
@@ -397,8 +388,7 @@ export const GetJourneyDetailResponseSchema: GenMessage<GetJourneyDetailResponse
  */
 export type SearchJourneysRequest = Message<"trains.v1.SearchJourneysRequest"> & {
   /**
-   * Origin stop id — a station (its children are all considered) or a
-   * specific platform.
+   * A station (all its platforms) or a specific platform.
    *
    * @generated from field: string origin_stop_id = 1;
    */
@@ -410,8 +400,7 @@ export type SearchJourneysRequest = Message<"trains.v1.SearchJourneysRequest"> &
   destinationStopId: string;
 
   /**
-   * RFC3339 timestamp, interpreted as a departure time unless arrive_by
-   * is set.
+   * RFC3339; a departure time unless arrive_by is set.
    *
    * @generated from field: string time = 3;
    */
@@ -435,9 +424,7 @@ export const SearchJourneysRequestSchema: GenMessage<SearchJourneysRequest> = /*
  */
 export type SearchJourneysResponse = Message<"trains.v1.SearchJourneysResponse"> & {
   /**
-   * A Pareto set over (arrival time, transfer count) — the earliest
-   * arrival plus slower options with fewer changes, for a window around
-   * the requested time.
+   * Pareto set over (arrival, transfers) for a window around the time.
    *
    * @generated from field: repeated trains.v1.Journey journeys = 1;
    */
@@ -452,8 +439,7 @@ export const SearchJourneysResponseSchema: GenMessage<SearchJourneysResponse> = 
   messageDesc(file_trains_v1_trains, 10);
 
 /**
- * Station is a location_type=1 stop — a station a passenger picks as an
- * origin or destination. Never a platform-level stop.
+ * Station is a location_type=1 stop, never a platform.
  *
  * @generated from message trains.v1.Station
  */
@@ -479,9 +465,7 @@ export type Station = Message<"trains.v1.Station"> & {
   nameEn: string;
 
   /**
-   * The single canonical passenger-facing label: every genuinely-known
-   * full-language name, deduped and joined — the same value both the
-   * station picker and journey/leg views render (issue #1656).
+   * The canonical label: every known full-language name, deduped and joined.
    *
    * @generated from field: string display_name = 5;
    */
@@ -500,9 +484,8 @@ export const StationSchema: GenMessage<Station> = /*@__PURE__*/
  */
 export type SearchStationsRequest = Message<"trains.v1.SearchStationsRequest"> & {
   /**
-   * Free-text substring match against the station name in any of the three
-   * languages, case-insensitive. Empty returns an alphabetical page of
-   * stations.
+   * Case-insensitive substring match on any language's name; empty returns
+   * an alphabetical page.
    *
    * @generated from field: string query = 1;
    */
@@ -558,20 +541,16 @@ export type GetFeedInfoResponse = Message<"trains.v1.GetFeedInfoResponse"> & {
   feedVersion: string;
 
   /**
-   * RFC3339 timestamp of the import that produced the stored feed. A
-   * conditional GET makes an unchanged feed a no-op, so this is the only
-   * signal distinguishing "the timetable is current" from "no import has
-   * landed in weeks"; empty when nothing has been imported yet.
+   * RFC3339 time of the import that produced the stored feed; empty if none.
+   * The only signal of timetable staleness, since unchanged feeds no-op.
    *
    * @generated from field: string imported_at = 2;
    */
   importedAt: string;
 
   /**
-   * How much of translations.txt the stored import applied. A feed with no
-   * translations, one whose rows match no stop, and a monolingual one all
-   * render as three identical station names, so these counts are what tells
-   * them apart.
+   * How much of translations.txt was applied; distinguishes missing,
+   * unmatched and monolingual translations.
    *
    * @generated from field: trains.v1.TranslationCoverage translations = 3;
    */
@@ -586,15 +565,13 @@ export const GetFeedInfoResponseSchema: GenMessage<GetFeedInfoResponse> = /*@__P
   messageDesc(file_trains_v1_trains, 15);
 
 /**
- * TranslationCoverage reports what an import made of the feed's
- * translations.txt.
+ * TranslationCoverage reports what an import made of translations.txt.
  *
  * @generated from message trains.v1.TranslationCoverage
  */
 export type TranslationCoverage = Message<"trains.v1.TranslationCoverage"> & {
   /**
-   * Stops whose name in that language came from translations.txt rather
-   * than falling back to the feed's primary stop_name.
+   * Stops named from translations.txt rather than the primary stop_name.
    *
    * @generated from field: int32 translated_stops_nl = 1;
    */
@@ -611,8 +588,7 @@ export type TranslationCoverage = Message<"trains.v1.TranslationCoverage"> & {
   translatedStopsEn: number;
 
   /**
-   * Usable stop_name rows read from translations.txt; 0 when the feed omits
-   * the file.
+   * Usable stop_name rows read; 0 when the file is absent.
    *
    * @generated from field: int32 rows = 4;
    */
@@ -634,11 +610,8 @@ export const TranslationCoverageSchema: GenMessage<TranslationCoverage> = /*@__P
   messageDesc(file_trains_v1_trains, 16);
 
 /**
- * SavedCommute is a user's named origin->destination station pair, surfaced
- * above the /trains pickers so a route they take every day is one tap away.
- * origin/destination are always location_type=1 stations keyed by their
- * S-prefixed UIC parent-station id — never a trip_id or anything derived
- * from a specific day's timetable (#1390).
+ * SavedCommute is a user's named station pair for one-tap searches. Stations
+ * are keyed by S-prefixed UIC parent-station id, never a trip_id.
  *
  * @generated from message trains.v1.SavedCommute
  */
@@ -855,10 +828,8 @@ export const TrainService: GenService<{
     output: typeof GetFeedInfoResponseSchema;
   },
   /**
-   * GetJourneyDetail fetches the full live state of a previously-searched
-   * journey (issue #1394) and, as a side effect, ensures the websocket topic
-   * at /trains/api/journeys/live exists for its journey_id so a client can
-   * subscribe right after this call returns.
+   * GetJourneyDetail fetches a searched journey's live state and ensures its
+   * /trains/api/journeys/live websocket topic exists.
    *
    * @generated from rpc trains.v1.TrainService.GetJourneyDetail
    */
@@ -868,8 +839,7 @@ export const TrainService: GenService<{
     output: typeof GetJourneyDetailResponseSchema;
   },
   /**
-   * Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
-   * by the trains app's own AppAccess like every other RPC here.
+   * Saved-commute CRUD, scoped to the signed-in user.
    *
    * @generated from rpc trains.v1.TrainService.ListSavedCommutes
    */

@@ -10,10 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestWriteConfFileTmpWriteFailure exercises writeConfFile's initial-write
-// failure branch: the conf directory is made read-only after the conf file
-// exists (so the os.Stat precondition still holds) but before the temp file
-// write, which needs directory write permission to create a new entry.
+// TestWriteConfFileTmpWriteFailure makes the conf dir read-only after the
+// conf file exists, so the temp-file write fails.
 func TestWriteConfFileTmpWriteFailure(t *testing.T) {
 	volumePath := t.TempDir()
 	confDir := filepath.Join(volumePath, ".kobo", "Kobo")
@@ -30,10 +28,8 @@ func TestWriteConfFileTmpWriteFailure(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestWriteConfFileRenameFailureCleansUpTmp exercises writeConfFile's
-// rename-failure branch: Kobo eReader.conf is a non-empty directory instead
-// of a file, so the stat precondition still holds but os.Rename onto it
-// fails, and the temp file must be cleaned up rather than left behind.
+// TestWriteConfFileRenameFailureCleansUpTmp makes eReader.conf a non-empty
+// directory so the rename fails, and checks the temp file is removed.
 func TestWriteConfFileRenameFailureCleansUpTmp(t *testing.T) {
 	volumePath := t.TempDir()
 	confDir := filepath.Join(volumePath, ".kobo", "Kobo")

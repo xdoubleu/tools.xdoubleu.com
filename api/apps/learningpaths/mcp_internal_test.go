@@ -37,14 +37,9 @@ func mcpMsgJSON(t *testing.T, msg proto.Message) string {
 	return string(data)
 }
 
-// TestMCPTools_ReadAndWrite exercises all six tool wrappers end to end
-// against a real app instance sharing the test database TestMain (in
-// app_test.go, part of the same compiled test binary) already migrated. The
-// three write tools are this app's deliberate exception to the read-only MCP
-// convention (see adr-0023): create/update a path and toggle an item, then
-// confirm the read tools see those exact changes — proving the write tools
-// persist through the same service layer the Connect RPCs use, not some
-// MCP-only side path.
+// TestMCPTools_ReadAndWrite exercises all six tools against a real app: the
+// write tools' changes must be visible through the read tools, proving they
+// persist through the same service layer as the Connect RPCs.
 func TestMCPTools_ReadAndWrite(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
@@ -53,10 +48,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	require.NoError(t, err)
 
 	const mcpUserID = "mcp-learningpaths-user"
-	// booksApp/feedsApp are nil — this test never sets a resource's
-	// linked_book_id/linked_feed_item_id, so the service layer's resolve/
-	// validate calls into them are never reached (see resolveResourceLinks
-	// in internal/services/learningpaths.go).
+	// booksApp/feedsApp are nil: no resource here is linked.
 	app := New(
 		sharedmocks.NewMockedAuthService(mcpUserID),
 		logging.NewNopLogger(),
@@ -141,10 +133,8 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	assert.Equal(t, int32(1), progress.CompletedItems)
 }
 
-// TestMCPTools_RequireAppAccess proves the gate rejects a caller without
-// learningpaths access, the same way every other app's tools do — including
-// the mutating ones, which are this app's exception to the read-only
-// convention but not to the access gate.
+// TestMCPTools_RequireAppAccess: every tool, mutating ones included, rejects
+// a caller without learningpaths access.
 func TestMCPTools_RequireAppAccess(t *testing.T) {
 	ctx := context.WithValue(
 		context.Background(),
@@ -155,24 +145,16 @@ func TestMCPTools_RequireAppAccess(t *testing.T) {
 	require.Error(t, mcptools.RequireAppAccess(ctx, mcpAppName))
 }
 
-// TestMCPAuthoringGuide_ResourceExistsAndReads verifies the authoring guide is
-// exposed as a real MCP resource (so any resource-reading client — Claude
-// Code, OpenCode — can pull the whole guidebook) and that its text carries the
-// authoring workflow and curation rubric, and that the write-tool descriptions
-// embed the same essentials for clients that only read tool metadata (e.g. a
-// ChatGPT-style connector). The resource handler is called directly; no MCP
-// transport or database is needed.
+// TestMCPAuthoringGuide_ResourceExistsAndReads: the guide is served as an MCP
+// resource, and the write-tool descriptions embed its essentials for clients
+// that only read tool metadata.
 func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
-	// The write-tool descriptions carry the workflow essentials on the tools
-	// themselves — the surface a ChatGPT-style connector reads.
 	require.Contains(t, mcpCreatePathDescription, "confirm the full proposed tree")
 	require.Contains(t, mcpCreatePathDescription, "modules")
 	require.Contains(t, mcpUpdatePathDescription, "Wholesale-replaces")
 	require.Contains(t, mcpUpdatePathDescription, "learningpaths_get_path")
 	require.Contains(t, mcpRecordProgressDescription, "item_id")
 
-	// The full guidebook is reachable through the handler with the expected
-	// URI, MIME type, and authoring-workflow/rubric content.
 	res, err := authoringGuideHandler(context.Background(),
 		//nolint:exhaustruct // the handler ignores the request, so no fields needed
 		&mcp.ReadResourceRequest{})
@@ -187,9 +169,8 @@ func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
 	assert.Contains(t, c.Text, "confirm the full proposed tree")
 }
 
-// TestMCPAuthoringGuide_RegisteredOnServer ensures registerAuthoringGuideResource
-// attaches the resource without panicking (an invalid/relative URI panics in
-// srv.AddResource), so the guide is actually present on the live apps server.
+// TestMCPAuthoringGuide_RegisteredOnServer: registration doesn't panic
+// (srv.AddResource panics on an invalid URI).
 func TestMCPAuthoringGuide_RegisteredOnServer(t *testing.T) {
 	//nolint:exhaustruct // Name/Version identify the server; nothing else matters here
 	srv := mcp.NewServer(&mcp.Implementation{Name: "test"}, nil)

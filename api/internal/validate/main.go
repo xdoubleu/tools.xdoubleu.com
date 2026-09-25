@@ -1,5 +1,4 @@
-// Package validate provides an easy way to validate the data contained in structs,
-// typically being DTOs containing user input.
+// Package validate validates struct contents, typically user-input DTOs.
 package validate
 
 // ValidatedType is implemented by any struct with a Validate method.
@@ -7,8 +6,7 @@ type ValidatedType interface {
 	Validate() (bool, map[string]string)
 }
 
-// Validator is used to validate contents
-// of structs using [Check].
+// Validator collects errors from [Check].
 type Validator struct {
 	errors map[string]string
 }
@@ -34,8 +32,7 @@ func (v *Validator) addError(key, message string) {
 	}
 }
 
-// Check checks if value passes the validatorFunc.
-// The provided key is used for creating the errors map of the [Validator].
+// Check records an error under key if value fails validatorFunc.
 func Check[T any](v *Validator, key string, value T, validatorFunc ValidatorFunc[T]) {
 	if result, message := validatorFunc(value); !result {
 		v.addError(key, message)

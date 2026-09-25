@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	// GatewayVersion is the protocol version reported by /status. Bump it
-	// whenever the gateway's HTTP API or file handling changes so the web
-	// UI can trigger a self-update; routine releases don't bump it.
+	// GatewayVersion is the protocol version reported by /status. Bump it when
+	// the HTTP API or file handling changes so the web UI triggers a self-update.
 	GatewayVersion = 2
 
 	// DefaultPort is the fixed port the web UI probes for a running gateway.
@@ -70,11 +69,7 @@ func NewServer(cfg Config, updater UpdateRunner) *Server {
 }
 
 // SetNotifier installs fn to surface self-update lifecycle events as
-// menu-bar notifications (see cmd/kobo-gateway's notify var) — otherwise a
-// user watching the books settings page only sees the menu-bar icon
-// vanish during the restart with no indication whether that's expected or a
-// crash (#456). A nil fn is ignored, leaving the no-op default from
-// NewServer in place.
+// menu-bar notifications. A nil fn is ignored.
 func (s *Server) SetNotifier(fn func(title, body string)) {
 	if fn != nil {
 		s.notify = fn
@@ -154,10 +149,8 @@ func (s *Server) hostAllowed(host string) bool {
 		host == fmt.Sprintf("localhost:%d", s.cfg.Port)
 }
 
-// matchOrigin looks the request origin up in the allowlist and returns the
-// matched allowlist entry. Callers must use the returned value, never the
-// request header, wherever the origin is acted on (CORS echo, update
-// download URL) — that keeps request data out of outbound requests.
+// matchOrigin returns the matched allowlist entry. Act on that value, never
+// the request header, so request data stays out of outbound requests.
 func (s *Server) matchOrigin(origin string) (string, bool) {
 	for _, allowed := range s.cfg.AllowedOrigins {
 		if origin == allowed {
@@ -249,10 +242,8 @@ func (s *Server) revertHandler(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, RevertResponse{Serial: kobo.Serial})
 }
 
-// updateHandler downloads the latest binary from the requesting origin over
-// the current executable, then signals a restart. The origin is re-matched
-// against the allowlist so the download URL is built from the allowlist
-// entry, not from request data (avoids request forgery).
+// updateHandler downloads the latest binary from the requesting origin (via
+// its allowlist entry) over the current executable, then signals a restart.
 func (s *Server) updateHandler(w http.ResponseWriter, r *http.Request) {
 	origin, ok := s.matchOrigin(r.Header.Get("Origin"))
 	if !ok {

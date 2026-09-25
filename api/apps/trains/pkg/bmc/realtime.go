@@ -8,9 +8,7 @@ import (
 	"strings"
 )
 
-// maxRealtimeBytes caps a realtime download. The observed protobuf snapshot
-// is ~124 KB (issue #1389); this is generous headroom without letting a
-// misbehaving gateway stream unbounded into memory.
+// maxRealtimeBytes caps a realtime download (~124 KB observed).
 const maxRealtimeBytes = 8 << 20
 
 func (c *client) FetchRealtime(
@@ -47,12 +45,8 @@ func (c *client) FetchRealtime(
 		return nil, &UpstreamError{StatusCode: resp.StatusCode}
 	}
 
-	// The gateway is documented (issue #1389) to serve JSON by default, with
-	// int64s that would silently corrupt a naive delay parse, and observed
-	// (issue #1711) to serve an HTML error page under overload or a backend
-	// error, still with a 200 status — assert the Content-Type and return a
-	// typed error rather than parsing whatever came back if protobuf wasn't
-	// honoured, so the caller can tell this apart from a real decode bug.
+	// Assert protobuf: the gateway defaults to JSON (whose int64s corrupt a naive
+	// parse) and serves HTML error pages with 200 under overload.
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "protobuf") {
 		return nil, &UnexpectedContentTypeError{Feed: feed, ContentType: contentType}

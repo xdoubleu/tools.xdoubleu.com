@@ -65,8 +65,7 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	// Ensure the global.families tables exist — the apps key their data by
-	// family_id and CI runs every package against one shared test database.
+	// Tests share one database; ensure global.families exists.
 	if _, err = postgresDB.Exec(context.Background(), `
 		CREATE SCHEMA IF NOT EXISTS global;
 		CREATE TABLE IF NOT EXISTS global.families (

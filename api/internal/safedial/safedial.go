@@ -1,11 +1,7 @@
-// Package safedial builds http.Clients that refuse to connect to non-public
-// IP addresses, so a user-supplied URL can't be turned into a request against
-// the container's own network (SSRF): cloud metadata (169.254.169.254), api
-// itself on loopback, or anything on an internal RFC1918 range.
-//
-// The check runs in [net.Dialer.Control], i.e. on the resolved IP of every
-// connection attempt. That covers redirect hops and DNS rebinding for free —
-// no URL re-validation per hop, no hostname allowlist.
+// Package safedial builds http.Clients that refuse non-public IPs, blocking
+// SSRF against metadata, loopback and RFC1918. The check runs in
+// [net.Dialer.Control] on every resolved IP, covering redirects and DNS
+// rebinding.
 package safedial
 
 import (
@@ -18,17 +14,14 @@ import (
 	"time"
 )
 
-// ErrBlockedAddress is returned by the dialer when a connection resolves to a
-// non-public address.
+// ErrBlockedAddress is returned when a connection resolves to a non-public IP.
 var ErrBlockedAddress = errors.New("connection to non-public address blocked")
 
 // cgnat is RFC 6598 shared address space — not covered by netip's IsPrivate.
 var cgnat = netip.MustParsePrefix("100.64.0.0/10") //nolint:gochecknoglobals //const
 
-// Client returns an http.Client that blocks connections to non-public IPs and
-// stops after maxRedirects hops. allowPrivate disables the IP check entirely —
-// pass cfg.Env != config.ProdEnv, since tests and local development legitimately
-// fetch from httptest servers on loopback.
+// Client blocks non-public IPs and stops after maxRedirects hops. allowPrivate
+// disables the check; pass cfg.Env != config.ProdEnv (tests use loopback).
 func Client(timeout time.Duration, maxRedirects int, allowPrivate bool) *http.Client {
 	dialer := newDialer(timeout)
 	if !allowPrivate {
@@ -54,8 +47,7 @@ func Client(timeout time.Duration, maxRedirects int, allowPrivate bool) *http.Cl
 	}
 }
 
-// newDialer builds the net.Dialer Client wraps, split out so its KeepAlive
-// setting (net/http's own default) is directly unit-testable.
+// newDialer is split out so its KeepAlive is unit-testable.
 func newDialer(timeout time.Duration) *net.Dialer {
 	return &net.Dialer{ //nolint:exhaustruct //defaults are fine
 		Timeout:   timeout,
@@ -75,9 +67,8 @@ func control(_, address string, _ syscall.RawConn) error {
 	return nil
 }
 
-// IsPublic reports whether addr is a routable public IP. Anything unparseable,
-// loopback, private, link-local (incl. 169.254.169.254), CGNAT, multicast or
-// unspecified is not.
+// IsPublic reports whether addr is a routable public IP (not loopback,
+// private, link-local, CGNAT, multicast, unspecified or unparseable).
 func IsPublic(addr string) bool {
 	ip, err := netip.ParseAddr(addr)
 	if err != nil {

@@ -6,9 +6,8 @@ const (
 	MaxLimit     = 200
 )
 
-// Clamp defaults and caps a client-supplied limit, and returns the SQL LIMIT
-// to actually request (limit+1, so the caller can detect has_more without a
-// separate COUNT query).
+// Clamp defaults and caps limit and returns the SQL LIMIT (limit+1, so has_more
+// needs no COUNT).
 func Clamp(limit int32) (int, int) {
 	l := int(limit)
 	if l <= 0 {
@@ -20,8 +19,7 @@ func Clamp(limit int32) (int, int) {
 	return l, l + 1
 }
 
-// Split trims a limit+1-sized slice down to limit items and reports whether
-// more rows exist beyond it.
+// Split trims rows to limit and reports whether more exist.
 func Split[T any](rows []T, limit int) ([]T, bool) {
 	if len(rows) > limit {
 		return rows[:limit], true

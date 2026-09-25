@@ -18,8 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// stubStorageScanRunner lets TriggerStorageScan tests control the scan
-// outcome without depending on a real R2 bucket being reachable.
+// stubStorageScanRunner controls the scan outcome without R2.
 type stubStorageScanRunner struct {
 	err error
 }
@@ -28,8 +27,7 @@ func (s *stubStorageScanRunner) RunStorageScanNow(_ context.Context) error {
 	return s.err
 }
 
-// withStorageScanRunner swaps testApp's books app for a stub for the
-// duration of the test.
+// withStorageScanRunner stubs testApp's books app for the test.
 func withStorageScanRunner(t *testing.T, runner storageScanRunner) {
 	t.Helper()
 	orig := testApp.booksApp
@@ -50,7 +48,6 @@ func TestObservabilityGetJobStats_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	// Seed a couple of job runs.
 	require.NoError(t, testApp.jobRunsRepo.Insert(ctx, models.JobRun{
 		JobID:      "steam",
 		StartedAt:  time.Now(),
@@ -155,10 +152,8 @@ func TestObservabilityGetStorageStats_AsAdmin(t *testing.T) {
 	assert.Equal(t, int64(50), resp.Msg.Latest.DeletedOrphanSizeBytes)
 }
 
-// TestRunStorageScanNow_Success covers Books.RunStorageScanNow itself
-// (the thin wrapper TriggerStorageScan's stub tests bypass): a second
-// books.Books instance built with a fake object store, sharing testApp's
-// already-migrated DB, so no real R2 bucket is needed.
+// TestRunStorageScanNow_Success covers Books.RunStorageScanNow with a fake
+// object store.
 func TestRunStorageScanNow_Success(t *testing.T) {
 	booksWithFakeStore := books.NewInner(
 		mocks.NewMockedAuthService(testUserID),
@@ -199,9 +194,8 @@ func TestObservabilityTriggerStorageScan_AsAdmin(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TestObservabilityTriggerStorageScan_AsAdmin_ScanFails covers error
-// propagation: when the underlying scan fails, the RPC must surface that as
-// CodeInternal rather than silently returning a stale/empty snapshot.
+// TestObservabilityTriggerStorageScan_AsAdmin_ScanFails: a failed scan is
+// CodeInternal.
 func TestObservabilityTriggerStorageScan_AsAdmin_ScanFails(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -228,7 +222,6 @@ func TestObservabilityGetDatabaseStats_AsAdmin(t *testing.T) {
 	require.NoError(t, err)
 	assert.Positive(t, resp.Msg.TotalSizeBytes)
 
-	// The global schema always exists in the test DB.
 	var hasGlobal bool
 	for _, s := range resp.Msg.Schemas {
 		if s.Name == "global" {

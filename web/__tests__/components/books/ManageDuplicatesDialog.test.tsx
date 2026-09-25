@@ -2,10 +2,6 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ManageDuplicatesDialog from '@/components/books/ManageDuplicatesDialog'
 
-// ---------------------------------------------------------------------------
-// Mock setup
-// ---------------------------------------------------------------------------
-
 const mockMergeBooks = jest.fn()
 const mockFindDuplicatesData = {
   data: undefined as { groups: unknown[] } | undefined,
@@ -22,10 +18,6 @@ jest.mock('@/hooks/useBooks', () => ({
 jest.mock('swr', () => ({
   mutate: (...args: unknown[]) => mockMutate(...args)
 }))
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function makeEntry(
   bookId: string,
@@ -75,10 +67,6 @@ function renderDialog(open = true, onOpenChange = jest.fn()) {
   return render(<ManageDuplicatesDialog open={open} onOpenChange={onOpenChange} />)
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 describe('ManageDuplicatesDialog', () => {
   beforeEach(() => {
     mockMergeBooks.mockReset()
@@ -112,11 +100,9 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Both entry titles appear; each title also appears in the conflict-picker
-    // chips (titles differ across entries), so use getAllByText.
+    // Titles also appear in the conflict-picker chips.
     expect(screen.getAllByText('The Hobbit').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('The Hobbit (Special Ed.)').length).toBeGreaterThanOrEqual(1)
-    // At least two entry-winner radios are present (conflict pickers may add more).
     const radios = screen.getAllByRole('radio')
     expect(radios.length).toBeGreaterThanOrEqual(2)
   })
@@ -146,7 +132,6 @@ describe('ManageDuplicatesDialog', () => {
 
   it('calls mergeBooks with winner, losers, and options on Merge click (no conflicts)', async () => {
     mockMergeBooks.mockResolvedValue({})
-    // Both entries have identical book fields — no conflicts detected.
     const entry1 = makeEntry('winner-id', 'BookA')
     const entry2 = makeEntry('loser-id', 'BookA')
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
@@ -157,7 +142,6 @@ describe('ManageDuplicatesDialog', () => {
     fireEvent.click(mergeBtn)
 
     await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
-    // Third arg is always the options object; cover source omitted when no cover conflict.
     expect(mockMergeBooks).toHaveBeenCalledWith(
       'winner-id',
       ['loser-id'],
@@ -174,7 +158,6 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Select the second entry's winner radio (first radio group).
     const winnerRadios = screen
       .getAllByRole('radio')
       .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('winner-'))
@@ -184,7 +167,6 @@ describe('ManageDuplicatesDialog', () => {
     fireEvent.click(mergeBtn)
 
     await waitFor(() => expect(mockMergeBooks).toHaveBeenCalledTimes(1))
-    // Winner is now book-y; loser is book-x.
     expect(mockMergeBooks).toHaveBeenCalledWith('book-y', ['book-x'], expect.any(Object))
   })
 
@@ -218,7 +200,6 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // BookCover renders initials("Dark Matter") → "DM"
     expect(screen.getAllByText('DM').length).toBeGreaterThan(0)
   })
 
@@ -253,11 +234,9 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Conflict section header should appear
     const conflictSection = screen.getByText(/Resolve.*conflicting/)
     expect(conflictSection).toBeInTheDocument()
-    // "Page count" appears as a quality badge in each entry and as a conflict
-    // field label — assert at least one exists.
+    // Also a quality badge label.
     expect(screen.getAllByText('Page count').length).toBeGreaterThanOrEqual(1)
   })
 
@@ -278,7 +257,6 @@ describe('ManageDuplicatesDialog', () => {
   })
 
   it('detects a status conflict and shows Shelf / status picker', () => {
-    // Both entries have the same book fields but different statuses.
     const entry1 = makeEntry('status-a', 'SharedTitle', { status: 'sci-fi' })
     const entry2 = makeEntry('status-b', 'SharedTitle', { status: 'read' })
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
@@ -292,15 +270,13 @@ describe('ManageDuplicatesDialog', () => {
 
   it('sends resolvedStatus when entries differ in status', async () => {
     mockMergeBooks.mockResolvedValue({})
-    // winner (entries[0]) is on 'to-read'; loser is on a custom shelf 'sci-fi'
     const entry1 = makeEntry('winner-s', 'SameTitle', { status: 'to-read' })
     const entry2 = makeEntry('loser-s', 'SameTitle', { status: 'sci-fi' })
     mockFindDuplicatesData.data = { groups: [makeGroup([entry1, entry2])] }
 
     renderDialog()
 
-    // The auto-status default should have pre-selected sci-fi (loser-s) since
-    // custom shelf outranks to-read. Click Merge without changing the picker.
+    // Custom shelf outranks to-read, so sci-fi is pre-selected.
     const mergeBtn = screen.getByRole('button', { name: 'Merge' })
     fireEvent.click(mergeBtn)
 
@@ -320,12 +296,10 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Both are custom shelves — auto picks entries[0] ('sci-fi').
-    // User explicitly picks entries[1] ('fantasy') via the status radio.
+    // Auto picks entries[0]; the user picks entries[1].
     const statusRadios = screen
       .getAllByRole('radio')
       .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('status-'))
-    // statusRadios[1] corresponds to the second entry (l-ov / fantasy)
     fireEvent.click(statusRadios[1])
 
     fireEvent.click(screen.getByRole('button', { name: 'Merge' }))
@@ -340,7 +314,6 @@ describe('ManageDuplicatesDialog', () => {
 
   it('passes resolvedCoverSourceBookId when entries have differing cover presence', async () => {
     mockMergeBooks.mockResolvedValue({})
-    // winner has no cover, loser has one
     const entry1 = makeEntry('cov-winner', 'CoverBook', { coverUrl: '' })
     const entry2 = makeEntry('cov-loser', 'CoverBook', {
       coverUrl: 'https://example.com/cover.jpg'
@@ -349,13 +322,11 @@ describe('ManageDuplicatesDialog', () => {
 
     renderDialog()
 
-    // Cover conflict picker is shown; loser entry's "Use this" radio for cover
     const coverRadios = screen
       .getAllByRole('radio')
       .filter((r) => r instanceof HTMLInputElement && r.name.startsWith('cover-'))
     expect(coverRadios.length).toBeGreaterThanOrEqual(2)
 
-    // Select the loser's cover
     fireEvent.click(coverRadios[1])
 
     const mergeBtn = screen.getByRole('button', { name: 'Merge' })

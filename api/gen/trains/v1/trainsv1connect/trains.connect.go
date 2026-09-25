@@ -64,13 +64,10 @@ type TrainServiceClient interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
 	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
 	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
-	// GetJourneyDetail fetches the full live state of a previously-searched
-	// journey (issue #1394) and, as a side effect, ensures the websocket topic
-	// at /trains/api/journeys/live exists for its journey_id so a client can
-	// subscribe right after this call returns.
+	// GetJourneyDetail fetches a searched journey's live state and ensures its
+	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
-	// Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
-	// by the trains app's own AppAccess like every other RPC here.
+	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
 	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
 	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)
@@ -196,13 +193,10 @@ type TrainServiceHandler interface {
 	SearchJourneys(context.Context, *connect.Request[v1.SearchJourneysRequest]) (*connect.Response[v1.SearchJourneysResponse], error)
 	SearchStations(context.Context, *connect.Request[v1.SearchStationsRequest]) (*connect.Response[v1.SearchStationsResponse], error)
 	GetFeedInfo(context.Context, *connect.Request[v1.GetFeedInfoRequest]) (*connect.Response[v1.GetFeedInfoResponse], error)
-	// GetJourneyDetail fetches the full live state of a previously-searched
-	// journey (issue #1394) and, as a side effect, ensures the websocket topic
-	// at /trains/api/journeys/live exists for its journey_id so a client can
-	// subscribe right after this call returns.
+	// GetJourneyDetail fetches a searched journey's live state and ensures its
+	// /trains/api/journeys/live websocket topic exists.
 	GetJourneyDetail(context.Context, *connect.Request[v1.GetJourneyDetailRequest]) (*connect.Response[v1.GetJourneyDetailResponse], error)
-	// Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
-	// by the trains app's own AppAccess like every other RPC here.
+	// Saved-commute CRUD, scoped to the signed-in user.
 	ListSavedCommutes(context.Context, *connect.Request[v1.ListSavedCommutesRequest]) (*connect.Response[v1.ListSavedCommutesResponse], error)
 	CreateSavedCommute(context.Context, *connect.Request[v1.CreateSavedCommuteRequest]) (*connect.Response[v1.CreateSavedCommuteResponse], error)
 	UpdateSavedCommute(context.Context, *connect.Request[v1.UpdateSavedCommuteRequest]) (*connect.Response[v1.UpdateSavedCommuteResponse], error)

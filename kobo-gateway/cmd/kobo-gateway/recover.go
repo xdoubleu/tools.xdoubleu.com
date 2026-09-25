@@ -1,6 +1,4 @@
-// Command kobo-gateway — panic recovery shared by darwin and non-darwin
-// builds (menu-bar goroutines are darwin-only, but the helper itself doesn't
-// touch AppKit, so it lives outside the build-tagged files).
+// Command kobo-gateway — panic recovery shared by darwin and non-darwin builds.
 package main
 
 import (
@@ -11,19 +9,12 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// sentryFlushTimeout bounds how long a recovered panic gets to reach Sentry
-// before the caller continues (or the process exits).
+// sentryFlushTimeout bounds how long a recovered panic gets to reach Sentry.
 const sentryFlushTimeout = 2 * time.Second
 
-// guard recovers a panic in its caller's deferred context, logs it to
-// stderr, and reports it to Sentry (a no-op if Sentry was never initialized —
-// see initSentry), then lets execution continue past the panic. Use it on
-// per-event/per-block work (a goroutine loop iteration, a dispatched menu
-// update) where one bad event shouldn't take down the whole app.
-//
-// This is defense-in-depth for pure Go panics only: launchd's KeepAlive (see
-// internal/kobogateway/loginitem.go) is what recovers the process from the
-// darwinkit ObjC bridge's SIGABRT, which no Go recover() can catch.
+// guard recovers a panic in its caller's deferred context, logs and reports
+// it, and continues. For per-event work where one bad event shouldn't crash
+// the app. Go panics only: launchd's KeepAlive handles the ObjC SIGABRT.
 func guard(where string) {
 	r := recover()
 	if r == nil {
@@ -44,21 +35,15 @@ func recoverGo(where string, fn func()) {
 	fn()
 }
 
-// reportFatal reports a fatal, non-panic error (a plain error returned from
-// run(), e.g. a bind failure from a stale duplicate process) to Sentry
-// before main exits. A menu-bar app has no visible console, so without this
-// such an exit (see #562) leaves zero trace anywhere the user or developer
-// can see — unlike reportAndRepanic, there's no panic here to recover from.
+// reportFatal reports a fatal non-panic error from run() before main exits;
+// a menu-bar app otherwise leaves no trace.
 func reportFatal(err error) {
 	sentry.CurrentHub().CaptureException(err)
 	sentry.Flush(sentryFlushTimeout)
 }
 
-// reportAndRepanic recovers a panic on the main thread, reports it to
-// Sentry, and re-panics. Unlike guard, it does not swallow the panic:
-// silently continuing past a broken AppKit run loop would leave the app
-// running in an unusable, un-relaunched state, whereas re-panicking exits
-// non-zero and lets launchd's KeepAlive relaunch a fresh process.
+// reportAndRepanic recovers a main-thread panic, reports it, and re-panics so
+// launchd's KeepAlive relaunches a fresh process.
 func reportAndRepanic() {
 	r := recover()
 	if r == nil {

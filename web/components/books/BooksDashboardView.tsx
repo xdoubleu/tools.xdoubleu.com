@@ -11,10 +11,8 @@ import { statusLabel } from '@/lib/books/bookShelves'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 
 /**
- * Presentational books dashboard shared by the private (`ReadingDashboard`) and
- * public (`ReadingDashboardPublicClient`) wrappers so their cards/charts can't drift.
- * The wrappers supply data, the reading-card renderer, and owner actions; the
- * public one passes no mutating controls.
+ * Books dashboard view shared by the private and public wrappers so they
+ * can't drift; the public one passes no mutating actions.
  */
 export default function BooksDashboardView({
   library,

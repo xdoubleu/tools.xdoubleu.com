@@ -14,9 +14,7 @@ import (
 	feedsv1 "tools.xdoubleu.com/gen/feeds/v1"
 )
 
-// pollScrapeFeed's error paths can't be reached through the happy-path
-// create/import tests; drive them via the poll job (RunPollNow) against
-// deliberately broken mock responses.
+// pollScrapeFeed's error paths, driven through RunPollNow.
 func TestPollScrapeFeed_PollPaths(t *testing.T) {
 	base := uniqueBlogBase()
 	indexURL := base + "/blog-poll-paths"
@@ -45,8 +43,7 @@ func TestPollScrapeFeed_PollPaths(t *testing.T) {
 	feed := waitForFeedLastError(t, feedID)
 	assert.Contains(t, *feed.LastError, "boom")
 
-	// Walk error: the index now serves no plausible post links, so
-	// discovery fails and the poll records that failure too.
+	// Walk error: no post links left, so discovery fails.
 	delete(mockWebFetch.Errs, indexURL)
 	mockWebFetch.SetHTML(indexURL, `<!DOCTYPE html><html><body>
 		<nav><a href="/">Home</a></nav>
@@ -61,8 +58,7 @@ func TestPollScrapeFeed_PollPaths(t *testing.T) {
 	assertFeedLastErrorCleared(t, feedID)
 }
 
-// waitForFeedLastError polls the feed list until feedID reports a non-empty
-// LastError.
+// waitForFeedLastError waits until feedID reports a LastError.
 func waitForFeedLastError(t *testing.T, feedID string) *models.Feed {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)

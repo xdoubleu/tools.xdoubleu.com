@@ -55,8 +55,8 @@ export const KoboDeviceSchema: GenMessage<KoboDevice> = /*@__PURE__*/
   messageDesc(file_books_v1_kobo, 0);
 
 /**
- * KoboLogEntry is a single captured device request/response pair, held in
- * memory while debug logging is enabled for a device.
+ * KoboLogEntry is one captured device request/response pair, held in memory
+ * while debug logging is on.
  *
  * @generated from message books.v1.KoboLogEntry
  */

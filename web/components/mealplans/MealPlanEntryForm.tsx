@@ -60,8 +60,7 @@ export default function MealPlanEntryForm({
   const [tab, setTab] = useState<Tab>(initialTab)
   const [recipeId, setRecipeId] = useState(initialRecipeId)
   const [servings, setServings] = useState(initialServings)
-  // Bumped on suggestion-chip clicks to remount RecipeCombobox so its
-  // initialValue re-applies and the chosen recipe name shows in the input.
+  // Remounts RecipeCombobox so a suggestion chip's name shows in the input.
   const [comboboxKey, setComboboxKey] = useState(0)
   const [customItems, setCustomItems] = useState<CustomItem[]>(() => {
     const parsed = initialCustomName ? parseCustomItems(initialCustomName) : []
@@ -76,8 +75,7 @@ export default function MealPlanEntryForm({
   const categories = categoriesData?.categories ?? []
   const { mutate: globalMutate } = useSWRConfig()
 
-  // Current name->category catalog assignments, keyed by normalized name. Used
-  // to pre-fill each row's category and to avoid redundant catalog writes.
+  // Catalog assignments by normalized name, for pre-fill and skipping writes.
   const nameToCategoryId = useMemo(() => {
     const map: Record<string, string> = {}
     for (const entry of itemCategoriesData?.items ?? []) {
@@ -86,8 +84,6 @@ export default function MealPlanEntryForm({
     return map
   }, [itemCategoriesData])
 
-  // The category shown for a row: an explicit choice wins, otherwise fall back
-  // to the name's existing catalog assignment.
   const effectiveCategoryId = (item: CustomItem) =>
     item.categoryId ?? nameToCategoryId[item.name.trim().toLowerCase()] ?? ''
 
@@ -99,8 +95,7 @@ export default function MealPlanEntryForm({
       const name = item.name.trim()
       const categoryId = effectiveCategoryId(item)
       const key = name.toLowerCase()
-      // Skip blanks, dupes (last write wins is handled by order), and rows
-      // already matching the catalog.
+      // Skip blanks, dupes, and rows already matching the catalog.
       if (!name || !categoryId || seen.has(key)) continue
       seen.add(key)
       if (nameToCategoryId[key] === categoryId) continue

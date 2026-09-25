@@ -1,13 +1,6 @@
-// Thin logger used in place of raw console.* calls. Always logs locally, and
-// also fire-and-forgets a batched, debounced copy to the api's centralized
-// log store (global.log_entries, issue #1040) so log history outlives a
-// container restart instead of living only in stdout/Sentry.
-//
-// Runs both server- and client-side. Server-side, it can call the api's
-// ingest endpoint directly (OBSERVABILITY_INGEST_SECRET is readable from
-// process.env there). Client-side it must never see that secret, so it posts
-// to this app's own /logs route instead, which attaches the header
-// server-side before forwarding (app/logs/route.ts).
+// Logger used instead of console.*: logs locally and fire-and-forgets a
+// batched copy to the api's log store. Server-side it posts directly with
+// OBSERVABILITY_INGEST_SECRET; client-side via app/logs/route.ts, which adds it.
 import { getApiUrl, getObservabilityIngestSecret } from './env'
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error'
@@ -60,8 +53,7 @@ async function send(entries: QueuedEntry[]): Promise<void> {
       })
     }
   } catch {
-    // Best-effort: the local console output above already happened, and a
-    // dropped log line isn't worth surfacing further.
+    // Best-effort: the console output already happened.
   }
 }
 

@@ -1,10 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
-// ---------------------------------------------------------------------------
-// Mocks
-// ---------------------------------------------------------------------------
-
 const mockUploadBookFile = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
@@ -28,22 +24,16 @@ import BulkBookUploader from '@/components/books/BulkBookUploader'
 
 function makeFile(name: string, type = 'application/epub+zip'): File {
   const file = new File(['data'], name, { type })
-  // jsdom does not implement arrayBuffer() — provide a stub so the component
-  // can call file.arrayBuffer() without throwing.
+  // jsdom lacks File.arrayBuffer().
   file.arrayBuffer = () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer)
   return file
 }
 
 function makeOversizeFile(name: string, type = 'application/epub+zip'): File {
   const file = makeFile(name, type)
-  // Override size to be over the limit without allocating real memory.
   Object.defineProperty(file, 'size', { value: MOCK_MAX_UPLOAD_BYTES + 1 })
   return file
 }
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe('BulkBookUploader', () => {
   beforeEach(() => {

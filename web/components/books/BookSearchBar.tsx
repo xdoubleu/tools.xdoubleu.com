@@ -7,18 +7,11 @@ import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
 import { Input } from '@/components/ui/input'
 import { MenuItem } from '@/components/ui/menu-item'
 
-// Two usage modes:
-//
-//  1. Standalone mode (BooksDashboard): omit query/onChange. The bar manages
-//     its own query state, searches the library, navigates on a hit, and
-//     falls back to the configured external providers when the library has
-//     no results.
-//
-//  2. Controlled mode (BooksSection / library page): supply query and
-//     onChange. The bar is a plain controlled input with no dropdown —
-//     BooksLibrary renders results as cards in the page body instead.
+// Standalone mode (omit query/onChange): owns its query, searches the
+// library, navigates on a hit, else falls back to external providers.
+// Controlled mode: a plain input; BooksLibrary renders the results.
 interface BookSearchBarProps {
-  // Controlled-mode props (both required together, both omitted for standalone).
+  // Controlled mode: both set together, or both omitted.
   query?: string
   onChange?: (value: string) => void
 }
@@ -30,17 +23,13 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
   const searchLibrary = useSearchLibrary()
   const searchExternal = useSearchExternal()
 
-  // Standalone mode owns its own query state.
   const [standaloneQuery, setStandaloneQuery] = useState('')
-  // Controlled mode: local input state so typing is instant even though the
-  // committed query lives in the URL (router.replace is too slow to bind the
-  // input directly to it — see controlledDebounceTimer below).
+  // Local input state so typing is instant; the URL commit is debounced.
   const [controlledInput, setControlledInput] = useState(controlledQuery ?? '')
   const query = isControlled ? controlledQuery : standaloneQuery
   const controlledDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Keep the local input in sync when the URL query changes from elsewhere
-  // (browser Back/Forward).
+  // Sync from URL changes elsewhere (Back/Forward).
   useEffect(() => {
     if (isControlled) setControlledInput(controlledQuery ?? '')
   }, [isControlled, controlledQuery])
@@ -51,7 +40,6 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
   const [isSearching, setIsSearching] = useState(false)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ---- Standalone mode: debounce → searchLibrary → navigate or OL fallback ----
   useEffect(() => {
     if (isControlled) return
 
@@ -72,9 +60,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
           setExternalResults([])
         } else {
           setLibraryHits([])
-          // Results with no providerId have no detail page to navigate to
-          // (see ExternalBookCard) — keeping them in this click-to-navigate
-          // dropdown just renders permanently disabled, grayed-out rows.
+          // Results without providerId have no detail page, so drop them.
           const extResp = await searchExternal(standaloneQuery.trim())
           setExternalResults(extResp.results.filter((b) => b.providerId))
         }
@@ -93,9 +79,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
 
   function handleInputChange(value: string) {
     if (isControlled) {
-      // Update the local input immediately so typing feels instant, then
-      // debounce the URL commit — each commit is a router.replace() that
-      // re-runs the RSC, so firing it on every keystroke was the slowdown.
+      // Each commit is a router.replace() that re-runs the RSC, so debounce it.
       setControlledInput(value)
       if (controlledDebounceTimer.current) clearTimeout(controlledDebounceTimer.current)
       controlledDebounceTimer.current = setTimeout(() => onChange?.(value), 300)
@@ -106,9 +90,6 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
     }
   }
 
-  // Controlled mode: no dropdown — BooksLibrary owns filtering. The URL
-  // commit (and therefore the actual filter) is debounced; the input itself
-  // is not, so typing stays responsive.
   if (isControlled) {
     return (
       <Input

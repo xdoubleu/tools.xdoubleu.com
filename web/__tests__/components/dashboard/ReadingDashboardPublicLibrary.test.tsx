@@ -123,26 +123,21 @@ describe('ReadingDashboardPublicLibrary', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ReadingDashboardPublicLibrary token="tok-1" />)
 
-    // Default "all books" view shows every book once in the grid.
     expect(screen.getAllByText('Reading Book')).toHaveLength(1)
 
-    // Fixed favourite shelf narrows the grid to the tagged book.
     fireEvent.click(screen.getAllByText('Favourites')[0]!)
     expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
     expect(screen.queryByText('Reading Book')).not.toBeInTheDocument()
 
-    // Custom shelf shows its own books.
     fireEvent.click(screen.getAllByText('custom-shelf')[0]!)
     expect(screen.getByText('Shelved Book')).toBeInTheDocument()
 
-    // Fixed status shelves work too.
     fireEvent.click(screen.getAllByRole('button', { name: /^Want to read \d/ })[0]!)
     expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
     fireEvent.click(screen.getAllByRole('button', { name: /^Currently reading \d/ })[0]!)
     fireEvent.click(screen.getAllByRole('button', { name: /^Read \d/ })[0]!)
     fireEvent.click(screen.getAllByRole('button', { name: /^All books \d/ })[0]!)
 
-    // Tag selection filters the grid, clicking again returns to all books.
     fireEvent.click(screen.getAllByText('sci-fi')[0]!)
     expect(screen.getByText('Wishlist Book')).toBeInTheDocument()
     expect(screen.queryByText('Reading Book')).not.toBeInTheDocument()

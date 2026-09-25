@@ -2,9 +2,7 @@ package kobogateway
 
 import "net/http"
 
-// init swaps launchctl for a no-op under go test — the test runner has no
-// real gui/<uid> session, and this keeps `go test` from touching the actual
-// login-item state on the machine running it.
+// init stubs launchctl so tests never touch real login-item state.
 //
 //nolint:gochecknoinits //only way to stub launchctl before any test runs
 func init() {

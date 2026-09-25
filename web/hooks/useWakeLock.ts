@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
- * Wraps the Screen Wake Lock API. The browser silently releases the lock
- * when the tab is hidden, so `wantedRef` tracks user intent separately from
- * `isActive` and re-requests the lock on `visibilitychange` if still wanted.
+ * Screen Wake Lock wrapper. The browser releases the lock when hidden, so
+ * `wantedRef` re-requests it on `visibilitychange`.
  */
 export function useWakeLock() {
   const [isActive, setIsActive] = useState(false)

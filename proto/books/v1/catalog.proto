@@ -8,8 +8,7 @@ message ImportBooksRequest { bytes csv_data = 1; }
 message ImportBooksResponse { int32 imported_count = 1; }
 
 message DuplicateGroup {
-  // Library entries judged to be the same book. entries[0] is the suggested
-  // winner (the entry to keep); the rest are the suggested losers.
+  // Entries judged the same book; entries[0] is the suggested one to keep.
   repeated UserBook entries = 1;
   // Strongest matching signal: "isbn13" | "isbn10" | "title+author"
   string reason = 2;
@@ -23,18 +22,13 @@ message MergeBooksRequest {
   string winner_book_id = 1;
   // book_ids of UserBook entries to merge into the winner, then delete.
   repeated string loser_book_ids = 2;
-  // When set, these field values overwrite the winner's catalog Book row after
-  // the merge. cover_url is excluded — control cover resolution via
-  // resolved_cover_source_book_id instead.
-  // Omit to keep the winner's existing metadata unchanged (current behavior).
+  // Overwrites the winner's catalog metadata after merging (cover_url
+  // excluded; see resolved_cover_source_book_id). Omit to keep it.
   optional Book resolved_metadata = 3;
-  // book_id whose cover should be used for the merged winner. The backend
-  // copies that entry's raw cover URL and clears the winner's cover cache.
-  // Omit to keep the winner's existing cover unchanged.
+  // book_id whose cover the winner takes. Omit to keep the winner's cover.
   optional string resolved_cover_source_book_id = 4;
-  // When set, overrides the auto-consolidated status/shelf of the merged winner.
-  // Omit to use the automatic rule: a custom shelf wins over built-in statuses
-  // (custom-shelf > read > currently-reading > to-read > dropped).
+  // Overrides the merged status/shelf. Omit for the automatic rule:
+  // custom-shelf > read > currently-reading > to-read > dropped.
   optional string resolved_status = 5;
 }
 message MergeBooksResponse {
@@ -45,24 +39,19 @@ message MergeBooksResponse {
 }
 
 message StartResyncRequest {
-  // Force re-queries every source (UniCat, Hardcover) for
-  // every book, ignoring the skip-if-known cache
-  // (unicat_found / hardcover_found).
-  // Use to recover books stuck unresolved after a rate-limit trip or a stale
-  // cached miss.
+  // Re-query every source for every book, ignoring the skip-if-known cache
+  // (recovers books stuck after a rate limit or stale miss).
   bool force = 1;
 }
 message StartResyncResponse {}
 
-// CancelResync stops an in-progress resync scan started by StartResync. A
-// no-op if no scan is running. Books already processed keep their scan
-// status; the proposals table is left untouched by the cancelled run.
+// CancelResync stops a running resync scan (no-op if none). Processed books
+// and proposals are left as is.
 message CancelResyncRequest {}
 message CancelResyncResponse {}
 
-// SourceBook is one candidate set of metadata for a catalog book — either the
-// current library values (source = "") or one external provider's proposal
-// (source = "unicat" | "hardcover").
+// SourceBook is one candidate metadata set: the library values (source "")
+// or a provider's proposal ("unicat" | "hardcover").
 message SourceBook {
   string source = 1;
   string cover_url = 2;
@@ -71,19 +60,14 @@ message SourceBook {
   string isbn13 = 5;
   string title = 6;
   repeated string authors = 7;
-  // differs lists which fields differ from the library row. Empty for the
-  // library SourceBook itself.
+  // Fields differing from the library row; empty for the library itself.
   repeated string differs = 8;
-  // index is this candidate's ordinal position (0-based) among other
-  // SourceBooks sharing the same source. Always 0 for the library SourceBook
-  // and for sources that only ever produce one candidate (the guarded
-  // search). The manual override search ("Search with these terms") can
-  // return up to 5 candidates per source, distinguished by this index.
+  // 0-based ordinal among candidates of the same source; only a manual
+  // override search yields more than one (up to 5).
   int32 index = 9;
 }
 
-// ResyncProposal describes one catalog book that differs from at least one
-// external source, for the admin resync wizard to step through.
+// ResyncProposal is one catalog book differing from an external source.
 message ResyncProposal {
   string book_id = 1;
   SourceBook library = 2;
@@ -97,9 +81,8 @@ message ListResyncProposalsResponse {
 
 message ApplyResyncChoiceRequest {
   string book_id = 1;
-  // source selects which SourceBook wins: "" keeps the library row unchanged
-  // (and simply dismisses the proposal), or one of
-  // "unicat" | "hardcover".
+  // Winning source: "" keeps the library row (dismisses), or "unicat" |
+  // "hardcover".
   string source = 2;
 }
 message ApplyResyncChoiceResponse {}
@@ -110,26 +93,20 @@ message SetBookISBNRequest {
 }
 message SetBookISBNResponse {}
 
-// UpdateBook lets an admin hand-correct a catalog book's metadata directly,
-// bypassing the external-source sync flow.
+// UpdateBook hand-corrects a catalog book's metadata.
 message UpdateBookRequest {
   string book_id = 1;
-  // Full replacement for the book's catalog metadata (title, authors,
-  // isbn13, description, page_count, cover_url). An empty cover_url clears
-  // the cover; any other value is fetched and cached as the new cover.
+  // Full replacement of catalog metadata. Empty cover_url clears the cover;
+  // any other value is fetched and cached.
   Book metadata = 2;
 }
 message UpdateBookResponse { Book book = 1; }
 
-// GetBookSources live-fetches one book's candidates from every configured
-// source, for the admin book-page source selector. Unlike
-// ListResyncProposals, this works on any book on demand — it doesn't require
-// a prior wizard scan to have flagged the book first.
+// GetBookSources live-fetches any book's candidates from every source.
 message GetBookSourcesRequest {
   string book_id = 1;
-  // When set, replaces the stored title/author in the live source search,
-  // skips the strict match guards, and forces the search path even when the
-  // book has an ISBN — for manually steering the search on unmatched books.
+  // Replaces title/author in the search, skips strict match guards, and
+  // forces search even for books with an ISBN.
   optional string override_title = 2;
   optional string override_author = 3;
 }
@@ -137,26 +114,20 @@ message GetBookSourcesResponse {
   ResyncProposal proposal = 1;
 }
 
-// ApplyBookSource live-fetches the book's sources and applies the chosen one
-// — the book-page equivalent of ApplyResyncChoice, usable on any book.
+// ApplyBookSource live-fetches the book's sources and applies the chosen one.
 message ApplyBookSourceRequest {
   string book_id = 1;
-  // source selects which source wins: one of
   // "unicat" | "hardcover".
   string source = 2;
-  // Must repeat the override used in GetBookSources so the apply-time
-  // re-fetch finds the same candidates.
+  // Must repeat GetBookSources' override so the re-fetch matches.
   optional string override_title = 3;
   optional string override_author = 4;
-  // index selects which of the source's candidates to apply (0-based),
-  // matching SourceBook.index. 0 for sources that only ever produce one
-  // candidate.
+  // Candidate to apply, matching SourceBook.index.
   int32 index = 5;
 }
 message ApplyBookSourceResponse {}
 
-// GetSourceStats reports per-source coverage over the whole catalog, for
-// scoring metadata sources.
+// GetSourceStats reports per-source coverage over the catalog.
 message GetSourceStatsRequest {}
 message SourceStat {
   // "unicat" | "hardcover"
@@ -165,14 +136,10 @@ message SourceStat {
   int32 found_count = 2;
   // Books found ONLY in this source (found here, nowhere else).
   int32 unique_count = 3;
-  // Books this source actually checked and came back empty (found_column IS
-  // FALSE) — distinct from never having been scanned at all.
+  // Books this source checked and missed (vs never scanned).
   int32 missed_count = 4;
 }
-// SourceComboStat reports how many books were found by exactly this set of
-// sources (a genuine overlap) — the complement of SourceStat's unique_count,
-// which is the one-source case. With two configured sources there is exactly
-// one combo: both.
+// SourceComboStat counts books found by exactly this set of sources.
 message SourceComboStat {
   // "unicat" | "hardcover", both entries.
   repeated string sources = 1;
@@ -187,16 +154,12 @@ message GetSourceStatsResponse {
   int32 never_scanned = 4;
   // The one two-source combo (both sources).
   repeated SourceComboStat overlaps = 5;
-  // The mirror of overlaps: books missed by exactly this set of sources (those
-  // sources IS FALSE, every other source IS TRUE). Same partition model as
-  // overlaps, just complemented.
+  // Books missed by exactly this set of sources and found by all others.
   repeated SourceComboStat missed_overlaps = 6;
 }
 
-// ListBooksInExactSources lists the catalog books found by exactly the given
-// set of sources — one source is the books behind GetSourceStats'
-// unique_count, both is the overlaps combo — for drilling into the
-// source-stats report.
+// ListBooksInExactSources lists catalog books found by exactly the given
+// sources, drilling into GetSourceStats.
 message ListBooksInExactSourcesRequest {
   // "unicat" | "hardcover", 1 to 2 entries.
   repeated string sources = 1;

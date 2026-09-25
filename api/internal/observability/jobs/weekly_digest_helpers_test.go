@@ -11,7 +11,6 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// fakeMailer records both the subject and body of every send.
 type fakeMailer struct {
 	sent   []string
 	bodies []string
@@ -31,8 +30,6 @@ func (f *fakeMailer) SendTo(_ context.Context, _, _, _ string) error {
 	return nil
 }
 
-// alwaysEnabledSettings makes every notification source enabled, for tests
-// that aren't exercising the settings gate itself.
 type alwaysEnabledSettings struct{}
 
 func (alwaysEnabledSettings) IsEnabled(
@@ -42,8 +39,6 @@ func (alwaysEnabledSettings) IsEnabled(
 	return true, nil
 }
 
-// disabledSourceSettings reports enabled state from an explicit per-source
-// map, for tests exercising the settings gate.
 type disabledSourceSettings struct {
 	enabled map[repositories.NotificationSource]bool
 }
@@ -65,9 +60,8 @@ func testLoggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
 }
 
-// testNotifications wraps mail in a notifications.Service for the job to
-// enqueue onto; deliveries happen on a background worker (issue #923), so
-// tests must call WaitUntilDone before asserting on mail state.
+// testNotifications wraps mail; delivery is async, so call WaitUntilDone
+// before asserting.
 func testNotifications(t *testing.T, mail *fakeMailer) *notifications.Service {
 	t.Helper()
 	return notifications.New(t.Context(), logging.NewNopLogger(), mail)

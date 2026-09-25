@@ -12,11 +12,7 @@ function buildJourneyWsUrl(apiUrl: string): string {
   return `${wsBase}/trains/api/journeys/live`
 }
 
-// The websocket push is the trains api's own JSON DTO (models.JourneyDetail's
-// MarshalJSON, following internal/progressws' convention of a plain wire DTO
-// rather than protobuf-encoding a websocket payload) — deliberately built to
-// the same camelCase field shape as the generated JourneyDetail type, so a
-// pushed message can be treated as one structurally.
+// Pushes are the api's JSON DTO, shaped like the generated JourneyDetail.
 function isJourneyDetail(value: unknown): value is JourneyDetail {
   return (
     value !== null &&
@@ -32,19 +28,10 @@ export interface JourneyLiveState {
 }
 
 /**
- * useJourneyLive subscribes to one journey's live-update websocket topic
- * (issue #1394) and hands back whatever the server most recently pushed —
- * either the just-subscribed snapshot or a later realtime-poll-driven
- * update.
- *
- * Two things a naive socket gets wrong are handled explicitly here:
- *  - a phone locking its screen suspends the socket without necessarily
- *    firing a close event; on the page becoming visible/foregrounded again
- *    (visibilitychange, pageshow, online) this forces a fresh socket AND
- *    calls refetchDetail, so the page shows the current state immediately
- *    rather than silently keeping a stale one until the next push (or
- *    forever, if the suspended socket never actually closes).
- *  - the socket itself always reconnects on close/error after a fixed delay.
+ * useJourneyLive returns the latest pushed state for one journey. A locked
+ * phone can suspend the socket without a close event, so becoming visible
+ * (visibilitychange, pageshow, online) forces a fresh socket and calls
+ * refetchDetail. The socket also reconnects after close/error.
  */
 export function useJourneyLive(
   journeyId: string,

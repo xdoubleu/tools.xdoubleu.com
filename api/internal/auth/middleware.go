@@ -15,11 +15,8 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// Access resolves the current user like TemplateAccess (falling back to
-// refreshTokens when the access-token cookie can't be resolved, e.g. it
-// expired) so a session left idle past the access-token TTL recovers
-// transparently via the still-valid refresh-token cookie instead of every
-// API call 401ing until the browser is reloaded (issue #809).
+// Access resolves the user like TemplateAccess, refreshing via the refresh
+// cookie when the access token has expired.
 func (service *LocalService) Access(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := service.getCurrentUser(r)
@@ -73,12 +70,8 @@ func (service *LocalService) getCurrentUser(r *http.Request) *models.User {
 	return user
 }
 
-// ResolveToken validates a bearer access token and returns the DB-enriched
-// user, reusing the same TTL cache and admin-role enrichment as the cookie
-// middleware. It is the entry point for the observability MCP server acting
-// as an OAuth resource server: a local session JWT is tried first, falling
-// back to resolving the token as a fosite-issued opaque OAuth 2.1 access
-// token (internal/oauth2as) when local verification fails.
+// ResolveToken resolves a bearer token to the enriched user for the MCP
+// resource server: a local session JWT first, then a fosite opaque token.
 func (service *LocalService) ResolveToken(
 	ctx context.Context,
 	accessToken string,
@@ -119,11 +112,8 @@ func (service *LocalService) ResolveToken(
 	return &enriched, nil
 }
 
-// resolveUser returns the DB-enriched user for an access token, consulting
-// the TTL cache first so repeated requests skip re-verifying the JWT and
-// the enrichment queries. Cache misses for the same token are coalesced via
-// resolveGroup so concurrent requests (e.g. several tabs opened at once)
-// share one verification instead of each firing their own.
+// resolveUser returns the enriched user for a token, via the TTL cache, with
+// concurrent misses for the same token coalesced by resolveGroup.
 func (service *LocalService) resolveUser(
 	ctx context.Context,
 	accessToken string,
@@ -155,13 +145,9 @@ func (service *LocalService) resolveUser(
 	return user, nil
 }
 
-// enrichUser records the user in global.app_users and overlays the DB role
-// and app access. A DB failure is returned rather than swallowed: the
-// unenriched user always carries Role: RoleUser and no AppAccess (see
-// LocalService.GetUser), so silently falling back to it would look
-// indistinguishable from "this user genuinely has no access" to callers like
-// AdminAccess/AppAccess — and resolveUser/refreshTokens would then cache that
-// wrong identity for the full TTL instead of retrying on the next request.
+// enrichUser upserts global.app_users and overlays role and app access. DB
+// errors are returned, not swallowed: the unenriched user looks like "no
+// access" and would be cached for the full TTL.
 func (service *LocalService) enrichUser(
 	ctx context.Context,
 	user models.User,
@@ -217,8 +203,6 @@ func (service *LocalService) refreshTokens(
 	return &enriched
 }
 
-// contextSetUser stores an already-resolved user on the request context and
-// tags the Sentry scope; enrichment happens earlier in resolveUser.
 func (service *LocalService) contextSetUser(
 	ctx context.Context,
 	user models.User,
@@ -245,11 +229,8 @@ func (service *LocalService) AdminAccess(next http.HandlerFunc) http.HandlerFunc
 	})
 }
 
-// AppAccess only ever guards ConnectRPC service handlers (see every
-// apps/*/routes.go call site), never an HTML page, so a denial responds with
-// a plain 403 rather than AdminAccess's redirect: a fetch()-based RPC client
-// follows a 30x transparently to "/" and fails opaquely instead of surfacing
-// a clean error.
+// AppAccess guards only ConnectRPC handlers, so it denies with a plain 403;
+// a redirect would be followed silently by fetch().
 func (service *LocalService) AppAccess(
 	appName string,
 	next http.HandlerFunc,

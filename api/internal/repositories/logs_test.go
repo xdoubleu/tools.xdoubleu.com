@@ -34,7 +34,6 @@ func TestLogsInsertAndQuery(t *testing.T) {
 	all, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "")
 	require.NoError(t, err)
 	require.Len(t, all, 2)
-	// Most recent first.
 	assert.Equal(t, "web oops", all[0].Message)
 
 	apiOnly, err := repo.Query(t.Context(), now.Add(-time.Hour), "api", "")

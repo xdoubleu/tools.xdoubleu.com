@@ -9,14 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// GetNotificationSettings and UpdateNotificationSettings let any
-// authenticated user see and toggle which sources (Sentry issues, failing
-// dependency PRs, unhealthy feeds) are currently allowed to email an admin,
-// via jobs.WeeklyDigestJob (issue #1214) — deliberately
-// not gated by requireAdmin like the rest of ObservabilityService, since the
-// unhealthy-feeds toggle is surfaced from the feeds app rather than
-// monitoring and shouldn't require admin access to reach (issue #1228),
-// mirroring dashboard.v1.DashboardService's own normal-Access carve-out.
+// GetNotificationSettings/UpdateNotificationSettings are not admin-gated: the
+// unhealthy-feeds toggle is surfaced from the feeds app. They control which
+// sources jobs.WeeklyDigestJob may email about.
 
 func (h *obsConnectHandler) GetNotificationSettings(
 	ctx context.Context,
@@ -29,8 +24,7 @@ func (h *obsConnectHandler) GetNotificationSettings(
 	return connect.NewResponse(resp), nil
 }
 
-// notificationSettings is shared by the Connect handler above and the
-// get_notification_settings MCP tool.
+// notificationSettings is shared by the Connect handler and MCP tool.
 func (h *obsConnectHandler) notificationSettings(
 	ctx context.Context,
 ) (*observabilityv1.GetNotificationSettingsResponse, error) {

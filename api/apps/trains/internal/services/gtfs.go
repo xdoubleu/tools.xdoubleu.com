@@ -15,28 +15,22 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// zipMagic is the local-file-header signature every real zip starts with.
-// The feed must be verified by these bytes, not by Content-Type: at least
-// one Belgian GTFS mirror answers 200 + "application/zip" with an HTML
-// domain-squat body (issue #1389).
+// zipMagic is the zip local-file-header signature. Verify by bytes, not
+// Content-Type: some mirrors serve HTML with "application/zip".
 //
 //nolint:gochecknoglobals //package-level constant byte slice
 var zipMagic = []byte{'P', 'K', 0x03, 0x04}
 
-// maxStopTimeSeconds bounds a stop_times value. GTFS legitimately allows
-// times past 24:00:00 for after-midnight service, but values up to 87:39:00
-// (3.6 days) were observed and are a publisher bug — rows beyond this are
-// rejected and counted rather than generating phantom connections (#1390).
+// maxStopTimeSeconds bounds stop_times values. Values past 24:00 are valid,
+// but multi-day ones are publisher bugs and are rejected.
 const maxStopTimeSeconds = 36 * 3600
 
 var errZipMagic = errors.New("trains: download is not a zip (bad magic bytes)")
 
-// gtfsPrefix is stripped from every stop_id to recover the bare UIC code.
 const gtfsPrefix = "gs:nmbssncb:"
 
-// parseFeed parses a GTFS static zip into a Feed. Rejected stop_times rows
-// are logged with a count; everything else is either parsed or fails the
-// whole import.
+// parseFeed parses a GTFS static zip. Bad stop_times rows are counted and
+// skipped; any other error fails the import.
 func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	if len(raw) < len(zipMagic) || !bytes.Equal(raw[:len(zipMagic)], zipMagic) {
 		return nil, errZipMagic
@@ -86,9 +80,8 @@ func parseFeed(logger *slog.Logger, raw []byte) (*models.Feed, error) {
 	return feed, nil
 }
 
-// rowReader iterates a GTFS csv file, resolving columns by header name —
-// this feed orders columns alphabetically, so positional parsing would
-// break silently (issue #1389).
+// rowReader resolves columns by header name; this feed orders them
+// alphabetically.
 type rowReader struct {
 	r   *csv.Reader
 	col map[string]int
@@ -136,11 +129,8 @@ func (rr *rowReader) getInt(rec []string, name string) int {
 	return n
 }
 
-// parseStops parses stops.txt. Each stop's stop_name is in primaryLang
-// (feed_info's feed_lang); translations fills in the other languages, and a
-// language it does not cover falls back to the primary stop_name. The
-// returned coverage reports how many stops each language actually got from
-// translations.txt (issue #1459).
+// parseStops parses stops.txt; stop_name is in primaryLang and translations
+// fill the other languages.
 func parseStops(
 	files map[string]*zip.File,
 	translations *stopTranslations,
@@ -209,29 +199,19 @@ func parseStops(
 	return out, coverage, nil
 }
 
-// stopTranslations holds translations.txt's stop_name rows, indexed by both
-// of the keys GTFS allows such a row to carry, and remembers which of those
-// keys a stop actually claimed so unmatched rows can be counted.
+// stopTranslations holds translations.txt stop_name rows by both allowed keys.
 type stopTranslations struct {
-	// byRecordID is keyed by record_id, byValue by field_value — the two
-	// mutually exclusive ways translations.txt identifies the row it
-	// translates. Each maps to a two-letter language code to the name.
+	// byRecordID/byValue map a record_id / field_value to language -> name.
 	byRecordID map[string]map[string]string
 	byValue    map[string]map[string]string
-	// used records the keys forStop matched, as "<index>\x00<key>".
+	// used records matched keys as "<index>\x00<key>".
 	used map[string]bool
-	// rows counts the usable stop_name rows read.
 	rows int
 }
 
-// forStop returns the translations for one stop, keyed by two-letter
-// language code, and marks the matching rows used. A stop is resolved
-// against, in precedence order: its full stop_id, its stop_id with the
-// gateway's gtfsPrefix stripped, and finally its primary stop_name. The
-// bare-id attempt is what covers a feed whose stops.txt the BMC gateway
-// rewrites with gtfsPrefix while leaving translations.txt keyed by the
-// unprefixed id; the stop_name attempt covers a feed that identifies rows
-// by field_value rather than record_id at all (issue #1459).
+// forStop returns one stop's translations by language and marks rows used.
+// Tries, in order: full stop_id, stop_id without gtfsPrefix (the gateway
+// prefixes stops.txt but not translations.txt), then stop_name (field_value).
 func (t *stopTranslations) forStop(stopID, name string) map[string]string {
 	candidates := []struct {
 		index string
@@ -253,8 +233,7 @@ func (t *stopTranslations) forStop(stopID, name string) map[string]string {
 			continue
 		}
 		t.used[c.index+"\x00"+c.key] = true
-		// An earlier candidate wins per language: an explicit record_id
-		// match is more specific than one made on the name's value.
+		// An earlier, more specific candidate wins per language.
 		for lang, translated := range names {
 			if _, taken := out[lang]; !taken {
 				out[lang] = translated
@@ -264,7 +243,6 @@ func (t *stopTranslations) forStop(stopID, name string) map[string]string {
 	return out
 }
 
-// unmatchedRows counts the rows whose identifying key no stop claimed.
 func (t *stopTranslations) unmatchedRows() int {
 	unmatched := 0
 	for index, from := range map[string]map[string]map[string]string{
@@ -280,9 +258,8 @@ func (t *stopTranslations) unmatchedRows() int {
 	return unmatched
 }
 
-// parseTranslations parses the optional translations.txt into an index of
-// its stop_name rows. Like transfers.txt, this file is optional in the feed
-// — a missing file yields an empty index rather than an error (issue #1450).
+// parseTranslations indexes the optional translations.txt stop_name rows;
+// a missing file yields an empty index.
 func parseTranslations(files map[string]*zip.File) (*stopTranslations, error) {
 	out := &stopTranslations{
 		byRecordID: map[string]map[string]string{},
@@ -314,9 +291,7 @@ func parseTranslations(files map[string]*zip.File) (*stopTranslations, error) {
 		if lang == "" || translation == "" {
 			continue
 		}
-		// record_id and field_value are mutually exclusive in GTFS, and
-		// record_id is the more specific of the two — prefer it when a
-		// publisher sets both anyway.
+		// record_id is more specific; prefer it if a publisher sets both.
 		index, key := out.byValue, rr.get(rec, "field_value")
 		if recordID := rr.get(rec, "record_id"); recordID != "" {
 			index, key = out.byRecordID, recordID
@@ -333,8 +308,7 @@ func parseTranslations(files map[string]*zip.File) (*stopTranslations, error) {
 	return out, nil
 }
 
-// normalizeLang maps a GTFS language tag ("nl", "fr-BE", "nld", ...) to the
-// two-letter code this app stores, or "" for anything else.
+// normalizeLang maps a GTFS language tag to a two-letter code, or "".
 func normalizeLang(v string) string {
 	v = strings.ToLower(v)
 	switch {
@@ -349,38 +323,22 @@ func normalizeLang(v string) string {
 	}
 }
 
-// displayNameLangs is the fixed set buildDisplayName considers, in output
-// order.
+// displayNameLangs is the language order buildDisplayName uses.
 //
 //nolint:gochecknoglobals //fixed language list, package-level by design
 var displayNameLangs = [3]string{"nl", "fr", "en"}
 
-// isSyntheticCombined reports whether a translations.txt value is itself an
-// NMBS-synthesized multi-language string rather than a genuine
-// single-language name. In practice, NMBS's own English row for a bilingual
-// station is almost always literally "{French name} / {Dutch name}" or an
-// abbreviated variant (e.g. "Brux.-/ Brus-Centr.", "Roeselare / Roulers"),
-// never a real distinct English name — so the row genuinely existing in
-// translations.txt is not, by itself, proof the value is safe to treat as a
-// distinct DisplayName part (issue #1656, still reproducing after #1659). A
-// real single-language Belgian station name never legitimately contains
-// "/", so its presence is used as the signal.
+// isSyntheticCombined reports whether a translation is an NMBS-synthesized
+// multi-language string (e.g. "Roeselare / Roulers"), not a real name. Real
+// Belgian station names never contain "/".
 func isSyntheticCombined(v string) bool {
 	return strings.Contains(v, "/")
 }
 
-// buildDisplayName joins every language's genuinely-known full name — a real
-// translations.txt row when one exists and isn't itself a synthetic
-// combined string (see isSyntheticCombined), plus the primary language's
-// own stop_name when it has none — deduped and " / "-joined. A non-primary
-// language with no usable translations.txt row is omitted entirely, never
-// filled with the primary's raw stop_name: that raw value is sometimes
-// itself an NMBS-abbreviated/combined bilingual string (e.g. "Brsls Centr /
-// Bxl Centr"), and treating it as a stand-in full name for another language
-// produced duplicate-looking labels (issue #1656). An explicit, non-synthetic
-// translation still wins over the raw stop_name even for the primary
-// language itself, matching NameNL/NameFR/NameEN's own fallback rule (issue
-// #1450).
+// buildDisplayName " / "-joins each language's genuine full name: a
+// non-synthetic translation, else the primary stop_name for the primary
+// language only. Languages without a usable translation are omitted, since
+// the raw stop_name is sometimes itself an abbreviated bilingual string.
 func buildDisplayName(primaryLang, name string, translated map[string]string) string {
 	primary := normalizeLang(primaryLang)
 	seen := make(map[string]bool, len(displayNameLangs))
@@ -550,10 +508,8 @@ func parseCalendarDates(
 	return out, nil
 }
 
-// parseTransfers parses transfers.txt. Unlike every other GTFS file this
-// one is optional in the feed — a missing file yields no rows rather than
-// an error, and the router falls back to a default minimum transfer time
-// at same-station changes (issue #1391).
+// parseTransfers parses the optional transfers.txt; a missing file yields no
+// rows and the router uses a default minimum transfer time.
 func parseTransfers(files map[string]*zip.File) ([]models.Transfer, error) {
 	rr, openErr := openRows(files, "transfers.txt")
 	if openErr != nil {
@@ -612,9 +568,8 @@ func parseFeedInfo(files map[string]*zip.File) (models.FeedInfo, error) {
 	return info, nil
 }
 
-// parseGTFSTime parses "H:MM:SS" (H may be >= 24, multi-digit) into seconds
-// since GTFS midnight. Returns ok=false for an unparseable value or one
-// beyond maxStopTimeSeconds.
+// parseGTFSTime parses "H:MM:SS" (H may be >= 24) into seconds; ok=false if
+// unparseable or beyond maxStopTimeSeconds.
 func parseGTFSTime(v string) (int, bool) {
 	parts := strings.Split(v, ":")
 	const hmsParts = 3
@@ -645,8 +600,7 @@ func parseGTFSDate(v string) (time.Time, bool) {
 	return t, true
 }
 
-// uicFromStopID recovers the bare 7-digit UIC from a feed stop_id such as
-// "gs:nmbssncb:S8814001" or "gs:nmbssncb:8814001_3".
+// uicFromStopID recovers the 7-digit UIC from e.g. "gs:nmbssncb:S8814001".
 func uicFromStopID(id string) string {
 	s := strings.TrimPrefix(id, gtfsPrefix)
 	s = strings.TrimPrefix(s, "S")

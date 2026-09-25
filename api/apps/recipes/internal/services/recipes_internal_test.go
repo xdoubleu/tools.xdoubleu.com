@@ -144,7 +144,6 @@ func TestRecipeUpdate_FamilyMemberKeepsOriginalOwner(t *testing.T) {
 	err := svc.Update(t.Context(), "editor", recipe)
 	require.NoError(t, err)
 	assert.True(t, store.updated)
-	// Recipes always remain attributed to their original creator.
 	assert.Equal(t, "owner", store.updatedOwner)
 }
 
@@ -247,8 +246,7 @@ func TestRecipeList_ScopesToUsersFamily(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Every RecipeService method resolves the caller's family before touching
-// the repo; a family-resolution failure must propagate.
+// A family-resolution failure must propagate from every method.
 func TestFamilyResolutionErrors_Propagate(t *testing.T) {
 	familyErr := errors.New("family error")
 	//nolint:exhaustruct //unset fields are the fixture defaults

@@ -30,10 +30,8 @@ type client struct {
 	http   *http.Client
 }
 
-// New returns the production Client. allowPrivate lets it reach
-// private/loopback addresses — true outside production only, since a
-// user-suppliable URL must never be able to reach the container's own network
-// (see [safedial]).
+// New returns the production Client. allowPrivate permits private/loopback
+// addresses and must be false in production (see [safedial]).
 func New(logger *slog.Logger, allowPrivate bool) Client {
 	return &client{
 		logger: logger,
@@ -109,8 +107,7 @@ func (c *client) Get(
 	return result, nil
 }
 
-// normalizeContentType strips parameters and lowercases the media type;
-// invalid headers degrade to the raw lowercased value's first segment.
+// normalizeContentType strips parameters and lowercases the media type.
 func normalizeContentType(header string) string {
 	if header == "" {
 		return ""

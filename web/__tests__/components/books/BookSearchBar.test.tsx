@@ -35,9 +35,6 @@ const LIBRARY_USER_BOOK = {
   book: { title: 'My Owned Book', authors: ['Author A'] }
 }
 
-// ---------------------------------------------------------------------------
-// Standalone mode (dashboard — no query/onChange props)
-// ---------------------------------------------------------------------------
 describe('BookSearchBar — standalone mode', () => {
   beforeEach(() => {
     mockSearchLibrary.mockReset()
@@ -143,10 +140,7 @@ describe('BookSearchBar — standalone mode', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Controlled mode (library page — query/onChange provided). No dropdown, no
-// OL fallback here — BooksLibrary owns result rendering (see its own tests).
-// ---------------------------------------------------------------------------
+// Controlled mode: no dropdown; BooksLibrary renders results.
 describe('BookSearchBar — controlled mode', () => {
   beforeEach(() => {
     mockSearchLibrary.mockReset()

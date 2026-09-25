@@ -1,7 +1,5 @@
-// Package oauthconn provides the shared "fetch a live token, refreshing
-// transparently" and CSRF-state plumbing used by every OAuth-connected
-// external provider (GitHub, Sentry). Provider-specific endpoints/scopes
-// live next to each provider's client instead of here.
+// Package oauthconn provides token refresh and CSRF-state plumbing shared by
+// every OAuth-connected provider.
 package oauthconn
 
 import (
@@ -14,8 +12,6 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// connectionStore is the subset of *repositories.OAuthConnectionsRepository
-// this package depends on, so tests can stub it without a database.
 type connectionStore interface {
 	Get(
 		ctx context.Context,
@@ -28,17 +24,14 @@ type connectionStore interface {
 	) error
 }
 
-// ErrNotConnected is returned by a TokenFunc when no admin has connected the
-// provider yet.
+// ErrNotConnected means no admin has connected the provider.
 var ErrNotConnected = errors.New("oauthconn: provider not connected")
 
-// TokenFunc returns a live bearer token for a request, refreshing it via the
-// provider's oauth2.Config when the stored token is expired.
+// TokenFunc returns a live bearer token, refreshing when expired.
 type TokenFunc func(ctx context.Context) (string, error)
 
-// NewTokenFunc builds a TokenFunc for provider: it reads the stored token,
-// lets oauth2.Config.TokenSource refresh it if needed, and persists the
-// rotated token back to repo so the refresh only happens once.
+// NewTokenFunc reads the stored token, refreshes via TokenSource if needed, and
+// persists the rotated token.
 func NewTokenFunc(
 	repo connectionStore, provider models.OAuthProvider, conf *oauth2.Config,
 ) TokenFunc {
@@ -54,12 +47,7 @@ func NewTokenFunc(
 			return "", err
 		}
 		if ScopesAreStale(conn, conf.Scopes) {
-			// The stored token was authorized before a scope conf now
-			// requires. A refresh grant can't add scopes Sentry/GitHub/DO
-			// didn't already grant, so this only clears once an admin
-			// re-authorizes via the existing Connect flow (oauth_admin.go),
-			// which overwrites the connection with a fresh, fully-scoped
-			// token.
+			// A refresh can't add scopes; only re-authorizing via Connect fixes this.
 			return "", ErrNotConnected
 		}
 
@@ -69,8 +57,7 @@ func NewTokenFunc(
 		}
 
 		if fresh.AccessToken != tok.AccessToken {
-			// Best-effort: a persistence hiccup shouldn't fail the caller when
-			// we already have a working token in hand.
+			// Best-effort: we already have a working token.
 			_ = repo.UpdateToken(ctx, provider, fresh)
 		}
 

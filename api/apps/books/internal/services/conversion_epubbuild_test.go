@@ -17,9 +17,8 @@ import (
 	xhtml "golang.org/x/net/html"
 )
 
-// writeArticleFixture writes index.html (plus any named image files) into a
-// fresh temp dir, mirroring buildArticleEPUB's real layout, and returns the
-// index.html path.
+// writeArticleFixture writes index.html plus images into a temp dir, like
+// buildArticleEPUB's layout, and returns the index.html path.
 func writeArticleFixture(
 	t *testing.T, body string, images map[string][]byte,
 ) string {
@@ -33,8 +32,6 @@ func writeArticleFixture(
 	return htmlPath
 }
 
-// convertToEPUBZip runs goHTMLConverter on inPath and opens the result as a
-// zip.Reader.
 func convertToEPUBZip(
 	t *testing.T, inPath string, meta ArticleMeta,
 ) *zip.Reader {
@@ -67,8 +64,6 @@ func zipEntryContent(t *testing.T, zr *zip.Reader, name string) string {
 	return ""
 }
 
-// newTestNode builds a minimal element node for exercising tree-mutation
-// helpers directly, without going through xhtml.Parse.
 func newTestNode(tag string, attrs []xhtml.Attribute) *xhtml.Node {
 	//nolint:exhaustruct // only Type/Data/Attr matter for these unit tests
 	return &xhtml.Node{
@@ -104,10 +99,7 @@ func TestGoHTMLConverter_ContainerPointsAtOPF(t *testing.T) {
 	assert.Contains(t, container, `full-path="OEBPS/content.opf"`)
 }
 
-// TestGoHTMLConverter_NavListsChapterHeadings reproduces issue #1698: the
-// generated nav.xhtml must list one TOC entry per <h1> in the article body,
-// each linking to that heading's own anchor, not just a single book-title
-// entry.
+// TestGoHTMLConverter_NavListsChapterHeadings: nav.xhtml has one entry per <h1>.
 func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body>"+
 		"<h1>Chapter One</h1><p>Body one.</p>"+
@@ -132,9 +124,8 @@ func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
 	assert.Contains(t, index, `id="heading-1"`)
 }
 
-// TestGoHTMLConverter_NavFallsBackWithNoHeadings verifies a document with no
-// <h1> at all (e.g. a short feed article) still gets a usable single-entry
-// TOC linking to the whole book, rather than an empty nav.
+// TestGoHTMLConverter_NavFallsBackWithNoHeadings: no <h1> still yields a
+// single whole-book entry.
 func TestGoHTMLConverter_NavFallsBackWithNoHeadings(t *testing.T) {
 	inPath := writeArticleFixture(
 		t, "<html><body><p>Just one short paragraph.</p></body></html>", nil,
@@ -174,12 +165,8 @@ func TestGoHTMLConverter_NoAuthorsOmitsCreator(t *testing.T) {
 	assert.NotContains(t, opf, "<dc:creator>")
 }
 
-// TestGoHTMLConverter_IdentifierIsMetaIdentifier covers issue #1734: the
-// EPUB's dc:identifier must come from the caller (the book's UUID) so two
-// conversions of the same book produce the same internal identity — the Kobo
-// firmware correlates a re-downloaded file with the book it already has by
-// this identifier, and a random per-conversion UUID made each regenerated
-// file look like a new book.
+// TestGoHTMLConverter_IdentifierIsMetaIdentifier: dc:identifier comes from the
+// caller so the Kobo firmware recognises a regenerated file as the same book.
 func TestGoHTMLConverter_IdentifierIsMetaIdentifier(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body><p>hi</p></body></html>", nil)
 	zr := convertToEPUBZip(t, inPath, ArticleMeta{

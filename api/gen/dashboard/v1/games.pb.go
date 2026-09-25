@@ -85,8 +85,7 @@ func (x *GetSharedSteamRequest) GetDateEnd() string {
 type GetSharedSteamResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Steam *v1.SteamResponse      `protobuf:"bytes,1,opt,name=steam,proto3" json:"steam,omitempty"`
-	// Most recent Steam library sync (max last_synced_at across the owner's
-	// games); empty when the library has never been synced.
+	// Latest Steam library sync; empty if never synced.
 	LastSyncedAt string `protobuf:"bytes,2,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
 	// The owner's public profile display name.
 	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`

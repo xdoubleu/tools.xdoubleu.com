@@ -24,7 +24,7 @@ type client struct {
 	lastSeen time.Time
 }
 
-// RateLimit is middleware used to rate limit requests by clients identified by IP.
+// RateLimit rate limits requests per client IP.
 func RateLimit(
 	rps rate.Limit,
 	bucketSize int,
@@ -89,10 +89,8 @@ func rateLimit(
 		if !clients[ip].limiter.Allow() {
 			mu.Unlock()
 
-			// ponytail: GET is only classified as a Connect request when a
-			// service opts into idempotency_level, which no proto in this repo
-			// does — restricting to POST keeps plain GET endpoints (health,
-			// version, oauth callback) on the REST error path.
+			// GET is only a Connect request with idempotency_level, which no proto sets,
+			// so plain GET endpoints stay on the REST error path.
 			if r.Method == http.MethodPost && errWriter.IsSupported(r) {
 				connectErr := connect.NewError(
 					connect.CodeResourceExhausted,

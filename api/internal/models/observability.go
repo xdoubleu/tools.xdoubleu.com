@@ -21,18 +21,14 @@ type JobStats struct {
 	LastRunAt     time.Time
 }
 
-// UsageEntry is one (day, app, endpoint) request counter, with the response
-// bytes those requests served.
+// UsageEntry is one (day, app, endpoint) request counter with bytes served.
 type UsageEntry struct {
 	Day      time.Time
 	App      string
 	Endpoint string
 	Count    int64
-	// Bytes is the total response body size served for this counter. It
-	// measures what left the api, which is a proxy for what the api pulled
-	// out of Postgres, not a direct measure of database egress — for
-	// passthrough list endpoints the two track closely, which is the case
-	// that matters (issue #1027).
+	// Bytes is response bytes served, a proxy for (not a measure of) database
+	// egress.
 	Bytes int64
 }
 
@@ -53,15 +49,10 @@ type StorageSnapshot struct {
 	StaleUploadSizeBytes int64
 	StaleUploadCount     int64
 	PrefixBreakdown      []PrefixStat
-	// OrphanKeys is a capped sample of the orphaned object keys — see
-	// maxOrphanKeys in apps/books/internal/jobs/storage_scan.go. OrphanCount
-	// tallies every orphan found even when this list is truncated.
+	// OrphanKeys is a capped sample (see maxOrphanKeys); OrphanCount counts all.
 	OrphanKeys []string
-	// DeletedOrphanSizeBytes/DeletedOrphanCount cover orphans this same scan
-	// actually deleted (past orphanGracePeriod, so an object whose book_files
-	// row hasn't committed yet during an in-flight upload is never wrongly
-	// removed) — a subset of OrphanSizeBytes/OrphanCount, which still counts
-	// every orphan seen regardless of age or delete outcome.
+	// DeletedOrphanSizeBytes/DeletedOrphanCount are the orphans this scan deleted
+	// (older than orphanGracePeriod), a subset of OrphanSizeBytes/OrphanCount.
 	DeletedOrphanSizeBytes int64
 	DeletedOrphanCount     int64
 }
@@ -73,23 +64,18 @@ type SchemaStats struct {
 	TableCount int64
 }
 
-// LogEntry is one application log line forwarded from api (in-process) or
-// web (HTTP ingest) into global.log_entries.
+// LogEntry is a log line from api or web stored in global.log_entries.
 type LogEntry struct {
 	OccurredAt time.Time
 	Source     string // "api" | "web"
 	Level      string
 	Message    string
-	// AttrsJSON is the log record's structured attributes, stored as opaque
-	// JSON — nil when there were none.
+	// AttrsJSON is the record's attributes as JSON; nil when there were none.
 	AttrsJSON []byte
 }
 
-// AutomatedAction is one run of a self-healing routine that executes
-// outside api's own process, so — unlike JobRun, which TrackedJob records
-// automatically — the routine itself opens this row as its first step and
-// closes it as its last. FinishedAt/Outcome/PRURL/Error are all zero/empty
-// while the run is still open.
+// AutomatedAction is one run of an out-of-process self-healing routine, which
+// opens and closes the row itself. Finish fields are empty while open.
 type AutomatedAction struct {
 	ID            int64
 	FiredAt       time.Time
@@ -102,10 +88,8 @@ type AutomatedAction struct {
 	Error   string
 }
 
-// TransactionTrend flags a transaction (API endpoint or frontend page)
-// whose p95 duration is regressing: PriorAvgP95Ms/RecentAvgP95Ms average
-// global.transaction_latency_daily rows over two adjacent windows, and
-// PctChange is the increase from the former to the latter.
+// TransactionTrend flags a transaction whose p95 regressed between two
+// adjacent windows of global.transaction_latency_daily.
 type TransactionTrend struct {
 	Transaction    string
 	Project        string

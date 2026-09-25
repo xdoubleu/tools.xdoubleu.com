@@ -11,13 +11,11 @@ import (
 	"tools.xdoubleu.com/internal/oauth2as"
 )
 
-// oauth2asWiring bundles the embedded OAuth 2.1 / OpenID Connect authorization
-// server (issues #1039, #1469) constructed in NewApplication.
+// oauth2asWiring bundles the embedded OAuth 2.1 / OIDC authorization server.
 type oauth2asWiring struct {
 	store    *oauth2as.Store
 	provider fosite.OAuth2Provider
-	// oidcKey signs OIDC ID tokens; its public half is served at
-	// oauth2JWKSPath and its key id is stamped into every ID token header.
+	// oidcKey signs ID tokens; its public half is served at oauth2JWKSPath.
 	oidcKey *rsa.PrivateKey
 }
 
@@ -37,11 +35,9 @@ const (
 	openIDConfigurationPath = "/.well-known/openid-configuration"
 )
 
-// oauth2SessionUserResolver reads the accessToken cookie and resolves it —
-// with the DB-managed role and display name overlaid (the GetCurrentUser
-// two-layer pattern) — for oauth2as.AuthorizeHandler to re-verify the session
-// server-side (defense in depth) and to build the OIDC ID-token claims once
-// the web consent page has confirmed consent=allow.
+// oauth2SessionUserResolver resolves the accessToken cookie, with DB role and
+// display name overlaid, for AuthorizeHandler to re-verify the session and
+// build ID-token claims.
 func (app *Application) oauth2SessionUserResolver() oauth2as.SessionUserResolver {
 	return func(r *http.Request) (oauth2as.ResolvedUser, bool) {
 		cookie, err := r.Cookie("accessToken")
@@ -60,8 +56,7 @@ func (app *Application) oauth2SessionUserResolver() oauth2as.SessionUserResolver
 			IsAdmin:     user.Role == models.RoleAdmin,
 		}
 
-		// Prefer the DB role/display-name/email; the bare auth-schema user
-		// always resolves to RoleUser with no display name (api/AGENTS.md).
+		// The bare auth-schema user always has RoleUser and no display name.
 		if dbUser, dbErr := app.appUsersRepo.GetByID(r.Context(), user.ID); dbErr == nil {
 			resolved.Email = dbUser.Email
 			resolved.DisplayName = dbUser.DisplayName
@@ -72,9 +67,8 @@ func (app *Application) oauth2SessionUserResolver() oauth2as.SessionUserResolver
 	}
 }
 
-// oauth2MetadataHandler hand-rolls the RFC 8414 authorization-server metadata
-// document (also served at openIDConfigurationPath as OIDC discovery) — see
-// the AUTH_ISSUER config doc comment for why this api itself is the issuer.
+// oauth2MetadataHandler serves the RFC 8414 metadata (also the OIDC discovery
+// document).
 func (app *Application) oauth2MetadataHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, _ *http.Request) {
 		issuer := app.config.AuthIssuer
@@ -90,9 +84,8 @@ func (app *Application) oauth2MetadataHandler() http.HandlerFunc {
 				"authorization_code",
 				"refresh_token",
 			},
-			// Dynamically-registered (MCP) clients only ever get
-			// offline_access; the openid/profile/email scopes are reserved
-			// for the static Grafana SSO client (issue #1469).
+			// Dynamic (MCP) clients only get offline_access; the OIDC scopes are for the
+			// static Grafana SSO client.
 			"scopes_supported":                      oauth2as.SupportedScopes,
 			"subject_types_supported":               []string{"public"},
 			"id_token_signing_alg_values_supported": []string{"RS256"},

@@ -12,8 +12,7 @@ type Subscriber interface {
 	OnEventCallback(event any)
 }
 
-// EventQueue is used to divide [Subscriber]s between [Worker]s.
-// This prevents one [Worker] of being very busy.
+// EventQueue spreads [Subscriber]s across [Worker]s.
 type EventQueue struct {
 	workerPool    WorkerPool
 	subscribers   []Subscriber
@@ -65,7 +64,6 @@ func (q *EventQueue) RemoveSubscriber(sub Subscriber) {
 		break
 	}
 
-	// delete subscriber
 	q.subscribers[i] = q.subscribers[len(q.subscribers)-1]
 	q.subscribers = q.subscribers[:len(q.subscribers)-1]
 }

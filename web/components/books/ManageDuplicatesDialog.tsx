@@ -19,10 +19,6 @@ import {
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
 import { swrKeys } from '@/lib/swrKeys'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function reasonLabel(reason: string): string {
   switch (reason) {
     case 'isbn13':
@@ -33,10 +29,6 @@ function reasonLabel(reason: string): string {
       return reason
   }
 }
-
-// ---------------------------------------------------------------------------
-// DuplicateGroupCard
-// ---------------------------------------------------------------------------
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup
@@ -104,10 +96,6 @@ function DuplicateGroupCard({
   )
 }
 
-// ---------------------------------------------------------------------------
-// ManageDuplicatesDialog
-// ---------------------------------------------------------------------------
-
 interface ManageDuplicatesDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -120,20 +108,16 @@ export default function ManageDuplicatesDialog({
   const { data, isLoading, mutate: mutateDupes } = useFindDuplicates()
   const mergeBooks = useMergeBooks()
 
-  // winnerIds[groupKey] = selected winner bookId for that group.
   const [winnerIds, setWinnerIds] = useState<Record<string, string>>({})
-  // fieldChoices[groupKey][field] = bookId of the chosen entry for that field.
   const [fieldChoices, setFieldChoices] = useState<
     Record<string, Partial<Record<BookConflictField, string>>>
   >({})
-  // mergingKey tracks which group (by key) is currently merging.
   const [mergingKey, setMergingKey] = useState<string | null>(null)
   const [mergeAllBusy, setMergeAllBusy] = useState(false)
   const [error, setError] = useState('')
 
   const groups = data?.groups ?? []
 
-  // A stable group key is the winner candidate's bookId.
   function groupKey(g: DuplicateGroup): string {
     return g.entries[0]?.bookId ?? ''
   }
@@ -147,9 +131,8 @@ export default function ManageDuplicatesDialog({
     const winner = getWinnerId(g)
     const stored = fieldChoices[key] ?? {}
 
-    // Default each conflicting field to the current winner's bookId, except
-    // 'status' which defaults to the auto-consolidation winner (custom shelf
-    // beats built-in statuses, mirroring the backend rule).
+    // Fields default to the winner; status defaults to the auto-consolidation
+    // pick (custom shelf beats built-ins).
     const autoStatusBookId = pickAutoStatusBookId(g)
     const defaults: Partial<Record<BookConflictField, string>> = {}
     for (const { field } of detectConflicts(g)) {
@@ -212,9 +195,7 @@ export default function ManageDuplicatesDialog({
   function handleWinnerChange(g: DuplicateGroup, id: string) {
     const key = groupKey(g)
     setWinnerIds((prev) => ({ ...prev, [key]: id }))
-    // Re-default catalog field choices to the new winner (user can override).
-    // The 'status' field stays at pickAutoStatusBookId — it is independent of
-    // which entry is kept as the winner.
+    // Catalog fields follow the new winner; status stays independent.
     const autoStatusBookId = pickAutoStatusBookId(g)
     setFieldChoices((prev) => {
       const existing = prev[key] ?? {}

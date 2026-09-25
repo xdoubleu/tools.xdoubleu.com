@@ -5,127 +5,77 @@ description: Turn a rough feature idea into a refined parent (epic) GitHub issue
 
 # Refine Feature
 
-Takes one rough feature description and leaves behind a parent issue plus its
-sub-issues, each shippable on its own via `start-task`/`finish-task`. Produces
-**no code** — the deliverable is the issue tree.
+Turn one rough feature description into a parent issue plus sub-issues, each
+shippable via `start-task`/`finish-task`. **No code** — the deliverable is the
+issue tree.
 
-This layers a decomposition step on top of the generic `refine-issue` skill
-(from the `github-issue-triage` plugin, `xdoubleu/skills`
-marketplace). `refine-issue` still owns repo/board config, the label lists,
-and the P0/P1/P2 rule via `.claude/github-triage.config.json` — never redefine
-any of that here. Use it for every individual issue this skill creates.
+Use `refine-issue` for every issue created; it owns repo/board config, labels,
+and the P0/P1/P2 rule via `.claude/github-triage.config.json`. Never redefine
+those here.
 
-## 1. Ground it before writing anything
+## 1. Ground it first
 
-Refining from the feature description alone produces plausible-sounding
-issues that don't survive contact with the code. Before drafting:
+- **Search for duplicates** (`search_issues` + a `list_issues` scan). An
+  existing open issue is a parent candidate, not a reason to stop.
+- **Read the code it lands in:** which `api/apps/*` app (or a new one), which
+  `web/app/*` route, what it extends. Name real files and packages.
+- **Verify every external dependency** (auth, licensing, coverage, rate
+  limits) via a subagent that returns only the distilled answer. Mark
+  anything unverified as such in the issue body and give it its own spike
+  sub-issue.
 
-- **Search for duplicates** — `search_issues` plus a `list_issues` scan.
-  An existing open issue is a parent candidate, not a reason to stop.
-- **Read the code the feature lands in.** Which app under `api/apps/*`, or
-  is it a new one? Which `web/app/*` route? What already exists that this
-  extends? Name real files and packages in the issues.
-- **Verify every external dependency.** If the feature is built on a
-  third-party API, confirm what it actually returns — auth, licensing,
-  realtime coverage, rate limits — rather than assuming. Delegate this to
-  a subagent (root `CLAUDE.md`, "Delegating to Subagents"): it's noisy
-  fetching whose distilled answer is all that belongs in the issues.
-  Mark anything unverified as unverified **in the issue body**, and give it
-  its own spike sub-issue rather than burying the risk in a design section.
+## 2. Grill the user
 
-## 2. Put the real decisions to the user
+Run the `grilling` skill, round by round — unconditional. Ask only choices
+that change the issue set (naming of a new app/schema, domain scope,
+build-vs-adopt, first-cut slices). Decide the rest yourself and record it in
+the parent's `## Decisions`.
 
-A refinement that silently picks for the user is the failure mode here. Run
-the `grilling` skill to work the decision tree round-by-round — this is
-unconditional (root `CLAUDE.md`, "Always grill the scope before an issue is
-treated as refined") and replaces any lighter one-shot confirmation. Put to
-the user only choices that change the issue set — naming of a new app/schema,
-how much of a domain is in scope, build-vs-adopt for a dependency, whether a
-slice is in the first cut. Anything a careful reader of the codebase would
-answer the same way, decide yourself and record it in the parent's
-`## Decisions` section so it can be argued with later.
+For feature-track work this is the **only** pre-merge human checkpoint —
+every PR under a feature epic auto-merges unreviewed
+([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)).
+Be exhaustive; an unresolved choice ships as whatever the implementer assumed.
 
-**For feature-track work (the `feature` label, see step 5), this grilling
-round is the *only* pre-merge checkpoint the user gets.** Every PR that
-lands under a feature epic auto-merges without further human review
-([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)) —
-there is no reviewer downstream to catch a decision that was glossed over
-here. Run the interview accordingly: genuinely exhaustive, not a formality
-to get past before writing issues. A choice left unresolved at this step
-doesn't get a second look later; it ships as whatever the sub-issue's
-implementer happened to assume.
+## 3. Write the parent
 
-## 3. Write the parent issue
-
-Match the house style of a refined issue here (see #1380 for the shape):
-`## Context`, `## Decisions`, `## Scope` / `## Not this`, and a sub-issue map
-listing each child with its one-line purpose and its ordering constraints.
-The parent carries the design rationale; sub-issues carry the work. State
-what is deliberately excluded — "not this" is what stops scope creep at
-implementation time.
+Sections: `## Context`, `## Decisions`, `## Scope` / `## Not this`, and a
+sub-issue map (each child's one-line purpose and ordering constraints). The
+parent carries rationale; sub-issues carry work.
 
 ## 4. Slice sub-issues vertically
 
-- **Each sub-issue is one PR** a session can take end-to-end through
-  `start-task`/`finish-task`, and merges on its own without waiting for its
-  siblings. If it can't merge alone, it's not a slice — fold it into its
+- **One sub-issue = one PR** that merges alone. If it can't, fold it into its
   dependency.
-- **Slice by user-visible capability, not by layer.** "Proto + repository +
-  service + page for X" is a slice; "add all the database tables" is not —
-  a layer-only issue can't be verified and blocks everything behind it.
-  Foundational work that genuinely has no user-facing half (a client
-  package, a schema) is allowed, but only when a later slice consumes it
-  and the parent says which one.
-- **Size against `finish-task`'s manual-review threshold** (~150–200 changed
-  lines / 8 files). Consistently exceeding it means the slices are too big.
-- **The first slice must be usable on its own** — the thinnest version of the
-  feature the user could actually open in the browser, not scaffolding.
-- Order them, and say in each body which sub-issue it depends on.
-- **A sub-issue that ends in a step only the user can do** (registering with
-  a third-party service, generating an API key, creating a webhook, setting
-  a deploy secret via the `wizard` skill) should say so explicitly under its
-  own `## Follow-up: your turn` heading, not folded into prose under
-  `## Scope`. `finish-task` looks for that exact heading to land the issue
-  in the board's "Needs you" status instead of closing it straight to
-  "Done" once its PR merges — freeform prose doesn't trigger it. This is a
-  pointer, not a new mandatory step: most sub-issues have no deferred step
-  at all, and this only applies to the ones that do. (The same heading
-  applies to any issue `refine-issue` refines directly, not only sub-issues
-  produced here.)
+- **Slice by user-visible capability, not layer.** Foundational work with no
+  user-facing half (a client package, a schema) is allowed only when the
+  parent names the later slice that consumes it.
+- **Size** against `finish-task`'s manual-review threshold (~150–200 changed
+  lines / 8 files).
+- **The first slice is usable on its own** in the browser, not scaffolding.
+- Order them; each body names its dependency.
+- A sub-issue ending in a user-only step (third-party registration, API key,
+  webhook, deploy secret) states it under an exact `## Follow-up: your turn`
+  heading — `finish-task` keys on it to move the issue to "Needs you".
 
 ## 5. Wire up the tree
 
-Create the parent first, then each child with `parent_issue_number` set (or
-attach afterwards with `sub_issue_write`). Run every issue through
-`refine-issue` for labels/Priority/Status so nothing lands off the board.
-
-**Apply the `feature` label to the parent and to every sub-issue this skill
-produces.** This is what `finish-task` reads back to pick the no-review,
-auto-merging pipeline over the maintenance track's tiered rule
-([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md))
-— a sub-issue that's missing the label falls through to the maintenance
-track by default, which is the wrong pipeline for feature work, not a safe
-fallback. Add it alongside whatever labels `refine-issue` assigns; it never
-substitutes for `refine-issue`'s own label/Priority/Status pass.
-
-Note the known limitation from root `CLAUDE.md` (issue #1357): this board is
-a **personal** project, so `list_issue_fields`/`field_filters` don't resolve
-its fields. Board columns are read via `get_project_issues_by_status`; if no
-tool in this session can *write* the board fields, say so plainly and leave
-the user the one manual step, rather than reporting the issues as fully
-triaged.
-
-**Note:** this skill's job ends at the issue tree. `finish-task` — not
-`refine-feature` — is what posts the end-of-epic Slack summary, once every
-sub-issue under a feature epic has merged. Don't add a Slack step here; the
-two skills would drift on whose job it is.
+- Create the parent, then each child with `parent_issue_number` (or attach
+  via `sub_issue_write`). Run every issue through `refine-issue` for
+  labels/Priority/Status.
+- **Add the `feature` label to the parent and every sub-issue**, alongside
+  `refine-issue`'s labels. Without it `finish-task` falls through to the
+  maintenance track.
+- The board is a personal project, so `list_issue_fields`/`field_filters`
+  don't resolve its fields; read columns via `get_project_issues_by_status`.
+  If nothing can write board fields, tell the user the manual step instead of
+  reporting the issues as triaged.
+- No Slack step — `finish-task` posts the epic summary.
 
 ## 6. Close the loop
 
-- If the feature adds an app, a package, a Make/npm target, or a shared
-  service, root `CLAUDE.md`'s "Docs Impact" rule applies — give it a slice
-  (or fold it into the slice that introduces it), don't leave it implicit.
-- Report the tree to the user as a short ordered list with numbers and
-  titles, plus anything still unresolved.
-- **Stop there.** Refinement ends at the issue tree; implementing a slice is
-  a separate task that starts with `start-task`.
+- A feature adding an app, package, Make/npm target, or shared service
+  triggers `AGENTS.md`'s "Docs Impact" rule — give it a slice or fold it into
+  one.
+- Report the tree as a short ordered list (numbers + titles) plus anything
+  unresolved.
+- **Stop.** Implementation starts separately with `start-task`.

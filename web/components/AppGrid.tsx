@@ -9,11 +9,7 @@ export interface AppLink {
   href: string
   description: string
   accessKey?: string
-  /**
-   * When set, the card is a plain anchor rather than a Next `<Link>` — for
-   * targets served by another container on the shared domain (e.g. `/grafana`),
-   * which Next's client-side navigation and prefetch can't handle.
-   */
+  /** Plain anchor instead of `<Link>`, for targets served by another container (e.g. `/grafana`). */
   external?: boolean
 }
 

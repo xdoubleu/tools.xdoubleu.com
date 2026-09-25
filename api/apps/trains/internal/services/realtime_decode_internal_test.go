@@ -31,8 +31,7 @@ func newFeedMessage(entities ...*gtfs.FeedEntity) *gtfs.FeedMessage {
 	}
 }
 
-// TestDecodeTripUpdates_FullCancellation covers the trip-level CANCELED
-// case from issue #1393's table — the whole trip is off, not just one stop.
+// TestDecodeTripUpdates_FullCancellation covers trip-level CANCELED.
 func TestDecodeTripUpdates_FullCancellation(t *testing.T) {
 	//nolint:exhaustruct //only the fields under test are set
 	msg := newFeedMessage(&gtfs.FeedEntity{
@@ -51,8 +50,7 @@ func TestDecodeTripUpdates_FullCancellation(t *testing.T) {
 	assert.Equal(t, models.DelayCancelled, trips["trip-1"].State)
 }
 
-// TestDecodeTripUpdates_PartialCancellation covers a stop-level SKIPPED
-// call on an otherwise-SCHEDULED trip — the trip itself still runs.
+// TestDecodeTripUpdates_PartialCancellation covers stop-level SKIPPED.
 func TestDecodeTripUpdates_PartialCancellation(t *testing.T) {
 	//nolint:exhaustruct //only the fields under test are set
 	msg := newFeedMessage(&gtfs.FeedEntity{
@@ -77,9 +75,7 @@ func TestDecodeTripUpdates_PartialCancellation(t *testing.T) {
 	assert.Equal(t, models.DelaySkipped, trip.StopCalls[0].State)
 }
 
-// TestDecodeTripUpdates_NoData covers the common case (issue #1393: 68% of
-// calls in one sample) — no live information, which must never read as
-// on-time.
+// TestDecodeTripUpdates_NoData: no live data must never read as on-time.
 func TestDecodeTripUpdates_NoData(t *testing.T) {
 	//nolint:exhaustruct //only the fields under test are set
 	msg := newFeedMessage(&gtfs.FeedEntity{
@@ -176,9 +172,7 @@ func TestDecodeTripUpdates_MalformedBody(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestDecodeTripUpdates_ScheduledWithNoEvents covers a SCHEDULED (the
-// default, unset value) stop-time update carrying neither an arrival nor a
-// departure event at all — as distinct from NO_DATA, which is explicit.
+// TestDecodeTripUpdates_ScheduledWithNoEvents covers SCHEDULED with no events.
 func TestDecodeTripUpdates_ScheduledWithNoEvents(t *testing.T) {
 	//nolint:exhaustruct //only the fields under test are set
 	msg := newFeedMessage(&gtfs.FeedEntity{

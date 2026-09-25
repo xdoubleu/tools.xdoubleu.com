@@ -28,18 +28,15 @@ const PAGE_SIZE = 20
 
 function applyFilters(books: UserBook[], filters: LibraryFilters): UserBook[] {
   return books.filter((ub) => {
-    // Ownership: book must have at least one of the selected ownership tags.
     if (
       filters.ownership.size > 0 &&
       ![...filters.ownership].some((tag) => ub.tags.includes(tag))
     ) {
       return false
     }
-    // Format: book must have at least one of the selected formats.
     if (filters.format.size > 0 && ![...filters.format].some((fmt) => ub.formats.includes(fmt))) {
       return false
     }
-    // Kobo: book must have the kobo-sync tag.
     if (filters.kobo.size > 0 && !ub.tags.includes('kobo-sync')) {
       return false
     }
@@ -58,14 +55,13 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
   const [sort, setSort] = useState<SortState>({ key: 'added', dir: null })
   const [page, setPage] = useState(1)
 
-  // Persisted column visibility — stored as an array for JSON serialisation.
+  // Stored as an array for JSON.
   const [visibleColumnKeys, setVisibleColumnKeys] = useLocalStorage<ColumnKey[]>(
     'backlog:library:columns',
     DEFAULT_VISIBLE_COLUMNS
   )
   const visibleColumns = useMemo(() => new Set(visibleColumnKeys), [visibleColumnKeys])
 
-  // Persisted filter selections.
   const [ownershipFilterKeys, setOwnershipFilterKeys] = useLocalStorage<string[]>(
     'backlog:library:filter:ownership',
     []
@@ -149,7 +145,6 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
     setPage(1)
   }
 
-  // Only render columns that are explicitly visible (alwaysVisible bypasses the set).
   const activeColumns = useMemo(
     () => ALL_COLUMNS.filter((col) => col.alwaysVisible || visibleColumns.has(col.key)),
     [visibleColumns]

@@ -13,19 +13,16 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// SavedCommutesRepository is the DB access layer for trains.saved_commutes
-// (issue #1396). Every method is scoped by user_id — a caller only ever
-// touches their own rows.
+// SavedCommutesRepository accesses trains.saved_commutes; every method is
+// scoped by user_id.
 type SavedCommutesRepository struct {
 	db postgres.DB
 }
 
 const uniqueViolationCode = "23505"
 
-// savedCommuteColumns joins each stored stop id to its station row so the
-// list already carries display names for the /trains UI. A station whose
-// stop the feed no longer contains (renumbered UIC) yields empty names
-// rather than dropping the row.
+// savedCommuteSelect joins stored stop ids to station names; a stop no longer
+// in the feed yields empty names rather than dropping the row.
 const savedCommuteSelect = `
 	SELECT sc.id, sc.user_id, sc.label, sc.origin_stop_id, sc.destination_stop_id,
 	       sc.position, sc.created_at, sc.updated_at,
@@ -52,8 +49,7 @@ func scanSavedCommute(row pgx.Row) (models.SavedCommute, error) {
 	return sc, err
 }
 
-// ListByUser returns the user's saved commutes ordered by position then
-// creation time.
+// ListByUser returns the user's saved commutes by position, then creation.
 func (r *SavedCommutesRepository) ListByUser(
 	ctx context.Context, userID string,
 ) ([]models.SavedCommute, error) {
@@ -80,9 +76,8 @@ func (r *SavedCommutesRepository) ListByUser(
 	return out, rows.Err()
 }
 
-// Create inserts a new saved commute at the end of the user's list
-// (position = current max + 1). A duplicate (user, origin, destination)
-// pair returns database.ErrResourceConflict.
+// Create appends a saved commute; a duplicate pair returns
+// database.ErrResourceConflict.
 func (r *SavedCommutesRepository) Create(
 	ctx context.Context, sc models.SavedCommute,
 ) (models.SavedCommute, error) {
@@ -108,8 +103,8 @@ func (r *SavedCommutesRepository) Create(
 	return r.getByID(ctx, id, sc.UserID)
 }
 
-// Update changes a saved commute's label and position. A row not owned by
-// userID returns database.ErrResourceNotFound.
+// Update changes label and position; returns database.ErrResourceNotFound if
+// not owned by userID.
 func (r *SavedCommutesRepository) Update(
 	ctx context.Context, sc models.SavedCommute,
 ) (models.SavedCommute, error) {
@@ -129,8 +124,8 @@ func (r *SavedCommutesRepository) Update(
 	return r.getByID(ctx, sc.ID, sc.UserID)
 }
 
-// Delete removes a saved commute owned by userID. A missing or
-// not-owned row returns database.ErrResourceNotFound.
+// Delete removes a commute; returns database.ErrResourceNotFound if missing
+// or not owned.
 func (r *SavedCommutesRepository) Delete(
 	ctx context.Context, id uuid.UUID, userID string,
 ) error {

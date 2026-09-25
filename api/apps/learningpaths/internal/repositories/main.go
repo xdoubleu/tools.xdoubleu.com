@@ -10,8 +10,8 @@ type Repositories struct {
 	OAuthConnections *OAuthConnectionsRepository
 }
 
-// New wires this app's repositories. sealer encrypts/decrypts stored Todoist
-// tokens (issue #1475) — nil in tests that never exercise OAuthConnections.
+// New wires this app's repositories. sealer encrypts Todoist tokens; nil in
+// tests that don't use OAuthConnections.
 func New(db postgres.DB, sealer *crypto.Sealer) *Repositories {
 	return &Repositories{
 		LearningPaths:    &LearningPathsRepository{db: db},

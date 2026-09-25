@@ -196,8 +196,7 @@ func TestAutomatedActionsCloseStaleQueryError(t *testing.T) {
 	clearAutomatedActions(t)
 	repo := repositories.NewAutomatedActionsRepository(testDB)
 
-	// A cancelled context surfaces as a query error from the pool, the
-	// only error branch of CloseStale no valid SQL can reach.
+	// A cancelled context is the only way to hit CloseStale's query error.
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 

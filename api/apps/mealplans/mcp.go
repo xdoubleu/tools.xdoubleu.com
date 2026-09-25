@@ -25,8 +25,8 @@ type mcpSuggestArgs struct {
 	MealSlot string `json:"meal_slot" jsonschema:"slot (breakfast|noon|evening)"`
 }
 
-// RegisterMCPTools exposes the mealplans app's read-only RPCs on the combined
-// apps MCP server. Every tool returns plans in the calling user's family.
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
+// the caller's family.
 func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
 	h := &mealplansConnectHandler{app: a}
 
@@ -39,9 +39,8 @@ func (a *MealPlans) RegisterMCPTools(srv *mcp.Server) {
 		"Recipe suggestions for a given plan slot.", h.mcpSuggestRecipes)
 }
 
-// mcpListPlans lists the user's plans directly through the service layer, so it
-// never triggers the default-plan creation the ListPlans RPC does on an empty
-// account — keeping the tool strictly read-only.
+// mcpListPlans lists plans via the service layer, avoiding the ListPlans
+// RPC's default-plan creation so the tool stays read-only.
 func (h *mealplansConnectHandler) mcpListPlans(
 	ctx context.Context, _ mcptools.NoArgs,
 ) (proto.Message, error) {

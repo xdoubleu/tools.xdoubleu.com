@@ -8,8 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Subscriber is used to receive messages
-// from a [Topic] and managed the [websocket.Conn].
+// Subscriber receives messages from a [Topic] over a [websocket.Conn].
 type Subscriber struct {
 	id    string
 	ctx   context.Context
@@ -32,10 +31,8 @@ func (sub Subscriber) ID() string {
 	return sub.id
 }
 
-// OnEventCallback is called when a
-// new event is pushed to [Subscriber].
-// If the connection would be closed,
-// [UnSubscribe] will be called.
+// OnEventCallback writes an event to the subscriber, unsubscribing it if the
+// connection is closed.
 func (sub Subscriber) OnEventCallback(event any) {
 	err := wsjson.Write(sub.ctx, sub.conn, event)
 	if err == nil {

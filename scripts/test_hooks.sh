@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# Exercises the branching hooks in .claude/settings.json against synthetic
-# payloads/repos, so a regression fails loudly instead of staying silent.
-# Invoked via `make hooks/test` — see root Makefile.
+# Exercises the hooks in .claude/settings.json against synthetic repos.
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETTINGS="$ROOT_DIR/.claude/settings.json"
-# The Stop hook command in settings.json is a $CLAUDE_PROJECT_DIR-relative
-# script path (see .claude/hooks/stop-check-unshipped-work.sh); the real
-# harness sets this env var, so the test harness must too.
+# The Stop hook path is $CLAUDE_PROJECT_DIR-relative, as in the real harness.
 export CLAUDE_PROJECT_DIR="$ROOT_DIR"
 
 fail_count=0
@@ -74,9 +70,7 @@ EOF
   chmod +x "$STUB_DIR/gh"
 }
 
-# stubs for the no-gh REST-API fallback path -- kept in their own dir
-# (never merged into STUB_DIR, which accumulates a `gh` stub from earlier
-# cases) so the "no gh on PATH" scenario stays genuinely gh-less
+# Kept separate from STUB_DIR (which gains a `gh` stub) so it stays gh-less.
 NOGH_STUB_DIR="$WORK/nogh-stub-bin"
 mkdir -p "$NOGH_STUB_DIR"
 
@@ -92,9 +86,7 @@ EOF
   chmod +x "$NOGH_STUB_DIR/curl"
 }
 
-# a repo-local git credential helper standing in for whatever helper a real
-# session (gh's own, osxkeychain, a cloud session's) already has configured
-# so `git credential fill` can resolve to it
+# Stands in for a real session's git credential helper.
 credential_stub() {
   local repo="$1"
   cat > "$NOGH_STUB_DIR/git-credential-stub" <<'EOF'
@@ -108,8 +100,7 @@ EOF
   git -C "$repo" config credential.helper "$NOGH_STUB_DIR/git-credential-stub"
 }
 
-# a PATH with real git/jq/etc. (needed for `git credential fill` and JSON
-# parsing to actually work) but no `gh`, simulating a cloud/routine session
+# Real git/jq but no `gh`, like a cloud/routine session.
 NOGH_WITH_CURL_DIR="$WORK/nogh-with-curl-bin"
 mkdir -p "$NOGH_WITH_CURL_DIR"
 for tool in bash git jq mktemp cat mkdir tr printf sed head; do
@@ -180,8 +171,7 @@ done
 out=$(PATH="$NOGH_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
 [ -z "$out" ] && pass "no gh, no curl -> silent (can't tell)" || fail "no gh, no curl -> silent (can't tell)" "$out"
 
-# case: no gh, but the REST-API fallback (curl + git credential fill) finds
-# an existing PR for the branch -> silent, same as the `gh` path would be
+# case: no gh, REST fallback finds an existing PR -> silent
 repo=$(setup_repo "no-gh-rest-has-pr-case")
 echo y > "$repo/g.txt"
 git -C "$repo" add g.txt
@@ -192,8 +182,7 @@ curl_stub '[{"number":1}]'
 out=$(PATH="$NOGH_STUB_DIR:$NOGH_WITH_CURL_DIR" run_stop "$(jq -n --arg cwd "$repo" '{cwd:$cwd, stop_hook_active:false}')")
 [ -z "$out" ] && pass "no gh, REST fallback finds existing PR -> silent" || fail "no gh, REST fallback finds existing PR -> silent" "$out"
 
-# case: no gh, REST-API fallback finds no PR -> fires block decision, same
-# as the `gh` path would (this is the gap #1440 closes)
+# case: no gh, REST fallback finds no PR -> fires
 repo=$(setup_repo "no-gh-rest-fires-case")
 echo y > "$repo/g.txt"
 git -C "$repo" add g.txt
@@ -236,7 +225,7 @@ git -C "$LOCAL" push -q origin HEAD:main
 git -C "$LOCAL" branch -q -m main
 git -C "$LOCAL" branch -q --set-upstream-to=origin/main main
 
-# advance the remote from a second clone, simulating another session's merge
+# advance the remote from a second clone
 OTHER="$WORK/other-clone"
 git clone -q "$BARE" "$OTHER"
 git -C "$OTHER" config user.email test@example.com
@@ -258,8 +247,6 @@ remote_head=$(git -C "$BARE" rev-parse main)
 echo dirty > "$LOCAL/a.txt"
 before=$(git -C "$LOCAL" rev-parse main)
 git -C "$LOCAL" fetch -q origin main
-# reset the remote-tracking view back to a stale point isn't needed; just
-# re-run against the now-dirty tree and confirm main doesn't move.
 run_session_start "$(jq -n --arg cwd "$LOCAL" '{cwd:$cwd}')" > /dev/null
 after=$(git -C "$LOCAL" rev-parse main)
 [ "$after" = "$before" ] &&
@@ -289,7 +276,7 @@ repo_root="${wt%/.claude/worktrees/guard-case}"
 out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$wt/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
 [ -z "$out" ] && pass "edit inside active worktree is silent" || fail "edit inside active worktree is silent" "$out"
 
-# case: file_path in the main checkout (the actual incident this guards against) is denied
+# case: file_path in the main checkout is denied
 out=$(run_editguard "$(jq -n --arg cwd "$wt" --arg fp "$repo_root/docs/x.md" '{cwd:$cwd, tool_input:{file_path:$fp}}')")
 if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"' > /dev/null 2>&1; then
   pass "edit in the main checkout -> denied"
@@ -321,8 +308,7 @@ out=$(run_editguard "$(jq -n --arg cwd "$wt" '{cwd:$cwd, tool_input:{file_path:"
 out=$(run_editguard "$(jq -n '{cwd:"/tmp/not-a-worktree", tool_input:{file_path:"/tmp/not-a-worktree/x.md"}}')")
 [ -z "$out" ] && pass "edit guard silent outside any repo" || fail "edit guard silent outside any repo" "$out"
 
-# case: cwd is the main checkout of a real repo (never entered a worktree
-# at all this session) -- the actual incident this guards against
+# case: cwd is the main checkout (never entered a worktree)
 main_repo="$WORK/main-checkout"
 mkdir -p "$main_repo"
 git init -q -b main "$main_repo"
@@ -338,6 +324,27 @@ if printf '%s' "$out" | jq -e '.hookSpecificOutput.permissionDecision == "deny"'
 else
   fail "edit in the main checkout of a repo, never having entered a worktree -> denied" "$out"
 fi
+
+# --- PostToolUse lint/docs hook -----------------------------------------
+LINTDOCS_HOOK="$ROOT_DIR/.claude/hooks/post-edit-lint-docs.sh"
+stub=$(mktemp -d)
+mkdir -p "$stub/scripts"
+printf '#!/usr/bin/env bash\necho "AGENTS.md: 2000 words, budget 1000"\nexit 1\n' > "$stub/scripts/lint_docs.sh"
+chmod +x "$stub/scripts/lint_docs.sh"
+out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("budget 1000")' > /dev/null 2>&1; then
+  pass "lint/docs hook surfaces a failing check"
+else
+  fail "lint/docs hook surfaces a failing check" "$out"
+fi
+printf '#!/usr/bin/env bash\nexit 0\n' > "$stub/scripts/lint_docs.sh"
+out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
+if [ -z "$out" ]; then
+  pass "lint/docs hook is silent when the check passes"
+else
+  fail "lint/docs hook is silent when the check passes" "$out"
+fi
+rm -rf "$stub"
 
 echo "---"
 if [ "$fail_count" -eq 0 ]; then

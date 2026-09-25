@@ -21,7 +21,6 @@ jest.mock('@/hooks/useBooks', () => ({
   useSetKoboDeviceLogging: () => mockSetKoboDeviceLogging
 }))
 
-// Stub the logs viewer — it has its own test and its own hooks.
 jest.mock('@/components/books/KoboDeviceLogs', () => ({
   __esModule: true,
   default: ({ deviceId }: { deviceId: string }) => (
@@ -29,7 +28,7 @@ jest.mock('@/components/books/KoboDeviceLogs', () => ({
   )
 }))
 
-// Stub Dialog to render children inline (avoids portal issues in jsdom).
+// Inline dialog avoids jsdom portal issues.
 jest.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }: { children: React.ReactNode; open: boolean }) =>
     open ? <div data-testid="dialog">{children}</div> : null,

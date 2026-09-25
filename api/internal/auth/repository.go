@@ -50,8 +50,7 @@ type PasswordResetTokenRow struct {
 	UsedAt    *time.Time
 }
 
-// usersStore is the subset of DB access LocalService needs, narrowed to an
-// interface (mirroring appUsersStore) so tests can fake individual failures.
+// usersStore is an interface so tests can fake individual failures.
 type usersStore interface {
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	GetUserByID(ctx context.Context, id string) (*User, error)
@@ -96,8 +95,7 @@ type usersStore interface {
 	MarkPasswordResetTokenUsed(ctx context.Context, id uuid.UUID) error
 }
 
-// Repository is the Postgres-backed implementation of usersStore, over the
-// `auth` schema (issue #1039).
+// Repository is the Postgres-backed usersStore over the auth schema.
 type Repository struct {
 	db postgres.DB
 }
@@ -108,8 +106,6 @@ func NewRepository(db postgres.DB) *Repository {
 
 var _ usersStore = (*Repository)(nil)
 
-// errNotFound is a sentinel wrapping pgx.ErrNoRows lookups so callers can
-// treat "user/token doesn't exist" uniformly.
 var errNotFound = errors.New("auth: not found")
 
 func wrapNotFound(err error) error {

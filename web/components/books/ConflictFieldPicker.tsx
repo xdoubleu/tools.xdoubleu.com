@@ -5,10 +5,6 @@ import type { BookConflictField, FieldConflict } from './duplicateConflicts'
 import BookCover from '@/components/books/BookCover'
 import { Radio } from '@/components/ui/radio-group'
 
-// ---------------------------------------------------------------------------
-// Field label map
-// ---------------------------------------------------------------------------
-
 const FIELD_LABELS: Record<BookConflictField, string> = {
   status: 'Shelf / status',
   title: 'Title',
@@ -18,10 +14,6 @@ const FIELD_LABELS: Record<BookConflictField, string> = {
   description: 'Description',
   pageCount: 'Page count'
 }
-
-// ---------------------------------------------------------------------------
-// CoverChoice — renders a cover thumbnail for the cover field picker
-// ---------------------------------------------------------------------------
 
 interface CoverChoiceProps {
   bookId: string
@@ -53,10 +45,6 @@ function CoverChoice({ bookId, coverUrl, title, checked, onChange, groupKey }: C
     </label>
   )
 }
-
-// ---------------------------------------------------------------------------
-// ConflictFieldPicker
-// ---------------------------------------------------------------------------
 
 interface ConflictFieldPickerProps {
   group: DuplicateGroup

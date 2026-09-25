@@ -14,9 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestMain sets headless so serve() never spins up the real AppKit menu bar
-// or touches the real ~/Library/LaunchAgents — there's no window server
-// session under go test.
+// TestMain sets headless so serve() never starts AppKit or touches
+// ~/Library/LaunchAgents.
 func TestMain(m *testing.M) {
 	headless = true
 	os.Exit(m.Run())
@@ -25,8 +24,7 @@ func TestMain(m *testing.M) {
 func TestInitSentrySkipsWhenDSNEmpty(_ *testing.T) {
 	SentryDSN = ""
 
-	// No observable effect to assert beyond "doesn't panic" — the whole
-	// point is that sentry.Init is never reached.
+	// Only asserts it doesn't panic.
 	initSentry()
 }
 

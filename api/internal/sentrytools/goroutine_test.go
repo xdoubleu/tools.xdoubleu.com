@@ -14,13 +14,9 @@ import (
 	"tools.xdoubleu.com/internal/sentrytools"
 )
 
-// initSentryTestClient (re)points the global Sentry hub at a client with
-// tracing enabled, so transactions actually get sampled and sent (see
-// sentry.Span.sample), and returns its transport to read captured events
-// back from. GoRoutineWrapper/SetupGoRoutineHub clone sentry.CurrentHub(),
-// not any hub already on ctx, so exercising them means Init'ing the global
-// hub rather than stashing one on context -- these tests must not run
-// t.Parallel() with each other or with anything else that calls sentry.Init.
+// initSentryTestClient points the global hub at a tracing client and returns
+// its transport. The wrappers clone sentry.CurrentHub(), so these tests must
+// not run in parallel with anything calling sentry.Init.
 func initSentryTestClient(t *testing.T) *sentry.Hub {
 	t.Helper()
 

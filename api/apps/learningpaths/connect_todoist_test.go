@@ -57,10 +57,8 @@ func TestDisconnectTodoist_NoOpWhenNotConnected(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestGetTodoistConnectionStatus_Connected seeds a connection directly
-// through the repository (bypassing the real OAuth exchange, which would
-// need a live network call to Todoist) to exercise the "connected" branch of
-// both GetTodoistConnectionStatus and DisconnectTodoist end to end.
+// TestGetTodoistConnectionStatus_Connected seeds a connection via the
+// repository to cover the connected branches of status and disconnect.
 func TestGetTodoistConnectionStatus_Connected(t *testing.T) {
 	testSealer, err := crypto.New(testCfg.EncryptionKey)
 	require.NoError(t, err)
@@ -119,9 +117,8 @@ func TestSendItemToTodoist_ItemNotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
-// TestSendItemToTodoist_NotConnected exercises the FailedPrecondition branch:
-// a real item exists and is owned by the caller, but no Todoist connection
-// exists — SendItem must never reach the network in this case.
+// TestSendItemToTodoist_NotConnected: an owned item without a connection
+// fails with FailedPrecondition before any network call.
 func TestSendItemToTodoist_NotConnected(t *testing.T) {
 	lpClient := setupClient(getRoutes())
 	ctx := newCtx()

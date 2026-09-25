@@ -26,9 +26,8 @@ type Game struct {
 	Id         int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	IsDelisted bool                   `protobuf:"varint,3,opt,name=is_delisted,json=isDelisted,proto3" json:"is_delisted,omitempty"`
-	// Whether this game takes part in the library-wide completion averages.
-	// False only for a delisted game whose achievements a game still in the
-	// library has taken over.
+	// False only for a delisted game whose achievements a listed game took
+	// over.
 	InCompletionAverage bool   `protobuf:"varint,12,opt,name=in_completion_average,json=inCompletionAverage,proto3" json:"in_completion_average,omitempty"`
 	CompletionRate      string `protobuf:"bytes,4,opt,name=completion_rate,json=completionRate,proto3" json:"completion_rate,omitempty"`
 	Contribution        string `protobuf:"bytes,5,opt,name=contribution,proto3" json:"contribution,omitempty"`
@@ -236,10 +235,8 @@ type SteamResponse struct {
 	Values       []string               `protobuf:"bytes,8,rep,name=values,proto3" json:"values,omitempty"`
 	DateStart    string                 `protobuf:"bytes,9,opt,name=date_start,json=dateStart,proto3" json:"date_start,omitempty"`
 	DateEnd      string                 `protobuf:"bytes,10,opt,name=date_end,json=dateEnd,proto3" json:"date_end,omitempty"`
-	// Games Steam no longer returns in the owned list. They are absent from the
-	// three lists above, but most still count towards current_rate and
-	// distribution — see each game's in_completion_average. This is the only
-	// place the population behind a completion number can be checked.
+	// Games Steam no longer lists; absent from the lists above but mostly
+	// still in current_rate and distribution (see in_completion_average).
 	Delisted      []*Game `protobuf:"bytes,11,rep,name=delisted,proto3" json:"delisted,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -53,9 +53,8 @@ func (h *trainsConnectHandler) SearchJourneys(
 	}), nil
 }
 
-// GetJourneyDetail fetches the full live state of a previously-searched
-// journey (issue #1394) and ensures the journey's websocket topic exists so
-// a client can subscribe to live pushes right after this call returns.
+// GetJourneyDetail fetches a searched journey's live state and ensures its
+// websocket topic exists so the client can subscribe right after.
 func (h *trainsConnectHandler) GetJourneyDetail(
 	ctx context.Context,
 	req *connect.Request[trainsv1.GetJourneyDetailRequest],

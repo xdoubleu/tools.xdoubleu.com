@@ -53,8 +53,7 @@ export const ImportBooksResponseSchema: GenMessage<ImportBooksResponse> = /*@__P
  */
 export type DuplicateGroup = Message<"books.v1.DuplicateGroup"> & {
   /**
-   * Library entries judged to be the same book. entries[0] is the suggested
-   * winner (the entry to keep); the rest are the suggested losers.
+   * Entries judged the same book; entries[0] is the suggested one to keep.
    *
    * @generated from field: repeated books.v1.UserBook entries = 1;
    */
@@ -124,28 +123,23 @@ export type MergeBooksRequest = Message<"books.v1.MergeBooksRequest"> & {
   loserBookIds: string[];
 
   /**
-   * When set, these field values overwrite the winner's catalog Book row after
-   * the merge. cover_url is excluded — control cover resolution via
-   * resolved_cover_source_book_id instead.
-   * Omit to keep the winner's existing metadata unchanged (current behavior).
+   * Overwrites the winner's catalog metadata after merging (cover_url
+   * excluded; see resolved_cover_source_book_id). Omit to keep it.
    *
    * @generated from field: optional books.v1.Book resolved_metadata = 3;
    */
   resolvedMetadata?: Book | undefined;
 
   /**
-   * book_id whose cover should be used for the merged winner. The backend
-   * copies that entry's raw cover URL and clears the winner's cover cache.
-   * Omit to keep the winner's existing cover unchanged.
+   * book_id whose cover the winner takes. Omit to keep the winner's cover.
    *
    * @generated from field: optional string resolved_cover_source_book_id = 4;
    */
   resolvedCoverSourceBookId?: string | undefined;
 
   /**
-   * When set, overrides the auto-consolidated status/shelf of the merged winner.
-   * Omit to use the automatic rule: a custom shelf wins over built-in statuses
-   * (custom-shelf > read > currently-reading > to-read > dropped).
+   * Overrides the merged status/shelf. Omit for the automatic rule:
+   * custom-shelf > read > currently-reading > to-read > dropped.
    *
    * @generated from field: optional string resolved_status = 5;
    */
@@ -190,11 +184,8 @@ export const MergeBooksResponseSchema: GenMessage<MergeBooksResponse> = /*@__PUR
  */
 export type StartResyncRequest = Message<"books.v1.StartResyncRequest"> & {
   /**
-   * Force re-queries every source (UniCat, Hardcover) for
-   * every book, ignoring the skip-if-known cache
-   * (unicat_found / hardcover_found).
-   * Use to recover books stuck unresolved after a rate-limit trip or a stale
-   * cached miss.
+   * Re-query every source for every book, ignoring the skip-if-known cache
+   * (recovers books stuck after a rate limit or stale miss).
    *
    * @generated from field: bool force = 1;
    */
@@ -222,9 +213,8 @@ export const StartResyncResponseSchema: GenMessage<StartResyncResponse> = /*@__P
   messageDesc(file_books_v1_catalog, 8);
 
 /**
- * CancelResync stops an in-progress resync scan started by StartResync. A
- * no-op if no scan is running. Books already processed keep their scan
- * status; the proposals table is left untouched by the cancelled run.
+ * CancelResync stops a running resync scan (no-op if none). Processed books
+ * and proposals are left as is.
  *
  * @generated from message books.v1.CancelResyncRequest
  */
@@ -252,9 +242,8 @@ export const CancelResyncResponseSchema: GenMessage<CancelResyncResponse> = /*@_
   messageDesc(file_books_v1_catalog, 10);
 
 /**
- * SourceBook is one candidate set of metadata for a catalog book — either the
- * current library values (source = "") or one external provider's proposal
- * (source = "unicat" | "hardcover").
+ * SourceBook is one candidate metadata set: the library values (source "")
+ * or a provider's proposal ("unicat" | "hardcover").
  *
  * @generated from message books.v1.SourceBook
  */
@@ -295,19 +284,15 @@ export type SourceBook = Message<"books.v1.SourceBook"> & {
   authors: string[];
 
   /**
-   * differs lists which fields differ from the library row. Empty for the
-   * library SourceBook itself.
+   * Fields differing from the library row; empty for the library itself.
    *
    * @generated from field: repeated string differs = 8;
    */
   differs: string[];
 
   /**
-   * index is this candidate's ordinal position (0-based) among other
-   * SourceBooks sharing the same source. Always 0 for the library SourceBook
-   * and for sources that only ever produce one candidate (the guarded
-   * search). The manual override search ("Search with these terms") can
-   * return up to 5 candidates per source, distinguished by this index.
+   * 0-based ordinal among candidates of the same source; only a manual
+   * override search yields more than one (up to 5).
    *
    * @generated from field: int32 index = 9;
    */
@@ -322,8 +307,7 @@ export const SourceBookSchema: GenMessage<SourceBook> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 11);
 
 /**
- * ResyncProposal describes one catalog book that differs from at least one
- * external source, for the admin resync wizard to step through.
+ * ResyncProposal is one catalog book differing from an external source.
  *
  * @generated from message books.v1.ResyncProposal
  */
@@ -391,9 +375,8 @@ export type ApplyResyncChoiceRequest = Message<"books.v1.ApplyResyncChoiceReques
   bookId: string;
 
   /**
-   * source selects which SourceBook wins: "" keeps the library row unchanged
-   * (and simply dismisses the proposal), or one of
-   * "unicat" | "hardcover".
+   * Winning source: "" keeps the library row (dismisses), or "unicat" |
+   * "hardcover".
    *
    * @generated from field: string source = 2;
    */
@@ -456,8 +439,7 @@ export const SetBookISBNResponseSchema: GenMessage<SetBookISBNResponse> = /*@__P
   messageDesc(file_books_v1_catalog, 18);
 
 /**
- * UpdateBook lets an admin hand-correct a catalog book's metadata directly,
- * bypassing the external-source sync flow.
+ * UpdateBook hand-corrects a catalog book's metadata.
  *
  * @generated from message books.v1.UpdateBookRequest
  */
@@ -468,9 +450,8 @@ export type UpdateBookRequest = Message<"books.v1.UpdateBookRequest"> & {
   bookId: string;
 
   /**
-   * Full replacement for the book's catalog metadata (title, authors,
-   * isbn13, description, page_count, cover_url). An empty cover_url clears
-   * the cover; any other value is fetched and cached as the new cover.
+   * Full replacement of catalog metadata. Empty cover_url clears the cover;
+   * any other value is fetched and cached.
    *
    * @generated from field: books.v1.Book metadata = 2;
    */
@@ -502,10 +483,7 @@ export const UpdateBookResponseSchema: GenMessage<UpdateBookResponse> = /*@__PUR
   messageDesc(file_books_v1_catalog, 20);
 
 /**
- * GetBookSources live-fetches one book's candidates from every configured
- * source, for the admin book-page source selector. Unlike
- * ListResyncProposals, this works on any book on demand — it doesn't require
- * a prior wizard scan to have flagged the book first.
+ * GetBookSources live-fetches any book's candidates from every source.
  *
  * @generated from message books.v1.GetBookSourcesRequest
  */
@@ -516,9 +494,8 @@ export type GetBookSourcesRequest = Message<"books.v1.GetBookSourcesRequest"> & 
   bookId: string;
 
   /**
-   * When set, replaces the stored title/author in the live source search,
-   * skips the strict match guards, and forces the search path even when the
-   * book has an ISBN — for manually steering the search on unmatched books.
+   * Replaces title/author in the search, skips strict match guards, and
+   * forces search even for books with an ISBN.
    *
    * @generated from field: optional string override_title = 2;
    */
@@ -555,8 +532,7 @@ export const GetBookSourcesResponseSchema: GenMessage<GetBookSourcesResponse> = 
   messageDesc(file_books_v1_catalog, 22);
 
 /**
- * ApplyBookSource live-fetches the book's sources and applies the chosen one
- * — the book-page equivalent of ApplyResyncChoice, usable on any book.
+ * ApplyBookSource live-fetches the book's sources and applies the chosen one.
  *
  * @generated from message books.v1.ApplyBookSourceRequest
  */
@@ -567,7 +543,6 @@ export type ApplyBookSourceRequest = Message<"books.v1.ApplyBookSourceRequest"> 
   bookId: string;
 
   /**
-   * source selects which source wins: one of
    * "unicat" | "hardcover".
    *
    * @generated from field: string source = 2;
@@ -575,8 +550,7 @@ export type ApplyBookSourceRequest = Message<"books.v1.ApplyBookSourceRequest"> 
   source: string;
 
   /**
-   * Must repeat the override used in GetBookSources so the apply-time
-   * re-fetch finds the same candidates.
+   * Must repeat GetBookSources' override so the re-fetch matches.
    *
    * @generated from field: optional string override_title = 3;
    */
@@ -588,9 +562,7 @@ export type ApplyBookSourceRequest = Message<"books.v1.ApplyBookSourceRequest"> 
   overrideAuthor?: string | undefined;
 
   /**
-   * index selects which of the source's candidates to apply (0-based),
-   * matching SourceBook.index. 0 for sources that only ever produce one
-   * candidate.
+   * Candidate to apply, matching SourceBook.index.
    *
    * @generated from field: int32 index = 5;
    */
@@ -618,8 +590,7 @@ export const ApplyBookSourceResponseSchema: GenMessage<ApplyBookSourceResponse> 
   messageDesc(file_books_v1_catalog, 24);
 
 /**
- * GetSourceStats reports per-source coverage over the whole catalog, for
- * scoring metadata sources.
+ * GetSourceStats reports per-source coverage over the catalog.
  *
  * @generated from message books.v1.GetSourceStatsRequest
  */
@@ -659,8 +630,7 @@ export type SourceStat = Message<"books.v1.SourceStat"> & {
   uniqueCount: number;
 
   /**
-   * Books this source actually checked and came back empty (found_column IS
-   * FALSE) — distinct from never having been scanned at all.
+   * Books this source checked and missed (vs never scanned).
    *
    * @generated from field: int32 missed_count = 4;
    */
@@ -675,10 +645,7 @@ export const SourceStatSchema: GenMessage<SourceStat> = /*@__PURE__*/
   messageDesc(file_books_v1_catalog, 26);
 
 /**
- * SourceComboStat reports how many books were found by exactly this set of
- * sources (a genuine overlap) — the complement of SourceStat's unique_count,
- * which is the one-source case. With two configured sources there is exactly
- * one combo: both.
+ * SourceComboStat counts books found by exactly this set of sources.
  *
  * @generated from message books.v1.SourceComboStat
  */
@@ -739,9 +706,7 @@ export type GetSourceStatsResponse = Message<"books.v1.GetSourceStatsResponse"> 
   overlaps: SourceComboStat[];
 
   /**
-   * The mirror of overlaps: books missed by exactly this set of sources (those
-   * sources IS FALSE, every other source IS TRUE). Same partition model as
-   * overlaps, just complemented.
+   * Books missed by exactly this set of sources and found by all others.
    *
    * @generated from field: repeated books.v1.SourceComboStat missed_overlaps = 6;
    */
@@ -756,10 +721,8 @@ export const GetSourceStatsResponseSchema: GenMessage<GetSourceStatsResponse> = 
   messageDesc(file_books_v1_catalog, 28);
 
 /**
- * ListBooksInExactSources lists the catalog books found by exactly the given
- * set of sources — one source is the books behind GetSourceStats'
- * unique_count, both is the overlaps combo — for drilling into the
- * source-stats report.
+ * ListBooksInExactSources lists catalog books found by exactly the given
+ * sources, drilling into GetSourceStats.
  *
  * @generated from message books.v1.ListBooksInExactSourcesRequest
  */

@@ -17,8 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
-// githubScopes is what a GitHub connection is authorized with today, read
-// from the real config so these tests can't drift from it.
+// githubScopes is read from the real config so tests can't drift.
 //
 //nolint:gochecknoglobals // fixture mirroring production config
 var githubScopes = github.OAuthConfig("", "", "").Scopes
@@ -123,11 +122,8 @@ func TestListOAuthConnections_AsAdmin_StaleScope(t *testing.T) {
 	}
 }
 
-// Regression for issue #1195: GitHub returns a normalized granted scope —
-// just `repo`, since it subsumes the `security_events` also requested — and
-// judging coverage by that echo reported a freshly-authorized connection as
-// not connected, so the admin UI kept showing "Connect" no matter how many
-// times the flow was completed.
+// GitHub echoes a normalized scope (`repo` subsumes `security_events`); that
+// must still count as connected.
 func TestListOAuthConnections_NormalizedGrantedScope_ShowsConnected(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -160,8 +156,8 @@ func TestListOAuthConnections_NormalizedGrantedScope_ShowsConnected(t *testing.T
 	}
 }
 
-// A stale connection still reports its scopes, so the reason it is being
-// shown as not connected is visible without database access.
+// TestListOAuthConnections_StaleScope_ReportsScopes: stale connections report
+// their scopes.
 func TestListOAuthConnections_StaleScope_ReportsScopes(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -242,20 +238,14 @@ func TestDisconnectOAuthConnection_NonAdmin(t *testing.T) {
 	requirePermissionDenied(t, err)
 }
 
-// TestProtoProviderConfig_TodoistReturnsNil exercises the unexported
-// protoProviderConfig helper's explicit Todoist case directly — unreachable
-// through any RPC since a Todoist row never exists in
-// global.oauth_connections (issue #1475).
+// TestProtoProviderConfig_TodoistReturnsNil hits a case unreachable via RPC.
 func TestProtoProviderConfig_TodoistReturnsNil(t *testing.T) {
 	got := protoProviderConfig(models.OAuthProviderTodoist, []byte(`{"x":1}`))
 	assert.Nil(t, got)
 }
 
-// TestGetProviderOptions_TodoistIsUnknown exercises the exhaustive switch's
-// explicit Todoist case in GetProviderOptions (issue #1475) — Todoist's
-// per-user connection lives in learningpaths.oauth_connections, never
-// global.oauth_connections, so this admin-only observability picker must
-// reject it the same way it rejects any other unrecognized provider.
+// TestGetProviderOptions_TodoistIsUnknown: Todoist is rejected like any
+// unknown provider.
 func TestGetProviderOptions_TodoistIsUnknown(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -268,8 +258,7 @@ func TestGetProviderOptions_TodoistIsUnknown(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// TestSetProviderConfig_TodoistIsUnknown is configJSON's equivalent of the
-// above, via SetProviderConfig.
+// TestSetProviderConfig_TodoistIsUnknown: same, via SetProviderConfig.
 func TestSetProviderConfig_TodoistIsUnknown(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })

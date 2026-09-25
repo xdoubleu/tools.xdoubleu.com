@@ -16,13 +16,9 @@ const (
 	// staleUploadAge is how old a temp upload must be before it counts as
 	// leaked (the upload flow normally finalizes within minutes).
 	staleUploadAge = 7 * 24 * time.Hour
-	// orphanGracePeriod is how old a confirmed orphan must be before this scan
-	// actually deletes it — an in-flight upload writes its R2 object before
-	// its books.book_files row commits, so a freshly-uploaded object can look
-	// orphaned for a moment even though nothing has leaked. staleUploadAge
-	// covers the analogous uploads/ race with a much longer window because a
-	// stuck upload there is only ever reported, never deleted automatically;
-	// this one bounds an actual delete, so it stays short.
+	// orphanGracePeriod: an upload writes its R2 object before its book_files row
+	// commits, so a fresh object can look orphaned. Short, since this bounds an
+	// actual delete (staleUploadAge only reports).
 	orphanGracePeriod = 1 * time.Hour
 	booksPrefix       = "books/"
 	uploadsMarker     = "/uploads/"
@@ -50,10 +46,8 @@ type snapshotStore interface {
 	Insert(ctx context.Context, snap models.StorageSnapshot) error
 }
 
-// StorageScanJob walks the whole object-store bucket once a day and records a
-// snapshot (total size, per-prefix breakdown, and — by diffing against the
-// book_files table — orphaned objects and stale temp uploads) so the admin
-// dashboard can flag when manual cleanup is worthwhile.
+// StorageScanJob snapshots the bucket daily (size, per-prefix breakdown,
+// orphans and stale uploads) for the admin dashboard.
 type StorageScanJob struct {
 	store     objectLister
 	bookFiles storageKeyLister
@@ -115,11 +109,8 @@ func (j *StorageScanJob) Run(ctx context.Context, logger *slog.Logger) error {
 	return j.snapshots.Insert(ctx, snap)
 }
 
-// buildSnapshot aggregates a bucket listing into a StorageSnapshot, and
-// separately returns the orphans old enough (past orphanGracePeriod) for Run
-// to actually delete. It is pure so the classification logic — including
-// which orphans are grace-period-eligible — can be unit-tested without a
-// live bucket or performing any I/O.
+// buildSnapshot aggregates a listing and returns the orphans past
+// orphanGracePeriod for deletion. Pure, for unit testing.
 func buildSnapshot(
 	objects []objectstore.ObjectInfo,
 	referenced map[string]bool,
@@ -177,9 +168,8 @@ func buildSnapshot(
 	return snap, deletable
 }
 
-// isOrphan reports whether a books/<id>/… object is no longer referenced by
-// any book file. Cover caches and negative-cache markers are legitimately
-// unreferenced, so they never count as orphans.
+// isOrphan reports an unreferenced books/<id>/… object; cover caches and
+// markers never count.
 func isOrphan(key string, referenced map[string]bool) bool {
 	if !strings.HasPrefix(key, booksPrefix) {
 		return false

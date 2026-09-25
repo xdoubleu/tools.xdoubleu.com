@@ -9,12 +9,7 @@ import MonitoringObservabilityPage from '@/app/monitoring/observability/page'
 
 describe('MonitoringObservabilityPage', () => {
   it('renders the observability client with no server-side data prefetch', () => {
-    // Issue #1714: this page no longer awaits GetAutomatedActions during
-    // SSR (see the comment in app/monitoring/observability/page.tsx), so
-    // rendering it needs no fetchOrNull/SWRFallback mocking at all —
-    // ObservabilityClient's own SWR hook (covered by
-    // ObservabilityClient.test.tsx) owns the client-side fetch and loading
-    // state.
+    // No SSR prefetch, so no fetchOrNull/SWRFallback mocking is needed.
     render(<MonitoringObservabilityPage />)
     expect(screen.getByTestId('observability-client')).toBeInTheDocument()
   })

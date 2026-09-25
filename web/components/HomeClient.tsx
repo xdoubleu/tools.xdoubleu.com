@@ -11,11 +11,8 @@ import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
 
-// Reads and validates the `next` query param so post-sign-in redirects can
-// only ever land same-origin. Resolving through the URL API (rather than
-// string-prefix checks) lets the platform parser itself collapse
-// protocol-relative and backslash variants (`//evil.com`, `/\evil.com`) down
-// to their real origin, which we then compare directly.
+// Same-origin-only `next` for post-sign-in redirects. The URL parser
+// collapses `//evil.com` and `/\evil.com` to their real origin.
 export function safeNext(): string {
   if (typeof window === 'undefined') return '/'
   const next = new URLSearchParams(window.location.search).get('next')
@@ -134,8 +131,7 @@ export default function HomeClient() {
   const signIn = useSignIn()
   const mFAChallenge = useMFAChallenge()
 
-  // Server-provided fallback (SWRProvider) makes `data` available on the
-  // very first render, so the authenticated view server-renders directly.
+  // SWRProvider's fallback lets the authenticated view server-render.
   const [authState, setAuthState] = useState<AuthState>(data ? 'authenticated' : 'loading')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

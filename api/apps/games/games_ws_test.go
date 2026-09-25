@@ -29,8 +29,6 @@ func TestWebSocketProgress_Unauthenticated(t *testing.T) {
 	)
 
 	rs := tReq.Do(t)
-	// WebSocket upgrade without auth returns 426 Upgrade Required
-	// because auth middleware checks credentials before WebSocket handler
-	// processes the upgrade
+	// Auth middleware rejects before the upgrade is processed.
 	assert.Equal(t, http.StatusUpgradeRequired, rs.StatusCode)
 }

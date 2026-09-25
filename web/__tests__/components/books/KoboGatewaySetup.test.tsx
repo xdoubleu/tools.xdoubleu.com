@@ -16,9 +16,7 @@ const mockConfigureGateway = jest.fn()
 const mockRevertGateway = jest.fn()
 const mockUpdateGateway = jest.fn()
 
-// gatewayNeedsUpdate and REQUIRED_GATEWAY_VERSION are kept real (they're pure
-// version/release comparisons against the mocked getKoboGatewayRelease
-// above); only the network calls are stubbed.
+// Only the network calls are stubbed.
 jest.mock('@/lib/books/gatewayClient', () => ({
   ...jest.requireActual('@/lib/books/gatewayClient'),
   configureGateway: (...args: unknown[]) => mockConfigureGateway(...args),
@@ -26,8 +24,7 @@ jest.mock('@/lib/books/gatewayClient', () => ({
   updateGateway: (...args: unknown[]) => mockUpdateGateway(...args)
 }))
 
-// The polling hook is driven manually in these tests via mockMutateGatewayStatus,
-// standing in for what SWR's mutate() would return from a fresh /status probe.
+// Stands in for SWR's mutate() on a fresh /status probe.
 const mockMutateGatewayStatus = jest.fn()
 jest.mock('@/hooks/useKoboGateway', () => ({
   useGatewayStatus: () => ({ mutate: mockMutateGatewayStatus })
@@ -58,8 +55,7 @@ const KOBO_MANAGED = {
   currentEndpoint: 'https://api.example.com/books/kobo/some-token'
 }
 
-// Matches the mocked getKoboGatewayRelease() above so these don't trigger
-// the self-update effect unless a test explicitly wants to.
+// Matches the mocked release, so no self-update unless a test wants one.
 function status(kobos: (typeof KOBO_UNMANAGED)[], version = 2, release = 'current-sha') {
   return { version, release, kobos }
 }
@@ -260,8 +256,7 @@ describe('KoboGatewaySetup — self-update', () => {
   })
 
   it('updates a gateway with a stale release even at the required protocol version', async () => {
-    // Routine release: protocol version unchanged, but the build SHA differs
-    // from this web app's — this is what keeps installed gateways current.
+    // Routine release: same protocol version, different build SHA.
     mockMutateGatewayStatus.mockResolvedValue(status([KOBO_UNMANAGED]))
 
     render(

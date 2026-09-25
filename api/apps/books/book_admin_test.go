@@ -18,15 +18,12 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// isbnFromUUID derives a valid ISBN-13 from a UUID so each test run produces
-// a unique ISBN that won't collide with ISBNs inserted by previous runs.
+// isbnFromUUID derives a valid, per-run-unique ISBN-13 from a UUID.
 func isbnFromUUID(id uuid.UUID) string {
-	// Use bytes 10-15 (48 bits) as a 9-digit number after the "978" prefix.
 	b := id[10:]
 	n := uint64(b[0])<<40 | uint64(b[1])<<32 | uint64(b[2])<<24 |
 		uint64(b[3])<<16 | uint64(b[4])<<8 | uint64(b[5])
 	prefix := fmt.Sprintf("978%09d", n%1_000_000_000)
-	// Compute ISBN-13 check digit per the standard alternating-weight formula.
 	sum := 0
 	for i, r := range prefix {
 		d := int(r - '0')
@@ -40,8 +37,7 @@ func isbnFromUUID(id uuid.UUID) string {
 	return fmt.Sprintf("%s%d", prefix, check)
 }
 
-// newAdminBooksTestClient returns a Connect client whose app authenticates
-// all requests as an admin user (RoleAdmin).
+// newAdminBooksTestClient returns a client authenticated as RoleAdmin.
 func newAdminBooksTestClient(t *testing.T) booksTestClient {
 	t.Helper()
 	adminApp := books.NewInner(
@@ -63,9 +59,7 @@ func newAdminBooksTestClient(t *testing.T) booksTestClient {
 	return newBooksClientFor(ts.URL, connect.WithHTTPGet())
 }
 
-// ---------------------------------------------------------------------------
-// requireAdmin: non-admin gets PermissionDenied
-// ---------------------------------------------------------------------------
+// requireAdmin: non-admin gets PermissionDenied.
 
 func TestFindDuplicates_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
@@ -133,14 +127,8 @@ func TestApplyResyncChoice_NonAdmin_PermissionDenied(t *testing.T) {
 	assert.Equal(t, connect.CodePermissionDenied, connErr.Code())
 }
 
-// ---------------------------------------------------------------------------
-// ListResyncProposals: admin success (empty when nothing was scanned)
-// ---------------------------------------------------------------------------
-
-// TestListResyncProposals_Admin_Success verifies the RPC round-trips
-// successfully. It cannot assert on the exact proposal set: the DB and
-// resync_proposals table are shared across this package's tests, so other
-// tests may have already run a scan (see TestBuildResyncProposals_Service).
+// TestListResyncProposals_Admin_Success only checks the round trip: other
+// tests share the proposals table.
 func TestListResyncProposals_Admin_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.ListResyncProposalsRequest{})
@@ -150,10 +138,6 @@ func TestListResyncProposals_Admin_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, resp)
 }
-
-// ---------------------------------------------------------------------------
-// ApplyResyncChoice: admin, invalid input
-// ---------------------------------------------------------------------------
 
 func TestApplyResyncChoice_Admin_InvalidUUID_InvalidArgument(t *testing.T) {
 	client := newAdminBooksTestClient(t)
@@ -185,10 +169,6 @@ func TestApplyResyncChoice_Admin_UnknownBook_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connErr.Code())
 }
 
-// ---------------------------------------------------------------------------
-// FindDuplicates: admin success
-// ---------------------------------------------------------------------------
-
 func TestFindDuplicates_Admin_Success(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.FindDuplicatesRequest{})
@@ -199,10 +179,6 @@ func TestFindDuplicates_Admin_Success(t *testing.T) {
 	assert.NotNil(t, resp)
 	assert.NotNil(t, resp.Msg)
 }
-
-// ---------------------------------------------------------------------------
-// Repo: ListCatalogBooks
-// ---------------------------------------------------------------------------
 
 func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 	ub := addTestBook(t, "CatalogListTestBook")
@@ -220,10 +196,6 @@ func TestListCatalogBooks_ReturnsAllBooks(t *testing.T) {
 	}
 	assert.True(t, found, "newly added book must appear in ListCatalogBooks")
 }
-
-// ---------------------------------------------------------------------------
-// SetBookISBN
-// ---------------------------------------------------------------------------
 
 func TestSetBookISBN_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
@@ -295,7 +267,6 @@ func TestSetBookISBN_UnknownBook_NotFound(t *testing.T) {
 
 func TestSetBookISBN_Success_UpdatesISBN(t *testing.T) {
 	ub := addTestBookNoISBN(t, "SetISBNSuccessBook")
-	// Derive a unique ISBN from the book's own UUID so re-runs never collide.
 	newISBN := isbnFromUUID(ub.BookID)
 
 	client := newAdminBooksTestClient(t)
@@ -308,7 +279,6 @@ func TestSetBookISBN_Success_UpdatesISBN(t *testing.T) {
 	_, err := client.SetBookISBN(context.Background(), req)
 	require.NoError(t, err)
 
-	// Verify via the repo that the ISBN was written.
 	book, err := testApp.Repositories.Books.GetBookByID(context.Background(), ub.BookID)
 	require.NoError(t, err)
 	require.NotNil(t, book.ISBN13)
@@ -316,12 +286,9 @@ func TestSetBookISBN_Success_UpdatesISBN(t *testing.T) {
 }
 
 func TestSetBookISBN_DuplicateISBN_AlreadyExists(t *testing.T) {
-	// Book A already has an ISBN.
 	ubA := addTestBook(t, "SetISBNDuplicateBookA")
-	// Book B has no ISBN.
 	ubB := addTestBookNoISBN(t, "SetISBNDuplicateBookB")
 
-	// Attempt to assign book A's ISBN to book B — must be rejected.
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
 		BookId: ubB.BookID.String(),
@@ -329,8 +296,7 @@ func TestSetBookISBN_DuplicateISBN_AlreadyExists(t *testing.T) {
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// addTestBook uses a hard-coded ISBN; if another test already inserted it
-	// this test is only valid when book A exists and has that ISBN.
+	// addTestBook's ISBN is hard-coded and may already exist.
 	require.NotNil(t, ubA)
 
 	_, err := client.SetBookISBN(context.Background(), req)
@@ -342,10 +308,8 @@ func TestSetBookISBN_DuplicateISBN_AlreadyExists(t *testing.T) {
 
 func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 	ub := addTestBookNoISBN(t, "SetISBNHyphenBook")
-	// Derive a unique base ISBN from the UUID and insert hyphens into it.
 	rawISBN := isbnFromUUID(ub.BookID)
-	// Format as hyphenated ISBN-13: 978-X-XX-XXXXXX-X (arbitrary grouping,
-	// the handler strips all hyphens before validating).
+	// Arbitrary grouping; the handler strips hyphens.
 	hyphenated := fmt.Sprintf("%s-%s-%s-%s-%s",
 		rawISBN[0:3],
 		rawISBN[3:4],
@@ -369,10 +333,6 @@ func TestSetBookISBN_WithHyphens_NormalisedAndAccepted(t *testing.T) {
 	require.NotNil(t, book.ISBN13)
 	assert.Equal(t, rawISBN, *book.ISBN13, "hyphens must be stripped")
 }
-
-// ---------------------------------------------------------------------------
-// UpdateBook
-// ---------------------------------------------------------------------------
 
 func TestUpdateBook_NonAdmin_PermissionDenied(t *testing.T) {
 	client := newBooksTestClient(t)
@@ -525,19 +485,15 @@ func TestUpdateBook_DuplicateISBN_AlreadyExists(t *testing.T) {
 	assert.Equal(t, connect.CodeAlreadyExists, connErr.Code())
 }
 
-// ---------------------------------------------------------------------------
-// TestGetBooksByIDs_ReturnsMatchingBooks is a regression test for the pgx
-// UUID-array encoding bug: passing []uuid.UUID directly to ANY($1) produced
-// "cannot find encode plan" because pgx has no registered encoder for that type.
-// The fix converts IDs to []string and casts with ANY($1::uuid[]).
+// TestGetBooksByIDs_ReturnsMatchingBooks: pgx has no encoder for []uuid.UUID,
+// so IDs must be passed as strings and cast.
 func TestGetBooksByIDs_ReturnsMatchingBooks(t *testing.T) {
-	// Use ISBN-less books so each call creates a distinct catalog entry.
+	// ISBN-less books get distinct catalog entries.
 	ub1 := addTestBookNoISBN(t, "GetBooksByIDs_Book1")
 	ub2 := addTestBookNoISBN(t, "GetBooksByIDs_Book2")
 
 	ctx := context.Background()
 
-	// Requesting both IDs must return exactly those two books without an encode error.
 	books, err := testApp.Repositories.Books.GetBooksByIDs(
 		ctx,
 		[]uuid.UUID{ub1.BookID, ub2.BookID},
@@ -555,7 +511,6 @@ func TestGetBooksByIDs_ReturnsMatchingBooks(t *testing.T) {
 		"GetBooksByIDs must return exactly the requested books",
 	)
 
-	// Empty slice must return nil without error.
 	none, err := testApp.Repositories.Books.GetBooksByIDs(ctx, nil)
 	require.NoError(t, err)
 	assert.Nil(t, none)

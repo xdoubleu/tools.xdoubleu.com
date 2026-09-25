@@ -6,10 +6,8 @@ import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
 import { cn } from '@/lib/cn'
 
-// Shared by the owner's games library and the public profile pages; the
-// caller decides where a card links to (owner detail vs public detail), and
-// whether the favourite indicator is an interactive toggle (owner) or a
-// static marker (public profile — showFavourite defaults to false).
+// Shared by the owner library and public profiles; the caller picks the link
+// target and whether the favourite is an interactive toggle.
 export function GameCard({
   game,
   href,

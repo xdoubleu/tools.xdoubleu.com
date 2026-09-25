@@ -158,8 +158,7 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 	pastSlots []string,
 	excludedGroups []string,
 ) ([]ShoppingItem, error) {
-	// pgx sends nil slices as SQL NULL; normalize to empty arrays so that
-	// ANY($n::text[]) never evaluates to NULL and accidentally excludes rows.
+	// A nil slice would be sent as NULL, making ANY($n::text[]) exclude rows.
 	if pastSlots == nil {
 		pastSlots = []string{}
 	}

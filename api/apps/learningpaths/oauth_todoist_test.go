@@ -16,10 +16,8 @@ import (
 	"tools.xdoubleu.com/internal/todoist"
 )
 
-// TestTodoistOAuthCallback_InvalidStateRedirectsWithError exercises the
-// callback route's error branch without any real network call — an
-// unknown/expired state fails before the handler ever reaches
-// oauth2.Config.Exchange (the leg that would need a live Todoist round trip).
+// TestTodoistOAuthCallback_InvalidStateRedirectsWithError: an unknown state
+// fails before any token exchange.
 func TestTodoistOAuthCallback_InvalidStateRedirectsWithError(t *testing.T) {
 	srv := httptest.NewServer(getRoutes())
 	defer srv.Close()
@@ -45,12 +43,8 @@ func TestTodoistOAuthCallback_InvalidStateRedirectsWithError(t *testing.T) {
 	assert.Contains(t, resp.Header.Get("Location"), "todoist_error=1")
 }
 
-// TestTodoistOAuthCallback_SuccessRedirectsConnected exercises the callback
-// route's success branch end to end, including the real token-exchange call
-// — but against a local httptest server standing in for Todoist's token
-// endpoint (stubbed via TodoistServiceForTest/SetOAuthConfigForTest, the
-// same idea as cmd/api's admin OAuth tests stubbing GitHub/Sentry), not a
-// real network call.
+// TestTodoistOAuthCallback_SuccessRedirectsConnected covers the success path
+// with the token endpoint stubbed by an httptest server.
 func TestTodoistOAuthCallback_SuccessRedirectsConnected(t *testing.T) {
 	tokenSrv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {

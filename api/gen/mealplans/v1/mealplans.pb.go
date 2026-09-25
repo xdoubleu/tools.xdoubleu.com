@@ -32,8 +32,7 @@ type PlanMeal struct {
 	CustomName string                 `protobuf:"bytes,6,opt,name=custom_name,json=customName,proto3" json:"custom_name,omitempty"`
 	Servings   int32                  `protobuf:"varint,7,opt,name=servings,proto3" json:"servings,omitempty"`
 	Recipe     *v1.Recipe             `protobuf:"bytes,8,opt,name=recipe,proto3" json:"recipe,omitempty"`
-	// When set, a custom (recipe-less) entry still shows on the calendar and the
-	// iCal feed but its items are excluded from the shopping-list export.
+	// Keeps a custom entry on the calendar/iCal but out of the shopping export.
 	ExcludeFromShoppingList bool `protobuf:"varint,9,opt,name=exclude_from_shopping_list,json=excludeFromShoppingList,proto3" json:"exclude_from_shopping_list,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache

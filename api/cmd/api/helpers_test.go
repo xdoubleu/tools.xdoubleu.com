@@ -22,9 +22,8 @@ func connectServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
-// doInProcess executes a request directly against the handler using
-// httptest.NewRecorder so that it hits the 192.0.2.1 rate-limit bucket
-// (not the 127.0.0.1 bucket consumed by httptest.NewServer-based tests).
+// doInProcess uses httptest.NewRecorder so it hits the 192.0.2.1 rate-limit
+// bucket, not 127.0.0.1's.
 func doInProcess(
 	t *testing.T,
 	method, target string,

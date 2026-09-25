@@ -1,27 +1,18 @@
-// StrykerJS config (issue #1632). `npm run test:mutation` runs the full,
-// un-scoped baseline; `npm run test:mutation:diff`
-// (scripts/test-mutation-diff.sh) scopes `mutate` to files changed vs
-// origin/main instead of overriding it here.
+// `npm run test:mutation` runs the full baseline;
+// scripts/test-mutation-diff.sh scopes `mutate` to changed files.
 /** @type {import('@stryker-mutator/api/core').PartialStrykerOptions} */
 export default {
   packageManager: 'npm',
   testRunner: 'jest',
   jest: {
-    // See jest.stryker.config.js for why StrykerJS uses its own wrapper
-    // config instead of jest.config.js directly.
+    // See jest.stryker.config.js.
     configFile: 'jest.stryker.config.js',
     enableFindRelatedTests: true
   },
   reporters: ['clear-text', 'progress', 'html'],
   coverageAnalysis: 'perTest',
-  // Mirrors jest.config.js's collectCoverageFrom allowlist/excludes -- the
-  // same files diff_coverage_ts.py already treats as coverage-relevant.
-  // Pinned to @stryker-mutator/core@9.6.1 (not the newer major) because its
-  // bundled @babel/generator ~8.0.0 crashes instrumenting a plain TS
-  // function-type parameter (e.g. `call: () => Promise<T>`, found in
-  // hooks/useBooks.ts and elsewhere) -- an upstream instrumenter bug,
-  // reproduced on several files across components/, lib/ and hooks/.
-  // 9.6.1's @babel/generator ~7.29.0 does not hit it.
+  // Mirrors jest.config.js's collectCoverageFrom. Pinned to core@9.6.1: the
+  // next major's @babel/generator 8 crashes on TS function-type parameters.
   mutate: [
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
@@ -34,11 +25,8 @@ export default {
     '!app/manifest.ts',
     '!app/layout.tsx',
     '!**/*.d.ts',
-    // next/dynamic's babel/SWC transform requires its options argument to
-    // stay a plain object literal ("next/dynamic options must be an object
-    // literal"); Stryker's instrumentation wraps that literal in a
-    // conditional expression, which fails that check at Jest's Next.js
-    // transform step. The only file in the tree using next/dynamic.
+    // Instrumentation breaks next/dynamic's "options must be an object literal"
+    // check; the only next/dynamic user.
     '!components/books/BookPreviewDialog.tsx'
   ],
   incremental: true,

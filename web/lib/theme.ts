@@ -1,7 +1,6 @@
 /**
- * Theme preference, stored per device in localStorage and applied as
- * `data-theme` on <html> (see `app/globals.css`). No React imports — this
- * module is read from both the server layout and client components.
+ * Per-device theme preference in localStorage, applied as `data-theme` on
+ * <html>. No React imports: used by the server layout and client components.
  */
 
 export const THEMES = ['auto', 'light', 'dark'] as const
@@ -33,8 +32,7 @@ export function setTheme(value: string): Theme {
 }
 
 /*
- * ponytail: the same resolve-and-apply logic, hand-inlined for <head> — it must
- * run before first paint (no flash) and before any bundle loads, so it can't
- * import from here. Also re-runs on OS scheme changes to keep `auto` live.
+ * ponytail: the same logic hand-inlined for <head> — it must run before first
+ * paint and any bundle. Also re-runs on OS scheme changes to keep `auto` live.
  */
 export const themeInitScript = `(function(){var m=matchMedia('${DARK_QUERY}');function a(){var t=localStorage.getItem('${THEME_KEY}');var d=t==='dark'||(t!=='light'&&m.matches);var e=document.documentElement;e.dataset.theme=d?'dark':'light';e.style.colorScheme=d?'dark':'light'}a();m.addEventListener('change',a)})()`

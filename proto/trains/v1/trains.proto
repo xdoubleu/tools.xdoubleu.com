@@ -2,9 +2,8 @@ syntax = "proto3";
 package trains.v1;
 option go_package = "tools.xdoubleu.com/gen/trains/v1;trainsv1";
 
-// Leg is one boarded train, from where the passenger gets on to where they
-// get off. trip_short_name/route_short_name identify the train to a
-// user — trip_id itself churns daily and is never exposed here.
+// Leg is one boarded train, board to alight. trip_id churns daily and is
+// never exposed; trip_short_name/route_short_name identify the train.
 message Leg {
   string trip_short_name = 1;
   string route_short_name = 2;
@@ -25,9 +24,8 @@ message Journey {
   string departure_time = 2;
   string arrival_time = 3;
   int32 transfers = 4;
-  // Opaque id identifying this exact journey (trip_short_name + board/alight
-  // stop and time per leg), decodable back into GetJourneyDetailRequest with
-  // no server-side storage — never a raw trip_id, which churns daily.
+  // Opaque, stateless id decodable into GetJourneyDetailRequest; never a raw
+  // trip_id.
   string journey_id = 5;
 }
 
@@ -38,8 +36,7 @@ message Alert {
   string description_text = 3;
 }
 
-// StopCall is the scheduled and (if published) live state of one stop along
-// a journey detail leg.
+// StopCall is one stop's scheduled and live state on a journey detail leg.
 message StopCall {
   string stop_id = 1;
   string stop_name = 2;
@@ -48,8 +45,8 @@ message StopCall {
   string scheduled_arrival = 4;
   // RFC3339, empty at the leg's terminus stop.
   string scheduled_departure = 5;
-  // One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
-  // models.DelayState. "unknown" must never be rendered as "on_time".
+  // "on_time", "delayed", "unknown", "skipped" or "cancelled".
+  // "unknown" must never be rendered as "on_time".
   string status = 6;
   // Only meaningful when status is "delayed"; seconds, positive = late.
   int32 delay_seconds = 7;
@@ -57,46 +54,40 @@ message StopCall {
   bool is_alight_stop = 9;
 }
 
-// LegDetail is one boarded train's full live state: every stop between
-// where the passenger boards and alights, plus any alerts attached to it.
+// LegDetail is one boarded train's live state: every stop from board to
+// alight, plus alerts.
 message LegDetail {
   string trip_short_name = 1;
   string route_short_name = 2;
   string headsign = 3;
-  // Whole-trip cancellation — distinct from an individual StopCall's
-  // "skipped" (partial cancellation).
+  // Whole-trip cancellation, unlike a StopCall's "skipped".
   bool cancelled = 4;
   repeated StopCall stops = 5;
   repeated Alert alerts = 6;
 }
 
-// JourneyAlternative is a re-planned itinerary surfaced when a positive
-// realtime signal shows the journey as planned no longer works — a missed
-// connection, a cancelled leg, a skipped board/alight stop, or a final
-// arrival slipping past a threshold. Absence of live data (NO_DATA) never
-// produces one. The re-plan runs from the next still-reachable station, at
-// the actual (live) time there, to the original destination (issue #1395).
+// JourneyAlternative is a re-plan from the next reachable station at its live
+// time, surfaced only on a positive realtime signal that the journey broke
+// (missed connection, cancellation, skipped stop, or arrival slipping too
+// far); never on missing live data.
 message JourneyAlternative {
-  // Passenger-facing explanation of what broke, e.g.
-  // "You'll miss the 17:42 at Mechelen by 4 min".
+  // Passenger-facing reason, e.g. "You'll miss the 17:42 at Mechelen by 4 min".
   string reason = 1;
   // Name of the station the alternative departs from.
   string from_stop_name = 2;
-  // The re-planned itinerary, same shape as a search result so the overview
-  // row renders it unchanged. Unset when the router found no alternative —
-  // the reason is still worth showing on its own.
+  // The re-planned itinerary; unset when none was found (reason still
+  // applies).
   Journey journey = 3;
 }
 
-// JourneyDetail is the full live state of one previously-searched journey —
-// the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+// JourneyDetail is the live state of a searched journey, kept fresh over a
+// websocket.
 message JourneyDetail {
   string journey_id = 1;
   repeated LegDetail legs = 2;
   string departure_time = 3;
   string arrival_time = 4;
-  // Set only when a positive realtime signal shows the planned journey is
-  // broken (issue #1395); unset otherwise.
+  // Set only when realtime data shows the planned journey is broken.
   JourneyAlternative alternative = 5;
 }
 
@@ -109,40 +100,32 @@ message GetJourneyDetailResponse {
 }
 
 message SearchJourneysRequest {
-  // Origin stop id — a station (its children are all considered) or a
-  // specific platform.
+  // A station (all its platforms) or a specific platform.
   string origin_stop_id = 1;
   string destination_stop_id = 2;
-  // RFC3339 timestamp, interpreted as a departure time unless arrive_by
-  // is set.
+  // RFC3339; a departure time unless arrive_by is set.
   string time = 3;
   bool arrive_by = 4;
 }
 
 message SearchJourneysResponse {
-  // A Pareto set over (arrival time, transfer count) — the earliest
-  // arrival plus slower options with fewer changes, for a window around
-  // the requested time.
+  // Pareto set over (arrival, transfers) for a window around the time.
   repeated Journey journeys = 1;
 }
 
-// Station is a location_type=1 stop — a station a passenger picks as an
-// origin or destination. Never a platform-level stop.
+// Station is a location_type=1 stop, never a platform.
 message Station {
   string stop_id = 1;
   string name_nl = 2;
   string name_fr = 3;
   string name_en = 4;
-  // The single canonical passenger-facing label: every genuinely-known
-  // full-language name, deduped and joined — the same value both the
-  // station picker and journey/leg views render (issue #1656).
+  // The canonical label: every known full-language name, deduped and joined.
   string display_name = 5;
 }
 
 message SearchStationsRequest {
-  // Free-text substring match against the station name in any of the three
-  // languages, case-insensitive. Empty returns an alphabetical page of
-  // stations.
+  // Case-insensitive substring match on any language's name; empty returns
+  // an alphabetical page.
   string query = 1;
 }
 
@@ -155,38 +138,28 @@ message GetFeedInfoRequest {}
 message GetFeedInfoResponse {
   // Empty when the static feed has never been imported yet.
   string feed_version = 1;
-  // RFC3339 timestamp of the import that produced the stored feed. A
-  // conditional GET makes an unchanged feed a no-op, so this is the only
-  // signal distinguishing "the timetable is current" from "no import has
-  // landed in weeks"; empty when nothing has been imported yet.
+  // RFC3339 time of the import that produced the stored feed; empty if none.
+  // The only signal of timetable staleness, since unchanged feeds no-op.
   string imported_at = 2;
-  // How much of translations.txt the stored import applied. A feed with no
-  // translations, one whose rows match no stop, and a monolingual one all
-  // render as three identical station names, so these counts are what tells
-  // them apart.
+  // How much of translations.txt was applied; distinguishes missing,
+  // unmatched and monolingual translations.
   TranslationCoverage translations = 3;
 }
 
-// TranslationCoverage reports what an import made of the feed's
-// translations.txt.
+// TranslationCoverage reports what an import made of translations.txt.
 message TranslationCoverage {
-  // Stops whose name in that language came from translations.txt rather
-  // than falling back to the feed's primary stop_name.
+  // Stops named from translations.txt rather than the primary stop_name.
   int32 translated_stops_nl = 1;
   int32 translated_stops_fr = 2;
   int32 translated_stops_en = 3;
-  // Usable stop_name rows read from translations.txt; 0 when the feed omits
-  // the file.
+  // Usable stop_name rows read; 0 when the file is absent.
   int32 rows = 4;
   // Rows identifying a stop this feed's stops.txt does not contain.
   int32 rows_unmatched = 5;
 }
 
-// SavedCommute is a user's named origin->destination station pair, surfaced
-// above the /trains pickers so a route they take every day is one tap away.
-// origin/destination are always location_type=1 stations keyed by their
-// S-prefixed UIC parent-station id — never a trip_id or anything derived
-// from a specific day's timetable (#1390).
+// SavedCommute is a user's named station pair for one-tap searches. Stations
+// are keyed by S-prefixed UIC parent-station id, never a trip_id.
 message SavedCommute {
   string id = 1;
   string label = 2;
@@ -232,13 +205,10 @@ service TrainService {
   rpc SearchJourneys(SearchJourneysRequest) returns (SearchJourneysResponse);
   rpc SearchStations(SearchStationsRequest) returns (SearchStationsResponse);
   rpc GetFeedInfo(GetFeedInfoRequest) returns (GetFeedInfoResponse);
-  // GetJourneyDetail fetches the full live state of a previously-searched
-  // journey (issue #1394) and, as a side effect, ensures the websocket topic
-  // at /trains/api/journeys/live exists for its journey_id so a client can
-  // subscribe right after this call returns.
+  // GetJourneyDetail fetches a searched journey's live state and ensures its
+  // /trains/api/journeys/live websocket topic exists.
   rpc GetJourneyDetail(GetJourneyDetailRequest) returns (GetJourneyDetailResponse);
-  // Saved-commute CRUD (#1396), each scoped to the signed-in user and gated
-  // by the trains app's own AppAccess like every other RPC here.
+  // Saved-commute CRUD, scoped to the signed-in user.
   rpc ListSavedCommutes(ListSavedCommutesRequest) returns (ListSavedCommutesResponse);
   rpc CreateSavedCommute(CreateSavedCommuteRequest) returns (CreateSavedCommuteResponse);
   rpc UpdateSavedCommute(UpdateSavedCommuteRequest) returns (UpdateSavedCommuteResponse);

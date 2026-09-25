@@ -17,8 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// closedWSConn creates a real websocket connection on the server side and
-// immediately closes it so that any subsequent write to it returns an error.
+// closedWSConn returns a closed server-side connection whose writes fail.
 func closedWSConn(t *testing.T) *websocket.Conn {
 	t.Helper()
 
@@ -42,7 +41,6 @@ func closedWSConn(t *testing.T) *websocket.Conn {
 	t.Cleanup(func() { _ = clientConn.CloseNow() })
 
 	srvConn := <-connCh
-	// Close the server-side connection so any write attempt returns an error.
 	_ = srvConn.CloseNow()
 	return srvConn
 }
@@ -171,7 +169,6 @@ func TestLeaveViewer(t *testing.T) {
 func TestLeaveViewerFromNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	// Should not panic
 	rs.LeaveViewer(context.Background(), "XXXXXX")
 }
 
@@ -194,14 +191,12 @@ func TestJoinViewerWSToNonExistentRoom(t *testing.T) {
 func TestSendToViewerToNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	// Should not panic
 	rs.SendToViewer(t.Context(), "XXXXXX", trackMsg())
 }
 
 func TestSendToPresenterToNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	// Should not panic
 	rs.SendToPresenter(t.Context(), "XXXXXX", trackMsg())
 }
 
@@ -211,7 +206,7 @@ func TestSendToViewerWriteError(t *testing.T) {
 	rs.JoinViewer(t.Context(), code, "viewer-1")
 	rs.JoinViewerWS(t.Context(), code, closedWSConn(t))
 
-	// Write to a closed connection — the service must log the error and not panic.
+	// A write to a closed connection is logged, not a panic.
 	rs.SendToViewer(t.Context(), code, trackMsg())
 }
 
@@ -220,7 +215,7 @@ func TestSendToPresenterWriteError(t *testing.T) {
 	code := rs.CreateRoom(t.Context(), "presenter-1")
 	rs.JoinPresenter(t.Context(), code, closedWSConn(t))
 
-	// Write to a closed connection — the service must log the error and not panic.
+	// A write to a closed connection is logged, not a panic.
 	rs.SendToPresenter(t.Context(), code, trackMsg())
 }
 

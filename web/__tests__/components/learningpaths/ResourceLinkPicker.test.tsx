@@ -101,7 +101,6 @@ describe('ResourceLinkPicker — book search', () => {
     await waitFor(() => screen.getByText('Dune'))
     fireEvent.click(screen.getByText('Dune'))
     expect(onLinkBook).toHaveBeenCalledWith({ id: 'b1', title: 'Dune' })
-    // Picking a result returns to the unlinked view.
     expect(screen.getByRole('button', { name: 'Link a book' })).toBeInTheDocument()
   })
 

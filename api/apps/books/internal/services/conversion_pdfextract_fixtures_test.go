@@ -14,10 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Fixture layout constants (all in PDF points, unit "pt"). Chosen with wide
-// safety margins so paragraph-break/heading/gutter classification is robust
-// to exact glyph-metric variance rather than depending on precise
-// hand-computed font measurements.
+// Fixture layout in PDF points, with wide margins so classification doesn't
+// depend on exact glyph metrics.
 const (
 	fixturePageWidth  = 700.0
 	fixturePageHeight = 800.0
@@ -29,16 +27,10 @@ const (
 	fixtureBodySize    = 10.0
 	fixtureHeadingSize = 20.0
 
-	// fixtureSameParaDY is the baseline-to-baseline gap used between two
-	// lines that must join into one paragraph (the hyphenation pair).
 	fixtureSameParaDY = 14.0
-	// fixtureBreakDY is the baseline-to-baseline gap used between two lines
-	// that must start separate paragraphs.
-	fixtureBreakDY = 70.0
+	fixtureBreakDY    = 70.0
 )
 
-// newFixturePDF returns a blank landscape-agnostic custom-size PDF ready for
-// hand-placed text/images, with unit "pt" so positions map 1:1 to PDF points.
 func newFixturePDF() *fpdf.Fpdf {
 	pdf := fpdf.NewCustom(&fpdf.InitType{
 		OrientationStr: "P",
@@ -58,9 +50,6 @@ func fixtureText(pdf *fpdf.Fpdf, x, y, size float64, s string) {
 	pdf.Text(x, y, s)
 }
 
-// pngImageOptions is the shared fpdf.ImageOptions used by every fixture
-// image below — plain PNG, no DPI metadata, no negative-position override.
-//
 //nolint:gochecknoglobals // read-only shared test fixture config
 var pngImageOptions = fpdf.ImageOptions{
 	ImageType:             "PNG",
@@ -68,9 +57,6 @@ var pngImageOptions = fpdf.ImageOptions{
 	AllowNegativePosition: false,
 }
 
-// solidPNG generates a small solid-color PNG in-code (no binary fixture is
-// committed): a plain filled rectangle is enough to exercise bitmap
-// extraction/encoding without needing real image content.
 func solidPNG(t *testing.T, width, height int, c color.Color) []byte {
 	t.Helper()
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -101,12 +87,8 @@ func savePDF(t *testing.T, pdf *fpdf.Fpdf, name string) string {
 }
 
 const (
-	// twoColHeading is deliberately short: the column-right-edge stat used by
-	// the short-line paragraph-break rule is a max over every line in the
-	// column, including headings, and body lines here are single, unwrapped
-	// strings of varying length rather than text actually wrapped to fill the
-	// column — a wide heading would dominate that max and make every
-	// legitimately-continuing body line look "short" by comparison.
+	// twoColHeading is short because the column right edge is a max over every
+	// line; a wide heading would make unwrapped body lines all look "short".
 	twoColHeading     = "HEADING"
 	twoColParaA       = "Left paragraph of body text content here"
 	twoColParaBL1     = "This word right here becomes assess-"
@@ -119,15 +101,10 @@ const (
 	twoColFigName = "fixture-two-col-fig.png"
 )
 
-// makeTwoColumnPDF builds a single two-column page: a heading, a figure
-// placed between two known paragraphs in the left column, a hyphenated word
-// split across two lines, and a short paragraph closing the column, followed
-// by two paragraphs in the right column. The right column's lines are placed
-// at Y offsets that never coincide with the left column's, since step 1 (line
-// grouping) clusters purely by y-midpoint proximity — real two-column layouts
-// rarely align their row grids exactly across the whole page, and this
-// fixture must not accidentally do so either, or lines from both columns
-// would be grouped into one before column splitting ever runs.
+// makeTwoColumnPDF builds a two-column page: heading, a figure between left
+// paragraphs, a hyphenated split, and two right-column paragraphs. Right
+// column Y offsets never coincide with the left's, or line grouping would
+// merge them before column splitting.
 func makeTwoColumnPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -176,16 +153,11 @@ const (
 	singleColParaA   = "Opening paragraph of the single column body text goes here"
 	singleColParaB   = "Second paragraph of the single column body text follows " +
 		"after a gap"
-	// singleColParaC pads the page's total extractable-character count past
-	// the 200-character image-only-page threshold — without it this fixture
-	// would (correctly, per that rule) get rendered as a full-page fallback
-	// image instead of exercising the paragraph/heading path this test wants.
+	// singleColParaC pushes the page past the 200-char image-only threshold.
 	singleColParaC = "Extra closing paragraph of body text adds more length " +
 		"for this section now and then some more words follow"
 )
 
-// makeSingleColumnPDF builds a single-column page with one heading and three
-// body paragraphs.
 func makeSingleColumnPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -206,13 +178,8 @@ func makeSingleColumnPDF(t *testing.T) string {
 	return savePDF(t, pdf, "single-column.pdf")
 }
 
-// makeImageOnlyPDF builds a page containing only an image, sized under the
-// 1%-of-page-area figure filter so it is never extracted as a standalone
-// figure — exercising the "no images survived the filters" branch of the
-// image-only-page fallback, which rasterizes the whole page instead. A real
-// scanned page's raster is normally far larger than this, but what the
-// fallback branch keys on is exactly this condition (near-zero text, zero
-// surviving figures), not the image's absolute size.
+// makeImageOnlyPDF has one image under the 1%-of-page figure filter, so the
+// image-only fallback rasterizes the whole page.
 func makeImageOnlyPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -223,10 +190,8 @@ func makeImageOnlyPDF(t *testing.T) string {
 	return savePDF(t, pdf, "image-only.pdf")
 }
 
-// makeLogoRepeatedPDF places the same small image on three pages (to
-// exercise document-level SHA-256 dedupe) alongside a tiny sub-50px image (to
-// exercise the pixel-size filter) and enough body text that these pages
-// don't trip the image-only-page fallback.
+// makeLogoRepeatedPDF repeats one image on three pages (dedupe) plus a
+// sub-50px image (size filter), with enough text to avoid the fallback.
 func makeLogoRepeatedPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -267,15 +232,9 @@ func makeLogoRepeatedPDF(t *testing.T) string {
 	return savePDF(t, pdf, "logo-repeated.pdf")
 }
 
-// makeImageOnlyMultiPagePDF builds five pages that all fall into the
-// image-only-page fallback (near-zero text, zero surviving figures): four
-// truly blank pages, whose 150-DPI rasters are byte-identical to each other
-// (mirroring the real-world case of many blank scanned pages), and one page
-// filled with a solid color via a vector fill rather than an embedded image
-// object — still qualifying for the same fallback, but rasterizing to
-// different bytes — to exercise document-level dedupe of the full-page
-// raster path the same way makeLogoRepeatedPDF exercises it for regular
-// figures.
+// makeImageOnlyMultiPagePDF builds five image-only-fallback pages: four blank
+// (identical rasters) and one vector-filled, to exercise full-page raster
+// dedupe.
 func makeImageOnlyMultiPagePDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -292,68 +251,36 @@ func makeImageOnlyMultiPagePDF(t *testing.T) string {
 	return savePDF(t, pdf, "image-only-multi-page.pdf")
 }
 
-// proofSlugPageCount is the number of pages in makeProofSlugPDF — high
-// enough to clear removeProofSlugLines' recurrence threshold.
+// proofSlugPageCount clears removeProofSlugLines' recurrence threshold.
 const proofSlugPageCount = 5
 
-// proofSlugBodyParaFmt/proofSlugBodyExtraFmt are the two genuine body
-// paragraphs placed on every fixture page, distinct per page so a test can
-// assert each one survives filtering.
 const (
 	proofSlugBodyParaFmt = "Body paragraph %d discusses systems thinking " +
 		"concepts and feedback loops in some extra detail here"
 	proofSlugBodyExtraFmt = "Second paragraph %d continues the discussion " +
 		"of stocks and flows within the same system boundary"
-	// proofSlugFooterFmt mirrors the shape from issue #1652 (a short line
-	// with a page-number token, an m/d/yy-style date, and an h:mm:ss-style
-	// time) without the literal all-caps "TIS" book-title prefix — detection
-	// must key on the general shape, never that one book's literal text. Its
-	// filler words deliberately use only x-height lowercase letters (a, c,
-	// e, m, n, o, r, s), never an ascender/descender (b, d, f, g, h, i, j, k,
-	// l, p, q, t, y) or an uppercase letter: fpdf's per-glyph bounding boxes
-	// give ascenders/descenders/digits a taller box than x-height letters,
-	// and this line's roughly even split between letters and digits would
-	// otherwise push its median glyph height over the heading-classification
-	// ratio in this synthetic fixture (real embedded fonts don't skew this
-	// way, per the issue's own report of the line coming out as a <p>),
-	// which would mask the paragraph-level bug this test exists to
-	// reproduce.
+	// proofSlugFooterFmt has the proof-slug shape (page number, date, time) with
+	// no book-specific text. Its words use only x-height letters: fpdf gives
+	// ascenders/digits taller boxes, which would otherwise make the line classify
+	// as a heading in this synthetic fixture.
 	proofSlugFooterFmt = "canoe scene ocean scan %d sonar %s arena %s"
-	// proofSlugDateInBodyPara is a genuine body paragraph that happens to
-	// contain a date but neither a bare page-number token nor a time — it
-	// must never be mistaken for the proof slug.
+	// proofSlugDateInBodyPara has a date but no page number or time, so it must
+	// never be treated as a slug.
 	proofSlugDateInBodyPara = "The revised schedule set the deadline for " +
 		"5/2/09 according to the committee notes"
-	// proofSlugBodyClosingFmt pads each page's extractable non-whitespace
-	// character count past the 200-char image-only-page threshold (whitespace
-	// is dropped before that count, so the other two paragraphs plus the
-	// footer alone fall just short) — without it these pages would each
-	// render as a full-page fallback image instead of exercising the
-	// paragraph/footer-filtering path this test wants.
+	// proofSlugBodyClosingFmt pushes each page past the 200-char image-only
+	// threshold.
 	proofSlugBodyClosingFmt = "Closing paragraph %d wraps up the page with " +
 		"a bit more body text so the page is never treated as image-only content"
 )
 
-// makeProofSlugPDF builds a multi-page PDF where every page carries three
-// genuine body paragraphs plus a fixed-position footer line at the bottom
-// of the page shaped like a print-shop proof slug (page number + date +
-// time) — reproducing issue #1652. The last page's second paragraph is
-// replaced with proofSlugDateInBodyPara to check that a paragraph merely
-// containing a date is never swept up by the footer filter. Page numbers,
-// dates, and times reuse the digit shapes from the issue's real-world
-// example (page 72, 5/2/09, 10:37:39) rather than small sequential numbers —
-// fpdf's naive per-glyph advance-width placement (unlike real production
-// PDFs) can otherwise misplace certain digit pairs widely enough to trip the
-// line-grouping word-space heuristic and split a token in two.
+// makeProofSlugPDF builds pages with three body paragraphs and a bottom proof
+// slug; the last page swaps in proofSlugDateInBodyPara.
 func makeProofSlugPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
 
-	// pageNums/dates/times deliberately avoid the digit "1" anywhere: fpdf's
-	// per-glyph advance-width placement (unlike real production PDFs)
-	// misjudges the gap next to a "1" glyph (it's narrower than other
-	// digits) widely enough to trip the line-grouping word-space heuristic
-	// and split the token in two, wherever "1" falls in it.
+	// No digit "1": fpdf misplaces the gap beside it enough to split tokens.
 	pageNums := []int{72, 73, 74, 75, 76}
 	dates := []string{"5/2/09", "5/3/09", "5/4/09", "5/5/09", "5/6/09"}
 	times := []string{

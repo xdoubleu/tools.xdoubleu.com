@@ -8,9 +8,8 @@ export interface BreadcrumbItem {
 }
 
 /**
- * Hierarchical navigation trail. The last item is rendered as the current page
- * (no link). Earlier items render as links when given an `href`. Use this in
- * place of one-off "back" links so navigation looks consistent across apps.
+ * Navigation trail; the last item is the current page. Use instead of
+ * one-off "back" links.
  */
 export function Breadcrumb({ items, className }: { items: BreadcrumbItem[]; className?: string }) {
   return (

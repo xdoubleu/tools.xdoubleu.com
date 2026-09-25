@@ -163,8 +163,7 @@ func TestFilterGrafanaRules_InvalidJSON(t *testing.T) {
 }
 
 func TestFilterGrafanaRules_MalformedGroup(t *testing.T) {
-	// A group that isn't valid JSON is a real upstream anomaly, not an
-	// empty match — surface it as an error rather than dropping the group.
+	// An invalid group is an error, not an empty match.
 	_, err := filterGrafanaRules(
 		[]byte(`{"data":{"groups":["{oops"]}}`), "Nope",
 	)
@@ -172,8 +171,7 @@ func TestFilterGrafanaRules_MalformedGroup(t *testing.T) {
 }
 
 func TestFilterGrafanaRules_MissingDataEnvelope(t *testing.T) {
-	// An upstream response with no data object still round-trips: the
-	// filter materializes an empty data.groups rather than panicking.
+	// No data object still yields an empty data.groups.
 	filtered, err := filterGrafanaRules([]byte(`{"status":"success"}`), "Nope")
 	require.NoError(t, err)
 

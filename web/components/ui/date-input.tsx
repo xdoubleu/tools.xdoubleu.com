@@ -13,12 +13,7 @@ interface DateInputProps {
   'aria-label'?: string
 }
 
-/**
- * Native `<input type="date">` on every viewport — the browser/OS renders
- * its own locale formatting and picker UI, matching how the time field
- * (`Input type="time"`) already behaves. A `type="date"` input's value is
- * always 'YYYY-MM-DD' or '', so no display/ISO conversion layer is needed.
- */
+/** Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''. */
 export function DateInput({
   value,
   onChange,

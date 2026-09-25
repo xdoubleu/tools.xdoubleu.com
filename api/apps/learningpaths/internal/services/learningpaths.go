@@ -14,9 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// learningPathsStore is the storage surface LearningPathService needs. It is
-// satisfied by repositories.LearningPathsRepository and by fakes in unit
-// tests, so ownership rules can be tested without a database.
+// learningPathsStore is the storage surface LearningPathService needs.
 type learningPathsStore interface {
 	ListForUser(
 		ctx context.Context, userID string, limit, offset int32,
@@ -36,25 +34,19 @@ type learningPathsStore interface {
 	RecordItemProgress(
 		ctx context.Context, itemID uuid.UUID, userID string, completed bool,
 	) error
-	// GetItemForUser is used by TodoistService.SendItem (issue #1475) to
-	// build a task's content without pulling the whole path tree.
 	GetItemForUser(
 		ctx context.Context, itemID uuid.UUID, userID string,
 	) (*models.ItemForTask, error)
 }
 
-// bookLookup is the surface LearningPathService needs from the books app to
-// resolve/validate a resource's linked book. Satisfied by *books.Books
-// (api/apps/books), narrowed here so unit tests can fake it without a
-// database.
+// bookLookup is the books surface (*books.Books) for linked resources.
 type bookLookup interface {
 	GetLibraryBookByID(
 		ctx context.Context, userID string, bookID uuid.UUID,
 	) (*booksv1.UserBook, error)
 }
 
-// feedItemLookup is the feeds-side counterpart to bookLookup, satisfied by
-// *feeds.Feeds (api/apps/feeds).
+// feedItemLookup is the feeds surface (*feeds.Feeds) for linked resources.
 type feedItemLookup interface {
 	GetItemByID(
 		ctx context.Context, userID string, itemID uuid.UUID,
@@ -76,11 +68,8 @@ func (s *LearningPathService) List(
 	return s.repo.ListForUser(ctx, userID, limit, offset)
 }
 
-// Get returns a learning path owned by userID, with its modules/items/
-// resources populated. Per-user scoping means there is no sharing concept —
-// a path owned by someone else reports as not found, the same "404 on
-// foreign ownership" rule used elsewhere for user-scoped lookups, rather
-// than a 403 that would confirm the ID exists.
+// Get returns a learning path owned by userID with its tree populated. A
+// foreign path reports not found, not forbidden.
 func (s *LearningPathService) Get(
 	ctx context.Context,
 	id uuid.UUID,
@@ -112,13 +101,9 @@ func (s *LearningPathService) Get(
 	return lp, nil
 }
 
-// resolveResourceLinks populates LinkedBook/LinkedFeedItem on every resource
-// that carries a link ID, mutating resources in place. A link that no
-// longer resolves (the book/feed item was removed, or — defensively — now
-// belongs to someone else) is left unpopulated rather than failing the
-// whole Get: a stale link is a display concern, not a reason to 404 an
-// otherwise-valid learning path. Any other error (a real infrastructure
-// failure) still propagates.
+// resolveResourceLinks populates LinkedBook/LinkedFeedItem in place. A link
+// that no longer resolves is left empty rather than failing Get; other
+// errors propagate.
 func (s *LearningPathService) resolveResourceLinks(
 	ctx context.Context,
 	userID string,
@@ -157,11 +142,8 @@ func (s *LearningPathService) resolveResourceLinks(
 	return nil
 }
 
-// validateResourceLinks confirms every linked_book_id/linked_feed_item_id a
-// caller supplies on Create/Update actually resolves for userID before it is
-// persisted — an unresolvable link (wrong ID, or an ID belonging to another
-// user) is rejected up front rather than silently stored and only
-// discovered missing on the next Get.
+// validateResourceLinks rejects any linked_book_id/linked_feed_item_id that
+// doesn't resolve for userID before it is persisted.
 func (s *LearningPathService) validateResourceLinks(
 	ctx context.Context,
 	userID string,
@@ -267,9 +249,8 @@ func (s *LearningPathService) Delete(
 	return s.repo.Delete(ctx, id, userID)
 }
 
-// RecordItemProgress toggles a single item's completion flag. Ownership is
-// enforced inside the repository query (joined through the item's module and
-// path to userID), so there is no separate existence check here.
+// RecordItemProgress toggles an item's completion; ownership is enforced in
+// the repository query.
 func (s *LearningPathService) RecordItemProgress(
 	ctx context.Context,
 	userID string,
@@ -279,11 +260,7 @@ func (s *LearningPathService) RecordItemProgress(
 	return s.repo.RecordItemProgress(ctx, itemID, userID, completed)
 }
 
-// GetProgress returns a learning path owned by userID with its
-// modules/items/resources populated, for the caller to derive completion
-// counts from. It is a thin alias over Get — reusing that method's ownership
-// check and tree assembly — kept as its own name so the connect handler's
-// intent (progress, not the full CRUD read) is clear at the call site.
+// GetProgress is Get, named for the progress read.
 func (s *LearningPathService) GetProgress(
 	ctx context.Context,
 	id uuid.UUID,

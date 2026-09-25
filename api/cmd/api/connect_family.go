@@ -25,8 +25,7 @@ func (h *familyConnectHandler) userID(ctx context.Context) string {
 	return u.ID
 }
 
-// emailsByUserID resolves user IDs to their email addresses (family members
-// and invites are stored by user ID, but displayed by email).
+// emailsByUserID resolves user IDs to emails for display.
 func (h *familyConnectHandler) emailsByUserID(
 	ctx context.Context,
 ) (map[string]string, error) {

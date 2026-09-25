@@ -15,12 +15,8 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// hmacStrategyFor builds a bare oauth2.HMACSHAStrategy sharing the test
-// config's GlobalSecret, so tests can mint access tokens directly against
-// the store without driving a full HTTP authorize+token exchange — used to
-// reach resolver/store states (expired, no-subject) a real flow can't
-// produce without the hour-long AccessTokenLifespan baked into server.go
-// actually elapsing.
+// hmacStrategyFor mints access tokens directly, reaching states (expired,
+// no-subject) a real flow can't produce quickly.
 func hmacStrategyFor(t *testing.T) fositeoauth2.CoreStrategy {
 	t.Helper()
 	cfg := testhelper.NewTestConfig()

@@ -1,7 +1,5 @@
-// Package progresshistory implements generic cumulative-progress storage with
-// carry-forward semantics: values are recorded per (user, date) and reads
-// fill every calendar day in the window, seeding from the last value recorded
-// before the window so graphs never reset mid-window.
+// Package progresshistory stores cumulative progress per (user, date); reads
+// fill every day in the window, carrying the last earlier value forward.
 package progresshistory
 
 import (
@@ -21,8 +19,7 @@ type Record struct {
 	Value string
 }
 
-// Repository is the storage interface required by Service. Implementations
-// live in each app's repositories package (schema-qualified SQL).
+// Repository is implemented in each app's repositories package.
 type Repository interface {
 	Upsert(
 		ctx context.Context,
@@ -60,15 +57,13 @@ func (s *Service) Save(
 	return s.repo.Upsert(ctx, userID, dates, values)
 }
 
-// GetByDates returns per-day labels and values for the window, carrying the
-// last known value forward across days without records.
+// GetByDates returns per-day labels and values, carrying values forward.
 func (s *Service) GetByDates(
 	ctx context.Context,
 	userID string,
 	dateStart time.Time,
 	dateEnd time.Time,
 ) ([]string, []string, error) {
-	// Carry-forward baseline: last cumulative value recorded before the window.
 	baseline, err := s.repo.GetLastValueBefore(ctx, userID, dateStart)
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, nil, err
@@ -83,14 +78,11 @@ func (s *Service) GetByDates(
 		return nil, nil, nil
 	}
 
-	// Index stored records by date string.
 	byDate := make(map[string]string, len(progresses))
 	for _, p := range progresses {
 		byDate[p.Date.Format(DateFormat)] = p.Value
 	}
 
-	// Fill every calendar day from dateStart to today (or dateEnd), seeding
-	// with the carry-forward baseline so the graph never resets mid-window.
 	const day = 24 * time.Hour
 	start := dateStart.UTC().Truncate(day)
 	end := dateEnd.UTC().Truncate(day)

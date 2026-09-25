@@ -38,7 +38,6 @@ func TestEnrollTOTP_ProducesValidSecret(t *testing.T) {
 	assert.NotEmpty(t, enrollment.Secret)
 	assert.NotEmpty(t, enrollment.QRSVG)
 
-	// The returned secret must be usable to generate a real, valid code.
 	code := totpCode(t, enrollment.Secret)
 	assert.Len(t, code, 6)
 }
@@ -198,8 +197,7 @@ func TestVerifyMFA_FactorBelongsToDifferentUser(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// otherAccess belongs to a different user than the factor being
-	// challenged: VerifyMFA must reject it even with a valid TOTP code.
+	// otherAccess belongs to a different user than the factor.
 	_, _, err = service.VerifyMFA(
 		context.Background(), *otherAccess, enrollment.ID, enrollment.ID,
 		totpCode(t, enrollment.Secret),

@@ -16,27 +16,19 @@ import (
 	"tools.xdoubleu.com/internal/todoist"
 )
 
-// ErrTodoistNotConnected is returned by SendItem/Status-adjacent calls when
-// the caller hasn't connected their own Todoist account yet — callers map
-// this to a client-actionable error (ConnectRPC FailedPrecondition), not a
-// 500, since it's an expected state, not a bug.
+// ErrTodoistNotConnected is returned when the caller hasn't connected Todoist;
+// callers map it to FailedPrecondition, not a 500.
 var ErrTodoistNotConnected = oauthconn.ErrNotConnected
 
-// TodoistService lets a user connect their own Todoist account and send a
-// single learning-path item to it as a task (issue #1475), one-way — no
-// sync-back, per #1471's "Not this". Every method is scoped by the caller's
-// own userID; there is no cross-user access here at all (unlike
-// LearningPathService's family-less-but-still-per-app RBAC, this has no
-// admin bypass either — an admin's own Todoist connection, if any, is a
-// user like any other).
+// TodoistService connects a user's own Todoist account and sends single
+// learning-path items to it as tasks, one-way. Strictly per-user; no admin
+// bypass.
 type TodoistService struct {
 	oauthRepo     *repositories.OAuthConnectionsRepository
 	learningPaths learningPathsStore
 	conf          *oauth2.Config
 	state         *oauthconn.StateStore
-	// newClient builds a todoist.Client from a live TokenFunc — a field
-	// (not a direct todoist.NewClient call) so tests can substitute a mock
-	// Client without a network round trip.
+	// newClient is a field so tests can substitute a mock Client.
 	newClient func(oauthconn.TokenFunc) todoist.Client
 }
 
@@ -55,17 +47,15 @@ func NewTodoistService(
 	}
 }
 
-// AuthorizeURL issues a fresh CSRF state for userID and returns the URL the
-// client should navigate the browser to. The callback leg that completes
-// the flow is plain HTTP, not ConnectRPC — see routes.go.
+// AuthorizeURL issues a CSRF state for userID and returns the authorize URL.
+// The callback leg is plain HTTP (routes.go).
 func (s *TodoistService) AuthorizeURL(userID string) string {
 	state := s.state.New(sharedmodels.OAuthProviderTodoist, userID)
 	return s.conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
-// HandleCallback consumes state, exchanges code for a token, and stores the
-// connection. Returns the userID the state was issued for, so the plain
-// HTTP callback route can log/redirect appropriately.
+// HandleCallback consumes state, exchanges code, and stores the connection,
+// returning the userID the state was issued for.
 func (s *TodoistService) HandleCallback(
 	ctx context.Context, state, code string,
 ) (string, error) {
@@ -93,9 +83,8 @@ func (s *TodoistService) Disconnect(ctx context.Context, userID string) error {
 	return s.oauthRepo.Delete(ctx, userID, sharedmodels.OAuthProviderTodoist)
 }
 
-// Status reports whether userID has a Todoist connection and, if so, when it
-// was established. Never returns an error for "not connected" — that's a
-// normal, expected reply for this RPC.
+// Status reports whether userID is connected and since when; "not connected"
+// is not an error.
 func (s *TodoistService) Status(
 	ctx context.Context, userID string,
 ) (bool, time.Time, error) {
@@ -111,10 +100,9 @@ func (s *TodoistService) Status(
 	return true, conn.ConnectedAt, nil
 }
 
-// SendItem creates a Todoist task from itemID's description (prefixed with
-// its owning path's title for context), for whichever user owns it — 404 on
-// foreign ownership, same rule as every other per-user lookup in this app.
-// Returns ErrTodoistNotConnected if userID hasn't connected Todoist.
+// SendItem creates a Todoist task from itemID's description, prefixed with
+// its path's title; 404 on foreign ownership. Returns ErrTodoistNotConnected
+// if userID hasn't connected Todoist.
 func (s *TodoistService) SendItem(
 	ctx context.Context, userID string, itemID uuid.UUID,
 ) (string, error) {
@@ -132,13 +120,8 @@ func (s *TodoistService) SendItem(
 	return client.CreateTask(ctx, content, "")
 }
 
-// SetOAuthConfigForTest overrides the OAuth2 config used for the Todoist
-// authorize/exchange flow. Test-only: lets a test point TokenURL at a local
-// httptest server instead of Todoist's real endpoints, the same idea as
-// cmd/api's admin OAuth tests stubbing the equivalent GitHub/Sentry leg via
-// withStubProvider — that flow's provider table is a package-level var
-// swappable in-place, but this service's conf is a private field, so the
-// override needs an explicit seam.
+// SetOAuthConfigForTest overrides the Todoist OAuth2 config, e.g. to point
+// TokenURL at an httptest server. Tests only.
 func (s *TodoistService) SetOAuthConfigForTest(conf *oauth2.Config) {
 	s.conf = conf
 }

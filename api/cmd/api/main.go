@@ -92,31 +92,23 @@ const (
 	dbMaxRetryDuration   = 20 * time.Second
 	httpReadTimeout      = 5 * time.Second
 	httpWriteTimeout     = 10 * time.Second
-	// migrationLockKey identifies the advisory lock that serializes
-	// migration runs across concurrently starting replicas.
+	// migrationLockKey is the advisory lock serializing migrations across
+	// replicas.
 	migrationLockKey = 20260101
-	// usageFlushInterval is how often accumulated request counts are
-	// written to global.usage_daily.
+	// usageFlushInterval is how often request counts go to global.usage_daily.
 	usageFlushInterval = time.Minute
-	// globalJobQueueWorkers/globalJobQueueSize size the job queue backing
-	// cross-app jobs (the issue notifier, issue #561, and the daily
-	// transaction-latency snapshot, issue #848).
+	// globalJobQueueWorkers/globalJobQueueSize size the cross-app job queue.
 	globalJobQueueWorkers = 1
 	globalJobQueueSize    = 10
 )
 
-// migrationLockTimeout bounds how long a starting replica waits for the
-// migration advisory lock before failing loudly, so a lock left held by a
-// stale connection from a prior replica can't hang startup silently forever.
-// A var (not const) so tests can shrink it instead of waiting out the real
-// timeout.
+// migrationLockTimeout makes a replica fail loudly if a stale connection
+// holds the migration lock. A var so tests can shrink it.
 //
 //nolint:gochecknoglobals //test seam, see comment above
 var migrationLockTimeout = 20 * time.Second
 
-// newDBPool opens the shared pgx pool with the app's real connect
-// parameters; factored out so tests can exercise the same argument list
-// TestMain uses to spin up its own test-DB pool.
+// newDBPool opens the shared pgx pool; tests reuse it.
 func newDBPool(logger *slog.Logger, dsn string) (*pgxpool.Pool, error) {
 	return postgres.Connect(
 		logger, dsn, dbMaxConns, dbMaxIdleTime,
@@ -135,15 +127,12 @@ func main() {
 	}
 	defer db.Close()
 
-	// The DB pool needs to exist before a handler can tee logs into
-	// global.log_entries, so this handler chain is built after it, rather
-	// than alongside bootLogger above.
+	// Built after the DB pool, which the log-teeing handler needs.
 	logger := slog.New(observability.NewLogRepoHandler(
 		sentrytools.NewLogHandler(cfg.Env, slog.NewTextHandler(os.Stdout, nil)),
 		repositories.NewLogsRepository(db),
 	))
-	// Code that can't receive the injected logger falls back to
-	// slog.Default(); route it through the same handler chain too.
+	// Route slog.Default() through the same chain.
 	slog.SetDefault(logger)
 
 	app := NewApplication(logger, cfg, db)
@@ -161,11 +150,8 @@ func main() {
 	}
 }
 
-// newOAuthSealer builds the AES-GCM sealer used to encrypt stored OAuth
-// tokens (issue #440) and TOTP secrets (issue #1039). Returns nil if
-// ENCRYPTION_KEY isn't set — the observability integrations and TOTP
-// enrollment then simply can't be used until it is; the rest of the app
-// still starts.
+// newOAuthSealer builds the AES-GCM sealer for OAuth tokens and TOTP secrets.
+// Returns nil without ENCRYPTION_KEY; those features are then unavailable.
 func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	if config.EncryptionKey == "" {
 		logger.Warn(
@@ -181,10 +167,8 @@ func newOAuthSealer(logger *slog.Logger, config config.Config) *crypto.Sealer {
 	return sealer
 }
 
-// newNotificationsService builds the shared Resend-backed notifications
-// queue (issue #383/#923) reused by family (invite emails), NewApps (feeds)
-// and WeeklyDigestJob, so every mail notification shares one FIFO delivery
-// queue and never blocks a request on the Resend round trip.
+// newNotificationsService builds the shared Resend-backed FIFO notifications
+// queue, so mail never blocks a request.
 func newNotificationsService(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -198,9 +182,8 @@ func newNotificationsService(
 	return notifications.New(ctx, logger, mailClient)
 }
 
-// newObservabilityClients builds the two external observability clients,
-// each resolving its bearer token from oauthConnRepo via oauthconn.TokenFunc
-// instead of a static config value (issue #440).
+// newObservabilityClients builds the external observability clients, each
+// resolving its token from oauthConnRepo.
 func newObservabilityClients(
 	logger *slog.Logger,
 	config config.Config,
@@ -241,11 +224,8 @@ func newObservabilityClients(
 	return githubClient, sentryClient
 }
 
-// newCrossAppJobs builds the jobs registered directly on
-// Application.globalJobQueue by startCrossAppJobs — cross-app observability
-// concerns, not scoped to one apps/<name>. transactionLatencyRepo is
-// returned alongside its job since the Connect/MCP handlers also read from
-// it directly.
+// newCrossAppJobs builds the jobs on globalJobQueue. transactionLatencyRepo is
+// returned too, since handlers read it directly.
 func newCrossAppJobs(
 	db *pgxpool.Pool,
 	sentryClient sentryapi.Client,
@@ -273,11 +253,8 @@ func newCrossAppJobs(
 		transactionLatencySnapshotJob
 }
 
-// feedsHealthAdapter adapts *feeds.Feeds to jobs.unhealthyFeedLister so
-// WeeklyDigestJob (internal/observability/jobs) never imports apps/feeds
-// directly — feeds.UnhealthyFeed and jobs.UnhealthyFeed are structurally
-// identical but distinct types, so main.go (the composition root) is what
-// bridges them.
+// feedsHealthAdapter bridges feeds.UnhealthyFeed to jobs.UnhealthyFeed so the
+// jobs package never imports apps/feeds.
 type feedsHealthAdapter struct {
 	feeds *feeds.Feeds
 }
@@ -302,9 +279,7 @@ func (a feedsHealthAdapter) ListUnhealthy(
 	return out, nil
 }
 
-// feedsOpenItemsAdapter adapts *feeds.Feeds to jobs.openFeedItemsLister so
-// WeeklyDigestJob never imports apps/feeds directly, mirroring
-// feedsHealthAdapter above.
+// feedsOpenItemsAdapter bridges *feeds.Feeds to jobs.openFeedItemsLister.
 type feedsOpenItemsAdapter struct {
 	feeds *feeds.Feeds
 }
@@ -341,9 +316,7 @@ func newWeeklyDigestJob(
 	)
 }
 
-// startCrossAppJobs registers every job living directly on app.globalJobQueue
-// — cross-app observability concerns, not scoped to one apps/<name> — rather
-// than one apps/<name>/app.go's own Start().
+// startCrossAppJobs registers the jobs on app.globalJobQueue.
 func startCrossAppJobs(app *Application) error {
 	noopCallback := func(_ string, _ bool, _ *time.Time) {}
 	if err := app.globalJobQueue.AddJob(
@@ -513,8 +486,7 @@ func NewApplication(
 		panic(err)
 	}
 
-	// Flush accumulated request counts to global.usage_daily periodically;
-	// the loop lives for the process lifetime (ctx is context.Background).
+	// Flush request counts for the process lifetime.
 	app.usage.Start(ctx, usageFlushInterval)
 
 	if err = startCrossAppJobs(app); err != nil {
@@ -532,8 +504,8 @@ func NewApplication(
 }
 
 func (app *Application) ApplyMigrations(db *pgxpool.Pool) error {
-	// Session-level advisory lock held on a dedicated connection, so two
-	// replicas rolling out at the same time never run migrations concurrently.
+	// Session-level advisory lock on a dedicated connection so replicas never
+	// migrate concurrently.
 	lockConn, err := db.Acquire(app.ctx)
 	if err != nil {
 		return err

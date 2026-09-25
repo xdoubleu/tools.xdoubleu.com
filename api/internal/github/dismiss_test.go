@@ -96,8 +96,6 @@ func TestDismissSecurityAlert_ReasonValidForWrongType(t *testing.T) {
 }
 
 func TestDismissSecurityAlert_SecretScanning_InvalidReason(t *testing.T) {
-	// A dismissed_reason from the other two types isn't a valid resolution
-	// for secret-scanning.
 	err := newClient().DismissSecurityAlert(
 		context.Background(), github.SecurityAlertTypeSecretScanning, 1, "no_bandwidth",
 	)
@@ -132,8 +130,6 @@ func TestDismissSecurityAlert_NotConnected(t *testing.T) {
 }
 
 func TestDismissSecurityAlert_TokenFnGenericError(t *testing.T) {
-	// A tokenFn error that isn't oauthconn.ErrNotConnected must propagate
-	// as-is rather than being mapped to ErrNotConfigured.
 	wantErr := errors.New("boom")
 	c := github.New(
 		logging.NewNopLogger(),
@@ -147,8 +143,7 @@ func TestDismissSecurityAlert_TokenFnGenericError(t *testing.T) {
 }
 
 func TestDismissSecurityAlert_InvalidRequestURL(t *testing.T) {
-	// A repo containing a control character makes the built endpoint an
-	// invalid URL, so http.NewRequestWithContext itself fails.
+	// A control character makes the URL invalid.
 	c := github.New(
 		logging.NewNopLogger(),
 		stubToken("token"),
@@ -161,9 +156,7 @@ func TestDismissSecurityAlert_InvalidRequestURL(t *testing.T) {
 }
 
 func TestDismissSecurityAlert_TransportError(t *testing.T) {
-	// Point at a server that's already been closed so the PATCH's
-	// underlying http.Client.Do fails outright (connection refused),
-	// without falling back to the real GitHub API.
+	// A closed server makes the request fail outright.
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}),
 	)
@@ -179,8 +172,7 @@ func TestDismissSecurityAlert_TransportError(t *testing.T) {
 }
 
 func TestDismissSecurityAlert_NonRetryableUpstreamError(t *testing.T) {
-	// A 422 isn't retryable and isn't 2xx, so it must surface as an error
-	// without exhausting all retry attempts.
+	// A 422 is not retried.
 	attempts := 0
 	cleanup := buildServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -237,7 +229,6 @@ func TestDismissSecurityAlert_ClearsSecurityAlertsCache(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, listCalls)
 
-	// Still cached — a second List within cacheTTL doesn't re-fetch.
 	_, err = c.ListSecurityAlerts(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, 1, listCalls)
@@ -247,7 +238,6 @@ func TestDismissSecurityAlert_ClearsSecurityAlertsCache(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Dismissing invalidated the cache, so this List re-fetches immediately.
 	_, err = c.ListSecurityAlerts(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, 2, listCalls)

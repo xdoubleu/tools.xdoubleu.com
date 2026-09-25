@@ -30,8 +30,7 @@ func contextWithUser(ctx context.Context, user *sharedmodels.User) context.Conte
 	return context.WithValue(ctx, constants.UserContextKey, user)
 }
 
-// createRecipeInDB inserts a minimal recipe directly so mealplans tests can
-// reference a real recipe_id without spinning up the recipes app.
+// createRecipeInDB inserts a minimal recipe via SQL.
 func createRecipeInDB(t *testing.T, name string) uuid.UUID {
 	t.Helper()
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -48,8 +47,7 @@ func createRecipeInDB(t *testing.T, name string) uuid.UUID {
 	return id
 }
 
-// createPlanInDB inserts a plan directly so tests can set up a specific plan
-// without going through the ListPlans auto-creation.
+// createPlanInDB inserts a plan via SQL, bypassing ListPlans auto-creation.
 func createPlanInDB(t *testing.T, name string) string {
 	t.Helper()
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -109,13 +107,8 @@ func TestListPlans_ReturnsExistingPlan(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.Plans)
 }
 
-// TestListPlans_Pagination verifies Limit/Offset bound the page and HasMore
-// reflects whether more rows exist beyond it. The mock auth service resolves
-// every request to the same fixed userID regardless of contextWithUser (it
-// ignores the request entirely — see MockedAuthService), so this shares a
-// fixture with every other test in the file. Plan names are prefixed to sort
-// after anything else, and a Limit:1000 baseline establishes the existing
-// count, so the three new plans land contiguously at the end.
+// TestListPlans_Pagination checks Limit/Offset/HasMore. Mock auth shares one
+// user across tests, so names sort last and a baseline count is taken first.
 func TestListPlans_Pagination(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(
@@ -224,10 +217,8 @@ func TestUpdatePlan_Success(t *testing.T) {
 	assert.Equal(t, "Updated Plan", getResp.Msg.Plan.Name)
 }
 
-// TestFamilyMember_GrantsAccess creates a plan owned by another user, joins
-// them into userID's family directly in the DB (the mock auth always
-// authenticates the server as userID, so the family membership must be
-// staged directly), then confirms userID can read and edit that plan.
+// TestFamilyMember_GrantsAccess stages another user's plan and family
+// membership via SQL (mock auth is always userID), then checks access.
 func TestFamilyMember_GrantsAccess(t *testing.T) {
 	client := setupMealPlansClient(getRoutes())
 	ctx := contextWithUser(

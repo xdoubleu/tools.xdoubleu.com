@@ -62,7 +62,6 @@ describe('BooksDashboardView', () => {
   it('requests a view change when the All time tab is clicked', () => {
     const chart = makeChart('ytd')
     renderView({ chart })
-    // Date inputs are hidden in the ytd view.
     expect(screen.queryByLabelText('From')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('tab', { name: 'All time' }))
     expect(chart.setView).toHaveBeenCalledWith('all')

@@ -20,9 +20,7 @@ func mfaClient(t *testing.T) authv1connect.AuthServiceClient {
 	return authv1connect.NewAuthServiceClient(ts.Client(), ts.URL)
 }
 
-// enrollFactor calls MFAEnroll for the given access-token cookie and returns
-// the newly created (unverified) factor ID and secret — real values, since
-// enrollment always creates a fresh factor row rather than a fixed one.
+// enrollFactor calls MFAEnroll and returns the new factor's ID and secret.
 func enrollFactor(
 	t *testing.T, client authv1connect.AuthServiceClient, token http.Cookie,
 ) (string, string) {
@@ -81,10 +79,8 @@ func TestMFAEnrollVerify_InvalidFactorID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-// enrollAndVerify enrolls+verifies a fresh factor for the given token and
-// registers a t.Cleanup unenroll, so completing verification (which
-// auth.totp_factors' "one verified factor per user" unique index only
-// allows once) doesn't leak into later tests sharing the same user.
+// enrollAndVerify enrolls and verifies a factor, unenrolling on cleanup
+// (one verified factor per user is allowed).
 func enrollAndVerify(
 	t *testing.T, client authv1connect.AuthServiceClient, token http.Cookie,
 ) *connect.Response[authv1.MFAEnrollVerifyResponse] {
@@ -243,8 +239,7 @@ func TestMFAEnrollSkip_NoRefreshToken(t *testing.T) {
 func TestMFAEnrollSkip_Success(t *testing.T) {
 	client := mfaClient(t)
 	req := connect.NewRequest(&authv1.MFAEnrollSkipRequest{})
-	// MFAEnrollSkip only relays these cookie values into new cookies — it
-	// never verifies them — so the literal "refresh" value is fine.
+	// MFAEnrollSkip only relays these cookies, so any value works.
 	setCookieOnRequest(req, mfaTokenCookie, mfaRefreshTokenCookie)
 	_, err := client.MFAEnrollSkip(context.Background(), req)
 	require.NoError(t, err)
@@ -295,9 +290,8 @@ func TestRegenerateRecoveryCodes_Success(t *testing.T) {
 	assert.NotEmpty(t, resp.Msg.RecoveryCodes)
 }
 
-// TestRegenerateRecoveryCodes_ReplacesEarlierCodes covers that a second call
-// invalidates the first batch (GenerateRecoveryCodes deletes-then-recreates),
-// not just that it returns a fresh set.
+// TestRegenerateRecoveryCodes_ReplacesEarlierCodes: a second call invalidates
+// the first batch.
 func TestRegenerateRecoveryCodes_ReplacesEarlierCodes(t *testing.T) {
 	client := mfaClient(t)
 	token := freshTestUser(t)
@@ -324,9 +318,7 @@ func TestMFAEnrollVerify_SettingsFlow_PreservesRememberMe(t *testing.T) {
 		)
 	})
 
-	// Settings flow: accessToken + refreshToken present (user had
-	// remember-me). isSettingsFlow only checks the cookie's presence, not
-	// its DB validity, so an arbitrary value is fine here.
+	// Settings flow with remember-me; only the cookie's presence is checked.
 	req := connect.NewRequest(&authv1.MFAEnrollVerifyRequest{
 		FactorId: factorID,
 		Code:     currentTOTPCode(t, secret),

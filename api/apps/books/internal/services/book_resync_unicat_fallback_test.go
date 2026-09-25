@@ -14,12 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// TestFetchUniCatByISBN_MissFallsBackToSearch is a regression test for a book
-// present in UniCat under a title/author search but not found by ISBN: UniCat's
-// 020$a index is populated from the physical item catalogued, which can miss
-// editions the union catalog otherwise has under a different or no ISBN. On an
-// ISBN miss, fetchUniCatByISBN must fall back to a title+author search rather
-// than giving up.
+// TestFetchUniCatByISBN_MissFallsBackToSearch: an ISBN miss falls back to a
+// title+author search.
 func TestFetchUniCatByISBN_MissFallsBackToSearch(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -49,10 +45,7 @@ func TestFetchUniCatByISBN_MissFallsBackToSearch(t *testing.T) {
 	assert.Equal(t, "10 franke vragen aan Frank", p.Title)
 }
 
-// TestFetchUniCatByISBN_MissFallback_GuardsWrongTitle verifies the search
-// fallback is guarded like every other title search: a result that doesn't
-// match the book's title/author must not be proposed, even though the ISBN
-// lookup missed.
+// TestFetchUniCatByISBN_MissFallback_GuardsWrongTitle: the fallback is guarded.
 func TestFetchUniCatByISBN_MissFallback_GuardsWrongTitle(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -80,8 +73,7 @@ func TestFetchUniCatByISBN_MissFallback_GuardsWrongTitle(t *testing.T) {
 	assert.False(t, unresolved, "a clean guarded miss is resolved, not unresolved")
 }
 
-// TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch verifies the fallback
-// doesn't call Search for a book with no title to search by.
+// TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch: no title, no search.
 func TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial: no title
@@ -99,9 +91,7 @@ func TestFetchUniCatByISBN_NoTitle_FallbackSkipsSearch(t *testing.T) {
 	assert.False(t, unresolved)
 }
 
-// fakeUCClientSearchErr returns ErrNotFound from GetByISBN (so
-// fetchUniCatByISBN reaches the search fallback) but errors from Search,
-// unlike fakeUCClient whose single err field drives both methods identically.
+// fakeUCClientSearchErr misses on GetByISBN and errors on Search.
 type fakeUCClientSearchErr struct{}
 
 func (fakeUCClientSearchErr) GetByISBN(
@@ -118,8 +108,7 @@ func (fakeUCClientSearchErr) Search(
 	return nil, assert.AnError
 }
 
-// TestFetchUniCatByISBN_SearchFallback_Errors verifies a Search error surfaces
-// as unresolved rather than a silent miss.
+// TestFetchUniCatByISBN_SearchFallback_Errors: a Search error is unresolved.
 func TestFetchUniCatByISBN_SearchFallback_Errors(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -138,8 +127,7 @@ func TestFetchUniCatByISBN_SearchFallback_Errors(t *testing.T) {
 	assert.True(t, unresolved)
 }
 
-// TestFetchUniCatByISBN_GetByISBNErrors verifies a non-ErrNotFound error from
-// the ISBN lookup itself surfaces as unresolved without reaching the fallback.
+// TestFetchUniCatByISBN_GetByISBNErrors: a lookup error is unresolved, no fallback.
 func TestFetchUniCatByISBN_GetByISBNErrors(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ISBN13: &isbn}       //nolint:exhaustruct // partial
@@ -157,8 +145,7 @@ func TestFetchUniCatByISBN_GetByISBNErrors(t *testing.T) {
 	assert.True(t, unresolved)
 }
 
-// TestFetchUniCatByISBN_SkipKnown verifies opts' skip-if-known cache short-
-// circuits before any provider call, mirroring the other sources' gating.
+// TestFetchUniCatByISBN_SkipKnown: skip-if-known short-circuits.
 func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
 	isbn := "9789463107389"
 	book := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial
@@ -178,9 +165,8 @@ func TestFetchUniCatByISBN_SkipKnown(t *testing.T) {
 	assert.True(t, unresolved)
 }
 
-// TestFetchByISBN_UniCatUnresolved_PropagatesToOutput verifies fetchByISBN's
-// UniCat dispatch surfaces an unresolved source (skip-known here) rather than
-// silently dropping it, matching Hardcover's dispatch.
+// TestFetchByISBN_UniCatUnresolved_PropagatesToOutput: unresolved UniCat is
+// reported, not dropped.
 func TestFetchByISBN_UniCatUnresolved_PropagatesToOutput(t *testing.T) {
 	isbn := "9789463107389"
 	svc := &BookService{ //nolint:exhaustruct // partial

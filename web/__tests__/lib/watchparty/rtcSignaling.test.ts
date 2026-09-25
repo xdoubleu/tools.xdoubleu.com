@@ -86,9 +86,7 @@ describe('createSignalHandler — malformed input', () => {
 
 describe('createSignalHandler — offers', () => {
   it('answers a cam offer with a recv connection and flushes queued candidates', async () => {
-    // Queue a candidate while the remote description is being applied — the
-    // handler clears the queue when the offer arrives, so only candidates
-    // racing the SDP exchange are flushed.
+    // Only candidates racing the SDP exchange are flushed.
     const handler = makeHandler('viewer', (pc) => {
       pc.setRemoteDescription.mockImplementation(async (d: RTCSessionDescriptionInit) => {
         pc.remoteDescription = d

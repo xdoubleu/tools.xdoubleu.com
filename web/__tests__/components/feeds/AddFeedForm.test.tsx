@@ -117,7 +117,6 @@ describe('AddFeedForm', () => {
       expect(createFeed).toHaveBeenCalledWith('', 2, 'My Substack')
       expect(screen.getByDisplayValue('abc123@mail.example.com')).toBeInTheDocument()
     })
-    // The URL input is not applicable in email mode.
     expect(screen.queryByLabelText('Feed URL')).not.toBeInTheDocument()
   })
 

@@ -34,9 +34,8 @@ export function useMealPlan(id: string, offset: number = 0) {
   )
 }
 
-// useMealSuggestions fetches recipe IDs previously planned on the same weekday
-// and slot. The key is null (no fetch) until a cell is chosen, so it only runs
-// while the add-entry form is open.
+// useMealSuggestions fetches recipes previously planned on the same weekday
+// and slot; null key until a cell is chosen.
 export function useMealSuggestions(planId: string, mealDate: string, mealSlot: string) {
   const client = createServiceClient(MealPlansService)
   return useSWR<SuggestRecipesResponse, Error>(

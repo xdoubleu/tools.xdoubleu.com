@@ -14,8 +14,7 @@ service FamilyService {
 message FamilyMember {
   string user_id = 1;
   string email = 2;
-  // display_name is the member's own chosen name, shown to the rest of the
-  // family in place of their email. Empty when they haven't set one.
+  // The member's chosen name, shown instead of their email; empty if unset.
   string display_name = 3;
 }
 
@@ -30,11 +29,10 @@ message GetFamilyRequest {}
 
 message GetFamilyResponse {
   repeated FamilyMember members = 1;
-  // incoming_invite is set when the caller has a pending invite to join
-  // another family.
+  // Set when the caller has a pending invite to another family.
   FamilyInvite incoming_invite = 2;
-  // self_display_name is the caller's own chosen name within their family
-  // (empty when unset). The caller is not included in members.
+  // The caller's own chosen name (empty if unset); the caller is not in
+  // members.
   string self_display_name = 3;
 }
 

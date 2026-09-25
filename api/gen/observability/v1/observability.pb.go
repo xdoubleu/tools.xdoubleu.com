@@ -327,9 +327,7 @@ type UsageDay struct {
 	App      string                 `protobuf:"bytes,2,opt,name=app,proto3" json:"app,omitempty"`
 	Endpoint string                 `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	Count    int64                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	// Total response body bytes served by these requests. Measures what left
-	// the api, a proxy for what it read out of the database rather than a
-	// direct measure of database egress (issue #1027).
+	// Response body bytes served; a proxy for database reads, not egress.
 	Bytes         int64 `protobuf:"varint,5,opt,name=bytes,proto3" json:"bytes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -567,13 +565,10 @@ type StorageSnapshot struct {
 	StaleUploadSizeBytes int64                  `protobuf:"varint,6,opt,name=stale_upload_size_bytes,json=staleUploadSizeBytes,proto3" json:"stale_upload_size_bytes,omitempty"`
 	StaleUploadCount     int64                  `protobuf:"varint,7,opt,name=stale_upload_count,json=staleUploadCount,proto3" json:"stale_upload_count,omitempty"`
 	PrefixBreakdown      []*PrefixStat          `protobuf:"bytes,8,rep,name=prefix_breakdown,json=prefixBreakdown,proto3" json:"prefix_breakdown,omitempty"`
-	// orphan_keys is a capped sample of the orphaned object keys; orphan_count
-	// tallies every orphan found even when this list is truncated.
+	// Capped sample of orphaned keys; orphan_count counts all of them.
 	OrphanKeys []string `protobuf:"bytes,9,rep,name=orphan_keys,json=orphanKeys,proto3" json:"orphan_keys,omitempty"`
-	// deleted_orphan_size_bytes/deleted_orphan_count cover orphans this same
-	// scan actually deleted (past a grace period) — a subset of
-	// orphan_size_bytes/orphan_count, which count every orphan seen regardless
-	// of age or delete outcome.
+	// Orphans this scan deleted (past a grace period); a subset of
+	// orphan_size_bytes/orphan_count.
 	DeletedOrphanSizeBytes int64 `protobuf:"varint,10,opt,name=deleted_orphan_size_bytes,json=deletedOrphanSizeBytes,proto3" json:"deleted_orphan_size_bytes,omitempty"`
 	DeletedOrphanCount     int64 `protobuf:"varint,11,opt,name=deleted_orphan_count,json=deletedOrphanCount,proto3" json:"deleted_orphan_count,omitempty"`
 	unknownFields          protoimpl.UnknownFields
@@ -943,9 +938,7 @@ func (*GetDatabaseStatsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{14}
 }
 
-// GetDatabaseStatsResponse is a live snapshot (pg_database_size/pg_class) —
-// growth-over-time now lives in Grafana/Prometheus (issue #1468), which is
-// why this carries no window or history any more.
+// GetDatabaseStatsResponse is a live size snapshot; history lives in Grafana.
 type GetDatabaseStatsResponse struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TotalSizeBytes int64                  `protobuf:"varint,1,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
@@ -998,8 +991,7 @@ func (x *GetDatabaseStatsResponse) GetSchemas() []*SchemaStat {
 	return nil
 }
 
-// FailingCheck is a single non-passing CI check run on a pull request's head
-// commit.
+// FailingCheck is a non-passing CI check on a pull request's head commit.
 type FailingCheck struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -1181,9 +1173,8 @@ func (*GetFailingPullRequestsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{18}
 }
 
-// GetFailingPullRequestsResponse carries the failing pull requests. configured
-// is false when no GitHub token/repo is set — the section is degraded, not
-// failed.
+// GetFailingPullRequestsResponse: configured is false without a GitHub
+// token/repo (degraded, not failed).
 type GetFailingPullRequestsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PullRequests  []*FailingPullRequest  `protobuf:"bytes,1,rep,name=pull_requests,json=pullRequests,proto3" json:"pull_requests,omitempty"`
@@ -1244,8 +1235,8 @@ func (x *GetFailingPullRequestsResponse) GetFailingCount() int32 {
 	return 0
 }
 
-// ProjectIssue is a single open issue on a GitHub Projects (v2) board,
-// annotated with the Status field value it currently sits under.
+// ProjectIssue is an open issue on a GitHub Projects (v2) board, with its
+// Status value.
 type ProjectIssue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
@@ -1314,12 +1305,8 @@ func (x *ProjectIssue) GetStatus() string {
 	return ""
 }
 
-// GetProjectIssuesByStatusRequest looks up issues on the configured
-// repository owner's GitHub Projects (v2) board number project_number whose
-// Status field matches status (case-insensitive, e.g. "Ready") — issue
-// #1357, filling the gap left by the separate GitHub MCP server tooling,
-// which can't resolve custom project fields on a personal (user-owned)
-// project board.
+// GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
+// board project_number whose Status matches status (case-insensitive).
 type GetProjectIssuesByStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProjectNumber int32                  `protobuf:"varint,1,opt,name=project_number,json=projectNumber,proto3" json:"project_number,omitempty"`
@@ -1372,9 +1359,8 @@ func (x *GetProjectIssuesByStatusRequest) GetStatus() string {
 	return ""
 }
 
-// GetProjectIssuesByStatusResponse carries the matching issues. configured is
-// false when no GitHub token/repo is set — the section is degraded, not
-// failed.
+// GetProjectIssuesByStatusResponse: configured is false without a GitHub
+// token/repo (degraded, not failed).
 type GetProjectIssuesByStatusResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Issues        []*ProjectIssue        `protobuf:"bytes,1,rep,name=issues,proto3" json:"issues,omitempty"`
@@ -1427,15 +1413,9 @@ func (x *GetProjectIssuesByStatusResponse) GetConfigured() bool {
 	return false
 }
 
-// WorkflowRun is a single GitHub Actions workflow run, either from a pull
-// request or a push to the default branch. duration_ms is only meaningful
-// once status == "completed" — zero for runs still in progress. failed_jobs
-// names the specific jobs that failed (e.g. "Deploy to Hetzner via Kamal")
-// — populated only for failed runs on a push to main, since that's the only
-// case worth an extra per-run GitHub API call: a failing PR run is already
-// explained by its own checks in the PR UI, but a failing main-push run is
-// an incident someone here needs to act on, and "the run failed" alone
-// doesn't say which job to look at.
+// WorkflowRun is one GitHub Actions run from a PR or a default-branch push.
+// duration_ms is zero until completed. failed_jobs is populated only for
+// failed pushes to main.
 type WorkflowRun struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1588,9 +1568,8 @@ func (*GetWorkflowRunsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{24}
 }
 
-// GetWorkflowRunsResponse carries the most recent pull-request and push
-// workflow runs. configured is false when no GitHub token/repo is set — the
-// section is degraded, not failed.
+// GetWorkflowRunsResponse carries recent PR and push runs. configured is
+// false without a GitHub token/repo (degraded, not failed).
 type GetWorkflowRunsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Runs          []*WorkflowRun         `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
@@ -1643,11 +1622,8 @@ func (x *GetWorkflowRunsResponse) GetConfigured() bool {
 	return false
 }
 
-// SecurityAlert is a single open Dependabot, code-scanning, or
-// secret-scanning alert on the repo. package_name/ecosystem are set only for
-// alert_type == SECURITY_ALERT_TYPE_DEPENDABOT; rule_id/file_path/line only
-// for SECURITY_ALERT_TYPE_CODE_SCANNING; secret_type only for
-// SECURITY_ALERT_TYPE_SECRET_SCANNING.
+// SecurityAlert is one open alert. package_name/ecosystem are Dependabot-only,
+// rule_id/file_path/line code-scanning-only, secret_type secret-scanning-only.
 type SecurityAlert struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
@@ -1816,9 +1792,8 @@ func (*GetSecurityAlertsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{27}
 }
 
-// GetSecurityAlertsResponse carries the open Dependabot, code-scanning, and
-// secret-scanning alerts. configured is false when no GitHub token/repo is
-// set — the section is degraded, not failed.
+// GetSecurityAlertsResponse: configured is false without a GitHub token/repo
+// (degraded, not failed).
 type GetSecurityAlertsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Alerts        []*SecurityAlert       `protobuf:"bytes,1,rep,name=alerts,proto3" json:"alerts,omitempty"`
@@ -1879,8 +1854,7 @@ func (x *GetSecurityAlertsResponse) GetAlertCount() int32 {
 	return 0
 }
 
-// SentryIssue is a single unresolved issue on one of the configured
-// projects.
+// SentryIssue is an unresolved issue on a configured project.
 type SentryIssue struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -1981,12 +1955,11 @@ func (x *SentryIssue) GetProject() string {
 	return ""
 }
 
-// DismissSecurityAlertRequest dismisses/resolves one open alert. reason must
-// be one of the values GitHub's API accepts for alert_type: dependabot/
-// code_scanning use "fix_started"|"inaccurate"|"no_bandwidth"|"not_used"|
-// "tolerable_risk" and "false positive"|"won't fix"|"used in tests"
-// respectively; secret_scanning uses "false_positive"|"wont_fix"|"revoked"|
-// "used_in_tests"|"pattern_deleted".
+// DismissSecurityAlertRequest dismisses one alert. reason must be a value
+// GitHub accepts for alert_type: dependabot "fix_started"|"inaccurate"|
+// "no_bandwidth"|"not_used"|"tolerable_risk"; code_scanning "false positive"|
+// "won't fix"|"used in tests"; secret_scanning "false_positive"|"wont_fix"|
+// "revoked"|"used_in_tests"|"pattern_deleted".
 type DismissSecurityAlertRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AlertType     SecurityAlertType      `protobuf:"varint,1,opt,name=alert_type,json=alertType,proto3,enum=observability.v1.SecurityAlertType" json:"alert_type,omitempty"`
@@ -2119,8 +2092,7 @@ func (*GetSentryIssuesRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{32}
 }
 
-// GetSentryIssuesResponse carries the unresolved issues. configured is false
-// when no Sentry org/project/token is set — the section is degraded.
+// GetSentryIssuesResponse: configured is false without Sentry settings.
 type GetSentryIssuesResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Issues          []*SentryIssue         `protobuf:"bytes,1,rep,name=issues,proto3" json:"issues,omitempty"`
@@ -2261,9 +2233,7 @@ func (*ResolveSentryIssueResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{35}
 }
 
-// SlowTransaction is one transaction's (an API endpoint or a frontend
-// page/route) p95 duration + request count over the last 24h, sourced live
-// from Sentry.
+// SlowTransaction is one endpoint's or page's live 24h p95 and count.
 type SlowTransaction struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Transaction   string                 `protobuf:"bytes,1,opt,name=transaction,proto3" json:"transaction,omitempty"`
@@ -2332,9 +2302,8 @@ func (x *SlowTransaction) GetRequestCount() int64 {
 	return 0
 }
 
-// TransactionTrend flags a transaction whose p95 duration is regressing:
-// recent_avg_p95_ms vs prior_avg_p95_ms are averages over two adjacent
-// historical windows, and pct_change is the increase between them.
+// TransactionTrend flags a regressing p95: averages over two adjacent
+// windows and the pct_change between them.
 type TransactionTrend struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Transaction    string                 `protobuf:"bytes,1,opt,name=transaction,proto3" json:"transaction,omitempty"`
@@ -2447,11 +2416,8 @@ func (*GetSlowTransactionsRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{38}
 }
 
-// GetSlowTransactionsResponse carries both views: current is live from
-// Sentry (configured is false when no Sentry org/project/token is set —
-// current is degraded, empty). trending is computed from stored history
-// and populated independently of configured — it still reports past
-// regressions even when Sentry is unreachable right now.
+// GetSlowTransactionsResponse: current is live from Sentry (empty when not
+// configured); trending comes from stored history regardless.
 type GetSlowTransactionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Current       []*SlowTransaction     `protobuf:"bytes,1,rep,name=current,proto3" json:"current,omitempty"`
@@ -2589,8 +2555,8 @@ func (x *LogEntry) GetAttrsJson() string {
 	return ""
 }
 
-// GetLogsRequest filters global.log_entries. source/min_level empty means
-// "any"; since bounds how far back to look.
+// GetLogsRequest filters global.log_entries; empty source/min_level means
+// any.
 type GetLogsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Source        string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
@@ -2731,8 +2697,8 @@ func (*GetHealthOverviewRequest) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{43}
 }
 
-// GetHealthOverviewResponse rolls up external signals into one call, each
-// section degrading independently.
+// GetHealthOverviewResponse rolls up external signals, each degrading
+// independently.
 type GetHealthOverviewResponse struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Sentry        *GetSentryIssuesResponse `protobuf:"bytes,2,opt,name=sentry,proto3" json:"sentry,omitempty"`
@@ -2873,8 +2839,7 @@ func (x *SentryConfig) GetProjects() []string {
 	return nil
 }
 
-// ProviderConfig is the admin-picked identifier(s) for a connected provider
-// (issue #440 follow-up: picked interactively instead of a static env var).
+// ProviderConfig is the admin-picked identifier(s) for a connected provider.
 type ProviderConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Config:
@@ -2957,8 +2922,7 @@ func (*ProviderConfig_Github) isProviderConfig_Config() {}
 
 func (*ProviderConfig_Sentry) isProviderConfig_Config() {}
 
-// OAuthConnectionStatus is the admin-facing status of one provider's OAuth
-// connection (issue #440) — never the token itself.
+// OAuthConnectionStatus is a provider's OAuth connection status (no token).
 type OAuthConnectionStatus struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Provider    string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"` // "github" | "sentry"
@@ -2967,11 +2931,8 @@ type OAuthConnectionStatus struct {
 	ConnectedAt string                 `protobuf:"bytes,4,opt,name=connected_at,json=connectedAt,proto3" json:"connected_at,omitempty"` // RFC3339, empty if not connected
 	ExpiresAt   string                 `protobuf:"bytes,5,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`       // RFC3339, empty if non-expiring or not connected
 	Config      *ProviderConfig        `protobuf:"bytes,6,opt,name=config,proto3" json:"config,omitempty"`                              // unset if connected but not yet configured
-	// Scope diagnostics, always populated — including for a provider reported
-	// not connected, which is exactly when they explain why. requested_scope is
-	// what the connection was authorized with and what `connected` is judged
-	// against; granted_scope is the provider's own normalized echo, which can
-	// legitimately omit scopes a broader one subsumes.
+	// Always populated. `connected` is judged against requested_scope;
+	// granted_scope is the provider's echo and may omit subsumed scopes.
 	RequestedScope string `protobuf:"bytes,7,opt,name=requested_scope,json=requestedScope,proto3" json:"requested_scope,omitempty"` // space-separated, empty if never recorded
 	GrantedScope   string `protobuf:"bytes,8,opt,name=granted_scope,json=grantedScope,proto3" json:"granted_scope,omitempty"`       // as returned by the provider, empty if none
 	RequiredScope  string `protobuf:"bytes,9,opt,name=required_scope,json=requiredScope,proto3" json:"required_scope,omitempty"`    // space-separated, what is asked for today
@@ -3232,9 +3193,8 @@ func (*DisconnectOAuthConnectionResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{52}
 }
 
-// GetProviderOptionsRequest asks a connected provider what identifiers are
-// available to pick from. sentry_org disambiguates the second Sentry step:
-// empty lists orgs, set lists that org's projects.
+// GetProviderOptionsRequest lists a provider's pickable identifiers. For
+// Sentry, empty sentry_org lists orgs; set lists that org's projects.
 type GetProviderOptionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Provider      string                 `protobuf:"bytes,1,opt,name=provider,proto3" json:"provider,omitempty"`
@@ -3435,9 +3395,8 @@ func (*SetProviderConfigResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{56}
 }
 
-// NotificationSetting is one email-notifying source (Sentry issues, failing
-// dependency PRs, unhealthy feeds, failing main-branch CI runs) and whether
-// it's currently allowed to email an admin (issue #1214).
+// NotificationSetting is one email-notifying source and whether it may
+// currently email an admin.
 type NotificationSetting struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SourceKey     string                 `protobuf:"bytes,1,opt,name=source_key,json=sourceKey,proto3" json:"source_key,omitempty"`
@@ -3666,13 +3625,9 @@ func (*UpdateNotificationSettingsResponse) Descriptor() ([]byte, []int) {
 	return file_observability_v1_observability_proto_rawDescGZIP(), []int{61}
 }
 
-// AutomatedAction is one run of a self-healing routine that executes outside
-// api's own process (e.g. on Anthropic's scheduled-agent infrastructure), so
-// unlike global.job_runs (populated automatically by TrackedJob for
-// in-process jobs) the routine itself must open this row as its first step
-// and close it as its last, via OpenAutomatedAction/CloseAutomatedAction.
-// finished_at/outcome/pr_url/error are all unset while the run is still
-// open.
+// AutomatedAction is one run of an out-of-process routine, which opens and
+// closes its own row via Open/CloseAutomatedAction. finished_at, outcome,
+// pr_url and error are unset while open.
 type AutomatedAction struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -3773,9 +3728,8 @@ func (x *AutomatedAction) GetError() string {
 	return ""
 }
 
-// OpenAutomatedActionRequest records that routine_name has started, fired by
-// trigger_source. Returns the row id CloseAutomatedAction needs to close it
-// out.
+// OpenAutomatedActionRequest records that routine_name started; returns the
+// row id.
 type OpenAutomatedActionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TriggerSource string                 `protobuf:"bytes,1,opt,name=trigger_source,json=triggerSource,proto3" json:"trigger_source,omitempty"`
@@ -3872,10 +3826,7 @@ func (x *OpenAutomatedActionResponse) GetId() int64 {
 	return 0
 }
 
-// CloseAutomatedActionRequest closes out the row OpenAutomatedAction
-// returned, recording how the run ended. pr_url/error are optional — set
-// pr_url when the routine opened a pull request, error when outcome is
-// "failed".
+// CloseAutomatedActionRequest closes the row; pr_url and error are optional.
 type CloseAutomatedActionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`

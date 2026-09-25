@@ -1,8 +1,6 @@
 // Package kobogateway implements the local macOS gateway that configures a
-// USB-mounted Kobo e-reader for sync with this server. It mirrors the browser
-// flow in web/components/books/KoboSetup.tsx: the web UI performs all
-// authenticated API calls and hands only the resulting sync URL to this
-// gateway, which does the local file work.
+// USB-mounted Kobo for sync. The web UI makes all authenticated API calls and
+// hands this gateway only the sync URL (mirrors web/components/books/KoboSetup.tsx).
 package kobogateway
 
 import "strings"
@@ -28,17 +26,14 @@ type Section struct {
 	Keys []KV
 }
 
-// Conf is an ordered representation of a Kobo eReader.conf file. Order is
-// preserved so that a device configured by the browser (which relies on JS
-// object insertion order) round-trips identically through this gateway.
+// Conf is an ordered eReader.conf, so a browser-configured device (JS
+// insertion order) round-trips identically.
 type Conf struct {
 	Sections []Section
 }
 
-// ParseConf mirrors parseKoboConf in web/lib/books/koboConf.ts: only
-// [section] headers and key=value lines are kept, everything else is
-// dropped. Repeated sections merge into the first occurrence and repeated
-// keys overwrite in place.
+// ParseConf mirrors parseKoboConf in web/lib/books/koboConf.ts: only headers
+// and key=value lines are kept; repeats merge into the first occurrence.
 func ParseConf(raw string) *Conf {
 	conf := &Conf{Sections: nil}
 	sectionIdx := -1
@@ -99,9 +94,8 @@ func (c *Conf) APIEndpoint() string {
 	return ""
 }
 
-// SetAPIEndpoint sets [OneStoreServices] api_endpoint (creating the section
-// when missing) and returns the previous value, mirroring patchApiEndpoint /
-// revertApiEndpoint in web/lib/books/koboConf.ts.
+// SetAPIEndpoint sets [OneStoreServices] api_endpoint and returns the previous
+// value (mirrors patchApiEndpoint in web/lib/books/koboConf.ts).
 func (c *Conf) SetAPIEndpoint(endpoint string) string {
 	original := c.APIEndpoint()
 

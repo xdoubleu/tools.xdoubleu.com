@@ -32,9 +32,8 @@ export type CreateBookUploadRequest = Message<"books.v1.CreateBookUploadRequest"
   size: bigint;
 
   /**
-   * SHA-256 hex digest of the file content, computed by the client.
-   * When the content already exists in the store the server sets
-   * already_exists=true in the response and the client skips the PUT.
+   * Client-computed SHA-256 hex of the content; lets the server report
+   * already_exists so the PUT is skipped.
    *
    * @generated from field: string checksum = 4;
    */
@@ -63,8 +62,8 @@ export type CreateBookUploadResponse = Message<"books.v1.CreateBookUploadRespons
   url: string;
 
   /**
-   * True when the file content is already stored. The client must skip the
-   * PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+   * Content already stored: skip the PUT and finalize with an empty
+   * upload_id.
    *
    * @generated from field: bool already_exists = 3;
    */
@@ -105,10 +104,8 @@ export type FinalizeBookUploadRequest = Message<"books.v1.FinalizeBookUploadRequ
   checksum: string;
 
   /**
-   * Explicit title/author, used when a prior attempt without them failed
-   * with "book could not be recognized from metadata" (e.g. a PDF with no
-   * embedded title). Takes precedence over any metadata extracted from the
-   * file itself.
+   * Explicit title/author, overriding file metadata, for files that failed
+   * recognition (e.g. a PDF with no embedded title).
    *
    * @generated from field: string title_override = 5;
    */

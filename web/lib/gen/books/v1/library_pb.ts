@@ -59,8 +59,7 @@ export type Book = Message<"books.v1.Book"> & {
   sourceUrl: string;
 
   /**
-   * True once content extraction succeeded and in-app content is stored;
-   * false for plain books or ones where extraction failed/found nothing.
+   * True once extracted in-app content is stored.
    *
    * @generated from field: bool has_content = 12;
    */
@@ -668,9 +667,8 @@ export const ToggleTagResponseSchema: GenMessage<ToggleTagResponse> = /*@__PURE_
   messageDesc(file_books_v1_library, 22);
 
 /**
- * RemoveBook removes the book from the caller's own library only. If no other
- * user's library still references the book afterwards, the shared catalog row
- * and its R2 objects (uploaded files, cover) are deleted too.
+ * RemoveBook removes the book from the caller's library; an unreferenced
+ * catalog row and its R2 objects are deleted too.
  *
  * @generated from message books.v1.RemoveBookRequest
  */
@@ -861,9 +859,8 @@ export const GetReadingStateResponseSchema: GenMessage<GetReadingStateResponse> 
   messageDesc(file_books_v1_library, 32);
 
 /**
- * GetBookContent returns the readability-extracted article body stored for a
- * URL-ingested book, for in-app reading instead of linking out to the source
- * URL. html is empty when no content was ever extracted.
+ * GetBookContent returns a URL-ingested book's extracted body; html is empty
+ * when none was extracted.
  *
  * @generated from message books.v1.GetBookContentRequest
  */

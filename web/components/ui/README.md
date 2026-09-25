@@ -6,17 +6,11 @@ Run `npm run generate:ui-catalog` from web/ after changing components/ui/.
 Source: web/components/ui/*.tsx (JSDoc + exported prop types).
 -->
 
-Generated from the `*.tsx` files in this directory. The rule that makes these
-primitives mandatory is
-[`docs/convention-ui-standards.md`](../../../docs/convention-ui-standards.md).
+Every shared UI primitive. **Check here before building a component**; if
+nothing fits, add a primitive here — ESLint blocks styling raw elements at call
+sites ([`docs/convention-ui-standards.md`](../../../docs/convention-ui-standards.md)).
 
-The complete inventory of shared UI primitives. **Check here before building a
-new component** — the design system's failure mode is not a missing rule, it's
-not knowing what already exists. If nothing here fits, add a primitive rather
-than styling a raw element at the call site; ESLint blocks the latter.
-
-Prop tables list each component's own props. "Also accepts" means the remaining
-props are forwarded to the underlying element.
+"Also accepts" props are forwarded to the underlying element.
 
 ## Primitives
 
@@ -24,7 +18,7 @@ props are forwarded to the underlying element.
 
 #### `CardLinkStatus`
 
-Drop inside a navigable card's `<Link>` (which must be `relative`) to show a spinner while that link's navigation is pending — otherwise a slow route transition looks like the tap did nothing.
+Spinner inside a card's (relative) `<Link>` while its navigation is pending.
 
 ### `LoadMoreButton.tsx`
 
@@ -50,7 +44,7 @@ Also accepts: `HTMLAttributes<HTMLSpanElement>`
 
 #### `Breadcrumb`
 
-Hierarchical navigation trail. The last item is rendered as the current page (no link). Earlier items render as links when given an `href`. Use this in place of one-off "back" links so navigation looks consistent across apps.
+Navigation trail; the last item is the current page. Use instead of one-off "back" links.
 
 ### `button.tsx`
 
@@ -92,13 +86,13 @@ Heading inside a `CardHeader`.
 
 #### `interactiveCardClass`
 
-Shared hover/focus treatment for clickable cards (Links or buttons rendered as cards). Apply alongside layout classes (`block`, padding, `cursor-pointer`) so every navigable card elevates the same way. Pairs with `cn()` for overrides. The accent ring is visible at rest (not just on hover/press) so clickable cards read as interactive immediately, including on touch devices with no hover state; it intensifies on `hover:`/`active:` for feedback.
+Hover/focus treatment for clickable cards. The accent ring shows at rest so cards read as interactive on touch; it intensifies on hover/active.
 
 ### `checkbox.tsx`
 
 #### `Checkbox`
 
-Native `<input type="checkbox">` with the shared styling. Pass `label` to get the wrapping `<label>` too; omit it when the call site supplies its own.
+Styled native checkbox; pass `label` to get the wrapping `<label>`.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -110,7 +104,7 @@ Also accepts: `Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>`
 
 #### `Collapsible`
 
-Disclosure section with a chevron trigger. Keeps its own open state — lift it out only if something outside needs to drive it.
+Disclosure section with a chevron trigger and its own open state.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -127,7 +121,7 @@ Disclosure section with a chevron trigger. Keeps its own open state — lift it 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `value` | `string` | yes |  |
-| `onChange` | `(value: string) => void` | yes | Called when the user types free text. |
+| `onChange` | `(value: string) => void` | yes |  |
 | `onSelect` | `(value: string) => void` |  | Called when the user picks a suggestion (click, keyboard, or blur snap). |
 | `suggestions` | `string[]` | yes |  |
 | `placeholder` | `string` |  |  |
@@ -140,7 +134,7 @@ Disclosure section with a chevron trigger. Keeps its own open state — lift it 
 
 #### `DateInput`
 
-Native `<input type="date">` on every viewport — the browser/OS renders its own locale formatting and picker UI, matching how the time field (`Input type="time"`) already behaves. A `type="date"` input's value is always 'YYYY-MM-DD' or '', so no display/ISO conversion layer is needed.
+Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -227,13 +221,13 @@ Also accepts: `HTMLAttributes<HTMLDivElement>`
 
 #### `Popover`
 
-A lightweight popover primitive: a trigger + a portaled fixed-position panel that closes on outside-click and Escape. The panel is rendered via createPortal to document.body so it is never clipped by an ancestor overflow container (e.g. the library table's overflow-x-auto wrapper). The panel flips upward automatically when there is not enough space below the trigger, and its height is capped to the available viewport space.
+Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that closes on outside click and Escape, flips upward when space below is short, and caps its height to the viewport.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `trigger` | `(props: { open: boolean; onClick: () => void }) => ReactNode` | yes |  |
 | `children` | `ReactNode` | yes |  |
-| `className` | `string` |  | Extra classes applied to the panel wrapper. |
+| `className` | `string` |  |  |
 | `align` | `'left' \| 'right'` |  | Alignment of the panel relative to the trigger. Defaults to "right". |
 
 #### `PopoverTrigger`
@@ -244,7 +238,7 @@ A plain button styled for use as a popover trigger.
 
 #### `Radio`
 
-A bare styled radio input, for call sites that supply their own label and layout (a selectable card, a visually-hidden control behind custom visuals) and so can't use `RadioGroupItem`'s built-in label.
+A bare styled radio for call sites that supply their own label and layout.
 
 #### `RadioGroup`
 
@@ -274,7 +268,7 @@ Also accepts: `Omit<
 
 #### `SectionCard`
 
-A `Card` with the standard title/description/action header already composed. Reach for this instead of assembling `Card` + `CardHeader` + `CardTitle` by hand — that hand-assembly is what drifted across the monitoring cards.
+A `Card` with the standard title/description/action header; don't hand-assemble one.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -293,7 +287,7 @@ A `Card` with the standard title/description/action header already composed. Rea
 
 #### `StatTile`
 
-One labelled number in a stats row. Use for a single scalar reading; anything with its own structure belongs in a `SectionCard` instead.
+One labelled number in a stats row; structured content belongs in a `SectionCard`.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -339,7 +333,7 @@ Also accepts: `Omit<ThHTMLAttributes<HTMLTableCellElement>, 'dir'>`
 
 #### `ToggleIconButton`
 
-A single on/off glyph button (favourite heart, bookmark flag). Exposes the state as `aria-pressed` so it announces as a toggle rather than an action.
+On/off glyph button; `aria-pressed` makes it announce as a toggle.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
@@ -347,18 +341,18 @@ A single on/off glyph button (favourite heart, bookmark flag). Exposes the state
 | `onToggle` | `(event: MouseEvent<HTMLButtonElement>) => void` | yes |  |
 | `label` | `string` | yes | `aria-label` while off, e.g. "Add to favourites". |
 | `activeLabel` | `string` | yes | `aria-label` while on, e.g. "Remove from favourites". |
-| `children` | `ReactNode` | yes | The glyph — a character or an inline `<svg>`. |
+| `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 
 #### `toggleGlyphClass`
 
-Amber-when-on treatment shared by every glyph toggle (favourite, bookmark, rating star) so "this is set" reads the same everywhere.
+Amber-when-on treatment shared by every glyph toggle.
 
 ### `toggle-pill.tsx` — client component
 
 #### `TogglePill`
 
-Pill control for selectable attributes (shelf, tag, ownership) and for filter chips. Filled when active, outlined when not — that contrast is what signals "this is a control", distinct from a read-only `Badge` stating a static fact. Sets `aria-pressed` by default; pass `role="tab"`/`aria-selected` instead when the pills form a tablist.
+Pill for selectable attributes and filter chips: filled when active, outlined when not (unlike a read-only `Badge`). Sets `aria-pressed`; pass `role="tab"`/`aria-selected` in a tablist.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|

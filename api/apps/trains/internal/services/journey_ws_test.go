@@ -14,8 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// fakeDetailFetcher is a minimal journeyDetailFetcher stand-in so
-// JourneyWSService can be tested without a real database.
+// fakeDetailFetcher lets JourneyWSService be tested without a database.
 type fakeDetailFetcher struct {
 	calls int32
 	err   error
@@ -44,11 +43,7 @@ func TestJourneyWSService_EnsureTopic_IsIdempotent(t *testing.T) {
 	svc.EnsureTopic("journey-1")
 	svc.EnsureTopic("journey-1")
 
-	// EnsureTopic itself doesn't call the fetcher — only a subscribe or
-	// PushAll does — so registering the same topic 3 times must not create
-	// 3 separate topics under the hood. PushAll (which fans out over every
-	// registered topic) is the observable proxy for that: it must only
-	// invoke the fetcher once for "journey-1", not 3 times.
+	// Three EnsureTopic calls must yield one topic, so PushAll fetches once.
 	svc.PushAll(context.Background())
 	assert.Equal(t, int32(1), atomic.LoadInt32(&fake.calls))
 }

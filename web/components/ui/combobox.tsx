@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 
 interface ComboboxProps {
   value: string
-  /** Called when the user types free text. */
   onChange: (value: string) => void
   /** Called when the user picks a suggestion (click, keyboard, or blur snap). */
   onSelect?: (value: string) => void

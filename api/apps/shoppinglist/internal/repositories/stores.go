@@ -102,8 +102,8 @@ func (r *ShoppingRepository) DeleteStore(
 	return nil
 }
 
-// GetStoreCategories returns the store's categories in walk-through order.
-// It verifies the store belongs to userID.
+// GetStoreCategories returns userID's store's categories in walk-through
+// order.
 func (r *ShoppingRepository) GetStoreCategories(
 	ctx context.Context,
 	userID string,
@@ -137,10 +137,8 @@ func (r *ShoppingRepository) GetStoreCategories(
 	return result, rows.Err()
 }
 
-// SetStoreCategories fully replaces the store's category order. The array
-// index of each category id becomes its sort_order. Only categories
-// belonging to familyID are persisted; unknown or foreign ids are silently
-// skipped.
+// SetStoreCategories replaces the store's category order (array index =
+// sort_order), silently skipping ids not in familyID.
 func (r *ShoppingRepository) SetStoreCategories(
 	ctx context.Context,
 	userID string,

@@ -32,8 +32,7 @@ func (h *mealplansConnectHandler) ListPlans(
 		return nil, mapError(err)
 	}
 
-	// Only the first page can legitimately be empty for an account with no
-	// plans yet; an empty later page just means the offset overshot.
+	// Only an empty first page means no plans yet.
 	if len(list) == 0 && req.Msg.Offset == 0 {
 		created, createErr := h.app.services.Plans.Create(
 			ctx,

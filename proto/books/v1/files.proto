@@ -6,16 +6,15 @@ message CreateBookUploadRequest {
   string filename = 1;
   string content_type = 2;
   int64 size = 3;
-  // SHA-256 hex digest of the file content, computed by the client.
-  // When the content already exists in the store the server sets
-  // already_exists=true in the response and the client skips the PUT.
+  // Client-computed SHA-256 hex of the content; lets the server report
+  // already_exists so the PUT is skipped.
   string checksum = 4;
 }
 message CreateBookUploadResponse {
   string upload_id = 1;
   string url = 2;
-  // True when the file content is already stored. The client must skip the
-  // PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+  // Content already stored: skip the PUT and finalize with an empty
+  // upload_id.
   bool already_exists = 3;
 }
 
@@ -25,10 +24,8 @@ message FinalizeBookUploadRequest {
   string content_type = 3;
   // SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
   string checksum = 4;
-  // Explicit title/author, used when a prior attempt without them failed
-  // with "book could not be recognized from metadata" (e.g. a PDF with no
-  // embedded title). Takes precedence over any metadata extracted from the
-  // file itself.
+  // Explicit title/author, overriding file metadata, for files that failed
+  // recognition (e.g. a PDF with no embedded title).
   string title_override = 5;
   string author_override = 6;
 }

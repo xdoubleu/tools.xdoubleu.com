@@ -7,10 +7,8 @@ import SourceCompare from '@/components/books/SourceCompare'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
 
-// BookSourceSync is the admin-only control on a book's detail page for
-// live-fetching and applying an external metadata source to that one book —
-// works on any book on demand, unlike the resync wizard which only shows
-// books a prior scan already flagged.
+// Admin control to live-fetch and apply an external source to any one book
+// (the resync wizard only covers flagged books).
 export default function BookSourceSync({ bookId }: { bookId: string }) {
   const [open, setOpen] = useState(false)
   const [override, setOverride] = useState<SourceSearchOverride | undefined>(undefined)

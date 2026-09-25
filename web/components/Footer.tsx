@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getApiUrl, getRelease } from '@/lib/env'
 
-// api and web builds are cacheable and only recompile when their own source
-// changes (see build-api.yml/build-web.yml), so each component can
-// legitimately be a different commit — show both instead of one
-// potentially-misleading badge.
+// api and web build independently, so show both releases.
 async function fetchRelease(url: string): Promise<string> {
   try {
     const res = await fetch(url)

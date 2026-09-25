@@ -13,7 +13,7 @@ export const file_feeds_v1_feeds: GenFile = /*@__PURE__*/
   fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEi9QEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJEgwKBGV0YWcYCSABKAkSFQoNbGFzdF9tb2RpZmllZBgKIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgLIAEoBRITCgtub3RpZmllZF9hdBgMIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjIKEUxpc3RGZWVkc1Jlc3BvbnNlEh0KBWZlZWRzGAEgAygLMg4uZmVlZHMudjEuRmVlZCJRChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSIAoEa2luZBgCIAEoDjISLmZlZWRzLnYxLkZlZWRLaW5kEg0KBXRpdGxlGAMgASgJIjIKEkNyZWF0ZUZlZWRSZXNwb25zZRIcCgRmZWVkGAEgASgLMg4uZmVlZHMudjEuRmVlZCIzChFVcGRhdGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIoQCCgRJdGVtEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc291cmNlX3VybBgEIAEoCRIUCgxjb250ZW50X2h0bWwYBSABKAkSFAoMcHVibGlzaGVkX2F0GAYgASgJEg8KB3JlYWRfYXQYByABKAkSEQoJZGlzbWlzc2VkGAggASgIEhIKCmJvb2ttYXJrZWQYCSABKAgSFAoMaW5nZXN0X2Vycm9yGAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAkSGQoRcmVhZF9wcm9ncmVzc19wY3QYDCABKAUSEwoLaGFzX2NvbnRlbnQYDSABKAgiswEKFExpc3RGZWVkSXRlbXNSZXF1ZXN0Eg0KBWxpbWl0GAEgASgFEg4KBm9mZnNldBgCIAEoBRIYCgt1bnJlYWRfb25seRgDIAEoCEgAiAEBEhQKB2ZlZWRfaWQYBCABKAlIAYgBARIcCg9ib29rbWFya2VkX29ubHkYBSABKAhIAogBAUIOCgxfdW5yZWFkX29ubHlCCgoIX2ZlZWRfaWRCEgoQX2Jvb2ttYXJrZWRfb25seSJIChVMaXN0RmVlZEl0ZW1zUmVzcG9uc2USHQoFaXRlbXMYASADKAsyDi5mZWVkcy52MS5JdGVtEhAKCGhhc19tb3JlGAIgASgIIiUKEkdldEZlZWRJdGVtUmVxdWVzdBIPCgdpdGVtX2lkGAEgASgJIjMKE0dldEZlZWRJdGVtUmVzcG9uc2USHAoEaXRlbRgBIAEoCzIOLmZlZWRzLnYxLkl0ZW0ixAEKEVVwZGF0ZUl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkSEQoEcmVhZBgCIAEoCEgAiAEBEhYKCWRpc21pc3NlZBgDIAEoCEgBiAEBEhcKCmJvb2ttYXJrZWQYBCABKAhIAogBARIeChFyZWFkX3Byb2dyZXNzX3BjdBgFIAEoBUgDiAEBQgcKBV9yZWFkQgwKCl9kaXNtaXNzZWRCDQoLX2Jvb2ttYXJrZWRCFAoSX3JlYWRfcHJvZ3Jlc3NfcGN0IjIKElVwZGF0ZUl0ZW1SZXNwb25zZRIcCgRpdGVtGAEgASgLMg4uZmVlZHMudjEuSXRlbSKSAQoJRmVlZFN0YXRzEg8KB2ZlZWRfaWQYASABKAkSEgoKZmVlZF90aXRsZRgCIAEoCRISCgppdGVtX2NvdW50GAMgASgFEhoKEmF2Z19pbnRlcnZhbF9ob3VycxgEIAEoARIRCglyZWFkX3JhdGUYBSABKAESHQoVYXZnX3JlYWRfcHJvZ3Jlc3NfcGN0GAYgASgBIiYKCERheUNvdW50EgsKA2RheRgBIAEoCRINCgVjb3VudBgCIAEoBSIVChNHZXRGZWVkU3RhdHNSZXF1ZXN0ImUKFEdldEZlZWRTdGF0c1Jlc3BvbnNlEiIKBXN0YXRzGAEgAygLMhMuZmVlZHMudjEuRmVlZFN0YXRzEikKDWl0ZW1zX3Blcl9kYXkYAiADKAsyEi5mZWVkcy52MS5EYXlDb3VudCJdCg1VbmhlYWx0aHlGZWVkEg0KBXRpdGxlGAEgASgJEgsKA3VybBgCIAEoCRISCgpsYXN0X2Vycm9yGAMgASgJEhwKFGNvbnNlY3V0aXZlX2ZhaWx1cmVzGAQgASgFIhoKGEdldFVuaGVhbHRoeUZlZWRzUmVxdWVzdCJDChlHZXRVbmhlYWx0aHlGZWVkc1Jlc3BvbnNlEiYKBWZlZWRzGAEgAygLMhcuZmVlZHMudjEuVW5oZWFsdGh5RmVlZCpjCghGZWVkS2luZBIZChVGRUVEX0tJTkRfVU5TUEVDSUZJRUQQABIRCg1GRUVEX0tJTkRfUlNTEAESEwoPRkVFRF9LSU5EX0VNQUlMEAISFAoQRkVFRF9LSU5EX1NDUkFQRRADMo4GCgtGZWVkU2VydmljZRJECglMaXN0RmVlZHMSGi5mZWVkcy52MS5MaXN0RmVlZHNSZXF1ZXN0GhsuZmVlZHMudjEuTGlzdEZlZWRzUmVzcG9uc2USRwoKQ3JlYXRlRmVlZBIbLmZlZWRzLnYxLkNyZWF0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuQ3JlYXRlRmVlZFJlc3BvbnNlEkcKClVwZGF0ZUZlZWQSGy5mZWVkcy52MS5VcGRhdGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLlVwZGF0ZUZlZWRSZXNwb25zZRJHCgpEZWxldGVGZWVkEhsuZmVlZHMudjEuRGVsZXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5EZWxldGVGZWVkUmVzcG9uc2USSgoLUmVmcmVzaEZlZWQSHC5mZWVkcy52MS5SZWZyZXNoRmVlZFJlcXVlc3QaHS5mZWVkcy52MS5SZWZyZXNoRmVlZFJlc3BvbnNlElAKDUxpc3RGZWVkSXRlbXMSHi5mZWVkcy52MS5MaXN0RmVlZEl0ZW1zUmVxdWVzdBofLmZlZWRzLnYxLkxpc3RGZWVkSXRlbXNSZXNwb25zZRJKCgtHZXRGZWVkSXRlbRIcLmZlZWRzLnYxLkdldEZlZWRJdGVtUmVxdWVzdBodLmZlZWRzLnYxLkdldEZlZWRJdGVtUmVzcG9uc2USRwoKVXBkYXRlSXRlbRIbLmZlZWRzLnYxLlVwZGF0ZUl0ZW1SZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlSXRlbVJlc3BvbnNlEk0KDEdldEZlZWRTdGF0cxIdLmZlZWRzLnYxLkdldEZlZWRTdGF0c1JlcXVlc3QaHi5mZWVkcy52MS5HZXRGZWVkU3RhdHNSZXNwb25zZRJcChFHZXRVbmhlYWx0aHlGZWVkcxIiLmZlZWRzLnYxLkdldFVuaGVhbHRoeUZlZWRzUmVxdWVzdBojLmZlZWRzLnYxLkdldFVuaGVhbHRoeUZlZWRzUmVzcG9uc2VCKVondG9vbHMueGRvdWJsZXUuY29tL2dlbi9mZWVkcy92MTtmZWVkc3YxYgZwcm90bzM");
 
 /**
- * Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
+ * Feed is an RSS/Atom, scrape or email-relay subscription.
  *
  * @generated from message feeds.v1.Feed
  */
@@ -53,28 +53,23 @@ export type Feed = Message<"feeds.v1.Feed"> & {
   createdAt: string;
 
   /**
-   * "rss", "email", or "scrape". Email feeds are populated by a Resend
-   * inbound-webhook push, not polling — RefreshFeed is a no-op for them.
-   * Scrape feeds have no real feed at their URL; posts are discovered by
-   * heuristically scanning the page for post-like links.
+   * "rss", "email" or "scrape". Email feeds are pushed via webhook (refresh
+   * is a no-op); scrape feeds discover posts heuristically.
    *
    * @generated from field: string source_type = 7;
    */
   sourceType: string;
 
   /**
-   * The address to give the newsletter as its subscription address. Only
-   * set once, on the CreateFeedResponse for a newly created email feed — it
-   * is never persisted in plaintext, so it cannot be shown again later and
-   * is never returned by ListFeeds.
+   * Subscription address for an email feed, returned only once by
+   * CreateFeed (never stored in plaintext).
    *
    * @generated from field: string inbound_address = 8;
    */
   inboundAddress: string;
 
   /**
-   * The conditional-GET validators from the last successful fetch; empty
-   * until the feed has been fetched once.
+   * Conditional-GET validators; empty until fetched.
    *
    * @generated from field: string etag = 9;
    */
@@ -86,15 +81,14 @@ export type Feed = Message<"feeds.v1.Feed"> & {
   lastModified: string;
 
   /**
-   * Unbroken poll failures since the last success (issue #799).
+   * Unbroken poll failures since the last success.
    *
    * @generated from field: int32 consecutive_failures = 11;
    */
   consecutiveFailures: number;
 
   /**
-   * RFC3339; set while a problem email is outstanding for this feed, empty
-   * once it recovers.
+   * RFC3339; set while a problem email is outstanding.
    *
    * @generated from field: string notified_at = 12;
    */
@@ -139,18 +133,9 @@ export const ListFeedsResponseSchema: GenMessage<ListFeedsResponse> = /*@__PURE_
   messageDesc(file_feeds_v1_feeds, 2);
 
 /**
- * CreateFeed with kind RSS (the default) validates the URL by fetching and
- * parsing it, then imports the feed's current contents (newest first,
- * capped) as a first batch in the background — the import can take longer
- * than the request, so it is not reflected in the response; poll
- * ListFeeds/ListFeedItems to see new items land.
- *
- * CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
- * (url must be empty); items land as mail arrives via the Resend webhook.
- *
- * CreateFeed with kind SCRAPE treats url as a page with no real feed (e.g. a
- * blog index) and heuristically discovers post links on it instead of
- * parsing RSS/Atom; best-effort, may find nothing on unusual page layouts.
+ * CreateFeed: RSS (default) validates the URL and imports in the background
+ * (poll the lists to see items land); EMAIL mints an inbound alias (url
+ * empty); SCRAPE heuristically discovers post links on a page with no feed.
  *
  * @generated from message feeds.v1.CreateFeedRequest
  */
@@ -166,8 +151,7 @@ export type CreateFeedRequest = Message<"feeds.v1.CreateFeedRequest"> & {
   kind: FeedKind;
 
   /**
-   * Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
-   * parsed from the feed itself.
+   * Only used for kind=EMAIL; RSS titles come from the feed.
    *
    * @generated from field: string title = 3;
    */
@@ -302,8 +286,7 @@ export const RefreshFeedResponseSchema: GenMessage<RefreshFeedResponse> = /*@__P
   messageDesc(file_feeds_v1_feeds, 10);
 
 /**
- * Item is one ingested feed entry, self-contained (no library/book
- * linkage) — a feed and its items only ever belong to one user.
+ * Item is one ingested feed entry; feeds and items are single-user.
  *
  * @generated from message feeds.v1.Item
  */
@@ -329,17 +312,14 @@ export type Item = Message<"feeds.v1.Item"> & {
   sourceUrl: string;
 
   /**
-   * Only populated by GetFeedItem. ListFeedItems and UpdateItem leave it
-   * empty and set has_content instead — a page of article bodies was the
-   * single largest source of database egress (issue #1027).
+   * Only populated by GetFeedItem; other RPCs set has_content instead.
    *
    * @generated from field: string content_html = 5;
    */
   contentHtml: string;
 
   /**
-   * RFC3339; the item's true publish date from the feed/email, not ingest
-   * time.
+   * RFC3339 publish date from the feed/email, not ingest time.
    *
    * @generated from field: string published_at = 6;
    */
@@ -375,17 +355,15 @@ export type Item = Message<"feeds.v1.Item"> & {
   createdAt: string;
 
   /**
-   * Furthest scroll position reached in the reader, 0-100. Monotonic:
-   * re-opening and scrolling less never lowers it.
+   * Furthest scroll reached in the reader, 0-100; never lowered.
    *
    * @generated from field: int32 read_progress_pct = 12;
    */
   readProgressPct: number;
 
   /**
-   * Whether the item has an extracted article body, without carrying it.
-   * Set by every RPC returning an Item; lets a list distinguish "no content"
-   * from "content not loaded yet".
+   * Whether an article body exists, distinguishing "no content" from "not
+   * loaded".
    *
    * @generated from field: bool has_content = 13;
    */
@@ -414,24 +392,21 @@ export type ListFeedItemsRequest = Message<"feeds.v1.ListFeedItemsRequest"> & {
   offset: number;
 
   /**
-   * Excludes items with a set read_at when true. Unset/false returns both
-   * read and unread items.
+   * When true, excludes read items.
    *
    * @generated from field: optional bool unread_only = 3;
    */
   unreadOnly?: boolean | undefined;
 
   /**
-   * Restricts results to one feed. Unset returns items from any of the
-   * caller's feeds.
+   * Restricts results to one feed.
    *
    * @generated from field: optional string feed_id = 4;
    */
   feedId?: string | undefined;
 
   /**
-   * Excludes items without bookmarked set when true. Unset/false returns
-   * both bookmarked and unbookmarked items.
+   * When true, excludes unbookmarked items.
    *
    * @generated from field: optional bool bookmarked_only = 5;
    */
@@ -468,9 +443,8 @@ export const ListFeedItemsResponseSchema: GenMessage<ListFeedItemsResponse> = /*
   messageDesc(file_feeds_v1_feeds, 13);
 
 /**
- * GetFeedItem returns one item with its content_html populated — the only
- * RPC that reads the article body. The reader calls it when opening an
- * article, so a list read never pays for fifty bodies (issue #1027).
+ * GetFeedItem returns one item with content_html — the only RPC reading the
+ * article body.
  *
  * @generated from message feeds.v1.GetFeedItemRequest
  */
@@ -506,11 +480,8 @@ export const GetFeedItemResponseSchema: GenMessage<GetFeedItemResponse> = /*@__P
   messageDesc(file_feeds_v1_feeds, 15);
 
 /**
- * UpdateItem partially updates an item's read/dismissed/bookmarked/
- * read-progress state — only fields explicitly set are applied; unset
- * fields are left unchanged. read sets read_at to now() when true, clears
- * it when false. read_progress_pct is clamped to [0,100] and only ever
- * increases (re-opening and scrolling less never lowers it).
+ * UpdateItem applies only the fields set. read sets or clears read_at;
+ * read_progress_pct is clamped to [0,100] and only increases.
  *
  * @generated from message feeds.v1.UpdateItemRequest
  */
@@ -566,8 +537,7 @@ export const UpdateItemResponseSchema: GenMessage<UpdateItemResponse> = /*@__PUR
   messageDesc(file_feeds_v1_feeds, 17);
 
 /**
- * FeedStats aggregates one feed's posting cadence and read/completion
- * metrics (issue #798).
+ * FeedStats aggregates one feed's posting cadence and read metrics.
  *
  * @generated from message feeds.v1.FeedStats
  */
@@ -588,8 +558,7 @@ export type FeedStats = Message<"feeds.v1.FeedStats"> & {
   itemCount: number;
 
   /**
-   * Mean hours between consecutive items' published_at; 0 when the feed has
-   * fewer than 2 items.
+   * Mean hours between items; 0 below 2 items.
    *
    * @generated from field: double avg_interval_hours = 4;
    */
@@ -618,8 +587,7 @@ export const FeedStatsSchema: GenMessage<FeedStats> = /*@__PURE__*/
   messageDesc(file_feeds_v1_feeds, 18);
 
 /**
- * One day's ingested-item count, for the "when do new items appear"
- * histogram (issue #798).
+ * DayCount is one day's ingested-item count.
  *
  * @generated from message feeds.v1.DayCount
  */
@@ -716,8 +684,7 @@ export const UnhealthyFeedSchema: GenMessage<UnhealthyFeed> = /*@__PURE__*/
   messageDesc(file_feeds_v1_feeds, 22);
 
 /**
- * GetUnhealthyFeeds reports every user's currently-failing feeds — admin-only,
- * since it is not scoped to the caller's own feeds.
+ * GetUnhealthyFeeds reports every user's failing feeds (admin-only).
  *
  * @generated from message feeds.v1.GetUnhealthyFeedsRequest
  */

@@ -11,77 +11,47 @@ import (
 	"tools.xdoubleu.com/internal/mcptools"
 )
 
-// The apps MCP server exposes each app's RPCs, plus the admin observability
-// signals, to a local Claude CLI over streamable-HTTP, so production domain
-// data and system health can be pulled in as context for testing changes.
-// Every tool is gated either by the caller's own per-app access
-// (mcptools.RequireAppAccess) or, for observability, by admin access
-// (requireAdmin). Every app-provided tool wraps a read handler, with one
-// deliberate exception: learningpaths' create_path/update_path/
-// record_progress tools mutate, since agent-authored curricula is that app's
-// core use case → docs/adr-0023-learningpaths-mcp-write-tools.md. The
-// observability tools have their own four mutating exceptions,
-// resolve_sentry_issue (closes out a Sentry issue an agent just filed a fix
-// for), dismiss_security_alert (dismisses/resolves a GitHub
-// Dependabot/code-scanning/secret-scanning alert), record_action (opens
-// or closes a global.automated_actions run record for a self-healing
-// routine, issue #1441), and notify_slack (posts a summary to a configured
-// Slack Incoming Webhook, issue #1628), all admin-gated. Every
-// tool reuses the same OAuth 2.1 resource-server plumbing: the api is both
-// the resource server and, via the embedded internal/oauth2as provider
-// (issue #1039), the authorization server — no external Auth provider
-// involved.
+// The apps MCP server exposes each app's read RPCs plus admin observability
+// tools over streamable HTTP. Tools are gated by per-app access or requireAdmin.
+// Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
+// admin tools resolve_sentry_issue, dismiss_security_alert, record_action and
+// notify_slack.
 
 const (
 	appsMCPServerName = "tools-apps"
 
 	appsMCPPath = "/apps/mcp"
-	// appsResourceMetadataPath is the resource-scoped RFC 9728 metadata document
-	// referenced from the apps endpoint's WWW-Authenticate challenge.
+	// appsResourceMetadataPath is the resource-scoped RFC 9728 metadata document.
 	appsResourceMetadataPath = "/.well-known/oauth-protected-resource/apps/mcp"
 )
 
-// windowArgs is the input for the two windowed observability stats tools;
-// noArgs is the empty input for the rest. Both are structs so their inferred
-// JSON schema is an object, as the MCP spec requires.
+// windowArgs/noArgs are structs so their JSON schema is an object, as MCP
+// requires.
 type windowArgs struct {
 	WindowDays int32 `json:"window_days,omitempty" jsonschema:"days to look back"`
 }
 
 type noArgs struct{}
 
-// resolveSentryIssueArgs is the input for resolve_sentry_issue — one of the
-// two mutating observability tools, deliberately exempted from the
-// read-only rule below so an agent triaging Sentry issues can close them out
-// directly.
+// resolveSentryIssueArgs is the input for resolve_sentry_issue.
 type resolveSentryIssueArgs struct {
 	IssueID string `json:"issue_id" jsonschema:"Sentry issue ID, from get_sentry_issues"`
 }
 
-// dismissSecurityAlertArgs is the input for dismiss_security_alert — the
-// other mutating observability tool. AlertType matches the alert_type field
-// get_security_alerts already returns ("dependabot", "code_scanning", or
-// "secret_scanning"). Reason's valid values differ per AlertType:
+// dismissSecurityAlertArgs: AlertType is "dependabot", "code_scanning" or
+// "secret_scanning". Valid Reasons per type:
 // dependabot: fix_started|inaccurate|no_bandwidth|not_used|tolerable_risk.
 // code_scanning: "false positive"|"won't fix"|"used in tests".
-// secret_scanning: false_positive|wont_fix|revoked|used_in_tests|
-// pattern_deleted.
+// secret_scanning: false_positive|wont_fix|revoked|used_in_tests|pattern_deleted.
 type dismissSecurityAlertArgs struct {
 	AlertType   string `json:"alert_type"   jsonschema:"see this type's doc comment"`
 	AlertNumber int64  `json:"alert_number" jsonschema:"see get_security_alerts"`
 	Reason      string `json:"reason"       jsonschema:"see this type's doc comment"`
 }
 
-// recordActionArgs is the input for record_action — the third mutating
-// observability tool, alongside resolve_sentry_issue and
-// dismiss_security_alert. A self-healing routine (running outside api's own
-// process, so nothing else observes it happening) calls this twice: once
-// with Mode "open" as its first step, once with Mode "close" — passing back
-// the ID the open call returned — as its last. TriggerSource ("schedule",
-// "api", or "manual") and RoutineName are required for "open"; ID and
-// Outcome ("succeeded", "failed", or "no_action_needed") are required for
-// "close". PRURL/Error are optional close-mode extras. Fields the given
-// mode doesn't use are ignored.
+// recordActionArgs: a routine calls "open" first (TriggerSource
+// schedule|api|manual, RoutineName) and "close" last (the returned ID,
+// Outcome succeeded|failed|no_action_needed, optional PRURL/Error).
 type recordActionArgs struct {
 	Mode          string `json:"mode"                     jsonschema:"open or close"`
 	TriggerSource string `json:"trigger_source,omitempty" jsonschema:"see doc comment"`
@@ -92,9 +62,7 @@ type recordActionArgs struct {
 	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
 }
 
-// notifySlackArgs is the input for notify_slack — the fourth mutating
-// observability tool. Message is the summary body; Title, when given, is
-// bolded on its own line above it.
+// notifySlackArgs: Title, if set, is bolded above Message.
 type notifySlackArgs struct {
 	Message string `json:"message"         jsonschema:"the summary to post to Slack"`
 	Title   string `json:"title,omitempty" jsonschema:"optional bolded title line"`
@@ -122,23 +90,16 @@ func (app *Application) appsResourceMetadataURL() string {
 	return app.config.APIURL + appsResourceMetadataPath
 }
 
-// appsMCPRoute is the fully gated apps MCP endpoint: Bearer verification → user
-// promotion → the streamable-HTTP MCP handler.
+// appsMCPRoute is the gated apps MCP endpoint.
 func (app *Application) appsMCPRoute() http.Handler {
 	return app.mcpBearerRoute(app.appsResourceMetadataURL(), app.appsMCPHandler())
 }
 
 func (app *Application) appsMCPHandler() http.Handler {
 	srv := app.newAppsMCPServer()
-	// DisableLocalhostProtection: the go-sdk's default DNS-rebinding guard
-	// 403s any request whose accepted-connection local address is loopback
-	// but whose Host header isn't. This deploy never puts api behind a
-	// loopback proxy — kamal-proxy reaches it over the Docker bridge
-	// network (config/deploy.api.yml), not 127.0.0.1 — so the guard
-	// wouldn't fire here regardless of this flag. Disabled anyway rather
-	// than relying on that distinction, since the real security boundary
-	// for this endpoint is the Bearer-token check in mcpBearerRoute, which
-	// already wraps this handler and doesn't care how the request arrived.
+	// The real boundary is mcpBearerRoute's token check, so the go-sdk's
+	// loopback DNS-rebinding guard is disabled (kamal-proxy doesn't reach us over
+	// loopback anyway).
 	//nolint:exhaustruct // only Stateless/DisableLocalhostProtection are set
 	return mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return srv },
@@ -146,11 +107,8 @@ func (app *Application) appsMCPHandler() http.Handler {
 	)
 }
 
-// newAppsMCPServer builds one MCP server: every app that implements
-// MCPToolProvider contributes its read-only tools, plus the admin observability
-// tools registered directly below (20 tools, which include the four mutating
-// tools, resolve_sentry_issue, dismiss_security_alert, record_action, and
-// notify_slack — see registerObservabilityMCPTools).
+// newAppsMCPServer builds the MCP server from every MCPToolProvider plus the
+// observability tools.
 func (app *Application) newAppsMCPServer() *mcp.Server {
 	//nolint:exhaustruct // only Name/Version identify the server
 	srv := mcp.NewServer(&mcp.Implementation{
@@ -168,14 +126,9 @@ func (app *Application) newAppsMCPServer() *mcp.Server {
 	return srv
 }
 
-// registerObservabilityMCPTools registers the 20 admin observability tools —
-// 16 read-only plus the four deliberate mutations, resolve_sentry_issue,
-// dismiss_security_alert, record_action, and notify_slack. Every tool but
-// prom_query and get_grafana_alerts
-// wraps a shared internal ObservabilityService method also used by the
-// Connect handlers; those two (issues #1468, #1564) instead proxy straight
-// to Prometheus's / Grafana's own HTTP API, since their response shapes
-// aren't proto messages this repo defines.
+// registerObservabilityMCPTools registers the admin tools. Most wrap shared
+// ObservabilityService methods; prom_query and get_grafana_alerts proxy
+// Prometheus/Grafana directly.
 func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	h := &obsConnectHandler{app: app}
 
@@ -254,10 +207,8 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	registerAlertMCPTools(srv, h)
 }
 
-// registerMutatingObservabilityMCPTools registers the four deliberate
-// mutations, resolve_sentry_issue, dismiss_security_alert, record_action,
-// and notify_slack, split out of registerObservabilityMCPTools to keep that
-// function under the repo's function-length lint limit.
+// registerMutatingObservabilityMCPTools registers the four mutating tools
+// (split out for the function-length lint).
 func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
 		"Marks a Sentry issue as resolved. One of four mutating observability "+
@@ -297,9 +248,8 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 		})
 }
 
-// registerAlertMCPTools registers get_logs, get_notification_settings, and
-// prom_query, split out of registerObservabilityMCPTools to keep that
-// function under the repo's function-length lint limit.
+// registerAlertMCPTools registers get_logs, get_notification_settings and
+// prom_query (split out for the function-length lint).
 func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "get_logs",
 		"Application logs forwarded from api and web, optionally filtered by "+
@@ -327,10 +277,8 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 		})
 }
 
-// addObsTool registers one read-only observability tool. It applies the admin
-// gate uniformly and marshals the shared method's proto response to JSON text
-// content, so the tool bodies stay a thin wrapper over the ObservabilityService
-// read methods.
+// addObsTool registers a read-only observability tool: admin gate, then the
+// proto response marshalled to JSON text.
 func addObsTool[In any](
 	srv *mcp.Server,
 	name, description string,

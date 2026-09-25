@@ -12,7 +12,6 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// fakeDB is a minimal postgres.DB double that just records calls.
 type fakeDB struct {
 	execCalled     bool
 	queryCalled    bool

@@ -10,13 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// uberLiveFixtures holds real, captured HTML of Uber's engineering blog index
-// (https://www.uber.com/be/en/blog/engineering and its /page/2/), fetched the
-// way the production scraper sees it. The scrape heuristic has repeatedly
-// failed in ways synthetic fixtures never reproduced (issue #1748), so these
-// tests pin its behavior against the actual page bytes — when the live
-// site's shape is relevant to a change, recapture the fixtures rather than
-// hand-editing them.
+// uberLiveFixtures are captured pages of Uber's engineering blog index (page
+// 1 and /page/2/). Synthetic fixtures missed real failures; recapture rather
+// than hand-edit these.
 //
 //go:embed testdata/uber-engineering-page*.html.gz
 var uberLiveFixtures embed.FS
@@ -33,8 +29,8 @@ func readUberFixture(t *testing.T, name string) []byte {
 	return body
 }
 
-// localeSwitcherTitles are the language-switcher anchor texts that leaked
-// into the feed as bogus posts (issue #1748).
+// localeSwitcherTitles are language-switcher anchor texts that must never
+// become posts.
 //
 //nolint:gochecknoglobals // static fixture table, read-only after init
 var localeSwitcherTitles = []string{

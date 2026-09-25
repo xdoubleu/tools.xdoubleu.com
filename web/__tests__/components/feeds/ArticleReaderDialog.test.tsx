@@ -17,8 +17,7 @@ jest.mock('@/components/feeds/FeedItemMarkReadButton', () => ({
     return <div data-testid="mark-read-button" />
   })
 }))
-// The reader now fetches the article body itself — list items only carry
-// hasContent (issue #1027). readerItem() registers the body this stub serves.
+// The reader fetches the body itself; readerItem() registers what this serves.
 let mockBody = ''
 let mockLoading = false
 let mockError: unknown = undefined
@@ -33,8 +32,7 @@ jest.mock('@/hooks/useFeeds', () => ({
 
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 
-// readerItem builds an Item as a list response would return it: hasContent
-// set, contentHtml empty, with the body handed to the useFeedItem stub.
+// An Item as a list returns it: hasContent set, no contentHtml.
 function readerItem(fields: Record<string, unknown> & { contentHtml?: string }) {
   const { contentHtml = '', ...rest } = fields
   mockBody = contentHtml
@@ -97,8 +95,7 @@ describe('ArticleReaderDialog', () => {
       />
     )
 
-    // Non-scrollable content (scrollHeight < clientHeight) has no end to
-    // reach, so it must not be auto-marked read just for opening (issue #1887).
+    // Non-scrollable content isn't auto-marked read.
     expect(markRead).not.toHaveBeenCalled()
 
     clientHeight.mockRestore()
@@ -154,7 +151,6 @@ describe('ArticleReaderDialog', () => {
 
   it('shows a loading state while the article body is still being fetched', () => {
     const item = readerItem({ id: 'item-1', title: 'Fetching', contentHtml: '<p>Body</p>' })
-    // The body has not arrived yet, so the fetch is still in flight.
     mockBody = ''
     mockLoading = true
     render(
@@ -174,7 +170,6 @@ describe('ArticleReaderDialog', () => {
 
   it('shows a not-found message when the body fetch 404s (stale cached item)', () => {
     const item = readerItem({ id: 'item-1', title: 'Gone', contentHtml: '<p>Body</p>' })
-    // SWR surfaces the rejected fetch's ConnectError (issue #1819).
     mockError = new ConnectError('[not_found] resource not found', Code.NotFound)
     render(
       <ArticleReaderDialog
@@ -187,7 +182,6 @@ describe('ArticleReaderDialog', () => {
     )
 
     expect(screen.getByText(/no longer available/i)).toBeInTheDocument()
-    // The body has not arrived, so the loading state must be gone.
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
   })
 

@@ -1,5 +1,4 @@
-// Package errortools contains reusable error messages
-// and other helpers for dealing with errors.
+// Package errortools holds reusable errors and error helpers.
 package errortools
 
 //nolint:lll //can't make these lines shorter,the errors are clear

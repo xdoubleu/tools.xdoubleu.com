@@ -31,25 +31,18 @@ var backoffCap = 30 * time.Second
 
 const apiTimeout = 15 * time.Second
 
-// statusCompleted is the GitHub Actions "completed" run/job status.
 const statusCompleted = "completed"
 
-// errNotFound wraps a 404 response from get, so getAllowingNotFound can
-// distinguish "endpoint not enabled for this repo" from a real failure.
+// errNotFound marks a 404 so getAllowingNotFound can tolerate it.
 var errNotFound = errors.New("github: not found")
 
 const (
-	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
-	// cacheTTL is how long a fetched pull-request list is served from memory
-	// before the next call re-fetches. Keeps the admin dashboard off the API
-	// rate limit while staying fresh enough for observability.
+	// cacheTTL keeps the dashboard off GitHub's rate limit.
 	cacheTTL = 45 * time.Second
 )
 
-// configStore is the subset of *repositories.OAuthConnectionsRepository used
-// to resolve the admin-picked repo fresh on every call, instead of a static
-// value baked in at boot (mirrors oauthconn's own narrow connectionStore).
+// configStore resolves the admin-picked repo on every call.
 type configStore interface {
 	Get(
 		ctx context.Context, provider models.OAuthProvider,
@@ -75,10 +68,8 @@ type client struct {
 	cachedRunAt   time.Time
 }
 
-// New creates a GitHub client. tokenFn resolves a live OAuth bearer token
-// (see internal/oauthconn) and configRepo resolves the admin-picked
-// "owner/name" repo on every call. When no repo is picked, or tokenFn
-// reports the provider isn't connected, every call returns ErrNotConfigured.
+// New creates a GitHub client. With no repo picked or no connection, every
+// call returns ErrNotConfigured.
 func New(
 	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
 ) Client {
@@ -214,11 +205,7 @@ func (c *client) ListWorkflowRunJobs(
 	return jobs, nil
 }
 
-// DismissSecurityAlert dismisses/resolves a single open alert. Unlike the
-// List* methods it isn't cached, but a successful dismiss clears the
-// security-alerts cache so the next ListSecurityAlerts call reflects it
-// immediately instead of serving up to cacheTTL of stale (still-open) data —
-// mirrors sentryapi.Client.ResolveIssue's own cache invalidation.
+// DismissSecurityAlert dismisses one alert and clears the security-alerts cache.
 func (c *client) DismissSecurityAlert(
 	ctx context.Context, alertType SecurityAlertType, alertNumber int64, reason string,
 ) error {
@@ -250,9 +237,6 @@ func (c *client) DismissSecurityAlert(
 	return nil
 }
 
-// resolveRepo reads the admin-picked repo from the stored connection config.
-// Returns ErrNotConfigured when the provider isn't connected or no repo has
-// been picked yet.
 func (c *client) resolveRepo(ctx context.Context) (string, error) {
 	_, conn, err := c.configRepo.Get(ctx, models.OAuthProviderGithub)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -323,11 +307,8 @@ func (c *client) storeWorkflowRuns(runs []WorkflowRun) {
 	c.cachedRunAt = time.Now()
 }
 
-// fetchSecurityAlerts lists the repo's open Dependabot, code-scanning, and
-// secret-scanning alerts. GitHub Advanced Security features (code scanning,
-// secret scanning) return 404 on a repo where they aren't enabled — that's
-// treated as "no alerts of that type" rather than an error, since Dependabot
-// alerts alone are still a useful degraded result.
+// fetchSecurityAlerts lists open Dependabot, code-scanning and secret-scanning
+// alerts. GHAS endpoints 404 when disabled; that means "none", not an error.
 func (c *client) fetchSecurityAlerts(
 	ctx context.Context, token, repo string,
 ) ([]SecurityAlert, error) {
@@ -439,11 +420,8 @@ func (c *client) fetchSecretScanningAlerts(
 	return alerts, nil
 }
 
-// fetchFailingPullRequests lists the repo's open pull requests and, for each,
-// fetches the check runs on its head commit. Only pull requests with at
-// least one failing check run, carrying DependenciesLabel, are returned —
-// a PR a human or Claude Code session opened already has someone actively
-// driving it to green, unlike an unattended Renovate PR.
+// fetchFailingPullRequests returns open PRs with a failing check that carry
+// DependenciesLabel; other PRs already have someone driving them.
 func (c *client) fetchFailingPullRequests(
 	ctx context.Context, token, repo string,
 ) ([]PullRequest, error) {
@@ -489,7 +467,6 @@ func labelNames(labels []labelWire) []string {
 	return names
 }
 
-// fetchFailingChecks returns the non-passing, completed check runs on sha.
 func (c *client) fetchFailingChecks(
 	ctx context.Context, token, repo, sha string,
 ) ([]FailingCheck, error) {
@@ -514,14 +491,10 @@ func (c *client) fetchFailingChecks(
 	return checks, nil
 }
 
-// runsPerEvent is how many recent runs of each event (pull_request, push) to
-// fetch — enough to show a useful recent trend without over-fetching.
 const runsPerEvent = 20
 
-// fetchWorkflowRuns lists the repo's most recent pull-request and push
-// (main branch) GitHub Actions workflow runs, in two separate requests so
-// each kind gets its own recency window instead of one competing for the
-// same page.
+// fetchWorkflowRuns fetches PR and push runs separately so each gets its own
+// recency window.
 func (c *client) fetchWorkflowRuns(
 	ctx context.Context, token, repo string,
 ) ([]WorkflowRun, error) {
@@ -574,11 +547,7 @@ func (c *client) fetchWorkflowRunsByEvent(
 	return runs, nil
 }
 
-// getAllowingNotFound behaves like get, except a 404 response leaves dst
-// untouched (its zero value — an empty slice for the callers above) instead
-// of returning an error. GitHub 404s the code-scanning/secret-scanning
-// alerts endpoints on a repo where that GHAS feature isn't enabled, which is
-// a valid "no alerts of this type" state, not a failure.
+// getAllowingNotFound is get, but a 404 leaves dst at its zero value.
 func (c *client) getAllowingNotFound(
 	ctx context.Context, endpoint, token string, dst any,
 ) error {
@@ -670,7 +639,6 @@ func (c *client) patch(ctx context.Context, endpoint, token, body string) error 
 	})
 }
 
-// doWithRetry calls attempt up to maxAttempts times with exponential backoff.
 func (c *client) doWithRetry(
 	ctx context.Context,
 	attempt func() (retryable bool, err error),
@@ -708,11 +676,10 @@ func (c *client) doWithRetry(
 	return lastErr
 }
 
-// SetBaseURL overrides the GitHub API base URL. Intended for tests only.
+// SetBaseURL overrides the GitHub API base URL (tests only).
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the exponential-backoff base delay. Intended for
-// tests only so retry tests run without real wall-clock sleeps.
+// SetBackoffBase overrides the retry backoff base (tests only).
 func SetBackoffBase(d time.Duration) { backoffBase = d }
 
 func backoffDelay(attempt int) time.Duration {
@@ -728,9 +695,7 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
-// IsTransientAPIError reports whether err is a known-benign, self-healing
-// failure (a timeout) rather than a real bug, so callers polling on an
-// interval can log it at a lower level than a persistent failure.
+// IsTransientAPIError reports whether err is a self-healing timeout.
 func IsTransientAPIError(err error) bool {
 	return isTransientErr(err)
 }

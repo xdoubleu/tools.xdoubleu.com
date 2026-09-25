@@ -12,9 +12,7 @@ import (
 
 const errNotInFamily = "You do not have access to this recipe"
 
-// recipesStore is the storage surface RecipeService needs. It is satisfied by
-// repositories.RecipesRepository and by fakes in unit tests, so the
-// family-scoping rules can be tested without a database.
+// recipesStore is the storage surface RecipeService needs.
 type recipesStore interface {
 	ListForFamily(
 		ctx context.Context, familyID uuid.UUID, limit, offset int32,
@@ -31,8 +29,7 @@ type recipesStore interface {
 	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
 }
 
-// familyStore resolves which family a user belongs to, lazily creating a
-// family-of-one the first time it's asked for (see internal/family).
+// familyStore resolves a user's family, creating a family-of-one on demand.
 type familyStore interface {
 	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
 }
@@ -55,9 +52,8 @@ func (s *RecipeService) List(
 	return s.repo.ListForFamily(ctx, familyID, limit, offset)
 }
 
-// Get returns a recipe belonging to the user's family. Every family member
-// has equal read/write access, so canEdit is always true once access is
-// granted at all.
+// Get returns a recipe in the user's family. All members may edit, so canEdit
+// is always true once access is granted.
 func (s *RecipeService) Get(
 	ctx context.Context,
 	id uuid.UUID,
@@ -87,9 +83,8 @@ func (s *RecipeService) Get(
 	return recipe, true, nil
 }
 
-// GetScaled returns a recipe belonging to the user's family, along with the
-// resolved serving count and its ingredients scaled to that count.
-// requestedServings <= 0 keeps the recipe's own BaseServings.
+// GetScaled returns a family recipe with ingredients scaled to
+// requestedServings (<= 0 keeps BaseServings) and the resolved count.
 func (s *RecipeService) GetScaled(
 	ctx context.Context,
 	id uuid.UUID,
@@ -161,8 +156,7 @@ func (s *RecipeService) Update(
 		}
 	}
 
-	// Recipes always remain attributed to their original creator, even when
-	// another family member updates them.
+	// Recipes stay attributed to their creator.
 	recipe.UserID = existing.UserID
 	recipe.FamilyID = existing.FamilyID
 	if err = s.repo.Update(ctx, recipe); err != nil {

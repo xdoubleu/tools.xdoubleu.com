@@ -31,7 +31,6 @@ function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
 interface BooksLibraryProps {
   library: LibraryResponse
   knownShelves: string[]
-  /** Free-text query from the search bar. Empty string means no filter. */
   searchQuery: string
   onSaved: () => void
 }
@@ -73,8 +72,7 @@ export default function BooksLibrary({
     return booksForShelf(library, selection.id)
   }, [library, selection])
 
-  // When a search query is active, filter across the whole library; otherwise
-  // respect the shelf/tag selection.
+  // A search spans the whole library; otherwise shelf/tag filters apply.
   const filteredBooks = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
     if (!q) return shelfBooks
@@ -87,9 +85,7 @@ export default function BooksLibrary({
     })
   }, [library, shelfBooks, searchQuery])
 
-  // When the query has no library matches, fall back to an external (Open
-  // Library) search so not-in-library results still show up as cards.
-  // Debounced so typing doesn't fire a request per keystroke.
+  // No library matches: fall back to a debounced external search.
   useEffect(() => {
     const q = searchQuery.trim()
     if (!q || filteredBooks.length > 0) {
@@ -116,7 +112,6 @@ export default function BooksLibrary({
     }
   }, [searchQuery, filteredBooks.length, searchExternal])
 
-  // All known user-visible tags for the shelf/tag cell checkboxes
   const knownTags = useMemo(() => {
     const all = flattenLibrary(library)
     const seen = new Set<string>()
@@ -157,10 +152,7 @@ export default function BooksLibrary({
               {headerLabel}
               <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
             </h2>
-            {/* Always visible (not just on a no-results search) — search may
-                turn up an unrelated result, or the user may not have
-                searched at all, and either way there's otherwise no way to
-                reach the manual-add flow. */}
+            {/* Always visible: it's the only way to reach manual add. */}
             <Button
               type="button"
               variant="secondary"

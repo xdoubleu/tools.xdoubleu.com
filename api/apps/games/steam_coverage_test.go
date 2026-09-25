@@ -14,14 +14,11 @@ import (
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
 
-// seedSteamData imports steam games for userID using the mock client.
-// It saves integrations with dummy steam credentials so SyncUser
-// uses the mock factory (the actual keys are ignored by the mock).
+// seedSteamData imports steam games for userID via the mock client.
 func seedSteamData(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
 
-	// Save dummy integrations so SyncUser can find the steam user ID.
 	err := testApp.SaveIntegrations(
 		ctx,
 		userID,
@@ -35,9 +32,8 @@ func seedSteamData(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// mockEmptyAchievementsSteamClient is a steam client whose GetPlayerAchievements
-// returns an empty achievement list, so the schema defines the (all unachieved)
-// achievement set.
+// mockEmptyAchievementsSteamClient returns no player achievements, so the
+// schema defines the set.
 type mockEmptyAchievementsSteamClient struct{}
 
 func (mockEmptyAchievementsSteamClient) GetOwnedGames(
@@ -101,8 +97,7 @@ func (mockEmptyAchievementsSteamClient) GetGlobalAchievementPercentagesForApp(
 	return &resp, nil
 }
 
-// TestSteamCompletionRate_NotFound covers the ErrResourceNotFound → "0.00"
-// branch of GetCurrentSteamCompletionRate using an isolated user.
+// TestSteamCompletionRate_NotFound: no record yields "0.00".
 func TestSteamCompletionRate_NotFound(t *testing.T) {
 	const isolatedUser = "steam-rate-notfound-user"
 	rate, err := testApp.Services.Progress.GetCurrentSteamCompletionRate(
@@ -112,8 +107,7 @@ func TestSteamCompletionRate_NotFound(t *testing.T) {
 	assert.Equal(t, "0.00", rate)
 }
 
-// TestSteamCompletionRate_WithRecord saves a steam progress entry then reads it
-// back, covering the return value branch of GetCurrentSteamCompletionRate.
+// TestSteamCompletionRate_WithRecord: a saved rate is read back.
 func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	ctx := context.Background()
 	const isolatedUser = "steam-rate-record-user"
@@ -138,10 +132,8 @@ func TestSteamCompletionRate_WithRecord(t *testing.T) {
 	assert.Equal(t, "55.00", rate)
 }
 
-// TestGetRecentlyActiveGames_Repo seeds steam data (game 1, played ~now per
-// the mock's rtime_last_played) then verifies the repository returns it
-// ordered by last_played, and that a game which was never played (last_played
-// IS NULL) is excluded even though it has achievement unlocks.
+// TestGetRecentlyActiveGames_Repo: played games are returned by last_played;
+// never-played games are excluded.
 func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()
@@ -160,8 +152,7 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	require.NotNil(t, found, "seeded game should be recently active")
 	assert.False(t, found.LastPlayed.IsZero())
 
-	// Clear last_played directly (simulating a game with unlocked achievements
-	// but no recorded play session) and verify it drops out of the list.
+	// A game with unlocks but no last_played drops out.
 	_, err = testDB.Exec(
 		ctx,
 		"UPDATE games.steam_games SET last_played = NULL WHERE id = $1 AND user_id = $2",
@@ -179,8 +170,7 @@ func TestGetRecentlyActiveGames_Repo(t *testing.T) {
 	}
 }
 
-// TestGetRecentlyActive_Service covers the service wrapper that computes the
-// window and delegates to the repository.
+// TestGetRecentlyActive_Service covers the service wrapper.
 func TestGetRecentlyActive_Service(t *testing.T) {
 	seedSteamData(t)
 
@@ -198,8 +188,7 @@ func TestGetRecentlyActive_Service(t *testing.T) {
 	assert.True(t, found, "seeded game should be returned by the service")
 }
 
-// TestUpsertGames_SetsLastSyncedAt verifies that UpsertGames writes a non-zero
-// last_synced_at timestamp that is then returned by GetGameByID.
+// TestUpsertGames_SetsLastSyncedAt: last_synced_at is written and read back.
 func TestUpsertGames_SetsLastSyncedAt(t *testing.T) {
 	ctx := context.Background()
 	const isolatedUser = "last-synced-at-test-user"
@@ -233,8 +222,7 @@ func TestUpsertGames_SetsLastSyncedAt(t *testing.T) {
 		"UpsertGames should set last_synced_at to a non-zero timestamp")
 }
 
-// TestSyncUser_SchemaOnlyAchievements exercises the schema-only achievement path
-// by syncing a user whose steam client returns no player achievements.
+// TestSyncUser_SchemaOnlyAchievements covers the schema-only path.
 func TestSyncUser_SchemaOnlyAchievements(t *testing.T) {
 	ctx := context.Background()
 	const isolatedUserID = "upsert-schema-test-user-id"

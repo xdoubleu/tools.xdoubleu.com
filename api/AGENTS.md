@@ -1,225 +1,117 @@
 # api/ — Backend
 
-Go 1.26 backend for tools.xdoubleu.com. Run all `make` commands from this directory.
-
-## Commands
+Run all `make` commands from this directory. Shared commands are in the root `AGENTS.md`; the extra ones:
 
 ```bash
-docker-compose up -d              # start local Postgres — always before running/testing
-docker-compose down
-
-make run                          # go run ./cmd/api
-make build                        # go build ./cmd/api → ./bin/api
-make test                         # go test -p 1 ./...
-make test/v                       # verbose
-make test/race                    # with race detector
-make test/cov/report               # coverage report (HTML, excludes mocks/gen)
-make test/cov/diff                  # coverage on changed lines only, vs origin/main
+make test/v | make test/race
+make test/cov/diff                 # coverage on lines changed vs origin/main (heuristic, see Testing)
 make test/cov/per-pkg              # per-package coverage, merged
-make lint                          # golangci-lint + sqlfluff + buf lint + lint/migrations + lint/kamal-secrets
-make lint/migrations               # fail on two migrations sharing a version number (goose skips the duplicate silently), or a new migration numbered below the existing max in its directory
-make lint/kamal-secrets            # fail if a name in config/deploy.{api,web}.yml's env.secret: is missing from .kamal/secrets or from main.yml's deploy-kamal env: block (issue #1405 — caught only at deploy time on main otherwise); also fails on a non-GF_-prefixed env name in deploy.grafana.yml's env.secret:/env.clear: (issue #1520 — Grafana silently ignores it, as in #1517)
-make lint/fix                      # golines + golangci-lint --fix + gci + sqlfluff fix + buf lint
-make lint/pkg PKG=apps/recipes     # lint a single package
-make lint/fix/pkg PKG=apps/recipes # auto-fix a single package (golines + golangci-lint --fix + gci scoped to PKG); use this instead of the repo-wide `make lint/fix` for a change confined to one package, since golines' repo-wide pass can reformat unrelated already-merged files that have no actual lint failure
-make proto/generate                # regenerate api/gen/ from proto/ (pair with `npm run generate` in web/)
-make proto/generate/local          # same, via locally-installed plugins instead of buf.build (BSR) — for environments that can't reach it, e.g. Claude Code on the web (pair with `npm run generate:local` in web/)
-make proto/check                   # regenerate + fail if that changed anything uncommitted (what CI's proto-staleness check does)
-make lint/proto                    # buf lint — also part of make lint / lint/fix
-make lint/proto-local-versions     # fail if a proto/generate/local plugin version (api/Makefile, web/package.json) drifts from buf.gen.yaml's `remote:` pin — also part of make lint
-make arch/diagram                  # Mermaid package-dependency diagram of this module (`godepgraph`, auto-installed by the `tools/arch` prereq) → package-graph.mmd; diagnostic only, gitignored like coverage.html, not a lint rule
-
-go test ./apps/books/... -run TestFunctionName   # single test
+make lint/pkg PKG=apps/recipes     # lint one package
+make lint/fix/pkg PKG=apps/recipes # auto-fix one package — prefer over repo-wide lint/fix, whose golines pass reformats unrelated files
+make lint/migrations               # duplicate version (goose silently skips it) or a new one numbered below the dir's max
+make lint/kamal-secrets            # deploy-secret lists agree; deploy.grafana.yml env names must be GF_-prefixed (Grafana ignores others)
+make lint/proto-local-versions     # proto/generate/local plugin versions match buf.gen.yaml's `remote:` pins
+make db/reset                      # recreate the Postgres volume — shared by every worktree, see Testing
 ```
 
 ## Architecture
 
-All apps are registered in `cmd/api/apps.go` and share one HTTP mux routed by
-URL prefix. `main.go` wraps the shared pgx pool in `postgres.NewSpanDB` once
-(so every app's queries emit tracing spans; migrations use the raw pool
-instead) and calls `NewApps`, which registers 10 apps in a fixed order —
-`books` before `games`, because `games`' final migration drops the
-leftover `backlog` schema only after `books` has adopted its tables out of
-it. `trains` and `learningpaths` depend on no other schema and append last
-(after `dashboard`).
-Apps expose ConnectRPC endpoints consumed by `web/`.
+- `NewApps` (`cmd/api/apps.go`) registers apps in a fixed order: `books` before `games` (games' last migration drops the leftover `backlog` schema after books adopted its tables); `dashboard` after `games`/`books`/`feeds` (holds live references to them); `trains`/`learningpaths` last.
+- `main.go` wraps the pgx pool in `postgres.NewSpanDB` for tracing spans; migrations use the raw pool.
+- `ApplyMigrations` takes a Postgres advisory lock (concurrent replicas never race), runs global migrations (`cmd/api/migrations/`), then each app's.
+- `ApplyMigrationsFromFS` (`internal/app/base.go`) runs goose with `WithAllowMissing()`: stacked sibling PRs can merge migrations out of numeric order, and this makes that self-healing instead of a startup panic.
 
-The `App` interface (`cmd/api/apps.go`):
-
-```go
-type App interface {
-    Routes(prefix string, mux *http.ServeMux)
-    ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error
-    GetName() string
-    GetDisplayName() string
-    GetDomain() string
-    Start() error
-}
-```
-
-`ApplyMigrations` (`main.go`) takes a Postgres advisory lock before running
-any migration, so concurrently-starting replicas never race each other, then
-runs global migrations (embedded `cmd/api/migrations/*.sql`) before handing
-off to each app's own. `apps/backlog/` is dead — only stale `coverage.out`
-artifacts remain there, no `.go` source and nothing imports it; the name
-survives only in a migration-ordering comment.
-
-`ApplyMigrationsFromFS`'s `goose.Up(...)` call (`internal/app/base.go`) runs with
-`goose.WithAllowMissing()`, so goose applies a lower-numbered migration file even
-after a higher-numbered one already ran, instead of panicking. This repo's
-parallel-subagent, stacked-PR workflow means two sibling PRs' independently
-numbered migrations for the same app can merge to `main` — and deploy — out of
-numeric order; `WithAllowMissing` is what makes that self-healing rather than a
-startup panic on the next deploy. It's enabled for every app, since the helper is
-shared, not just the one that first hit this.
-
-### App Structure
-
-Each app lives in `apps/<name>/`:
+Per-app layout (`apps/<name>/`):
 
 ```
-apps/<name>/
-├── app.go              # struct embedding app.Base (logger/config/auth), implements App
-│                       # games/books/watchparty export Services/Repositories
-│                       # (not private) so integration tests can seed data through
-│                       # the real service layer
-├── routes.go           # registers the ConnectRPC handler, wrapped in the app's own
-│                       # AppAccess gate (per-app, not global admin-only)
-├── connect_*.go         # ConnectRPC service implementations (split by concern in larger apps)
-├── mcp.go               # optional: implements MCPToolProvider, wraps the app's own read RPCs
-├── internal/
-│   ├── dtos/           # request/response serialization
-│   ├── models/         # domain models
-│   ├── repositories/   # DB access (pgx/v5)
-│   ├── services/       # business logic
-│   ├── jobs/           # background jobs, if any
-│   └── mocks/          # mocks for the above
-└── migrations/         # Goose SQL migrations (per-app schema)
+app.go         # embeds app.Base; games/books/watchparty export Services/Repositories for integration-test seeding
+routes.go      # ConnectRPC handler wrapped in the app's own AppAccess gate
+connect_*.go   # service implementations
+mcp.go         # optional MCPToolProvider
+internal/{dtos,models,repositories,services,jobs,mocks}/
+migrations/    # Goose SQL, own schema only
 ```
 
 ### Auth (`internal/auth`)
 
-First-party — no external Auth provider. `Service`/`LocalService` in
-`internal/auth/service.go`, backed by `api`'s own `auth` Postgres schema:
-self-issued HS256 JWT access tokens verified locally, opaque refresh tokens
-rotated on every use, TOTP 2FA and single-use recovery codes → [`docs/adr-0005-first-party-auth-replacing-gotrue.md`](../docs/adr-0005-first-party-auth-replacing-gotrue.md).
+First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA + recovery codes → [`adr-0005`](../docs/adr-0005-first-party-auth-replacing-gotrue.md).
 
-Rules when touching a handler or anything that mutates a user:
+- A per-token TTL cache (`AUTH_CACHE_TTL`, default 60s, `0` disables; tests use 0) fronts every resolution — **role/app-access changes lag up to the TTL**.
+- SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP evict the token. **Admin `SetRole`/`SetAppAccess` must call `InvalidateUserCache()`.**
+- `enrichUser` overlays DB `Role`/`AppAccess`; **a DB failure is returned, never swallowed** — the unenriched user looks like "no access" and would be cached for the TTL.
+- `GetCurrentUser` (`cmd/api/connect_auth_handlers.go`) is the pattern for handlers needing DB-enriched attributes: `auth.GetUser`, then `appUsersRepo.GetByID`, preferring DB values when found.
+- `ResolveToken` verifies session JWTs locally, then falls back to an injected `OAuth2TokenResolver` for fosite tokens → [`adr-0006`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
 
-- A per-token TTL cache (`AUTH_CACHE_TTL` seconds, default 60, `0` disables — tests use 0 via `testhelper.NewTestConfig`) sits in front of every resolution; a hit skips both enrichment queries, so **role/app-access changes can lag by up to the TTL**.
-- Tokens are evicted on SignOut/UpdatePassword/VerifyMFA/UnenrollTOTP. **Anything mutating *another* session's role/app-access (admin `SetRole`/`SetAppAccess`) must call `InvalidateUserCache()` (clear-all) afterwards.**
-- `enrichUser` overlays the DB-managed `Role`/`AppAccess` onto the raw auth user, which on its own always resolves to `RoleUser` with no app access. **A DB failure here is returned, not swallowed** — falling back to the unenriched user would be indistinguishable from "no access" to `AdminAccess`/`AppAccess`, and would be cached for the rest of the TTL instead of retrying next request.
-- `GetCurrentUser` (`cmd/api/connect_auth_handlers.go`) is the two-layer pattern any Connect handler needing DB-enriched attributes should follow: resolve the session via `auth.GetUser`, then look up `appUsersRepo.GetByID` and prefer the DB role/app-access/display-name when that lookup succeeds, falling back to the bare auth-schema values otherwise.
-- `ResolveToken` tries local session-JWT verification first, then falls back to an injected `OAuth2TokenResolver` for fosite-issued opaque tokens (avoids an import cycle with `internal/oauth2as`) → [`docs/adr-0006-embedded-oauth21-authorization-server.md`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
+### Shared packages (`internal/`)
 
-### Shared Internal Packages (`internal/`)
+- **`app`** — `Base`, `HTTPError`, `ScrubInternalErrors` (every `New*ServiceHandler` call must pass it).
+- **`connecttools`** — `MapError`: DB/`HTTPError` errors → Connect codes.
+- **`sentrytools`** — request-scoped Sentry hub middleware, `GoRoutineWrapper`; slog handler/`Init` live in the root `sentrytools/` module → [`adr-0009`](../docs/adr-0009-sentrytools-extracted-module.md).
+- **`family`** — the one sharing model; a user with no row is an implicit family-of-one (`EnsureFamily`). `InviteByEmail` requires a registered invitee and emails off the request path. **Leaving cannot un-merge family-scoped data** → [`adr-0008`](../docs/adr-0008-family-as-single-sharing-concept.md).
+- **`crypto`** — AES-256-GCM `Sealer` for OAuth tokens at rest.
+- **`mailer`** — Resend HTTP client; `Send`/`SendTo` return `ErrNotConfigured` when unset.
+- **`github`, `sentryapi`** — read-only observability clients; resolve config from `global.oauth_connections` per call; return `ErrNotConfigured`/`ErrNotConnected` instead of failing.
+- **`oauthconn`** — token refresh + single-use CSRF `StateStore`. A `NULL` `config` means "connected, not configured".
+- **`observability`** — `TrackedJob` (→ `global.job_runs`, `job_duration_seconds`), `ObserveJobPhase`, `UsageRecorder` (→ `global.usage_daily`; `countingResponseWriter` in `cmd/api/usage_middleware.go` **must forward `Flush`/`Hijack`** or WebSocket upgrades break), and the cross-app jobs: weekly digest (feed sections only, each gated by `global.notification_settings`), transaction-latency snapshot, issue-signal collector (Prometheus gauges; Sentry via `sentryapi` because Grafana's Sentry datasource can't be alerted on). Never imports `apps/*` — `main.go` adapters bridge. Alerting is Grafana's → [`adr-0022`](../docs/adr-0022-prometheus-grafana-metrics.md), [`adr-0010`](../docs/adr-0010-two-weekly-digest-emails.md), [`adr-0012`](../docs/adr-0012-ubuntu-release-check-on-vps.md).
+- **`notifications`** — email-only: `EnqueueEmail` (fixed recipient), `EnqueueTo` (arbitrary).
+- **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.
+- **`repositories`** — shared repos over the `global` schema.
+- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod.
+- **`mcptools`** — `RequireAppAccess`, `AddReadTool`, `Unwrap`/`Result`.
+- **`testhelper`** — `ConnectTestDB`, `NewTestConfig`, `BuildMux`, `CreateRequestTester`.
+- Job queue: `internal/threading` + `internal/jobqueue`.
 
-- **`app`** — `Base` (logger/config/auth embedded into every app), `HTTPError`, `ScrubInternalErrors` (Connect interceptor logging CodeInternal/CodeUnknown and replacing the client-facing message — every `New*ServiceHandler` call must pass it).
-- **`auth`** — see above.
-- **`config`** — centralized config, loaded from `.env`/environment variables.
-- **`connecttools`** — `MapError`, shared by any app's ConnectRPC handlers to translate `database.ErrResourceNotFound`/`ErrResourceConflict` and `iapp.HTTPError` into the matching Connect error code, so recipes/mealplans/shoppinglist (and any future app with the same DB/HTTPError-to-Connect mapping needs) don't each reimplement it.
-- **`sentrytools`** — `Middleware` (Connect/HTTP request-scoped Sentry hub) and `GoRoutineWrapper` (background-goroutine Sentry tracing). The slog→Sentry `LogHandler` and startup `Init` live in the repo-root `sentrytools/` module instead → [`docs/adr-0009-sentrytools-extracted-module.md`](../docs/adr-0009-sentrytools-extracted-module.md).
-- **`family`** — the single sharing concept: `global.families`/`global.family_members` (at most one family per user; a user with no row is an implicit family-of-one, lazily materialized by `FamilyRepository.EnsureFamily`; each row carries the member's own `display_name`) and `global.family_invites` (pending-only). `family.v1.FamilyService`: `GetFamily`/`InviteToFamily`/`AcceptFamilyInvite`/`DeclineFamilyInvite`/`SetFamilyDisplayName`/`LeaveFamily` (`web/app/family`). `InviteByEmail` requires the invitee to already be a registered user and emails them off the request path — a send failure is logged, never fails the request. recipes/mealplans/shoppinglist key their data by `family_id` via `repositories.FamilyRepository`. **Leaving a family cannot un-merge already-family-scoped data** → [`docs/adr-0008-family-as-single-sharing-concept.md`](../docs/adr-0008-family-as-single-sharing-concept.md).
-- **`crypto`** — AES-256-GCM `Sealer`, used to encrypt OAuth tokens at rest.
-- **`mailer`** — thin Resend HTTP client (no SDK). `Send` (fixed recipient) and `SendTo` (arbitrary recipient) share `ErrNotConfigured` degrade-gracefully semantics when the API key/from/to is unset.
-- **`github`, `sentryapi`** — read-only external observability clients (failing PRs, open Dependabot/code-scanning/secret-scanning security alerts, unresolved Sentry issues). Each resolves its admin-picked identifier fresh on every call from `global.oauth_connections.config`, exposes a discovery method for the admin picker, and returns `ErrNotConfigured`/`ErrNotConnected` rather than failing when the provider isn't set up yet.
-- **`oauthconn`** — shared plumbing for the admin-configurable OAuth connections (GitHub/Sentry): token refresh via `oauth2.Config.TokenSource`, single-use CSRF `StateStore` for the browser redirect leg. Tokens are stored encrypted in `global.oauth_connections`; a `NULL` `config` column means "connected but not yet configured" — a distinct degraded state each provider's fetch path checks.
-- **`observability`** — `TrackedJob` (job timing/panic recovery → `global.job_runs`, plus the `job_duration_seconds` Prometheus histogram), `ObserveJobPhase` (per-phase breakdowns of a job run → the `job_phase_duration_seconds` histogram, so a slow run can be attributed to one phase via `prom_query`), `UsageRecorder` (per-endpoint request counts **and response bytes** → `global.usage_daily`; its `countingResponseWriter` in `cmd/api/usage_middleware.go` **must keep forwarding `Flush`/`Hijack`** or `progressws` WebSocket upgrades break), and the cross-app jobs registered on `main.go`'s own queue: weekly digest, the transaction-latency snapshot (still needed — its `global.transaction_latency_daily` table backs `GetSlowTransactions`' trending field), and the issue-signal collector (`IssueSignalCollectorJob` → Prometheus gauges for GitHub CI, Sentry unresolved issues, R2 storage and per-schema DB size; issue #1570 briefly moved the Sentry signal to a Grafana `grafana-sentry-datasource` plugin query instead, but #1709 reverted it — that plugin's Issues query returns a row-per-issue shape Grafana's alert-expression engine can never evaluate, confirmed live — so the job reads `sentryapi` again for this one gauge, alongside `TransactionLatencySnapshotJob`'s existing use of it). All **alerting** is Grafana's now — issue #1528 retired the hand-rolled `ThresholdAlertJob`/`global.alert_states` and issue #1541 retired the realtime `IssueNotifierJob`/`global.notified_issues`; Grafana evaluates real Prometheus histograms (`http_request_duration_seconds` from `internal/middleware/metrics.go`, `job_duration_seconds`, `web_vitals_seconds`) and routes through a provisioned contact point ([`adr-0022`](../docs/adr-0022-prometheus-grafana-metrics.md)). `WeeklyDigestJob` (issue #1597) now covers only the two personal feed sources (`unhealthy_feeds`, `open_feed_items`) — Sentry, failing dependency PRs, security alerts, and slow transactions dropped out once Grafana started alerting on all four in real time; the slow-transaction classification helpers that used to back the digest's section (`classifyTransaction`/`thresholdMsForClass`) went with it, since `GetSlowTransactions`' trending list never used them ([`adr-0011`](../docs/adr-0011-slow-transaction-thresholds.md)). **`WeeklyDigestJob` checks `global.notification_settings` before including each section**, so a disabled source simply drops out of the digest and re-enabling picks it back up. **Delivery is email-only** — `notifications.Service` exposes just `EnqueueEmail` (the weekly digest, fixed recipient) and `EnqueueTo` (family invites, feeds, arbitrary recipient); the email/Slack fan-out switch that once backed `Enqueue` went away with its last producer when alerting moved to Grafana (#1530, superseding adr-0020). This package never imports an `apps/*` package — `main.go`'s adapters bridge them → [`adr-0010`](../docs/adr-0010-two-weekly-digest-emails.md), [`adr-0011`](../docs/adr-0011-slow-transaction-thresholds.md), [`adr-0012`](../docs/adr-0012-ubuntu-release-check-on-vps.md).
-- **`progressws`** — WebSocket service broadcasting background-job progress ("X of N") keyed by job-ID topics.
-- **`progresshistory`** — generic cumulative-progress storage with carry-forward reads (games/books progress graphs).
-- **`repositories`** — shared DB repos over the `global` schema (users, families/family invites, the observability tables, `oauth_connections`, `profile_shares`).
-- **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)`, an `http.Client` whose `net.Dialer.Control` refuses to connect to non-public IPs (loopback, RFC1918, link-local incl. `169.254.169.254`, CGNAT, multicast). Any code fetching a **user-supplied URL** must build its client here: both apps' `pkg/webfetch` do. Blocking at dial time rather than validating the URL is what makes it survive redirects and DNS rebinding. `allowPrivate` (wired to `cfg.Env != config.ProdEnv`) keeps httptest-based tests and local development working.
-- **`mcptools`** — `RequireAppAccess` (per-app MCP gate, mirrors `auth.AppAccess`), `AddReadTool`, `Unwrap`/`Result`.
-- **`testhelper`** — `ConnectTestDB` for integration tests, `NewTestConfig` (auth cache TTL 0), `BuildMux` for a test handler from any `Routes`/`GetName` app, `CreateRequestTester` for exercising a handler over real HTTP.
+### Apps — non-obvious rules
 
-### Apps
+- **books** — any byte change to the KEPUB pipeline files (list in `converter_version_check_test.go`), comments included, requires bumping `currentKEPUBConverterVersion`, which re-converts every book. Avoid cosmetic edits there.
+- **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
+- **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
+- **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess` → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
+- **trains** → [`adr-0019`](../docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md):
+  - `SearchJourneys` reads an in-memory CSA index built off the request path; while nil it returns `CodeUnavailable`, never a lazy build.
+  - **An import that starts writing something new must bump `services.ImportParserVersion`** — conditional GETs otherwise pin old rows.
+  - **Keep GTFS-RT trip `CANCELED` distinct from stop `SKIPPED`/`NO_DATA`** — conflating them fakes cancellations.
+  - **Never persist, return, or join on `trip_id`** (churns daily); correlate by `(trip_short_name, service date)`.
+- **learningpaths** → [`adr-0023`](../docs/adr-0023-learningpaths-mcp-write-tools.md):
+  - Scoped by `user_id` only (no family); another user's path reads as not-found.
+  - Proto uses nested `LearningPath{modules{items}}`; Create/Update round-trip the whole tree; `RecordItemProgress` is the single-item exception.
+  - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp_authoring_guide.go`.
+  - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `internal/todoist` is create-only.
+  - Linked books/feed items resolve through exported `Books`/`Feeds` methods, never their internals.
 
-- **games** — Steam backlog tracker: library sync, achievements, completion-rate progress/distribution, favourites, per-user Steam settings. Background sync job + WebSocket live updates. Schema `games` (adopted from the former `backlog` schema).
-- **books** — book library and Kobo e-reader companion. Pure-Go PDF/HTML→EPUB conversion (no Calibre), dual metadata enrichment (UniCat + Hardcover). Serves the raw Kobo sync protocol. Background jobs + WebSocket live updates. Schema `books`.
-- **feeds** — RSS/Atom and email-relay newsletter subscriptions, standalone from `books` since #734. Poll job + Resend inbound-email webhook. Schema `feeds`.
-- **watchparty** — WebRTC screen sharing with draggable camera overlays. No DB, no jobs, own custom domain (`watchparty.xdoubleu.com`).
-- **recipes** — recipe management: fraction parsing, iCal export. The recipe book is family-scoped (see `internal/family`). Schema `recipes`.
-- **mealplans** — weekly meal planning with per-plan iCal feeds, family-scoped. Schema `mealplans` (its `plans` tables were adopted from `recipes` via `ALTER TABLE ... SET SCHEMA`).
-- **shoppinglist** — custom items plus meal-plan ingredient aggregation, categories, store-ordered export, family-scoped. Stores themselves stay private per-user even when the rest of the list is shared. Schema `shoppinglist`.
-- **dashboard** — centralizes the public Games and Reading (books+feeds) dashboards, both private/owner and public/shared views, plus the share-token lifecycle → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](../docs/adr-0007-dashboard-app-owns-public-sharing.md). No DB, no jobs, like `watchparty`; registers last in `apps.go` since it holds live references to the already-constructed `games`/`books`/`feeds` apps. See "Public Dashboard Sharing" below.
-- **trains** — SNCB/NMBS timetable + CSA journey planning + GTFS-Realtime delay/cancellation/alert overlay (applied on the live journey detail page, not inside `SearchJourneys`). Schema `trains`. `jobs.StaticImportJob` imports the GTFS static feed daily via `pkg/bmc`, swapped in atomically; `SearchJourneys` reads an in-memory CSA index (`pkg/csa`) built from a rolling window by `jobs.RouterRefreshJob` and a startup warm-up — never in-handler: while the index is nil it returns `CodeUnavailable`, not a lazy build (→ [`docs/adr-0019`](../docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md), ADR-0017). `jobs.RealtimePollJob` polls `pkg/bmc.FetchRealtime` into `services.RealtimeService`'s in-memory `models.Snapshot`; `services.JourneyWSService` pushes a fresh rebuild per poll cycle to one `wstools` topic per subscribed journey at `/trains/api/journeys/live`. Three things break silently: **an import that starts writing something it previously did not must bump `services.ImportParserVersion` in the same change** (a conditional GET otherwise keeps deployed rows pinned to the old importer's output); **the GTFS-RT trip-level `CANCELED` and stop-level `SKIPPED`/`NO_DATA` `schedule_relationship` values must stay distinct** (conflating them manufactures false cancellations); and **`trip_id` (static or realtime) is a daily-churning stopping-pattern variant** — never persist it, return it from `SearchJourneys`, or use it to join the static and realtime feeds to each other (`RealtimeService.Poll` correlates them by `(trip_short_name, service date)`); group user-facing output by `trips.trip_short_name` → [`docs/adr-0019`](../docs/adr-0019-trains-in-memory-router-and-dual-gtfs-feeds.md).
-- **learningpaths** — agent-authorable learning curricula: a `LearningPath` (title, goal, freeform recurring-routine description) made of ordered `Module`s, each with ordered `Item`s a user checks off as progress, plus a freeform resources list. Schema `learningpaths`. Scoped by `user_id` alone — no `FamilyRepository`, no `family_id`, an explicit opt-out of the family-sharing model in [`docs/adr-0008-family-as-single-sharing-concept.md`](../docs/adr-0008-family-as-single-sharing-concept.md); a path owned by someone else reads as not-found, not forbidden, since there's no sharing concept to grant access through. `learningpaths.v1` uses nested `LearningPath{modules{items}}` messages rather than the flattened-parallel-array convention `recipes.v1` uses — a genuine three-level tree stays readable as nested messages, and `Create`/`UpdateLearningPathRequest` round-trip the whole tree in one call (no separate module/item RPCs). `RecordItemProgress` is the one exception: a dedicated single-item RPC/service method so checking an item off doesn't require resending the whole tree. MCP tools (#1473, `apps/learningpaths/mcp.go`) expose `learningpaths_list_paths`/`get_path`/`get_progress` as read tools plus `learningpaths_create_path`/`update_path`/`record_progress` as this app's deliberate mutating exception to the "no per-app tool is ever mutating" rule above → [`docs/adr-0023-learningpaths-mcp-write-tools.md`](../docs/adr-0023-learningpaths-mcp-write-tools.md); every tool, read or write, is gated by `RequireAppAccess` and scoped to the caller via context, never a trusted argument. The write-tool descriptions and a `learningpaths://authoring-guide` MCP resource (`apps/learningpaths/mcp_authoring_guide.go`) carry the authoring guidance server-side, so any MCP client (a ChatGPT-style connector included) sees it at connect time with no re-upload. Per-user Todoist integration (issue #1475, "send an item as a task") stores each user's own OAuth2 connection in a new `learningpaths.oauth_connections(user_id, provider, ...)` table, composite PK `(user_id, provider)`, deliberately separate from admin-scoped `global.oauth_connections` (whose PK is `provider` alone — one connection shared by every user, wrong shape for a per-user Todoist account). Reuses `oauthconn`'s `TokenFunc`/`ScopesAreStale` and `api/internal/crypto`'s `Sealer` via a small per-request adapter (`OAuthConnectionsRepository.ForUser`) rather than touching `oauthconn` itself. `api/internal/todoist` is a narrow, create-only REST client (`CreateTask` only, no SDK) — one-way, per #1471's "no two-way sync". A `Resource` may additionally carry `linked_book_id`/`linked_feed_item_id` (#1474), resolved read-only on Get/List and validated on Create/Update via `Books.GetLibraryBookByID`/`Feeds.GetItemByID` — the dashboard-style cross-app pattern (live `*books.Books`/`*feeds.Feeds` references passed into `learningpaths.New(...)`, exported methods only, never their internal packages or schemas).
+### Database
 
-### Database Conventions
+- Migrations: `apps/<name>/migrations/`; `global` schema in `cmd/api/migrations/`.
+- **No wide TEXT column in list queries or `RETURNING`** — select `<col> IS NOT NULL AND <col> <> ''`; only single-row reads fetch it. Large trains tables (`stop_times`, `calendar_dates`) select only used columns → [`convention-database-queries`](../docs/convention-database-queries.md).
+- Cross-schema reads only downstream: `recipes ← mealplans ← shoppinglist`. Grep downstream repos before changing an upstream schema.
 
-- Each app owns its own Postgres schema, migrated via Goose SQL files in `apps/<name>/migrations/`.
-- Cross-cutting tables live in schema `global`, migrations embedded in `cmd/api/migrations/`.
-- **Never put a wide TEXT column in a list query's column list.** The deployed database is reached over a transaction-mode pooler and billed per byte returned. Multi-row reads and `RETURNING` clauses select `<col> IS NOT NULL AND <col> <> ''` as a boolean; a dedicated single-row read is the only query selecting the column itself (`apps/feeds/internal/repositories/items.go`, `apps/books/internal/repositories/books_scan.go`). The same applies to any query whose result the caller throws away → [`docs/convention-database-queries.md`](../docs/convention-database-queries.md).
-- The same rule bounds `trains`: `stop_times` (~0.8M rows) and `calendar_dates` (~1.07M rows) are large, so any list query over them must select only the columns it uses.
-- Downstream apps may **read** an upstream app's schema directly in SQL. The allowed dependency direction is acyclic: `recipes ← mealplans ← shoppinglist`. **Reads only, never the reverse**, and each app's migrations touch only its own schema — grep downstream repositories before changing an upstream schema.
-- CI runs tests against a real PostgreSQL 18 instance — no DB mocking.
+### MCP
 
-### Apps MCP Server
-
-Every app's own read RPCs, plus 20 admin-gated observability tools (including `prom_query(promql)` against Prometheus, issue #1468, `get_grafana_alerts` for Grafana-managed alert-rule state, issue #1564, `record_action`/`get_automated_actions` for `global.automated_actions` run history from self-healing routines that execute outside api's own process, issue #1441, and `notify_slack` for posting an epic-complete summary to a configured Slack Incoming Webhook, issue #1628), are exposed
-to a local Claude CLI over a largely read-only MCP server at `/apps/mcp`
-(`cmd/api/mcp_apps.go`). Apps opt in via `MCPToolProvider`
-(`RegisterMCPTools(srv *mcp.Server)`, `cmd/api/apps.go`), each wrapping only its
-**read** handlers in `apps/<name>/mcp.go` — **no per-app tool is ever mutating,
-except `learningpaths`**, whose agent-authored-curricula use case is the
-epic's core differentiator, not an afterthought → [`docs/adr-0023-learningpaths-mcp-write-tools.md`](../docs/adr-0023-learningpaths-mcp-write-tools.md)
-(explicit non-precedent statement included).
-Shared gating lives in `internal/mcptools`. Auth is MCP OAuth 2.1 with the api as
-both resource server and authorization server → [`docs/adr-0006-embedded-oauth21-authorization-server.md`](../docs/adr-0006-embedded-oauth21-authorization-server.md).
-
-### Public Dashboard Sharing
-
-Owned entirely by the `dashboard` app. `dashboard.v1.PublicGamesDashboardService`
-and `dashboard.v1.PublicReadingDashboardService`
-(`apps/dashboard/connect_public.go`) are registered **without any auth
-middleware** — every request carries an opaque share token
-(`global.profile_shares`) that resolves to the owning user, so **public handlers
-must never read the user-context key**. Each handler resolves the token, then
-delegates to an exported method on the live `*games.Games`/`*books.Books`/
-`*feeds.Feeds` reference rather than duplicating business logic. Token
-management lives in `dashboard.v1.DashboardService` behind normal `Access`,
-deliberately not gated by `dashboard`'s own `AppAccess` → [`docs/adr-0007-dashboard-app-owns-public-sharing.md`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
-
-### Key Libraries
-
-| Concern | Library |
-| --- | --- |
-| HTTP | `net/http` + `justinas/alice` |
-| RPC | `connectrpc.com/connect` |
-| Database | `jackc/pgx/v5` + `pressly/goose/v3` |
-| Auth | `golang.org/x/crypto/bcrypt` + `pquerna/otp` (TOTP) + `golang-jwt/jwt/v5` (sessions) + `ory/fosite` (embedded MCP OAuth 2.1 AS) |
-| WebSocket | `coder/websocket` |
-| Error tracking | `getsentry/sentry-go` |
-| Job queue | `internal/threading` (WorkerPool) + `internal/jobqueue` (scheduling) |
-| MCP | `modelcontextprotocol/go-sdk` |
-| Code generation | `buf` / `protoc-gen-go` / `protoc-gen-connect-go` |
-| Testing | `stretchr/testify` |
+Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`), wrapping only read handlers in `apps/<name>/mcp.go`; shared gating in `internal/mcptools`.
 
 ## Linting
 
-`make lint` also runs two repo-consistency shell checks that aren't golangci-lint: `lint/migrations` (see Commands) and `lint/kamal-secrets` (`scripts/check_kamal_secrets.sh` — keeps the Kamal deploy-secret list in sync across `config/deploy.{api,web}.yml`, `.kamal/secrets`, and `main.yml`'s `deploy-kamal` env blocks; issue #1405).
+- Config is the repo-root `.golangci.yml` (shared with `kobo-gateway/`). Limits: line length 88, `gci` order standard → default → `prefix(tools.xdoubleu.com)`, `funlen` 100 lines/50 statements, `cyclop` 30. `nolintlint` requires a reason except for `funlen`/`gocognit`/`lll`.
+- `depguard`: nothing outside `apps/<name>/**` may import `apps/<name>/internal/...`.
+- Run `make lint/fix` last. `GOLANGCI_LINT_CACHE` is per-checkout so worktrees don't bleed paths.
 
-`golangci-lint` (40+ linters), configured by the repo-root `.golangci.yml` — not `api/.golangci.yml`, which moved there so `gateway/` and `kobo-gateway/` share the exact same config (golangci-lint's config search walks up from the working directory to find it). Key constraints: max line length 88 (`golines`), import order standard → default → `prefix(tools.xdoubleu.com)` (`gci`), max function length 100 lines/50 statements (`funlen`), max cyclomatic complexity 30 (`cyclop`). `nolintlint` requires an explanation on every `//nolint` except `funlen`/`gocognit`/`lll`. `depguard` enforces one architecture-boundary rule per app under `apps/`: nothing outside `apps/<name>/**` may import `apps/<name>/internal/...` — including `dashboard`/`learningpaths`, which hold live references to other apps' exported top-level packages (fine, untouched by these rules) but must still never reach into another app's `internal/` (`docs/adr-0007-dashboard-app-owns-public-sharing.md`). Go's own `internal/`-visibility rule already blocks this at compile time; depguard's value is catching it earlier, since it only needs syntax, not a successful typecheck. Always run `make lint/fix` as the final step; fix anything the auto-fixer can't resolve manually. If a `.proto` file changed this session, order relative to `lint/fix` doesn't matter — run `make proto/check` (or `make proto/generate` in `api/` and `npm run generate` in `web/`) whenever it's convenient and commit the result; see root `AGENTS.md`'s Commands section for why there's no ordering dependency. `GOLANGCI_LINT_CACHE` is set in the Makefile to a `.golangci-cache/` directory local to the checkout, so concurrent worktrees (which otherwise share the same Go module path and, by default, a single global cache) don't bleed each other's file paths into lint output.
+## Testing
 
-## Testing Notes
+- No DB mocking: integration tests hit real Postgres (18 in CI). Mocks live in `internal/mocks/`.
+- `make test/cov/diff` (`tools/diff_coverage_go.py`) prints a primary (gate) and a conservative number per file; Codecov's patch figure usually lands between them — treat it as a heuristic.
+- `make test/cov/report` runs `tools/extend_signature_coverage.py` so wrapped signatures aren't reported as missed → [`adr-0013`](../docs/adr-0013-diff-scoped-coverage.md).
+- **One Postgres container (`api-db-1`) is shared by every worktree.** `docker-compose down` and `make db/reset` hit all sessions — never stop it when finishing. Failures like `relation ... does not exist` may be leftover state (`db/reset`) or a concurrent teardown (check `docker ps` uptime).
+- **`relation "X" already exists` panic** = another worktree's DDL applied without its `goose_db_version` row. Check with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"`; if the schema already matches, insert the missing row (`INSERT INTO goose_db_version (version_id, is_applied) VALUES (<n>, true);`).
+- **Concurrent `go test` runs from two worktrees race on shared fixtures** (`-p 1` is per-invocation), e.g. `TestAppsMCPCallAllToolsAsAdmin`, `TestListBooksInExactSources_Admin_ReturnsOverlapBook`. Re-run in isolation before calling it a regression.
+- `git stash` is repo-global: never blind-`pop`; confirm your push created an entry and pop only that ref.
+- No Docker? `.claude/hooks/session-start.sh` has a `pg_ctlcluster` fallback — try it before reporting tests as blocked.
+- Bug fixes: failing test first. Reproduce production state via the MCP read tools; for external input, commit the **real bytes** as gzipped `testdata/` fetched with the app's own client (example: `apps/feeds/internal/services/scrape_live_internal_test.go`).
+- A bug closes on a production observation or user confirmation, not a green suite.
+- Backfill migrations: test against a row built to predate the migration, not only fresh rows.
+- Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
 
-- Mock injection for unit tests; mocks live in `internal/mocks/` or an app's own `internal/mocks/`.
-- Integration tests hit a real database — `docker-compose up -d` before running locally.
-- Target ≥80% coverage on changed code (`make test/cov/report`); generated files and `_mock.go` are excluded. `make test/cov/diff` (`tools/diff_coverage_go.py`) reports coverage on just the lines changed vs `origin/main`, as a first approximation of what CI's `codecov/patch` check gates on — run it before pushing, but read it as a heuristic, not a prediction: Codecov counts an unexplained subset of the diff's changed lines and marks lines partial that every covering block hit locally (issue #1868: it false-greened twice on PR #1861). The script therefore prints two numbers per file — the primary one (the pass/fail gate, go-cover line semantics) and a conservative one that counts only block start/end lines of hit blocks; on ordinary PRs Codecov's real patch number falls between the two, closer to the primary (validated on #1869/#1863). `make test/cov/per-pkg` merges per-package Go coverage profiles via the repo-root `tools/merge_coverage.py` — its web-side sibling, `tools/diff_coverage_ts.py`, does the equivalent lcov-based diff scoping for `web/` (`npm run test:cov:diff`).
-- **`make test/cov/report` post-processes the profile before upload**, via `tools/extend_signature_coverage.py` — Go opens a function's first coverage block at its body's opening brace, so a `golines`-wrapped signature's parameter lines belong to no block and Codecov reports them as missed → [`docs/adr-0013-diff-scoped-coverage.md`](../docs/adr-0013-diff-scoped-coverage.md).
-- Repeated local test runs against the same Postgres volume can leave state that breaks a later run with failures unrelated to what's actually being changed (e.g. `relation ... does not exist`, `resource conflicts with existing resource`) — CI never hits this since every job gets a fresh container. `make db/reset` recreates the volume; run it if a failure looks like leftover state rather than a real regression.
-- **One Postgres container is shared by every worktree.** `docker-compose.yml` sets no `name:`, so Compose derives the project name from the `api/` directory — identical in every checkout — and binds a fixed host port, so all concurrent sessions resolve to the same `api-db-1`. `docker-compose down` (and `make db/reset`, which is `down -v` and destroys the shared *volume*) therefore hits every other session too, and the victim sees exactly the symptoms above in whatever suite it was running — indistinguishable from leftover state. Before reaching for `db/reset`, check `docker ps` for a container that's only been up seconds: a database that vanished mid-run is a concurrent teardown, not pollution. Don't stop the container when finishing a task (issue #1205).
-- **A concurrent worktree applying migrations can also desync `goose_db_version` itself**, distinct from the stale-test-data symptom above: `make test`/`make run` panics with `relation "X" already exists` (or a missing column another worktree's session already added) instead of a normal test failure, because one worktree's migration DDL landed on the shared schema while its `goose_db_version` row never committed (e.g. the other session panicked mid-run). Diagnose with `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; SELECT version_id, is_applied FROM goose_db_version ORDER BY version_id DESC LIMIT 8;"` (`postgres` is the default `DB_DSN` database) and compare against the migration file the panic names. If `\d global.<table>` shows the schema already matches that migration, the DDL already applied — insert the missing row rather than dropping/recreating anything: `docker exec api-db-1 psql -U postgres -d postgres -c "SET search_path=global; INSERT INTO goose_db_version (version_id, is_applied) VALUES (<n>, true);"`.
-- **Two worktrees' `go test` runs executing at the same time can also produce a transient assertion failure with no schema/data corruption at all** — `-p 1` only serializes packages *within* one `go test` invocation, not across two concurrent invocations from different sessions, so both processes' reads/writes against the same shared fixture rows (a fixed-ID admin-role test user, seeded "test book" rows used by dedup/overlap assertions, etc.) can interleave. Symptoms seen in practice: `TestAppsMCPCallAllToolsAsAdmin` (a sibling session's `promoteToAdmin`/`demoteToUser` toggling the same fixed test user mid-assertion) and `TestListBooksInExactSources_Admin_ReturnsOverlapBook` (a sibling session's book-seeding transaction observed mid-flight). Before treating either as a real regression, re-run just that test in isolation, or diff against a throwaway clean-`main` worktree — if it fails there too with no relevant changes, it's this race, not a bug. `make test`'s `-p 1` is about determinism within a single run, not exclusivity across concurrent worktree sessions; there's no fix on the test side, only recognizing the signature.
-- **`git stash` is repo-global, not per-worktree**, so entries in the list can belong to another (possibly long-gone) session's worktree — never blind-`pop`, and never chain `stash push && stash pop` as a one-shot verification, because a push that silently stashes nothing (e.g. a `-- <path>` pathspec run from a subdirectory, which resolves pathspecs against the current directory) makes the pop apply a foreign entry into this worktree. If a stash-based verification is needed, run it from the worktree root, confirm the push actually created a new entry (`git stash list` before and after), and pop only the specific ref just created.
-- Write a failing test first when fixing a bug.
-- **Reproduce the production state before fixing a bug** — pull the affected rows via the app's read MCP tools (`feeds_list_items`, `get_sentry_issues`, …), and when the bug's medium is external input (a third party's HTML/API payload), commit the **real bytes** as gzipped `testdata/` fixtures fetched through the app's own HTTP client (same UA/headers — sites serve bots and browsers differently). A synthetic fixture encodes assumptions, not reality; issue #1748 is the concrete case. `apps/feeds/internal/services/scrape_live_internal_test.go` is the worked example.
-- **A bug issue closes on a production observation or the user's confirmation, never on a green suite alone** — the symptom often lives in state no test can see; verify post-deploy via the MCP tool and say so explicitly when it can't be verified yet.
-- **A migration that changes the meaning of an existing column for already-existing rows needs a backfill, or an explicit comment saying why one isn't needed** — `ADD COLUMN` alone leaves every pre-existing row at the new column's default (usually `NULL`), which is silently indistinguishable from "this row is new" to code that branches on it. Issue #1734/#1756/#1794 is the concrete case: a nullable `kobo_last_synced_revision` column meant "never synced" for a genuinely new row, but also for a book that had been syncing for months before the migration ran — so its very next legitimate state change was misclassified. Test the backfill (or the code path an un-backfilled row takes) against a row built to look like it predates the migration, not only against rows your test creates fresh after all migrations already ran — a purely fresh-row test cannot see this class of bug at all, since goose only runs each migration once, before any test data exists.
-- **Don't report a test plan item as blocked ("Docker/Postgres unavailable") without first trying `.claude/hooks/session-start.sh`'s local-Postgres fallback** (`pg_ctlcluster`, wired up when no Docker daemon is reachable) — a PR whose own test plan admits the suite never ran locally has had, at best, half a verification pass, and for a change no test can fully verify anyway (see below) that's not enough to merge on.
-- **`make test/cov/report` can exit 1 with every individual package showing `ok`, printing `go: no such tool "covdata"` for packages with no test files of their own** (`internal/mcptools`, `internal/mocks`, `internal/database`, `internal/family`, …). This is a sandbox/tooling artifact, not a real coverage failure: when a container's preinstalled Go is older than `api/go.mod`'s `go` directive, `GOTOOLCHAIN=auto` downloads a per-module toolchain from the Go module proxy, and that download ships without `go tool covdata` — a still-open upstream bug, [golang/go#75031](https://github.com/golang/go/issues/75031), targeted for Go 1.27. The usual fix (installing the full official release, e.g. via `golang.org/dl/goX.Y.Z`) needs `dl.google.com`, which this environment's network policy blocks — but the downloaded module *does* ship `covdata`'s source under its own `src/cmd/covdata`, just not the prebuilt binary, so `.claude/hooks/session-start.sh` builds it from that source with the module's own `go` binary and drops it into the module's `pkg/tool/<os>_<arch>/` dir on every session start (idempotent, skips if already present). CI is unaffected — `actions/setup-go` installs the exact `go.mod`-pinned version directly from the full release archive, so no toolchain switch (and no partial download) ever happens there. If a session still hits this error, re-run `.claude/hooks/session-start.sh` rather than treating it as a code regression.
-- **A fix for behavior only a physical device can confirm (Kobo firmware discriminator semantics, ChangedEntitlement vs NewEntitlement, and similar "unverifiable without hardware" claims already flagged in `kobo_routes.go`) is not "done" the way a normal bug fix is** — server-side tests can only prove *our own JSON shape* changed as intended, never that the firmware reacts the assumed way. Say so explicitly in the PR/issue rather than closing it as fixed, and treat a user's on-device retest as the real acceptance check, not a formality.
+- `make test/cov/report` exiting 1 with `go: no such tool "covdata"` is a sandbox toolchain-download artifact (golang/go#75031), not a coverage failure; re-run `.claude/hooks/session-start.sh`, which builds it.
 
-## File Size & Splits
+## File size
 
-Go files projected over ~300 lines need a split plan before adding more code — split `_test.go` by feature/handler group, source by concern (extract large string constants to a companion file).
+Go files projected over ~300 lines need a split: tests by feature/handler group, source by concern.

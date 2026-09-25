@@ -30,13 +30,11 @@ func getTrainsRoutes() http.Handler {
 	return mux
 }
 
-// TestSearchJourneys_Handler_UnknownStop exercises the handler end-to-end
-// over real HTTP, covering the CodeNotFound mapping of csa.ErrUnknownStop
-// (connect_journeys.go's mapError).
+// TestSearchJourneys_Handler_UnknownStop covers csa.ErrUnknownStop ->
+// CodeNotFound over real HTTP.
 func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
 	ctx := context.Background()
-	// Warm the router — SearchJourneys returns CodeUnavailable, not the
-	// CodeNotFound this test asserts, while the index is unbuilt (issue #1484).
+	// Warm the router, else SearchJourneys returns CodeUnavailable.
 	_, err := testApp.Services.Journey.RefreshWindow(
 		ctx, time.Now().UTC().Truncate(24*time.Hour),
 	)
@@ -55,8 +53,7 @@ func TestSearchJourneys_Handler_UnknownStop(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connErr.Code())
 }
 
-// TestSearchJourneys_Handler_InvalidTime covers the CodeInvalidArgument
-// branch when the request's time isn't valid RFC3339.
+// TestSearchJourneys_Handler_InvalidTime covers a non-RFC3339 time.
 func TestSearchJourneys_Handler_InvalidTime(t *testing.T) {
 	client := newTrainsTestClient(t)
 	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
@@ -72,9 +69,7 @@ func TestSearchJourneys_Handler_InvalidTime(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connErr.Code())
 }
 
-// TestSearchJourneys_Handler_Success drives the handler over real HTTP
-// against the same fixture journey_test.go seeds, verifying the
-// protoJourney field mapping (legs, times, transfer count) end-to-end.
+// TestSearchJourneys_Handler_Success checks protoJourney mapping end-to-end.
 func TestSearchJourneys_Handler_Success(t *testing.T) {
 	ctx := context.Background()
 	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
@@ -87,10 +82,7 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	require.NoError(t, refreshErr)
 
 	client := newTrainsTestClient(t)
-	// SA->SC requires the same-station transfer at Bravo exercised by
-	// journey_test.go's "journey requiring a transfer" subtest — picked
-	// here (rather than the direct SA->SB trip) so board/alight stop IDs
-	// are asserted against a scenario already proven unambiguous.
+	// SA->SC needs the same-station transfer at Bravo from journey_test.go.
 	when := windowStart.Add(8*time.Hour + 55*time.Minute)
 	req := connect.NewRequest(&trainsv1.SearchJourneysRequest{
 		OriginStopId:      "SA",
@@ -101,10 +93,7 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	resp, err := client.SearchJourneys(ctx, req)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.GetJourneys())
-	// SearchJourneys now returns a window of journeys around the requested
-	// time (issue #1643), not just the single best one at index 0 — find
-	// the 200->300 transfer journey this test targets rather than assuming
-	// position.
+	// SearchJourneys returns a window of journeys; don't assume position.
 	j := findJourneyByFirstLeg(t, resp.Msg.GetJourneys(), "200")
 	require.Len(t, j.GetLegs(), 2)
 	assert.Equal(t, int32(1), j.GetTransfers())
@@ -118,8 +107,6 @@ func TestSearchJourneys_Handler_Success(t *testing.T) {
 	assert.NotEmpty(t, j.GetArrivalTime())
 }
 
-// findJourneyByFirstLeg locates the journey whose first leg's trip short
-// name matches tripShortName, failing the test if none is found.
 func findJourneyByFirstLeg(
 	t *testing.T, journeys []*trainsv1.Journey, tripShortName string,
 ) *trainsv1.Journey {

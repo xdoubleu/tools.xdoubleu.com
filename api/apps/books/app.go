@@ -31,8 +31,7 @@ type Books struct {
 	app.Base
 	db      postgres.DB
 	clients Clients
-	// Services and Repositories are exported so integration tests can seed
-	// data through the real service layer.
+	// Exported so integration tests can seed through the real service layer.
 	Services       *services.Services
 	Repositories   *repositories.Repositories
 	jobQueue       *jobqueue.JobQueue
@@ -54,8 +53,7 @@ func New(
 		)
 	}
 
-	// Hardcover requires a token to work at all, so leave the client nil when
-	// unset — the resync orchestration nil-checks every optional provider.
+	// Hardcover needs a token; nil disables it (providers are nil-checked).
 	var hardcoverClient hardcover.Client
 	if cfg.HardcoverAPIKey == "" {
 		logger.Warn(
@@ -165,13 +163,9 @@ func (a *Books) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
 }
 
-// renameLegacyBooksSchema adopts a pre-2024 database: the app (and its
-// schema) used to be called "books". goose's version table lives inside the
-// schema, so renaming the schema carries the full migration history along —
-// this must run before ApplyMigrationsFromFS creates an empty "reading"
-// schema, or goose would try to re-run every migration from scratch. An
-// empty "reading" schema left behind by a partial deploy is dropped first;
-// a populated one means the rename already happened.
+// renameLegacyBooksSchema renames an old "books" schema to "reading", carrying
+// goose's version table along. Must run before ApplyMigrationsFromFS creates an
+// empty "reading" schema; an empty one from a partial deploy is dropped first.
 func renameLegacyBooksSchema(ctx context.Context, db *pgxpool.Pool) error {
 	_, err := db.Exec(ctx, `
 		DO $$
@@ -201,14 +195,8 @@ func renameLegacyBooksSchema(ctx context.Context, db *pgxpool.Pool) error {
 	return err
 }
 
-// renameLegacyReadingSchema is the inverse of renameLegacyBooksSchema, for
-// the app's second rename (reading back to books, issue #736): a database
-// still on the "reading" schema gets it renamed to "books", carrying
-// goose's version table (and thus migration history) along. An empty
-// "books" schema left behind by a partial deploy is dropped first; a
-// populated one means this rename already happened. Kept alongside the
-// original shim rather than replacing it, since a database that never ran
-// the books→reading rename still needs that one first.
+// renameLegacyReadingSchema renames "reading" back to "books" the same way.
+// Both run, since a database may still need the first rename.
 func renameLegacyReadingSchema(ctx context.Context, db *pgxpool.Pool) error {
 	_, err := db.Exec(ctx, `
 		DO $$
@@ -238,9 +226,8 @@ func renameLegacyReadingSchema(ctx context.Context, db *pgxpool.Pool) error {
 	return err
 }
 
-// RunStorageScanNow runs the R2 bucket scan synchronously, wrapped in the
-// same TrackedJob used for the scheduled run so a manual trigger still shows
-// up in global.job_runs / the Jobs card.
+// RunStorageScanNow runs the R2 scan synchronously under the scheduled job's
+// TrackedJob, so manual runs show in job_runs.
 func (a *Books) RunStorageScanNow(ctx context.Context) error {
 	return observability.NewTrackedJob(a.storageScanJob, a.db).Run(ctx, a.Logger)
 }

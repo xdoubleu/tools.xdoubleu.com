@@ -6,9 +6,7 @@ import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 
-// Split out of RootLayout so the current-user fetch (and everything below
-// it) can be streamed in behind a Suspense boundary — the <html>/<body>
-// shell reaches the browser immediately instead of waiting on this fetch.
+// Split from RootLayout so the current-user fetch streams behind Suspense.
 export default async function AppShell({ children }: { children: React.ReactNode }) {
   const currentUser = await fetchOrNull(async () =>
     (await createServerClient(AuthService)).getCurrentUser({})

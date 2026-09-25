@@ -18,39 +18,31 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// emailUpstreamTimeout bounds the follow-up call to Resend's "retrieve
-// received email" API (the inbound webhook itself only carries metadata —
-// see fetchReceivedEmailHTML).
+// emailUpstreamTimeout bounds the call to Resend's retrieve-received-email API.
 const emailUpstreamTimeout = 10 * time.Second
 
-//nolint:gochecknoglobals // shared client, mirrors reading's koboUpstreamClient
+//nolint:gochecknoglobals // shared client
 var emailUpstreamClient = &http.Client{Timeout: emailUpstreamTimeout}
 
-//nolint:gochecknoglobals // overridable in tests, mirrors mailer.baseURL
+//nolint:gochecknoglobals // overridable in tests
 var resendAPIBaseURL = "https://api.resend.com"
 
-// SetResendAPIBaseURL overrides the Resend API base URL used to fetch a
-// received email's body. Intended for tests only.
+// SetResendAPIBaseURL overrides the Resend API base URL. Tests only.
 func SetResendAPIBaseURL(u string) { resendAPIBaseURL = u }
 
-// resendSignatureMaxAge rejects a webhook whose svix-timestamp is further
-// than this from now, in either direction — the standard Svix replay-attack
-// guard (Resend's own webhooks.verify() enforces the same 5-minute window).
+// resendSignatureMaxAge is the Svix replay window for svix-timestamp, either
+// direction.
 const resendSignatureMaxAge = 5 * time.Minute
 
-// emailRoutes mounts the Resend inbound-email webhook (issue #595) at a
-// single static path — Resend routes all inbound mail for the receiving
-// domain to one webhook URL, so the *feed* is identified by the token
-// embedded in the payload's "to" address, not the URL. AppAccess is NOT
-// used: auth is Resend's own webhook signature instead (see
-// verifyResendSignature).
+// emailRoutes mounts the Resend inbound-email webhook at one static path; the
+// feed is identified by the token in the "to" address. Auth is the webhook
+// signature (verifyResendSignature), not AppAccess.
 func (a *Feeds) emailRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc("POST /"+prefix+"/email/inbound", a.emailInboundHandler)
 }
 
-// resendInboundPayload is the "email.received" webhook body. Resend sends
-// metadata only here — the actual html/text body is fetched separately via
-// fetchReceivedEmailHTML.
+// resendInboundPayload is the "email.received" webhook body (metadata only;
+// the body is fetched via fetchReceivedEmailHTML).
 type resendInboundPayload struct {
 	Type string `json:"type"`
 	Data struct {
@@ -58,10 +50,8 @@ type resendInboundPayload struct {
 		MessageID string   `json:"message_id"`
 		From      string   `json:"from"`
 		To        []string `json:"to"`
-		// ReceivedFor is the address the inbound route actually matched —
-		// distinct from To when the alias was bcc'd/cc'd or the envelope
-		// recipient differs from the To: header. Checked as a fallback
-		// candidate alongside To in resolveEmailFeed.
+		// ReceivedFor is the address the route matched, which differs from
+		// To when the alias was cc'd/bcc'd; also tried in resolveEmailFeed.
 		ReceivedFor []string `json:"received_for"`
 		Subject     string   `json:"subject"`
 	} `json:"data"`
@@ -106,9 +96,7 @@ func (a *Feeds) emailInboundHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
-	// Only email.received is subscribed to today, but a webhook endpoint can
-	// be reused for other event types later — ignore anything else rather
-	// than erroring, so Resend never sees this as a failed delivery.
+	// Ignore other event types so Resend never sees a failed delivery.
 	if payload.Type != resendEventEmailReceived {
 		w.WriteHeader(http.StatusOK)
 		return
@@ -146,9 +134,8 @@ func (a *Feeds) emailInboundHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// resolveEmailFeed extracts the alias token from each candidate address
-// (drawn from both "to" and "received_for") and returns the first one that
-// resolves to a known email feed, or nil if none does.
+// resolveEmailFeed returns the first known email feed among the candidate
+// addresses, or nil.
 func (a *Feeds) resolveEmailFeed(
 	ctx context.Context,
 	to []string,
@@ -172,14 +159,9 @@ func (a *Feeds) resolveEmailFeed(
 	return nil
 }
 
-// inboundTokenFromAddress extracts the token from a "<token>@domain" address's
-// local part, or from the legacy "reading+<token>@domain" form (issue #667:
-// some newsletter signup forms reject "+" in an email address, so new aliases
-// are issued without one, but previously-issued "reading+..." aliases must
-// keep resolving). Lowercased before returning: some mail relays lowercase
-// the recipient local-part in transit, and the token is generated as
-// lowercase hex (issue #661), so folding case here makes lookup insensitive
-// to that mangling without weakening the token itself.
+// inboundTokenFromAddress extracts the token from "<token>@domain" or the
+// legacy "reading+<token>@domain" form, which must keep resolving. It is
+// lowercased because some relays lowercase the local-part (tokens are hex).
 func inboundTokenFromAddress(addr string) (string, bool) {
 	local, _, ok := strings.Cut(addr, "@")
 	if !ok || local == "" {
@@ -194,13 +176,10 @@ func inboundTokenFromAddress(addr string) (string, bool) {
 	return strings.ToLower(local), true
 }
 
-// verifyResendSignature verifies a Resend inbound webhook using the Svix
-// scheme Resend delegates to: the signed content is
-// "{svix-id}.{svix-timestamp}.{body}", HMAC-SHA256'd with the secret (after
-// stripping its "whsec_" prefix and base64-decoding the remainder); the
-// svix-signature header holds one or more space-separated "v1,<base64sig>"
-// values, any of which may match. The timestamp is also required to be
-// within resendSignatureMaxAge of now, guarding against replay.
+// verifyResendSignature verifies Resend's Svix scheme: HMAC-SHA256 over
+// "{svix-id}.{svix-timestamp}.{body}" with the base64 secret after "whsec_";
+// svix-signature holds space-separated "v1,<sig>" values, any may match. The
+// timestamp must be within resendSignatureMaxAge.
 func verifyResendSignature(secret string, headers http.Header, body []byte) bool {
 	id := headers.Get("svix-id")
 	timestamp := headers.Get("svix-timestamp")
@@ -245,17 +224,14 @@ func parseUnixTimestamp(s string) (time.Time, error) {
 	return time.Unix(sec, 0), nil
 }
 
-// resendReceivedEmail is the subset of the "retrieve received email"
-// response (GET /emails/receiving/{id}) this app needs.
+// resendReceivedEmail is the used subset of GET /emails/receiving/{id}.
 type resendReceivedEmail struct {
 	HTML string `json:"html"`
 	Text string `json:"text"`
 }
 
-// fetchReceivedEmailHTML retrieves the full body of a received email, since
-// the "email.received" webhook payload carries metadata only. Falls back to
-// the plain-text body (wrapped so it renders as paragraphs) when the email
-// has no HTML part.
+// fetchReceivedEmailHTML retrieves a received email's body, falling back to
+// the text part wrapped as paragraphs.
 func fetchReceivedEmailHTML(
 	ctx context.Context,
 	apiKey, emailID string,

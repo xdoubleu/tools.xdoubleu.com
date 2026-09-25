@@ -1,5 +1,4 @@
-// Package postgres provides several [github.com/jackc/pgx] related helpers
-// for interacting with postgres.
+// Package postgres holds pgx helpers.
 package postgres
 
 import (
@@ -15,15 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// Connect connects to postgres and returns a [*pgxpool.Pool].
-//
-// The provided arguments are:
-//   - dsn: the url to reach the database
-//   - maxConns: the maximum amount of open connections
-//   - maxIdleTime: the maximum idle time of an open connection
-//   - connectTimeout: the timeout on connecting to the database in seconds
-//   - sleepBeforeRetry: duration to sleep before trying to connect again
-//   - maxRetryDuration: total amount of time to try and achieve a database connection
+// Connect connects to postgres, retrying every sleepBeforeRetry for up to
+// maxRetryDuration.
 func Connect(
 	logger *slog.Logger,
 	dsn string,

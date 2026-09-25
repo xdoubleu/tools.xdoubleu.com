@@ -270,8 +270,7 @@ func TestRemoveFromLibrary_Service_SharedStorageKey_KeepsR2Object(t *testing.T) 
 // exercises RemoveFromLibrary's best-effort R2 cleanup: a delete that keeps
 // failing (exhausting objectstore.DeleteWithRetry's attempts) must not fail
 // the overall library removal — the object is left for the daily storage
-// scan to catch, matching a transient R2 failure like the one that produced
-// the two orphans this behavior was fixed for (issue #1274).
+// scan to catch.
 func TestRemoveFromLibrary_Service_R2DeleteFailsAfterRetries_LogsErrorButSucceeds(
 	t *testing.T,
 ) {

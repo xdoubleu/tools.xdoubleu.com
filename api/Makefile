@@ -1,15 +1,10 @@
 UNAME_S := $(shell uname -s)
 
-# Worktree-local cache: golangci-lint's default cache dir is a single shared
-# location, so concurrent worktrees (same Go module path) bleed each other's
-# file paths into lint output. Scoping it under CURDIR isolates each worktree.
+# Per-worktree cache: the shared default mixes worktrees' paths into output.
 export GOLANGCI_LINT_CACHE := $(CURDIR)/.golangci-cache
 
-# Recreates the local Postgres volume from scratch. Repeated local test runs
-# against the same volume can leave state (rows, schema drift) that breaks a
-# later run in ways unrelated to whatever's actually being changed — CI never
-# sees this since every job gets a fresh container. Run this before a rerun if
-# a failure looks like test-order pollution rather than a real regression.
+# Recreate the local Postgres volume; use when a failure looks like test-order
+# pollution rather than a real regression.
 db/reset:
 	docker-compose down -v
 	docker-compose up -d
@@ -24,10 +19,8 @@ tools/lint/go:
 	go install github.com/daixiang0/gci@v0.14.0
 	go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
 
-# Keep this pin in step with Homebrew's sqlfluff, which macOS gets below and
-# cannot pin (PEP 668 rules out a bare `pip install` there). LT01's opinion on
-# `TEXT[]` reversed between 3.x and 4.x, so a mismatch means `make lint/fix`
-# on one platform produces SQL the other platform's lint rejects.
+# Keep in step with Homebrew's sqlfluff (unpinnable on macOS): LT01's
+# `TEXT[]` rule differs between 3.x and 4.x.
 tools/lint/sql:
 ifeq ($(UNAME_S),Darwin)
 	brew install sqlfluff
@@ -42,10 +35,8 @@ lint/sql: tools/lint/sql
 tools/proto:
 	go install github.com/bufbuild/buf/cmd/buf@v1.73.0
 
-# Plugins buf.gen.local.yaml runs against, for environments (e.g. Claude Code
-# on the web) whose network allowlist doesn't reach buf.build. Versions must
-# match buf.gen.yaml's `remote:` pins exactly — make lint/proto-local-versions
-# fails the build if they drift.
+# For environments that can't reach buf.build. Versions must match
+# buf.gen.yaml's pins (checked by make lint/proto-local-versions).
 tools/proto/local: tools/proto
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
 	go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.0
@@ -65,17 +56,8 @@ lint/proto-local-versions:
 tools/arch:
 	go install github.com/kisielk/godepgraph@v1.0.0
 
-# Mermaid package-dependency diagram of this module, so a change's
-# architectural shape can be eyeballed without reading a diff — both GitHub
-# and Claude Code render Mermaid natively, no Graphviz binary needed.
-# Restricted to this module's own packages (-onlyprefixes): third-party/stdlib
-# deps add volume with no architectural signal here. gen/ (generated
-# protobuf/connect stubs) is excluded the same way for the same reason.
-# Test-only packages (internal/mocks, _test.go files) are already absent since
-# godepgraph doesn't include test packages by default and nothing non-test
-# imports them. This is diagnostic, not a lint rule — nothing fails on what
-# it finds — so its output is a regenerate-on-demand local artifact like
-# coverage.html, not committed.
+# Mermaid package-dependency diagram of this module's own packages (gen/
+# excluded). Diagnostic only; output is not committed.
 arch/diagram: tools/arch
 	godepgraph -format mermaid -s -novendor \
 		-onlyprefixes tools.xdoubleu.com \
@@ -114,17 +96,11 @@ lint/sql/ci:
 proto/generate: tools/proto
 	buf generate
 
-# Same output as proto/generate, but runs locally-installed plugins instead of
-# resolving them from buf.build (BSR) — for environments whose network
-# allowlist doesn't reach buf.build, e.g. Claude Code on the web (issue #1426).
+# Same output as proto/generate, using local plugins instead of buf.build.
 proto/generate/local: tools/proto/local
 	buf generate --template buf.gen.local.yaml
 
-# Mirrors what CI's proto-staleness check does: regenerate, then fail loudly
-# if that changed anything under gen/ that wasn't already committed. Also
-# doubles as local proof that lint/fix never touches gen/ — see gci's
-# --skip-generated flag and .golangci.yml's formatters.exclusions.paths
-# above; there is no ordering dependency between this and make lint/fix.
+# Mirrors CI's proto-staleness check.
 proto/check: proto/generate
 	git diff --exit-code gen/ || (echo "api/gen/ is out of date — run 'make proto/generate' (api) and 'npm run generate' (web), then commit the results." && exit 1)
 
@@ -146,10 +122,7 @@ test/v:
 test/race:
 	go test -p 1 ./... -race -v
 
-# Converts every PDF in apps/books/internal/services/testdata/pdf.local/
-# (gitignored, populated locally) to EPUB in a scratch dir alongside it, for
-# manual inspection of real-world PDF→EPUB conversion quality. No-op if that
-# directory doesn't exist or is empty.
+# Converts PDFs in testdata/pdf.local/ (gitignored) to EPUB for manual review.
 pdf/check:
 	go test ./apps/books/internal/services/... -run TestPDFCheck -v -count=1
 
@@ -159,18 +132,9 @@ test/pprof:
 tools/mutation:
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
-# Diff-scoped mutation testing (issue #1632): resolves the changed Go
-# package directories vs origin/main via tools/diff_packages_go.py (reusing
-# diff_coverage_go.py's get_changed_lines -- the same
-# git-diff-against-origin/main mechanism adr-0013's diff-scoped coverage
-# already established, rather than a second diff-detection implementation),
-# then runs gremlins only against those packages -- one `gremlins unleash`
-# invocation per package, since it accepts only a single path argument.
-# --diff additionally scopes individual mutants to changed lines within
-# each package, using gremlins' own `git diff --merge-base` mechanism --
-# the same merge-base comparison, so the two scoping layers agree on what
-# counts as "changed". .gremlins.yaml (repo config) excludes gen/ and
-# *_mock.go, mirroring test/cov/report's own exclusions.
+# Runs gremlins on Go packages changed vs origin/main (one invocation per
+# package); --diff further scopes mutants to changed lines. .gremlins.yaml
+# excludes gen/ and *_mock.go.
 test/mutation/diff: tools/mutation
 	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
 	if [ -z "$$pkgs" ]; then \
@@ -184,9 +148,7 @@ test/mutation/diff: tools/mutation
 		exit $$status; \
 	fi
 
-# One-time full-repo baseline (see docs/adr-0013-diff-scoped-coverage.md and
-# issue #1632) -- much slower than test/mutation/diff above since it exercises
-# the whole test suite per mutant; not meant to run routinely.
+# Full-repo baseline; slow, not for routine use.
 test/mutation: tools/mutation
 	gremlins unleash ./...
 
@@ -194,18 +156,11 @@ test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
 	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out.filtered
 	echo "mode: set" > coverage.out
-	# -coverpkg spans every package, so most test binaries never execute
-	# cmd/api/internal code and each writes a duplicate count=0 block for the
-	# same lines the owning package's binary reports count=1 for. go tool cover
-	# OR-merges duplicates locally, but Codecov's parser doesn't, so it
-	# misreports genuinely covered lines as partial/missed. Keep the highest
-	# count per line before uploading.
+	# -coverpkg makes other binaries emit count=0 duplicates that Codecov doesn't
+	# OR-merge; keep the highest count per line.
 	tail -n +2 coverage.out.filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> coverage.out
-	# Go opens a function's first block at its body's opening brace, so the
-	# parameter lines of a signature golines wrapped over the 88-char limit
-	# belong to no block at all and Codecov reports them as missed --
-	# costing every newly added function 2-3 patch lines it can never cover
-	# (issue #1376). Extend those blocks back to the `func` keyword.
+	# Wrapped signature lines belong to no coverage block; extend blocks back to
+	# `func` so Codecov doesn't count them as missed.
 	python3 ../tools/extend_signature_coverage.py coverage.out
 
 test/cov: test/cov/report

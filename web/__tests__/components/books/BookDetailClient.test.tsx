@@ -321,8 +321,7 @@ describe('BookDetailClient', () => {
   })
 
   it('shows Kobo sync toggle when book has an epub format, even without the own-digital tag', () => {
-    // The Kobo sync option must not depend on the own-digital tag, which can
-    // drift out of sync with the book's actual files — only on formats.
+    // Kobo sync depends only on formats, not the own-digital tag.
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByTestId('kobo-sync-toggle')).toBeInTheDocument()
   })

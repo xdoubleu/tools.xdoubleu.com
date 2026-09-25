@@ -29,13 +29,8 @@ jobs:
       grafana_dockerfile: ${{ steps.proto-workflows.outputs.grafana_dockerfile }}
     steps:
       - uses: actions/checkout@v7
-      # 'every' requires a file to match every listed pattern, so
-      # '!api/**/*.md' actually scopes to "and isn't an api/ doc". The
-      # default ('some', plain OR across all patterns) made a lone negation
-      # match any file outside api/ too, since such a file trivially isn't
-      # api/**/*.md — that tripped these filters on completely unrelated
-      # changes (#740). 'some-with-excludes' would express this more
-      # directly but isn't supported by the pinned v4 release.
+      # 'every' makes '!api/**/*.md' mean "and isn't an api/ doc"; under the
+      # default 'some', a lone negation matches every file outside api/.
       - uses: dorny/paths-filter@v4
         id: filter
         with:
@@ -47,48 +42,27 @@ jobs:
             web:
               - 'web/**'
               - '!web/**/*.md'
-            # The kobo-gateway binary ships inside the WEB image (served as
-            # a download, staged by build-web.yml itself since #1038), so
-            # kobo-gateway code changes must rebuild web too. It's its own Go
-            # module (kobo-gateway/) — cgo + AppKit, built separately on
-            # macOS (see build-kobo-gateway.yml), not part of api/.
+            # The kobo-gateway binary ships inside the web image, so it rebuilds web.
             kobo_gateway:
               - 'kobo-gateway/**'
               - '!kobo-gateway/**/*.md'
-            # sentrytools/ is a standalone Go module (own go.mod) with no
-            # deployable artifact of its own — api/ pulls it in via a local
-            # `replace` directive, so a change here can break it even though
-            # api/'s own subtree didn't change. See the api gate below,
-            # which ORs this in too.
+            # Standalone module pulled into api/ via `replace`; the api gate ORs it in.
             sentrytools:
               - 'sentrytools/**'
               - '!sentrytools/**/*.md'
             infra:
               - 'infra/**'
               - '!infra/**/*.md'
-            # Kamal deploys are pinned to an image tag that must exist in
-            # GHCR, so a config-only change can't just redeploy the existing
-            # image — it needs build-api/build-web/build-grafana to actually
-            # run so a fresh :<sha> image gets pushed for deploy-kamal to
-            # deploy (#1128: bf0829fe's SSL removal here matched no filter at
-            # all, so build-api was skipped and nothing redeployed).
+            # Config-only changes still need a fresh :<sha> image for Kamal to deploy.
             config_api:
               - 'config/deploy.api.yml'
             config_web:
               - 'config/deploy.web.yml'
-            # Also gates build-grafana (issue #1509 — Grafana moved from a
-            # direct Docker Hub pull to its own built-and-pushed wrapper
-            # image, same as api/web) and api-lint's `make lint/kamal-secrets`
-            # check for a config-only change (issue #1504; same gap #1405
-            # closed for config_api/config_web).
+            # Also gates build-grafana and api-lint's `make lint/kamal-secrets`.
             config_grafana:
               - 'config/deploy.grafana.yml'
-      # Separate step: these filters are a plain OR of positive-only
-      # patterns, so they need the default 'some' quantifier, not 'every'.
-      # (grafana_dockerfile lived in the 'every' step above until #1528 —
-      # a multi-pattern positive-only filter can never be true under 'every',
-      # so build-grafana silently never ran for an infra/grafana/**-only
-      # change.)
+      # Positive-only multi-pattern filters need 'some': under 'every' they
+      # can never match.
       - uses: dorny/paths-filter@v4
         id: proto-workflows
         with:
@@ -99,12 +73,8 @@ jobs:
               - 'web/buf.gen.yaml'
             workflows:
               - '.github/workflows/**'
-            # infra/** feeds infra-apply (OpenTofu), not build-grafana —
-            # this one exists so a change to the wrapper image's own inputs
-            # (the Dockerfile, e.g. bumping the pinned Grafana version; or
-            # the baked-in datasource/dashboard/alerting provisioning,
-            # issues #1527/#1528) triggers a fresh image build the same way
-            # config_api does for deploy.api.yml.
+            # Rebuilds the Grafana wrapper image when its Dockerfile or baked-in
+            # provisioning changes.
             grafana_dockerfile:
               - 'infra/grafana.Dockerfile'
               - 'infra/grafana/**'
@@ -122,12 +92,8 @@ jobs:
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
-  # Each build-* job is gated on its OWN subtree only (issue #948) — api and
-  # web are now independently deployed images (#1038), not stages assembled
-  # into one merged image, so a job skipped here just means deploy-kamal
-  # deploys whatever was pushed last time that component's subtree actually
-  # changed (Kamal pulls the image tag its config points at; a skipped
-  # build-* job doesn't produce a new one).
+  # Each build-* job is gated on its own subtree; a skipped build leaves Kamal
+  # deploying the last pushed tag for that component.
   build-api:
     needs: [changes, proto-check]
     if: |
@@ -143,10 +109,7 @@ jobs:
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
-  # Grafana's wrapper image (issue #1509) — see infra/grafana.Dockerfile's
-  # comment for why this exists instead of pulling grafana/grafana-oss
-  # directly. Gated only on its own Dockerfile/config, not proto/sentrytools
-  # (nothing here depends on this repo's own Go/proto code).
+  # Grafana wrapper image (see infra/grafana.Dockerfile).
   build-grafana:
     needs: changes
     if: |
@@ -159,19 +122,9 @@ jobs:
     uses: ./.github/workflows/build-grafana.yml
     secrets: inherit
 
-  # kobo_gateway is in this gate: build-web.yml stages the kobo-gateway
-  # .dmg/binary into web/public/downloads itself (since #1038) before
-  # building the image, so it must re-run when kobo-gateway/ changes even
-  # if web/ didn't. build-kobo-gateway is a strict `needs:` (result must be
-  # success, not just success-or-skipped) because build-web.yml now
-  # downloads that job's kobo-gateway-dist artifact directly instead of
-  # restoring it from build-kobo-gateway.yml's own cache key (issue #1322 —
-  # see build-kobo-gateway.yml's and save-kobo-gateway-cache.yml's own
-  # comments for why the cache handoff moved out of this run entirely).
-  # There's no artifact to download if build-kobo-gateway didn't actually
-  # run, so build-kobo-gateway's own gate below is deliberately broadened
-  # to a superset of this job's — every trigger that runs build-web also
-  # runs build-kobo-gateway, cache-hit-and-skip-the-actual-compile or not.
+  # build-web stages the kobo-gateway-dist artifact into the image, so it
+  # needs build-kobo-gateway to have succeeded (not skipped); that job's gate
+  # is a superset of this one.
   build-web:
     needs: [changes, proto-check, build-kobo-gateway]
     if: |
@@ -188,13 +141,8 @@ jobs:
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
 
-  # Builds/packages kobo-gateway on a macOS runner (cgo + AppKit, can't
-  # cross-compile from Linux — see build-kobo-gateway.yml). Gated on the
-  # same conditions as build-web (not just kobo_gateway/workflows) so this
-  # job always actually runs — never skips — whenever build-web needs its
-  # kobo-gateway-dist artifact; a source-unchanged run just cache-hits and
-  # skips the real compile (see build-kobo-gateway.yml), so this costs a
-  # macOS runner's boot time on a web-only change, not compile time.
+  # macOS runner (cgo + AppKit). Gated like build-web so it never skips when
+  # build-web needs its artifact; unchanged sources cache-hit.
   build-kobo-gateway:
     needs: changes
     if: |
@@ -250,8 +198,7 @@ jobs:
 
   api-test:
     needs: changes
-    # Runs on push to main too (in parallel with docker/deploy, which do not
-    # depend on it) purely to refresh Codecov's default-branch baseline.
+    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.api == 'true' ||
@@ -264,8 +211,7 @@ jobs:
 
   web-test:
     needs: changes
-    # Runs on push to main too (in parallel with docker/deploy, which do not
-    # depend on it) purely to refresh Codecov's default-branch baseline.
+    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.web == 'true' ||
@@ -277,8 +223,7 @@ jobs:
 
   kobo-gateway-test:
     needs: changes
-    # Runs on push to main too (in parallel with docker/deploy, which do not
-    # depend on it) purely to refresh Codecov's default-branch baseline.
+    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.kobo_gateway == 'true' ||
@@ -287,10 +232,7 @@ jobs:
     uses: ./.github/workflows/kobo-gateway-test.yml
     secrets: inherit
 
-  # sentrytools/ has no deployable artifact of its own (see the `changes`
-  # job's sentrytools filter comment) — it's still linted/tested standalone
-  # so a break is caught here, in addition to api-test catching it
-  # transitively through its own `replace` on this module.
+  # No deployable artifact, but linted/tested standalone.
   sentrytools-lint:
     needs: changes
     if: |
@@ -302,12 +244,8 @@ jobs:
     uses: ./.github/workflows/sentrytools-lint.yml
     secrets: inherit
 
-  # Pre-merge gate for infra/prometheus.yml and the OpenTofu config (issue
-  # #1561). infra-apply below runs `tofu apply` only after merge, and would
-  # not fail on a malformed prometheus.yml at all — Tofu uploads the file and
-  # `docker compose up -d` exits 0 while Prometheus crash-loops on it. Runs
-  # inline rather than as a reusable workflow: it is two tool invocations, not
-  # a per-module lint suite like the four above.
+  # Pre-merge gate: infra-apply would not fail on a malformed prometheus.yml
+  # (Prometheus just crash-loops).
   infra-lint:
     needs: changes
     if: |
@@ -321,8 +259,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      # Same action/version infra-apply below uses; tofu_wrapper is off so
-      # lint_infra.sh sees real exit codes rather than the wrapper's.
+      # tofu_wrapper off so lint_infra.sh sees real exit codes.
       - uses: opentofu/setup-opentofu@v2
         with:
           tofu_wrapper: false
@@ -331,8 +268,7 @@ jobs:
 
   sentrytools-test:
     needs: changes
-    # Runs on push to main too (in parallel with docker/deploy, which do not
-    # depend on it) purely to refresh Codecov's default-branch baseline.
+    # Also runs on main to refresh Codecov's default-branch baseline.
     if: |
       github.event_name == 'workflow_dispatch' ||
       needs.changes.outputs.sentrytools == 'true' ||
@@ -341,11 +277,7 @@ jobs:
     uses: ./.github/workflows/sentrytools-test.yml
     secrets: inherit
 
-  # Unconditional — not gated by the `changes` path filter like every job
-  # above, since a leftover git conflict marker can land in any file type
-  # (issue #1583; one sat undetected in a docs file for a while because
-  # nothing in this repo's tooling ever scanned for it). No build step, so
-  # this is cheap to always run.
+  # Unconditional: a conflict marker can land in any file type.
   conflict-markers:
     if: github.event_name != 'push'
     name: Conflict Marker Lint
@@ -357,9 +289,7 @@ jobs:
       - name: make lint/conflict-markers
         run: make lint/conflict-markers
 
-  # Unconditional for the same reason as conflict-markers above: a workflow
-  # YAML edit can land alongside any other change, not just one gated by the
-  # `changes` path filter (issue #1791). No build step, cheap to always run.
+  # Unconditional: workflow edits can land alongside any change.
   workflow-lint:
     if: github.event_name != 'push'
     name: GitHub Actions Workflow Lint
@@ -371,9 +301,7 @@ jobs:
       - name: make lint/workflows
         run: make lint/workflows
 
-  # Unconditional for the same reason as workflow-lint: a SKILL.md frontmatter
-  # edit can land alongside any other change, and invalid frontmatter makes
-  # both agent harnesses silently drop the skill (issue #1817).
+  # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:
     if: github.event_name != 'push'
     name: Agent Skill Frontmatter Lint
@@ -384,6 +312,21 @@ jobs:
       - uses: actions/checkout@v7
       - name: make lint/skills
         run: make lint/skills
+
+  docs-lint:
+    if: github.event_name != 'push'
+    name: Docs and Comments Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: make lint/docs
+        run: make lint/docs
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
 
   ci-pass:
     needs:
@@ -405,6 +348,7 @@ jobs:
         conflict-markers,
         workflow-lint,
         skills-lint,
+        docs-lint,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -422,13 +366,8 @@ jobs:
             fi
           done
 
-      # codecov.yml sets `manual_trigger: true`, so Codecov posts no statuses/comment
-      # until we tell it to here — once every test job has uploaded. This avoids the
-      # stale carried-forward status Codecov used to post off the first upload (#403).
-      # `send-notifications` accepting the call doesn't guarantee Codecov's backend
-      # actually creates the check-runs — it occasionally no-ops (#540) — so this
-      # re-sends the trigger periodically while polling instead of firing it once.
-      # Guarded so there's nothing to trigger or wait for when no test job ran.
+      # codecov.yml sets `manual_trigger: true`, so Codecov reports nothing until
+      # triggered here. The trigger sometimes no-ops, so it's re-sent while polling.
       - name: Trigger and wait for Codecov to report
         if: |
           needs.api-test.result == 'success' ||
@@ -439,7 +378,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          # PRs: notify/wait on the head commit, not the merge commit github.sha exposes.
+          # PRs: use the head commit, not the merge commit.
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           pip install --quiet codecov-cli
@@ -448,8 +387,7 @@ jobs:
             codecovcli send-notifications --commit-sha "$SHA" --slug "$REPO" --git-service github
           }
 
-          # Codecov reports via the Checks API (codecov/patch, codecov/project),
-          # not the legacy commit-status API, so poll check-runs.
+          # Codecov reports via the Checks API, so poll check-runs.
           send_notifications
           last_trigger=$(date +%s)
           retry_interval=200
@@ -486,45 +424,11 @@ jobs:
             sleep 15
           done
 
-  # Deploy to the Hetzner VPS via Kamal (issue #1036). Since cutover (#1034)
-  # this is the *only* production deploy — DNS resolves here — so it carries
-  # no continue-on-error: a failure here means main didn't ship and must be
-  # loud. (The DigitalOcean App Platform deploy this replaced was removed in
-  # #1113, along with do-app.yaml and the DO_ACCESS_TOKEN/DO_APP_ID secrets.)
-  # Requires the host to have been bootstrapped once by a manual
-  # `kamal setup` — this job runs `kamal deploy`, not `kamal setup`, and
-  # assumes kamal-proxy is already installed. See infra/README.md's "Deploy
-  # the app via Kamal" section for that one-time bootstrap.
-  #
-  # api and web deploy as two independent Kamal apps (#1038) — build-api.yml
-  # and build-web.yml already push their own images to GHCR independently on
-  # every push to main, so this job needs only their build result, not a
-  # merged-image assembly step.
-  #
-  # Also needs infra-apply (issue #1137): infra-apply itself needs the build
-  # jobs (test jobs deliberately excluded, #1147), so this waits for those
-  # builds and infra-apply to resolve before deploying — never in parallel
-  # with either. success-or-skipped for the same reason as build-api/build-web:
-  # infra-apply skips itself (see its own if:) when infra/ didn't change,
-  # which must not block a deploy that has nothing to do with infra.
-  #
-  # concurrency (issue #1364): two pushes to main close together (e.g. two
-  # PRs merged back-to-back) used to start two Main Workflow runs whose
-  # deploy-kamal jobs then ran `kamal deploy` against the same Hetzner host
-  # at the same time. That produced three different-looking failures that
-  # were all really this one race: `mkdir: .kamal/lock-tools-***-com-*: File
-  # exists` (second run's lock acquisition hits the first run's still-held
-  # lock — Kamal doesn't wait/retry, it fails immediately), containerd
-  # `failed commit on ref ...: no such file or directory` (two concurrent
-  # `docker pull`s on the host racing on the same shared base-image layer's
-  # ingest path), and once a container health-check timeout (host under
-  # double deploy load). This group name is intentionally NOT ref-scoped —
-  # unlike a typical PR-cancellation concurrency group, every push to main
-  # must queue against the same Hetzner host regardless of which commit it
-  # is, so a second run's deploy-kamal job waits for the first's to finish
-  # rather than colliding with it. cancel-in-progress stays false: cancelling
-  # a deploy mid-flight would abandon a live kamal deploy lock/half-applied
-  # release, which is worse than a few minutes of queueing.
+  # The only production deploy. Runs `kamal deploy`, so the host must have been
+  # bootstrapped once with `kamal setup` (infra/README.md). Waits for the build
+  # jobs and infra-apply (success-or-skipped). The concurrency group is not
+  # ref-scoped: concurrent `kamal deploy`s on one host fail on the lock or
+  # racing pulls, and cancelling mid-deploy would leave a half-applied release.
   deploy-kamal:
     needs: [build-api, build-web, build-grafana, infra-apply]
     if: |
@@ -549,14 +453,9 @@ jobs:
           ruby-version: "4.0.7"
           bundler-cache: true
 
-      # Not webfactory/ssh-agent: it pipes the secret into `ssh-add -`
-      # verbatim, and a secret stored without its trailing newline (GitHub's
-      # secret UI strips one on paste) is an unparsable PEM — OpenSSH rejects
-      # it with `Error loading key "(stdin)": error in libcrypto` and the
-      # deploy never runs (issue #1106). printf restores the newline, tr
-      # drops CRs from a Windows-pasted key. The agent is started here rather
-      # than dropping the key in ~/.ssh so Kamal's net-ssh never has to parse
-      # an ed25519 key itself; SSH_AUTH_SOCK is exported for later steps.
+      # Not webfactory/ssh-agent: it breaks on a secret missing its trailing
+      # newline. printf restores it, tr drops CRs; the agent keeps net-ssh from
+      # parsing the ed25519 key itself.
       - name: Load the deploy SSH key
         env:
           KAMAL_SSH_KEY: ${{ secrets.KAMAL_SSH_KEY }}
@@ -571,43 +470,20 @@ jobs:
             echo "SSH_AGENT_PID=$SSH_AGENT_PID"
           } >> "$GITHUB_ENV"
 
-      # KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME are repo Secrets, not
-      # Variables — this repo is public, and GitHub only masks Secrets from
-      # workflow logs, not Variables. Every step routes them through `env:`
-      # (never inline `${{ }}` in `run:`) so the mask holds; config/deploy.yml
-      # reads them from that same environment via ERB.
-      # No `-H`: ssh-keyscan salts every hashed line separately, and SSHKit's
-      # own known_hosts parser (sshkit/backends/netssh/known_hosts.rb, used
-      # instead of net-ssh's) returns the keys of the *first* hashed line
-      # whose HMAC matches and stops there — so of keyscan's three lines only
-      # ssh-rsa is ever "known", and the ed25519 key the server actually
-      # presents fails verification with Net::SSH::HostKeyMismatch. Unhashed
-      # entries take the other branch, which unions all keys for the host.
-      # Hashing buys nothing on a throwaway runner anyway.
+      # KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME are Secrets (public repo; only
+      # Secrets are masked), always routed through `env:`.
+      # No `-H`: SSHKit's known_hosts parser stops at the first matching hashed
+      # line, so only ssh-rsa would be trusted.
       - name: Trust the VPS host key
         env:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
-      # No render step: config/deploy.api.yml/deploy.web.yml are committed
-      # as-is and Kamal evaluates each as ERB itself, pulling the two
-      # non-committable values (KAMAL_SERVER_IP/KAMAL_REGISTRY_USERNAME)
-      # from the env below. build-api.yml/build-web.yml tag their images
-      # with the full commit SHA (not a short one), so --version matches
-      # that exactly.
-      #
-      # web deploys first: it's the root/catch-all path service, and
-      # kamal-proxy requires TLS to be established by the root path service
-      # before a path-prefixed service (api) can register for the same
-      # host — deploying api first gets rejected outright if api also
-      # declares TLS, or (if it doesn't) locks the shared host as non-TLS
-      # and makes this web deploy fail instead with "host settings
-      # conflict with another service" (issue #1132). Only when
-      # build-web actually ran: a skipped build-web means web/'s subtree
-      # didn't change, so no fresh ghcr.io/.../web:<sha> tag exists to
-      # deploy — unlike the old merged image, api and web no longer share
-      # one artifact that always gets rebuilt (and re-tagged with this
-      # commit's SHA) whenever anything relevant changes.
+      # Kamal evaluates config/deploy.*.yml as ERB with the env below; --version
+      # is the full commit SHA the build jobs tag with.
+      # web deploys first (ADR 0001): kamal-proxy needs TLS established by the
+      # root-path service before api can register. Skipped when build-web didn't
+      # run, since no web:<sha> tag exists.
       - name: Deploy web via Kamal
         if: needs.build-web.result == 'success'
         env:
@@ -617,19 +493,13 @@ jobs:
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SENTRY_DSN_WEB: ${{ secrets.SENTRY_DSN_WEB }}
-          # PostHog Cloud (EU) client-side project API key (issue #1638) —
-          # see config/deploy.web.yml's env.secret comment.
+          # See config/deploy.web.yml.
           POSTHOG_KEY: ${{ secrets.POSTHOG_KEY }}
-          # Gates GET /metrics on the web container (issue #1555) — see
-          # config/deploy.web.yml. Same repo Secret also feeds the api and,
-          # as TF_VAR_observability_ingest_secret, OpenTofu's Prometheus.
+          # Gates GET /metrics on web; see config/deploy.web.yml.
           OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
         run: bundle exec kamal deploy -c config/deploy.web.yml --skip-push --version="$KAMAL_VERSION"
 
-      # Deploys after web (see reasoning above) so the shared host's TLS is
-      # already established by the time api's path-prefixed registration
-      # (/api,/.well-known) runs. Same build-gating reasoning as the web
-      # step above, for api's own tag.
+      # After web (see above); skipped when build-api didn't run.
       - name: Deploy api via Kamal
         if: needs.build-api.result == 'success'
         env:
@@ -639,10 +509,10 @@ jobs:
           RELEASE: ${{ github.sha }}
           DB_DSN: ${{ secrets.KAMAL_DB_DSN }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          # First-party auth (issue #1039) — see config/deploy.api.yml.
+          # See config/deploy.api.yml.
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           OAUTH_HMAC_SECRET: ${{ secrets.OAUTH_HMAC_SECRET }}
-          # OIDC SSO for Grafana (issue #1469) — see config/deploy.api.yml.
+          # See config/deploy.api.yml.
           OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
@@ -653,10 +523,7 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-          # Not GITHUB_OAUTH_CLIENT_*: GitHub Actions rejects secret names
-          # starting with GITHUB_. The app-level env var name Kamal sets on
-          # the container is unaffected — only this secret's storage name
-          # needed the prefix.
+          # GitHub Actions rejects secret names starting with GITHUB_.
           GITHUB_OAUTH_CLIENT_ID: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_ID }}
           GITHUB_OAUTH_CLIENT_SECRET: ${{ secrets.KAMAL_GITHUB_OAUTH_CLIENT_SECRET }}
           SENTRY_OAUTH_CLIENT_ID: ${{ secrets.SENTRY_OAUTH_CLIENT_ID }}
@@ -669,34 +536,18 @@ jobs:
           NOTIFY_EMAIL_TO: ${{ secrets.NOTIFY_EMAIL_TO }}
           EMAIL_INBOUND_DOMAIN: ${{ secrets.EMAIL_INBOUND_DOMAIN }}
           EMAIL_INBOUND_SECRET: ${{ secrets.EMAIL_INBOUND_SECRET }}
-          # Authenticates web's /api/observability/logs ingest (issue #1568) —
-          # see config/deploy.api.yml. Same repo Secret the web/tofu steps use.
+          # See config/deploy.api.yml.
           OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
-          # Same value the grafana service gets as GF_SECURITY_ADMIN_PASSWORD
-          # (line ~643) — the api's get_grafana_alerts MCP tool authenticates
-          # to Grafana's API as `admin` with it (issue #1564).
+          # Grafana's admin password; get_grafana_alerts authenticates with it.
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          # Bearer token for issue #1444's routine-fire path — see
-          # config/deploy.api.yml.
+          # See config/deploy.api.yml.
           ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
-          # Slack Incoming Webhook URL the notify_slack MCP tool posts
-          # epic-complete summaries to (issue #1628) — see
-          # config/deploy.api.yml. Distinct from GRAFANA_SLACK_WEBHOOK_URL
-          # below, Grafana's own alerting secret.
+          # notify_slack's webhook; distinct from GRAFANA_SLACK_WEBHOOK_URL.
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
 
-      # Grafana (issue #1468) — the third Kamal service on this host,
-      # alongside api/web above, gated on build-grafana the same way (issue
-      # #1509 — Grafana moved to its own built-and-pushed wrapper image,
-      # see infra/grafana.Dockerfile). Order relative to api/web doesn't
-      # matter for kamal-proxy's own TLS/path-registration rules
-      # (deploy.grafana.yml's proxy block has no `ssl` key, same as api's),
-      # but it runs last so its OAuth login against the just-deployed api
-      # is exercised against the newest api build in the same run.
-      # Only when build-grafana actually ran (issue #1509, same reasoning as
-      # the web/api steps above) — a skipped build-grafana means no fresh
-      # ghcr.io/.../grafana:<sha> tag exists to deploy.
+      # Order vs api/web doesn't matter; last so its OAuth login hits the newest
+      # api. Skipped when build-grafana didn't run.
       - name: Deploy grafana via Kamal
         if: needs.build-grafana.result == 'success'
         env:
@@ -705,52 +556,25 @@ jobs:
           KAMAL_VERSION: ${{ github.sha }}
           RELEASE: ${{ github.sha }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          # Same repo Secret the api deploy step passes as
-          # OAUTH_GRAFANA_CLIENT_SECRET, under the env var name Grafana
-          # actually reads — see .kamal/secrets for why the spellings differ.
+          # Same secret as OAUTH_GRAFANA_CLIENT_SECRET (see .kamal/secrets).
           GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
           GF_SECURITY_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          # Reuses the same Resend account api's own mailer uses via SMTP
-          # (issue #1468's Grafana contact point) — no new mail credential.
+          # Reuses the api mailer's Resend account.
           GF_SMTP_PASSWORD: ${{ secrets.RESEND_API_KEY }}
           GF_SMTP_FROM_ADDRESS: ${{ secrets.EMAIL_FROM }}
-          # Slack Incoming Webhook URL (issue #1592) — the alert contact
-          # point. Consumed by $__env{GRAFANA_SLACK_WEBHOOK_URL} in
-          # infra/grafana/provisioning/alerting/contactpoints.yml.
+          # Consumed by infra/grafana/provisioning/alerting/contactpoints.yml.
           GRAFANA_SLACK_WEBHOOK_URL: ${{ secrets.GRAFANA_SLACK_WEBHOOK_URL }}
-          # GitHub + Sentry datasource plugin tokens (issue #1570). Consumed
-          # by $__env{} in
-          # infra/grafana/provisioning/datasources/issue-signals.yml.
+          # Consumed by infra/grafana/provisioning/datasources/issue-signals.yml.
           GRAFANA_GITHUB_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_GITHUB_DATASOURCE_TOKEN }}
           GRAFANA_SENTRY_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_SENTRY_DATASOURCE_TOKEN }}
-          # Bearer token for issue #1444's routine-fire path, consumed by
-          # $__env{ROUTINE_FIRE_TOKEN} in
-          # infra/grafana/provisioning/alerting/contactpoints.yml's
-          # "routine-fire" webhook contact point.
+          # Consumed by contactpoints.yml's "routine-fire" contact point.
           ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
         run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
-  # Applies infra/ (firewall, OS hardening, self-hosted Postgres) on
-  # every push to main that touches it (issues #1053/#1057/#1058/#1060) —
-  # state lives remotely in Cloudflare R2 (infra/versions.tf's backend
-  # block), not on any one laptop. Unlike deploy-kamal above, there's no
-  # "swap the container tag back" undo for what this applies: harden.sh and
-  # null_resource.postgres SSH into the box and mutate it in place. So this
-  # snapshots the VPS via the Hetzner API immediately before applying and,
-  # if the apply fails, rebuilds the server from that snapshot automatically
-  # — a real but lossy rollback (a few minutes of downtime, and anything
-  # written to Postgres between the snapshot and the failure is gone) rather
-  # than a "fix forward" model, which can't cleanly undo a broken SSH
-  # provisioner run. No manual approval gate: the snapshot/restore is the
-  # safety net, not a human click.
-  #
-  # Gated on the build jobs that run on push (issue #1137, narrowed to
-  # build-only in #1147) so this never touches the VPS ahead of the images it
-  # deploys alongside actually building — it used to run in parallel with
-  # them, gated only by the path filter below. Deliberately NOT gated on the
-  # test jobs: a flaky test has nothing to say about whether infra/ itself is
-  # safe to apply, and blocking on it just adds unrelated flakiness to a
-  # deploy path that already has its own snapshot/rollback safety net below.
+  # Applies infra/ (state in Cloudflare R2). harden.sh and the Postgres
+  # provisioner mutate the box in place, so this snapshots the VPS first and
+  # rebuilds from the snapshot if apply fails (lossy rollback, no approval
+  # gate). Waits for build jobs only; test flakiness says nothing about infra.
   infra-apply:
     needs: [changes, build-api, build-web, build-kobo-gateway]
     if: |
@@ -761,17 +585,13 @@ jobs:
       (needs.build-api.result == 'success' || needs.build-api.result == 'skipped') &&
       (needs.build-web.result == 'success' || needs.build-web.result == 'skipped') &&
       (needs.build-kobo-gateway.result == 'success' || needs.build-kobo-gateway.result == 'skipped')
-    # Same group as deploy-kamal (see its comment, issue #1364): this job
-    # also SSHes into the Hetzner host, so a concurrent run here and a
-    # deploy-kamal run from another in-flight workflow run could otherwise
-    # race on the host (e.g. a firewall/Postgres change landing mid-deploy).
+    # Shares deploy-kamal's group: both SSH into the same host.
     concurrency:
       group: hetzner-vps-deploy
       cancel-in-progress: false
     name: Apply Infra via OpenTofu
     runs-on: ubuntu-latest
-    # Bounds a stuck snapshot poll (below) so it can't hold the
-    # hetzner-vps-deploy concurrency group for a full-length runner.
+    # Bounds a stuck snapshot poll holding the concurrency group.
     timeout-minutes: 45
     environment: production
     defaults:
@@ -782,9 +602,7 @@ jobs:
 
       - uses: opentofu/setup-opentofu@v2
 
-      # Same key/mechanism deploy-kamal uses above — it's already one of the
-      # authorized deploy_ssh_public_keys entries, so no separate key is
-      # needed for Tofu's own SSH provisioners.
+      # Same key as deploy-kamal; already authorized for Tofu's provisioners.
       - name: Load the deploy SSH key
         env:
           KAMAL_SSH_KEY: ${{ secrets.KAMAL_SSH_KEY }}
@@ -804,9 +622,7 @@ jobs:
           KAMAL_SERVER_IP: ${{ secrets.KAMAL_SERVER_IP }}
         run: mkdir -p ~/.ssh && ssh-keyscan "$KAMAL_SERVER_IP" >> ~/.ssh/known_hosts
 
-      # endpoints.s3 embeds the Cloudflare account ID, which isn't hardcoded
-      # in the committed backend block (infra/versions.tf) — see
-      # infra/backend.hcl.example.
+      # endpoints.s3 embeds the Cloudflare account ID (see infra/backend.hcl.example).
       - name: tofu init
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
@@ -818,14 +634,9 @@ jobs:
           EOF
           tofu init -backend-config=backend.hcl
 
-      # Async: create_image returns immediately with the action still
-      # running, and a rebuild later needs the image to actually be ready —
-      # so this polls the action instead of assuming it's done, and only
-      # publishes image_id once the poll succeeds so "Restore snapshot on
-      # failure" can never fire against a still-building image. A full VPS
-      # snapshot regularly takes well over 5 minutes, hence the 30-minute
-      # deadline (bounded by the job's own timeout-minutes above). Labeled
-      # so the prune step below only ever touches snapshots this job made.
+      # create_image is async: poll until ready (can take >5 minutes) before
+      # publishing image_id, so a restore never uses a half-built image. Labeled
+      # so pruning only touches CI snapshots.
       - name: Snapshot the VPS before applying
         id: snapshot
         env:
@@ -850,16 +661,12 @@ jobs:
             sleep 10
           done
 
-          # Only now that the image is ready — publishing earlier would let
-          # "Restore snapshot on failure" rebuild from a half-built image.
+          # Only publish once ready (see above).
           echo "image_id=$image_id" >> "$GITHUB_OUTPUT"
 
       - name: tofu apply
         env:
-          # apply re-reads/locks state itself — it doesn't inherit the init
-          # step's env, so the R2 backend credentials have to be repeated
-          # here too (bit us once already: apply failed with "No valid
-          # credential sources found" before this was added).
+          # apply doesn't inherit init's env, so repeat the R2 credentials.
           AWS_ACCESS_KEY_ID: ${{ secrets.TF_STATE_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_STATE_R2_SECRET_ACCESS_KEY }}
           TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
@@ -869,14 +676,11 @@ jobs:
           TF_VAR_release_check_resend_api_key: ${{ secrets.RESEND_API_KEY }}
           TF_VAR_release_check_email_from: ${{ secrets.EMAIL_FROM }}
           TF_VAR_release_check_email_to: ${{ secrets.NOTIFY_EMAIL_TO }}
-          # Written to a file on the VPS for infra/prometheus.yml's `web`
-          # scrape job to authenticate GET /metrics with (issue #1555). Same
-          # repo Secret the deploy-kamal web/api steps use.
+          # Lets infra/prometheus.yml's `web` job authenticate GET /metrics.
           TF_VAR_observability_ingest_secret: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
         run: tofu apply -auto-approve -input=false
 
-      # The apply step above already failed the job; this restores the box
-      # and stays failed rather than trying to turn the run green.
+      # The job stays failed; this only restores the box.
       - name: Restore snapshot on failure
         if: failure() && steps.snapshot.outputs.image_id != ''
         env:
@@ -889,10 +693,7 @@ jobs:
             -H "Authorization: Bearer $HCLOUD_TOKEN" -H "Content-Type: application/json" \
             -d "{\"image\":$IMAGE_ID}"
 
-      # Keeps the newest 5 CI-generated snapshots (label_selector scopes
-      # this to ones this job created, never a manual snapshot taken outside
-      # CI) so storage cost doesn't grow unbounded. Runs regardless of
-      # whether apply succeeded or a restore just happened.
+      # Keep the newest 5 CI snapshots (label-scoped, never manual ones).
       - name: Prune old CI snapshots
         if: always()
         env:
@@ -906,24 +707,10 @@ jobs:
                   -H "Authorization: Bearer $HCLOUD_TOKEN"
               done
 
-  # Issue #1722: main deploys without re-testing (see this file's own header
-  # comment and root AGENTS.md's CI section), so a red push-to-main build/
-  # test/deploy job is closer in urgency to a production bug than to a red
-  # PR sitting overnight — waiting for the red-pr-repair routine's 07:00
-  # scheduled run (docs/spec-routine-red-pr-repair.md) could mean up to ~7
-  # hours of nobody diagnosing it. `/webhooks/grafana-alert`
-  # (api/cmd/api/routines_webhook.go) is a generic bearer-token-authenticated
-  # endpoint that accepts an Alertmanager-shaped payload and fires a named
-  # routine — nothing about it is Grafana-specific, so this job POSTs to it
-  # directly the moment any push-to-main job fails, skipping Prometheus/
-  # Grafana's scrape-and-evaluate latency entirely for this one signal. This
-  # still can't push straight to main itself (AGENTS.md is explicit that
-  # nothing does) — it only gets red-pr-repair started diagnosing sooner, so
-  # its fix still lands as a normal PR gated by CI.
-  #
-  # `needs` lists every job that actually runs on a push-to-main event
-  # (everything else here is `pull_request`/`workflow_dispatch`-only) so
-  # `always()` waits for all of them before checking for a failure.
+  # main deploys without re-testing, so a red push-to-main job fires the
+  # red-pr-repair routine immediately via /webhooks/grafana-alert
+  # (api/cmd/api/routines_webhook.go) rather than waiting for its schedule.
+  # `needs` lists every push-to-main job so `always()` waits for all of them.
   notify-main-ci-red:
     needs:
       [
@@ -949,12 +736,8 @@ jobs:
     permissions:
       contents: read
     steps:
-      # labels.routine selects the routine routines_webhook.go fires
-      # (red-pr-repair is already a knownRoutines entry, see
-      # api/internal/observability/jobs/issue_signal_collector.go) — same
-      # shape Grafana's own routine-fire contact point posts
-      # (infra/grafana/provisioning/alerting/contactpoints.yml), just built
-      # here instead of evaluated by a Prometheus rule.
+      # labels.routine picks the routine to fire; same payload shape as
+      # contactpoints.yml's routine-fire contact point.
       - name: POST failing-job context to the routine-fire webhook
         env:
           ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}

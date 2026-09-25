@@ -22,7 +22,6 @@ func TestNewAuthorizeSession_NoOpenIDScope(t *testing.T) {
 
 	assert.Equal(t, "u1", sess.Subject)
 	assert.Equal(t, "kid-1", sess.Headers.Extra["kid"])
-	// Without the openid scope no identity claims are layered on.
 	assert.Nil(t, sess.Claims.Extra["role"])
 	assert.Nil(t, sess.Claims.Extra["email"])
 }
@@ -42,8 +41,6 @@ func TestAddProfileClaims_ScopeMatrix(t *testing.T) {
 			scopes: fosite.Arguments{OpenIDScope},
 			assert: func(t *testing.T, extra map[string]any) {
 				t.Helper()
-				// Grafana's role_attribute_strict then refuses the login —
-				// which is the point: Grafana is admin-only (adr-0021).
 				assert.NotContains(t, extra, "role")
 				assert.NotContains(t, extra, "email")
 				assert.NotContains(t, extra, "name")

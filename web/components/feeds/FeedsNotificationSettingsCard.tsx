@@ -4,9 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { useNotificationSettings } from '@/hooks/useMonitoring'
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
-// feeds owns unhealthy_feeds and open_feed_items — sentry_issues/
-// failing_dependency_prs are surfaced from the monitoring app instead
-// (issue #1228).
+// The other sources live on the monitoring page.
 const FEEDS_SOURCE_KEYS = ['unhealthy_feeds', 'open_feed_items']
 
 export default function FeedsNotificationSettingsCard() {

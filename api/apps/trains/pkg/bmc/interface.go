@@ -1,11 +1,6 @@
-// Package bmc is a thin client for the Belgian Mobility Company (BMC) open
-// data portal, an Azure APIM gateway fronting GTFS static + GTFS-Realtime
-// feeds per operator. This slice (issue #1390) only needs the SNCB/NMBS
-// static timetable; the realtime feeds are added by issue #1393.
-//
-// The gateway host and subscription key come from internal/config
-// (BMC_HOST / BMC_PARTNER_KEY). The key is sent as the "bmc-partner-key"
-// request header, confirmed against the live gateway by the #1389 spike.
+// Package bmc is a client for the Belgian Mobility Company open data gateway
+// (Azure APIM) serving SNCB/NMBS GTFS static and GTFS-Realtime feeds. The key
+// (BMC_PARTNER_KEY) is sent as the "bmc-partner-key" header.
 package bmc
 
 import (
@@ -15,17 +10,15 @@ import (
 	"time"
 )
 
-// operatorSlug is the BMC path segment for SNCB/NMBS. Rail only, SNCB only
-// (issue #1388) — no reason to parameterise it yet.
+// operatorSlug is the BMC path segment for SNCB/NMBS.
 const operatorSlug = "nmbssncb"
 
-// ErrNotConfigured is returned when no BMC_PARTNER_KEY is set. Callers
-// degrade gracefully rather than failing, matching internal/mailer.
+// ErrNotConfigured is returned when no BMC_PARTNER_KEY is set; callers
+// degrade gracefully.
 var ErrNotConfigured = errors.New("bmc: no partner key configured")
 
-// RateLimitedError is returned on an HTTP 429. The gateway carries no
-// RateLimit-* headers — Retry-After is the only backoff signal (issue
-// #1389), so it is surfaced here for the caller to honour.
+// RateLimitedError is an HTTP 429. Retry-After is the gateway's only backoff
+// signal.
 type RateLimitedError struct {
 	RetryAfter time.Duration
 }
@@ -34,9 +27,8 @@ func (e *RateLimitedError) Error() string {
 	return fmt.Sprintf("bmc: rate limited, retry after %s", e.RetryAfter)
 }
 
-// StaticOptions arms a conditional GET against the static feed. Both fields
-// come from the previous import's stored validators; either or both may be
-// empty on the first run.
+// StaticOptions are the previous import's validators for a conditional GET;
+// either may be empty.
 type StaticOptions struct {
 	ETag         string
 	LastModified string
@@ -46,26 +38,21 @@ type StaticOptions struct {
 type StaticResult struct {
 	// Body is the raw zip. Empty when NotModified is true.
 	Body []byte
-	// ETag / LastModified echo the response validators, to be stored for the
-	// next run's conditional GET.
+	// ETag / LastModified are stored for the next conditional GET.
 	ETag         string
 	LastModified string
-	// NotModified is true on a 304 — the daily feed was unchanged and the
-	// import is a no-op.
+	// NotModified is true on a 304.
 	NotModified bool
 }
 
-// FeedTripUpdate and FeedAlert are the BMC gateway's GTFS-Realtime feed path
-// segments for SNCB/NMBS (issue #1393).
+// FeedTripUpdate and FeedAlert are the GTFS-Realtime feed path segments.
 const (
 	FeedTripUpdate = "rt/trip-update"
 	FeedAlert      = "rt/alert"
 )
 
-// UpstreamError is a non-2xx, non-429 response from the realtime endpoint.
-// Distinct from a generic error so callers can tell a 5xx (transient,
-// worth backing off and retrying next poll) from anything else (a real bug
-// worth surfacing to the monitoring page).
+// UpstreamError is a non-2xx, non-429 realtime response, so callers can back
+// off on a 5xx and surface anything else.
 type UpstreamError struct {
 	StatusCode int
 }
@@ -74,21 +61,14 @@ func (e *UpstreamError) Error() string {
 	return fmt.Sprintf("bmc: unexpected status %d", e.StatusCode)
 }
 
-// RealtimeResult is a completed GTFS-Realtime feed fetch. Body is always
-// protobuf — FetchRealtime asserts the response Content-Type rather than
-// trusting the ?format=protobuf query param silently, since the gateway is
-// documented (issue #1389) to serve JSON by default.
+// RealtimeResult is a GTFS-Realtime fetch. Body is always protobuf: the
+// Content-Type is asserted, since the gateway defaults to JSON.
 type RealtimeResult struct {
 	Body []byte
 }
 
-// UnexpectedContentTypeError is a 200 response whose Content-Type is neither
-// protobuf nor the documented JSON fallback (issue #1389) — observed in
-// production as an HTML error page returned with a 200 status during
-// gateway overload or an SNCB-side backend error (issue #1711). Distinct
-// from UpstreamError (which is keyed on status code) so callers can back off
-// and retry next poll instead of failing the job over a transient, non-HTTP-
-// error-coded gateway hiccup.
+// UnexpectedContentTypeError is a 200 that's neither protobuf nor JSON,
+// e.g. an HTML error page under gateway overload. Transient; callers back off.
 type UnexpectedContentTypeError struct {
 	Feed        string
 	ContentType string
@@ -103,10 +83,8 @@ func (e *UnexpectedContentTypeError) Error() string {
 
 // Client fetches feeds from the BMC gateway.
 type Client interface {
-	// FetchStatic downloads the SNCB GTFS static zip, honouring the
-	// conditional-GET validators in opts.
+	// FetchStatic downloads the static zip, honouring opts' validators.
 	FetchStatic(ctx context.Context, opts StaticOptions) (*StaticResult, error)
-	// FetchRealtime downloads one GTFS-Realtime feed (FeedTripUpdate or
-	// FeedAlert) for SNCB/NMBS, always as protobuf.
+	// FetchRealtime downloads one GTFS-Realtime feed as protobuf.
 	FetchRealtime(ctx context.Context, feed string) (*RealtimeResult, error)
 }

@@ -11,12 +11,10 @@ import { useFeedItem, useUpdateItem } from '@/hooks/useFeeds'
 import { ConnectError, Code } from '@connectrpc/connect'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
 
-// How close to the bottom (px) counts as "reached the end" (issue #716).
+// Distance from the bottom (px) that counts as reaching the end.
 const AUTO_READ_THRESHOLD_PX = 24
 
-// How long to wait after the last scroll event before persisting the
-// furthest-reached read-progress percentage (issue #798) — avoids a
-// network call on every scroll tick.
+// Debounce before persisting the furthest read-progress percentage.
 const PROGRESS_DEBOUNCE_MS = 1000
 
 interface FeedArticleReaderDialogProps {
@@ -29,10 +27,7 @@ interface FeedArticleReaderDialogProps {
   onSettled: (itemId: string) => void
 }
 
-// List responses carry only item.hasContent, never the body (issue #1027),
-// so the reader fetches the article itself once the dialog opens — which is
-// also the only moment a body is actually needed. The dialog scaffold and
-// prose rendering come from the shared components/ArticleReaderDialog.tsx.
+// List responses carry only hasContent, so the reader fetches the body on open.
 export default function FeedArticleReaderDialog({
   item,
   open,
@@ -42,15 +37,13 @@ export default function FeedArticleReaderDialog({
 }: FeedArticleReaderDialogProps) {
   const { data: itemData, isLoading, error } = useFeedItem(open && item.hasContent ? item.id : null)
   const html = itemData?.item?.contentHtml ?? ''
-  // A cached list can reference an item deleted (or whose feed is gone)
-  // between listing and opening (issue #1819) — the fetch then 404s.
+  // The item may have been deleted since the list was fetched.
   const notFound = error instanceof ConnectError && error.code === Code.NotFound
   const [zoomedSrc, setZoomedSrc] = useState<string | null>(null)
   const markReadRef = useRef<FeedItemMarkReadHandle>(null)
   const updateItem = useUpdateItem()
 
-  // Furthest scroll percentage reached this session, seeded from the item's
-  // already-persisted value so re-reaching a prior position never re-sends.
+  // Seeded from the persisted value so a prior position is never re-sent.
   const maxPctRef = useRef(item.readProgressPct)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -58,8 +51,7 @@ export default function FeedArticleReaderDialog({
     maxPctRef.current = item.readProgressPct
   }, [item.id, item.readProgressPct])
 
-  // Flush on item change or unmount — the debounce alone wouldn't fire if
-  // the dialog closes/switches items mid-timer.
+  // Flush on item change or unmount; the debounce wouldn't fire.
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -79,12 +71,8 @@ export default function FeedArticleReaderDialog({
     }, PROGRESS_DEBOUNCE_MS)
   }
 
-  // Auto-mark-read once the reader is scrolled to the end of the content
-  // (issue #716); the button's own undo window still lets the user revert.
-  // The content must actually be scrollable (issue #1887): an article that
-  // already fits in the viewport has no end to reach, so it must never be
-  // auto-marked read just for opening — otherwise a short article in the
-  // full-screen desktop reader is marked read the moment it appears.
+  // Auto-mark-read at the end of the content (undoable). Only when it's
+  // actually scrollable, so a short article isn't marked read on open.
   const checkAutoRead = (el: HTMLDivElement | null) => {
     if (!el || !html || el.clientHeight === 0) return
     reportProgress(
@@ -106,14 +94,12 @@ export default function FeedArticleReaderDialog({
         open={open}
         onOpenChange={onOpenChange}
         html={html}
-        // Feeds fills the whole viewport on desktop (issue #1867).
         bleedDesktop
         proseClassName="[&_img]:cursor-zoom-in"
         scrollRef={checkAutoRead}
         onScroll={(e) => checkAutoRead(e.currentTarget)}
-        // Delegated: article images are raw HTML, so there's no per-image
-        // React node to attach a handler to (issue #941). preventDefault
-        // keeps an image wrapped in a link from navigating away instead.
+        // Delegated: article images are raw HTML. preventDefault stops a linked
+        // image from navigating.
         onContentClick={(e) => {
           if (!(e.target instanceof HTMLImageElement)) return
           e.preventDefault()

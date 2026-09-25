@@ -5,13 +5,8 @@ import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import BooksDashboardView from '@/components/books/BooksDashboardView'
 import type { DashboardChartState } from '@/hooks/useDashboardChartState'
 
-// ReadingDashboardLayout composes the presentational BooksDashboardView
-// (library + progress chart) with the feeds widget — shared by the private
-// (ReadingDashboard) and public (ReadingDashboardPublicClient) wrappers so
-// the merged books+feeds "reading dashboard" (issue #737) can't drift
-// between the two. feedsCard is a slot rather than a fixed component/prop
-// shape: the private view shows an unread-items digest, the public view
-// shows a plain subscribed-feeds list — genuinely different data.
+// Shared by the private and public reading dashboards so they can't drift;
+// feedsCard is a slot since each shows different feeds data.
 export default function ReadingDashboardLayout({
   library,
   chart,

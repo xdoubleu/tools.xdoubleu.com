@@ -40,10 +40,8 @@ function RecentGameCard({ game, href }: { game: RecentGame; href: string }) {
 }
 
 /**
- * Presentational games dashboard shared by the private (`GamesDashboard`) and
- * public (`GamesDashboardPublicClient`) wrappers so their cards/charts can't drift.
- * The wrappers fetch data and pass owner actions via the `actions` slot; the
- * public one simply passes no mutating controls and omits `onBucketClick`.
+ * Games dashboard view shared by the private and public wrappers so they
+ * can't drift; the public one passes no mutating actions.
  */
 export default function GamesDashboardView({
   steam,

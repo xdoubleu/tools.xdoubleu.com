@@ -16,25 +16,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testWebhookSecret is computed at runtime, not written as a literal
-// "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
-// real Svix/Stripe-shaped webhook signing secret (they match on shape, not
-// on whether the decoded content is obviously fake). It's a function
-// (rather than a package-level var) to satisfy gochecknoglobals.
+// testWebhookSecret is built at runtime so secret scanners don't flag a
+// whsec_-shaped literal; a function to satisfy gochecknoglobals.
 func testWebhookSecret() string {
 	return fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
 }
 
-// fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
-// a human-readable seed, so the source never contains a whsec_-prefixed
-// base64 blob as literal text.
+// fakeWebhookSecret builds a valid "whsec_"+base64 secret from a seed.
 func fakeWebhookSecret(seed string) string {
 	return "whsec_" + base64.StdEncoding.EncodeToString([]byte(seed))
 }
 
-// signedResendHeaders always signs with testWebhookSecret and svix-id
-// "msg_1" — tests that need a mismatch verify against a different secret
-// instead of signing with one.
+// signedResendHeaders signs with testWebhookSecret and svix-id "msg_1".
 func signedResendHeaders(body string, ts time.Time) http.Header {
 	const id = "msg_1"
 	timestamp := strconv.FormatInt(ts.Unix(), 10)
@@ -119,9 +112,7 @@ func TestVerifyResendSignature_MalformedSignatureField(t *testing.T) {
 	h := http.Header{}
 	h.Set("svix-id", "msg_1")
 	h.Set("svix-timestamp", timestamp)
-	// No comma separating the version prefix from the signature — the
-	// per-part parse loop must skip it (and any following valid part)
-	// rather than panicking on strings.Cut's second return.
+	// A part without a comma must be skipped, not panic.
 	h.Set("svix-signature", "no-comma-here")
 
 	assert.False(t, verifyResendSignature(testWebhookSecret(), h, body))
@@ -217,8 +208,7 @@ func TestInboundTokenFromAddress(t *testing.T) {
 		{"no at", "reading+abc123", "", false},
 		{"empty token after plus", "reading+@mail.example.com", "", false},
 		{"empty local part", "@mail.example.com", "", false},
-		// A relay lowercasing the recipient local-part shouldn't break
-		// lookup — the token is folded to lowercase.
+		// Tokens are case-folded, surviving relays that lowercase.
 		{
 			"mixed case folded to lowercase",
 			"reading+AbC123@mail.example.com",

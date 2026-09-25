@@ -10,7 +10,7 @@ import type {
   Station
 } from '@/lib/gen/trains/v1/trains_pb'
 
-/** The CC BY attribution string's date, driven from the imported feed's own version. */
+/** Feed version date for the CC BY attribution. */
 export function useTrainsFeedInfo() {
   const client = createServiceClient(TrainService)
   return useSWR<GetFeedInfoResponse, Error>(swrKeys.trainsFeedInfo, () => client.getFeedInfo({}))
@@ -28,11 +28,7 @@ export function useStationSearch(query: string) {
   return { stations: data?.stations ?? [], isLoading }
 }
 
-/**
- * Journey search over the requested (origin, destination, time, arriveBy)
- * criteria. Returns null keys — SWR does not fetch — until both stations are
- * chosen, so no request fires while the form is still being filled in.
- */
+/** Journey search; null key (no fetch) until both stations are chosen. */
 export function useJourneySearch(
   originStopId: string,
   destinationStopId: string,
@@ -47,11 +43,7 @@ export function useJourneySearch(
   )
 }
 
-/**
- * The signed-in user's saved commutes (issue #1396), surfaced above the
- * /trains pickers. Exposes create/delete/reverse mutators that revalidate
- * the list on success.
- */
+/** The user's saved commutes, with create/delete/reverse mutators. */
 export function useSavedCommutes() {
   const client = createServiceClient(TrainService)
   const swr = useSWR<ListSavedCommutesResponse, Error>(swrKeys.trainsSavedCommutes, () =>
@@ -72,10 +64,8 @@ export function useSavedCommutes() {
 }
 
 /**
- * The live journey detail page's data source (issue #1394): an initial fetch
- * via GetJourneyDetail, revalidated on demand by useJourneyLive's
- * reconnect-and-refetch path rather than on any fixed interval — the
- * websocket push is what keeps it current while the page stays open.
+ * Live journey detail: revalidated by useJourneyLive's reconnect path, not on
+ * an interval; pushes keep it current.
  */
 export function useJourneyDetail(journeyId: string) {
   const client = createServiceClient(TrainService)

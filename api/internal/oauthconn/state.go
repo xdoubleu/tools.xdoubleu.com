@@ -10,10 +10,7 @@ import (
 )
 
 const (
-	// stateTTL is how long an issued OAuth CSRF state stays valid before it
-	// must be re-issued by revisiting the connect flow.
-	stateTTL = 10 * time.Minute
-	// stateBytes is the size of the random token backing each state value.
+	stateTTL   = 10 * time.Minute
 	stateBytes = 32
 )
 
@@ -23,13 +20,8 @@ type pendingAuth struct {
 	expiresAt time.Time
 }
 
-// StateStore is a single-use, in-memory CSRF-state map for the OAuth
-// initiate/callback redirect leg.
-//
-// ponytail: single-process, single-replica assumption (matches other
-// in-memory state in this codebase, e.g. the kobo-gateway log store) — move
-// to a DB table if this ever needs to survive a restart or run behind more
-// than one replica.
+// StateStore is a single-use, in-memory OAuth CSRF-state map. Single process
+// only: it doesn't survive restarts or span replicas.
 type StateStore struct {
 	mu      sync.Mutex
 	pending map[string]pendingAuth
@@ -41,9 +33,8 @@ func NewStateStore() *StateStore {
 	}
 }
 
-// New issues a fresh single-use state token for provider, tying it to userID
-// so the callback leg trusts who initiated the connection regardless of
-// whether the browser's cookie survives the external redirect.
+// New issues a single-use state tied to userID, so the callback doesn't depend
+// on the cookie surviving the external redirect.
 func (s *StateStore) New(provider models.OAuthProvider, userID string) string {
 	buf := make([]byte, stateBytes)
 	_, _ = rand.Read(buf)
@@ -60,9 +51,7 @@ func (s *StateStore) New(provider models.OAuthProvider, userID string) string {
 	return state
 }
 
-// Consume validates and removes state, returning the provider/user it was
-// issued for. The final bool is false if state is unknown, already used, or
-// expired.
+// Consume validates and removes state; false if unknown, used or expired.
 func (s *StateStore) Consume(
 	state string,
 ) (models.OAuthProvider, string, bool) {

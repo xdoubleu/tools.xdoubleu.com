@@ -9,9 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// TestOAuthConfigScopes guards that the org:read scope stays in the config —
-// without it GET /api/0/organizations/ 403s and the admin picker can never
-// list orgs.
+// Without org:read the picker can't list orgs.
 func TestOAuthConfigScopes(t *testing.T) {
 	cfg := sentryapi.OAuthConfig("id", "secret", "https://api.example.com")
 

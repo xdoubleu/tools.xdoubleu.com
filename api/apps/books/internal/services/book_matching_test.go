@@ -12,10 +12,7 @@ import (
 	"tools.xdoubleu.com/apps/books/pkg/ebookmeta"
 )
 
-// --- normalizeTitle ---
-
 func TestNormalizeTitle_Basic(t *testing.T) {
-	// Leading article is dropped so "The Hobbit" and "Hobbit" match.
 	assert.Equal(t, "hobbit", normalizeTitle("The Hobbit"))
 }
 
@@ -28,7 +25,6 @@ func TestNormalizeTitle_Lowercase(t *testing.T) {
 }
 
 func TestNormalizeTitle_StripsParenthetical(t *testing.T) {
-	// Goodreads-style series annotation must not defeat matching.
 	assert.Equal(
 		t,
 		normalizeTitle("Firekeeper's Daughter"),
@@ -58,7 +54,6 @@ func TestNormalizeTitle_KeepsShortArticleTitleIntact(t *testing.T) {
 }
 
 func TestNormalizeTitle_FoldsDiacritics(t *testing.T) {
-	// "Café" should normalize the same as "Cafe"
 	assert.Equal(t, normalizeTitle("Cafe"), normalizeTitle("Café"))
 }
 
@@ -67,14 +62,11 @@ func TestNormalizeTitle_EmptyString(t *testing.T) {
 }
 
 func TestNormalizeTitle_OnlySubtitle(t *testing.T) {
-	// A title that is just a colon has nothing before the colon.
 	assert.Equal(t, "", normalizeTitle(": A Subtitle Only"))
 }
 
 func TestNormalizeTitle_DistinguishesVolumeAfterColon(t *testing.T) {
-	// A volume number in a colon-separated subtitle must survive stripping —
-	// otherwise "System Design Interview" Volume 1 and Volume 2 collapse to
-	// the same normalized title.
+	// A volume number in a subtitle must survive stripping.
 	assert.NotEqual(t,
 		normalizeTitle("System Design Interview: Volume 1"),
 		normalizeTitle("System Design Interview: Volume 2"),
@@ -96,8 +88,7 @@ func TestNormalizeTitle_DistinguishesVolumeInParenthetical(t *testing.T) {
 }
 
 func TestNormalizeTitle_StripsParentheticalStillWorksForSeriesMarker(t *testing.T) {
-	// Goodreads-style "(Series, #1)" is a shelf/series position, not a
-	// volume of the book itself — it must remain stripped as noise.
+	// "(Series, #1)" is a series position, not a volume: stays stripped.
 	assert.Equal(
 		t,
 		normalizeTitle("Firekeeper's Daughter"),
@@ -106,17 +97,13 @@ func TestNormalizeTitle_StripsParentheticalStillWorksForSeriesMarker(t *testing.
 }
 
 func TestNormalizeTitle_NoDoubleCountWhenNumberAlreadyInMainTitle(t *testing.T) {
-	// The year "2001" is already part of the retained segment (before the
-	// colon), so it must not be duplicated.
+	// "2001" is already in the retained segment, so it isn't duplicated.
 	assert.Equal(t, "2001", normalizeTitle("2001: A Space Odyssey"))
 }
 
 func TestNormalizeTitle_StripsPunctuation(t *testing.T) {
-	// Punctuation other than the colon is also stripped.
 	assert.Equal(t, "helloworld", normalizeTitle("Hello, World!"))
 }
-
-// --- titleTokens / tokenSimilarity ---
 
 func TestTokenSimilarity_ReorderedWordsMatch(t *testing.T) {
 	a := titleTokens("The Fellowship of the Ring")
@@ -135,8 +122,7 @@ func TestTokenSimilarity_EmptySide(t *testing.T) {
 }
 
 func TestTitlesFuzzyMatch_DifferingVolumeNumberNeverMatches(t *testing.T) {
-	// High word overlap but a different volume number — must not fuzzy-match
-	// even though Jaccard similarity alone would clear the threshold.
+	// High overlap, different volume: Jaccard alone would clear the threshold.
 	a := titleTokens("Mistborn Saga Legendary Heroes Volume 1")
 	b := titleTokens("Mistborn Saga Legendary Heroes Volume 2")
 	assert.GreaterOrEqual(t, tokenSimilarity(a, b), titleSimilarityThreshold)
@@ -144,9 +130,7 @@ func TestTitlesFuzzyMatch_DifferingVolumeNumberNeverMatches(t *testing.T) {
 }
 
 func TestTitlesFuzzyMatch_SwappedNumbersNeverMatch(t *testing.T) {
-	// Same digit set, different positions — "Book 1 Edition 2" is not
-	// "Book 2 Edition 1". Set-based (as opposed to positional) numeric
-	// comparison would wrongly treat these as identical.
+	// Same digits, different positions: comparison must be positional.
 	a := titleTokens("ISBN Book 1 edition 2")
 	b := titleTokens("ISBN Book 2 edition 1")
 	assert.InDelta(t, 1.0, tokenSimilarity(a, b), 0.001)
@@ -160,8 +144,7 @@ func TestTitlesFuzzyMatch_SameVolumeNumberCanMatch(t *testing.T) {
 }
 
 func TestTitlesFuzzyMatch_DifferingRomanNumeralNeverMatches(t *testing.T) {
-	// The reported bug: "Programmer I" vs "Programmer II" — high word overlap,
-	// but the Roman numeral distinguishes two different books.
+	// Roman numerals distinguish "Programmer I" from "Programmer II".
 	a := titleTokens(
 		"OCP Oracle Certified Professional Java SE 11 Programmer I Study Guide",
 	)
@@ -178,15 +161,11 @@ func TestTitlesFuzzyMatch_SameRomanNumeralCanMatch(t *testing.T) {
 	assert.True(t, titlesFuzzyMatch(a, b))
 }
 
-// --- normalizeAuthor ---
-
 func TestNormalizeAuthor_FirstLast(t *testing.T) {
-	// "J.R.R. Tolkien" → last token → "tolkien"
 	assert.Equal(t, "tolkien", normalizeAuthor("J.R.R. Tolkien"))
 }
 
 func TestNormalizeAuthor_LastFirstComma(t *testing.T) {
-	// "Tolkien, J.R.R." → before comma → "tolkien"
 	assert.Equal(t, "tolkien", normalizeAuthor("Tolkien, J.R.R."))
 }
 
@@ -201,8 +180,6 @@ func TestNormalizeAuthor_FoldsDiacritics(t *testing.T) {
 func TestNormalizeAuthor_Empty(t *testing.T) {
 	assert.Equal(t, "", normalizeAuthor(""))
 }
-
-// --- matchLibraryByMetadata ---
 
 func makeUserBook(title string, authors []string) models.UserBook {
 	return models.UserBook{ //nolint:exhaustruct //only fields needed for matching
@@ -227,7 +204,6 @@ func TestMatchLibraryByMetadata_ExactTitleAuthor(t *testing.T) {
 }
 
 func TestMatchLibraryByMetadata_SubtitleInFile(t *testing.T) {
-	// Library has base title; file carries subtitle.
 	lib := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
 	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
 		Title:   "The Hobbit: There and Back Again",
@@ -239,7 +215,6 @@ func TestMatchLibraryByMetadata_SubtitleInFile(t *testing.T) {
 }
 
 func TestMatchLibraryByMetadata_SubtitleInLibrary(t *testing.T) {
-	// Library has full title with subtitle; file carries only base title.
 	lib := []models.UserBook{
 		makeUserBook("The Hobbit: There and Back Again", []string{"J.R.R. Tolkien"}),
 	}
@@ -253,7 +228,6 @@ func TestMatchLibraryByMetadata_SubtitleInLibrary(t *testing.T) {
 }
 
 func TestMatchLibraryByMetadata_AuthorLastFirstVsFirstLast(t *testing.T) {
-	// Library has "First Last"; file has "Last, First".
 	lib := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
 	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
 		Title:   "The Hobbit",
@@ -275,7 +249,6 @@ func TestMatchLibraryByMetadata_DiacriticDifference(t *testing.T) {
 }
 
 func TestMatchLibraryByMetadata_NoMatchWrongAuthor(t *testing.T) {
-	// Same title, different author — must NOT link (false-positive guard).
 	lib := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
 	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
 		Title:   "The Hobbit",
@@ -296,7 +269,6 @@ func TestMatchLibraryByMetadata_EmptyTitle_NoMatch(t *testing.T) {
 }
 
 func TestMatchLibraryByMetadata_EmptyAuthors_NoMatch(t *testing.T) {
-	// No authors in file metadata → cannot verify author overlap → no match.
 	lib := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
 	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
 		Title:   "The Hobbit",
@@ -315,12 +287,8 @@ func TestMatchLibraryByMetadata_EmptyLibrary(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-// --- matchCatalogByMetadata ---
-
 func TestMatchCatalogByMetadata_ExactMatchNotInCallersLibrary(t *testing.T) {
-	// Simulates GetCatalogWithUserOverlay: the catalog holds a book another
-	// user already has, and the uploading user doesn't have it yet — the
-	// entry is still a valid attach target.
+	// The catalog entry is another user's; still a valid attach target.
 	catalog := []models.UserBook{makeUserBook("The Hobbit", []string{"J.R.R. Tolkien"})}
 	meta := ebookmeta.Metadata{ //nolint:exhaustruct //only Title+Authors matter here
 		Title:   "The Hobbit",
@@ -332,8 +300,7 @@ func TestMatchCatalogByMetadata_ExactMatchNotInCallersLibrary(t *testing.T) {
 }
 
 func TestMatchCatalogByMetadata_FuzzyReorderedTitle(t *testing.T) {
-	// Exact matchLibraryByMetadata would miss this — the fuzzy fallback
-	// (same Jaccard threshold FindDuplicateGroups uses) must catch it.
+	// Exact matching misses this; the fuzzy fallback must catch it.
 	catalog := []models.UserBook{
 		makeUserBook("Fellowship of the Ring, The", []string{"J.R.R. Tolkien"}),
 	}
@@ -414,8 +381,6 @@ func TestMatchCatalogByMetadata_EmptyCatalog(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-// --- FindDuplicateGroups ---
-
 func isbn13Ptr(s string) *string { return &s }
 
 func makeUBWithISBN(
@@ -465,13 +430,11 @@ func TestFindDuplicateGroups_GroupsByISBN13(t *testing.T) {
 	assert.Len(t, groups, 1)
 	assert.Len(t, groups[0].Entries, 2)
 	assert.Equal(t, "isbn13", groups[0].Reason)
-	// Winner should be the "read" entry (higher status rank).
 	assert.Equal(t, models.StatusRead, groups[0].Entries[0].Status)
 }
 
 func TestFindDuplicateGroups_DoesNotGroupByISBN10Only(t *testing.T) {
-	// ISBN-10 is no longer a matching signal — two entries sharing only an
-	// ISBN-10 (and different titles/authors) must NOT be grouped.
+	// ISBN-10 is not a matching signal.
 	a := makeUserBook("The Hobbit", []string{"Tolkien"})
 	b := makeUserBook("The Hobbit (pocket)", []string{"Herbert"})
 	lib := []models.UserBook{a, b}
@@ -488,8 +451,7 @@ func TestFindDuplicateGroups_GroupsByTitleAndAuthor(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_GroupsBySeriesAnnotation(t *testing.T) {
-	// The reported bug: same book, one entry carries a Goodreads-style series
-	// suffix and no ISBN, the other has an ISBN and a clean title.
+	// Series suffix without ISBN vs clean title with ISBN: same book.
 	isbn := isbn13Ptr("9780062983594")
 	a := makeUBWithISBN(
 		"Firekeeper's Daughter",
@@ -517,8 +479,7 @@ func TestFindDuplicateGroups_FuzzyMatchesReorderedTitle(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_FuzzyDoesNotMergeDifferentBooksSameAuthor(t *testing.T) {
-	// False-positive guard: same author, different books in the same series
-	// share several title words ("of", "the") but must stay separate.
+	// Same author, different books sharing "of"/"the": must stay separate.
 	a := makeUserBook("The Fellowship of the Ring", []string{"J.R.R. Tolkien"})
 	b := makeUserBook("The Return of the King", []string{"J.R.R. Tolkien"})
 	lib := []models.UserBook{a, b}
@@ -526,8 +487,6 @@ func TestFindDuplicateGroups_FuzzyDoesNotMergeDifferentBooksSameAuthor(t *testin
 }
 
 func TestFindDuplicateGroups_DoesNotMergeDifferentVolumes(t *testing.T) {
-	// The reported bug: "System Design Interview: Volume 1" and "…: Volume 2"
-	// are different books by the same author and must never be grouped.
 	a := makeUserBook("System Design Interview: Volume 1", []string{"Alex Xu"})
 	b := makeUserBook("System Design Interview: Volume 2", []string{"Alex Xu"})
 	lib := []models.UserBook{a, b}
@@ -535,8 +494,6 @@ func TestFindDuplicateGroups_DoesNotMergeDifferentVolumes(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_DoesNotMergeDifferentRomanVolumes(t *testing.T) {
-	// The reported bug: two Oracle certification study guides differing only
-	// by "Programmer I" vs "Programmer II" must never be grouped.
 	a := makeUserBook(
 		"OCP Java SE 11 Programmer I Study Guide: Exam 1z0-815",
 		[]string{"Jeanne Boyarsky"},
@@ -550,7 +507,6 @@ func TestFindDuplicateGroups_DoesNotMergeDifferentRomanVolumes(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_NoGroupSameTitleDifferentAuthor(t *testing.T) {
-	// False-positive guard: same title, different author must NOT be grouped.
 	a := makeUserBook("Foundation", []string{"Isaac Asimov"})
 	b := makeUserBook("Foundation", []string{"Someone Else"})
 	lib := []models.UserBook{a, b}
@@ -565,8 +521,7 @@ func TestFindDuplicateGroups_NoGroupDifferentBooks(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_ReasonUpgradedToStrongest(t *testing.T) {
-	// Two books share both an ISBN-13 and a matching title+author.
-	// The group reason must be "isbn13" (stronger signal).
+	// Both ISBN13 and title+author match: the reason must be the stronger isbn13.
 	isbn := isbn13Ptr("9780261102217")
 	a := makeUBWithISBN(
 		"The Hobbit",
@@ -587,8 +542,7 @@ func TestFindDuplicateGroups_ReasonUpgradedToStrongest(t *testing.T) {
 }
 
 func TestFindDuplicateGroups_NilBookSkipped(t *testing.T) {
-	// An entry with a nil Book pointer must not panic and must be excluded from
-	// all groups.
+	// A nil Book must not panic and is excluded.
 	realBook := makeUserBook("Dune", []string{"Frank Herbert"})
 	nilBook := models.UserBook{ //nolint:exhaustruct // only testing nil-Book guard
 		ID:     uuid.New(),
@@ -596,18 +550,12 @@ func TestFindDuplicateGroups_NilBookSkipped(t *testing.T) {
 		Book:   nil,
 	}
 	lib := []models.UserBook{realBook, nilBook}
-	// Only one real book — no group possible.
 	assert.Nil(t, FindDuplicateGroups(lib))
 }
 
 func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
-	// Build a synthetic library of 5 000 books with 50 planted ISBN13 duplicate
-	// pairs and 50 planted title+author duplicate pairs. Verify all 100 expected
-	// groups are returned and that no spurious groups appear.
-	//
-	// This test also acts as a regression guard: the pre-refactor O(n²) algorithm
-	// timed out on libraries of this size; the bucketed O(n) implementation must
-	// complete well within a test timeout.
+	// 5000 books with 50 planted ISBN13 and 50 title+author pairs; also guards
+	// against an O(n^2) regression timing out.
 	const (
 		uniqueBooks    = 4900
 		isbn13Pairs    = 50
@@ -616,7 +564,6 @@ func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
 
 	lib := make([]models.UserBook, 0, uniqueBooks+isbn13Pairs*2+titleAuthPairs*2)
 
-	// Unique, non-duplicate books.
 	for i := range uniqueBooks {
 		lib = append(lib, makeUserBook(
 			"Unique Book "+fmt.Sprint(i),
@@ -624,7 +571,6 @@ func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
 		))
 	}
 
-	// Planted ISBN13 duplicates: two entries sharing the same ISBN13.
 	for i := range isbn13Pairs {
 		isbn := isbn13Ptr(fmt.Sprintf("978000000%04d", i))
 		a := makeUBWithISBN(
@@ -640,7 +586,6 @@ func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
 		lib = append(lib, a, b)
 	}
 
-	// Planted title+author duplicates: same normalised title and author, no ISBN.
 	for i := range titleAuthPairs {
 		title := fmt.Sprintf("Duplicate Title %d", i)
 		author := fmt.Sprintf("Shared Author %d", i)
@@ -651,10 +596,8 @@ func TestFindDuplicateGroups_LargeLibrary(t *testing.T) {
 
 	groups := FindDuplicateGroups(lib)
 
-	// Total expected groups = isbn13Pairs + titleAuthPairs.
 	assert.Len(t, groups, isbn13Pairs+titleAuthPairs)
 
-	// Every returned group must have exactly 2 entries.
 	for _, g := range groups {
 		assert.Len(t, g.Entries, 2)
 	}
@@ -676,12 +619,9 @@ func TestFindDuplicateGroups_WinnerPrefersMostProgressed(t *testing.T) {
 	lib := []models.UserBook{toRead, reading} // toRead first in slice
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
-	// Equal metadata completeness; reading has higher status rank → winner.
 	assert.Equal(t, models.StatusReading, groups[0].Entries[0].Status)
 }
 
-// makeUBWithBook constructs a UserBook with the given Book, status, and
-// formats so tests can exercise completeness-sensitive winner selection.
 func makeUBWithBook(
 	book models.Book,
 	status string,
@@ -702,7 +642,6 @@ func TestFindDuplicateGroups_WinnerPrefersCompleteMetadata(t *testing.T) {
 	coverURL := "https://example.com/cover.jpg"
 	desc := "A sci-fi epic."
 
-	// rich: complete metadata, lower status
 	rich := makeUBWithBook(
 		models.Book{ //nolint:exhaustruct // only fields needed for matching
 			Title:       "Dune",
@@ -715,13 +654,11 @@ func TestFindDuplicateGroups_WinnerPrefersCompleteMetadata(t *testing.T) {
 		models.StatusToRead,
 		nil, // no formats
 	)
-	// sparse: no metadata, higher status and many formats
 	sparse := makeUBWithBook(
 		models.Book{ //nolint:exhaustruct // only fields needed for matching
 			Title:   "Dune",
 			Authors: []string{"Herbert"},
 			ISBN13:  isbn,
-			// no cover, description, or page count
 		},
 		models.StatusRead, // higher status than rich — completeness must still win
 		[]string{"epub", "pdf", "mobi"},
@@ -730,7 +667,7 @@ func TestFindDuplicateGroups_WinnerPrefersCompleteMetadata(t *testing.T) {
 	lib := []models.UserBook{sparse, rich} // sparse first in slice
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
-	// rich has cover + description + page count → wins despite lower status and no formats
+	// Metadata completeness beats status and formats.
 	assert.Equal(t, rich.BookID, groups[0].Entries[0].BookID)
 }
 
@@ -762,14 +699,10 @@ func TestFindDuplicateGroups_FormatsDoNotAffectWinner(t *testing.T) {
 	lib := []models.UserBook{manyFormats, noFormats}
 	groups := FindDuplicateGroups(lib)
 	assert.Len(t, groups, 1)
-	// Metadata completeness dominates — manyFormats must NOT win.
 	assert.Equal(t, noFormats.BookID, groups[0].Entries[0].BookID)
 }
 
-// --- FindDuplicateGroups group ordering ---
-
-// makeDupGroup is a convenience builder: returns two UserBooks sharing isbn13
-// so they form a duplicate group with the given title (used as sort key).
+// makeDupGroup returns two UserBooks sharing isbn13 with the given title.
 func makeDupGroup(
 	title, isbn13val string,
 ) (models.UserBook, models.UserBook) {
@@ -788,23 +721,15 @@ func makeDupGroup(
 }
 
 func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
-	// Build a library with three distinct duplicate groups:
-	//   group A — isbn13 match, title "Alpha"
-	//   group B — isbn13 match, title "Beta"
-	//   group C — title+author match, title "Gamma"
-	//
-	// Expected sort: signal strength desc (A, B before C), then title asc (A
-	// before B). So stable order is [A, B, C].
+	// Expected order: isbn13 groups (Alpha, Beta) before title+author (Gamma).
 
 	a1, a2 := makeDupGroup("Alpha", "9780000000001")
 	b1, b2 := makeDupGroup("Beta", "9780000000002")
-	// title+author group — no ISBN, matched by shared normalised title+author
 	c1 := makeUserBook("Gamma", []string{"AuthorC"})
 	c2 := makeUserBook("Gamma: A Subtitle", []string{"AuthorC"})
 
 	lib := []models.UserBook{c1, b1, a2, c2, a1, b2} // intentionally shuffled
 
-	// Call FindDuplicateGroups multiple times and verify the order is identical.
 	first := FindDuplicateGroups(lib)
 	if len(first) != 3 {
 		t.Fatalf("expected 3 groups, got %d", len(first))
@@ -825,19 +750,17 @@ func TestFindDuplicateGroups_GroupOrderIsDeterministic(t *testing.T) {
 		}
 	}
 
-	// Verify the documented order: isbn13 groups first, then title+author.
 	assert.Equal(t, "isbn13", first[0].Reason)
 	assert.Equal(t, "isbn13", first[1].Reason)
 	assert.Equal(t, "title+author", first[2].Reason)
 
-	// Within the isbn13 tier: "Alpha" < "Beta" alphabetically.
 	title0 := first[0].Entries[0].Book.Title
 	title1 := first[1].Entries[0].Book.Title
 	assert.Less(t, title0, title1, "isbn13 groups should be sorted by winner title")
 }
 
 func TestFindDuplicateGroups_GroupOrderStableOnShuffledInput(t *testing.T) {
-	// Groups should come back in the same order regardless of input slice order.
+	// Order must not depend on input order.
 	a1, a2 := makeDupGroup("Zeta", "9780000000010")
 	b1, b2 := makeDupGroup("Aardvark", "9780000000011")
 
@@ -866,10 +789,7 @@ func TestFindDuplicateGroups_GroupOrderStableOnShuffledInput(t *testing.T) {
 		)
 	}
 
-	// "Aardvark" < "Zeta" — the Aardvark group must come first.
-	// We check that some entry in group[0] is titled "Aardvark" rather than
-	// asserting Entries[0] specifically, because the within-group winner is
-	// decided by UUID tiebreak and is non-deterministic across runs.
+	// The within-group winner is a UUID tiebreak, so check any entry's title.
 	firstGroupTitles := make([]string, 0, len(orderA[0].Entries))
 	for _, e := range orderA[0].Entries {
 		if e.Book != nil {
@@ -904,8 +824,6 @@ func TestMetadataCompleteness_Full(t *testing.T) {
 	assert.Equal(t, 5, metadataCompleteness(b))
 }
 
-// --- normalizeISBN ---
-
 func TestNormalizeISBN_PlainPassthrough(t *testing.T) {
 	assert.Equal(t, "9789463107389", normalizeISBN("9789463107389"))
 }
@@ -921,8 +839,6 @@ func TestNormalizeISBN_EmptyString(t *testing.T) {
 func TestNormalizeISBN_SpacesStripped(t *testing.T) {
 	assert.Equal(t, "9780140449112", normalizeISBN("978 0 14 044911 2"))
 }
-
-// --- FindDuplicateGroups: ISBN normalization ---
 
 func TestFindDuplicateGroups_HyphenatedISBNGroupsWithPlain(t *testing.T) {
 	hyphenated := "978-94-6310-738-9"

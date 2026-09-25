@@ -23,8 +23,6 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// refreshCall records a single call to fakeBooksResync.RefreshBookExternalData
-// so tests can assert which fields were actually written to the DB.
 type refreshCall struct {
 	bookID         uuid.UUID
 	coverURL       string
@@ -36,15 +34,12 @@ type refreshCall struct {
 	metadataSource string
 }
 
-// scanStatusCall records a single call to
-// fakeBooksResync.UpdateResyncScanStatus.
 type scanStatusCall struct {
 	bookID  uuid.UUID
 	ucFound *bool
 	hcFound *bool
 }
 
-// fakeBooksResync is a test stub for ResyncSource.
 type fakeBooksResync struct {
 	books      []models.Book
 	listErr    error
@@ -177,9 +172,8 @@ func (f *fakeBooksResync) DeleteResyncProposal(
 	return f.deleteErr
 }
 
-// fakeUCClient is a configurable unicat.Client stub. calls counts every
-// GetByISBN/Search invocation (mutex-protected: fetchByISBN/searchProviders
-// now query sources concurrently), so tests can assert a call was skipped.
+// fakeUCClient is a unicat.Client stub; calls is mutex-guarded since sources
+// are queried concurrently.
 type fakeUCClient struct {
 	searchResults []unicat.ExternalBook
 	byISBN        *unicat.ExternalBook
@@ -215,12 +209,8 @@ func (f *fakeUCClient) Search(
 	return f.searchResults, f.err
 }
 
-// fakeHCClient is a configurable hardcover.Client stub. calls counts every
-// GetByISBN/Search invocation (mutex-protected: fetchByISBN/searchProviders
-// now query sources concurrently), so tests can assert a call was skipped.
-// byISBNMap, when set, keys GetByISBN's response by the requested ISBN — used
-// to give two books in the same test different provider responses; byISBN
-// (single value) takes priority when both are set.
+// fakeHCClient is a hardcover.Client stub; calls is mutex-guarded. byISBNMap
+// keys responses per ISBN; byISBN takes priority when both are set.
 type fakeHCClient struct {
 	searchResults []hardcover.ExternalBook
 	byISBN        *hardcover.ExternalBook
@@ -263,8 +253,7 @@ func (f *fakeHCClient) Search(
 	return f.searchResults, f.err
 }
 
-// failDeleteObjectStore is an objectstore.Client that always errors on Delete.
-// All other methods delegate to a real FakeClient so Put/Get still work.
+// failDeleteObjectStore errors on Delete and delegates everything else.
 type failDeleteObjectStore struct {
 	inner *objectstore.FakeClient
 }
@@ -328,9 +317,7 @@ func (s failDeleteObjectStore) List(
 	return s.inner.List(ctx, prefix)
 }
 
-// ---------------------------------------------------------------------------
-// fetchByISBN: sources are kept independent, no gap-filling merge
-// ---------------------------------------------------------------------------
+// fetchByISBN: sources stay independent, no gap-filling merge.
 
 func TestFetchByISBN_KeepsSourcesIndependent(t *testing.T) {
 	isbn := "9780140449112"
@@ -380,12 +367,8 @@ func TestFetchByISBN_NotFound_Skipped(t *testing.T) {
 	assert.Empty(t, unresolved, "a clean not-found is resolved, not unresolved")
 }
 
-// ---------------------------------------------------------------------------
-// fetchByISBN: an errored/skipped source must be unresolved, not "false"
-// (regression — a source that errors or is skipped must leave the DB flag
-// untouched via recordScanStatus/UpdateResyncScanStatus's COALESCE-preserve,
-// never overwrite a previously-known true with false).
-// ---------------------------------------------------------------------------
+// fetchByISBN: an errored/skipped source is unresolved, never "false", so the
+// DB flag is preserved.
 
 func TestFetchByISBN_HardcoverErrors_MarkedUnresolved(t *testing.T) {
 	//nolint:exhaustruct // partial
@@ -433,12 +416,8 @@ func TestFetchByISBN_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	assert.Zero(t, hc.calls, "an already-known source must not be re-queried")
 }
 
-// TestBuildResyncProposals_ForceHardcover_BypassesCache is a regression test
-// for a stuck-source bug class: once hardcover_found is set (true or false)
-// for every book — which happens after the very first scan — the skip-if-
-// known cache is always non-nil and every later scan skips Hardcover
-// catalog-wide. force must bypass that cache so a stuck book can be
-// re-queried and pick up a fresh match.
+// TestBuildResyncProposals_ForceHardcover_BypassesCache: after the first scan
+// every book has a known hardcover_found, so force must bypass the cache.
 func TestBuildResyncProposals_ForceHardcover_BypassesCache(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
@@ -476,10 +455,8 @@ func TestBuildResyncProposals_ForceHardcover_BypassesCache(t *testing.T) {
 		"force must bypass the skip-if-known cache and query HC")
 }
 
-// TestBuildResyncProposals_SkipsKnownUniCat_UnlessForced verifies the
-// skip-if-known cache applies to UniCat too, not just Hardcover — a resolved
-// (true or false) unicat_found flag skips the UniCat call on a normal run,
-// and force bypasses it.
+// TestBuildResyncProposals_SkipsKnownUniCat_UnlessForced: the cache applies to
+// UniCat too.
 func TestBuildResyncProposals_SkipsKnownUniCat_UnlessForced(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
@@ -524,20 +501,15 @@ func TestFetchSourceProposals_DispatchesOnISBNPresence(t *testing.T) {
 
 	isbn := "9780140449112"
 	withISBN := models.Book{ISBN13: &isbn} //nolint:exhaustruct // partial
-	// Has an ISBN: fetchByISBN's path runs (proves it by observing the HC call
-	// outcome — ErrNotFound yields no proposals, same as a direct call would).
 	proposals, _ := svc.fetchSourceProposals(ctx, logging.NewNopLogger(), withISBN, nil)
 	assert.Empty(t, proposals)
 
-	// No ISBN and no title: neither lookup path can run.
 	bare := models.Book{} //nolint:exhaustruct // partial
 	proposals, _ = svc.fetchSourceProposals(ctx, logging.NewNopLogger(), bare, nil)
 	assert.Empty(t, proposals)
 }
 
-// ---------------------------------------------------------------------------
-// fetchBySearch: match guards
-// ---------------------------------------------------------------------------
+// fetchBySearch: match guards.
 
 func TestFetchBySearch_TitleAuthorMatch_Accepted(t *testing.T) {
 	book := models.Book{ //nolint:exhaustruct // partial
@@ -663,10 +635,7 @@ func TestFetchBySearch_UniCatAndHardcover_BothMatch(t *testing.T) {
 	assert.Equal(t, "hardcover", proposals[1].Source)
 }
 
-// ---------------------------------------------------------------------------
-// searchProviders: the same skip-if-known rule applies on the search path (a
-// book with no ISBN), not just fetchByISBN.
-// ---------------------------------------------------------------------------
+// searchProviders: skip-if-known applies on the search path too.
 
 func TestFetchBySearch_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	book := models.Book{Title: "Dune"} //nolint:exhaustruct // partial
@@ -695,10 +664,6 @@ func TestFetchBySearch_HardcoverKnown_SkippedAndUnresolved(t *testing.T) {
 	assert.Zero(t, hc.calls, "an already-known source must not be re-queried")
 }
 
-// ---------------------------------------------------------------------------
-// computeDifferences
-// ---------------------------------------------------------------------------
-
 func TestComputeDifferences_Rules(t *testing.T) {
 	existingCover := "https://example.com/cover.jpg"
 	existingISBN := "9780140449112"
@@ -711,37 +676,31 @@ func TestComputeDifferences_Rules(t *testing.T) {
 		PageCount: &pages,
 	}
 
-	// A source that agrees on everything it offers: no diff.
 	agree := SourceProposal{ //nolint:exhaustruct // partial
 		Title: "Dune", Authors: []string{"Frank Herbert"}, PageCount: pages,
 	}
 	assert.Empty(t, computeDifferences(book, agree))
 
-	// Title differs.
 	titleDiff := SourceProposal{ //nolint:exhaustruct // partial
 		Title: "Different Title",
 	}
 	assert.Contains(t, computeDifferences(book, titleDiff), "title")
 
-	// Page count differs.
 	pageDiff := SourceProposal{PageCount: 999} //nolint:exhaustruct // partial
 	assert.Contains(t, computeDifferences(book, pageDiff), "page_count")
 
-	// Description differs (library has none — any non-empty source value counts).
+	// Library has no description: any source value counts.
 	//nolint:exhaustruct // partial
 	descDiff := SourceProposal{Description: "A new description."}
 	assert.Contains(t, computeDifferences(book, descDiff), "description")
 
-	// Cover: never flagged when the library already has one.
 	//nolint:exhaustruct // partial
 	coverDiff := SourceProposal{CoverURL: "https://elsewhere.example.com/x.jpg"}
 	assert.NotContains(t, computeDifferences(book, coverDiff), "cover_url")
 
-	// ISBN: never flagged when the library already has one.
 	isbnDiff := SourceProposal{ISBN13: "9780062316097"} //nolint:exhaustruct // partial
 	assert.NotContains(t, computeDifferences(book, isbnDiff), "isbn13")
 
-	// A book missing cover/ISBN does flag a source that supplies one.
 	//nolint:exhaustruct // partial
 	bareBook := models.Book{Title: "Dune", Authors: []string{"Frank Herbert"}}
 	gapFill := SourceProposal{ //nolint:exhaustruct // partial
@@ -753,15 +712,8 @@ func TestComputeDifferences_Rules(t *testing.T) {
 	assert.Contains(t, diffs, "isbn13")
 }
 
-// ---------------------------------------------------------------------------
-// BuildResyncProposals
-// ---------------------------------------------------------------------------
-
-// TestBuildResyncProposals_FlagsOnlyMoreCompleteSource verifies that a source
-// which merely disagrees (e.g. a different title) is never flagged — only a
-// source that supplies strictly more of the comparable fields than the book
-// currently has is worth surfacing, since applying now replaces the book's
-// metadata wholesale (see applySelectedSource).
+// TestBuildResyncProposals_FlagsOnlyMoreCompleteSource: a merely different
+// source is never flagged, only a strictly more complete one.
 func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 	idMereDiff, idMoreComplete := uuid.New(), uuid.New()
 	isbnA, isbnB := "9780140449112", "9780062316097"
@@ -769,13 +721,10 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
 		books: []models.Book{
-			// Already has title, ISBN, and a description — HC's differing
-			// title/cover-only candidate covers no more fields than this.
 			{ //nolint:exhaustruct // partial
 				ID: idMereDiff, Title: "Has A Description", ISBN13: &isbnA,
 				Description: &existingDesc,
 			},
-			// Missing a description entirely — HC supplies one, a genuine gap-fill.
 			//nolint:exhaustruct // partial
 			{ID: idMoreComplete, Title: "Missing A Description", ISBN13: &isbnB},
 		},
@@ -799,9 +748,7 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 	}
 
-	// onProgress runs from each book's goroutine in BuildResyncProposals, so
-	// the append needs its own lock — two books scanning concurrently means
-	// two potential writers.
+	// onProgress runs from concurrent goroutines.
 	var callsMu sync.Mutex
 	var calls [][2]int
 	n, err := svc.BuildResyncProposals(
@@ -832,11 +779,8 @@ func TestBuildResyncProposals_FlagsOnlyMoreCompleteSource(t *testing.T) {
 		"a source that merely differs, without adding fields, must not be flagged")
 }
 
-// TestBuildResyncProposals_FlagsNotFoundAnywhere verifies that a searchable
-// book (has an ISBN) every configured source returns ErrNotFound for is still
-// flagged — with zero stored sources — so the admin wizard can surface
-// coverage gaps, distinct from a book that agrees with every source (which is
-// never flagged at all).
+// TestBuildResyncProposals_FlagsNotFoundAnywhere: a searchable book no source
+// finds is flagged with zero sources (a coverage gap).
 func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 	id := uuid.New()
 	isbn := "9780140449112"
@@ -872,9 +816,8 @@ func TestBuildResyncProposals_FlagsNotFoundAnywhere(t *testing.T) {
 	assert.Empty(t, sources, "no source data to store when nothing was found")
 }
 
-// TestBuildResyncProposals_NeverAttempted_NotFlagged verifies that a book
-// with neither an ISBN nor a title (nothing could be searched) is never
-// flagged — unlike the "not found anywhere" case, no lookup was attempted.
+// TestBuildResyncProposals_NeverAttempted_NotFlagged: an unsearchable book is
+// never flagged.
 func TestBuildResyncProposals_NeverAttempted_NotFlagged(t *testing.T) {
 	id := uuid.New()
 	repo := &fakeBooksResync{ //nolint:exhaustruct //zero values fine
@@ -922,10 +865,8 @@ func TestBuildResyncProposals_EmptyLibrary(t *testing.T) {
 	assert.Equal(t, [2]int{0, 0}, calls[0])
 }
 
-// TestBuildResyncProposals_Cancelled_SkipsProposalsReplace verifies that a
-// cancelled context stops the scan without overwriting the proposals table —
-// a cancel must not read as "nothing was found anywhere" for books the scan
-// never got to.
+// TestBuildResyncProposals_Cancelled_SkipsProposalsReplace: cancel must not
+// overwrite the proposals table.
 func TestBuildResyncProposals_Cancelled_SkipsProposalsReplace(t *testing.T) {
 	book := models.Book{ID: uuid.New(), Title: "Dune"}   //nolint:exhaustruct // partial
 	repo := &fakeBooksResync{books: []models.Book{book}} //nolint:exhaustruct // partial
@@ -992,9 +933,7 @@ func TestBuildResyncProposals_ReplaceError(t *testing.T) {
 	assert.Equal(t, 0, n)
 }
 
-// ---------------------------------------------------------------------------
-// ListResyncProposals: Differs recomputed at read time
-// ---------------------------------------------------------------------------
+// ListResyncProposals: Differs recomputed at read time.
 
 func TestListResyncProposals_RecomputesDiffers(t *testing.T) {
 	bookID := uuid.New()
@@ -1022,10 +961,6 @@ func TestListResyncProposals_RecomputesDiffers(t *testing.T) {
 	assert.Contains(t, proposals[0].Sources[0].Differs, "title")
 	assert.Equal(t, "Dune", proposals[0].Library.Title)
 }
-
-// ---------------------------------------------------------------------------
-// ApplyResyncChoice
-// ---------------------------------------------------------------------------
 
 func TestApplyResyncChoice_KeepLibrary_DismissesWithoutWriting(t *testing.T) {
 	bookID := uuid.New()
@@ -1099,8 +1034,7 @@ func TestApplyResyncChoice_ChosenSource_BlanksFieldsSourceLacks(t *testing.T) {
 		Description: &oldDesc,
 		PageCount:   &oldPages,
 	}
-	// Chosen source supplies only a title — everything else is blank, and
-	// must overwrite the book's existing values rather than leaving them.
+	// Blank fields from the chosen source must overwrite existing values.
 	raw, err := json.Marshal([]SourceProposal{
 		{Source: "unicat", Title: "New Title"}, //nolint:exhaustruct // partial
 	})
@@ -1160,10 +1094,7 @@ func TestApplyResyncChoice_PassesSourceISBNThrough(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// The service passes the chosen source's ISBN straight through — a
-	// title+author match is trusted to overwrite the book's ISBN. The
-	// duplicate-ISBN guard that stops a collision lives in the repository's
-	// SQL (RefreshBookExternalData's NOT EXISTS clause), not here.
+	// The duplicate-ISBN guard lives in RefreshBookExternalData's SQL, not here.
 	require.Len(t, repo.refreshCalls, 1)
 	assert.Equal(t, "9780062316097", repo.refreshCalls[0].isbn13)
 }
@@ -1199,9 +1130,7 @@ func TestApplyResyncChoice_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
-// ---------------------------------------------------------------------------
-// GetBookSources / SyncBookSource: live per-book fetch, no prior scan needed
-// ---------------------------------------------------------------------------
+// GetBookSources / SyncBookSource: live per-book fetch, no prior scan needed.
 
 func TestGetBookSources_ReturnsLiveProposal(t *testing.T) {
 	bookID := uuid.New()
@@ -1259,9 +1188,7 @@ func TestSyncBookSource_AppliesLiveFetchAndClearsPendingProposal(t *testing.T) {
 		Title:  "Old Title",
 		ISBN13: &isbn,
 	}
-	// The on-demand book-page path always matches by title+author search, even
-	// for a book that already has an ISBN (see fetchProposals) — so the
-	// candidate's title must match the book's to pass the search guard.
+	// The on-demand path always searches by title+author, so the title must match.
 	//nolint:exhaustruct // partial
 	hcDetail := hardcover.ExternalBook{
 		Title:   "Old Title",
@@ -1343,13 +1270,8 @@ func TestSyncBookSource_UnknownSource_ErrProposalNotFound(t *testing.T) {
 	require.ErrorIs(t, err, ErrProposalNotFound)
 }
 
-// ---------------------------------------------------------------------------
-// writeResyncResult: cover cache errors are non-fatal
-// ---------------------------------------------------------------------------
-
-// TestWriteResyncResult_ClearCoverCacheErrors_NonFatal verifies that a failed
-// R2 delete when a chosen source blanks the cover (writeResyncResult ->
-// clearCoverCache) does not fail the apply itself.
+// TestWriteResyncResult_ClearCoverCacheErrors_NonFatal: a failed R2 delete
+// doesn't fail the apply.
 func TestWriteResyncResult_ClearCoverCacheErrors_NonFatal(t *testing.T) {
 	bookID := uuid.New()
 	oldCover := "https://example.com/old.jpg"
@@ -1370,8 +1292,7 @@ func TestWriteResyncResult_ClearCoverCacheErrors_NonFatal(t *testing.T) {
 	require.NoError(t, err, "a cover-cache-clear failure must not fail the apply")
 }
 
-// TestWriteResyncResult_RefreshError_Propagates verifies that a failed
-// RefreshBookExternalData write aborts the apply with that error.
+// TestWriteResyncResult_RefreshError_Propagates checks refresh errors abort the apply.
 func TestWriteResyncResult_RefreshError_Propagates(t *testing.T) {
 	refreshErr := errors.New("refresh failed")
 	book := models.Book{ID: uuid.New()} //nolint:exhaustruct // partial

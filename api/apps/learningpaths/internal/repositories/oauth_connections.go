@@ -12,12 +12,9 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// OAuthConnectionsRepository stores one OAuth connection per (user, provider)
-// in learningpaths.oauth_connections — a separate, per-user-scoped table
-// from global.oauth_connections (issue #1475), whose PK is provider alone
-// and which stays untouched by this app. Tokens are encrypted at rest via
-// sealer, the same api/internal/crypto.Sealer used by the shared
-// repositories.OAuthConnectionsRepository.
+// OAuthConnectionsRepository stores one encrypted OAuth connection per
+// (user, provider) in learningpaths.oauth_connections, separate from the
+// provider-keyed global.oauth_connections.
 type OAuthConnectionsRepository struct {
 	db     postgres.DB
 	sealer *crypto.Sealer
@@ -37,9 +34,8 @@ type oauthConnectionRow struct {
 	updatedAt    time.Time
 }
 
-// Get returns the decrypted token plus connection metadata for (userID,
-// provider), or database.ErrResourceNotFound if that user hasn't connected
-// provider.
+// Get returns the decrypted token and metadata for (userID, provider), or
+// database.ErrResourceNotFound if not connected.
 func (r *OAuthConnectionsRepository) Get(
 	ctx context.Context, userID string, provider sharedmodels.OAuthProvider,
 ) (*oauth2.Token, *sharedmodels.OAuthConnection, error) {
@@ -64,10 +60,8 @@ func (r *OAuthConnectionsRepository) Get(
 	return tok, rowToConnection(provider, userID, row), nil
 }
 
-// Upsert stores a fresh token for (userID, provider), replacing any existing
-// connection. requestedScopes is the oauth2.Config.Scopes the authorization
-// was started with, recorded so a later scope bump can be detected via
-// oauthconn.ScopesAreStale.
+// Upsert stores a token for (userID, provider), replacing any existing one.
+// requestedScopes are recorded for oauthconn.ScopesAreStale.
 func (r *OAuthConnectionsRepository) Upsert(
 	ctx context.Context,
 	userID string,
@@ -93,9 +87,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 	return err
 }
 
-// UpdateToken re-encrypts and stores a rotated token in place, preserving
-// the existing connected_at. Called after a transparent refresh via
-// oauthconn.NewTokenFunc.
+// UpdateToken stores a refreshed token, preserving connected_at.
 func (r *OAuthConnectionsRepository) UpdateToken(
 	ctx context.Context,
 	userID string,
@@ -127,9 +119,8 @@ func (r *OAuthConnectionsRepository) Delete(
 	return err
 }
 
-// GetStatus returns userID's connection metadata for provider without the
-// token, or database.ErrResourceNotFound if not connected — used by
-// GetTodoistConnectionStatus, which never needs a live token.
+// GetStatus returns connection metadata without the token, or
+// database.ErrResourceNotFound if not connected.
 func (r *OAuthConnectionsRepository) GetStatus(
 	ctx context.Context, userID string, provider sharedmodels.OAuthProvider,
 ) (*sharedmodels.OAuthConnection, error) {
@@ -145,21 +136,13 @@ func (r *OAuthConnectionsRepository) GetStatus(
 	return rowToConnection(provider, userID, row), nil
 }
 
-// ForUser binds userID so this repository satisfies oauthconn's unexported
-// connectionStore interface (Get/UpdateToken, each taking only a provider)
-// for that one user — built fresh per call site since every Todoist request
-// is scoped to whichever user is sending it, unlike the single shared
-// connection oauthconn.NewTokenFunc was originally written against
-// (global.oauth_connections, PK'd by provider alone). Go's structural
-// interface satisfaction means this needs no dependency on the oauthconn
-// package beyond the TokenFunc/ScopesAreStale helpers it's passed to.
+// ForUser binds userID so the repository structurally satisfies oauthconn's
+// provider-only connectionStore interface for that user.
 func (r *OAuthConnectionsRepository) ForUser(userID string) UserScopedOAuthStore {
 	return UserScopedOAuthStore{repo: r, userID: userID}
 }
 
-// UserScopedOAuthStore is OAuthConnectionsRepository bound to one userID —
-// see ForUser. Its Get/UpdateToken methods satisfy oauthconn's connectionStore
-// interface structurally.
+// UserScopedOAuthStore is OAuthConnectionsRepository bound to one userID.
 type UserScopedOAuthStore struct {
 	repo   *OAuthConnectionsRepository
 	userID string
@@ -228,9 +211,7 @@ func rowToConnection(
 	//nolint:exhaustruct // GrantedScope/RequestedScope/Config not tracked here
 	return &sharedmodels.OAuthConnection{
 		Provider: provider,
-		// ConnectedBy is the same person who owns the connection for a
-		// per-user table — there is no separate "admin who connected it on
-		// everyone's behalf" concept here, unlike global.oauth_connections.
+		// Per-user table: the owner is always who connected it.
 		ConnectedBy: userID,
 		ConnectedAt: row.connectedAt,
 		UpdatedAt:   row.updatedAt,

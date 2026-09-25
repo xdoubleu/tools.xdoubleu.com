@@ -16,9 +16,8 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestAuthCacheServesAndInvalidates exercises the per-token user cache end to
-// end: a role change is invisible while the entry is cached and visible again
-// after InvalidateUserCache.
+// TestAuthCacheServesAndInvalidates: a cached role survives a DB change until
+// InvalidateUserCache.
 func TestAuthCacheServesAndInvalidates(t *testing.T) {
 	ctx := context.Background()
 

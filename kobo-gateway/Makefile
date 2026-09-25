@@ -1,13 +1,10 @@
-# Pinned below go.mod's stated minimum: darwinkit's AppKit bridge SIGABRTs
-# under Go 1.25+ (https://github.com/progrium/darwinkit/issues/286), so this
-# forces the exact toolchain regardless of what `go` is on PATH — a bare
-# go.mod `go` line only sets a minimum and won't downgrade a newer ambient
-# Go. Bump only once that issue is fixed upstream.
+# darwinkit's AppKit bridge SIGABRTs under Go 1.25+
+# (https://github.com/progrium/darwinkit/issues/286); go.mod can't downgrade,
+# so force the toolchain. Bump once fixed upstream (ADR 0015).
 export GOTOOLCHAIN := go1.24.13
 
 RELEASE ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
-# Empty by default (dev builds, go test): initSentry (main.go) then skips
-# sentry.Init entirely, so nothing is ever reported off a dev machine.
+# Empty for dev builds: initSentry then skips sentry.Init.
 SENTRY_DSN ?=
 
 test:
@@ -22,12 +19,8 @@ test/cov: test/cov/report
 	open ./coverage.html
 
 tools/lint:
-	# GOTOOLCHAIN=auto for the tool build only: golangci-lint's own go.mod may
-	# require a Go newer than this module's pin (adr-0015). CI never hits this
-	# because golangci-lint-action installs a prebuilt binary; without the
-	# override a Renovate bump of the tool silently breaks the local target
-	# only (issue #1828). Every build/test of this module still runs under
-	# the pinned toolchain exported at the top of this Makefile.
+	# auto for the tool build only: golangci-lint may need a newer Go than the
+	# pin. Builds/tests still use the pinned toolchain.
 	GOTOOLCHAIN=auto go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
 
 lint: tools/lint
@@ -36,16 +29,11 @@ lint: tools/lint
 lint/fix: tools/lint
 	golangci-lint run --fix
 
-# The menu bar needs cgo + the real AppKit/Xcode SDK, so this only builds on
-# macOS (arm64 native — no cross-compile). See
-# ../.github/workflows/build-kobo-gateway.yml (macos-14 runner) for CI; on
-# Linux only the no-UI stub (menubar_other.go) compiles.
+# macOS only (cgo + AppKit, arm64 native); Linux compiles only the no-UI stub.
 build:
 	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.SentryDSN=$(SENTRY_DSN)" \
 		-o=./bin/kobo-gateway-darwin-arm64 ./cmd/kobo-gateway
 
-# Packages the built binary into KoboGateway.app + kobo-gateway.dmg for the
-# download button, alongside the raw binary the self-updater fetches.
-# Outputs to ./dist/kobo-gateway/. macOS only (hdiutil).
+# Packages KoboGateway.app + .dmg plus the raw binary into ./dist/kobo-gateway/.
 dist: build
 	RELEASE=$(RELEASE) ./cmd/kobo-gateway/assets/package.sh

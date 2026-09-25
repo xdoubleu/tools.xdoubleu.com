@@ -19,10 +19,8 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// appsToolNames lists every tool the combined /apps/mcp server registers,
-// grouped by app, plus the admin observability tools. Every app's tools are
-// read-only except learningpaths' three mutating tools (adr-0023). Keep in
-// sync with each apps/<app>/mcp.go and registerObservabilityMCPTools.
+// appsToolNames lists every tool /apps/mcp registers. Keep in sync with each
+// apps/<app>/mcp.go and registerObservabilityMCPTools.
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsToolNames = []string{
@@ -51,9 +49,7 @@ var appsToolNames = []string{
 	// trains (4)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
 	"trains_get_journey_detail",
-	// learningpaths (6) — create_path/update_path/record_progress mutate
-	// (adr-0023), the one exception to every other app's tools being
-	// read-only.
+	// learningpaths (6); create_path/update_path/record_progress mutate (adr-0023)
 	"learningpaths_list_paths", "learningpaths_get_path",
 	"learningpaths_get_progress", "learningpaths_create_path",
 	"learningpaths_update_path", "learningpaths_record_progress",
@@ -68,8 +64,7 @@ var appsToolNames = []string{
 	"get_project_issues_by_status", "notify_slack",
 }
 
-// appsNetworkTools reach out to external providers, so the call tests skip them
-// to stay hermetic.
+// appsNetworkTools call external providers; skipped to stay hermetic.
 //
 //nolint:gochecknoglobals // shared expectations for the apps-MCP tests
 var appsNetworkTools = map[string]bool{
@@ -86,8 +81,7 @@ var appsNetworkTools = map[string]bool{
 	"get_grafana_alerts":           true,
 }
 
-// bearerRoundTripper attaches a Bearer token to every MCP client request,
-// standing in for the OAuth access token a real client would send.
+// bearerRoundTripper attaches a Bearer token to every request.
 type bearerRoundTripper struct {
 	token string
 	base  http.RoundTripper
@@ -123,8 +117,8 @@ func appsMCPSession(t *testing.T, token string) *mcp.ClientSession {
 	return session
 }
 
-// toolMessage returns the human-readable message of a tool call, whether the
-// denial surfaced as a protocol error or an error result.
+// toolMessage returns a tool call's message, whether a protocol error or an
+// error result.
 func toolMessage(res *mcp.CallToolResult, err error) string {
 	if err != nil {
 		return err.Error()
@@ -189,14 +183,8 @@ func TestAppsMCPInvalidToken(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
-// TestAppsMCPHandlerAllowsNonLoopbackHost is issue #944's actual regression:
-// a proxy in front of api that preserves the original external Host header
-// while itself reaching api over a loopback address (the once-retired
-// gateway/ module did exactly this) trips the go-sdk's default
-// DNS-rebinding guard (loopback local address + non-loopback Host), 403ing
-// every real request regardless of how valid the caller's Bearer token was.
-// Asserts DisableLocalhostProtection actually took effect by hitting a real
-// listener (loopback local address) with a non-loopback Host.
+// TestAppsMCPHandlerAllowsNonLoopbackHost: a loopback connection with a
+// non-loopback Host must not trip the go-sdk's DNS-rebinding guard.
 func TestAppsMCPHandlerAllowsNonLoopbackHost(t *testing.T) {
 	ts := httptest.NewServer(testApp.appsMCPHandler())
 	t.Cleanup(ts.Close)
@@ -237,15 +225,12 @@ func TestAppsMCPListToolsAsAdmin(t *testing.T) {
 	}
 }
 
-// TestAppsMCPReadToolsReturnData calls a hermetic subset of list tools as an
-// admin and asserts each returns text content without an error — proving the
-// read handlers are wired through to the tools.
+// TestAppsMCPReadToolsReturnData: a hermetic subset of tools returns content.
 func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	// Unconfigured external observability clients degrade gracefully; the
-	// DB-backed observability tools run against the (empty) test schema.
+	// Unconfigured external clients degrade; DB-backed tools hit the test schema.
 	testApp.githubClient = github.New(
 		logging.NewNopLogger(), stubTok(""), configNotConnected(),
 	)
@@ -277,10 +262,8 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	}
 }
 
-// TestAppsMCPCallAllToolsAsAdmin exercises every (hermetic) tool as an admin.
-// Some calls return an error result for the dummy ids — that is fine; the point
-// is that the per-app/admin access gate never denies an admin, and every
-// producer runs.
+// TestAppsMCPCallAllToolsAsAdmin: the access gate never denies an admin.
+// Error results for dummy ids are fine.
 func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -344,9 +327,8 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 	}
 }
 
-// TestAppsMCPAccessGate is the #382 constraint: a non-admin sees only the apps
-// they have access to. A user granted just "games" can call games tools but is
-// denied another app's tools.
+// TestAppsMCPAccessGate: a user granted only "games" is denied other apps'
+// tools.
 func TestAppsMCPAccessGate(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t,
@@ -364,11 +346,8 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, allowed.IsError, "user with games access was denied")
 
-	// learningpaths_create_path is a mutating tool (adr-0023) — checked
-	// alongside a read tool to prove the access gate denies both equally,
-	// not just reads. Both need their required arguments filled in, or the
-	// SDK's schema validation rejects the call before RequireAppAccess ever
-	// runs, which would mask what this test is actually checking.
+	// Check a mutating tool too. Fill required args, or schema validation rejects
+	// the call before RequireAppAccess runs.
 	deniedToolArgs := map[string]any{
 		"learningpaths_get_path":    map[string]any{"id": uuid.NewString()},
 		"learningpaths_create_path": map[string]any{"title": "Hidden Path"},
@@ -387,9 +366,7 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	}
 }
 
-// TestAppsMCPObservabilityToolNonAdmin is the admin-only-gate constraint for
-// the observability tools folded into the combined server: a regular app user
-// (not an admin) must be denied even with no special app access checked.
+// TestAppsMCPObservabilityToolNonAdmin: non-admins are denied.
 func TestAppsMCPObservabilityToolNonAdmin(t *testing.T) {
 	demoteToUser(t)
 
@@ -399,8 +376,7 @@ func TestAppsMCPObservabilityToolNonAdmin(t *testing.T) {
 		Name: "get_job_stats",
 	})
 
-	// A handler error surfaces as an error result the model can see, not a
-	// protocol-level failure; accept either shape but require the denial.
+	// Accept a protocol error or an error result, but require the denial.
 	if err != nil {
 		assert.Contains(t, strings.ToLower(err.Error()), "admin")
 		return
@@ -412,8 +388,7 @@ func TestAppsMCPObservabilityToolNonAdmin(t *testing.T) {
 	assert.Contains(t, strings.ToLower(text.Text), "admin")
 }
 
-// TestAppsMCPObservabilityToolReturnsData proves an observability tool wired
-// into the combined server returns real data end-to-end.
+// TestAppsMCPObservabilityToolReturnsData checks one tool end-to-end.
 func TestAppsMCPObservabilityToolReturnsData(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })

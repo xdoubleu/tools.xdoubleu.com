@@ -8,14 +8,12 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
-// Org is a Sentry organization the connected account can access, offered as
-// a pick-list option for the admin config picker.
+// Org is a Sentry organization offered by the admin config picker.
 type Org struct {
 	Slug string
 }
 
-// Project is a Sentry project within an organization, offered as a
-// pick-list option for the admin config picker.
+// Project is a Sentry project offered by the admin config picker.
 type Project struct {
 	Slug string
 }
@@ -28,10 +26,8 @@ type projectWire struct {
 	Slug string `json:"slug"`
 }
 
-// ListOrgs returns the organizations visible to the connected account, for
-// the admin config picker. Unlike ListUnresolvedIssues, this must work
-// before any org/project is picked, so a missing token is reported as
-// ErrNotConnected, not ErrNotConfigured.
+// ListOrgs lists orgs for the picker. It must work before anything is picked,
+// so a missing token is ErrNotConnected, not ErrNotConfigured.
 func (c *client) ListOrgs(ctx context.Context) ([]Org, error) {
 	token, err := c.resolveToken(ctx)
 	if err != nil {
@@ -52,8 +48,7 @@ func (c *client) ListOrgs(ctx context.Context) ([]Org, error) {
 	return orgs, nil
 }
 
-// ListProjects returns the projects within org visible to the connected
-// account, for the admin config picker.
+// ListProjects lists org's projects for the picker.
 func (c *client) ListProjects(ctx context.Context, org string) ([]Project, error) {
 	token, err := c.resolveToken(ctx)
 	if err != nil {

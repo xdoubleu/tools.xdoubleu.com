@@ -14,8 +14,7 @@ import (
 
 const (
 	dayFormat = "2006-01-02"
-	// usageRetention bounds global.usage_daily (~13 months so year-over-year
-	// comparisons stay possible).
+	// usageRetention (~13 months) keeps year-over-year comparisons possible.
 	usageRetention = 400 * 24 * time.Hour
 	pruneInterval  = 24 * time.Hour
 )
@@ -26,22 +25,19 @@ type usageKey struct {
 	endpoint string
 }
 
-// usageStore is the slice of UsageRepository UsageRecorder needs.
 type usageStore interface {
 	Flush(ctx context.Context, entries []models.UsageEntry) error
 	PruneOlderThan(ctx context.Context, cutoff time.Time) error
 }
 
-// usageCounter accumulates one (day, app, endpoint) bucket.
 type usageCounter struct {
 	count int64
 	bytes int64
 }
 
-// UsageRecorder counts requests and response bytes per (day, app, endpoint)
-// in memory and periodically flushes them into global.usage_daily. Losing at
-// most one flush interval of counts on shutdown is an accepted trade-off for
-// keeping request handling free of DB writes.
+// UsageRecorder counts requests and bytes per (day, app, endpoint) in memory
+// and flushes to global.usage_daily; up to one interval may be lost on
+// shutdown.
 type UsageRecorder struct {
 	logger    *slog.Logger
 	repo      usageStore
@@ -59,8 +55,7 @@ func NewUsageRecorder(logger *slog.Logger, db postgres.DB) *UsageRecorder {
 	}
 }
 
-// Record counts one request and the response bytes it served. Safe for
-// concurrent use.
+// Record counts one request. Safe for concurrent use.
 func (u *UsageRecorder) Record(app, endpoint string, bytes int64) {
 	key := usageKey{
 		day:      time.Now().UTC().Format(dayFormat),
@@ -76,7 +71,7 @@ func (u *UsageRecorder) Record(app, endpoint string, bytes int64) {
 	u.mu.Unlock()
 }
 
-// Start launches the flush loop. It runs for the lifetime of ctx.
+// Start runs the flush loop for the lifetime of ctx.
 func (u *UsageRecorder) Start(ctx context.Context, interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
@@ -115,8 +110,7 @@ func (u *UsageRecorder) flushTick(ctx context.Context) {
 	}
 }
 
-// Flush writes the accumulated counts to the database and clears them.
-// On error the batch is merged back so the counts survive for a retry.
+// Flush writes and clears the counts; on error they are merged back.
 func (u *UsageRecorder) Flush(ctx context.Context) error {
 	u.mu.Lock()
 	batch := u.counts

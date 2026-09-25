@@ -37,9 +37,8 @@ type App interface {
 	Start() error
 }
 
-// MCPToolProvider is implemented by apps that expose read-only MCP tools on the
-// combined /apps/mcp server. It is optional: newAppsMCPServer only registers
-// tools for apps that satisfy it (see mcp_apps.go).
+// MCPToolProvider is optionally implemented by apps exposing tools on
+// /apps/mcp.
 type MCPToolProvider interface {
 	RegisterMCPTools(srv *mcp.Server)
 }
@@ -56,18 +55,10 @@ func NewApps(
 ) (*Apps, *books.Books, *feeds.Feeds) {
 	var apps Apps = []App{}
 
-	// Migrations run sequentially in registration order: books must adopt its
-	// tables from the former backlog schema before games' final migration
-	// drops that schema, so books registers before games (this also matches
-	// the alphabetical package order used by `go test -p 1 ./...`). feeds
-	// registers immediately after books because its own migration copies
-	// feed/item data out of books.feeds/books.feed_items/books.books/
-	// books.user_books before dropping the reading-era tables (issue #734)
-	// — those tables must still exist when feeds' migration runs. dashboard
-	// registers last (it has no migrations of its own) and is constructed
-	// with live references to books/feeds/games, since its public RPCs
-	// delegate to their exported methods instead of duplicating any
-	// business logic or querying their schemas directly (issue #737).
+	// Migrations run in registration order. books adopts tables from the backlog
+	// schema before games' migration drops it; feeds copies data out of books'
+	// reading-era tables before they're dropped, so it follows books. dashboard
+	// has no migrations and delegates to the other apps' exported methods.
 	booksApp := books.New(authService, logger, cfg, db)
 	apps.addApp(booksApp)
 	feedsApp := feeds.New(authService, logger, cfg, db, notifications, appUsersRepo)
@@ -81,19 +72,11 @@ func NewApps(
 	apps.addApp(
 		dashboard.New(authService, logger, cfg, db, gamesApp, booksApp, feedsApp),
 	)
-	// trains has no dependency on any other app's schema and no live-reference
-	// wiring, so it appends here without disturbing the load-bearing order
-	// above (issue #1390).
+	// trains has no schema dependencies, so its position is free.
 	apps.addApp(trains.New(authService, logger, cfg, db))
-	// learningpaths has no migration dependency on any other app's schema
-	// either, same as trains above — it appends here rather than requiring a
-	// particular slot. It takes live references to booksApp/feedsApp
-	// (constructed above) to resolve resources linked to a books/feeds
-	// entry, the same exported-methods-only pattern dashboard uses (#1474).
-	// authSealer is threaded through for its own per-user Todoist OAuth
-	// connections (issue #1475, learningpaths.oauth_connections) — a
-	// separate table from global.oauth_connections, reusing the same
-	// encryption key.
+	// learningpaths has no schema dependencies. It takes booksApp/feedsApp to
+	// resolve linked resources, and authSealer for its own per-user Todoist
+	// OAuth connections.
 	apps.addApp(
 		learningpaths.New(
 			authService, logger, cfg, db, authSealer, booksApp, feedsApp,

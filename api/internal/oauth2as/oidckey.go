@@ -14,18 +14,12 @@ import (
 	"net/http"
 )
 
-// oidcKeyBits is the RSA key size used when no OAUTH_OIDC_PRIVATE_KEY is
-// configured and an ephemeral key is generated at startup instead. 2048 is
-// the floor RS256 ID-token signing keys are expected to meet.
+// oidcKeyBits is the ephemeral key size; 2048 is RS256's expected floor.
 const oidcKeyBits = 2048
 
-// LoadOrGenerateOIDCKey returns the RSA private key that signs OIDC ID tokens
-// (and whose public half is published at /oauth2/jwks). A non-empty pemKey is
-// parsed as a PEM-encoded PKCS#8 or PKCS#1 private key; an empty pemKey yields
-// a freshly generated ephemeral key (generated is true) so local development
-// and tests need no key material configured — the tradeoff being that every
-// process restart invalidates ID tokens issued by the previous one, which is
-// why production sets OAUTH_OIDC_PRIVATE_KEY.
+// LoadOrGenerateOIDCKey parses pemKey (PKCS#8 or PKCS#1) or, when empty,
+// generates an ephemeral key (generated=true). Ephemeral keys invalidate ID
+// tokens on restart, so production sets OAUTH_OIDC_PRIVATE_KEY.
 func LoadOrGenerateOIDCKey(pemKey string) (*rsa.PrivateKey, bool, error) {
 	if pemKey == "" {
 		k, err := rsa.GenerateKey(rand.Reader, oidcKeyBits)
@@ -61,13 +55,8 @@ func LoadOrGenerateOIDCKey(pemKey string) (*rsa.PrivateKey, bool, error) {
 	return rsaKey, false, nil
 }
 
-// LoadOIDCKeyOrDegrade behaves like LoadOrGenerateOIDCKey, except a
-// malformed pemKey is treated the same as an absent one instead of being
-// fatal: it logs at Error level and falls back to an ephemeral key. A
-// misconfigured OAUTH_OIDC_PRIVATE_KEY only degrades the OIDC/Grafana-SSO
-// feature that key feeds — it should not block the whole api process (and
-// therefore every deploy) from starting, the way an unrecovered panic on
-// LoadOrGenerateOIDCKey's error used to (issue #1617).
+// LoadOIDCKeyOrDegrade is LoadOrGenerateOIDCKey, but a malformed key logs an
+// Error and falls back to an ephemeral one so it can't block startup.
 func LoadOIDCKeyOrDegrade(logger *slog.Logger, pemKey string) *rsa.PrivateKey {
 	key, generated, err := LoadOrGenerateOIDCKey(pemKey)
 	if err != nil {
@@ -93,10 +82,8 @@ func LoadOIDCKeyOrDegrade(logger *slog.Logger, pemKey string) *rsa.PrivateKey {
 	return key
 }
 
-// OIDCKeyID derives a stable, deterministic key id from the signing key, so
-// the `kid` in a signed ID token's header matches the `kid` of the JWKS entry
-// regardless of process restarts (as long as the key material is the same).
-// It is the base64url-encoded SHA-256 of the RFC 7638 JWK thumbprint input.
+// OIDCKeyID derives a stable kid (base64url SHA-256 of the RFC 7638 thumbprint
+// input) so tokens and JWKS agree across restarts.
 func OIDCKeyID(key *rsa.PrivateKey) string {
 	return oidcKeyID(&key.PublicKey)
 }
@@ -112,8 +99,6 @@ func b64u(b []byte) string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
-// jwks builds the RFC 7517 JSON Web Key Set document exposing the public half
-// of key for RS256 ID-token verification.
 func jwks(key *rsa.PrivateKey) map[string]any {
 	pub := &key.PublicKey
 	return map[string]any{
@@ -128,8 +113,7 @@ func jwks(key *rsa.PrivateKey) map[string]any {
 	}
 }
 
-// JWKSHandler serves the JSON Web Key Set for the OIDC signing key at
-// /oauth2/jwks, letting a relying party (Grafana) verify ID-token signatures.
+// JWKSHandler serves the OIDC signing key's JWKS at /oauth2/jwks.
 func JWKSHandler(key *rsa.PrivateKey) http.HandlerFunc {
 	doc := jwks(key)
 	return func(w http.ResponseWriter, _ *http.Request) {

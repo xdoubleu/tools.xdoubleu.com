@@ -18,8 +18,7 @@ import (
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
-// registerDeviceReturningID registers a device for ownerID and returns both the
-// raw token (for device-facing calls) and the device ID (the store key).
+// registerDeviceReturningID returns a new device's raw token and ID.
 func registerDeviceReturningID(t *testing.T, ownerID string) (string, string) {
 	t.Helper()
 	device, rawToken, err := testApp.Services.Kobo.RegisterKoboDevice(
@@ -28,8 +27,6 @@ func registerDeviceReturningID(t *testing.T, ownerID string) (string, string) {
 	require.NoError(t, err)
 	return rawToken, device.ID
 }
-
-// --- Device-facing capture middleware ---
 
 func TestKoboLogging_DisabledCapturesNothing(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
@@ -74,8 +71,6 @@ func TestKoboLogging_CapturesSyncRequestAndResponse(t *testing.T) {
 	assert.NotContains(t, e.Path, rawToken,
 		"the device's live sync token must never appear in captured logs")
 	assert.Equal(t, http.StatusOK, e.Status)
-	// The sync manifest body must be captured (empty library serializes to
-	// the JSON null/array the device receives).
 	assert.NotEmpty(t, e.ResponseBody)
 }
 
@@ -86,8 +81,6 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	owner := "kobo-log-put-" + uuid.NewString()
 	rawToken, bookID := setupKoboSyncBook(t, owner)
 
-	// setupKoboSyncBook registers exactly one device for the owner; enable
-	// logging on it (the raw token resolves to this device).
 	devices, err := testApp.Services.Kobo.ListKoboDevices(context.Background(), owner)
 	require.NoError(t, err)
 	require.Len(t, devices, 1)
@@ -104,9 +97,7 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// The append happens in the request-handling goroutine after the
-	// response has already been written, so it can race the client having
-	// received it; poll instead of asserting immediately.
+	// The append happens after the response is written; poll.
 	var entry services.KoboLogEntry
 	require.Eventually(t, func() bool {
 		for _, e := range testApp.Services.KoboLog.List(deviceID) {
@@ -122,9 +113,8 @@ func TestKoboLogging_CapturesPutRequestBody(t *testing.T) {
 	assert.Equal(t, http.StatusOK, entry.Status)
 }
 
-// TestKoboLogging_BodyCaptureCapped verifies the captured request body is
-// bounded (so debug logging can never buffer an unbounded body in memory)
-// while the full body still reaches the handler.
+// TestKoboLogging_BodyCaptureCapped: capture is capped while the handler still
+// gets the full body.
 func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
@@ -139,7 +129,6 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	testApp.Services.KoboLog.SetEnabled(deviceID, true)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
-	// A Location far larger than the 64 KiB capture cap.
 	huge := strings.Repeat("x", 200*1024)
 	body := `{"ReadingStates":[{"CurrentBookmark":` +
 		`{"ProgressPercent":50,"Location":"` + huge + `"}}]}`
@@ -150,9 +139,7 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	resp.Body.Close()
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// The append happens in the request-handling goroutine after the
-	// response has already been written, so it can race the client having
-	// received it; poll instead of asserting immediately.
+	// The append happens after the response is written; poll.
 	const cap64KiB = 64 * 1024
 	var entry services.KoboLogEntry
 	require.Eventually(t, func() bool {
@@ -169,8 +156,6 @@ func TestKoboLogging_BodyCaptureCapped(t *testing.T) {
 	assert.NotEmpty(t, entry.RequestBody)
 }
 
-// --- Connect RPCs ---
-
 func TestConnectSetKoboDeviceLogging_TogglesAndReflectsInList(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx := context.Background()
@@ -186,7 +171,6 @@ func TestConnectSetKoboDeviceLogging_TogglesAndReflectsInList(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, testApp.Services.KoboLog.IsEnabled(deviceID))
 
-	// ListKoboDevices must reflect the in-memory logging flag.
 	listReq := connect.NewRequest(&booksv1.ListKoboDevicesRequest{})
 	listReq.Header().Set("Cookie", accessToken.String())
 	listResp, err := client.ListKoboDevices(ctx, listReq)
@@ -205,7 +189,6 @@ func TestConnectSetKoboDeviceLogging_OtherUsersDeviceNotFound(t *testing.T) {
 	client := newBooksTestClient(t)
 	ctx := context.Background()
 
-	// Device owned by a different user than the authenticated one.
 	_, deviceID := registerDeviceReturningID(t, "kobo-log-other-"+uuid.NewString())
 
 	req := connect.NewRequest(&booksv1.SetKoboDeviceLoggingRequest{
@@ -229,7 +212,6 @@ func TestConnectGetKoboDeviceLogs_ReturnsEntries(t *testing.T) {
 	testApp.Services.KoboLog.SetEnabled(deviceID, true)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
-	// Generate one captured request.
 	resp, err := http.DefaultClient.Do(
 		koboReq(t, http.MethodPost,
 			koboURL(ts, rawToken, "/v1/initialization"), nil),
@@ -254,8 +236,7 @@ func TestConnectGetKoboDeviceLogs_InvalidUTF8ResponseBody(t *testing.T) {
 	testApp.Services.KoboLog.SetEnabled(deviceID, true)
 	t.Cleanup(func() { testApp.Services.KoboLog.SetEnabled(deviceID, false) })
 
-	// A captured body containing invalid UTF-8, as would happen when the
-	// catch-all proxy captures a binary/gzip upstream response.
+	// Invalid UTF-8, as captured from a binary/gzip upstream response.
 	testApp.Services.KoboLog.Append(deviceID, services.KoboLogEntry{
 		Time: time.Now(), Method: "GET", Path: "/x", Query: "",
 		RequestBody: "", Status: 200,

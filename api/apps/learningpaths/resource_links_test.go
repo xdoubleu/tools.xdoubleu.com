@@ -12,9 +12,7 @@ import (
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 )
 
-// seedLibraryBook stages a books library entry owned by owner directly via
-// SQL, mirroring how other apps' own tests seed cross-schema fixtures
-// without importing an internal package they can't reach.
+// seedLibraryBook stages a books library entry owned by owner via SQL.
 func seedLibraryBook(t *testing.T, owner, title string) uuid.UUID {
 	t.Helper()
 	ctx := context.Background()
@@ -102,12 +100,8 @@ func TestCreateLearningPath_LinkedFeedItemResolved(t *testing.T) {
 	assert.Equal(t, "Linked Item", res.LinkedFeedItem.Title)
 }
 
-// TestCreateLearningPath_LinkedBookForeignOwnerRejected confirms a
-// linked_book_id belonging to a different user is rejected up front
-// (InvalidArgument) rather than silently persisted — the cross-user-data
-// leak this app must never allow (#1474 "Not this: no write access to
-// books/feeds data ... read-only linking" plus the general 404-on-foreign-
-// ownership rule extended to write-time validation).
+// TestCreateLearningPath_LinkedBookForeignOwnerRejected: another user's
+// linked_book_id is rejected (InvalidArgument), never persisted.
 func TestCreateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 	client := setupClient(getRoutes())
 	bookID := seedLibraryBook(t, "a-different-user", "Foreign Book")
@@ -125,8 +119,7 @@ func TestCreateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
-// TestCreateLearningPath_LinkedFeedItemForeignOwnerRejected is the feeds
-// counterpart to TestCreateLearningPath_LinkedBookForeignOwnerRejected.
+// TestCreateLearningPath_LinkedFeedItemForeignOwnerRejected: feeds variant.
 func TestCreateLearningPath_LinkedFeedItemForeignOwnerRejected(t *testing.T) {
 	client := setupClient(getRoutes())
 	itemID := seedFeedItem(t, "a-different-user", "Foreign Item")
@@ -144,9 +137,8 @@ func TestCreateLearningPath_LinkedFeedItemForeignOwnerRejected(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
-// TestCreateLearningPath_LinkedBookUnknownIDRejected confirms a well-formed
-// but nonexistent linked_book_id is rejected the same way a foreign-owned
-// one is.
+// TestCreateLearningPath_LinkedBookUnknownIDRejected: a nonexistent
+// linked_book_id is rejected too.
 func TestCreateLearningPath_LinkedBookUnknownIDRejected(t *testing.T) {
 	client := setupClient(getRoutes())
 
@@ -191,12 +183,8 @@ func TestUpdateLearningPath_LinkedBookForeignOwnerRejected(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
 
-// TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent confirms a
-// linked_book_id/linked_feed_item_id that isn't a parseable UUID is silently
-// dropped by dtoToResources' parseOptionalUUID rather than rejected —
-// per its doc comment, a well-formed but nonexistent/foreign-owned ID is
-// still caught downstream by validateResourceLinks, but a malformed string
-// never reaches that check at all.
+// TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent: a non-UUID link
+// ID is dropped, not rejected.
 func TestCreateLearningPath_MalformedLinkedIDsTreatedAsAbsent(t *testing.T) {
 	client := setupClient(getRoutes())
 

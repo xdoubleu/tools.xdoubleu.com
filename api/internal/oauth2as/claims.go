@@ -8,11 +8,8 @@ import (
 	"github.com/ory/fosite/token/jwt"
 )
 
-// ResolvedUser is the identity the composition root resolves from the web
-// session cookie during the authorize flow — everything the ID token's claims
-// can be built from. Email/DisplayName are only surfaced when the matching
-// scope (email / profile) was granted; IsAdmin drives whether a role claim is
-// emitted at all (see addProfileClaims).
+// ResolvedUser is the web-session identity ID-token claims are built from.
+// Email/DisplayName need their scope; IsAdmin gates the role claim.
 type ResolvedUser struct {
 	ID          string
 	Email       string
@@ -21,11 +18,8 @@ type ResolvedUser struct {
 }
 
 // newAuthorizeSession builds the session fosite persists at authorize time.
-// Subject is always set — the MCP flow depends on it via ResolveAccessToken —
-// while the ID-token claims are only populated when the openid scope was
-// granted, which is also the only case fosite mints an ID token for. kid is
-// stamped into the JWT header so a relying party can select the right key
-// from /oauth2/jwks.
+// Subject is always set (MCP needs it); ID-token claims only with openid. kid
+// lets relying parties pick the key from /oauth2/jwks.
 func newAuthorizeSession(
 	user ResolvedUser, kid string, grantedScopes fosite.Arguments,
 ) *openid.DefaultSession {
@@ -50,14 +44,9 @@ func newAuthorizeSession(
 	return sess
 }
 
-// addProfileClaims layers the OIDC identity claims onto an ID token per the
-// scopes actually granted. The role claim is emitted only for admins (value
-// "Admin"): Grafana is the sole relying party, it maps this claim onto its
-// roles via role_attribute_path, and config/deploy.grafana.yml sets
-// role_attribute_strict so a token with no role is refused — which is exactly
-// the intent, Grafana access is admin-only (docs/adr-0021). A non-admin
-// first-party user therefore gets a valid ID token with no "role" key and
-// simply can't complete Grafana SSO.
+// addProfileClaims adds OIDC claims per granted scope. role="Admin" is emitted
+// only for admins: Grafana (role_attribute_strict) is the sole relying party
+// and is admin-only, so non-admins are refused there.
 func addProfileClaims(
 	claims *jwt.IDTokenClaims, user ResolvedUser, grantedScopes fosite.Arguments,
 ) {
@@ -67,8 +56,7 @@ func addProfileClaims(
 
 	if grantedScopes.Has(EmailScope) && user.Email != "" {
 		claims.Add("email", user.Email)
-		// First-party accounts are admin-provisioned; there is no
-		// unverified-email state to represent (ADR-0005).
+		// Accounts are admin-provisioned, so email is always verified.
 		claims.Add("email_verified", true)
 	}
 

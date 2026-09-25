@@ -13,24 +13,17 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
-// ErrRouterWarmingUp is returned by SearchJourneys before the in-memory CSA
-// index has been built for the first time. Building it is a multi-query,
-// whole-window scan (see RefreshWindow) — far too heavy to run inside a
-// request handler, where it would blow past the edge proxy's response
-// timeout and have the connection reset with no trace
-// (docs/adr-0017-long-request-handler-deadlines.md). The router is warmed at
-// startup and on a schedule instead (issue #1484).
+// ErrRouterWarmingUp is returned before the CSA index is first built. The
+// build is too heavy for a request handler (it would outlive the proxy
+// timeout, see docs/adr-0017), so it's warmed at startup and on a schedule.
 var ErrRouterWarmingUp = errors.New("journey router is warming up")
 
-// routerWindowDays bounds how many service days' worth of stop_times the
-// router holds in memory at once. The full feed is ~2.2M stop_times across
-// a year; a rolling window is what keeps this comfortably inside the
-// deployed container's GOMEMLIMIT (300MiB, config/deploy.api.yml) instead
-// of growing without bound (issue #1391).
+// routerWindowDays bounds the in-memory stop_times window to keep the router
+// inside the container's GOMEMLIMIT (config/deploy.api.yml).
 const routerWindowDays = 14
 
-// brusselsLoc is the feed's local timezone — GTFS stop_times are local
-// wall-clock offsets from a service date's midnight.
+// brusselsLoc is the feed's timezone; stop_times are offsets from local
+// midnight.
 //
 //nolint:gochecknoglobals //fixed feed timezone
 var brusselsLoc = mustLoadLocation("Europe/Brussels")
@@ -43,18 +36,15 @@ func mustLoadLocation(name string) *time.Location {
 	return loc
 }
 
-// JourneyService answers SearchJourneys over an in-memory CSA index built
-// from a rolling window of the ingested timetable. Routing is timetable-only
-// — no realtime overlay (that's #1388 slice 5/6, applied on top of the same
-// connection array rather than baked in here).
+// JourneyService answers SearchJourneys over an in-memory CSA index of a
+// rolling timetable window. Routing is timetable-only.
 type JourneyService struct {
 	logger *slog.Logger
 	repos  *repositories.Repositories
 
 	mu    sync.RWMutex
 	index *csa.Index
-	// refreshGroup collapses concurrent rebuilds (the startup warm-up racing
-	// the first scheduled refresh, say) into a single window scan.
+	// refreshGroup collapses concurrent rebuilds into one window scan.
 	refreshGroup singleflight.Group
 }
 
@@ -65,11 +55,8 @@ func NewJourneyService(
 	return &JourneyService{logger: logger, repos: repos}
 }
 
-// SearchJourneys returns a window of journeys from originStopID to
-// destStopID around the given time — a few before, a few after (issue
-// #1643). It reads the in-memory index built by the background warm-up/
-// refresh; if that hasn't happened yet it returns ErrRouterWarmingUp rather
-// than building it in-request.
+// SearchJourneys returns a few journeys before and after the given time. It
+// returns ErrRouterWarmingUp rather than building the index in-request.
 func (s *JourneyService) SearchJourneys(
 	_ context.Context,
 	originStopID, destStopID string,
@@ -85,10 +72,8 @@ func (s *JourneyService) SearchJourneys(
 	return idx.SearchJourneys(originStopID, destStopID, when, arriveBy)
 }
 
-// MinTransferSeconds reports the minimum change time between two stops from
-// the current index (issue #1395's connection-makeability check). Before the
-// index is built it falls back to the router's own default, so the check
-// degrades to "assume a standard platform change" rather than failing.
+// MinTransferSeconds reports the minimum change time between two stops,
+// falling back to the router default before the index is built.
 func (s *JourneyService) MinTransferSeconds(fromStopID, toStopID string) int {
 	s.mu.RLock()
 	idx := s.index
@@ -99,16 +84,14 @@ func (s *JourneyService) MinTransferSeconds(fromStopID, toStopID string) int {
 	return idx.MinTransferSeconds(fromStopID, toStopID)
 }
 
-// RefreshOnly rebuilds the router index, discarding the built index —
-// matches the func(context.Context) error shape jobs.RouterRefreshJob
-// expects.
+// RefreshOnly rebuilds the index, matching jobs.RouterRefreshJob's func shape.
 func (s *JourneyService) RefreshOnly(ctx context.Context) error {
 	_, err := s.Refresh(ctx)
 	return err
 }
 
-// Refresh rebuilds the router index from the current rolling window and
-// swaps it in atomically. Concurrent callers share one rebuild.
+// Refresh rebuilds the index for the current window and swaps it in
+// atomically; concurrent callers share one rebuild.
 func (s *JourneyService) Refresh(ctx context.Context) (*csa.Index, error) {
 	_, err, _ := s.refreshGroup.Do("refresh", func() (any, error) {
 		const oneDay = 24 * time.Hour
@@ -124,9 +107,8 @@ func (s *JourneyService) Refresh(ctx context.Context) (*csa.Index, error) {
 	return idx, nil
 }
 
-// RefreshWindow rebuilds the router index for a caller-chosen window start
-// — Refresh's production path always anchors this to "today", but tests
-// need a fixed window aligned to fixture dates.
+// RefreshWindow rebuilds the index for a caller-chosen window start (tests
+// align it to fixture dates).
 func (s *JourneyService) RefreshWindow(
 	ctx context.Context, windowStart time.Time,
 ) (*csa.Index, error) {

@@ -11,10 +11,8 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
-  // Steam (achievement/game icons) and Hardcover (book covers) serve images
-  // from rotating, sometimes http-only CDN hosts. Serve them as-is instead of
-  // routing through the Next optimizer, which would otherwise block
-  // un-whitelisted hosts.
+  // Steam and Hardcover images come from rotating, sometimes http-only CDN
+  // hosts, so skip the optimizer's host allowlist.
   images: {
     unoptimized: true
   },

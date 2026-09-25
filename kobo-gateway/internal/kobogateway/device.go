@@ -74,9 +74,8 @@ func readConfFile(volumePath string) (*Conf, error) {
 	return ParseConf(string(raw)), nil
 }
 
-// writeConfFile writes via a temp file + rename on the same volume so an
-// eject or power loss mid-write can never leave Kobo eReader.conf truncated
-// or corrupted — a real risk since it lives on a removable USB drive.
+// writeConfFile writes via temp file + rename so an eject mid-write can't
+// corrupt eReader.conf.
 func writeConfFile(volumePath string, conf *Conf) error {
 	path := confPath(volumePath)
 

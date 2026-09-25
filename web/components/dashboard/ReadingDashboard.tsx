@@ -27,8 +27,7 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
         'relative flex w-full gap-3 p-4 text-left sm:w-60 self-start'
       )}
     >
-      {/* Stretched link covers the card; the progress controls sit above it
-          via z-10 so adjusting progress doesn't navigate to the detail page. */}
+      {/* Progress controls sit above the stretched link via z-10. */}
       <Link
         href={`/books/${userBook.id}`}
         className="absolute inset-0 rounded-2xl"
@@ -54,9 +53,7 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   )
 }
 
-// ReadingDashboard is the owner's private dashboard for books+feeds merged
-// into one "reading" view (issue #737) — was BooksDashboard, renamed now
-// that it also surfaces a feeds summary.
+// ReadingDashboard is the owner's private books+feeds dashboard.
 export default function ReadingDashboard() {
   const chart = useDashboardChartState<'ytd' | 'all'>('ytd')
 
@@ -83,7 +80,7 @@ export default function ReadingDashboard() {
       chart={chart}
       allTimeChartData={allTimeChartData}
       renderReadingCard={(ub) => <ReadingBookCard userBook={ub} />}
-      // feeds hidden from the reading dashboard for now — see issue #1382
+      // Feeds are hidden from the reading dashboard for now.
       actions={
         <>
           <div className="mr-auto w-full max-w-md">

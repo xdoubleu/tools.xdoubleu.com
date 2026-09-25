@@ -90,7 +90,6 @@ func TestSendToNotConfigured(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// New's own to is left empty/irrelevant — SendTo ignores it.
 			client := mailer.New(tt.apiKey, tt.from, "")
 			err := client.SendTo(t.Context(), tt.to, "subject", "body")
 			assert.ErrorIs(t, err, mailer.ErrNotConfigured)
@@ -111,8 +110,6 @@ func TestSendToPostsExpectedRequest(t *testing.T) {
 	mailer.SetBaseURL(server.URL)
 	defer mailer.SetBaseURL("https://api.resend.com")
 
-	// New's to is a different address than SendTo's — the posted "to" must
-	// reflect the SendTo argument, not New's fixed recipient.
 	client := mailer.New("test-key", "from@example.com", "fixed-to@example.com")
 	err := client.SendTo(
 		t.Context(),

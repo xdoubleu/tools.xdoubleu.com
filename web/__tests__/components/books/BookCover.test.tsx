@@ -49,7 +49,6 @@ describe('BookCover', () => {
   it('always reserves space so layout is not affected by missing cover', () => {
     const { container } = render(<BookCover coverUrl="" title="Missing" size="sm" />)
     const box = container.firstElementChild
-    // Box must have explicit size regardless of cover presence.
     expect(box).toHaveStyle({ width: '40px' })
   })
 })

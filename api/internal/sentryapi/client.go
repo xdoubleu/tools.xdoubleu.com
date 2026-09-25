@@ -31,9 +31,8 @@ var backoffBase = 500 * time.Millisecond
 //nolint:gochecknoglobals // overridable in tests
 var backoffCap = 30 * time.Second
 
-// apiError is a non-2xx response from the Sentry API, kept structured so
-// callers can distinguish known-transient statuses (5xx) from real failures
-// via errors.As.
+// apiError is a non-2xx response, structured so 5xx can be detected via
+// errors.As.
 type apiError struct {
 	status int
 	body   string
@@ -46,21 +45,13 @@ func (e *apiError) Error() string {
 const apiTimeout = 15 * time.Second
 
 const (
-	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
-	// cacheTTL is how long a fetched issue list is served from memory before
-	// the next call re-fetches.
-	cacheTTL = 45 * time.Second
-	// transactionStatsPerPage caps how many distinct transactions Sentry's
-	// Discover API returns per call — comfortably above this app's real
-	// route count, so no pagination is needed.
+	cacheTTL    = 45 * time.Second
+	// transactionStatsPerPage is above the real route count; no pagination needed.
 	transactionStatsPerPage = 100
 )
 
-// configStore is the subset of *repositories.OAuthConnectionsRepository used
-// to resolve the admin-picked org/projects fresh on every call, instead of
-// static values baked in at boot (mirrors oauthconn's own narrow
-// connectionStore).
+// configStore resolves the admin-picked org/projects on every call.
 type configStore interface {
 	Get(
 		ctx context.Context, provider models.OAuthProvider,
@@ -87,10 +78,8 @@ type client struct {
 	cachedStatsAt time.Time
 }
 
-// New creates a Sentry API client. tokenFn resolves a live OAuth bearer
-// token (see internal/oauthconn) and configRepo resolves the admin-picked
-// org/projects on every call. When no org/projects are picked, or tokenFn
-// reports the provider isn't connected, every call returns ErrNotConfigured.
+// New creates a Sentry client. With no org/projects picked or no connection,
+// every call returns ErrNotConfigured.
 func New(
 	logger *slog.Logger, tokenFn oauthconn.TokenFunc, configRepo configStore,
 ) Client {
@@ -156,10 +145,8 @@ func (c *client) ListTransactionStats(ctx context.Context) ([]TransactionStat, e
 	return stats, nil
 }
 
-// ResolveIssue marks the given issue as resolved. Sentry's issue-detail
-// endpoint is keyed by issue ID alone (no org/project in the path), but
-// resolveConfig is still checked first so an unconfigured connection fails
-// the same way ListUnresolvedIssues does, rather than leaking a stale token.
+// ResolveIssue resolves issueID. The endpoint needs no org, but config is
+// checked first so an unconfigured connection fails consistently.
 func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
 	if _, err := c.resolveConfig(ctx); err != nil {
 		return err
@@ -167,9 +154,7 @@ func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
 
 	token, err := c.tokenFn(ctx)
 	if errors.Is(err, oauthconn.ErrNotConnected) {
-		// resolveConfig above already proved a connection+config row exists,
-		// so tokenFn can only be refusing it here over a stale granted
-		// scope (see oauthconn.NewTokenFunc) — never "no connection at all".
+		// Config exists, so a refusal here means a stale scope.
 		return ErrReauthRequired
 	}
 	if err != nil {
@@ -181,18 +166,13 @@ func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
 		return putErr
 	}
 
-	// Invalidate the cached issue list so the next ListUnresolvedIssues call
-	// reflects the resolve immediately instead of serving up to cacheTTL of
-	// stale (still-unresolved) data.
+	// Invalidate the cached issue list.
 	c.mu.Lock()
 	c.cached = nil
 	c.mu.Unlock()
 	return nil
 }
 
-// resolveConfig reads the admin-picked org/projects from the stored
-// connection config. Returns ErrNotConfigured when the provider isn't
-// connected or no org/projects have been picked yet.
 func (c *client) resolveConfig(ctx context.Context) (projectsConfig, error) {
 	_, conn, err := c.configRepo.Get(ctx, models.OAuthProviderSentry)
 	if errors.Is(err, database.ErrResourceNotFound) {
@@ -215,10 +195,8 @@ func (c *client) resolveConfig(ctx context.Context) (projectsConfig, error) {
 	return cfg, nil
 }
 
-// fetchAll fetches unresolved issues for every configured project
-// sequentially (N is small and results are cache-backed for cacheTTL, so no
-// added concurrency), tags each with its project, and merges them into one
-// list sorted by LastSeen descending.
+// fetchAll fetches each project's unresolved issues sequentially, tags them,
+// and sorts by LastSeen descending.
 func (c *client) fetchAll(
 	ctx context.Context, token string, cfg projectsConfig,
 ) ([]Issue, error) {
@@ -272,18 +250,12 @@ func (c *client) storeTransactionStats(stats []TransactionStat) {
 	c.cachedStatsAt = time.Now()
 }
 
-// eventsResponse is the envelope Sentry's org-level Events (Discover) API
-// wraps its rows in.
 type eventsResponse struct {
 	Data []transactionStatWire `json:"data"`
 }
 
-// fetchTransactionStats queries Sentry's org-level Events (Discover) API
-// for p95 duration + request count per transaction over the last 24h, one
-// call covering every project the org grants access to, then keeps only
-// the rows belonging to the admin-picked projects (mirrors fetchAll's
-// per-project tagging for issues, but as a single request since the
-// Discover endpoint is org-scoped, not per-project).
+// fetchTransactionStats queries the org-level Discover API for 24h p95 and
+// count per transaction in one call, keeping only the picked projects.
 func (c *client) fetchTransactionStats(
 	ctx context.Context, token string, cfg projectsConfig,
 ) ([]TransactionStat, error) {
@@ -312,10 +284,8 @@ func (c *client) fetchTransactionStats(
 	return stats, nil
 }
 
-// transactionStatsQuery builds the Discover query string: p95 duration and
-// request count per transaction, sorted slowest-first, over the last 24h.
-// Queries the spans dataset — Sentry deprecated the legacy transactions
-// dataset in favor of spans (targeted for removal ~Nov 2025).
+// transactionStatsQuery builds the Discover query over the spans dataset (the
+// transactions dataset is deprecated).
 func transactionStatsQuery() string {
 	params := url.Values{
 		"dataset": {"spans"},
@@ -353,8 +323,6 @@ func (c *client) fetch(
 	return issues, nil
 }
 
-// resolveIssueBody is the fixed request body for a resolve-issue PUT — the
-// only status transition this client makes.
 const resolveIssueBody = `{"status":"resolved"}`
 
 func (c *client) get(ctx context.Context, endpoint, token string, dst any) error {
@@ -423,7 +391,6 @@ func (c *client) put(ctx context.Context, endpoint, token, body string) error {
 	})
 }
 
-// doWithRetry calls attempt up to maxAttempts times with exponential backoff.
 func (c *client) doWithRetry(
 	ctx context.Context,
 	attempt func() (retryable bool, err error),
@@ -461,11 +428,10 @@ func (c *client) doWithRetry(
 	return lastErr
 }
 
-// SetBaseURL overrides the Sentry API base URL. Intended for tests only.
+// SetBaseURL overrides the Sentry API base URL (tests only).
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the exponential-backoff base delay. Intended for
-// tests only so retry tests run without real wall-clock sleeps.
+// SetBackoffBase overrides the retry backoff base (tests only).
 func SetBackoffBase(d time.Duration) { backoffBase = d }
 
 func backoffDelay(attempt int) time.Duration {
@@ -481,9 +447,7 @@ func isRetryableStatus(status int) bool {
 		(status >= http.StatusInternalServerError && status < 600)
 }
 
-// IsTransientAPIError reports whether err is a known-benign, self-healing
-// failure (a 5xx or a timeout) rather than a real bug, so callers polling on
-// an interval can log it at a lower level than a persistent failure.
+// IsTransientAPIError reports whether err is a self-healing 5xx or timeout.
 func IsTransientAPIError(err error) bool {
 	var apiErr *apiError
 	if errors.As(err, &apiErr) && apiErr.status >= http.StatusInternalServerError {

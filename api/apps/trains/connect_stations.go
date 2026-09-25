@@ -57,9 +57,7 @@ func (h *trainsConnectHandler) GetFeedInfo(
 	}), nil
 }
 
-// count32 narrows a parsed count to the proto's int32. A GTFS feed nowhere
-// near two billion translation rows makes the clamp unreachable in practice;
-// it is here so the conversion cannot wrap into a negative count.
+// count32 clamps so an implausible count can't wrap negative.
 func count32(n int) int32 {
 	if n > math.MaxInt32 {
 		return math.MaxInt32

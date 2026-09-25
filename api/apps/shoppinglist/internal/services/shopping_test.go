@@ -313,8 +313,7 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 		assert.Equal(t, pastSlots, ps)
 		return planItems, nil
 	}
-	// Custom items must NOT be fetched here; the frontend merges them once on
-	// its own. Fetching and appending would duplicate them per meal plan.
+	// Custom items must not be fetched here (see GetMealPlanExportItems).
 	m.GetCustomItemsFn = func(
 		_ context.Context, _ uuid.UUID,
 	) ([]repositories.ShoppingItem, error) {
@@ -359,9 +358,7 @@ func TestGetMealPlanExportItems_RepoError(t *testing.T) {
 	assert.ErrorIs(t, err, repoErr)
 }
 
-// Every ShoppingService method resolves the caller's family before touching
-// the repo; a family-resolution failure must propagate without calling the
-// repo at all.
+// A family-resolution failure must propagate without touching the repo.
 func TestFamilyResolutionErrors_PropagateWithoutTouchingRepo(t *testing.T) {
 	familyErr := errors.New("family error")
 	family := &fakeFamilyStore{familyID: uuid.Nil, err: familyErr}

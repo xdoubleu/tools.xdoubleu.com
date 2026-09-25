@@ -16,8 +16,7 @@ import type {
   GetSharedRecentlyActiveGamesResponse
 } from '@/lib/gen/dashboard/v1/games_pb'
 
-// Owner-side share management. Each dashboard (games, reading) has its own
-// independent share link.
+// Owner-side share management; each dashboard has its own link.
 
 export type DashboardShareKind = 'games' | 'reading'
 

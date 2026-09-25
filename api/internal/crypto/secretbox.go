@@ -1,8 +1,5 @@
-// Package crypto encrypts small secrets (OAuth tokens) at rest with
-// AES-256-GCM.
-//
-// ponytail: one static key, no rotation/versioning — add a key-id prefix to
-// the ciphertext if rotation is ever needed.
+// Package crypto encrypts small secrets at rest with AES-256-GCM. One static
+// key, no rotation.
 package crypto
 
 import (
@@ -21,8 +18,7 @@ type Sealer struct {
 	gcm cipher.AEAD
 }
 
-// New builds a Sealer from a base64-standard-encoded 32-byte key (e.g.
-// ENCRYPTION_KEY). Generate one with `openssl rand -base64 32`.
+// New builds a Sealer from a base64 32-byte key (`openssl rand -base64 32`).
 func New(keyB64 string) (*Sealer, error) {
 	key, err := base64.StdEncoding.DecodeString(keyB64)
 	if err != nil {

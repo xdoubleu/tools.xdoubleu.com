@@ -78,8 +78,7 @@ func TestDashboardShare_Lifecycle(t *testing.T) {
 	ctx := context.Background()
 	client := dashboardClient(t)
 
-	// Start clean regardless of earlier tests, and ensure a display name is
-	// set (required to create a share link).
+	// Start clean; a display name is required to create a share link.
 	require.NoError(t, testApp.appUsersRepo.Upsert(ctx, testUserID, "user@example.com"))
 	require.NoError(
 		t,
@@ -116,8 +115,7 @@ func TestDashboardShare_Lifecycle(t *testing.T) {
 	require.NotNil(t, getResp.Msg.Share)
 	assert.Equal(t, token, getResp.Msg.Share.Token)
 
-	// The games share is independent: creating/regenerating/deleting the
-	// reading link must not touch it.
+	// The games share is independent of the reading link.
 	gamesCreateReq := connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_GAMES,
 	})
@@ -126,7 +124,6 @@ func TestDashboardShare_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 	gamesToken := gamesCreateResp.Msg.Share.Token
 
-	// Regenerating replaces the token, invalidating the old link.
 	createReq = connect.NewRequest(&dashboardv1.CreateDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_READING,
 	})
@@ -151,7 +148,6 @@ func TestDashboardShare_Lifecycle(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, getResp.Msg.Share, "share should be gone after delete")
 
-	// The games share survived the reading deletion.
 	gamesGetReq := connect.NewRequest(&dashboardv1.GetDashboardShareRequest{
 		Kind: dashboardv1.DashboardKind_DASHBOARD_KIND_GAMES,
 	})

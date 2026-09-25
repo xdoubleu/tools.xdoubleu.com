@@ -19,8 +19,7 @@ func NewFamilyRepository(db postgres.DB) *FamilyRepository {
 	return &FamilyRepository{db: db}
 }
 
-// GetFamilyID returns the family the user currently belongs to. ok is false
-// when the user has no membership row (an implicit family-of-one).
+// GetFamilyID returns the user's family; ok is false for a family-of-one.
 func (r *FamilyRepository) GetFamilyID(
 	ctx context.Context,
 	userID string,
@@ -66,8 +65,7 @@ func (r *FamilyRepository) ListMembers(
 	return result, rows.Err()
 }
 
-// MemberDisplayNames maps each member of familyID to the display name they
-// chose for themselves (empty string when they haven't set one).
+// MemberDisplayNames maps each member to their display name ("" if unset).
 func (r *FamilyRepository) MemberDisplayNames(
 	ctx context.Context,
 	familyID uuid.UUID,
@@ -93,9 +91,7 @@ func (r *FamilyRepository) MemberDisplayNames(
 	return names, rows.Err()
 }
 
-// SetDisplayName sets userID's own display name within their family. A user
-// with no membership row (implicit family-of-one) is unaffected — there's
-// nobody to show the name to yet.
+// SetDisplayName sets userID's display name; a no-op without a membership row.
 func (r *FamilyRepository) SetDisplayName(
 	ctx context.Context,
 	userID, displayName string,
@@ -107,11 +103,8 @@ func (r *FamilyRepository) SetDisplayName(
 	return err
 }
 
-// EnsureFamily returns the family userID currently belongs to, creating a new
-// solo family for them (and inserting their membership row) if they don't
-// have one yet. This is the "implicit family-of-one" from a lazy-creation
-// angle: callers that need a concrete family_id to key data by never have to
-// special-case "no family yet".
+// EnsureFamily returns userID's family, creating a solo one if needed, so
+// callers always have a family_id.
 func (r *FamilyRepository) EnsureFamily(
 	ctx context.Context,
 	userID string,
@@ -146,9 +139,7 @@ func (r *FamilyRepository) EnsureFamily(
 		return uuid.Nil, err
 	}
 
-	// Someone else may have raced us into creating userID's family between
-	// the initial GetFamilyID and this transaction; re-read the winning row
-	// rather than trusting the one we just (maybe redundantly) inserted.
+	// Re-read in case a concurrent call created the family first.
 	if err = tx.QueryRow(ctx, `
 		SELECT family_id FROM global.family_members WHERE user_id = $1`,
 		userID,
@@ -162,8 +153,8 @@ func (r *FamilyRepository) EnsureFamily(
 	return familyID, nil
 }
 
-// Invite creates or replaces a pending invite from fromUserID's family to
-// toUserID. fromUserID's family is created first if they don't have one yet.
+// Invite creates or replaces an invite from fromUserID's family (created if
+// needed) to toUserID.
 func (r *FamilyRepository) Invite(
 	ctx context.Context,
 	fromUserID, toUserID string,
@@ -215,8 +206,8 @@ func (r *FamilyRepository) DeclineInvite(ctx context.Context, userID string) err
 	return err
 }
 
-// AcceptInvite joins userID into the family they were invited to: deletes
-// the invite and upserts their membership row. Returns the joined family_id.
+// AcceptInvite deletes the invite, upserts the membership and returns the
+// family_id.
 func (r *FamilyRepository) AcceptInvite(
 	ctx context.Context,
 	userID string,
@@ -255,10 +246,7 @@ func (r *FamilyRepository) AcceptInvite(
 	return familyID, nil
 }
 
-// Leave removes userID's membership row. Per issue #1349's confirmed
-// decision, data already merged into the family cannot be un-merged — the
-// leaving user simply has no membership (and thus no family-scoped data)
-// afterwards; the rest of the family keeps everything.
+// Leave removes userID's membership; family data stays with the family.
 func (r *FamilyRepository) Leave(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx,
 		`DELETE FROM global.family_members WHERE user_id = $1`,

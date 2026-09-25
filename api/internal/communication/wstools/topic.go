@@ -10,12 +10,10 @@ import (
 	"tools.xdoubleu.com/internal/threading"
 )
 
-// OnSubscribeCallback is called to fetch data that
-// should be returned when a new subscriber is added to a topic.
+// OnSubscribeCallback returns the initial data sent to a new subscriber.
 type OnSubscribeCallback = func(ctx context.Context, topic *Topic) (any, error)
 
-// Topic is used to efficiently send messages
-// to [Subscriber]s in a WebSocket.
+// Topic fans messages out to its [Subscriber]s.
 type Topic struct {
 	Name                string
 	allowedOrigins      []string
@@ -52,10 +50,8 @@ func NewTopic(
 	}
 }
 
-// Subscribe subscribes a [Subscriber] to this [Topic].
-// If configured a message will be sent on subscribing.
-// If no message handling go routine was
-// running this will be started now.
+// Subscribe adds a [Subscriber], sends the initial message if configured, and
+// starts the message loop if it isn't running.
 func (t *Topic) Subscribe(conn *websocket.Conn) error {
 	sub := NewSubscriber(t, conn)
 	t.eventQueue.AddSubscriber(sub)

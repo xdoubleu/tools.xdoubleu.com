@@ -10,18 +10,14 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// ResyncProposalRow pairs a catalog book with its stored resync proposals
-// (JSON-encoded []services.SourceProposal — this package stays agnostic of
-// that type and passes the bytes through).
+// ResyncProposalRow pairs a catalog book with its stored proposals JSON,
+// passed through opaquely.
 type ResyncProposalRow struct {
 	Book          models.Book
 	ProposalsJSON []byte
 }
 
-// resyncProposalColumns mirrors bookColumns but qualified with the "b." alias
-// (bookColumns is unqualified and only safe against a single unaliased
-// table — see GetCatalogWithUserOverlay for the same pattern) joined with the
-// stored proposals blob.
+// resyncProposalColumns is bookColumns qualified with "b." plus the proposals blob.
 const resyncProposalColumns = `b.id, b.title, b.authors, b.isbn13, b.cover_url,
 	b.description, b.page_count, b.source_url,
 	b.created_at, b.updated_at,
@@ -56,10 +52,8 @@ func scanResyncProposalRow(row pgx.Row) (*ResyncProposalRow, error) {
 	return &out, nil
 }
 
-// ReplaceResyncProposals atomically replaces the entire resync_proposals
-// table with the given book_id -> proposals-JSON entries. Used by a full
-// catalog resync scan: books no longer flagged (agree with every source, or
-// no longer exist) are dropped so the admin wizard never shows stale rows.
+// ReplaceResyncProposals atomically replaces the whole table, so books no
+// longer flagged drop out.
 func (repo *BooksRepository) ReplaceResyncProposals(
 	ctx context.Context,
 	entries map[uuid.UUID][]byte,
@@ -91,8 +85,7 @@ func (repo *BooksRepository) ReplaceResyncProposals(
 	return nil
 }
 
-// ListResyncProposals returns every stored proposal joined with its current
-// catalog book row, ordered by title.
+// ListResyncProposals returns every stored proposal with its book, by title.
 func (repo *BooksRepository) ListResyncProposals(
 	ctx context.Context,
 ) ([]ResyncProposalRow, error) {
@@ -123,9 +116,7 @@ func (repo *BooksRepository) ListResyncProposals(
 	return out, nil
 }
 
-// GetResyncProposal returns one book's stored proposals joined with its
-// current catalog book row. Returns database.ErrResourceNotFound when the
-// book has no pending proposal (already applied, dismissed, or never flagged).
+// GetResyncProposal returns one book's proposal, or ErrResourceNotFound.
 func (repo *BooksRepository) GetResyncProposal(
 	ctx context.Context,
 	bookID uuid.UUID,
@@ -145,39 +136,27 @@ func (repo *BooksRepository) GetResyncProposal(
 	return book, nil
 }
 
-// SourceStats aggregates per-source scan coverage, uniqueness, and pairwise
-// overlap over the whole catalog, for the admin source-stats report.
-//
-// Uniqueness and overlap only count a source as "absent" when it was
-// actually checked and came back empty (IS FALSE) — a source that's still
-// unknown (NULL: never scanned, skipped, or errored — see
-// UpdateResyncScanStatus) must never be treated as confirmed-absent, or an
-// unresolved source would masquerade as uniqueness/overlap it hasn't earned.
+// SourceStats aggregates per-source coverage, uniqueness and overlap. A
+// source counts as absent only when checked and empty (IS FALSE), never
+// when unresolved (NULL).
 type SourceStats struct {
 	TotalBooks     int
 	UniCatFound    int
 	HardcoverFound int
-	// Unique counts books found in this source and confirmed absent
-	// (IS FALSE) from the other.
+	// Unique: found here and confirmed absent from the other.
 	UniCatUnique    int
 	HardcoverUnique int
-	// Missed counts a source actually checked and came back empty
-	// (found_column IS FALSE) — distinct from never having been scanned.
+	// Missed: checked and empty, distinct from never scanned.
 	UniCatMissed    int
 	HardcoverMissed int
-	// Both is found in both sources. BothMissed is both sources explicitly
-	// checked and came back empty (strict IS FALSE, no NULLs) — stricter than
-	// NotFoundAnywhere, which also counts a book with an unresolved (NULL)
-	// source as long as neither confirmed found.
+	// BothMissed requires both explicitly empty (no NULLs), unlike
+	// NotFoundAnywhere.
 	Both             int
 	BothMissed       int
 	NotFoundAnywhere int
 	NeverScanned     int
 }
 
-// sourceStatsQuery computes every SourceStats aggregate over the two-source
-// partition (found/missed/unique per source, the "found by both" combo, and
-// the catalog totals) in one pass.
 const sourceStatsQuery = `
 		SELECT count(*),
 		    count(*) FILTER (WHERE unicat_found),
@@ -224,8 +203,7 @@ func (repo *BooksRepository) GetSourceStats(
 	return &stats, nil
 }
 
-// DeleteResyncProposal removes one book's stored proposal, e.g. after the
-// admin applies or dismisses it. A no-op if none exists.
+// DeleteResyncProposal removes one book's proposal; a no-op if none exists.
 func (repo *BooksRepository) DeleteResyncProposal(
 	ctx context.Context,
 	bookID uuid.UUID,

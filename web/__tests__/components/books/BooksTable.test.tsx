@@ -230,7 +230,6 @@ describe('BooksTable', () => {
     ]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
-    // After asc sort: rating 1 first, rating 5 second
     const ratingCells = screen.getAllByTestId('rating-stars')
     expect(ratingCells[0]).toHaveAttribute('data-rating', '1')
   })
@@ -242,7 +241,6 @@ describe('BooksTable', () => {
     ]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
     fireEvent.click(screen.getByRole('button', { name: 'Fav' }))
-    // asc: non-fav (0) before fav (1)
     const cells = screen.getAllByRole('cell')
     const titles = cells.map((c) => c.textContent).filter((t) => t === 'Not Fav' || t === 'Fav')
     expect(titles[0]).toBe('Not Fav')
@@ -315,7 +313,6 @@ describe('BooksTable', () => {
     fireEvent.click(btn) // asc
     fireEvent.click(btn) // desc
     fireEvent.click(btn) // null — back to default
-    // No sort indicator visible (no ^ or v text beside Author)
     expect(btn.textContent).toBe('Author')
   })
 
@@ -323,20 +320,16 @@ describe('BooksTable', () => {
     it('hides a column when toggled off via Columns popover', () => {
       render(<BooksTable books={[makeBook('1', 'Dune')]} knownShelves={[]} knownTags={[]} />)
 
-      // Open Columns popover
       fireEvent.click(screen.getByRole('button', { name: 'Columns' }))
 
-      // ISBN is visible by default — uncheck it
       const isbnCheckbox = screen.getByRole('checkbox', { name: 'ISBN' })
       expect(isbnCheckbox).toBeChecked()
       fireEvent.click(isbnCheckbox)
 
-      // ISBN header should be gone
       expect(screen.queryByRole('button', { name: 'ISBN' })).not.toBeInTheDocument()
     })
 
     it('shows a hidden column when toggled on', () => {
-      // Start with ISBN hidden
       localStorage.setItem(
         'backlog:library:columns',
         JSON.stringify([
@@ -371,7 +364,7 @@ describe('BooksTable', () => {
     })
 
     it('empty-state colSpan matches visible column count', () => {
-      // Hide all optional columns — only cover + title + actions remain (3)
+      // Only cover + title + actions remain.
       localStorage.setItem('backlog:library:columns', JSON.stringify([]))
       render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
       const emptyCell = screen.getByText('No books match the current filters.').closest('td')
@@ -418,12 +411,10 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
 
-      // Filtered: only Physical Book visible
       expect(screen.queryByText('No Physical')).not.toBeInTheDocument()
 
       fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
-      // All books visible again
       expect(screen.getByText('Physical Book')).toBeInTheDocument()
       expect(screen.getByText('No Physical')).toBeInTheDocument()
     })
@@ -435,7 +426,6 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'PDF' }))
 
-      // Badge shows count of 2
       expect(screen.getByText('2')).toBeInTheDocument()
     })
 

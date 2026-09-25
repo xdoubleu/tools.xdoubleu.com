@@ -8,9 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestApplyMigrations_LockTimeout verifies a stuck advisory lock (held by
-// another session, e.g. a stale replica) makes ApplyMigrations fail fast
-// with a clear error instead of hanging forever.
+// TestApplyMigrations_LockTimeout: a held advisory lock fails fast instead of
+// hanging.
 func TestApplyMigrations_LockTimeout(t *testing.T) {
 	ctx := context.Background()
 

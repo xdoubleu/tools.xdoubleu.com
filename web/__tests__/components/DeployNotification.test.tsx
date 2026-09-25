@@ -49,9 +49,7 @@ describe('DeployNotification', () => {
 
   it('reloads the page when Reload is clicked', () => {
     mockUseSWR.mockReturnValue({ data: { release: 'def5678' } })
-    // jsdom's window.location doesn't allow reconfiguring `reload`, so this
-    // exercises the click handler and confirms it doesn't throw rather than
-    // asserting the (unmockable) browser API call itself.
+    // jsdom can't mock location.reload; just check the handler doesn't throw.
     render(<DeployNotification />)
     expect(() => fireEvent.click(screen.getByRole('button', { name: 'Reload' }))).not.toThrow()
   })

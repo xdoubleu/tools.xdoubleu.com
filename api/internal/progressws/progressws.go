@@ -1,6 +1,5 @@
-// Package progressws provides the WebSocket service used by apps to broadcast
-// background-job progress (start/stop state and live "X of N" counts) to
-// connected clients, keyed by job-ID topics.
+// Package progressws broadcasts background-job progress over WebSockets,
+// keyed by job-ID topics.
 package progressws
 
 import (
@@ -14,8 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/jobqueue"
 )
 
-// SubscribeMessageDto is the client → server subscription message: the client
-// names the topic (job ID) it wants state updates for.
+// SubscribeMessageDto names the job-ID topic to subscribe to.
 type SubscribeMessageDto struct {
 	Subject string `json:"subject"`
 }
@@ -24,9 +22,7 @@ type SubscribeMessageDto struct {
 type StateMessageDto struct {
 	LastRefresh  *time.Time `json:"lastRefresh"`
 	IsRefreshing bool       `json:"isRefreshing"`
-	// Processed and Total are set during long-running jobs (e.g. books
-	// resync) to give clients a live "X of N" count. They are omitted for jobs
-	// that emit only start/stop events (e.g. Steam refresh).
+	// Processed and Total give long jobs an "X of N" count; omitted otherwise.
 	Processed *int `json:"processed,omitempty"`
 	Total     *int `json:"total,omitempty"`
 }
@@ -99,10 +95,7 @@ func (service *Service) UpdateState(
 	})
 }
 
-// UpdateProgress enqueues a mid-run progress event on the named topic. It is
-// meant for long-running background jobs (e.g. the books resync) that
-// want to broadcast "X of N items done" to connected clients. The message
-// carries IsRefreshing: true so clients keep the running indicator active.
+// UpdateProgress broadcasts a mid-run "X of N" event with IsRefreshing true.
 func (service *Service) UpdateProgress(
 	id string,
 	processed, total int,

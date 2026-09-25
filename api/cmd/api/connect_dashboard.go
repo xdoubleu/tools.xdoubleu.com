@@ -17,8 +17,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// dashboardTokenBytes is the number of random bytes behind a dashboard share
-// token (256 bits, URL-safe base64 in links).
+// dashboardTokenBytes is the random bytes behind a share token (256 bits).
 const dashboardTokenBytes = 32
 
 type dashboardConnectHandler struct {

@@ -31,8 +31,7 @@ interface IngredientRow {
   newCategoryName: string
 }
 
-// Sentinel category id that switches the category select into "create a new
-// category" mode, revealing the name input next to it.
+// Sentinel select value that reveals the new-category name input.
 const NEW_CATEGORY = '__new__'
 
 const normalizeName = (name: string) => name.toLowerCase().trim()
@@ -60,8 +59,6 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const { data: categoriesData, mutate: mutateCategories } = useCategories()
   const categories = categoriesData?.categories ?? []
 
-  // Catalog of known ingredient names (for autocomplete) and their current
-  // name -> category mapping (for auto-fill and skipping redundant writes).
   const itemNameSuggestions = useMemo(
     () => (itemNamesData?.names ?? []).map((n) => n.name),
     [itemNamesData]
@@ -74,8 +71,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
     return map
   }, [itemNamesData])
 
-  // When editing, pre-fill each ingredient's category from the catalog once the
-  // name list has loaded. Runs a single time so it never clobbers user edits.
+  // Pre-fill categories from the catalog once, so user edits aren't clobbered.
   const categoriesPrefilled = useRef(false)
   useEffect(() => {
     if (categoriesPrefilled.current || !recipe?.id || nameToCategory.size === 0) return
@@ -102,8 +98,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
     setIngredients(updated)
   }
 
-  // Picking a known ingredient name reuses its canonical spelling (preventing
-  // near-duplicates) and auto-fills its category when one is already known.
+  // Reuse the known spelling and auto-fill its category.
   const selectIngredientName = (index: number, value: string) => {
     const known = nameToCategory.get(normalizeName(value))
     const updated = [...ingredients]
@@ -115,9 +110,8 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
     setIngredients(updated)
   }
 
-  // Persist the chosen categories into the name->category catalog (shared across
-  // every list and export), creating any new categories first. Mirrors the
-  // shopping list add-form.
+  // Save chosen categories to the shared name->category catalog, creating new
+  // categories first (mirrors the shopping list add-form).
   const syncIngredientCategories = async () => {
     const client = createServiceClient(ShoppingListService)
     const createdCategories = new Map<string, string>()
@@ -144,7 +138,6 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       }
       if (!categoryId) continue
 
-      // Skip when the catalog already maps this name to the same category.
       if (nameToCategory.get(normalizeName(itemName)) === categoryId) continue
       writes.push(client.setItemCategory({ name: itemName, categoryId }))
     }

@@ -8,13 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestGroupLines_CommaStaysOnLine reproduces issue #594: a comma's bounding
-// box is much shorter than the surrounding letters and sits low, near/below
-// the baseline (as PDFium reports it for many fonts). Clustering lines by
-// box midpoint pushes the comma's yMid far enough from the line's running
-// average to split it into its own one-character line, which then renders
-// as a stray "," when the paragraph is rejoined. Geometry below mirrors
-// real values measured from a production PDF (issue #594).
+// TestGroupLines_CommaStaysOnLine: a comma's short, low box must not split into
+// its own line. Geometry is from a production PDF.
 func TestGroupLines_CommaStaysOnLine(t *testing.T) {
 	chars := []pdfChar{
 		{text: "h", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
@@ -38,15 +33,8 @@ func TestGroupLines_CommaStaysOnLine(t *testing.T) {
 	}
 }
 
-// TestGroupLines_ApostropheStaysOnLine reproduces issue #618: an apostrophe's
-// bounding box is much shorter than the surrounding letters and sits high,
-// near cap-height rather than the baseline — the opposite offset from a
-// comma. The baseline-clustering fix for #594 compares each character's
-// bottom edge against the line's running average bottom, which fixed
-// low-hanging commas/descenders but still pushes a high-set apostrophe's
-// bottom far enough from that average to split it into its own
-// one-character line. Geometry below mirrors real values measured from a
-// production PDF (issue #618).
+// TestGroupLines_ApostropheStaysOnLine: a high-set apostrophe must not split
+// into its own line. Geometry is from a production PDF.
 func TestGroupLines_ApostropheStaysOnLine(t *testing.T) {
 	chars := []pdfChar{
 		{text: "k", left: 0, top: 586.01, right: 8, bottom: 574.12, font: ""},
@@ -73,13 +61,8 @@ func TestGroupLines_ApostropheStaysOnLine(t *testing.T) {
 	}
 }
 
-// TestGroupLines_AllZeroHeightChars_FallsBackToNormalClustering covers the
-// degenerate-page branch in groupLines: if every character reports zero
-// height (top == bottom — malformed PDFium data), medianCharHeight is 0, so
-// medH is coerced to 1 and every character then fails the
-// normalCharHeightRatio check (0 >= 0.7*1 is false). groupLines falls back
-// to clustering every character as if it were "normal" rather than treating
-// a whole page as unattachable small punctuation.
+// TestGroupLines_AllZeroHeightChars_FallsBackToNormalClustering: with all
+// zero-height chars every char is "small", so groupLines clusters them all.
 func TestGroupLines_AllZeroHeightChars_FallsBackToNormalClustering(t *testing.T) {
 	chars := []pdfChar{
 		{text: "a", left: 0, top: 580, right: 5, bottom: 580, font: ""},
@@ -95,12 +78,8 @@ func TestGroupLines_AllZeroHeightChars_FallsBackToNormalClustering(t *testing.T)
 	}
 }
 
-// TestBuildLine_FontBoundaryInsertsSpace reproduces issue #1653: "of" and
-// "Growth" land in different text runs (e.g. a plain/italic or font-size
-// boundary common in cited book titles) with almost no physical gap between
-// them, so the purely geometric join in buildLine fuses them into
-// "ofGrowth". A run boundary between two alphabetic characters should be
-// treated as a word boundary independent of the physical gap.
+// TestBuildLine_FontBoundaryInsertsSpace: "of" and "Growth" in different runs
+// with no gap must not fuse into "ofGrowth".
 func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 	chars := []pdfChar{
 		{
@@ -119,7 +98,6 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 			bottom: 574.36,
 			font:   "Times-Roman",
 		},
-		// Zero-gap boundary into a different font/style run.
 		{
 			text:   "G",
 			left:   12,
@@ -144,10 +122,8 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 	}
 }
 
-// TestBuildLine_NoFontInfo_FallsBackToGapCheck covers the zero-value font
-// field: when font information wasn't collected (all pdfChar.font == ""),
-// buildLine must behave exactly as before the #1653 fix — joining
-// characters with no space purely based on the physical gap.
+// TestBuildLine_NoFontInfo_FallsBackToGapCheck: without font info, spacing is
+// gap-only.
 func TestBuildLine_NoFontInfo_FallsBackToGapCheck(t *testing.T) {
 	chars := []pdfChar{
 		{text: "o", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
@@ -162,16 +138,12 @@ func TestBuildLine_NoFontInfo_FallsBackToGapCheck(t *testing.T) {
 	}
 }
 
-// TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine covers the fallback
-// branch in attachSmallChars: a short-box character with no line within
-// lineGroupYMidRatio * medH starts its own single-character line instead of
-// being force-attached to a distant, unrelated line.
+// TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine: a distant small char
+// starts its own line.
 func TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine(t *testing.T) {
 	chars := []pdfChar{
 		{text: "h", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
 		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		// Isolated comma far below the "hi" line — more than
-		// lineGroupYMidRatio * medH away from it.
 		{text: ",", left: 0, top: 400, right: 3, bottom: 396, font: ""},
 	}
 
@@ -181,12 +153,8 @@ func TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine(t *testing.T) {
 	}
 }
 
-// TestGroupLines_QuotationMarksStayOnLine reproduces the broader #618 symptom
-// beyond a lone apostrophe: dialogue punctuation (straight double quotes)
-// bracketing a line of text, each sitting high near cap-height like the
-// apostrophe case. Both quote glyphs must attach to the surrounding line by
-// envelope overlap rather than splitting off into their own one-character
-// lines/paragraphs.
+// TestGroupLines_QuotationMarksStayOnLine: high-set double quotes attach to
+// their line.
 func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
 	chars := []pdfChar{
 		{text: "\"", left: 0, top: 586.01, right: 3, bottom: 580.20, font: ""},
@@ -211,33 +179,15 @@ func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
 	}
 }
 
-// TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine reproduces issue
-// #1651: a chapter-opener page pairs a large decorative title with a much
-// smaller body-text paragraph (e.g. an epigraph) below it. medianCharHeight
-// is computed across the whole page, so the paragraph's many small
-// characters pull the page median toward the small body font, making
-// lineGroupYMidRatio * medH far too tight a window for the title's own
-// glyph-height variance: within one physical title line, a cap-height
-// letter's y-midpoint sits well above an x-height-plus-descender letter's,
-// exceeding that window and fracturing the line into fake sub-lines grouped
-// by glyph-height category — reproducing the "Wh / y" style scrambling from
-// the issue. Geometry below is a simplified stand-in for the production PDF
-// (catalog book 6d0ac153-c7b3-48e9-b245-51dd30d941e3, "Thinking in Systems: A
-// Primer"): a 3-letter title word ("Why") with a cap letter, an ascender, and
-// an x-height letter with a descender, sitting above a 20-character
-// small-font body line.
+// TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine: a large title
+// above small body text must not fracture ("Wh / y"), since the page median
+// height comes from the body font.
 func TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine(t *testing.T) {
 	chars := []pdfChar{
-		// Title "Why", large font: W is full cap-height, h an ascender
-		// almost as tall, y an x-height letter with a descender pulling its
-		// box down well below the shared baseline (~500).
 		{text: "W", left: 0, top: 520, right: 14, bottom: 500, font: ""},
 		{text: "h", left: 14, top: 519, right: 24, bottom: 500, font: ""},
 		{text: "y", left: 24, top: 510, right: 34, bottom: 490, font: ""},
 	}
-	// Small-font body paragraph beneath the title — many short-height
-	// characters, so the page's median character height is dominated by
-	// this font rather than the title's.
 	for i := range 20 {
 		left := float64(i) * 6
 		chars = append(chars, pdfChar{
@@ -272,24 +222,16 @@ func TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine(t *testing.T) {
 	}
 }
 
-// TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines covers the
-// tie-break branch in attachSmallChars: when a small character's box
-// overlaps more than one line's envelope (two lines close enough together
-// that their margins both reach it), it must join whichever line's
-// y-midpoint is nearest, not simply the first or last candidate considered.
+// TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines: a small
+// char overlapping two envelopes joins the nearest midpoint.
 func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T) {
 	chars := []pdfChar{
-		// Line 1 ("hi"), a normal line near the top.
 		{text: "h", left: 0, top: 586.01, right: 8, bottom: 574.12, font: ""},
 		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		// Line 2 ("bye"), a second normal line close beneath line 1 — close
-		// enough that a small character between them overlaps both
-		// envelopes within lineGroupYMidRatio * medH.
 		{text: "b", left: 0, top: 572.01, right: 8, bottom: 560.12, font: ""},
 		{text: "y", left: 8, top: 566.82, right: 16, bottom: 556.26, font: ""},
 		{text: "e", left: 16, top: 568.03, right: 23, bottom: 560.32, font: ""},
-		// A stray quotation mark positioned closer to line 1's y-midpoint
-		// (~580.07) than line 2's (~566.07) — it must attach to line 1.
+		// Closer to line 1's midpoint (~580.07) than line 2's (~566.07).
 		{text: "\"", left: 20, top: 578, right: 23, bottom: 572, font: ""},
 	}
 
@@ -315,19 +257,11 @@ func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T
 	}
 }
 
-// TestRebuildHeadingLineText_MergesTrackedSmallCaps reproduces issue #1698's
-// "I ntroduction" artifact: a tracked small-caps display heading renders its
-// initial as a full-height capital whose letter gap (0.28 * line height)
-// clears the body-text space threshold (0.25), splitting the word. Once the
-// line is known to be heading-sized (>= headingH1Ratio * the document's
-// modal body-text height), the higher headingSpaceRatio must re-join it,
-// while a body-sized line with the same absolute gaps keeps the body
-// threshold and its own spaces.
+// TestRebuildHeadingLineText_MergesTrackedSmallCaps: a heading-sized line is
+// re-joined with headingSpaceRatio (fixing "I ntroduction"), while a body
+// line with the same gaps keeps its spaces.
 func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
-	// A small-caps heading line: full-height "I" then small-caps
-	// "ntroduction" with a 2.9pt letter gap; the word gap to the next word
-	// is 6.6pt. Line median char height is 10.4, so at the body-text ratio
-	// (0.25 * 10.4 = 2.6) the 2.9pt letter gap wrongly inserts a space.
+	// Median height 10.4: the body ratio (2.6) wrongly spaces the 2.9pt letter gap.
 	headingChars := []pdfChar{
 		{text: "I", left: 153.5, right: 155.4, top: 110.2, bottom: 92.6, font: ""},
 		{text: "n", left: 158.3, right: 167.2, top: 105.2, bottom: 94.8, font: ""},
@@ -352,8 +286,6 @@ func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
 		t.Fatalf("pre-rebuild heading text = %q, want %q", got, want)
 	}
 
-	// A body-text line: letter gap 0.9 (under the body threshold) and word
-	// gap 4.7 (over it) — the body line must be untouched by the rebuild.
 	bodyChars := []pdfChar{
 		{text: "h", left: 100, right: 106, top: 52.5, bottom: 47.5, font: ""},
 		{text: "i", left: 106.9, right: 110, top: 53.9, bottom: 51.1, font: ""},
@@ -387,11 +319,7 @@ func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
 	}
 }
 
-// TestIsSmallCapsInitial covers isSmallCapsInitial's boundary cases
-// directly: a tall capital over a much shorter lowercase letter is the
-// small-caps initial signature, while lowercase or punctuation
-// predecessors, uppercase continuations, and same-height pairs (title
-// case) are not — and zero-height boxes can't be judged.
+// TestIsSmallCapsInitial covers isSmallCapsInitial's boundary cases.
 func TestIsSmallCapsInitial(t *testing.T) {
 	tests := map[string]struct {
 		prev, c pdfChar

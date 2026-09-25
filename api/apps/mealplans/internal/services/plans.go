@@ -14,9 +14,7 @@ const (
 	hoursPerDay = 24
 )
 
-// WeekWindow returns the 7-day window that starts `offset` weeks from today
-// (UTC, truncated to the day), used both to page through a plan's meals and
-// to render its iCal feed.
+// WeekWindow returns the 7-day UTC window starting `offset` weeks from today.
 func WeekWindow(offset int) (time.Time, time.Time) {
 	today := time.Now().UTC().Truncate(hoursPerDay * time.Hour)
 	start := today.AddDate(0, 0, daysPerWeek*offset)
@@ -24,9 +22,7 @@ func WeekWindow(offset int) (time.Time, time.Time) {
 	return start, end
 }
 
-// plansStore is the storage surface PlanService needs. It is satisfied by
-// repositories.PlansRepository and by fakes in unit tests, so the
-// family-scoping rules can be tested without a database.
+// plansStore is the storage surface PlanService needs.
 type plansStore interface {
 	ListForFamily(
 		ctx context.Context, familyID uuid.UUID, limit, offset int32,
@@ -59,8 +55,7 @@ type plansStore interface {
 	) error
 }
 
-// familyStore resolves which family a user belongs to, lazily creating a
-// family-of-one the first time it's asked for (see internal/family).
+// familyStore resolves a user's family, creating a family-of-one on demand.
 type familyStore interface {
 	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
 }
@@ -95,8 +90,8 @@ func (s *PlanService) Get(
 	return s.repo.GetByID(ctx, id, familyID)
 }
 
-// GetWithWeek returns the plan along with its meals for the 7-day window
-// `offset` weeks from today, and the resolved window bounds.
+// GetWithWeek returns the plan, its meals for WeekWindow(offset), and the
+// window bounds.
 func (s *PlanService) GetWithWeek(
 	ctx context.Context,
 	id uuid.UUID,

@@ -11,15 +11,10 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// stationsFeed is a hand-assembled Feed exercising SearchStations and
-// GetFeedInfo directly against the DB path, independent of app_test.go's
-// GTFS-zip fixtures and its shared MockBMCClient (which only ever serves a
-// real body on its first call across the whole test binary — every
-// subsequent StaticImport.Import call in this package is a deliberate
-// no-op, so feed-info tests must go through ImportFeed directly instead):
-// two stations sharing a name-substring, a platform stop that must never be
-// returned as a station, and a populated FeedInfo carrying translation
-// coverage (issue #1459).
+// stationsFeed is a hand-built Feed for SearchStations and GetFeedInfo: two
+// stations sharing a name substring, a platform that is never a station, and
+// FeedInfo with translation coverage. Import it via ImportFeed; the shared
+// mock serves a real body only once per test binary.
 func stationsFeed() *models.Feed {
 	//nolint:exhaustruct //only Stops/Info matter for station and feed-info search
 	return &models.Feed{
@@ -113,16 +108,13 @@ func TestFeedInfoService_FeedInfo(t *testing.T) {
 	info, err := testApp.Services.FeedInfo.FeedInfo(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, "2026-08-31", info.FeedVersion)
-	// imported_at is written by the database on every import, so it says
-	// when this timetable actually landed — the signal a skipped import
-	// (issue #1453) shows up in.
+	// imported_at is set by the database on every import.
 	require.NotNil(t, info.ImportedAt)
 	assert.WithinDuration(t, time.Now(), *info.ImportedAt, time.Minute)
 }
 
-// TestFeedInfoService_FeedInfo_NothingImported covers the state a fresh
-// replica starts in: the attribution string and the import timestamp are
-// both empty rather than an error.
+// TestFeedInfoService_FeedInfo_NothingImported: a fresh replica returns
+// empty values, not an error.
 func TestFeedInfoService_FeedInfo_NothingImported(t *testing.T) {
 	ctx := context.Background()
 	_, err := testDB.Exec(ctx, `TRUNCATE trains.feed_info`)

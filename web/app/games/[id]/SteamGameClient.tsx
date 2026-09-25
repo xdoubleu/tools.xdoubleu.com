@@ -40,9 +40,7 @@ export default function SteamGameClient({
     setIsRefetching(true)
     return refreshGame(gameId)
       .then((fresh) => {
-        // The single-game refetch also updates the library-wide progress
-        // graph server-side, so the dashboard's total completion rate must
-        // be revalidated too.
+        // The refetch also updates the library-wide completion graph.
         void globalMutate(swrKeys.games)
         return mutate(create(GetSteamGameResponseSchema, { data: fresh.data }), {
           revalidate: false

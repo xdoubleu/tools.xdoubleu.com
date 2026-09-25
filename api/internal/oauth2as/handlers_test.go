@@ -24,8 +24,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// noRedirectClient is an http.Client that never follows redirects, so tests
-// can inspect a 302's Location header directly.
+// noRedirectClient never follows redirects, so tests can read Location.
 func noRedirectClient() *http.Client {
 	return &http.Client{
 		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
@@ -34,7 +33,6 @@ func noRedirectClient() *http.Client {
 	}
 }
 
-// pkcePair returns a random PKCE code_verifier and its S256 code_challenge.
 func pkcePair(t *testing.T) (string, string) {
 	t.Helper()
 	buf := make([]byte, 32)
@@ -46,9 +44,7 @@ func pkcePair(t *testing.T) (string, string) {
 	return verifier, challenge
 }
 
-// oauth2asTestServer bundles a fully-wired embedded OAuth 2.1 authorization
-// server (server.go's NewProvider + handlers.go's handlers) behind a real
-// httptest.Server, for end-to-end flow tests.
+// oauth2asTestServer is the fully wired AS behind an httptest.Server.
 type oauth2asTestServer struct {
 	ts       *httptest.Server
 	store    *oauth2as.Store
@@ -56,10 +52,7 @@ type oauth2asTestServer struct {
 	provider fosite.OAuth2Provider
 	key      *rsa.PrivateKey
 	userID   string
-	// logs captures every record the handlers emit, so observe_test.go can
-	// assert on the severity of a rejection and on what it did (and didn't)
-	// put in its attributes.
-	logs *recordCapture
+	logs     *recordCapture
 }
 
 func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
@@ -103,11 +96,8 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	}
 }
 
-// testClientRedirectURI is the redirect_uri every test client in this file
-// registers with — a loopback address, exercising validateRedirectURI's
-// dev-loopback exception (clients.go), and never actually dialed since these
-// tests inspect the redirect Location header directly instead of following
-// it.
+// testClientRedirectURI is loopback (validateRedirectURI's dev exception) and
+// never dialed.
 const testClientRedirectURI = "http://localhost:9999/callback"
 
 func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient {
@@ -138,9 +128,8 @@ func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient 
 	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
 	assert.Equal(t, "none", out.TokenEndpointAuthMethod)
 	assert.NotEmpty(t, out.ClientID)
-	// RFC 7591: the server echoes the scope it assigned, which is what tells
-	// a client to request offline_access and so be issued a refresh token
-	// (openid is also assigned, so any MCP client may request an ID token).
+	// RFC 7591: the echoed scope tells the client it may request offline_access
+	// (refresh tokens) and openid (a minimal ID token).
 	assert.Equal(t, "offline_access openid", out.Scope)
 
 	//nolint:exhaustruct //Secret/RotatedSecrets/Audience are unused by these tests
@@ -161,9 +150,7 @@ type tokenResponse struct {
 	ExpiresIn    int    `json:"expires_in"`
 }
 
-// authorizeAndGetCode drives the /oauth2/authorize leg (no-consent redirect,
-// then consent=allow) and returns the authorization code from the final
-// redirect to the client's own redirect_uri.
+// authorizeAndGetCode drives the authorize leg and returns the code.
 func (s *oauth2asTestServer) authorizeAndGetCode(
 	t *testing.T, client *fosite.DefaultClient, challenge, state string,
 ) string {
@@ -173,9 +160,7 @@ func (s *oauth2asTestServer) authorizeAndGetCode(
 	)
 }
 
-// authorizeAndGetCodeWithScope is authorizeAndGetCode with control over the
-// requested scope, so a test can drive the flow the way an MCP client that
-// sends no scope parameter at all does (scope == "").
+// authorizeAndGetCodeWithScope; scope == "" mimics an MCP client sending none.
 func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 	t *testing.T, client *fosite.DefaultClient, challenge, state, scope string,
 ) string {
@@ -194,8 +179,6 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 		q.Set("scope", scope)
 	}
 
-	// First hit: no consent decision yet -> redirected to the web consent
-	// page, carrying the same query string through.
 	resp, err := client2.Get(s.ts.URL + "/oauth2/authorize?" + q.Encode())
 	require.NoError(t, err)
 	defer resp.Body.Close()
@@ -204,13 +187,11 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 	require.True(t, strings.HasPrefix(loc, "http://localhost:3000/oauth/consent?"))
 	require.Contains(t, loc, "client_id="+client.ID)
 
-	// Second hit: consent=allow completes the flow.
 	q.Set("consent", "allow")
 	resp2, err := client2.Get(s.ts.URL + "/oauth2/authorize?" + q.Encode())
 	require.NoError(t, err)
 	defer resp2.Body.Close()
-	// fosite's own WriteAuthorizeResponse (unlike this handler's own
-	// no-consent redirect above) uses 303 See Other, not 302 Found.
+	// fosite's WriteAuthorizeResponse uses 303, not 302.
 	require.Equal(t, http.StatusSeeOther, resp2.StatusCode)
 
 	redirectLoc, err := url.Parse(resp2.Header.Get("Location"))
@@ -241,7 +222,6 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	_, challenge := pkcePair(t)
 	code := srv.authorizeAndGetCode(t, client, challenge, "xyz-state-12345")
 
-	// Wrong PKCE verifier must be rejected.
 	badResp, badOut := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code},
@@ -252,12 +232,9 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	assert.NotEqual(t, http.StatusOK, badResp.StatusCode)
 	assert.Empty(t, badOut.AccessToken)
 
-	// A fresh authorization code is needed: the failed exchange above didn't
-	// consume the code, but request it again from scratch for isolation.
 	verifier2, challenge2 := pkcePair(t)
 	code2 := srv.authorizeAndGetCode(t, client, challenge2, "state-2-abcdefgh")
 
-	// Exchange with the correct PKCE verifier succeeds.
 	resp, out := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {code2},
@@ -270,15 +247,11 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	require.NotEmpty(t, out.RefreshToken)
 	assert.Equal(t, "bearer", strings.ToLower(out.TokenType))
 
-	// The resolver correctly maps the fosite-issued access token back to
-	// the user ID granted at consent time.
 	resolver := oauth2as.NewTokenResolver(srv.provider)
 	gotUserID, err := resolver.ResolveAccessToken(context.Background(), out.AccessToken)
 	require.NoError(t, err)
 	assert.Equal(t, srv.userID, gotUserID)
 
-	// The refresh token grant issues a new access token (and rotates the
-	// refresh token).
 	refreshResp, refreshOut := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken},
@@ -296,10 +269,7 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, srv.userID, gotUserID2)
 
-	// Reused immediately, the rotated-out (old) refresh token is still
-	// accepted — within the reuse grace period this is treated as a
-	// legitimate retry rather than theft (see storage.go's
-	// refreshTokenReuseGracePeriod).
+	// Within refreshTokenReuseGracePeriod, reuse is treated as a retry.
 	graceResp, graceOut := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken},
@@ -308,11 +278,8 @@ func TestOAuth2Flow_AuthorizationCodePKCE_RefreshAndFailure(t *testing.T) {
 	require.Equal(t, http.StatusOK, graceResp.StatusCode)
 	require.NotEmpty(t, graceOut.RefreshToken)
 
-	// Past the grace period, reuse of a rotated-out refresh token is
-	// rejected and revokes the whole token family. fosite's HMAC token
-	// strategy formats tokens as "<id>.<signature>" (hmacsha.go's own
-	// Signature method), so the DB row's signature is the part after the
-	// dot — no need to reach into the provider to recompute it.
+	// Past the grace period, reuse revokes the whole token family. HMAC tokens are
+	// "<id>.<signature>", so the DB signature is the part after the dot.
 	tokenParts := strings.SplitN(out.RefreshToken, ".", 2)
 	require.Len(t, tokenParts, 2, "fosite HMAC token must be id.signature")
 	_, err = srv.db.Exec(context.Background(), `
@@ -367,7 +334,7 @@ func TestOAuth2Flow_ConsentDeny(t *testing.T) {
 	resp, err := noRedirectClient().Get(srv.ts.URL + "/oauth2/authorize?" + q.Encode())
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	// fosite's own WriteAuthorizeError uses 303 See Other, not 302 Found.
+	// fosite's WriteAuthorizeError uses 303, not 302.
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
 
 	loc, err := url.Parse(resp.Header.Get("Location"))

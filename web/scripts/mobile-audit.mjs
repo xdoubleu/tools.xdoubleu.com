@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 /**
- * Measures the mobile failure modes that only a real viewport can settle —
- * horizontal overflow and tap-target geometry — for the routes given on the
- * command line. The `mobile-review` skill runs this; the static checks in that
- * skill cover what a browser can't see (hover-only affordances, theme tokens).
+ * Measures horizontal overflow and tap-target geometry at a real mobile
+ * viewport for the given routes; used by the `mobile-review` skill.
  *
  * Usage: npm run mobile:audit -- /trains /books [--base-url ...] [--json]
  */
@@ -67,9 +65,7 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
   const viewportWidth = document.documentElement.clientWidth
   const findings = []
 
-  // Without this tag the page lays out at ~980px and is scaled down, which
-  // makes every other measurement below meaningless as well as being the
-  // single worst mobile defect on its own.
+  // Without it the page lays out at ~980px, invalidating everything else.
   const viewportMeta = document.querySelector('meta[name="viewport"]')
   if (!viewportMeta) {
     findings.push({
@@ -87,8 +83,7 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
     })
   }
 
-  // Horizontal overflow: report the outermost offenders only, so one wide
-  // child doesn't produce a finding for every ancestor that contains it.
+  // Report only the outermost offenders.
   const scrollWidth = document.documentElement.scrollWidth
   if (scrollWidth > viewportWidth + tolerance) {
     const wide = [...document.querySelectorAll('body *')].filter((el) => {
@@ -116,9 +111,7 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
     (el) => visible(el) && el.type !== 'hidden' && !el.disabled
   )
 
-  // A checkbox/radio reached through a <label> — wrapping it, or associated
-  // by `for` — has that label as its real tap target, same as a link inside
-  // a larger tappable card.
+  // A labelled checkbox/radio's real tap target is its label.
   const labelFor = (el) => {
     if (el.tagName !== 'INPUT' || (el.type !== 'checkbox' && el.type !== 'radio')) return null
     return (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)) || el.closest('label')
@@ -193,8 +186,7 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
 /* eslint-enable no-undef */
 
 const { paths, opts } = parseArgs(process.argv.slice(2))
-// Chromium comes from `npx playwright install chromium`; an environment that
-// ships its own build points at it with CHROMIUM_EXECUTABLE_PATH instead.
+// Set CHROMIUM_EXECUTABLE_PATH to use a non-Playwright Chromium.
 let browser
 try {
   browser = await chromium.launch({

@@ -439,11 +439,8 @@ describe('HomeClient', () => {
     })
     rerender(<HomeClient />)
 
-    // jsdom's `window.location` is non-configurable, so the actual
-    // `window.location.href = safeNext()` navigation can't be spied on here;
-    // instead assert the observable effect: the code took the early-return
-    // branch and never called setAuthState('authenticated'), so the app grid
-    // never renders (it stays on the loading state rather than the home page).
+    // jsdom can't spy on location.href; assert the early return instead (the
+    // app grid never renders).
     await waitFor(() => {
       expect(screen.queryByRole('heading', { name: 'Account' })).not.toBeInTheDocument()
     })

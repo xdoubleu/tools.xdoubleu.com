@@ -50,8 +50,6 @@ func assertCode(t *testing.T, err error, code connect.Code) {
 	assert.Equal(t, code, connectErr.Code())
 }
 
-// ── Categories ────────────────────────────────────────────────────────────────
-
 func TestCreateCategory_Success(t *testing.T) {
 	client := newShoppingClient(t)
 	c := createCategory(t, client, "Produce")
@@ -157,8 +155,6 @@ func TestDeleteCategory_NotFound(t *testing.T) {
 	)
 	assertCode(t, err, connect.CodeNotFound)
 }
-
-// ── Stores & ordering ─────────────────────────────────────────────────────────
 
 func TestCreateStore_Success(t *testing.T) {
 	client := newShoppingClient(t)
@@ -274,7 +270,6 @@ func TestSetAndGetStoreCategories_OrderPreserved(t *testing.T) {
 	c2 := createCategory(t, client, "Meat-"+uuid.NewString())
 	c3 := createCategory(t, client, "Drinks-"+uuid.NewString())
 
-	// Set order c2, c3, c1.
 	_, err := client.SetStoreCategories(
 		t.Context(),
 		connect.NewRequest(&shoppinglistv1.SetStoreCategoriesRequest{
@@ -352,9 +347,8 @@ func TestSetStoreCategories_InvalidCategoryID(t *testing.T) {
 	assertCode(t, err, connect.CodeInvalidArgument)
 }
 
-// seedForeignStore inserts a store owned by another user directly in the DB
-// (the mock auth always authenticates as userID, so a foreign owner can only be
-// staged via SQL) and returns its ID.
+// seedForeignStore inserts another user's store via SQL (mock auth is always
+// userID).
 func seedForeignStore(t *testing.T, owner, name string) string {
 	t.Helper()
 	var id string
@@ -367,9 +361,7 @@ func seedForeignStore(t *testing.T, owner, name string) string {
 	return id
 }
 
-// Stores are private to the caller: even a fellow family member (who shares
-// everything else — categories, custom items, the item catalog) never sees
-// or touches another member's stores.
+// Stores are private even from family members, who share everything else.
 func TestStores_PrivateToCaller(t *testing.T) {
 	const owner = "sl-store-owner"
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -395,8 +387,7 @@ func TestStores_PrivateToCaller(t *testing.T) {
 		assert.NotEqual(t, foreignID, s.Id, "must not see another user's store")
 	}
 
-	// Reading or mutating the foreign store by ID is a 404 (queries are
-	// user_id-scoped, so the row is invisible to the caller).
+	// The foreign store is a 404 (queries are user_id-scoped).
 	_, err = client.GetStoreCategories(
 		t.Context(),
 		connect.NewRequest(
@@ -420,9 +411,8 @@ func TestStores_PrivateToCaller(t *testing.T) {
 	assertCode(t, err, connect.CodeNotFound)
 }
 
-// A category or custom item added directly by a family member (staged via SQL,
-// since the mock auth always authenticates as userID) is visible to the caller
-// through the normal list RPCs — the shopping list is shared family-wide.
+// A family member's categories and custom items (staged via SQL) are visible
+// to the caller.
 func TestFamilyMember_SharesCategoriesAndCustomItems(t *testing.T) {
 	const familyMember = "sl-family-member-1"
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -492,8 +482,6 @@ func TestFamilyMember_SharesCategoriesAndCustomItems(t *testing.T) {
 	}
 	assert.True(t, foundItem, "family member's custom item should be visible")
 }
-
-// ── Item catalog ──────────────────────────────────────────────────────────────
 
 func TestSetItemCategory_AssignAndList(t *testing.T) {
 	client := newShoppingClient(t)
@@ -622,16 +610,14 @@ func TestListItemNames_IncludesCustomItemsWithAssignment(t *testing.T) {
 	assert.Equal(t, cat.Id, got)
 }
 
-// Custom (recipe-less) meal-plan entries store hand-typed item names in
-// custom_name. Those names must surface in the item catalog so they can be
-// categorized; otherwise they always export as uncategorized.
+// Custom meal-plan item names surface in the catalog so they can be
+// categorized.
 func TestListItemNames_IncludesMealPlanCustomItems(t *testing.T) {
 	planID := createTestPlan(t, "Catalog Plan "+uuid.NewString())
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
-	// Two newline-separated items; the second carries a tab amount that must be
-	// stripped so only the bare name reaches the catalog.
+	// The second item's tab amount must be stripped from the catalog name.
 	plain := "tortillas-" + uuid.NewString()
 	withAmount := "salsa-" + uuid.NewString()
 	addCustomPlanMeal(t, planID, tomorrow, "noon", plain+"\n"+withAmount+"\t2")
@@ -702,10 +688,8 @@ func catalogEntry(
 	return nil
 }
 
-// Recipe-less meal entries flagged exclude_from_shopping_list still surface in
-// the catalog, but marked excluded, so the UI can offer to restore them. A name
-// only present on excluded entries reports excluded=true; an exporting one
-// reports excluded=false.
+// Excluded meal-plan entries surface in the catalog flagged excluded, so the
+// UI can restore them.
 func TestListItemNames_SurfacesExcludedMealPlanItems(t *testing.T) {
 	planID := createTestPlan(t, "Catalog Exclude Plan "+uuid.NewString())
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -727,8 +711,7 @@ func TestListItemNames_SurfacesExcludedMealPlanItems(t *testing.T) {
 	assert.True(t, excludedEntry.Excluded, "excluded-only meal item must be flagged")
 }
 
-// A name carried by an active source (a custom item) is never reported excluded,
-// even when it also appears on an excluded meal-plan entry.
+// An active source's name is never reported excluded.
 func TestListItemNames_ActiveSourceWinsOverExcluded(t *testing.T) {
 	planID := createTestPlan(t, "Catalog Mixed Plan "+uuid.NewString())
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -760,8 +743,7 @@ func TestListItemNames_ActiveSourceWinsOverExcluded(t *testing.T) {
 	)
 }
 
-// SetItemExcluded flips the meal-plan flag both ways: removing keeps the name in
-// the catalog (flagged) and out of the export; restoring puts it back.
+// SetItemExcluded flips the meal-plan flag both ways.
 func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 	planID := createTestPlan(t, "Catalog Toggle Plan "+uuid.NewString())
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -814,8 +796,7 @@ func TestSetItemExcluded_FlipsMealPlanFlagBothWays(t *testing.T) {
 	assert.True(t, inExport(), "restored item should export again")
 }
 
-// Removing a shopping-list custom item deletes it outright (it has no meal-plan
-// entry to flag).
+// Excluding a custom item deletes it outright.
 func TestSetItemExcluded_DeletesCustomItem(t *testing.T) {
 	name := "twine-" + uuid.NewString()
 	client := newShoppingClient(t)

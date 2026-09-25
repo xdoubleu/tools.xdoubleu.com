@@ -16,8 +16,7 @@ func NewAutomatedActionsRepository(db postgres.DB) *AutomatedActionsRepository {
 	return &AutomatedActionsRepository{db: db}
 }
 
-// Open records that routineName has started, fired by triggerSource, and
-// returns the row id Close needs to close it out.
+// Open records that routineName started and returns the id for Close.
 func (r *AutomatedActionsRepository) Open(
 	ctx context.Context,
 	triggerSource, routineName string,
@@ -31,9 +30,7 @@ func (r *AutomatedActionsRepository) Open(
 	return id, err
 }
 
-// Close closes out the row id refers to, recording how the run ended.
-// prURL/errorText are optional — NULLIF blanks them to NULL rather than
-// storing an empty string.
+// Close closes the row; empty prURL/errorText are stored as NULL.
 func (r *AutomatedActionsRepository) Close(
 	ctx context.Context,
 	id int64,
@@ -50,19 +47,11 @@ func (r *AutomatedActionsRepository) Close(
 	return err
 }
 
-// staleActionSweepError is the error text CloseStale records on the rows it
-// closes — the routine that opened the row never reached its own close call,
-// so the recorded outcome describes the sweep's inference, not a run result
-// the routine reported.
+// staleActionSweepError is the error CloseStale records.
 const staleActionSweepError = "stale open row auto-closed by api's " +
 	"automated-action sweep: the routine that opened this row never closed it"
 
-// CloseStale closes every still-open automated_actions row that fired before
-// cutoff — recording outcome=failed with staleActionSweepError as the error
-// text — and returns the ids it closed. This bounds how long a row a routine
-// opened but never closed can keep the AutomatedActionStalled alert firing
-// (issue #1796). The cutoff duration lives with the caller (the sweep job),
-// not here.
+// CloseStale fails every open row fired before cutoff and returns their ids.
 func (r *AutomatedActionsRepository) CloseStale(
 	ctx context.Context,
 	cutoff time.Time,
@@ -92,8 +81,7 @@ func (r *AutomatedActionsRepository) CloseStale(
 	return ids, rows.Err()
 }
 
-// ListRecent returns the most recent runs since the given time, newest
-// first.
+// ListRecent returns runs since the given time, newest first.
 func (r *AutomatedActionsRepository) ListRecent(
 	ctx context.Context,
 	since time.Time,
@@ -133,11 +121,8 @@ func (r *AutomatedActionsRepository) ListRecent(
 	return actions, rows.Err()
 }
 
-// OldestOpenFiredAt returns the fired_at timestamp of the longest-open
-// automated_actions row (finished_at IS NULL) — the one a stalled-routine
-// alert should key off, since it is the run that has been running the
-// longest without closing out. Returns database.ErrResourceNotFound when no
-// row is currently open.
+// OldestOpenFiredAt returns the longest-open row's fired_at, or
+// database.ErrResourceNotFound when none is open.
 func (r *AutomatedActionsRepository) OldestOpenFiredAt(
 	ctx context.Context,
 ) (time.Time, error) {
@@ -155,13 +140,8 @@ func (r *AutomatedActionsRepository) OldestOpenFiredAt(
 	return firedAt, nil
 }
 
-// MostRecentOpenedAt returns the fired_at timestamp of the most recent
-// automated_actions row opened for routineName, regardless of whether it has
-// since closed out. This is the timestamp a "did this routine even start"
-// liveness gauge keys off — unlike OldestOpenFiredAt above, which only ever
-// looks at still-open rows and so says nothing about a routine that has
-// never once opened a row. Returns database.ErrResourceNotFound when
-// routineName has never opened a row at all.
+// MostRecentOpenedAt returns fired_at of routineName's latest row (open or
+// closed), or database.ErrResourceNotFound if it never opened one.
 func (r *AutomatedActionsRepository) MostRecentOpenedAt(
 	ctx context.Context,
 	routineName string,

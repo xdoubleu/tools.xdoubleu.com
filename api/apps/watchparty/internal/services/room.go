@@ -35,9 +35,7 @@ func NewRoomService(ctx context.Context, logger *slog.Logger) *RoomService {
 	return rs
 }
 
-// ----------------------
-// Room Lookup
-// ----------------------
+// Room lookup.
 
 func (rs *RoomService) GetRoomForUser(
 	userID string,
@@ -63,9 +61,7 @@ func (rs *RoomService) RoomExists(code string) bool {
 	return exists
 }
 
-// ----------------------
-// Room Creation & Removal
-// ----------------------
+// Room creation and removal.
 
 func (rs *RoomService) CreateRoom(ctx context.Context, presenterID string) string {
 	code := uuid.New().String()[:6]
@@ -97,9 +93,7 @@ func (rs *RoomService) RemoveRoom(ctx context.Context, code string) bool {
 	return true
 }
 
-// ----------------------
-// WebSocket / Client Handling
-// ----------------------
+// WebSocket handling.
 
 func (rs *RoomService) JoinPresenter(
 	ctx context.Context,
@@ -184,9 +178,7 @@ func (rs *RoomService) LeaveViewer(ctx context.Context, code string) {
 	rs.logger.InfoContext(ctx, "Viewer disconnected", slog.String("code", code))
 }
 
-// ----------------------
-// Messaging
-// ----------------------
+// Messaging.
 
 func (rs *RoomService) SendToViewer(
 	ctx context.Context,
@@ -232,9 +224,7 @@ func (rs *RoomService) SendToPresenter(
 	}
 }
 
-// ----------------------
-// Automatic Cleanup
-// ----------------------
+// Automatic cleanup.
 
 func (rs *RoomService) startCleanup(
 	ctx context.Context,
@@ -250,8 +240,7 @@ func (rs *RoomService) startCleanup(
 	}()
 }
 
-// runCleanupTick recovers panics so one bad tick cannot silently kill the
-// cleanup goroutine for the lifetime of the process.
+// runCleanupTick recovers panics so one bad tick can't kill the cleanup loop.
 func (rs *RoomService) runCleanupTick(ctx context.Context, maxAge time.Duration) {
 	defer func() {
 		if r := recover(); r != nil {

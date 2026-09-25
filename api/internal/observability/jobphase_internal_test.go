@@ -31,7 +31,6 @@ func TestObserveJobPhaseRecordsHistogram(t *testing.T) {
 	t.Fatal("no job_phase_duration_seconds series observed for fake-job/fetch")
 }
 
-// labelMap flattens a metric's label pairs into a plain map.
 func labelMap(pairs []*dto.LabelPair) map[string]string {
 	out := make(map[string]string, len(pairs))
 	for _, l := range pairs {

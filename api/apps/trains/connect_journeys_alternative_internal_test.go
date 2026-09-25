@@ -10,10 +10,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// TestProtoJourneyAlternative maps the domain re-plan onto the wire message
-// the live journey page renders (issue #1395): nil in, nil out; a populated
-// alternative carries its reason, origin name and nested journey with
-// RFC3339 leg times.
+// TestProtoJourneyAlternative maps the domain re-plan onto the wire message.
 func TestProtoJourneyAlternative(t *testing.T) {
 	assert.Nil(t, protoJourneyAlternative(nil))
 
@@ -56,8 +53,8 @@ func TestProtoJourneyAlternative(t *testing.T) {
 	assert.Equal(t, "2026-09-07T08:40:00Z", leg.GetAlightTime())
 }
 
-// TestProtoJourneyAlternative_ReasonOnly covers the router-found-nothing
-// path — the reason still crosses the wire without a journey.
+// TestProtoJourneyAlternative_ReasonOnly: the reason crosses the wire without
+// a journey.
 func TestProtoJourneyAlternative_ReasonOnly(t *testing.T) {
 	//nolint:exhaustruct //Journey intentionally nil, under test
 	out := protoJourneyAlternative(&models.JourneyAlternative{

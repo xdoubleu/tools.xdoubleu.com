@@ -16,10 +16,8 @@ import (
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
 )
 
-// seedResetUserWithToken inserts a brand-new auth.users row plus a matching
-// password_reset_tokens row (bypassing ForgotPassword, which only ever
-// emails the plaintext token rather than returning it), and returns the raw
-// token and the user's email.
+// seedResetUserWithToken inserts a user and reset token directly, since
+// ForgotPassword only emails the token.
 func seedResetUserWithToken(
 	t *testing.T, expiresAt time.Time, usedAt *time.Time,
 ) (string, string) {
@@ -64,7 +62,6 @@ func TestResetPassword_Success(t *testing.T) {
 	))
 	require.NoError(t, err)
 
-	// The new password now works.
 	signInResp, err := client.SignIn(context.Background(), connect.NewRequest(
 		&authv1.SignInRequest{
 			Email:    email,

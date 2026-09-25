@@ -7,13 +7,8 @@ import { useCurrentUser } from '@/hooks/useAuth'
 import FeedManager from '@/components/feeds/FeedManager'
 import { Button } from '@/components/ui/button'
 
-// The page header doubles as the entry point to feed management: the toggle is
-// the page's only real action, so it sits next to the title rather than below
-// the reader. Management is still secondary to reading unread items, so the
-// panel starts collapsed — unless there are no feeds yet, in which case
-// subscribing is the user's only next step. useFeeds() is a no-op extra
-// request: FeedManager already calls it and SWR dedupes on the shared
-// swrKeys.feeds key.
+// The feed-management toggle sits by the title; the panel starts collapsed
+// unless there are no feeds. useFeeds() is deduped by SWR.
 export default function FeedsHeader() {
   const { data } = useFeeds()
   const { data: currentUser } = useCurrentUser()

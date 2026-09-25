@@ -17,10 +17,8 @@ import (
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
-// delayedTripUpdateBody builds a minimal GTFS-RT trip-update FeedMessage
-// carrying one StopTimeUpdate at stopSequence with the given arrival delay
-// (seconds) — enough to exercise JourneyDetailService's realtime overlay
-// without needing decodeTripUpdates' own package-internal test helpers.
+// delayedTripUpdateBody builds a GTFS-RT feed with one arrival delay at
+// stopSequence.
 func delayedTripUpdateBody(
 	t *testing.T, tripID string, stopSequence uint32, arrivalDelaySeconds int32,
 ) []byte {
@@ -52,8 +50,8 @@ func delayedTripUpdateBody(
 	return body
 }
 
-// emptyAlertFeedBody builds a valid, entity-less GTFS-RT alert FeedMessage —
-// decodeAlerts requires the header field to be set even for an empty feed.
+// emptyAlertFeedBody builds an entity-less alert feed; decodeAlerts requires
+// a header.
 func emptyAlertFeedBody(t *testing.T) []byte {
 	t.Helper()
 	//nolint:exhaustruct //only Header is required for a valid empty feed
@@ -65,11 +63,7 @@ func emptyAlertFeedBody(t *testing.T) []byte {
 	return body
 }
 
-// detailFeed is a small, self-contained feed for exercising
-// JourneyDetailService/GetJourneyDetail end to end (issue #1394),
-// independent of journey_test.go's own fixture — one trip IC900 stopping at
-// A1 (origin), M1 (technical pass-through, non-boarding), and B1
-// (destination).
+// detailFeed: one trip IC900 via A1, M1 (non-boarding pass-through), B1.
 func detailFeed(windowStart time.Time) *models.Feed {
 	const h = 8 * 3600
 	//nolint:exhaustruct //Transfers/CalendarDates filled below, rest zero-valued
@@ -113,12 +107,9 @@ func detailFeed(windowStart time.Time) *models.Feed {
 	}
 }
 
-// detailFeedWithRTVariant is detailFeed plus a second trip carrying the same
-// trip_short_name (IC900) on the same service day but a different trip_id —
-// the shape issue #1484 is about, where the GTFS-RT feed labels a train with
-// a trip_id the static feed assigns to a different stopping-pattern variant.
-// TripByShortNameOnDate resolves the leg to "t_detail" (ordered by trip_id);
-// the realtime feed publishes under "t_detail_rt".
+// detailFeedWithRTVariant adds a second IC900 trip on the same day with a
+// different trip_id. The leg resolves to "t_detail"; realtime publishes under
+// "t_detail_rt".
 func detailFeedWithRTVariant(windowStart time.Time) *models.Feed {
 	feed := detailFeed(windowStart)
 	feed.Trips = append(feed.Trips, models.Trip{
@@ -167,8 +158,7 @@ func TestJourneyDetailService_GetJourneyDetail_NoLiveDataIsNeverOnTime(t *testin
 	assert.Equal(t, "DB1", leg.Stops[2].StopID)
 	assert.True(t, leg.Stops[2].IsAlightStop)
 	for _, s := range leg.Stops {
-		// No realtime poll has run yet — every stop must render as
-		// DelayUnknown, never DelayOnTime (issue #1394's core requirement).
+		// No poll yet: DelayUnknown, never DelayOnTime.
 		assert.Equal(t, models.DelayUnknown, s.State)
 	}
 }
@@ -199,10 +189,8 @@ func TestJourneyDetailService_GetJourneyDetail_OverlaysRealtimeState(t *testing.
 	assert.Equal(t, 400, *last.ArrivalDelay)
 }
 
-// TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces is
-// issue #1484's C1: the realtime overlay must land even when the GTFS-RT feed
-// identifies the train by a trip_id the static feed never resolves the leg
-// to, because correlation now runs through (trip_short_name, service date).
+// TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces:
+// the overlay lands even when realtime uses a different trip_id.
 func TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces(
 	t *testing.T,
 ) {
@@ -232,10 +220,8 @@ func TestJourneyDetailService_GetJourneyDetail_OverlaysAcrossTripIDNamespaces(
 	assert.Equal(t, 300, *last.ArrivalDelay)
 }
 
-// TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted
-// covers the other half of #1484's C1: a realtime trip with no matching
-// static trip is dropped from the snapshot and counted, and the leg falls
-// back to DelayUnknown rather than silently swallowing the gap.
+// TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted:
+// an unmatched realtime trip is counted and the leg stays DelayUnknown.
 func TestJourneyDetailService_GetJourneyDetail_UncorrelatedRealtimeTripIsCounted(
 	t *testing.T,
 ) {

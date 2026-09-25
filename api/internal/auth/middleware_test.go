@@ -21,8 +21,6 @@ import (
 
 const testPassword = "password"
 
-// seedUser inserts a fresh auth.users row with a random email, sharing
-// testPassword, and returns its ID.
 func seedUser(t *testing.T, db *pgxpool.Pool) string {
 	t.Helper()
 	ctx := context.Background()
@@ -59,11 +57,6 @@ func newTestAccessService(t *testing.T) (*auth.LocalService, string) {
 	return service, *token
 }
 
-// TestResolveUserCoalescesConcurrentCalls guards against the thundering herd
-// behind issue #852: opening several tabs at once used to fire one
-// verification round trip per tab for the same (cache-miss) access token.
-// The per-token cache alone already prevents re-verifying on every call
-// once warm; this exercises the concurrent cache-miss path specifically.
 func TestResolveUserCoalescesConcurrentCalls(t *testing.T) {
 	service, token := newTestAccessService(t)
 
@@ -111,11 +104,6 @@ func TestAccessValidAccessTokenPassesThrough(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-// TestAccessExpiredTokenRefreshesSession guards against issue #809: a
-// session left open long enough for the access token to expire used to 401
-// on every subsequent request even though the refresh token cookie was
-// still valid, since (unlike TemplateAccess) Access never attempted a
-// refresh.
 func TestAccessExpiredTokenRefreshesSession(t *testing.T) {
 	db := testhelper.ConnectTestDB(testhelper.NewTestConfig().DBDsn)
 	t.Cleanup(db.Close)
@@ -155,9 +143,6 @@ func TestAccessExpiredTokenNoRefreshTokenUnauthorized(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
-// fakeOAuth2TokenResolver is a stand-in for internal/oauth2as.TokenResolver,
-// letting these tests drive ResolveToken's opaque-OAuth-token fallback path
-// without spinning up a real fosite provider.
 type fakeOAuth2TokenResolver struct {
 	userID string
 	err    error
@@ -229,9 +214,6 @@ func TestTemplateAccess_ValidTokenPassesThrough(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-// TestTemplateAccess_NoAuthInvokesSignInRenderer covers the no-session
-// branch: with no SignInRenderer set (the zero value, as in every other test
-// here), TemplateAccess must simply not call next and not panic.
 func TestTemplateAccess_NoAuthInvokesSignInRenderer(t *testing.T) {
 	service, _ := newTestAccessService(t)
 
@@ -267,11 +249,7 @@ func callAdminAccess(
 	return rec
 }
 
-// TestAdminAccess_NonAdminRedirects: every user resolved through these
-// tests' fixtures (no appUsersRepo wired) always enriches to RoleUser, so
-// this exercises the denial branch — the admin-bypass branch would need a
-// real appUsersRepo/DB row granting RoleAdmin, which these package tests
-// don't set up.
+// Fixtures here always enrich to RoleUser, so only the denial branch is covered.
 func TestAdminAccess_NonAdminRedirects(t *testing.T) {
 	service, token := newTestAccessService(t)
 	rec := callAdminAccess(service, &http.Cookie{Name: "accessToken", Value: token})
@@ -296,11 +274,6 @@ func callAppAccess(
 	return rec
 }
 
-// TestAppAccess_NoAccessForbidden: as with TestAdminAccess_NonAdminRedirects,
-// AppAccess's `!ok` branch (missing user in context) can't be reached
-// through this handler — TemplateAccess only ever calls next once it has
-// already set a valid user on the context — so only the "resolved user
-// lacking this app's access" denial is exercised here.
 func TestAppAccess_NoAccessForbidden(t *testing.T) {
 	service, token := newTestAccessService(t)
 	rec := callAppAccess(

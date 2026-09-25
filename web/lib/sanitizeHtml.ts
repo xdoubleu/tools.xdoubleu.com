@@ -1,26 +1,11 @@
 import DOMPurify from 'dompurify'
 
-// Third-party HTML (email/RSS) can carry a <style> block; DOMPurify allows
-// it by default, but <style> isn't scoped to its container and leaks CSS
-// (e.g. `body { width: ... }`) onto the whole app (#715).
-//
-// Some scraped sources (e.g. the Claude Blog) ship <img loading="lazy"> with
-// no width/height, so the browser reserves zero space and each image pops
-// in mid-scroll, shoving the article down — read as scroll/twitch (#862).
-// The images are already fully in the DOM when the dialog opens, so eager
-// loading settles layout once up front instead of drip-feeding shifts.
-//
-// Readability-based extraction can misjudge a source page's markup and
-// include the site's own <nav>/<header> menu as if it were article content
-// (#892). DOMPurify allows both by default and keeps their text content when
-// forbidding just the tag, so KEEP_CONTENT is also disabled to drop the menu
-// text itself rather than leaving it as unwrapped text.
-//
-// Some sites (e.g. Webflow exports) don't mark their share/nav widgets with
-// <nav>/<header> at all — just a plain <ul> of empty icon <li>s plus one
-// <li> with "Share" / "Copy link" / the raw article URL. FORBID_TAGS can't
-// catch that, so stripLeftoverShareWidgets drops any <ul>/<ol> whose every
-// <li> is empty or matches that boilerplate text (#906).
+// Sanitizing third-party (email/RSS/scraped) HTML:
+// - <style> is forbidden: it isn't scoped and leaks CSS onto the app.
+// - Images load eagerly so layout settles once instead of shifting mid-read.
+// - <nav>/<header> are dropped with their text (KEEP_CONTENT off), since
+//   extraction sometimes includes the site menu.
+// - stripLeftoverShareWidgets drops lists that are only share/nav boilerplate.
 const SHARE_WIDGET_TEXT = new Set(['share', 'copy link', 'tweet', 'follow'])
 const BARE_URL_RE = /^https?:\/\/\S+$/i
 
@@ -43,11 +28,7 @@ function stripLeftoverShareWidgets(doc: Document): void {
   })
 }
 
-// Some sources (e.g. the Claude Blog) open an article with a decorative hero
-// image that carries no information the title doesn't already give (#911).
-// Only the leading image goes — an image with any text before it is part of
-// the article body, and an item whose entire content is one image (a comic
-// feed) keeps it.
+// Drops a leading decorative hero image, unless the item is only that image.
 function stripHeroImage(doc: Document): void {
   const img = doc.querySelector('img')
   if (img === null || doc.body.textContent!.trim() === '') return
@@ -70,12 +51,8 @@ function stripHeroImage(doc: Document): void {
   block.remove()
 }
 
-// Articles are sometimes extracted with a trailing newsletter-signup section
-// still attached (#911 — the Claude Blog's "Transform how your organization
-// operates with Claude" block). A <form> is the reliable marker: article
-// prose has none. From the form, climb to the whole section by walking up
-// while the parent adds little text of its own — every newsletter wrapper
-// does, while the ancestor holding the actual article multiplies it.
+// Drops a trailing newsletter-signup section: find its <form>, then climb
+// while the parent adds little text of its own.
 //
 // ponytail: text-growth heuristic, no per-site rules; if a source starts
 // losing real content to it, match the section by marker text instead.

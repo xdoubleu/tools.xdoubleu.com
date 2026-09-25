@@ -24,8 +24,7 @@ func StartSpan(ctx context.Context, dbName string, sql string) *sentry.Span {
 	return span
 }
 
-// WrapWithSpan is used to wrap a
-// database action in a [sentry.Span].
+// WrapWithSpan wraps a database action in a [sentry.Span].
 func WrapWithSpan[T any](
 	ctx context.Context,
 	dbName string,
@@ -37,9 +36,7 @@ func WrapWithSpan[T any](
 	return queryFunc(ctx, sql, args...)
 }
 
-// WrapWithSpanNoError is used to wrap a
-// database action in a [sentry.Span].
-// The executed database action shouldn't return an error.
+// WrapWithSpanNoError wraps an infallible database action in a [sentry.Span].
 func WrapWithSpanNoError[T any](
 	ctx context.Context,
 	dbName string,

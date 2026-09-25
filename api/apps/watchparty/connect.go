@@ -47,7 +47,6 @@ func (h *roomConnectHandler) CreateRoom(
 		return nil, connect.NewError(connect.CodeUnauthenticated, nil)
 	}
 
-	// If already in a room, return its info
 	if inRoom, _, _ := h.app.Services.Room.GetRoomForUser(user.ID); inRoom {
 		exists, roomCode, role := h.app.Services.Room.GetRoomForUser(user.ID)
 		return connect.NewResponse(&watchpartyv1.CreateRoomResponse{
@@ -116,8 +115,6 @@ func (h *roomConnectHandler) LeaveRoom(
 
 	return connect.NewResponse(&watchpartyv1.LeaveRoomResponse{}), nil
 }
-
-// Proto conversion helper.
 
 func protoRoomInfo(roomCode string, inRoom bool, role string) *watchpartyv1.RoomInfo {
 	return &watchpartyv1.RoomInfo{

@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# Checks locally on the VPS whether a new Ubuntu LTS release is available
-# and, only then, emails a notification via Resend's HTTP API — run as root
-# by release-upgrade-check.timer (issue #1194). Runs entirely on the box:
-# nothing external SSHes in to perform or trigger this check, unlike the
-# removed jobs.UbuntuReleaseJob (issue #1134), which polled Canonical's feed
-# from the api process and compared it against a hardcoded baseline that had
-# to be bumped by hand after every real upgrade — this script instead asks
-# the box what it actually thinks, via do-release-upgrade -c, every run.
+# Emails via Resend when `do-release-upgrade -c` reports a new Ubuntu LTS.
+# Run as root by release-upgrade-check.timer.
 set -euo pipefail
 
 ENV_FILE=/etc/release-upgrade-check.env
@@ -36,10 +30,7 @@ BODY="do-release-upgrade -c reported a new Ubuntu release is available on $HOSTN
 
 $OUTPUT"
 
-# python3's json.dumps handles quoting/escaping of $OUTPUT (which may
-# contain quotes, backslashes, newlines) correctly — hand-rolled sed/printf
-# escaping is exactly the kind of thing that silently breaks Resend's JSON
-# parse the first time do-release-upgrade's output contains a stray quote.
+# json.dumps escapes $OUTPUT safely for Resend's JSON body.
 PAYLOAD="$(FROM="$NOTIFY_EMAIL_FROM" TO="$NOTIFY_EMAIL_TO" SUBJECT="$SUBJECT" BODY="$BODY" python3 -c '
 import json, os
 print(json.dumps({

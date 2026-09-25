@@ -25,40 +25,28 @@ import (
 //nolint:gochecknoglobals //Release is set at build time via -ldflags.
 var Release = "dev"
 
-// SentryDSN is set at build time via -ldflags (see Makefile), mirroring
-// Release. Left empty in dev builds and go test, in which case initSentry
-// skips sentry.Init entirely — nothing is ever reported off this Mac
-// without an explicit DSN baked in at build time.
+// SentryDSN is set via -ldflags; empty disables Sentry.
 //
 //nolint:gochecknoglobals // ldflags injection point, mirrors Release above.
 var SentryDSN = ""
 
-// headless skips the real AppKit menu bar and login-item registration —
-// set by TestMain in main_test.go. There's no window server session under
-// go test, so running the real menu bar would crash or hang the test run,
-// and login-item registration would touch the real ~/Library/LaunchAgents.
+// headless skips the AppKit menu bar and login-item registration under go
+// test (no window server; would touch ~/Library/LaunchAgents).
 //
 //nolint:gochecknoglobals // test seam, see main_test.go's TestMain
 var headless = false
 
-// restarting is set (in serve's select goroutine, before stop closes) when a
-// self-update requested a restart rather than a plain quit. Package-level so
-// menubar_darwin.go's stop-terminate goroutine can read it directly after
-// <-stop without runUI needing a parameter for it — same happens-before as
-// documented on that goroutine in serve() below applies here too. serve()
-// resets it to false on entry since tests call it more than once per process.
+// restarting is set before stop closes when self-update asked for a restart;
+// read by menubar_darwin.go after <-stop. serve() resets it on entry.
 //
 //nolint:gochecknoglobals // cross-file signal between serve and runUI, see above.
 var restarting bool
 
 const (
 	readTimeout = 5 * time.Second
-	// writeTimeout covers POST /update, which downloads the new binary
-	// inside the handler.
-	writeTimeout    = 2 * time.Minute
-	shutdownTimeout = 5 * time.Second
-	// koboPollInterval is how often the menu bar checks for a Kobo being
-	// connected/disconnected (see kobogateway.Watch).
+	// writeTimeout covers POST /update, which downloads inside the handler.
+	writeTimeout     = 2 * time.Minute
+	shutdownTimeout  = 5 * time.Second
 	koboPollInterval = 2 * time.Second
 )
 
@@ -71,22 +59,15 @@ func main() {
 
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		// reportFatal already reports this returned error; the deferred
-		// reportAndRepanic above exists for panics only, not skipping it
-		// here.
+		// The deferred reportAndRepanic covers panics only.
 		reportFatal(err)
 		os.Exit(1) //nolint:gocritic //reportFatal already reported this error, see above
 	}
 }
 
-// initSentry initializes crash reporting when SentryDSN was set at build
-// time (see the Makefile). A Sentry DSN is a publishable, send-only key, so
-// baking it into the distributed binary is the standard approach for a
-// client app — the reverse (an empty DSN, e.g. `make build` without one, or
-// go test) leaves Sentry fully disabled so nothing is ever sent off the
-// user's Mac. Scope is Go panics only: the darwinkit ObjC bridge's SIGABRT
-// bypasses Go's panic machinery entirely and never reaches this SDK; that
-// class is covered by launchd's KeepAlive relaunch, not by reporting.
+// initSentry enables crash reporting when SentryDSN is set (a publishable,
+// send-only key). Covers Go panics only: the darwinkit bridge's SIGABRT
+// bypasses Go and is handled by launchd's KeepAlive relaunch.
 func initSentry() {
 	if SentryDSN == "" {
 		return
@@ -101,8 +82,7 @@ func initSentry() {
 		Dsn:         SentryDSN,
 		Release:     Release,
 		Environment: environment,
-		// This app is loopback-only and stores no credentials; keep the
-		// crash payload to stack + release, not the user's hostname.
+		// Loopback-only, no credentials: don't send the hostname.
 		ServerName: "",
 	})
 	if err != nil {
@@ -186,9 +166,7 @@ func update(updater *kobogateway.Updater, origin string, stdout io.Writer) error
 	return nil
 }
 
-// certDir returns where the gateway's self-signed TLS cert/key and trust
-// marker are persisted across runs (~/Library/Application Support/kobo-gateway
-// on macOS).
+// certDir returns where the TLS cert/key and trust marker persist.
 func certDir() (string, error) {
 	base, err := os.UserConfigDir()
 	if err != nil {
@@ -198,9 +176,8 @@ func certDir() (string, error) {
 	return filepath.Join(base, "kobo-gateway"), nil
 }
 
-// serve runs the gateway and its menu-bar UI on the main thread until it
-// fails, the user quits from the menu, or a successful self-update asks for
-// a restart (in which case it re-execs the freshly replaced binary).
+// serve runs the gateway and menu-bar UI until failure, quit, or a
+// self-update restart (which re-execs the replaced binary).
 //
 //nolint:funlen
 func serve(
@@ -250,10 +227,8 @@ func serve(
 	errCh := make(chan error, 1)
 	go func() { errCh <- server.ListenAndServeTLS("", "") }()
 
-	// stop unblocks runUI (Quit menu item, server failure, or self-update).
-	// serveErr/restarting are written here before stop closes and read in
-	// this goroutine only after runUI returns, so the channel close is the
-	// only synchronization needed (happens-before via Go's memory model).
+	// serveErr/restarting are written before stop closes and read after runUI
+	// returns; the close is the synchronization.
 	stop := make(chan struct{})
 	var serveErr error
 	go func() {
@@ -262,16 +237,9 @@ func serve(
 		case <-gateway.Restart():
 			restarting = true
 
-			// Release the port here, before runUI's stop-terminate goroutine
-			// relaunches into the updated binary (#669): that relaunch spawns
-			// a genuinely separate process via `open -n`, which binds this
-			// same loopback port on startup. If this process is still
-			// listening at that moment the new process's bind fails, it
-			// exits before ever building a menu bar or requesting
-			// notifications, and this process tears down anyway right
-			// after — no gateway survives the update at all. Safe to shut
-			// down this early: updateHandler (server.go) already wrote the
-			// /update response before signalling this restart.
+			// Release the port before runUI relaunches via `open -n`: the new process
+			// binds the same port and exits if it's taken. The /update response was
+			// already written.
 			shutdownCtx, cancel := context.WithTimeout(
 				context.Background(),
 				shutdownTimeout,
@@ -282,17 +250,13 @@ func serve(
 		close(stop)
 	}()
 
-	// Never spin up the real AppKit menu bar from a test binary — it has no
-	// window server session and would crash or hang the test run. This also
-	// keeps login-item registration (which touches the real
-	// ~/Library/LaunchAgents) out of `go test` entirely.
+	// Never run the real menu bar or login-item registration under go test.
 	watchCtx, cancelWatch := context.WithCancel(context.Background())
 	defer cancelWatch()
 	koboEvents := kobogateway.Watch(watchCtx, cfg.VolumesRoot, koboPollInterval)
 
-	// Read before EnsureInitialLoginItem, which creates the marker this
-	// checks — must capture "never run before" ahead of that call, and
-	// before the headless branch below so go test still exercises it.
+	// Read before EnsureInitialLoginItem creates the marker, and before the
+	// headless branch so tests cover it.
 	firstLaunch := kobogateway.IsFirstLaunch(certsDir)
 
 	//nolint:nestif //extracting this only relocates coverage gaps, see git history

@@ -8,22 +8,15 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
-// onTimeThresholdSeconds is the delay magnitude below which a call renders
-// as "on time" rather than "delayed by N" — small schedule-adherence noise
-// isn't worth alarming a passenger over (issue #1394).
+// onTimeThresholdSeconds: delays below this render as on time.
 const onTimeThresholdSeconds = 60
 
-// JourneyDetailService rebuilds the full live state of a previously-searched
-// journey (issue #1394): every leg's complete stop pattern between board and
-// alight, each call's scheduled and (if published) live time, and any
-// alerts attached to the leg's trip/route/stops. Nothing here is persisted
-// — a journey_id round-trips everything needed to rebuild it (see
-// EncodeJourneyID/DecodeJourneyID).
+// JourneyDetailService rebuilds a searched journey's live state from its
+// journey_id; nothing is persisted.
 type JourneyDetailService struct {
 	repos    *repositories.Repositories
 	realtime *RealtimeService
-	// replan re-queries the timetable router when a live signal shows the
-	// journey is broken (issue #1395). Nil disables the check entirely.
+	// replan re-queries the router when the journey breaks; nil disables it.
 	replan replanner
 }
 
@@ -35,8 +28,7 @@ func NewJourneyDetailService(
 	return &JourneyDetailService{repos: repos, realtime: realtime, replan: replan}
 }
 
-// GetJourneyDetail decodes journeyID and rebuilds the current live state of
-// each leg it names.
+// GetJourneyDetail rebuilds the live state of each leg in journeyID.
 func (s *JourneyDetailService) GetJourneyDetail(
 	ctx context.Context, journeyID string,
 ) (*models.JourneyDetail, error) {
@@ -72,9 +64,8 @@ func (s *JourneyDetailService) buildLeg(
 		return models.LegDetail{}, err
 	}
 	if active == nil {
-		// The static timetable no longer carries this trip (outside the
-		// router's rolling window, or the feed changed) — render it with no
-		// stop detail rather than failing the whole journey.
+		// Trip no longer in the timetable; render without stop detail rather than
+		// failing.
 		//nolint:exhaustruct //no stop detail is known for a trip outside the window
 		return models.LegDetail{TripShortName: ref.TripShortName}, nil
 	}
@@ -149,9 +140,7 @@ func buildStopDetails(
 	return details
 }
 
-// applyLiveState overlays call onto d. When no call was decoded for this
-// stop_sequence, call is the zero value, whose State is DelayUnknown — the
-// same "no live data" state d already started at.
+// applyLiveState overlays call onto d. A zero call means DelayUnknown.
 func applyLiveState(d *models.StopDetail, call models.StopCall, cancelled bool) {
 	if cancelled {
 		d.State = models.DelayCancelled
@@ -162,7 +151,6 @@ func applyLiveState(d *models.StopDetail, call models.StopCall, cancelled bool) 
 	d.ArrivalDelay = call.ArrivalDelay
 	d.DepartureDelay = call.DepartureDelay
 	if d.State == models.DelayDelayed && !exceedsThreshold(call) {
-		// jitter under the threshold renders as on-time, not "delayed by 0".
 		d.State = models.DelayOnTime
 	}
 }
@@ -186,8 +174,7 @@ func absInt(n int) int {
 	return n
 }
 
-// serviceDateOf returns the Brussels-local midnight of t's day — GTFS
-// stop_times are wall-clock offsets from a service date's midnight.
+// serviceDateOf returns the Brussels-local midnight of t's day.
 func serviceDateOf(t time.Time) time.Time {
 	local := t.In(brusselsLoc)
 	return time.Date(
@@ -195,9 +182,7 @@ func serviceDateOf(t time.Time) time.Time {
 	)
 }
 
-// legRange finds the index range [boardIdx, alightIdx] within pattern
-// covering the passenger's boarded portion of the trip — a trip's
-// stop_times commonly continue past where this leg's passenger alights.
+// legRange finds [boardIdx, alightIdx] of the boarded portion of pattern.
 func legRange(
 	pattern []models.StopTime, boardStopID, alightStopID string,
 ) (int, int) {

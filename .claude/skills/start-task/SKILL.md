@@ -5,123 +5,67 @@ description: Set up a fresh worktree off up-to-date main and create/refine the G
 
 # Start Task
 
-The opening half of every task in this repo, paired with `finish-task`. This
-repo layers one project-specific step (a tracking issue) on top of the
-generic `task-worktree` skill from the `git-task-flow` plugin
-(`xdoubleu/skills` marketplace — see root `CLAUDE.md`'s "Docs
-Impact" note if that plugin isn't installed yet).
+Opening half of every task, paired with `finish-task`; implements
+[`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md)
+on top of `task-worktree` (`git-task-flow` plugin).
 
-## 1. Check for a prior attempt before anything else
+## 1. Check for a prior attempt first
 
-**Before any setup — including the worktree in step 2.** When the tracking
-issue already exists — especially on a retry/reiterate request — pull its
-full history: `gh issue view <n> --comments`, linked PRs via `gh pr list
---search "<n>" --state all`, and branches/commits via `git log --all
---grep=<n>`.
+Before any setup, if the issue exists:
 
-**Always fetch the issue's *current* live state, not just its PR/branch
-history.** Run `gh issue view <n> --json state,stateReason,comments` and read
-the actual `state`/`stateReason` (e.g. `OPEN`/`REOPENED`) and every comment.
-**A merged PR that closed the issue is strong proof of *nothing*** — the issue
-may have been reopened afterward (merged-then-reopened; issue #1867: PR #1871
-widened a reader dialog, the owner reopened with "still seems like a small
-screen" and the real fix was never attempted). Never report "already
-fixed"/"already merged" from PR history alone; the live `state` and comments
-are the source of truth.
+- `gh issue view <n> --json state,stateReason,comments` — the live state and
+  comments are the truth. A merged PR proves nothing; the issue may have been
+  reopened. Never report "already fixed" from PR history alone.
+- `gh pr list --search "<n>" --state all` and `git log --all --grep=<n>`.
 
-If a previous attempt exists — *including one that merged and closed the
-issue* — treat it as prior work, not as done: read the prior PR's diff, review
-comments, and CI failures, work out *why it didn't land or didn't fix the
-problem*, and record that as a short "Why attempt #N failed" analysis on the
-issue (via `refine-issue`, in or before its `## Plan` section) **before writing
-any code**. The new attempt must differ from the old one in response to that
-analysis — re-running a failed approach with cosmetic changes is not a retry. A
-sibling session's PR may already have landed most of the plan; discovering that
-only after the worktree exists and work has begun wastes the setup and risks
-duplicating it.
+If a previous attempt exists (even merged and closed), read its diff, review
+comments and CI failures, and record a short "Why attempt #N failed" on the
+issue (via `refine-issue`, in or before `## Plan`) before writing code. The
+new attempt must differ in response to that analysis.
 
 ## 2. Fresh worktree off up-to-date main
 
-Run `task-worktree` first — it covers pulling latest `main` and creating a
-completely fresh worktree (never edit in the main checkout or reuse an
-existing branch/worktree, even one from earlier in this same session). A
-`SessionStart` hook in `.claude/settings.json` also runs `git fetch origin
-main` once at the start of every session as a backstop, but that only
-covers freshness as of session start, not a long session that keeps
-exploring for hours — still run `task-worktree`'s own fetch, don't assume
-the hook already covered it.
+Run `task-worktree` (pull latest `main`, completely fresh worktree; never
+the main checkout or an existing branch/worktree). Don't rely on the
+`SessionStart` fetch hook for freshness.
 
-**OpenCode only:** the edit guard scopes to one fixed path per session, and
-the session must live inside it — after creating a worktree, re-point the
-session with `tools.opencode.session_move` before the first edit (creating
-the worktree alone leaves edits denied). If a second worktree is needed
-later in the same session, `session_move` may refuse to re-point again; apply
-changes there via git (`git apply`) from the current session instead.
+**Session's worktree already on a stale/foreign branch:** a second worktree
+won't help — the `PreToolUse` edit guard scopes to one path per session.
+Reset in place: confirm `git status --porcelain` is clean (else `git stash
+push -u -m <tag>`), then `git fetch origin main && git checkout -B
+<new-branch> origin/main`.
 
-**If the session's own worktree is already checked out to a stale/foreign
-branch** — e.g. a prior task's branch, left over from an earlier session in
-the same lineage — running `task-worktree`/`git worktree add` to create a
-*separate* fresh worktree does not help: the `PreToolUse` hook that denies
-`Edit`/`Write`/`NotebookEdit` outside the active worktree scopes to one
-fixed path per session, so an `Edit` inside a second worktree gets denied
-even though the worktree itself was created successfully. Reset the
-existing worktree **in place** instead: confirm `git status --porcelain`
-is clean (stash with `-u` first if not), then `git fetch origin main &&
-git checkout -B <new-branch-name> origin/main` inside that same directory.
-This satisfies "fresh branch off up-to-date main" without violating the
-hook's single-path scope.
+**OpenCode only:** after creating the worktree, re-point the session with
+`tools.opencode.session_move` before the first edit. If it refuses a second
+re-point, apply changes there with `git apply` from the current session.
 
 ## 3. Create (or find) the tracking issue
 
-Before editing, always create a tracking GitHub issue for the work via the
-`refine-issue` skill (from the `github-issue-triage` plugin — its config for
-this repo lives in `.claude/github-triage.config.json`), not a bare `gh
-issue create`, so Priority/Status/labels get set — do this even for work
-that wasn't explicitly requested as an "issue", e.g. tooling/doc changes.
+Always via `refine-issue` (`github-issue-triage` plugin, config in
+`.claude/github-triage.config.json`), never a bare `gh issue create` — even
+for tooling/doc work.
 
-## 4. Reproduce the production state before planning a fix
+- **Empty body** (title only): stop and ask the user what they want before
+  planning or editing; record the answer in the body via `refine-issue`.
+- **Grilling**: run the `grilling` skill on the scope and plan, feeding its
+  settled design tree into `## Plan` — unless the plan was already grilled
+  in plan mode (root `CLAUDE.md`), then say so in one line.
+- Record the plan in `## Plan` before the first edit and move Status to
+  "In progress".
 
-For a bug fix — before writing any code, and as input to the `## Plan`
-section — reproduce the state the bug actually lives in locally:
+## 4. Bug fix: reproduce production state before planning
 
-- **Pull the affected production rows** through the app's read MCP tools
-  (`feeds_list_items`, `get_sentry_issues`, `prom_query`, …). A bug's
-  user-visible symptom often *is* stale/corrupt data that no discovery-side
-  code fix removes, so the fix needs both the preventive change and a
-  cleanup, and only the production rows tell you that (issue #1748: four
-  heuristic fixes shipped while six stale junk rows kept the symptom alive).
-- **When the bug's medium is external input you can't control** — a third
-  party's HTML, an upstream API payload — capture the **real bytes** and
-  commit them as test fixtures (gzipped under `testdata/`), fetched
-  **through the app's own HTTP client** (same User-Agent/Accept headers):
-  sites serve bots and browsers different responses, so a plain `curl`
-  fixture isn't what production parses. A hand-written synthetic fixture is
-  not a reproduction — it encodes assumptions, which is precisely what a
-  failing fix is made of.
-- Record what the reproduction showed in the issue's `## Plan` (or the
-  "Why attempt #N failed" analysis) — the plan should name the stale-data
-  cleanup and the real-bytes fixture explicitly, not just the code change.
+- Pull the affected production rows via MCP read tools (`feeds_list_items`,
+  `get_sentry_issues`, `prom_query`, …). The symptom is often stale data a
+  code fix won't remove, so the plan may need a cleanup too.
+- External input (third-party HTML, upstream API): capture the real bytes
+  **through the app's own HTTP client** and commit them gzipped under
+  `testdata/`. A synthetic or plain-`curl` fixture is not a reproduction.
+- Name the cleanup and real-bytes fixture in `## Plan`.
 
-**An issue with an empty body is never self-explanatory.** If the tracking issue
-exists but has no body — only a title — stop and ask the user what they actually
-want before planning, exploring further, or editing anything. A title states a
-topic, not a scope, and the readings it permits usually differ enough to produce
-materially different work. Record their answer in the issue body via
-`refine-issue` so the next session doesn't have to ask again.
+## Board Status: "In progress"
 
-Always run the `grilling` skill against the issue's scope and plan before
-recording anything — this is unconditional (see root `CLAUDE.md`, "Always
-grill the scope before an issue is treated as refined"), even for a one-line
-issue with an already-approved plan. Feed its settled design tree into the
-`## Plan` section.
-
-If a finalized plan exists (from plan mode or otherwise), record it in the
-issue's `## Plan` section via `refine-issue` before the first edit, and move
-Status to "In progress" at that point.
-
-For this repo's board (project #8), the ids for moving an issue's Status to
-"In progress" are fixed and need no re-discovery — mirror how `finish-task`
-documents the same board's ids:
+Project #8 is personal, so GitHub MCP field tools can't write it:
 
 ```
 gh project item-edit --id <ITEM_ID> \
@@ -130,44 +74,22 @@ gh project item-edit --id <ITEM_ID> \
   --single-select-option-id 47fc9ee4
 ```
 
-`<ITEM_ID>` is the issue's item id on the board, from `gh project item-list 8
---owner xdoubleu --format json` matched on `content.number`. Per
-`docs/convention-mcp-gap-first.md`'s #1357 entry, project #8 is a **personal**
-project, so the GitHub MCP server's own field tools can't write it —
-`gh project item-edit` (or the `updateProjectV2ItemFieldValue` GraphQL mutation
-it wraps) is the path.
+`<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
+matched on `content.number`. Without `gh`, use the
+`updateProjectV2ItemFieldValue` GraphQL mutation.
 
-## When a delegated skill isn't installed, or `gh` isn't available
+## Missing skills or `gh`
 
-Two distinct things can be missing, and neither implies the other — a
-Claude Code **on the web** session has neither the `task-worktree`/
-`refine-issue` marketplace plugins nor a `gh` binary (GitHub access there is
-via `mcp__github__*` tools instead), but check both explicitly (`command -v
-gh`) rather than assuming one from the other; a future environment could
-have one without the other.
+Check both (`command -v gh`); a Claude Code on the web session has neither
+the plugins nor `gh`.
 
-- **No `task-worktree`** (plugin not installed): create the branch yourself
-  off up-to-date `origin/main` (`EnterWorktree`, or `git worktree add`),
-  never editing the main checkout or reusing an existing branch.
-  `task-worktree` never needed `gh` in the first place — branch/worktree
-  creation is plain `git` either way — so a missing `gh` alone doesn't
-  affect this step.
-- **`refine-issue` loaded but `gh` is missing**: follow `refine-issue`'s own
-  "When `gh` isn't available" section (`github-issue-triage` plugin) for the
-  MCP-tool mapping (issue create/edit/label) rather than re-deriving it
-  here — it also calls out explicitly when the project-board Priority/Status
-  fields can't be set because no MCP tool for them is mounted.
-- **`refine-issue` itself not installed** (plugin absent): still create/find
-  a tracking issue and record the plan in its `## Plan` section before the
-  first edit, using `mcp__github__*` tools directly if `gh` is also missing
-  — same capability mapping `refine-issue`'s own fallback section describes,
-  since the plugin not loading doesn't change which MCP tools exist. Note
-  in your reply whatever couldn't be done (project board fields, in
-  particular) so it can be finished from a local session later.
+- **No `task-worktree`**: create the branch off up-to-date `origin/main`
+  yourself (`EnterWorktree` or `git worktree add`); needs no `gh`.
+- **`refine-issue` loaded, no `gh`**: follow its "When `gh` isn't available"
+  section.
+- **No `refine-issue`**: still create/find the issue and record `## Plan`
+  before the first edit (via `mcp__github__*` if no `gh`); report what
+  couldn't be set (board fields).
 
-## Notes
-
-- `refine-issue` owns the repo/project-board config, label lists, and
-  Priority (P0/P1/P2) rule (via `.claude/github-triage.config.json`) — don't
-  redefine any of that here.
-- Once the work is done, hand off to `finish-task` for lint/coverage/build/PR/CI.
+`refine-issue` owns labels, Priority and board config — don't redefine them
+here. Hand off to `finish-task` when done.

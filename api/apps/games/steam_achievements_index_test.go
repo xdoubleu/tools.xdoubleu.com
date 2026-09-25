@@ -8,12 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestSteamAchievementsGameUserIndexExists is a regression guard for issue
-// #1716: games.steam_achievements' only index used to be its primary key on
-// (name, user_id, game_id), which can't serve a (game_id, user_id) lookup
-// since name leads. Every /games/:id load (GetAchievementsForGames, called
-// from buildSteamGameResponse) therefore did a full sequential scan of the
-// whole table. This asserts the migration-created index stays in place.
+// TestSteamAchievementsGameUserIndexExists guards the (game_id, user_id)
+// index: the primary key leads with name, so without it every game page
+// load full-scans the table.
 func TestSteamAchievementsGameUserIndexExists(t *testing.T) {
 	ctx := context.Background()
 
@@ -36,9 +33,8 @@ func TestSteamAchievementsGameUserIndexExists(t *testing.T) {
 	)
 }
 
-// TestGetAchievementsForGames_Repo seeds steam data for two users and
-// verifies the achievements lookup that powers the games detail page stays
-// correctly scoped to (game_id, user_id) — not just fast.
+// TestGetAchievementsForGames_Repo: the lookup is scoped to (game_id,
+// user_id).
 func TestGetAchievementsForGames_Repo(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()
@@ -58,6 +54,5 @@ func TestGetAchievementsForGames_Repo(t *testing.T) {
 		assert.Equal(t, 1, achievement.GameID)
 	}
 
-	// A game ID that wasn't requested must not leak into the result map.
 	assert.Empty(t, achievements[9999])
 }

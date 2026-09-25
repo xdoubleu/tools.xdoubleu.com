@@ -11,8 +11,7 @@ import (
 	"time"
 )
 
-// Serve calls [http.Server.ListenAndServe] with some more fluff
-// around it to handle unexpected shutdowns nicely.
+// Serve runs srv.ListenAndServe with graceful shutdown handling.
 func Serve(logger *slog.Logger, srv *http.Server, environment string) error {
 	go func() {
 		quit := make(chan os.Signal, 1)

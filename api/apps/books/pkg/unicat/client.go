@@ -31,18 +31,14 @@ var backoffCap = 30 * time.Second
 const apiTimeout = 15 * time.Second
 
 const (
-	// searchLimit caps the number of results returned from a title/author search.
 	searchLimit = 5
 
-	// isbn13Length is the number of digits in a valid ISBN-13.
 	isbn13Length = 13
 
-	// requestsPerSecond and burst for the token-bucket rate limiter.
-	// UniCat has no published rate limit; keep it conservative.
+	// UniCat publishes no rate limit; stay conservative.
 	requestsPerSecond = 2
 	burst             = 4
 
-	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
 
 	sruVersion = "1.1"
@@ -65,7 +61,7 @@ func New(logger *slog.Logger) Client {
 	}
 }
 
-// GetByISBN returns catalog metadata for the book with the given ISBN-13.
+// GetByISBN returns catalog metadata for the given ISBN-13.
 func (c client) GetByISBN(ctx context.Context, isbn string) (*ExternalBook, error) {
 	params := c.baseParams()
 	params.Set("query", "isbn="+isbn)
@@ -83,8 +79,7 @@ func (c client) GetByISBN(ctx context.Context, isbn string) (*ExternalBook, erro
 	return &book, nil
 }
 
-// Search queries UniCat by title and optional author.
-// The query is expected in "intitle:<title> inauthor:<author>" format.
+// Search queries UniCat with an "intitle:… inauthor:…" query.
 func (c client) Search(ctx context.Context, query string) ([]ExternalBook, error) {
 	cql := buildCQL(query)
 	if cql == "" {
@@ -165,7 +160,6 @@ func (c client) get(ctx context.Context, endpoint string, dst *sruResponse) erro
 	})
 }
 
-// doWithRetry calls attempt up to maxAttempts times with exponential backoff.
 func (c client) doWithRetry(
 	ctx context.Context,
 	attempt func() (retryable bool, err error),
@@ -203,14 +197,8 @@ func (c client) doWithRetry(
 	return lastErr
 }
 
-// marcToExternalBook converts a parsed MARC21 record into an ExternalBook.
-// MARC fields used:
-//   - 245$a → title (colon-separated subtitle is preserved; normalisation
-//     strips it for matching but we keep the full title in storage)
-//   - 100$a, 700$a → authors (primary and added entries)
-//   - 020$a → ISBN-13 (first non-empty value)
-//   - 520$a → description (summary note)
-//   - 300$a → page count (leading integer extracted from extent statement)
+// marcToExternalBook maps MARC21: 245$a title (subtitle kept), 100$a/700$a
+// authors, 020$a ISBN-13, 520$a description, 300$a page count.
 //
 //nolint:gocognit // MARC field mapping is inherently branchy
 func marcToExternalBook(rec marcRecord) ExternalBook {
@@ -220,13 +208,13 @@ func marcToExternalBook(rec marcRecord) ExternalBook {
 		switch df.Tag {
 		case "245":
 			if t := df.subfieldA(); t != "" {
-				// Trim trailing punctuation that MARC often appends (" /" or " :").
+				// MARC appends " /" or " :".
 				cleaned := strings.TrimRight(strings.TrimSpace(t), " :/")
 				book.Title = cleaned
 			}
 		case "100", "700":
 			if a := df.subfieldA(); a != "" {
-				// Trim trailing comma/period that MARC appends to personal names.
+				// MARC appends "," or "." to names.
 				cleaned := strings.TrimRight(strings.TrimSpace(a), ",.")
 				book.Authors = append(book.Authors, authorname.Normalize(cleaned))
 			}
@@ -259,7 +247,6 @@ func marcToExternalBook(rec marcRecord) ExternalBook {
 	return book
 }
 
-// normalizeISBN strips all non-digit characters from an ISBN string.
 func normalizeISBN(s string) string {
 	var b strings.Builder
 	for _, r := range s {
@@ -270,8 +257,6 @@ func normalizeISBN(s string) string {
 	return b.String()
 }
 
-// parseLeadingInt extracts the first run of digits from s as an integer.
-// Returns 0 when s contains no digits.
 func parseLeadingInt(s string) int {
 	start := -1
 	for i, r := range s {
@@ -296,10 +281,7 @@ func parseLeadingInt(s string) int {
 	return 0
 }
 
-// buildCQL converts this package's intitle/inauthor query string format (see
-// buildSearchQuery in book_resync.go) into a CQL query suitable for the
-// UniCat SRU endpoint. Returns "" when no title can be extracted (caller
-// should skip the search).
+// buildCQL converts an intitle/inauthor query into CQL; "" means skip.
 func buildCQL(query string) string {
 	title := extractQuoted(query, "intitle")
 	author := extractQuoted(query, "inauthor")
@@ -313,9 +295,7 @@ func buildCQL(query string) string {
 	return fmt.Sprintf(`title="%s"`, title)
 }
 
-// extractQuoted extracts the double-quoted value after "key:" in s.
-// For example, extractQuoted(`intitle:"Foo Bar"`, "intitle") returns "Foo Bar".
-// Returns "" when the key is not present or the value is not quoted.
+// extractQuoted returns the quoted value after "key:", or "".
 func extractQuoted(s, key string) string {
 	prefix := key + `:"`
 	idx := strings.Index(s, prefix)
@@ -330,11 +310,10 @@ func extractQuoted(s, key string) string {
 	return rest[:end]
 }
 
-// SetBaseURL overrides the UniCat SRU base URL. Intended for tests only.
+// SetBaseURL overrides the UniCat SRU base URL. Tests only.
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the exponential-backoff base delay. Intended for
-// tests only so retry tests run without real wall-clock sleeps.
+// SetBackoffBase overrides the backoff base delay. Tests only.
 func SetBackoffBase(d time.Duration) { backoffBase = d }
 
 func backoffDelay(attempt int) time.Duration {

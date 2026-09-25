@@ -34,9 +34,7 @@ export function useDisconnectOAuthConnection() {
   )
 }
 
-// useProviderOptions is fetched on demand (when the config picker dialog
-// opens), not via SWR — matching useDisconnectOAuthConnection's callback
-// pattern above.
+// Fetched on demand when the picker opens, not via SWR.
 export function useProviderOptions() {
   const client = useMemo(() => createServiceClient(ObservabilityService), [])
   return useCallback(
@@ -57,9 +55,7 @@ export function useSetProviderConfig() {
   )
 }
 
-// useNotificationSettings reads which sources (Sentry issues, failing
-// dependency PRs, unhealthy feeds) are currently allowed to email an admin
-// (issue #1214).
+// useNotificationSettings reads which sources may email an admin.
 export function useNotificationSettings() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetNotificationSettingsResponse, Error>(
@@ -79,10 +75,8 @@ export function useUpdateNotificationSettings() {
   )
 }
 
-// useAutomatedActions reads recent global.automated_actions runs (issue
-// #1442) — the platform's own self-healing activity, surfaced next to the
-// rest of the admin monitoring UI. Defaults to the RPC's own window (30
-// days, see defaultWindowDays in api/cmd/api/connect_observability.go).
+// useAutomatedActions reads recent global.automated_actions runs (the RPC's
+// default window is 30 days).
 export function useAutomatedActions() {
   const client = createServiceClient(ObservabilityService)
   return useSWR<GetAutomatedActionsResponse, Error>(swrKeys.monitoringAutomatedActions, () =>

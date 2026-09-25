@@ -21,8 +21,7 @@ export default function DeployNotification() {
     refreshInterval: POLL_INTERVAL_MS
   })
 
-  // ponytail: 'dev' is the local/unset baseline, never treat it as a real
-  // deploy so this never fires outside a deployed environment.
+  // ponytail: 'dev' is the local baseline, never a real deploy.
   const newVersionAvailable =
     !dismissed && baseline.current !== 'dev' && !!data?.release && data.release !== baseline.current
 

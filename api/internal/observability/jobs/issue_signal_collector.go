@@ -16,12 +16,8 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// Issue-signal gauges, registered on client_golang's default registry which
-// cmd/api's /metrics handler already serves (mirrors jobDuration in
-// internal/observability/trackedjob.go and the histograms in
-// internal/middleware/metrics.go). IssueSignalCollectorJob refreshes them on
-// a timer — never at scrape time — because the GitHub and Sentry APIs behind
-// them are rate-limited.
+// Issue-signal gauges, refreshed on a timer (never at scrape time) because
+// the GitHub and Sentry APIs are rate-limited.
 //
 //nolint:gochecknoglobals //Prometheus collectors are process-wide by design
 var (
@@ -35,9 +31,7 @@ var (
 	}, []string{"branch"})
 	githubWorkflowRunDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "github_workflow_run_duration_seconds",
-		// Label is "workflow", not "job": the api scrape job already carries a
-		// "job" label and infra/prometheus.yml only relabels job_duration_seconds'
-		// collision, not this one.
+		// Label is "workflow", not "job", which collides with the scrape job label.
 		Help: "Duration of the most recent completed run of each GitHub Actions " +
 			"workflow on the default branch, in seconds.",
 	}, []string{"workflow"})
@@ -80,13 +74,9 @@ var (
 	}, []string{"routine"})
 )
 
-// knownRoutines is the fixed set of scheduled claude.ai routines whose
-// liveness automated_action_seconds_since_last_open tracks, one series per
-// name. api has no visibility into claude.ai's own routines UI/schedule, so
-// this list — and each one's cadence, encoded as a threshold in
-// infra/grafana/provisioning/alerting/rules.yml's AutomatedRoutineMissed
-// rule — has to be hardcoded and kept in sync by hand against
-// docs/spec-routine-*.md.
+// knownRoutines are the claude.ai routines tracked by
+// automated_action_seconds_since_last_open. Keep in sync by hand with
+// docs/spec-routine-*.md and the AutomatedRoutineMissed thresholds.
 //
 //nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
 var knownRoutines = []string{
@@ -95,97 +85,63 @@ var knownRoutines = []string{
 	"red-pr-repair",
 }
 
-// neverOpenedSentinelSeconds is the value automated_action_seconds_since_last_open
-// reports for a routine that has never once opened an automated_actions row
-// (repositories.AutomatedActionsRepository.MostRecentOpenedAt returns
-// database.ErrResourceNotFound). It is deliberately far past any routine's
-// alert threshold rather than 0, since "never started" is the unhealthy case
-// this gauge exists to catch, not the healthy one.
+// neverOpenedSentinelSeconds is reported for a routine that never opened a
+// row; it's far past every threshold because "never started" is unhealthy.
 const neverOpenedSentinelSeconds = 1 << 30
 
-// mainBranch is the branch label the workflow-run gauge reports on — only
-// failures on the default branch are tracked.
 const mainBranch = "main"
 
-// millisPerSecond converts github.WorkflowRun.DurationMs to the seconds unit
-// the github_workflow_run_duration_seconds gauge reports in.
 const millisPerSecond = 1000
 
-// failingPRLister is the subset of github.Client the failing-PR gauge needs.
 type failingPRLister interface {
 	ListFailingPullRequests(ctx context.Context) ([]github.PullRequest, error)
 }
 
-// securityAlertLister is the subset of github.Client the security-alert
-// gauge needs.
 type securityAlertLister interface {
 	ListSecurityAlerts(ctx context.Context) ([]github.SecurityAlert, error)
 }
 
-// latestStorageSnapshotGetter is the subset of
-// *repositories.StorageSnapshotsRepository the storage gauges need.
 type latestStorageSnapshotGetter interface {
 	Latest(ctx context.Context) (*models.StorageSnapshot, error)
 }
 
-// schemaSizer is the subset of *repositories.DBStatsRepository the
-// per-schema size gauge needs.
 type schemaSizer interface {
 	SchemaSizes(ctx context.Context) ([]models.SchemaStats, error)
 }
 
-// oldestOpenAutomatedActionGetter is the subset of
-// *repositories.AutomatedActionsRepository the stalled-routine gauge needs.
 type oldestOpenAutomatedActionGetter interface {
 	OldestOpenFiredAt(ctx context.Context) (time.Time, error)
 }
 
-// mostRecentOpenedAtGetter is the subset of
-// *repositories.AutomatedActionsRepository the never-started-routine gauge
-// needs.
 type mostRecentOpenedAtGetter interface {
 	MostRecentOpenedAt(ctx context.Context, routineName string) (time.Time, error)
 }
 
-// automatedActionGetter is the subset of
-// *repositories.AutomatedActionsRepository the collector needs across both
-// automated-action gauges.
 type automatedActionGetter interface {
 	oldestOpenAutomatedActionGetter
 	mostRecentOpenedAtGetter
 }
 
-// workflowRunsLister is the subset of github.Client the collector needs on
-// top of failingPRLister and securityAlertLister.
 type workflowRunsLister interface {
 	ListWorkflowRuns(ctx context.Context) ([]github.WorkflowRun, error)
 }
 
-// issueSignalGithubClient is the subset of github.Client
-// IssueSignalCollectorJob reads.
 type issueSignalGithubClient interface {
 	failingPRLister
 	securityAlertLister
 	workflowRunsLister
 }
 
-// unresolvedIssueLister is the subset of sentryapi.Client the Sentry gauge
-// needs.
 type unresolvedIssueLister interface {
 	ListUnresolvedIssues(ctx context.Context) ([]sentryapi.Issue, error)
 }
 
-// runEvery is the poll interval shared by the timer-driven observability
-// jobs in this package; "realtime" here means "within a few minutes", not
-// sub-second.
+// runEvery is the shared poll interval of this package's timer jobs.
 const runEvery = 5 * time.Minute
 
-// IssueSignalCollectorJob refreshes the issue-signal Prometheus gauges from
-// GitHub, Sentry, the latest storage snapshot, per-schema database sizes,
-// the oldest still-open global.automated_actions row, and each known
-// routine's most recent open row. A provider that isn't connected leaves
-// its gauge untouched rather than resetting it to zero or failing the run;
-// other errors are logged and skipped. Run always returns nil.
+// IssueSignalCollectorJob refreshes the issue-signal gauges. A disconnected
+// provider leaves its gauge untouched; other errors are logged. Run always
+// returns nil.
 type IssueSignalCollectorJob struct {
 	gh              issueSignalGithubClient
 	sentry          unresolvedIssueLister
@@ -214,14 +170,12 @@ func (j *IssueSignalCollectorJob) ID() string {
 	return "collect-issue-signals"
 }
 
-// RunEvery reuses the package-level runEvery (5 minutes).
+// RunEvery returns the shared runEvery.
 func (j *IssueSignalCollectorJob) RunEvery() time.Duration {
 	return runEvery
 }
 
-// logAPIErr logs a poll failure at Warn (transient, self-heals on the next
-// poll) or Error (reaches Sentry, needs a look) depending on whether the
-// client classified the error as a known-benign shape.
+// logAPIErr logs transient errors at Warn and others at Error (Sentry).
 func logAPIErr(
 	ctx context.Context, logger *slog.Logger, msg string, err error, transient bool,
 ) {
@@ -328,15 +282,8 @@ func (j *IssueSignalCollectorJob) collectSecurityAlerts(
 	}
 }
 
-// collectSentryIssues sets sentry_unresolved_issues from the same Sentry
-// Issues endpoint api/internal/sentryapi/client.go's ListUnresolvedIssues
-// already calls successfully elsewhere (get_sentry_issues,
-// resolve_sentry_issue, WeeklyDigestJob). A Prometheus gauge is deliberately
-// used here rather than alerting off the grafana-sentry-datasource plugin
-// directly: that plugin's Issues query returns one row per issue with
-// several numeric columns, which Grafana's SSE layer can't convert into a
-// series any expression node (reduce, threshold, classic_conditions) can
-// evaluate — confirmed live, see issue #1709.
+// collectSentryIssues sets sentry_unresolved_issues. It's a gauge because
+// Grafana can't alert on the grafana-sentry-datasource Issues query directly.
 func (j *IssueSignalCollectorJob) collectSentryIssues(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -389,9 +336,7 @@ func (j *IssueSignalCollectorJob) collectSchemaSizes(
 	}
 }
 
-// collectAutomatedActionAge sets the stalled-routine gauge to 0 when no
-// automated_actions row is currently open (the healthy state) rather than
-// leaving it at whatever a prior run last observed.
+// collectAutomatedActionAge sets the gauge to 0 when no row is open.
 func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -410,12 +355,8 @@ func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
 	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
 }
 
-// collectRoutineLiveness sets automated_action_seconds_since_last_open for
-// every known routine — the "did it even start" complement to
-// collectAutomatedActionAge above (which only ever sees a routine that has
-// already opened at least one row). A routine that has never opened a row
-// reports neverOpenedSentinelSeconds rather than 0, since that absence is
-// itself the failure mode this gauge exists to surface.
+// collectRoutineLiveness sets automated_action_seconds_since_last_open per
+// routine; neverOpenedSentinelSeconds when it never opened a row.
 func (j *IssueSignalCollectorJob) collectRoutineLiveness(
 	ctx context.Context,
 	logger *slog.Logger,

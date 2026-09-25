@@ -28,26 +28,19 @@ var backoffCap = 30 * time.Second
 const apiTimeout = 30 * time.Second
 
 const (
-	// searchLimit caps the number of results requested from a title search.
-	// The query is title-only (see extractSearchTerms), so for a common title
-	// the right author's book can sit well below the top few results — the
-	// caller's post-fetch author filter needs this depth to find it. Same two
-	// requests per search either way.
+	// searchLimit: the query is title-only, so for a common title the right
+	// author's book can rank deep; the caller's author filter needs the depth.
 	searchLimit = 25
 
-	// requestsPerSecond and burst for the token-bucket rate limiter. Hardcover
-	// allows 60 req/min with no daily cap; keep it conservative at ~1 req/s.
+	// Hardcover allows 60 req/min with no daily cap; stay at ~1 req/s.
 	requestsPerSecond = 1
 	burst             = 3
 
-	// maxAttempts is the total number of tries for a retryable request.
 	maxAttempts = 4
 )
 
-// isbnQuery looks up a single edition by its ISBN-13 and pulls the parent
-// book's denormalised metadata. Selection depth stays within Hardcover's max
-// query depth of 3 (editions → image → url; editions → book → cached_image),
-// so cached_image/cached_contributors are used instead of deep relation joins.
+// isbnQuery stays within Hardcover's max query depth of 3, hence
+// cached_image/cached_contributors instead of deep joins.
 const isbnQuery = `query BookByISBN($isbn: String!) {
   editions(where: {isbn_13: {_eq: $isbn}}, limit: 1) {
     title
@@ -64,22 +57,16 @@ const isbnQuery = `query BookByISBN($isbn: String!) {
   }
 }`
 
-// searchIDsQuery finds book IDs via Hardcover's Typesense-backed search index
-// (the same index the website uses). This is the only fuzzy-match path
-// Hardcover permits: per its API docs, _like/_ilike/_similar/_regex (and
-// variants) are disabled API-wide, so neither a books title filter nor a
-// contributions.author.name filter can do fuzzy matching — author filtering
-// via _eq would be exact-match only (case- and diacritic-sensitive, "Emily
-// Bronte" misses "Emily Brontë"), which is why author disambiguation happens
-// post-fetch in the caller instead.
+// searchIDsQuery uses the Typesense search index, Hardcover's only fuzzy path:
+// _like/_ilike/_similar/_regex are disabled API-wide, so author
+// disambiguation happens post-fetch in the caller.
 const searchIDsQuery = `query SearchBookIDs($query: String!, $perPage: Int!) {
   search(query: $query, query_type: "Book", per_page: $perPage, page: 1) {
     ids
   }
 }`
 
-// booksByIDsQuery fetches full book records for IDs returned by
-// searchIDsQuery. Uses _in, which (unlike ilike) is a permitted operator.
+// booksByIDsQuery fetches full records for searchIDsQuery's IDs.
 const booksByIDsQuery = `query BooksByIDs($ids: [Int!]!) {
   books(where: {id: {_in: $ids}}) {
     id
@@ -101,10 +88,8 @@ type client struct {
 	apiKey     string
 }
 
-// New creates a Hardcover client. apiKey is the Bearer JWT from the Hardcover
-// account settings page; an empty key still constructs a client but every
-// request will be rejected by Hardcover — callers should leave the client nil
-// when no key is configured.
+// New creates a Hardcover client. apiKey is the account's Bearer JWT; leave
+// the client nil when no key is configured.
 func New(logger *slog.Logger, apiKey string) Client {
 	return client{
 		logger: logger,
@@ -116,8 +101,7 @@ func New(logger *slog.Logger, apiKey string) Client {
 	}
 }
 
-// GetByISBN returns the best-matching edition for the given ISBN-13.
-// Returns ErrNotFound when Hardcover has no matching edition.
+// GetByISBN returns the best edition for an ISBN-13, or ErrNotFound.
 func (c client) GetByISBN(
 	ctx context.Context,
 	isbn string,
@@ -138,9 +122,7 @@ func (c client) GetByISBN(
 	return &out, nil
 }
 
-// Search queries Hardcover for books matching the title in query. It first
-// resolves matching book IDs via the Typesense search index, then fetches
-// the full records for those IDs.
+// Search resolves book IDs via the Typesense index, then fetches the records.
 func (c client) Search(
 	ctx context.Context,
 	query string,
@@ -176,9 +158,7 @@ func (c client) Search(
 		return nil, err
 	}
 
-	// booksByIDsQuery has no order_by, so Hasura/Postgres returns rows in its
-	// own default order rather than the Typesense relevance order the IDs
-	// arrived in. Reindex by ID and re-emit in that original order.
+	// No order_by, so restore the Typesense relevance order by ID.
 	byID := make(map[int]book, len(resp.Data.Books))
 	for _, b := range resp.Data.Books {
 		byID[b.ID] = b
@@ -192,10 +172,7 @@ func (c client) Search(
 	return books, nil
 }
 
-// editionToExternalBook merges an edition with its parent book, preferring
-// edition-level values (title, pages, cover, ISBN) and filling gaps from the
-// book (description, authors, and title/pages/cover when the edition omits
-// them).
+// editionToExternalBook prefers edition values, filling gaps from the book.
 func editionToExternalBook(e edition) ExternalBook {
 	var out ExternalBook
 	if e.Book != nil {
@@ -219,9 +196,7 @@ func editionToExternalBook(e edition) ExternalBook {
 	return out
 }
 
-// bookToExternalBook maps a work-level book record to an ExternalBook,
-// borrowing the ISBN13 of one representative edition (Search's booksByIDsQuery
-// selects at most one) since work-level records carry no ISBN of their own.
+// bookToExternalBook borrows one edition's ISBN13, since works carry none.
 func bookToExternalBook(b book) ExternalBook {
 	out := ExternalBook{} //nolint:exhaustruct // fields set below
 	out.Title = b.Title
@@ -254,7 +229,6 @@ func bookToExternalBook(b book) ExternalBook {
 	return out
 }
 
-// graphQLErr collapses a GraphQL errors array into a single Go error.
 func graphQLErr(errs []graphQLError) error {
 	if len(errs) == 0 {
 		return nil
@@ -266,21 +240,14 @@ func graphQLErr(errs []graphQLError) error {
 	return fmt.Errorf("hardcover GraphQL error: %s", strings.Join(msgs, "; "))
 }
 
-// extractSearchTerms pulls the title out of a buildSearchQuery-style string
-// ("intitle:\"...\" inauthor:\"...\"") for Hardcover's plain-text Typesense
-// query. Only the title is used: Typesense weights the title field highest,
-// so appending the author surfaces books whose *title* contains the author
-// name (e.g. critical companions like "Emily Brontë: Wuthering Heights")
-// above the real work. Author disambiguation happens after the fetch in the
-// service layer (searchProviders' Hardcover author filter on every search
-// path, plus titleAuthorMatch on the guarded paths).
-// Returns "" when no title token is present (caller should skip the search).
+// extractSearchTerms returns only the title from a buildSearchQuery-style
+// string: Typesense weights titles highest, so adding the author surfaces
+// companions titled after the author. "" means skip the search.
 func extractSearchTerms(query string) string {
 	return extractQuotedField(query, "intitle:\"")
 }
 
-// extractQuotedField pulls the quoted value out of a "prefix"..."value"...
-// token. Returns "" when prefix isn't present or its quote is unterminated.
+// extractQuotedField returns the quoted value after prefix, or "".
 func extractQuotedField(query, prefix string) string {
 	idx := strings.Index(query, prefix)
 	if idx < 0 {
@@ -294,9 +261,7 @@ func extractQuotedField(query, prefix string) string {
 	return rest[:end]
 }
 
-// post sends a GraphQL query and decodes the JSON response into dst. GraphQL
-// errors are surfaced on dst's Errors field and checked by the caller after
-// decoding.
+// post sends a GraphQL query; the caller checks dst's Errors.
 func (c client) post(
 	ctx context.Context,
 	query string,
@@ -354,7 +319,6 @@ func (c client) post(
 	})
 }
 
-// doWithRetry calls attempt up to maxAttempts times with exponential backoff.
 func (c client) doWithRetry(
 	ctx context.Context,
 	attempt func() (retryable bool, err error),
@@ -392,11 +356,10 @@ func (c client) doWithRetry(
 	return lastErr
 }
 
-// SetBaseURL overrides the Hardcover GraphQL endpoint. Intended for tests only.
+// SetBaseURL overrides the Hardcover GraphQL endpoint. Tests only.
 func SetBaseURL(u string) { baseURL = u }
 
-// SetBackoffBase overrides the exponential-backoff base delay. Intended for
-// tests only so retry tests run without real wall-clock sleeps.
+// SetBackoffBase overrides the backoff base delay. Tests only.
 func SetBackoffBase(d time.Duration) { backoffBase = d }
 
 func backoffDelay(attempt int) time.Duration {

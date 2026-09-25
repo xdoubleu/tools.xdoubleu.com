@@ -17,9 +17,8 @@ const (
 	maxPlainSegmentLen = 32
 )
 
-// usageMiddleware counts every request per app and endpoint for the admin
-// dashboard. It must run after domainMiddleware so custom-domain requests
-// are already rewritten to /<app>/… paths.
+// usageMiddleware counts requests per app and endpoint. Must run after
+// domainMiddleware.
 func (app *Application) usageMiddleware(next http.Handler) http.Handler {
 	appNames := make(map[string]bool)
 	for _, a := range *app.apps {
@@ -39,14 +38,8 @@ func (app *Application) usageMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// countingResponseWriter totals the response body bytes a handler writes, so
-// usage_daily can show which endpoints move the most data and not just which
-// are called most (issue #1027).
-//
-// It forwards Flush and Hijack rather than swallowing them: the api has one
-// server-streaming RPC (GetDeployLogs) and WebSocket upgrades
-// (internal/progressws), both of which break if the wrapper hides those
-// interfaces from the underlying writer.
+// countingResponseWriter totals response bytes for usage_daily. It forwards
+// Flush and Hijack, which GetDeployLogs streaming and WebSockets need.
 type countingResponseWriter struct {
 	http.ResponseWriter
 	written int64
@@ -72,8 +65,7 @@ func (w *countingResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return h.Hijack()
 }
 
-// Unwrap lets http.ResponseController reach the underlying writer for any
-// capability not forwarded explicitly above.
+// Unwrap lets http.ResponseController reach the underlying writer.
 func (w *countingResponseWriter) Unwrap() http.ResponseWriter {
 	return w.ResponseWriter
 }
@@ -100,19 +92,15 @@ func usageLabels(
 		segments = segments[1:]
 	} else if pkg, _, found := strings.Cut(segments[0], "."); found &&
 		appNames[pkg] {
-		// ConnectRPC handlers are mounted at their bare generated service
-		// path (e.g. /recipes.v1.RecipesService/ListRecipes), never under a
-		// literal /<appName>/ prefix, so the app name has to be recovered
-		// from the proto package instead of the path segment itself.
+		// ConnectRPC paths carry no /<app>/ prefix; use the proto package.
 		appName = pkg
 	}
 
 	return appName, endpointLabel(segments), true
 }
 
-// endpointLabel keeps counter cardinality bounded: ConnectRPC paths become
-// "Service/Method", other paths keep only their first segment with IDs and
-// tokens masked.
+// endpointLabel bounds cardinality: "Service/Method" for ConnectRPC, else the
+// first path segment with IDs masked.
 func endpointLabel(segments []string) string {
 	if len(segments) == 0 || segments[0] == "" {
 		return usageRootEndpoint

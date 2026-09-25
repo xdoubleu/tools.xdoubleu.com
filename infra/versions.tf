@@ -1,9 +1,5 @@
-# State lives in Cloudflare R2 (S3-compatible), not on any one laptop — see
-# infra/README.md's "Remote state" section. Only the non-account-specific
-# settings are hardcoded here; `endpoints.s3` (which embeds the Cloudflare
-# account ID) is supplied at `tofu init` time via `-backend-config`, since a
-# `backend` block can't reference a variable and the account ID isn't
-# something to hand-copy into a committed file.
+# State lives in Cloudflare R2. `endpoints.s3` (embeds the account ID) comes
+# from `-backend-config` at init, since a backend block can't use variables.
 terraform {
   required_version = ">= 1.10.0" # s3 backend's use_lockfile needs 1.10+
 

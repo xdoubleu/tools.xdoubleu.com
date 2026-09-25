@@ -1,10 +1,6 @@
-// Package csa builds an in-memory Connection Scan Algorithm index over a
-// rolling window of the trains schema's ingested GTFS timetable, and
-// answers journey searches over it. It never touches trip_id in anything
-// it returns to a caller outside this package — trip identity is
-// per-instance and used only to group elementary connections back into a
-// leg while scanning (issue #1391, following the trip_id-churn invariant
-// from #1390).
+// Package csa is an in-memory Connection Scan Algorithm router over a rolling
+// window of the GTFS timetable. trip_id is used only internally to group
+// connections into legs; it's never returned.
 package csa
 
 import (
@@ -14,11 +10,8 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// stopDisplayName is the station name the planner puts on a Leg — the same
-// canonical, deduped multilingual label (models.Stop.DisplayName) the
-// station search dropdown renders, so a journey's legs and the picker never
-// disagree (issue #1656). Keeping the choice here means it is stated once,
-// not in a converter the caller owns.
+// stopDisplayName is the leg's station name: models.Stop.DisplayName, the
+// same label the station search shows.
 func stopDisplayName(s models.Stop) string {
 	return s.DisplayName
 }
@@ -34,8 +27,7 @@ type tripMeta struct {
 }
 
 type connection struct {
-	// instance is unique per (trip pattern, service date) — used for
-	// tripEntered bookkeeping while scanning.
+	// instance is unique per (trip pattern, service date).
 	instance   int32
 	meta       int32 // index into Index.tripMetas
 	depStop    stopIdx
@@ -51,17 +43,15 @@ type footpath struct {
 	seconds int64
 }
 
-// defaultMinTransferSeconds is used at a same-station change (shared
-// parent_station) with no explicit transfers.txt entry — platforms are
-// separate stops, so this must never be 0 (issue #1391).
+// defaultMinTransferSeconds applies to same-station changes without a
+// transfers.txt entry; platforms are separate stops, so never 0.
 const defaultMinTransferSeconds = 180
 
-// DefaultMinTransferSeconds is defaultMinTransferSeconds exported for callers
-// that need the same fallback before an Index exists (issue #1395).
+// DefaultMinTransferSeconds exports the fallback for use before an Index
+// exists.
 const DefaultMinTransferSeconds = defaultMinTransferSeconds
 
-// Index is the built, queryable in-memory router state for one rolling
-// window of service days.
+// Index is the queryable router state for one rolling window.
 type Index struct {
 	loc         *time.Location
 	epoch       time.Time // local midnight of the window's first day
@@ -70,17 +60,14 @@ type Index struct {
 	tripMetas   []tripMeta
 	connections []connection // sorted by depTime ascending
 	footpaths   map[stopIdx][]footpath
-	// explicitPair records transfers.txt pairs (including "not possible")
-	// so the default same-parent-station footpath never overrides them.
+	// explicitPair records transfers.txt pairs so default footpaths never
+	// override them.
 	explicitPair map[[2]stopIdx]bool
 }
 
-// Build assembles an Index from the caller's already-loaded rolling window,
-// straight off the trains domain models — trains is this package's only
-// caller, so there is no adapter layer in between. loc is the feed's local
-// timezone (Europe/Brussels); windowStart anchors abs-second 0 to that
-// date's local midnight. stopTimes may arrive in any order; Build groups
-// them by trip_id and keeps each trip's rows in stop_sequence order.
+// Build assembles an Index from the loaded window. loc is the feed timezone;
+// windowStart anchors abs-second 0 to that date's local midnight. stopTimes
+// may be in any order.
 func Build(
 	loc *time.Location,
 	windowStart time.Time,
@@ -118,9 +105,7 @@ func Build(
 	return idx
 }
 
-// groupStopTimesByTrip buckets stop_times by trip_id, sorting each bucket by
-// stop_sequence so Build does not depend on the order the caller loaded them
-// in.
+// groupStopTimesByTrip buckets stop_times by trip_id, sorted by stop_sequence.
 func groupStopTimesByTrip(stopTimes []models.StopTime) map[string][]models.StopTime {
 	out := make(map[string][]models.StopTime)
 	for _, st := range stopTimes {
@@ -159,14 +144,8 @@ func (idx *Index) buildConnections(
 		if len(pattern) < minStopsForAConnection {
 			continue
 		}
-		// inst.Date comes from a Postgres DATE column, which pgx scans as
-		// UTC midnight — not idx.loc's local midnight. Diffing it against
-		// idx.epoch directly would be off by the standing UTC offset
-		// whenever loc isn't UTC (e.g. 2 hours during CEST), corrupting
-		// every connection on that date. Rebuilding a local midnight from
-		// just its Y/M/D components (safe regardless of inst.Date's own
-		// zone, since a DATE has no time-of-day to lose) keeps this a
-		// genuine whole-day diff.
+		// pgx scans DATE as UTC midnight; rebuild local midnight from Y/M/D, or every
+		// connection would be off by the UTC offset.
 		y, m, d := inst.Date.Date()
 		tripLocalMidnight := time.Date(y, m, d, 0, 0, 0, 0, idx.loc)
 		dayAbs := int64(tripLocalMidnight.Sub(idx.epoch).Seconds())
@@ -222,11 +201,8 @@ func (idx *Index) buildTransfers(transfers []models.Transfer) {
 	}
 }
 
-// buildDefaultFootpaths adds a minimum-transfer-time edge between every
-// pair of distinct stops sharing a parent_station that transfers.txt
-// didn't already cover (explicitly, in either direction) — the same
-// station never grants a free 0-minute change between platforms
-// (issue #1391).
+// buildDefaultFootpaths adds a min-transfer edge between stops sharing a
+// parent_station not already covered by transfers.txt.
 func (idx *Index) buildDefaultFootpaths() {
 	byParent := make(map[string][]stopIdx)
 	for i, s := range idx.stops {
@@ -253,12 +229,8 @@ func (idx *Index) buildDefaultFootpaths() {
 	}
 }
 
-// MinTransferSeconds reports the minimum time a passenger needs to change
-// from fromStopID to toStopID: the explicit transfers.txt footpath if one
-// exists, otherwise defaultMinTransferSeconds. It never returns 0 for two
-// distinct stops — the same station never grants a free platform change
-// (issue #1391) — and is used by the live journey page to tell whether a
-// delayed arrival still leaves the connection makeable (issue #1395).
+// MinTransferSeconds returns the transfers.txt time, else
+// defaultMinTransferSeconds; never 0 for distinct stops.
 func (idx *Index) MinTransferSeconds(fromStopID, toStopID string) int {
 	if fromStopID == toStopID {
 		return 0
@@ -275,21 +247,17 @@ func (idx *Index) MinTransferSeconds(fromStopID, toStopID string) int {
 	return defaultMinTransferSeconds
 }
 
-// toAbs converts a wall-clock time to the index's abs-second scale.
 func (idx *Index) toAbs(t time.Time) int64 {
 	t = t.In(idx.loc)
 	return int64(t.Sub(idx.epoch).Seconds())
 }
 
-// fromAbs converts an abs-second value back to a wall-clock time.
 func (idx *Index) fromAbs(sec int64) time.Time {
 	return idx.epoch.Add(time.Duration(sec) * time.Second)
 }
 
-// resolveStops expands a station or platform id: a station (any stop that
-// other stops declare as their parent_station) resolves to all of its
-// platform children; a platform id resolves to itself; an unknown id
-// resolves to nothing.
+// resolveStops expands a station id to its platforms; a platform resolves to
+// itself, an unknown id to nothing.
 func (idx *Index) resolveStops(id string) []stopIdx {
 	var out []stopIdx
 	if self, ok := idx.stopByID[id]; ok {

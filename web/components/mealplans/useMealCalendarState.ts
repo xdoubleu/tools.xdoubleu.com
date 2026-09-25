@@ -23,9 +23,8 @@ export interface MealSuggestion {
   servings: number
 }
 
-// useMealCalendarState owns the calendar's interaction state machine: adding a
-// meal to an empty slot, swapping two meals, and editing an existing meal. The
-// calendar component stays purely presentational.
+// useMealCalendarState owns the calendar's add/swap/edit state so the
+// calendar stays presentational.
 export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: () => void) {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -38,10 +37,8 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
   const deleteMeal = useDeleteMeal()
   const moveMeal = useMoveMeal()
 
-  // Suggestions only load while adding (selectedDate + selectedSlot set); the
-  // hook's key is null otherwise. Map returned suggestions onto the recipes
-  // we already have, dropping any that are no longer available, and carrying
-  // along the most-frequently-used servings for that recipe/weekday/slot.
+  // Suggestions load only while adding; unavailable recipes are dropped and
+  // each carries its most-used servings.
   const { data: suggestData } = useMealSuggestions(plan.id, selectedDate ?? '', selectedSlot ?? '')
   const suggestedRecipes: MealSuggestion[] = (suggestData?.suggestions ?? [])
     .map((s) => {
@@ -50,8 +47,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     })
     .filter((s): s is MealSuggestion => s !== undefined)
 
-  // A slot can hold any number of meals (the per-slot UNIQUE constraint was
-  // dropped) — return them all so the calendar can stack them.
+  // A slot can hold any number of meals.
   const getMealsForSlot = (date: string, slot: string) =>
     (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
 
@@ -139,9 +135,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     startAdd(date, slot)
   }
 
-  // Move the picked meal to the target slot. When the target slot holds exactly
-  // one other meal, the two trade places (the common "swap these two" intent);
-  // when it is empty or already holds several, the picked meal just moves there.
+  // Moves the picked meal; if the target holds exactly one meal, they swap.
   const handlePlaceSwap = async (newDate: string, newSlot: string) => {
     if (!swappingMeal) return
     if (swappingMeal.mealDate === newDate && swappingMeal.mealSlot === newSlot) {
@@ -205,9 +199,8 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     }
   }
 
-  // Fill every slot of a day with the same entry, replacing whatever is
-  // already there. Slots can hold more than one row (the per-slot UNIQUE
-  // constraint was dropped), so clear all existing meals per slot first.
+  // Replaces every slot of a day; clears existing meals first since a slot
+  // can hold several.
   const handleSaveFillDay = async (
     recipeId: string,
     customName: string,

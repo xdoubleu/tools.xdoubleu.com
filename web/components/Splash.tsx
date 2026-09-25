@@ -1,6 +1,4 @@
-// Suspense fallback for AppShell — covers the gap between the initial HTML
-// shell arriving and the current-user fetch resolving, so a slow/cold start
-// shows this instead of a blank white screen.
+// Suspense fallback for AppShell while the current-user fetch resolves.
 export default function Splash() {
   return (
     <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-3">

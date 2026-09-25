@@ -15,9 +15,8 @@ import (
 // ArticleMeta carries the bibliographic fields passed to the HTML→EPUB
 // converter (see conversion_epubbuild.go, shared by PDF-to-EPUB conversion).
 // Identifier is the EPUB's unique-identifier (the OPF dc:identifier, usually
-// "urn:uuid:<bookID>") — it must be stable across regenerations of the same
-// book so the Kobo firmware can correlate a re-downloaded file with the book
-// it already has (issue #1734).
+// "urn:uuid:<bookID>") — it must be stable across regenerations so the Kobo
+// firmware can correlate a re-downloaded file with the book it already has.
 type ArticleMeta struct {
 	Title      string
 	Authors    []string

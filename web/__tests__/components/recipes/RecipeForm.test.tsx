@@ -139,7 +139,7 @@ describe('RecipeForm (new recipe)', () => {
 
   it('removes an ingredient row when Remove clicked', () => {
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
-    // Add a second row first (so Remove button appears)
+    // A second row makes Remove appear.
     fireEvent.click(screen.getByRole('button', { name: 'Add Ingredient' }))
     const removeButtons = screen.getAllByRole('button', { name: 'Remove' })
     expect(removeButtons.length).toBe(2)

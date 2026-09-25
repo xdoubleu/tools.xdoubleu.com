@@ -4,9 +4,12 @@
 - Issues: #NNNN, #NNNN
 - Affects: <paths this decision governs>
 
+Keep it short: decision, why, consequences. Bullets over paragraphs; no
+narrative of how it was found — that lives in the issues.
+
 ## Context
 
-What forced a choice. The constraint, the incident, or the requirement.
+The constraint or requirement that forced a choice, in a few sentences.
 
 ## Decision
 
@@ -14,15 +17,13 @@ What we do now, in the present tense.
 
 ## Alternatives considered
 
-What else was on the table and why it lost. An ADR without this section is a
-spec — file it as one instead.
+One line each: what else, and why it lost. Without this section it's a spec,
+not an ADR.
 
 ## Consequences
 
-What this costs, what it makes harder, and the operational gotchas that follow
-from it.
+Costs and operational gotchas.
 
 ## Revisit when
 
-The concrete condition that would make this worth reopening. "Never" is a valid
-answer; vague dissatisfaction is not a trigger.
+The concrete trigger for reopening. "Never" is valid.

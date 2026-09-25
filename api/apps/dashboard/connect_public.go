@@ -12,9 +12,8 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// publicConnectHandler serves the read-only shareable dashboards. It is
-// registered WITHOUT auth middleware: requests are authorized solely by the
-// opaque dashboard share token, resolved to the owning user here.
+// publicConnectHandler serves the shareable dashboards without auth
+// middleware; the share token alone authorizes.
 type publicConnectHandler struct {
 	app *Dashboard
 }
@@ -27,9 +26,8 @@ var _ dashboardv1connect.PublicReadingDashboardServiceHandler = (*publicConnectH
 	nil,
 )
 
-// resolveToken maps a share token to the owning user ID and display name,
-// scoped to the given dashboard kind; unknown or wrong-kind tokens surface
-// as CodeNotFound to avoid acting as a token oracle.
+// resolveToken maps a share token of the given kind to its owner; unknown or
+// wrong-kind tokens are CodeNotFound, so it's no token oracle.
 func (h *publicConnectHandler) resolveToken(
 	ctx context.Context,
 	token string,

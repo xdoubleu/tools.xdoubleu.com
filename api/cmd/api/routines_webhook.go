@@ -8,34 +8,16 @@ import (
 	"strings"
 )
 
-// routinesWebhookPath is a plain HTTP endpoint (not ConnectRPC) that a
-// Grafana webhook contact point calls directly — this is the inbound half
-// of issue #1444's immediate-fire path: a Grafana-detected problem
-// (Sentry-unresolved, security-alert, and #1443's future staleness rule)
-// reaches this route and gets translated into a routines.Client.Fire call,
-// letting the alert trigger a routine directly instead of the terminal
-// step being an email a human has to notice.
+// routinesWebhookPath is called by a Grafana webhook contact point; each
+// firing alert becomes a routines.Client.Fire call.
 const routinesWebhookPath = "/webhooks/grafana-alert"
 
-// defaultImmediateRoutineName is the routine fired when a firing alert
-// carries no "routine" label of its own — a single shared routine that
-// receives the alert's full context (rule name, labels, annotations) and
-// decides what to do, rather than provisioning a separate routine per
-// alert rule.
-//
-// A misfiring routine name is not why these fires fail: get_automated_actions
-// history showed every triggerSource "api" fire 404ing identically,
-// including one for the known-good, manually-created ready-issues-executor
-// routine. The failure lives in the outbound endpoint contract in
-// internal/routines (see its package doc — the real contract is unconfirmed
-// and still unfixed, tracked by #1808), not in this name.
+// defaultImmediateRoutineName is fired for alerts without a "routine" label;
+// it receives the alert's context and decides what to do.
 const defaultImmediateRoutineName = "immediate-response"
 
-// grafanaWebhookAlert is one entry of a Grafana alerting webhook's `alerts`
-// array. Grafana's webhook payload is Prometheus Alertmanager-shaped;
-// fields not used here (startsAt, endsAt, fingerprint, silenceURL,
-// dashboardURL, panelURL, values) are intentionally omitted rather than
-// exhaustively modeled.
+// grafanaWebhookAlert is one Alertmanager-shaped entry of the payload's
+// `alerts`; unused fields are omitted.
 type grafanaWebhookAlert struct {
 	Status       string            `json:"status"`
 	Labels       map[string]string `json:"labels"`
@@ -43,19 +25,15 @@ type grafanaWebhookAlert struct {
 	GeneratorURL string            `json:"generatorURL"`
 }
 
-// grafanaWebhookPayload is the top-level body Grafana POSTs to a webhook
-// contact point.
+// grafanaWebhookPayload is the body Grafana POSTs.
 type grafanaWebhookPayload struct {
 	Status string                `json:"status"`
 	Alerts []grafanaWebhookAlert `json:"alerts"`
 	Title  string                `json:"title"`
 }
 
-// routinesWebhookRoute authenticates via a shared bearer token
-// (ROUTINE_FIRE_TOKEN) rather than the cookie-session middleware most
-// routes in this file use, since Grafana's webhook contact point has no
-// user session to present — same shape as observabilityIngestRoute's
-// shared-secret auth.
+// routinesWebhookRoute authenticates via ROUTINE_FIRE_TOKEN; Grafana has no
+// user session.
 func (app *Application) routinesWebhookRoute() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !app.routinesWebhookAuthorized(r) {
@@ -70,10 +48,7 @@ func (app *Application) routinesWebhookRoute() http.HandlerFunc {
 		}
 
 		for _, alert := range payload.Alerts {
-			// Only a new/ongoing problem should trigger a routine — a
-			// "resolved" entry means the alert already cleared, so firing
-			// on it would send a routine to fix something that's no
-			// longer broken.
+			// Resolved alerts don't fire a routine.
 			if alert.Status != "firing" {
 				continue
 			}
@@ -86,11 +61,8 @@ func (app *Application) routinesWebhookRoute() http.HandlerFunc {
 			if err := app.routinesClient.Fire(
 				r.Context(), routineName, formatGrafanaAlertText(alert),
 			); err != nil {
-				// Logged, not surfaced as a failure response: returning a
-				// non-2xx here would make Grafana retry the whole webhook
-				// payload, re-firing any alert in it that already
-				// succeeded (Fire is not idempotent — each call opens a
-				// fresh automated_actions row).
+				// Log instead of non-2xx: Grafana would retry the whole payload, and Fire
+				// isn't idempotent.
 				app.logger.ErrorContext(
 					r.Context(), "failed to fire routine from grafana alert",
 					"error", err,
@@ -121,9 +93,7 @@ func (app *Application) routinesWebhookAuthorized(r *http.Request) bool {
 	) == 1
 }
 
-// formatGrafanaAlertText turns one firing alert into the freeform text
-// routines.Client.Fire hands the routine as context, so it doesn't have to
-// rediscover what triggered it.
+// formatGrafanaAlertText renders an alert as the routine's context.
 func formatGrafanaAlertText(alert grafanaWebhookAlert) string {
 	var b strings.Builder
 

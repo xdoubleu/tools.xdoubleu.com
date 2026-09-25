@@ -12,13 +12,9 @@ interface TogglePillProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 
 }
 
 /**
- * Pill control for selectable attributes (shelf, tag, ownership) and for
- * filter chips. Filled when active, outlined when not — that contrast is what
- * signals "this is a control", distinct from a read-only `Badge` stating a
- * static fact.
- *
- * Sets `aria-pressed` by default; pass `role="tab"`/`aria-selected` instead
- * when the pills form a tablist.
+ * Pill for selectable attributes and filter chips: filled when active,
+ * outlined when not (unlike a read-only `Badge`). Sets `aria-pressed`; pass
+ * `role="tab"`/`aria-selected` in a tablist.
  */
 function TogglePill({ label, active, className, ...props }: TogglePillProps) {
   return (

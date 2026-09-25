@@ -7,14 +7,11 @@
 #   3. .github/workflows/main.yml     -> deploy-kamal job -> the per-service
 #      "Deploy <svc> via Kamal" step's env: block        (maps a repo Secret into that script's env)
 #
-# A name added to (1) but not (2)/(3) passes every PR check and only blows up
-# when `kamal deploy` runs post-merge on main (which is never re-tested):
-#   ERROR (Kamal::ConfigurationError): Secret 'X' not found in .kamal/secrets
-# That is exactly how #1390's BMC_PARTNER_KEY reached production (fixed in
-# #1404); issue #1405 added this check so the next one turns a PR red instead.
+# Otherwise a name added to (1) only passes every PR check and fails at
+# `kamal deploy` post-merge on main.
 #
-# Run from api/ (via `make lint/kamal-secrets`). Paths resolve relative to the
-# repo root so it works from anywhere. Kept POSIX-bash-3.2 clean (macOS).
+# Run via `make lint/kamal-secrets`; paths resolve from the repo root.
+# Kept POSIX-bash-3.2 clean (macOS).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -81,12 +78,9 @@ check_service api "$root/config/deploy.api.yml"
 check_service web "$root/config/deploy.web.yml"
 check_service grafana "$root/config/deploy.grafana.yml"
 
-# Grafana-specific rule: Kamal injects every env.secret:/env.clear: name into
-# the container verbatim, and Grafana only reads GF_-prefixed env vars. A
-# non-GF_ name here is internally consistent across all three lists yet inert
-# inside the container — exactly how #1517 shipped OAUTH_GRAFANA_CLIENT_SECRET
-# (renamed to GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET in #1518). RELEASE and
-# KAMAL_* are deploy-time metadata Grafana isn't meant to consume.
+# Grafana only reads GF_-prefixed env vars, so a non-GF_ name is consistent
+# across all three lists yet inert in the container. RELEASE and KAMAL_* are
+# deploy-time metadata Grafana doesn't consume.
 grafana_config="$root/config/deploy.grafana.yml"
 grafana_env_names="$(
 	awk '
@@ -100,18 +94,12 @@ grafana_env_names="$(
 while IFS= read -r name; do
 	[ -n "$name" ] || continue
 	case "$name" in
-		# GRAFANA_SLACK_WEBHOOK_URL is read by $__env{} in
-		# infra/grafana/provisioning/alerting/contactpoints.yml (issue
-		# #1592), and GRAFANA_GITHUB_DATASOURCE_TOKEN / GRAFANA_SENTRY_DATASOURCE_TOKEN
-		# by $__env{} in infra/grafana/provisioning/datasources/issue-signals.yml
-		# (issue #1570) — not by Grafana settings. Provisioning-file
-		# interpolation accepts any env var name, so the non-GF_ spelling is
-		# deliberate. ROUTINE_FIRE_TOKEN (issue #1444) is read the same way,
-		# by the "routine-fire" webhook contact point in contactpoints.yml.
+		# Read via $__env{} in infra/grafana/provisioning/ (contactpoints.yml,
+		# datasources/issue-signals.yml), which accepts any env var name.
 		GF_* | RELEASE | KAMAL_*) ;;
 		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN | ROUTINE_FIRE_TOKEN) ;;
 		*)
-			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored (see #1517). Rename it to the GF_* name Grafana expects." >&2
+			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored. Rename it to the GF_* name Grafana expects." >&2
 			status=1
 			;;
 	esac

@@ -51,8 +51,7 @@ export type GetSharedSteamResponse = Message<"dashboard.v1.GetSharedSteamRespons
   steam?: SteamResponse | undefined;
 
   /**
-   * Most recent Steam library sync (max last_synced_at across the owner's
-   * games); empty when the library has never been synced.
+   * Latest Steam library sync; empty if never synced.
    *
    * @generated from field: string last_synced_at = 2;
    */
@@ -147,11 +146,8 @@ export const GetSharedRecentlyActiveGamesResponseSchema: GenMessage<GetSharedRec
   messageDesc(file_dashboard_v1_games, 5);
 
 /**
- * PublicGamesDashboardService serves the read-only shareable games
- * dashboard. It is registered WITHOUT auth middleware: requests are
- * authorized solely by the opaque dashboard share token (see
- * dashboard.v1.DashboardService), which resolves to the owning user.
- * Unknown tokens return CodeNotFound.
+ * PublicGamesDashboardService serves the shareable games dashboard without
+ * auth; the share token alone authorizes. Unknown tokens are CodeNotFound.
  *
  * @generated from service dashboard.v1.PublicGamesDashboardService
  */

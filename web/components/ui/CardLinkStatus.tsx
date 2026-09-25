@@ -2,11 +2,7 @@
 
 import { useLinkStatus } from 'next/link'
 
-/**
- * Drop inside a navigable card's `<Link>` (which must be `relative`) to show
- * a spinner while that link's navigation is pending — otherwise a slow route
- * transition looks like the tap did nothing.
- */
+/** Spinner inside a card's (relative) `<Link>` while its navigation is pending. */
 export function CardLinkStatus() {
   const { pending } = useLinkStatus()
   if (!pending) return null

@@ -11,9 +11,8 @@ import (
 	trainsv1 "tools.xdoubleu.com/gen/trains/v1"
 )
 
-// TestSavedCommutes_Unauthenticated pins that every saved-commute RPC
-// rejects a call with no user in context — the AppAccess middleware is the
-// real gate, this is the handler's own belt-and-braces check.
+// TestSavedCommutes_Unauthenticated: every saved-commute RPC rejects a call
+// with no user in context.
 func TestSavedCommutes_Unauthenticated(t *testing.T) {
 	h := &trainsConnectHandler{app: nil}
 	ctx := context.Background()

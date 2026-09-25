@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react'
 import DuplicateBookSummary from '@/components/books/DuplicateBookSummary'
 import type { DupUserBook } from '@/components/books/DuplicateBookSummary'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function makeUB(
   overrides: {
     isbn13?: string
@@ -35,18 +31,12 @@ function makeUB(
   }
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 describe('DuplicateBookSummary', () => {
   it('renders title and authors', () => {
     render(<DuplicateBookSummary ub={makeUB()} />)
     expect(screen.getByText('Test Book')).toBeInTheDocument()
     expect(screen.getByText('Test Author')).toBeInTheDocument()
   })
-
-  // --- ISBN prefix (Part A) ---
 
   it('shows "ISBN <number>" when ISBN-13 is present', () => {
     render(<DuplicateBookSummary ub={makeUB({ isbn13: '9780261102217' })} />)
@@ -67,8 +57,6 @@ describe('DuplicateBookSummary', () => {
     render(<DuplicateBookSummary ub={makeUB({ pageCount: 0 })} />)
     expect(screen.queryByText(/\dp$/)).not.toBeInTheDocument()
   })
-
-  // --- Metadata quality breakdown (Part B) ---
 
   it('shows Metadata score as X/5', () => {
     render(
@@ -120,8 +108,6 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('No authors')).toBeInTheDocument()
   })
 
-  // --- Format / ownership badges ---
-
   it('renders PDF badge', () => {
     render(<DuplicateBookSummary ub={makeUB({ formats: ['pdf'] })} />)
     expect(screen.getByText('PDF')).toBeInTheDocument()
@@ -172,7 +158,6 @@ describe('DuplicateBookSummary', () => {
     expect(screen.getByText('KEPUB')).toBeInTheDocument()
     expect(screen.getByText('Physical')).toBeInTheDocument()
     expect(screen.getByText('read')).toBeInTheDocument()
-    // Quality badges
     expect(screen.getByText('Cover')).toBeInTheDocument()
     expect(screen.getByText('Description')).toBeInTheDocument()
     expect(screen.getByText('Authors')).toBeInTheDocument()

@@ -14,9 +14,7 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-// Base holds the fields and lifecycle helpers shared by every app.
-// Embed this struct into your app struct; all fields are exported so
-// handler files in the embedding package can access them directly.
+// Base holds the fields and lifecycle helpers shared by every app; embed it.
 type Base struct {
 	Logger    *slog.Logger
 	Ctx       context.Context
@@ -26,8 +24,6 @@ type Base struct {
 }
 
 // NewBase initialises the shared fields for an app.
-// parentCtx is typically context.Background(); pass a derived context when
-// the app must inherit cancellation or values from an outer context (e.g. Sentry).
 func NewBase(
 	parentCtx context.Context,
 	authService auth.Service,
@@ -49,12 +45,8 @@ func (b *Base) GetDisplayName() string { return "" }
 
 func (b *Base) GetDomain() string { return "" }
 
-// ApplyMigrationsFromFS runs goose migrations from the given embed.FS under
-// a dedicated schema named schemaName.
-//
-// NOTE: goose uses package-level globals (SetTableName, SetBaseFS, SetDialect).
-// This function must not be called concurrently across apps; the existing
-// apps.ApplyMigrations loop is sequential and safe.
+// ApplyMigrationsFromFS runs goose migrations into schemaName. goose uses
+// package globals, so it must never run concurrently across apps.
 func (b *Base) ApplyMigrationsFromFS(
 	ctx context.Context,
 	db *pgxpool.Pool,

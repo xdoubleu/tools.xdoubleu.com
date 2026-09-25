@@ -60,25 +60,18 @@ func (r *FeedRepository) GetFeedInfo(
 	return info, nil
 }
 
-// stagedTables is the ordered set of bare table names ImportFeed replaces —
-// each one has a live `trains.<name>` table and a `trains.<name>_staging`
-// mirror (identical columns/PK/indexes, migration 00008_staging_tables.sql).
+// stagedTables are the tables ImportFeed replaces; each has a
+// `trains.<name>_staging` mirror.
 //
 //nolint:gochecknoglobals //fixed table list, package-level by design
 var stagedTables = []string{
 	"stop_times", "calendar_dates", "transfers", "trips", "routes", "stops",
 }
 
-// ImportFeed replaces the entire trains timetable with feed. It runs in two
-// phases, never taking a lock on a live table for longer than a metadata-only
-// rename: PopulateStaging does the slow TRUNCATE + COPY entirely against the
-// `_staging` tables, which nothing else ever queries, then SwapStagingIn
-// renames each staging table into its live counterpart's name. A single
-// TRUNCATE-then-COPY transaction against the live tables directly (the
-// previous approach) held Postgres's TRUNCATE ACCESS EXCLUSIVE lock — which,
-// unlike UPDATE/DELETE, conflicts with even a plain SELECT — for the whole
-// multi-minute import, blocking every concurrent read of those tables
-// (issue #1718).
+// ImportFeed replaces the timetable without holding a long lock on live
+// tables: PopulateStaging does TRUNCATE + COPY on `_staging` tables, then
+// SwapStagingIn renames them in. TRUNCATE's ACCESS EXCLUSIVE lock blocks
+// even plain SELECTs.
 func (r *FeedRepository) ImportFeed(
 	ctx context.Context,
 	feed *models.Feed,
@@ -89,9 +82,8 @@ func (r *FeedRepository) ImportFeed(
 	return r.SwapStagingIn(ctx, feed.Info)
 }
 
-// PopulateStaging truncates and repopulates the `_staging` tables with feed,
-// entirely independent of the live tables — safe to run for as long as the
-// import takes without affecting any concurrent reader.
+// PopulateStaging truncates and refills the `_staging` tables, which no
+// reader queries.
 func (r *FeedRepository) PopulateStaging(
 	ctx context.Context,
 	feed *models.Feed,
@@ -140,19 +132,14 @@ func (r *FeedRepository) PopulateStaging(
 	return tx.Commit(ctx)
 }
 
-// startStep opens a Sentry span for one import step, so each step's
-// duration is attributed inside the trains-static-import Sentry transaction
-// the job already reports under (issue #1818). sentry.StartSpan attaches as
-// a child of whatever span the context carries; off a job's transaction (or
-// without Sentry initialized) the span is inert, so untraced callers such as
-// integration tests pay nothing.
+// startStep opens a Sentry child span for one import step; inert without a
+// parent transaction.
 func startStep(ctx context.Context, op string) (context.Context, *sentry.Span) {
 	span := sentry.StartSpan(ctx, op)
 	return span.Context(), span
 }
 
-// copyTable runs one table's COPY under its own Sentry child span. The
-// generic is the row slice type; fn performs the actual CopyFrom.
+// copyTable runs one table's COPY under its own span.
 func copyTable[Rows any](
 	ctx context.Context,
 	tx pgx.Tx,
@@ -166,14 +153,9 @@ func copyTable[Rows any](
 	return err
 }
 
-// SwapStagingIn atomically promotes the populated `_staging` tables to be
-// the live tables, and demotes the previous live tables back to `_staging`
-// (PopulateStaging truncates them on the next import). Each table is swapped
-// via a 3-way rename — live→tmp, staging→live, tmp→staging — which is
-// metadata-only and needs an ACCESS EXCLUSIVE lock on the live table for
-// only as long as the rename itself takes, not the size of the data it
-// carries. info is written in the same transaction so a reader never
-// observes new timetable rows against stale feed_info metadata.
+// SwapStagingIn promotes `_staging` to live via a metadata-only 3-way rename
+// (live->tmp, staging->live, tmp->staging). info is written in the same
+// transaction so readers never see new rows with stale feed_info.
 func (r *FeedRepository) SwapStagingIn(
 	ctx context.Context,
 	info models.FeedInfo,
@@ -215,9 +197,7 @@ func (r *FeedRepository) SwapStagingIn(
 	return tx.Commit(ctx)
 }
 
-// CountTripsResolvingOn returns how many trips have a service that runs on
-// date, resolved from calendar_dates alone — the assertion that catches the
-// calendar.txt decoy trap (issue #1390).
+// CountTripsResolvingOn counts trips running on date via calendar_dates alone.
 func (r *FeedRepository) CountTripsResolvingOn(
 	ctx context.Context,
 	date time.Time,

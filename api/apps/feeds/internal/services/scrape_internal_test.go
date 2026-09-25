@@ -120,11 +120,7 @@ func TestCandidatePostURLRejections(t *testing.T) {
 }
 
 func TestDiscoverPostLinksExcludesLocaleSwitcherLink(t *testing.T) {
-	// Regression test for issue #1748: a language switcher whose entry
-	// links to the same page in another locale (same path, one segment
-	// swapped for another locale-code-shaped segment) is not wrapped in
-	// nav/header/footer/aside on Uber's own blog index, and its anchor
-	// text is long enough to otherwise pass the bare-link title bar.
+	// A same-page locale switcher outside nav chrome, with title-length text.
 	html := `
 	<html><body>
 	<div class="language-switcher">
@@ -155,11 +151,8 @@ func TestDiscoverPostLinksExcludesLocaleSwitcherLink(t *testing.T) {
 func TestDiscoverPostLinksExcludesLocaleSwitcherLinkRegardlessOfQueryString(
 	t *testing.T,
 ) {
-	// The same locale-switcher href observed with a different volatile
-	// query string each poll (issue #1748) must be rejected every time,
-	// not just deduped after the fact — canonicalURL only strips utm_*
-	// params, so a query-string-only difference would otherwise defeat
-	// GUID dedup and flood the feed with "new" duplicate items.
+	// The switcher href with volatile query strings must be rejected every
+	// time; canonicalURL only strips utm_* so dedup can't catch it.
 	queries := []string{
 		"",
 		"?id=222",
@@ -395,11 +388,8 @@ func TestFetchPaginatedPostLinksStopsWhenNextPageHasNoPosts(t *testing.T) {
 	assert.Equal(t, "https://example.com/posts/only-post", links[0].URL)
 }
 
-// Regression for issue #1748's third reopen: Uber's language-switcher
-// widget is site-wide chrome, so it renders on page 2's markup too — but
-// page 2's own URL carries extra path segments, so the locale-alternate
-// check must be anchored to the pagination run's first-page URL, not each
-// page's own.
+// The site-wide locale switcher on page 2 must be judged against the first
+// page's URL, since page 2's URL has extra segments.
 func TestFetchPaginatedPostLinksFiltersLocaleSwitcherOnLaterPages(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	switcher := `
@@ -442,11 +432,8 @@ func TestFetchPaginatedPostLinksFiltersLocaleSwitcherOnLaterPages(t *testing.T) 
 	}, urls)
 }
 
-// The walk must exhaust the site's pagination, not stop at a page cap —
-// issue #1842: a ceiling made older posts unreachable forever. The walk
-// ends when a page contributes nothing new (newest-first indexes: later
-// pages can't either), here simulated by the last page repeating an
-// already-seen post.
+// The walk exhausts pagination (no page cap) and ends when a page adds
+// nothing new, simulated here by the last page repeating a seen post.
 func TestFetchPaginatedPostLinksWalksUntilNoNewLinks(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	page := func(n int) string {
@@ -497,8 +484,7 @@ func TestFetchPaginatedPostLinksWalksUntilNoNewLinks(t *testing.T) {
 		"every pagination page up to the exhausted one must be fetched")
 }
 
-// A misbehaving site whose "next page" links form a cycle must not walk it
-// forever — the visited-set ends the walk.
+// A cycle of "next page" links ends via the visited set.
 func TestFetchPaginatedPostLinksStopsOnPaginationLoop(t *testing.T) {
 	webFetch := mocks.NewMockWebFetchClient()
 	firstPage := []byte(`

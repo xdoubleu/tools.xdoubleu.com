@@ -25,8 +25,7 @@ var embedMigrations embed.FS
 type Games struct {
 	app.Base
 	db postgres.DB
-	// Services and Repositories are exported so integration tests can seed
-	// data through the real service layer.
+	// Exported so integration tests can seed through the service layer.
 	Services     *services.Services
 	Repositories *repositories.Repositories
 	jobQueue     *jobqueue.JobQueue

@@ -1,10 +1,7 @@
 #!/bin/bash
-# Blocks Stop when the active worktree has finished work (commits ahead of
-# origin/main, or uncommitted changes) and no PR exists for the branch --
-# whether or not `gh` is on PATH. See
-# docs/adr-0014-start-finish-task-enforcement.md. Invoked from
-# .claude/settings.json's Stop hook; exercised by scripts/test_hooks.sh via
-# `make hooks/test`.
+# Blocks Stop when the worktree has unshipped work (commits ahead of
+# origin/main, or uncommitted changes) and no PR exists for the branch.
+# See docs/adr-0014-start-finish-task-enforcement.md.
 set -uo pipefail
 
 input=$(cat)
@@ -39,16 +36,8 @@ else
 fi
 
 # --- Does a PR already exist for this branch? ---------------------------
-# Prefer `gh` (present in an attended, local session). When it's absent --
-# a cloud/routine session has neither `gh` nor the marketplace plugins --
-# fall back to a direct GitHub REST API call, authenticated with whatever
-# credential git itself already resolves to push this branch
-# (`git credential fill`, via the repo's configured credential helper). This
-# deliberately introduces no new env var or deploy secret: it reuses the
-# exact credential that already has to exist for the branch to have been
-# pushed in the first place. If neither path can determine an answer,
-# "can't tell" still means "don't block" (issue #1400) rather than
-# false-firing.
+# Prefer `gh`; otherwise call the REST API with the credential
+# `git credential fill` resolves. If neither can tell, don't block.
 prs=""
 if command -v gh >/dev/null 2>&1; then
   prs=$(cd "$cwd" && gh pr list --head "$branch" --state all --json number --jq length 2>/dev/null)

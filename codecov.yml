@@ -19,14 +19,9 @@ coverage:
         threshold: 1%
     patch:
       default:
-        # Pinned to match the 80% threshold `tools/diff_coverage_go.py`/
-        # `tools/diff_coverage_ts.py` enforce locally (see root/api/web
-        # CLAUDE.md's "run before pushing" guidance). Without an explicit
-        # target here, Codecov falls back to "auto" — current project
-        # coverage — which floats independently of the documented 80% and
-        # silently makes this check stricter than what passes locally
-        # (issue #1303: a PR passed the local check at 83% patch coverage
-        # but failed codecov/patch, which required 85.5%).
+        # Pinned to the 80% `tools/diff_coverage_{go,ts}.py` enforce locally;
+        # otherwise Codecov uses "auto" (current project coverage), which can
+        # be stricter than what passes locally.
         target: 80%
 
 comment:
@@ -37,15 +32,8 @@ comment:
 # manually, not by go test, so it's permanently 0% and shouldn't count
 # against patch coverage on every kobo-gateway PR that touches it.
 #
-# api/gen and web/lib/gen are buf-generated ConnectRPC stubs — root CLAUDE.md
-# already excludes them from every lint/fix tool and tells contributors not
-# to even read them. Their protoc-gen-go accessor methods (GetFoo() sugar
-# around the real reflection-based marshal/unmarshal path) are essentially
-# never called directly by test code, so they sit at a permanent ~0%; a PR
-# that adds enough new proto fields can single-handedly sink patch coverage
-# below threshold for reasons unrelated to its own hand-written code (found
-# while shipping issue #1217 — a new response message's getters alone
-# dropped patch coverage from ~78% to ~74%).
+# api/gen and web/lib/gen are generated stubs whose accessors tests rarely
+# call directly, so new proto fields alone could sink patch coverage.
 #
 # go.mod/go.sum are dependency files, not code. They're updated by dependency
 # bots like Renovate and don't need test coverage (the code that uses those

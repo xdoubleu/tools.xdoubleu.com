@@ -18,20 +18,14 @@ import {
 
 interface BookShelfTagFieldsProps {
   userBook: UserBook
-  /** All known custom shelf names (excludes built-in statuses). */
   knownShelves: string[]
-  /** All known tag names for the checkbox list. */
   knownTags: string[]
   onSaved?: () => void
 }
 
 /**
- * Inline shelf/tag editor for the book detail page.
- * Renders shelf and tags as the same toggle-pill control (single-select for
- * shelf, multi-select for tags) — one click toggles, no popover or checkbox
- * list. New tags and new shelves are added via a combobox, hidden behind an
- * "Add" button until needed. Renaming or deleting shelves/tags is handled in
- * the sidebar Manage dialog.
+ * Inline shelf/tag editor: single-select shelf and multi-select tag pills,
+ * with an "Add" combobox. Renames/deletes live in the sidebar Manage dialog.
  */
 export default function BookShelfTagFields({
   userBook,
@@ -98,14 +92,12 @@ export default function BookShelfTagFields({
   }
 
   const visibleKnownTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t))
-  // Tags on this book not in the known list (edge case) plus known ones, deduped.
   const allTags = [...new Set([...visibleKnownTags, ...tags])]
   const addableTags = knownTags.filter((t) => !SPECIAL_TAGS.has(t) && !tags.includes(t))
   const addableShelves = customShelves.filter((s) => s !== status)
 
   return (
     <div className="space-y-4">
-      {/* Shelf — single-select toggle pills */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -152,7 +144,6 @@ export default function BookShelfTagFields({
         )}
       </div>
 
-      {/* Tags — clickable chips toggle in place, no popover/checkbox list */}
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Tags</Label>
         {allTags.length === 0 ? (

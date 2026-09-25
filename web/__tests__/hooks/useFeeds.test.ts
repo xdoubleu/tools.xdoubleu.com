@@ -189,15 +189,11 @@ describe('useFeeds', () => {
     await result.current('item-1', { read: true })
     expect(clientMocks.updateItem).toHaveBeenCalledWith({ itemId: 'item-1', read: true })
 
-    // revalidate:false is the point — UpdateItem already returned the new
-    // row, so refetching a whole page of items to learn it would re-pull
-    // every article in the page (issue #1027).
+    // No refetch: UpdateItem already returned the row.
     expect(mutateMock).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), {
       revalidate: false
     })
 
-    // The matcher must catch both unread-only and all-items page keys, since
-    // a mutation doesn't know which variant is on-screen.
     const matcher = mutateMock.mock.calls[0]![0]
     if (typeof matcher !== 'function') throw new Error('expected a matcher function')
     expect(matcher(swrKeys.feedItems(true))).toBe(true)

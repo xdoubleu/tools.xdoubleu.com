@@ -13,8 +13,7 @@ message PlanMeal {
   string custom_name = 6;
   int32 servings = 7;
   recipes.v1.Recipe recipe = 8;
-  // When set, a custom (recipe-less) entry still shows on the calendar and the
-  // iCal feed but its items are excluded from the shopping-list export.
+  // Keeps a custom entry on the calendar/iCal but out of the shopping export.
   bool exclude_from_shopping_list = 9;
 }
 

@@ -13,8 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
-// ProjectIssue is a single open issue on a GitHub Projects (v2) board,
-// annotated with the Status field value it currently sits under.
+// ProjectIssue is an open issue on a Projects (v2) board with its Status value.
 type ProjectIssue struct {
 	Number int64
 	Title  string
@@ -22,18 +21,13 @@ type ProjectIssue struct {
 	Status string
 }
 
-// issueStateOpen is the GitHub Issues API "open" state.
 const issueStateOpen = "OPEN"
 
-// projectItemsPageSize caps how many project items are fetched in one
-// GraphQL request. The boards this queries belong to a single maintainer's
-// own repo, well under this in practice — no cursor pagination is needed.
+// projectItemsPageSize: boards stay well under this, so no cursor pagination.
 const projectItemsPageSize = 100
 
-// projectIssuesByStatusQuery reads a user-owned ProjectV2 board's items
-// (issue #1357 — the admin's own project board is a personal project, not
-// an organization one, which GitHub's REST API and the separate GitHub MCP
-// server tooling both fail to resolve custom fields for).
+// projectIssuesByStatusQuery uses GraphQL because the REST API can't resolve a
+// user-owned (non-org) project's custom fields.
 const projectIssuesByStatusQuery = `
 query($login: String!, $number: Int!, $pageSize: Int!) {
   user(login: $login) {
@@ -59,8 +53,6 @@ query($login: String!, $number: Int!, $pageSize: Int!) {
   }
 }`
 
-// projectIssuesByStatusResponse is the subset of the GraphQL response that
-// is decoded.
 type projectIssuesByStatusResponse struct {
 	Data struct {
 		User struct {
@@ -88,10 +80,8 @@ type projectItemNodeWire struct {
 	} `json:"content"`
 }
 
-// ListProjectIssuesByStatus returns the open issues on the configured
-// repository owner's GitHub Projects (v2) board number projectNumber whose
-// Status field matches status (case-insensitive exact match, e.g. "Ready").
-// Returns ErrNotConfigured when no token/repo is set.
+// ListProjectIssuesByStatus returns open issues on the owner's Projects (v2)
+// board projectNumber whose Status matches (case-insensitive).
 func (c *client) ListProjectIssuesByStatus(
 	ctx context.Context, projectNumber int64, status string,
 ) ([]ProjectIssue, error) {
@@ -152,9 +142,7 @@ func filterProjectIssuesByStatus(
 	return issues
 }
 
-// postGraphQL posts a single GraphQL query/variables payload to GitHub's
-// GraphQL endpoint, decoding the raw {"data":...,"errors":...} envelope into
-// dst. Shares doWithRetry's backoff/retry semantics with get/patch.
+// postGraphQL posts a GraphQL query into dst, with doWithRetry's retries.
 func (c *client) postGraphQL(
 	ctx context.Context, token, query string, variables map[string]any, dst any,
 ) error {

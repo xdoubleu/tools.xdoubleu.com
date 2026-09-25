@@ -1,84 +1,63 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
-/*
- * Semantic colors are defined as raw RGB triples (--*-rgb) that swap for
- * dark mode via the media query below, then exposed to Tailwind through
- * `@theme inline` so utilities (bg-bg, text-fg, ...) and opacity modifiers
- * (border-border/60) track the active scheme at runtime.
- */
+/* RGB triples swap per theme and reach Tailwind via `@theme inline`, so
+ * utilities and opacity modifiers track the active scheme. */
 :root {
-  /* Base surfaces */
   --bg-rgb: 242 242 247;
   --surface-rgb: 255 255 255;
   --card-rgb: 255 255 255;
-  /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
+  /* Hover fill for surface/ghost controls */
   --hover-rgb: 229 229 234;
 
-  /* Text */
   --fg-rgb: 0 0 0;
   --muted-rgb: 99 99 102;
   --subtle-rgb: 60 60 67;
 
-  /* Borders */
   --border-rgb: 209 209 214;
 
-  /* Inputs */
   --input-rgb: 255 255 255;
   --input-border-rgb: 174 174 178;
   --input-text-rgb: 0 0 0;
 
-  /* Accent — Apple system blue */
+  /* Apple system blue */
   --accent-rgb: 0 122 255;
   --accent-hover-rgb: 0 102 214;
 
-  /* Semantic */
   --success-rgb: 52 199 89;
   --warn-rgb: 255 149 0;
   --danger-rgb: 255 59 48;
 
-  /* Glass shell — translucent for sticky navbar/footer */
+  /* Translucent sticky navbar/footer */
   --glass-rgb: 255 255 255;
   --glass-opacity: 0.72;
 }
 
-/*
- * Dark values key off `data-theme` rather than `prefers-color-scheme`, so the
- * Appearance setting (auto/light/dark) can force a scheme. The inline script in
- * `app/layout.tsx` (`themeInitScript` in `lib/theme.ts`) resolves the stored
- * preference — including `auto` → system — onto <html> before first paint.
- */
+/* Keyed off `data-theme` so the Appearance setting can force a scheme;
+ * `themeInitScript` (lib/theme.ts) sets it before first paint. */
 :root[data-theme='dark'] {
-  /* Base surfaces */
   --bg-rgb: 0 0 0;
   --surface-rgb: 28 28 30;
   --card-rgb: 28 28 30;
-  /* Subtle fill for hover on surface/ghost controls (distinct from surface/card) */
   --hover-rgb: 44 44 46;
 
-  /* Text */
   --fg-rgb: 255 255 255;
   --muted-rgb: 152 152 157;
   --subtle-rgb: 174 174 178;
 
-  /* Borders */
   --border-rgb: 58 58 60;
 
-  /* Inputs */
   --input-rgb: 44 44 46;
   --input-border-rgb: 72 72 74;
   --input-text-rgb: 255 255 255;
 
-  /* Accent — Apple system blue dark */
   --accent-rgb: 10 132 255;
   --accent-hover-rgb: 64 156 255;
 
-  /* Semantic */
   --success-rgb: 48 209 88;
   --warn-rgb: 255 159 10;
   --danger-rgb: 255 69 58;
 
-  /* Glass shell — dark translucent */
   --glass-rgb: 28 28 30;
   --glass-opacity: 0.8;
 }
@@ -109,7 +88,6 @@
   --shadow-elevated:
     0 4px 16px 0 rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
 
-  /* Sharper, more modern corners — overrides Tailwind's default radius scale */
   --radius-sm: 0.125rem;
   --radius-md: 0.25rem;
   --radius-lg: 0.25rem;
@@ -117,11 +95,10 @@
   --radius-2xl: 0.5rem;
 }
 
-/* Smooth scroll & antialiasing */
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* App-like: allow scrolling, disable double-tap zoom and tap delay */
+  /* Disable double-tap zoom and tap delay */
   touch-action: manipulation;
 }
 
@@ -129,11 +106,7 @@ button:not([disabled]) {
   cursor: pointer;
 }
 
-/*
- * Feed items ingested from raw HTML (e.g. email-sourced RSS) can carry
- * fixed-width tables/images that would otherwise overflow the `prose`
- * container and force horizontal page scroll (#715).
- */
+/* Ingested HTML can carry fixed-width tables/images that overflow `prose`. */
 .prose {
   overflow-wrap: anywhere;
 }
@@ -142,33 +115,16 @@ button:not([disabled]) {
   max-width: 100%;
 }
 
-/*
- * `display:block` + `overflow-x:auto` (the prior attempt) doesn't reliably
- * cap a <table width="570"> on mobile Safari: the table's <tr>/<td>
- * children keep their table-row/table-cell display since only the <table>
- * itself was switched away from table layout, so the engine still has to
- * generate an anonymous inner table to hold them — and that anonymous
- * table isn't matched by this selector, so it reverts to the attribute's
- * width. Forcing `table-layout: fixed` keeps the element a real table (no
- * anonymous-box fallback) and makes column widths derive purely from the
- * table's own width, ignoring any HTML `width` attribute/hint entirely.
- */
+/* `table-layout: fixed` keeps a real table so mobile Safari can't fall back
+ * to an anonymous inner table sized by the HTML `width` attribute. */
 .prose table {
   width: 100% !important;
   table-layout: fixed;
 }
 
-/*
- * Third-party HTML is authored for a white page: it ships inline
- * `style="color:#333"` / legacy `color=`/`bgcolor=` attributes, and
- * `@tailwindcss/typography` adds its own light-only palette for `a`,
- * `strong`, headings and `code`. Both survive into dark mode as near-black
- * text on a near-black background (#921). Nothing a source sets can be
- * trusted against our surface, so drop its colors entirely — `!important`
- * to beat inline styles — and re-derive from the theme. Only descendants
- * are targeted; the container itself keeps whatever `text-*` its call site
- * chose (e.g. recipes uses `text-subtle`).
- */
+/* Third-party HTML brings light-only colors (inline styles, typography's
+ * palette), unreadable in dark mode: drop them (`!important` beats inline)
+ * and re-derive from the theme. Descendants only. */
 .prose * {
   background-color: transparent !important;
   color: rgb(var(--fg-rgb)) !important;

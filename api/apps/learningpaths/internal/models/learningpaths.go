@@ -43,20 +43,14 @@ type Resource struct {
 	LinkedBookID     *uuid.UUID
 	LinkedFeedItemID *uuid.UUID
 
-	// LinkedBook/LinkedFeedItem hold the resolved, read-only state of
-	// LinkedBookID/LinkedFeedItemID — populated by
-	// LearningPathService.Get when the link still resolves for the calling
-	// user, nil otherwise (including when the linked book/feed item has
-	// since been removed). Never persisted; always nil coming out of the
-	// repository layer.
+	// LinkedBook/LinkedFeedItem are resolved by LearningPathService.Get when
+	// the link still resolves for the caller, else nil. Never persisted.
 	LinkedBook     *LinkedBook
 	LinkedFeedItem *LinkedFeedItem
 }
 
-// LinkedBook is the resolved state of a resource linked to a books library
-// entry (#1474): enough to show the entry's own reading progress alongside
-// the path item, without learningpaths depending on books' proto/internal
-// types directly.
+// LinkedBook is the resolved state of a resource linked to a books entry,
+// independent of books' own types.
 type LinkedBook struct {
 	Title           string
 	Status          string
@@ -64,8 +58,7 @@ type LinkedBook struct {
 	CoverURL        string
 }
 
-// LinkedFeedItem is the resolved state of a resource linked to a feeds
-// item (#1474) — same purpose as LinkedBook.
+// LinkedFeedItem is the resolved state of a resource linked to a feeds item.
 type LinkedFeedItem struct {
 	Title      string
 	SourceURL  string
@@ -73,9 +66,7 @@ type LinkedFeedItem struct {
 	Bookmarked bool
 }
 
-// ItemForTask is the minimal projection SendItemToTodoist needs to build a
-// Todoist task's content — the item itself plus its owning path's title for
-// context, not the full tree (issue #1475).
+// ItemForTask is an item plus its path's title, for building a Todoist task.
 type ItemForTask struct {
 	Item      Item
 	PathTitle string

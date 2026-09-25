@@ -13,18 +13,13 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-// SessionUserResolver resolves the currently-authenticated web session's
-// user (identity plus the attributes the ID-token claims are built from)
-// from the request's own session cookie — passed in from cmd/api (the
-// composition root, which is the only place both internal/auth and
-// internal/oauth2as are wired together) rather than imported directly here,
-// to avoid a cycle between the two packages.
+// SessionUserResolver resolves the web session's user from its cookie. It is
+// injected by cmd/api to avoid an auth <-> oauth2as import cycle.
 type SessionUserResolver func(r *http.Request) (user ResolvedUser, ok bool)
 
-// AuthorizeHandler implements the /oauth2/authorize endpoint. The first hit
-// (no consent decision yet) redirects to the web app's own consent page;
-// consent=allow completes the flow (re-verifying the session server-side as
-// defense in depth), consent=deny writes a standard access_denied error.
+// AuthorizeHandler serves /oauth2/authorize: first hit redirects to the web
+// consent page; consent=allow re-verifies the session and completes,
+// consent=deny returns access_denied.
 func AuthorizeHandler(
 	provider fosite.OAuth2Provider,
 	cfg config.Config,
@@ -54,9 +49,7 @@ func AuthorizeHandler(
 		}
 
 		if consent == "deny" {
-			// A user declining is a normal outcome, not a failure — logged
-			// (at Warn, since it carries no grant_type) only so the consent
-			// leg's rejections are as visible as the token leg's.
+			// Declining is normal; logged only for visibility.
 			logOAuthError(
 				ctx, logger, endpointAuthorize, ar, fosite.ErrAccessDenied,
 			)
@@ -73,12 +66,8 @@ func AuthorizeHandler(
 			return
 		}
 
-		// Consent has just been granted for exactly the requested scopes —
-		// without this, GrantedScope stays empty and the token endpoint
-		// never issues a refresh token (canIssueRefreshToken requires
-		// offline_access among the *granted*, not merely requested, scopes),
-		// silently breaking every client despite offline_access being on
-		// the registered client's scope list.
+		// Grant the requested scopes: fosite only issues a refresh token when
+		// offline_access is granted, not merely requested.
 		for _, scope := range ar.GetRequestedScopes() {
 			ar.GrantScope(scope)
 		}
@@ -96,8 +85,7 @@ func AuthorizeHandler(
 	}
 }
 
-// TokenHandler implements the /oauth2/token endpoint (authorization_code and
-// refresh_token grants).
+// TokenHandler serves /oauth2/token (authorization_code and refresh_token).
 func TokenHandler(
 	provider fosite.OAuth2Provider,
 	logger *slog.Logger,
@@ -105,10 +93,8 @@ func TokenHandler(
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// openid.DefaultSession (not fosite.DefaultSession): the OIDC token
-		// handlers require a session that carries ID-token claims. For the
-		// non-OIDC (MCP) flow it behaves identically — Subject still round-
-		// trips and no ID token is issued without the openid scope.
+		// The OIDC handlers need an openid session; for the MCP flow it behaves like
+		// the default one.
 		session := openid.NewDefaultSession()
 		ar, err := provider.NewAccessRequest(ctx, r, session)
 		if err != nil {
@@ -128,8 +114,6 @@ func TokenHandler(
 	}
 }
 
-// registerRequest/registerResponse are the RFC 7591 request/response shapes
-// this server accepts and returns.
 type registerRequest struct {
 	RedirectURIs []string `json:"redirect_uris"`
 	ClientName   string   `json:"client_name"`
@@ -142,14 +126,12 @@ type registerResponse struct {
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
 	GrantTypes              []string `json:"grant_types"`
 	ResponseTypes           []string `json:"response_types"`
-	// Scope is the space-delimited scope the server assigned this client
-	// (RFC 7591 §3.2.1). Echoing it is what tells a client to ask for
-	// offline_access, and so to be issued a refresh token.
+	// Scope echoes the assigned scope (RFC 7591 §3.2.1) so clients ask for
+	// offline_access.
 	Scope string `json:"scope"`
 }
 
-// RegisterHandler implements RFC 7591 dynamic client registration at
-// /oauth2/register.
+// RegisterHandler serves RFC 7591 registration at /oauth2/register.
 func RegisterHandler(store *Store, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -184,10 +166,8 @@ func RegisterHandler(store *Store, logger *slog.Logger) http.HandlerFunc {
 	}
 }
 
-// ConsentInfoHandler implements GET /oauth2/consent-info: echoes back the
-// pending authorization request's client name and the scope that approving it
-// will actually grant, for the web consent page to display before it POSTs
-// the user's decision back to /oauth2/authorize.
+// ConsentInfoHandler serves GET /oauth2/consent-info: the pending request's
+// client name and the scope approval will grant.
 func ConsentInfoHandler(store *Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientID := r.URL.Query().Get("client_id")
@@ -197,9 +177,7 @@ func ConsentInfoHandler(store *Store) http.HandlerFunc {
 			return
 		}
 
-		// The scope shown is the one that will actually be granted, not the
-		// raw request parameter — AuthorizeHandler adds offline_access on top
-		// of whatever the client asked for.
+		// Show the scope that will be granted (AuthorizeHandler adds offline_access).
 		var clientScopes []string
 		if client, cErr := store.GetClient(r.Context(), clientID); cErr == nil {
 			clientScopes = client.GetScopes()

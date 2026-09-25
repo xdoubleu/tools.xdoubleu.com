@@ -69,8 +69,7 @@ func (x *GetSharedLibraryRequest) GetToken() string {
 type GetSharedLibraryResponse struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Library *v1.LibraryResponse    `protobuf:"bytes,1,opt,name=library,proto3" json:"library,omitempty"`
-	// Most recent Kobo device sync (max last_seen_at); empty when the owner
-	// has no Kobo devices. Kobo sync is the books equivalent of a refresh.
+	// Latest Kobo device sync (the books refresh); empty with no devices.
 	LastSyncedAt string `protobuf:"bytes,2,opt,name=last_synced_at,json=lastSyncedAt,proto3" json:"last_synced_at,omitempty"`
 	// The owner's public profile display name.
 	DisplayName   string `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
@@ -277,11 +276,7 @@ func (x *GetSharedFeedsSummaryRequest) GetToken() string {
 	return ""
 }
 
-// SharedFeed is a lightweight, read-only projection of one feeds.v1.Feed for
-// the reading dashboard's feeds widget — just the subscription's name and
-// public URL, not read state or any of feeds.v1.Feed's private fields
-// (last_error, notified_at, inbound_address, ...), which are not meaningful
-// to a visitor of a shared profile.
+// SharedFeed is a feed's public name and URL, without private fields.
 type SharedFeed struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Title string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`

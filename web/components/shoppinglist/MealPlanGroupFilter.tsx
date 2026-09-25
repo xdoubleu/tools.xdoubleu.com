@@ -13,10 +13,8 @@ interface MealPlanGroupFilterProps {
   onToggle: (groupName: string) => void
 }
 
-// Landing-page control for excluding recipe ingredient groups from the
-// meal-plan items (and, in turn, the export). A checkbox is checked when the
-// group is included; unchecking it excludes the group. Renders nothing when the
-// meal plans expose no ingredient groups.
+// Include/exclude recipe ingredient groups from the meal-plan items; renders
+// nothing when there are none.
 export default function MealPlanGroupFilter({
   groups,
   excludedGroups,

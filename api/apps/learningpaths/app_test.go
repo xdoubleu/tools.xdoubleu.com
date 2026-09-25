@@ -35,10 +35,8 @@ var (
 	userID    = "4001e9cf-3fbe-4b09-863f-bd1654cfbf76"
 )
 
-// fakeBooksWebFetchClient/fakeFeedsWebFetchClient are small local stand-ins
-// for their apps' respective webfetch.Client — this package's tests never
-// trigger a real fetch, they seed library/feed data directly via the real
-// service layer or SQL, so every call errors.
+// fakeBooksWebFetchClient/fakeFeedsWebFetchClient error on every call; these
+// tests never fetch.
 type fakeBooksWebFetchClient struct{}
 
 func (fakeBooksWebFetchClient) Get(

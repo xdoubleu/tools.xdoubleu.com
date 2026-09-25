@@ -16,15 +16,13 @@ import (
 	"tools.xdoubleu.com/internal/validate"
 )
 
-// SubscribeMessageDto is implemented by all messages
-// used to subscribe to a certain handler of a [WebSocketHandler].
+// SubscribeMessageDto is implemented by messages that subscribe to a topic.
 type SubscribeMessageDto interface {
 	validate.ValidatedType
 	Topic() string
 }
 
-// A WebSocketHandler handles incoming requests to a
-// websocket and makes sure subscriptions are made to the right topics.
+// WebSocketHandler routes incoming subscriptions to the right topics.
 type WebSocketHandler[T SubscribeMessageDto] struct {
 	ctx                    context.Context
 	logger                 *slog.Logger
@@ -49,9 +47,8 @@ func CreateWebSocketHandler[T SubscribeMessageDto](
 	}
 }
 
-// AddTopic adds a topic to which can be subscribed using a [SubscribeMessageDto].
-// The onSubscribeCallback is called for each
-// new subscriber to fetch data to send them back.
+// AddTopic adds a subscribable topic; onSubscribeCallback supplies each new
+// subscriber's initial data.
 func (h *WebSocketHandler[T]) AddTopic(
 	topicName string,
 	allowedOrigins []string,
@@ -98,7 +95,7 @@ func (h *WebSocketHandler[T]) UpdateTopicName(
 	return newTopic, nil
 }
 
-// RemoveTopic removes a topic to which can be subscribed using a [SubscribeMessageDto].
+// RemoveTopic removes a topic.
 func (h *WebSocketHandler[T]) RemoveTopic(topic *Topic) error {
 	_, ok := h.topicMap[topic.Name]
 	if !ok {
@@ -118,7 +115,6 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 			return
 		}
 
-		// in case you want to subscribe on multiple topics
 		for {
 			var msg T
 			err = wsjson.Read(r.Context(), conn, &msg)
@@ -157,29 +153,11 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 	}
 }
 
-// acceptWithHandshakeSpan performs the WebSocket handshake/upgrade,
-// measuring it as its own Sentry transaction rather than letting it be
-// folded into the connection-lifetime transaction sentryhttp's middleware
-// starts around the whole handler call. That outer transaction never
-// returns until the socket closes, so its "duration" measures how long a
-// client kept the connection open, not request latency, and is expected to
-// permanently breach HTTP-class slow-transaction alerting for any
-// long-lived connection (issue #1320) — accepted as inherent to a
-// WebSocket route rather than excluded from alerting. What that permanently
-// -breaching transaction can't provide is a *bounded* signal for the route:
-// this gives it one, by measuring just the handshake itself, still subject
-// to the ordinary HTTP threshold, so a real upgrade-path regression (e.g. a
-// slow auth check added in front of websocket.Accept) still alerts
-// distinctly from the expected long-connection breach.
-//
-// The transaction is started from a fresh context rather than r.Context():
-// sentry.StartTransaction returns the existing transaction unchanged when
-// one is already present in the context (which r.Context() carries, from
-// sentryhttp) instead of starting a new one, so reusing r.Context() here
-// would just hand back that same connection-lifetime transaction. The name
-// carries a distinct "[ws-handshake]" suffix so it aggregates in Sentry
-// separately from the connection transaction's own "GET .../api/progress"
-// name.
+// acceptWithHandshakeSpan measures the upgrade as its own Sentry transaction
+// ("[ws-handshake]"), giving the route a bounded latency signal; the outer
+// sentryhttp transaction lasts as long as the socket stays open. It uses a
+// fresh context because StartTransaction would return r.Context()'s existing
+// transaction.
 func acceptWithHandshakeSpan(
 	w http.ResponseWriter,
 	r *http.Request,

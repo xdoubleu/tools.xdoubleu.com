@@ -560,12 +560,10 @@ describe('SteamGameClient', () => {
 
       render(<SteamGameClient id="123" />)
 
-      // Enable high poll mode.
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
       })
 
-      // No call before interval fires.
       expect(mockRefreshSteamGame).not.toHaveBeenCalled()
 
       await act(async () => {
@@ -647,7 +645,6 @@ describe('SteamGameClient', () => {
 
       render(<SteamGameClient id="123" />)
 
-      // Enable then disable.
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'High poll: off' }))
       })
@@ -684,7 +681,7 @@ describe('SteamGameClient', () => {
         jest.advanceTimersByTime(60_000)
       })
 
-      // mutate must not be called on failure; prior data remains.
+      // No mutate on failure; prior data remains.
       expect(mutate).not.toHaveBeenCalled()
       expect(screen.getByText('Achievement 2')).toBeInTheDocument()
     })

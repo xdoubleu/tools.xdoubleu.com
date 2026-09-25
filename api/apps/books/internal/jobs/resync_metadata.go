@@ -10,22 +10,10 @@ import (
 	"tools.xdoubleu.com/internal/progressws"
 )
 
-// ResyncMetadataJob scans the whole catalog for metadata differences
-// against UniCat and Hardcover, and stores what it finds for
-// the admin resync wizard to review. It has no RunEvery method, so it's
-// trigger-only (see threading.Scheduled): the scheduler tick never runs it,
-// only the admin resync wizard's StartResync RPC does (Arm +
-// JobQueue.ForceRun). The armed guard stays as a second, cheap check against
-// Run() ever being invoked without an Arm() first.
-//
-// force bypasses the skip-if-known cache for every source — see
-// BookService.BuildResyncProposals.
-//
-// It never writes to a book itself — that only happens when an admin resolves
-// a proposal via BookService.ApplyResyncChoice.
-//
-// The job holds a reference to the progress WebSocket service so it can emit
-// per-book progress events (X of N) over the /books/api/progress WebSocket.
+// ResyncMetadataJob scans the catalog against UniCat and Hardcover and stores
+// proposals for the admin wizard, reporting progress over the progress
+// WebSocket. It is trigger-only (no RunEvery): StartResync Arms it and
+// force-runs it; the armed guard is a second check. It never writes to books.
 type ResyncMetadataJob struct {
 	books *services.BookService
 	ws    *progressws.Service
@@ -50,16 +38,14 @@ func (j *ResyncMetadataJob) ID() string {
 	return "resync-books"
 }
 
-// Arm marks the job to scan the whole catalog on the next Run call. force
-// bypasses every source's skip-if-known cache for that run — see
-// BookService.BuildResyncProposals.
+// Arm makes the next Run scan the whole catalog; force bypasses the
+// skip-if-known cache.
 func (j *ResyncMetadataJob) Arm(force bool) {
 	j.armed.Store(true)
 	j.force.Store(force)
 }
 
-// Cancel stops an in-progress scan, if one is running. A no-op otherwise —
-// there's nothing to stop between runs.
+// Cancel stops an in-progress scan, if any.
 func (j *ResyncMetadataJob) Cancel() {
 	j.mu.Lock()
 	cancel := j.cancel

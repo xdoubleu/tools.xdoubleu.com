@@ -35,9 +35,7 @@ func seedFeedItem(t *testing.T, owner, title string) uuid.UUID {
 	return itemID
 }
 
-// TestGetItemByID_Owner confirms GetItemByID — the exported method the
-// learningpaths app (#1474) uses to resolve a resource linked to a feeds
-// item — returns the caller's own item.
+// TestGetItemByID_Owner: the caller's own item is returned.
 func TestGetItemByID_Owner(t *testing.T) {
 	itemID := seedFeedItem(t, userID, "GetItemByID Owner")
 
@@ -47,9 +45,7 @@ func TestGetItemByID_Owner(t *testing.T) {
 	assert.Equal(t, "GetItemByID Owner", result.Title)
 }
 
-// TestGetItemByID_OtherUserNotFound confirms an item that exists but
-// belongs to a different user's feed 404s rather than leaking its
-// existence or data.
+// TestGetItemByID_OtherUserNotFound: another user's item 404s.
 func TestGetItemByID_OtherUserNotFound(t *testing.T) {
 	itemID := seedFeedItem(t, "a-different-user", "GetItemByID Foreign")
 
@@ -57,8 +53,7 @@ func TestGetItemByID_OtherUserNotFound(t *testing.T) {
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
-// TestGetItemByID_MissingNotFound confirms an item ID that doesn't exist at
-// all also 404s.
+// TestGetItemByID_MissingNotFound: a nonexistent item 404s.
 func TestGetItemByID_MissingNotFound(t *testing.T) {
 	_, err := testApp.GetItemByID(context.Background(), userID, uuid.New())
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)

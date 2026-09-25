@@ -5,9 +5,7 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/books/checksum', () => ({
   sha256Hex: jest.fn().mockResolvedValue('aabbccdd')
 }))
-// The real limiter paces at 3 req/s — no-op it so retry/backoff tests (which
-// use real timers) stay fast and their timing assertions stay about the
-// retry backoff, not this pacing.
+// No-op the 3 req/s limiter so retry tests stay fast.
 jest.mock('@/lib/books/rateLimiter', () => ({
   createRateLimiter: () => async () => {}
 }))
@@ -141,9 +139,7 @@ describe('useSearchLibrary', () => {
   })
 
   it('returns a stable function reference across re-renders', () => {
-    // Regression test: before the fix, useSearchLibrary returned a new function
-    // every render, causing an infinite effect loop in BookSearchBar that
-    // swallowed Next.js <Link> navigation until the user typed something.
+    // Regression: an unstable function caused an effect loop in BookSearchBar.
     const { result, rerender } = renderHook(() => useSearchLibrary())
     const first = result.current
     rerender()
@@ -159,7 +155,6 @@ describe('useSearchExternal', () => {
   })
 
   it('returns a stable function reference across re-renders', () => {
-    // Same regression as useSearchLibrary — both hooks were unstable before the fix.
     const { result, rerender } = renderHook(() => useSearchExternal())
     const first = result.current
     rerender()
@@ -628,8 +623,7 @@ describe('useUploadBookFile', () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: true })
 
     const { result } = renderHook(() => useUploadBookFile())
-    // No explicit type: also exercises the application/octet-stream fallback
-    // on the retry path.
+    // No type: exercises the application/octet-stream fallback.
     const file = new File(['data'], 'book.epub')
     const uploadResult = await result.current(file)
 

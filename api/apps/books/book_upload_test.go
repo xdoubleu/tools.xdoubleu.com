@@ -24,8 +24,6 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// --- test data helpers ---
-
 func buildEPUBBytes(title, author, isbn13 string) []byte {
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
@@ -68,11 +66,8 @@ func minimalPDFData() []byte {
 	return []byte("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF")
 }
 
-// simulateUpload is the two-phase test helper:
-//  1. Call CreateUpload to get a presigned key (with empty checksum so no
-//     dedup shortcut is applied — ensures bytes always go through R2).
-//  2. PUT the bytes into the fake object store at that key.
-//  3. Call FinalizeUpload to complete registration.
+// simulateUpload runs CreateUpload (empty checksum, so bytes always go through
+// R2), PUTs into the fake store, then FinalizeUpload.
 func simulateUpload(
 	ctx context.Context,
 	t *testing.T,
@@ -82,14 +77,12 @@ func simulateUpload(
 	fake *objectstore.FakeClient,
 ) (*bsvc.UploadFileResult, error) {
 	t.Helper()
-	// Empty checksum forces the slow path (actual upload) for test simplicity.
 	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
 		ctx, uID, filename, contentType, int64(len(data)), "",
 	)
 	if err != nil {
 		return nil, err
 	}
-	// Simulate the browser PUT directly to R2.
 	require.NoError(
 		t,
 		fake.Put(ctx, uploadID, bytes.NewReader(data), int64(len(data)), contentType),
@@ -106,7 +99,6 @@ func simulateUpload(
 	)
 }
 
-// uploadViaTestApp uploads via the shared testApp and fakeStore globals.
 func uploadViaTestApp(
 	t *testing.T,
 	uid, filename, contentType string,
@@ -118,10 +110,8 @@ func uploadViaTestApp(
 	)
 }
 
-// seedBookInLibrary adds a book with the given title, author, and ISBN13 to the
-// specified user's library. Pass an empty string for isbn if the book has none.
-// Use this helper whenever recognition must succeed via the title+author or
-// ISBN match — ensure the author matches exactly what the EPUB/PDF carries.
+// seedBookInLibrary adds a book to uid's library (isbn may be ""). The author
+// must match the file's exactly for recognition.
 func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.UserBook {
 	t.Helper()
 	ext := bsvc.SourceProposal{ //nolint:exhaustruct //optional fields not needed
@@ -140,8 +130,6 @@ func seedBookInLibrary(t *testing.T, uid, title, author, isbn string) *models.Us
 	require.NotNil(t, ub)
 	return ub
 }
-
-// --- service-level tests ---
 
 func TestUploadFile_UnsupportedFormat(t *testing.T) {
 	fakeStore := fakeStore
@@ -163,11 +151,9 @@ func TestUploadFile_UnsupportedFormat_ShortData(t *testing.T) {
 	assert.ErrorIs(t, err, bsvc.ErrInvalidFormat)
 }
 
-// TestUploadFile_PDF_NoMetadata_Rejected verifies that a PDF with no Info-dict
-// metadata (no title, no author) and a filename that matches no provider
-// result is still rejected because the book cannot be recognized, and the
-// temp upload object is removed from the bucket. Uses noExternalMatchApp
-// since testApp's mock Hardcover client matches any query.
+// TestUploadFile_PDF_NoMetadata_Rejected: an unrecognizable PDF is rejected
+// and its temp object removed. Uses noExternalMatchApp since testApp's mock
+// Hardcover matches any query.
 func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 	const isolatedUser = "pdf-no-meta-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
@@ -189,15 +175,13 @@ func TestUploadFile_PDF_NoMetadata_Rejected(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
 
-	// Temp object must have been cleaned up by the service.
 	exists, existsErr := fakeStore.Exists(context.Background(), uploadID)
 	require.NoError(t, existsErr)
 	assert.False(t, exists, "temp upload object must be deleted on rejection")
 }
 
-// TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches verifies that when a
-// PDF has no Info-dict title, the filename-derived fallback title is used
-// and can still resolve a match via external search (issue #394).
+// TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches checks the
+// filename-derived title resolves a match.
 func TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches(t *testing.T) {
 	fakeStore := fakeStore
 	data := minimalPDFData()
@@ -210,10 +194,8 @@ func TestUploadFile_PDF_NoMetadata_FilenameFallback_Matches(t *testing.T) {
 	assert.False(t, result.MatchedExisting)
 }
 
-// TestUploadFile_PDF_NoMetadata_TitleOverride_Matches verifies that an
-// explicit title override lets a PDF with no usable metadata resolve a match
-// via external search, even when the filename itself is not usable as a
-// title (issue #394's manual-entry recovery path).
+// TestUploadFile_PDF_NoMetadata_TitleOverride_Matches checks an explicit title
+// override resolves a match when the filename is unusable.
 func TestUploadFile_PDF_NoMetadata_TitleOverride_Matches(t *testing.T) {
 	data := minimalPDFData()
 	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
@@ -306,14 +288,12 @@ func TestUploadFile_EnsuresOwnDigitalTag(t *testing.T) {
 	assert.Contains(t, ub.Tags, models.TagOwnDigital)
 }
 
-// TestUploadFile_CanonicalStorageKey verifies that after finalizeNew the blob
-// lives at the content-addressed canonical path (books/<sha256>.ext) instead
-// of the temporary upload path.
+// TestUploadFile_CanonicalStorageKey checks the blob moves to its
+// content-addressed key.
 func TestUploadFile_CanonicalStorageKey(t *testing.T) {
 	fakeStore := fakeStore
 	ub := addTestBookWithISBN(t, "CanonicalKeyBook", "9780001001001")
-	// Remove any stale book_files rows so the upload always goes through
-	// finalizeNew, copies the blob, and puts it in the fake store.
+	// Clear stale rows so the upload goes through finalizeNew.
 	_, _ = testDB.Exec(context.Background(),
 		`DELETE FROM books.book_files WHERE book_id = $1`, ub.BookID)
 	t.Cleanup(func() {
@@ -334,7 +314,6 @@ func TestUploadFile_CanonicalStorageKey(t *testing.T) {
 		result.BookFile.StorageKey,
 	)
 	assert.NotContains(t, result.BookFile.StorageKey, "uploads/")
-	// The canonical blob must exist in the fake store.
 	exists, err := fakeStore.Exists(
 		context.Background(), result.BookFile.StorageKey,
 	)
@@ -342,12 +321,10 @@ func TestUploadFile_CanonicalStorageKey(t *testing.T) {
 	assert.True(t, exists, "canonical blob should be present in the store")
 }
 
-// TestUploadFile_GlobalDedup_SameUser_CreateShortcut verifies that when the
-// client provides the correct checksum in CreateBookUpload and the content is
-// already stored, the server returns already_exists=true so the PUT is skipped.
+// TestUploadFile_GlobalDedup_SameUser_CreateShortcut checks a known checksum
+// returns already_exists.
 func TestUploadFile_GlobalDedup_SameUser_CreateShortcut(t *testing.T) {
 	addTestBookWithISBN(t, "GlobalDedupCSBook", "9780001002002")
-	// First upload via the slow path (no checksum).
 	data := buildEPUBBytes("GlobalDedupCSBook", "GD Author", "9780001002002")
 	r1, err := simulateUpload(
 		context.Background(), t, userID,
@@ -356,7 +333,6 @@ func TestUploadFile_GlobalDedup_SameUser_CreateShortcut(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, r1)
 
-	// Second CreateUpload call with the correct checksum — must report already_exists.
 	checksum := *r1.BookFile.Checksum
 	_, _, alreadyExists, err := testApp.Services.Books.CreateUpload(
 		context.Background(), userID, "dedup-cs.epub",
@@ -370,9 +346,8 @@ func TestUploadFile_GlobalDedup_SameUser_CreateShortcut(t *testing.T) {
 	)
 }
 
-// TestUploadFile_GlobalDedup_CrossUser verifies that uploading the same file
-// as a different user reuses the canonical blob without creating a second R2
-// object, but creates a separate book_files row owned by user B.
+// TestUploadFile_GlobalDedup_CrossUser: another user's upload reuses the blob
+// but gets its own book_files row.
 func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	const userB = "cross-user-dedup-user-b"
 	t.Cleanup(func() {
@@ -383,7 +358,6 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	})
 
 	ub := addTestBookWithISBN(t, "CrossUserBook", "9780001003003")
-	// Remove stale book_files so both users always get fresh rows in this run.
 	_, _ = testDB.Exec(context.Background(),
 		`DELETE FROM books.book_files WHERE book_id = $1`, ub.BookID)
 	t.Cleanup(func() {
@@ -392,7 +366,6 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	})
 	data := buildEPUBBytes("CrossUserBook", "Cross Author", "9780001003003")
 
-	// User A uploads first.
 	r1, err := simulateUpload(
 		context.Background(), t, userID,
 		"cross-user.epub", "application/epub+zip", data, fakeStore,
@@ -403,7 +376,6 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	require.True(t, strings.HasPrefix(canonicalKey, "books/"),
 		"user A's blob must be at canonical key")
 
-	// User B finalizes with the same checksum, no upload.
 	checksum := *r1.BookFile.Checksum
 	r2, err := testApp.Services.Books.FinalizeUpload(
 		context.Background(), userB, "", "cross-user.epub", "application/epub+zip",
@@ -412,19 +384,13 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, r2)
 
-	// User B gets their own book_files row.
 	assert.Equal(t, userB, r2.BookFile.UserID)
-	// But the physical blob is the same canonical object.
 	assert.Equal(t, canonicalKey, r2.BookFile.StorageKey)
-	// File IDs are distinct.
 	assert.NotEqual(t, r1.BookFile.ID, r2.BookFile.ID)
 
-	// Only one canonical blob exists in the store.
 	_, existsA := fakeStore.GetContent(canonicalKey)
 	assert.True(t, existsA, "canonical blob must still exist")
 }
-
-// --- repository tests ---
 
 func TestBooksRepo_FindUserBookByISBN13_Found(t *testing.T) {
 	ub := addTestBookWithISBN(t, "ISBNRepoFind", "9784444444444")
@@ -498,9 +464,7 @@ func TestBookFilesRepo_FindByChecksum_NotFound(t *testing.T) {
 
 func TestBookFilesRepo_FindByChecksumGlobal_Found(t *testing.T) {
 	book := addUniqueBook(t)
-	// Unique checksum per test run: FindByChecksumGlobal is user- and
-	// book-agnostic, so a fixed value would collide with the row left behind
-	// by a previous run on the shared local DB.
+	// Unique per run: FindByChecksumGlobal would match a previous run's row.
 	chk := fmt.Sprintf("globalchecksum-%s", book.ID)
 	f := models.BookFile{ //nolint:exhaustruct //optional fields omitted
 		BookID:     book.ID,
@@ -532,17 +496,14 @@ func TestBookFilesRepo_FindByChecksumGlobal_NotFound(t *testing.T) {
 
 func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 	book := addUniqueBook(t)
-	// Use a unique key per test run so repeated runs on the shared DB don't
-	// accumulate stale rows from previous executions.
+	// Unique per run so reruns on the shared DB don't accumulate rows.
 	key := fmt.Sprintf("books/count-test-%s.epub", book.ID)
-	// Start: key has no references.
 	n, err := testApp.Repositories.BookFiles.CountByStorageKey(
 		context.Background(), key,
 	)
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), n)
 
-	// Insert two rows pointing at the same key.
 	for i := range 2 {
 		chk := fmt.Sprintf("count-chk-%d", i)
 		_, insertErr := testApp.Repositories.BookFiles.Insert(
@@ -567,8 +528,7 @@ func TestBookFilesRepo_CountByStorageKey(t *testing.T) {
 	assert.Equal(t, int64(2), n)
 }
 
-// TestUploadFile_EPUB_ExternalSearchFallback covers the multi-source external
-// search branch (Hardcover here) used when the upload has no library match.
+// TestUploadFile_EPUB_ExternalSearchFallback covers the external search branch.
 func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 	const isolatedUser = "hc-fallback-upload-user"
 
@@ -611,8 +571,6 @@ func TestUploadFile_EPUB_ExternalSearchFallback(t *testing.T) {
 	assert.NotEmpty(t, result.UserBook.BookID)
 }
 
-// --- security hardening tests ---
-
 func TestUploadFile_WrongMagicBytes_Rejected(t *testing.T) {
 	fakeStore := fakeStore
 	data := append([]byte("\x00\x01\x02\x03"), []byte("not a real epub")...)
@@ -636,7 +594,6 @@ func TestUploadFile_WrongMagicBytes_PDF_Rejected(t *testing.T) {
 }
 
 func TestUploadFile_OverSize_Rejected(t *testing.T) {
-	// CreateUpload checks size before any bytes are transferred.
 	_, _, _, err := testApp.Services.Books.CreateUpload(
 		context.Background(), userID, "huge.epub", "application/epub+zip",
 		int64(bsvc.MaxUploadBytes)+1, "",
@@ -698,10 +655,7 @@ func TestUploadFile_OwnershipFromContext(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
-	// The book_files row must be owned by the requesting user.
 	assert.Equal(t, userID, result.BookFile.UserID)
-	// The blob is stored at the canonical content-addressed path, not under
-	// a per-user prefix — that is expected and correct.
 	assert.True(
 		t,
 		strings.HasPrefix(result.BookFile.StorageKey, "books/"),
@@ -709,8 +663,6 @@ func TestUploadFile_OwnershipFromContext(t *testing.T) {
 		result.BookFile.StorageKey,
 	)
 }
-
-// --- handler tests ---
 
 func TestConnectCreateBookUpload_OK(t *testing.T) {
 	client := newBooksTestClient(t)
@@ -785,10 +737,8 @@ func TestConnectFinalizeBookUpload_OK(t *testing.T) {
 	assert.Equal(t, models.FileFormatEPUB, resp.Msg.Format)
 }
 
-// TestConnectFinalizeBookUpload_PDF_NoMetadata verifies that a PDF with no
-// Info-dict metadata, and a filename-derived fallback title that matches no
-// provider result either, is rejected with CodeInvalidArgument. Uses an
-// isolated app since testApp's mock Hardcover client matches any query.
+// TestConnectFinalizeBookUpload_PDF_NoMetadata checks an unrecognizable PDF
+// yields CodeInvalidArgument.
 func TestConnectFinalizeBookUpload_PDF_NoMetadata(t *testing.T) {
 	const isolatedUser = "handler-pdf-no-meta-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
@@ -877,11 +827,8 @@ func TestConnectFinalizeBookUpload_WrongOwner_ReturnsPermissionDenied(t *testing
 	assert.Equal(t, connect.CodePermissionDenied, connectErr.Code())
 }
 
-// TestUploadFile_Unrecognized_EmptyMetadata_Rejected uploads an EPUB whose OPF
-// metadata has empty title, author, and no ISBN, and whose filename-derived
-// fallback title matches no provider result either. The service must return
-// ErrUnrecognizedBook and clean up the temp upload object. Uses
-// noExternalMatchApp since testApp's mock Hardcover client matches any query.
+// TestUploadFile_Unrecognized_EmptyMetadata_Rejected checks an EPUB with empty
+// metadata is rejected and its temp object removed.
 func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	const isolatedUser = "empty-metadata-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
@@ -910,15 +857,12 @@ func TestUploadFile_Unrecognized_EmptyMetadata_Rejected(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
 
-	// Temp object must have been cleaned up by the service.
 	exists, existsErr := fakeStore.Exists(context.Background(), uploadID)
 	require.NoError(t, existsErr)
 	assert.False(t, exists, "temp upload object must be deleted on rejection")
 }
 
-// noExternalMatchApp returns an isolated Backlog instance whose Hardcover
-// client returns no results, so SearchExternal never finds a match. Used to test
-// the rejection path when neither a library match nor an external match is found.
+// noExternalMatchApp returns an isolated app whose Hardcover client finds nothing.
 func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 	t.Helper()
 	return books.NewInner(
@@ -937,9 +881,8 @@ func noExternalMatchApp(t *testing.T, isolatedUser string) *books.Books {
 	)
 }
 
-// TestUploadFile_Unrecognized_NoLibraryMatch_Rejected uploads an EPUB that has
-// valid title/author metadata but is not in the library and no external provider
-// match is found. The upload must be rejected with ErrUnrecognizedBook.
+// TestUploadFile_Unrecognized_NoLibraryMatch_Rejected checks an unmatched EPUB
+// is rejected.
 func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 	const isolatedUser = "no-match-upload-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
@@ -969,15 +912,12 @@ func TestUploadFile_Unrecognized_NoLibraryMatch_Rejected(t *testing.T) {
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook)
 }
 
-// --- normalized title / author matching tests ---
-
-// TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle verifies that a file
-// carrying "Title: Subtitle" links to a library entry that has only "Title".
+// TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle: "Title: Subtitle"
+// matches a library "Title".
 func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 	const isolatedUser = "norm-title-subtitle-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
 
-	// Library has "The Silmarillion" without the subtitle.
 	ub := seedBookInLibrary(
 		t, isolatedUser,
 		"The Silmarillion", "J.R.R. Tolkien", "",
@@ -987,14 +927,11 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
-		// Matching is now catalog-wide (recognizeBook step 3), so a leftover
-		// catalog row from a prior local run would otherwise be picked up
-		// ahead of the one this run just seeded.
+		// Matching is catalog-wide, so clear leftover catalog rows from prior runs.
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
 	})
 
-	// EPUB carries the full title with subtitle.
 	data := buildEPUBBytes(
 		"The Silmarillion: Being the Myths and Legends of the First Age",
 		"J.R.R. Tolkien",
@@ -1020,14 +957,12 @@ func TestUploadFile_EPUB_MatchByNormalizedTitle_Subtitle(t *testing.T) {
 	assert.Equal(t, ub.BookID, result.UserBook.BookID)
 }
 
-// TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst verifies that a file
-// whose author is formatted "Last, First" links to a library entry with
-// "First Last" formatting.
+// TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst: "Last, First" matches
+// "First Last".
 func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 	const isolatedUser = "norm-author-lastfirst-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
 
-	// Library has "First Last" author format.
 	ub := seedBookInLibrary(
 		t, isolatedUser, "The Two Towers", "J.R.R. Tolkien", "",
 	)
@@ -1036,14 +971,11 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 			`DELETE FROM books.user_books WHERE user_id = $1`, isolatedUser)
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
-		// Matching is now catalog-wide (recognizeBook step 3), so a leftover
-		// catalog row from a prior local run would otherwise be picked up
-		// ahead of the one this run just seeded.
+		// Matching is catalog-wide, so clear leftover catalog rows from prior runs.
 		_, _ = testDB.Exec(context.Background(),
 			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
 	})
 
-	// EPUB carries "Last, First" author format.
 	data := buildEPUBBytes("The Two Towers", "Tolkien, J.R.R.", "")
 	uploadID, _, _, err := app2.Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "ttt.epub", "application/epub+zip",
@@ -1068,18 +1000,13 @@ func TestUploadFile_EPUB_MatchByNormalizedAuthor_LastFirst(t *testing.T) {
 	assert.Equal(t, ub.BookID, result.UserBook.BookID)
 }
 
-// TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary verifies the fix for
-// the reported bug: a second user uploading the same book (in a different
-// format/file) must attach to the existing catalog entry another user
-// already owns, instead of spawning a duplicate catalog book — exercising
-// recognizeBook's catalog-wide step 3 and resolveOrCreateUserBook's
-// create-a-new-user_book branch.
+// TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary: a second user's upload
+// attaches to the existing catalog entry instead of duplicating it.
 func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 	const ownerUser = "catalog-match-owner-user"
 	const uploaderUser = "catalog-match-uploader-user"
 	app2 := noExternalMatchApp(t, uploaderUser)
 
-	// Another user already has this book in their library.
 	ub := seedBookInLibrary(t, ownerUser, "The Silmarillion", "J.R.R. Tolkien", "")
 	t.Cleanup(func() {
 		_, _ = testDB.Exec(context.Background(),
@@ -1092,8 +1019,6 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 			`DELETE FROM books.books WHERE id = $1`, ub.BookID)
 	})
 
-	// The uploading user's own library has no entry for this book, so steps
-	// 1-2 must miss and only the catalog-wide step 3 can find it.
 	data := buildEPUBBytes("The Silmarillion", "J.R.R. Tolkien", "")
 	uploadID, _, _, err := app2.Services.Books.CreateUpload(
 		context.Background(), uploaderUser, "silm.epub", "application/epub+zip",
@@ -1122,7 +1047,6 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 		"the uploader must get their own user_book row, not the owner's",
 	)
 
-	// The uploading user now has their own library entry for the book.
 	attached, err := testApp.Services.Books.GetUserBook(
 		context.Background(), uploaderUser, ub.BookID,
 	)
@@ -1130,8 +1054,8 @@ func TestUploadFile_EPUB_MatchesCatalogBookNotInOwnLibrary(t *testing.T) {
 	assert.Equal(t, ub.BookID, attached.BookID)
 }
 
-// TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive verifies
-// that same-title books by different authors are NOT linked incorrectly.
+// TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive: same
+// title, different author must not link.
 func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *testing.T) {
 	const isolatedUser = "norm-false-positive-user"
 	app2 := noExternalMatchApp(t, isolatedUser)
@@ -1142,10 +1066,8 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 			`DELETE FROM books.book_files WHERE user_id = $1`, isolatedUser)
 	})
 
-	// Library has "Hamlet" by Shakespeare — not by Orwell.
 	seedBookInLibrary(t, isolatedUser, "Hamlet", "William Shakespeare", "")
 
-	// File claims "Hamlet" by George Orwell — must NOT link.
 	data := buildEPUBBytes("Hamlet", "George Orwell", "")
 	uploadID, _, _, err := app2.Services.Books.CreateUpload(
 		context.Background(), isolatedUser, "hamlet.epub", "application/epub+zip",
@@ -1161,14 +1083,13 @@ func TestUploadFile_EPUB_NormalizedMatch_DifferentAuthor_NoFalsePositive(t *test
 		context.Background(), isolatedUser, uploadID,
 		"hamlet.epub", "application/epub+zip", "", "", "",
 	)
-	// With no external match, expect ErrUnrecognizedBook.
 	require.Error(t, err)
 	assert.ErrorIs(t, err, bsvc.ErrUnrecognizedBook,
 		"different author must not create a false-positive link")
 }
 
-// TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument verifies
-// that the ConnectRPC handler maps ErrUnrecognizedBook to CodeInvalidArgument.
+// TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument checks the
+// error mapping.
 func TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument(t *testing.T) {
 	const isolatedUser = "handler-unrecognized-upload-user"
 	app2 := noExternalMatchApp(t, isolatedUser)

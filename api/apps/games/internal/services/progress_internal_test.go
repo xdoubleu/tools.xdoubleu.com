@@ -14,8 +14,7 @@ func gameWithRate(name string, rate string) models.Game {
 	return models.Game{Name: name, CompletionRate: rate}
 }
 
-// TestBucketCompletionRates pins the bucket boundaries (a mutated comparison
-// here silently misfiles a game into the neighbouring bucket) and the
+// TestBucketCompletionRates pins bucket boundaries and the
 // zero/negative/unparsable exclusions.
 func TestBucketCompletionRates(t *testing.T) {
 	tests := []struct {
@@ -92,10 +91,8 @@ func TestBucketCompletionRates(t *testing.T) {
 	}
 }
 
-// TestBucketCompletionRatesOrdersByRate pins that differing rates sort by
-// rate, not by name — Zebra's lower rate must still come first even though
-// "Apple" sorts first alphabetically, ruling out a comparator that fell back
-// to name ordering.
+// TestBucketCompletionRatesOrdersByRate: differing rates sort by rate, not
+// name.
 func TestBucketCompletionRatesOrdersByRate(t *testing.T) {
 	games := []models.Game{
 		gameWithRate("Apple", "58.00"),
@@ -109,8 +106,7 @@ func TestBucketCompletionRatesOrdersByRate(t *testing.T) {
 	assert.Equal(t, "Apple", bucketGames[5][1].Name)
 }
 
-// TestBucketCompletionRatesOrdersByNameOnTie pins the tie-break: equal rates
-// fall back to name order.
+// TestBucketCompletionRatesOrdersByNameOnTie: ties fall back to name.
 func TestBucketCompletionRatesOrdersByNameOnTie(t *testing.T) {
 	games := []models.Game{
 		gameWithRate("Zeta", "52.00"),

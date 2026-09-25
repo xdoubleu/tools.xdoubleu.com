@@ -83,11 +83,9 @@ describe('BookRatingStars', () => {
     mockUpdateBookStatus.mockRejectedValue(new Error('network error'))
     render(<BookRatingStars userBook={makeBook(3)} />)
 
-    // Click to change to 5
     fireEvent.click(screen.getByLabelText('Rate 5 stars'))
 
     await waitFor(() => {
-      // After rejection, rating stays at 3 (reverted)
       expect(screen.getByLabelText('3 out of 5 stars')).toBeInTheDocument()
     })
   })

@@ -11,17 +11,12 @@ export interface YtdProgressResult {
 }
 
 /**
- * Computes year-to-date reading progress from finished user books.
- *
- * Every finish event (entry in finishedAt) that falls within the current
- * calendar year is counted — a re-read of the same book counts twice.
- * Returns a cumulative series starting at 0 on the first finish event of
- * the year, plus the total count for the stat card.
+ * Cumulative year-to-date finishes (re-reads count again), starting at 0,
+ * plus the total.
  */
 export function ytdProgress(finished: UserBook[]): YtdProgressResult {
   const currentYear = new Date().getFullYear()
 
-  // Collect all finish dates in the current year (YYYY-MM-DD label).
   const dateCounts = new Map<string, number>()
 
   for (const ub of finished) {

@@ -1,74 +1,41 @@
 services:
   prometheus:
-    # Prometheus + postgres_exporter (issue #1468), replacing the hand-rolled
-    # metrics pipeline in api/internal/observability. Bound to the internal
-    # `kamal` Docker network only — no published host port at all (stricter
-    # than "127.0.0.1 only": not even loopback-reachable), same as
-    # node-exporter-compose.yml's node-exporter service. Grafana
-    # (config/deploy.grafana.yml, a Kamal service, not a compose accessory
-    # here) reads this over that same network at prometheus:9090; the
-    # api's prom_query MCP tool (cmd/api/mcp_prom_query.go) does the same.
+    # Internal `kamal` network only, no host port; Grafana and the api's
+    # prom_query tool reach it at prometheus:9090.
     image: prom/prometheus:v3.1.0
     restart: unless-stopped
-    # The image runs as `nobody`, which cannot read the Docker socket mounted
-    # below — without this the api/web docker_sd_configs fail with "permission
-    # denied" and discover zero targets. The host's docker group id is passed
-    # in by null_resource.prometheus's remote-exec (infra/main.tf) rather than
-    # hardcoded, since it varies per host.
+    # Runs as `nobody`; needs the host's docker gid (passed in by
+    # prometheus-setup.sh) to read the socket for docker_sd_configs.
     group_add:
       - "${DOCKER_GID}"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-      # A single self-hosted VPS with ~3GB free (issue #1468's Context) has
-      # no room for years of raw samples — 90 days matches the retention
-      # this repo already used for host_metric_samples/db_size_samples.
+      # Sized for a single VPS with ~3GB free.
       - "--storage.tsdb.retention.time=90d"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      # Bearer token for the `web` scrape job's authenticated GET /metrics
-      # (issue #1555) — written by null_resource.prometheus (infra/main.tf),
-      # referenced as credentials_file in prometheus.yml.
+      # Bearer token for the `web` scrape job (written by infra/main.tf).
       - ./web_ingest_secret:/etc/prometheus/web_ingest_secret:ro
       - prometheus_data:/prometheus
-      # Read-only Docker socket, for the docker_sd_configs the api/web
-      # scrape jobs use to find Kamal's app containers by their `service`
-      # label instead of by a hostname Kamal never creates (issue #1554 —
-      # see infra/prometheus.yml for why hostname targets never worked).
-      #
-      # Socket access is effectively host root, so it is worth being
-      # explicit about why it is acceptable here: this Prometheus publishes
-      # no host port at all (not even loopback), is reachable only from the
-      # internal `kamal` Docker network, and the VPS is single-tenant. If
-      # any of those three stop being true, put a socket proxy in front of
-      # it (exposing only the container-list endpoint) rather than widening
-      # this mount.
+      # For docker_sd_configs. Socket access is effectively host root; acceptable
+      # only while Prometheus has no host port, sits on the internal network, and
+      # the VPS is single-tenant. Otherwise add a socket proxy.
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - kamal
 
   postgres-exporter:
-    # Server-level Postgres stats (connections, transaction rates, bloat,
-    # replication lag) — distinct from api's own /metrics (Go runtime
-    # metrics) and from pg_database_size/pg_class (still queried live by
-    # GetDatabaseStats, unrelated to this accessory).
+    # Server-level Postgres stats.
     image: quay.io/prometheuscommunity/postgres-exporter:v0.16.0
     restart: unless-stopped
     env_file: .env
     networks:
-      # Also needs the default postgres-compose.yml network membership to
-      # reach `postgres:5432` by name — both services join the shared
-      # `kamal` network (see postgres-compose.yml's own comment on why),
-      # so postgres-exporter reaches it there instead of needing yet
-      # another shared network declared just for this.
+      # Reaches `postgres:5432` over the shared network.
       - kamal
 
 networks:
-  # Pre-created once via `docker network create kamal` (see
-  # infra/README.md) — declared external here since Kamal itself also
-  # creates/uses this network for its own app+proxy containers (including
-  # the new `grafana` Kamal service, config/deploy.grafana.yml), and this
-  # compose file must never race it or try to recreate it.
+  # Pre-created (infra/README.md); external because Kamal also uses it.
   kamal:
     external: true
 

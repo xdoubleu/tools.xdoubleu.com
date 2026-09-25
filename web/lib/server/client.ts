@@ -5,12 +5,8 @@ import { createClient, type Client } from '@connectrpc/connect'
 import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from '@/lib/env'
 
-// Server-side ConnectRPC client factory for React Server Components.
-//
-// Unlike lib/client.ts (browser: shared transport, cookies attached by the
-// browser via credentials:'include'), the server must forward the incoming
-// request's Cookie header itself, so the transport is built per request.
-// getApiUrl() resolves process.env.API_URL on the server.
+// Server-side ConnectRPC client for RSCs. Unlike lib/client.ts, it forwards
+// the request's Cookie header itself, so the transport is per request.
 
 export function serverFetch(cookieHeader: string): typeof fetch {
   return (input, init) => {
@@ -20,15 +16,12 @@ export function serverFetch(cookieHeader: string): typeof fetch {
   }
 }
 
-// cache() memoizes per RSC render pass, so parallel fetches in one request
-// share a single transport (and a single cookies() read).
+// Memoized per render pass.
 const getTransport = cache(async () => {
   const store = await cookies()
-  // The refresh token is deliberately NOT forwarded: a server component
-  // cannot persist rotated cookies, so a server-triggered refresh (e.g. via
-  // GetCurrentUser) would invalidate the refresh token the browser still
-  // holds. Expired sessions therefore 401 here and recover through the
-  // client-side SWR fetch, which refreshes in the browser.
+  // Never forward the refresh token: an RSC can't persist rotated cookies, so a
+  // refresh here would invalidate the browser's token. Expired sessions 401 and
+  // recover via the client-side SWR fetch.
   const cookieHeader = store
     .getAll()
     .filter((c) => c.name !== 'refreshToken')
@@ -37,15 +30,10 @@ const getTransport = cache(async () => {
   return createConnectTransport({
     baseUrl: getApiUrl(),
     useBinaryFormat: true,
-    // Cap every SSR api call: without this, a hung api response never rejects
-    // (Node fetch has no default timeout), so the whole force-dynamic render
-    // (e.g. layout.tsx awaiting getCurrentUser) blocks forever with nothing
-    // logged. On timeout Connect throws DeadlineExceeded — fetchOrNull returns
-    // null, the page renders degraded, and the client SWR fetch recovers.
-    // Connect also sends this as connect-timeout-ms (allowlisted server-side),
-    // so the api handler's context is cancelled and its pool conn released.
-    // Browser transport (lib/client.ts) stays uncapped on purpose so slow
-    // uploads / PDF conversions are not cut off.
+    // Node fetch has no default timeout, so a hung api would block the render
+    // forever. DeadlineExceeded → fetchOrNull returns null; the header also
+    // cancels the api handler. The browser transport stays uncapped for slow
+    // uploads.
     defaultTimeoutMs: 10000,
     fetch: serverFetch(cookieHeader)
   })

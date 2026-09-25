@@ -1,8 +1,6 @@
 package learningpaths
 
-// Package-internal test: getUser(ctx) returns nil (and each handler returns
-// CodeUnauthenticated) before it ever touches h.app, so a nil app is safe
-// here — mirrors connect_unauthenticated_internal_test.go for TodoistService.
+// A nil app is safe: handlers return CodeUnauthenticated before touching it.
 
 import (
 	"context"

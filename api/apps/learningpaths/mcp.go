@@ -13,15 +13,9 @@ import (
 
 const mcpAppName = "learningpaths"
 
-// This app deliberately breaks the "MCP app tools are read-only" convention
-// (see api/AGENTS.md, adr-0023): agent-authored curricula is the feature, not
-// an add-on, so learningpaths_create_path/update_path/record_progress below
-// mutate. Every mutating tool still goes through RequireAppAccess and, like
-// every read tool, only ever touches the calling user's own data — the
-// connect handlers it wraps derive userID from context (getUser), never from
-// a tool argument, so there is no way for a caller to address another user's
-// path. See docs/adr-0023-learningpaths-mcp-write-tools.md for the full
-// boundary and the explicit non-precedent statement.
+// Unlike other apps, learningpaths exposes mutating MCP tools. They still go
+// through RequireAppAccess and derive userID from context, never from a tool
+// argument (docs/adr-0023-learningpaths-mcp-write-tools.md).
 
 type mcpListPathsArgs struct {
 	Limit  int32 `json:"limit,omitempty"  jsonschema:"max paths to return"`
@@ -69,11 +63,8 @@ type mcpRecordProgressArgs struct {
 	Completed bool   `json:"completed" jsonschema:"mark complete/incomplete"`
 }
 
-// RegisterMCPTools exposes the learningpaths app's RPCs on the combined apps
-// MCP server: three read tools registered the same way every other app
-// registers its read tools, plus three mutating tools that are this app's
-// deliberate exception to the read-only convention (see the package-level
-// comment above and adr-0023).
+// RegisterMCPTools exposes three read and three write tools on the combined
+// apps MCP server.
 func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 	h := &learningPathsConnectHandler{app: a}
 
@@ -96,14 +87,9 @@ func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 	registerAuthoringGuideResource(srv)
 }
 
-// registerAuthoringGuideResource exposes the full learning-paths authoring
-// guidebook as the learningpaths://authoring-guide MCP resource, so clients
-// that read resources (Claude Code, OpenCode) can pull the whole data model,
-// workflow, and curation rubric in one fetch. The tool descriptions registered
-// above carry the essentials for clients that only look at tool metadata
-// (e.g. a ChatGPT-style connector). The resource is read-only guidance text —
-// no user data and no mutation — so it applies no app-access gate and uses the
-// same OAuth scoping every other handler already sits behind.
+// registerAuthoringGuideResource serves the authoring guidebook as the
+// learningpaths://authoring-guide resource. It holds no user data, so no
+// app-access gate applies.
 func registerAuthoringGuideResource(srv *mcp.Server) {
 	//nolint:exhaustruct // name/URI/MIMEType/i18n are the fields this resource needs
 	srv.AddResource(&mcp.Resource{
@@ -116,9 +102,8 @@ func registerAuthoringGuideResource(srv *mcp.Server) {
 	}, authoringGuideHandler)
 }
 
-// authoringGuideHandler is the ResourceHandler that serves the
-// authoring-guide resource. It is a package-level function (not a closure) so
-// the test can call it directly without going through an MCP transport.
+// authoringGuideHandler serves the authoring-guide resource; a named function
+// so tests can call it directly.
 func authoringGuideHandler(_ context.Context, _ *mcp.ReadResourceRequest,
 ) (*mcp.ReadResourceResult, error) {
 	//nolint:exhaustruct // a read of static text sets only URI/MIMEType/Text
@@ -131,12 +116,8 @@ func authoringGuideHandler(_ context.Context, _ *mcp.ReadResourceRequest,
 	}}, nil
 }
 
-// addWriteTool registers one mutating tool. It mirrors mcptools.AddReadTool
-// exactly (same RequireAppAccess gate, same JSON result marshaling) but stays
-// local to this file rather than becoming a second exported helper in
-// internal/mcptools — this app is the only one with mutating MCP tools, and
-// generalizing the helper before a second caller exists would be speculative
-// (see this issue's "Not this").
+// addWriteTool registers one mutating tool, mirroring mcptools.AddReadTool.
+// Kept local: this is the only app with mutating tools.
 func addWriteTool[In any](
 	srv *mcp.Server,
 	name, description string,

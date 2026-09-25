@@ -23,9 +23,7 @@ function StopRow({ stop }: { stop: LegDetail['stops'][number] }) {
   )
 }
 
-/** One boarded leg of a journey: header, cancellation banner, its full stop
- * pattern, and any attached alerts — the "every leg with its stops"
- * requirement from issue #1394. */
+/** One boarded leg: header, cancellation banner, stops, and alerts. */
 export default function JourneyLegCard({ leg }: { leg: LegDetail }) {
   return (
     <Card className="p-4">

@@ -16,30 +16,20 @@ interface ArticleReaderDialogProps {
   sourceUrl?: string
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** Domain-specific header controls, rendered left of the close button. */
   actions?: ReactNode
-  /** Raw article HTML; sanitized here before rendering. */
   html?: string
-  /** Extra classes for the prose container. */
   proseClassName?: string
-  /** Status/placeholder content (loading, error, "no content"), rendered above the prose. */
+  /** Loading/error/empty content rendered above the prose. */
   children?: ReactNode
   scrollRef?: (el: HTMLDivElement | null) => void
   onScroll?: UIEventHandler<HTMLDivElement>
   onContentClick?: MouseEventHandler<HTMLDivElement>
-  /**
-   * Fill the whole viewport on desktop (`lg+`), edge to edge, instead of the
-   * centered card the dialog primitive defaults to from `sm` up. When set, the
-   * prose also spans the full width (issue #1867 — feeds only). Without it the
-   * prose stays capped at a readable line length.
-   */
+  /** Fill the viewport edge to edge on desktop (`lg+`), prose full width. */
   bleedDesktop?: boolean
 }
 
-// Full-screen in-app reader scaffold shared by the books and feeds readers:
-// header (title, "View original" link, caller-supplied actions, close) plus a
-// scrollable, sanitized prose body. It knows nothing about either domain —
-// callers fetch their own content and pass it in.
+// Full-screen reader scaffold shared by books and feeds: header plus a
+// sanitized prose body. Callers fetch their own content.
 export default function ArticleReaderDialog({
   title,
   sourceUrl,
@@ -54,17 +44,10 @@ export default function ArticleReaderDialog({
   onContentClick,
   bleedDesktop = false
 }: ArticleReaderDialogProps) {
-  // The dialog primitive's default is full-bleed below `sm` and a centered
-  // card from `sm` up (components/ui/dialog.tsx). `bleedDesktop` opts the
-  // feeds reader back into full-bleed — edge to edge, full height and width —
-  // from `lg` up (issue #1867). The default (books reader) keeps the
-  // centered-card classes exactly.
   const dialogClassName = bleedDesktop
     ? cn(
         'max-w-none w-full p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col',
-        // Neutralize every `sm:` centering rule from the primitive's
-        // fullscreenContentClass at `lg`, so the dialog fills the viewport
-        // edge to edge instead of collapsing into the centered card.
+        // Undo the primitive's `sm:` centering at `lg`.
         'lg:inset-0 lg:h-full lg:w-full lg:max-w-none lg:max-h-full',
         'lg:rounded-none lg:translate-x-0 lg:translate-y-0'
       )
@@ -101,16 +84,11 @@ export default function ArticleReaderDialog({
 
           {html && (
             <div
-              // Without `bleedDesktop` the prose is capped to a readable line
-              // length and centered inside the `lg` card; with it the prose
-              // spans the full-bleed desktop dialog edge to edge.
               className={cn(
                 'prose prose-sm max-w-none text-fg p-1',
                 !bleedDesktop && 'lg:max-w-prose lg:mx-auto',
                 proseClassName
               )}
-              // Article bodies originate from ingested third-party HTML —
-              // always sanitize before rendering.
               dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(html) }}
               onClick={onContentClick}
             />

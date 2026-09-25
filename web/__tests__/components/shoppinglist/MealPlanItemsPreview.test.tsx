@@ -14,7 +14,6 @@ describe('MealPlanItemsPreview', () => {
     expect(screen.getByText('From meal plans')).toBeInTheDocument()
     // 2 + 3 cloves are summed into a single combined row.
     expect(screen.getByText(/5 cloves — garlic/)).toBeInTheDocument()
-    // Both recipes are shown as origins.
     expect(screen.getByText(/Pasta: 2 cloves, Curry: 3 cloves/)).toBeInTheDocument()
   })
 

@@ -1,8 +1,5 @@
-// Package trains ingests the SNCB/NMBS timetable and (in later slices, see
-// issue #1388) overlays realtime delays. #1390 added the daily GTFS static
-// import; this slice (#1391) adds trains.v1.TrainService.SearchJourneys, a
-// Connection Scan Algorithm journey planner over an in-memory index built
-// from a rolling window of the ingested timetable.
+// Package trains ingests the SNCB/NMBS GTFS timetable, overlays realtime
+// delays, and plans journeys with a Connection Scan Algorithm router.
 package trains
 
 import (
@@ -31,8 +28,7 @@ var embedMigrations embed.FS
 type Trains struct {
 	app.Base
 	db postgres.DB
-	// Services and Repositories are exported so integration tests can drive
-	// the real import path (same convention as games/books).
+	// Exported so integration tests can drive the real import path.
 	Services         *services.Services
 	Repositories     *repositories.Repositories
 	jobQueue         *jobqueue.JobQueue
@@ -103,10 +99,9 @@ func (a *Trains) Start() error {
 	); err != nil {
 		return err
 	}
-	// Warm the CSA router now rather than on the first scheduled refresh (up
-	// to 6h away) or in a request handler — SearchJourneys returns
-	// ErrRouterWarmingUp until this finishes (issue #1484). singleflight in
-	// Refresh keeps this from double-building against the first job tick.
+	// Warm the router off the request path; SearchJourneys returns
+	// ErrRouterWarmingUp until it's built. Refresh's singleflight dedupes this
+	// against the first job tick.
 	go a.warmRouter()
 
 	return a.jobQueue.AddJob(
@@ -115,8 +110,8 @@ func (a *Trains) Start() error {
 	)
 }
 
-// warmRouter builds the initial CSA index. Runs in its own goroutine from
-// Start; a failure is logged and retried by the scheduled RouterRefreshJob.
+// warmRouter builds the initial CSA index; failures are retried by
+// RouterRefreshJob.
 func (a *Trains) warmRouter() {
 	if err := a.routerRefreshJob.Run(a.Ctx, a.Logger); err != nil {
 		a.Logger.Error("trains: initial router warm-up failed", "error", err)

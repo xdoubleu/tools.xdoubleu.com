@@ -1,12 +1,6 @@
-// Package family implements the shared "family" concept from issue #1349: a
-// user configures a family (of at most one, per the issue's confirmed
-// decision) whose members share one set of recipes, one meal plan set, and
-// one shopping list as a single unit, replacing the owner-centric per-app
-// sharing model. It owns the family entity itself — membership, invites
-// (invite -> accept/decline, the shape global.contacts once established
-// before that table was removed in issue #1403), per-member display names,
-// and leaving. recipes/mealplans/shoppinglist key their data by the
-// family_id this package hands them (via repositories.FamilyRepository).
+// Package family owns the family entity (membership, invites, display names,
+// leaving). Members share recipes, meal plans and shopping lists, keyed by the
+// family_id this package hands out. A user belongs to at most one family.
 package family
 
 import (
@@ -27,10 +21,8 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// Membership describes the caller's current family: FamilyID, the other
-// members' user IDs (self excluded), and each of those members' chosen
-// display name keyed by user ID (empty when unset). An implicit
-// family-of-one has no members.
+// Membership is the caller's family: the other members' IDs and their display
+// names (empty when unset). An implicit family-of-one has no members.
 type Membership struct {
 	FamilyID        uuid.UUID
 	Members         []string
@@ -39,11 +31,10 @@ type Membership struct {
 }
 
 type Service interface {
-	// GetMembership returns the caller's family membership, lazily creating
-	// their implicit family-of-one if they don't have one yet.
+	// GetMembership returns the caller's membership, creating a family-of-one
+	// if needed.
 	GetMembership(ctx context.Context, userID string) (Membership, error)
-	// InviteByEmail invites the user with the given email to join
-	// fromUserID's family, creating that family first if needed.
+	// InviteByEmail invites email's user to fromUserID's family.
 	InviteByEmail(ctx context.Context, fromUserID, email string) error
 	// GetIncomingInvite returns the pending invite addressed to userID, if any.
 	GetIncomingInvite(
@@ -54,9 +45,8 @@ type Service interface {
 	Decline(ctx context.Context, userID string) error
 	// SetDisplayName sets the caller's own display name within their family.
 	SetDisplayName(ctx context.Context, userID, displayName string) error
-	// Leave removes userID from their family. Their family-scoped data,
-	// once apps re-key onto family_id, stays with the family — it cannot be
-	// un-merged (issue #1349's confirmed decision).
+	// Leave removes userID from their family; family-scoped data stays with the
+	// family.
 	Leave(ctx context.Context, userID string) error
 }
 
@@ -161,9 +151,7 @@ func (s *familyService) InviteByEmail(
 	return nil
 }
 
-// sendInviteEmail queues a notification email off the request path — the
-// invite is already persisted, so a delivery failure only degrades the
-// notification, never the request itself.
+// sendInviteEmail sends off the request path; the invite is already stored.
 func (s *familyService) sendInviteEmail(to, senderEmail string) {
 	subject := fmt.Sprintf("%s invited you to join their family", senderEmail)
 	body := fmt.Sprintf(
@@ -219,8 +207,7 @@ func (e *notFoundError) HTTPStatus() int {
 	return http.StatusNotFound
 }
 
-// IsNotFound reports whether err is (or wraps) the "no user found" error
-// InviteByEmail returns for expected user input.
+// IsNotFound reports whether err is InviteByEmail's "no user found" error.
 func IsNotFound(err error) bool {
 	var nfErr *notFoundError
 	return errors.As(err, &nfErr)

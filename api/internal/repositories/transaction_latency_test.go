@@ -32,7 +32,6 @@ func TestTransactionLatencyInsertUpserts(t *testing.T) {
 	}
 	require.NoError(t, repo.Insert(t.Context(), day, stats))
 
-	// Re-inserting the same day/project/transaction replaces, not adds.
 	stats[0].P95DurationMs = 200
 	stats[0].RequestCount = 20
 	require.NoError(t, repo.Insert(t.Context(), day, stats))
@@ -83,22 +82,17 @@ func TestTransactionLatencyTrendsFlagsRegression(t *testing.T) {
 	repo := repositories.NewTransactionLatencyRepository(testDB)
 	now := time.Now()
 
-	// "GET /slow" regressed: prior week averaged 100ms, recent week 200ms
-	// (+100%, well above the 20% threshold and the 50ms floor).
 	seedDay(t, now.Add(-3*24*time.Hour), "GET /slow", 200)
 	seedDay(t, now.Add(-10*24*time.Hour), "GET /slow", 100)
 
-	// "GET /stable" did not regress: flat at 150ms both weeks.
 	seedDay(t, now.Add(-3*24*time.Hour), "GET /stable", 150)
 	seedDay(t, now.Add(-10*24*time.Hour), "GET /stable", 150)
 
-	// "GET /tiny" jumped 100% but from a near-zero baseline (below the
-	// 50ms floor) — must be excluded as noise.
+	// Below the 50ms floor: noise.
 	seedDay(t, now.Add(-3*24*time.Hour), "GET /tiny", 10)
 	seedDay(t, now.Add(-10*24*time.Hour), "GET /tiny", 5)
 
-	// "GET /new" only has recent data (no prior window) — must be excluded,
-	// not reported as an infinite regression.
+	// No prior window: excluded.
 	seedDay(t, now.Add(-3*24*time.Hour), "GET /new", 500)
 
 	trends, err := repo.Trends(t.Context())

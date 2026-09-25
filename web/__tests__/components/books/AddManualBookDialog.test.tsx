@@ -160,11 +160,8 @@ describe('AddManualBookDialog', () => {
 
   it('does not submit when the title is blank/whitespace', () => {
     render(<AddManualBookDialog initialTitle="   " onClose={jest.fn()} onAdded={jest.fn()} />)
-    // The submit button is disabled for a blank title (so a click never
-    // reaches the form), but handleSubmit guards against it too — submit
-    // the form directly to exercise that guard. Dialog content renders in a
-    // portal, so look the form up from a field inside it rather than the
-    // render() container.
+    // The button is disabled for a blank title; submit the form directly to hit
+    // handleSubmit's own guard (content is portalled).
     fireEvent.submit(screen.getByLabelText('Title').closest('form')!)
     expect(mockAddBook).not.toHaveBeenCalled()
   })

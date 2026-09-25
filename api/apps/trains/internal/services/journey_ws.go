@@ -11,7 +11,7 @@ import (
 )
 
 // journeyDetailFetcher is the slice of JourneyDetailService JourneyWSService
-// needs — narrowed to a testable interface rather than the concrete type.
+// needs.
 type journeyDetailFetcher interface {
 	GetJourneyDetail(
 		ctx context.Context,
@@ -19,9 +19,7 @@ type journeyDetailFetcher interface {
 	) (*models.JourneyDetail, error)
 }
 
-// journeySubscribeDto is the client -> server subscription message: the
-// client names the topic (journey id) it wants live updates for — the same
-// shape internal/progressws uses for its job-progress topics.
+// journeySubscribeDto names the journey topic a client subscribes to.
 type journeySubscribeDto struct {
 	Subject string `json:"subject"`
 }
@@ -35,19 +33,9 @@ func (d journeySubscribeDto) Validate() (bool, map[string]string) {
 	return true, map[string]string{}
 }
 
-// JourneyWSService exposes a wstools topic per subscribed live journey
-// (issue #1394). Unlike internal/progressws' fixed, up-front job-ID topics,
-// journey topics are created lazily — GetJourneyDetail (the RPC a client
-// calls before opening the socket) ensures one exists for the journey id it
-// was asked about via EnsureTopic — and pushed a fresh snapshot after every
-// realtime poll cycle via PushAll, so an open page gets updates without
-// re-asking.
-//
-// Topics are never removed once created — a journey stops being pushed to
-// only when the process itself restarts. That is an acceptable bound for a
-// single long-lived server process at this feature's scale; a follow-up can
-// add expiry (e.g. once a leg's arrival time is comfortably in the past)
-// once journey volume warrants it.
+// JourneyWSService serves a lazily-created wstools topic per live journey:
+// GetJourneyDetail calls EnsureTopic, and PushAll broadcasts after each
+// realtime poll. Topics are never removed until the process restarts.
 type JourneyWSService struct {
 	logger         *slog.Logger
 	detail         journeyDetailFetcher
@@ -79,14 +67,12 @@ func NewJourneyWSService(
 	}
 }
 
-// Handler is the http.HandlerFunc that upgrades and handles subscriptions
-// for every registered journey topic.
+// Handler upgrades and serves subscriptions for all journey topics.
 func (s *JourneyWSService) Handler() http.HandlerFunc {
 	return s.handler.Handler()
 }
 
-// EnsureTopic registers a topic for journeyID if one doesn't already exist,
-// so a client can always open the websocket right after fetching detail.
+// EnsureTopic registers a topic for journeyID if missing.
 func (s *JourneyWSService) EnsureTopic(journeyID string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -108,10 +94,7 @@ func (s *JourneyWSService) EnsureTopic(journeyID string) {
 	s.topics[journeyID] = topic
 }
 
-// PushAll recomputes and broadcasts fresh detail to every registered
-// journey topic — called after each realtime poll cycle (issue #1394) so an
-// open page is pushed the update rather than only receiving it on its next
-// (re)subscribe.
+// PushAll broadcasts fresh detail to every journey topic.
 func (s *JourneyWSService) PushAll(ctx context.Context) {
 	s.mu.RLock()
 	topics := make([]*wstools.Topic, 0, len(s.topics))

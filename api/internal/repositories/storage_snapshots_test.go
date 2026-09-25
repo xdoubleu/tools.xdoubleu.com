@@ -68,14 +68,8 @@ func TestStorageSnapshotsInsertAndLatest(t *testing.T) {
 	)
 }
 
-// TestStorageSnapshotsInsertSimpleProtocol reproduces the production path.
-// The deployed database is reached through a transaction-mode connection
-// pooler, which forces pgx's simple query protocol. In that mode a []byte
-// parameter is encoded as bytea hex ("\x..."), so a JSONB column rejects it
-// with "invalid input syntax for type json" (SQLSTATE 22P02). Binding the
-// marshaled breakdown as a string instead keeps it valid JSON text. The
-// default test pool uses the extended protocol, so the other tests here pass
-// either way — this one guards the simple-protocol path explicitly.
+// Production goes through a transaction-mode pooler (simple protocol); the
+// default test pool uses the extended one, so this test forces simple.
 func TestStorageSnapshotsInsertSimpleProtocol(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	pgxCfg, err := pgxpool.ParseConfig(cfg.DBDsn)
@@ -98,11 +92,8 @@ func TestStorageSnapshotsInsertSimpleProtocol(t *testing.T) {
 	assert.Equal(t, "books", got.PrefixBreakdown[0].Prefix)
 }
 
-// TestStorageSnapshotsLatestOrphanKeysTypeMismatch covers scanSnapshot's
-// unmarshal-error path. json.Marshal on a []string can't realistically fail,
-// and JSONB itself rejects syntactically invalid JSON at INSERT time, so a
-// value that's valid JSON but the wrong shape (an object instead of a string
-// array) is the only way to reach a Go-level json.Unmarshal error here.
+// Valid JSON of the wrong shape is the only way to reach scanSnapshot's
+// unmarshal error.
 func TestStorageSnapshotsLatestOrphanKeysTypeMismatch(t *testing.T) {
 	clearSnapshots(t)
 	repo := repositories.NewStorageSnapshotsRepository(testDB)

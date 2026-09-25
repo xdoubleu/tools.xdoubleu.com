@@ -13,14 +13,11 @@ import (
 const (
 	partnerKeyHeader = "bmc-partner-key"
 	requestTimeout   = 60 * time.Second
-	// maxStaticBytes caps the download. The real zip is ~9 MB (issue #1389);
-	// 64 MB is generous headroom without letting a misbehaving gateway
-	// stream unbounded into memory.
+	// maxStaticBytes caps the download (~9 MB real zip).
 	maxStaticBytes = 64 << 20
 )
 
-// scheme is always https in production; an internal test lowers it to http
-// so it can exercise the real request path against httptest.NewServer.
+// scheme is https in production; a test lowers it to http for httptest.
 //
 //nolint:gochecknoglobals //test seam, see client_internal_test.go
 var scheme = "https"
@@ -32,8 +29,8 @@ type client struct {
 	partnerKey string
 }
 
-// New builds a BMC client. host and partnerKey come from internal/config;
-// an empty partnerKey makes FetchStatic return ErrNotConfigured.
+// New builds a BMC client; an empty partnerKey makes FetchStatic return
+// ErrNotConfigured.
 func New(logger *slog.Logger, host, partnerKey string) Client {
 	return &client{
 		logger:     logger,
@@ -103,8 +100,7 @@ func (c *client) FetchStatic(
 	}, nil
 }
 
-// parseRetryAfter reads the Retry-After header (delta-seconds form, as
-// observed from this gateway). Falls back to a conservative 30s.
+// parseRetryAfter reads Retry-After as delta-seconds, defaulting to 30s.
 func parseRetryAfter(resp *http.Response) time.Duration {
 	const fallback = 30 * time.Second
 	raw := resp.Header.Get("Retry-After")

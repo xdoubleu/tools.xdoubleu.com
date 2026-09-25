@@ -60,8 +60,6 @@ describe('ExternalBookCard', () => {
     expect(screen.queryByText('Alan Donovan, Brian Kernighan')).not.toBeInTheDocument()
   })
 
-  // provider_id is the result's ISBN13 — a search result with no ISBN has no
-  // detail page to link to (both configured providers only fetch by ISBN).
   it('renders as a non-clickable card when providerId is empty', () => {
     const noProviderId = create(ExternalBookResultSchema, { ...fakeBook, providerId: '' })
     render(<ExternalBookCard book={noProviderId} />)

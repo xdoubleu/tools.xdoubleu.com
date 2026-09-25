@@ -2,9 +2,7 @@ package models
 
 import "time"
 
-// DashboardKind identifies which public dashboard a share link belongs to
-// (issue #737 — renamed from ProfileApp/"books" now that books+feeds are
-// merged into one "reading" dashboard).
+// DashboardKind identifies which public dashboard a share link belongs to.
 type DashboardKind string
 
 const (
@@ -12,9 +10,8 @@ const (
 	DashboardKindGames   DashboardKind = "games"
 )
 
-// ProfileShare is the opaque token behind a user's public dashboard link for
-// one dashboard (global.profile_shares). One share per (user, kind);
-// regenerating replaces it.
+// ProfileShare is the token behind a public dashboard link; one per (user,
+// kind), replaced on regeneration.
 type ProfileShare struct {
 	UserID    string
 	App       DashboardKind
