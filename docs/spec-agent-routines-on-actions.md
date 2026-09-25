@@ -49,8 +49,6 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    - `ROUTINES_APP_ID`.
    - `ROUTINES_MODEL`: an OpenRouter model id without the `openrouter/`
      prefix, e.g. a GLM or DeepSeek flash model.
-   - `ROUTINES_VARIANT` (optional): reasoning effort passed as `--variant`,
-     default `low`.
    - `POSTHOG_MCP_URL`: PostHog's remote MCP endpoint for your region, from
      PostHog's MCP docs.
    - `ROUTINE_<NAME>_ENABLED=true` per routine: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
