@@ -7,9 +7,10 @@ import (
 	"github.com/ory/fosite"
 )
 
-// Scopes this server understands. fosite issues a refresh token only when
-// OfflineAccessScope is granted (every MCP client has it). The OIDC scopes are
-// only for clients that register them (Grafana).
+// Scopes this server understands. fosite issues a refresh token / ID token
+// only when OfflineAccessScope / OpenIDScope is granted; every dynamically
+// registered (MCP) client carries both. Profile/Email add claims to the ID
+// token and are only for clients that register them (Grafana).
 const (
 	OpenIDScope        = "openid"
 	ProfileScope       = "profile"
