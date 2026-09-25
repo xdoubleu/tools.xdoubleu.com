@@ -515,6 +515,7 @@ jobs:
           # See config/deploy.api.yml.
           OAUTH_OIDC_PRIVATE_KEY: ${{ secrets.OAUTH_OIDC_PRIVATE_KEY }}
           OAUTH_GRAFANA_CLIENT_SECRET: ${{ secrets.OAUTH_GRAFANA_CLIENT_SECRET }}
+          OAUTH_ROUTINES_CLIENT_SECRET: ${{ secrets.OAUTH_ROUTINES_CLIENT_SECRET }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
           HARDCOVER_API_KEY: ${{ secrets.HARDCOVER_API_KEY }}
           BMC_PARTNER_KEY: ${{ secrets.BMC_PARTNER_KEY }}
