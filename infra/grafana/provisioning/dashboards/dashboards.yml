@@ -1,10 +1,6 @@
-# Grafana dashboard provider (issue #1527). The dashboard JSON in
-# infra/grafana/dashboards/ is the single source of truth: allowUiUpdates is
-# false, so an admin editing a panel in the Grafana UI cannot save over the
-# provisioned copy — changes are made to the JSON and redeployed (matches
-# this repo's "the code is the spec" rule in AGENTS.md). Grafana is
-# admin-only (docs/adr-0021), so there is no non-admin edit path to worry
-# about either.
+# Grafana dashboard provider. The JSON in infra/grafana/dashboards/ is the
+# single source of truth: allowUiUpdates is false, so UI edits can't save over
+# it — change the JSON and redeploy.
 apiVersion: 1
 
 providers:

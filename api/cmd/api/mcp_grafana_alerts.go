@@ -46,7 +46,7 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 			"(Normal/Pending/Alerting/NoData/Error) plus their labels, " +
 			"annotations and active instances, from Grafana's " +
 			"Prometheus-compatible ruler API. All alerting is Grafana-managed " +
-			"(issue #1528) and Grafana-managed alerts never appear in " +
+			"and Grafana-managed alerts never appear in " +
 			"Prometheus ALERTS{}, so prom_query cannot confirm or investigate " +
 			"a firing alert — this tool can. Pass rule_name to check one rule " +
 			"(\"is alert X firing?\") instead of pulling every rule's state. " +

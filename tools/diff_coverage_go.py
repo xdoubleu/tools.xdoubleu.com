@@ -5,8 +5,7 @@ the changed lines only, from a `go tool cover` profile — a first
 approximation of what CI's codecov/patch check gates on. See
 diff_coverage_ts.py for the equivalent over web/'s lcov coverage reports.
 
-Codecov's exact patch accounting cannot be replicated locally (issue
-#1868: it false-greened twice on PR #1861): Codecov counts an
+Codecov's exact patch accounting cannot be replicated locally: it counts an
 unexplained subset of the diff's changed lines and marks lines partial
 whose every covering block was hit locally. Two numbers are therefore
 reported per file:
@@ -17,8 +16,8 @@ reported per file:
 - a conservative secondary percentage counts a changed line covered
   only when it is the start or end line of a >0-count block with no
   0-count block touching it, treating interior lines of hit blocks as
-  misses. On #1861's pushes this boundary-only view is what matched
-  Codecov's hit attribution, so a big gap between the two numbers is a
+  misses. This boundary-only view has matched Codecov's hit attribution
+  in practice, so a big gap between the two numbers is a
   hint the local result is optimistic — not a prediction of Codecov's
   number.
 
@@ -126,9 +125,8 @@ def parse_profile(profile_path):
     a plain max(count).
 
     boundary reports whether some count>0 block starts or ends on the
-    line. Interior lines of a fully-hit block carry hit=True yet Codecov
-    still marked them partial on PR #1861, while its counted hits were
-    consistently block start/end lines -- the conservative secondary
+    line. Codecov has marked interior lines of fully-hit blocks partial
+    while counting block start/end lines as hits -- the conservative secondary
     percentage in main() uses this to flag local results that look
     better than Codecov's accounting would produce."""
     files = {}
@@ -157,9 +155,7 @@ def parse_profile(profile_path):
                 hit, miss, boundary = file_lines.get(line_no, (False, False, False))
                 if count > 0:
                     hit = True
-                    # Start/end lines of a hit block are what Codecov's
-                    # counted hits matched on PR #1861; interior lines
-                    # only. A single-line block is both start and end.
+                    # A single-line block is both start and end.
                     if line_no == start_line or line_no == last_line:
                         boundary = True
                 else:
@@ -231,9 +227,7 @@ def main():
             1 for hit, miss, _ in instrumented.values() if hit and not miss
         )
         # Conservative view: only block start/end lines of hit blocks
-        # count, mirroring what matched Codecov's hit attribution on
-        # issue #1868's PR #1861 investigation. Interior lines of hit
-        # blocks, which Codecov marked partial there, count as misses.
+        # count; interior lines count as misses.
         conservative = sum(
             1 for hit, miss, boundary in instrumented.values()
             if hit and not miss and boundary

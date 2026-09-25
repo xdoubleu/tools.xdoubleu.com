@@ -83,7 +83,7 @@ func insertKEPUBRow(t *testing.T, bookID uuid.UUID, ownerID string) {
 
 // insertStaleKEPUBRow inserts a ready KEPUB book_file row stamped with a
 // converter version older than current, simulating a book converted before
-// a pipeline fix (issue #1696).
+// a pipeline fix.
 func insertStaleKEPUBRow(t *testing.T, bookID uuid.UUID, ownerID string) {
 	t.Helper()
 	insertKEPUBRowWithVersion(t, bookID, ownerID, 0)

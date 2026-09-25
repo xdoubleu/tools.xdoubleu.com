@@ -8,9 +8,7 @@ body, not at the `func` keyword. When `golines` wraps a signature over the
 repo's 88-character limit, the parameter lines belong to no coverage block
 at all -- Codecov's parser reports them as missed and the `) ... {` line as
 partial, so every newly added function forfeits 2-3 patch lines it can
-never cover (issue #1376: `codecov/patch` reported 71.42% on PR #1375 for
-code both `make test/cov/diff` and a local replay of CI's own pipeline
-measured as 100% covered).
+never cover.
 
 This moves the start of each such block up to its `func` keyword, which is
 what `diff_coverage_go.py` effectively already assumes: the signature lines

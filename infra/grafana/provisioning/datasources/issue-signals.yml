@@ -1,20 +1,11 @@
-# GitHub + Sentry datasource provisioning (issue #1570) — baked into the
-# wrapper image by infra/grafana.Dockerfile, read on startup from the
-# image's default /etc/grafana/provisioning path (same as prometheus.yml).
+# GitHub + Sentry datasources (plugins installed via GF_INSTALL_PLUGINS in
+# infra/grafana.Dockerfile), baked into the image like prometheus.yml. Only
+# the Sentry signal is queried from here; the GitHub datasource is for ad-hoc
+# use, its signals stay Prometheus gauges.
 #
-# Both are backend plugins installed via GF_INSTALL_PLUGINS in the
-# Dockerfile. They query the GitHub and Sentry APIs directly, so Grafana no
-# longer needs the api binary to poll those APIs for the issue signals it
-# graphs and alerts on (adr-0022 Phase 7). As of this change only the
-# Sentry unresolved-issues signal actually moved — the GitHub datasource is
-# provisioned for ad-hoc use, its signals stay Prometheus gauges until the
-# plugin queries are validated against live data (follow-up on #1570).
-#
-# The tokens are injected as container env by Kamal (config/deploy.grafana.yml
-# env.secret) and read here via $__env{} — the same non-GF_ mechanism
-# contactpoints.yml uses for NOTIFY_EMAIL_TO. scripts/verify_grafana_image.sh
-# exports dummy values so provisioning loads in CI (a failing datasource
-# health check is lazy and does not fail provisioning).
+# Tokens come from Kamal env.secret (config/deploy.grafana.yml) via $__env{}.
+# scripts/verify_grafana_image.sh exports dummy values so provisioning loads
+# in CI (datasource health checks are lazy).
 apiVersion: 1
 
 datasources:

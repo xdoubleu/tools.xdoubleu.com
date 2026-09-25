@@ -2,11 +2,8 @@
 """
 Resolve the set of api/ Go package directories changed vs origin/main, for
 scoping a diff-only `gremlins unleash` mutation-testing run (see
-`api/Makefile`'s `test/mutation/diff` target and issue #1632). Reuses
-`diff_coverage_go.py`'s `get_changed_lines` -- the same
-git-diff-against-origin/main mechanism adr-0013's diff-scoped coverage
-already established -- rather than writing a second implementation of
-"which files/packages changed".
+`api/Makefile`'s `test/mutation/diff` target). Reuses
+`diff_coverage_go.py`'s `get_changed_lines`.
 
 Usage:
     python3 ../tools/diff_packages_go.py

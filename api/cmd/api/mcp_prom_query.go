@@ -26,7 +26,7 @@ func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 			"raw API v1 query response JSON. Replaces the old get_host_metrics/" +
 			"get_database_size_history/get_transaction_latency_history/" +
 			"get_alert_states tools now that Grafana + Prometheus own that " +
-			"data (issue #1468). Examples: " +
+			"data. Examples: " +
 			`'node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes', ` +
 			`'rate(pg_stat_database_xact_commit[5m])', 'up{job="api"}'.`,
 	}, func(

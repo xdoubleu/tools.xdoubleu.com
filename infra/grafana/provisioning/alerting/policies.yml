@@ -1,25 +1,10 @@
-# Grafana notification policy (issue #1528, moved to Slack in #1592;
-# "immediate" routine-fire routing added in #1444). Every alert still
-# reaches the one 'slack' contact point via the default (top-level)
-# receiver below — this is a one-admin deployment, and the alert's own
-# severity label plus its summary carry enough signal in the Slack message
-# that a broad per-severity routing tree isn't worth the complexity.
+# Grafana notification policy. Every alert reaches the top-level 'slack'
+# receiver (one-admin deployment; no per-severity routing tree).
 #
-# The one deliberate exception is the "immediate" group: alerts labeled
-# trigger=immediate (rules.yml's IssueSentryUnresolved/IssueSecurityAlerts
-# today; #1443's future staleness rule is meant to carry the same label) are
-# bug/security-class problems worth fixing without waiting on a human to
-# read Slack, so they ALSO fire a self-healing routine directly through the
-# "routine-fire" webhook contact point (contactpoints.yml,
-# api/cmd/api/routines_webhook.go). Both child routes below match
-# trigger=immediate; the first has continue:true so Alertmanager-style
-# routing evaluates the second sibling too instead of stopping after the
-# first match — that's what gets the alert delivered to BOTH contact
-# points rather than just one. A non-"immediate" alert matches neither
-# child route and falls through to the top-level 'slack' receiver as
-# before. CI/dependency-class problems (nightly sweep #1446, morning
-# repair #1448) are explicitly NOT part of this group — see issue #1444's
-# "Not this" section.
+# Exception: trigger=immediate alerts (bug/security-class, see rules.yml) ALSO
+# fire the "routine-fire" webhook. The first child route's continue:true is
+# what delivers them to BOTH contact points. CI/dependency-class problems are
+# deliberately not in this group.
 apiVersion: 1
 
 policies:

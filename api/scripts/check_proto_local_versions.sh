@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 # Fails if a plugin version pinned for `buf generate` (buf.gen.yaml's
 # `remote:` line, resolved from buf.build) drifts from the version installed
-# locally for `buf generate --template buf.gen.local.yaml` (issue #1426) —
-# the offline path Claude Code on the web uses since it can't reach
-# buf.build. The two pins live in different files by necessity (a `remote:`
-# plugin carries its version in the pin itself; a `local:` plugin just names
-# a binary already on PATH), so nothing else catches them going out of sync.
+# locally for `buf generate --template buf.gen.local.yaml` (the offline path
+# for environments that can't reach buf.build). The pins necessarily live in
+# different files, so nothing else catches them drifting.
 #
 # Checked pairs:
 #   1. api/buf.gen.yaml   protoc-gen-go pin        <-> api/Makefile's
@@ -13,13 +11,10 @@
 #   2. api/buf.gen.yaml   protoc-gen-connect-go pin <-> api/Makefile's
 #      `go install connectrpc.com/connect/cmd/protoc-gen-connect-go@vX`
 #   3. web/buf.gen.yaml   protoc-gen-es pin         <-> web/package.json's
-#      "@bufbuild/protoc-gen-es" devDependency version (protoc-gen-es itself
-#      is already run from node_modules/.bin, so no separate install pin
-#      exists to drift — package.json's pin *is* the local plugin's version)
+#      "@bufbuild/protoc-gen-es" devDependency version
 #
-# Run from api/ (via `make lint/proto-local-versions`). Paths resolve
-# relative to the repo root so it works from anywhere. Kept POSIX-bash-3.2
-# clean (macOS).
+# Run via `make lint/proto-local-versions`; paths resolve from the repo root.
+# Kept POSIX-bash-3.2 clean (macOS).
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"

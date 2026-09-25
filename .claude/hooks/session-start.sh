@@ -43,7 +43,7 @@ if [ -d web ] && [ ! -d web/node_modules ]; then
   (
     cd web && npm install >/tmp/claude-bootstrap-npm.log 2>&1
     if ! git diff --quiet -- package-lock.json; then
-      echo "session-start: discarding package-lock.json drift from a Node version mismatch (issue #1704)" >>/tmp/claude-bootstrap-npm.log
+      echo "session-start: discarding package-lock.json drift from a Node version mismatch" >>/tmp/claude-bootstrap-npm.log
       git checkout -- package-lock.json
     fi
   ) &

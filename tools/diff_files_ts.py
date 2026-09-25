@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """
 Resolve the set of web/ TS/TSX files changed vs origin/main, for scoping a
-diff-only StrykerJS mutation-testing run (see `web/scripts/test-mutation-
-diff.sh` and issue #1632). Reuses `diff_coverage_ts.py`'s
-`get_changed_lines` -- the same git-diff-against-origin/main mechanism
-adr-0013's diff-scoped coverage already established -- rather than writing
-a second implementation of "which files changed". StrykerJS's own CLI has
-no built-in git-diff-based scoping (`--since` doesn't exist in the
-installed version; `--incremental` only speeds up reruns of an unchanged
-set), so `--mutate` is populated from this script's output instead.
+diff-only StrykerJS `--mutate` run (see `web/scripts/test-mutation-diff.sh`).
+Reuses `diff_coverage_ts.py`'s `get_changed_lines`.
 
 Usage:
     python3 ../tools/diff_files_ts.py

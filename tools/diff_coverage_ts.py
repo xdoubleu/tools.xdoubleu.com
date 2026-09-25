@@ -10,7 +10,7 @@ equivalent over api/'s Go coverage profiles.
 Scoping to changed lines is what keeps this honest: scoring a changed
 file's entire line set instead would fail a one-line edit to a file with
 pre-existing gaps, while codecov/patch -- which only ever looks at the
-diff -- passes it (issue #1301).
+diff -- passes it.
 
 Usage:
     python3 ../tools/diff_coverage_ts.py coverage/lcov.info

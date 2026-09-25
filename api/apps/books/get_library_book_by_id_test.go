@@ -12,7 +12,7 @@ import (
 )
 
 // TestGetLibraryBookByID_Owner confirms GetLibraryBookByID — the exported
-// method the learningpaths app (#1474) uses to resolve a resource linked to
+// method the learningpaths app uses to resolve a resource linked to
 // a books entry — returns the caller's own library entry.
 func TestGetLibraryBookByID_Owner(t *testing.T) {
 	ub := addTestBookNoISBN(t, "GetLibraryBookByID Owner")
