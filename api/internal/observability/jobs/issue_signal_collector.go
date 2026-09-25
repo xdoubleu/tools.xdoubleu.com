@@ -74,7 +74,7 @@ var (
 	}, []string{"routine"})
 )
 
-// knownRoutines are the claude.ai routines tracked by
+// knownRoutines are the scheduled agent routines tracked by
 // automated_action_seconds_since_last_open. Keep in sync by hand with
 // docs/spec-routine-*.md and the AutomatedRoutineMissed thresholds.
 //

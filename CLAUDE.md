@@ -27,7 +27,7 @@ Use `Agent` for noisy bulk work (grep sweeps, log/CI trawls, large MCP outputs s
 
 ## Other skills
 
-`.claude/skills/` also holds operational sweeps (see each skill's description). The claude.ai scheduled routines that fire them (`docs/spec-routine-*.md`) are Claude-only.
+`.claude/skills/` also holds operational sweeps (see each skill's description). Scheduled GitHub Actions workflows (`routine-*.yml`) run them through OpenCode → [spec-agent-routines-on-actions](docs/spec-agent-routines-on-actions.md).
 
 ## MCP
 

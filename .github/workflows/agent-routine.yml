@@ -18,6 +18,11 @@ on:
         description: The routine prompt from its docs/spec-routine-*.md
         required: true
         type: string
+      posthog:
+        description: Also connect PostHog's MCP server
+        required: false
+        type: boolean
+        default: false
 
 env:
   OPENCODE_VERSION: 1.18.32
@@ -101,17 +106,26 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
           ROUTINE_SUMMARY_PATH: ${{ runner.temp }}/summary.md
-          OPENCODE_CONFIG_CONTENT: >-
-            {"mcp": {"tools-apps": {"type": "remote",
-            "url": "${{ env.APPS_BASE_URL }}/apps/mcp", "oauth": false,
-            "headers": {"Authorization": "Bearer {env:TOOLS_APPS_MCP_TOKEN}"}}},
-            "permission": {"bash": {"*": "allow",
-            "git push --force*": "deny", "git push -f*": "deny",
-            "gh pr merge*": "deny", "gh secret*": "deny"}}}
+          POSTHOG: ${{ inputs.posthog }}
+          POSTHOG_MCP_URL: ${{ vars.POSTHOG_MCP_URL }}
+          POSTHOG_MCP_API_KEY: ${{ inputs.posthog && secrets.POSTHOG_MCP_API_KEY || '' }}
           ROUTINE_PROMPT: ${{ inputs.prompt }}
           ROUTINE: ${{ inputs.routine }}
           MODEL: ${{ vars.ROUTINES_MODEL }}
         run: |
+          mcp=$(jq -n --arg url "$APPS_BASE_URL/apps/mcp" '{"tools-apps": {type: "remote",
+            url: $url, oauth: false,
+            headers: {Authorization: "Bearer {env:TOOLS_APPS_MCP_TOKEN}"}}}')
+          if [ "$POSTHOG" = "true" ]; then
+            mcp=$(jq --arg url "$POSTHOG_MCP_URL" '. + {posthog: {type: "remote",
+              url: $url, oauth: false,
+              headers: {Authorization: "Bearer {env:POSTHOG_MCP_API_KEY}"}}}' <<<"$mcp")
+          fi
+          OPENCODE_CONFIG_CONTENT=$(jq -n --argjson mcp "$mcp" '{mcp: $mcp,
+            permission: {bash: {"*": "allow",
+              "git push --force*": "deny", "git push -f*": "deny",
+              "gh pr merge*": "deny", "gh secret*": "deny"}}}')
+          export OPENCODE_CONFIG_CONTENT
           prompt="You run unattended in GitHub Actions via OpenCode; no human
           is present, so never ask or wait. Skills live under .claude/skills
           and .agents/skills. Subagents here share one checkout: work through

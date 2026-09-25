@@ -17,6 +17,11 @@ creating session lacks (#1438). The live routine's prompt can only be edited
 by its owner in that UI (`update_trigger` is refused for it), so paste this
 doc's prompt there whenever it changes.
 
+**Moving to GitHub Actions:** `.github/workflows/routine-ready-issues-executor.yml`
+([spec-agent-routines-on-actions](spec-agent-routines-on-actions.md)) carries
+this prompt, adapted to OpenCode. To switch over, disable the claude.ai routine
+and set `ROUTINE_READY_ISSUES_EXECUTOR_ENABLED=true`.
+
 ## Setup
 
 1. claude.ai/code/routines → New routine.

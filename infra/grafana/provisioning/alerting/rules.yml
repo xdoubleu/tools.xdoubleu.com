@@ -551,8 +551,8 @@ groups:
           summary: A scheduled routine has not opened a run in over 27 hours
           description: >-
             {{ $labels.routine }} last opened a global.automated_actions row
-            {{ $values.A }}s ago, above the 27h threshold — its claude.ai
-            scheduled trigger may never have fired.
+            {{ $values.A }}s ago, above the 27h threshold — its scheduled
+            routine workflow may not have run.
         noDataState: OK
         execErrState: Alerting
         data:
