@@ -54,8 +54,9 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
      PostHog's MCP docs.
    - `ROUTINE_<NAME>_ENABLED=true` per routine, once its claude.ai routine is
      disabled: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
-     `READY_ISSUES_EXECUTOR`, `POSTHOG_UX_DISCOVERY`. `workflow_dispatch` runs
-     regardless.
+     `READY_ISSUES_EXECUTOR`, `POSTHOG_UX_DISCOVERY`. These must be
+     repo-level: the callers' `if:` runs outside the `agents` environment.
+     `workflow_dispatch` runs regardless.
 
 ## Reading a transcript
 
