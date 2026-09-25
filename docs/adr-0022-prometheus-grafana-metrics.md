@@ -48,9 +48,10 @@ those and the related MCP tools.
   (`IssueFailingPRs`, `IssueMainCIRed`, `IssueSecurityAlerts`,
   `IssueSentryUnresolved`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB,
   `AutomatedActionStalled`, `AutomatedRoutineMissed`), and `TargetDown`/
-  `TargetMissing`. Delivery is a Slack contact point
-  (`GRAFANA_SLACK_WEBHOOK_URL`); `trigger: immediate` rules also reach the
-  `routine-fire` contact point.
+  `TargetMissing`. Only `notify: slack` rules (outages:
+  targets, disk, stalled or missed routines) reach the Slack contact point
+  (`GRAFANA_SLACK_WEBHOOK_URL`); the rest are muted by the `always` mute
+  timing and wait for the nightly sweep's `get_grafana_alerts`.
 - **MCP**: `prom_query` proxies Prometheus's `/api/v1/query` as raw JSON
   (replacing four narrow tools). `get_grafana_alerts` reads rule state from
   Grafana's ruler API (`/api/prometheus/grafana/api/v1/rules`) over the

@@ -100,8 +100,5 @@ env:
     # Same as grafana's GF_SECURITY_ADMIN_PASSWORD; get_grafana_alerts logs in as
     # `admin` via the public host.
     - GRAFANA_ADMIN_PASSWORD
-    # Authenticates routine-fire outbound and POST /webhooks/grafana-alert
-    # inbound; empty rejects every inbound request.
-    - ROUTINE_FIRE_TOKEN
     # notify_slack's webhook; distinct from GRAFANA_SLACK_WEBHOOK_URL.
     - SLACK_WEBHOOK_URL

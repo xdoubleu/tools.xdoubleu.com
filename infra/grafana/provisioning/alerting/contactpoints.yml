@@ -1,7 +1,7 @@
 # Grafana alerting contact points. Grafana evaluates and routes every alert;
 # Prometheus only collects. $__env{} here accepts any env var name, not just
-# GF_-prefixed ones; scripts/verify_grafana_image.sh exports dummy values for
-# both so provisioning loads in CI.
+# GF_-prefixed ones; scripts/verify_grafana_image.sh exports a dummy value so
+# provisioning loads in CI.
 apiVersion: 1
 
 contactPoints:
@@ -12,16 +12,3 @@ contactPoints:
         type: slack
         settings:
           url: $__env{GRAFANA_SLACK_WEBHOOK_URL}
-  # Fires a self-healing routine for the "immediate" alert group
-  # (policies.yml) via api/cmd/api/routines_webhook.go. The URL has a single
-  # /api prefix: kamal_proxy_shim.go strips exactly one before dispatch.
-  - orgId: 1
-    name: routine-fire
-    receivers:
-      - uid: routine-fire-webhook
-        type: webhook
-        settings:
-          url: https://tools.xdoubleu.com/api/webhooks/grafana-alert
-          httpMethod: POST
-          authorization_scheme: Bearer
-          authorization_credentials: $__env{ROUTINE_FIRE_TOKEN}

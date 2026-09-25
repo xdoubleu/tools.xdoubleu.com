@@ -45,7 +45,6 @@ mutate is listed in [AGENTS.md](AGENTS.md#mcp).
 
 - App tools are gated by the caller's per-app access and return only their own data (trains' timetable is public, so every caller with access sees the same rows). Observability tools require admin.
 - `record_action` opens (`mode: "open"`) and closes (`mode: "close"`, passing back the id) a `global.automated_actions` row — the only record of a routine that runs outside the api process. `get_automated_actions` reads it; `get_job_stats` reads in-process `global.job_runs`.
-- A Grafana alert in the "immediate" group POSTs to `/webhooks/grafana-alert` (bearer `ROUTINE_FIRE_TOKEN`), and `routines.Client.Fire` opens the action row before firing the routine.
 - `get_grafana_alerts` reads alert state from Grafana's ruler API, since Grafana-managed alerts never appear in Prometheus `ALERTS{}`.
 
 Connect a local Claude Code (OAuth is automatic):

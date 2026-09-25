@@ -50,12 +50,6 @@ func (app *Application) Routes() http.Handler {
 		app.observabilityIngestRoute(),
 	)
 
-	// Grafana webhook contact point; authenticates via a shared bearer token.
-	mux.Handle(
-		"POST "+routinesWebhookPath,
-		app.routinesWebhookRoute(),
-	)
-
 	familyPath, familyHandler := familyv1connect.NewFamilyServiceHandler(
 		&familyConnectHandler{app: app},
 		scrub,
