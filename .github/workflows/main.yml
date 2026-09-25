@@ -541,8 +541,6 @@ jobs:
           OBSERVABILITY_INGEST_SECRET: ${{ secrets.OBSERVABILITY_INGEST_SECRET }}
           # Grafana's admin password; get_grafana_alerts authenticates with it.
           GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          # See config/deploy.api.yml.
-          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
           # notify_slack's webhook; distinct from GRAFANA_SLACK_WEBHOOK_URL.
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: bundle exec kamal deploy -c config/deploy.api.yml --skip-push --version="$KAMAL_VERSION"
@@ -568,8 +566,6 @@ jobs:
           # Consumed by infra/grafana/provisioning/datasources/issue-signals.yml.
           GRAFANA_GITHUB_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_GITHUB_DATASOURCE_TOKEN }}
           GRAFANA_SENTRY_DATASOURCE_TOKEN: ${{ secrets.GRAFANA_SENTRY_DATASOURCE_TOKEN }}
-          # Consumed by contactpoints.yml's "routine-fire" contact point.
-          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
         run: bundle exec kamal deploy -c config/deploy.grafana.yml --skip-push --version="$KAMAL_VERSION"
 
   # Applies infra/ (state in Cloudflare R2). harden.sh and the Postgres

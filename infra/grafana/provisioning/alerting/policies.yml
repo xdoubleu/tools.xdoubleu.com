@@ -1,11 +1,16 @@
-# Grafana notification policy. Every alert reaches the top-level 'slack'
-# receiver (one-admin deployment; no per-severity routing tree).
-#
-# Exception: trigger=immediate alerts (bug/security-class, see rules.yml) ALSO
-# fire the "routine-fire" webhook. The first child route's continue:true is
-# what delivers them to BOTH contact points. CI/dependency-class problems are
-# deliberately not in this group.
+# Grafana notification policy. Only notify=slack alerts (outage-class, see
+# rules.yml) post to Slack. The rest are muted around the clock and surface
+# in the nightly sweep: muting only stops delivery, get_grafana_alerts still
+# sees them firing.
 apiVersion: 1
+
+muteTimes:
+  - orgId: 1
+    name: always
+    time_intervals:
+      - times:
+          - start_time: '00:00'
+            end_time: '24:00'
 
 policies:
   - orgId: 1
@@ -19,20 +24,9 @@ policies:
     routes:
       - receiver: slack
         matchers:
-          - trigger = immediate
-        continue: true
-        group_by:
-          - grafana_folder
-          - alertname
-        group_wait: 30s
-        group_interval: 5m
-        repeat_interval: 4h
-      - receiver: routine-fire
+          - notify = slack
+      - receiver: slack
         matchers:
-          - trigger = immediate
-        group_by:
-          - grafana_folder
-          - alertname
-        group_wait: 30s
-        group_interval: 5m
-        repeat_interval: 4h
+          - notify != slack
+        mute_time_intervals:
+          - always

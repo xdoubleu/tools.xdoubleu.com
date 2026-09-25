@@ -93,6 +93,9 @@ groups:
         condition: C
         labels:
           severity: critical
+          # Outage-class: posts to Slack (policies.yml). Unlabelled rules
+          # only surface in the nightly sweep.
+          notify: slack
         annotations:
           summary: Host disk usage above 85%
           description: "{{ $values.A }}% disk usage on the VPS."
@@ -133,6 +136,7 @@ groups:
         for: 2m
         labels:
           severity: critical
+          notify: slack
         annotations:
           summary: "Prometheus cannot scrape {{ $labels.job }}"
           description: >-
@@ -170,6 +174,7 @@ groups:
         for: 5m
         labels:
           severity: critical
+          notify: slack
         annotations:
           summary: "No scrape target exists for {{ $labels.job }}"
           description: >-
@@ -347,9 +352,6 @@ groups:
         condition: C
         labels:
           severity: warning
-          # Also routes to the "routine-fire" contact point (policies.yml) so
-          # a self-healing routine starts without waiting on Slack.
-          trigger: immediate
         annotations:
           summary: Unresolved Sentry issues present
           description: "{{ $values.A }} unresolved Sentry issue(s)."
@@ -381,8 +383,6 @@ groups:
         condition: C
         labels:
           severity: critical
-          # See issue-sentry-unresolved's trigger label comment above.
-          trigger: immediate
         annotations:
           summary: Open security alerts present
           description: "{{ $values.A }} open security alert(s) across all severities."
@@ -509,8 +509,7 @@ groups:
         condition: C
         labels:
           severity: critical
-          # See issue-sentry-unresolved's trigger label comment above.
-          trigger: immediate
+          notify: slack
         annotations:
           summary: An automated routine fired and never closed out
           description: "The oldest open global.automated_actions row is {{ $values.A }}s old, above the 3h stall threshold."
@@ -545,8 +544,7 @@ groups:
         condition: C
         labels:
           severity: critical
-          # See issue-sentry-unresolved's trigger label comment above.
-          trigger: immediate
+          notify: slack
         annotations:
           summary: A scheduled routine has not opened a run in over 27 hours
           description: >-

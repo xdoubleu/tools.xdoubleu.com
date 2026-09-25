@@ -339,12 +339,6 @@ GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry token, org:read + project:read +
                               event:read, for grafana-sentry-datasource)
 GRAFANA_SLACK_WEBHOOK_URL    (Slack webhook for the alert contact point,
                               infra/grafana/provisioning/alerting/contactpoints.yml)
-ROUTINE_FIRE_TOKEN           (bearer token for internal/routines.Client's POST to
-                              ROUTINE_FIRE_URL and the inbound
-                              POST /webhooks/grafana-alert; `openssl rand -hex 32`.
-                              Unset ⇒ inbound webhook rejects everything. Also a
-                              plain Actions secret for main.yml's
-                              notify-main-ci-red job)
 SLACK_WEBHOOK_URL            (Slack webhook the notify_slack MCP tool posts to;
                               separate from GRAFANA_SLACK_WEBHOOK_URL. Unset ⇒
                               ErrNotConfigured)

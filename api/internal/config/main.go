@@ -98,13 +98,6 @@ type Config struct {
 	// user session). Empty rejects every request.
 	ObservabilityIngestSecret string
 
-	// RoutineFireURL is the routine-fire webhook base; routines.Client POSTs to
-	// <RoutineFireURL>/<routine name>/fire. The contract is assumed, unverified.
-	RoutineFireURL string
-	// RoutineFireToken is the bearer token for outbound routine fires and for the
-	// inbound POST /webhooks/grafana-alert. Empty rejects every inbound request.
-	RoutineFireToken string
-
 	// SlackWebhookURL is the Slack webhook for notify_slack, distinct from
 	// Grafana's GRAFANA_SLACK_WEBHOOK_URL. Empty disables the tool.
 	SlackWebhookURL string
@@ -285,11 +278,6 @@ func New(logger *slog.Logger) Config {
 	)
 	cfg.GrafanaAdminPassword = p.envSecret("GRAFANA_ADMIN_PASSWORD", "")
 	cfg.ObservabilityIngestSecret = p.envSecret("OBSERVABILITY_INGEST_SECRET", "")
-
-	cfg.RoutineFireURL = p.envStr(
-		"ROUTINE_FIRE_URL", "https://api.anthropic.com/api/routines",
-	)
-	cfg.RoutineFireToken = p.envSecret("ROUTINE_FIRE_TOKEN", "")
 
 	cfg.SlackWebhookURL = p.envSecret("SLACK_WEBHOOK_URL", "")
 

@@ -97,7 +97,7 @@ while IFS= read -r name; do
 		# Read via $__env{} in infra/grafana/provisioning/ (contactpoints.yml,
 		# datasources/issue-signals.yml), which accepts any env var name.
 		GF_* | RELEASE | KAMAL_*) ;;
-		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN | ROUTINE_FIRE_TOKEN) ;;
+		GRAFANA_SLACK_WEBHOOK_URL | GRAFANA_GITHUB_DATASOURCE_TOKEN | GRAFANA_SENTRY_DATASOURCE_TOKEN) ;;
 		*)
 			echo "ERROR: $grafana_config lists env name '$name' but Grafana only reads GF_-prefixed env vars — it would be injected and ignored. Rename it to the GF_* name Grafana expects." >&2
 			status=1

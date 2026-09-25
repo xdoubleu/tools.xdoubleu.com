@@ -25,7 +25,6 @@ docker run -d --name "$container" -p "$port:3000" \
   -e GRAFANA_SLACK_WEBHOOK_URL="https://hooks.slack.com/services/dummy" \
   -e GRAFANA_GITHUB_DATASOURCE_TOKEN="dummy" \
   -e GRAFANA_SENTRY_DATASOURCE_TOKEN="dummy" \
-  -e ROUTINE_FIRE_TOKEN="dummy" \
   "$image" >/dev/null
 
 base="http://localhost:$port"
@@ -72,8 +71,12 @@ if ! grep -qx "slack" <<<"$cp_names"; then
   echo "FAIL: contact point 'slack' not found (got: ${cp_names:-none})"
   fail=1
 fi
-if ! grep -qx "routine-fire" <<<"$cp_names"; then
-  echo "FAIL: contact point 'routine-fire' not found (got: ${cp_names:-none})"
+
+echo "==> checking the always-on mute timing provisioned"
+mute_names=$(curl -sf -u admin:admin "$base/api/v1/provisioning/mute-timings" \
+  | python3 -c 'import json,sys; print("\n".join(m["name"] for m in json.load(sys.stdin)))')
+if ! grep -qx "always" <<<"$mute_names"; then
+  echo "FAIL: mute timing 'always' not found (got: ${mute_names:-none})"
   fail=1
 fi
 
