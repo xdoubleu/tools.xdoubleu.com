@@ -121,6 +121,8 @@ function lintDocsFailure(dir: string): string | undefined {
 export default {
   id: "repo-guard",
   async setup(ctx: PluginContext) {
+    // An Actions runner's checkout is throwaway and routines edit it in place.
+    if (process.env.GITHUB_ACTIONS === "true") return
     fastForwardMain(ctx.location.directory)
 
     // 1. Worktree-scope edit guard.

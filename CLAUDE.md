@@ -37,4 +37,4 @@ claude mcp add --transport http tools-apps https://tools.xdoubleu.com/api/apps/m
 
 ## OpenCode
 
-OpenCode shares `AGENTS.md`, the MCP server, and `.claude/skills/`. Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`), so don't copy them into `.claude/skills/`. `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, the unshipped-work check (as a nudge), and the doc-budget check. It has no `ExitPlanMode` equivalent.
+OpenCode shares `AGENTS.md`, the MCP server, and `.claude/skills/` (via `skills.paths` in `opencode.json`). Its copies of the marketplace skills live under `.agents/skills/` (`skills-lock.json`, `npx skills update`), so don't copy them into `.claude/skills/`. `.opencode/plugins/repo-guard/` ports the worktree guard, the session-start fast-forward of main, the unshipped-work check (as a nudge), and the doc-budget check. It has no `ExitPlanMode` equivalent.

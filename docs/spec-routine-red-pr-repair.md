@@ -10,6 +10,11 @@ A daily claude.ai/code routine running the `red-pr-repair` skill
 left open with an explanatory comment — never merged beyond the existing
 auto-merge rule, never closed.
 
+**Moving to GitHub Actions:** `.github/workflows/routine-red-pr-repair.yml`
+([spec-agent-routines-on-actions](spec-agent-routines-on-actions.md)) carries
+this prompt, adapted to OpenCode. To switch over, disable the claude.ai routine
+and set `ROUTINE_RED_PR_REPAIR_ENABLED=true`.
+
 **Create by hand** at claude.ai/code/routines, in a session holding every
 connector below — the trigger-creation API silently drops connectors the
 creating session lacks (#1438).

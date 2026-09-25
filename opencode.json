@@ -1,12 +1,13 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["api/AGENTS.md", "web/AGENTS.md", "kobo-gateway/AGENTS.md"],
+  "skills": {
+    "paths": [".claude/skills", ".agents/skills"]
+  },
   "mcp": {
-    "servers": {
-      "tools-apps": {
-        "type": "remote",
-        "url": "https://tools.xdoubleu.com/api/apps/mcp"
-      }
+    "tools-apps": {
+      "type": "remote",
+      "url": "https://tools.xdoubleu.com/api/apps/mcp"
     }
   }
 }
