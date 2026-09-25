@@ -42,10 +42,7 @@ func TestFetchRealtime_RequestsProtobufAndSendsKey(t *testing.T) {
 	assert.Equal(t, "proto-bytes", string(res.Body))
 }
 
-// TestFetchRealtime_RejectsNonProtobuf guards against the gateway's
-// documented JSON-by-default fallback (issue #1389) silently corrupting a
-// naive delay parse — a non-protobuf Content-Type must be rejected as a
-// typed, distinguishable error rather than parsed.
+// TestFetchRealtime_RejectsNonProtobuf: a JSON response is a typed error.
 func TestFetchRealtime_RejectsNonProtobuf(t *testing.T) {
 	withHTTPScheme(t)
 	srv := httptest.NewServer(http.HandlerFunc(
@@ -65,10 +62,7 @@ func TestFetchRealtime_RejectsNonProtobuf(t *testing.T) {
 	require.ErrorContains(t, err, "expected protobuf")
 }
 
-// TestFetchRealtime_RejectsHTMLErrorPage covers the production case (issue
-// #1711): the gateway serving an HTML error page with a 200 status during
-// overload or an SNCB-side backend error, rather than the documented JSON
-// fallback.
+// TestFetchRealtime_RejectsHTMLErrorPage: an HTML 200 is a typed error.
 func TestFetchRealtime_RejectsHTMLErrorPage(t *testing.T) {
 	withHTTPScheme(t)
 	srv := httptest.NewServer(http.HandlerFunc(

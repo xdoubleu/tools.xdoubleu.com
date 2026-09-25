@@ -14,11 +14,8 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// TestDomainMiddleware_PathRewrite verifies that the domainMiddleware rewrites
-// request paths when the Host matches a registered app domain.
-// watchparty.xdoubleu.com is the only app that overrides GetDomain(), and
-// GET /watchparty/api/signaling is a real route — so a rewritten request must
-// land on it (non-404) while the same path without the Host rewrite 404s.
+// TestDomainMiddleware_PathRewrite: a watchparty-domain Host rewrites onto a
+// real route; without it the path 404s.
 func TestDomainMiddleware_PathRewrite(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/api/signaling", nil)
 	req.Host = "watchparty.xdoubleu.com"
@@ -26,16 +23,13 @@ func TestDomainMiddleware_PathRewrite(t *testing.T) {
 	rewritten := httptest.NewRecorder()
 	testApp.Routes().ServeHTTP(rewritten, req)
 
-	// Control: without the Host rewrite the same path has no route.
 	noRewrite := doInProcess(t, http.MethodGet, "/api/signaling", "", "", &accessToken)
 
 	assert.Equal(t, http.StatusNotFound, noRewrite.Code)
 	assert.NotEqual(t, http.StatusNotFound, rewritten.Code)
 }
 
-// TestDomainMiddleware_RootRewrite exercises the root rewrite branch
-// ("/" → "/<app>/"): the rewritten request must land on the same route as a
-// direct request to the rewritten path.
+// TestDomainMiddleware_RootRewrite: "/" rewrites to "/<app>/".
 func TestDomainMiddleware_RootRewrite(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Host = "watchparty.xdoubleu.com"
@@ -48,8 +42,7 @@ func TestDomainMiddleware_RootRewrite(t *testing.T) {
 	assert.Equal(t, direct.Code, rewritten.Code)
 }
 
-// TestAppAccess_AdminGrantedPath covers the AppAccess "granted" branch: an
-// admin user reaches a grant-protected app RPC without an explicit app grant.
+// TestAppAccess_AdminGrantedPath: admins pass without an explicit grant.
 func TestAppAccess_AdminGrantedPath(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
@@ -65,12 +58,8 @@ func TestAppAccess_AdminGrantedPath(t *testing.T) {
 	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
 }
 
-// TestAppAccess_DeniedReturns403 covers the AppAccess "denied" branch: every
-// AppAccess call site guards a ConnectRPC POST handler (see apps/*/routes.go),
-// never an HTML page, so a denial must respond with a plain 403 rather than
-// AdminAccess's redirect — a fetch()-based RPC client follows a 30x
-// transparently and would otherwise get back the home page's HTML instead of
-// a usable error (issue #673).
+// TestAppAccess_DeniedReturns403: AppAccess guards RPCs, so a denial is a
+// plain 403, not a redirect a fetch() client would silently follow.
 func TestAppAccess_DeniedReturns403(t *testing.T) {
 	demoteToUser(t)
 	revokeAppAccess(t, testUserID, "recipes")
@@ -86,9 +75,8 @@ func TestAppAccess_DeniedReturns403(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, rr.Code, rr.Body.String())
 }
 
-// TestRoutes_ThrottleEnabled verifies the full middleware chain (rate limiter,
-// CORS, Sentry) is constructed when Throttle is true and still serves requests
-// with security headers applied.
+// TestRoutes_ThrottleEnabled: the full middleware chain serves with security
+// headers.
 func TestRoutes_ThrottleEnabled(t *testing.T) {
 	handler := throttledRoutes(t)
 
@@ -100,8 +88,8 @@ func TestRoutes_ThrottleEnabled(t *testing.T) {
 	assert.Equal(t, "nosniff", rr.Header().Get("X-Content-Type-Options"))
 }
 
-// TestCORSPreflight_ConnectProtocolVersion verifies that CORS preflight
-// requests allow connect-protocol-version header when Throttle is enabled.
+// TestCORSPreflight_ConnectProtocolVersion: preflight allows
+// connect-protocol-version.
 func TestCORSPreflight_ConnectProtocolVersion(t *testing.T) {
 	handler := throttledRoutes(t)
 	rr := httptest.NewRecorder()
@@ -117,8 +105,7 @@ func TestCORSPreflight_ConnectProtocolVersion(t *testing.T) {
 	assert.Contains(t, allowHeaders, "connect-protocol-version")
 }
 
-// throttledRoutes builds a Routes() handler from an Application configured
-// with Throttle enabled.
+// throttledRoutes builds Routes() with Throttle enabled.
 func throttledRoutes(t *testing.T) http.Handler {
 	t.Helper()
 

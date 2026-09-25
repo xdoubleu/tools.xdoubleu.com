@@ -1,6 +1,4 @@
-// Package csa tests. This file stays in-package (not csa_test) because it
-// needs the unexported defaultMinTransferSeconds for a precise
-// same-station-transfer boundary assertion.
+// In-package to reach the unexported defaultMinTransferSeconds.
 //
 //nolint:testpackage //see comment above
 package csa
@@ -19,9 +17,7 @@ import (
 
 var loc = time.UTC //nolint:gochecknoglobals //test fixture timezone
 
-// mkStop / mkTrip / mkST build the trains domain models csa.Build now takes
-// directly, leaving the fields these tests don't exercise at their zero
-// value.
+// mkStop / mkTrip / mkST build zero-filled domain fixtures.
 //
 //nolint:exhaustruct //test fixture: unset fields are deliberately zero
 func mkStop(id, name, parent, platform string, locationType int) models.Stop {
@@ -58,8 +54,7 @@ func mkST(seq int, stopID string, arr, dep, pickup, dropOff int) models.StopTime
 	}
 }
 
-// flattenPatterns turns a per-trip pattern map into the flat, TripID-tagged
-// stop_times slice csa.Build consumes.
+// flattenPatterns flattens per-trip patterns into csa.Build's input.
 func flattenPatterns(patterns map[string][]models.StopTime) []models.StopTime {
 	var out []models.StopTime
 	for tripID, rows := range patterns {
@@ -71,8 +66,7 @@ func flattenPatterns(patterns map[string][]models.StopTime) []models.StopTime {
 	return out
 }
 
-// stations sharing a parent — mirrors the real feed's "S"+UIC station /
-// child-platform shape (issue #1389/#1391).
+// Stations with child platforms, mirroring the real feed's shape.
 func baseStops() []models.Stop {
 	return []models.Stop{
 		mkStop("SA", "Alpha", "", "", 1),
@@ -127,9 +121,8 @@ func TestSearchJourneys_RequiresTransfer(t *testing.T) {
 			mkST(1, "A1", 8*3600, 8*3600, 0, 0),
 			mkST(2, "B1", 8*3600+1200, 8*3600+1200, 0, 0),
 		},
-		// same-station change B1 -> B2 must cost the default transfer time,
-		// never a free 0-minute move (issue #1391's core trap): the gap
-		// here is 300s, comfortably above defaultMinTransferSeconds.
+		// The same-station B1 -> B2 change must cost the default transfer time;
+		// 300s here is above defaultMinTransferSeconds.
 		"leg2": {
 			mkST(1, "B2", 8*3600+1500, 8*3600+1500, 0, 0),
 			mkST(2, "C1", 8*3600+2700, 8*3600+2700, 0, 0),
@@ -147,8 +140,7 @@ func TestSearchJourneys_RequiresTransfer(t *testing.T) {
 	assert.Equal(t, "B1", j.Legs[0].AlightStopID)
 	assert.Equal(t, "B2", j.Legs[1].BoardStopID)
 
-	// a same-station change with less than defaultMinTransferSeconds of
-	// slack must NOT be offered at all.
+	// Less slack than defaultMinTransferSeconds: not offered.
 	patterns["leg2"][0] = mkST(
 		1, "B2",
 		8*3600+1200+defaultMinTransferSeconds-1,
@@ -186,24 +178,17 @@ func TestSearchJourneys_AfterMidnightCrossesServiceDay(t *testing.T) {
 	assert.Equal(t, 10, arr.Minute())
 }
 
-// TestBuildConnections_TripDateUTCMidnightVsBrusselsEpoch pins down the
-// suspected root cause of a specific train silently going missing from
-// search results (issue #1391 follow-up): ActiveTrip.Date comes from a
-// Postgres DATE column, which pgx scans as UTC midnight, while idx.epoch is
-// reconstructed as Brussels-local midnight. During CEST (UTC+2) these two
-// times for "the same calendar day" are 2 hours apart, not 0 — so
-// buildConnections' dayAbs, computed via Sub().Hours()/24*86400, silently
-// shifts every connection on that date by the standing UTC offset instead
-// of by whole days.
+// TestBuildConnections_TripDateUTCMidnightVsBrusselsEpoch: pgx scans DATE as
+// UTC midnight while idx.epoch is Brussels midnight; connections must still
+// land on whole days, not shift by the UTC offset.
 func TestBuildConnections_TripDateUTCMidnightVsBrusselsEpoch(t *testing.T) {
 	brussels, err := time.LoadLocation("Europe/Brussels")
 	require.NoError(t, err)
 
-	// CEST is in effect on this date (DST ends in late October).
+	// CEST is in effect on this date.
 	window := time.Date(2026, 9, 13, 0, 0, 0, 0, brussels)
 	stops := baseStops()
-	// simulates exactly what pgx hands back for a `DATE` column: UTC
-	// midnight, not Brussels-local midnight, for the same calendar day.
+	// What pgx returns for a DATE column.
 	tripDateAsScannedByPgx := time.Date(2026, 9, 13, 0, 0, 0, 0, time.UTC)
 	instances := []models.ActiveTrip{
 		mkTrip("t1", "100", "Bravo", tripDateAsScannedByPgx),
@@ -271,7 +256,7 @@ func TestSearchJourneys_NonBoardingCallNotOfferedAsBoardingPoint(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, journeys, "must not be able to board at a non-boarding call")
 
-	// but riding through M1 on the original trip still works.
+	// Riding through M1 on the original trip still works.
 	when0 := time.Date(2026, 10, 1, 7, 55, 0, 0, loc)
 	journeys0, err := idx.SearchJourneys("SA", "SB", when0, false)
 	require.NoError(t, err)
@@ -313,11 +298,8 @@ func TestSearchJourneys_ArriveBy(t *testing.T) {
 	)
 }
 
-// TestSearchJourneys_WindowAroundRequestedTime pins issue #1643's "show a
-// few options before and after the filled out time": with hourly direct
-// trains from 04:00 to 11:00, a search at 07:00 must surface the requested
-// time itself plus at least windowBefore earlier and windowAfter later
-// distinct departures, sorted and capped at maxJourneyResults.
+// TestSearchJourneys_WindowAroundRequestedTime: a 07:00 search over hourly
+// trains returns earlier, at, and later departures, sorted and capped.
 func TestSearchJourneys_WindowAroundRequestedTime(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	stops := baseStops()
@@ -374,10 +356,8 @@ func TestSearchJourneys_WindowAroundRequestedTime(t *testing.T) {
 	)
 }
 
-// TestSearchJourneys_ArriveByWindowNeverExtendsPastDeadline pins the
-// arriveBy=true half of issue #1643: the window widens only on the
-// "before" side (more distinct qualifying arrivals), never past the
-// requested deadline.
+// TestSearchJourneys_ArriveByWindowNeverExtendsPastDeadline: arriveBy widens
+// only before the deadline.
 func TestSearchJourneys_ArriveByWindowNeverExtendsPastDeadline(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	stops := baseStops()
@@ -454,10 +434,8 @@ func TestSearchJourneys_ExplicitTransferNotPossible(t *testing.T) {
 	)
 }
 
-// TestSearchJourneys_MergesConsecutiveConnectionsIntoOneLeg rides a single
-// train past an intermediate stop, so reconstruct merges two elementary
-// connections into one Leg — the branch that carries the alight stop's
-// display name onto the already-started leg.
+// TestSearchJourneys_MergesConsecutiveConnectionsIntoOneLeg: riding through
+// an intermediate stop yields one Leg.
 func TestSearchJourneys_MergesConsecutiveConnectionsIntoOneLeg(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	instances := []models.ActiveTrip{
@@ -484,10 +462,8 @@ func TestSearchJourneys_MergesConsecutiveConnectionsIntoOneLeg(t *testing.T) {
 	assert.Equal(t, "Charlie", leg.AlightStopName)
 }
 
-// TestMinTransferSeconds pins the connection-makeability lookup the live
-// journey page uses (issue #1395): explicit transfers.txt footpath wins, an
-// unknown pair falls back to the never-zero default, and the same stop is a
-// free change.
+// TestMinTransferSeconds: explicit footpath wins, unknown pairs get the
+// default, the same stop is free.
 func TestMinTransferSeconds(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	instances := []models.ActiveTrip{
@@ -521,16 +497,14 @@ func TestMinTransferSeconds(t *testing.T) {
 	assert.Equal(t, defaultMinTransferSeconds, idx.MinTransferSeconds("nope", "B2"))
 }
 
-// TestBuild_GroupsUnorderedStopTimes pins the ordering guarantee Build now
-// owns: stop_times arriving out of stop_sequence order still build a
-// correctly-ordered pattern (previously the caller's SQL ORDER BY was load-
-// bearing and untested here).
+// TestBuild_GroupsUnorderedStopTimes: out-of-order stop_times still build a
+// correctly ordered pattern.
 func TestBuild_GroupsUnorderedStopTimes(t *testing.T) {
 	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
 	instances := []models.ActiveTrip{
 		mkTrip("t1", "100", "Bravo", day(window, 0)),
 	}
-	// deliberately reversed.
+	// Deliberately reversed.
 	stopTimes := []models.StopTime{
 		{
 			TripID:           "t1",
@@ -561,10 +535,7 @@ func TestBuild_GroupsUnorderedStopTimes(t *testing.T) {
 	assert.Equal(t, "B1", journeys[0].Legs[0].AlightStopID)
 }
 
-// TestStopDisplayName_UsesDisplayNameNotFrenchOnly guards against
-// regressing to the old French-only label (issue #1656): the planner's Leg
-// names must come from the same canonical DisplayName the station search
-// dropdown renders, not NameFR alone.
+// TestStopDisplayName_UsesDisplayNameNotFrenchOnly: legs use DisplayName.
 func TestStopDisplayName_UsesDisplayNameNotFrenchOnly(t *testing.T) {
 	//nolint:exhaustruct //test fixture: unset fields are deliberately zero
 	stop := models.Stop{

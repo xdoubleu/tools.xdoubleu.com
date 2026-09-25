@@ -12,15 +12,11 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/bmc"
 )
 
-// alertPollEvery is how many trip-update poll cycles elapse between alert
-// polls. Alerts change far less often than delays (issue #1393), so with a
-// 30s job cadence this polls alerts roughly every 2 minutes.
+// alertPollEvery: alerts change rarely, so poll them every 4th cycle (~2min).
 const alertPollEvery = 4
 
-// tripResolver maps raw GTFS-RT trip_ids to their static trips.trip_short_name
-// — RealtimeService.Poll re-keys the snapshot through it so a live journey
-// never joins to realtime data by a trip_id the two feeds only coincidentally
-// agree on (issue #1484).
+// tripResolver maps GTFS-RT trip_ids to static trip_short_names, so realtime
+// data never joins by a trip_id the feeds only coincidentally share.
 type tripResolver interface {
 	ShortNamesByTripIDs(
 		ctx context.Context,
@@ -28,10 +24,8 @@ type tripResolver interface {
 	) (map[string]string, error)
 }
 
-// RealtimeService polls the BMC gateway's GTFS-Realtime feeds and keeps the
-// latest decoded state in memory. The snapshot is wholly replaced on every
-// poll and nothing here is persisted — a later slice decides what, if
-// anything, is worth writing down (issue #1393).
+// RealtimeService polls the BMC GTFS-Realtime feeds and keeps the latest
+// state in memory, replaced wholesale each poll.
 type RealtimeService struct {
 	logger   *slog.Logger
 	bmc      bmc.Client
@@ -50,9 +44,7 @@ func NewRealtimeService(
 	return &RealtimeService{logger: logger, bmc: bmcClient, resolver: resolver}
 }
 
-// OnUpdate registers fn to run after every successful Poll — used by
-// JourneyWSService to push fresh journey detail to open sockets without
-// waiting to be asked (issue #1394).
+// OnUpdate registers fn to run after every successful Poll.
 func (s *RealtimeService) OnUpdate(fn func()) {
 	s.mu.Lock()
 	s.onUpdate = append(s.onUpdate, fn)
@@ -66,14 +58,9 @@ func (s *RealtimeService) Snapshot() models.Snapshot {
 	return s.snapshot
 }
 
-// Poll fetches trip-update on every call and alerts on a slower cadence,
-// then replaces the in-memory snapshot wholesale. A rate-limited, 5xx,
-// non-protobuf-200 (issue #1711), or network-timeout (issue #1712) gateway
-// response is logged and this poll is skipped rather than failing the job —
-// the next scheduled run retries, which is the backoff issue #1393 asks for
-// given a job cadence far below the gateway's quota. Any other error (a
-// decode failure, most likely) is returned so it surfaces on the monitoring
-// page instead of failing silently.
+// Poll fetches trip updates every call and alerts less often, then replaces
+// the snapshot. Transient gateway failures (see isBackoffable) skip this poll;
+// the next run is the retry. Other errors are returned so they surface.
 func (s *RealtimeService) Poll(ctx context.Context) error {
 	if s.bmc == nil {
 		return nil
@@ -153,12 +140,8 @@ func (s *RealtimeService) fetchTripUpdates(
 	return decodeTripUpdates(res.Body)
 }
 
-// correlateTripUpdates re-keys raw, trip_id-keyed trip updates off
-// (trip_short_name, service date) by resolving each trip_id against the
-// current static import. Updates whose trip_id has no static match are
-// dropped and counted — the return's second value — so a growing gap between
-// the two feeds' trip_id namespaces shows up as a metric rather than as
-// silently missing delays (issue #1484).
+// resolveTripUpdates re-keys trip updates by (trip_short_name, service date),
+// returning the count with no static match as a drift metric.
 func (s *RealtimeService) resolveTripUpdates(
 	ctx context.Context, raw map[string]models.TripUpdate,
 ) (map[models.TripKey]models.TripUpdate, int, error) {
@@ -176,10 +159,8 @@ func (s *RealtimeService) resolveTripUpdates(
 	return trips, unresolved, nil
 }
 
-// correlateTripUpdates is the pure core of RealtimeService.resolveTripUpdates:
-// given the trip_id→trip_short_name resolution and a fallback service date for
-// updates the feed left undated, it produces the (trip_short_name, date)-keyed
-// map and the count it could not place.
+// correlateTripUpdates is resolveTripUpdates' pure core; fallbackDate dates
+// updates the feed left undated.
 func correlateTripUpdates(
 	raw map[string]models.TripUpdate,
 	shortNames map[string]string,
@@ -210,17 +191,9 @@ func (s *RealtimeService) fetchAlerts(ctx context.Context) ([]models.Alert, erro
 	return decodeAlerts(res.Body)
 }
 
-// isBackoffable reports whether err is a transient condition the next
-// scheduled poll should simply retry, rather than a bug worth failing the
-// job over. A network-level timeout (e.g. the gateway not answering within
-// the client's request timeout, surfaced as a *url.Error whose Timeout() is
-// true) is included alongside rate-limiting and 5xx responses: it is
-// exactly as transient, and the 30s poll cadence is already the retry
-// (issue #1712). A bare context.DeadlineExceeded — RealtimePollJob's own
-// pollTimeout tripping mid-call — is included too: pgx surfaces a query
-// cancelled by context expiry this way rather than as a net.Error, which is
-// what a trains.trips read blocked behind trains-static-import's TRUNCATE
-// lock looks like once the poll's own deadline cuts it off (issue #1720).
+// isBackoffable reports whether err is transient and the next poll should
+// just retry: rate limits, 5xx, network timeouts, non-protobuf 200s, and a
+// bare context.DeadlineExceeded (pgx's form of a query cut off by pollTimeout).
 func isBackoffable(err error) bool {
 	if errors.Is(err, context.DeadlineExceeded) {
 		return true
@@ -234,10 +207,7 @@ func isBackoffable(err error) bool {
 		const serverErrorFloor = 500
 		return upstream.StatusCode >= serverErrorFloor
 	}
-	// A 200 whose body isn't protobuf is the gateway serving an HTML error
-	// page (or its documented JSON fallback) while still claiming success —
-	// a transient overload/backend-error condition, not a real decode bug
-	// (issue #1711).
+	// A non-protobuf 200 is the gateway serving an error page; transient.
 	var badContentType *bmc.UnexpectedContentTypeError
 	if errors.As(err, &badContentType) {
 		return true

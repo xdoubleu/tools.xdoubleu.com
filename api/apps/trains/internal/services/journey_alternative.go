@@ -10,15 +10,11 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
-// finalArrivalSlipSeconds is how far the projected final arrival must slip
-// past the planned one before that alone counts as the journey breaking. A
-// smaller delay that still threatens no connection is shown on the page
-// (issue #1394) but never escalated to a re-plan (issue #1395).
+// finalArrivalSlipSeconds is how far the final arrival must slip before it
+// alone triggers a re-plan.
 const finalArrivalSlipSeconds = 900
 
-// replanner is the slice of JourneyService the alternative evaluator needs:
-// re-query the timetable router from an arbitrary origin/time, and ask what a
-// change between two stops costs.
+// replanner is the slice of JourneyService the alternative evaluator needs.
 type replanner interface {
 	SearchJourneys(
 		ctx context.Context,
@@ -29,10 +25,8 @@ type replanner interface {
 	MinTransferSeconds(fromStopID, toStopID string) int
 }
 
-// journeyBreak is what detectJourneyBreak found: the passenger-facing reason,
-// where and when a re-plan should start from, the original destination, and
-// the trips already known to be dead so a timetable-only re-plan does not
-// just hand them back.
+// journeyBreak is a detected break: reason, re-plan origin and time,
+// destination, and trips known dead so the re-plan doesn't return them.
 type journeyBreak struct {
 	reason       string
 	fromStopID   string
@@ -42,11 +36,8 @@ type journeyBreak struct {
 	deadTrips    map[string]bool
 }
 
-// detectJourneyBreak walks the live legs in order and returns the first
-// positive signal that the planned journey no longer works. Absence of live
-// data (models.DelayUnknown) is never such a signal — liveArrival only
-// yields a time for a DelayOnTime/DelayDelayed reading, so a NO_DATA leg
-// contributes nothing here (issue #1395).
+// detectJourneyBreak returns the first positive signal the journey broke.
+// Missing live data (DelayUnknown) is never such a signal.
 func detectJourneyBreak(
 	refs []LegRef,
 	legs []models.LegDetail,
@@ -74,16 +65,12 @@ func detectJourneyBreak(
 	return finalArrivalBreak(refs, legs, destStopID)
 }
 
-// The planned board/alight times a break re-plans against come from the
-// LegRef (what the router itself returned when the journey was first
-// searched), never from the live overlay's scheduled times — the two are
-// produced in different time frames and only the LegRef frame lines up with
-// what a fresh SearchJourneys call expects. Realtime delays, being frame-
-// independent second counts, are read off the overlay and added on.
+// Planned times come from the LegRef (the router's frame, which a fresh
+// SearchJourneys expects), not the overlay's scheduled times; only realtime
+// delays are read off the overlay.
 
-// brokenLeg covers a leg that cannot be ridden as planned: the whole trip is
-// cancelled, or the stop the passenger boards or alights at is skipped. The
-// re-plan starts from where the passenger would have boarded that leg.
+// brokenLeg fires when the trip is cancelled or the board/alight stop is
+// skipped; the re-plan starts at that leg's board stop.
 func brokenLeg(
 	refs []LegRef, legs []models.LegDetail, i int, destStopID string,
 ) (journeyBreak, bool) {
@@ -106,10 +93,8 @@ func brokenLeg(
 	}, true
 }
 
-// missedConnection fires when leg i's live arrival, plus the minimum change
-// time, lands after leg i+1's live departure. Live arrival requires a
-// positive reading on leg i's alight stop; a missing reading returns no
-// break, which is what keeps NO_DATA from triggering one.
+// missedConnection fires when leg i's live arrival plus the change time is
+// after leg i+1's live departure. No live arrival reading means no break.
 func missedConnection(
 	refs []LegRef,
 	legs []models.LegDetail,
@@ -146,8 +131,8 @@ func missedConnection(
 	}, true
 }
 
-// finalArrivalBreak fires when the last leg's live arrival at the
-// destination has slipped at least finalArrivalSlipSeconds past the plan.
+// finalArrivalBreak fires when the final arrival slips at least
+// finalArrivalSlipSeconds.
 func finalArrivalBreak(
 	refs []LegRef, legs []models.LegDetail, destStopID string,
 ) (journeyBreak, bool) {
@@ -172,10 +157,8 @@ func finalArrivalBreak(
 	}, true
 }
 
-// boardingPoint is the stop, time and station name a re-plan of leg i starts
-// from: leg i's board stop, reached at the original departure time (a first
-// leg) or at the previous leg's live arrival — its planned arrival shifted
-// by whatever positive delay the overlay reports there.
+// boardingPoint is where a re-plan of leg i starts: its board stop, at the
+// original departure (first leg) or the previous leg's live arrival.
 func boardingPoint(
 	refs []LegRef, legs []models.LegDetail, i int,
 ) (string, time.Time, string) {
@@ -189,10 +172,8 @@ func boardingPoint(
 	return fromID, at, fromName
 }
 
-// arrivalDelayAt returns the positive-signal arrival delay (seconds) for a
-// stop: 0 for an on-time reading, the published delay for a delayed one, and
-// (0, false) for NO_DATA / skipped / cancelled — the case that must never
-// feed a re-plan.
+// arrivalDelayAt returns a stop's arrival delay from a positive reading, or
+// (0, false) for NO_DATA/skipped/cancelled.
 func arrivalDelayAt(leg models.LegDetail, stopID string) (int, bool) {
 	sd, ok := stopDetailAt(leg, stopID)
 	if !ok {
@@ -213,9 +194,7 @@ func arrivalDelayAt(leg models.LegDetail, stopID string) (int, bool) {
 	}
 }
 
-// departureDelayAt returns the published departure delay for a stop, or 0
-// when none was published — the conservative assumption, since only a
-// positive incoming delay drives a missed-connection verdict.
+// departureDelayAt returns the published departure delay, or 0 if none.
 func departureDelayAt(leg models.LegDetail, stopID string) int {
 	sd, ok := stopDetailAt(leg, stopID)
 	if !ok || sd.State != models.DelayDelayed || sd.DepartureDelay == nil {
@@ -224,10 +203,8 @@ func departureDelayAt(leg models.LegDetail, stopID string) int {
 	return *sd.DepartureDelay
 }
 
-// departureClock is the wall-clock instant to show for a missed connection:
-// the overlay's scheduled departure (which is in the passenger-facing time
-// frame) plus the live delay, falling back to the LegRef-derived instant
-// when the overlay carries no scheduled departure for that stop.
+// departureClock is the overlay's scheduled departure plus live delay,
+// falling back to the LegRef-derived instant.
 func departureClock(
 	leg models.LegDetail, stopID string, depDelay int, fallback time.Time,
 ) time.Time {
@@ -294,8 +271,7 @@ func finalSlipReason(destination string, slip time.Duration) string {
 	)
 }
 
-// humanizeDuration renders a positive duration as whole minutes, never "0
-// min" — a sub-minute slip that reached here still rounds up to one.
+// humanizeDuration renders whole minutes, rounding sub-minute up to one.
 func humanizeDuration(d time.Duration) string {
 	mins := int((d + 30*time.Second) / time.Minute)
 	if mins < 1 {
@@ -304,10 +280,8 @@ func humanizeDuration(d time.Duration) string {
 	return fmt.Sprintf("%d min", mins)
 }
 
-// evaluateAlternative runs the break detector and, when it fires, re-plans
-// from the next reachable station. A re-plan that fails or finds nothing
-// still returns the reason on its own — telling the passenger the journey is
-// broken is useful even without a replacement (issue #1395).
+// evaluateAlternative re-plans when a break is detected. If the re-plan fails
+// or finds nothing, the reason is still returned.
 func (s *JourneyDetailService) evaluateAlternative(
 	ctx context.Context, refs []LegRef, legs []models.LegDetail,
 ) *models.JourneyAlternative {
@@ -331,12 +305,8 @@ func (s *JourneyDetailService) evaluateAlternative(
 	if err != nil {
 		return alt
 	}
-	// SearchJourneys now returns a window of journeys around brk.at (issue
-	// #1643), including ones departing before it — not valid replacements
-	// for a passenger who can only reboard at brk.at or later. Among the
-	// remaining candidates, the earliest arrival is the best replacement,
-	// which is no longer guaranteed to be journeys[0] once the window
-	// includes later, slower alternatives too.
+	// Skip journeys departing before brk.at, then pick the earliest arrival;
+	// it isn't necessarily journeys[0].
 	var best *csa.Journey
 	for i := range journeys {
 		j := &journeys[i]
@@ -365,9 +335,8 @@ func reusesDeadTrip(j csa.Journey, dead map[string]bool) bool {
 	return false
 }
 
-// toJourneyOption converts a router result into the model the journey-detail
-// wire carries, stamping the same opaque journey_id SearchJourneys would —
-// the id the page navigates to when the passenger adopts the alternative.
+// toJourneyOption converts a router result, stamping the same journey_id
+// SearchJourneys would.
 func toJourneyOption(j *csa.Journey) *models.JourneyOption {
 	legs := make([]models.JourneyOptionLeg, len(j.Legs))
 	refs := make([]LegRef, len(j.Legs))

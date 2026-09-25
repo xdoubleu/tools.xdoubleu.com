@@ -5,10 +5,8 @@ import (
 	"time"
 )
 
-// StopDetail is one stop along a journey detail leg — static schedule data
-// joined with (if any) the current realtime overlay for that call. State is
-// never defaulted to DelayOnTime: no live reading means DelayUnknown, kept
-// visually distinct from an on-time reading (issue #1394).
+// StopDetail is one stop on a journey-detail leg with its realtime overlay.
+// No live reading is DelayUnknown, never defaulted to DelayOnTime.
 type StopDetail struct {
 	StopID             string
 	StopName           string
@@ -22,12 +20,8 @@ type StopDetail struct {
 	IsAlightStop       bool
 }
 
-// stopDetailWire is the JSON shape StopDetail marshals to — deliberately the
-// same shape trains.v1.StopCall's protobuf JSON encoding uses, so the
-// journey websocket's pushed events (this package's own JSON DTO, following
-// internal/progressws' convention of a plain wire DTO rather than
-// protobuf-encoding a websocket payload) and the initial GetJourneyDetail
-// RPC response decode into an identical client-side shape.
+// stopDetailWire matches trains.v1.StopCall's protobuf JSON so websocket
+// pushes and GetJourneyDetail decode to the same client shape.
 type stopDetailWire struct {
 	StopID             string `json:"stopId"`
 	StopName           string `json:"stopName"`
@@ -67,14 +61,12 @@ func (d StopDetail) MarshalJSON() ([]byte, error) {
 	return json.Marshal(w)
 }
 
-// LegDetail is one boarded train within a JourneyDetail, with its full
-// stop-by-stop pattern between where the passenger boards and alights.
+// LegDetail is one boarded train with its stops from boarding to alighting.
 type LegDetail struct {
 	TripShortName  string
 	RouteShortName string
 	Headsign       string
-	// Cancelled is the whole-trip state — distinct from an individual
-	// StopDetail's DelaySkipped (partial cancellation).
+	// Cancelled is whole-trip; a skipped stop is StopDetail's DelaySkipped.
 	Cancelled bool
 	Stops     []StopDetail
 	Alerts    []Alert
@@ -108,15 +100,12 @@ func (l LegDetail) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// JourneyDetail is the full live state of one previously-searched journey
-// (issue #1394) — every leg's stops, scheduled+live times, platform, and any
-// attached service alerts.
+// JourneyDetail is the live state of one searched journey.
 type JourneyDetail struct {
 	Legs          []LegDetail
 	DepartureTime time.Time
 	ArrivalTime   time.Time
-	// Alternative is set only when a positive realtime signal shows the
-	// planned journey no longer works (issue #1395) — nil in the common case.
+	// Alternative is set only when realtime shows the planned journey broke.
 	Alternative *JourneyAlternative
 }
 
@@ -140,9 +129,8 @@ func (j JourneyDetail) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// JourneyAlternative is a re-planned itinerary surfaced when the open journey
-// breaks (issue #1395). Reason explains what broke in passenger terms;
-// Journey is the re-plan from FromStopName, nil when the router found none.
+// JourneyAlternative is a re-plan from FromStopName; Journey is nil when the
+// router found none.
 type JourneyAlternative struct {
 	Reason       string
 	FromStopName string
@@ -159,10 +147,8 @@ func (a JourneyAlternative) MarshalJSON() ([]byte, error) {
 	return json.Marshal(journeyAlternativeWire(a))
 }
 
-// JourneyOption mirrors trains.v1.Journey — one planned itinerary, in the
-// same JSON shape a SearchJourneys result serializes to, so the websocket
-// push and the RPC response decode into an identical client-side type and
-// the overview-row component renders it unchanged (issue #1395 / #1392).
+// JourneyOption mirrors trains.v1.Journey's JSON so websocket pushes and RPC
+// responses decode to the same client type.
 type JourneyOption struct {
 	Legs          []JourneyOptionLeg
 	DepartureTime time.Time

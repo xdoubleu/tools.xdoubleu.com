@@ -17,11 +17,9 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestResolveToken_EnrichmentFailureNotCached covers issue #673: a transient
-// DB failure while enriching a user (e.g. right after a deploy, when the
-// per-token cache is cold for every session at once) must not be cached as
-// "this user has no admin role / no app access" for the remainder of the TTL
-// — it must fail this one resolution and let the next request retry cleanly.
+// TestResolveToken_EnrichmentFailureNotCached: a transient DB failure while
+// enriching a user fails this resolution only; it's never cached as
+// "no access".
 func TestResolveToken_EnrichmentFailureNotCached(t *testing.T) {
 	ctx := context.Background()
 
@@ -48,27 +46,21 @@ func TestResolveToken_EnrichmentFailureNotCached(t *testing.T) {
 		)
 	})
 
-	// A canceled context makes the enrichment DB queries (Upsert/GetByID)
-	// fail, simulating a transient DB blip during resolution.
+	// A canceled context makes enrichment queries fail.
 	canceledCtx, cancel := context.WithCancel(ctx)
 	cancel()
 
 	_, err := svc.ResolveToken(canceledCtx, accessToken.Value)
 	require.Error(t, err)
 
-	// The failed enrichment must not have been cached: a follow-up call with
-	// a healthy context resolves the user's real (admin) role, not a stuck
-	// "no access" result from the failed attempt above.
+	// The failure wasn't cached: a healthy call resolves the real admin role.
 	user, err := svc.ResolveToken(ctx, accessToken.Value)
 	require.NoError(t, err)
 	assert.Equal(t, models.RoleAdmin, user.Role)
 }
 
-// TestTemplateAccess_RefreshEnrichmentFailure covers the refreshTokens side
-// of the same issue #673 fix: when the access-token cookie is absent and the
-// refresh-token fallback's enrichment DB call fails (a canceled context
-// stands in for a transient DB blip), TemplateAccess must treat the request
-// as unauthenticated rather than let a downgraded user through.
+// TestTemplateAccess_RefreshEnrichmentFailure: a failed enrichment on the
+// refresh-token path is treated as unauthenticated.
 func TestTemplateAccess_RefreshEnrichmentFailure(t *testing.T) {
 	require.NoError(
 		t,
@@ -98,9 +90,8 @@ func TestTemplateAccess_RefreshEnrichmentFailure(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-// TestResolveToken_NoAppUsersRepo covers enrichUser's "not configured" branch
-// (appUsersRepo == nil): unlike a DB failure, this is a deliberate degrade —
-// the raw GoTrue user is returned unchanged, with no error.
+// TestResolveToken_NoAppUsersRepo: with no repo, the user is returned
+// unchanged without error.
 func TestResolveToken_NoAppUsersRepo(t *testing.T) {
 	svc := auth.NewService(
 		testhelper.NewTestConfig(),
@@ -115,10 +106,7 @@ func TestResolveToken_NoAppUsersRepo(t *testing.T) {
 	assert.Equal(t, models.RoleUser, user.Role)
 }
 
-// TestResolveToken_GetByIDFailure covers enrichUser's GetByID-specific error
-// branch: Upsert succeeds but the enrichment read fails. A shared canceled
-// context can't isolate this from an Upsert failure (see the tests above),
-// so this uses a fake store with independently configurable errors instead.
+// TestResolveToken_GetByIDFailure uses a fake store to fail only GetByID.
 func TestResolveToken_GetByIDFailure(t *testing.T) {
 	//nolint:exhaustruct //only GetByIDErr matters for this test
 	store := &mocks.FakeAppUsersStore{
@@ -136,9 +124,7 @@ func TestResolveToken_GetByIDFailure(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestFakeAppUsersStore_SuccessPaths exercises FakeAppUsersStore's success
-// paths (GetByID returning the configured user, GetAll) that the failure
-// tests above don't reach, so the fake itself isn't dragging down coverage.
+// TestFakeAppUsersStore_SuccessPaths covers the fake's success paths.
 func TestFakeAppUsersStore_SuccessPaths(t *testing.T) {
 	//nolint:exhaustruct //UpsertErr/GetByIDErr default to nil (success)
 	store := &mocks.FakeAppUsersStore{

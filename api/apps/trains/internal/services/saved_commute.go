@@ -12,17 +12,13 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
-// ErrInvalidCommute is returned for a request the caller can fix: a blank or
-// over-long label, an origin equal to its destination, or a stop id that is
-// not a real location_type=1 station in the current feed.
+// ErrInvalidCommute is a caller-fixable request: bad label, origin equal to
+// destination, or a stop id that isn't a current station.
 var ErrInvalidCommute = errors.New("invalid saved commute")
 
-// maxCommuteLabelLen caps a saved-commute label — long enough for
-// "Home -> Work" style names without letting it bloat the list UI.
 const maxCommuteLabelLen = 100
 
-// SavedCommutesService is the business logic behind trains.v1's saved-commute
-// RPCs (issue #1396).
+// SavedCommutesService backs trains.v1's saved-commute RPCs.
 type SavedCommutesService struct {
 	repos *repositories.Repositories
 }
@@ -40,8 +36,7 @@ func (s *SavedCommutesService) List(
 	return s.repos.SavedCommutes.ListByUser(ctx, userID)
 }
 
-// Create validates label and station ids, then persists a new commute at the
-// end of the user's list.
+// Create validates, then appends a commute to the user's list.
 func (s *SavedCommutesService) Create(
 	ctx context.Context, userID, label, originStopID, destStopID string,
 ) (models.SavedCommute, error) {

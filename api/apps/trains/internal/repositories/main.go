@@ -1,5 +1,4 @@
-// Package repositories is the trains app's DB access layer over the trains
-// schema.
+// Package repositories is the trains app's DB access layer.
 package repositories
 
 import "tools.xdoubleu.com/internal/database/postgres"

@@ -18,8 +18,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// stubTripResolver stands in for repositories.FeedRepository.ShortNamesByTripIDs,
-// mapping the fixture trip_ids these tests publish to a static trip_short_name.
+// stubTripResolver maps fixture trip_ids to trip_short_names.
 type stubTripResolver map[string]string
 
 func (s stubTripResolver) ShortNamesByTripIDs(
@@ -37,9 +36,7 @@ func (s stubTripResolver) ShortNamesByTripIDs(
 //nolint:gochecknoglobals //fixed test fixture
 var testTripResolver = stubTripResolver{"trip-1": "L1", "trip-2": "L2"}
 
-// erroringTripResolver stands in for a trains.trips read blocked behind
-// trains-static-import's TRUNCATE lock and then cut off by
-// RealtimePollJob's pollTimeout (issue #1720) — it always fails with err.
+// erroringTripResolver always fails with err.
 type erroringTripResolver struct{ err error }
 
 func (e erroringTripResolver) ShortNamesByTripIDs(
@@ -70,8 +67,7 @@ func alertBody(t *testing.T, id string) []byte {
 	return marshalFeed(t, msg)
 }
 
-// newTestMock always publishes "trip-1"/"alert-1" fixtures — every caller
-// just needs a resolvable trip and a single alert, never a different id.
+// newTestMock publishes "trip-1"/"alert-1" fixtures.
 func newTestMock(t *testing.T) *mocks.MockBMCClient {
 	t.Helper()
 	//nolint:exhaustruct //Result/Err/Calls/RealtimeErr not needed here
@@ -98,8 +94,7 @@ func TestRealtimeService_Poll_BuildsSnapshot(t *testing.T) {
 	assert.Equal(t, "alert-1", snap.Alerts[0].ID)
 	assert.False(t, snap.FetchedAt.IsZero())
 
-	// The alert feed is only polled every alertPollEvery cycles — the first
-	// poll always fetches it, but a second immediate poll should not.
+	// Alerts are fetched on the first poll only, not an immediate second one.
 	require.NoError(t, svc.Poll(context.Background()))
 	assert.Len(t, m.RealtimeCalls, 3) // trip,alert,trip
 }
@@ -150,11 +145,8 @@ func TestRealtimeService_Poll_UnexpectedContentTypeIsNotAnError(t *testing.T) {
 	assert.Nil(t, svc.Snapshot().Trips)
 }
 
-// TestRealtimeService_Poll_TimeoutIsNotAnError covers issue #1712: a
-// Client.Timeout-induced context deadline exceeded (surfaced as a *url.Error
-// whose Timeout() is true, exactly what http.Client.Do returns and what the
-// production Sentry report showed) must back off like a rate-limit or 5xx
-// response, not fail the job.
+// TestRealtimeService_Poll_TimeoutIsNotAnError: a client timeout backs off
+// rather than failing the job.
 func TestRealtimeService_Poll_TimeoutIsNotAnError(t *testing.T) {
 	m := &mocks.MockBMCClient{ //nolint:exhaustruct //only RealtimeErr set
 		RealtimeErr: &url.Error{
@@ -169,12 +161,8 @@ func TestRealtimeService_Poll_TimeoutIsNotAnError(t *testing.T) {
 	assert.Nil(t, svc.Snapshot().Trips)
 }
 
-// TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError covers issue
-// #1720: a trains.trips read blocked behind trains-static-import's
-// TRUNCATE lock and then cut off by the poll's own context deadline must
-// back off like an upstream timeout, keeping the previous snapshot rather
-// than failing the job — resolveTripUpdates previously had no backoff path
-// at all, so this error used to be an unconditional hard failure.
+// TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError: a resolve cut off
+// by the poll deadline backs off, keeping the previous snapshot.
 func TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError(t *testing.T) {
 	m := newTestMock(t)
 	svc := NewRealtimeService(
@@ -190,9 +178,8 @@ func TestRealtimeService_Poll_TripResolveTimeoutIsNotAnError(t *testing.T) {
 	)
 }
 
-// TestRealtimeService_Poll_TripResolveNonTimeoutErrorFails ensures a real
-// (non-timeout) resolve failure still fails the job rather than being
-// silently swallowed by the new backoff path.
+// TestRealtimeService_Poll_TripResolveNonTimeoutErrorFails: other resolve
+// errors still fail the job.
 func TestRealtimeService_Poll_TripResolveNonTimeoutErrorFails(t *testing.T) {
 	m := newTestMock(t)
 	svc := NewRealtimeService(
@@ -230,9 +217,7 @@ func TestRealtimeService_Poll_AlertFetchClientErrorFails(t *testing.T) {
 		},
 		RealtimeErr: nil,
 	}
-	// The alert feed always 400s; the trip-update feed always succeeds by
-	// returning a plain result — force the alert branch to hit its error
-	// path on the very first poll (which always fetches alerts).
+	// Force the alert fetch's error path on the first poll.
 	m.RealtimeResults[bmc.FeedAlert] = nil
 	svc := NewRealtimeService(logging.NewNopLogger(), &alertErroringMock{
 		MockBMCClient: m,
@@ -242,9 +227,7 @@ func TestRealtimeService_Poll_AlertFetchClientErrorFails(t *testing.T) {
 	require.Error(t, svc.Poll(context.Background()))
 }
 
-// alertErroringMock lets the alert feed fail independently of the
-// trip-update feed, which mocks.MockBMCClient's single RealtimeErr can't
-// express.
+// alertErroringMock fails the alert feed independently of trip updates.
 type alertErroringMock struct {
 	*mocks.MockBMCClient
 	alertErr error
@@ -260,10 +243,8 @@ func (m *alertErroringMock) FetchRealtime(
 	return m.MockBMCClient.FetchRealtime(ctx, feed)
 }
 
-// TestRealtimeService_Poll_FiresOnUpdateListeners covers the hook
-// JourneyWSService's PushAll is wired through (issue #1394): every
-// registered listener must run once per successful poll, after the
-// snapshot is already swapped in.
+// TestRealtimeService_Poll_FiresOnUpdateListeners: each listener runs once
+// per successful poll, after the snapshot swap.
 func TestRealtimeService_Poll_FiresOnUpdateListeners(t *testing.T) {
 	m := newTestMock(t)
 	svc := NewRealtimeService(logging.NewNopLogger(), m, testTripResolver)
@@ -310,10 +291,7 @@ func TestIsBackoffable(t *testing.T) {
 	}))
 	assert.False(t, isBackoffable(errors.New("boom")))
 
-	// issue #1712: a Client.Timeout error (context deadline exceeded while
-	// awaiting headers) is exactly what http.Client.Do returns as a
-	// *url.Error whose Timeout() is true — it must back off like a
-	// rate-limit or 5xx response.
+	// A client timeout (*url.Error with Timeout() true) backs off.
 	timeoutErr := &url.Error{
 		Op:  "Get",
 		URL: "https://example.com",
@@ -321,8 +299,7 @@ func TestIsBackoffable(t *testing.T) {
 	}
 	assert.True(t, isBackoffable(timeoutErr))
 
-	// A non-timeout network error (e.g. connection refused) is not wrapped
-	// in anything reporting Timeout() == true, so it stays non-backoffable.
+	// A non-timeout network error does not.
 	nonTimeoutErr := &url.Error{
 		Op:  "Get",
 		URL: "https://example.com",
@@ -330,11 +307,7 @@ func TestIsBackoffable(t *testing.T) {
 	}
 	assert.False(t, isBackoffable(nonTimeoutErr))
 
-	// issue #1720: pgx surfaces a query cancelled by the poll's own
-	// pollTimeout as a bare context.DeadlineExceeded (or an error wrapping
-	// it), not a net.Error — this must back off too, exactly like a
-	// trains.trips read blocked behind trains-static-import's TRUNCATE
-	// lock and then cut off by the deadline.
+	// pgx surfaces a query cut off by pollTimeout as a bare DeadlineExceeded.
 	assert.True(t, isBackoffable(context.DeadlineExceeded))
 	assert.True(t, isBackoffable(fmt.Errorf("query: %w", context.DeadlineExceeded)))
 }

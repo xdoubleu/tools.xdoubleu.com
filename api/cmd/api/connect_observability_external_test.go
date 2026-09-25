@@ -32,8 +32,7 @@ func stubTok(token string) oauthconn.TokenFunc {
 	}
 }
 
-// stubConfigStore stands in for *repositories.OAuthConnectionsRepository in
-// tests that build a provider client directly (bypassing newObservabilityClients).
+// stubConfigStore stands in for the OAuth connections repo.
 type stubConfigStore struct {
 	conn *models.OAuthConnection
 	err  error
@@ -60,8 +59,8 @@ func configNotConnected() stubConfigStore {
 	return stubConfigStore{err: database.ErrResourceNotFound}
 }
 
-// jsonServer starts an httptest server returning status/body and registers its
-// cleanup. Retries are sped up so upstream-error tests don't sleep.
+// jsonServer starts an httptest server returning status/body, with fast
+// retries.
 func jsonServer(t *testing.T, status int, body string) *httptest.Server {
 	t.Helper()
 	github.SetBackoffBase(time.Millisecond)
@@ -600,10 +599,8 @@ func TestObservabilityResolveSentryIssue_NotConfigured(t *testing.T) {
 func TestObservabilityResolveSentryIssue_ReauthRequired(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
-	// Config resolves (a connection+config row exists) but the token func
-	// reports ErrNotConnected — i.e. a stale granted scope, not "never
-	// connected" — which must surface as CodeUnauthenticated, not
-	// CodeFailedPrecondition (issue #791).
+	// A stale scope (ErrNotConnected with a stored row) must surface as
+	// CodeUnauthenticated.
 	testApp.sentryClient = sentryapi.New(
 		logging.NewNopLogger(),
 		stubTok(""),
@@ -638,8 +635,7 @@ func TestObservabilityGetHealthOverview_AsAdmin(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })
 
-	// Sentry configured but upstream fails — the section degrades
-	// independently.
+	// A failing Sentry section degrades independently.
 	se := jsonServer(t, http.StatusInternalServerError, ``)
 	sentryapi.SetBaseURL(se.URL)
 	t.Cleanup(func() { sentryapi.SetBaseURL("https://sentry.io") })

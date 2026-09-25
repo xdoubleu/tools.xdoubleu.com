@@ -56,12 +56,9 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// trainsDayStart is midnight of the current civil day in Europe/Brussels —
-// the service date journey-detail lookups and the realtime correlation key
-// off (services.serviceDateOf). Test feeds and journey window starts must be
-// anchored here, not at UTC midnight: the two diverge in the ~22:00-24:00
-// UTC window, when it is already tomorrow in Brussels, and that gap made the
-// journey-detail realtime-overlay tests fail late in the UTC day.
+// trainsDayStart is today's midnight in Europe/Brussels, the service date
+// journey detail and realtime correlation key off. Anchor test feeds here,
+// not UTC midnight: the two diverge late in the UTC day.
 func trainsDayStart() time.Time {
 	loc, err := time.LoadLocation("Europe/Brussels")
 	if err != nil {
@@ -71,10 +68,8 @@ func trainsDayStart() time.Time {
 	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 }
 
-// ensureGlobalJobRuns mirrors cmd/api/migrations/00005_observability.sql's
-// job_runs table so TestNewAndStart's Start()/jobqueue.AddJob call can look
-// up a job's last successful run before the cmd/api package has applied the
-// global migrations (same pattern as apps/books/app_test.go).
+// ensureGlobalJobRuns creates cmd/api's job_runs table, which Start needs
+// before the global migrations have run in this package's tests.
 func ensureGlobalJobRuns(db postgres.DB) {
 	ctx := context.Background()
 	if _, err := db.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS global"); err != nil {
@@ -101,10 +96,8 @@ func TestGetName(t *testing.T) {
 	assert.Equal(t, "Trains", testApp.GetDisplayName())
 }
 
-// TestStaticImport_ResolvesTripsFromCalendarDates is the assertion issue
-// #1390 calls for: after importing a feed whose calendar.txt is an all-zero
-// decoy, non-zero trips must still resolve for a future date — purely from
-// calendar_dates.
+// TestStaticImport_ResolvesTripsFromCalendarDates: with an all-zero decoy
+// calendar.txt, trips must still resolve from calendar_dates alone.
 func TestStaticImport_ResolvesTripsFromCalendarDates(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Services.StaticImport.Import(ctx))
@@ -123,8 +116,8 @@ func TestStaticImport_ResolvesTripsFromCalendarDates(t *testing.T) {
 	assert.Equal(t, `"v1"`, info.ETag)
 }
 
-// TestStaticImport_UnchangedFeedIsNoOp proves the second run sends the
-// stored validators and short-circuits on the mock's 304.
+// TestStaticImport_UnchangedFeedIsNoOp checks the second run sends stored
+// validators and short-circuits on 304.
 func TestStaticImport_UnchangedFeedIsNoOp(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Services.StaticImport.Import(ctx))
@@ -143,13 +136,8 @@ func TestStaticImport_UnchangedFeedIsNoOp(t *testing.T) {
 	assert.Equal(t, 2, count, "no-op run leaves the timetable intact")
 }
 
-// TestStaticImport_RecordsPhaseDurations is the assertion issue #1818 calls
-// for: a full import must attribute its runtime across the fetch, parse and
-// import (staging COPY + swap) phases in the job_phase_duration_seconds
-// histogram, so prom_query can split a slow run without reading job logs.
-// The parse phase is a locally-measured ~2.4s even on a feed larger than the
-// BMC one, so this is what makes the remaining ~120s attributable to the
-// fetch or the COPY.
+// TestStaticImport_RecordsPhaseDurations checks a full import records
+// fetch, parse and import durations in job_phase_duration_seconds.
 func TestStaticImport_RecordsPhaseDurations(t *testing.T) {
 	ctx := context.Background()
 	cfg := testhelper.NewTestConfig()
@@ -163,9 +151,7 @@ func TestStaticImport_RecordsPhaseDurations(t *testing.T) {
 		bmcClient,
 	)
 
-	// Force a full import: a stored parser_version older than the current
-	// importer drops the conditional-GET validators, so the run cannot
-	// short-circuit on the mock's 304.
+	// A stale parser_version drops the validators, forcing a full import.
 	_, err := testDB.Exec(ctx,
 		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
 	require.NoError(t, err)
@@ -178,8 +164,6 @@ func TestStaticImport_RecordsPhaseDurations(t *testing.T) {
 	}
 }
 
-// jobPhaseSampleCount returns the observed-sample count for the
-// job_phase_duration_seconds series of one job/phase pair.
 func jobPhaseSampleCount(t *testing.T, job, phase string) uint64 {
 	t.Helper()
 
@@ -203,16 +187,9 @@ func jobPhaseSampleCount(t *testing.T, job, phase string) uint64 {
 	return 0
 }
 
-// TestStaticImport_ParserVersionMismatchForcesReimport is the assertion
-// issue #1453 calls for: rows written by an older importer must be
-// re-imported even though the feed itself is unchanged. The stored ETag
-// describes the feed, not what the importer writes with it, so on its own it
-// pinned production to French-only stop names for as long as SNCB published
-// no new feed.
-//
-// It builds its own app and mock rather than using the shared ones, since it
-// needs a client that serves a real body again after the package's earlier
-// imports.
+// TestStaticImport_ParserVersionMismatchForcesReimport: rows from an older
+// importer must be reimported even when the feed's ETag is unchanged. Uses its
+// own app and mock so the client serves a real body again.
 func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 	ctx := context.Background()
 	cfg := testhelper.NewTestConfig()
@@ -234,8 +211,7 @@ func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 		"an import stamps the current importer")
 	assert.NotNil(t, info.ImportedAt)
 
-	// Rewind to what a pre-multilingual importer (#1450) left behind: every
-	// language holding the French stop_name, under a still-current ETag.
+	// Simulate an older importer: French stop_name in every language, current ETag.
 	_, err = testDB.Exec(ctx,
 		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
 	require.NoError(t, err)
@@ -263,12 +239,8 @@ func TestStaticImport_ParserVersionMismatchForcesReimport(t *testing.T) {
 	assert.Equal(t, services.ImportParserVersion, info.ParserVersion)
 }
 
-// TestStaticImport_ResumesConditionalGetAfterVersionBump is the assertion
-// issue #1710 calls for: a version-mismatch forced reimport (see the test
-// above) is a one-time cost only if the *next* run actually resumes the
-// cheap conditional-GET path using the validators that forced reimport just
-// stored. Without this, "the next run reuses conditional GET" was only ever
-// asserted in prose (the issue body), never in code.
+// TestStaticImport_ResumesConditionalGetAfterVersionBump: after a
+// version-forced reimport, the next run must resume conditional GET.
 func TestStaticImport_ResumesConditionalGetAfterVersionBump(t *testing.T) {
 	ctx := context.Background()
 	cfg := testhelper.NewTestConfig()
@@ -282,13 +254,9 @@ func TestStaticImport_ResumesConditionalGetAfterVersionBump(t *testing.T) {
 		bmcClient,
 	)
 
-	// First run: nothing stored yet, unconditional fetch, stamps the current
-	// parser version and stores the mock's ETag.
 	require.NoError(t, app.Services.StaticImport.Import(ctx))
 
-	// Simulate a prior importer's rows, same as
-	// TestStaticImport_ParserVersionMismatchForcesReimport: this forces a
-	// second, unconditional fetch.
+	// Simulate a prior importer's rows to force a second unconditional fetch.
 	_, err := testDB.Exec(ctx,
 		`UPDATE trains.feed_info SET parser_version = 1 WHERE singleton`)
 	require.NoError(t, err)
@@ -307,10 +275,7 @@ func TestStaticImport_ResumesConditionalGetAfterVersionBump(t *testing.T) {
 	require.NotEmpty(t, info.ETag,
 		"the forced reimport also stores fresh validators to resume from")
 
-	// Third run: parser version now matches what the forced reimport just
-	// stored, so this run must send that stored ETag rather than fetching
-	// unconditionally again — this is what makes the version bump's cost a
-	// one-time migration rather than a persistently slow importer.
+	// Third run must send the stored ETag, not fetch unconditionally.
 	require.NoError(t, app.Services.StaticImport.Import(ctx))
 	require.Len(t, bmcClient.Calls, 2)
 	assert.Equal(t, info.ETag, bmcClient.Calls[1].ETag,

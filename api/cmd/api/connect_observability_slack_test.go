@@ -12,11 +12,7 @@ import (
 	"tools.xdoubleu.com/internal/slackwebhook"
 )
 
-// notify_slack has no Connect RPC/proto message of its own (issue #1628's
-// scope is MCP-tool-only, see connect_observability_slack.go's doc
-// comment), so these exercise the internal notifySlack method directly
-// rather than going through a generated Connect client, unlike the other
-// mutating observability tools' *_test.go files.
+// notifySlack has no Connect RPC, so these call the method directly.
 
 func TestObservabilityNotifySlack_Success(t *testing.T) {
 	var gotMethod string

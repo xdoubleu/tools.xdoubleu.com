@@ -6,12 +6,8 @@ import (
 	"time"
 )
 
-// RouterRefreshJob periodically rebuilds the in-memory CSA router index so
-// its rolling window slides forward and picks up the latest static import
-// (issue #1391). The startup run is desirable — a fresh replica starts with
-// no index built at all. refresh is services.JourneyService.Refresh,
-// injected as a func to avoid this package depending on the csa.Index
-// return type.
+// RouterRefreshJob rebuilds the CSA index so its rolling window slides
+// forward. refresh is injected as a func to avoid depending on csa.Index.
 type RouterRefreshJob struct {
 	refresh func(ctx context.Context) error
 }

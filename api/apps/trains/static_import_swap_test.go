@@ -11,9 +11,8 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// swapFeed builds a minimal, single-stop Feed distinct from stationsFeed()
-// (stations_test.go) so a test can prove a second ImportFeed call fully
-// replaces the first rather than merging into it.
+// swapFeed builds a single-stop Feed to prove a second import replaces the
+// first.
 func swapFeed(stopID, feedVersion string) *models.Feed {
 	//nolint:exhaustruct //only Stops/Info matter for this test
 	return &models.Feed{
@@ -27,11 +26,8 @@ func swapFeed(stopID, feedVersion string) *models.Feed {
 	}
 }
 
-// TestFeedRepository_ImportFeed_SecondImportFullyReplacesFirst covers the
-// staging-swap's correctness (issue #1718): the live tables must end up
-// holding exactly the second feed's rows, never a mix of both, and
-// feed_info must be updated in the same swap so a reader never sees new
-// timetable rows against stale metadata.
+// TestFeedRepository_ImportFeed_SecondImportFullyReplacesFirst: live tables
+// hold only the second feed, with feed_info swapped in the same transaction.
 func TestFeedRepository_ImportFeed_SecondImportFullyReplacesFirst(t *testing.T) {
 	ctx := context.Background()
 	t.Cleanup(func() {
@@ -62,14 +58,9 @@ func TestFeedRepository_ImportFeed_SecondImportFullyReplacesFirst(t *testing.T) 
 	assert.Equal(t, "2026-09-02", info.FeedVersion)
 }
 
-// TestFeedRepository_PopulateStaging_IndependentOfLiveTableLocks is a
-// regression guard for issue #1718's root cause: the previous ImportFeed ran
-// TRUNCATE + COPY directly against the live tables inside one transaction,
-// which needs Postgres's TRUNCATE ACCESS EXCLUSIVE lock — conflicting with
-// even a plain SELECT — for the whole ~117s import. PopulateStaging must
-// touch only the `_staging` tables, so it has to complete promptly even
-// while every live table is held exclusively locked by an open, uncommitted
-// transaction for the whole test.
+// TestFeedRepository_PopulateStaging_IndependentOfLiveTableLocks:
+// PopulateStaging touches only `_staging`, so it completes while every live
+// table is exclusively locked.
 func TestFeedRepository_PopulateStaging_IndependentOfLiveTableLocks(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
@@ -98,11 +89,8 @@ func TestFeedRepository_PopulateStaging_IndependentOfLiveTableLocks(t *testing.T
 	)
 }
 
-// TestFeedRepository_AllStops_NotBlockedByStagingTableLock is the reader-side
-// half of the same regression guard: a live read (the query
-// StationsService.SearchStations runs on every /trains request) must
-// complete promptly no matter how long something else holds the `_staging`
-// tables locked — simulating an in-flight static import.
+// TestFeedRepository_AllStops_NotBlockedByStagingTableLock: live reads
+// complete while `_staging` is locked by an in-flight import.
 func TestFeedRepository_AllStops_NotBlockedByStagingTableLock(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
@@ -130,13 +118,8 @@ func TestFeedRepository_AllStops_NotBlockedByStagingTableLock(t *testing.T) {
 	assert.NotEmpty(t, stops)
 }
 
-// TestFeedRepository_ImportFeed_PropagatesPopulateStagingError covers
-// ImportFeed's own error branch and PopulateStaging's COPY-failure branch
-// together: a feed with two stops sharing a stop_id violates
-// trains.stops_staging's primary key, so the COPY aborts, PopulateStaging
-// returns that error, and ImportFeed must return it too rather than going on
-// to call SwapStagingIn (which would otherwise promote an empty/partial
-// staging table).
+// TestFeedRepository_ImportFeed_PropagatesPopulateStagingError: a PK
+// violation in staging fails ImportFeed before SwapStagingIn runs.
 func TestFeedRepository_ImportFeed_PropagatesPopulateStagingError(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
@@ -154,9 +137,7 @@ func TestFeedRepository_ImportFeed_PropagatesPopulateStagingError(t *testing.T) 
 	err := testApp.Repositories.Feed.ImportFeed(ctx, badFeed)
 	require.Error(t, err)
 
-	// The live tables must be untouched by the failed import: SwapStagingIn
-	// is never reached, so stationsFeed()'s data (imported above) still
-	// reads back exactly as it did before the failed call.
+	// Live tables are untouched by the failed import.
 	stops, allErr := testApp.Repositories.Feed.AllStops(ctx)
 	require.NoError(t, allErr)
 	ids := make([]string, 0, len(stops))
@@ -167,10 +148,8 @@ func TestFeedRepository_ImportFeed_PropagatesPopulateStagingError(t *testing.T) 
 	assert.Contains(t, ids, "SA")
 }
 
-// TestFeedRepository_PopulateStaging_TruncateFailureIsReturned covers
-// PopulateStaging's TRUNCATE-failure branch: with trains.stops_staging
-// temporarily renamed out from under it, the TRUNCATE statement fails
-// because the table it names no longer exists.
+// TestFeedRepository_PopulateStaging_TruncateFailureIsReturned: TRUNCATE
+// fails when stops_staging is renamed away.
 func TestFeedRepository_PopulateStaging_TruncateFailureIsReturned(t *testing.T) {
 	ctx := context.Background()
 	_, err := testDB.Exec(
@@ -188,10 +167,8 @@ func TestFeedRepository_PopulateStaging_TruncateFailureIsReturned(t *testing.T) 
 	require.Error(t, popErr)
 }
 
-// TestFeedRepository_SwapStagingIn_RenameFailureIsReturned covers
-// SwapStagingIn's first rename-failure branch: with a table already
-// occupying the first swap step's target name (trains.stops_swap_tmp), the
-// live→tmp rename fails because that name is taken.
+// TestFeedRepository_SwapStagingIn_RenameFailureIsReturned: live->tmp fails
+// when stops_swap_tmp already exists.
 func TestFeedRepository_SwapStagingIn_RenameFailureIsReturned(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
@@ -212,12 +189,8 @@ func TestFeedRepository_SwapStagingIn_RenameFailureIsReturned(t *testing.T) {
 	require.Error(t, swapErr)
 }
 
-// TestFeedRepository_SwapStagingIn_SecondRenameFailureIsReturned covers the
-// loop's second rename step (staging→live): with trains.routes_staging
-// renamed out from under it, that step fails because the source name no
-// longer exists, after the first step (live→tmp) already succeeded within
-// the same transaction — proving the whole swap rolls back correctly
-// partway through the per-table loop, not just on its first iteration.
+// TestFeedRepository_SwapStagingIn_SecondRenameFailureIsReturned: a failure
+// mid-loop (staging->live) rolls back the whole swap.
 func TestFeedRepository_SwapStagingIn_SecondRenameFailureIsReturned(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))
@@ -242,19 +215,13 @@ func TestFeedRepository_SwapStagingIn_SecondRenameFailureIsReturned(t *testing.T
 	)
 	require.Error(t, swapErr)
 
-	// The failed swap must roll back the tables it had already renamed
-	// before hitting the failure (routes' predecessor in the loop,
-	// stop_times/calendar_dates/transfers) — a live read must still resolve
-	// through the normal names afterward, not the loop's intermediate ones.
+	// Tables renamed before the failure are rolled back.
 	stops, allErr := testApp.Repositories.Feed.AllStops(ctx)
 	require.NoError(t, allErr)
 	assert.NotEmpty(t, stops)
 }
 
-// duplicateRouteFeed, duplicateTripFeed, duplicateStopTimeFeed,
-// duplicateCalendarDateFeed and duplicateTransferFeed each build a Feed
-// carrying a primary-key duplicate in exactly one slice, for
-// TestFeedRepository_PopulateStaging_EachCopyFailureBranchIsReturned below.
+// The duplicate*Feed helpers each carry one primary-key duplicate.
 
 func duplicateRouteFeed() *models.Feed {
 	//nolint:exhaustruct //only Routes matters for this case
@@ -308,10 +275,7 @@ func duplicateTransferFeed() *models.Feed {
 }
 
 // TestFeedRepository_PopulateStaging_EachCopyFailureBranchIsReturned covers
-// PopulateStaging's remaining COPY-failure branches (routes/trips/
-// stop_times/calendar_dates/transfers) — each case supplies a duplicate
-// primary key in exactly one of those slices, which the corresponding
-// `_staging` table's PK constraint rejects.
+// the remaining COPY failure branches.
 func TestFeedRepository_PopulateStaging_EachCopyFailureBranchIsReturned(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(t, testApp.Repositories.Feed.ImportFeed(ctx, stationsFeed()))

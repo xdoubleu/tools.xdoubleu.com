@@ -16,10 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestTrains_warmRouter covers the startup warm-up: after it runs the router
-// answers queries instead of reporting ErrRouterWarmingUp (issue #1484).
-// Migrations are applied once for the whole test binary by app_test.go's
-// TestMain, which this internal test shares.
+// TestTrains_warmRouter checks the router answers queries after warm-up.
 func TestTrains_warmRouter(t *testing.T) {
 	ctx := context.Background()
 	cfg := testhelper.NewTestConfig()

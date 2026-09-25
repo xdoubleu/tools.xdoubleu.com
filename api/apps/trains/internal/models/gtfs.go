@@ -1,30 +1,22 @@
-// Package models holds the domain types for the trains app's ingested GTFS
-// static feed.
+// Package models holds the trains app's domain types.
 package models
 
 import "time"
 
-// Stop is one row of stops.txt. In this feed a station has
-// location_type=1 and stop_id "gs:nmbssncb:S<uic>"; each platform has
-// location_type=0, its own "gs:nmbssncb:<uic>[_<n>]" id and parent_station
-// pointing at the station (issue #1389).
+// Stop is one row of stops.txt. Stations have location_type=1 and stop_id
+// "gs:nmbssncb:S<uic>"; platforms have location_type=0, "gs:nmbssncb:<uic>[_<n>]"
+// and parent_station set.
 type Stop struct {
 	StopID        string
 	ParentStation string
-	// NameNL/NameFR/NameEN are the stop name in each language. The feed's
-	// stop_name column carries a single (primary) language; translations.txt,
-	// when the feed publishes it, supplies the other two. A language with no
-	// translation falls back to the primary stop_name (issue #1450).
+	// Per-language names; a language without a translation falls back to the
+	// primary stop_name.
 	NameNL string
 	NameFR string
 	NameEN string
-	// DisplayName is the single canonical passenger-facing label: every
-	// genuinely-known full-language name (the primary stop_name plus any
-	// translations.txt row actually present), deduped and " / "-joined.
-	// Unlike NameNL/NameFR/NameEN it never falls back to the primary
-	// stop_name for a language translations.txt doesn't cover — that raw
-	// value is sometimes itself an already-abbreviated/combined bilingual
-	// string (issue #1656).
+	// DisplayName is every genuinely-known name (primary plus actual
+	// translations), deduped and " / "-joined. It never uses the fallback, since
+	// the raw stop_name is sometimes already an abbreviated bilingual string.
 	DisplayName  string
 	LocationType int
 	PlatformCode string
@@ -42,9 +34,8 @@ type Route struct {
 	RouteType int
 }
 
-// Trip is one row of trips.txt. TripID is a seasonal stopping-pattern
-// variant that churns daily — ShortName is the stable published train
-// number (issue #1388).
+// Trip is one row of trips.txt. TripID churns daily; ShortName is the stable
+// train number.
 type Trip struct {
 	TripID      string
 	RouteID     string
@@ -66,11 +57,8 @@ type StopTime struct {
 	DropOffType      int
 }
 
-// ActiveTrip is one (trip, service day) combination resolved from
-// calendar_dates alone — never calendar.txt, which is a decoy in this feed
-// (issue #1390) — for a trip whose service runs on Date. It joins in the
-// route's short name so the router and the journey-detail overlay have
-// everything they need to name a train without a second query.
+// ActiveTrip is one (trip, service day) resolved from calendar_dates alone;
+// calendar.txt is a decoy in this feed.
 type ActiveTrip struct {
 	TripID         string
 	RouteID        string
@@ -80,16 +68,14 @@ type ActiveTrip struct {
 	Date           time.Time
 }
 
-// CalendarDate is one row of calendar_dates.txt. In this feed every row is
-// exception_type=1 (added) and calendar.txt itself is a decoy (issue #1390).
+// CalendarDate is one row of calendar_dates.txt (always exception_type=1).
 type CalendarDate struct {
 	ServiceID     string
 	Date          time.Time
 	ExceptionType int
 }
 
-// FeedInfo is the single row of feed_info.txt, plus the conditional-GET
-// validators from the fetch that produced this import.
+// FeedInfo is feed_info.txt plus the conditional-GET validators of its fetch.
 type FeedInfo struct {
 	FeedVersion  string
 	StartDate    *time.Time
@@ -97,48 +83,31 @@ type FeedInfo struct {
 	Lang         string
 	ETag         string
 	LastModified string
-	// ImportedAt is when the import that produced these rows ran. Set by the
-	// database on write, so it is only populated on a read.
+	// ImportedAt is set by the database, so only populated on read.
 	ImportedAt *time.Time
-	// ParserVersion identifies the importer that produced the stored rows.
-	// The import compares it against the current version to decide whether
-	// the conditional-GET validators above still describe usable data
-	// (issue #1453).
+	// ParserVersion identifies the importer that wrote the rows; a mismatch
+	// invalidates the stored validators.
 	ParserVersion int
-	// Translations records how much of translations.txt the import actually
-	// applied (issue #1459).
+	// Translations records how much of translations.txt the import applied.
 	Translations TranslationCoverage
 }
 
-// TranslationCoverage is what one import made of translations.txt. A feed
-// that publishes no translations, one whose rows this importer cannot match
-// to a stop, and one that is simply monolingual all produce the same
-// user-visible result — three identical station names — so the counts are
-// stored and served alongside the feed to tell those cases apart
-// (issue #1459).
+// TranslationCoverage distinguishes "no translations", "unmatched rows" and
+// "monolingual feed", which all look identical to a user.
 type TranslationCoverage struct {
-	// StopsNL/StopsFR/StopsEN count the stops whose name in that language
-	// came from translations.txt rather than falling back to the primary
-	// stop_name. A count of 0 against a non-zero Rows means the rows were
-	// read but matched nothing.
+	// StopsNL/StopsFR/StopsEN count stops named from translations.txt; 0 with
+	// non-zero Rows means nothing matched.
 	StopsNL int
 	StopsFR int
 	StopsEN int
-	// Rows is the number of usable stop_name rows read from translations.txt
-	// — 0 when the feed omits the file entirely.
+	// Rows is the usable stop_name row count; 0 when the file is absent.
 	Rows int
-	// RowsUnmatched counts the (key, language) pairs among those Rows that
-	// identified a stop this feed's stops.txt does not contain. Duplicate
-	// rows for one pair collapse, so against a feed that repeats itself this
-	// reads slightly below Rows even when nothing matched.
+	// RowsUnmatched counts distinct (key, language) pairs matching no stop.
 	RowsUnmatched int
 }
 
-// Transfer is one row of transfers.txt. TransferType follows the GTFS
-// enum (0/1 = recommended/timed, min_transfer_time only meaningful for
-// type 2, 3 = not possible). Present only when the feed publishes it — the
-// router falls back to a default minimum transfer time otherwise (issue
-// #1391).
+// Transfer is one row of transfers.txt (GTFS transfer_type enum). The router
+// uses a default minimum transfer time when the feed has none.
 type Transfer struct {
 	FromStopID      string
 	ToStopID        string
@@ -146,8 +115,7 @@ type Transfer struct {
 	MinTransferTime *int
 }
 
-// Feed is a fully parsed static feed, ready to be swapped into the trains
-// schema in one transaction.
+// Feed is a fully parsed static feed.
 type Feed struct {
 	Info          FeedInfo
 	Stops         []Stop

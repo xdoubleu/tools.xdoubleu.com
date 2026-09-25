@@ -9,23 +9,16 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// observabilityLogsIngestPath is a plain HTTP endpoint (not ConnectRPC) that
-// web pushes batched log entries to. web holds no user session to
-// authenticate a Connect call with, so this is a shared-secret header
-// instead — the RPC surface every other observability route uses assumes an
-// admin cookie session, which web's server-side process never has (issue
-// #1040).
+// observabilityLogsIngestPath receives web's batched logs. web has no user
+// session, so it authenticates with a shared-secret header, not Connect.
 const observabilityLogsIngestPath = "/api/observability/logs"
 
-// observabilityIngestSecretHeader carries the shared secret
-// (OBSERVABILITY_INGEST_SECRET) authenticating requests to
-// observabilityLogsIngestPath.
+// observabilityIngestSecretHeader carries OBSERVABILITY_INGEST_SECRET.
 //
 //nolint:gosec // this is a header name, not a credential
 const observabilityIngestSecretHeader = "X-Observability-Ingest-Secret"
 
-// ingestLogEntry is one entry of the batch web posts to
-// observabilityLogsIngestPath.
+// ingestLogEntry is one entry of web's log batch.
 type ingestLogEntry struct {
 	OccurredAt string          `json:"occurred_at"` // RFC3339; empty means "now"
 	Level      string          `json:"level"`
@@ -37,9 +30,7 @@ type ingestLogsRequest struct {
 	Entries []ingestLogEntry `json:"entries"`
 }
 
-// observabilityIngestRoute authenticates via a shared secret rather than the
-// cookie-session middleware every other route in this file uses, since web
-// (a server-side Next.js process) has no user session to present.
+// observabilityIngestRoute authenticates with the shared secret.
 func (app *Application) observabilityIngestRoute() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !app.observabilityIngestAuthorized(r) {

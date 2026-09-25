@@ -139,8 +139,8 @@ func (h *authConnectHandler) ExchangeToken(
 		)
 	}
 
-	// Mirror SignIn: a verified TOTP factor must still be challenged before a
-	// full session is granted, so a password reset alone can't bypass MFA.
+	// Like SignIn: a verified TOTP factor must still be challenged, so a reset
+	// can't bypass MFA.
 	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, req.Msg.AccessToken)
 	if hasMFA {
 		resp := connect.NewResponse(&authv1.ExchangeTokenResponse{NeedsMfa: true})
@@ -252,8 +252,8 @@ func (h *authConnectHandler) GetCurrentUser(
 	return resp, nil
 }
 
-// tryRefreshToken rotates the session via the shared RefreshSession path and
-// adds the new cookies to the response; nil means the session is gone.
+// tryRefreshToken rotates the session and sets new cookies; nil means the
+// session is gone.
 func (h *authConnectHandler) tryRefreshToken(
 	ctx context.Context,
 	reqHeader, respHeader http.Header,

@@ -31,9 +31,7 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	assert.Equal(t, testApp.config.NotifyEmailTo, resp.Msg.AdminEmail)
 }
 
-// GetNotificationSettings/UpdateNotificationSettings are deliberately not
-// admin-gated (issue #1228) — any authenticated user can see and toggle
-// them, since the unhealthy-feeds toggle is surfaced from the feeds app.
+// TestGetNotificationSettings_AsNonAdmin_Allowed: not admin-gated.
 func TestGetNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
 	req := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
 	setCookieOnRequest(req, accessToken)

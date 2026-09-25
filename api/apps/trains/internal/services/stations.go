@@ -9,16 +9,13 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/repositories"
 )
 
-// stationLocationType is the GTFS location_type for a station (as opposed
-// to a platform) — see models.Stop.
+// stationLocationType is GTFS location_type for a station.
 const stationLocationType = 1
 
-// maxStationResults caps a single SearchStations response — enough for a
-// type-ahead dropdown without shipping all 652 stops to the client.
+// maxStationResults caps a SearchStations response for a type-ahead.
 const maxStationResults = 20
 
-// Station is a location_type=1 stop a passenger can pick as an origin or
-// destination.
+// Station is a location_type=1 stop a passenger can pick.
 type Station struct {
 	StopID      string
 	NameNL      string
@@ -37,9 +34,7 @@ func NewStationsService(repos *repositories.Repositories) *StationsService {
 }
 
 // SearchStations returns up to maxStationResults stations whose name in any
-// of the three languages contains query, case-insensitively, ordered
-// alphabetically by the French name. An empty query returns the first page
-// of all stations in the same order.
+// language contains query (case-insensitive), sorted by French name.
 func (s *StationsService) SearchStations(
 	ctx context.Context, query string,
 ) ([]Station, error) {
@@ -50,13 +45,9 @@ func (s *StationsService) SearchStations(
 	return matchStations(stops, query), nil
 }
 
-// matchStations filters stops down to stations matching query (empty query
-// matches everything), dedupes stations that share a non-empty UIC (distinct
-// stop_ids for the same physical station, e.g. a re-numbered or dual-feed
-// entry — keeping the lexicographically lowest stop_id for determinism), and
-// sorts/caps the result. A stop whose UIC couldn't be parsed (empty) is never
-// merged with another empty-UIC stop — collapsing all of those together
-// would falsely correlate unrelated stations.
+// matchStations filters stations by query, dedupes those sharing a non-empty
+// UIC (keeping the lowest stop_id), then sorts and caps. Empty-UIC stops are
+// never merged with each other.
 func matchStations(stops []models.Stop, query string) []Station {
 	q := strings.ToLower(strings.TrimSpace(query))
 	byUIC := make(map[string]Station)

@@ -10,8 +10,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// decodeTripUpdates parses a GTFS-RT trip-update FeedMessage into the
-// domain model, keyed by raw trip_id (issue #1393).
+// decodeTripUpdates parses a GTFS-RT trip-update feed, keyed by raw trip_id.
 func decodeTripUpdates(body []byte) (map[string]models.TripUpdate, error) {
 	var msg gtfs.FeedMessage
 	if err := proto.Unmarshal(body, &msg); err != nil {
@@ -51,10 +50,8 @@ func decodeTripUpdates(body []byte) (map[string]models.TripUpdate, error) {
 	return result, nil
 }
 
-// decodeStopCall applies the stop-level schedule_relationship table from
-// issue #1393: SKIPPED is a partial cancellation, NO_DATA and UNSCHEDULED
-// mean no live information, and only the SCHEDULED default carries a delay
-// to interpret.
+// decodeStopCall: SKIPPED is a partial cancellation, NO_DATA/UNSCHEDULED mean
+// no live data, only SCHEDULED carries a delay.
 func decodeStopCall(stu *gtfs.TripUpdate_StopTimeUpdate) models.StopCall {
 	call := models.StopCall{
 		StopID:         stu.GetStopId(),

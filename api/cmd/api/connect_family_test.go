@@ -16,8 +16,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// erroringFamilyService fails every method, letting handler tests exercise
-// the CodeInternal branches that a real, healthy family.Service never takes.
+// erroringFamilyService fails every method to reach CodeInternal branches.
 type erroringFamilyService struct{}
 
 var errFamilyServiceFake = errors.New("fake family service failure")
@@ -56,8 +55,7 @@ func (erroringFamilyService) Leave(context.Context, string) error {
 	return errFamilyServiceFake
 }
 
-// withErroringFamilyService swaps testApp.family for one that always fails,
-// restoring the real service on test cleanup.
+// withErroringFamilyService swaps in erroringFamilyService until cleanup.
 func withErroringFamilyService(t *testing.T) {
 	t.Helper()
 	original := testApp.family
@@ -71,9 +69,8 @@ func familyClient(t *testing.T) familyv1connect.FamilyServiceClient {
 	return familyv1connect.NewFamilyServiceClient(ts.Client(), ts.URL)
 }
 
-// insertPendingFamilyInvite seeds a fresh sender (app-user only, no login) who
-// invites testUserID to their family, mirroring insertPendingContact's shape.
-// Returns the sender's user ID.
+// insertPendingFamilyInvite seeds a sender inviting testUserID; returns the
+// sender's ID.
 func insertPendingFamilyInvite(t *testing.T) string {
 	t.Helper()
 	ctx := context.Background()
@@ -163,8 +160,7 @@ func TestAcceptFamilyInvite_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, membership.Members, testUserID)
 
-	// Leave again so later tests in this package see testUserID back in an
-	// implicit solo family.
+	// Leave so later tests see testUserID in a solo family.
 	require.NoError(t, testApp.family.Leave(context.Background(), testUserID))
 }
 
@@ -218,12 +214,10 @@ func TestSetFamilyDisplayName_Success(t *testing.T) {
 	_, err = client.SetFamilyDisplayName(context.Background(), nameReq)
 	require.NoError(t, err)
 
-	// The sender, viewing their family, sees testUserID's chosen name.
 	membership, err := testApp.family.GetMembership(context.Background(), senderID)
 	require.NoError(t, err)
 	assert.Equal(t, "Sam", membership.DisplayNames[testUserID])
 
-	// testUserID's own GetFamily echoes it back as self_display_name.
 	getReq := connect.NewRequest(&familyv1.GetFamilyRequest{})
 	setCookieOnRequest(getReq, accessToken)
 	getResp, err := client.GetFamily(context.Background(), getReq)

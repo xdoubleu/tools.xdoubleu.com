@@ -14,8 +14,7 @@ type staticImporter interface {
 	Import(ctx context.Context) error
 }
 
-// StaticImportJob refreshes the SNCB GTFS static timetable once a day. The
-// startup run is desirable (a fresh replica has an empty schema) and a
+// StaticImportJob refreshes the SNCB GTFS static timetable daily; a
 // conditional GET makes an unchanged feed nearly free.
 type StaticImportJob struct {
 	svc staticImporter

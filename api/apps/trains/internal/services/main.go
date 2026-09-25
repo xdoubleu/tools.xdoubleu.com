@@ -31,10 +31,6 @@ func New(
 	journey := NewJourneyService(logger, repos)
 	detail := NewJourneyDetailService(repos, realtime, journey)
 	journeyWS := NewJourneyWSService(ctx, logger, allowedOrigins, detail)
-	// A journey page stays open and pushed-to for the length of a trip
-	// (issue #1394): every realtime poll cycle rebroadcasts fresh detail to
-	// each subscribed journey's topic rather than waiting for the client to
-	// re-ask.
 	realtime.OnUpdate(func() { journeyWS.PushAll(ctx) })
 
 	return &Services{

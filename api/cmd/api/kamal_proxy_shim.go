@@ -5,13 +5,10 @@ import (
 	"strings"
 )
 
-// stripAPIPathPrefix replaces the /api-stripping half of what gateway/ used
-// to do before it was retired (#1038): kamal-proxy's path_prefix for this
-// service is "/api,/.well-known" with strip_path_prefix disabled, since
-// /.well-known/* (RFC 9728/8414 OAuth discovery) must reach this process
-// unmodified and kamal-proxy can't strip only one of several prefixes on a
-// single service. So this middleware does the /api stripping on its own,
-// leaving every other path (including /.well-known/*) untouched.
+// stripAPIPathPrefix strips /api in-process. kamal-proxy routes
+// "/api,/.well-known" to this service without stripping, because
+// /.well-known/* (OAuth discovery) must arrive unmodified and it can't strip
+// only one prefix.
 func stripAPIPathPrefix(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if p, ok := strings.CutPrefix(r.URL.Path, "/api"); ok {

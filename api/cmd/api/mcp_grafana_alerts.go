@@ -11,47 +11,33 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// grafanaQueryTimeout bounds one call to Grafana's HTTP API. Unlike
-// prom_query's Prometheus (an internal-network accessory), Grafana is a
-// Kamal service reached over the public host through kamal-proxy
-// (config/deploy.grafana.yml) — Kamal gives its app containers no stable
-// network alias, the lesson of issue #1554 (infra/prometheus.yml) — so this
-// is a real outbound HTTPS round trip.
+// grafanaQueryTimeout bounds one Grafana API call. Grafana is reached over the
+// public host via kamal-proxy (Kamal gives no stable network alias), so this
+// is a real HTTPS round trip.
 const grafanaQueryTimeout = 10 * time.Second
 
-// grafanaAdminUser is the username get_grafana_alerts authenticates as.
-// config/deploy.grafana.yml sets no GF_SECURITY_ADMIN_USER, so Grafana's
-// default "admin" account is the one GF_SECURITY_ADMIN_PASSWORD unlocks.
+// grafanaAdminUser is Grafana's default admin, unlocked by
+// GF_SECURITY_ADMIN_PASSWORD.
 const grafanaAdminUser = "admin"
 
-// grafanaRulesPath is Grafana's Prometheus-compatible ruler endpoint: it
-// carries each Grafana-managed alert rule's current `state` and its
-// `alerts[]` active-instance list, which /api/v1/provisioning/alert-rules
-// (rule definitions only) does not.
+// grafanaRulesPath is the ruler endpoint, which (unlike provisioning) carries
+// each rule's current state and active alerts.
 const grafanaRulesPath = "/api/prometheus/grafana/api/v1/rules"
 
-// errGrafanaNotConfigured is returned when GRAFANA_ADMIN_PASSWORD is unset —
-// there is then no credential to authenticate to Grafana's API with, so the
-// tool cannot run (local development, or a deploy that never added the
-// secret).
+// errGrafanaNotConfigured is returned when GRAFANA_ADMIN_PASSWORD is unset.
 var errGrafanaNotConfigured = errors.New(
 	"GRAFANA_ADMIN_PASSWORD not configured",
 )
 
 // grafanaAlertsArgs are get_grafana_alerts's optional arguments.
 type grafanaAlertsArgs struct {
-	// RuleName, when set, restricts the response to the one rule with this
-	// exact name — the common "is alert X firing?" check, which otherwise
-	// pays for every provisioned rule's full state in one response.
+	// RuleName restricts the response to the rule with this exact name.
 	RuleName string `json:"rule_name,omitempty"`
 }
 
-// registerGrafanaAlertsMCPTool registers get_grafana_alerts — the read path
-// for Grafana-managed alert-rule state. All alerting moved to Grafana in
-// issue #1528, and Grafana-managed alerts never appear in Prometheus
-// ALERTS{}, so prom_query cannot answer "is the alert for X firing?" (issue
-// #1564). Like prom_query, it proxies the upstream JSON straight through
-// rather than re-modeling it into a proto message this repo defines.
+// registerGrafanaAlertsMCPTool registers get_grafana_alerts. Grafana-managed
+// alerts never appear in Prometheus ALERTS{}, so prom_query can't answer
+// "is X firing?". Proxies Grafana's JSON unchanged.
 func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{
@@ -92,10 +78,7 @@ func registerGrafanaAlertsMCPTool(srv *mcp.Server, app *Application) {
 	})
 }
 
-// grafanaAlerts calls Grafana's Prometheus-compatible rules endpoint as the
-// admin user and returns the raw response body — Grafana's own JSON shape is
-// passed straight through, since get_grafana_alerts covers the whole rule
-// set rather than a fixed query.
+// grafanaAlerts returns the rules endpoint's raw body.
 func grafanaAlerts(
 	ctx context.Context,
 	grafanaURL, adminPassword string,
@@ -124,16 +107,11 @@ func grafanaAlerts(
 	return io.ReadAll(resp.Body)
 }
 
-// filterGrafanaRules keeps only the rule groups containing the rule named
-// ruleName, preserving Grafana's response envelope and everything inside the
-// surviving groups. A name that matches no rule yields an empty groups list
-// rather than an error — "no such rule" is a normal answer, not a failure.
-// The filtering happens after the fetch (the upstream endpoint offers no
-// server-side rule filter), so the cost saved is response size, not the
-// round trip.
+// filterGrafanaRules keeps only groups containing ruleName, preserving the
+// envelope. No match yields empty groups, not an error. Filtering is
+// client-side; the endpoint has no rule filter.
 func filterGrafanaRules(body []byte, ruleName string) ([]byte, error) {
-	// Groups stay as raw JSON — the filter only reads each group's rule
-	// names to decide membership, and re-emits the group untouched.
+	// Groups stay raw JSON and are re-emitted untouched.
 	var payload struct {
 		Data struct {
 			Groups []json.RawMessage `json:"groups"`
@@ -161,8 +139,7 @@ func filterGrafanaRules(body []byte, ruleName string) ([]byte, error) {
 		}
 	}
 
-	// Re-marshal through a generic map so any envelope fields the filter
-	// struct doesn't model survive the round trip untouched.
+	// Round-trip through a map so unmodeled envelope fields survive.
 	var envelope map[string]any
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		return nil, err

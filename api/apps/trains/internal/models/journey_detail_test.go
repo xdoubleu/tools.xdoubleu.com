@@ -11,9 +11,8 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// TestStopDetail_MarshalJSON pins the wire shape the journey websocket push
-// and the GetJourneyDetail RPC must agree on (issue #1394) — camelCase
-// fields, "unknown" never omitted or defaulted to "on_time".
+// TestStopDetail_MarshalJSON pins the shared wire shape: camelCase, "unknown"
+// never omitted or defaulted.
 func TestStopDetail_MarshalJSON(t *testing.T) {
 	arr := time.Date(2026, 9, 7, 8, 0, 0, 0, time.UTC)
 	dep := arr.Add(2 * time.Minute)
@@ -55,7 +54,6 @@ func TestStopDetail_MarshalJSON_UnknownStateAndNoScheduledTimes(t *testing.T) {
 	var out map[string]any
 	require.NoError(t, json.Unmarshal(body, &out))
 	assert.Equal(t, "unknown", out["status"])
-	// omitempty on both scheduled fields — never emitted at all, never "".
 	_, hasArrival := out["scheduledArrival"]
 	assert.False(t, hasArrival)
 	_, hasDeparture := out["scheduledDeparture"]
@@ -106,10 +104,7 @@ func TestJourneyDetail_MarshalJSON(t *testing.T) {
 	assert.Equal(t, "2026-09-07T09:00:00Z", out["arrivalTime"])
 }
 
-// TestJourneyAlternative_MarshalJSON pins the wire shape the journey
-// websocket push and the GetJourneyDetail RPC must agree on for the
-// re-planned alternative (issue #1395) — camelCase, nested journey/leg
-// times as RFC3339, nil journey omitted.
+// TestJourneyAlternative_MarshalJSON pins the re-plan's wire shape.
 func TestJourneyAlternative_MarshalJSON(t *testing.T) {
 	dep := time.Date(2026, 9, 7, 8, 0, 0, 0, time.UTC)
 	arr := dep.Add(40 * time.Minute)

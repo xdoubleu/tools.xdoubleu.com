@@ -21,9 +21,8 @@ func withRoutineFireToken(t *testing.T, token string) {
 	t.Cleanup(func() { testApp.config.RoutineFireToken = original })
 }
 
-// withRoutinesFireServer points testApp.routinesClient at an httptest
-// server for the duration of the test, restoring the original client
-// afterward, and returns the requests the fake fire webhook received.
+// withRoutinesFireServer points routinesClient at an httptest server until
+// cleanup and returns the requests it received.
 func withRoutinesFireServer(
 	t *testing.T, status int,
 ) (*[]*http.Request, *[][]byte) {
@@ -259,8 +258,7 @@ func TestRoutinesWebhookRoute_FireFails_StillReturnsNoContent(t *testing.T) {
 	req.Header.Set("Authorization", "Bearer correct-token")
 	testApp.routinesWebhookRoute()(rec, req)
 
-	// Grafana must not be told to retry — Fire already wrote the
-	// automated_actions row, and a retry would fire a duplicate one.
+	// No retry: Fire already wrote the automated_actions row.
 	assert.Equal(t, http.StatusNoContent, rec.Code)
 	require.Len(t, *requests, 1)
 }

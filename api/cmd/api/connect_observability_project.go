@@ -11,10 +11,8 @@ import (
 	"tools.xdoubleu.com/internal/github"
 )
 
-// GetProjectIssuesByStatus surfaces GitHub Projects (v2) board status (issue
-// #1357) — the separate GitHub MCP server tooling can't resolve custom
-// fields on a personal (user-owned) project board, so an admin-authenticated
-// agent has no other way to answer "which issues are in the Ready column".
+// GetProjectIssuesByStatus returns GitHub Projects v2 board status; the GitHub
+// MCP server can't resolve custom fields on a user-owned board.
 func (h *obsConnectHandler) GetProjectIssuesByStatus(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.GetProjectIssuesByStatusRequest],

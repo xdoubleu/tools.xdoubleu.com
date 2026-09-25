@@ -16,11 +16,8 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// journeyFeed builds a hand-assembled Feed exercising the router's real
-// traps directly against the DB path (repository -> Refresh -> Search),
-// independent of app_test.go's GTFS-zip fixtures: a direct trip, a trip
-// requiring a same-station transfer, an after-midnight trip, and a
-// non-boarding technical pass-through.
+// journeyFeed exercises the router via the DB path: a direct trip, a
+// same-station transfer, an after-midnight trip, and a non-boarding stop.
 func journeyFeed(windowStart time.Time) *models.Feed {
 	day := func(n int) time.Time { return windowStart.AddDate(0, 0, n) }
 
@@ -49,8 +46,7 @@ func journeyFeed(windowStart time.Time) *models.Feed {
 			{ServiceID: "svc_direct", Date: day(0), ExceptionType: 1},
 			{ServiceID: "svc_transfer", Date: day(0), ExceptionType: 1},
 			{ServiceID: "svc_night", Date: day(0), ExceptionType: 1},
-			// svc_direct/transfer/night intentionally do NOT run on day 3 —
-			// used by the no-service-on-requested-date case below.
+			// These services deliberately don't run on day 3.
 		},
 	}
 }
@@ -86,8 +82,7 @@ func journeyTrips() []models.Trip {
 	}
 }
 
-// journeyDirectStopTimes is a direct A->B trip with a non-boarding
-// technical pass-through at M1 in the middle.
+// journeyDirectStopTimes is A->B with a non-boarding stop at M1.
 func journeyDirectStopTimes() []models.StopTime {
 	const h = 8 * 3600
 	return []models.StopTime{
@@ -109,8 +104,7 @@ func journeyDirectStopTimes() []models.StopTime {
 	}
 }
 
-// journeyTransferStopTimes is A->B1 on one trip, then B2->C on a second
-// trip — requires a same-station platform change at Bravo.
+// journeyTransferStopTimes is A->B1, then B2->C (platform change at Bravo).
 func journeyTransferStopTimes() []models.StopTime {
 	const h = 9 * 3600
 	return []models.StopTime{
@@ -172,12 +166,8 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 	_, refreshErr := testApp.Services.Journey.RefreshWindow(ctx, windowStart)
 	require.NoError(t, refreshErr)
 
-	// GTFS stop_times are local wall-clock seconds-since-midnight, resolved
-	// by the router against Brussels-local midnight of windowStart's
-	// calendar date (its own Y/M/D only — windowStart itself is UTC, per
-	// its construction above). A "when" built directly off windowStart via
-	// .Add would be off by the standing UTC offset, same trap as
-	// journey_alternative_test.go's altLegRefs.
+	// Build "when" from Brussels-local midnight of windowStart's Y/M/D;
+	// windowStart is UTC, so .Add would be off by the UTC offset.
 	brussels, locErr := time.LoadLocation("Europe/Brussels")
 	require.NoError(t, locErr)
 	y, m, d := windowStart.Date()
@@ -261,9 +251,7 @@ func TestSearchJourneys_EndToEnd(t *testing.T) {
 
 func TestSearchJourneys_UnknownStopIsAnError(t *testing.T) {
 	ctx := context.Background()
-	// SearchJourneys no longer builds the index in-request (issue #1484), so
-	// warm it first — otherwise this asserts the warming-up path, not the
-	// unknown-stop one.
+	// Warm the index, else this asserts the warming-up path.
 	_, err := testApp.Services.Journey.RefreshWindow(
 		ctx, time.Now().UTC().Truncate(24*time.Hour),
 	)
@@ -274,10 +262,8 @@ func TestSearchJourneys_UnknownStopIsAnError(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestSearchJourneys_ColdRouterIsUnavailable pins issue #1484's C3: a
-// JourneyService whose index has never been built rejects the query with
-// ErrRouterWarmingUp instead of running the whole-window scan in the caller's
-// goroutine.
+// TestSearchJourneys_ColdRouterIsUnavailable: an unbuilt index returns
+// ErrRouterWarmingUp instead of scanning in-request.
 func TestSearchJourneys_ColdRouterIsUnavailable(t *testing.T) {
 	js := services.NewJourneyService(logging.NewNopLogger(), testApp.Repositories)
 	_, err := js.SearchJourneys(
@@ -286,10 +272,8 @@ func TestSearchJourneys_ColdRouterIsUnavailable(t *testing.T) {
 	require.ErrorIs(t, err, services.ErrRouterWarmingUp)
 }
 
-// TestJourneyService_MinTransferSeconds covers the connection-makeability
-// lookup the live journey page uses (issue #1395): before the index is
-// built it degrades to the router's own never-zero default, and once built
-// it defers to the index (an unknown pair still returns the default).
+// TestJourneyService_MinTransferSeconds: default before build and for
+// unknown pairs, index value otherwise.
 func TestJourneyService_MinTransferSeconds(t *testing.T) {
 	ctx := context.Background()
 	js := services.NewJourneyService(logging.NewNopLogger(), testApp.Repositories)
@@ -306,9 +290,8 @@ func TestJourneyService_MinTransferSeconds(t *testing.T) {
 	assert.Equal(t, csa.DefaultMinTransferSeconds, js.MinTransferSeconds("SA", "SC"))
 }
 
-// TestJourneyService_Refresh_CollapsesConcurrentRebuilds covers the
-// singleflight guard added with #1484: the startup warm-up racing the first
-// scheduled refresh must not run two window scans.
+// TestJourneyService_Refresh_CollapsesConcurrentRebuilds: concurrent
+// refreshes run one window scan.
 func TestJourneyService_Refresh_CollapsesConcurrentRebuilds(t *testing.T) {
 	ctx := context.Background()
 	require.NoError(
@@ -341,10 +324,7 @@ func TestJourneyService_Refresh_CollapsesConcurrentRebuilds(t *testing.T) {
 	}
 }
 
-// TestJourneyService_Refresh exercises Refresh (as opposed to
-// RefreshWindow, used by the fixture-aligned tests above), which anchors
-// the rolling window to "today" in Europe/Brussels — the production path
-// jobs.RouterRefreshJob calls on a schedule.
+// TestJourneyService_Refresh covers the "today"-anchored production path.
 func TestJourneyService_Refresh(t *testing.T) {
 	ctx := context.Background()
 	idx, err := testApp.Services.Journey.Refresh(ctx)
@@ -352,14 +332,12 @@ func TestJourneyService_Refresh(t *testing.T) {
 	assert.NotNil(t, idx)
 }
 
-// TestJourneyService_RefreshOnly covers the func(context.Context) error
-// adapter jobs.RouterRefreshJob is constructed with.
+// TestJourneyService_RefreshOnly covers the job adapter.
 func TestJourneyService_RefreshOnly(t *testing.T) {
 	require.NoError(t, testApp.Services.Journey.RefreshOnly(context.Background()))
 }
 
-// TestShortNamesByTripIDs covers the trip_id→trip_short_name resolution
-// RealtimeService.Poll re-keys the GTFS-RT snapshot through (issue #1484).
+// TestShortNamesByTripIDs covers trip_id -> trip_short_name resolution.
 func TestShortNamesByTripIDs(t *testing.T) {
 	ctx := context.Background()
 	windowStart := time.Now().UTC().Truncate(24 * time.Hour)
@@ -379,8 +357,7 @@ func TestShortNamesByTripIDs(t *testing.T) {
 	assert.Empty(t, empty)
 }
 
-// TestRouterRefreshJob_Metadata mirrors app_test.go's
-// TestStaticImportJob_Metadata for the router-refresh job added in #1391.
+// TestRouterRefreshJob_Metadata checks the router-refresh job's metadata.
 func TestRouterRefreshJob_Metadata(t *testing.T) {
 	j := jobs.NewRouterRefreshJob(testApp.Services.Journey.RefreshOnly)
 	assert.Equal(t, "trains-router-refresh", j.ID())

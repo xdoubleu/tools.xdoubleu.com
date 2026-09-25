@@ -27,10 +27,8 @@ func TestExchangeToken_Success(t *testing.T) {
 }
 
 func TestExchangeToken_NeedsMFA(t *testing.T) {
-	// #447: a verified TOTP factor must still be challenged before
-	// ExchangeToken (the password-reset flow) grants a full session.
-	// mfaAccessToken belongs to mfaUserID, seeded with a verified TOTP
-	// factor; RefreshToken's value is never validated by this RPC.
+	// A verified TOTP factor must still be challenged before ExchangeToken grants
+	// a session. mfaAccessToken's user has one.
 	client := authClient(t)
 	resp, err := client.ExchangeToken(context.Background(), connect.NewRequest(
 		&authv1.ExchangeTokenRequest{
@@ -115,9 +113,7 @@ func TestUpdatePassword_EmptyPassword(t *testing.T) {
 }
 
 func TestUpdatePassword_Success(t *testing.T) {
-	// A throwaway user, not the shared testUserID/accessToken fixture —
-	// changing its password would break every other test relying on that
-	// fixture's original password remaining valid.
+	// A throwaway user, so changing its password doesn't break shared fixtures.
 	token := freshTestUser(t)
 	client := authClient(t)
 	req := connect.NewRequest(
@@ -127,15 +123,6 @@ func TestUpdatePassword_Success(t *testing.T) {
 	_, err := client.UpdatePassword(context.Background(), req)
 	require.NoError(t, err)
 }
-
-// TestUpdatePassword_RevokesOtherSessions covered #448's fix (password
-// change revokes other sessions) against the old GoTrue-backed
-// implementation's Logout() call and its "logout-fail-access" mock error
-// path. The self-hosted implementation (issue #1039) revokes sessions by
-// deleting auth.refresh_tokens rows directly — a DB delete with no external
-// call to fail in the way the old mock simulated — so there's no equivalent
-// failure mode to exercise here; UpdatePassword_Success already covers the
-// revocation happening at all.
 
 func TestMFAUnenroll_NoToken(t *testing.T) {
 	client := authClient(t)
@@ -149,7 +136,6 @@ func TestMFAUnenroll_NoToken(t *testing.T) {
 }
 
 func TestMFAUnenroll_NoMFA(t *testing.T) {
-	// "access" token maps to a user with no verified MFA factors.
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.MFAUnenrollRequest{})
 	setCookieOnRequest(req, accessToken)
@@ -161,10 +147,7 @@ func TestMFAUnenroll_NoMFA(t *testing.T) {
 }
 
 func TestMFAUnenroll_Success(t *testing.T) {
-	// A throwaway user with its own freshly enrolled+verified factor — not
-	// the shared mfaUserID fixture, since unenrolling it would make this
-	// test's ordering relative to others (e.g. TestGetCurrentUser_HasMFA_True)
-	// significant.
+	// A throwaway user so unenrolling doesn't affect the shared mfaUserID.
 	token := freshTestUser(t)
 	tokenCookie := http.Cookie{Name: "accessToken", Value: token}
 

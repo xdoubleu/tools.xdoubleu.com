@@ -35,7 +35,6 @@ func TestHealthEndpointNoAuth(t *testing.T) {
 		http.MethodGet,
 		"/health",
 	)
-	// Intentionally not adding auth cookie
 
 	rs := tReq.Do(t)
 	assert.Equal(t, http.StatusOK, rs.StatusCode)

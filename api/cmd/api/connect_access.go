@@ -19,8 +19,7 @@ type accessConnectHandler struct {
 
 var _ accessv1connect.AccessServiceHandler = (*accessConnectHandler)(nil)
 
-// requireAdmin gates admin-only Connect RPCs. It is shared by the access and
-// observability handlers, both of which are registered behind admin auth.
+// requireAdmin gates admin-only Connect RPCs.
 func requireAdmin(ctx context.Context) error {
 	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
 	if user.Role != models.RoleAdmin {

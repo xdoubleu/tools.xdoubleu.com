@@ -12,9 +12,8 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// duplicateSweepJob collides with the sweep job's own ID, so a second
-// startCrossAppJobs pass fails at exactly the automated-action sweep's
-// AddJob call — the branch a normal startup can never reach.
+// duplicateSweepJob collides with the sweep job's ID to reach its AddJob
+// error branch.
 type duplicateSweepJob struct{}
 
 func (duplicateSweepJob) ID() string { return "sweep-automated-actions" }

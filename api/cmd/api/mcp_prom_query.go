@@ -10,20 +10,12 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// promQueryTimeout bounds one instant query against Prometheus's own HTTP
-// API, reached over the internal Docker network (infra/prometheus-compose.yml)
-// — generous relative to a typical PromQL instant query, but short enough
-// that a stuck/unreachable Prometheus doesn't hang the MCP call.
+// promQueryTimeout bounds one instant query so a stuck Prometheus doesn't hang
+// the MCP call.
 const promQueryTimeout = 10 * time.Second
 
-// registerPromQueryMCPTool registers prom_query — the one general
-// PromQL-over-HTTP tool that replaces the narrow get_host_metrics/
-// get_database_size_history/get_transaction_latency_history/get_alert_states
-// tools now that Grafana + Prometheus own that time-series data (issue
-// #1468). It proxies Prometheus's `/api/v1/query` instant-query endpoint
-// directly rather than going through addObsTool/mcptools.Result, since the
-// response is Prometheus's own JSON shape, not a proto message this repo
-// defines.
+// registerPromQueryMCPTool registers prom_query, proxying Prometheus's
+// /api/v1/query directly since the response isn't a proto message.
 func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 	//nolint:exhaustruct // name/description are the only fields tools need
 	mcp.AddTool(srv, &mcp.Tool{
@@ -57,11 +49,7 @@ func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 	})
 }
 
-// promQuery calls Prometheus's instant-query endpoint and returns the raw
-// response body — Prometheus's own {"status":..,"data":{"resultType":..,
-// "result":[...]}} JSON shape is passed straight through rather than
-// re-modeled into a proto message, since prom_query is meant to cover
-// arbitrary PromQL, not a fixed set of queries.
+// promQuery returns Prometheus's raw instant-query JSON.
 func promQuery(ctx context.Context, prometheusURL, query string) ([]byte, error) {
 	reqCtx, cancel := context.WithTimeout(ctx, promQueryTimeout)
 	defer cancel()

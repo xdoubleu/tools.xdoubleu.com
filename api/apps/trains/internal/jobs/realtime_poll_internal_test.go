@@ -11,9 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/logging"
 )
 
-// capturingPoller records the context RealtimePollJob.Run hands to Poll, so
-// the test can assert it carries a bounded deadline rather than the
-// caller's own (possibly undeadlined) context.
+// capturingPoller records the context Run passes to Poll.
 type capturingPoller struct {
 	gotDeadline time.Time
 	gotOK       bool
@@ -24,11 +22,8 @@ func (p *capturingPoller) Poll(ctx context.Context) error {
 	return nil
 }
 
-// TestRealtimePollJob_Run_BoundsPollWithATimeout covers issue #1720: a slow
-// step inside Poll — a slow SNCB response, or a trains.trips read blocked
-// behind trains-static-import's TRUNCATE lock — must not be able to run
-// past the next scheduled tick, so Run hands Poll a context with a deadline
-// well under RunEvery's 30s cadence rather than the bare parent context.
+// TestRealtimePollJob_Run_BoundsPollWithATimeout: Run must hand Poll a
+// deadline well under the 30s cadence.
 func TestRealtimePollJob_Run_BoundsPollWithATimeout(t *testing.T) {
 	poller := &capturingPoller{} //nolint:exhaustruct //fields populated by Poll
 	job := NewRealtimePollJob(poller)

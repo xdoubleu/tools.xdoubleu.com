@@ -14,9 +14,7 @@ import (
 )
 
 // validTriggerSources/validOutcomes mirror global.automated_actions' CHECK
-// constraints (cmd/api/migrations/00050_automated_actions.sql) — validated
-// here too so a bad value surfaces as CodeInvalidArgument instead of a raw
-// Postgres constraint-violation error.
+// constraints, so bad values return CodeInvalidArgument.
 //
 //nolint:gochecknoglobals // fixed lookup tables, not mutated
 var validTriggerSources = []string{"schedule", "api", "manual"}
@@ -49,10 +47,8 @@ func (h *obsConnectHandler) OpenAutomatedAction(
 	return connect.NewResponse(resp), nil
 }
 
-// openAutomatedAction records that routineName has started, fired by
-// triggerSource — the first step a self-healing routine takes, since it
-// runs outside api's own process and nothing else would ever learn it ran
-// (issue #1441).
+// openAutomatedAction records that a routine started. Routines run outside
+// this process, so this is the only record they ran.
 func (h *obsConnectHandler) openAutomatedAction(
 	ctx context.Context,
 	triggerSource, routineName string,
@@ -93,9 +89,7 @@ func (h *obsConnectHandler) CloseAutomatedAction(
 	return connect.NewResponse(resp), nil
 }
 
-// closeAutomatedAction closes out the row id refers to — the last step a
-// self-healing routine takes, whether it succeeded, failed, or found
-// nothing to do.
+// closeAutomatedAction closes the row with the routine's outcome.
 func (h *obsConnectHandler) closeAutomatedAction(
 	ctx context.Context,
 	id int64,
@@ -128,9 +122,7 @@ func (h *obsConnectHandler) GetAutomatedActions(
 	return connect.NewResponse(resp), nil
 }
 
-// automatedActions runs the run-history query and builds the response. It
-// is shared by the Connect handler above and the get_automated_actions MCP
-// tool.
+// automatedActions builds the run-history response for Connect and MCP.
 func (h *obsConnectHandler) automatedActions(
 	ctx context.Context,
 	windowDays int32,
@@ -150,11 +142,8 @@ func (h *obsConnectHandler) automatedActions(
 	return &observabilityv1.GetAutomatedActionsResponse{Actions: protoRuns}, nil
 }
 
-// recordAction backs the record_action MCP tool, dispatching to
-// openAutomatedAction or closeAutomatedAction by a.Mode — the MCP surface
-// exposes one tool for both operations (per issue #1441) even though the
-// Connect service, like every other mutating pair here, keeps them as two
-// separate RPCs.
+// recordAction backs the record_action MCP tool, dispatching to open or close
+// by a.Mode.
 func (h *obsConnectHandler) recordAction(
 	ctx context.Context,
 	a recordActionArgs,

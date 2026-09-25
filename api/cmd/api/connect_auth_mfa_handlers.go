@@ -87,8 +87,7 @@ func (h *authConnectHandler) MFAEnrollVerify(
 		}
 	}
 
-	// Enrollment just completed for the first time — hand the user their
-	// one-time-visible recovery codes now, same as GenerateRecoveryCodes.
+	// First enrollment: return the one-time recovery codes now.
 	recoveryCodes, codesErr := h.app.auth.GenerateRecoveryCodes(ctx, *accessToken)
 	if codesErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, codesErr)

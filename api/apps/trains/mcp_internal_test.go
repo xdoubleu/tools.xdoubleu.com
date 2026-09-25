@@ -21,10 +21,8 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestMCPTools exercises the tool wrappers against a real app instance that
-// has imported the sample feed. The station tool is the one issue #1453
-// exists for: without it, "which names does the database actually hold" was
-// unanswerable outside a psql session.
+// TestMCPTools exercises the tool wrappers against an app with the sample
+// feed imported.
 func TestMCPTools(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	cfg.BMCPartnerKey = "test-key"
@@ -45,10 +43,7 @@ func TestMCPTools(t *testing.T) {
 		//nolint:exhaustruct // only ID and AppAccess matter for the gate
 		sharedmodels.User{ID: mcpUserID, AppAccess: []string{mcpAppName}},
 	)
-	// Migrations are applied once for the whole test binary by TestMain in
-	// app_test.go, which shares this package's compiled tests.
 	require.NoError(t, app.Services.StaticImport.Import(ctx))
-	// SearchJourneys no longer builds the router in-request (issue #1484).
 	require.NoError(t, app.Services.Journey.RefreshOnly(ctx))
 
 	h := &trainsConnectHandler{app: app}
@@ -70,9 +65,7 @@ func TestMCPTools(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// A well-formed journey_id decodes without server-side storage; with no
-	// realtime poll behind it the detail renders but every stop stays
-	// DelayUnknown — the tool must surface that, not error.
+	// No realtime poll: detail renders with every stop DelayUnknown, not an error.
 	journeyID := services.EncodeJourneyID([]services.LegRef{{
 		TripShortName: "IC1234",
 		BoardStopID:   "gs:nmbssncb:S8814001",
@@ -91,8 +84,7 @@ func TestMCPTools(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestMCPTools_RequireAppAccess proves the gate rejects a caller without
-// trains access, the same way every other app's tools do.
+// TestMCPTools_RequireAppAccess rejects a caller without trains access.
 func TestMCPTools_RequireAppAccess(t *testing.T) {
 	ctx := context.WithValue(
 		context.Background(),

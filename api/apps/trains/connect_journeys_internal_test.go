@@ -11,8 +11,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/pkg/csa"
 )
 
-// TestMapError pins the Connect code each journey-handler error maps to —
-// notably ErrRouterWarmingUp -> CodeUnavailable, added with issue #1484.
+// TestMapError pins the Connect code each journey-handler error maps to.
 func TestMapError(t *testing.T) {
 	assert.Equal(
 		t, connect.CodeNotFound, connect.CodeOf(mapError(csa.ErrUnknownStop)),

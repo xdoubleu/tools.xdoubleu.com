@@ -2,27 +2,20 @@ package models
 
 import "time"
 
-// DelayState is the domain-level state of a single call, kept distinct from
-// GTFS-RT's raw schedule_relationship values so no downstream caller can
-// collapse them by accident (issue #1393). schedule_relationship means
-// different things at trip level (CANCELED) and stop level (SKIPPED,
-// NO_DATA) — conflating a stop-level NO_DATA with a cancellation once
-// produced 12,703 false "cancelled" calls against a true network-wide
-// figure of 48.
+// DelayState is a call's domain state, kept distinct from GTFS-RT
+// schedule_relationship: trip-level CANCELED and stop-level SKIPPED/NO_DATA
+// mean different things and must not be conflated.
 type DelayState int
 
 const (
-	// DelayUnknown means no live information was published for this call —
-	// the common case (68% of calls in one observed sample), not the edge
-	// case. It is never equivalent to DelayOnTime: a zero-valued delay field
-	// would otherwise silently mean both.
+	// DelayUnknown means no live data was published (the common case). Never
+	// equivalent to DelayOnTime.
 	DelayUnknown DelayState = iota
-	// DelayOnTime means live data was published and the delay is zero.
+	// DelayOnTime means live data shows zero delay.
 	DelayOnTime
-	// DelayDelayed means live data was published with a nonzero delay.
+	// DelayDelayed means live data shows a nonzero delay.
 	DelayDelayed
-	// DelaySkipped is a stop-level partial cancellation — the trip itself
-	// still runs (DelayCancelled is a separate, trip-level state).
+	// DelaySkipped is a stop-level partial cancellation.
 	DelaySkipped
 	// DelayCancelled is a trip-level full cancellation.
 	DelayCancelled
@@ -45,10 +38,8 @@ func (s DelayState) String() string {
 	}
 }
 
-// StopCall is the realtime state of one stop along a trip, decoded from a
-// GTFS-RT TripUpdate.StopTimeUpdate. ArrivalDelay/DepartureDelay are seconds
-// (positive = late) and nil when the feed published no live value for that
-// event.
+// StopCall is one stop's realtime state. Delays are seconds (positive =
+// late), nil when unpublished.
 type StopCall struct {
 	StopID         string
 	StopSequence   int
@@ -57,31 +48,20 @@ type StopCall struct {
 	DepartureDelay *int
 }
 
-// TripUpdate is the realtime state of one trip instance, decoded from a
-// GTFS-RT TripUpdate entity. TripID is the raw feed identifier: like the
-// static feed's trip_id (issue #1390) it is not a stable long-lived key —
-// it exists only long enough for RealtimeService.Poll to resolve it against
-// the current static import into a (trip_short_name, service date) pair, the
-// coordinates everything downstream addresses a train by. Nothing here is
-// persisted.
+// TripUpdate is one trip's realtime state. TripID is not a stable key; Poll
+// resolves it to (trip_short_name, service date). Not persisted.
 type TripUpdate struct {
 	TripID    string
 	RouteID   string
 	StartDate string
-	// State is the trip-level state: DelayCancelled on a full cancellation,
-	// DelayOnTime otherwise. Per-stop delay/skip/unknown state lives on each
-	// StopCall.
+	// State is trip-level: DelayCancelled or DelayOnTime.
 	State     DelayState
 	StopCalls []StopCall
 	Timestamp time.Time
 }
 
-// Alert is a decoded GTFS-RT service alert (rt/alert), attached to the
-// trips/routes/stops it affects. JSON tags cover only the fields
-// trains.v1.Alert also exposes — the websocket push (this package's own
-// JSON DTO) and the GetJourneyDetail RPC response decode into the same
-// client-side shape (issue #1394); Cause/Effect/Informed*IDs are
-// server-side matching detail, not shown to a passenger.
+// Alert is a GTFS-RT service alert. JSON tags cover only what trains.v1.Alert
+// exposes; Cause/Effect/Informed*IDs are server-side matching detail.
 type Alert struct {
 	ID               string   `json:"id"`
 	Cause            string   `json:"-"`
@@ -93,38 +73,26 @@ type Alert struct {
 	InformedStopIDs  []string `json:"-"`
 }
 
-// TripKey addresses one trip instance by the coordinates that survive a
-// daily feed churn: its trips.trip_short_name and its GTFS service date
-// ("YYYYMMDD"). The raw trip_id is deliberately not part of it — the static
-// and GTFS-RT feeds are ingested from separate BMC endpoints and nothing
-// guarantees they assign the same trip_id to the same physical train
-// (issue #1484).
+// TripKey addresses a trip by trip_short_name and service date ("YYYYMMDD").
+// Not trip_id: the static and realtime feeds needn't agree on it.
 type TripKey struct {
 	ShortName string
 	Date      string
 }
 
-// Snapshot is the wholly-replaced current realtime state, rebuilt on every
-// poll. It is kept in memory only — nothing here is persisted (issue
-// #1393).
+// Snapshot is the in-memory realtime state, replaced on every poll.
 type Snapshot struct {
-	// Trips is keyed by (trip_short_name, service date) — RealtimeService.Poll
-	// resolves each decoded TripUpdate's raw trip_id against the current
-	// static import before storing it here.
+	// Trips is keyed by (trip_short_name, service date).
 	Trips map[TripKey]TripUpdate
-	// UnresolvedTripCount is how many decoded trip updates in this poll cycle
-	// carried a trip_id with no matching static trip — normally zero; a
-	// sustained nonzero value means the two feeds' trip_id namespaces have
-	// drifted apart (issue #1484).
+	// UnresolvedTripCount counts trip updates with no matching static trip; a
+	// sustained nonzero value means the feeds' trip_ids have drifted apart.
 	UnresolvedTripCount int
 	Alerts              []Alert
 	FetchedAt           time.Time
 }
 
-// CallFor returns the realtime state of the trip running shortName on
-// serviceDate, if the last poll cycle published one. serviceDate is read in
-// its own location, so callers pass the feed-local (Europe/Brussels)
-// midnight of the service day.
+// CallFor returns the trip running shortName on serviceDate, which callers
+// pass as Europe/Brussels midnight.
 func (s Snapshot) CallFor(shortName string, serviceDate time.Time) (TripUpdate, bool) {
 	tu, ok := s.Trips[TripKey{
 		ShortName: shortName,

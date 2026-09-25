@@ -15,8 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
-// allOAuthProviders lists every provider the admin UI can show a card for,
-// including ones with no stored connection yet.
+// allOAuthProviders lists every provider the admin UI shows a card for.
 //
 //nolint:gochecknoglobals // fixed provider list, not runtime-configurable
 var allOAuthProviders = []models.OAuthProvider{
@@ -39,8 +38,7 @@ func (h *obsConnectHandler) ListOAuthConnections(
 	return connect.NewResponse(res), nil
 }
 
-// oauthConnections builds every provider's admin-facing status. Shared by the
-// Connect handler above and the get_oauth_connections MCP tool.
+// oauthConnections builds each provider's status for Connect and MCP.
 func (h *obsConnectHandler) oauthConnections(
 	ctx context.Context,
 ) (*observabilityv1.ListOAuthConnectionsResponse, error) {
@@ -69,8 +67,7 @@ func (h *obsConnectHandler) oauthConnections(
 				RequiredScope: required,
 			}
 			if ok {
-				// Stale rather than absent: report what it was authorized
-				// with, so the mismatch is visible without database access.
+				// Report the stale scope so the mismatch is visible.
 				status.RequestedScope = conn.RequestedScope
 				status.GrantedScope = conn.GrantedScope
 			}
@@ -95,17 +92,13 @@ func (h *obsConnectHandler) oauthConnections(
 	}, nil
 }
 
-// scopeIsStale reports whether a stored connection was authorized with less
-// than what provider's oauth2.Config currently requires — e.g. an admin
-// connected before a required scope was added. Such a connection is shown as
-// not-connected so the existing "Connect" button in the admin UI is the
-// reconnect path, rather than the admin discovering it via a runtime 403.
+// scopeIsStale reports whether a connection lacks scopes the provider now
+// requires; it's then shown as not connected so "Connect" is the fix.
 func (h *obsConnectHandler) scopeIsStale(conn *models.OAuthConnection) bool {
 	return oauthconn.ScopesAreStale(conn, h.requiredScopes(conn.Provider))
 }
 
-// requiredScopes is what provider's oauth2.Config asks for today, or nil for
-// a provider with no OAuth config (which can never be stale).
+// requiredScopes is the provider's current scopes, or nil without OAuth config.
 func (h *obsConnectHandler) requiredScopes(
 	provider models.OAuthProvider,
 ) []string {
@@ -116,8 +109,7 @@ func (h *obsConnectHandler) requiredScopes(
 	return def.conf(h.app).Scopes
 }
 
-// resolveConnectedBy maps a stored user ID to their email, falling back to
-// the raw ID if the user can no longer be found.
+// resolveConnectedBy maps a user ID to email, falling back to the ID.
 func (h *obsConnectHandler) resolveConnectedBy(
 	ctx context.Context,
 	userID string,
@@ -156,11 +148,8 @@ func (h *obsConnectHandler) DisconnectOAuthConnection(
 	), nil
 }
 
-// githubConfigJSON/sentryConfigJSON mirror the private JSON shapes each
-// provider client unmarshals from global.oauth_connections.config (see
-// internal/{github,sentryapi}/client.go) — kept in sync deliberately rather
-// than exported, so the wire shape stays an implementation detail of the
-// storage format.
+// githubConfigJSON/sentryConfigJSON mirror the private config shapes in
+// internal/{github,sentryapi}/client.go; keep them in sync.
 type githubConfigJSON struct {
 	Repo string `json:"repo"`
 }
@@ -170,9 +159,7 @@ type sentryConfigJSON struct {
 	Projects []string `json:"projects"`
 }
 
-// protoProviderConfig decodes the stored config JSON into the proto oneof
-// for the admin UI. Returns nil (unset) when there's nothing stored yet or
-// the provider is unrecognized.
+// protoProviderConfig decodes stored config into the proto oneof, or nil.
 func protoProviderConfig(
 	provider models.OAuthProvider, raw json.RawMessage,
 ) *observabilityv1.ProviderConfig {
@@ -204,18 +191,14 @@ func protoProviderConfig(
 			},
 		}
 	case models.OAuthProviderTodoist:
-		// Todoist's per-user connection lives in
-		// learningpaths.oauth_connections, never global.oauth_connections —
-		// this admin-only observability config path never sees it.
+		// Todoist connections live in learningpaths.oauth_connections, never here.
 		return nil
 	default:
 		return nil
 	}
 }
 
-// GetProviderOptions lets the admin picker discover what identifiers are
-// available for a connected provider, by calling straight through to that
-// provider's own client.
+// GetProviderOptions lists a connected provider's pickable identifiers.
 func (h *obsConnectHandler) GetProviderOptions(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.GetProviderOptionsRequest],
@@ -234,9 +217,7 @@ func (h *obsConnectHandler) GetProviderOptions(
 		resp, err = h.githubOptions(ctx)
 	case models.OAuthProviderSentry:
 		resp, err = h.sentryOptions(ctx, req.Msg.GetSentryOrg())
-	// Todoist's per-user connection lives in learningpaths.oauth_connections,
-	// never global.oauth_connections — this admin-only observability picker
-	// never sees it.
+	// Todoist connections live in learningpaths.oauth_connections, never here.
 	case models.OAuthProviderTodoist:
 		fallthrough
 	default:
@@ -292,8 +273,7 @@ func (h *obsConnectHandler) sentryOptions(
 	return resp, nil
 }
 
-// providerOptionsError maps a discovery-call failure to a connect error, so
-// "not connected yet" reads as a clear client error instead of a 500.
+// providerOptionsError maps "not connected" to a client error, not a 500.
 func providerOptionsError(err error) error {
 	if errors.Is(err, oauthconn.ErrNotConnected) {
 		return connect.NewError(connect.CodeFailedPrecondition, err)
@@ -306,8 +286,7 @@ func providerOptionsError(err error) error {
 	return connect.NewError(connect.CodeInternal, err)
 }
 
-// SetProviderConfig stores the admin-picked identifier(s) for a connected
-// provider.
+// SetProviderConfig stores the admin-picked identifiers for a provider.
 func (h *obsConnectHandler) SetProviderConfig(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.SetProviderConfigRequest],
@@ -332,8 +311,8 @@ func (h *obsConnectHandler) SetProviderConfig(
 	return connect.NewResponse(&observabilityv1.SetProviderConfigResponse{}), nil
 }
 
-// configJSON marshals the request's ProviderConfig oneof into the JSON shape
-// stored in global.oauth_connections.config, validating it matches provider.
+// configJSON marshals the request's ProviderConfig to stored JSON, checking it
+// matches provider.
 func configJSON(
 	provider models.OAuthProvider, cfg *observabilityv1.ProviderConfig,
 ) ([]byte, error) {
@@ -352,9 +331,7 @@ func configJSON(
 		return json.Marshal(
 			sentryConfigJSON{Org: s.GetOrg(), Projects: s.GetProjects()},
 		)
-	// Todoist's per-user connection lives in learningpaths.oauth_connections,
-	// never global.oauth_connections — this admin-only observability config
-	// path never sees it.
+	// Todoist connections live in learningpaths.oauth_connections, never here.
 	case models.OAuthProviderTodoist:
 		fallthrough
 	default:

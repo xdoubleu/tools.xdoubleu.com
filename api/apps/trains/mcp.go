@@ -13,14 +13,14 @@ import (
 
 const mcpAppName = "trains"
 
-// mcpSearchStationsArgs matches a substring of a station's name in any of
-// Dutch, French or English; an empty query pages through all stations.
+// mcpSearchStationsArgs matches a name substring in any language; empty
+// pages through all stations.
 type mcpSearchStationsArgs struct {
 	Query string `json:"query,omitempty" jsonschema:"name substring (nl|fr|en)"`
 }
 
-// mcpSearchJourneysArgs takes stop ids as trains_search_stations reports
-// them. ArriveBy reads Time as an arrival deadline instead of a departure.
+// mcpSearchJourneysArgs takes stop ids from trains_search_stations. ArriveBy
+// treats Time as an arrival deadline.
 type mcpSearchJourneysArgs struct {
 	OriginStopID      string `json:"origin_stop_id"      jsonschema:"origin stop id"`
 	DestinationStopID string `json:"destination_stop_id" jsonschema:"destination stop id"`
@@ -28,16 +28,13 @@ type mcpSearchJourneysArgs struct {
 	ArriveBy          bool   `json:"arrive_by,omitempty" jsonschema:"time is a deadline"`
 }
 
-// mcpGetJourneyDetailArgs takes a journey_id exactly as a Journey in a
-// trains_search_journeys result reports it.
+// mcpGetJourneyDetailArgs takes a journey_id from trains_search_journeys.
 type mcpGetJourneyDetailArgs struct {
 	JourneyID string `json:"journey_id" jsonschema:"id from trains_search_journeys"`
 }
 
-// RegisterMCPTools exposes the trains app's read-only RPCs on the combined
-// apps MCP server. The timetable is public data shared by every user, so
-// unlike the other apps' tools these return the same rows for any caller
-// holding trains access.
+// RegisterMCPTools exposes the trains read RPCs on the apps MCP server. The
+// timetable is public, so every caller with trains access gets the same rows.
 func (a *Trains) RegisterMCPTools(srv *mcp.Server) {
 	h := &trainsConnectHandler{app: a}
 

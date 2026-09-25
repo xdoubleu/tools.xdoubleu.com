@@ -50,10 +50,7 @@ func (app *Application) Routes() http.Handler {
 		app.observabilityIngestRoute(),
 	)
 
-	// Inbound half of issue #1444's routine-fire path: a Grafana webhook
-	// contact point calls this directly, so — like the ingest route above
-	// — it authenticates via a shared bearer token rather than the cookie
-	// session middleware every RPC route in this file uses.
+	// Grafana webhook contact point; authenticates via a shared bearer token.
 	mux.Handle(
 		"POST "+routinesWebhookPath,
 		app.routinesWebhookRoute(),
@@ -77,27 +74,21 @@ func (app *Application) Routes() http.Handler {
 		app.auth.Access(dashboardHandler.ServeHTTP),
 	)
 
-	// MCP server (read-only) behind OAuth 2.1 Bearer auth — every app's own
-	// read RPCs plus the admin observability tools. The protected-resource
-	// metadata is public (unauthenticated) for client discovery; the MCP
-	// endpoint itself verifies the Bearer token.
+	// MCP behind OAuth 2.1 Bearer auth. The protected-resource metadata is public
+	// for discovery.
 	appsPRM := mcpauth.ProtectedResourceMetadataHandler(
 		app.mcpResourceMetadataFor(appsMCPPath, "tools.xdoubleu.com apps"),
 	)
 	mux.Handle(appsResourceMetadataPath, appsPRM)
 	mux.Handle(rootResourceMetadataPath, appsPRM)
 	mux.Handle(appsMCPPath, app.appsMCPRoute())
-	// RFC 9728 requires clients discovering metadata for a resource URL with
-	// a path (APIURL's "/api" in production) to insert /.well-known/...
-	// before that path rather than trust the bare path above — register
-	// that alias too, so real client discovery libraries (which compute
-	// this URL themselves rather than trusting the bare one) don't 404.
+	// RFC 9728 path-insertion alias: clients insert /.well-known/... before the
+	// resource path ("/api"), so register that URL too.
 	mux.Handle(
 		"/.well-known/oauth-protected-resource/api"+appsMCPPath, appsPRM,
 	)
 
-	// Embedded OAuth 2.1 authorization server (issue #1039) backing the MCP
-	// flow above — replaces Supabase as the authorization server.
+	// Embedded OAuth 2.1 authorization server.
 	mux.HandleFunc(
 		"GET "+oauth2AuthorizePath,
 		oauth2as.AuthorizeHandler(
@@ -124,23 +115,19 @@ func (app *Application) Routes() http.Handler {
 		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(app.oauth2as.store),
 	)
 	mux.HandleFunc("GET "+oauth2MetadataPath, app.oauth2MetadataHandler())
-	// Same RFC 8414 path-insertion alias as above, for AuthIssuer's own path
-	// (defaults to APIURL's "/api").
+	// Same path-insertion alias for AuthIssuer's path.
 	mux.HandleFunc(
 		"GET "+oauth2MetadataPath+"/api", app.oauth2MetadataHandler(),
 	)
-	// OIDC discovery (issue #1469): the same document at the well-known
-	// openid-configuration path, plus the JWKS a relying party (Grafana)
-	// needs to verify ID-token signatures.
+	// OIDC discovery and the JWKS Grafana uses to verify ID tokens.
 	mux.HandleFunc("GET "+openIDConfigurationPath, app.oauth2MetadataHandler())
 	mux.HandleFunc("GET "+openIDConfigurationPath+"/api", app.oauth2MetadataHandler())
 	mux.HandleFunc(
 		"GET "+oauth2JWKSPath, oauth2as.JWKSHandler(app.oauth2as.oidcKey),
 	)
 
-	// Browser-facing OAuth connect flow for the observability integrations
-	// (issue #440) — plain HTTP because the provider redirect can't carry
-	// Connect's protocol framing. Both legs are admin-cookie-gated.
+	// OAuth connect flow for observability integrations; plain HTTP,
+	// admin-cookie-gated.
 	mux.HandleFunc("GET /admin/oauth/{provider}/start", app.oauthStartRoute())
 	mux.HandleFunc("GET /admin/oauth/{provider}/callback", app.oauthCallbackRoute())
 
@@ -181,8 +168,7 @@ func (app *Application) Routes() http.Handler {
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
 	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)
-	// RequestDuration feeds the http_request_duration_seconds histogram
-	// Grafana's RequestP95High alert evaluates (issue #1528).
+	// Feeds http_request_duration_seconds for Grafana's RequestP95High alert.
 	handlers = append(handlers, middleware.RequestDuration())
 	standard := alice.New(handlers...)
 	return standard.Then(mux)

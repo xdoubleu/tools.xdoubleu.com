@@ -11,44 +11,26 @@ import (
 	"tools.xdoubleu.com/internal/observability"
 )
 
-// StaticImportJobID is the job-queue ID of jobs.StaticImportJob. It lives
-// here, next to the phase instrumentation that reports under it, so the
-// metric labels and the job's ID cannot drift apart.
+// StaticImportJobID is jobs.StaticImportJob's ID, kept next to the phase
+// metrics that report under it so they can't drift.
 const StaticImportJobID = "trains-static-import"
 
-// Phase names reported under StaticImportJobID via
-// observability.ObserveJobPhase. They split a run into the fetch from the
-// BMC gateway, the in-process parse, and the DB import (staging COPY plus
-// table swap), so prom_query can attribute a slow run to one of the three
-// (issue #1818).
+// Phases reported via observability.ObserveJobPhase so prom_query can
+// attribute a slow import to fetch, parse, or DB import.
 const (
 	phaseFetch  = "fetch"
 	phaseParse  = "parse"
 	phaseImport = "import"
 )
 
-// ImportParserVersion identifies what this importer writes. It is stored
-// alongside the feed and compared on every run: when the stored rows came
-// from an older importer, the conditional-GET validators are dropped so the
-// unchanged feed is fetched and imported in full.
-//
-// Bump this whenever an import writes something it previously did not —
-// a new column, a new file parsed, a changed derivation. Version 1 stored a
-// single French-only stop name (issue #1453); version 2 was the first to
-// fill name_nl/name_fr/name_en from translations.txt (#1450); version 3
-// matches those translations by field_value and by unprefixed record_id as
-// well, and records the resulting coverage (issue #1459); version 4 added
-// display_name, a canonical deduped label built only from genuinely-known
-// full names, never a possibly-abbreviated raw fallback (issue #1656);
-// version 5 fixes display_name's derivation again — a genuinely-present
-// translations.txt row can itself be an NMBS-synthesized combined string
-// (almost always English on a bilingual station), which v4 didn't detect
-// (issue #1656, still reproducing after the v4 fix shipped).
+// ImportParserVersion identifies what this importer writes. When stored rows
+// come from an older version, the conditional-GET validators are dropped and
+// the feed is reimported. Bump it whenever the import writes something new
+// (a column, a file, a changed derivation).
 const ImportParserVersion = 5
 
-// StaticImportService downloads, validates and imports the SNCB GTFS static
-// timetable into the trains schema. It is driven by jobs.StaticImportJob on
-// a 24h cadence.
+// StaticImportService fetches, validates and imports the SNCB GTFS static
+// timetable; driven daily by jobs.StaticImportJob.
 type StaticImportService struct {
 	logger *slog.Logger
 	repos  *repositories.Repositories
@@ -63,12 +45,9 @@ func NewStaticImportService(
 	return &StaticImportService{logger: logger, repos: repos, bmc: bmcClient}
 }
 
-// Import runs one import cycle. A conditional GET makes an unchanged daily
-// feed a no-op (issue #1390) — but only while the stored rows come from the
-// current importer, since those validators describe the feed and not what
-// the importer does with it (issue #1453). A missing BMC key is logged and
-// skipped, not an error — matching how games handles a missing
-// STEAM_API_KEY.
+// Import runs one cycle. A conditional GET skips an unchanged feed, but only
+// if the stored rows come from the current ImportParserVersion. A missing BMC
+// key is logged and skipped.
 func (s *StaticImportService) Import(ctx context.Context) error {
 	stored, err := s.repos.Feed.GetFeedInfo(ctx)
 	if err != nil {
@@ -141,9 +120,7 @@ func (s *StaticImportService) Import(ctx context.Context) error {
 		slog.Int("trips", len(feed.Trips)),
 		slog.Int("stop_times", len(feed.StopTimes)),
 		slog.Int("calendar_dates", len(feed.CalendarDates)),
-		// Coverage, not just counts: an import that reads translations.txt
-		// and matches none of it looks identical to a clean one otherwise
-		// (issue #1459).
+		// Log coverage: an import matching no translations otherwise looks clean.
 		slog.Int("translation_rows", feed.Info.Translations.Rows),
 		slog.Int("translation_rows_unmatched",
 			feed.Info.Translations.RowsUnmatched),

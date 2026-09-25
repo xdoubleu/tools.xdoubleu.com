@@ -17,31 +17,22 @@ type obsConnectHandler struct {
 	app *Application
 }
 
-// storageScanRunner is the slice of *books.Books TriggerStorageScan
-// needs, narrow so tests can substitute a stub instead of depending on a
-// real R2 bucket.
+// storageScanRunner is the slice of *books.Books TriggerStorageScan needs.
 type storageScanRunner interface {
 	RunStorageScanNow(ctx context.Context) error
 }
 
-// unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs,
-// narrow so tests can substitute a stub. Distinct from
-// jobs.unhealthyFeedLister (different return type — this returns
-// feeds.UnhealthyFeed directly rather than jobs.UnhealthyFeed) since this
-// handler reuses the feeds app's own type instead of going through
-// main.go's feedsHealthAdapter, which exists only to keep the jobs package
-// from importing apps/feeds.
+// unhealthyFeedLister is the slice of *feeds.Feeds GetUnhealthyFeeds needs.
+// Unlike jobs.unhealthyFeedLister, it returns feeds.UnhealthyFeed directly.
 type unhealthyFeedLister interface {
 	ListUnhealthy(ctx context.Context) ([]feeds.UnhealthyFeed, error)
 }
 
 var _ observabilityv1connect.ObservabilityServiceHandler = (*obsConnectHandler)(nil)
 
-// defaultWindowDays is used when a stats request omits window_days.
 const defaultWindowDays = 30
 
-// recentRunsLimit caps how many individual job runs are returned for the
-// timeline / failure list.
+// recentRunsLimit caps job runs returned for the timeline.
 const recentRunsLimit = 100
 
 func windowSince(windowDays int32) time.Time {
@@ -68,9 +59,8 @@ func (h *obsConnectHandler) GetJobStats(
 	return connect.NewResponse(resp), nil
 }
 
-// jobStats runs the job-stats query and builds the response. It is shared by
-// the Connect handler above and the MCP tool; neither the admin check nor the
-// connect wrapping lives here.
+// jobStats builds the job-stats response for both the Connect handler and the
+// MCP tool; auth is the caller's job.
 func (h *obsConnectHandler) jobStats(
 	ctx context.Context,
 	windowDays int32,
@@ -156,9 +146,7 @@ func (h *obsConnectHandler) usageStats(
 	}, nil
 }
 
-// unusedApps returns the registered apps that logged no usage rows in the
-// window, so an app nobody has touched doesn't just disappear from the
-// response (issue #442).
+// unusedApps returns registered apps with no usage rows in the window.
 func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
 	used := make(map[string]bool, len(entries))
 	for _, e := range entries {
@@ -167,9 +155,7 @@ func (h *obsConnectHandler) unusedApps(entries []models.UsageEntry) []string {
 
 	unused := make([]string, 0, len(*h.app.apps))
 	for _, a := range *h.app.apps {
-		// dashboard owns no schema or routes of its own — it only ever
-		// serves through games/books/feeds' exported methods — so it never
-		// logs usage under its own name and would always show as unused.
+		// dashboard never logs usage under its own name.
 		if a.GetName() == "dashboard" {
 			continue
 		}
@@ -203,7 +189,6 @@ func (h *obsConnectHandler) storageStats(
 ) (*observabilityv1.GetStorageStatsResponse, error) {
 	latest, err := h.app.storageRepo.Latest(ctx)
 	if err != nil {
-		// No snapshot yet is not an error — the scan has not run.
 		latest = nil
 	}
 
@@ -232,9 +217,8 @@ func (h *obsConnectHandler) TriggerStorageScan(
 		return nil, err
 	}
 
-	// Runs the R2 list-bucket scan inline (seconds, admin-only, low
-	// frequency) rather than via the async job queue, so the caller can
-	// re-fetch GetStorageStats immediately after and see live data.
+	// Scan inline (fast, admin-only) so GetStorageStats shows live data right
+	// after.
 	if err := h.app.booksApp.RunStorageScanNow(ctx); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -287,9 +271,7 @@ func (h *obsConnectHandler) GetDatabaseStats(
 	return connect.NewResponse(resp), nil
 }
 
-// databaseStats is a live snapshot only (pg_database_size/pg_class) —
-// growth-over-time moved to Grafana/Prometheus (issue #1468), which removed
-// global.db_size_samples and the daily scrape that populated it.
+// databaseStats is a live size snapshot; history lives in Prometheus.
 func (h *obsConnectHandler) databaseStats(
 	ctx context.Context,
 ) (*observabilityv1.GetDatabaseStatsResponse, error) {

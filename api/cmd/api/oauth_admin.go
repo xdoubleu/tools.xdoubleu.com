@@ -13,17 +13,10 @@ import (
 	"tools.xdoubleu.com/internal/sentryapi"
 )
 
-// The browser-facing legs of the OAuth connect flow for the observability
-// integrations (GitHub/Sentry, issue #440). These are plain HTTP
-// routes, not ConnectRPC: the start leg must issue a 302 redirect to the
-// provider's authorize URL, and the callback leg is invoked directly by the
-// provider's own browser redirect (?code=&state=) — neither fits Connect's
-// POST-JSON/protobuf contract, mirroring how the existing MCP OAuth
-// protected-resource metadata is also plain mux.Handle (cmd/api/mcp.go).
-//
-// Both legs are gated by the existing cookie-session AdminAccess middleware.
-// CSRF state additionally binds the resolved admin's user ID, so
-// connected_by doesn't depend on the cookie surviving the external redirect.
+// Browser-facing OAuth connect flow for GitHub/Sentry. Plain HTTP, not
+// Connect: the start leg 302s to the provider and the callback is the
+// provider's redirect. Both legs are AdminAccess-gated; CSRF state binds the
+// admin's user ID so connected_by survives the external redirect.
 
 type oauthProviderDef struct {
 	provider models.OAuthProvider

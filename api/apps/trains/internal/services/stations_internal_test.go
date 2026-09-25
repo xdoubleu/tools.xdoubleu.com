@@ -8,8 +8,7 @@ import (
 	"tools.xdoubleu.com/apps/trains/internal/models"
 )
 
-// mkStop builds a station/platform fixture, leaving fields these tests
-// don't exercise (ParentStation, Lat, Lon) at their zero value.
+// mkStop builds a station/platform fixture.
 //
 //nolint:exhaustruct //test fixture: unset fields are deliberately zero
 func mkStop(
@@ -33,7 +32,6 @@ func TestMatchStations_DedupesByUIC(t *testing.T) {
 			"gs:nmbssncb:S8896800", "Roeselare", "Roulers", "Roeselare / Roulers",
 			stationLocationType, "8896800",
 		),
-		// same physical station, different stop_id, same UIC.
 		mkStop(
 			"gs:nmbssncb:S8896800B", "Roeselare", "Roulers", "Roeselare / Roulers",
 			stationLocationType, "8896800",

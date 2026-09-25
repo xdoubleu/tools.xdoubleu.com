@@ -35,8 +35,6 @@ func TestSignIn_Success(t *testing.T) {
 }
 
 func TestSignIn_WithMFA(t *testing.T) {
-	// mfaAccessToken belongs to mfaUserID, seeded in TestMain with an
-	// already-verified TOTP factor.
 	_, hasMFA := testApp.auth.HasVerifiedTOTP(
 		context.Background(),
 		mfaAccessToken.Value,
@@ -117,8 +115,7 @@ func TestIsRelativeURL(t *testing.T) {
 		{"", false},
 		{"https://evil.com", false},
 		{"//evil.com", false},
-		// Some browsers normalize a leading backslash to a slash, turning
-		// these into protocol-relative URLs — see #449.
+		// Some browsers normalize a leading backslash into a protocol-relative URL.
 		{"/\\evil.com", false},
 		{"/\\/evil.com", false},
 		{"\\/evil.com", false},
@@ -129,8 +126,8 @@ func TestIsRelativeURL(t *testing.T) {
 }
 
 func TestSignIn_Success_UsesLaxCookies(t *testing.T) {
-	// #445: session cookies must be SameSite=Lax so they still attach on the
-	// cross-site redirect from the embedded OAuth 2.1 AS to /oauth/consent.
+	// Session cookies must be SameSite=Lax so they attach on the cross-site
+	// redirect from the OAuth AS to /oauth/consent.
 	client := authClient(t)
 	resp, err := client.SignIn(
 		context.Background(),
@@ -302,10 +299,8 @@ func TestGetCurrentUser_Admin_HasRole(t *testing.T) {
 	assert.IsType(t, []string{}, resp.Msg.AppAccess)
 }
 
-// mfaTokenCookie carries a real signed JWT for testUserID (set in TestMain,
-// see seedTestUsers) — MFAEnroll/MFAEnrollVerify/MFAChallenge all verify it
-// cryptographically, unlike MFAEnrollSkip which only relays it into a cookie
-// unchanged.
+// mfaTokenCookie holds a real signed JWT for testUserID; MFA RPCs verify it,
+// MFAEnrollSkip does not.
 //
 //nolint:gochecknoglobals // shared test fixture
 var mfaTokenCookie = http.Cookie{
