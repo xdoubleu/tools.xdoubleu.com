@@ -5,54 +5,33 @@ description: Check unresolved Sentry issues, file a GitHub issue describing the 
 
 # Sentry Triage
 
-Reads unresolved Sentry issues via the `mcp__tools-apps__get_sentry_issues` MCP
-tool (see README.md's "Apps MCP server" section), investigates each one's
-actual root cause in this codebase, and uses `refine-issue` to file/update a
-GitHub tracking issue with a proposed fix. Once a tracking issue's fix has
-already shipped (issue closed, still showing unresolved in Sentry — e.g. it
-errored again before the deploy landed, or Sentry just hasn't re-triggered),
-this skill closes the loop by calling `mcp__tools-apps__resolve_sentry_issue`
-— the one mutating tool this MCP server exposes.
+File a root-caused GitHub issue for every untracked unresolved Sentry issue,
+and resolve Sentry issues whose fix already shipped.
 
 ## Steps
 
-1. **Pull unresolved Sentry issues**: call `mcp__tools-apps__get_sentry_issues`.
-   Each issue has `Id`, `Title`, `Culprit`, `Permalink`, `Count`, `LastSeen`,
-   `Level`, `Project`.
+1. **Pull unresolved issues:** `mcp__tools-apps__get_sentry_issues` (`Id`,
+   `Title`, `Culprit`, `Permalink`, `Count`, `LastSeen`, `Level`, `Project`).
+   Empty → say so and stop.
 
-2. **Pull GitHub issues** (open and closed) for dedup:
+2. **Dedup against GitHub** (open and closed):
    `gh issue list --repo xdoubleu/tools.xdoubleu.com --state all --json number,title,body,state,url --limit 200`.
-   For each Sentry issue, check whether its permalink already appears in a
-   GitHub issue body:
-   - Referenced in an **open** issue → already tracked, don't refile it.
-   - Referenced in a **closed** issue → the fix already shipped but Sentry
-     still shows it unresolved; call `mcp__tools-apps__resolve_sentry_issue`
-     with that issue's `Id` and move on. Don't re-investigate or refile.
-   - Not referenced anywhere → untracked, continue to step 3.
+   Match on the Sentry permalink in issue bodies:
+   - Open issue → already tracked; skip.
+   - Closed issue → fix shipped; `mcp__tools-apps__resolve_sentry_issue(Id)`
+     and move on.
+   - None → step 3.
 
-3. **For each untracked Sentry issue, investigate before writing anything**:
-   read the culprit/stack trace context, find the actual code path in this repo
-   (use `ast-grep`, not `grep`, per AGENTS.md), and identify the real root cause —
-   don't paraphrase the Sentry title as the issue body.
+3. **Investigate before writing:** trace the culprit/stack to the real code
+   path (`ast-grep`) and find the root cause — don't paraphrase the title.
 
-4. **File or update a GitHub issue via `refine-issue`** (config for this repo
-   lives in `.claude/github-triage.config.json`)
-   for each one, so labels/Priority/Status/project-board placement stay
-   consistent with every other issue in this repo. Body must include:
-   - the Sentry permalink (so it's traceable back and dedup works next run)
-   - the root cause, in this codebase's terms (file:line)
-   - a proposed fix, not just a description of the symptom
-   Priority follows `refine-issue`'s P0/P1/P2 rule — a Sentry issue is almost
-   always P0 (something that already works is now erroring in production).
+4. **File or update via `refine-issue`** (config
+   `.claude/github-triage.config.json`). Body: Sentry permalink, root cause
+   as `file:line`, proposed fix. Priority per `refine-issue` — almost always
+   P0.
 
-5. **Report back**: a short table of Sentry issue → outcome (GitHub issue
-   filed/updated, already tracked and skipped, or resolved in Sentry because
-   its fix had already shipped).
+5. **Report** a table: Sentry issue → filed/updated, already tracked, or
+   resolved.
 
-## Notes
-
-- `resolve_sentry_issue` only fires for issues whose fix already merged
-  (closed GitHub issue referencing the permalink) — never call it just because
-  a fresh GitHub issue was filed for it; the bug isn't fixed yet at that point,
-  only tracked.
-- If `get_sentry_issues` returns empty, say so and stop — no need to touch GitHub at all.
+Never resolve an issue just because a new GitHub issue was filed — only once
+its fix merged.
