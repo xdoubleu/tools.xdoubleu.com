@@ -15,7 +15,7 @@ on:
         required: true
         type: string
       prompt:
-        description: The routine prompt from its docs/spec-routine-*.md
+        description: The routine prompt
         required: true
         type: string
       posthog:

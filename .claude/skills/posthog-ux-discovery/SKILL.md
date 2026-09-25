@@ -1,6 +1,6 @@
 ---
 name: posthog-ux-discovery
-description: Mine PostHog product analytics + session replay for friction signals (rage-clicks, funnel drop-off, unused features) and file proposed UX-improvement GitHub issues — never applying a UI change or opening a PR itself. Use whenever the user asks to "check PostHog for UX issues", "run the UX discovery routine", or "find friction signals" — also the skill the weekly scheduled routine (`docs/spec-routine-posthog-ux-discovery.md`) runs unattended.
+description: Mine PostHog product analytics + session replay for friction signals (rage-clicks, funnel drop-off, unused features) and file proposed UX-improvement GitHub issues — never applying a UI change or opening a PR itself. Use whenever the user asks to "check PostHog for UX issues", "run the UX discovery routine", or "find friction signals" — also the skill the weekly scheduled routine (`.github/workflows/routine-posthog-ux-discovery.yml`) runs unattended.
 ---
 
 # PostHog UX Discovery
@@ -81,4 +81,4 @@ expected, not a bug.
 ## Related
 
 `monitoring-sweep` handles broken things; `sentry-triage` handles Sentry.
-Routine setup: `docs/spec-routine-posthog-ux-discovery.md`.
+Routine setup: `.github/workflows/routine-posthog-ux-discovery.yml`.

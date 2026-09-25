@@ -1,6 +1,6 @@
 ---
 name: red-pr-repair
-description: Drive every currently-red PR that carries the `dependencies` label or a `claude/`-prefixed branch back to green — diagnose the CI failure, push a fixing or unsticking commit (including the documented Codecov-stall workaround), or leave an explanatory comment on a PR that can't be fixed — never abandoning it. Also handles a red `main` branch itself, started immediately by CI rather than waiting for the daily sweep. Use whenever the user asks to "fix the red PRs", "unstall the dependency PRs", "check why the Renovate/claude PRs are failing", or "run the red-PR repair sweep" — also the skill the morning scheduled routine (`docs/spec-routine-red-pr-repair.md`) runs unattended every day, and the skill `main.yml`'s `notify-main-ci-red` job fires immediately on a red push-to-main build.
+description: Drive every currently-red PR that carries the `dependencies` label or a `claude/`-prefixed branch back to green — diagnose the CI failure, push a fixing or unsticking commit (including the documented Codecov-stall workaround), or leave an explanatory comment on a PR that can't be fixed — never abandoning it. Also handles a red `main` branch itself, started immediately by CI rather than waiting for the daily sweep. Use whenever the user asks to "fix the red PRs", "unstall the dependency PRs", "check why the Renovate/claude PRs are failing", or "run the red-PR repair sweep" — also the skill the morning scheduled routine (`.github/workflows/routine-red-pr-repair.yml`) runs unattended every day, and the skill `main.yml`'s `notify-main-ci-red` job fires immediately on a red push-to-main build.
 ---
 
 # Red PR Repair
@@ -98,4 +98,4 @@ Diagnose like step 3, except:
 
 `monitoring-sweep` covers the whole `/monitoring` page; `ready-issues-sweep`
 turns Ready issues into new PRs. Routine setup:
-`docs/spec-routine-red-pr-repair.md`.
+`.github/workflows/routine-red-pr-repair.yml`.

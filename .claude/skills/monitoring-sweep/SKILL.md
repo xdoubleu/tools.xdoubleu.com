@@ -1,6 +1,6 @@
 ---
 name: monitoring-sweep
-description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Also resolves Sentry issues whose closed GitHub issue shipped a fix. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep" — also the skill the nightly scheduled routine (`docs/spec-routine-nightly-maintenance-sweep.md`) runs unattended.
+description: Sweep the /monitoring Issues page for every currently-open problem (Sentry errors, red CI/failing PRs, breaching perf alerts, security alerts, Grafana-managed alert state, orphaned storage) and dispatch one isolated subagent per problem to root-cause it, then close the loop on the monitoring page itself. Also resolves Sentry issues whose closed GitHub issue shipped a fix. Use whenever the user asks to "check the monitoring page", "look into open issues", "fix what's flagged on /monitoring", or "do a monitoring sweep" — also the skill the nightly scheduled routine (`.github/workflows/routine-nightly-maintenance-sweep.yml`) runs unattended.
 ---
 
 # Monitoring Sweep
@@ -121,4 +121,4 @@ The invoking prompt states the mode; default to interactive.
    failure. An unclosed row is its own detectable problem.
 
 Related: `sentry-triage`, `postmortem`; routine setup in
-`docs/spec-routine-nightly-maintenance-sweep.md`.
+`.github/workflows/routine-nightly-maintenance-sweep.yml`.

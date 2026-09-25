@@ -76,7 +76,7 @@ var (
 
 // knownRoutines are the scheduled agent routines tracked by
 // automated_action_seconds_since_last_open. Keep in sync by hand with
-// docs/spec-routine-*.md and the AutomatedRoutineMissed thresholds.
+// .github/workflows/routine-*.yml and the AutomatedRoutineMissed thresholds.
 //
 //nolint:gochecknoglobals //small fixed list, read-only, mirrors the collectors above
 var knownRoutines = []string{
