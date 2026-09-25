@@ -139,8 +139,9 @@ func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient 
 	assert.Equal(t, "none", out.TokenEndpointAuthMethod)
 	assert.NotEmpty(t, out.ClientID)
 	// RFC 7591: the server echoes the scope it assigned, which is what tells
-	// a client to request offline_access and so be issued a refresh token.
-	assert.Equal(t, "offline_access", out.Scope)
+	// a client to request offline_access and so be issued a refresh token
+	// (openid is also assigned, so any MCP client may request an ID token).
+	assert.Equal(t, "offline_access openid", out.Scope)
 
 	//nolint:exhaustruct //Secret/RotatedSecrets/Audience are unused by these tests
 	return &fosite.DefaultClient{
@@ -148,7 +149,7 @@ func (s *oauth2asTestServer) registerClient(t *testing.T) *fosite.DefaultClient 
 		RedirectURIs:  out.RedirectURIs,
 		GrantTypes:    out.GrantTypes,
 		ResponseTypes: out.ResponseTypes,
-		Scopes:        []string{"offline_access"},
+		Scopes:        []string{"offline_access", "openid"},
 		Public:        true,
 	}
 }
