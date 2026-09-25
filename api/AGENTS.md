@@ -110,6 +110,8 @@ Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`), wrapping only read handle
 - Backfill migrations: test against a row built to predate the migration, not only fresh rows.
 - Kobo-firmware behavior can't be verified server-side — say so in the PR and treat the user's on-device retest as acceptance.
 
+- `make test/cov/report` exiting 1 with `go: no such tool "covdata"` is a sandbox toolchain-download artifact (golang/go#75031), not a coverage failure; re-run `.claude/hooks/session-start.sh`, which builds it.
+
 ## File size
 
 Go files projected over ~300 lines need a split: tests by feature/handler group, source by concern.
