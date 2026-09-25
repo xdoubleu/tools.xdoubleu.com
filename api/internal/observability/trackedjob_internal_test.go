@@ -18,10 +18,8 @@ import (
 	"tools.xdoubleu.com/internal/threading"
 )
 
-// newSentryTestCtx returns a context carrying a hub whose transport captures
-// every finished transaction event, and the transport to read them back
-// from. TracesSampleRate/EnableTracing must both be set or sentry-go drops
-// transactions before they ever reach the transport (see Span.sample).
+// newSentryTestCtx captures finished transactions. TracesSampleRate and
+// EnableTracing must both be set or sentry-go drops them.
 func newSentryTestCtx(t *testing.T) (context.Context, *sentry.Hub) {
 	t.Helper()
 
@@ -47,7 +45,6 @@ func (f *fakeInserter) Insert(_ context.Context, run models.JobRun) error {
 	return f.insertErr
 }
 
-// fakeJob has no RunEvery method, so it's trigger-only — see threading.Scheduled.
 type fakeJob struct {
 	err    error
 	panics bool
@@ -121,8 +118,6 @@ func TestTrackedJobObservesDurationHistogram(t *testing.T) {
 	assert.Positive(t, histogramSampleCount(t, "job_duration_seconds", "fake"))
 }
 
-// histogramSampleCount returns the observed-sample count for the
-// job_duration_seconds series whose "job" label equals jobLabel.
 func histogramSampleCount(t *testing.T, name, jobLabel string) uint64 {
 	t.Helper()
 

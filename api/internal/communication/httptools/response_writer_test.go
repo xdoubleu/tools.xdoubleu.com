@@ -16,8 +16,6 @@ import (
 	"tools.xdoubleu.com/internal/communication/httptools"
 )
 
-// hijackableRecorder wraps httptest.ResponseRecorder to also implement
-// http.Hijacker and io.ReaderFrom, which the plain recorder doesn't.
 type hijackableRecorder struct {
 	*httptest.ResponseRecorder
 	hijacked bool

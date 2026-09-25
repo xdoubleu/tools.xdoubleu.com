@@ -11,10 +11,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// MapError translates a service-layer error into the matching ConnectRPC
-// error, so every app's ConnectRPC handlers report consistent codes for
-// [database.ErrResourceNotFound]/[database.ErrResourceConflict] and any
-// [iapp.HTTPError].
+// MapError translates a service-layer error into the matching ConnectRPC error.
 func MapError(err error) error {
 	if err == nil {
 		return nil

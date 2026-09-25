@@ -14,14 +14,11 @@ type Issue struct {
 	Count     int64
 	LastSeen  time.Time
 	Level     string
-	// Project is the slug of the configured project this issue came from —
-	// set by the caller (fetch loops per project), not present on the wire.
+	// Project is set by the caller, not present on the wire.
 	Project string
 }
 
-// issueWire is the subset of the Sentry issues API payload that is decoded.
-// Sentry serialises the event count as a string (e.g. "42"), so it is parsed
-// into an int64 by toIssue.
+// issueWire.Count is a string on the wire; toIssue parses it.
 type issueWire struct {
 	ID        string    `json:"id"`
 	Title     string    `json:"title"`
@@ -32,8 +29,7 @@ type issueWire struct {
 	Level     string    `json:"level"`
 }
 
-// toIssue maps a wire issue to the exported Issue. A malformed count is
-// treated as zero rather than an error — the count is informational.
+// toIssue treats a malformed count as zero; it's informational.
 func (w issueWire) toIssue() Issue {
 	count, _ := strconv.ParseInt(w.Count, 10, 64)
 	return Issue{
@@ -44,17 +40,12 @@ func (w issueWire) toIssue() Issue {
 		Count:     count,
 		LastSeen:  w.LastSeen,
 		Level:     w.Level,
-		// Project is filled in by the caller (fetchAll loops per project).
-		Project: "",
+		Project:   "",
 	}
 }
 
-// TransactionStat is one Sentry transaction's (an API endpoint or a
-// frontend page/route) p95 duration and request count over the last 24h,
-// as sampled from Sentry's org-level Events (Discover) API. Not
-// necessarily one of the slowest — ListTransactionStats returns a broad
-// sample; callers sort/truncate as needed for their own view (a live "top
-// N slowest" list, or a full daily snapshot for trend detection).
+// TransactionStat is one transaction's 24h p95 and request count from
+// Discover; a broad sample, not only the slowest.
 type TransactionStat struct {
 	Transaction   string
 	Project       string
@@ -62,8 +53,6 @@ type TransactionStat struct {
 	RequestCount  int64
 }
 
-// transactionStatWire is the subset of one row of Sentry's Discover
-// events payload that is decoded — see client.go's transactionStatsQuery.
 type transactionStatWire struct {
 	Transaction string  `json:"transaction"`
 	Project     string  `json:"project"`

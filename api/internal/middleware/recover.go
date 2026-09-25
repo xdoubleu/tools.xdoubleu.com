@@ -6,7 +6,7 @@ import (
 	"runtime/debug"
 )
 
-// Recover is middleware used to recover from a panic.
+// Recover recovers from panics.
 func Recover(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return recoverHandler(logger, next)

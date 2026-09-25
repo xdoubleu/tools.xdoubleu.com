@@ -10,26 +10,16 @@ import (
 )
 
 const (
-	// transactionLatencyRetention bounds
-	// global.transaction_latency_daily; older rows are pruned on insert.
-	// Shorter than storage_snapshots'/usage_daily's ~13 months — this data
-	// only feeds a recent-vs-prior regression comparison, not a
-	// year-over-year chart.
+	// transactionLatencyRetention: only a recent-vs-prior comparison reads it.
 	transactionLatencyRetention = 90 * 24 * time.Hour
 
-	// trendRecentWindow/trendPriorWindow are the two adjacent windows
-	// Trends compares: the last 7 days against the 7 days before that.
+	// Trends compares the last 7 days with the 7 before.
 	trendRecentWindow = 7 * 24 * time.Hour
 	trendPriorWindow  = 7 * 24 * time.Hour
-	// trendMinPriorP95Ms floors out near-zero baselines, where a tiny
-	// absolute increase would otherwise register as a huge percentage
-	// change.
+	// trendMinPriorP95Ms ignores near-zero baselines.
 	trendMinPriorP95Ms = 50.0
-	// trendMinPctChange is the minimum p95 increase (recent vs prior) for a
-	// transaction to be reported as regressing.
-	trendMinPctChange = 0.20
-	// trendLimit caps how many regressing transactions Trends returns.
-	trendLimit = 20
+	trendMinPctChange  = 0.20
+	trendLimit         = 20
 )
 
 type TransactionLatencyRepository struct {
@@ -40,10 +30,7 @@ func NewTransactionLatencyRepository(db postgres.DB) *TransactionLatencyReposito
 	return &TransactionLatencyRepository{db: db}
 }
 
-// Insert upserts one day's transaction stats — each row is the latest
-// snapshot for that (day, project, transaction), so a re-run for the same
-// day replaces rather than accumulates, unlike global.usage_daily's
-// running counter — and prunes rows older than transactionLatencyRetention.
+// Insert upserts one day's stats (a re-run replaces) and prunes old rows.
 func (r *TransactionLatencyRepository) Insert(
 	ctx context.Context,
 	day time.Time,
@@ -70,11 +57,9 @@ func (r *TransactionLatencyRepository) Insert(
 	return err
 }
 
-// Trends compares each transaction's average p95 duration over the last
-// trendRecentWindow against the trendPriorWindow before that, and returns
-// the ones regressing by at least trendMinPctChange, worst first. A
-// transaction with no data in either window (not yet snapshotted twice, or
-// gone quiet) is excluded rather than reported as a false regression.
+// Trends returns transactions whose average p95 rose by at least
+// trendMinPctChange between the two windows, worst first; ones missing either
+// window are excluded.
 func (r *TransactionLatencyRepository) Trends(
 	ctx context.Context,
 ) ([]models.TransactionTrend, error) {

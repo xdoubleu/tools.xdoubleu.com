@@ -8,32 +8,20 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/logging"
 )
 
-// staleActionMaxAge is how long a global.automated_actions row may stay open
-// before the sweep closes it as failed. The longest observed successful
-// scheduled-routine run (ready-issues-executor) closes out after ~5h, so 24h
-// leaves a generous margin before a genuinely-stalled row is force-closed —
-// while still bounding how long the AutomatedActionStalled alert can fire on
-// a routine that never reached its own close call (issue #1796).
+// staleActionMaxAge is how long an automated_actions row may stay open before
+// the sweep fails it; the longest successful routine run takes ~5h.
 const staleActionMaxAge = 24 * time.Hour
 
-// sweepRunEvery is this job's own poll interval — slower than the package's
-// shared runEvery (5m) since closing a stale row is not time-critical: the
-// alert has already been firing for hours by the time the cutoff is crossed.
+// sweepRunEvery is slower than runEvery; closing stale rows isn't urgent.
 const sweepRunEvery = 15 * time.Minute
 
-// automatedActionStaleCloser is the subset of
-// *repositories.AutomatedActionsRepository the sweep needs.
 type automatedActionStaleCloser interface {
 	CloseStale(ctx context.Context, cutoff time.Time) ([]int64, error)
 }
 
-// AutomatedActionSweepJob periodically closes global.automated_actions rows
-// that have been open longer than staleActionMaxAge, recording them as
-// outcome=failed. Scheduled routines run outside api's own process and close
-// their own rows via record_action(mode=close); a routine that crashes,
-// times out, or loses its MCP connector before that step leaves its row open
-// indefinitely, which would otherwise keep the AutomatedActionStalled alert
-// firing until someone manually closes the row.
+// AutomatedActionSweepJob closes rows open longer than staleActionMaxAge as
+// failed. Routines close their own rows, but a crashed one never does,
+// leaving AutomatedActionStalled firing.
 type AutomatedActionSweepJob struct {
 	automatedActions automatedActionStaleCloser
 }

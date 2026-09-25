@@ -1,6 +1,5 @@
-// Package oauth2as is a first-party embedded OAuth 2.1 authorization server
-// (issue #1039), built on ory/fosite, backing the MCP server's OAuth flow —
-// replacing Supabase as the authorization server.
+// Package oauth2as is the embedded OAuth 2.1 authorization server (ory/fosite)
+// behind the MCP OAuth flow.
 package oauth2as
 
 import (
@@ -19,19 +18,13 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// authCodeLifespan/accessTokenLifespan/etc bound how long a row is kept
-// before it's considered expired; the actual token lifetimes are set on the
-// fosite.Config passed to NewProvider (server.go) — these are only used to
-// size the DB row's expires_at as a defensive upper bound for storage.Store's
-// own bookkeeping (fosite itself, not this store, enforces token expiry).
+// Row lifespans only size expires_at for bookkeeping; fosite enforces the real
+// token lifetimes set in NewProvider.
 const pkceRequestLifespan = 10 * time.Minute
 
-// persistedRequest is the JSON shape stored in the oauth2_* tables' `request`
-// JSONB column. fosite.Request's Client and Session fields are interfaces,
-// so they can't be unmarshaled generically — this captures only the
-// concrete data needed to reconstruct a fosite.Request, with Session stored
-// as raw JSON unmarshaled into the caller-supplied session on read (the
-// standard fosite storage pattern).
+// persistedRequest is the JSON stored in the oauth2_* `request` column.
+// fosite's Client and Session are interfaces, so Session is kept raw and
+// unmarshaled into the caller's session on read.
 type persistedRequest struct {
 	ID                string          `json:"id"`
 	RequestedAt       time.Time       `json:"requested_at"`
@@ -44,9 +37,8 @@ type persistedRequest struct {
 	Session           json.RawMessage `json:"session"`
 }
 
-// Store implements fosite's oauth2.CoreStorage, oauth2.TokenRevocationStorage,
-// pkce.PKCERequestStorage, and fosite.Storage (ClientManager) against the
-// auth.oauth2_* tables.
+// Store implements fosite's core, revocation, PKCE and client storage against
+// auth.oauth2_*.
 type Store struct {
 	db postgres.DB
 }
@@ -244,18 +236,10 @@ func (s *Store) CreateRefreshTokenSession(
 	)
 }
 
-// refreshTokenReuseGracePeriod bounds how long a rotated-out refresh token
-// is still accepted as if active. A completely legitimate client can replay
-// its old refresh token — a network timeout after the server already
-// completed rotation but before the client saw the response, or two local
-// processes racing on the same cached token — which is otherwise
-// indistinguishable from an attacker replaying a stolen token: fosite's
-// RefreshTokenGrantHandler treats any reuse of an inactive token as theft
-// and revokes the *entire* token family (every access/refresh token issued
-// under the original grant, not just the reused one), forcing a full
-// interactive reauth for something that was never actually compromised.
-// Within this window a reuse is treated as a redundant-but-legitimate
-// refresh instead; past it, reuse still triggers the normal theft response.
+// refreshTokenReuseGracePeriod: a rotated-out refresh token is still accepted
+// this long. Legit clients replay (timeouts, racing processes), and fosite
+// treats any reuse as theft and revokes the whole token family; past the
+// window, reuse still triggers that.
 const refreshTokenReuseGracePeriod = 30 * time.Second
 
 func (s *Store) GetRefreshTokenSession(
@@ -373,10 +357,8 @@ func (s *Store) DeletePKCERequestSession(ctx context.Context, signature string) 
 
 // --- OpenIDConnectRequestStorage ---
 
-// CreateOpenIDConnectSession stores the authorize-time request (including the
-// session's fully-populated ID-token claims) keyed by the authorization code,
-// so the token endpoint can mint the ID token from it. Only reached when the
-// openid scope was granted — the MCP flow never writes here.
+// CreateOpenIDConnectSession stores the authorize request with its ID-token
+// claims, keyed by code; only reached when openid was granted.
 func (s *Store) CreateOpenIDConnectSession(
 	ctx context.Context, authorizeCode string, requester fosite.Requester,
 ) error {
@@ -461,9 +443,7 @@ func (s *Store) GetClient(ctx context.Context, id string) (fosite.Client, error)
 	return &c, nil
 }
 
-// GetClientName returns the human-readable client_name recorded at
-// registration time, for the web consent page (client_name isn't part of
-// fosite.Client, which GetClient returns).
+// GetClientName returns the registered client_name for the consent page.
 func (s *Store) GetClientName(ctx context.Context, id string) (string, error) {
 	var name string
 	err := s.db.QueryRow(
@@ -478,9 +458,8 @@ func (s *Store) GetClientName(ctx context.Context, id string) (string, error) {
 	return name, nil
 }
 
-// ClientAssertionJWTValid/SetClientAssertionJWT back the private_key_jwt
-// client-authentication method, which this public-client-only, non-JWT-auth
-// authorization server never uses — stubbed out to satisfy ClientManager.
+// ClientAssertionJWTValid/SetClientAssertionJWT are unused private_key_jwt
+// stubs that satisfy ClientManager.
 func (s *Store) ClientAssertionJWTValid(_ context.Context, _ string) error {
 	return nil
 }

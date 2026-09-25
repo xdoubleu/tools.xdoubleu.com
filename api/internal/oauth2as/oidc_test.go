@@ -20,8 +20,8 @@ import (
 
 const grafanaTestSecret = "grafana-test-client-secret-0123456789"
 
-// grafanaConfidentialClient reconciles the seeded static Grafana client's
-// secret to a known value and returns a client struct for driving the flow.
+// grafanaConfidentialClient sets the seeded Grafana client's secret to a known
+// value.
 func grafanaConfidentialClient(
 	t *testing.T,
 	srv *oauth2asTestServer,
@@ -181,7 +181,6 @@ func TestEnsureGrafanaClientSecret_LoggedBranches(t *testing.T) {
 	// Empty secret: logs, does not write.
 	require.NoError(t, oauth2as.EnsureGrafanaClientSecret(ctx, db, "", logger))
 
-	// Missing client row (migration not yet applied): logged, not returned.
 	_, err := db.Exec(ctx,
 		`DELETE FROM auth.oauth2_clients WHERE id = $1`, oauth2as.GrafanaClientID,
 	)
@@ -198,7 +197,6 @@ func TestEnsureGrafanaClientSecret_LoggedBranches(t *testing.T) {
 	require.NoError(t,
 		oauth2as.EnsureGrafanaClientSecret(ctx, db, "some-secret", logger))
 
-	// Row present again, secret set: logs the reconcile.
 	_, err = db.Exec(ctx,
 		`INSERT INTO auth.oauth2_clients
 			(id, redirect_uris, grant_types, response_types, scopes, public, client_name)
@@ -215,7 +213,6 @@ func TestEnsureGrafanaClientSecret_Idempotent(t *testing.T) {
 	_, db := newTestStore(t)
 	ctx := context.Background()
 
-	// Reset to the migration's starting state (NULL secret_hash).
 	_, err := db.Exec(ctx,
 		`UPDATE auth.oauth2_clients SET secret_hash = NULL WHERE id = $1`,
 		oauth2as.GrafanaClientID,

@@ -42,7 +42,6 @@ func TestUsageFlushAccumulatesAndGetDaily(t *testing.T) {
 	}
 	assert.Equal(t, int64(5), counts["books:root"])
 	assert.Equal(t, int64(5), counts["games:list"])
-	// Bytes accumulate on conflict the same way counts do.
 	assert.Equal(t, int64(500), bytes["books:root"])
 	assert.Equal(t, int64(500), bytes["games:list"])
 }

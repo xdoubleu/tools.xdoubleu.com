@@ -1,7 +1,5 @@
-// Package sentrytools contains tools for wiring Go's slog into Sentry,
-// pulled into a standalone module so any Go component in this repo that
-// wants Error-level log records reported as Sentry events can reuse it via
-// a local `replace` directive without duplicating the logic.
+// Package sentrytools reports Error-level slog records to Sentry. It is a
+// standalone module, pulled in via a local `replace`.
 package sentrytools
 
 import (
@@ -13,12 +11,10 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// devEnv is the env value that enables slog.LevelDebug. Callers pass their
-// own module's env string (e.g. config.DevEnv) straight through — every
-// component in this repo defines it as this same literal.
+// devEnv matches every component's config.DevEnv literal; it enables Debug.
 const devEnv = "development"
 
-// LogHandler is used for capturing logs and sending these to Sentry.
+// LogHandler sends log records to Sentry.
 type LogHandler struct {
 	level   slog.Level
 	handler slog.Handler
@@ -30,9 +26,7 @@ type groupOrAttrs struct {
 	attrs []slog.Attr // attrs if non-empty
 }
 
-// NewLogHandler returns a new [LogHandler]. env is compared against the
-// literal "development" (every component's config.DevEnv) to pick the log
-// level; pass your own env string through unchanged.
+// NewLogHandler returns a new [LogHandler]; env picks the log level.
 func NewLogHandler(env string, handler slog.Handler) slog.Handler {
 	level := slog.LevelInfo
 
@@ -47,8 +41,7 @@ func NewLogHandler(env string, handler slog.Handler) slog.Handler {
 	}
 }
 
-// Enabled checks if logs are enabled in
-// a [LogHandler] for a certain [slog.Level].
+// Enabled reports whether level is enabled.
 func (l *LogHandler) Enabled(_ context.Context, level slog.Level) bool {
 	return level >= l.level
 }
@@ -136,7 +129,7 @@ func (l *LogHandler) setRecordTags(
 	record slog.Record,
 	prefix string,
 ) error {
-	// Walk per-record attrs: extract the first error value; set the rest as tags.
+	// First error attr is captured; the rest become tags.
 	var captureErr error
 	record.Attrs(func(attr slog.Attr) bool {
 		if captureErr == nil && attr.Value.Kind() == slog.KindAny {

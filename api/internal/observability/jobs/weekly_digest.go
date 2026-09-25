@@ -13,11 +13,9 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// weeklyDigestRunEvery is how often WeeklyDigestJob sends its summary.
 const weeklyDigestRunEvery = 7 * 24 * time.Hour
 
-// UnhealthyFeed is a feed currently failing to poll, as reported by the
-// feeds app for the weekly digest (issue #1014).
+// UnhealthyFeed is a feed currently failing to poll.
 type UnhealthyFeed struct {
 	Title               string
 	URL                 string
@@ -25,47 +23,28 @@ type UnhealthyFeed struct {
 	ConsecutiveFailures int
 }
 
-// unhealthyFeedLister is the subset of *feeds.Feeds this job needs. Kept as
-// a narrow interface here (rather than importing apps/feeds directly) so
-// this cross-app internal/ package never depends on an apps/* package —
-// main.go wires the concrete *feeds.Feeds in via an adapter closure.
+// unhealthyFeedLister keeps this internal/ package from importing apps/feeds;
+// main.go adapts *feeds.Feeds.
 type unhealthyFeedLister interface {
 	ListUnhealthy(ctx context.Context) ([]UnhealthyFeed, error)
 }
 
-// OpenFeedItem is one feed with unread items, as reported by the feeds app
-// for the weekly digest's open-feed-items reminder (issue #1355).
+// OpenFeedItem is a feed with unread items.
 type OpenFeedItem struct {
 	Title string
 	URL   string
 	Count int
 }
 
-// openFeedItemsLister is the subset of *feeds.Feeds this job needs for the
-// open-feed-items reminder — kept narrow for the same reason as
-// unhealthyFeedLister above.
 type openFeedItemsLister interface {
 	ListOpenItems(ctx context.Context) ([]OpenFeedItem, error)
 }
 
-// WeeklyDigestJob emails an admin, once a week, a personal reading/feed
-// backlog reminder: feeds currently failing to poll, plus feeds with
-// unread items. Everything else this job used to cover (Sentry, failing
-// dependency PRs, security alerts, slow transactions) is now alerted on in
-// real time by Grafana and delivered to Slack instead — see adr-0010.
-//
-// There is no per-item dedup: every run sends,
-// including a short "all clear" email when a source is enabled but has
-// nothing to report, so a missing weekly email is itself a signal the job
-// stopped running rather than being indistinguishable from "nothing to
-// report". The one case that suppresses a send entirely is every source
-// feeding the email being disabled in global.notification_settings — an
-// admin who turned both feed sources off shouldn't still get an empty
-// digest every week.
+// WeeklyDigestJob emails an admin a weekly feed-backlog reminder (failing
+// feeds, feeds with unread items). Every run sends, including an "all clear",
+// so a missing email signals a stopped job; it's skipped only when every
+// source is disabled in global.notification_settings.
 
-// notificationSettingsRepo is the subset of
-// *repositories.NotificationSettingsRepository the digest checks before
-// sending each section.
 type notificationSettingsRepo interface {
 	IsEnabled(
 		ctx context.Context,
@@ -102,10 +81,8 @@ func (j *WeeklyDigestJob) RunEvery() time.Duration {
 	return weeklyDigestRunEvery
 }
 
-// digest accumulates the sections of one outgoing email, along with whether
-// any of the sources feeding it is enabled at all — an empty section list is
-// ambiguous between "everything healthy" and "everything muted", and only
-// the former should still send an all-clear.
+// digest collects sections plus whether any source is enabled: an empty
+// digest is ambiguous between healthy and muted.
 type digest struct {
 	subject    string
 	emptyBody  string
@@ -113,8 +90,6 @@ type digest struct {
 	anyEnabled bool
 }
 
-// add takes a section method's (text, enabled) pair directly, so registering
-// a source reads as one line per source.
 func (d *digest) add(section string, enabled bool) {
 	d.anyEnabled = d.anyEnabled || enabled
 	if section != "" {
@@ -137,9 +112,7 @@ func (j *WeeklyDigestJob) Run(ctx context.Context, logger *slog.Logger) error {
 	return nil
 }
 
-// send enqueues the digest email, skipping it entirely when every source
-// feeding it is disabled. It uses EnqueueEmail, not Enqueue: the digest is
-// email-only regardless of the global email/Slack switch (docs/adr-0019).
+// send enqueues the digest unless every source is disabled.
 func (j *WeeklyDigestJob) send(d *digest) {
 	if !d.anyEnabled {
 		return
@@ -162,10 +135,7 @@ func (j *WeeklyDigestJob) send(d *digest) {
 	)
 }
 
-// feedsSection returns the section's rendered text (empty when there's
-// nothing to report) and whether the source is enabled — enabled is what
-// digest.add uses to decide whether the email should send at all, since an
-// empty section is ambiguous between "healthy" and "disabled".
+// feedsSection returns (text, enabled); text is empty when nothing to report.
 func (j *WeeklyDigestJob) feedsSection(
 	ctx context.Context, logger *slog.Logger,
 ) (string, bool) {
@@ -207,11 +177,8 @@ func (j *WeeklyDigestJob) feedsSection(
 		len(unhealthy), strings.Join(lines, "\n")), true
 }
 
-// openFeedItemsSection follows feedsSection's (text, enabled) contract.
-// Unlike feedsSection (feeds failing to poll), this restates every feed
-// with at least one open (unread, non-dismissed) item, across all users —
-// a nudge that items are piling up unread rather than a health problem
-// (issue #1355).
+// openFeedItemsSection lists every feed with open items, across all users;
+// same (text, enabled) contract as feedsSection.
 func (j *WeeklyDigestJob) openFeedItemsSection(
 	ctx context.Context, logger *slog.Logger,
 ) (string, bool) {

@@ -16,22 +16,17 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// ErrEncryptionNotConfigured is returned when ENCRYPTION_KEY isn't set,
-// so no OAuth connection can be stored or read.
+// ErrEncryptionNotConfigured means ENCRYPTION_KEY is unset.
 var ErrEncryptionNotConfigured = errors.New(
 	"repositories: ENCRYPTION_KEY not configured",
 )
 
-// ErrInvalidConfig is returned by SetConfig when config isn't valid JSON.
-// The config column is JSONB, so Postgres would otherwise reject it with a
-// raw SQLSTATE 22P02 that surfaces to the client as an unscrubbed
-// CodeInternal instead of a clean, actionable error.
+// ErrInvalidConfig is returned by SetConfig for invalid JSON, instead of a raw
+// Postgres 22P02 surfacing as an unscrubbed CodeInternal.
 var ErrInvalidConfig = errors.New("repositories: config is not valid JSON")
 
-// OAuthConnectionsRepository stores one OAuth connection per external
-// provider (global.oauth_connections). Access/refresh tokens are encrypted
-// at rest via sealer; every other repository/service only ever sees a live
-// *oauth2.Token, never the stored bytes.
+// OAuthConnectionsRepository stores one connection per provider in
+// global.oauth_connections, with tokens encrypted at rest via sealer.
 type OAuthConnectionsRepository struct {
 	db     postgres.DB
 	sealer *crypto.Sealer
@@ -55,8 +50,8 @@ type oauthConnectionRow struct {
 	requestedScope *string
 }
 
-// Get returns the decrypted token plus connection metadata for provider, or
-// database.ErrResourceNotFound if it isn't connected.
+// Get returns the decrypted token and metadata, or
+// database.ErrResourceNotFound.
 func (r *OAuthConnectionsRepository) Get(
 	ctx context.Context, provider models.OAuthProvider,
 ) (*oauth2.Token, *models.OAuthConnection, error) {
@@ -83,11 +78,8 @@ func (r *OAuthConnectionsRepository) Get(
 	return tok, rowToConnection(provider, row), nil
 }
 
-// Upsert stores a fresh token for provider, replacing any existing connection
-// and recording connectedBy as the admin who authorized it. requestedScopes is
-// the oauth2.Config.Scopes the authorization was started with — stored
-// verbatim because a provider's echoed `scope` is its own normalized view and
-// can omit scopes a broader one subsumes.
+// Upsert replaces provider's connection. requestedScopes is stored verbatim
+// because the provider's echoed scope is normalized.
 func (r *OAuthConnectionsRepository) Upsert(
 	ctx context.Context,
 	provider models.OAuthProvider,
@@ -121,8 +113,7 @@ func (r *OAuthConnectionsRepository) Upsert(
 	return err
 }
 
-// UpdateToken re-encrypts and stores a rotated token in place, preserving the
-// existing connected_by/connected_at. Called after a transparent refresh.
+// UpdateToken stores a refreshed token, keeping connected_by/connected_at.
 func (r *OAuthConnectionsRepository) UpdateToken(
 	ctx context.Context, provider models.OAuthProvider, tok *oauth2.Token,
 ) error {
@@ -140,10 +131,8 @@ func (r *OAuthConnectionsRepository) UpdateToken(
 	return err
 }
 
-// SetConfig stores the admin-picked provider-specific config, replacing any
-// previous value. Returns database.ErrResourceNotFound if provider has no
-// stored connection — configuring an unconnected provider is a caller error,
-// not a silent no-op.
+// SetConfig replaces provider's config; database.ErrResourceNotFound if it
+// isn't connected.
 func (r *OAuthConnectionsRepository) SetConfig(
 	ctx context.Context, provider models.OAuthProvider, config []byte,
 ) error {
@@ -151,9 +140,8 @@ func (r *OAuthConnectionsRepository) SetConfig(
 		return ErrInvalidConfig
 	}
 
-	// Bind as string, not []byte: under the simple query protocol (used by the
-	// production connection pooler) a []byte is encoded as bytea hex, which a
-	// JSONB column rejects with "invalid input syntax for type json".
+	// Bind as string: under the simple protocol (pooler) []byte is sent as bytea
+	// hex, which JSONB rejects.
 	tag, err := r.db.Exec(ctx, `
 		UPDATE global.oauth_connections
 		SET config = $2, updated_at = now()
@@ -177,8 +165,7 @@ func (r *OAuthConnectionsRepository) Delete(
 	return err
 }
 
-// List returns every connected provider's status (no tokens), for the admin
-// UI. Providers with no row simply aren't in the result.
+// List returns every connected provider's status, without tokens.
 func (r *OAuthConnectionsRepository) List(
 	ctx context.Context,
 ) ([]models.OAuthConnection, error) {

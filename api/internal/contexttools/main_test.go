@@ -23,6 +23,5 @@ func TestLogger(t *testing.T) {
 	t.Parallel()
 
 	ctx := context.Background()
-	// no logger set: falls back to a NopLogger instead of nil/panic.
 	assert.NotNil(t, contexttools.Logger(ctx))
 }

@@ -9,8 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// NotificationSource keys the rows of global.notification_settings — one
-// per email-notifying source checked by jobs.WeeklyDigestJob (issue #1214).
+// NotificationSource keys global.notification_settings rows.
 type NotificationSource string
 
 const (
@@ -24,8 +23,7 @@ type NotificationSetting struct {
 	Enabled   bool
 }
 
-// NotificationSettingsRepository reads/writes per-source email notification
-// toggles.
+// NotificationSettingsRepository reads and writes per-source email toggles.
 type NotificationSettingsRepository struct {
 	db postgres.DB
 }
@@ -60,9 +58,7 @@ func (r *NotificationSettingsRepository) List(
 	return settings, rows.Err()
 }
 
-// IsEnabled reports whether source currently has email notifications
-// enabled. An unknown source_key defaults to enabled, matching the seed
-// data's default of on.
+// IsEnabled reports whether source is enabled; unknown sources default on.
 func (r *NotificationSettingsRepository) IsEnabled(
 	ctx context.Context,
 	source NotificationSource,

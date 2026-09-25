@@ -8,9 +8,7 @@ import (
 	"testing"
 )
 
-// RequestTester is used to test a certain HTTP request. Ported from
-// essentia's pkg/test.RequestTester (issue #912), trimmed to the subset
-// actually used in this repo -- AddCookie and Do.
+// RequestTester tests an HTTP request against a handler.
 type RequestTester struct {
 	handler http.Handler
 	method  string
@@ -32,8 +30,7 @@ func CreateRequestTester(handler http.Handler, method, path string) RequestTeste
 	}
 }
 
-// AddCookie adds a cookie to a [RequestTester]. Can be used multiple times
-// for adding several cookies.
+// AddCookie adds a cookie; may be called repeatedly.
 func (tReq *RequestTester) AddCookie(cookie *http.Cookie) {
 	tReq.cookies = append(tReq.cookies, cookie)
 }

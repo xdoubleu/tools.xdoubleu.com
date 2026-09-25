@@ -63,7 +63,6 @@ func TestToAmount_Negative(t *testing.T) {
 }
 
 func TestToAmount_Half(t *testing.T) {
-	// No rounding: 0.5 stays 0.5 (previously rounded up to 1 for count units).
 	assert.Equal(t, "0.5", format.ToAmount(0.5))
 }
 
@@ -145,7 +144,6 @@ func TestHumanDate_Tomorrow(t *testing.T) {
 }
 
 func TestHumanDate_WithinWeek(t *testing.T) {
-	// 3 days in the future: should return day abbreviation
 	future := time.Now().AddDate(0, 0, 3)
 	result := format.HumanDate(&future)
 	assert.NotEmpty(t, result)
@@ -154,7 +152,6 @@ func TestHumanDate_WithinWeek(t *testing.T) {
 }
 
 func TestHumanDate_FarFuture(t *testing.T) {
-	// >7 days in the future: returns "2 Jan" format
 	far := time.Date(2030, 6, 15, 0, 0, 0, 0, time.Local)
 	result := format.HumanDate(&far)
 	assert.Equal(t, "15 Jun", result)

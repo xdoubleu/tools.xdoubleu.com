@@ -51,8 +51,6 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, shareUserID, owner)
 
-	// A token resolved against the wrong app is unknown, even though it
-	// belongs to the same user.
 	_, _, err = repo.ResolveToken(
 		t.Context(),
 		"repo-test-token",
@@ -60,7 +58,6 @@ func TestProfileSharesRoundTrip(t *testing.T) {
 	)
 	assert.ErrorIs(t, err, database.ErrResourceNotFound)
 
-	// Upsert replaces the token; the old one stops resolving.
 	replaced, err := repo.Upsert(
 		t.Context(),
 		shareUserID,
@@ -113,7 +110,6 @@ func TestProfileSharesIndependentPerApp(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Deleting the books share must not affect the games share.
 	require.NoError(
 		t,
 		repo.Delete(t.Context(), shareUserID, models.DashboardKindReading),

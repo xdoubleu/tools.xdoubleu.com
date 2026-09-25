@@ -7,8 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// DB provides a uniform interface for the postgres
-// database connection, pools and transactions.
+// DB abstracts pools, connections and transactions.
 type DB interface {
 	Exec(
 		ctx context.Context,

@@ -1,6 +1,4 @@
-// Package mailer sends notification emails via the Resend HTTP API
-// (https://resend.com), used by the issue-notifier job (issue #561) to alert
-// an admin when a new Sentry issue or failing dependency pull request appears.
+// Package mailer sends notification emails via the Resend HTTP API.
 package mailer
 
 import (
@@ -14,8 +12,8 @@ import (
 	"time"
 )
 
-// ErrNotConfigured is returned when the Resend API key, from address, or
-// recipient is unset. Callers treat it as a degraded (not failed) state.
+// ErrNotConfigured means the API key, sender or recipient is unset; callers
+// treat it as degraded, not failed.
 var ErrNotConfigured = errors.New("mailer: not configured")
 
 //nolint:gochecknoglobals // overridable in tests
@@ -27,8 +25,7 @@ const apiTimeout = 10 * time.Second
 type Client interface {
 	// Send sends to the fixed recipient configured via New.
 	Send(ctx context.Context, subject, body string) error
-	// SendTo sends to an arbitrary recipient, independent of the recipient
-	// passed to New (e.g. a user-facing transactional email).
+	// SendTo sends to an arbitrary recipient, ignoring New's.
 	SendTo(ctx context.Context, to, subject, body string) error
 }
 
@@ -39,8 +36,8 @@ type resendClient struct {
 	to         string
 }
 
-// New creates a Resend-backed mailer. apiKey, from and to are read from
-// config; if any is empty, Send always returns ErrNotConfigured.
+// New creates a Resend mailer; if any argument is empty, Send returns
+// ErrNotConfigured.
 func New(apiKey, from, to string) Client {
 	return &resendClient{
 		httpClient: &http.Client{Timeout: apiTimeout},
@@ -103,5 +100,5 @@ func (c *resendClient) sendTo(ctx context.Context, to, subject, body string) err
 	return nil
 }
 
-// SetBaseURL overrides the Resend API base URL. Intended for tests only.
+// SetBaseURL overrides the Resend API base URL (tests only).
 func SetBaseURL(u string) { baseURL = u }

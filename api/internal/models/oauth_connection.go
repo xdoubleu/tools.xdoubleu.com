@@ -6,53 +6,39 @@ import (
 	"time"
 )
 
-// ErrDecryptFailed means a stored OAuth token could not be decrypted with the
-// currently configured ENCRYPTION_KEY (e.g. the key was rotated after the
-// connection was authorized). The connection must be reconnected — there is
-// no way to recover the existing encrypted bytes.
+// ErrDecryptFailed means the stored token can't be decrypted with the current
+// ENCRYPTION_KEY; the connection must be reconnected.
 var ErrDecryptFailed = errors.New(
 	"models: stored oauth token could not be decrypted",
 )
 
-// OAuthProvider identifies which external service an OAuth connection
-// belongs to.
+// OAuthProvider identifies a connection's external service.
 type OAuthProvider string
 
 const (
 	OAuthProviderGithub OAuthProvider = "github"
 	OAuthProviderSentry OAuthProvider = "sentry"
-	// OAuthProviderTodoist identifies a per-user Todoist connection stored in
-	// learningpaths.oauth_connections (issue #1475), never in
-	// global.oauth_connections — this constant exists only so that table's
-	// repository can satisfy oauthconn's connectionStore interface and reuse
-	// NewTokenFunc/ScopesAreStale.
+	// OAuthProviderTodoist is stored per user in learningpaths.oauth_connections;
+	// it exists so that repository can reuse oauthconn.
 	OAuthProviderTodoist OAuthProvider = "todoist"
 )
 
-// OAuthConnection is the admin-facing status of a provider's stored OAuth
-// connection (global.oauth_connections). It never carries the raw token —
-// that stays encrypted at rest and is only handled inside the repository.
+// OAuthConnection is a provider connection's admin-facing status; it never
+// carries the raw token.
 type OAuthConnection struct {
 	Provider    OAuthProvider
 	ConnectedBy string
 	ConnectedAt time.Time
 	UpdatedAt   time.Time
 	ExpiresAt   *time.Time // nil = non-expiring or unknown
-	// Config is the admin-picked provider-specific identifier(s), stored as
-	// opaque JSON — nil means "connected but not yet configured". Parsing
-	// into a provider-specific shape happens at the client/handler layer.
+	// Config is the admin-picked provider config as opaque JSON; nil means not
+	// configured yet.
 	Config json.RawMessage
-	// GrantedScope is the `scope` the provider returned with the token (empty
-	// if the provider didn't echo one back). It is the provider's own
-	// normalized view, not a faithful echo of what was asked for — GitHub
-	// drops scopes a broader one already subsumes, returning just `repo` for
-	// a `repo security_events` authorization — so it is diagnostic only and
-	// must never decide whether a connection covers what a provider needs.
+	// GrantedScope is the provider's normalized echo of the scope (GitHub drops
+	// subsumed scopes). Diagnostic only; never use it to decide coverage.
 	GrantedScope string
-	// RequestedScope is the space-separated set of scopes this connection was
-	// authorized with, recorded from oauth2.Config.Scopes at connect time.
-	// Compared against a provider's currently configured scopes to detect a
-	// connection authorized before a required scope was added. Empty for rows
-	// written before it was recorded; those fall back to GrantedScope.
+	// RequestedScope is the scope requested at connect time, compared against the
+	// provider's current scopes. Empty on old rows, which fall back to
+	// GrantedScope.
 	RequestedScope string
 }

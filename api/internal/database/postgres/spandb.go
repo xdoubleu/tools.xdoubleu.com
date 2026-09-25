@@ -10,7 +10,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// SpanDB is used to wrap database actions in [sentry.Span]s.
+// SpanDB wraps database calls in [sentry.Span]s.
 type SpanDB struct {
 	DB     DB
 	dbName string
@@ -24,7 +24,7 @@ func NewSpanDB(db DB) *SpanDB {
 	}
 }
 
-// Exec is used to wrap Exec in a [sentry.Span].
+// Exec wraps Exec in a span.
 func (db *SpanDB) Exec(
 	ctx context.Context,
 	sql string,
@@ -33,7 +33,7 @@ func (db *SpanDB) Exec(
 	return database.WrapWithSpan(ctx, db.dbName, db.DB.Exec, sql, arguments...)
 }
 
-// Query is used to wrap Query in a [sentry.Span].
+// Query wraps Query in a span.
 func (db *SpanDB) Query(
 	ctx context.Context,
 	sql string,
@@ -42,7 +42,7 @@ func (db *SpanDB) Query(
 	return database.WrapWithSpan(ctx, db.dbName, db.DB.Query, sql, optionsAndArgs...)
 }
 
-// QueryRow is used to wrap QueryRow in a [sentry.Span].
+// QueryRow wraps QueryRow in a span.
 func (db *SpanDB) QueryRow(
 	ctx context.Context,
 	sql string,
@@ -56,7 +56,7 @@ func (db *SpanDB) QueryRow(
 		optionsAndArgs...)
 }
 
-// SendBatch is used to wrap SendBatch in a [sentry.Span].
+// SendBatch wraps SendBatch in a span.
 func (db *SpanDB) SendBatch(
 	ctx context.Context,
 	b *pgx.Batch,
@@ -72,14 +72,12 @@ func (db *SpanDB) SendBatch(
 	return db.DB.SendBatch(ctx, b)
 }
 
-// Begin doesn't wrap Begin in a [sentry.Span] as
-// this makes little sense for starting a transaction.
+// Begin is not traced.
 func (db *SpanDB) Begin(ctx context.Context) (pgx.Tx, error) {
 	return db.DB.Begin(ctx)
 }
 
-// BeginTx doesn't wrap BeginTx in a [sentry.Span] as
-// this makes little sense for starting a transaction.
+// BeginTx is not traced.
 func (db *SpanDB) BeginTx(
 	ctx context.Context,
 	txOptions pgx.TxOptions,
@@ -87,8 +85,7 @@ func (db *SpanDB) BeginTx(
 	return db.DB.BeginTx(ctx, txOptions)
 }
 
-// Ping doesn't wrap Ping in a [sentry.Span] as
-// this makes little sense for pinging the db.
+// Ping is not traced.
 func (db *SpanDB) Ping(ctx context.Context) error {
 	return db.DB.Ping(ctx)
 }

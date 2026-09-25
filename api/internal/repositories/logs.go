@@ -18,9 +18,8 @@ func NewLogsRepository(db postgres.DB) *LogsRepository {
 
 // Insert records one log entry. AttrsJSON may be nil.
 func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) error {
-	// Bind attrs as string, not []byte: under the simple query protocol
-	// (used by the production connection pooler) a []byte is encoded as
-	// bytea hex, which a JSONB column rejects.
+	// Bind as string: under the simple protocol (pooler) []byte is sent as bytea
+	// hex, which JSONB rejects.
 	var attrs *string
 	if entry.AttrsJSON != nil {
 		s := string(entry.AttrsJSON)
@@ -34,8 +33,8 @@ func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) erro
 	return err
 }
 
-// Query returns log entries at or after since, most recent first, optionally
-// filtered by source and/or level. An empty source/level means "any".
+// Query returns entries since since, newest first; empty source/level match
+// any.
 func (r *LogsRepository) Query(
 	ctx context.Context,
 	since time.Time,

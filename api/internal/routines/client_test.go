@@ -15,10 +15,6 @@ import (
 	"tools.xdoubleu.com/internal/routines"
 )
 
-// fakeRecorder is a minimal stand-in for
-// *repositories.AutomatedActionsRepository — exercising Fire's
-// ordering/error-handling logic doesn't need a full Postgres-backed
-// repository.
 type fakeRecorder struct {
 	openCalls   int32
 	lastSource  string
@@ -125,10 +121,7 @@ func TestFire_OpenFails_ReturnsErrorWithoutCallingWebhookOrClosing(t *testing.T)
 	assert.Equal(t, int32(0), recorder.closeCalls)
 }
 
-// TestFire_WebhookReturnsErrorStatus_ClosesStrandedActionAsFailed exercises
-// issue #1725's fix: a non-2xx response from the routine's fire webhook
-// means the routine was never actually invoked, so Fire must close the row
-// it just opened itself rather than leaving it stranded open forever.
+// A non-2xx fire means the routine never ran, so Fire must close the row.
 func TestFire_WebhookReturnsErrorStatus_ClosesStrandedActionAsFailed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -148,12 +141,7 @@ func TestFire_WebhookReturnsErrorStatus_ClosesStrandedActionAsFailed(t *testing.
 	assert.Contains(t, recorder.lastErrorText, "unexpected status 500")
 }
 
-// TestFire_WebhookReturnsErrorStatus_ErrorIncludesURLAndBody exercises
-// issue #1798's fix: with the real routine-fire endpoint contract still
-// unverified (see the package doc comment), the exact URL posted to and
-// the response body sent back are the two concrete diagnostic facts folded
-// into the error, since either logging or the resulting Sentry event is
-// the only place anyone will see them.
+// The endpoint contract is unverified, so the error must carry URL and body.
 func TestFire_WebhookReturnsErrorStatus_ErrorIncludesURLAndBody(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -183,11 +171,7 @@ func TestFire_WebhookUnreachable_ClosesStrandedActionAsFailed(t *testing.T) {
 	assert.Equal(t, "failed", recorder.lastOutcome)
 }
 
-// TestFire_WebhookUnreachableAndCloseFails_ReturnsJoinedError covers the
-// case where even the recovery Close call fails: both the original fire
-// failure and the close failure must surface, rather than one silently
-// swallowing the other, since that combination is exactly the case where
-// the row is left open (the case AutomatedActionStalled exists to catch).
+// When Close also fails, both errors must surface.
 func TestFire_WebhookUnreachableAndCloseFails_ReturnsJoinedError(t *testing.T) {
 	client, recorder := newTestClient("http://127.0.0.1:0", "token")
 	recorder.closeErr = assert.AnError

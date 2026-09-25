@@ -34,7 +34,6 @@ func stubNotConnected() oauthconn.TokenFunc {
 	return func(context.Context) (string, error) { return "", oauthconn.ErrNotConnected }
 }
 
-// stubConfigStore stands in for *repositories.OAuthConnectionsRepository.
 type stubConfigStore struct {
 	conn *models.OAuthConnection
 	err  error
@@ -65,8 +64,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-// buildServer starts an httptest.Server serving handler and points the
-// package-level baseURL at it. The returned func restores the real URL.
+// buildServer points baseURL at an httptest server; the func restores it.
 func buildServer(handler http.Handler) func() {
 	srv := httptest.NewServer(handler)
 	github.SetBaseURL(srv.URL)
@@ -401,9 +399,7 @@ func TestListSecurityAlerts_GHASNotEnabled_OnlyDependabot(t *testing.T) {
 }
 
 func TestListSecurityAlerts_NotConfigured_NoConnection(t *testing.T) {
-	// resolveRepo fails before tokenFn is ever consulted, so the token value
-	// here is irrelevant — a distinct literal from newClient()'s just avoids
-	// an unparam false positive on stubToken.
+	// A distinct token literal avoids an unparam false positive.
 	c := github.New(logging.NewNopLogger(), stubToken("unused"), configNotConnected())
 	_, err := c.ListSecurityAlerts(context.Background())
 	require.ErrorIs(t, err, github.ErrNotConfigured)

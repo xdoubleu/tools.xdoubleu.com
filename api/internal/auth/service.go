@@ -23,30 +23,22 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// SignInRenderFunc is called by TemplateAccess when the user is not authenticated.
-// It receives the redirect URL so the sign-in page can redirect back after login.
+// SignInRenderFunc renders the sign-in page for TemplateAccess.
 type SignInRenderFunc func(w http.ResponseWriter, r *http.Request, redirectURL string)
 
-// appUsersStore is the subset of *repositories.AppUsersRepository that
-// LocalService needs. Narrowed to an interface (rather than the concrete
-// type) so tests can fake individual failures — e.g. GetByID failing while
-// Upsert succeeds — that aren't reachable by cancelling a context shared
-// across both calls.
+// appUsersStore is an interface so tests can fake individual failures.
 type appUsersStore interface {
 	Upsert(ctx context.Context, id, email string) error
 	GetByID(ctx context.Context, id string) (*models.User, error)
 	GetAll(ctx context.Context) ([]models.User, error)
 }
 
-// OAuth2TokenResolver resolves a fosite-issued opaque OAuth 2.1 access token
-// to the user ID it was granted for. Wired in by cmd/api after construction
-// (like SignInRenderer) to avoid an import cycle between this package and
-// internal/oauth2as.
+// OAuth2TokenResolver resolves a fosite opaque access token to a user ID. It is
+// set by cmd/api to avoid an import cycle with internal/oauth2as.
 type OAuth2TokenResolver interface {
 	ResolveAccessToken(ctx context.Context, token string) (userID string, err error)
 }
 
-// claims are the JWT claims minted for a session access token.
 type claims struct {
 	jwt.RegisteredClaims
 	AAL string `json:"aal"`
@@ -61,8 +53,7 @@ const (
 	recoveryCodeBytes = 10
 )
 
-// LocalService is the self-hosted bcrypt + TOTP + JWT implementation of
-// Service (issue #1039), replacing the previous Supabase GoTrue-backed one.
+// LocalService is the self-hosted bcrypt + TOTP + JWT auth Service.
 type LocalService struct {
 	usersStore       usersStore
 	jwtSecret        []byte
@@ -74,18 +65,11 @@ type LocalService struct {
 	refreshExpiry    string
 	appUsersRepo     appUsersStore
 	userCache        *userCache
-	// resolveGroup coalesces concurrent resolveUser calls for the same
-	// access token into a single verification, so opening several tabs at
-	// once with the same (cache-miss) token doesn't repeat enrichment
-	// queries per tab (see issue #852).
+	// resolveGroup coalesces concurrent cache misses for the same token.
 	resolveGroup singleflight.Group
-	// SignInRenderer is set by cmd/api after construction to avoid a
-	// circular import between this package and package main (which owns the
-	// templ-generated SignInPage component).
+	// SignInRenderer is set by cmd/api to avoid an import cycle with package main.
 	SignInRenderer SignInRenderFunc
-	// OAuth2TokenResolver is set by cmd/api after construction (see the type
-	// doc comment). Nil is valid: ResolveToken then only ever resolves
-	// locally-minted session JWTs.
+	// OAuth2TokenResolver may be nil: then only local session JWTs resolve.
 	OAuth2TokenResolver OAuth2TokenResolver
 }
 
@@ -117,9 +101,8 @@ func NewService(
 	}
 }
 
-// InvalidateUserCache drops every cached user. Call it after mutations that
-// change a user's role or app access so other sessions don't serve stale
-// permissions for up to the cache TTL.
+// InvalidateUserCache drops every cached user; call it after role or
+// app-access changes.
 func (service *LocalService) InvalidateUserCache() {
 	service.userCache.clear()
 }
@@ -133,8 +116,7 @@ func (service *LocalService) GetAllUsers(
 	return []models.User{}, nil
 }
 
-// generateOpaqueToken returns a URL-safe random token, hex-encoded, used for
-// refresh tokens and password-reset tokens. Only its SHA-256 hash is stored.
+// generateOpaqueToken returns a random hex token; store only its SHA-256.
 func generateOpaqueToken(numBytes int) (string, error) {
 	buf := make([]byte, numBytes)
 	if _, err := rand.Read(buf); err != nil {
@@ -166,7 +148,6 @@ func (service *LocalService) mintAccessToken(userID, aal string) (string, error)
 	return tok.SignedString(service.jwtSecret)
 }
 
-// parseAccessToken verifies a session JWT and returns its claims.
 func (service *LocalService) parseAccessToken(accessToken string) (*claims, error) {
 	var c claims
 	token, err := jwt.ParseWithClaims(
@@ -180,8 +161,6 @@ func (service *LocalService) parseAccessToken(accessToken string) (*claims, erro
 	return &c, nil
 }
 
-// issueRefreshToken creates and stores a refresh token row for userID at the
-// given aal, returning the opaque plaintext token.
 func (service *LocalService) issueRefreshToken(
 	ctx context.Context,
 	userID, aal string,
@@ -292,10 +271,8 @@ func (service *LocalService) SignInWithRefreshToken(
 	return &accessToken, &newRefreshToken, nil
 }
 
-// RefreshSession exchanges a refresh token for new tokens and returns the
-// signed-in user plus ready-to-set access and refresh cookies. A nil user
-// with nil error means the tokens rotated but the user lookup failed;
-// callers should still set the cookies and treat the session as absent.
+// RefreshSession rotates tokens and returns the user plus cookies. A nil user
+// with nil error means rotation succeeded but the user lookup failed.
 func (service *LocalService) RefreshSession(
 	ctx context.Context,
 	refreshToken string,
@@ -332,13 +309,8 @@ func (service *LocalService) RefreshSession(
 	return user, accessCookie, refreshCookie, nil
 }
 
-// SignOut deletes every refresh token belonging to the user resolved from
-// accessToken. Ponytail: the Service interface only ever hands SignOut the
-// access token (not the refresh-token cookie), and the simplest correct
-// option for revoking server-side state on sign-out is to drop all of that
-// user's refresh tokens rather than trying to single out the one presented
-// alongside this access token — safe, since signing out of one session
-// signing you out of all of them is expected behavior, not a bug.
+// SignOut deletes all of the user's refresh tokens (it only receives the
+// access token), signing out every session.
 func (service *LocalService) SignOut(
 	ctx context.Context,
 	accessToken string,
@@ -404,11 +376,7 @@ func (service *LocalService) CreateCookie(
 		Name:    name,
 		Value:   token,
 		Expires: time.Now().Add(ttl),
-		// Lax (not Strict): the web app's own /oauth/consent page redirects
-		// the browser here cross-site during the MCP OAuth consent flow, and
-		// a Strict cookie would not attach to that top-level GET. These
-		// cookies don't gate cross-site CSRF on their own, so Lax is the
-		// standard tradeoff.
+		// Lax, not Strict: the MCP OAuth consent flow redirects here cross-site.
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,
 		Secure:   secure,
@@ -418,10 +386,8 @@ func (service *LocalService) CreateCookie(
 	return &cookie, nil
 }
 
-// ForgotPassword generates and stores a password-reset token and emails a
-// reset link. Errors resolving the user or sending the email are swallowed
-// (mirroring the previous GoTrue-backed behavior) so this endpoint never
-// reveals whether an email address has an account.
+// ForgotPassword emails a reset link. Errors are swallowed so the endpoint
+// never reveals whether an email has an account.
 func (service *LocalService) ForgotPassword(
 	ctx context.Context,
 	email, redirectTo string,
@@ -483,9 +449,8 @@ func (service *LocalService) UpdatePassword(
 	return nil
 }
 
-// ResetPasswordWithToken completes a forgot-password flow: validates the
-// opaque reset token (hash + expiry + unused), sets the new password, marks
-// the token used, and revokes every refresh token for that user.
+// ResetPasswordWithToken validates the reset token, sets the password, marks
+// the token used, and revokes all refresh tokens.
 func (service *LocalService) ResetPasswordWithToken(
 	ctx context.Context,
 	resetToken, newPassword string,

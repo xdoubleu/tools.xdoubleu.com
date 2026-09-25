@@ -9,8 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// storageSnapshotRetention bounds global.storage_snapshots (~13 months of
-// daily scans); older rows are pruned on insert.
+// storageSnapshotRetention (~13 months); pruned on insert.
 const storageSnapshotRetention = 400 * 24 * time.Hour
 
 type StorageSnapshotsRepository struct {
@@ -34,9 +33,8 @@ func (r *StorageSnapshotsRepository) Insert(
 		return err
 	}
 
-	// Bind as string, not []byte: under the simple query protocol (used by the
-	// production connection pooler) a []byte is encoded as bytea hex, which a
-	// JSONB column rejects with "invalid input syntax for type json".
+	// Bind as string: under the simple protocol (pooler) []byte is sent as bytea
+	// hex, which JSONB rejects.
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO global.storage_snapshots (
 			scanned_at, total_size_bytes, object_count,
@@ -79,8 +77,7 @@ func (r *StorageSnapshotsRepository) Latest(
 	return snap, nil
 }
 
-// History returns snapshots taken since the given time, oldest first, for the
-// trend chart.
+// History returns snapshots since the given time, oldest first.
 func (r *StorageSnapshotsRepository) History(
 	ctx context.Context,
 	since time.Time,
@@ -111,7 +108,6 @@ func (r *StorageSnapshotsRepository) History(
 	return snaps, rows.Err()
 }
 
-// rowScanner is satisfied by both pgx.Row and pgx.Rows.
 type rowScanner interface {
 	Scan(dest ...any) error
 }

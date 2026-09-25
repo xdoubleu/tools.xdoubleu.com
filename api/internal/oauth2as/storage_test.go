@@ -26,9 +26,7 @@ func newTestStore(t *testing.T) (*oauth2as.Store, *pgxpool.Pool) {
 	return oauth2as.NewStore(db), db
 }
 
-// testOIDCKeyOnce caches one generated RSA key across the package's tests —
-// key generation is the slowest part of building a provider, and every test
-// can share the same signing key.
+// testOIDCKeyOnce shares one generated RSA key across tests (generation is slow).
 //
 //nolint:gochecknoglobals // one shared RSA signing key across the package's tests
 var (
@@ -46,8 +44,7 @@ func testOIDCKey(t *testing.T) *rsa.PrivateKey {
 	return testOIDCKeyVal
 }
 
-// newTestProvider builds the provider the way cmd/api does, with a shared
-// ephemeral OIDC signing key.
+// newTestProvider builds the provider as cmd/api does.
 func newTestProvider(
 	t *testing.T, cfg config.Config, store *oauth2as.Store,
 ) fosite.OAuth2Provider {
@@ -88,9 +85,6 @@ func TestRegisterClient_Validation(t *testing.T) {
 	assert.NotEmpty(t, client2.ID)
 }
 
-// TestRegisterClient_MalformedRedirectURI covers validateRedirectURI's
-// url.Parse error branch specifically, distinct from a validly-parsed but
-// disallowed-scheme URI.
 func TestRegisterClient_MalformedRedirectURI(t *testing.T) {
 	_, db := newTestStore(t)
 	ctx := context.Background()
@@ -126,7 +120,6 @@ func TestStore_GetClient_RoundTrip(t *testing.T) {
 	require.ErrorIs(t, err, fosite.ErrNotFound)
 }
 
-// fakeSession is a minimal fosite.Session for storage round-trip tests.
 type fakeSession struct {
 	Subject   string
 	ExpiresAt map[fosite.TokenType]time.Time
@@ -285,8 +278,7 @@ func TestStore_GetRefreshTokenSession_UnmarshalError(t *testing.T) {
 		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
 	)
 
-	// A JSON value that isn't the expected object shape still parses as
-	// JSON, so it reaches json.Unmarshal into persistedRequest, which fails.
+	// Valid JSON of the wrong shape fails json.Unmarshal into persistedRequest.
 	_, err = db.Exec(ctx, `
 		UPDATE auth.oauth2_refresh_tokens SET request = '"not-an-object"'::jsonb
 		WHERE signature = $1
@@ -316,9 +308,7 @@ func TestStore_GetRefreshTokenSession_UnknownClient(t *testing.T) {
 		t, store.CreateRefreshTokenSession(ctx, signature, "access-sig", request),
 	)
 
-	// The embedded request JSON references a client_id that no longer
-	// exists — fromPersisted's GetClient lookup fails and that error must
-	// propagate out of GetRefreshTokenSession.
+	// The embedded client_id no longer exists, so GetClient fails.
 	_, err = db.Exec(ctx, `
 		UPDATE auth.oauth2_refresh_tokens
 		SET request = jsonb_set(request, '{client_id}', '"does-not-exist"')
@@ -351,11 +341,8 @@ func TestStore_RotateRefreshToken(t *testing.T) {
 
 	require.NoError(t, store.RotateRefreshToken(ctx, requestID, signature))
 
-	// A rotated-out refresh token is invalidated (active = false) and
-	// stamped with rotated_at = now(). Reused well outside the reuse grace
-	// period, GetRefreshTokenSession surfaces fosite.ErrInactiveToken — the
-	// sentinel fosite's own RefreshTokenGrantHandler checks for to detect
-	// refresh-token reuse and revoke the whole token family.
+	// Past the grace period, a rotated-out token yields fosite.ErrInactiveToken,
+	// which fosite uses to detect reuse.
 	_, err = db.Exec(ctx, `
 		UPDATE auth.oauth2_refresh_tokens
 		SET rotated_at = now() - interval '1 minute' WHERE signature = $1
@@ -365,8 +352,7 @@ func TestStore_RotateRefreshToken(t *testing.T) {
 	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrInactiveToken)
 
-	// Rotating a signature that doesn't match the given requestID is a
-	// silent no-op (matches zero rows, still no error).
+	// A signature not matching requestID is a silent no-op.
 	require.NoError(t, store.RotateRefreshToken(ctx, "does-not-exist", signature))
 }
 
@@ -389,9 +375,7 @@ func TestStore_RefreshTokenSession_ReuseGracePeriod(t *testing.T) {
 	)
 	require.NoError(t, store.RotateRefreshToken(ctx, requestID, signature))
 
-	// Reused immediately after rotation (a client retrying a request whose
-	// response it never saw), the token is still accepted as if active —
-	// no fosite.ErrInactiveToken, no theft-response revocation.
+	// Reused right after rotation, the token is still accepted.
 	//nolint:exhaustruct //populated by GetRefreshTokenSession's json.Unmarshal
 	got, err := store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
 	require.NoError(t, err)
@@ -422,7 +406,6 @@ func TestStore_RevokeRefreshToken(t *testing.T) {
 	_, err = store.GetRefreshTokenSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrNotFound)
 
-	// Revoking an unknown request ID is a no-op, not an error.
 	require.NoError(t, store.RevokeRefreshToken(ctx, "does-not-exist"))
 }
 
@@ -457,14 +440,9 @@ func TestStore_RevokeAccessToken(t *testing.T) {
 	_, err = store.GetAccessTokenSession(ctx, signature, &fakeSession{})
 	require.ErrorIs(t, err, fosite.ErrNotFound)
 
-	// Revoking an unknown request ID is a no-op, not an error.
 	require.NoError(t, store.RevokeAccessToken(ctx, "does-not-exist"))
 }
 
-// TestStore_ClientAssertionJWT_Stubs covers ClientAssertionJWTValid/
-// SetClientAssertionJWT: no-op stubs backing the private_key_jwt
-// client-auth method, which this public-client-only server never uses, kept
-// only to satisfy fosite's ClientManager interface.
 func TestStore_ClientAssertionJWT_Stubs(t *testing.T) {
 	store, _ := newTestStore(t)
 	ctx := context.Background()
@@ -493,7 +471,6 @@ func TestStore_PKCERequestSession_RoundTrip(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, client.ID, got.GetClient().GetID())
 
-	// Re-creating with the same signature upserts rather than conflicting.
 	require.NoError(t, store.CreatePKCERequestSession(ctx, signature, request))
 
 	require.NoError(t, store.DeletePKCERequestSession(ctx, signature))
@@ -516,7 +493,6 @@ func TestStore_OpenIDConnectSession_RoundTrip(t *testing.T) {
 	code := uuid.NewString()
 
 	require.NoError(t, store.CreateOpenIDConnectSession(ctx, code, request))
-	// Re-creating with the same code upserts rather than conflicting.
 	require.NoError(t, store.CreateOpenIDConnectSession(ctx, code, request))
 
 	//nolint:exhaustruct //populated by GetOpenIDConnectSession's json.Unmarshal

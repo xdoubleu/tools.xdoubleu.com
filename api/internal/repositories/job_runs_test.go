@@ -23,11 +23,7 @@ func TestMain(m *testing.M) {
 	postgresDB := testhelper.ConnectTestDB(cfg.DBDsn)
 	testDB = postgresDB
 
-	// Mirrors cmd/api/migrations/00001_init.sql, 00005_observability.sql,
-	// 00007_profile_shares_per_app.sql (as amended by 00015),
-	// 00016_usage_bytes.sql, and 00025_storage_snapshot_orphan_keys.sql so
-	// these tests can run before the cmd/api package has applied the global
-	// migrations.
+	// Mirror the global migrations so these tests run before cmd/api applies them.
 	ctx := context.Background()
 	stmts := []string{
 		"CREATE SCHEMA IF NOT EXISTS global",
@@ -73,14 +69,9 @@ func TestMain(m *testing.M) {
 			prefix_breakdown JSONB NOT NULL,
 			orphan_keys JSONB NOT NULL DEFAULT '[]'::jsonb
 		)`,
-		// storage_snapshots may already exist (shared DB across worktrees)
-		// without this column — CREATE TABLE IF NOT EXISTS above wouldn't add
-		// it to an existing table.
+		// A shared DB may have the table without this column.
 		`ALTER TABLE global.storage_snapshots
 			ADD COLUMN IF NOT EXISTS orphan_keys JSONB NOT NULL DEFAULT '[]'::jsonb`,
-		// Mirrors cmd/api/migrations/00009_oauth_connections.sql,
-		// 00010_oauth_connections_config.sql, and
-		// 00013_oauth_connections_scope.sql.
 		`CREATE TABLE IF NOT EXISTS global.oauth_connections (
 			provider      TEXT PRIMARY KEY
 				CHECK (provider IN ('github', 'sentry', 'digitalocean')),
@@ -102,8 +93,6 @@ func TestMain(m *testing.M) {
 			request_count BIGINT NOT NULL,
 			PRIMARY KEY (day, project, transaction_name)
 		)`,
-		// Mirrors cmd/api/migrations/00040_family.sql and
-		// 00041_family_display_name.sql.
 		`CREATE TABLE IF NOT EXISTS global.families (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -114,7 +103,6 @@ func TestMain(m *testing.M) {
 			joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 			display_name TEXT NOT NULL DEFAULT ''
 		)`,
-		// display_name may be absent on a shared DB where only 00040 ran.
 		`ALTER TABLE global.family_members
 			ADD COLUMN IF NOT EXISTS display_name TEXT NOT NULL DEFAULT ''`,
 		`CREATE TABLE IF NOT EXISTS global.family_invites (

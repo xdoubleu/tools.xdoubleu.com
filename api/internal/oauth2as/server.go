@@ -19,16 +19,9 @@ const (
 	idTokenLifespan       = time.Hour
 )
 
-// NewProvider builds the embedded OAuth 2.1 / OpenID Connect authorization
-// server (issues #1039, #1469): authorization code grant + refresh token
-// grant, PKCE required on every client, plus OIDC ID tokens (RS256) for
-// clients that request the openid scope. Public clients authenticate with
-// PKCE alone; confidential clients (the Grafana SSO client) additionally
-// present a client_secret.
-//
-// oidcKey signs ID tokens; its public half is served at /oauth2/jwks. Access
-// tokens remain opaque HMAC tokens introspected via ResolveAccessToken — only
-// the ID token is asymmetric.
+// NewProvider builds the embedded OAuth 2.1 / OIDC server: authorization code
+// and refresh grants, PKCE required, RS256 ID tokens for openid clients.
+// Access tokens are opaque HMAC tokens; oidcKey signs only ID tokens.
 func NewProvider(
 	cfg config.Config,
 	store fosite.Storage,
@@ -61,17 +54,12 @@ func NewProvider(
 		compose.OAuth2AuthorizeExplicitFactory,
 		compose.OAuth2RefreshTokenGrantFactory,
 		compose.OAuth2PKCEFactory,
-		// OIDC handlers must be composed after the OAuth2 authorize-code
-		// handler above: they run on the same authorize/token requests and
-		// layer an ID token on top of the code the core handler issued.
+		// OIDC must come after the authorize-code handler: it adds an ID token to the
+		// code that handler issued.
 		compose.OpenIDConnectExplicitFactory,
 		compose.OpenIDConnectRefreshFactory,
-		// Without this, IntrospectToken has no registered validation
-		// strategy and every call fails with ErrRequestUnauthorized ("no
-		// suitable validation strategy") regardless of the token's
-		// validity — silently breaking resolver.go's ResolveAccessToken,
-		// the only thing that lets this api verify a bearer token it
-		// issued itself as an OAuth 2.1 resource server.
+		// Required: without it IntrospectToken always fails, breaking
+		// ResolveAccessToken.
 		compose.OAuth2TokenIntrospectionFactory,
 	)
 }

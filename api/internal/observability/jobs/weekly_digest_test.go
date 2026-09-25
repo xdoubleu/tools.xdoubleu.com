@@ -125,9 +125,6 @@ func TestWeeklyDigestIncludesOpenFeedItems(t *testing.T) {
 	assert.Contains(t, mail.bodies[0], "My Feed")
 }
 
-// TestWeeklyDigestOpenFeedItemsErrorOmitsSection asserts a ListOpenItems
-// failure omits the section (self-heals on the next run) rather than
-// failing the digest send.
 func TestWeeklyDigestOpenFeedItemsErrorOmitsSection(t *testing.T) {
 	mail := &fakeMailer{sent: nil, bodies: nil, err: nil}
 	notifSvc := testNotifications(t, mail)
@@ -197,12 +194,6 @@ func TestWeeklyDigestOmitsUnhealthyFeedsSectionForDisabledSource(t *testing.T) {
 	assert.NotContains(t, mail.bodies[0], "My Feed")
 }
 
-// TestWeeklyDigestSkipsSendWhenAllSourcesDisabled covers the gap in issue
-// #1214's original settings gate: each *Section was already omitted when
-// disabled, but the digest email itself still always sent — even an empty
-// "no open issues" email — regardless of whether every source had been
-// explicitly turned off. An admin who disabled everything shouldn't keep
-// getting a weekly email with nothing in it.
 func TestWeeklyDigestSkipsSendWhenAllSourcesDisabled(t *testing.T) {
 	feeds := fakeFeedsLister{unhealthy: []jobs.UnhealthyFeed{
 		{
@@ -243,16 +234,12 @@ func TestWeeklyDigestSettingsErrorOmitsSection(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), testLogger()))
 	notifSvc.WaitUntilDone()
 
-	// settingsErrFake.IsEnabled always errors, which each section treats as
-	// enabled (fail open, so a settings-lookup blip doesn't silently
-	// suppress the whole email) but renders as empty — so the all-clear
-	// email still sends, just without the data that was actually available.
+	// IsEnabled errors fail open (enabled) but render empty, so the all-clear
+	// still sends.
 	require.Len(t, mail.sent, 1)
 	assert.NotContains(t, mail.bodies[0], "My Feed")
 }
 
-// settingsErrFake makes every IsEnabled call fail, for tests exercising the
-// settings-lookup-error path.
 type settingsErrFake struct {
 	err error
 }

@@ -16,8 +16,6 @@ import (
 	"tools.xdoubleu.com/sentrytools"
 )
 
-// transportMock is a minimal in-memory [sentry.Transport] so tests can
-// assert on the events LogHandler actually sends to Sentry.
 type transportMock struct {
 	mu     sync.Mutex
 	events []*sentry.Event
@@ -120,8 +118,7 @@ func TestLogHandler_CapturesErrorWithGroupsAndAttrs(t *testing.T) {
 func TestLogHandler_CapturesErrorWithoutErrorAttr(t *testing.T) {
 	t.Parallel()
 
-	// A hub with a nil client is a safe no-op sink for CaptureException,
-	// letting this exercise setRecordTags' fallback without a real transport.
+	// A nil-client hub is a no-op sink for CaptureException.
 	hub := sentry.NewHub(nil, sentry.NewScope())
 	ctx := sentry.SetHubOnContext(context.Background(), hub)
 

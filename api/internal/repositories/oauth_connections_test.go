@@ -109,8 +109,6 @@ func TestOAuthConnectionsUpsertStoresGrantedScope(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "org:read project:read", conn.GrantedScope)
 
-	// A later Upsert with a wider granted scope (e.g. after a reconnect)
-	// overwrites the stored value rather than merging with the old one.
 	tok2 := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
 		AccessToken: "access-2",
 	}).WithExtra(map[string]any{"scope": "org:read project:read event:write"})
@@ -128,9 +126,7 @@ func TestOAuthConnectionsUpsertStoresRequestedScope(t *testing.T) {
 	clearOAuthConnections(t)
 	repo := repositories.NewOAuthConnectionsRepository(testDB, testSealer(t))
 
-	// GitHub echoes back only `repo`, having dropped the `security_events`
-	// its own scope subsumes — what was asked for is stored separately so a
-	// staleness check never has to trust that echo.
+	// GitHub echoes only `repo`; the requested scope is stored separately.
 	tok := (&oauth2.Token{ //nolint:exhaustruct // other fields unused in test
 		AccessToken: "access-1",
 	}).WithExtra(map[string]any{"scope": "repo"})
@@ -149,8 +145,6 @@ func TestOAuthConnectionsUpsertStoresRequestedScope(t *testing.T) {
 	require.Len(t, list, 1)
 	assert.Equal(t, "repo security_events", list[0].RequestedScope)
 
-	// A reconnect with a narrower set overwrites rather than merges, so a
-	// downgrade is visible instead of masked by the previous value.
 	require.NoError(t, repo.Upsert(
 		t.Context(), models.OAuthProviderGithub, tok, "admin",
 		[]string{"repo"},
@@ -233,8 +227,6 @@ func TestOAuthConnectionsSetConfig(t *testing.T) {
 	require.Len(t, list, 1)
 	assert.JSONEq(t, `{"repo":"o/r"}`, string(list[0].Config))
 
-	// Sentry configs carry a repeated "projects" field — regression coverage
-	// for the []byte-vs-jsonb bind pitfall (see comment in SetConfig).
 	require.NoError(t, repo.Upsert(
 		t.Context(),
 		models.OAuthProviderSentry,
@@ -269,9 +261,6 @@ func TestOAuthConnectionsSetConfigRejectsInvalidJSON(t *testing.T) {
 		nil,
 	))
 
-	// Postgres would otherwise reject this with a raw SQLSTATE 22P02
-	// (invalid input syntax for type json) surfacing as an unscrubbed
-	// CodeInternal — SetConfig must catch it before it reaches the DB.
 	err := repo.SetConfig(
 		t.Context(), models.OAuthProviderGithub, []byte("not json"),
 	)

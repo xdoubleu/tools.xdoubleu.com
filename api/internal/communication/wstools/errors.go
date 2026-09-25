@@ -1,6 +1,4 @@
-// Package wstools contains several tools for dealing with
-// websockets such as easily setting these up
-// error handling.
+// Package wstools holds WebSocket setup and error helpers.
 package wstools
 
 import (
@@ -33,8 +31,7 @@ func ErrorResponse(
 	}
 }
 
-// ServerErrorResponse is used to handle
-// internal server errors that occurred on a WebSocket.
+// ServerErrorResponse handles an internal error on a WebSocket.
 func ServerErrorResponse(ctx context.Context, conn *websocket.Conn, err error) {
 	if isCloseError(err) {
 		return
@@ -51,8 +48,7 @@ func ServerErrorResponse(ctx context.Context, conn *websocket.Conn, err error) {
 	ErrorResponse(ctx, conn, http.StatusInternalServerError, message)
 }
 
-// UpgradeErrorResponse is used to handle an error that
-// occurred during the upgrade towards a WebSocket.
+// UpgradeErrorResponse handles a failed WebSocket upgrade.
 func UpgradeErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	if !isWSProtocolViolation(err) {
 		contexttools.Logger(r.Context()).
@@ -62,8 +58,7 @@ func UpgradeErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	w.WriteHeader(http.StatusInternalServerError)
 }
 
-// FailedValidationResponse is used to handle
-// an error of a [validate.Validator] that occurred on a WebSocket.
+// FailedValidationResponse handles a [validate.Validator] error on a WebSocket.
 func FailedValidationResponse(
 	ctx context.Context,
 	conn *websocket.Conn,
@@ -72,8 +67,7 @@ func FailedValidationResponse(
 	ErrorResponse(ctx, conn, http.StatusUnprocessableEntity, errors)
 }
 
-// ForbiddenResponse is used to handle an error when a user
-// isn't authorized to access a certain resource.
+// ForbiddenResponse closes a WebSocket as forbidden.
 func ForbiddenResponse(ctx context.Context, conn *websocket.Conn) {
 	ErrorResponse(ctx, conn, http.StatusForbidden, errortools.MessageForbidden)
 }
@@ -83,7 +77,6 @@ func isWSProtocolViolation(err error) bool {
 }
 
 func isCloseError(err error) bool {
-	// EOF, close errors
 	var closeError websocket.CloseError
 	return errors.Is(err, io.EOF) ||
 		errors.As(err, &closeError)

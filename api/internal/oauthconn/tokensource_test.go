@@ -91,9 +91,7 @@ func TestNewTokenFunc_StaleScope_TreatedAsNotConnected(t *testing.T) {
 	)
 }
 
-// A GitHub connection authorized with every required scope must be usable
-// even though GitHub echoes back only `repo`, having dropped the
-// `security_events` that `repo` subsumes.
+// GitHub echoes only `repo` (it subsumes `security_events`).
 func TestNewTokenFunc_NormalizedGrantedScope_StillConnected(t *testing.T) {
 	store := &stubStore{ //nolint:exhaustruct // other fields unused in test
 		tok: &oauth2.Token{ //nolint:exhaustruct // other fields unused in test

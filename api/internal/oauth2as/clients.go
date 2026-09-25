@@ -13,8 +13,7 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-// ClientMetadata is the subset of RFC 7591 dynamic client registration
-// fields this server accepts.
+// ClientMetadata is the accepted subset of RFC 7591 registration fields.
 type ClientMetadata struct {
 	RedirectURIs []string `json:"redirect_uris"`
 	ClientName   string   `json:"client_name"`
@@ -22,9 +21,8 @@ type ClientMetadata struct {
 
 const clientIDBytes = 16
 
-// RegisterClient implements RFC 7591 dynamic client registration for a
-// public client (token_endpoint_auth_method is always forced to "none" —
-// this authorization server never issues confidential-client secrets).
+// RegisterClient implements RFC 7591 registration for public clients only
+// (token_endpoint_auth_method is forced to "none").
 func RegisterClient(
 	ctx context.Context,
 	db postgres.DB,
@@ -72,9 +70,8 @@ func RegisterClient(
 	return client, nil
 }
 
-// validateRedirectURI requires HTTPS, except for localhost/127.0.0.1 during
-// development (loopback redirect URIs are the documented OAuth 2.1 exception
-// for native/local clients, e.g. an MCP CLI callback server).
+// validateRedirectURI requires HTTPS except for loopback hosts (OAuth 2.1's
+// native-client exception).
 func validateRedirectURI(raw string) error {
 	u, err := url.Parse(raw)
 	if err != nil {

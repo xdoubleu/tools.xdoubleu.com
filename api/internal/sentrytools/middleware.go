@@ -9,11 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/config"
 )
 
-// Middleware is middleware used to configure and enable Sentry.
-// Call [tools.xdoubleu.com/sentrytools.Init] at application startup before
-// using this middleware.
-// When env is [config.TestEnv], a mocked [sentry.Hub] will be used and
-// Sentry is self-initialized with mock options.
+// Middleware configures and enables Sentry; call
+// [tools.xdoubleu.com/sentrytools.Init] first. In [config.TestEnv] it uses a
+// mocked hub.
 func Middleware(env string) (func(http.Handler) http.Handler, error) {
 	isTestEnv := env == config.TestEnv
 

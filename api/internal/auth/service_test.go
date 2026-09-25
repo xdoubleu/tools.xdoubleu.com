@@ -20,9 +20,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// capturingMailer records the last email sent, for tests to pull the
-// plaintext reset token back out of the link (ForgotPassword never returns
-// it directly, only emails it).
+// capturingMailer records the last email so tests can extract the reset token.
 type capturingMailer struct {
 	lastBody string
 }
@@ -196,8 +194,7 @@ func TestSignInWithRefreshToken_ExpiredToken(t *testing.T) {
 	service, db := newTestService(t)
 	userID := seedUser(t, db)
 
-	// Insert an already-expired refresh token directly, bypassing the
-	// service's own expiry TTL so this test doesn't need to sleep.
+	// Insert an already-expired token directly to avoid sleeping.
 	rawToken := "expired-refresh-token-" + uuid.NewString()
 	sum := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(sum[:])
@@ -210,8 +207,6 @@ func TestSignInWithRefreshToken_ExpiredToken(t *testing.T) {
 	_, _, err = service.SignInWithRefreshToken(context.Background(), rawToken)
 	require.Error(t, err)
 
-	// The expired token is deleted as a side effect, so a second attempt
-	// fails with "not found" rather than "expired" but is still an error.
 	_, _, err = service.SignInWithRefreshToken(context.Background(), rawToken)
 	require.Error(t, err)
 }
@@ -266,8 +261,7 @@ func TestResetPasswordWithToken_ExpiredToken(t *testing.T) {
 	)
 	userID := seedUser(t, db)
 
-	// Insert an already-expired reset token directly, bypassing
-	// ForgotPassword's TTL so this test doesn't need to sleep.
+	// Insert an already-expired token directly to avoid sleeping.
 	rawToken := "expired-reset-token-" + uuid.NewString()
 	sum := sha256.Sum256([]byte(rawToken))
 	tokenHash := hex.EncodeToString(sum[:])
@@ -304,9 +298,6 @@ func TestGetUser_InvalidToken(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestSignInWithEmail_MintAccessTokenFails covers mintAccessToken's
-// str2duration.ParseDuration error branch: a malformed AccessExpiry config
-// value fails every subsequent token mint.
 func TestSignInWithEmail_MintAccessTokenFails(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	cfg.AccessExpiry = "not-a-duration"
@@ -323,9 +314,6 @@ func TestSignInWithEmail_MintAccessTokenFails(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestSignInWithEmail_IssueRefreshTokenFails covers issueRefreshToken's own
-// str2duration.ParseDuration error branch, distinct from the access-token
-// one above.
 func TestSignInWithEmail_IssueRefreshTokenFails(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	cfg.RefreshExpiry = "not-a-duration"
@@ -342,9 +330,6 @@ func TestSignInWithEmail_IssueRefreshTokenFails(t *testing.T) {
 	require.Error(t, err)
 }
 
-// fakeAppUsersStore is a minimal appUsersStore fake, letting
-// TestGetAllUsers_WithRepoDelegates exercise the non-nil branch of
-// GetAllUsers without a real DB-backed repository.
 type fakeAppUsersStore struct {
 	users []models.User
 	err   error
@@ -352,8 +337,6 @@ type fakeAppUsersStore struct {
 
 func (f *fakeAppUsersStore) Upsert(_ context.Context, _, _ string) error { return nil }
 
-// GetByID is unused by TestGetAllUsers_WithRepoDelegates (only GetAll is
-// exercised) but still needs a body satisfying appUsersStore.
 func (f *fakeAppUsersStore) GetByID(_ context.Context, _ string) (*models.User, error) {
 	return nil, errors.New("fakeAppUsersStore: GetByID not implemented")
 }

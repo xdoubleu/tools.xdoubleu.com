@@ -10,9 +10,8 @@ import (
 	essentialogger "tools.xdoubleu.com/internal/logging"
 )
 
-// ScrubInternalErrors returns a Connect handler option that logs the original
-// error of CodeInternal and CodeUnknown responses and replaces the message
-// sent to the client with a generic one, so internal details never leak.
+// ScrubInternalErrors logs CodeInternal/CodeUnknown errors and replaces the
+// client-facing message with a generic one so internals never leak.
 func ScrubInternalErrors(logger *slog.Logger) connect.Option {
 	return connect.WithInterceptors(scrubInterceptor(logger))
 }

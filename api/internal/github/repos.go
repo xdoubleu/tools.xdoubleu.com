@@ -8,8 +8,7 @@ import (
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
-// Repo is a repository the connected account can access, offered as a
-// pick-list option for the admin config picker.
+// Repo is a repository offered by the admin config picker.
 type Repo struct {
 	FullName string // "owner/name"
 }
@@ -18,10 +17,8 @@ type repoWire struct {
 	FullName string `json:"full_name"`
 }
 
-// ListRepos returns the repositories visible to the connected account
-// (`repo` OAuth scope), for the admin config picker. Unlike ListFailingPullRequests,
-// this must work before any repo is picked, so a missing token is reported
-// as ErrNotConnected, not ErrNotConfigured.
+// ListRepos lists repos visible to the connection. It must work before a repo
+// is picked, so a missing token is ErrNotConnected, not ErrNotConfigured.
 func (c *client) ListRepos(ctx context.Context) ([]Repo, error) {
 	token, err := c.tokenFn(ctx)
 	if errors.Is(err, oauthconn.ErrNotConnected) {

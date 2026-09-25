@@ -36,7 +36,6 @@ func TestAutomatedActionSweepJobClosesStaleRows(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), logger))
 
 	assert.Equal(t, []int64{5, 21}, stub.ids)
-	// The cutoff the job passes must reflect the 24h max age, not "now".
 	assert.WithinDuration(
 		t, time.Now().Add(-staleActionMaxAge), stub.cutoff, time.Minute,
 	)
@@ -54,9 +53,7 @@ func TestAutomatedActionSweepJobNoStaleRows(t *testing.T) {
 }
 
 func TestAutomatedActionSweepJobCloseErrorIsSwallowed(t *testing.T) {
-	// A sweep failure must not panic the job queue or fail the run — the
-	// next sweep retries and the gauge-based alert still covers the
-	// interim.
+	// A sweep failure must not fail the run; the next sweep retries.
 	stub := &stubAutomatedActionCloser{
 		ids: nil, err: errors.New("db down"), cutoff: time.Time{},
 	}

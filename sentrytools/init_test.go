@@ -30,9 +30,7 @@ func TestInit_SkippedForEmptyDsn(t *testing.T) {
 }
 
 func TestInit_Success(t *testing.T) {
-	// Not t.Parallel(): mutates the process-global Sentry hub via the real
-	// sentry.Init, unlike the other tests here (which skip before touching
-	// it) and the loghandler tests (which build their own local hubs).
+	// Not parallel: mutates the global Sentry hub.
 	hub, err := sentrytools.Init(
 		"production",
 		sentry.ClientOptions{Dsn: "http://whatever@example.com/1337"},

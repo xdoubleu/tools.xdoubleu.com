@@ -1,6 +1,4 @@
-// Package httptools contains several tools for dealing with http
-// such as writing different kinds out content types and
-// error handling.
+// Package httptools holds HTTP response and error helpers.
 package httptools
 
 import (
@@ -68,15 +66,13 @@ func RateLimitExceededResponse(w http.ResponseWriter,
 	ErrorResponse(w, r, http.StatusTooManyRequests, errortools.MessageTooManyRequests)
 }
 
-// UnauthorizedResponse is used to handle an error when a user
-// isn't authorized.
+// UnauthorizedResponse writes a 401.
 func UnauthorizedResponse(w http.ResponseWriter,
 	r *http.Request, err errortools.UnauthorizedError) {
 	ErrorResponse(w, r, http.StatusUnauthorized, err.Error())
 }
 
-// ForbiddenResponse is used to handle an error when a user
-// isn't authorized to access a certain resource.
+// ForbiddenResponse writes a 403.
 func ForbiddenResponse(w http.ResponseWriter, r *http.Request) {
 	ErrorResponse(w, r, http.StatusForbidden, errortools.MessageForbidden)
 }

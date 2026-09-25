@@ -12,13 +12,13 @@ import (
 	"tools.xdoubleu.com/internal/convert"
 )
 
-// ProdEnv can be used as value when reading out the type of environment.
+// ProdEnv is the production environment name.
 const ProdEnv string = "production"
 
-// TestEnv can be used as value when reading out the type of environment.
+// TestEnv is the test environment name.
 const TestEnv string = "test"
 
-// DevEnv can be used as value when reading out the type of environment.
+// DevEnv is the development environment name.
 const DevEnv string = "development"
 
 type Config struct {
@@ -34,37 +34,24 @@ type Config struct {
 	AuthCacheTTL  int // seconds; 0 disables the per-token user cache
 	DBDsn         string
 	Release       string
-	// JWTSecret signs the local access-token JWTs issued by internal/auth's
-	// self-hosted implementation (issue #1039).
+	// JWTSecret signs local session access-token JWTs.
 	JWTSecret string
-	// OAuthHMACSecret keys the embedded OAuth 2.1 authorization server's
-	// (internal/oauth2as, via ory/fosite) HMAC token strategy.
+	// OAuthHMACSecret keys the embedded OAuth 2.1 server's HMAC token strategy.
 	OAuthHMACSecret string
-	// OAuthOIDCPrivateKey is a PEM-encoded RSA private key signing the
-	// embedded authorization server's OIDC ID tokens (issue #1469); its
-	// public half is published at /oauth2/jwks. Empty in development —
-	// oauth2as generates an ephemeral key, at the cost of invalidating
-	// previously-issued ID tokens on every restart.
+	// OAuthOIDCPrivateKey is a PEM RSA key signing OIDC ID tokens (public half at
+	// /oauth2/jwks). Empty in dev: an ephemeral key is generated per restart.
 	OAuthOIDCPrivateKey string
-	// OAuthGrafanaClientSecret is the plaintext client secret for the static
-	// confidential "grafana" OAuth client (issue #1469); its bcrypt hash is
-	// reconciled into auth.oauth2_clients on startup. Empty leaves Grafana
-	// SSO unusable.
+	// OAuthGrafanaClientSecret is the static "grafana" OAuth client's secret; its
+	// bcrypt hash is reconciled on startup. Empty disables Grafana SSO.
 	OAuthGrafanaClientSecret string
-	// AuthIssuer is this api's own OAuth 2.1 authorization-server issuer URL,
-	// exposed via /.well-known/oauth-authorization-server and used as the
-	// resource-server metadata's authorization server (issue #1039). Defaults
-	// to APIURL.
+	// AuthIssuer is this api's OAuth 2.1 issuer URL. Defaults to APIURL.
 	AuthIssuer      string
 	SteamAPIKey     string
 	HardcoverAPIKey string
 
-	// BMCHost is the Belgian Mobility Company APIM gateway host serving the
-	// GTFS static + realtime feeds (trains app, issue #1390). Kept as config
-	// rather than a constant because the spike (#1389) found two live APIM
-	// spellings answering the same paths — the ambiguity itself is evidence
-	// it moves. BMCPartnerKey is the Azure APIM subscription key, sent as the
-	// bmc-partner-key request header.
+	// BMCHost is the Belgian Mobility Company APIM host for the GTFS feeds (kept
+	// as config: the host spelling has changed). BMCPartnerKey is sent as the
+	// bmc-partner-key header.
 	BMCHost       string
 	BMCPartnerKey string
 	R2AccountID   string
@@ -72,95 +59,61 @@ type Config struct {
 	R2SecretKey   string
 	R2Bucket      string
 
-	// OAuth app registration credentials for the observability integrations
-	// (issue #440): each provider's connection itself is stored in
-	// global.oauth_connections, not here — these are only the app's own
-	// client id/secret, registered once with each provider.
+	// App-level OAuth client credentials for the observability integrations; the
+	// connections themselves live in global.oauth_connections.
 	GithubOAuthClientID     string
 	GithubOAuthClientSecret string
 	SentryOAuthClientID     string
 	SentryOAuthClientSecret string
-	// TodoistOAuthClientID/Secret register this app once with Todoist
-	// (issue #1475); unlike the observability integrations above, each
-	// user's own connection is stored per-user in
-	// learningpaths.oauth_connections, not global.oauth_connections.
+	// TodoistOAuthClientID/Secret: per-user connections live in
+	// learningpaths.oauth_connections.
 	TodoistOAuthClientID     string
 	TodoistOAuthClientSecret string
-	// EncryptionKey is a base64-standard-encoded 32-byte AES-256 key used
-	// to encrypt stored OAuth tokens at rest (see internal/crypto).
+	// EncryptionKey is a base64 32-byte AES-256 key for OAuth tokens at rest.
 	EncryptionKey string
 
-	// Resend credentials for the new-issue notification emails (issue #561):
-	// ResendAPIKey/EmailFrom identify the sender, NotifyEmailTo is the single
-	// admin address that gets notified.
+	// Resend sender for notification emails; NotifyEmailTo is the admin address.
 	ResendAPIKey  string
 	EmailFrom     string
 	NotifyEmailTo string
 
-	// Email-relay newsletter feeds (issue #595): EmailInboundDomain is the
-	// Resend receiving domain used to build a feed's "reading+<token>@domain"
-	// inbound alias; EmailInboundSecret verifies the Resend inbound webhook's
-	// signature. Either empty disables the feature (FeedService.CreateEmail
-	// refuses, the webhook handler rejects all requests).
+	// Email-relay newsletter feeds: EmailInboundDomain builds the
+	// "reading+<token>@domain" alias, EmailInboundSecret verifies the Resend
+	// webhook. Either empty disables the feature.
 	EmailInboundDomain string
 	EmailInboundSecret string
 
-	// PrometheusURL is Prometheus's own HTTP API base URL, queried by the
-	// prom_query MCP tool (cmd/api/mcp_prom_query.go, issue #1468). Prometheus
-	// joins the same Docker network as api (infra/prometheus-compose.yml) and
-	// is never reachable from outside it — same shape as the Postgres/
-	// node_exporter accessories it now scrapes instead of api doing so itself.
+	// PrometheusURL is Prometheus's internal HTTP API base, used by prom_query.
 	PrometheusURL string
-	// GrafanaURL is Grafana's public base URL, used by the get_grafana_alerts
-	// MCP tool (cmd/api/mcp_grafana_alerts.go, issue #1564). Grafana is a Kamal
-	// service and Kamal gives its containers no stable network alias
-	// (infra/prometheus.yml's #1554 note), so the api reaches its HTTP API
-	// through kamal-proxy on the public host rather than a container hostname.
+	// GrafanaURL is Grafana's public base URL; Kamal gives containers no stable
+	// alias, so the api goes through kamal-proxy.
 	GrafanaURL string
-	// GrafanaAdminPassword is Grafana's break-glass admin password
-	// (GF_SECURITY_ADMIN_PASSWORD on the grafana service). get_grafana_alerts
-	// authenticates to Grafana's API as `admin` with it; empty disables the
-	// tool.
+	// GrafanaAdminPassword authenticates get_grafana_alerts as `admin`; empty
+	// disables the tool.
 	GrafanaAdminPassword string
-	// ObservabilityIngestSecret gates POST /api/observability/logs, the
-	// plain-HTTP log-forwarding endpoint web pushes batches to — web has no
-	// user session to authenticate with, so this shared secret stands in for
-	// one. Empty disables the endpoint (every request is rejected).
+	// ObservabilityIngestSecret gates POST /api/observability/logs (web has no
+	// user session). Empty rejects every request.
 	ObservabilityIngestSecret string
 
-	// RoutineFireURL is the base URL of the Claude Code routine-fire
-	// webhook (internal/routines.Client POSTs <RoutineFireURL>/<routine
-	// name>/fire), issue #1444. ASSUMPTION: this repo has no access to
-	// Claude Code's routine-fire webhook documentation, so this shape is a
-	// reasonable guess pending confirmation against the real contract.
+	// RoutineFireURL is the routine-fire webhook base; routines.Client POSTs to
+	// <RoutineFireURL>/<routine name>/fire. The contract is assumed, unverified.
 	RoutineFireURL string
-	// RoutineFireToken authenticates both directions of issue #1444's
-	// routine-fire path: internal/routines.Client sends it as a bearer
-	// token to RoutineFireURL, and cmd/api's inbound Grafana alert webhook
-	// (POST /webhooks/grafana-alert) requires it as a bearer token on the
-	// way in before translating the alert into a Fire call. Empty disables
-	// the inbound webhook (every request is rejected) the same way
-	// ObservabilityIngestSecret disables its endpoint above.
+	// RoutineFireToken is the bearer token for outbound routine fires and for the
+	// inbound POST /webhooks/grafana-alert. Empty rejects every inbound request.
 	RoutineFireToken string
 
-	// SlackWebhookURL is a Slack Incoming Webhook URL used by the
-	// notify_slack MCP tool (internal/slackwebhook, issue #1628) to post
-	// epic-complete summaries. Deliberately separate from
-	// GRAFANA_SLACK_WEBHOOK_URL, which is a distinct app-deploy-scoped
-	// secret Grafana's own alerting uses. Empty disables the tool (every
-	// call returns slackwebhook.ErrNotConfigured).
+	// SlackWebhookURL is the Slack webhook for notify_slack, distinct from
+	// Grafana's GRAFANA_SLACK_WEBHOOK_URL. Empty disables the tool.
 	SlackWebhookURL string
 }
 
-// parser extracts environment variables and parses them to the right type.
 type parser struct {
 	logger *slog.Logger
 }
 
 const errorMessage = "can't convert env var '%s' with value '%s' to %s"
 
-// newParser loads environment variables that could be provided using a
-// .env file (particularly useful during development).
+// newParser loads env vars, including from a .env file.
 func newParser(logger *slog.Logger) parser {
 	_ = godotenv.Load()
 
@@ -199,8 +152,7 @@ func (c parser) envStr(key string, defaultValue string) string {
 	return value
 }
 
-// envSecret behaves like envStr but never logs the actual value, only
-// whether one was set.
+// envSecret is envStr that never logs the value.
 func (c parser) envSecret(key string, defaultValue string) string {
 	value := c.baseEnv(key)
 	if len(value) == 0 {
@@ -281,9 +233,7 @@ func New(logger *slog.Logger) Config {
 	cfg.RefreshExpiry = p.envStr("REFRESH_EXPIRY", "7d")
 	cfg.AuthCacheTTL = p.envInt("AUTH_CACHE_TTL", 60)
 	cfg.DBDsn = p.envSecret("DB_DSN", "postgres://postgres@localhost/postgres")
-	// "dev" (not DevEnv/"development") — web's getRelease() and the
-	// kobo-gateway update-check both hardcode this exact literal as the
-	// "no real deploy" sentinel (see web/lib/env.ts).
+	// "dev" is the literal "no real deploy" sentinel web and kobo-gateway expect.
 	cfg.Release = p.envStr("RELEASE", "dev")
 
 	cfg.JWTSecret = p.envSecret("JWT_SECRET", "")

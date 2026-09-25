@@ -80,7 +80,6 @@ func TestUsageRecorderAccumulatesAndFlushes(t *testing.T) {
 	}
 	assert.Equal(t, int64(2), counts["books:LibraryService/ListBooks"])
 	assert.Equal(t, int64(1), counts["games:GamesService/ListGames"])
-	// Bytes accumulate per bucket alongside the request count.
 	assert.Equal(t, int64(350), bytes["books:LibraryService/ListBooks"])
 	assert.Equal(t, int64(40), bytes["games:GamesService/ListGames"])
 }
@@ -93,7 +92,6 @@ func TestUsageRecorderFlushClearsCounts(t *testing.T) {
 	require.NoError(t, rec.Flush(t.Context()))
 	require.Len(t, store.flushed, 1)
 
-	// A second flush with no new records must not re-send.
 	store.flushed = nil
 	require.NoError(t, rec.Flush(t.Context()))
 	assert.Empty(t, store.flushed)
@@ -107,7 +105,6 @@ func TestUsageRecorderRestoresBatchOnFlushError(t *testing.T) {
 	rec.Record("books", "root", 0)
 	require.Error(t, rec.Flush(t.Context()))
 
-	// Recover the store and flush again; the count must survive.
 	store.flushErr = nil
 	require.NoError(t, rec.Flush(t.Context()))
 	require.Len(t, store.flushed, 1)
@@ -121,7 +118,6 @@ func TestUsageRecorderPrunesOncePerInterval(t *testing.T) {
 	require.NoError(t, rec.Flush(t.Context()))
 	require.NoError(t, rec.Flush(t.Context()))
 
-	// Two flushes back-to-back should prune only once.
 	assert.Equal(t, 1, store.pruned)
 }
 
@@ -131,10 +127,8 @@ func TestUsageRecorderFlushTickLogsErrorAndSurvives(t *testing.T) {
 	rec := newTestRecorder(store)
 
 	rec.Record("books", "root", 0)
-	// flushTick must swallow the flush error (logged, not panicked).
 	rec.flushTick(t.Context())
 
-	// The count is restored for a later retry.
 	store.flushErr = nil
 	require.NoError(t, rec.Flush(t.Context()))
 	assert.Equal(t, 1, store.flushedLen())

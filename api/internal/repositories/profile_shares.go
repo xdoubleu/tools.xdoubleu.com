@@ -7,10 +7,8 @@ import (
 	"tools.xdoubleu.com/internal/models"
 )
 
-// ProfileSharesRepository stores the opaque tokens behind public dashboard
-// links (global.profile_shares), one per (user, kind). A token resolves to
-// the owning user for the unauthenticated public dashboard RPCs in the
-// dashboard app.
+// ProfileSharesRepository stores public dashboard share tokens, one per
+// (user, kind).
 type ProfileSharesRepository struct {
 	db postgres.DB
 }
@@ -19,8 +17,7 @@ func NewProfileSharesRepository(db postgres.DB) *ProfileSharesRepository {
 	return &ProfileSharesRepository{db: db}
 }
 
-// Get returns the user's share for the given app, or
-// database.ErrResourceNotFound when none exists.
+// Get returns the user's share, or database.ErrResourceNotFound.
 func (r *ProfileSharesRepository) Get(
 	ctx context.Context,
 	userID string,
@@ -38,8 +35,7 @@ func (r *ProfileSharesRepository) Get(
 	return &share, nil
 }
 
-// Upsert replaces the user's share token for the given app, invalidating any
-// previous link for that app.
+// Upsert replaces the share token, invalidating the old link.
 func (r *ProfileSharesRepository) Upsert(
 	ctx context.Context,
 	userID string,
@@ -72,9 +68,8 @@ func (r *ProfileSharesRepository) Delete(
 	return err
 }
 
-// ResolveToken resolves a share token, scoped to the given app, to its
-// owner's user ID and display name. Returns database.ErrResourceNotFound
-// when the token is unknown or belongs to a different app.
+// ResolveToken resolves a token for kind to its owner's ID and display name;
+// database.ErrResourceNotFound if unknown or for another kind.
 func (r *ProfileSharesRepository) ResolveToken(
 	ctx context.Context,
 	token string,

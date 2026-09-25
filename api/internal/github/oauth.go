@@ -2,13 +2,8 @@ package github
 
 import "golang.org/x/oauth2"
 
-// OAuthConfig builds the GitHub OAuth App config used to let an admin connect
-// this integration. GitHub's classic OAuth App tokens don't expire (no
-// refresh_token/expires_in in the token response) unless the owning org has
-// enabled "expire user authorization tokens" — either way,
-// oauth2.Config.TokenSource handles it correctly with no special-casing:
-// zero Expiry means "never expires", and a returned refresh_token is honored
-// automatically via the standard OAuth2 refresh grant against TokenURL.
+// OAuthConfig builds the GitHub OAuth App config. Classic tokens usually never
+// expire; TokenSource handles either case without special-casing.
 func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 	return &oauth2.Config{
 		ClientID:     clientID,
@@ -19,9 +14,8 @@ func OAuthConfig(clientID, clientSecret, apiURL string) *oauth2.Config {
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
 		RedirectURL: apiURL + "/admin/oauth/github/callback",
-		// read:project (issue #1357) lets ListProjectIssuesByStatus read a
-		// user-owned GitHub Projects (v2) board's Status field over
-		// GraphQL — a scope no other call here needs.
+		// read:project lets ListProjectIssuesByStatus read a user-owned Projects (v2)
+		// board's Status field over GraphQL.
 		Scopes: []string{"repo", "security_events", "read:project"},
 	}
 }

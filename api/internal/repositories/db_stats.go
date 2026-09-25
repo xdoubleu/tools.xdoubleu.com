@@ -25,8 +25,8 @@ func (r *DBStatsRepository) TotalSize(ctx context.Context) (int64, error) {
 	return size, err
 }
 
-// SchemaSizes returns the on-disk size and table count of every non-system
-// schema, largest first.
+// SchemaSizes returns each non-system schema's size and table count, largest
+// first.
 func (r *DBStatsRepository) SchemaSizes(
 	ctx context.Context,
 ) ([]models.SchemaStats, error) {

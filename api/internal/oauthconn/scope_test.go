@@ -18,10 +18,7 @@ func TestScopesAreStale(t *testing.T) {
 		required  []string
 		want      bool
 	}{
-		// The bug this function exists for: GitHub normalizes the granted
-		// scope down to `repo`, which already subsumes `security_events`, so
-		// judging coverage by the echo marked a fully-authorized connection
-		// stale on every single reconnect.
+		// GitHub reduces the echo to `repo`, which subsumes `security_events`.
 		"github's normalized echo omits a subsumed scope": {
 			requested: "repo security_events",
 			granted:   "repo",
@@ -40,8 +37,6 @@ func TestScopesAreStale(t *testing.T) {
 			required:  githubRequired,
 			want:      false,
 		},
-		// Rows predating requested_scope fall back to the granted check, so
-		// they keep their previous behavior until the next reconnect.
 		"legacy row with a covering granted scope": {
 			requested: "",
 			granted:   "org:read event:write",

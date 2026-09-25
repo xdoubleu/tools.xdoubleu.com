@@ -12,11 +12,8 @@ type cacheEntry struct {
 	expiresAt time.Time
 }
 
-// userCache is a TTL cache mapping access tokens to DB-enriched users so the
-// auth middleware can skip re-verifying the JWT and re-running enrichment queries on
-// every request. A zero (or negative) TTL disables it. Expiry is lazy: stale
-// entries are dropped on read, and the cache only ever holds active sessions,
-// so no background sweeper is needed.
+// userCache maps access tokens to enriched users; TTL <= 0 disables it.
+// Expiry is lazy (checked on read), so no sweeper is needed.
 type userCache struct {
 	mu      sync.Mutex
 	ttl     time.Duration

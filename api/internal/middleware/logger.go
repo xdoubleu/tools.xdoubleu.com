@@ -9,8 +9,7 @@ import (
 	"tools.xdoubleu.com/internal/contexttools"
 )
 
-// Logger is middleware used to add a logger to
-// the context and log every request and their duration.
+// Logger adds a logger to the context and logs each request with its duration.
 func Logger(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return loggerHandler(logger, next)

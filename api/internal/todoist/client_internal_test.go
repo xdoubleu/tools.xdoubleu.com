@@ -109,9 +109,7 @@ func TestCreateTask_NonSuccessStatus(t *testing.T) {
 	assert.Contains(t, apiErr.Error(), "invalid token")
 }
 
-// TestCreateTask_RequestFails covers the httpClient.Do error branch without
-// a real Todoist network call: baseURL points at a closed local port, so the
-// connection is refused immediately.
+// baseURL points at a closed port, so the connection is refused.
 func TestCreateTask_RequestFails(t *testing.T) {
 	withTestBaseURL(t, "http://127.0.0.1:1")
 
@@ -123,8 +121,6 @@ func TestCreateTask_RequestFails(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestCreateTask_DecodeError covers a 2xx response whose body isn't valid
-// JSON — Todoist returning something unexpected.
 func TestCreateTask_DecodeError(t *testing.T) {
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

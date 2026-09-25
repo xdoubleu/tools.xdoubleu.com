@@ -1,6 +1,4 @@
-// Package observability provides shared instrumentation: a job wrapper that
-// records every run in global.job_runs and a request-usage recorder backing
-// the admin dashboard.
+// Package observability records job runs in global.job_runs and request usage.
 package observability
 
 import (
@@ -22,9 +20,7 @@ import (
 	"tools.xdoubleu.com/internal/threading"
 )
 
-// jobDuration is the Prometheus histogram Grafana's JobP95High alert rule
-// evaluates (issue #1528). Registered on client_golang's default registry,
-// which cmd/api's /metrics handler already serves.
+// jobDuration backs Grafana's JobP95High alert.
 //
 //nolint:gochecknoglobals //Prometheus collectors are process-wide by design
 var jobDuration = promauto.NewHistogramVec(
@@ -36,17 +32,13 @@ var jobDuration = promauto.NewHistogramVec(
 	[]string{"job", "success"},
 )
 
-// jobRunsInserter is the slice of JobRunsRepository TrackedJob needs.
 type jobRunsInserter interface {
 	Insert(ctx context.Context, run models.JobRun) error
 }
 
-// TrackedJob decorates a threading.Job so every run — including ones the
-// JobQueue would silently discard the error of — is recorded in
-// global.job_runs and failures are logged at Error level (which the Sentry
-// log handler forwards). Panics are captured as failed runs instead of
-// killing the worker. The inner job's ID is preserved, so progress
-// WebSocket topics and ForceRun keep working.
+// TrackedJob wraps a threading.Job so every run is recorded in
+// global.job_runs, failures log at Error (Sentry), and panics become failed
+// runs. The inner job's ID is preserved.
 type TrackedJob struct {
 	inner threading.Job
 	repo  jobRunsInserter
@@ -54,9 +46,7 @@ type TrackedJob struct {
 
 var _ threading.Job = (*TrackedJob)(nil)
 
-// NewTrackedJob decorates inner. If inner implements threading.Scheduled,
-// the returned Job does too, forwarding RunEvery — otherwise inner is
-// trigger-only and the returned Job stays trigger-only as well.
+// NewTrackedJob decorates inner, preserving threading.Scheduled if present.
 func NewTrackedJob(inner threading.Job, db postgres.DB) threading.Job {
 	tj := &TrackedJob{
 		inner: inner,
@@ -76,9 +66,7 @@ func (j *TrackedJob) ID() string {
 func (j *TrackedJob) Run(ctx context.Context, logger *slog.Logger) (err error) {
 	start := time.Now()
 
-	// One transaction per run, not per worker: a worker loop lives for the
-	// process lifetime, so a transaction started there would never finish
-	// and every job's spans would pile up underneath it unbounded.
+	// One transaction per run: a per-worker one would never finish.
 	transaction := sentry.StartTransaction(
 		ctx,
 		j.inner.ID(),
@@ -132,7 +120,7 @@ func (j *TrackedJob) record(
 		)
 	}
 
-	// Recording is best-effort: a failed insert must never fail the job.
+	// Best-effort: a failed insert must never fail the job.
 	if insertErr := j.repo.Insert(ctx, run); insertErr != nil {
 		logger.ErrorContext(
 			ctx,
@@ -143,8 +131,7 @@ func (j *TrackedJob) record(
 	}
 }
 
-// scheduledTrackedJob decorates a threading.Scheduled job, so wrapping it in
-// TrackedJob doesn't hide it from JobQueue's periodic tick.
+// scheduledTrackedJob keeps a wrapped Scheduled job visible to JobQueue.
 type scheduledTrackedJob struct {
 	*TrackedJob
 	scheduled threading.Scheduled

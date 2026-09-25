@@ -87,8 +87,7 @@ func TestClientAllowsPrivateWhenPermitted(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
-// A redirect to a blocked address must fail even though the first hop was
-// allowed — the check runs per connection, not per URL.
+// The check runs per connection, so a redirect to loopback must fail.
 func TestClientBlocksRedirectToLoopback(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
@@ -139,7 +138,5 @@ func TestClientStopsAfterMaxRedirects(t *testing.T) {
 
 	_, err = client.Do(req)
 	require.ErrorContains(t, err, "stopped after 2 redirects")
-	// The client must give up exactly maxRedirects requests in, not one
-	// hop early or late.
 	assert.Equal(t, int32(maxRedirects), requestCount.Load())
 }

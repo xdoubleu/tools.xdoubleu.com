@@ -1,5 +1,4 @@
-// Package contexttools provides functions which can be used to
-// set/get values to/from [context.Context].
+// Package contexttools gets and sets [context.Context] values.
 package contexttools
 
 import (
@@ -46,14 +45,12 @@ func Logger(ctx context.Context) *slog.Logger {
 	return *logger
 }
 
-// WithShownErrors enables showing errors
-// of [httptools.ServerErrorResponse].
+// WithShownErrors makes [httptools.ServerErrorResponse] show errors.
 func WithShownErrors(ctx context.Context) context.Context {
 	return context.WithValue(ctx, showErrorsContextKey, true)
 }
 
-// ShowErrors returns if errors should be shown
-// in [httptools.ServerErrorResponse].
+// ShowErrors reports whether errors should be shown.
 func ShowErrors(ctx context.Context) bool {
 	showErrors := GetValue[bool](ctx, showErrorsContextKey)
 

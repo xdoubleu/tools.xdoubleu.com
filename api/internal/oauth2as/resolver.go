@@ -7,13 +7,8 @@ import (
 	"github.com/ory/fosite"
 )
 
-// TokenResolver adapts an OAuth2Provider into auth.OAuth2TokenResolver
-// (internal/auth), letting the auth middleware resolve a fosite-issued
-// opaque access token to the user ID it was granted for. Defined here
-// (rather than internal/auth wiring it directly against fosite) to avoid
-// internal/auth needing to import fosite at all — cmd/api, the composition
-// root, wires the two packages together via internal/auth's
-// OAuth2TokenResolver interface.
+// TokenResolver implements auth.OAuth2TokenResolver so internal/auth never
+// imports fosite.
 type TokenResolver struct {
 	provider fosite.OAuth2Provider
 }

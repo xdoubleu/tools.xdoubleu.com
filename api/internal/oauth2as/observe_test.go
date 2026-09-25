@@ -13,9 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// recordCapture is a slog.Handler that keeps every record in memory so tests
-// can assert on level and attributes. Enabled at every level so a severity
-// assertion can't accidentally pass because the record was filtered out.
+// recordCapture keeps every record, at every level, for assertions.
 type recordCapture struct {
 	mu      sync.Mutex
 	records []slog.Record
@@ -51,7 +49,6 @@ func (c *recordCapture) reset() {
 	c.records = nil
 }
 
-// attrs flattens one record's attributes into a map of key to string value.
 func attrs(record slog.Record) map[string]string {
 	out := map[string]string{}
 	record.Attrs(func(attr slog.Attr) bool {
@@ -61,14 +58,8 @@ func attrs(record slog.Record) map[string]string {
 	return out
 }
 
-// TestObserve_RefreshGrantFailureLogsAtError is the alerting policy's whole
-// point: replaying a refresh token past the rotation grace period makes
-// fosite revoke the *entire* token family, not just reject this one
-// request — a client that held a working session just lost it (issue
-// #1177) — so that specific failure must be Error, the level the root
-// sentrytools module's LogHandler forwards to Sentry, even though the HTTP
-// response is a 400. Every other refresh-grant failure shape stays at Warn
-// (TestObserve_RefreshGrantNotFoundLogsAtWarn) — issue #1715.
+// Refresh-token reuse past the grace period revokes the token family, so it
+// must log at Error despite the 400.
 func TestObserve_RefreshGrantFailureLogsAtError(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -86,10 +77,7 @@ func TestObserve_RefreshGrantFailureLogsAtError(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	require.NotEmpty(t, out.RefreshToken)
 
-	// Rotate the refresh token, then age the rotated-out one past the reuse
-	// grace period so replaying it is treated as theft rather than a retry —
-	// the same setup handlers_test.go uses, and the closest stand-in for a
-	// real client whose refresh has stopped working.
+	// Rotate, then age the old token past the grace period so replay is theft.
 	_, rotated := srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken},
@@ -128,12 +116,7 @@ func TestObserve_RefreshGrantFailureLogsAtError(t *testing.T) {
 	assert.NotEmpty(t, gotAttrs["oauth_error"])
 }
 
-// TestObserve_RefreshGrantNotFoundLogsAtWarn covers the regression issue
-// #1715 reported: a refresh_token grant fosite rejects as invalid_grant
-// isn't automatically alerting-worthy — a token that never existed
-// (tampered, or a scanner probing /oauth2/token with a self-registered
-// client_id) is routine, indistinguishable from any other stranger hitting
-// the endpoint, and must stay at Warn like every other 4xx.
+// A never-existing refresh token is routine and must stay at Warn.
 func TestObserve_RefreshGrantNotFoundLogsAtWarn(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -156,10 +139,7 @@ func TestObserve_RefreshGrantNotFoundLogsAtWarn(t *testing.T) {
 	assert.Equal(t, "invalid_grant", gotAttrs["oauth_error"])
 }
 
-// TestObserve_AuthorizationCodeFailureLogsAtWarn guards the other half of the
-// policy: routine 4xx rejections (a mistyped PKCE verifier here, but equally
-// the steady background of scanners probing /oauth2/*) must stay at Warn, or
-// they'd bury the refresh-grant signal above in Sentry noise.
+// Routine 4xx rejections must stay at Warn so they don't bury real signals.
 func TestObserve_AuthorizationCodeFailureLogsAtWarn(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -184,8 +164,6 @@ func TestObserve_AuthorizationCodeFailureLogsAtWarn(t *testing.T) {
 	assert.Equal(t, "authorization_code", attrs(records[0])["grant_type"])
 }
 
-// TestObserve_ConsentDeniedLogsAtWarn covers the authorize leg: a user
-// declining is a normal outcome, so it must be visible but never alerting.
 func TestObserve_ConsentDeniedLogsAtWarn(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -217,9 +195,6 @@ func TestObserve_ConsentDeniedLogsAtWarn(t *testing.T) {
 	assert.Empty(t, gotAttrs["grant_type"], "the authorize leg has no grant_type")
 }
 
-// TestObserve_MalformedRegistrationLogsAtWarn covers the registration leg,
-// which never reaches fosite and so carries a plain error rather than an
-// RFC6749Error.
 func TestObserve_MalformedRegistrationLogsAtWarn(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	srv.logs.reset()
@@ -238,15 +213,10 @@ func TestObserve_MalformedRegistrationLogsAtWarn(t *testing.T) {
 	assert.Equal(t, "/oauth2/register", attrs(records[0])["endpoint"])
 }
 
-// s is shorthand for the test server's base URL.
 func s(srv *oauth2asTestServer) string { return srv.ts.URL }
 
-// TestObserve_NeverLogsCredentials is the regression guard that matters most:
-// the token endpoint's request form carries the authorization code, the PKCE
-// verifier and the refresh token, and none of them may ever reach a log line.
-// It asserts on the whole attribute set rather than on specific keys, so it
-// still fires if fosite starts putting a credential in a field this code
-// forwards verbatim (a hint, say).
+// The token form carries codes, PKCE verifiers and refresh tokens; none may
+// reach a log line. Asserts on all attributes, not specific keys.
 func TestObserve_NeverLogsCredentials(t *testing.T) {
 	srv := newOAuth2asTestServer(t)
 	client := srv.registerClient(t)
@@ -266,8 +236,6 @@ func TestObserve_NeverLogsCredentials(t *testing.T) {
 
 	srv.logs.reset()
 
-	// Drive several distinct rejections so the assertion covers more than one
-	// error shape.
 	srv.exchangeToken(t, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {out.RefreshToken + "-tampered"},
@@ -281,8 +249,6 @@ func TestObserve_NeverLogsCredentials(t *testing.T) {
 		"code_verifier": {verifier},
 	})
 
-	// A confidential-client rejection: the wrong client_secret must not be
-	// logged either (issue #1469 widened the AS to confidential clients).
 	const wrongClientSecret = "leaked-client-secret-should-not-appear"
 	gClient := grafanaConfidentialClient(t, srv)
 	gVerifier, gChallenge := pkcePair(t)

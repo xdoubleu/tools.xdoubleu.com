@@ -4,8 +4,8 @@ package database
 import "errors"
 
 var (
-	// ErrResourceNotFound is an error with value "resource not found".
+	// ErrResourceNotFound is returned when a resource doesn't exist.
 	ErrResourceNotFound = errors.New("resource not found")
-	// ErrResourceConflict is an error with value "resource unique value already used".
+	// ErrResourceConflict is returned on a unique-value conflict.
 	ErrResourceConflict = errors.New("resource conflicts with existing resource")
 )

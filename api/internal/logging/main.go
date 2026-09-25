@@ -7,8 +7,7 @@ import (
 	"log/slog"
 )
 
-// ErrAttr provides a [slog.Attr] to reduce a bit of boilerplate when logging errors.
-// Credits go to https://github.com/golang/go/issues/59364#issuecomment-1493237877.
+// ErrAttr returns a [slog.Attr] for err.
 func ErrAttr(err error) slog.Attr {
 	return slog.Any("error", err)
 }
@@ -18,8 +17,7 @@ func NewNopLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// NewBufLogHandler provides a [slog.TextHandler]
-// which logs to the provided [bytes.Buffer].
+// NewBufLogHandler returns a [slog.TextHandler] writing to buf.
 func NewBufLogHandler(buf *bytes.Buffer, opts *slog.HandlerOptions) *slog.TextHandler {
 	return slog.NewTextHandler(buf, opts)
 }

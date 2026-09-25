@@ -21,11 +21,8 @@ import (
 	"tools.xdoubleu.com/internal/validate"
 )
 
-// newTracingSentryHub returns a hub whose transport captures every finished
-// transaction event. TracesSampleRate/EnableTracing must both be set or
-// sentry-go drops transactions before they ever reach the transport (see
-// Span.sample) — mirrors
-// internal/observability/trackedjob_internal_test.go's newSentryTestCtx.
+// newTracingSentryHub captures finished transactions. TracesSampleRate and
+// EnableTracing must both be set or sentry-go drops them.
 func newTracingSentryHub(t *testing.T) *sentry.Hub {
 	t.Helper()
 
@@ -40,8 +37,6 @@ func newTracingSentryHub(t *testing.T) *sentry.Hub {
 	return sentry.NewHub(client, sentry.NewScope())
 }
 
-// withHub mimics what sentryhttp's middleware does in production: setting a
-// request-scoped hub on the context before the handler runs.
 func withHub(hub *sentry.Hub, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r.WithContext(sentry.SetHubOnContext(r.Context(), hub)))
@@ -66,8 +61,6 @@ func (s testSubscribeMsg) Topic() string {
 	return s.TopicName
 }
 
-// dialAndExchange dials handler over a websocket, writes initialMsg (if any)
-// and decodes one JSON response into dst.
 func dialAndExchange(t *testing.T, handler http.Handler, initialMsg any, dst any) {
 	t.Helper()
 
@@ -243,8 +236,6 @@ func TestWebSocketHandshake_FailureRecordsErrorStatus(t *testing.T) {
 	)
 	handler := withHub(hub, ws.Handler())
 
-	// A plain (non-upgrade) request fails websocket.Accept immediately,
-	// without ever reaching the topic-subscription loop.
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

@@ -10,8 +10,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// PgxErrorToHTTPError converts a database error
-// from [github.com/jackc/pgx] to an appropriate HTTP error.
+// PgxErrorToHTTPError maps a pgx error to an HTTP error.
 func PgxErrorToHTTPError(err error) error {
 	var pgxError *pgconn.PgError
 	errors.As(err, &pgxError)

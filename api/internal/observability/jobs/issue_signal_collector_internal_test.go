@@ -82,9 +82,7 @@ type stubAutomatedActionGetter struct {
 	firedAt time.Time
 	err     error
 
-	// byRoutine, when non-nil, backs MostRecentOpenedAt per routine name
-	// instead of the shared firedAt/err pair above, so a single stub can
-	// exercise different routines independently.
+	// byRoutine, when non-nil, overrides firedAt/err per routine name.
 	byRoutine map[string]stubAutomatedActionGetter
 }
 
@@ -152,8 +150,7 @@ func failingPRs(n int) []github.PullRequest {
 	return make([]github.PullRequest, n)
 }
 
-// resetGauges clears every issue-signal gauge so one test's writes don't
-// leak into another's assertions (the collectors are process-wide).
+// resetGauges clears the process-wide gauges between tests.
 func resetGauges() {
 	githubFailingPullRequests.Set(0)
 	githubWorkflowRunFailed.Reset()
@@ -286,8 +283,6 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 		},
 		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
-		// SchemaSizes has no "not configured" sentinel — a nil result is a
-		// clean run that simply resets the gauge, no log.
 		stubSchemaSizer{sizes: nil, err: nil},
 		stubAutomatedActionGetter{
 			firedAt:   time.Time{},
@@ -336,8 +331,7 @@ func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
 					err:       database.ErrResourceNotFound,
 					byRoutine: nil,
 				},
-				// "red-pr-repair" deliberately omitted so byRoutine's own
-				// not-found fallback (rather than the outer err) is exercised.
+				// "red-pr-repair" is omitted to exercise byRoutine's not-found fallback.
 			},
 		},
 	)
