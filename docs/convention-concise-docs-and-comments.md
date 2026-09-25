@@ -1,6 +1,6 @@
 # Convention: concise docs and comments
 
-- Enforced by: `make lint/docs` (CI, `finish-task`) for budgets and long comment blocks; review for the rest
+- Enforced by: `make lint/docs` (CI `docs-lint`, `finish-task`, Claude `PostToolUse` hook, OpenCode `repo-guard` idle nudge) for budgets and long comment blocks; review for the rest
 - Issues: #1850
 
 ## Rule

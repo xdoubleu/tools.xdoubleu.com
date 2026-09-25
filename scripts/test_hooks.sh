@@ -325,6 +325,27 @@ else
   fail "edit in the main checkout of a repo, never having entered a worktree -> denied" "$out"
 fi
 
+# --- PostToolUse lint/docs hook -----------------------------------------
+LINTDOCS_HOOK="$ROOT_DIR/.claude/hooks/post-edit-lint-docs.sh"
+stub=$(mktemp -d)
+mkdir -p "$stub/scripts"
+printf '#!/usr/bin/env bash\necho "AGENTS.md: 2000 words, budget 1000"\nexit 1\n' > "$stub/scripts/lint_docs.sh"
+chmod +x "$stub/scripts/lint_docs.sh"
+out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
+if printf '%s' "$out" | jq -e '.hookSpecificOutput.additionalContext | contains("budget 1000")' > /dev/null 2>&1; then
+  pass "lint/docs hook surfaces a failing check"
+else
+  fail "lint/docs hook surfaces a failing check" "$out"
+fi
+printf '#!/usr/bin/env bash\nexit 0\n' > "$stub/scripts/lint_docs.sh"
+out=$(jq -n --arg cwd "$stub" '{cwd:$cwd}' | "$LINTDOCS_HOOK")
+if [ -z "$out" ]; then
+  pass "lint/docs hook is silent when the check passes"
+else
+  fail "lint/docs hook is silent when the check passes" "$out"
+fi
+rm -rf "$stub"
+
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
   echo "All hook tests passed."

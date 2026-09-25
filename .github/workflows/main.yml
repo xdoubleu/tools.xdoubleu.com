@@ -313,6 +313,21 @@ jobs:
       - name: make lint/skills
         run: make lint/skills
 
+  docs-lint:
+    if: github.event_name != 'push'
+    name: Docs and Comments Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: make lint/docs
+        run: make lint/docs
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+
   ci-pass:
     needs:
       [
@@ -333,6 +348,7 @@ jobs:
         conflict-markers,
         workflow-lint,
         skills-lint,
+        docs-lint,
       ]
     if: always() && github.event_name != 'push'
     runs-on: ubuntu-latest

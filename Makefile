@@ -24,3 +24,7 @@ lint/workflows:
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:
 	./scripts/lint_skills.sh
+
+# Word budgets for agent instruction files; no long added comment blocks.
+lint/docs:
+	./scripts/lint_docs.sh

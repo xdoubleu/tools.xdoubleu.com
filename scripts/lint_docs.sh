@@ -15,11 +15,11 @@ import glob, os, re, subprocess, sys
 MAX_COMMENT_LINES = 6
 SKILL_BUDGET = 900
 BUDGETS = {
-    "AGENTS.md": 1300,
-    "CLAUDE.md": 500,
-    "api/AGENTS.md": 1800,
-    "web/AGENTS.md": 800,
-    "kobo-gateway/AGENTS.md": 600,
+    "AGENTS.md": 1000,
+    "CLAUDE.md": 400,
+    "api/AGENTS.md": 1400,
+    "web/AGENTS.md": 650,
+    "kobo-gateway/AGENTS.md": 350,
 }
 for skill in glob.glob(".claude/skills/*/SKILL.md"):
     BUDGETS.setdefault(skill, SKILL_BUDGET)
