@@ -1,7 +1,6 @@
 # Spec: agent routines on GitHub Actions
 
-- Status: all four routines have Actions workflows, each switched on by its
-  `ROUTINE_<NAME>_ENABLED` variable once its claude.ai routine is disabled
+- Status: all four routines run on Actions; the claude.ai routines are retired
 - Issues: #1902, #1903, part of #1851. Depends on #1899 (intake hardening),
   #1901 (machine identity). Grafana-fired runs: #1907.
 
@@ -52,8 +51,7 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
      prefix, e.g. a GLM or DeepSeek flash model.
    - `POSTHOG_MCP_URL`: PostHog's remote MCP endpoint for your region, from
      PostHog's MCP docs.
-   - `ROUTINE_<NAME>_ENABLED=true` per routine, once its claude.ai routine is
-     disabled: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
+   - `ROUTINE_<NAME>_ENABLED=true` per routine: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
      `READY_ISSUES_EXECUTOR`, `POSTHOG_UX_DISCOVERY`. These must be
      repo-level: the callers' `if:` runs outside the `agents` environment.
      `workflow_dispatch` runs regardless.

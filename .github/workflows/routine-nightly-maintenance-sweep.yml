@@ -3,8 +3,7 @@ name: Routine — nightly maintenance sweep
 permissions:
   contents: read
 
-# The schedule only runs once ROUTINE_NIGHTLY_MAINTENANCE_SWEEP_ENABLED is
-# "true", so it never overlaps the claude.ai routine it replaces.
+# The schedule only runs while ROUTINE_NIGHTLY_MAINTENANCE_SWEEP_ENABLED is "true".
 on:
   schedule:
     # 00:07 UTC: 02:07 Brussels summer time, 01:07 in winter.

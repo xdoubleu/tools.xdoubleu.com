@@ -3,8 +3,7 @@ name: Routine — red PR repair
 permissions:
   contents: read
 
-# The schedule only runs once ROUTINE_RED_PR_REPAIR_ENABLED is "true", so it
-# never overlaps the claude.ai routine it replaces.
+# The schedule only runs while ROUTINE_RED_PR_REPAIR_ENABLED is "true".
 on:
   schedule:
     # 05:07 UTC: 07:07 Brussels summer time, 06:07 in winter.

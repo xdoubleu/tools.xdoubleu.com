@@ -3,8 +3,7 @@ name: Routine — ready-issues executor
 permissions:
   contents: read
 
-# The schedule only runs once ROUTINE_READY_ISSUES_EXECUTOR_ENABLED is "true",
-# so it never overlaps the claude.ai routine it replaces.
+# The schedule only runs while ROUTINE_READY_ISSUES_EXECUTOR_ENABLED is "true".
 on:
   schedule:
     # 02:07 UTC: 04:07 Brussels summer time, 03:07 in winter; after the sweep.

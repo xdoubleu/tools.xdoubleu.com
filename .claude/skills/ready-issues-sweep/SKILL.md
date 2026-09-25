@@ -1,6 +1,6 @@
 ---
 name: ready-issues-sweep
-description: Pull every issue in the "Ready" column of the GitHub project board and dispatch one isolated subagent per issue to fix it end-to-end (start-task through finish-task, PR opened). Use whenever the user asks to "go over Ready issues", "work through the board", "clear the Ready column", or "fix all Ready issues" — also the skill the nightly scheduled routine (`docs/spec-routine-ready-issues-executor.md`) runs unattended.
+description: Pull every issue in the "Ready" column of the GitHub project board and dispatch one isolated subagent per issue to fix it end-to-end (start-task through finish-task, PR opened). Use whenever the user asks to "go over Ready issues", "work through the board", "clear the Ready column", or "fix all Ready issues" — also the skill the nightly scheduled routine (`.github/workflows/routine-ready-issues-executor.yml`) runs unattended.
 ---
 
 # Ready Issues Sweep
@@ -71,4 +71,4 @@ question.
 
 `monitoring-sweep` handles `/monitoring` problems; `issue-triage`/
 `refine-issue` groom Backlog. Routine setup:
-`docs/spec-routine-ready-issues-executor.md`.
+`.github/workflows/routine-ready-issues-executor.yml`.
