@@ -740,11 +740,10 @@ func (s *BookService) UpdateReadingProgress(
 	}
 
 	if source == models.ReadingSourceKobo {
-		existing, err := s.readingState.Get(ctx, userID, bookID)
-		if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-			return err
-		}
-		if existing != nil && percent < existing.Percent {
+		// Any error here (including "no existing state") just means there's
+		// nothing to regress against — fall through to the upsert below.
+		if existing, err := s.readingState.Get(ctx, userID, bookID); err == nil &&
+			percent < existing.Percent {
 			return nil
 		}
 	}
