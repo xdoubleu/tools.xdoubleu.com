@@ -1,0 +1,37 @@
+name: Routine — red PR repair
+
+permissions:
+  contents: read
+
+# The schedule only runs once ROUTINE_RED_PR_REPAIR_ENABLED is "true", so it
+# never overlaps the claude.ai routine it replaces.
+on:
+  schedule:
+    # 05:07 UTC: 07:07 Brussels summer time, 06:07 in winter.
+    - cron: '7 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  red-pr-repair:
+    if: github.event_name == 'workflow_dispatch' || vars.ROUTINE_RED_PR_REPAIR_ENABLED == 'true'
+    uses: ./.github/workflows/agent-routine.yml
+    secrets: inherit
+    with:
+      routine: red-pr-repair
+      prompt: >-
+        Run the red-pr-repair skill (.claude/skills/red-pr-repair/SKILL.md);
+        if the skill tool can't load it, read that file and follow it by hand.
+        Call record_action with mode=open, trigger_source=schedule,
+        routine_name=red-pr-repair before pulling any data. Pull
+        get_failing_pull_requests and keep only red PRs in the skill's scope
+        (same-repo head, trusted author, dependencies label or claude/ branch).
+        For each, check out the PR's existing branch (never start-task),
+        diagnose from the failing job's logs, and do exactly one of: (a) ci-pass
+        "Timed out waiting for Codecov to report" → push a trivial non-empty
+        commit, never re-run the check; (b) a determinable fix → fix, verify
+        locally (including after any merge-conflict resolution), push; (c)
+        otherwise leave the PR open and post a gh pr comment explaining what
+        was investigated and why — never close or abandon it. Never merge.
+        Once every push has landed, call record_action with mode=close (the id
+        the open call returned), outcome no_action_needed, succeeded, or failed,
+        and a short per-PR summary.

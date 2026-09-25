@@ -1,0 +1,173 @@
+name: Agent Routine
+
+# Runs one unattended routine skill with OpenCode on OpenRouter. Callers
+# trigger on schedule/workflow_dispatch only, never on events outsiders can
+# raise. Setup: docs/spec-agent-routines-on-actions.md.
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      routine:
+        description: record_action routine_name, e.g. red-pr-repair
+        required: true
+        type: string
+      prompt:
+        description: The routine prompt from its docs/spec-routine-*.md
+        required: true
+        type: string
+
+env:
+  OPENCODE_VERSION: 1.18.32
+  APPS_BASE_URL: https://tools.xdoubleu.com/api
+
+jobs:
+  run:
+    name: ${{ inputs.routine }}
+    runs-on: ubuntu-latest
+    environment: agents
+    timeout-minutes: 75
+    concurrency:
+      group: agent-routine-${{ inputs.routine }}
+      cancel-in-progress: false
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.ROUTINES_APP_ID }}
+          private-key: ${{ secrets.ROUTINES_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: './api/go.mod'
+          cache-dependency-path: './api/go.sum'
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: './web/package.json'
+
+      - name: Configure git as the App's bot user
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        run: |
+          bot="${APP_SLUG}[bot]"
+          id=$(gh api "/users/${bot}" --jq .id)
+          git config --global user.name "$bot"
+          git config --global user.email "${id}+${bot}@users.noreply.github.com"
+
+      - name: Mint MCP token (client_credentials)
+        id: mcp-token
+        env:
+          CLIENT_SECRET: ${{ secrets.OAUTH_ROUTINES_CLIENT_SECRET }}
+        run: |
+          token_url=$(curl -fsS "$APPS_BASE_URL/.well-known/oauth-authorization-server" \
+            | jq -r .token_endpoint)
+          token=$(curl -fsS -u "routines:${CLIENT_SECRET}" \
+            -d grant_type=client_credentials "$token_url" | jq -r .access_token)
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Install OpenCode
+        run: npm install --global "opencode-ai@${OPENCODE_VERSION}"
+
+      # The agent's stdout goes to a file, never the public job log. Its step
+      # timeout sits below the MCP token's one-hour lifetime and leaves room
+      # for the notice below.
+      - name: Run routine
+        id: agent
+        timeout-minutes: 55
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
+          ROUTINE_SUMMARY_PATH: ${{ runner.temp }}/summary.md
+          OPENCODE_CONFIG_CONTENT: >-
+            {"mcp": {"tools-apps": {"type": "remote",
+            "url": "${{ env.APPS_BASE_URL }}/apps/mcp", "oauth": false,
+            "headers": {"Authorization": "Bearer {env:TOOLS_APPS_MCP_TOKEN}"}}},
+            "permission": {"bash": {"*": "allow",
+            "git push --force*": "deny", "git push -f*": "deny",
+            "gh pr merge*": "deny", "gh secret*": "deny"}}}
+          ROUTINE_PROMPT: ${{ inputs.prompt }}
+          ROUTINE: ${{ inputs.routine }}
+          MODEL: ${{ vars.ROUTINES_MODEL }}
+        run: |
+          prompt="You run unattended in GitHub Actions via OpenCode; no human
+          is present, so never ask or wait. Skills live under .claude/skills
+          and .agents/skills. Subagents here share one checkout: work through
+          items one at a time in this session instead of parallel isolated
+          subagents. gh is authenticated as this routine's GitHub App bot.
+          As your last step, write a Slack summary to $ROUTINE_SUMMARY_PATH:
+          one line, then one bullet per PR or issue touched with its URL. No
+          log excerpts, secrets or user data.
+
+          $ROUTINE_PROMPT"
+          opencode run --auto \
+            --model "openrouter/${MODEL}" \
+            --title "$ROUTINE $GITHUB_RUN_ID" \
+            --format json "$prompt" \
+            > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log"
+
+      # Encrypted because this repo is public: artifacts are readable by
+      # anyone signed in to GitHub.
+      - name: Encrypt transcript
+        id: transcript
+        if: always()
+        env:
+          PASSPHRASE: ${{ secrets.ROUTINE_TRANSCRIPT_PASSPHRASE }}
+        run: |
+          touch "$RUNNER_TEMP/transcript.jsonl" "$RUNNER_TEMP/opencode.log"
+          if [ -z "$PASSPHRASE" ]; then
+            echo "uploaded=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tar -czf - -C "$RUNNER_TEMP" transcript.jsonl opencode.log \
+            | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:PASSPHRASE \
+              -out "$RUNNER_TEMP/transcript.tar.gz.enc"
+          echo "uploaded=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        if: always() && steps.transcript.outputs.uploaded == 'true'
+        with:
+          name: transcript-${{ inputs.routine }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/transcript.tar.gz.enc
+          retention-days: 14
+
+      - name: Post Slack notice
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          ROUTINE: ${{ inputs.routine }}
+          OUTCOME: ${{ steps.agent.outcome }}
+          TRANSCRIPT: ${{ steps.transcript.outputs.uploaded }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SUMMARY_PATH: ${{ runner.temp }}/summary.md
+        run: |
+          summary="_agent wrote no summary_"
+          if [ -s "$SUMMARY_PATH" ]; then summary=$(head -c 3000 "$SUMMARY_PATH"); fi
+          note=""
+          if [ "$TRANSCRIPT" != "true" ]; then note=" (no transcript: passphrase unset)"; fi
+          jq -n --arg text "*${ROUTINE}* — ${OUTCOME:-not run}
+          ${summary}
+          <${RUN_URL}|Run and encrypted transcript>${note}" '{text: $text}' \
+            | curl -fsS -X POST -H 'Content-Type: application/json' \
+              --data @- "$SLACK_WEBHOOK_URL"
