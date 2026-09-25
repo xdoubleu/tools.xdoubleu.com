@@ -17,7 +17,7 @@ Read `api/AGENTS.md`, `web/AGENTS.md`, `kobo-gateway/AGENTS.md` before working i
 
 **Deploy:** `api` and `web` are two Kamal services behind one kamal-proxy, routed by path; `api` strips `/api` in-process (`api/cmd/api/kamal_proxy_shim.go`). **Deploy order web-then-api is required** → [adr-0001](docs/adr-0001-two-service-kamal-deploy.md). `grafana` is a third service at `/grafana` → [adr-0022](docs/adr-0022-prometheus-grafana-metrics.md).
 
-**Handler deadlines:** a handler outliving the proxy's response timeout is reset with no log or Sentry event. Raising `deployLogsCtxTimeout` (20s) or `liveLogDeadline` (8s) requires raising `proxy.response_timeout` in `config/deploy.api.yml` → [adr-0017](docs/adr-0017-long-request-handler-deadlines.md).
+**Handler deadlines:** a handler outliving kamal-proxy's response timeout is reset with no log or Sentry event. Keep long-request deadlines below `proxy.response_timeout` (`config/deploy.api.yml`) → [adr-0017](docs/adr-0017-long-request-handler-deadlines.md).
 
 ## Production Safety Rules
 

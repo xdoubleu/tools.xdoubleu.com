@@ -5,82 +5,38 @@
 
 ## Rule
 
-Every Kamal deploy secret must appear in **all three** of:
+Every Kamal deploy secret appears in **all three** of:
 
-1. `config/deploy.api.yml` / `config/deploy.web.yml` / `config/deploy.grafana.yml`
-   — the `env.secret:` list (three services since issue #1468 added Grafana)
+1. `config/deploy.{api,web,grafana}.yml` — `env.secret:`
 2. `.kamal/secrets`
-3. the matching `Deploy <svc> via Kamal` step's `env:` block in
-   `.github/workflows/main.yml`
+3. the matching `Deploy <svc> via Kamal` step's `env:` in `.github/workflows/main.yml`
 
-### Grafana prefix rule (#1520)
+A new secret also needs a `production` Environment secret; `infra/README.md`
+holds the full list.
 
-Kamal injects every `env.secret:`/`env.clear:` name into the container
-verbatim — `.kamal/secrets` has no renaming mechanism. Grafana only reads
-`GF_`-prefixed env vars, so `check_kamal_secrets.sh` additionally fails the PR
-if `config/deploy.grafana.yml` lists an env name that is neither `GF_`-prefixed
-nor deploy-time metadata Grafana ignores (`RELEASE`, `KAMAL_*`). This is what
-`#1517` needed: `OAUTH_GRAFANA_CLIENT_SECRET` was consistent across all three
-lists yet inert inside the container until renamed to
-`GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` in `#1518`.
-
-Adding a genuinely new secret also means creating the `production` Environment
-secret — see `infra/README.md`, which is the single source of truth for the full
-secrets list.
+**Grafana names must be `GF_`-prefixed** (or ignored metadata: `RELEASE`,
+`KAMAL_*`). Kamal injects names verbatim and Grafana reads only `GF_*`, so the
+lint rejects anything else (#1520).
 
 ## Why
 
-A name present in the first but missing from the others **only fails at
-`kamal deploy` time on `main`** — post-merge, on an untested push, with the
-deploy already underway:
-
-```
-Secret 'X' not found in .kamal/secrets
-```
-
-There is no earlier signal. The PR is green, the merge is clean, and the failure
-lands in production deploy logs.
+A mismatch fails only at `kamal deploy` on `main`, post-merge:
+`Secret 'X' not found in .kamal/secrets`.
 
 ## Worked examples
 
-`api/scripts/check_kamal_secrets.sh` cross-checks the three lists and fails the
-PR when they disagree. `api-lint`'s gate in `main.yml` includes
-`config_api`/`config_web` so a **config-only** PR actually runs it (#1405) —
-without that, a PR touching only `config/deploy.*.yml` would skip the very check
-that covers it.
+`check_kamal_secrets.sh` cross-checks the lists. `api-lint`'s gate includes
+`config_api`/`config_web` so a config-only PR still runs it.
 
 ## What violating it looked like
 
-`BMC_PARTNER_KEY` shipped this way in #1390 and broke the `main` deploy; fixed in
-#1404. #1405 then added the lint so it can't recur silently.
-
-`config/deploy.grafana.yml` took three separate rounds to actually deploy,
-none of them caught by any lint since CI has no way to run a real `kamal
-deploy` or `kamal config` against the VPS:
-
-1. #1468 shipped it with no `registry:` block at all, on the (wrong)
-   assumption that Docker Hub needs no credentials for an anonymous
-   public-image pull — Kamal's config schema requires
-   `registry.username`/`password` unconditionally, the same requirement
-   api/web's own configs already document for ghcr.io.
-   `ConfigurationError: registry/username: is required`. #1504 "fixed" this
-   with new `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets.
-2. That surfaced a second bug: `image: grafana/grafana-oss:12.1.1` baked a
-   tag in while the workflow also passed `--version` (the commit SHA) —
-   Kamal concatenates `<image>:<version>` itself, producing the invalid
-   `grafana-oss:12.1.1:<sha>`. `docker stderr: invalid reference format`.
-   #1507 pinned `--version="12.1.1"` directly instead.
-3. That surfaced a third bug: Kamal's `validate_image` step rejects any
-   deployed image without a `service` docker label matching `service:` —
-   the stock Docker Hub image obviously has none. `Image ... is missing the
-   'service' label`. #1509 fixed this properly by giving Grafana its own
-   built-and-pushed wrapper image (`infra/grafana.Dockerfile` +
-   `build-grafana.yml`), exactly like api/web, pushed to this repo's own
-   GHCR namespace — which also made the `DOCKERHUB_*` secrets from #1504
-   unnecessary; they were reverted in the same change.
-
-None of `registry:` credentials, an image/version mismatch, or a missing
-`service` label are covered by `check_kamal_secrets.sh` — that check only
-cross-references `env.secret:` entries. A future Kamal service deploying an
-image this repo doesn't build itself needs all three verified by hand (or
-`kamal config`, where available) since no lint catches any of them.
+- `BMC_PARTNER_KEY` broke the `main` deploy (#1390, fixed #1404); the lint
+  followed (#1405).
+- `OAUTH_GRAFANA_CLIENT_SECRET` was consistent everywhere yet inert in Grafana
+  until renamed `GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET` (#1517).
+- Grafana's first deploy failed three times on things the lint doesn't cover: a
+  missing `registry:` block (Kamal requires credentials even for public
+  images), an image tag plus `--version` (Kamal appends `:<version>` itself),
+  and no `service` label for `validate_image`. The fix was a repo-built wrapper
+  image on GHCR (#1509). A future service deploying a third-party image needs
+  all three checked by hand or with `kamal config`.

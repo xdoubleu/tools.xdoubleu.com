@@ -1,118 +1,50 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1424, #1453, #1459, #1397, #1564, #1616, #1818
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818
 
 ## Rule
 
-If a production issue has **no MCP tool that surfaces it**, or an existing tool
-returns wrong/incomplete data, **fix that gap first** — add or correct the tool —
-before investigating the issue itself. Then add a line to the log below.
+If a production issue has **no MCP tool that surfaces it**, or a tool returns
+wrong or incomplete data, **fix the tool first**, then investigate. Add a line
+to the log below.
 
 ## Why
 
-Otherwise the same blind spot recurs. Every case below cost real investigation
-time a working tool would have made unnecessary, and several were only
-answerable with direct database access.
+Otherwise the blind spot recurs. Each case below cost investigation time a
+working tool would have saved, often requiring direct database access.
 
 ## Case log
 
-- **#1027 — requests but not bytes.** Supabase restricted the project for
-  blowing its egress quota and nothing could say which endpoint caused it.
-  `global.usage_daily` gained a `bytes` column; `get_usage_stats` reports it.
-  The database is billed per byte returned — see `convention-database-queries.md`.
-- **#1195 — OAuth connection state was invisible.** A GitHub reconnect kept
-  landing back on "Connect" and nothing reported why. `get_oauth_connections`
-  now reports connected state plus requested, granted and required scopes — the
-  three values that explain a not-connected verdict.
-- **#1214 — no per-source notification toggle.** "Why didn't I get emailed" was
-  unanswerable. `global.notification_settings` holds a per-source flag the jobs
-  check before notifying, surfaced by `get_notification_settings`.
-- **#1357 — project board columns were unreadable.** The GitHub MCP server's
-  `list_issue_fields` only resolves custom fields on *organization* projects and
-  this board is personal. `get_project_issues_by_status` queries GraphQL with
-  the admin's own token instead. This added `read:project` to the GitHub OAuth
-  scopes — **an admin who connected before that change must reconnect once.**
-- **#1374 / #1377 — an unreconcilable games number.** The dashboard's completion
-  rate disagreed with Steam's profile. Two blind spots: the
-  `games_get_steam_distribution` `bucket` argument was documented as `0-9` while
-  there are 11 buckets (fixed then), and nothing surfaced delisted games at all
-  (not fixed then).
-- **#1424 — the same delisted blind spot, three days later.** The rate
-  disagreed again and the correct rule was nearly reverted for lack of evidence.
-  `games_get_steam`'s `delisted` list now reports the excluded games, making the
-  population behind a completion number checkable — see
-  `adr-0018-completion-average-population.md`.
-- **#1453 — the trains app had no tools at all.** Multilingual station names
-  looked broken months after they landed; every layer of code was correct, so
-  the question was what the database held, and `trains` had read RPCs but no
-  `mcp.go`. Now `trains_search_stations`/`trains_get_feed_info`/
-  `trains_search_journeys` exist, and `GetFeedInfo` carries `imported_at` —
-  without it, "current" and "no import in weeks" look identical, since an
-  unchanged feed keeps the same `feed_version`. The cause was a conditional GET
-  making an importer change never re-import; `feed_info.parser_version` now
-  forces a full re-import on a mismatch.
-- **#1459 — an import that reported nothing about what it imported.** Same
-  symptom a third time. A successful import applying zero translations and one
-  of a monolingual feed emit identical logs. `feed_info` now stores
-  `translation_rows`, `translation_rows_unmatched` and per-language
-  `translated_stops_*`; `translated_stops_nl = 0` against a non-zero
-  `translation_rows` names the failure directly. The bug was keying
-  `translations.txt` rows by `record_id` alone when GTFS allows `record_id`
-  **or** `field_value` — and the mock feed had been hand-written in the
-  `record_id` shape, so **a fixture invented to match the code under test proves
-  only that the code matches itself.**
-- **#1397 — no tool for the live state of a journey.** The route-overview and
-  station RPCs were exposed (#1453) but not `GetJourneyDetail`, so "why did the
-  open journey page not offer an alternative" was unanswerable from outside the
-  database. `trains_get_journey_detail(journey_id)` now wraps it. It reports
-  only the *current* overlay — the GTFS-RT feed is replaced wholesale every 30s
-  and nothing is retained — so answering the same question *about a past
-  morning* needs persisted realtime history, a journey-history feature epic
-  #1388 deliberately left out of the first cut; flagged there rather than
-  expanding #1397.
-- **#1554 — the tool worked; nothing said the data was missing.** `prom_query`
-  answered every query correctly for months while `up{job="api"}` and
-  `up{job="web"}` sat at `0` for the entire retention window, so three phases
-  of metrics work (#1528, #1529) shipped against a pipeline that delivered
-  nothing. The blind spot was not a missing tool but a missing *question*: no
-  tool, dashboard or alert reported which scrape targets were expected versus
-  which existed. `TargetMissing` (`absent(up{job=...})`) now fires on the
-  absence of a series — the one shape `up == 0` provably cannot catch, since a
-  job whose discovery yields nothing produces no `up` series to compare. The
-  general lesson, and the reason this belongs in the case log rather than only
-  in ADR-0022: **a tool that returns a correct answer to the query you thought
-  to ask is not coverage.** When a metric is added, the check that it arrived
-  is a separate step from the check that it compiles.
-- **#1564 — no tool for Grafana-managed alert state.** Alerting moved to Grafana
-  (#1528), and Grafana-managed alert rules are evaluated inside Grafana — they
-  never populate Prometheus `ALERTS{}`, so `prom_query` (the only
-  alerting-adjacent MCP tool) could not confirm "is the alert for X firing?";
-  state could only be re-derived by hand-running each rule's PromQL and reasoning
-  about `noDataState`. Surfaced by #1563's false `PostgresDown` alert.
-  `get_grafana_alerts` now proxies Grafana's Prometheus-compatible ruler API
-  (`/api/prometheus/grafana/api/v1/rules`) for each rule's `state` + active
-  instances. It reaches Grafana over the public URL with admin basic-auth,
-  **not** an internal `grafana:3000` hostname — that is the same non-existent
-  Kamal network alias #1554 was about.
-- **#1616 — no pre-deploy check that a secret's value is well-formed, only
-  that its name is present.** `api` panicked at boot on 2026-09-13 with
-  `OAUTH_OIDC_PRIVATE_KEY is not valid PEM`, failing its Kamal healthcheck
-  and blocking the api deploy. `make lint/kamal-secrets` (see
-  `convention-deploy-secrets.md`) only checks the secret *name* appears
-  consistently across the three lists — nothing validates the secret's
-  *value* before `kamal deploy` runs, so a malformed PEM (e.g. escaped `\n`
-  from a bad rotation) surfaces only as a container crash, after the fact.
-  Fix tracked in #1616 (pending); the panic-vs-degrade behavior fix is
-  tracked separately in #1617.
-- **#1818 — a slow job measured only end to end.** `trains-static-import`
-  regressed to ~125s p95 and the issue could only list candidate causes
-  (BMC fetch? parse? COPY?) because `job_duration_seconds` measures whole
-  runs and nothing split a run into phases — `prom_query` could confirm the
-  regression but not attribute it. `job_phase_duration_seconds` (labels
-  `job_name`, `phase`) now records each phase of a run via
-  `observability.ObserveJobPhase`, and the Sentry transaction the job
-  already reports under carries per-step spans. The general lesson: **for a
-  job whose runtime has distinguishable steps, end-to-end duration is not
-  attribution coverage — record the split when the steps exist, not when the
-  incident forces it.**
+- **#1027** — egress quota blown, no per-endpoint bytes. `usage_daily.bytes`;
+  `get_usage_stats` reports it.
+- **#1195** — OAuth reconnect loop unexplained. `get_oauth_connections` reports
+  requested, granted, and required scopes.
+- **#1214** — "why no email?" unanswerable. Per-source flags in
+  `global.notification_settings`, via `get_notification_settings`.
+- **#1357** — personal project board unreadable by GitHub MCP.
+  `get_project_issues_by_status` uses GraphQL with the admin token; added
+  `read:project` (**admins connected earlier must reconnect once**).
+- **#1374/#1377/#1424** — completion rate vs Steam unreconcilable.
+  `games_get_steam`'s `delisted` list exposes the excluded population
+  (ADR-0018).
+- **#1453** — trains had no MCP tools. Added `trains_search_stations`,
+  `trains_get_feed_info` (with `imported_at`), `trains_search_journeys`;
+  `feed_info.parser_version` forces re-import on importer change.
+- **#1459** — import reported nothing about translations. `feed_info` stores
+  `translation_rows`, `translation_rows_unmatched`, per-language
+  `translated_stops_*`. **A fixture written to match the code proves only that
+  the code matches itself.**
+- **#1397** — no live journey state. `trains_get_journey_detail` wraps
+  `GetJourneyDetail`; current overlay only, no history.
+- **#1554** — `prom_query` worked while `api`/`web` were never scraped.
+  `TargetMissing` fires on `absent(up{job=...})`. **Answering the query you
+  thought to ask is not coverage**; check that a new metric arrived.
+- **#1564** — Grafana-managed alerts never appear in `ALERTS{}`.
+  `get_grafana_alerts` reads the ruler API over the public URL.
+- **#1616** — the lint checks secret names, not values; a malformed
+  `OAUTH_OIDC_PRIVATE_KEY` crashed api at boot. Open.
+- **#1818** — a slow job measured only end to end.
+  `job_phase_duration_seconds` (`job_name`, `phase`) via
+  `observability.ObserveJobPhase`, plus per-step Sentry spans. **Record phase
+  splits when the steps exist, not when an incident forces it.**

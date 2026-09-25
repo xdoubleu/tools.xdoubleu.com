@@ -1,680 +1,123 @@
 # ADR-0022: Prometheus + Grafana replace the hand-rolled metrics pipeline
 
-- Status: Accepted; extended by #1528 ("Phase 2") and #1529 ("Phase 3") below
-- Issues: #1468 (follows #1469/ADR-0021), #1528, #1529
-- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`,
-  `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`,
-  `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`,
-  `infra/prometheus.yml`, `infra/grafana/provisioning/`,
-  `web/app/metrics/`, `web/lib/server/metrics.ts`, `web/components/monitoring/`
+- Status: Accepted
+- Issues: #1468, #1528, #1529, #1541, #1554, #1555, #1556, #1564, #1570, #1574, #1580, #1592, #1608, #1702, #1709, #1717, #1723
+- Affects: `api/internal/observability/`, `api/internal/middleware/metrics.go`, `api/cmd/api/metrics.go`, `api/cmd/api/mcp_prom_query.go`, `api/cmd/api/mcp_grafana_alerts.go`, `config/deploy.grafana.yml`, `infra/prometheus-compose.yml`, `infra/prometheus.yml`, `infra/grafana/`, `web/app/metrics/`, `web/lib/server/metrics.ts`
 
 ## Context
 
-`internal/observability/` hand-rolled a complete metrics pipeline:
-`hostmetrics.go` parsed node_exporter's Prometheus text-exposition format by
-hand, four snapshot jobs (`host_metrics_snapshot`, `db_size_snapshot`,
-`transaction_latency_snapshot`, `workflow_runs_snapshot`) wrote samples into
-Postgres on a timer, and `threshold_alert.go` re-implemented rule evaluation,
-sustain windows, hysteresis, and breach/recovery state in
-`global.alert_states`. That was ~2,500 non-test Go lines plus ~700 lines of
-chart components (`MultiSeriesChart`, `HostMetricsCard`, `AlertStatesCard`,
-`TransactionLatencyHistoryCard`) re-deriving what a real TSDB and its
-alerting layer give for free.
+`internal/observability/` hand-rolled a metrics pipeline: a node_exporter text
+parser, four snapshot jobs writing samples to Postgres, and `ThresholdAlertJob`
+re-implementing rule evaluation, sustain windows, and breach state — ~2,500 Go
+lines plus ~700 lines of chart components, reinventing a TSDB and alerting.
 
 ## Decision
 
-**Prometheus over VictoriaMetrics.** VictoriaMetrics' case was RAM
-(~150 MB vs Prometheus' ~350 MB) — real on a single ~4 GB VPS, but not
-decisive given the headroom measured at issue-filing time (~3 GB free).
-Prometheus wins on adoption, documentation, and ecosystem, and avoids
-MetricsQL's soft lock-in versus PromQL, which every exporter, Grafana
-dashboard, and future contributor already knows.
+**Prometheus + Grafana own metrics, graphs, and alerting.** `/monitoring` keeps
+only GitHub/Sentry workflow surfaces with actions Grafana can't perform (now
+`/monitoring/connections`); the app's own GitHub/Sentry OAuth clients still back
+those and the related MCP tools.
 
-**Grafana owns metrics, graphs, and alerting; `/monitoring` keeps owning
-workflow over GitHub/Sentry.** The dashboard chart components listed above
-are deleted outright — Grafana replaces them, not embeds alongside them.
-`/monitoring/observability` (the whole page/route) is deleted; the
-`/monitoring` Issues page's "Observability" link now points at `/grafana`
-instead. `/monitoring` itself is untouched: `SentryCard`,
-`FailingPullRequestsCard`, `SecurityAlertsCard`, `OrphanedStorageCard`,
-`WorkflowRunsCard`, `IssuesClient`, `OAuthConnectionsCard`, and the settings
-page are GitHub/Sentry workflow surfaces with action buttons
-(`resolve_sentry_issue`, `dismiss_security_alert`) — Grafana has no equivalent
-for that and isn't asked to grow one.
+- **Prometheus over VictoriaMetrics**: VM saves ~200 MB RAM, not decisive with
+  ~3 GB free; PromQL and the ecosystem win.
+- **Topology**: Prometheus + postgres_exporter are Tofu-managed compose
+  accessories with no published ports, reachable only on the `kamal` network.
+  Grafana is a third Kamal service at `/grafana` on the shared kamal-proxy
+  (`strip_path_prefix: false`, with `GF_SERVER_SERVE_FROM_SUB_PATH`/
+  `GF_SERVER_ROOT_URL`), deployed as a wrapper image
+  (`infra/grafana.Dockerfile`, `build-grafana.yml`).
+- **Provisioned, not click-configured**: datasources, plugins, dashboards, and
+  alerting live under `infra/grafana/` and are baked into the image. Dashboard
+  JSON is the source of truth (`allowUiUpdates: false`), checked by
+  `make lint/grafana` and `make grafana/verify`.
+- **SSO** via the embedded AS (ADR-0021), admin-only through
+  `role_attribute_strict`; local `admin` / `GRAFANA_ADMIN_PASSWORD` stays as
+  break-glass.
+- **Instrumentation**: `api` exposes unprefixed `/metrics` (`promhttp`) with
+  `http_request_duration_seconds` and `job_duration_seconds` histograms. `web`
+  exposes `/metrics` with `web_vitals_seconds` from a browser beacon.
+  `IssueSignalCollectorJob` exports issue signals as gauges every 5 minutes:
+  `github_failing_pull_requests`, `github_workflow_run_failed{branch}`,
+  `github_open_security_alerts{severity}`,
+  `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`,
+  `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
+  and `automated_action_seconds_since_last_open{routine}`.
+- **Alerting is Grafana-managed** (`infra/grafana/provisioning/alerting/`):
+  host rules (CPU/memory 80%/85% for 15m, disk 85% instant), p95 rules
+  (`RequestP95High`/`JobP95High`/`FrontendP95High`), the `service-health` group
+  (`IssueFailingPRs`, `IssueMainCIRed`, `IssueSecurityAlerts`,
+  `IssueSentryUnresolved`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB,
+  `AutomatedActionStalled`, `AutomatedRoutineMissed`), and `TargetDown`/
+  `TargetMissing`. Delivery is a Slack contact point
+  (`GRAFANA_SLACK_WEBHOOK_URL`); `trigger: immediate` rules also reach the
+  `routine-fire` contact point.
+- **MCP**: `prom_query` proxies Prometheus's `/api/v1/query` as raw JSON
+  (replacing four narrow tools). `get_grafana_alerts` reads rule state from
+  Grafana's ruler API (`/api/prometheus/grafana/api/v1/rules`) over the
+  **public** `GRAFANA_URL` with Basic auth `admin`/`GRAFANA_ADMIN_PASSWORD`,
+  because Grafana-managed alerts never appear in Prometheus `ALERTS{}`.
+- **GitHub/Sentry Grafana datasource plugins** are provisioned for dashboards
+  and exploration; every alert still runs on Prometheus gauges.
 
-**Grafana is reachable at `/grafana` on the public domain, no VPN/tunnel.**
-It is a third Kamal service (`config/deploy.grafana.yml`), sharing the
-existing kamal-proxy instance and domain with `api`/`web`
-(→ [ADR-0001](adr-0001-two-service-kamal-deploy.md)) via
-`proxy.path_prefix: "/grafana"`, `strip_path_prefix: false` (Grafana must see
-the prefix itself — `GF_SERVER_SERVE_FROM_SUB_PATH`/`GF_SERVER_ROOT_URL` are
-set accordingly, mirroring how `api/cmd/api/kamal_proxy_shim.go` handles
-`/api` in-process rather than relying on kamal-proxy stripping it). Grafana
-deploys a thin wrapper image this repo builds and pushes to its own GHCR
-namespace (`infra/grafana.Dockerfile` + `build-grafana.yml`, issue #1509) —
-`FROM grafana/grafana:X` plus a `service` label for Kamal's `validate_image`,
-and since #1527 the baked-in datasource/dashboard provisioning under
-`infra/grafana/`.
+## Hard-won invariants
 
-**SSO reuses the embedded AS from ADR-0021**, which shipped ahead of this
-issue specifically to unblock it: Grafana's `generic_oauth` provider points
-at `https://tools.xdoubleu.com/oauth2/{authorize,token}`, maps
-`role`/`preferred_username` claims with `role_attribute_strict: true`, and
-authenticates as the static confidential `grafana` client
-(`OAUTH_GRAFANA_CLIENT_SECRET`, migration `00045`). Local admin/password
-login stays enabled as a break-glass path (`GRAFANA_ADMIN_PASSWORD`), not
-disabled — SSO is the default, not the only way in. Follow-up #1527 made SSO
-**admin-only**: the AS emits the `role` claim only for admins, so
-`role_attribute_strict` turns a non-admin token into a refused login.
+Each of these was violated once; keep them.
 
-**Datasource and dashboards are provisioned, not click-configured** (#1527):
-`infra/grafana/` holds the Prometheus datasource and the host / Postgres /
-API-runtime / overview dashboards that replace the removed
-`/monitoring/observability` charts. They are baked into the wrapper image
-(`infra/grafana.Dockerfile`), the dashboard JSON is the single source of
-truth (`allowUiUpdates: false`); `make lint/grafana` statically validates the
-JSON and `make grafana/verify` boots the image to confirm the datasource and
-dashboards actually provision (issue #1533) — a
-change under `infra/grafana/` rebuilds the image via `main.yml`'s
-`grafana_dockerfile` path filter.
-
-**Prometheus + postgres_exporter are Tofu-managed compose accessories, not
-Kamal services** — same shape as `node-exporter-compose.yml`
-(`infra/prometheus-compose.yml`, provisioned by a new
-`null_resource.prometheus` in `infra/main.tf`, mirroring
-`null_resource.node_exporter`/`null_resource.postgres`). Neither publishes a
-host port at all (stricter than "127.0.0.1 only") — reachable only from
-containers already on the `kamal` Docker network: Grafana, and the new
-`prom_query` MCP tool.
-
-**`prom_query(promql)` replaces four narrow MCP tools with one general
-one.** `get_host_metrics`, `get_database_size_history`,
-`get_transaction_latency_history`, and `get_alert_states` are removed;
-`prom_query` (`api/cmd/api/mcp_prom_query.go`) proxies Prometheus's own
-`/api/v1/query` HTTP API directly, admin-gated the same way every other
-observability tool is, and returns Prometheus's raw JSON response rather than
-a proto message — there is no fixed shape to model when the whole point is
-letting an agent ask an arbitrary PromQL question. `get_workflow_run_stats`
-is also removed (see "What got removed" below).
-
-**A `/metrics` endpoint on `api`, unprefixed like `/health`.** Uses
-`github.com/prometheus/client_golang`'s `promhttp.Handler()` — the process/Go
-runtime metrics (`go_*`, `process_*`) that library already tracks — rather
-than api hand-rolling its own exposition format writer. Registered directly
-in `cmd/api/routes.go`, never through the public `/api` `path_prefix`:
-Prometheus scrapes it over the internal Docker network at the container's own
-port, the same pattern `/health` already uses for Kamal's own healthcheck.
-
-**Alert rules live in the repo as Prometheus's own YAML**
-(`infra/prometheus/alert-rules.yml`), diffable and PR-reviewed — the same
-spirit as the old typed Go `alertRule` slice, just in Prometheus's native
-format instead of a bespoke one. Thresholds and sustain windows are carried
-over exactly: `host_cpu_high`/`host_memory_high` at 80%/85% sustained 15
-minutes (`for: 15m`), `host_disk_high` at 85% instant (no `for:`, since a full
-disk doesn't need to sustain to matter).
-
-> **Superseded by Phase 2 (#1528):** nothing ever wired those Prometheus
-> rules to a delivery path — they fired into `ALERTS{}` and were mailed
-> nowhere. #1528 moved every rule into Grafana alerting provisioning
-> (`infra/grafana/provisioning/alerting/`), where Grafana evaluates and
-> routes them through a real contact point. See "Phase 2" below.
-
-**Contact point: Grafana's own SMTP, reusing the existing Resend account.**
-`config/deploy.grafana.yml` sets `GF_SMTP_*` env vars pointing at Resend's
-SMTP relay (`smtp.resend.com:587`), with `GF_SMTP_PASSWORD`/
-`GF_SMTP_FROM_ADDRESS` fed from the *same* `RESEND_API_KEY`/`EMAIL_FROM` repo
-secrets `api`'s own mailer already uses — no new mail credential to
-provision. Alert emails are sent *from* `GF_SMTP_FROM_ADDRESS` (the
-`EMAIL_FROM` secret) but delivered *to* `$__env{NOTIFY_EMAIL_TO}` — the same
-admin recipient `api`'s own notification emails use (`cfg.NotifyEmailTo`);
-the contact point (`infra/grafana/provisioning/alerting/contactpoints.yml`)
-and `config/deploy.grafana.yml` both carry that secret (issue #1528
-follow-up — originally the contact point wrongly used the from-address as the
-recipient). This is explicitly the least load-bearing part of this change;
-Slack (ADR-0020) was considered but Grafana's contact-point model doesn't
-share `internal/notifications`' delivery queue, so wiring it in would mean a
-second, Grafana-native Slack integration for no clear benefit over SMTP.
-
-## What got removed
-
-- Snapshot jobs: `host_metrics_snapshot`, `db_size_snapshot`,
-  `workflow_runs_snapshot` (all in `api/internal/observability/jobs/`), plus
-  their repositories (`HostMetricsRepository`, `DBSizeSamplesRepository`,
-  `WorkflowRunsRepository`), models, and proto RPCs (`GetHostMetrics`,
-  `GetDatabaseSizeHistory`, `GetWorkflowRunStats`). `hostmetrics.go` (the
-  hand-rolled node_exporter text-format parser) is deleted entirely — nothing
-  in api parses that format any more, Prometheus does.
-- `GetDatabaseStats` is now a live-only snapshot (`pg_database_size`/
-  `pg_class`) — no `window_days`, no `TableGrowth`, no history; growth over
-  time is a Grafana/Prometheus question now (`postgres_exporter`'s
-  `pg_database_size_bytes` over time).
-- Host/CI/storage rules in `threshold_alert.go`
-  (`host_cpu_high`/`host_memory_high`/`host_disk_high`/`r2_usage_high`/
-  `ci_duration_high`) and their `global.notification_settings`/
-  `global.alert_states` rows — migration `00046` drops the rows and the
-  now-empty snapshot tables (`host_metric_samples`, `db_size_samples`,
-  `workflow_run_samples`, `workflow_job_samples`).
-- The main-branch-CI-failure email alert (`WorkflowRunsSnapshotJob.
-  notifyMainFailure`, `failing_main_ci` notification source) is removed along
-  with its snapshot table. Phase 3 (#1539/#1540) restored a proactive
-  replacement: the `IssueSignalCollectorJob` exports GitHub/Sentry/R2 signals
-  as Prometheus gauges, and the Grafana `service-health` alert group fires
-  `IssueMainCIRed` (and `IssueFailingPRs`, `IssueSecurityAlerts`,
-  `IssueSentryUnresolved`) off them. `GetWorkflowRuns`/`WorkflowRunsCard` and
-  `GetFailingPullRequests` (both live, GitHub-API-backed, kept — see below)
-  still surface a red main branch on `/monitoring`.
-- `r2_usage_high` is likewise restored in Phase 3: `r2_storage_bytes` /
-  `r2_orphaned_objects` gauges from the same collector back the Grafana
-  `R2UsageHigh` (9 GiB budget) and `IssueOrphanedStorage` rules.
-  `GetStorageStats`/`OrphanedStorageCard` on `/monitoring` still surface it
-  live. `ci_duration_high` was at this point the only signal with no
-  Grafana/Prometheus replacement — Phase 6 (#1556) added the
-  `github_workflow_run_duration_seconds` gauge (panel-only, no alert).
-- Frontend chart components: `MultiSeriesChart`, `HostMetricsCard`,
-  `AlertStatesCard`, `TransactionLatencyHistoryCard`, and the history half of
-  `DatabaseCard` (the schema/total-size live snapshot half is kept). The
-  `/monitoring/observability` page/route is deleted entirely.
-
-## What was verified to stay, and why
-
-- **The slow-transaction classification helpers** (`classifyTransaction`,
-  `thresholdMsForClass`, `slowTransactionExcluded`) stay — they key off
-  *live* Sentry data, not stored host-metric samples, and still gate the
-  `/monitoring` trending list and the weekly digest. In #1468 they lived in
-  `threshold_alert_slow_transactions.go` inside `ThresholdAlertJob`;
-  Phase 2 (#1528) retired that job and moved the helpers into
-  `slow_transactions.go`, and the p95 *alert* they used to drive is now a
-  Grafana rule on real histograms. `global.alert_states` /
-  `AlertStatesRepository` — kept here in #1468 solely for that job — are
-  dropped in #1528 (migration `00047`).
-- **`TransactionLatencySnapshotJob`/`TransactionLatencyRepository` are
-  kept**, not removed despite reading like snapshot-job scope. Both
-  `WeeklyDigestJob` (`currentlySlowTransactions`) and `GetSlowTransactions`'
-  `trending` field depend on `Trends()` over the same
-  `global.transaction_latency_daily` table this job populates — removing it
-  would have silently broken the weekly digest's slow-transaction section
-  and the `/monitoring` Issues page's trending list, neither of which this
-  issue was meant to touch. Only the *raw per-point* `GetTransactionLatencyHistory`
-  RPC (and its dedicated `TransactionLatencyHistoryCard` chart) is removed —
-  that was pure history-graphing, the exact duplication Grafana is meant to
-  absorb.
-- **`GetWorkflowRuns`/`WorkflowRunsCard`/`GetFailingPullRequests` stay** —
-  both are live GitHub-API calls with no DB dependency, unrelated to the
-  removed `workflow_run_samples`/`workflow_job_samples` snapshot tables that
-  only `GetWorkflowRunStats` (removed) and the main-failure alert (removed,
-  see above) read from.
+- **Discover `api`/`web`/`grafana` by Docker label, not DNS.** Kamal names
+  containers `<service>-<role>-<version>` with no service-name alias, so
+  `api`/`web` were never scraped for the entire retention window (#1554). The
+  app jobs use `docker_sd_configs` filtered on the `service` label. Prometheus
+  needs the Docker socket (`:ro`) and the host's docker gid (resolved at
+  provision time into `group_add`; the image runs as `nobody`).
+- **`up == 0` can't see a job that discovers nothing** — no series exists.
+  `TargetMissing` uses `absent(up{job=...})` for api, web, and grafana;
+  `TargetDown` is one multi-dimensional `up == 0` rule.
+- **Verify data arrived, not just that code shipped.** After a metrics change,
+  confirm with `prom_query` that each series is non-empty.
+- **Reload Prometheus on config change.** `docker compose up -d` doesn't restart
+  on a bind-mounted file's content change, so `null_resource.prometheus` sends
+  `docker compose kill -s HUP prometheus` after `up -d` (#1717).
+- **Avoid the `job` label collision.** A metric's own `job` label becomes
+  `exported_job`; `metric_relabel_configs` renames `job_duration_seconds`' to
+  `job_name`, and new gauges use other label names (`workflow`, `schema`).
+- **Aggregate away `instance` in panels.** Each deploy mints a new `instance`
+  (container name), so per-instance exprs are wrapped in `min`/`max by (job)`
+  (#1574, #1580). The churn itself is deliberate.
+- **Grafana self-scrape path is `/grafana/metrics`** (bare `/metrics`
+  redirects). There is no `grafana_alerting_rule_evaluations_total` in this
+  version.
+- **`web`'s `GET /metrics` requires `Bearer OBSERVABILITY_INGEST_SECRET`**,
+  delivered to Prometheus via `credentials_file`; unset skips the gate rather
+  than closing it. `POST /metrics` (the beacon) is unauthenticated by design.
+  `deploy-kamal` `needs` `infra-apply` so the token is sent before it's required.
+- **`IssueSentryUnresolved` must use the Prometheus gauge, not the Sentry
+  plugin.** Grafana's SSE layer can't convert the plugin's Issues response into
+  any series (`input data must be a wide series but got type long`,
+  grafana/sentry-datasource#266) before any expression runs, and
+  `eventsStats` rejects `is:unresolved` (#1608, #1702, #1709).
+- **`AutomatedRoutineMissed`** uses a hardcoded `knownRoutines` list and a
+  shared 27h threshold (daily + 3h buffer); a never-opened routine reports a
+  large sentinel. Update both by hand when routines or schedules change.
 
 ## Alternatives considered
 
-- **VictoriaMetrics.** Rejected — see Decision; RAM wasn't decisive given
-  measured headroom, and Prometheus's ecosystem/documentation/PromQL
-  familiarity won on every other axis.
-- **Grafana embedding old-style charts alongside Prometheus panels.**
-  Rejected — half-migrating would leave both a Postgres-backed chart stack
-  and a Prometheus-backed one to maintain. Grafana replaces the charts, it
-  doesn't sit next to them.
-- **Tailscale/Cloudflare Access + `cloudflared` for Grafana access**
-  (raised as an open question in the original issue). Rejected in favor of
-  the existing kamal-proxy path-routing pattern `api`/`web` already use — no
-  new network topology, no firewall change, and SSO via ADR-0021 already
-  gives every existing admin a login without a second network layer to
-  configure.
-- **A Grafana-native Slack contact point** (ADR-0020's webhook). Considered
-  and dropped — see Decision's contact-point paragraph.
-
-## Phase 2 (#1528): instrument latency, unify alerting in Grafana, retire ThresholdAlertJob
-
-#1468 left two loose ends this issue closes:
-
-- **The Prometheus alert rules delivered nowhere.** No Alertmanager, no
-  Grafana alert provisioning — `infra/prometheus/alert-rules.yml`'s header
-  *claimed* Grafana alerted off them, but nothing wired it. #1528 deletes
-  that file (and the `rule_files:` entry, the compose mount, the `main.tf`
-  upload) and recreates every rule under
-  `infra/grafana/provisioning/alerting/` — `rules.yml` (the 5 migrated
-  host/`up` rules verbatim, plus 3 new p95 rules), `contactpoints.yml` (one
-  email receiver reusing `GF_SMTP_*`, no new secret), `policies.yml` (one
-  flat route). `make grafana/verify` now asserts all of it provisioned.
-- **`ThresholdAlertJob` was the last hand-rolled alerting.** It, its
-  `slow_transaction_{http,job,frontend}_high` sources, and
-  `global.alert_states` / `AlertStatesRepository` / `models.AlertState` are
-  all deleted (migration `00047`). The p95 signal it approximated off Sentry
-  transaction stats is now real: an `http_request_duration_seconds`
-  histogram (`api/internal/middleware/metrics.go`), a `job_duration_seconds`
-  histogram (`api/internal/observability/trackedjob.go`), and a
-  `web_vitals_seconds` histogram fed by a browser Web-Vitals beacon to a new
-  `/metrics` route on the `web` Node server (`web/app/metrics/route.ts`,
-  scraped as a new `web` Prometheus job). Grafana's `RequestP95High` /
-  `JobP95High` / `FrontendP95High` rules evaluate those.
-
-Sentry keeps showing transaction data for manual review; it is no longer an
-alert source.
-
-## Phase 3 (#1529): issue signals as Prometheus gauges, retire IssueNotifierJob
-
-#1528's "Consequences" flagged two gaps: the main-branch-CI-failure alert and
-the R2-usage-threshold alert had no replacement. Phase 3 closes both, and
-retires the last hand-rolled notifier.
-
-- **Six issue signals are now Prometheus gauges.**
-  `IssueSignalCollectorJob` (`api/internal/observability/jobs/issue_signal_collector.go`,
-  #1539) polls the same live GitHub/Sentry/R2 sources `/monitoring` already
-  uses and exports `github_failing_pull_requests`,
-  `github_workflow_run_failed{branch}`, `github_open_security_alerts{severity}`,
-  `sentry_unresolved_issues`, `r2_orphaned_objects`, and `r2_storage_bytes` on
-  api's `/metrics`.
-- **A Grafana `service-health` alert group evaluates them** (#1540,
-  `infra/grafana/provisioning/alerting/rules.yml`): `IssueFailingPRs`,
-  `IssueMainCIRed` (`max(github_workflow_run_failed{branch="main"}) > 0`),
-  `IssueSecurityAlerts`, `IssueSentryUnresolved`, `IssueOrphanedStorage`, and
-  `R2UsageHigh` (`r2_storage_bytes > 9 GiB`). `failing_main_ci` and
-  `r2_usage_high` are no longer open gaps — `ci_duration_high` was at this
-  point the only signal with no Prometheus metric behind it (Phase 6 (#1556)
-  later added `github_workflow_run_duration_seconds`, panel-only, no alert). A
-  `service-health` Grafana dashboard graphs the
-  gauges alongside the host/Postgres/api-runtime/overview dashboards.
-- **`IssueNotifierJob` and `global.notified_issues` are retired** (#1541,
-  migration `00048`). It was the realtime "email an admin the first time a
-  new unresolved Sentry issue / failing PR / red main / security alert is
-  seen" job with per-item dedup in `global.notified_issues`; Grafana's
-  `service-health` group now delivers that first-seen alert through its own
-  SMTP contact point. `WeeklyDigestJob` still checks
-  `global.notification_settings` per section and is unaffected;
-  `NOTIFY_EMAIL_TO` stays in use for the two weekly digests and the
-  Ubuntu-release-check timer.
-- **`prom_query` gains the new gauges** as read paths, and the
-  `monitoring-sweep` skill is rewritten MCP-only around them (its stale
-  `get_alert_states` reference — that tool went in #1528 — is removed).
-  (`ALERTS{}` was listed here too, but Grafana-managed alerts never populate
-  it — Phase 6 / #1564 adds `get_grafana_alerts` for actual alert state.)
-- **The `web` `/monitoring` surface collapses to `/monitoring/connections`**
-  (#1542, its own slice): with alerting and the issue digest owned by
-  Grafana, the standalone Issues page is redundant and the OAuth-connection
-  management is what remains worth a page.
-
-## Phase 5 (#1554): the scrape targets that never worked
-
-Phases 1–4 added metrics, alerts and dashboards on top of a pipeline that was
-not delivering. `up{job="api"}` and `up{job="web"}` were `0` for the entire
-90-day retention window — not flapping, never once up. Everything downstream
-of those two targets was therefore empty from the day it shipped:
-`http_request_duration_seconds`, `job_duration_seconds` and
-`web_vitals_seconds` (#1528) had no samples, so `RequestP95High`,
-`JobP95High` and `FrontendP95High` evaluated against nothing; all six
-`IssueSignalCollectorJob` gauges (#1529) were absent, so the entire
-`service-health` dashboard rendered "No data". The dashboards that looked
-right — `host`, `postgres` — were exactly the ones fed by the two targets
-that did work.
-
-The cause is the alias assumption recorded above: Kamal names containers
-`<service>-<role>-<version>` and creates no alias equal to the `service:`
-name, so Docker's embedded DNS never resolved `tools-xdoubleu-com-api:8000`
-or `tools-xdoubleu-com-web:3000`.
-
-Three things follow, and the third is the one that matters:
-
-1. **Discovery is now label-based.** The two app jobs use
-   `docker_sd_configs` and keep only containers carrying the `service` Docker
-   label Kamal's own `validate_image` step requires on every deployed image.
-   Nothing about container naming or the version tag can break it again. The
-   `node`/`postgres`/`prometheus` jobs stay `static_configs` — plain compose
-   accessories with stable names, where discovery would buy nothing.
-2. **Prometheus needs the Docker socket** (`:ro`) and, because the image runs
-   as `nobody`, membership of the host's `docker` group. The gid is
-   host-specific, so `null_resource.prometheus` resolves it at provision time
-   rather than hardcoding it, and fails loudly if there is no such group.
-3. **`up == 0` could never have caught this, and still can't.** A job whose
-   discovery yields nothing produces no `up` series at all, so a
-   down-detector matches nothing and stays silent. The old `static_configs`
-   at least manufactured a failing target to alert on; label-based discovery
-   removes even that consolation prize. `TargetMissing` closes it with
-   `absent(up{job="api"}) or absent(up{job="web"})` — a rule that fires on the
-   *absence* of a series. `APIDown`/`PostgresDown` are replaced by one
-   multi-dimensional `TargetDown` (`up == 0`), so a newly added target is
-   covered without anyone remembering to write a rule.
-
-Two incidental findings, both verified rather than assumed:
-
-- `job_duration_seconds` carries its own `job` label, which collides with the
-  `job` label Prometheus attaches from the scrape config; Prometheus renames
-  the exposed one to `exported_job`. A panel written the obvious way,
-  `sum by (job) (...)`, would have silently collapsed every background job
-  into one "api" series. `metric_relabel_configs` renames it to `job_name`.
-- `GET https://tools.xdoubleu.com/metrics` answers 200 to the public internet
-  (`web` is the kamal-proxy catch-all) and `POST /metrics` is unauthenticated
-  ingest for the Web Vitals beacon. Tracked separately (#1555) so that an auth
-  gate did not land in the same change as the fix to the thing being scraped —
-  see Phase 6 below, where `GET` was gated once Phase 5's scrape path was
-  confirmed working.
-
-The new `app-performance` dashboard restores what Grafana had no equivalent
-for: per-`route` p95 (the aggregate latency alerts can say something is slow
-but never which endpoint), per-job duration and failure rate, and Core Web
-Vitals at p75.
-
-## Phase 6 (#1555): gating the `web` /metrics endpoint
-
-Once Phase 5 made Prometheus actually reach `web` directly over the Docker
-network, the public `GET https://tools.xdoubleu.com/metrics` route
-(`web/app/metrics/route.ts` — `web` is the kamal-proxy catch-all) had no
-reason to stay open. It now requires an `Authorization: Bearer` token equal
-to `OBSERVABILITY_INGEST_SECRET` — the same shared secret `web/app/logs/route.ts`
-already uses, now also a `web` Kamal deploy secret and, as
-`TF_VAR_observability_ingest_secret`, written to a file on the VPS that
-`infra/prometheus.yml`'s `web` scrape job reads via `credentials_file`. When
-the secret is unset the gate is skipped rather than closed, matching
-`app/logs/route.ts` and keeping a missing-secret misconfiguration from
-re-creating the Phase 5 "every `web_*` metric silently zero" failure. `POST
-/metrics` (the browser Web Vitals beacon) stays unauthenticated by design.
-`deploy-kamal` `needs` `infra-apply`, so Prometheus starts sending the token
-before `web` starts checking it — no scrape gap.
-
-**What this says about the pipeline as a whole:** every phase verified its own
-code and none verified that the data arrived. A metric that is registered,
-exported and alerted on still tells you nothing if nobody ever confirmed a
-sample landed. The post-deploy `prom_query` check in #1554's verification
-section exists to make that a step rather than an assumption.
-
-## Phase 6 (#1556): the two metrics that had nothing to graph
-
-#1554 restored every panel that could be built from metrics that already
-existed; two pre-Grafana overviews could not be, because nothing exported the
-data. Phase 6 adds the missing Go instrumentation, both as gauges refreshed on
-`IssueSignalCollectorJob`'s 5-minute timer (not scraped directly):
-
-- `github_workflow_run_duration_seconds{workflow}` — the latest completed
-  default-branch run's duration per workflow, computed in the loop
-  `collectWorkflowRuns` already runs over the GitHub API response. Closes the
-  long-standing `ci_duration_high` "revisit when" item: the data now exists.
-  No alert was added — failing-run signal already exists and duration trends
-  are read on the `app-performance` panel, not alerted.
-- `postgres_schema_size_bytes{schema}` — per-schema on-disk size from
-  `DBStatsRepository.SchemaSizes`, threaded into the job as a fourth
-  interface-typed dep (`dbStatsRepo` moved above `newCrossAppJobs` in
-  `cmd/api/main.go`). `postgres_exporter` only exposes per-*database* size.
-
-Both got an `app-performance` timeseries panel. Label names are `workflow` /
-`schema`, not `job` — the api scrape job's own `job` label would otherwise
-collide the way `job_duration_seconds` does (see `infra/prometheus.yml`'s
-`metric_relabel_configs`). Unverifiable until deployed by design — the
-post-deploy `prom_query` check confirms each series is non-empty.
-
-## Phase 7 (#1564): reading Grafana-managed alert state
-
-Once alerting became Grafana-managed (Phase 2), `prom_query` stopped being able
-to answer "is the alert for X firing?" — Grafana-managed alert rules are
-evaluated inside Grafana and never populate Prometheus `ALERTS{}`, so the only
-way to check state was to re-run each rule's PromQL by hand and reason about its
-`noDataState`. #1563's false `PostgresDown` alert made that concrete.
-
-`get_grafana_alerts` (`api/cmd/api/mcp_grafana_alerts.go`, admin-gated, modelled
-on `prom_query` — raw-JSON passthrough) closes the gap: it calls Grafana's
-Prometheus-compatible ruler endpoint
-(`/api/prometheus/grafana/api/v1/rules`), which carries each rule's current
-`state` and its `alerts[]` active instances.
-
-It reaches Grafana over the **public URL** (`GRAFANA_URL`, default
-`https://tools.xdoubleu.com/grafana`) through kamal-proxy, with HTTP Basic auth
-as `admin` / `GRAFANA_ADMIN_PASSWORD` — the same value and repo Secret the
-grafana service already gets as `GF_SECURITY_ADMIN_PASSWORD`, now added to the
-`api` deploy-secret three-list. **Not** an internal `grafana:3000` hostname:
-that is exactly the "assumed Kamal network alias" Phase 5 proved does not exist.
-`get_grafana_alerts` also removes the last reason to reference `ALERTS{}` for
-Grafana alert state (README/CLAUDE.md updated).
-
-## Phase 8 (#1574): dashboard panels aggregate away the churning `instance` label
-
-Phase 5's label-based discovery sets each `api`/`web` target's `instance` to the
-Kamal container name, which embeds the deploy version — so every deploy mints a
-new `instance` value. Panels that render a raw per-`instance` selector (`up`,
-`scrape_duration_seconds`, the `api-runtime` Go/process gauges) therefore grew a
-new row per deploy on the Overview dashboard and showed a doubled line during the
-deploy overlap window elsewhere. The churn is deliberate — overlapping old/new
-containers must not collide into one Prometheus series and `TargetDown` wants one
-alert instance per container — so the fix is dashboard-side: `overview.json` and
-`api-runtime.json` now wrap every such expr in `min`/`max by (job) (...)`. No
-change to `infra/prometheus.yml` or the alert rules.
-
-## Phase 9 (#1570): GitHub + Sentry as Grafana datasource plugins
-
-The original question: can GitHub and Sentry be registered as Grafana
-datasources that fetch their own data, with no app-side code? Yes — Grafana
-ships official signed backend plugins for both (`grafana-github-datasource`,
-`grafana-sentry-datasource`, both `alerting: true`). Phase 7 registers them
-and moves the one signal that maps cleanly onto a plugin query off the
-collector.
-
-- **Both plugins are baked into the wrapper image**
-  (`GF_INSTALL_PLUGINS` in `infra/grafana.Dockerfile`) and provisioned as
-  datasources `github` / `sentry`
-  (`infra/grafana/provisioning/datasources/issue-signals.yml`), tokens fed by
-  `$__env{GRAFANA_GITHUB_DATASOURCE_TOKEN}` /
-  `$__env{GRAFANA_SENTRY_DATASOURCE_TOKEN}` — the same non-`GF_`
-  provisioning-interpolation mechanism `NOTIFY_EMAIL_TO` uses, added to the
-  three deploy-secret lists and the Grafana allowlist in
-  `api/scripts/check_kamal_secrets.sh`. The GitHub secret name is prefixed
-  `GRAFANA_` because GitHub Actions forbids a repo secret named `GITHUB_*`.
-- **Only `sentry_unresolved_issues` moved.** The `IssueSentryUnresolved`
-  alert rule and the "Unresolved Sentry issues" panel (moved to its own
-  `sentry` dashboard in Phase 10 below) now run a `sentry` Issues query
-  (`is:unresolved`, count reduce, `> 0`); the
-  gauge, `collectSentryIssues`, and the `sentryapi` dependency are gone from
-  `IssueSignalCollectorJob` (`cmd/api/main.go` drops the `sentryClient` arg —
-  the client stays, `WeeklyDigestJob` and the `get_sentry_issues` MCP tool
-  still use it). The job keeps its name — it still collects the GitHub CI,
-  storage and schema-size signals.
-- **Every GitHub signal stays a Prometheus gauge.** The GitHub plugin's
-  per-PR-check, workflow-conclusion and Dependabot/secret-scanning coverage
-  is looser than `internal/github`'s, so `github_failing_pull_requests`,
-  `github_workflow_run_failed`, `github_workflow_run_duration_seconds` and
-  `github_open_security_alerts` are unchanged. The `github` datasource is
-  provisioned for ad-hoc exploration; migrating those signals (and dropping
-  the GitHub half of the collector) waits on validating the plugin queries
-  against live data — tracked as a follow-up on #1570.
-- `scripts/validate_grafana_dashboards.py` now allows the `github`/`sentry`
-  datasource uids and only requires `expr` on Prometheus targets;
-  `scripts/verify_grafana_image.sh` exports dummy tokens and asserts all
-  three datasource uids provisioned.
-
-Phase 10 (#1580) reorganized the dashboards themselves and fixed a
-churn bug Phase 8 missed:
-
-- **`service-health.json` had the same per-redeploy-churn bug Phase 8
-  fixed on `overview.json`/`api-runtime.json`, just missed.** Its
-  `github_workflow_run_failed` and `r2_storage_bytes` timeseries panels were
-  bare exprs with no aggregation, so every redeploy's now-dead `instance`
-  label (the gauges are exported by the `api` process) left a permanent
-  extra line on those two charts. Fixed with the same `max`/`max by (...)`
-  wrapping used elsewhere.
-- **Nine focused, single-domain dashboards replace the four broader ones.**
-  `service-health.json` and `app-performance.json` are gone; their panels
-  moved into new `github.json`, `sentry.json`, `r2.json` and `web.json`
-  dashboards, plus the existing `postgres.json` (per-schema size) and a
-  renamed `api-runtime.json` → `api.json` (all API/job panels together).
-  `overview.json` (unchanged uid) was rebuilt as a direct one-tile-per-rule
-  mirror of every rule in `rules.yml`, replacing its old "Active alerts"
-  panel — that panel queried `ALERTS{alertstate="firing"}`, which has been
-  permanently empty since alerting moved to Grafana-managed rules and
-  `infra/prometheus.yml` stopped having any `rule_files` (Phase 2, #1528).
-- **A new `grafana` scrape job** (`infra/prometheus.yml`) covers Grafana's
-  own `/metrics`, feeding a new `grafana-prometheus.json` dashboard
-  alongside the Prometheus self-health panels moved off `overview.json`.
-  Its `metrics_path` is `/grafana/metrics`, not the Prometheus default —
-  confirmed by booting the wrapper image locally with the same
-  `GF_SERVER_SERVE_FROM_SUB_PATH`/`GF_SERVER_ROOT_URL` env
-  `config/deploy.grafana.yml` sets: a bare `/metrics` 301-redirects there.
-  The same boot also confirmed the exact metric names used
-  (`grafana_http_request_duration_seconds`, `grafana_alerting_scheduler_behind_seconds`,
-  `grafana_alerting_alerts_invalid_total`) — there is no
-  `grafana_alerting_rule_evaluations_total`/`_failures_total` metric in this
-  Grafana version, despite that being the more obvious name to guess.
-  `target-missing`'s `absent()` guard now also covers `job="grafana"`.
-- **This also answered a standing question, with no code change:** the
-  app's own GitHub/Sentry OAuth connections (`internal/github`,
-  `internal/sentryapi`) remain required. Grafana's `github`/`sentry`
-  datasource plugins (Phase 9 above) are a separate, read-only,
-  static-token path that only feeds Grafana's own dashboards/alerts; the
-  app's OAuth-connected clients still back the `/monitoring` page and the
-  MCP tools built on them (`get_failing_pull_requests`,
-  `get_workflow_runs`, `get_security_alerts`, `dismiss_security_alert`,
-  `get_sentry_issues`, `resolve_sentry_issue`, slow-transaction history),
-  including two mutating actions no Grafana plugin can perform.
-
-Phase 11 (#1592) reverses the Slack rejection recorded in this ADR's
-Decision and "Alternatives considered" sections: the email contact point
-(Phase 2, #1528) is replaced with a Grafana-native Slack contact point, per
-user preference for centralized Slack-based alert delivery, not because the
-original "no clear benefit over SMTP" reasoning turned out to be wrong.
-`infra/grafana/provisioning/alerting/contactpoints.yml`'s `email` receiver
-became a `slack` one (`type: slack`, `settings.url:
-$__env{GRAFANA_SLACK_WEBHOOK_URL}`), `policies.yml`'s single flat policy now
-routes to `slack` instead of `email`, and `NOTIFY_EMAIL_TO` was dropped from
-`config/deploy.grafana.yml`'s secret list (it stays a required secret
-elsewhere — `api`'s own mailer and `infra/release-upgrade-check.sh` both
-still read it independently). `scripts/verify_grafana_image.sh` now asserts
-the `slack` contact point instead of `email`.
-
-Phase 12 (#1608) fixed `IssueSentryUnresolved`, which had never actually
-evaluated since Phase 9 introduced it: its `issues` queryType + `reduce`
-(count) + `threshold` pipeline always failed with `[sse.readDataError]
-input data must be a wide series but got type long`, so the rule sat
-permanently `Alerting (Error)` regardless of real Sentry state
-(`grafana/sentry-datasource#266`, filed 2024, never fixed upstream — an
-Issues query returns one row per issue across several numeric columns,
-which the expression engine can't collapse into the single-value series
-`reduce`/`threshold` require). refId A now uses the `eventsStats` queryType
-with `count_unique(issue)` as its Y-axis instead — a genuine time series
-(one value per bucket), which `reduce` (now `max`, not `count`) consumes
-without error. The annotation text changed accordingly, from an exact
-unresolved-issue count to "issues detected" plus the busiest interval's
-distinct-issue count, since a per-bucket reduction no longer yields a
-true window-wide total by construction. `scripts/verify_grafana_image.sh`
-does not need updating — it only asserts the rule name provisions, never
-evaluates it against real Sentry data.
-
-Phase 16 (#1702) found Phase 12's fix hadn't actually worked: live
-production checking (2026-09-16) showed `IssueSentryUnresolved` still
-`Alerting (Error)`, now with `[sse.dataQueryError] failed to execute query
-[A]: 400 Bad Request "is:" queries are not supported in this search`.
-Root cause: Phase 12's `eventsStats` queryType hits Sentry's org-level
-Events/Discover API, which has no issue-resolution-status field —
-`is:unresolved` is only valid against the per-project Issues endpoint
-(confirmed against `api/internal/sentryapi/client.go`'s `fetch()`, which
-already calls that endpoint with the same filter successfully). refId A
-moved back to the `issues` queryType (`issuesQuery: is:unresolved`,
-matching the rule's original pre-Phase-12 shape) to fix the query itself;
-Phase 12's original "wide series" failure — the actual reason `issues` was
-abandoned in the first place — is fixed separately by replacing the
-`reduce`+`threshold` expression pair with a single `classic_conditions`
-expression on refId B, which evaluates query A's row count directly
-(`count(A) > 0`) instead of requiring A to reduce to one value first. The
-annotation reverted to a plain "issues detected" statement, since
-`classic_conditions` doesn't expose a meaningful `$values` count the way
-`reduce` did.
-
-Phase 17 (#1723) closed the complementary gap Phase 15's
-`AutomatedActionStalled` left open: that rule only ever looks at a
-`global.automated_actions` row that was opened and never closed, so it says
-nothing about a routine whose claude.ai scheduled trigger fails before it
-ever calls `record_action(mode=open)` — exactly what happened with
-`nightly-maintenance-sweep`'s first real fire (the session errored on its
-very first turn, before any tool call, so no row was ever created).
-`AutomatedActionsRepository.MostRecentOpenedAt(ctx, routineName)` returns
-the newest row for a routine regardless of open/closed state;
-`IssueSignalCollectorJob` exports it as
-`automated_action_seconds_since_last_open{routine}`, one series per a small
-hardcoded `knownRoutines` list (`nightly-maintenance-sweep`,
-`ready-issues-executor`, `red-pr-repair` — the same three
-`docs/spec-routine-*.md` already document), reporting a large sentinel
-value rather than 0 for a routine that has never opened a row at all, so
-"never started" reads as maximally overdue rather than healthy. A new
-`AutomatedRoutineMissed` rule in `service-health` fires past a shared
-27-hour threshold (24h daily cadence + a 3h buffer, mirroring
-`AutomatedActionStalled`'s own buffer reasoning) — one threshold covers all
-three since they currently all run daily; a routine added later with a
-different cadence would need its own comparison in the rule's PromQL.
-Carries `trigger: immediate` like `AutomatedActionStalled`, reaching both
-`slack` and `routine-fire` through the existing policy. Known accepted
-limitation, unchanged from the issue's own scoping: `api` has no visibility
-into claude.ai's routines UI, so both `knownRoutines` and the rule's
-threshold are hardcoded and must be updated by hand if a routine's schedule
-changes.
-
-Phase 18 (#1709) reverted Phase 9's `IssueSentryUnresolved` migration onto
-the `grafana-sentry-datasource` plugin, after live checking via
-`get_grafana_alerts` found the rule still `Alerting (Error)` with Phase 16's
-exact original failure (`[sse.readDataError] [A] got error: input data must
-be a wide series but got type long`), attributed to refId **A** — the Sentry
-query itself, not refId B's expression. That placement of the error is the
-finding that closes this out for good: it proves the failure happens while
-Grafana's SSE layer tries to convert the Issues endpoint's one-row-per-issue,
-several-numeric-column response into any series shape, *before* any
-expression node (Phase 12's `reduce`+`threshold`, Phase 16's
-`classic_conditions`, or #1726's proposed `reduce`+`count_non_null`) ever
-runs — so no choice of refId B expression was ever going to fix it, and
-neither Phase 12 nor Phase 16 could have worked. `IssueSignalCollectorJob`
-gained back a `sentry_unresolved_issues` gauge (`sentryapi.Client
-.ListUnresolvedIssues`, the same client `TransactionLatencySnapshotJob`
-already uses), and `IssueSentryUnresolved` reverted to the plain
-Prometheus-instant-query-plus-`threshold` shape every other `service-health`
-rule already uses successfully — its *original* pre-Phase-9 shape.
-`overview.json`'s mirroring tile moved with it, from the plugin query to
-`max(sentry_unresolved_issues)`. The `grafana-sentry-datasource` plugin and
-its datasource stay provisioned unchanged: `sentry.json`'s own stat panel
-(a browser-side `count` reduce, never a backend SSE expression) was never
-broken by this bug and still uses it for a live, ungauged view.
-
-Phase 19 (#1717) found `TargetMissing` firing for `job="grafana"` despite the
-scrape job's `docker_sd_configs`/label/network config all being correct — a
-different failure mode than Phase 5's assumed-DNS-alias bug, confirmed live
-via `prom_query`: `prometheus_sd_discovered_targets` (Prometheus's own raw,
-pre-relabel per-job discovery count) had entries for `api`/`web` but none at
-all for `grafana`, meaning the *running* Prometheus process had no such job
-loaded — not that the job discovered zero matching containers. Root cause:
-`infra/main.tf`'s `null_resource.prometheus` uploads `prometheus.yml` via a
-`file` provisioner, then runs `docker compose up -d`, which only
-recreates/restarts a container when the *compose service definition*
-changes (image, env, volumes, ...) — it has no way to notice that a
-bind-mounted config file's *content* changed with no compose-level change,
-so a prometheus.yml-only edit (like adding the `grafana` job) re-uploads the
-file but never tells the already-running process to reload it. Phase 5's own
-`api`/`web` `docker_sd_configs` migration only "worked" because that same
-change also added the Docker-socket mount to `prometheus-compose.yml`, which
-did force a recreate — masking this gap until a config-only change exposed
-it. Fixed by sending Prometheus a `SIGHUP` (`docker compose kill -s HUP
-prometheus`) after `up -d`, its documented live-reload mechanism, run
-unconditionally since it only executes when one of the resource's own
-triggers already changed.
+- **VictoriaMetrics** — see Decision.
+- **Grafana alongside the old charts** — two chart stacks to maintain.
+- **Tailscale/Cloudflare Access for Grafana** — the existing kamal-proxy path
+  routing plus SSO needs no new network layer.
+- **SMTP contact point** — shipped first; replaced by Slack for centralized
+  delivery (#1592).
+- **Migrating GitHub signals onto the GitHub plugin** — its coverage is looser
+  than `internal/github`'s; deferred until validated against live data.
 
 ## Consequences
 
-- All alerting now lives in one place (Grafana). A contributor asking "why
-  didn't I get an alert" has exactly one system to check.
-  `docs/adr-0011-slow-transaction-thresholds.md`'s classification/threshold
-  reasoning still governs the `/monitoring` trending list and the weekly
-  digest, neither of which is an alert.
-- The main-branch-CI-failure and R2-usage-threshold alerts were an accepted,
-  documented gap for #1468/#1528; Phase 3 (#1529) closed both via the
-  `service-health` gauge alerts. `ci_duration_high` was the one still-open
-  gap; Phase 6 (#1556) added the `github_workflow_run_duration_seconds`
-  gauge and an `app-performance` panel but deliberately no alert.
-- Kamal container naming isn't Tofu-managed, so the Prometheus scrape
-  targets for `api` and (added in #1528) `web` (`infra/prometheus.yml`)
-  assumed a specific Docker network alias that could not be verified against
-  real infra in this change — flagged in `infra/README.md` as the one thing
-  worth confirming by hand after the first real deploy. **That assumption was
-  wrong and the check was never performed**; Phase 5 (#1554) below records
-  what it cost and replaces the mechanism.
-- This is the second of two Grafana-adjacent issues (after #1469/ADR-0021);
-  end-to-end Grafana login and alert delivery could not be verified against
-  real infra in this change either — the same caveat ADR-0021 recorded for
-  its own half.
+- All alerting lives in Grafana; "why no alert?" has one place to look.
+- `TransactionLatencySnapshotJob` remains because `GetSlowTransactions`'
+  trending list reads its table.
+- CI duration is a panel, not an alert.
 
 ## Revisit when
 
-CI duration needs a real *alert*, not just a panel — Phase 6 (#1556) added
-the `github_workflow_run_duration_seconds` gauge and an `app-performance`
-panel, but no alert rule, on the reasoning that failing-run signal already
-exists and duration is a trend to read rather than be paged on. If that
-changes, a `ci_duration_high` rule in `infra/grafana/provisioning/alerting/`
-now has a metric to evaluate.
+CI duration needs an alert (the metric now exists), or GitHub plugin queries are
+validated well enough to retire the GitHub half of the collector.
