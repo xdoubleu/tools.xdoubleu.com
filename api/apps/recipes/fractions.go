@@ -59,13 +59,12 @@ func ToFraction(f float64) string {
 	return fmt.Sprintf("%d%s", whole, symbol)
 }
 
-// toFraction is a package-level alias for internal use.
 func toFraction(f float64) string {
 	return ToFraction(f)
 }
 
-// ToFractionCeiling converts a float64 to a Unicode cooking fraction string,
-// rounding UP to the nearest common fraction so the quantity is never short.
+// ToFractionCeiling converts a float64 to a Unicode cooking fraction,
+// rounding up so the quantity is never short.
 func ToFractionCeiling(f float64) string {
 	if f <= 0 {
 		return "0"
@@ -73,8 +72,7 @@ func ToFractionCeiling(f float64) string {
 	whole := int(math.Floor(f))
 	frac := f - float64(whole)
 
-	// Find the first common fraction >= frac (ceiling). A tiny epsilon absorbs
-	// float64 representation error (e.g. 1/3 stored as 0.333...337).
+	// eps absorbs float error (1/3 stored as 0.333...337).
 	const eps = 1e-9
 	bestIdx := len(commonFractions) - 1
 	for i, cf := range commonFractions {

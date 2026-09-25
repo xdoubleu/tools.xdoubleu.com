@@ -71,10 +71,8 @@ export const GetDashboardShareResponseSchema: GenMessage<GetDashboardShareRespon
   messageDesc(file_dashboard_v1_dashboard, 2);
 
 /**
- * CreateDashboardShare generates a new share token for the given dashboard,
- * replacing any existing one for it (the old link stops working
- * immediately). Fails with FailedPrecondition when the owner has not set a
- * display name yet.
+ * CreateDashboardShare replaces the dashboard's share token (the old link
+ * dies). FailedPrecondition when no display name is set.
  *
  * @generated from message dashboard.v1.CreateDashboardShareRequest
  */
@@ -196,11 +194,8 @@ export const DashboardKindSchema: GenEnum<DashboardKind> = /*@__PURE__*/
   enumDesc(file_dashboard_v1_dashboard, 0);
 
 /**
- * DashboardService manages the owner's public dashboard share links and
- * display name. Each dashboard (games, reading) has its own independent
- * share token, gating the corresponding public read-only dashboard RPCs
- * (dashboard.v1.PublicGamesDashboardService,
- * dashboard.v1.PublicReadingDashboardService).
+ * DashboardService manages the owner's display name and per-dashboard share
+ * tokens, which gate the public dashboard services.
  *
  * @generated from service dashboard.v1.DashboardService
  */

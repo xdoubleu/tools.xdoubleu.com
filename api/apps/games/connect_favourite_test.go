@@ -41,14 +41,12 @@ func TestSetGameFavourite_RoundTrip(t *testing.T) {
 	require.NotNil(t, resp.Msg.Game)
 	assert.True(t, resp.Msg.Game.Favourite)
 
-	// The flag must be visible on reads.
 	getReq := connect.NewRequest(&gamesv1.GetSteamGameRequest{GameId: 1})
 	getReq.Header().Set("Cookie", accessToken.String())
 	getResp, err := client.GetSteamGame(ctx, getReq)
 	require.NoError(t, err)
 	assert.True(t, getResp.Msg.Data.Game.Favourite)
 
-	// Unset again.
 	req = connect.NewRequest(&gamesv1.SetGameFavouriteRequest{
 		GameId:    1,
 		Favourite: false,
@@ -59,8 +57,7 @@ func TestSetGameFavourite_RoundTrip(t *testing.T) {
 	assert.False(t, resp.Msg.Game.Favourite)
 }
 
-// TestSetGameFavourite_SurvivesSync guards the sync upsert: favourite is
-// user-set state and a Steam refresh must never reset it.
+// TestSetGameFavourite_SurvivesSync: a Steam refresh never resets favourite.
 func TestSetGameFavourite_SurvivesSync(t *testing.T) {
 	seedSteamData(t)
 	ctx := context.Background()

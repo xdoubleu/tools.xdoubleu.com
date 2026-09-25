@@ -6,8 +6,7 @@ import (
 	"tools.xdoubleu.com/apps/games/internal/repositories"
 )
 
-// IntegrationsService manages a user's external-integration settings
-// (currently the Steam user ID).
+// IntegrationsService manages a user's integration settings (Steam user ID).
 type IntegrationsService struct {
 	repo *repositories.IntegrationsRepository
 }

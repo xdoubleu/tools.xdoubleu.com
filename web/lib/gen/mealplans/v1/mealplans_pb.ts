@@ -59,8 +59,7 @@ export type PlanMeal = Message<"mealplans.v1.PlanMeal"> & {
   recipe?: Recipe | undefined;
 
   /**
-   * When set, a custom (recipe-less) entry still shows on the calendar and the
-   * iCal feed but its items are excluded from the shopping-list export.
+   * Keeps a custom entry on the calendar/iCal but out of the shopping export.
    *
    * @generated from field: bool exclude_from_shopping_list = 9;
    */

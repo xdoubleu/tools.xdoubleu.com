@@ -19,9 +19,7 @@ func discardLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, nil))
 }
 
-// stubSteamClient implements steam.Client with per-call overrides, so tests
-// can exercise each of SteamService's error/success branches without a real
-// Steam API or database.
+// stubSteamClient implements steam.Client with per-call overrides.
 type stubSteamClient struct {
 	ownedGames func(
 		ctx context.Context,
@@ -85,12 +83,9 @@ func rows(names ...string) []models.Achievement {
 	return out
 }
 
-// TestMarkCompletionAverageMembership covers the cases the sync-level tests
-// cannot reach cheaply, above all the two ways a game must *not* be read as
-// superseded: a partial overlap, and a set spread across several listed games.
-// Getting either wrong silently drops a game from the library-wide average
-// (docs/adr-0018-completion-average-population.md). The last case pins the
-// accepted false positive at the other end.
+// TestMarkCompletionAverageMembership covers the cases a game must not be
+// read as superseded (partial overlap, set spread across games) plus the
+// accepted false positive (docs/adr-0018-completion-average-population.md).
 func TestMarkCompletionAverageMembership(t *testing.T) {
 	const listed, other, delisted = 1, 2, 3
 
@@ -130,10 +125,8 @@ func TestMarkCompletionAverageMembership(t *testing.T) {
 			want:         true,
 		},
 		{
-			// Accepted limitation: names are only unique per app, so a
-			// delisted game whose whole set happens to sit inside an
-			// unrelated listed game's does read as a takeover. Requiring
-			// one whole set inside one game keeps that unlikely.
+			// Accepted limitation: per-app name uniqueness allows this
+			// false positive.
 			name:         "wholly contained in one game, however generic",
 			listedRows:   rows("ACH_01", "ACH_02", "ACH_03"),
 			otherRows:    rows("O_1"),
@@ -173,8 +166,8 @@ func TestMarkCompletionAverageMembership(t *testing.T) {
 	}
 }
 
-// TestAveragedAchievementsKeepsGamesBeingRefreshed pins the carve-out for a
-// game absent from gamesMap: it is mid-refresh, not excluded.
+// TestAveragedAchievementsKeepsGamesBeingRefreshed: a game absent from
+// gamesMap is mid-refresh, not excluded.
 func TestAveragedAchievementsKeepsGamesBeingRefreshed(t *testing.T) {
 	gamesMap := map[int]*models.Game{1: gameWith(1, false)}
 	gamesMap[1].InCompletionAverage = true
@@ -289,9 +282,8 @@ func TestBuildAchievementRows_UsesPlayerAchievements(t *testing.T) {
 	assert.Nil(t, notAchieved.GlobalPercent)
 }
 
-// TestBuildAchievementRows_FallsBackToSchema covers the branch where the
-// player has no achievement state at all (e.g. never launched the game):
-// the schema alone defines the (all unachieved) rows.
+// TestBuildAchievementRows_FallsBackToSchema: with no player state, the
+// schema defines the (unachieved) rows.
 func TestBuildAchievementRows_FallsBackToSchema(t *testing.T) {
 	//nolint:exhaustruct //only the fields buildAchievementRows reads
 	schemas := []steam.AchievementSchema{
@@ -465,9 +457,7 @@ func TestFetchAchievementsForGame(t *testing.T) {
 	})
 }
 
-// TestFetchAchievements covers the concurrent fan-out: a game whose fetch
-// fails is omitted from the result (its stored data is kept) instead of
-// aborting the whole sync.
+// TestFetchAchievements: a failed game is omitted, not fatal.
 func TestFetchAchievements(t *testing.T) {
 	//nolint:exhaustruct //only the field this method reads
 	service := &SteamService{logger: discardLogger()}
@@ -519,8 +509,7 @@ func TestFetchAchievements(t *testing.T) {
 	assert.NotContains(t, got, failGame)
 }
 
-// TestBuildProgress pins the unlock filter: only achievements that are both
-// Achieved and carry a non-nil UnlockTime become graph points.
+// TestBuildProgress: only Achieved rows with an UnlockTime become points.
 func TestBuildProgress(t *testing.T) {
 	now := time.Now().UTC()
 	//nolint:exhaustruct //only the fields the point filter reads

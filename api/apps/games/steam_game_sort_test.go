@@ -19,24 +19,16 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// twoAchievementsMock returns a game with two player achievements but only one
-// has a global percentage entry, causing nil GlobalPercent on the second — which
-// exercises the nil-branches in GetSteamGame's sort.Slice comparison function.
+// twoAchievementsMock returns two achievements, only one with a global
+// percent, to hit the sort comparator's nil branches.
 type twoAchievementsMock struct{}
 
-// fourAchievementsMock is a Steam client that returns four achievements for game
-// 9: two with GlobalPercent and two without. This exercises every branch of the
-// sort.Slice comparator inside RefreshSteamGame (and GetSteamGame):
-//
-//	*pi > *pj       — both achievements have a percent
-//	pi == nil       — achievement at index i has no percent
-//	pj == nil       — achievement at index j has no percent (pi != nil)
-//	both nil        — both achievements at i and j have no percent (DisplayName compare)
+// fourAchievementsMock returns four achievements for game 9, two with and two
+// without a global percent, covering every sort comparator branch.
 type fourAchievementsMock struct{}
 
-// TestConnectGetSteamGame_SortBranches seeds a game with two achievements (one
-// with GlobalPercent, one without) and calls GetSteamGame, covering the
-// nil-GlobalPercent branches in the sort.Slice comparison.
+// TestConnectGetSteamGame_SortBranches covers GetSteamGame's nil-percent
+// sort branches.
 func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	const isolatedUser = "sort-branch-test-user"
 
@@ -88,10 +80,8 @@ func TestConnectGetSteamGame_SortBranches(t *testing.T) {
 	assert.Len(t, resp.Msg.Data.Achievements, 2)
 }
 
-// TestConnectRefreshSteamGame_SortBranches seeds a game with two achievements
-// (one with GlobalPercent, one without) and calls RefreshSteamGame, covering
-// the nil-GlobalPercent branches in the sort.Slice comparison and the full
-// happy path of the handler.
+// TestConnectRefreshSteamGame_SortBranches covers RefreshSteamGame's
+// nil-percent sort branches and happy path.
 func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 	const isolatedUser = "refresh-sort-branch-user"
 
@@ -139,10 +129,8 @@ func TestConnectRefreshSteamGame_SortBranches(t *testing.T) {
 	assert.Len(t, resp.Msg.Data.Achievements, 2)
 }
 
-// TestConnectRefreshSteamGame_AllSortBranches seeds a game with four achievements
-// (two with GlobalPercent, two without) and calls RefreshSteamGame, covering all
-// remaining sort.Slice comparator branches: *pi > *pj, pj == nil, and both-nil
-// DisplayName comparison.
+// TestConnectRefreshSteamGame_AllSortBranches covers the remaining sort
+// comparator branches.
 func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 	const isolatedUser = "refresh-all-sort-user"
 	ctx := context.Background()
@@ -192,8 +180,7 @@ func TestConnectRefreshSteamGame_AllSortBranches(t *testing.T) {
 		"all four achievements should be returned after refresh")
 }
 
-// TestConnectRefreshSteamGame_SyncError verifies that RefreshSteamGame returns
-// CodeInternal when SyncGame fails (e.g. Steam schema fetch error).
+// TestConnectRefreshSteamGame_SyncError: a SyncGame failure is CodeInternal.
 func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 	const isolatedUser = "refresh-sync-error-user"
 	const gameID = 7
@@ -204,8 +191,7 @@ func TestConnectRefreshSteamGame_SyncError(t *testing.T) {
 		testCfg,
 		testDB,
 		func(_ string) steam.Client {
-			// Uses syncFakeClient with schemaErr so fetchAchievementsForGame
-			// fails, causing SyncGame to return an error.
+			// schemaErr makes SyncGame fail.
 			return syncFakeClient{
 				games:     []steam.Game{},
 				playerAch: map[int][]steam.Achievement{},
@@ -380,7 +366,7 @@ func (twoAchievementsMock) GetGlobalAchievementPercentagesForApp(
 	_ context.Context,
 	_ int,
 ) (*steam.GlobalAchievementPercentagesResponse, error) {
-	// Only ACH_A has a global percent; ACH_B will get nil GlobalPercent.
+	// Only ACH_A has a global percent.
 	//nolint:exhaustruct //anonymous inner struct initialised via field assignment
 	resp := steam.GlobalAchievementPercentagesResponse{}
 	resp.AchievementPercentages.Achievements = []steam.GlobalAchievementPercent{

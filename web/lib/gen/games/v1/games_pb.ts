@@ -32,9 +32,8 @@ export type Game = Message<"games.v1.Game"> & {
   isDelisted: boolean;
 
   /**
-   * Whether this game takes part in the library-wide completion averages.
-   * False only for a delisted game whose achievements a game still in the
-   * library has taken over.
+   * False only for a delisted game whose achievements a listed game took
+   * over.
    *
    * @generated from field: bool in_completion_average = 12;
    */
@@ -175,10 +174,8 @@ export type SteamResponse = Message<"games.v1.SteamResponse"> & {
   dateEnd: string;
 
   /**
-   * Games Steam no longer returns in the owned list. They are absent from the
-   * three lists above, but most still count towards current_rate and
-   * distribution — see each game's in_completion_average. This is the only
-   * place the population behind a completion number can be checked.
+   * Games Steam no longer lists; absent from the lists above but mostly
+   * still in current_rate and distribution (see in_completion_average).
    *
    * @generated from field: repeated games.v1.Game delisted = 11;
    */

@@ -105,8 +105,8 @@ func (x *KoboDevice) GetLoggingEnabled() bool {
 	return false
 }
 
-// KoboLogEntry is a single captured device request/response pair, held in
-// memory while debug logging is enabled for a device.
+// KoboLogEntry is one captured device request/response pair, held in memory
+// while debug logging is on.
 type KoboLogEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Time          string                 `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`

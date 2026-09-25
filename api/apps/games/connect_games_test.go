@@ -55,8 +55,7 @@ func TestConnectGetSteamGame(t *testing.T) {
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// The mock may not have every game, so we just check the request can be called
-	// without panicking. It may return an error if the game doesn't exist in the mock.
+	// Only checks the call doesn't panic; the mock may lack the game.
 	_, _ = client.GetSteamGame(ctx, req)
 }
 
@@ -140,16 +139,13 @@ func TestConnectGetSteamDistribution_InvalidBucket(t *testing.T) {
 	assert.True(t, errors.As(err, &connectErr))
 }
 
-// TestConnectRefreshSteamGame_GameNotFound verifies that RefreshSteamGame
-// returns an error when the requested game does not exist in the database (the
-// no-credentials no-op still falls through to GetGameByID which fails).
+// TestConnectRefreshSteamGame_GameNotFound: an unknown game errors.
 func TestConnectRefreshSteamGame_GameNotFound(t *testing.T) {
 	client := newGamesTestClient(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Game 999999 was never seeded; testApp has empty Steam creds so SyncGame
-	// is a no-op, and GetGameByID returns an error.
+	// Empty creds make SyncGame a no-op; GetGameByID then fails.
 	req := connect.NewRequest(&gamesv1.RefreshSteamGameRequest{GameId: 999999})
 	req.Header().Set("Cookie", accessToken.String())
 

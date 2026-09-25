@@ -2,7 +2,7 @@ syntax = "proto3";
 package feeds.v1;
 option go_package = "tools.xdoubleu.com/gen/feeds/v1;feedsv1";
 
-// Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
+// Feed is an RSS/Atom, scrape or email-relay subscription.
 message Feed {
   string id = 1;
   string url = 2;
@@ -12,24 +12,18 @@ message Feed {
   // The most recent poll failure; empty when the last poll succeeded.
   string last_error = 5;
   string created_at = 6;
-  // "rss", "email", or "scrape". Email feeds are populated by a Resend
-  // inbound-webhook push, not polling — RefreshFeed is a no-op for them.
-  // Scrape feeds have no real feed at their URL; posts are discovered by
-  // heuristically scanning the page for post-like links.
+  // "rss", "email" or "scrape". Email feeds are pushed via webhook (refresh
+  // is a no-op); scrape feeds discover posts heuristically.
   string source_type = 7;
-  // The address to give the newsletter as its subscription address. Only
-  // set once, on the CreateFeedResponse for a newly created email feed — it
-  // is never persisted in plaintext, so it cannot be shown again later and
-  // is never returned by ListFeeds.
+  // Subscription address for an email feed, returned only once by
+  // CreateFeed (never stored in plaintext).
   string inbound_address = 8;
-  // The conditional-GET validators from the last successful fetch; empty
-  // until the feed has been fetched once.
+  // Conditional-GET validators; empty until fetched.
   string etag = 9;
   string last_modified = 10;
-  // Unbroken poll failures since the last success (issue #799).
+  // Unbroken poll failures since the last success.
   int32 consecutive_failures = 11;
-  // RFC3339; set while a problem email is outstanding for this feed, empty
-  // once it recovers.
+  // RFC3339; set while a problem email is outstanding.
   string notified_at = 12;
 }
 
@@ -43,23 +37,13 @@ enum FeedKind {
   FEED_KIND_SCRAPE = 3;
 }
 
-// CreateFeed with kind RSS (the default) validates the URL by fetching and
-// parsing it, then imports the feed's current contents (newest first,
-// capped) as a first batch in the background — the import can take longer
-// than the request, so it is not reflected in the response; poll
-// ListFeeds/ListFeedItems to see new items land.
-//
-// CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
-// (url must be empty); items land as mail arrives via the Resend webhook.
-//
-// CreateFeed with kind SCRAPE treats url as a page with no real feed (e.g. a
-// blog index) and heuristically discovers post links on it instead of
-// parsing RSS/Atom; best-effort, may find nothing on unusual page layouts.
+// CreateFeed: RSS (default) validates the URL and imports in the background
+// (poll the lists to see items land); EMAIL mints an inbound alias (url
+// empty); SCRAPE heuristically discovers post links on a page with no feed.
 message CreateFeedRequest {
   string url = 1;
   FeedKind kind = 2;
-  // Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
-  // parsed from the feed itself.
+  // Only used for kind=EMAIL; RSS titles come from the feed.
   string title = 3;
 }
 message CreateFeedResponse { Feed feed = 1; }
@@ -78,19 +62,15 @@ message DeleteFeedResponse {}
 message RefreshFeedRequest { string feed_id = 1; }
 message RefreshFeedResponse { int32 ingested = 1; }
 
-// Item is one ingested feed entry, self-contained (no library/book
-// linkage) — a feed and its items only ever belong to one user.
+// Item is one ingested feed entry; feeds and items are single-user.
 message Item {
   string id = 1;
   string feed_id = 2;
   string title = 3;
   string source_url = 4;
-  // Only populated by GetFeedItem. ListFeedItems and UpdateItem leave it
-  // empty and set has_content instead — a page of article bodies was the
-  // single largest source of database egress (issue #1027).
+  // Only populated by GetFeedItem; other RPCs set has_content instead.
   string content_html = 5;
-  // RFC3339; the item's true publish date from the feed/email, not ingest
-  // time.
+  // RFC3339 publish date from the feed/email, not ingest time.
   string published_at = 6;
   // RFC3339; empty when unread.
   string read_at = 7;
@@ -99,26 +79,21 @@ message Item {
   // The most recent ingest failure for this item, if any.
   string ingest_error = 10;
   string created_at = 11;
-  // Furthest scroll position reached in the reader, 0-100. Monotonic:
-  // re-opening and scrolling less never lowers it.
+  // Furthest scroll reached in the reader, 0-100; never lowered.
   int32 read_progress_pct = 12;
-  // Whether the item has an extracted article body, without carrying it.
-  // Set by every RPC returning an Item; lets a list distinguish "no content"
-  // from "content not loaded yet".
+  // Whether an article body exists, distinguishing "no content" from "not
+  // loaded".
   bool has_content = 13;
 }
 
 message ListFeedItemsRequest {
   int32 limit = 1;
   int32 offset = 2;
-  // Excludes items with a set read_at when true. Unset/false returns both
-  // read and unread items.
+  // When true, excludes read items.
   optional bool unread_only = 3;
-  // Restricts results to one feed. Unset returns items from any of the
-  // caller's feeds.
+  // Restricts results to one feed.
   optional string feed_id = 4;
-  // Excludes items without bookmarked set when true. Unset/false returns
-  // both bookmarked and unbookmarked items.
+  // When true, excludes unbookmarked items.
   optional bool bookmarked_only = 5;
 }
 message ListFeedItemsResponse {
@@ -126,17 +101,13 @@ message ListFeedItemsResponse {
   bool has_more = 2;
 }
 
-// GetFeedItem returns one item with its content_html populated — the only
-// RPC that reads the article body. The reader calls it when opening an
-// article, so a list read never pays for fifty bodies (issue #1027).
+// GetFeedItem returns one item with content_html — the only RPC reading the
+// article body.
 message GetFeedItemRequest { string item_id = 1; }
 message GetFeedItemResponse { Item item = 1; }
 
-// UpdateItem partially updates an item's read/dismissed/bookmarked/
-// read-progress state — only fields explicitly set are applied; unset
-// fields are left unchanged. read sets read_at to now() when true, clears
-// it when false. read_progress_pct is clamped to [0,100] and only ever
-// increases (re-opening and scrolling less never lowers it).
+// UpdateItem applies only the fields set. read sets or clears read_at;
+// read_progress_pct is clamped to [0,100] and only increases.
 message UpdateItemRequest {
   string item_id = 1;
   optional bool read = 2;
@@ -146,14 +117,12 @@ message UpdateItemRequest {
 }
 message UpdateItemResponse { Item item = 1; }
 
-// FeedStats aggregates one feed's posting cadence and read/completion
-// metrics (issue #798).
+// FeedStats aggregates one feed's posting cadence and read metrics.
 message FeedStats {
   string feed_id = 1;
   string feed_title = 2;
   int32 item_count = 3;
-  // Mean hours between consecutive items' published_at; 0 when the feed has
-  // fewer than 2 items.
+  // Mean hours between items; 0 below 2 items.
   double avg_interval_hours = 4;
   // Fraction (0-1) of items with read_at set.
   double read_rate = 5;
@@ -161,8 +130,7 @@ message FeedStats {
   double avg_read_progress_pct = 6;
 }
 
-// One day's ingested-item count, for the "when do new items appear"
-// histogram (issue #798).
+// DayCount is one day's ingested-item count.
 message DayCount {
   // RFC3339 (midnight UTC).
   string day = 1;
@@ -184,8 +152,7 @@ message UnhealthyFeed {
   int32 consecutive_failures = 4;
 }
 
-// GetUnhealthyFeeds reports every user's currently-failing feeds — admin-only,
-// since it is not scoped to the caller's own feeds.
+// GetUnhealthyFeeds reports every user's failing feeds (admin-only).
 message GetUnhealthyFeedsRequest {}
 message GetUnhealthyFeedsResponse {
   repeated UnhealthyFeed feeds = 1;

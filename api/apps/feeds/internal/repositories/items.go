@@ -12,33 +12,24 @@ import (
 	"tools.xdoubleu.com/internal/pagination"
 )
 
-// ItemsRepository stores ingested feed entries (feeds.items) — a feed's own
-// seen-item set and its content in one place, since items no longer link out
-// to a separate library.
+// ItemsRepository stores ingested feed entries and each feed's seen set.
 type ItemsRepository struct {
 	db postgres.DB
 }
 
-// itemColumns reads the full row including the article body. Only
-// GetByIDForUser uses it — the body is the single widest column in the
-// schema, so anything returning more than one row must use itemListColumns
-// instead (issue #1027).
+// itemColumns includes the article body; only GetByIDForUser may use it.
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at`
 
-// itemListColumns is itemColumns with the article body replaced by a
-// boolean saying whether there is one, mirroring books' bookColumns
-// (apps/books/internal/repositories/books_scan.go). Every multi-row read and
-// every RETURNING clause uses this: a 50-item page carried tens of MB of
-// extracted HTML out of Postgres on each request otherwise, which is what
-// exhausted the egress quota in issue #1027.
+// itemListColumns replaces the body with a has-content boolean. Every
+// multi-row read and RETURNING clause must use it: bodies are tens of MB per
+// page and exhaust database egress.
 const itemListColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html <> '', i.published_at, i.read_at, i.dismissed, i.bookmarked,
 	i.read_progress_pct, i.ingest_error, i.created_at`
 
-// scanItem scans a row selected with itemColumns (body included), deriving
-// HasContent so callers see the same field set either way.
+// scanItem scans an itemColumns row, deriving HasContent.
 func scanItem(row pgx.Row) (*models.Item, error) {
 	item, err := scanItemInto(row, func(i *models.Item) any { return &i.ContentHTML })
 	if err != nil {
@@ -48,14 +39,12 @@ func scanItem(row pgx.Row) (*models.Item, error) {
 	return item, nil
 }
 
-// scanListItem scans a row selected with itemListColumns (body replaced by
-// the has-content boolean), leaving ContentHTML empty.
+// scanListItem scans an itemListColumns row, leaving ContentHTML empty.
 func scanListItem(row pgx.Row) (*models.Item, error) {
 	return scanItemInto(row, func(i *models.Item) any { return &i.HasContent })
 }
 
-// scanItemInto holds the column order shared by both column lists, which
-// differ only in what the sixth column is.
+// scanItemInto holds the column order shared by both column lists.
 func scanItemInto(
 	row pgx.Row,
 	contentTarget func(*models.Item) any,
@@ -121,12 +110,9 @@ func (repo *ItemsRepository) FilterNewGUIDs(
 	return out, nil
 }
 
-// Insert stores one ingested item (or a metadata-only/error row when ingest
-// failed — content_html/source_url/title may be empty and ingest_error set).
-// A duplicate (feed_id, guid) re-opens the existing item (clears read/
-// dismissed) instead of inserting — polling never retries a seen guid (it
-// pre-filters via FilterNewGUIDs), but resending the same email reuses the
-// same guid and is the intended way to bring a dismissed/read item back.
+// Insert stores an item, or an error row with ingest_error set. A duplicate
+// (feed_id, guid) re-opens the existing item instead: polling pre-filters
+// seen guids, so this only happens when an email is resent on purpose.
 func (repo *ItemsRepository) Insert(
 	ctx context.Context,
 	item models.Item,
@@ -153,13 +139,9 @@ func (repo *ItemsRepository) Insert(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// Update partially updates an item's read/dismissed/bookmarked/read-progress
-// state, scoped to the owning user via a join on feeds.feeds — nil pointers
-// leave the corresponding column unchanged. read, when non-nil, sets read_at
-// to now() (true) or clears it (false). readProgressPct only ever increases
-// (GREATEST) — re-opening and scrolling less never lowers the recorded
-// completion (issue #798). Returns database.ErrResourceNotFound when no item
-// matches (unknown id or owned by another user).
+// Update partially updates an item, scoped to its owner; nil leaves a column
+// unchanged. read sets or clears read_at; readProgressPct only increases.
+// Returns database.ErrResourceNotFound when no owned item matches.
 func (repo *ItemsRepository) Update(
 	ctx context.Context,
 	userID string,
@@ -191,12 +173,8 @@ func (repo *ItemsRepository) Update(
 	return item, nil
 }
 
-// GetByIDForUser returns one item including its article body, scoped to the
-// owning user via the same join on feeds.feeds the other queries use. This
-// is the only read that touches content_html, so the reader pays for one
-// body when it opens an article instead of every list read paying for fifty
-// (issue #1027). Returns database.ErrResourceNotFound when no item matches
-// (unknown id or owned by another user).
+// GetByIDForUser returns one owned item including its body — the only read
+// of content_html. Returns database.ErrResourceNotFound when none matches.
 func (repo *ItemsRepository) GetByIDForUser(
 	ctx context.Context,
 	userID string,
@@ -215,13 +193,9 @@ func (repo *ItemsRepository) GetByIDForUser(
 	return item, nil
 }
 
-// ListByUser returns non-dismissed, successfully ingested items from any of
-// userID's feeds, newest first, paginated by limit/offset (see
-// pagination.Clamp). Error/skip dedup markers (ingest_error set, no title or
-// content) are excluded — they exist only so polling doesn't retry a guid,
-// not for display. unreadOnly, when true, excludes items with a set read_at.
-// feedID, when non-nil, restricts results to that one feed. bookmarkedOnly,
-// when true, excludes items without bookmarked set.
+// ListByUser returns a page of the user's non-dismissed, successfully
+// ingested items, newest first, excluding error/skip dedup markers.
+// unreadOnly, feedID and bookmarkedOnly narrow the results.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
 	userID string,
@@ -267,9 +241,7 @@ func (repo *ItemsRepository) ListByUser(
 	return page, hasMore, nil
 }
 
-// CountUnread returns the number of non-dismissed, successfully ingested,
-// unread items across any of userID's feeds — the reading dashboard's feeds
-// widget shows this alongside a few recent items from ListByUser.
+// CountUnread counts the user's non-dismissed, ingested, unread items.
 func (repo *ItemsRepository) CountUnread(
 	ctx context.Context,
 	userID string,
@@ -288,11 +260,8 @@ func (repo *ItemsRepository) CountUnread(
 	return count, nil
 }
 
-// CountUnreadByFeed returns the number of non-dismissed, successfully
-// ingested, unread items per feed, across all users, restricted to feeds
-// with at least one such item — for the weekly digest job's open-feed-items
-// reminder (issue #1355). Only ids/counts are selected, never content_html
-// (see the "Never put a wide TEXT column in a list query" convention).
+// CountUnreadByFeed counts non-dismissed, ingested, unread items per feed
+// across all users, omitting feeds with none.
 func (repo *ItemsRepository) CountUnreadByFeed(
 	ctx context.Context,
 ) ([]models.FeedUnreadCount, error) {
@@ -314,8 +283,7 @@ func (repo *ItemsRepository) CountUnreadByFeed(
 	var out []models.FeedUnreadCount
 	for rows.Next() {
 		var c models.FeedUnreadCount
-		// url is nullable (email feeds have none, see feedColumns' own
-		// handling in feeds.go's scanFeed).
+		// url is nullable: email feeds have none.
 		var url *string
 		if scanErr := rows.Scan(
 			&c.FeedID, &c.FeedTitle, &url, &c.UnreadCount,
@@ -333,9 +301,8 @@ func (repo *ItemsRepository) CountUnreadByFeed(
 	return out, nil
 }
 
-// RecentPublishedAt returns the publish timestamps of the feed's most recent
-// successfully-ingested items, newest first, for the quiet-feed cadence
-// check (issue #799).
+// RecentPublishedAt returns the publish times of the feed's most recent
+// ingested items, newest first.
 func (repo *ItemsRepository) RecentPublishedAt(
 	ctx context.Context,
 	feedID uuid.UUID,
@@ -368,10 +335,8 @@ func (repo *ItemsRepository) RecentPublishedAt(
 	return out, nil
 }
 
-// Stats aggregates posting cadence and read/completion metrics per feed
-// (issue #798): item count, average interval between items (0 when fewer
-// than 2), read rate (fraction with read_at set), and average read
-// completion percentage.
+// Stats aggregates per feed: item count, average interval (0 below 2 items),
+// read rate, and average read completion.
 func (repo *ItemsRepository) Stats(
 	ctx context.Context,
 	userID string,
@@ -431,10 +396,8 @@ func (repo *ItemsRepository) Stats(
 	return out, nil
 }
 
-// ItemsPerDay buckets item ingest counts by day, across all of the user's
-// feeds, since the given time — the "when do new items appear" histogram
-// (issue #798). created_at (ingest time) is used rather than published_at,
-// which can be backdated or missing on some feeds.
+// ItemsPerDay buckets the user's items by ingest day since the given time;
+// created_at is used since published_at can be backdated or missing.
 func (repo *ItemsRepository) ItemsPerDay(
 	ctx context.Context,
 	userID string,

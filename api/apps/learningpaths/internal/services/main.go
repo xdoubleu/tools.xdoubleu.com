@@ -18,10 +18,8 @@ type Services struct {
 	Todoist       *TodoistService
 }
 
-// New wires booksApp/feedsApp straight into LearningPathService, which
-// calls only their exported methods (Books.GetLibraryBookByID,
-// Feeds.GetItemByID) to resolve/validate a resource's linked entry — the
-// same dashboard-style cross-app pattern api/apps/dashboard uses.
+// New wires the services; booksApp/feedsApp are used only via their exported
+// lookup methods.
 func New(
 	_ *slog.Logger,
 	repos *repositories.Repositories,

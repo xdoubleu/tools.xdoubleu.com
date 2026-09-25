@@ -41,8 +41,7 @@ export type GetSharedLibraryResponse = Message<"dashboard.v1.GetSharedLibraryRes
   library?: LibraryResponse | undefined;
 
   /**
-   * Most recent Kobo device sync (max last_seen_at); empty when the owner
-   * has no Kobo devices. Kobo sync is the books equivalent of a refresh.
+   * Latest Kobo device sync (the books refresh); empty with no devices.
    *
    * @generated from field: string last_synced_at = 2;
    */
@@ -125,11 +124,7 @@ export const GetSharedFeedsSummaryRequestSchema: GenMessage<GetSharedFeedsSummar
   messageDesc(file_dashboard_v1_reading, 4);
 
 /**
- * SharedFeed is a lightweight, read-only projection of one feeds.v1.Feed for
- * the reading dashboard's feeds widget — just the subscription's name and
- * public URL, not read state or any of feeds.v1.Feed's private fields
- * (last_error, notified_at, inbound_address, ...), which are not meaningful
- * to a visitor of a shared profile.
+ * SharedFeed is a feed's public name and URL, without private fields.
  *
  * @generated from message dashboard.v1.SharedFeed
  */
@@ -172,11 +167,9 @@ export const GetSharedFeedsSummaryResponseSchema: GenMessage<GetSharedFeedsSumma
   messageDesc(file_dashboard_v1_reading, 6);
 
 /**
- * PublicReadingDashboardService serves the read-only shareable reading
- * dashboard — the books library plus a feeds summary (issue #737). It is
- * registered WITHOUT auth middleware: requests are authorized solely by the
- * opaque dashboard share token (see dashboard.v1.DashboardService), which
- * resolves to the owning user. Unknown tokens return CodeNotFound.
+ * PublicReadingDashboardService serves the shareable reading dashboard
+ * (library plus feeds) without auth; the share token alone authorizes.
+ * Unknown tokens are CodeNotFound.
  *
  * @generated from service dashboard.v1.PublicReadingDashboardService
  */

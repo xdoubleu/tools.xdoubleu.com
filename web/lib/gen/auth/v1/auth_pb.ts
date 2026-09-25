@@ -133,8 +133,7 @@ export const MFAEnrollVerifyRequestSchema: GenMessage<MFAEnrollVerifyRequest> = 
  */
 export type MFAEnrollVerifyResponse = Message<"auth.v1.MFAEnrollVerifyResponse"> & {
   /**
-   * Set only the first time TOTP enrollment completes — a one-time
-   * opportunity to save these, matching GenerateRecoveryCodes' semantics.
+   * Set only when TOTP enrollment first completes; shown once.
    *
    * @generated from field: repeated string recovery_codes = 1;
    */
@@ -388,17 +387,15 @@ export type GetCurrentUserResponse = Message<"auth.v1.GetCurrentUserResponse"> &
   hasMfa: boolean;
 
   /**
-   * Public profile display name; empty when unset (share links require this
-   * to be set first, see dashboard.v1.DashboardService).
+   * Public profile display name; empty when unset (required for share
+   * links).
    *
    * @generated from field: string display_name = 4;
    */
   displayName: string;
 
   /**
-   * Stable per-user identifier (models.User.ID), used client-side as the
-   * PostHog distinct_id via posthog.identify() so product analytics and
-   * session replay resolve to the same person across sessions/devices.
+   * Stable user id, used as the PostHog distinct_id.
    *
    * @generated from field: string user_id = 5;
    */

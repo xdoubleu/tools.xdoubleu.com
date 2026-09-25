@@ -26,24 +26,18 @@ import (
 	"tools.xdoubleu.com/gen/feeds/v1/feedsv1connect"
 )
 
-// emailWebhookSecret is computed at runtime, not written as a literal
-// "whsec_"+base64 string, so it can't be mistaken by secret scanners for a
-// real Svix/Stripe-shaped webhook signing secret (they match on shape, not
-// on whether the decoded content is obviously fake). It's a function
-// (rather than a package-level var) to satisfy gochecknoglobals.
+// emailWebhookSecret is built at runtime so secret scanners don't flag a
+// whsec_-shaped literal; a function to satisfy gochecknoglobals.
 func emailWebhookSecret() string {
 	return fakeWebhookSecret("FAKE-SECRET-FOR-TESTS-DO-NOT-USE")
 }
 
-// fakeWebhookSecret builds a syntactically-valid "whsec_"+base64 secret from
-// a human-readable seed, so the source never contains a whsec_-prefixed
-// base64 blob as literal text.
+// fakeWebhookSecret builds a valid "whsec_"+base64 secret from a seed.
 func fakeWebhookSecret(seed string) string {
 	return "whsec_" + base64.StdEncoding.EncodeToString([]byte(seed))
 }
 
-// signEmailWebhookBody signs body the way Resend signs "email.received"
-// webhooks (Svix scheme) — see verifyResendSignature.
+// signEmailWebhookBody signs body with Resend's Svix scheme.
 func signEmailWebhookBody(t *testing.T, secret, id string, body []byte) http.Header {
 	t.Helper()
 	timestamp := strconv.FormatInt(time.Now().Unix(), 10)
@@ -127,10 +121,7 @@ func postWebhook(
 	return rec
 }
 
-// messageIDFor mirrors inboundPayload's message_id derivation — the ingest
-// dedup key uses message_id (falling back to email_id only when absent), so
-// tests asserting on the resulting guid/source_url must use this, not the
-// raw emailID.
+// messageIDFor mirrors inboundPayload's message_id, the ingest dedup key.
 func messageIDFor(emailID string) string {
 	return "<" + emailID + "@example.com>"
 }
@@ -166,9 +157,7 @@ func itemBySourceURL(
 	return nil
 }
 
-// TestEmailInbound_ValidSignature_IngestsItem proves the full happy path: a
-// correctly signed email.received webhook for a known feed alias fetches the
-// email body from Resend and lands it as a feed item.
+// TestEmailInbound_ValidSignature_IngestsItem covers the full happy path.
 func TestEmailInbound_ValidSignature_IngestsItem(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)
@@ -192,9 +181,8 @@ func TestEmailInbound_ValidSignature_IngestsItem(t *testing.T) {
 	)
 }
 
-// TestEmailInbound_BlankSubject_DefaultsTitle proves a whitespace-only
-// subject doesn't land as a blank item title (issue #763) — it falls back to
-// the same default CreateEmail uses for a blank feed title.
+// TestEmailInbound_BlankSubject_DefaultsTitle: a blank subject gets the
+// default title.
 func TestEmailInbound_BlankSubject_DefaultsTitle(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)
@@ -276,10 +264,8 @@ func TestEmailInbound_SourceURLUniqueness(t *testing.T) {
 	assert.NotEqual(t, itemA.Id, itemB.Id)
 }
 
-// TestEmailInbound_ResendFetchFails_NoOp proves that when the follow-up
-// "retrieve received email" call to Resend fails, the webhook still acks 200
-// rather than surfacing the failure to Resend as a delivery error, nothing
-// is ingested, and the failure is recorded as the feed's last_error.
+// TestEmailInbound_ResendFetchFails_NoOp: a failed body fetch still acks 200,
+// ingests nothing, and records last_error.
 func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)
@@ -311,10 +297,8 @@ func TestEmailInbound_ResendFetchFails_NoOp(t *testing.T) {
 	assert.Contains(t, found.LastError, "500")
 }
 
-// TestEmailInbound_Resend_RestoresDismissedItem proves that re-sending the
-// same email (same message_id, so same dedup guid) un-dismisses an item that
-// was previously dismissed — the ON CONFLICT path on the (feed_id, guid)
-// unique index must restore visibility rather than no-op (issue #801).
+// TestEmailInbound_Resend_RestoresDismissedItem: resending the same email
+// un-dismisses the item via ON CONFLICT.
 func TestEmailInbound_Resend_RestoresDismissedItem(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)
@@ -407,8 +391,7 @@ func TestEmailInbound_MissingMessageID_FallsBackToEmailID(t *testing.T) {
 	assert.Equal(t, "No message id", item.Title)
 }
 
-// TestEmailInbound_ReceivedForFallback_IngestsItem proves resolveEmailFeed
-// also checks "received_for" when the alias isn't in "to".
+// TestEmailInbound_ReceivedForFallback_IngestsItem: "received_for" is tried.
 func TestEmailInbound_ReceivedForFallback_IngestsItem(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)
@@ -443,8 +426,8 @@ func TestEmailInbound_ReceivedForFallback_IngestsItem(t *testing.T) {
 	assert.Equal(t, "Via received_for", item.Title)
 }
 
-// TestEmailInbound_SkipsNonMatchingToAddress proves resolveEmailFeed keeps
-// scanning the "to" list past an address that doesn't resolve to any feed.
+// TestEmailInbound_SkipsNonMatchingToAddress: scanning continues past a
+// non-matching "to" address.
 func TestEmailInbound_SkipsNonMatchingToAddress(t *testing.T) {
 	mux := getRoutes()
 	feedID, token, client := createEmailFeedFor(t, mux)

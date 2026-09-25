@@ -13,11 +13,8 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// TestOAuthConnectionsRepository_RoundTrip exercises the encrypt/decrypt
-// path end to end (issue #1475): Upsert, Get (decrypts), GetStatus, a
-// refresh via UpdateToken, then Delete — the same shape as
-// repositories.OAuthConnectionsRepository's tests for global.oauth_connections,
-// but scoped by user_id.
+// TestOAuthConnectionsRepository_RoundTrip covers Upsert, Get (decrypt),
+// GetStatus, UpdateToken and Delete.
 func TestOAuthConnectionsRepository_RoundTrip(t *testing.T) {
 	testSealer, err := crypto.New(testCfg.EncryptionKey)
 	require.NoError(t, err)

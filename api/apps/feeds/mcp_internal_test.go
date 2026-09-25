@@ -20,10 +20,8 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// TestMCPTools_ListFeedsAndItems exercises the two MCP tool wrappers
-// end-to-end against a real (migrated, empty) app instance — RegisterMCPTools
-// itself is a thin registration shim covered by every app that has one, so
-// the wrappers are what actually needs a direct test.
+// TestMCPTools_ListFeedsAndItems exercises both MCP tool wrappers against a
+// real app.
 func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 	cfg := testhelper.NewTestConfig()
 	db := testhelper.ConnectTestDB(cfg.DBDsn)
@@ -61,9 +59,7 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 	_, err = h.mcpListItems(ctx, mcpListItemsArgs{})
 	require.NoError(t, err)
 
-	// A feed_id forwarded to a request that matches nothing still succeeds
-	// (empty result), proving the arg reaches the underlying RPC rather than
-	// being silently dropped like the old NoArgs wrapper did.
+	// A feed_id matching nothing still succeeds, proving the arg is forwarded.
 	msg, err := h.mcpListItems(
 		ctx,
 		//nolint:exhaustruct // only FeedID matters for this assertion

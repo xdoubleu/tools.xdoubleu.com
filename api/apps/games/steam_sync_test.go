@@ -17,10 +17,8 @@ import (
 	sharedmocks "tools.xdoubleu.com/internal/mocks"
 )
 
-// syncFakeClient is a configurable Steam client for SyncUser tests. It serves a
-// fixed set of owned games and per-game player achievements, and can be told to
-// fail GetSchemaForGame for specific app IDs to simulate a transient per-game
-// fetch failure.
+// syncFakeClient is a Steam client for SyncUser tests that can fail
+// GetSchemaForGame for chosen app IDs.
 type syncFakeClient struct {
 	games     []steam.Game
 	playerAch map[int][]steam.Achievement
@@ -124,10 +122,8 @@ func ach(apiName string, achieved int) steam.Achievement {
 	}
 }
 
-// TestSyncUser_SchemaFailurePreservesPriorCompletion is the regression test for
-// the corruption bug: when GetSchemaForGame fails for one game during a refresh,
-// that game must keep its previously computed completion_rate (not be reset to
-// "0.00"), the other games must still be refreshed, and the sync must commit.
+// TestSyncUser_SchemaFailurePreservesPriorCompletion: a game whose schema
+// fetch fails keeps its prior completion_rate while the others refresh.
 func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-preserve-user"
@@ -154,7 +150,6 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		gameB: {ach("B1", 1), ach("B2", 1)}, // 2/2 => 100.00
 	}
 
-	// First run: everything succeeds.
 	app := newSyncTestApp(t, user, syncFakeClient{
 		games:     games,
 		playerAch: playerAch,
@@ -198,9 +193,7 @@ func TestSyncUser_SchemaFailurePreservesPriorCompletion(t *testing.T) {
 		"game whose fetch failed keeps its prior completion rate, not 0.00")
 }
 
-// TestSyncUser_NoLongerOwnedGameIsDelisted verifies that a game that drops out of
-// the owned list on a later sync is carried over and marked delisted (keeping its
-// stored completion rate) rather than removed.
+// TestSyncUser_NoLongerOwnedGameIsDelisted: a dropped game is kept, delisted.
 func TestSyncUser_NoLongerOwnedGameIsDelisted(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-delist-user"
@@ -239,9 +232,7 @@ func TestSyncUser_NoLongerOwnedGameIsDelisted(t *testing.T) {
 	assert.Equal(t, "100.00", dropped.CompletionRate, "delisted game keeps its rate")
 }
 
-// TestSyncUser_RefreshUpdatesListsAndRate reproduces the reported bug: after a
-// refresh (second sync) the game lists and the dashboard "current rate" must
-// reflect the freshly fetched achievements.
+// TestSyncUser_RefreshUpdatesListsAndRate: a refresh updates lists and rate.
 func TestSyncUser_RefreshUpdatesListsAndRate(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-refresh-user"
@@ -293,10 +284,8 @@ func TestSyncUser_RefreshUpdatesListsAndRate(t *testing.T) {
 		"dashboard current rate must reflect the refreshed achievements")
 }
 
-// TestSyncUser_RatePreservedOnPartialFetchFailure reproduces the "current rate is
-// wrong vs before" regression: on a refresh where one game's achievement fetch
-// fails, the dashboard current rate must still reflect ALL games (the failed
-// game keeps its persisted achievements), not just the games fetched this run.
+// TestSyncUser_RatePreservedOnPartialFetchFailure: the rate still covers a
+// game whose fetch failed, using its persisted achievements.
 func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-rate-partial-user"
@@ -324,8 +313,7 @@ func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "62.50", rate)
 
-	// Refresh: game B's achievement fetch fails. Its achievements are preserved,
-	// so the rate must stay 62.50, not drop to 25.00.
+	// Game B's fetch fails; its achievements are preserved, so rate stays 62.50.
 	app2 := newSyncTestApp(t, user, syncFakeClient{
 		games: games, playerAch: playerAch, schemaErr: map[int]bool{gameB: true},
 	})
@@ -337,9 +325,7 @@ func TestSyncUser_RatePreservedOnPartialFetchFailure(t *testing.T) {
 		"current rate must include the game whose fetch failed (kept from DB)")
 }
 
-// TestSyncUser_RefetchesGameMetadata verifies that owned-game metadata (name and
-// playtime) is refetched from Steam and persisted on every sync, not just on the
-// first import.
+// TestSyncUser_RefetchesGameMetadata: name/playtime refresh on every sync.
 func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-metadata-user"
@@ -378,9 +364,7 @@ func TestSyncUser_RefetchesGameMetadata(t *testing.T) {
 	assert.Equal(t, 600, game.Playtime, "game playtime must be refetched")
 }
 
-// TestSteamWithTx_CommitAndRollback verifies the transaction wrapper: a fn that
-// returns nil commits its writes, and a fn that returns an error rolls them back
-// so the database is left unchanged.
+// TestSteamWithTx_CommitAndRollback: nil commits, an error rolls back.
 func TestSteamWithTx_CommitAndRollback(t *testing.T) {
 	ctx := context.Background()
 	repo := testApp.Repositories.Steam
@@ -402,7 +386,6 @@ func TestSteamWithTx_CommitAndRollback(t *testing.T) {
 		}
 	}
 
-	// Commit path.
 	err := repo.WithTx(ctx, func(tx pgx.Tx) error {
 		return repo.UpsertGames(ctx, tx, game(committedID), user)
 	})
@@ -426,9 +409,7 @@ func TestSteamWithTx_CommitAndRollback(t *testing.T) {
 	require.Error(t, err, "rolled-back game must not be persisted")
 }
 
-// TestSyncGame_UpdatesAchievements verifies that SyncGame refreshes the stored
-// achievements and recomputes the game's completion rate for a single game
-// without touching any other games.
+// TestSyncGame_UpdatesAchievements: SyncGame refreshes one game only.
 func TestSyncGame_UpdatesAchievements(t *testing.T) {
 	ctx := context.Background()
 	const user = "syncgame-update-user"
@@ -468,10 +449,8 @@ func TestSyncGame_UpdatesAchievements(t *testing.T) {
 		"SyncGame must update the game's completion rate")
 }
 
-// TestSyncGame_UpdatesTotalCompletionRate verifies that refreshing a single
-// game's achievements also recomputes the library-wide progress graph, so the
-// dashboard's total completion rate reflects the refresh immediately instead
-// of staying stale until the next full SyncUser.
+// TestSyncGame_UpdatesTotalCompletionRate: SyncGame also recomputes the
+// library-wide progress graph.
 func TestSyncGame_UpdatesTotalCompletionRate(t *testing.T) {
 	ctx := context.Background()
 	const user = "syncgame-total-rate-user"
@@ -517,8 +496,7 @@ func TestSyncGame_UpdatesTotalCompletionRate(t *testing.T) {
 		"SyncGame must recompute the total rate, including other games' stored data")
 }
 
-// TestSyncGame_UnconfiguredCreds verifies that SyncGame is a no-op when the
-// user has no Steam credentials configured.
+// TestSyncGame_UnconfiguredCreds: SyncGame is a no-op without Steam creds.
 func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 	ctx := context.Background()
 	const user = "syncgame-nocreds-user"
@@ -536,8 +514,7 @@ func TestSyncGame_UnconfiguredCreds(t *testing.T) {
 	assert.NoError(t, err, "SyncGame with no credentials must be a no-op")
 }
 
-// TestSyncGame_FetchErrorPropagates verifies that when the Steam API fetch
-// fails, SyncGame returns the error and leaves the stored data unchanged.
+// TestSyncGame_FetchErrorPropagates: a fetch error is returned, data unchanged.
 func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 	ctx := context.Background()
 	const user = "syncgame-error-user"
@@ -570,19 +547,14 @@ func TestSyncGame_FetchErrorPropagates(t *testing.T) {
 	err = app2.Services.Steam.SyncGame(ctx, user, gameID)
 	assert.Error(t, err, "SyncGame must propagate Steam fetch errors")
 
-	// Stored completion rate must be unchanged.
 	g, err = app2.Services.Steam.GetGameByID(ctx, gameID, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", g.CompletionRate,
 		"stored data must be unchanged after a failed SyncGame")
 }
 
-// TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver pins half of the
-// accounting rule: is_delisted only records that GetOwnedGames stopped
-// returning an app id, and the achievements earned there stay on the Steam
-// profile, so a delisted game keeps counting towards the headline rate and the
-// distribution chart
-// (docs/adr-0018-completion-average-population.md).
+// TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver: a delisted game
+// keeps counting (docs/adr-0018-completion-average-population.md).
 func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-delist-average-user"
@@ -655,8 +627,7 @@ func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 	}
 	assert.True(t, found, "delisted game appears in the distribution")
 
-	// It is still absent from the three backlog lists, so the payload reports
-	// it separately — otherwise it is invisible everywhere a number comes from.
+	// It is absent from the backlog lists, so the payload reports it apart.
 	payload, _, err := app2.BuildSharedSteam(
 		ctx, user, time.Now().AddDate(0, 0, -7), time.Now(),
 	)
@@ -673,10 +644,8 @@ func TestSyncUser_DelistedGameStillCountsWhenNothingTookItOver(t *testing.T) {
 	}
 }
 
-// TestSyncUser_SupersededDelistedGameLeavesTheAverage pins the other half: when
-// a game Steam still lists carries every achievement of a delisted one — what
-// Valve did folding the Half-Life 2 episodes into Half-Life 2 — counting the
-// delisted app as well would put the same achievements in twice.
+// TestSyncUser_SupersededDelistedGameLeavesTheAverage: a delisted game whose
+// achievements a listed game absorbed is not double-counted.
 func TestSyncUser_SupersededDelistedGameLeavesTheAverage(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-superseded-user"
@@ -715,8 +684,7 @@ func TestSyncUser_SupersededDelistedGameLeavesTheAverage(t *testing.T) {
 	assert.False(t, stored.InCompletionAverage,
 		"the successor carries D1/D2, so the episode must leave the average")
 
-	// Only the successor counts: 2 of 4 => 50.00. Counting the episode's
-	// 100.00 as well would give 75.00 off the same two achievements.
+	// Only the successor counts: 2 of 4 => 50.00, not 75.00.
 	rate, err := app2.Services.Progress.GetCurrentSteamCompletionRate(ctx, user)
 	require.NoError(t, err)
 	assert.Equal(t, "50.00", rate,
@@ -732,8 +700,7 @@ func TestSyncUser_SupersededDelistedGameLeavesTheAverage(t *testing.T) {
 	assert.Equal(t, 1, total, "distribution covers only the successor")
 }
 
-// TestSyncGame_DelistedGameCountsTowardTotalRate covers the same rule on the
-// single-game refresh path, which recomputes the library-wide graph too.
+// TestSyncGame_DelistedGameCountsTowardTotalRate: same rule on SyncGame.
 func TestSyncGame_DelistedGameCountsTowardTotalRate(t *testing.T) {
 	ctx := context.Background()
 	const user = "sync-game-delist-user"
@@ -765,8 +732,7 @@ func TestSyncGame_DelistedGameCountsTowardTotalRate(t *testing.T) {
 	})
 	require.NoError(t, app2.Services.Steam.SyncUser(ctx, user))
 
-	// Refresh the live game alone: 2 of 4 achieved => 50.00, averaged with the
-	// delisted game's stored 100.00 for a library-wide 75.00.
+	// Live game 2/4 => 50.00, averaged with delisted 100.00 => 75.00.
 	app3 := newSyncTestApp(t, user, syncFakeClient{
 		games: allGames[:1],
 		playerAch: map[int][]steam.Achievement{

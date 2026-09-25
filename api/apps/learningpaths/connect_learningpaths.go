@@ -155,10 +155,8 @@ func protoLinkedFeedItem(li *models.LinkedFeedItem) *learningpathsv1.LinkedFeedI
 	}
 }
 
-// dtoToModules converts request-level Module messages to domain models. IDs
-// on the wire are ignored — Create/Update wholesale-replace the tree (see
-// LearningPathsRepository.ReplaceModules), so the client never needs to
-// address an existing module/item by ID.
+// dtoToModules converts Module messages to models. Wire IDs are ignored:
+// Create/Update replace the whole tree.
 func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 	modules := make([]models.Module, len(in))
 	for i, m := range in {
@@ -188,11 +186,7 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 	return modules
 }
 
-// progressFromLearningPath derives per-module and overall completion counts
-// from a fully-populated learning path. Kept alongside the other
-// model-to-proto conversions rather than in the MCP layer, since it's shaped
-// by GetLearningPathProgress's proto response and has nothing MCP-specific
-// about it — the same computation would back a future UI progress bar too.
+// progressFromLearningPath derives per-module and overall completion counts.
 func progressFromLearningPath(
 	lp *models.LearningPath,
 ) *learningpathsv1.GetLearningPathProgressResponse {
@@ -224,11 +218,8 @@ func progressFromLearningPath(
 	}
 }
 
-// dtoToResources converts request-level Resource messages to domain models.
-// An unparseable linked_book_id/linked_feed_item_id (not a valid UUID) is
-// silently treated as absent rather than rejected here — a well-formed but
-// non-existent/foreign-owned ID is still caught by the service layer's
-// validateResourceLinks call.
+// dtoToResources converts Resource messages to models. A non-UUID link ID is
+// treated as absent; validateResourceLinks catches well-formed bad IDs.
 func dtoToResources(in []*learningpathsv1.Resource) []models.Resource {
 	resources := make([]models.Resource, len(in))
 	for i, r := range in {

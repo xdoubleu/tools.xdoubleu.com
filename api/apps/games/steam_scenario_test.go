@@ -18,8 +18,8 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// zeroAchievementsSteamClient returns a game with one unachieved achievement so
-// the game lands in GetBacklog (completion_rate = 0, achievements exist).
+// zeroAchievementsSteamClient returns one unachieved achievement, landing the
+// game in GetBacklog.
 type zeroAchievementsSteamClient struct{}
 
 func (zeroAchievementsSteamClient) GetOwnedGames(
@@ -83,10 +83,8 @@ func (zeroAchievementsSteamClient) GetGlobalAchievementPercentagesForApp(
 	return &resp, nil
 }
 
-// TestConnectGetSteam_WithBacklogAndInProgress covers the GetBacklog and
-// GetInProgress row-loop bodies by seeding two isolated users: one whose game
-// has 0% completion (GetBacklog) and one with 50% (GetInProgress via
-// twoAchievementsMock).
+// TestConnectGetSteam_WithBacklogAndInProgress seeds a 0% user (backlog) and
+// a 50% user (in progress).
 func TestConnectGetSteam_WithBacklogAndInProgress(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

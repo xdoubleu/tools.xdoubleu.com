@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// ── isExpectedCloseErr ───────────────────────────────────────────────────────
-
 func TestIsExpectedCloseErrNormalClosure(t *testing.T) {
 	//nolint:exhaustruct // Reason field is irrelevant for status-code tests
 	err := websocket.CloseError{Code: websocket.StatusNormalClosure}
@@ -54,11 +52,8 @@ func TestIsExpectedCloseErrInternalError(t *testing.T) {
 	assert.False(t, isExpectedCloseErr(err))
 }
 
-// ── pingLoop ─────────────────────────────────────────────────────────────────
-
 func TestPingLoopExitsOnContextCancel(t *testing.T) {
-	// Server that accepts the WS and responds to pings automatically
-	// (coder/websocket handles pong responses transparently).
+	// coder/websocket answers pings transparently.
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			conn, err := websocket.Accept(w, r, nil)
@@ -89,17 +84,13 @@ func TestPingLoopExitsOnContextCancel(t *testing.T) {
 
 	select {
 	case <-done:
-		// pingLoop exited as expected
 	case <-time.After(time.Second):
 		t.Fatal("pingLoop did not exit after context was cancelled")
 	}
 }
 
 func TestPingLoopExitsOnConnectionClose(t *testing.T) {
-	// Server that accepts the WS and holds the connection until the server
-	// itself is shut down. srv.Close() tears down the TCP connection, which
-	// simulates an abrupt network drop (the same root cause as the reported
-	// random-disconnect bug).
+	// srv.Close() drops TCP abruptly, simulating a network drop.
 	srv := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			conn, err := websocket.Accept(w, r, nil)
@@ -120,19 +111,16 @@ func TestPingLoopExitsOnConnectionClose(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		// Short ping timeout (200 ms) so the test doesn't have to wait 10 s
-		// for the dead connection to be detected after the TCP drop.
+		// Short ping timeout so detection doesn't take 10 s.
 		pingLoop(ctx, conn, 50*time.Millisecond, 200*time.Millisecond)
 		close(done)
 	}()
 
-	// Shut down the server — tears down the TCP connection without a clean
-	// WebSocket close frame, exactly like a proxy idle-timeout drop.
+	// No close frame, like a proxy idle-timeout drop.
 	srv.Close()
 
 	select {
 	case <-done:
-		// pingLoop detected the broken connection and exited
 	case <-time.After(2 * time.Second):
 		t.Fatal("pingLoop did not exit after TCP connection was dropped")
 	}

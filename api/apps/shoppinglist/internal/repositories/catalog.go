@@ -9,11 +9,9 @@ import (
 	iapp "tools.xdoubleu.com/internal/app"
 )
 
-// ItemName is a distinct, normalized item/ingredient name known for a family,
-// together with the category it currently maps to (empty when unassigned).
-// Excluded is true when the name only survives via meal-plan entries flagged
-// exclude_from_shopping_list (no active source remains), so the catalog can
-// offer to restore it.
+// ItemName is a distinct normalized name known for a family with its category
+// (empty when unassigned). Excluded is true when it survives only via
+// meal-plan entries flagged exclude_from_shopping_list.
 type ItemName struct {
 	Name       string
 	CategoryID string
@@ -26,16 +24,10 @@ type ItemCategory struct {
 	CategoryID string
 }
 
-// ListItemNames returns the distinct normalized names drawn from the family's
-// custom items, the ingredients of the recipes in the family's recipe book,
-// and the family's meal-plan custom entries, each annotated with its current
-// category assignment (empty string when none) and whether it is excluded
-// from the export.
-//
-// A name is reported excluded only when it survives solely through meal-plan
-// entries flagged exclude_from_shopping_list and has no active source left
-// (custom item, recipe ingredient, or an exporting meal-plan entry). Such
-// names are surfaced so the UI can offer to restore them.
+// ListItemNames returns distinct normalized names from the family's custom
+// items, recipe ingredients and meal-plan custom entries, with category and
+// excluded flag. A name is excluded only when no active source remains, so
+// the UI can offer to restore it.
 func (r *ShoppingRepository) ListItemNames(
 	ctx context.Context,
 	familyID uuid.UUID,
@@ -131,8 +123,7 @@ func (r *ShoppingRepository) ListItemCategories(
 	return result, rows.Err()
 }
 
-// SetItemCategory assigns categoryID to name (normalized). When categoryID is
-// uuid.Nil the mapping is removed instead.
+// SetItemCategory assigns categoryID to name; uuid.Nil removes the mapping.
 func (r *ShoppingRepository) SetItemCategory(
 	ctx context.Context,
 	familyID uuid.UUID,
@@ -169,11 +160,9 @@ func (r *ShoppingRepository) SetItemCategory(
 	return nil
 }
 
-// SetItemExcluded removes a normalized name from the export (excluded=true) or
-// restores it (excluded=false). Removing flips exclude_from_shopping_list on the
-// family's matching meal-plan custom entries and deletes matching shopping-list
-// custom items; restoring only clears the flag (deleted custom items cannot be
-// restored). Recipe ingredients are never touched.
+// SetItemExcluded removes a name from the export (flagging matching meal-plan
+// entries and deleting matching custom items) or restores it (clearing the
+// flag only). Recipe ingredients are never touched.
 func (r *ShoppingRepository) SetItemExcluded(
 	ctx context.Context,
 	familyID uuid.UUID,

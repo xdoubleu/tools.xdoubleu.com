@@ -8,9 +8,8 @@ import (
 	"tools.xdoubleu.com/apps/feeds/internal/services"
 )
 
-// FeedPollJob periodically polls every RSS/Atom subscription and ingests new
-// items. Unlike jobs that need arming, the startup run is desirable, and
-// conditional GETs make quiet polls nearly free.
+// FeedPollJob polls every pollable feed; it runs at startup too, and
+// conditional GETs keep quiet polls cheap.
 type FeedPollJob struct {
 	feeds *services.FeedService
 }

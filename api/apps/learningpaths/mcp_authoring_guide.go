@@ -1,26 +1,17 @@
 package learningpaths
 
-// Shared authoring-guidance strings for the learningpaths MCP server.
-//
-// These live with the code (not in a repo markdown skill that must be
-// re-uploaded elsewhere) so every MCP client — a ChatGPT-style connector
-// included — sees the current authoring guidance at connect time, from the
-// tool descriptions and the learningpaths://authoring-guide resource, with no
-// manual sync. Keep the data model and arg shape here in lockstep with the
-// mcp*Arg structs and toProto* helpers in mcp.go; that is the source of
-// truth for what these describe.
+// Authoring guidance lives in code so every MCP client sees it at connect
+// time. Keep it in lockstep with the mcp*Arg structs and toProto* helpers in
+// mcp.go.
 
 const (
-	// authoringGuideURI is the resource URI for the full learning-paths
-	// authoring guidebook. Resource read handlers must be registered in
-	// RegisterMCPTools alongside the tools.
+	// authoringGuideURI is the full guidebook's resource URI.
 	authoringGuideURI  = "learningpaths://authoring-guide"
 	authoringGuideMIME = "text/markdown"
 )
 
-// mcpCreatePathDescription is the description for the learningpaths_create_path
-// tool. It carries the data model and the confirm-before-create rule directly
-// on the tool so a model sees them without a separate resource fetch.
+// mcpCreatePathDescription carries the data model and confirm-before-create
+// rule on the tool itself.
 const mcpCreatePathDescription = "Creates a new learning path: a title, a goal " +
 	"(what the learner will be able to do afterward), a freeform routine (the " +
 	"recurring cadence, e.g. \"30 min every weekday morning\"), ordered modules " +
@@ -44,11 +35,8 @@ const mcpRecordProgressDescription = "Marks a single item complete or " +
 	"creating) without resending the whole tree. Mutating — see this app's " +
 	"ADR for why."
 
-// learningPathsAuthoringGuide is the full guidebook served at
-// learningpaths://authoring-guide. It is the whole-curriculum resource for MCP
-// clients that read resources (Claude Code/OpenCode); the tool descriptions
-// above carry the same essentials for clients (like ChatGPT) that only look at
-// tool metadata.
+// learningPathsAuthoringGuide is the guidebook served at
+// learningpaths://authoring-guide.
 const learningPathsAuthoringGuide = `# Authoring learning paths on tools.xdoubleu.com
 
 A learning path is a curriculum a user owns: a title, a goal (what they want

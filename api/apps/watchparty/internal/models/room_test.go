@@ -118,8 +118,7 @@ func TestLastActiveUpdatesOnSendToPresenter(t *testing.T) {
 	assert.True(t, room.LastActive.After(before))
 }
 
-// TestSendToPresenter_TracksLastOffer verifies that SendToPresenter records
-// the last offer for each track type, which is later resent on reconnect.
+// TestSendToPresenter_TracksLastOffer: last offers are kept per track type.
 func TestSendToPresenter_TracksLastOffer(t *testing.T) {
 	room := models.NewRoom("presenter-1")
 	room.SetViewer("viewer-1")
@@ -132,15 +131,13 @@ func TestSendToPresenter_TracksLastOffer(t *testing.T) {
 	screenOffer := makeOffer("screen")
 	_ = room.SendToPresenter(ctx, screenOffer)
 
-	// Verify offers are tracked by track type.
 	assert.NotNil(t, room.GetLastOfferFromViewer("cam"))
 	assert.NotNil(t, room.GetLastOfferFromViewer("screen"))
 	assert.Equal(t, camOffer.Type, room.GetLastOfferFromViewer("cam").Type)
 	assert.Equal(t, screenOffer.Type, room.GetLastOfferFromViewer("screen").Type)
 }
 
-// TestSendToViewer_TracksLastOffer verifies that SendToViewer records
-// the last offer for each track type from the presenter.
+// TestSendToViewer_TracksLastOffer: last offers are kept per track type.
 func TestSendToViewer_TracksLastOffer(t *testing.T) {
 	room := models.NewRoom("presenter-1")
 	room.SetViewer("viewer-1")
@@ -153,30 +150,25 @@ func TestSendToViewer_TracksLastOffer(t *testing.T) {
 	screenOffer := makeOffer("screen")
 	_ = room.SendToViewer(ctx, screenOffer)
 
-	// Verify offers are tracked by track type.
 	assert.NotNil(t, room.GetLastOfferFromPresenter("cam"))
 	assert.NotNil(t, room.GetLastOfferFromPresenter("screen"))
 	assert.Equal(t, camOffer.Type, room.GetLastOfferFromPresenter("cam").Type)
 	assert.Equal(t, screenOffer.Type, room.GetLastOfferFromPresenter("screen").Type)
 }
 
-// TestRemoveViewer_ClearsWS verifies that RemoveViewer clears the viewer's
-// WebSocket connection. The test verifies that RemoveViewer zeroes out the
-// Viewer field including its WS.
+// TestRemoveViewer_ClearsWS: RemoveViewer zeroes the viewer, WS included.
 func TestRemoveViewer_ClearsWS(t *testing.T) {
 	room := models.NewRoom("presenter-1")
 	room.SetViewer("viewer-1")
 
 	room.RemoveViewer()
 
-	// After RemoveViewer, both ID and WS should be cleared.
 	assert.Nil(t, room.Viewer.WS)
 	assert.Empty(t, room.Viewer.ID)
 }
 
-// TestSetPresenterWS_AssignsNewConnection verifies that SetPresenterWS
-// assigns the new connection. The close of old connections is tested in
-// integration tests (ws_test.go) where real WebSocket connections are available.
+// TestSetPresenterWS_AssignsNewConnection: closing old connections is covered
+// in ws_test.go.
 func TestSetPresenterWS_AssignsNewConnection(t *testing.T) {
 	room := models.NewRoom("presenter-1")
 

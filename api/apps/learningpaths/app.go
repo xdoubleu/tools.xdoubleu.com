@@ -1,10 +1,6 @@
 // Package learningpaths implements agent-authorable learning curricula: a
-// LearningPath (goal, recurring routine) made of ordered Modules, each with
-// ordered Items a user checks off as they progress, plus a freeform
-// resources list. This slice (#1472) is the core app — proto, schema,
-// ConnectRPC CRUD, and a minimal web UI. MCP tools (#1473), books/feeds
-// resource linking (#1474), and Todoist integration (#1475) are later,
-// independent slices stacked on top of this one.
+// LearningPath of ordered Modules of ordered Items a user checks off, plus a
+// freeform resources list.
 package learningpaths
 
 import (
@@ -34,19 +30,10 @@ type LearningPaths struct {
 	services *services.Services
 }
 
-// sealer encrypts/decrypts the per-user Todoist OAuth tokens stored in
-// learningpaths.oauth_connections (issue #1475) — a separate table from
-// global.oauth_connections, reusing the same api/internal/crypto.Sealer the
-// rest of the app's OAuth-connected integrations use.
-//
-// booksApp/feedsApp must already be constructed — learningpaths registers
-// after them in cmd/api/apps.go so these live references exist by the time
-// it's built. They are passed straight through to the service layer, which
-// calls only their exported methods (Books.GetLibraryBookByID,
-// Feeds.GetItemByID) to resolve a resource linked to a books/feeds entry —
-// the same dashboard-style cross-app pattern as api/apps/dashboard
-// (docs/adr-0007-dashboard-app-owns-public-sharing.md), never their
-// internal/ packages or schemas directly.
+// New builds the app. sealer encrypts per-user Todoist tokens. booksApp and
+// feedsApp must already be constructed (registration order in
+// cmd/api/apps.go); only their exported methods are called
+// (docs/adr-0007-dashboard-app-owns-public-sharing.md).
 func New(
 	authService auth.Service,
 	logger *slog.Logger,
@@ -96,11 +83,7 @@ func (a *LearningPaths) GetDisplayName() string {
 	return "Learning Paths"
 }
 
-// TodoistServiceForTest exposes the Todoist service so an external test
-// (package learningpaths_test) can stub its OAuth2 config via
-// services.TodoistService.SetOAuthConfigForTest — test-only, mirroring how
-// cmd/api's tests reach into its Application for the equivalent admin OAuth
-// stubbing.
+// TodoistServiceForTest exposes the Todoist service to external tests.
 func (a *LearningPaths) TodoistServiceForTest() *services.TodoistService {
 	return a.services.Todoist
 }

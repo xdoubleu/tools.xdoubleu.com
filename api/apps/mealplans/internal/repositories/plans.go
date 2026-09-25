@@ -129,8 +129,7 @@ func (r *PlansRepository) Update(
 	ctx context.Context,
 	plan models.Plan,
 ) error {
-	// ical_hide_slots is NOT NULL; an omitted repeated field decodes to a nil
-	// slice, which pgx would otherwise send as SQL NULL.
+	// ical_hide_slots is NOT NULL; a nil slice would be sent as NULL.
 	if plan.ICalHideSlots == nil {
 		plan.ICalHideSlots = []string{}
 	}
@@ -189,8 +188,8 @@ func (r *PlansRepository) DeleteMeal(
 	return err
 }
 
-// UpdateMeal replaces the recipe/custom-name/servings/exclude fields of a
-// single meal row, leaving its date and slot untouched (use MoveMeal for that).
+// UpdateMeal replaces a meal's recipe/custom-name/servings/exclude fields;
+// MoveMeal changes date and slot.
 func (r *PlansRepository) UpdateMeal(
 	ctx context.Context,
 	meal models.PlanMeal,
@@ -206,8 +205,8 @@ func (r *PlansRepository) UpdateMeal(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// GetMealsInWindow returns meals for a plan within the given date range.
-// When start is zero, all meals are returned (used for iCal export).
+// GetMealsInWindow returns a plan's meals in the date range; a zero start
+// returns all meals.
 func (r *PlansRepository) GetMealsInWindow(
 	ctx context.Context,
 	planID uuid.UUID,
@@ -269,9 +268,8 @@ func (r *PlansRepository) GetMealsInWindow(
 	return result, rows.Err()
 }
 
-// SuggestRecipes returns recipe IDs previously planned in the same plan on the
-// same weekday and meal slot as mealDate, ranked by how often they were used
-// (most recent breaking ties). Used to suggest entries when adding a meal.
+// SuggestRecipes returns recipe IDs planned before on the same weekday and
+// slot, ranked by frequency then recency.
 func (r *PlansRepository) SuggestRecipes(
 	ctx context.Context,
 	planID uuid.UUID,

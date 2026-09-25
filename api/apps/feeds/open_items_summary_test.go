@@ -84,9 +84,7 @@ func TestListOpenItemsOmitsFeedOnceEverythingIsRead(t *testing.T) {
 	}
 }
 
-// TestListOpenItemsHandlesFeedWithNoURL covers an email-relay feed
-// (feeds.feeds.url is nullable — email feeds have none) with an unread
-// item: CountUnreadByFeed must not error scanning a NULL url column.
+// TestListOpenItemsHandlesFeedWithNoURL: an email feed's NULL url must scan.
 func TestListOpenItemsHandlesFeedWithNoURL(t *testing.T) {
 	ctx := context.Background()
 	var feedID uuid.UUID

@@ -12,8 +12,6 @@ import (
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 )
 
-// ── escapeICalText ────────────────────────────────────────────────────────────
-
 func TestEscapeICalText_NoSpecialChars(t *testing.T) {
 	assert.Equal(t, "plain text", escapeICalText("plain text"))
 }
@@ -38,8 +36,6 @@ func TestEscapeICalText_AllSpecial(t *testing.T) {
 	out := escapeICalText("a\\b;c,d\ne")
 	assert.Equal(t, `a\\b\;c\,d\ne`, out)
 }
-
-// ── renderICalFeed ────────────────────────────────────────────────────────────
 
 func makeTestPlan(name string, hideSlots []string, hidePast bool) *models.Plan {
 	return &models.Plan{ //nolint:exhaustruct // only relevant fields set in test

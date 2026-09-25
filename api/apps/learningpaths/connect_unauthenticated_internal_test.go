@@ -1,10 +1,7 @@
 package learningpaths
 
-// Package-internal test: getUser(ctx) returns nil (and each handler returns
-// CodeUnauthenticated) before it ever touches h.app, so a nil app is safe
-// here — this exercises a branch the HTTP-level tests in connect_test.go
-// can't reach, since the mocked auth service there always authenticates the
-// caller as some user.
+// A nil app is safe: handlers return CodeUnauthenticated before touching it.
+// The HTTP-level tests can't reach this, as mock auth always authenticates.
 
 import (
 	"context"

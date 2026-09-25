@@ -20,12 +20,11 @@ type Room struct {
 	Presenter  RoomUser
 	Viewer     RoomUser
 
-	// buffered messages sent while the target has no WS connection
+	// buffered while the target has no WS connection
 	pendingForPresenter []dtos.TrackMessage
 	pendingForViewer    []dtos.TrackMessage
 
-	// last offers from each side — resent to a reconnecting peer so it can
-	// trigger a fresh full negotiation cycle on its recreated peer connections
+	// last offers per side, resent to a reconnecting peer to renegotiate
 	lastOfferFromPresenter map[string]*dtos.TrackMessage // key: "cam" / "screen"
 	lastOfferFromViewer    map[string]*dtos.TrackMessage
 }
@@ -45,7 +44,6 @@ func (r *Room) updateLastActive() { r.LastActive = time.Now() }
 
 // SetPresenterWS is called when the presenter's WebSocket connects or reconnects.
 func (r *Room) SetPresenterWS(ws *websocket.Conn) {
-	// Close old connection if it exists and is different from the new one.
 	if r.Presenter.WS != nil && r.Presenter.WS != ws {
 		_ = r.Presenter.WS.Close(
 			websocket.StatusGoingAway,
@@ -56,14 +54,12 @@ func (r *Room) SetPresenterWS(ws *websocket.Conn) {
 	r.Presenter.WS = ws
 	r.updateLastActive()
 
-	// flush buffered messages
 	for _, msg := range r.pendingForPresenter {
 		_ = wsjson.Write(context.Background(), ws, msg)
 	}
 	r.pendingForPresenter = nil
 
-	// resend the viewer's last offers so the presenter can renegotiate its
-	// peer connections with fresh ICE credentials
+	// resend last offers so the peer renegotiates with fresh ICE credentials
 	for _, offer := range r.lastOfferFromViewer {
 		if offer != nil {
 			_ = wsjson.Write(context.Background(), ws, offer)
@@ -79,7 +75,6 @@ func (r *Room) SetViewer(viewerID string) {
 
 // SetViewerWS is called when the viewer's WebSocket connects or reconnects.
 func (r *Room) SetViewerWS(ws *websocket.Conn) {
-	// Close old connection if it exists and is different from the new one.
 	if r.Viewer.WS != nil && r.Viewer.WS != ws {
 		_ = r.Viewer.WS.Close(
 			websocket.StatusGoingAway,
@@ -90,14 +85,12 @@ func (r *Room) SetViewerWS(ws *websocket.Conn) {
 	r.Viewer.WS = ws
 	r.updateLastActive()
 
-	// flush buffered messages
 	for _, msg := range r.pendingForViewer {
 		_ = wsjson.Write(context.Background(), ws, msg)
 	}
 	r.pendingForViewer = nil
 
-	// resend the presenter's last offers so the viewer can renegotiate its
-	// peer connections with fresh ICE credentials
+	// resend last offers so the peer renegotiates with fresh ICE credentials
 	for _, offer := range r.lastOfferFromPresenter {
 		if offer != nil {
 			_ = wsjson.Write(context.Background(), ws, offer)
@@ -139,14 +132,12 @@ func (r *Room) SendToPresenter(ctx context.Context, trackMsg dtos.TrackMessage) 
 	return wsjson.Write(ctx, r.Presenter.WS, trackMsg)
 }
 
-// GetLastOfferFromPresenter retrieves the last offer from the presenter for
-// a given track type.
+// GetLastOfferFromPresenter returns the presenter's last offer for trackType.
 func (r *Room) GetLastOfferFromPresenter(trackType string) *dtos.TrackMessage {
 	return r.lastOfferFromPresenter[trackType]
 }
 
-// GetLastOfferFromViewer retrieves the last offer from the viewer for
-// a given track type.
+// GetLastOfferFromViewer returns the viewer's last offer for trackType.
 func (r *Room) GetLastOfferFromViewer(trackType string) *dtos.TrackMessage {
 	return r.lastOfferFromViewer[trackType]
 }

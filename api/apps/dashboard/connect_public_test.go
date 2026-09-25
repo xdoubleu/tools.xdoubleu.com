@@ -17,10 +17,7 @@ import (
 	sharedrepos "tools.xdoubleu.com/internal/repositories"
 )
 
-// publicGamesUserID/publicReadingUserID own the data behind the two
-// dashboards' tests — distinct so seeding one dashboard's data never
-// collides with the other's, and distinct from cmd/api's own
-// DashboardService tests, which use their own testUserID.
+// Distinct owners per dashboard so their seeded data never collide.
 const publicGamesUserID = "eeeeeeee-1111-2222-3333-444444444444"
 const publicReadingUserID = "dddddddd-1111-2222-3333-444444444444"
 
@@ -28,10 +25,8 @@ const publicGamesToken = "test-games-dashboard-token"
 const publicReadingToken = "test-reading-dashboard-token"
 const publicDisplayName = "Public Dashboard Owner"
 
-// ensureProfileShare mirrors cmd/api/migrations/00001_init.sql,
-// 00007_profile_shares_per_app.sql, and 00014_dashboard_shares_reading.sql
-// so these tests can run before the cmd/api package has applied the global
-// migrations, then links the two dashboard tokens above to their owners.
+// ensureProfileShare mirrors cmd/api's global share migrations so these tests
+// can run first, then links the two dashboard tokens to their owners.
 func ensureProfileShare(t *testing.T) {
 	t.Helper()
 	ctx := context.Background()
@@ -95,9 +90,8 @@ func seedPublicSteamData(t *testing.T) {
 	require.NoError(t, testGames.Services.Steam.SyncUser(ctx, publicGamesUserID))
 }
 
-// seedPublicBook inserts a wishlist book directly via SQL — books'
-// AddToLibrary takes an apps/books/internal/services type this package
-// cannot import, so seeding goes straight to the schema instead.
+// seedPublicBook inserts a wishlist book via SQL (books' services are
+// internal).
 func seedPublicBook(t *testing.T, title string) string {
 	t.Helper()
 	ctx := context.Background()
@@ -117,8 +111,7 @@ func seedPublicBook(t *testing.T, title string) string {
 	return bookID
 }
 
-// seedPublicFeed inserts a feed subscription directly via SQL for
-// publicReadingUserID.
+// seedPublicFeed inserts a feed for publicReadingUserID via SQL.
 func seedPublicFeed(t *testing.T, title, url string) {
 	t.Helper()
 	ctx := context.Background()
@@ -130,8 +123,7 @@ func seedPublicFeed(t *testing.T, title, url string) {
 	require.NoError(t, err)
 }
 
-// newPublicClient returns a client with NO auth cookie — dashboard's public
-// RPCs must work without a session.
+// newPublicClient returns a client with no auth cookie.
 func newPublicClient(
 	t *testing.T,
 ) dashboardv1connect.PublicGamesDashboardServiceClient {
@@ -179,8 +171,7 @@ func TestGetSharedSteam_InvalidDateRange(t *testing.T) {
 	ensureProfileShare(t)
 	seedPublicSteamData(t)
 
-	// Malformed date strings fall back to the default one-year window
-	// (parseDateRangeFromStrings) instead of erroring.
+	// Malformed dates fall back to the default one-year window.
 	client := newPublicClient(t)
 	resp, err := client.GetSharedSteam(
 		context.Background(),
@@ -223,8 +214,7 @@ func TestGetSharedSteam_EmptyToken(t *testing.T) {
 func TestGetSharedSteam_WrongKindToken(t *testing.T) {
 	ensureProfileShare(t)
 
-	// The reading dashboard's token must not resolve on the games endpoint,
-	// even though both may belong to the same conceptual owner.
+	// The reading token must not resolve on the games endpoint.
 	client := newPublicClient(t)
 	_, err := client.GetSharedSteam(
 		context.Background(),

@@ -44,8 +44,7 @@ message MFAEnrollVerifyRequest {
 }
 
 message MFAEnrollVerifyResponse {
-  // Set only the first time TOTP enrollment completes — a one-time
-  // opportunity to save these, matching GenerateRecoveryCodes' semantics.
+  // Set only when TOTP enrollment first completes; shown once.
   repeated string recovery_codes = 1;
 }
 
@@ -94,12 +93,10 @@ message GetCurrentUserResponse {
   string role = 1;
   repeated string app_access = 2;
   bool has_mfa = 3;
-  // Public profile display name; empty when unset (share links require this
-  // to be set first, see dashboard.v1.DashboardService).
+  // Public profile display name; empty when unset (required for share
+  // links).
   string display_name = 4;
-  // Stable per-user identifier (models.User.ID), used client-side as the
-  // PostHog distinct_id via posthog.identify() so product analytics and
-  // session replay resolve to the same person across sessions/devices.
+  // Stable user id, used as the PostHog distinct_id.
   string user_id = 5;
 }
 

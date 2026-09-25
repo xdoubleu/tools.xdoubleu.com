@@ -24,11 +24,9 @@ const (
 	slotEvening   = "evening"
 )
 
-// ExportWindow returns the day-truncated start of the meal-plan export
-// window plus which of today's slots (breakfast/noon/evening) have already
-// passed, and the window's end: 7 days out normally, 8 when a slot has
-// already passed today so that slot's next occurrence (next week) is still
-// included.
+// ExportWindow returns the export window's day start, end, and today's
+// already-passed slots. The window is 8 days instead of 7 when a slot has
+// passed, so its next occurrence is included.
 func ExportWindow(now time.Time) (time.Time, time.Time, []string) {
 	start := now.Truncate(hoursPerDay * time.Hour)
 	var pastSlots []string
@@ -51,8 +49,7 @@ func ExportWindow(now time.Time) (time.Time, time.Time, []string) {
 	return start, end, pastSlots
 }
 
-// familyStore resolves which family a user belongs to, lazily creating a
-// family-of-one the first time it's asked for (see internal/family).
+// familyStore resolves a user's family, creating a family-of-one on demand.
 type familyStore interface {
 	EnsureFamily(ctx context.Context, userID string) (uuid.UUID, error)
 }
@@ -173,8 +170,7 @@ type ShoppingService struct {
 	family familyStore
 }
 
-// NewShoppingService constructs a ShoppingService from any shoppingRepo
-// implementation, allowing injection of mocks in tests.
+// NewShoppingService constructs a ShoppingService.
 func NewShoppingService(repo shoppingRepo, family familyStore) *ShoppingService {
 	return &ShoppingService{repo: repo, family: family}
 }
@@ -228,11 +224,9 @@ func (s *ShoppingService) DeleteItem(
 	return s.repo.DeleteCustomItem(ctx, familyID, itemID)
 }
 
-// GetMealPlanExportItems returns only the aggregated meal-plan ingredients for
-// the plan. Custom items are intentionally not included here: the frontend
-// fetches them separately and merges them once. Because the export hook calls
-// this per meal plan, appending custom items here would duplicate them once per
-// plan (plus once more from the separate custom-list fetch).
+// GetMealPlanExportItems returns the plan's aggregated ingredients only. The
+// frontend fetches custom items separately; including them here would
+// duplicate them once per plan.
 func (s *ShoppingService) GetMealPlanExportItems(
 	ctx context.Context,
 	planID uuid.UUID,

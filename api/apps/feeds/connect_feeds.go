@@ -322,8 +322,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 	}), nil
 }
 
-// GetFeedItem is the only RPC returning an item's article body — see
-// protoItem/itemListColumns for why the list RPCs no longer carry it.
+// GetFeedItem is the only RPC returning an item's article body.
 func (h *feedsConnectHandler) GetFeedItem(
 	ctx context.Context,
 	req *connect.Request[feedsv1.GetFeedItemRequest],
@@ -340,9 +339,8 @@ func (h *feedsConnectHandler) GetFeedItem(
 	item, err := h.app.Services.Feeds.GetItem(ctx, user.ID, itemID)
 	if err != nil {
 		if errors.Is(err, database.ErrResourceNotFound) {
-			// A cached list can reference an item deleted (or whose feed is
-			// gone) between listing and opening; not_found produces no Sentry
-			// event, so log it to keep these 404s diagnosable.
+			// A cached list can reference a deleted item; not_found emits no
+			// Sentry event, so log it.
 			h.app.Logger.WarnContext(ctx, "feed item not found",
 				"item_id", itemID, "user_id", user.ID)
 		}
@@ -417,9 +415,7 @@ func (h *feedsConnectHandler) GetFeedStats(
 	}), nil
 }
 
-// requireFeedsAdmin gates GetUnhealthyFeeds, which reports every user's
-// failing feeds rather than just the caller's own — unlike every other RPC
-// in this file, it cannot be scoped by feedUser's per-owner model.
+// requireFeedsAdmin gates GetUnhealthyFeeds, which spans all users.
 func requireFeedsAdmin(ctx context.Context) *connect.Error {
 	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
 	if user == nil || user.Role != sharedmodels.RoleAdmin {

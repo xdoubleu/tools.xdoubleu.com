@@ -15,8 +15,7 @@ import (
 // ErrUnsupportedURL is returned for URLs that are not http/https.
 var ErrUnsupportedURL = errors.New("url scheme not supported")
 
-// ErrNoReadableContent is returned when readability extraction finds no
-// article content.
+// ErrNoReadableContent is returned when readability finds no article.
 var ErrNoReadableContent = errors.New("no extractable article content")
 
 // maxArticleBytes caps a fetched article page.
@@ -41,8 +40,8 @@ func isHTTPScheme(scheme string) bool {
 	return scheme == "http" || scheme == "https"
 }
 
-// canonicalURL normalizes a URL for use as a dedup key: lowercases scheme and
-// host, drops the fragment and any utm_* tracking query params.
+// canonicalURL normalizes a URL as a dedup key: lowercase scheme/host, no
+// fragment, no utm_* params.
 func canonicalURL(raw string) (string, error) {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
@@ -71,8 +70,8 @@ type extractedArticle struct {
 	HTML  string
 }
 
-// extractReadable runs readability extraction over a fetched HTML page.
-// finalURL (post-redirect) resolves relative links inside the page.
+// extractReadable runs readability over a page; finalURL resolves relative
+// links.
 func extractReadable(finalURL string, body []byte) (*extractedArticle, error) {
 	pageURL, err := url.Parse(finalURL)
 	if err != nil {

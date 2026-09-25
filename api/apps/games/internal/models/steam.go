@@ -10,11 +10,8 @@ type Game struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
 	IsDelisted bool   `json:"isDelisted"`
-	// InCompletionAverage records whether this game takes part in the
-	// library-wide completion averages. It is false only for a delisted game
-	// whose achievements a game still in the library has taken over, which is
-	// what keeps the Half-Life 2 episodes from being counted twice
-	// (docs/adr-0018-completion-average-population.md).
+	// InCompletionAverage is false only for a delisted game whose achievements
+	// a listed game took over (docs/adr-0018-completion-average-population.md).
 	InCompletionAverage bool       `json:"inCompletionAverage"`
 	CompletionRate      string     `json:"completionRate"`
 	Contribution        string     `json:"contribution"`
@@ -36,8 +33,7 @@ type Achievement struct {
 	GlobalPercent *float64   `json:"globalPercent"`
 }
 
-// RecentGame is a game the user recently played, used by the dashboard to
-// surface what is currently being worked on.
+// RecentGame is a recently played game.
 type RecentGame struct {
 	ID             int       `json:"id"`
 	Name           string    `json:"name"`

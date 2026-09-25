@@ -480,9 +480,7 @@ export const StoreSchema: GenMessage<Store> = /*@__PURE__*/
   messageDesc(file_shoppinglist_v1_shoppinglist, 23);
 
 /**
- * Stores are private to the caller: the store RPCs always act on the
- * authenticated user's own stores and take no owner_user_id (a shared-list
- * recipient never gains access to the owner's stores).
+ * Store RPCs always act on the caller's own private stores.
  *
  * @generated from message shoppinglist.v1.ListStoresRequest
  */
@@ -617,9 +615,8 @@ export const DeleteStoreResponseSchema: GenMessage<DeleteStoreResponse> = /*@__P
   messageDesc(file_shoppinglist_v1_shoppinglist, 31);
 
 /**
- * Ordered list of categories for a store. GetStoreCategories returns the
- * categories in walk-through order; SetStoreCategories fully replaces it,
- * using array index as sort_order.
+ * A store's categories in walk-through order; Set replaces it (index =
+ * sort_order).
  *
  * @generated from message shoppinglist.v1.GetStoreCategoriesRequest
  */
@@ -690,11 +687,8 @@ export const SetStoreCategoriesResponseSchema: GenMessage<SetStoreCategoriesResp
   messageDesc(file_shoppinglist_v1_shoppinglist, 35);
 
 /**
- * A known item name and the category it currently maps to. category_id is
- * empty when the name has not been assigned a category yet. excluded is true
- * when the name has been removed from the shopping-list export (its meal-plan
- * entries carry exclude_from_shopping_list and it has no remaining active
- * source); such names surface so the UI can offer to restore them.
+ * ItemName is a known item name and its category_id (empty if unassigned).
+ * excluded marks names removed from the export, so the UI can restore them.
  *
  * @generated from message shoppinglist.v1.ItemName
  */
@@ -840,10 +834,8 @@ export const SetItemCategoryResponseSchema: GenMessage<SetItemCategoryResponse> 
   messageDesc(file_shoppinglist_v1_shoppinglist, 43);
 
 /**
- * SetItemExcluded removes a catalog name from (or restores it to) the shopping
- * list export. Removing flips exclude_from_shopping_list on matching meal-plan
- * custom entries and deletes matching shopping-list custom items; restoring
- * clears the flag (deleted custom items are not restored).
+ * SetItemExcluded removes a name from, or restores it to, the export.
+ * Removing deletes matching custom items, which restoring can't bring back.
  *
  * @generated from message shoppinglist.v1.SetItemExcludedRequest
  */

@@ -20,8 +20,8 @@ type mcpListItemsArgs struct {
 	UnreadOnly bool   `json:"unread_only,omitempty" jsonschema:"exclude read items"`
 }
 
-// RegisterMCPTools exposes the feeds app's read-only RPCs on the combined
-// apps MCP server. Every tool returns the calling user's own feed data.
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
+// the caller.
 func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
 	h := &feedsConnectHandler{app: a}
 

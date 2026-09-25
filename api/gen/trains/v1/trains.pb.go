@@ -21,9 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Leg is one boarded train, from where the passenger gets on to where they
-// get off. trip_short_name/route_short_name identify the train to a
-// user — trip_id itself churns daily and is never exposed here.
+// Leg is one boarded train, board to alight. trip_id churns daily and is
+// never exposed; trip_short_name/route_short_name identify the train.
 type Leg struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TripShortName  string                 `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
@@ -155,9 +154,8 @@ type Journey struct {
 	DepartureTime string                 `protobuf:"bytes,2,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
 	ArrivalTime   string                 `protobuf:"bytes,3,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
 	Transfers     int32                  `protobuf:"varint,4,opt,name=transfers,proto3" json:"transfers,omitempty"`
-	// Opaque id identifying this exact journey (trip_short_name + board/alight
-	// stop and time per leg), decodable back into GetJourneyDetailRequest with
-	// no server-side storage — never a raw trip_id, which churns daily.
+	// Opaque, stateless id decodable into GetJourneyDetailRequest; never a raw
+	// trip_id.
 	JourneyId     string `protobuf:"bytes,5,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -289,8 +287,7 @@ func (x *Alert) GetDescriptionText() string {
 	return ""
 }
 
-// StopCall is the scheduled and (if published) live state of one stop along
-// a journey detail leg.
+// StopCall is one stop's scheduled and live state on a journey detail leg.
 type StopCall struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	StopId   string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
@@ -300,8 +297,8 @@ type StopCall struct {
 	ScheduledArrival string `protobuf:"bytes,4,opt,name=scheduled_arrival,json=scheduledArrival,proto3" json:"scheduled_arrival,omitempty"`
 	// RFC3339, empty at the leg's terminus stop.
 	ScheduledDeparture string `protobuf:"bytes,5,opt,name=scheduled_departure,json=scheduledDeparture,proto3" json:"scheduled_departure,omitempty"`
-	// One of "on_time", "delayed", "unknown", "skipped", "cancelled" — see
-	// models.DelayState. "unknown" must never be rendered as "on_time".
+	// "on_time", "delayed", "unknown", "skipped" or "cancelled".
+	// "unknown" must never be rendered as "on_time".
 	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
 	// Only meaningful when status is "delayed"; seconds, positive = late.
 	DelaySeconds  int32 `protobuf:"varint,7,opt,name=delay_seconds,json=delaySeconds,proto3" json:"delay_seconds,omitempty"`
@@ -404,15 +401,14 @@ func (x *StopCall) GetIsAlightStop() bool {
 	return false
 }
 
-// LegDetail is one boarded train's full live state: every stop between
-// where the passenger boards and alights, plus any alerts attached to it.
+// LegDetail is one boarded train's live state: every stop from board to
+// alight, plus alerts.
 type LegDetail struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	TripShortName  string                 `protobuf:"bytes,1,opt,name=trip_short_name,json=tripShortName,proto3" json:"trip_short_name,omitempty"`
 	RouteShortName string                 `protobuf:"bytes,2,opt,name=route_short_name,json=routeShortName,proto3" json:"route_short_name,omitempty"`
 	Headsign       string                 `protobuf:"bytes,3,opt,name=headsign,proto3" json:"headsign,omitempty"`
-	// Whole-trip cancellation — distinct from an individual StopCall's
-	// "skipped" (partial cancellation).
+	// Whole-trip cancellation, unlike a StopCall's "skipped".
 	Cancelled     bool        `protobuf:"varint,4,opt,name=cancelled,proto3" json:"cancelled,omitempty"`
 	Stops         []*StopCall `protobuf:"bytes,5,rep,name=stops,proto3" json:"stops,omitempty"`
 	Alerts        []*Alert    `protobuf:"bytes,6,rep,name=alerts,proto3" json:"alerts,omitempty"`
@@ -492,22 +488,18 @@ func (x *LegDetail) GetAlerts() []*Alert {
 	return nil
 }
 
-// JourneyAlternative is a re-planned itinerary surfaced when a positive
-// realtime signal shows the journey as planned no longer works — a missed
-// connection, a cancelled leg, a skipped board/alight stop, or a final
-// arrival slipping past a threshold. Absence of live data (NO_DATA) never
-// produces one. The re-plan runs from the next still-reachable station, at
-// the actual (live) time there, to the original destination (issue #1395).
+// JourneyAlternative is a re-plan from the next reachable station at its live
+// time, surfaced only on a positive realtime signal that the journey broke
+// (missed connection, cancellation, skipped stop, or arrival slipping too
+// far); never on missing live data.
 type JourneyAlternative struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Passenger-facing explanation of what broke, e.g.
-	// "You'll miss the 17:42 at Mechelen by 4 min".
+	// Passenger-facing reason, e.g. "You'll miss the 17:42 at Mechelen by 4 min".
 	Reason string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
 	// Name of the station the alternative departs from.
 	FromStopName string `protobuf:"bytes,2,opt,name=from_stop_name,json=fromStopName,proto3" json:"from_stop_name,omitempty"`
-	// The re-planned itinerary, same shape as a search result so the overview
-	// row renders it unchanged. Unset when the router found no alternative —
-	// the reason is still worth showing on its own.
+	// The re-planned itinerary; unset when none was found (reason still
+	// applies).
 	Journey       *Journey `protobuf:"bytes,3,opt,name=journey,proto3" json:"journey,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -564,16 +556,15 @@ func (x *JourneyAlternative) GetJourney() *Journey {
 	return nil
 }
 
-// JourneyDetail is the full live state of one previously-searched journey —
-// the page /trains/[journeyId] renders and keeps refreshed over a websocket.
+// JourneyDetail is the live state of a searched journey, kept fresh over a
+// websocket.
 type JourneyDetail struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	JourneyId     string                 `protobuf:"bytes,1,opt,name=journey_id,json=journeyId,proto3" json:"journey_id,omitempty"`
 	Legs          []*LegDetail           `protobuf:"bytes,2,rep,name=legs,proto3" json:"legs,omitempty"`
 	DepartureTime string                 `protobuf:"bytes,3,opt,name=departure_time,json=departureTime,proto3" json:"departure_time,omitempty"`
 	ArrivalTime   string                 `protobuf:"bytes,4,opt,name=arrival_time,json=arrivalTime,proto3" json:"arrival_time,omitempty"`
-	// Set only when a positive realtime signal shows the planned journey is
-	// broken (issue #1395); unset otherwise.
+	// Set only when realtime data shows the planned journey is broken.
 	Alternative   *JourneyAlternative `protobuf:"bytes,5,opt,name=alternative,proto3" json:"alternative,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -734,12 +725,10 @@ func (x *GetJourneyDetailResponse) GetJourney() *JourneyDetail {
 
 type SearchJourneysRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Origin stop id — a station (its children are all considered) or a
-	// specific platform.
+	// A station (all its platforms) or a specific platform.
 	OriginStopId      string `protobuf:"bytes,1,opt,name=origin_stop_id,json=originStopId,proto3" json:"origin_stop_id,omitempty"`
 	DestinationStopId string `protobuf:"bytes,2,opt,name=destination_stop_id,json=destinationStopId,proto3" json:"destination_stop_id,omitempty"`
-	// RFC3339 timestamp, interpreted as a departure time unless arrive_by
-	// is set.
+	// RFC3339; a departure time unless arrive_by is set.
 	Time          string `protobuf:"bytes,3,opt,name=time,proto3" json:"time,omitempty"`
 	ArriveBy      bool   `protobuf:"varint,4,opt,name=arrive_by,json=arriveBy,proto3" json:"arrive_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -806,9 +795,7 @@ func (x *SearchJourneysRequest) GetArriveBy() bool {
 
 type SearchJourneysResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// A Pareto set over (arrival time, transfer count) — the earliest
-	// arrival plus slower options with fewer changes, for a window around
-	// the requested time.
+	// Pareto set over (arrival, transfers) for a window around the time.
 	Journeys      []*Journey `protobuf:"bytes,1,rep,name=journeys,proto3" json:"journeys,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -851,17 +838,14 @@ func (x *SearchJourneysResponse) GetJourneys() []*Journey {
 	return nil
 }
 
-// Station is a location_type=1 stop — a station a passenger picks as an
-// origin or destination. Never a platform-level stop.
+// Station is a location_type=1 stop, never a platform.
 type Station struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	StopId string                 `protobuf:"bytes,1,opt,name=stop_id,json=stopId,proto3" json:"stop_id,omitempty"`
 	NameNl string                 `protobuf:"bytes,2,opt,name=name_nl,json=nameNl,proto3" json:"name_nl,omitempty"`
 	NameFr string                 `protobuf:"bytes,3,opt,name=name_fr,json=nameFr,proto3" json:"name_fr,omitempty"`
 	NameEn string                 `protobuf:"bytes,4,opt,name=name_en,json=nameEn,proto3" json:"name_en,omitempty"`
-	// The single canonical passenger-facing label: every genuinely-known
-	// full-language name, deduped and joined — the same value both the
-	// station picker and journey/leg views render (issue #1656).
+	// The canonical label: every known full-language name, deduped and joined.
 	DisplayName   string `protobuf:"bytes,5,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -934,9 +918,8 @@ func (x *Station) GetDisplayName() string {
 
 type SearchStationsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Free-text substring match against the station name in any of the three
-	// languages, case-insensitive. Empty returns an alphabetical page of
-	// stations.
+	// Case-insensitive substring match on any language's name; empty returns
+	// an alphabetical page.
 	Query         string `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1063,15 +1046,11 @@ type GetFeedInfoResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty when the static feed has never been imported yet.
 	FeedVersion string `protobuf:"bytes,1,opt,name=feed_version,json=feedVersion,proto3" json:"feed_version,omitempty"`
-	// RFC3339 timestamp of the import that produced the stored feed. A
-	// conditional GET makes an unchanged feed a no-op, so this is the only
-	// signal distinguishing "the timetable is current" from "no import has
-	// landed in weeks"; empty when nothing has been imported yet.
+	// RFC3339 time of the import that produced the stored feed; empty if none.
+	// The only signal of timetable staleness, since unchanged feeds no-op.
 	ImportedAt string `protobuf:"bytes,2,opt,name=imported_at,json=importedAt,proto3" json:"imported_at,omitempty"`
-	// How much of translations.txt the stored import applied. A feed with no
-	// translations, one whose rows match no stop, and a monolingual one all
-	// render as three identical station names, so these counts are what tells
-	// them apart.
+	// How much of translations.txt was applied; distinguishes missing,
+	// unmatched and monolingual translations.
 	Translations  *TranslationCoverage `protobuf:"bytes,3,opt,name=translations,proto3" json:"translations,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1128,17 +1107,14 @@ func (x *GetFeedInfoResponse) GetTranslations() *TranslationCoverage {
 	return nil
 }
 
-// TranslationCoverage reports what an import made of the feed's
-// translations.txt.
+// TranslationCoverage reports what an import made of translations.txt.
 type TranslationCoverage struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Stops whose name in that language came from translations.txt rather
-	// than falling back to the feed's primary stop_name.
+	// Stops named from translations.txt rather than the primary stop_name.
 	TranslatedStopsNl int32 `protobuf:"varint,1,opt,name=translated_stops_nl,json=translatedStopsNl,proto3" json:"translated_stops_nl,omitempty"`
 	TranslatedStopsFr int32 `protobuf:"varint,2,opt,name=translated_stops_fr,json=translatedStopsFr,proto3" json:"translated_stops_fr,omitempty"`
 	TranslatedStopsEn int32 `protobuf:"varint,3,opt,name=translated_stops_en,json=translatedStopsEn,proto3" json:"translated_stops_en,omitempty"`
-	// Usable stop_name rows read from translations.txt; 0 when the feed omits
-	// the file.
+	// Usable stop_name rows read; 0 when the file is absent.
 	Rows int32 `protobuf:"varint,4,opt,name=rows,proto3" json:"rows,omitempty"`
 	// Rows identifying a stop this feed's stops.txt does not contain.
 	RowsUnmatched int32 `protobuf:"varint,5,opt,name=rows_unmatched,json=rowsUnmatched,proto3" json:"rows_unmatched,omitempty"`
@@ -1211,11 +1187,8 @@ func (x *TranslationCoverage) GetRowsUnmatched() int32 {
 	return 0
 }
 
-// SavedCommute is a user's named origin->destination station pair, surfaced
-// above the /trains pickers so a route they take every day is one tap away.
-// origin/destination are always location_type=1 stations keyed by their
-// S-prefixed UIC parent-station id — never a trip_id or anything derived
-// from a specific day's timetable (#1390).
+// SavedCommute is a user's named station pair for one-tap searches. Stations
+// are keyed by S-prefixed UIC parent-station id, never a trip_id.
 type SavedCommute struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Id          string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`

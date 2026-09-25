@@ -40,9 +40,7 @@ var (
 
 const mockGameName = "test-game"
 
-// fakeSteamClient is a small local stand-in for steam.Client — the real mock
-// lives in apps/games/internal/mocks, which this package (outside the games
-// app's own tree) cannot import (Go internal-package visibility).
+// fakeSteamClient stands in for steam.Client; the games mock is internal.
 type fakeSteamClient struct{}
 
 func (fakeSteamClient) GetOwnedGames(
@@ -110,10 +108,8 @@ func (fakeSteamClient) GetGlobalAchievementPercentagesForApp(
 	return &resp, nil
 }
 
-// fakeBooksWebFetchClient/fakeFeedsWebFetchClient are small local stand-ins
-// for their apps' respective webfetch.Client. Dashboard's own tests never
-// trigger a real fetch — feeds items are seeded directly via SQL — so every
-// call errors.
+// fakeBooksWebFetchClient/fakeFeedsWebFetchClient error on every call; these
+// tests never fetch.
 type fakeBooksWebFetchClient struct{}
 
 func (fakeBooksWebFetchClient) Get(

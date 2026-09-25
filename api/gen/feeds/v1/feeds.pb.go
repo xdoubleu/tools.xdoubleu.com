@@ -73,7 +73,7 @@ func (FeedKind) EnumDescriptor() ([]byte, []int) {
 	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{0}
 }
 
-// Feed is an RSS/Atom subscription or an email-relay newsletter subscription.
+// Feed is an RSS/Atom, scrape or email-relay subscription.
 type Feed struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -84,24 +84,18 @@ type Feed struct {
 	// The most recent poll failure; empty when the last poll succeeded.
 	LastError string `protobuf:"bytes,5,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
 	CreatedAt string `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// "rss", "email", or "scrape". Email feeds are populated by a Resend
-	// inbound-webhook push, not polling — RefreshFeed is a no-op for them.
-	// Scrape feeds have no real feed at their URL; posts are discovered by
-	// heuristically scanning the page for post-like links.
+	// "rss", "email" or "scrape". Email feeds are pushed via webhook (refresh
+	// is a no-op); scrape feeds discover posts heuristically.
 	SourceType string `protobuf:"bytes,7,opt,name=source_type,json=sourceType,proto3" json:"source_type,omitempty"`
-	// The address to give the newsletter as its subscription address. Only
-	// set once, on the CreateFeedResponse for a newly created email feed — it
-	// is never persisted in plaintext, so it cannot be shown again later and
-	// is never returned by ListFeeds.
+	// Subscription address for an email feed, returned only once by
+	// CreateFeed (never stored in plaintext).
 	InboundAddress string `protobuf:"bytes,8,opt,name=inbound_address,json=inboundAddress,proto3" json:"inbound_address,omitempty"`
-	// The conditional-GET validators from the last successful fetch; empty
-	// until the feed has been fetched once.
+	// Conditional-GET validators; empty until fetched.
 	Etag         string `protobuf:"bytes,9,opt,name=etag,proto3" json:"etag,omitempty"`
 	LastModified string `protobuf:"bytes,10,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
-	// Unbroken poll failures since the last success (issue #799).
+	// Unbroken poll failures since the last success.
 	ConsecutiveFailures int32 `protobuf:"varint,11,opt,name=consecutive_failures,json=consecutiveFailures,proto3" json:"consecutive_failures,omitempty"`
-	// RFC3339; set while a problem email is outstanding for this feed, empty
-	// once it recovers.
+	// RFC3339; set while a problem email is outstanding.
 	NotifiedAt    string `protobuf:"bytes,12,opt,name=notified_at,json=notifiedAt,proto3" json:"notified_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -301,24 +295,14 @@ func (x *ListFeedsResponse) GetFeeds() []*Feed {
 	return nil
 }
 
-// CreateFeed with kind RSS (the default) validates the URL by fetching and
-// parsing it, then imports the feed's current contents (newest first,
-// capped) as a first batch in the background — the import can take longer
-// than the request, so it is not reflected in the response; poll
-// ListFeeds/ListFeedItems to see new items land.
-//
-// CreateFeed with kind EMAIL mints a per-feed inbound email alias instead
-// (url must be empty); items land as mail arrives via the Resend webhook.
-//
-// CreateFeed with kind SCRAPE treats url as a page with no real feed (e.g. a
-// blog index) and heuristically discovers post links on it instead of
-// parsing RSS/Atom; best-effort, may find nothing on unusual page layouts.
+// CreateFeed: RSS (default) validates the URL and imports in the background
+// (poll the lists to see items land); EMAIL mints an inbound alias (url
+// empty); SCRAPE heuristically discovers post links on a page with no feed.
 type CreateFeedRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Url   string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`
 	Kind  FeedKind               `protobuf:"varint,2,opt,name=kind,proto3,enum=feeds.v1.FeedKind" json:"kind,omitempty"`
-	// Optional; only used for kind=EMAIL. Ignored for RSS, whose title is
-	// parsed from the feed itself.
+	// Only used for kind=EMAIL; RSS titles come from the feed.
 	Title         string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -677,20 +661,16 @@ func (x *RefreshFeedResponse) GetIngested() int32 {
 	return 0
 }
 
-// Item is one ingested feed entry, self-contained (no library/book
-// linkage) — a feed and its items only ever belong to one user.
+// Item is one ingested feed entry; feeds and items are single-user.
 type Item struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Id        string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	FeedId    string                 `protobuf:"bytes,2,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
 	Title     string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	SourceUrl string                 `protobuf:"bytes,4,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	// Only populated by GetFeedItem. ListFeedItems and UpdateItem leave it
-	// empty and set has_content instead — a page of article bodies was the
-	// single largest source of database egress (issue #1027).
+	// Only populated by GetFeedItem; other RPCs set has_content instead.
 	ContentHtml string `protobuf:"bytes,5,opt,name=content_html,json=contentHtml,proto3" json:"content_html,omitempty"`
-	// RFC3339; the item's true publish date from the feed/email, not ingest
-	// time.
+	// RFC3339 publish date from the feed/email, not ingest time.
 	PublishedAt string `protobuf:"bytes,6,opt,name=published_at,json=publishedAt,proto3" json:"published_at,omitempty"`
 	// RFC3339; empty when unread.
 	ReadAt     string `protobuf:"bytes,7,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
@@ -699,12 +679,10 @@ type Item struct {
 	// The most recent ingest failure for this item, if any.
 	IngestError string `protobuf:"bytes,10,opt,name=ingest_error,json=ingestError,proto3" json:"ingest_error,omitempty"`
 	CreatedAt   string `protobuf:"bytes,11,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	// Furthest scroll position reached in the reader, 0-100. Monotonic:
-	// re-opening and scrolling less never lowers it.
+	// Furthest scroll reached in the reader, 0-100; never lowered.
 	ReadProgressPct int32 `protobuf:"varint,12,opt,name=read_progress_pct,json=readProgressPct,proto3" json:"read_progress_pct,omitempty"`
-	// Whether the item has an extracted article body, without carrying it.
-	// Set by every RPC returning an Item; lets a list distinguish "no content"
-	// from "content not loaded yet".
+	// Whether an article body exists, distinguishing "no content" from "not
+	// loaded".
 	HasContent    bool `protobuf:"varint,13,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -835,14 +813,11 @@ type ListFeedItemsRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Limit  int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset int32                  `protobuf:"varint,2,opt,name=offset,proto3" json:"offset,omitempty"`
-	// Excludes items with a set read_at when true. Unset/false returns both
-	// read and unread items.
+	// When true, excludes read items.
 	UnreadOnly *bool `protobuf:"varint,3,opt,name=unread_only,json=unreadOnly,proto3,oneof" json:"unread_only,omitempty"`
-	// Restricts results to one feed. Unset returns items from any of the
-	// caller's feeds.
+	// Restricts results to one feed.
 	FeedId *string `protobuf:"bytes,4,opt,name=feed_id,json=feedId,proto3,oneof" json:"feed_id,omitempty"`
-	// Excludes items without bookmarked set when true. Unset/false returns
-	// both bookmarked and unbookmarked items.
+	// When true, excludes unbookmarked items.
 	BookmarkedOnly *bool `protobuf:"varint,5,opt,name=bookmarked_only,json=bookmarkedOnly,proto3,oneof" json:"bookmarked_only,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -965,9 +940,8 @@ func (x *ListFeedItemsResponse) GetHasMore() bool {
 	return false
 }
 
-// GetFeedItem returns one item with its content_html populated — the only
-// RPC that reads the article body. The reader calls it when opening an
-// article, so a list read never pays for fifty bodies (issue #1027).
+// GetFeedItem returns one item with content_html — the only RPC reading the
+// article body.
 type GetFeedItemRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
@@ -1056,11 +1030,8 @@ func (x *GetFeedItemResponse) GetItem() *Item {
 	return nil
 }
 
-// UpdateItem partially updates an item's read/dismissed/bookmarked/
-// read-progress state — only fields explicitly set are applied; unset
-// fields are left unchanged. read sets read_at to now() when true, clears
-// it when false. read_progress_pct is clamped to [0,100] and only ever
-// increases (re-opening and scrolling less never lowers it).
+// UpdateItem applies only the fields set. read sets or clears read_at;
+// read_progress_pct is clamped to [0,100] and only increases.
 type UpdateItemRequest struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	ItemId          string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
@@ -1181,15 +1152,13 @@ func (x *UpdateItemResponse) GetItem() *Item {
 	return nil
 }
 
-// FeedStats aggregates one feed's posting cadence and read/completion
-// metrics (issue #798).
+// FeedStats aggregates one feed's posting cadence and read metrics.
 type FeedStats struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	FeedId    string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
 	FeedTitle string                 `protobuf:"bytes,2,opt,name=feed_title,json=feedTitle,proto3" json:"feed_title,omitempty"`
 	ItemCount int32                  `protobuf:"varint,3,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
-	// Mean hours between consecutive items' published_at; 0 when the feed has
-	// fewer than 2 items.
+	// Mean hours between items; 0 below 2 items.
 	AvgIntervalHours float64 `protobuf:"fixed64,4,opt,name=avg_interval_hours,json=avgIntervalHours,proto3" json:"avg_interval_hours,omitempty"`
 	// Fraction (0-1) of items with read_at set.
 	ReadRate float64 `protobuf:"fixed64,5,opt,name=read_rate,json=readRate,proto3" json:"read_rate,omitempty"`
@@ -1271,8 +1240,7 @@ func (x *FeedStats) GetAvgReadProgressPct() float64 {
 	return 0
 }
 
-// One day's ingested-item count, for the "when do new items appear"
-// histogram (issue #798).
+// DayCount is one day's ingested-item count.
 type DayCount struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// RFC3339 (midnight UTC).
@@ -1484,8 +1452,7 @@ func (x *UnhealthyFeed) GetConsecutiveFailures() int32 {
 	return 0
 }
 
-// GetUnhealthyFeeds reports every user's currently-failing feeds — admin-only,
-// since it is not scoped to the caller's own feeds.
+// GetUnhealthyFeeds reports every user's failing feeds (admin-only).
 type GetUnhealthyFeedsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields

@@ -16,9 +16,8 @@ type LearningPathsRepository struct {
 	db postgres.DB
 }
 
-// ListForUser returns a page of the user's learning paths. The tree
-// (modules/items/resources) is not populated here — List only needs the
-// top-level fields, matching recipes.RecipesRepository.ListForFamily.
+// ListForUser returns a page of the user's learning paths, top-level fields
+// only.
 func (r *LearningPathsRepository) ListForUser(
 	ctx context.Context,
 	userID string,
@@ -122,11 +121,9 @@ func (r *LearningPathsRepository) Delete(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ReplaceModules wholesale-replaces a path's modules (and, via cascade,
-// their items) — the same delete-all-then-reinsert pattern
-// recipes.RecipesRepository.ReplaceIngredients uses. Each Item's Completed
-// flag is whatever the caller passes in, so day-to-day progress toggling
-// should go through RecordItemProgress instead of a full tree resend.
+// ReplaceModules deletes and reinserts a path's modules and items. Completed
+// flags come from the caller; progress toggling belongs in
+// RecordItemProgress.
 func (r *LearningPathsRepository) ReplaceModules(
 	ctx context.Context,
 	learningPathID uuid.UUID,
@@ -231,8 +228,7 @@ func (r *LearningPathsRepository) GetModules(
 	return modules, nil
 }
 
-// getItemsForPath fetches every item across every module of a path in one
-// query, grouped by module_id — avoids an N+1 per module.
+// getItemsForPath fetches all of a path's items in one query, by module_id.
 func (r *LearningPathsRepository) getItemsForPath(
 	ctx context.Context,
 	learningPathID uuid.UUID,
@@ -341,10 +337,8 @@ func (r *LearningPathsRepository) GetResources(
 	return resources, postgres.PgxErrorToHTTPError(rows.Err())
 }
 
-// RecordItemProgress updates a single item's completed flag, scoped by the
-// owning path's user_id via a join so a caller can never toggle another
-// user's item. Returns database.ErrResourceNotFound when the item doesn't
-// exist or isn't owned by userID.
+// RecordItemProgress sets an item's completed flag, scoped to userID's paths.
+// Returns database.ErrResourceNotFound when not found or not owned.
 func (r *LearningPathsRepository) RecordItemProgress(
 	ctx context.Context,
 	itemID uuid.UUID,
@@ -372,10 +366,8 @@ func (r *LearningPathsRepository) RecordItemProgress(
 	return nil
 }
 
-// GetItemForUser returns itemID's description/type plus its owning path's
-// title, scoped by userID (404 on foreign ownership, same rule as every
-// other per-user lookup in this app) — used by SendItemToTodoist to build a
-// task's content without pulling the whole path tree.
+// GetItemForUser returns an owned item's description/type plus its path's
+// title (404 on foreign ownership).
 func (r *LearningPathsRepository) GetItemForUser(
 	ctx context.Context, itemID uuid.UUID, userID string,
 ) (*models.ItemForTask, error) {

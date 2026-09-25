@@ -2,14 +2,11 @@ package mealplans
 
 import "strings"
 
-// customItemSep separates a hand-typed item's name from its optional amount
-// within a single line of a custom meal's newline-separated custom_name, e.g.
-// "apples\t2". A tab is used because it cannot be typed into a single-line input.
+// customItemSep separates a custom item's name from its amount ("apples\t2");
+// a tab can't be typed into the single-line input.
 const customItemSep = "\t"
 
-// displayCustomName renders a custom meal's newline-separated items for human
-// display, turning each "name\tamount" line into "amount name" and dropping the
-// raw tab separator. Lines without an amount are returned unchanged.
+// displayCustomName renders "name\tamount" lines as "amount name".
 func displayCustomName(customName string) string {
 	lines := strings.Split(customName, "\n")
 	for i, line := range lines {

@@ -28,43 +28,35 @@ import (
 var ErrInvalidFeed = errors.New("url is not a valid RSS/Atom feed")
 
 // ErrEmailFeedsNotConfigured is returned by CreateEmail when
-// EMAIL_INBOUND_DOMAIN is unset — minting an inbound address without a
-// receiving domain would produce one that can never receive mail.
+// EMAIL_INBOUND_DOMAIN is unset.
 var ErrEmailFeedsNotConfigured = errors.New(
 	"email feeds are not configured (EMAIL_INBOUND_DOMAIN unset)",
 )
 
-// emailTokenBytes is the number of random bytes for an email feed's inbound
-// alias token.
+// emailTokenBytes is the random byte length of an inbound alias token.
 const emailTokenBytes = 32
 
 // maxItemsPerPoll caps how many new items one poll ingests per feed (newest
 // first); older overflow is marked seen without ingesting.
 const maxItemsPerPoll = 20
 
-// errorNotifyThreshold is the number of unbroken poll failures before a
-// problem email is sent (issue #799).
+// errorNotifyThreshold is the unbroken poll failures before a problem email.
 const errorNotifyThreshold = 3
 
-// quietCheckHistory is how many recent items' published_at feed the
-// quiet-feed cadence heuristic (issue #799).
+// quietCheckHistory is how many recent items feed the quiet-feed heuristic.
 const quietCheckHistory = 6
 
-// statsHistoryDays bounds the items-per-day histogram window (issue #798).
+// statsHistoryDays bounds the items-per-day histogram window.
 const statsHistoryDays = 90
 
-// ponytail: naive mean/multiplier heuristic — a feed is quiet once it's gone
-// quietGapMultiplier times its own average posting gap without a new item,
-// floored at quietMinGap so a low-volume feed (e.g. weekly) doesn't trip on
-// ordinary variance. Upgrade path: a stddev/median-based model if this
-// proves noisy in practice.
+// A feed is quiet once it's gone quietGapMultiplier times its average posting
+// gap without a new item, floored at quietMinGap for low-volume feeds.
 const quietGapMultiplier = 3
 
 const quietMinGap = 48 * time.Hour
 
-// FeedService manages RSS/Atom subscriptions and email-relay newsletter
-// subscriptions (issue #595), ingesting their items directly as feeds.items
-// rows — items are self-contained and never reference another app's schema.
+// FeedService manages RSS/Atom, scrape and email-relay subscriptions,
+// ingesting their items as self-contained feeds.items rows.
 type FeedService struct {
 	logger        *slog.Logger
 	feeds         *repositories.FeedsRepository
@@ -76,11 +68,8 @@ type FeedService struct {
 	webURL        string
 }
 
-// NewFeedService constructs a FeedService. inboundDomain is the
-// EMAIL_INBOUND_DOMAIN used to build email feeds' inbound addresses; empty
-// disables CreateEmail (see ErrEmailFeedsNotConfigured). notifications/
-// users/webURL back the issue #799 problem-email alert, delivered off the
-// polling job's own path via notifications.Service (issue #923).
+// NewFeedService constructs a FeedService. An empty inboundDomain disables
+// CreateEmail.
 func NewFeedService(
 	logger *slog.Logger,
 	feeds *repositories.FeedsRepository,
@@ -111,9 +100,8 @@ func (s *FeedService) List(
 	return s.feeds.List(ctx, userID)
 }
 
-// ListItems returns a page of items ingested by any of the user's feeds.
-// feedID, when non-nil, restricts results to that one feed. bookmarkedOnly,
-// when true, excludes items that aren't bookmarked.
+// ListItems returns a page of the user's items, optionally restricted to one
+// feed or to bookmarked items.
 func (s *FeedService) ListItems(
 	ctx context.Context,
 	userID string,
@@ -127,9 +115,8 @@ func (s *FeedService) ListItems(
 	)
 }
 
-// GetItem returns one of the user's items with its article body populated.
-// Items from ListItems deliberately carry no body (issue #1027), so the
-// reader calls this when opening an article.
+// GetItem returns one of the user's items with its article body, which
+// ListItems omits.
 func (s *FeedService) GetItem(
 	ctx context.Context,
 	userID string,
@@ -138,19 +125,14 @@ func (s *FeedService) GetItem(
 	return s.items.GetByIDForUser(ctx, userID, itemID)
 }
 
-// CountUnread returns the number of unread items across any of the user's
-// feeds — backs the reading dashboard's feeds summary widget.
+// CountUnread returns the user's unread item count across all feeds.
 func (s *FeedService) CountUnread(ctx context.Context, userID string) (int, error) {
 	return s.items.CountUnread(ctx, userID)
 }
 
-// Create validates the URL by fetching and parsing it and stores the feed
-// (with its self-reported title), then imports the feed's current contents
-// as a first batch in the background. Returns the feed as soon as it is
-// stored — the initial import can comfortably exceed the server's write
-// timeout, so it must not block the request; the same items land within
-// seconds via the detached import, or within the hour via the poll-feeds job
-// if the process restarts mid-import.
+// Create validates the URL by fetching and parsing it, stores the feed and
+// imports its contents in the background: the import can exceed the write
+// timeout, and the poll-feeds job backfills if it's dropped.
 func (s *FeedService) Create(
 	ctx context.Context,
 	userID, rawURL string,
@@ -179,8 +161,7 @@ func (s *FeedService) Create(
 		return nil, err
 	}
 
-	// ponytail: detached goroutine, not a job-queue task — a process restart
-	// mid-import can drop it; the hourly poll-feeds job backfills.
+	// Detached, not queued: a restart can drop it; poll-feeds backfills.
 	importFeed := *feed
 	go func() {
 		importCtx := context.WithoutCancel(ctx)
@@ -190,11 +171,8 @@ func (s *FeedService) Create(
 	return feed, nil
 }
 
-// CreateEmail mints a per-feed inbound email alias and stores the feed
-// (source_type "email"). Returns the feed plus the plaintext inbound
-// address — the only time it is ever available in plaintext, since only its
-// hash is persisted. Unlike Create, there is no background import: content
-// only arrives as mail is received via the Resend webhook.
+// CreateEmail mints an inbound email alias and stores the feed. The returned
+// plaintext address is never available again (only its hash is stored).
 func (s *FeedService) CreateEmail(
 	ctx context.Context,
 	userID string,
@@ -212,9 +190,7 @@ func (s *FeedService) CreateEmail(
 	if _, err := rand.Read(raw); err != nil {
 		return nil, "", err
 	}
-	// lowercase hex, not base64: some mail relays lowercase the recipient
-	// local-part in transit, which silently breaks a mixed-case token — hex
-	// has no case ambiguity to mangle in the first place.
+	// Hex, not base64: some relays lowercase the recipient local-part.
 	token := hex.EncodeToString(raw)
 	h := sha256.Sum256([]byte(token))
 	hash := hex.EncodeToString(h[:])
@@ -234,8 +210,7 @@ func (s *FeedService) CreateEmail(
 	return feed, address, nil
 }
 
-// GetByInboundTokenHash resolves an email feed by its inbound alias token's
-// SHA-256 hash, for the unauthenticated Resend inbound-webhook handler.
+// GetByInboundTokenHash resolves an email feed by its token's SHA-256 hash.
 func (s *FeedService) GetByInboundTokenHash(
 	ctx context.Context,
 	hash string,
@@ -243,13 +218,9 @@ func (s *FeedService) GetByInboundTokenHash(
 	return s.feeds.GetByInboundTokenHash(ctx, hash)
 }
 
-// IngestEmail ingests one inbound email as an item for the given email feed
-// (issue #595) — the webhook-push counterpart to ingestItem for polled RSS
-// items. messageID is Resend's email id, used to build a stable dedup guid
-// alongside the feed ID. Best-effort: any ingest failure is recorded on the
-// feed (visible in the UI's last-error) rather than returned, since the
-// caller must still ack the webhook so Resend doesn't retry a
-// permanently-broken email forever.
+// IngestEmail ingests one inbound email as an item, deduped on Resend's
+// messageID. Failures are recorded on the feed rather than returned, since
+// the webhook must still be acked so Resend doesn't retry forever.
 func (s *FeedService) IngestEmail(
 	ctx context.Context,
 	feed models.Feed,
@@ -277,11 +248,8 @@ func (s *FeedService) IngestEmail(
 	s.recordFetchResultRaw(ctx, feed.ID, nil, nil, nil)
 }
 
-// RecordEmailFetchFailure persists a fetch failure for an email feed when the
-// inbound webhook itself couldn't retrieve the email body (e.g. Resend's
-// receiving API erroring) — before IngestEmail is ever reached. Mirrors
-// IngestEmail's own error branch so this failure is visible in the UI's
-// last-error the same way an ingest failure already is.
+// RecordEmailFetchFailure records a failure to retrieve an inbound email's
+// body, surfaced like an IngestEmail failure.
 func (s *FeedService) RecordEmailFetchFailure(
 	ctx context.Context,
 	feedID uuid.UUID,
@@ -301,8 +269,7 @@ func (s *FeedService) Update(
 	return s.feeds.Update(ctx, userID, id, title)
 }
 
-// UpdateItem partially updates an item's read/dismissed/bookmarked/
-// read-progress state, scoped to userID. nil fields are left unchanged.
+// UpdateItem partially updates an item's state; nil fields are unchanged.
 // readProgressPct is clamped to [0,100] and only ever increases.
 func (s *FeedService) UpdateItem(
 	ctx context.Context,
@@ -340,9 +307,8 @@ func clampPct(v int32) int32 {
 	}
 }
 
-// GetStats returns per-feed posting-cadence/read-completion stats plus an
-// items-per-day histogram over the trailing statsHistoryDays, for the
-// caller's feeds (issue #798).
+// GetStats returns per-feed cadence/read stats plus an items-per-day
+// histogram over the last statsHistoryDays.
 func (s *FeedService) GetStats(
 	ctx context.Context,
 	userID string,
@@ -360,9 +326,7 @@ func (s *FeedService) GetStats(
 	return stats, perDay, nil
 }
 
-// Delete removes the subscription and every item it ingested (cascade via
-// the feeds.items FK) — see FeedsRepository.Delete for why this no longer
-// preserves engaged-with items the way reading's FeedService once did.
+// Delete removes the feed and, via FK cascade, every item it ingested.
 func (s *FeedService) Delete(
 	ctx context.Context,
 	userID string,
@@ -371,8 +335,8 @@ func (s *FeedService) Delete(
 	return s.feeds.Delete(ctx, userID, id)
 }
 
-// Refresh polls one feed synchronously. Returns how many items it ingested.
-// Email feeds are push-only (Resend webhook), so this is a no-op for them.
+// Refresh polls one feed synchronously and returns how many items it
+// ingested; a no-op for push-only email feeds.
 func (s *FeedService) Refresh(
 	ctx context.Context,
 	userID string,
@@ -388,8 +352,7 @@ func (s *FeedService) Refresh(
 	return s.pollFeed(ctx, *feed)
 }
 
-// PollAll polls every feed of every user; per-feed failures are recorded on
-// the feed and never abort the run. Called by the background job.
+// PollAll polls every feed; per-feed failures are recorded, never abort.
 func (s *FeedService) PollAll(
 	ctx context.Context,
 	logger *slog.Logger,
@@ -415,22 +378,19 @@ func (s *FeedService) PollAll(
 	return nil
 }
 
-// ListUnhealthy returns every feed currently failing to poll, across all
-// users, for the weekly digest job (issue #1014).
+// ListUnhealthy returns every failing feed across all users.
 func (s *FeedService) ListUnhealthy(ctx context.Context) ([]models.Feed, error) {
 	return s.feeds.ListUnhealthy(ctx)
 }
 
-// CountUnreadByFeed returns unread item counts per feed, across all users,
-// for the weekly digest job's open-feed-items reminder (issue #1355).
+// CountUnreadByFeed returns unread item counts per feed across all users.
 func (s *FeedService) CountUnreadByFeed(
 	ctx context.Context,
 ) ([]models.FeedUnreadCount, error) {
 	return s.items.CountUnreadByFeed(ctx)
 }
 
-// pollFeed fetches one feed (conditional GET) and ingests its new items,
-// dispatching on source type — scrape feeds have no RSS/Atom body to parse.
+// pollFeed fetches one feed (conditional GET) and ingests new items.
 func (s *FeedService) pollFeed(
 	ctx context.Context,
 	feed models.Feed,
@@ -469,16 +429,14 @@ func (s *FeedService) pollFeed(
 	return ingested, nil
 }
 
-// processItems ingests the feed's not-yet-seen items, newest first, capped at
-// maxItemsPerPoll per run; the overflow is marked seen without ingesting so a
-// huge backlog never floods the reader.
+// processItems ingests unseen items newest first, capped at maxItemsPerPoll;
+// overflow is marked seen so a huge backlog never floods the reader.
 func (s *FeedService) processItems(
 	ctx context.Context,
 	feed models.Feed,
 	items []*gofeed.Item,
 ) int {
-	// Newest first: published desc, unparsed dates last (kept in feed order —
-	// most feeds list newest first anyway).
+	// Newest first; unparsed dates last in feed order.
 	ordered := make([]*gofeed.Item, len(items))
 	copy(ordered, items)
 	sort.SliceStable(ordered, func(i, j int) bool {
@@ -513,8 +471,6 @@ func (s *FeedService) processItems(
 			return ingested
 		}
 		if i >= maxItemsPerPoll {
-			// Mark the overflow seen so it is never ingested later — the
-			// backlog is browsable up to the cap each poll.
 			s.markSeenError(ctx, feed.ID, guid, "skipped: over per-poll cap")
 			continue
 		}
@@ -525,10 +481,8 @@ func (s *FeedService) processItems(
 	return ingested
 }
 
-// ingestItem ingests one feed item; reports whether it produced a stored
-// item. The guid is marked seen regardless of outcome — RefreshFeed is the
-// only retry path, and it re-parses the live feed rather than replaying a
-// single guid.
+// ingestItem ingests one feed item and reports whether it stored one. The
+// guid is marked seen regardless; RefreshFeed re-parses the live feed.
 func (s *FeedService) ingestItem(
 	ctx context.Context,
 	feed models.Feed,
@@ -551,9 +505,8 @@ func (s *FeedService) ingestItem(
 	return true
 }
 
-// buildItem resolves one feed item's content. Content preference: embedded
-// full content → fetch + readability-extract the linked page → RSS
-// description.
+// buildItem resolves item content: embedded content, else the extracted
+// linked page, else the RSS description.
 func (s *FeedService) buildItem(
 	ctx context.Context,
 	feed models.Feed,
@@ -574,7 +527,6 @@ func (s *FeedService) buildItem(
 		html = s.fetchLinkedPageHTML(ctx, canonical, &title)
 	}
 	if html == "" {
-		// Last resort: the RSS description as the item body.
 		html = item.Description
 	}
 	title = titleOrDefault(title, canonical)
@@ -595,9 +547,8 @@ func (s *FeedService) buildItem(
 	}, nil
 }
 
-// fetchLinkedPageHTML fetches and readability-extracts the item's linked
-// page. Best-effort: any failure returns "" (the description fallback
-// applies afterwards); on success it may also fill in a missing title.
+// fetchLinkedPageHTML extracts the linked page, returning "" on any failure;
+// it may also fill in a missing title.
 func (s *FeedService) fetchLinkedPageHTML(
 	ctx context.Context,
 	sourceURL string,
@@ -630,8 +581,7 @@ func (s *FeedService) fetchLinkedPageHTML(
 	return art.HTML
 }
 
-// titleOrDefault trims title and returns fallback if it is empty or
-// whitespace-only.
+// titleOrDefault returns the trimmed title, or fallback if blank.
 func titleOrDefault(title, fallback string) string {
 	if t := strings.TrimSpace(title); t != "" {
 		return t
@@ -679,9 +629,8 @@ func (s *FeedService) recordFetchResult(
 	s.recordFetchResultRaw(ctx, feedID, etag, lastModified, errStr)
 }
 
-// recordFetchResultRaw persists poll/ingest outcome (shared by RSS/scrape
-// polling and email ingestion) and, on the returned row, checks whether a
-// problem email is due (issue #799).
+// recordFetchResultRaw persists a poll/ingest outcome and checks whether a
+// problem email is due.
 func (s *FeedService) recordFetchResultRaw(
 	ctx context.Context,
 	feedID uuid.UUID,
@@ -696,11 +645,9 @@ func (s *FeedService) recordFetchResultRaw(
 	s.checkFeedHealth(ctx, *updated)
 }
 
-// checkFeedHealth sends a problem email (deduped via notified_at) once a
-// feed either crosses the consecutive-failure threshold or, on a successful
-// poll, looks quiet relative to its own posting cadence; it clears
-// notified_at on recovery from either trigger, since both share the one
-// dedup column (issue #799).
+// checkFeedHealth sends a problem email (deduped via notified_at) when a
+// feed crosses the failure threshold or looks quiet, and clears notified_at
+// on recovery from either, since both share the one dedup column.
 func (s *FeedService) checkFeedHealth(ctx context.Context, feed models.Feed) {
 	if feed.LastError != nil {
 		if feed.ConsecutiveFailures >= errorNotifyThreshold && feed.NotifiedAt == nil {
@@ -728,13 +675,11 @@ func (s *FeedService) checkFeedHealth(ctx context.Context, feed models.Feed) {
 	}
 }
 
-// minQuietHistory is the fewest items needed to establish a cadence for
-// isFeedQuiet; fewer is too little to avoid false positives on brand-new or
-// low-volume feeds.
+// minQuietHistory is the fewest items needed to establish a cadence.
 const minQuietHistory = 3
 
 // isFeedQuiet reports whether a feed has gone quiet relative to its own
-// recent posting cadence. times need not be sorted.
+// cadence. times need not be sorted.
 func isFeedQuiet(times []time.Time, now time.Time) bool {
 	if len(times) < minQuietHistory {
 		return false
@@ -759,12 +704,9 @@ func isFeedQuiet(times []time.Time, now time.Time) bool {
 	return now.Sub(latest) > threshold
 }
 
-// notifyProblem queues an email to the feed owner about a detected problem
-// (delivered off the polling job's own path by notifications.Service, issue
-// #923), deduped via MarkNotified (only recorded once the send succeeds, so
-// a failed send is retried on the next poll) — mirrors
-// contacts.sendContactRequestEmail's degrade-not-fail handling of
-// mailer.ErrNotConfigured (issue #799).
+// notifyProblem queues a problem email to the feed owner. MarkNotified runs
+// only after a successful send, so a failed send retries next poll;
+// mailer.ErrNotConfigured degrades rather than fails.
 func (s *FeedService) notifyProblem(
 	ctx context.Context,
 	feed models.Feed,
@@ -811,10 +753,8 @@ func itemGUID(item *gofeed.Item) string {
 	return item.Link
 }
 
-// feedItemHTML returns the item's embedded full content, if any. gofeed only
-// maps <content:encoded> into item.Content when it resolves the "content"
-// namespace prefix; feeds that declare it non-standardly still carry the
-// value in item.Custom["encoded"] instead.
+// feedItemHTML returns the item's embedded full content. Feeds declaring the
+// content namespace non-standardly carry it in item.Custom["encoded"].
 func feedItemHTML(item *gofeed.Item) string {
 	if item.Content != "" {
 		return item.Content

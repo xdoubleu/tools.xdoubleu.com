@@ -26,9 +26,8 @@ type CreateBookUploadRequest struct {
 	Filename    string                 `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
 	ContentType string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	Size        int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	// SHA-256 hex digest of the file content, computed by the client.
-	// When the content already exists in the store the server sets
-	// already_exists=true in the response and the client skips the PUT.
+	// Client-computed SHA-256 hex of the content; lets the server report
+	// already_exists so the PUT is skipped.
 	Checksum      string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -96,8 +95,8 @@ type CreateBookUploadResponse struct {
 	state    protoimpl.MessageState `protogen:"open.v1"`
 	UploadId string                 `protobuf:"bytes,1,opt,name=upload_id,json=uploadId,proto3" json:"upload_id,omitempty"`
 	Url      string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
-	// True when the file content is already stored. The client must skip the
-	// PUT to url and call FinalizeBookUpload directly with the upload_id empty.
+	// Content already stored: skip the PUT and finalize with an empty
+	// upload_id.
 	AlreadyExists bool `protobuf:"varint,3,opt,name=already_exists,json=alreadyExists,proto3" json:"already_exists,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -161,10 +160,8 @@ type FinalizeBookUploadRequest struct {
 	ContentType string                 `protobuf:"bytes,3,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`
 	// SHA-256 hex digest matching what was sent in CreateBookUploadRequest.
 	Checksum string `protobuf:"bytes,4,opt,name=checksum,proto3" json:"checksum,omitempty"`
-	// Explicit title/author, used when a prior attempt without them failed
-	// with "book could not be recognized from metadata" (e.g. a PDF with no
-	// embedded title). Takes precedence over any metadata extracted from the
-	// file itself.
+	// Explicit title/author, overriding file metadata, for files that failed
+	// recognition (e.g. a PDF with no embedded title).
 	TitleOverride  string `protobuf:"bytes,5,opt,name=title_override,json=titleOverride,proto3" json:"title_override,omitempty"`
 	AuthorOverride string `protobuf:"bytes,6,opt,name=author_override,json=authorOverride,proto3" json:"author_override,omitempty"`
 	unknownFields  protoimpl.UnknownFields

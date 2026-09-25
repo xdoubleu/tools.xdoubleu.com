@@ -95,8 +95,7 @@ func (repo *ProgressRepository) GetLastValueBefore(
 	return value, nil
 }
 
-// UpsertTx writes progress rows, optionally inside a transaction; pass a nil
-// Querier to use the repository's own connection.
+// UpsertTx writes progress rows on q (nil = the repository's connection).
 func (repo *ProgressRepository) UpsertTx(
 	ctx context.Context,
 	q Querier,

@@ -27,8 +27,7 @@ export type FamilyMember = Message<"family.v1.FamilyMember"> & {
   email: string;
 
   /**
-   * display_name is the member's own chosen name, shown to the rest of the
-   * family in place of their email. Empty when they haven't set one.
+   * The member's chosen name, shown instead of their email; empty if unset.
    *
    * @generated from field: string display_name = 3;
    */
@@ -97,16 +96,15 @@ export type GetFamilyResponse = Message<"family.v1.GetFamilyResponse"> & {
   members: FamilyMember[];
 
   /**
-   * incoming_invite is set when the caller has a pending invite to join
-   * another family.
+   * Set when the caller has a pending invite to another family.
    *
    * @generated from field: family.v1.FamilyInvite incoming_invite = 2;
    */
   incomingInvite?: FamilyInvite | undefined;
 
   /**
-   * self_display_name is the caller's own chosen name within their family
-   * (empty when unset). The caller is not included in members.
+   * The caller's own chosen name (empty if unset); the caller is not in
+   * members.
    *
    * @generated from field: string self_display_name = 3;
    */

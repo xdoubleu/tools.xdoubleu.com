@@ -26,9 +26,8 @@ type mcpStoreIDArgs struct {
 	StoreID string `json:"store_id" jsonschema:"store id"`
 }
 
-// RegisterMCPTools exposes the shoppinglist app's read-only RPCs on the combined
-// apps MCP server. List data is scoped to the caller's family; stores are
-// always the caller's own.
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
+// the caller's family (stores: the caller's own).
 func (a *ShoppingList) RegisterMCPTools(srv *mcp.Server) {
 	h := &shoppingConnectHandler{app: a}
 

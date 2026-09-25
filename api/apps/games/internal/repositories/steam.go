@@ -15,8 +15,7 @@ type SteamRepository struct {
 	db postgres.DB
 }
 
-// WithTx runs fn inside a single transaction, committing on success and rolling
-// back on any error so a Steam refresh applies atomically.
+// WithTx runs fn in one transaction, rolling back on error.
 func (repo *SteamRepository) WithTx(
 	ctx context.Context,
 	fn func(tx pgx.Tx) error,
@@ -41,9 +40,7 @@ func (repo *SteamRepository) WithTx(
 	return nil
 }
 
-// queryGames runs a games query and scans every row into a models.Game. All the
-// list endpoints share the same column projection, so they delegate the row
-// handling here and differ only in their WHERE/ORDER BY clauses.
+// queryGames runs a games query with the shared column projection.
 func (repo *SteamRepository) queryGames(
 	ctx context.Context,
 	query string,
@@ -86,11 +83,9 @@ func (repo *SteamRepository) queryGames(
 	return games, nil
 }
 
-// GetAllGames returns every stored game, delisted ones included. This is
-// deliberately unfiltered: buildGamesMap diffs it against Steam's currently
-// owned games to decide what is delisted in the first place, so filtering here
-// would remove the very rows that detection depends on. Callers computing a
-// library-wide average want GetActiveGames instead.
+// GetAllGames returns every stored game, delisted included: buildGamesMap
+// diffs it against Steam's owned list to detect delisting. Averages want
+// GetAveragedGames.
 func (repo *SteamRepository) GetAllGames(
 	ctx context.Context,
 	userID string,
@@ -106,11 +101,9 @@ func (repo *SteamRepository) GetAllGames(
 	return repo.queryGames(ctx, query, userID)
 }
 
-// GetAveragedGames returns the games that take part in the library-wide
-// completion averages: everything Steam still lists, plus any delisted game
-// whose achievements no listed game has taken over. The distribution chart and
-// the headline rate must both use this set, or they describe different
-// libraries (docs/adr-0018-completion-average-population.md).
+// GetAveragedGames returns the games in the library-wide averages; the
+// distribution chart and headline rate must both use it
+// (docs/adr-0018-completion-average-population.md).
 func (repo *SteamRepository) GetAveragedGames(
 	ctx context.Context,
 	userID string,
@@ -127,12 +120,9 @@ func (repo *SteamRepository) GetAveragedGames(
 	return repo.queryGames(ctx, query, userID)
 }
 
-// GetDelisted returns the games Steam no longer returns in the owned list.
-// They are excluded from the backlog lists, and most of them still count
-// towards the library-wide averages
-// (docs/adr-0018-completion-average-population.md), which makes them invisible
-// everywhere else — this is the one read that surfaces them, so a completion
-// number can be reconciled against the games behind it.
+// GetDelisted returns games missing from Steam's owned list. They're absent
+// from the backlog lists yet mostly still averaged, so this is the one read
+// that surfaces them.
 func (repo *SteamRepository) GetDelisted(
 	ctx context.Context,
 	userID string,
@@ -217,9 +207,7 @@ func (repo *SteamRepository) GetCompleted(
 	return repo.queryGames(ctx, query, userID)
 }
 
-// GetRecentlyActiveGames returns the games the user most recently played,
-// ordered by last_played descending and capped at limit. Games never played
-// (last_played IS NULL) are excluded.
+// GetRecentlyActiveGames returns up to limit played games, most recent first.
 func (repo *SteamRepository) GetRecentlyActiveGames(
 	ctx context.Context,
 	userID string,
@@ -277,8 +265,8 @@ func (repo *SteamRepository) UpsertGames(
 		q = repo.db
 	}
 
-	// favourite is deliberately absent from both column lists: it is
-	// user-set state and must survive every sync (new rows default FALSE).
+	// favourite is absent from both column lists: user-set state that must
+	// survive every sync.
 	query := `
 		INSERT INTO games.steam_games
 		    (id, user_id, name, is_delisted, in_completion_average,
@@ -318,7 +306,7 @@ func (repo *SteamRepository) UpsertGames(
 	return nil
 }
 
-// SetFavourite flips the user-set favourite flag on a game. Returns
+// SetFavourite flips a game's favourite flag. Returns
 // database.ErrResourceNotFound when the game is not in the user's library.
 func (repo *SteamRepository) SetFavourite(
 	ctx context.Context,
@@ -340,8 +328,7 @@ func (repo *SteamRepository) SetFavourite(
 	return nil
 }
 
-// GetLastSyncedAt returns the most recent Steam sync across the user's
-// library, or nil when no game has ever been synced.
+// GetLastSyncedAt returns the latest sync time, or nil when never synced.
 func (repo *SteamRepository) GetLastSyncedAt(
 	ctx context.Context,
 	userID string,
@@ -440,10 +427,8 @@ func (repo *SteamRepository) GetGameByID(
 	return &game, nil
 }
 
-// ReplaceAchievements replaces all stored achievements for a game with the given
-// rows: it deletes the existing rows and inserts the fresh set. It runs on the
-// supplied Querier (pass a transaction to make a refresh atomic; pass nil to use
-// the repository connection).
+// ReplaceAchievements replaces a game's stored achievements on the given
+// Querier (a transaction, or nil for the repository connection).
 func (repo *SteamRepository) ReplaceAchievements(
 	ctx context.Context,
 	q Querier,

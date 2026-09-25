@@ -291,8 +291,7 @@ func (x *MFAEnrollVerifyRequest) GetCode() string {
 
 type MFAEnrollVerifyResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Set only the first time TOTP enrollment completes — a one-time
-	// opportunity to save these, matching GenerateRecoveryCodes' semantics.
+	// Set only when TOTP enrollment first completes; shown once.
 	RecoveryCodes []string `protobuf:"bytes,1,rep,name=recovery_codes,json=recoveryCodes,proto3" json:"recovery_codes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -928,12 +927,10 @@ type GetCurrentUserResponse struct {
 	Role      string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
 	AppAccess []string               `protobuf:"bytes,2,rep,name=app_access,json=appAccess,proto3" json:"app_access,omitempty"`
 	HasMfa    bool                   `protobuf:"varint,3,opt,name=has_mfa,json=hasMfa,proto3" json:"has_mfa,omitempty"`
-	// Public profile display name; empty when unset (share links require this
-	// to be set first, see dashboard.v1.DashboardService).
+	// Public profile display name; empty when unset (required for share
+	// links).
 	DisplayName string `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// Stable per-user identifier (models.User.ID), used client-side as the
-	// PostHog distinct_id via posthog.identify() so product analytics and
-	// session replay resolve to the same person across sessions/devices.
+	// Stable user id, used as the PostHog distinct_id.
 	UserId        string `protobuf:"bytes,5,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

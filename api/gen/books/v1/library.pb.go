@@ -32,8 +32,7 @@ type Book struct {
 	PageCount   int32                  `protobuf:"varint,7,opt,name=page_count,json=pageCount,proto3" json:"page_count,omitempty"`
 	// Canonical origin URL for URL-ingested items; empty for books.
 	SourceUrl string `protobuf:"bytes,11,opt,name=source_url,json=sourceUrl,proto3" json:"source_url,omitempty"`
-	// True once content extraction succeeded and in-app content is stored;
-	// false for plain books or ones where extraction failed/found nothing.
+	// True once extracted in-app content is stored.
 	HasContent    bool `protobuf:"varint,12,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1444,9 +1443,8 @@ func (*ToggleTagResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_library_proto_rawDescGZIP(), []int{22}
 }
 
-// RemoveBook removes the book from the caller's own library only. If no other
-// user's library still references the book afterwards, the shared catalog row
-// and its R2 objects (uploaded files, cover) are deleted too.
+// RemoveBook removes the book from the caller's library; an unreferenced
+// catalog row and its R2 objects are deleted too.
 type RemoveBookRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
@@ -1911,9 +1909,8 @@ func (x *GetReadingStateResponse) GetState() *BookReadingStateData {
 	return nil
 }
 
-// GetBookContent returns the readability-extracted article body stored for a
-// URL-ingested book, for in-app reading instead of linking out to the source
-// URL. html is empty when no content was ever extracted.
+// GetBookContent returns a URL-ingested book's extracted body; html is empty
+// when none was extracted.
 type GetBookContentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`

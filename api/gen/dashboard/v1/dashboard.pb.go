@@ -211,10 +211,8 @@ func (x *GetDashboardShareResponse) GetShare() *DashboardShare {
 	return nil
 }
 
-// CreateDashboardShare generates a new share token for the given dashboard,
-// replacing any existing one for it (the old link stops working
-// immediately). Fails with FailedPrecondition when the owner has not set a
-// display name yet.
+// CreateDashboardShare replaces the dashboard's share token (the old link
+// dies). FailedPrecondition when no display name is set.
 type CreateDashboardShareRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Kind          DashboardKind          `protobuf:"varint,1,opt,name=kind,proto3,enum=dashboard.v1.DashboardKind" json:"kind,omitempty"`

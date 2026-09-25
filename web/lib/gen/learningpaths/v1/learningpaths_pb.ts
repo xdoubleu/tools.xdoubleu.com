@@ -27,8 +27,7 @@ export type Item = Message<"learningpaths.v1.Item"> & {
   moduleId: string;
 
   /**
-   * Freeform for now (e.g. "read", "study", "do", "checkpoint") rather than
-   * an enum — kept simple until real usage shows a fixed set is warranted.
+   * Freeform (e.g. "read", "study", "do", "checkpoint").
    *
    * @generated from field: string type = 3;
    */
@@ -95,10 +94,8 @@ export const ModuleSchema: GenMessage<Module> = /*@__PURE__*/
   messageDesc(file_learningpaths_v1_learningpaths, 1);
 
 /**
- * LinkedBook is the resolved, read-only state of a resource's linked books
- * library entry (#1474) — populated on Get/List only, when linked_book_id
- * still resolves for the caller; never set by the client and ignored on
- * Create/Update.
+ * LinkedBook is the read-only resolved state of a resource's linked books
+ * entry, set on reads when it still resolves; ignored on Create/Update.
  *
  * @generated from message learningpaths.v1.LinkedBook
  */
@@ -132,8 +129,7 @@ export const LinkedBookSchema: GenMessage<LinkedBook> = /*@__PURE__*/
   messageDesc(file_learningpaths_v1_learningpaths, 2);
 
 /**
- * LinkedFeedItem is the resolved, read-only state of a resource's linked
- * feeds item (#1474) — same populate-on-read-only rule as LinkedBook.
+ * LinkedFeedItem is the feeds counterpart to LinkedBook.
  *
  * @generated from message learningpaths.v1.LinkedFeedItem
  */
@@ -167,13 +163,8 @@ export const LinkedFeedItemSchema: GenMessage<LinkedFeedItem> = /*@__PURE__*/
   messageDesc(file_learningpaths_v1_learningpaths, 3);
 
 /**
- * Resources are freeform text entries by default (e.g. "Book: ...",
- * "https://..."). Setting linked_book_id or linked_feed_item_id instead
- * links the resource to an existing books library entry or feeds item
- * (#1474) — additive to the freeform text field, which most resources still
- * use (a physical book, a plain website, etc. have nothing to link to).
- * Setting both, or setting one while text is also non-empty, is allowed;
- * text becomes a caller-supplied caption alongside the resolved link state.
+ * Resource is freeform text, optionally linked to a books entry or feeds
+ * item via linked_book_id/linked_feed_item_id; text then acts as a caption.
  *
  * @generated from message learningpaths.v1.Resource
  */
@@ -251,8 +242,7 @@ export type LearningPath = Message<"learningpaths.v1.LearningPath"> & {
   goal: string;
 
   /**
-   * Freeform description of the recurring routine (e.g. "30 min every
-   * weekday morning").
+   * Freeform recurring routine (e.g. "30 min every weekday morning").
    *
    * @generated from field: string routine = 5;
    */
@@ -508,9 +498,8 @@ export const DeleteLearningPathResponseSchema: GenMessage<DeleteLearningPathResp
   messageDesc(file_learningpaths_v1_learningpaths, 15);
 
 /**
- * RecordItemProgress toggles a single item's completion flag without
- * resending the whole tree — the dedicated path both the "check an item off"
- * UI action and an MCP tool (learningpaths_record_progress, #1473) use.
+ * RecordItemProgress toggles one item's completion without resending the
+ * tree.
  *
  * @generated from message learningpaths.v1.RecordItemProgressRequest
  */
@@ -547,8 +536,7 @@ export const RecordItemProgressResponseSchema: GenMessage<RecordItemProgressResp
   messageDesc(file_learningpaths_v1_learningpaths, 17);
 
 /**
- * ModuleProgress is one module's completion count within a
- * GetLearningPathProgressResponse.
+ * ModuleProgress is one module's completion count.
  *
  * @generated from message learningpaths.v1.ModuleProgress
  */
@@ -599,11 +587,8 @@ export const GetLearningPathProgressRequestSchema: GenMessage<GetLearningPathPro
   messageDesc(file_learningpaths_v1_learningpaths, 19);
 
 /**
- * GetLearningPathProgressResponse reports completion counts derived
- * server-side from current item state, both overall and per module — added
- * in #1473 so the learningpaths_get_progress MCP tool (and any future UI
- * progress bar) reads a real RPC instead of re-deriving counts from
- * GetLearningPath's full tree.
+ * GetLearningPathProgressResponse reports server-derived completion counts,
+ * overall and per module.
  *
  * @generated from message learningpaths.v1.GetLearningPathProgressResponse
  */
@@ -642,12 +627,8 @@ export const GetLearningPathProgressResponseSchema: GenMessage<GetLearningPathPr
   messageDesc(file_learningpaths_v1_learningpaths, 20);
 
 /**
- * TodoistService (issue #1475) lets a user connect their own Todoist account
- * and send a single path item to it as a task, one-way (no sync-back —
- * completing the Todoist task never flips the item's own `completed` flag).
- * A separate service, not folded into LearningPathsService, mirroring how
- * books.v1 splits LibraryService/BookFilesService/KoboService/CatalogService
- * by concern rather than one service per app.
+ * TodoistService connects a user's own Todoist account and sends single
+ * items to it as tasks, one-way (completing a task never flips `completed`).
  *
  * @generated from message learningpaths.v1.ConnectTodoistRequest
  */
@@ -666,10 +647,8 @@ export const ConnectTodoistRequestSchema: GenMessage<ConnectTodoistRequest> = /*
  */
 export type ConnectTodoistResponse = Message<"learningpaths.v1.ConnectTodoistResponse"> & {
   /**
-   * authorize_url is where the client should navigate the browser to start
-   * Todoist's OAuth2 authorization-code flow. The callback leg that
-   * completes the flow is a plain HTTP redirect route, not a ConnectRPC
-   * method — see learningpaths' routes.go.
+   * Where to send the browser to start Todoist's OAuth2 flow; the callback
+   * is a plain HTTP route (routes.go).
    *
    * @generated from field: string authorize_url = 1;
    */
@@ -768,9 +747,7 @@ export const SendItemToTodoistRequestSchema: GenMessage<SendItemToTodoistRequest
  */
 export type SendItemToTodoistResponse = Message<"learningpaths.v1.SendItemToTodoistResponse"> & {
   /**
-   * todoist_task_id is Todoist's own id for the created task, echoed back
-   * only for the caller's confirmation UI — nothing here is retained
-   * server-side to correlate the two systems, per "no two-way sync".
+   * Todoist's id for the created task, for confirmation only; not stored.
    *
    * @generated from field: string todoist_task_id = 1;
    */

@@ -44,11 +44,8 @@ func (j SteamJob) Run(ctx context.Context, logger *slog.Logger) error {
 		return err
 	}
 
-	// A per-user sync failure (private profile, transient Steam API error, stale
-	// steam id, ...) only skips that user -- it must not fail the whole job, since
-	// that would stop global.job_runs' last-success timestamp from ever advancing
-	// and make the job look due again on every restart. Each failure is still
-	// logged at Error, which reaches Sentry on its own.
+	// A per-user failure only skips that user (and is logged to Sentry);
+	// failing the job would stop its last-success time from advancing.
 	for _, user := range users {
 		if userErr := j.runForUser(ctx, logger, user); userErr != nil {
 			logger.ErrorContext(ctx, "steam job failed for user",

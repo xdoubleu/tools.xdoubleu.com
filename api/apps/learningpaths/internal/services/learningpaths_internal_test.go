@@ -15,8 +15,7 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
-// fakeLearningPathsStore implements learningPathsStore in memory for
-// ownership-scoping and error-propagation tests.
+// fakeLearningPathsStore is an in-memory learningPathsStore.
 type fakeLearningPathsStore struct {
 	lp     *models.LearningPath
 	getErr error
@@ -39,9 +38,7 @@ type fakeLearningPathsStore struct {
 	item       *models.ItemForTask
 	getItemErr error
 
-	// resources is returned by GetResources — used by resolveResourceLinks
-	// propagation tests, which need a resource carrying a linked_book_id/
-	// linked_feed_item_id to reach fakeBookLookup/fakeFeedItemLookup.
+	// resources is returned by GetResources, for resource-link tests.
 	resources []models.Resource
 }
 
@@ -150,26 +147,16 @@ func newFixture() *models.LearningPath {
 	return &models.LearningPath{ID: uuid.New(), UserID: "owner"}
 }
 
-// newTestService builds a LearningPathService around a fake store with no
-// books/feeds lookup wired in — every ownership-scoping test in this file
-// exercises resources with no linked_book_id/linked_feed_item_id, so
-// resolveResourceLinks/validateResourceLinks never dereference them.
-// Resource-link behavior itself is covered by the connect-level tests in
-// resource_links_test.go, which construct a service backed by real
-// books/feeds apps.
+// newTestService builds a service with no books/feeds lookup; these tests use
+// no linked resources (resource_links_test.go covers those).
 func newTestService(store learningPathsStore) *LearningPathService {
 	//nolint:exhaustruct //books/feeds intentionally nil, see doc comment above
 	return &LearningPathService{repo: store}
 }
 
-// fakeBookLookup implements bookLookup in memory so resolveResourceLinks/
-// validateResourceLinks' non-ErrResourceNotFound error-propagation branches
-// (a real infrastructure failure, as opposed to a link that simply doesn't
-// resolve) can be exercised without a database. errAfterCall, when nonzero,
-// makes the Nth call onward return genericErr instead of book — used to
-// reach Create's second resolveResourceLinks call (which reuses the same
-// book ID validateResourceLinks already checked) without genericErr also
-// tripping the first, validating, call.
+// fakeBookLookup is an in-memory bookLookup for error-propagation tests.
+// errAfterCall, when nonzero, makes the Nth call onward return genericErr,
+// so Create's second lookup can fail while its validating first one passes.
 type fakeBookLookup struct {
 	calls        int
 	errAfterCall int
@@ -397,11 +384,8 @@ func TestRecordItemProgress_DelegatesToRepo(t *testing.T) {
 
 // --- resource-link error propagation -------------------------------------
 //
-// resource_links_test.go (connect-level, real books/feeds apps) covers the
-// happy path and the ErrResourceNotFound rejection. These unit tests cover
-// the other branch: a real infrastructure failure from the books/feeds
-// lookup, which must propagate as-is rather than being swallowed or turned
-// into a 400.
+// An infrastructure failure from the books/feeds lookup must propagate as-is,
+// not be swallowed or turned into a 400.
 
 func TestGet_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
 	lookupErr := errors.New("books lookup infra error")
@@ -482,10 +466,7 @@ func TestCreate_ValidateResourceLinks_PropagatesFeedItemLookupError(t *testing.T
 }
 
 // TestCreate_ResolveResourceLinks_PropagatesBookLookupError covers Create's
-// second books lookup — the post-persist resolveResourceLinks call that
-// populates LinkedBook on the response, distinct from the earlier
-// validateResourceLinks call that must succeed first for this path to be
-// reached at all.
+// post-persist resolveResourceLinks lookup.
 func TestCreate_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
 	lookupErr := errors.New("books lookup infra error")
 	bookID := uuid.New()
@@ -494,8 +475,7 @@ func TestCreate_ResolveResourceLinks_PropagatesBookLookupError(t *testing.T) {
 	//nolint:exhaustruct //feeds intentionally nil, unused on this path
 	svc := &LearningPathService{
 		repo: store,
-		// errAfterCall: 2 lets the first call (validateResourceLinks)
-		// succeed, so only the second (resolveResourceLinks) errors.
+		// Lets validateResourceLinks pass; only resolveResourceLinks errors.
 		books: &fakeBookLookup{genericErr: lookupErr, errAfterCall: 2},
 	}
 

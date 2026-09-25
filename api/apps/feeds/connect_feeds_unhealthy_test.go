@@ -19,9 +19,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// newAdminFeedsClient returns a Connect client whose app authenticates all
-// requests as an admin user (RoleAdmin) — GetUnhealthyFeeds reports every
-// user's feeds, so it is admin-only rather than scoped by feedUser.
+// newAdminFeedsClient returns a client authenticated as an admin.
 func newAdminFeedsClient(t *testing.T) feedsv1connect.FeedServiceClient {
 	t.Helper()
 	adminApp := feeds.NewInner(

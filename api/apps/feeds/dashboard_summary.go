@@ -6,19 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// SharedFeed is the reading dashboard's feeds widget payload for one
-// subscription: name plus public URL (empty for feed kinds with no public
-// URL, e.g. email).
+// SharedFeed is one subscription in the reading dashboard's feeds widget;
+// URL is empty for kinds without one (email).
 type SharedFeed struct {
 	Title string
 	URL   string
 }
 
-// BuildSharedFeeds assembles the reading dashboard's feeds widget payload
-// for a user. It is the only exported entry point feeds' internal item/
-// read-state model is reached through from outside this package — the
-// dashboard app (api/apps/dashboard) calls this instead of querying feeds
-// directly.
+// BuildSharedFeeds assembles the reading dashboard's feeds widget payload,
+// the dashboard app's only entry point into feeds.
 func (a *Feeds) BuildSharedFeeds(
 	ctx context.Context,
 	userID string,
@@ -39,12 +35,8 @@ func (a *Feeds) BuildSharedFeeds(
 	return shared, nil
 }
 
-// SharedItem is a single feed item's summary and read state — the
-// single-item counterpart to SharedFeed, used by the learningpaths app
-// (api/apps/learningpaths) to resolve a resource linked to a feeds item,
-// following the same exported-methods-only cross-app pattern as dashboard.
-// It deliberately omits ContentHTML: linking callers need the item's read
-// state, not its article body.
+// SharedItem is a feed item's summary and read state for learningpaths'
+// linked resources; it omits the article body.
 type SharedItem struct {
 	Title      string
 	SourceURL  string
@@ -52,11 +44,8 @@ type SharedItem struct {
 	Bookmarked bool
 }
 
-// GetItemByID looks up a single feed item by ID, scoped to userID. It
-// returns database.ErrResourceNotFound both when itemID doesn't exist and
-// when it belongs to a different user's feed — GetItem's underlying query
-// joins through feeds.feeds on user_id, so a foreign-owned item simply
-// doesn't match rather than leaking its existence.
+// GetItemByID returns an item scoped to userID, or
+// database.ErrResourceNotFound when missing or owned by someone else.
 func (a *Feeds) GetItemByID(
 	ctx context.Context,
 	userID string,

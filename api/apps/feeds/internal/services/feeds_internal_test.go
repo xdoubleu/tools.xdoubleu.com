@@ -34,10 +34,8 @@ func TestTitleOrDefault(t *testing.T) {
 	}
 }
 
-// TestBuildItemWhitespaceTitleFallsBackToCanonical proves an RSS item whose
-// <title> is whitespace-only (not just "") ends up with the canonical URL as
-// its title rather than a blank string (issue #763) once the linked page
-// fetch also fails to yield a title.
+// TestBuildItemWhitespaceTitleFallsBackToCanonical: a whitespace-only title
+// falls back to the canonical URL.
 func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	s := NewFeedService(
 		slog.Default(), nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil, "",
@@ -56,7 +54,7 @@ func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	assert.Equal(t, "https://example.com/post", built.Title)
 }
 
-// TestIsFeedQuiet covers the issue #799 quiet-feed cadence heuristic.
+// TestIsFeedQuiet covers the quiet-feed cadence heuristic.
 func TestIsFeedQuiet(t *testing.T) {
 	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
@@ -96,8 +94,7 @@ func TestIsFeedQuiet(t *testing.T) {
 		{
 			name: "single big gap where the 48h floor (not avg*3) is what triggers",
 			times: []time.Time{
-				// avg gap between the first two is 1h, so avg*3 = 3h — far
-				// below the 48h floor; only the floor should catch this.
+				// avg*3 = 3h, below the 48h floor; only the floor catches this.
 				now.Add(
 					-72 * time.Hour,
 				), now.Add(-71 * time.Hour), now.Add(-70 * time.Hour),

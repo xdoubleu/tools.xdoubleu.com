@@ -25,12 +25,9 @@ type SteamService struct {
 	integrations  *IntegrationsService
 }
 
-// SyncUser refreshes a user's Steam data. It fetches everything from the Steam
-// API and computes the derived values (completion rate, contribution, progress
-// graph) in memory first, then persists games, achievements and progress in a
-// single transaction. On any error nothing is committed, so the previously
-// stored — consistent — data is preserved. A per-game fetch failure only skips
-// that game (its existing values are kept) instead of aborting the whole sync.
+// SyncUser refreshes a user's Steam data: fetch and compute in memory, then
+// persist in one transaction, so any error keeps the prior data. A per-game
+// fetch failure only skips that game.
 func (service *SteamService) SyncUser(ctx context.Context, userID string) error {
 	creds, err := service.integrations.Get(ctx, userID)
 	if err != nil {
@@ -55,9 +52,8 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 
 	fetched := service.fetchAchievements(ctx, client, creds.SteamUserID, gamesMap)
 
-	// The progress graph must reflect the whole library, so include the stored
-	// achievements of any game whose fetch failed this run (their data is kept,
-	// not reset) instead of dropping them from the average.
+	// Include stored achievements of games whose fetch failed, so the progress
+	// graph covers the whole library.
 	complete, err := service.completeAchievements(ctx, userID, gamesMap, fetched)
 	if err != nil {
 		return err
@@ -92,10 +88,8 @@ func (service *SteamService) SyncUser(ctx context.Context, userID string) error 
 	})
 }
 
-// completeAchievements returns the achievement rows used to compute derived
-// progress: the freshly fetched rows plus, for any game whose fetch failed this
-// run, the rows already stored in the database. This keeps the progress graph
-// representative of the whole library rather than only this run's successes.
+// completeAchievements returns fetched rows plus stored rows for games whose
+// fetch failed this run.
 func (service *SteamService) completeAchievements(
 	ctx context.Context,
 	userID string,
@@ -128,10 +122,9 @@ func (service *SteamService) completeAchievements(
 	return complete, nil
 }
 
-// buildGamesMap merges the currently owned games with the games already stored
-// for the user. Owned games seed their completion rate / contribution from the
-// stored record so a later failed achievement fetch preserves those values;
-// games no longer owned are carried over and marked delisted.
+// buildGamesMap merges owned and stored games. Owned games seed completion
+// from the stored record so a failed fetch preserves it; unowned games are
+// kept and marked delisted.
 func (service *SteamService) buildGamesMap(
 	ctx context.Context,
 	client steam.Client,
@@ -195,8 +188,7 @@ func (service *SteamService) buildGamesMap(
 	return gamesMap, nil
 }
 
-// rtimeLastPlayedToTime converts Steam's rtime_last_played (Unix seconds, 0
-// meaning never played) to a nullable timestamp for storage.
+// rtimeLastPlayedToTime converts rtime_last_played (Unix seconds, 0 = never).
 func rtimeLastPlayedToTime(rtimeLastPlayed int64) *time.Time {
 	if rtimeLastPlayed == 0 {
 		return nil
@@ -205,9 +197,8 @@ func rtimeLastPlayedToTime(rtimeLastPlayed int64) *time.Time {
 	return &t
 }
 
-// fetchAchievements concurrently fetches and assembles the achievement rows for
-// every game. A game whose fetch fails is logged and omitted from the result so
-// its stored data is left untouched.
+// fetchAchievements concurrently fetches achievement rows per game; a failed
+// game is logged and omitted so its stored data is untouched.
 func (service *SteamService) fetchAchievements(
 	ctx context.Context,
 	client steam.Client,
@@ -284,8 +275,8 @@ func (service *SteamService) fetchAchievementsForGame(
 	), nil
 }
 
-// fetchGlobalPercents returns the global unlock percentages for a game. A
-// failure is non-fatal: it logs and returns an empty map.
+// fetchGlobalPercents returns a game's global unlock percentages, or an empty
+// map on failure.
 func (service *SteamService) fetchGlobalPercents(
 	ctx context.Context,
 	client steam.Client,
@@ -309,10 +300,8 @@ func (service *SteamService) fetchGlobalPercents(
 	return percents
 }
 
-// buildAchievementRows merges the player's achievement state with the game
-// schema (display name, description, icon) and global percentages into the rows
-// stored in the database. When the player has no achievement state, the schema
-// defines the (all unachieved) set.
+// buildAchievementRows merges player state, schema and global percentages.
+// With no player state, the schema defines the (unachieved) set.
 func buildAchievementRows(
 	playerAchievements []steam.Achievement,
 	schemas []steam.AchievementSchema,
@@ -366,13 +355,9 @@ func percentPtr(globalPercents map[string]float64, name string) *float64 {
 	return nil
 }
 
-// markCompletionAverageMembership sets InCompletionAverage on every game. A
-// game Steam still lists always counts. A delisted game counts too — the
-// achievements earned there stay on the Steam profile — unless a listed game
-// has taken its achievements over, which is what Valve did folding the
-// Half-Life 2 episodes into Half-Life 2: counting the episode apps as well
-// would put the same achievements into the average twice
-// (docs/adr-0018-completion-average-population.md).
+// markCompletionAverageMembership sets InCompletionAverage: listed games
+// count, and delisted ones too unless a listed game took over their
+// achievements (docs/adr-0018-completion-average-population.md).
 func markCompletionAverageMembership(
 	gamesMap map[int]*models.Game,
 	achievements map[int][]models.Achievement,
@@ -401,13 +386,9 @@ func achievementNames(rows []models.Achievement) map[string]struct{} {
 	return names
 }
 
-// supersededByListedGame reports whether one single listed game carries every
-// achievement in names. Containment has to be complete and within one game, so
-// a partial overlap, or a set spread across several listed games, is not a
-// takeover. Achievement API names are only unique per app, so a whole set of
-// generic ones ("ACH_01") sitting inside an unrelated game would still read as
-// one — unlikely enough to accept, given the alternative is a name-shape
-// heuristic that would misjudge real takeovers.
+// supersededByListedGame reports whether a single listed game carries every
+// achievement in names. API names are only unique per app, so generic names
+// could false-match; accepted over a name-shape heuristic.
 func supersededByListedGame(
 	names map[string]struct{},
 	listed []map[string]struct{},
@@ -435,8 +416,7 @@ func containsAll(super, sub map[string]struct{}) bool {
 	return true
 }
 
-// averagedGames returns the subset of gamesMap taking part in the library-wide
-// averages, as decided by markCompletionAverageMembership.
+// averagedGames returns the games in the library-wide averages.
 func averagedGames(gamesMap map[int]*models.Game) map[int]*models.Game {
 	averaged := make(map[int]*models.Game, len(gamesMap))
 	for id, game := range gamesMap {
@@ -447,10 +427,8 @@ func averagedGames(gamesMap map[int]*models.Game) map[int]*models.Game {
 	return averaged
 }
 
-// averagedAchievements drops the achievements of games outside the average so
-// they take part in neither its numerator nor its denominator. A game absent
-// from gamesMap is kept: it is being refreshed right now and its stored row
-// simply has not been read back yet.
+// averagedAchievements drops achievements of games outside the average. A
+// game absent from gamesMap is kept: it is being refreshed right now.
 func averagedAchievements(
 	achievements map[int][]models.Achievement,
 	gamesMap map[int]*models.Game,
@@ -465,8 +443,7 @@ func averagedAchievements(
 	return averaged
 }
 
-// buildProgress recomputes the cumulative completion-rate graph from the freshly
-// fetched achievements, keyed by the date each achievement was unlocked.
+// buildProgress builds the cumulative completion-rate graph by unlock date.
 func buildProgress(fetched map[int][]models.Achievement) ([]string, []string) {
 	totalAchievementsPerGame := make(map[int]int, len(fetched))
 	for gameID, rows := range fetched {
@@ -492,8 +469,7 @@ func (service *SteamService) GetAllGames(
 	return service.steam.GetAllGames(ctx, userID)
 }
 
-// GetAveragedGames returns the games taking part in the library-wide
-// completion averages. See SteamRepository.GetAveragedGames.
+// GetAveragedGames returns the games in the library-wide completion averages.
 func (service *SteamService) GetAveragedGames(
 	ctx context.Context,
 	userID string,
@@ -502,7 +478,6 @@ func (service *SteamService) GetAveragedGames(
 }
 
 // GetDelisted returns the games Steam no longer lists in the user's library.
-// See SteamRepository.GetDelisted for why they are reported separately.
 func (service *SteamService) GetDelisted(
 	ctx context.Context,
 	userID string,
@@ -541,8 +516,7 @@ func (service *SteamService) SetFavourite(
 	return service.steam.SetFavourite(ctx, userID, gameID, favourite)
 }
 
-// GetLastSyncedAt returns the most recent Steam sync across the user's
-// library, or nil when never synced.
+// GetLastSyncedAt returns the latest sync time, or nil when never synced.
 func (service *SteamService) GetLastSyncedAt(
 	ctx context.Context,
 	userID string,
@@ -550,10 +524,8 @@ func (service *SteamService) GetLastSyncedAt(
 	return service.steam.GetLastSyncedAt(ctx, userID)
 }
 
-// SyncGame refreshes a single game's achievements from Steam and persists the
-// updated rows, its completion rate, and the library-wide progress graph
-// (same recompute as SyncUser) so the dashboard's total completion rate stays
-// in sync with this game's refreshed achievements.
+// SyncGame refreshes one game's achievements and completion rate, and
+// recomputes the library-wide progress graph like SyncUser.
 func (service *SteamService) SyncGame(
 	ctx context.Context,
 	userID string,
@@ -592,9 +564,7 @@ func (service *SteamService) SyncGame(
 		return err
 	}
 
-	// Recompute the library-wide progress graph so the dashboard's total
-	// completion rate reflects this game's refreshed achievements (same as
-	// SyncUser). Other games contribute their stored achievements.
+	// Other games contribute their stored achievements.
 	gamesMap := make(map[int]*models.Game, len(allGames))
 	for i := range allGames {
 		g := allGames[i]
@@ -628,9 +598,7 @@ func (service *SteamService) SyncGame(
 	})
 }
 
-// GetRecentlyActive returns the games the user most recently played, capped
-// at recentGamesLimit and ordered most recent first. It powers the
-// dashboard's "recently active" section.
+// GetRecentlyActive returns up to recentGamesLimit most recently played games.
 func (service *SteamService) GetRecentlyActive(
 	ctx context.Context,
 	userID string,

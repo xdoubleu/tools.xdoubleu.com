@@ -18,31 +18,22 @@ import (
 )
 
 // ErrNoPostsFound is returned when discoverPostLinks finds no plausible post
-// links on a page — either the URL isn't a blog index, or its layout
-// doesn't match the heuristic (issue #751).
+// links on a page.
 var ErrNoPostsFound = errors.New("no post links found on page")
 
-// maxDiscoveredLinks caps how many candidate post links discoverPostLinks
-// returns from a single index page — a guard against noise floods from
-// listing-style pages, not a discovery ceiling: the paginated walk
-// (fetchPaginatedPostLinks) merges every page's full share. Real post
-// indexes put far fewer than 30 post links on one page.
+// maxDiscoveredLinks caps candidate links per index page against noise
+// floods; not a discovery ceiling, since pagination merges every page.
 const maxDiscoveredLinks = 30
 
 // minPostLinkTextLen is the minimum trimmed anchor-text length to look
 // title-like rather than a nav/utility link ("Home", "More", "Sign in").
 const minPostLinkTextLen = 15
 
-// minBarePostLinkTextLen is the higher title-length bar applied to an anchor
-// with no nested <time>/heading element — short topic/category filter pills
-// ("Interpretability", "Economic research") clear minPostLinkTextLen but
-// have no other structural signal (issue #835) distinguishing them from a
-// real post link, unlike a card with a <time> or heading (issue #829).
+// minBarePostLinkTextLen is the higher title-length bar for an anchor with no
+// nested <time>/heading, filtering out short topic/category filter pills.
 const minBarePostLinkTextLen = 25
 
-// excludedPathSegments are URL path segments that mark a link as a listing
-// or utility page rather than a post, even when its anchor text is
-// title-like.
+// excludedPathSegments mark a link as a listing/utility page, not a post.
 //
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var excludedPathSegments = map[string]bool{
@@ -52,8 +43,7 @@ var excludedPathSegments = map[string]bool{
 	"subscribe": true,
 }
 
-// skippedContainerTags are elements whose subtree is never a source of post
-// links — site chrome, not content.
+// skippedContainerTags are site-chrome elements never scanned for post links.
 //
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var skippedContainerTags = map[string]bool{
@@ -61,53 +51,34 @@ var skippedContainerTags = map[string]bool{
 	"script": true, "style": true,
 }
 
-// headingTags mark an element whose text, if present in a candidate link's
-// subtree, is preferred as the post title over the anchor's full
-// concatenated text — some card layouts wrap a heading alongside a
-// <time>/category/excerpt in the same <a>, and using the heading alone
-// avoids pulling that surrounding text into the title (issue #829).
+// headingTags: a nested heading is preferred as the post title over the
+// anchor's full text, which may include date/category/excerpt.
 //
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var headingTags = map[string]bool{
 	"h1": true, "h2": true, "h3": true, "h4": true, "h5": true, "h6": true,
 }
 
-// datePublishedLayout is the "Mon D, YYYY" format a scraped card's <time>
-// text is parsed with (e.g. "Jun 16, 2026").
+// datePublishedLayout parses a card's <time> text (e.g. "Jun 16, 2026").
 const datePublishedLayout = "Jan 2, 2006"
 
-// discoveredLink is one candidate post found on an index page, in page (DOM)
-// order.
+// discoveredLink is one candidate post on an index page, in DOM order.
 type discoveredLink struct {
 	URL   string
 	Title string
-	// PublishedAt is the zero time when the card had no parseable <time>
-	// element.
+	// PublishedAt is zero when the card had no parseable <time>.
 	PublishedAt time.Time
 }
 
 // discoverPostLinks heuristically finds post-like links on a page with no
-// real RSS/Atom feed: it skips nav/header/footer/aside/script/style
-// subtrees, then keeps same-domain <a> elements whose title text (a nested
-// heading if present, else the full anchor text minus any <time> element)
-// is title-like — length ≥ minPostLinkTextLen when a nested <time>/heading
-// gives some structural signal the anchor is an article card, else the
-// higher minBarePostLinkTextLen bar — and whose path doesn't look like a
-// listing/utility page. There is no per-site configuration — this is
-// best-effort and will miss or misfire on unusual page layouts.
+// RSS/Atom feed (see candidateLink). Best-effort, no per-site configuration.
 func discoverPostLinks(pageURL string, body []byte) ([]discoveredLink, error) {
 	return discoverPostLinksWithLocaleBase(pageURL, pageURL, body)
 }
 
-// discoverPostLinksWithLocaleBase is discoverPostLinks with a separate
-// locale-comparison base: localeBaseURL is the URL that isLocaleAlternate
-// judges language-switcher links against. A paginated index run fetches
-// page 2+ with that page's own URL as its href-resolution base, but a
-// site-wide language switcher rendered on a later page must still be judged
-// against the run's original first-page URL — the paginated page's extra
-// path segments (e.g. /page/2) would break isLocaleAlternate's
-// same-segment-count check and let the switcher's links through as bogus
-// posts (issue #1748).
+// discoverPostLinksWithLocaleBase is discoverPostLinks with localeBaseURL as
+// the isLocaleAlternate base: paginated pages must be judged against the
+// first page's URL, since extra segments (/page/2) break its segment check.
 func discoverPostLinksWithLocaleBase(
 	pageURL, localeBaseURL string,
 	body []byte,
@@ -139,8 +110,7 @@ func discoverPostLinksWithLocaleBase(
 	return out, nil
 }
 
-// collectPostLinks recursively appends every candidate post link under n, in
-// DOM order, skipping site-chrome subtrees.
+// collectPostLinks appends candidate post links under n in DOM order.
 func collectPostLinks(
 	n *html.Node,
 	base, localeBase *url.URL,
@@ -161,15 +131,10 @@ func collectPostLinks(
 	}
 }
 
-// candidateLink checks whether an <a> node looks like a post link: a
-// same-domain http(s) URL, not pointing at a listing/utility path, with
-// title-like anchor text. The title prefers a nested heading (h1-h6) over
-// the anchor's full text, and a nested <time> element's text (parsed with
-// datePublishedLayout) becomes the link's PublishedAt and is excluded from
-// the title when there's no heading to prefer instead. An anchor with
-// neither a nested <time> nor heading — no structural signal it's an
-// article card rather than a plain nav/filter link — must clear the higher
-// minBarePostLinkTextLen bar instead of minPostLinkTextLen.
+// candidateLink checks whether an <a> looks like a post link. The title
+// prefers a nested heading, else the anchor text minus any <time> (which
+// becomes PublishedAt). Without a nested <time> or heading the title must
+// clear minBarePostLinkTextLen instead of minPostLinkTextLen.
 func candidateLink(
 	n *html.Node,
 	base, localeBase *url.URL,
@@ -214,10 +179,8 @@ func candidateLink(
 	return link, true
 }
 
-// candidatePostURL resolves an <a> node's href and checks it against the
-// scrape heuristic's URL-shape rules: http(s), same domain as base, not a
-// listing/utility path, and not a language-alternate link for localeBase
-// (isLocaleAlternate).
+// candidatePostURL resolves an <a>'s href and requires http(s), same domain,
+// no listing/utility path, and not a locale alternate of localeBase.
 func candidatePostURL(
 	n *html.Node,
 	base, localeBase *url.URL,
@@ -255,21 +218,13 @@ func candidatePostURL(
 	return resolved, true
 }
 
-// localeSegmentPattern matches a URL path segment shaped like a language
-// code: bare (e.g. "en", "fr") or region-qualified (e.g. "en-US", "pt-BR").
+// localeSegmentPattern matches a language code segment ("en", "pt-BR").
 var localeSegmentPattern = regexp.MustCompile(`(?i)^[a-z]{2}(-[a-z]{2})?$`)
 
-// isLocaleAlternate reports whether resolved looks like a same-page link to
-// a different language/locale of the page at base: same segment count,
-// differing from base's path in exactly one segment, with both differing
-// segments shaped like a language/region code. Many localized sites expose
-// a language switcher as a plain in-page <a> — not wrapped in
-// nav/header/footer/aside, so collectPostLinks' chrome skip never catches
-// it — whose visible text (e.g. "French, Français (France)") is long enough
-// to otherwise pass the post-link title heuristic, and whose href can carry
-// a volatile per-request query string that defeats canonicalURL's
-// utm_-only dedup, flooding the feed with duplicate "posts" every poll
-// (issue #1748).
+// isLocaleAlternate reports whether resolved is base in another locale: same
+// segment count, differing in exactly one segment, both locale-shaped. Such
+// language switchers are often outside nav chrome, have title-length text,
+// and carry volatile query strings that would defeat dedup.
 func isLocaleAlternate(resolved, base *url.URL) bool {
 	baseSegs := strings.Split(strings.Trim(base.Path, "/"), "/")
 	segs := strings.Split(strings.Trim(resolved.Path, "/"), "/")
@@ -296,8 +251,7 @@ func nodeText(n *html.Node) string {
 	return nodeTextExcluding(n, nil)
 }
 
-// nodeTextExcluding is nodeText, skipping exclude's entire subtree (a nil
-// exclude skips nothing).
+// nodeTextExcluding is nodeText skipping exclude's subtree (nil skips none).
 func nodeTextExcluding(n, exclude *html.Node) string {
 	if n == exclude {
 		return ""
@@ -313,8 +267,7 @@ func nodeTextExcluding(n, exclude *html.Node) string {
 	return sb.String()
 }
 
-// findNode returns the first node in n's subtree (n included, DOM order)
-// for which match returns true, or nil.
+// findNode returns the first node in n's subtree (n included) matching, or nil.
 func findNode(n *html.Node, match func(*html.Node) bool) *html.Node {
 	if match(n) {
 		return n
@@ -336,8 +289,7 @@ func nodeAttr(n *html.Node, key string) string {
 	return ""
 }
 
-// pageTitle extracts the page's <title> text, used as a scrape feed's
-// display title at creation time.
+// pageTitle extracts the page's <title> text.
 func pageTitle(body []byte) string {
 	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
@@ -361,9 +313,8 @@ func pageTitle(body []byte) string {
 	return title
 }
 
-// nextPageLinkTexts are the trimmed, lowercased anchor text or aria-label
-// values that mark an <a> as pointing at the next pagination page when it
-// carries no rel="next" attribute.
+// nextPageLinkTexts mark an <a> without rel="next" as a next-page link
+// (lowercased anchor text or aria-label).
 //
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var nextPageLinkTexts = map[string]bool{
@@ -372,8 +323,7 @@ var nextPageLinkTexts = map[string]bool{
 	"load more": true, "»": true, "›": true,
 }
 
-// hasRelNext reports whether n's space-separated rel attribute contains
-// "next" — the standard way both <link> and <a> elements mark pagination.
+// hasRelNext reports whether n's rel attribute contains "next".
 func hasRelNext(n *html.Node) bool {
 	return slices.Contains(
 		slices.Collect(strings.FieldsSeq(strings.ToLower(nodeAttr(n, "rel")))),
@@ -381,9 +331,8 @@ func hasRelNext(n *html.Node) bool {
 	)
 }
 
-// isNextPageCandidate reports whether n looks like a "next page" link: a
-// <link rel="next"> (typically in <head>), or an <a> with rel="next" or
-// title-like pagination text/aria-label.
+// isNextPageCandidate reports whether n is a <link>/<a rel="next"> or an <a>
+// with pagination text.
 func isNextPageCandidate(n *html.Node) bool {
 	if n.Type != html.ElementNode {
 		return false
@@ -402,10 +351,8 @@ func isNextPageCandidate(n *html.Node) bool {
 	return nextPageLinkTexts[text] || nextPageLinkTexts[aria]
 }
 
-// discoverNextPageURL looks for a same-domain "next page" link on an already
-// fetched index page (see isNextPageCandidate) and resolves it against
-// pageURL. It never guesses a pagination URL pattern — only a link actually
-// present on the page is followed.
+// discoverNextPageURL resolves a same-domain "next page" link present on the
+// page; it never guesses pagination URL patterns.
 func discoverNextPageURL(pageURL string, body []byte) (string, bool) {
 	base, err := url.Parse(pageURL)
 	if err != nil {
@@ -440,22 +387,11 @@ func discoverNextPageURL(pageURL string, body []byte) (string, bool) {
 	return resolved.String(), true
 }
 
-// fetchPaginatedPostLinks discovers post links on an already fetched first
-// page, then follows any discoverable "next page" link (discoverNextPageURL)
-// until pagination is exhausted, merging and deduping links across pages —
-// the paginated counterpart to a single discoverPostLinks call. The walk is
-// uncapped (issue #1842: a pagination ceiling makes older posts unreachable
-// forever) but not unbounded: it stops when a page contributes no
-// not-yet-seen-in-this-walk link, when a "next page" URL repeats (loop
-// protection), or on any fetch/discovery failure — all degraded results,
-// never errors, since the first page already succeeded. The zero-new-links
-// stop is correct for newest-first post indexes: once a page yields nothing
-// new, every later page is older and cannot either. A misbehaving index
-// ordering posts differently just ends the walk early — coverage shrinks to
-// the pages walked, never grows wrong content. Every page's locale-alternate
-// check is anchored to the first page's URL (see
-// discoverPostLinksWithLocaleBase), so a site-wide language switcher is
-// filtered on later paginated pages too.
+// fetchPaginatedPostLinks discovers post links on the first page, then
+// follows "next page" links, merging and deduping. It is deliberately
+// uncapped (a ceiling makes older posts unreachable) and stops when a page
+// adds no new link, a URL repeats, or a fetch fails — degraded results, never
+// errors. Stopping on zero new links is correct for newest-first indexes.
 func (s *FeedService) fetchPaginatedPostLinks(
 	ctx context.Context,
 	firstPageURL string,
@@ -509,11 +445,8 @@ func (s *FeedService) fetchPaginatedPostLinks(
 	return out, nil
 }
 
-// fetchScrapePage fetches one index page and discovers its post links, for
-// use by fetchPaginatedPostLinks' pagination loop — localeBaseURL is the
-// pagination run's first-page URL anchoring isLocaleAlternate (see
-// discoverPostLinksWithLocaleBase). ok is false on any fetch or discovery
-// failure, which the caller treats as the end of pagination.
+// fetchScrapePage fetches one index page and discovers its post links; ok is
+// false on any failure, which ends pagination.
 func (s *FeedService) fetchScrapePage(
 	ctx context.Context,
 	pageURL, localeBaseURL string,
@@ -531,14 +464,10 @@ func (s *FeedService) fetchScrapePage(
 	return res.FinalURL, res.Body, links, true
 }
 
-// CreateScrape validates the URL by fetching it and discovering at least one
-// post link on the first index page, then stores the feed (source_type
-// "scrape") and imports its contents as a first batch in the background —
-// mirrors Create's detached-import shape, see its comment for why the import
-// is not part of the response. The validation walk deliberately stays on the
-// first page: the detached import runs the full uncapped pagination walk
-// (fetchPaginatedPostLinks), which on a deeply paginated index would blow
-// the request deadline many times over.
+// CreateScrape validates the URL by finding at least one post link on the
+// first page, stores the feed and imports it in the background (like Create).
+// Validation stays on page 1: the full pagination walk would blow the
+// request deadline.
 func (s *FeedService) CreateScrape(
 	ctx context.Context,
 	userID, rawURL string,
@@ -554,8 +483,7 @@ func (s *FeedService) CreateScrape(
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrNoPostsFound, err)
 	}
-	// Page-1 discovery doubles as URL validation: at least one post-like
-	// link must exist for the URL to be a blog index at all.
+	// Page-1 discovery doubles as URL validation.
 	_, discErr := discoverPostLinksWithLocaleBase(
 		res.FinalURL, res.FinalURL, res.Body,
 	)
@@ -574,20 +502,16 @@ func (s *FeedService) CreateScrape(
 		return nil, err
 	}
 
-	// ponytail: detached goroutine, not a job-queue task — a process restart
-	// mid-import can drop it; the hourly poll-feeds job backfills.
+	// Detached, not queued: a restart can drop it; poll-feeds backfills.
 	importFeed := *feed
 	go s.importScrapeFeed(ctx, importFeed, res)
 
 	return feed, nil
 }
 
-// importScrapeFeed is CreateScrape's detached first-batch import: it walks
-// the index's full pagination (the walk re-runs page-1 discovery on the same
-// body validation already succeeded on, so a walk error here is not
-// reachable; a walk that merely degrades — a later page failing — returns a
-// partial result, which is imported as-is), ingests the discovered links,
-// and records the fetch result that arms the feed's conditional GET.
+// importScrapeFeed is CreateScrape's detached import: walk full pagination
+// (partial results are imported as-is), ingest, and record the fetch result
+// that arms conditional GET.
 func (s *FeedService) importScrapeFeed(
 	ctx context.Context,
 	feed models.Feed,
@@ -599,13 +523,9 @@ func (s *FeedService) importScrapeFeed(
 	s.recordFetchResult(importCtx, feed.ID, res, nil)
 }
 
-// pollScrapeFeed fetches one scrape feed's index page (conditional GET) and
-// ingests any newly discovered post links — the scrape counterpart to
-// pollFeedRSS. Discovery is the full paginated index walk
-// (fetchPaginatedPostLinks), uncapped: because post indexes are
-// newest-first, the walk both reaches every post (no pagination ceiling —
-// issue #1842) and doubles as category membership, so a scrape feed only
-// ever sees posts listed on the index page it was created from.
+// pollScrapeFeed is the scrape counterpart to pollFeedRSS: a conditional GET
+// plus the full paginated walk. Only posts listed on the feed's own index
+// page are ever seen, which doubles as category membership.
 func (s *FeedService) pollScrapeFeed(
 	ctx context.Context,
 	feed models.Feed,
@@ -639,14 +559,9 @@ func (s *FeedService) pollScrapeFeed(
 	return ingested, nil
 }
 
-// ingestDiscoveredLinks ingests the not-yet-seen discovered links, capped at
-// maxItemsPerPoll — the scrape counterpart to processItems. Most discovered
-// links carry no publish date (only cards with a parseable <time> element
-// do, see candidateLink), so overflow ordering is just page (DOM) order
-// rather than newest-first. Candidates past the cap are left unseen: the
-// uncapped index walk resurfaces them on the next poll, so marking them
-// seen would permanently drop posts (issue #1842's backfill in particular —
-// a deep site takes many polls to fully ingest).
+// ingestDiscoveredLinks ingests unseen links, capped at maxItemsPerPoll, in
+// DOM order (most links have no date). Overflow is left unseen so the next
+// poll resurfaces it; marking it seen would drop posts permanently.
 func (s *FeedService) ingestDiscoveredLinks(
 	ctx context.Context,
 	feed models.Feed,
@@ -688,14 +603,9 @@ func (s *FeedService) ingestDiscoveredLinks(
 	return ingested
 }
 
-// ingestDiscoveredLink fetches and readability-extracts one discovered
-// post's content, using the discovered anchor text as its title (always
-// non-empty, per discoverPostLinks' minPostLinkTextLen filter — extraction
-// can't improve on it, since extractReadable itself falls back to the URL
-// when a page has no <title>). Unlike an RSS item there is no feed-supplied
-// description to fall back to for content, so a failed fetch/extraction
-// drops the item (marked seen via markSeenError, never retried by polling —
-// same as ingestItem's error path).
+// ingestDiscoveredLink fetches and extracts one post, titled by its anchor
+// text. With no feed description to fall back to, a failed fetch/extraction
+// drops the item (marked seen, never retried).
 func (s *FeedService) ingestDiscoveredLink(
 	ctx context.Context,
 	feed models.Feed,

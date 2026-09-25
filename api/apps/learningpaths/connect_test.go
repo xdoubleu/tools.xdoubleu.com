@@ -155,10 +155,7 @@ func TestGetLearningPath_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
-// TestGetLearningPath_OtherUserDenied stages a path belonging to a different
-// user directly in the database and confirms userID gets a not-found rather
-// than a forbidden — per-user scoping has no sharing concept, so foreign
-// ownership should read the same as a missing ID.
+// TestGetLearningPath_OtherUserDenied: a foreign path reads as not found.
 func TestGetLearningPath_OtherUserDenied(t *testing.T) {
 	client := setupClient(getRoutes())
 

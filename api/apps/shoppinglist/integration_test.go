@@ -16,7 +16,7 @@ import (
 	"tools.xdoubleu.com/gen/shoppinglist/v1/shoppinglistv1connect"
 )
 
-// createTestPlan inserts a minimal meal plan owned by the test user and returns its ID.
+// createTestPlan inserts a meal plan owned by the test user.
 func createTestPlan(t *testing.T, name string) uuid.UUID {
 	t.Helper()
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -53,8 +53,6 @@ func newShoppingClient(t *testing.T) shoppinglistv1connect.ShoppingListServiceCl
 	)
 }
 
-// ── GetCustomList ─────────────────────────────────────────────────────────────
-
 func TestGetCustomList_Empty(t *testing.T) {
 	client := newShoppingClient(t)
 	resp, err := client.GetCustomList(
@@ -64,8 +62,6 @@ func TestGetCustomList_Empty(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, resp.Msg.Items)
 }
-
-// ── CreateShoppingItem ───────────────────────────────────────────────────────────
 
 func TestAddShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
@@ -114,8 +110,6 @@ func TestAddShoppingItem_InvalidAmount(t *testing.T) {
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
-
-// ── UpdateShoppingItem ────────────────────────────────────────────────────────
 
 func TestUpdateShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
@@ -236,8 +230,6 @@ func TestUpdateShoppingItem_InvalidID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-// ── DeleteShoppingItem ────────────────────────────────────────────────────────
-
 func TestDeleteShoppingItem_Success(t *testing.T) {
 	client := newShoppingClient(t)
 
@@ -288,8 +280,6 @@ func TestDeleteShoppingItem_InvalidID(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
 }
 
-// ── GetCustomList — non-empty ─────────────────────────────────────────────────
-
 func TestGetCustomList_WithItems(t *testing.T) {
 	client := newShoppingClient(t)
 
@@ -310,8 +300,6 @@ func TestGetCustomList_WithItems(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Items)
 }
-
-// ── GetMealPlanExportItems ────────────────────────────────────────────────────
 
 func TestGetMealPlanExportItems_InvalidPlanID(t *testing.T) {
 	client := newShoppingClient(t)
@@ -357,17 +345,14 @@ func TestGetMealPlanExportItems_Success(t *testing.T) {
 	assert.NotNil(t, resp.Msg)
 }
 
-// Custom items must NOT be returned by the meal-plan export endpoint. The
-// frontend fetches them separately and merges them once; because the export
-// hook calls this endpoint per meal plan, including them here would duplicate
-// each custom item once per plan.
+// Custom items are fetched separately by the frontend; the export is called
+// per plan, so including them would duplicate each one per plan.
 func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Custom")
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	client := newShoppingClient(t)
 
-	// Add a custom shopping list item for the user.
 	addResp, err := client.CreateShoppingItem(
 		t.Context(),
 		connect.NewRequest(&shoppinglistv1.CreateShoppingItemRequest{
@@ -402,9 +387,8 @@ func TestGetMealPlanExportItems_ExcludesCustomItems(t *testing.T) {
 	assert.NotContains(t, names, "Olive Oil")
 }
 
-// addCustomPlanMeal inserts a custom (recipe-less) meal entry whose custom_name
-// holds newline-separated item names, mirroring how the meal plan UI stores
-// hand-typed items.
+// addCustomPlanMeal inserts a recipe-less meal whose custom_name holds
+// newline-separated item names.
 func addCustomPlanMeal(
 	t *testing.T,
 	planID uuid.UUID,
@@ -421,8 +405,7 @@ func addCustomPlanMeal(
 	require.NoError(t, err)
 }
 
-// Custom meal entries inside a plan (recipe-less, newline-separated item names)
-// must be included in the export so the user's hand-added items reach the list.
+// Custom meal entries' items are included in the export.
 func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Custom Meal")
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -448,7 +431,7 @@ func TestGetMealPlanExportItems_IncludesCustomMealItems(t *testing.T) {
 }
 
 // addExcludedPlanMeal inserts a recipe-less entry flagged
-// exclude_from_shopping_list that must never reach the shopping list export.
+// exclude_from_shopping_list.
 func addExcludedPlanMeal(
 	t *testing.T,
 	planID uuid.UUID,
@@ -466,8 +449,7 @@ func addExcludedPlanMeal(
 	require.NoError(t, err)
 }
 
-// Entries flagged exclude_from_shopping_list must be excluded from the export,
-// even though they are stored recipe-less like custom items.
+// Entries flagged exclude_from_shopping_list are excluded from the export.
 func TestGetMealPlanExportItems_ExcludesFlaggedEntries(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Excluded Entry")
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -493,8 +475,7 @@ func TestGetMealPlanExportItems_ExcludesFlaggedEntries(t *testing.T) {
 	assert.NotContains(t, names, "birthday dinner")
 }
 
-// Duplicate custom meal items within a plan collapse to a single line so the
-// shopping list does not repeat the same hand-added item per day.
+// Duplicate custom meal items within a plan collapse to one line.
 func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Duplicate Custom Meal")
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -522,8 +503,7 @@ func TestGetMealPlanExportItems_DedupesCustomMealItems(t *testing.T) {
 	assert.Equal(t, 1, count)
 }
 
-// Custom meal items may carry an amount after a tab in custom_name. The export
-// parses that amount and surfaces it on the shopping item.
+// A tab-separated amount in custom_name surfaces on the shopping item.
 func TestGetMealPlanExportItems_IncludesCustomMealItemAmounts(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Custom Amounts")
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -550,8 +530,7 @@ func TestGetMealPlanExportItems_IncludesCustomMealItemAmounts(t *testing.T) {
 	assert.Equal(t, "2", found.Amount)
 }
 
-// Amounts for the same custom item added on several days are summed in the
-// export, just as the deduped name collapses to one line.
+// Amounts for the same custom item across days are summed.
 func TestGetMealPlanExportItems_SumsCustomMealItemAmounts(t *testing.T) {
 	planID := createTestPlan(t, "Plan With Summed Amounts")
 	t.Cleanup(func() { deletePlan(t, planID) })
@@ -580,8 +559,7 @@ func TestGetMealPlanExportItems_SumsCustomMealItemAmounts(t *testing.T) {
 	assert.Equal(t, "5", found.Amount)
 }
 
-// createTestRecipeWithGroups inserts a recipe with two grouped ingredients and
-// returns the recipe ID.
+// createTestRecipeWithGroups inserts a recipe with two grouped ingredients.
 func createTestRecipeWithGroups(t *testing.T) uuid.UUID {
 	t.Helper()
 	familyID, err := familyRepo.EnsureFamily(context.Background(), userID)
@@ -624,8 +602,6 @@ func addPlanMeal(
 	require.NoError(t, err)
 }
 
-// ── GetPlanIngredientGroups ───────────────────────────────────────────────────
-
 func TestGetPlanIngredientGroups_InvalidPlanID(t *testing.T) {
 	client := newShoppingClient(t)
 	_, err := client.GetPlanIngredientGroups(
@@ -666,10 +642,8 @@ func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 		)
 		require.NoError(t, err)
 	})
-	// Registered after the recipe cleanup above so t.Cleanup's LIFO order runs
-	// this first: plan_meals references recipe_id with no ON DELETE clause, so
-	// the plan (and its plan_meals rows, cascaded via plan_id ON DELETE CASCADE)
-	// must be gone before the recipe delete above can succeed.
+	// Registered last so LIFO cleanup deletes the plan first: plan_meals
+	// references the recipe with no ON DELETE clause.
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
@@ -692,8 +666,6 @@ func TestGetPlanIngredientGroups_ReturnsGroups(t *testing.T) {
 	assert.Contains(t, groupNames, "pasta")
 }
 
-// ── GetMealPlanExportItems with recipe and group attribution ──────────────────
-
 func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 	planID := createTestPlan(t, "Attribution Plan")
 
@@ -706,8 +678,7 @@ func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 		)
 		require.NoError(t, err)
 	})
-	// See TestGetPlanIngredientGroups_ReturnsGroups for why this must be
-	// registered last (LIFO: runs before the recipe cleanup above).
+	// Registered last: see TestGetPlanIngredientGroups_ReturnsGroups.
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)
@@ -723,14 +694,12 @@ func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Msg.Items, "expected meal-plan items in response")
 
-	// Index items by name for targeted assertions.
 	byName := make(map[string]*shoppinglistv1.ShoppingItem, len(resp.Msg.Items))
 	for _, item := range resp.Msg.Items {
 		byName[item.Name] = item
 	}
 
-	// Each ingredient from the Spaghetti recipe must carry the recipe name and
-	// its ingredient group.
+	// Each Spaghetti ingredient carries the recipe name and its group.
 	for _, tc := range []struct {
 		name  string
 		group string
@@ -748,8 +717,6 @@ func TestGetMealPlanExportItems_RecipeAndGroupAttribution(t *testing.T) {
 	}
 }
 
-// ── GetMealPlanExportItems with group exclusion ───────────────────────────────
-
 func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {
 	planID := createTestPlan(t, "Exclude Group Plan")
 
@@ -762,8 +729,7 @@ func TestGetMealPlanExportItems_ExcludesGroup(t *testing.T) {
 		)
 		require.NoError(t, err)
 	})
-	// See TestGetPlanIngredientGroups_ReturnsGroups for why this must be
-	// registered last (LIFO: runs before the recipe cleanup above).
+	// Registered last: see TestGetPlanIngredientGroups_ReturnsGroups.
 	t.Cleanup(func() { deletePlan(t, planID) })
 
 	tomorrow := time.Now().UTC().Add(24 * time.Hour)

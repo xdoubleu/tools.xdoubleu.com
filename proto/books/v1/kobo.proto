@@ -11,8 +11,8 @@ message KoboDevice {
   bool logging_enabled = 6;
 }
 
-// KoboLogEntry is a single captured device request/response pair, held in
-// memory while debug logging is enabled for a device.
+// KoboLogEntry is one captured device request/response pair, held in memory
+// while debug logging is on.
 message KoboLogEntry {
   string time = 1;
   string method = 2;

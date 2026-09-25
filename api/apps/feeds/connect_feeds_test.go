@@ -33,8 +33,7 @@ func uniqueBlogBase() string {
 
 const itemContent = "<p>Lorem ipsum article body.</p>"
 
-// articlePageHTML builds a minimal but readability-extractable HTML page —
-// enough text/structure for go-readability to find an article body.
+// articlePageHTML builds a minimal readability-extractable HTML page.
 func articlePageHTML(title string) string {
 	return `<!DOCTYPE html><html><head><title>` + title + `</title></head><body>` +
 		`<article><h1>` + title + `</h1><p>Lorem ipsum dolor sit amet, ` +
@@ -65,8 +64,7 @@ func rssXML(feedTitle string, items ...rssItem) string {
 	return body
 }
 
-// countSeenRows returns how many feeds.items rows (including error/skip
-// dedup markers, which ListFeedItems no longer surfaces) exist for feedID.
+// countSeenRows counts feeds.items rows for feedID, including dedup markers.
 func countSeenRows(t *testing.T, feedID string) int {
 	t.Helper()
 	var count int
@@ -79,9 +77,7 @@ func countSeenRows(t *testing.T, feedID string) int {
 	return count
 }
 
-// fetchItemContent pulls one item's article body through GetFeedItem. List
-// responses deliberately omit content_html (issue #1027), so any assertion
-// about an item's body has to go through this.
+// fetchItemContent fetches an item's body via GetFeedItem (lists omit it).
 func fetchItemContent(
 	t *testing.T,
 	client feedsv1connect.FeedServiceClient,
@@ -96,9 +92,7 @@ func fetchItemContent(
 	return resp.Msg.Item.ContentHtml
 }
 
-// waitForFeedImport polls ListFeedItems until the feed's background import
-// (kicked off by CreateFeed) has landed at least one item, or fails the test
-// after a timeout.
+// waitForFeedImport waits until the feed's background import lands an item.
 func waitForFeedImport(
 	t *testing.T,
 	client feedsv1connect.FeedServiceClient,
@@ -121,13 +115,9 @@ func waitForFeedImport(
 	t.Fatalf("feed %s never imported any items", feedID)
 }
 
-// waitForFeedPollHealth polls ListFeeds until feedID's Etag is populated, or
-// fails the test after a timeout. Create's initial import runs processItems
-// then recordFetchResult in the same detached goroutine (see
-// FeedService.Create), so waitForFeedImport alone — which only waits for
-// items to land — can observe the feed before that second write commits;
-// callers that assert on poll-health fields (Etag/LastModified/
-// ConsecutiveFailures) after the initial import need this instead.
+// waitForFeedPollHealth waits until feedID's Etag is set. The import writes
+// items before the fetch result, so waitForFeedImport alone is too early for
+// poll-health assertions.
 func waitForFeedPollHealth(
 	t *testing.T,
 	client feedsv1connect.FeedServiceClient,
@@ -148,8 +138,6 @@ func waitForFeedPollHealth(
 	t.Fatalf("feed %s never recorded its initial fetch result", feedID)
 	return nil
 }
-
-// ── ListFeeds / CreateFeed (RSS) ────────────────────────────────────────────
 
 func TestListFeeds_Empty(t *testing.T) {
 	client := newFeedsClient(t)
@@ -273,8 +261,7 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Every guid is marked seen even when capped (as an error-only row with
-	// no content), so wait for all 25 to land before asserting the cap.
+	// Capped guids are still marked seen, so wait for all 25 rows.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) && countSeenRows(t, created.Msg.Feed.Id) < len(items) {
 		time.Sleep(20 * time.Millisecond)
@@ -303,10 +290,7 @@ func TestCreateFeed_CapsItemsPerPoll(t *testing.T) {
 	)
 }
 
-// ── CreateFeed (scrape) ─────────────────────────────────────────────────────
-
-// blogIndexHTML builds a minimal index page with one post-like link, for the
-// scrape source type's link-discovery heuristic.
+// blogIndexHTML builds an index page with one post-like link.
 func blogIndexHTML(postURL, postTitle string) string {
 	return `<!DOCTYPE html><html><head><title>Scraped Blog</title></head><body>` +
 		`<nav><a href="/">Home</a></nav>` +
@@ -385,8 +369,7 @@ func TestCreateFeed_Scrape_InvalidURL(t *testing.T) {
 }
 
 func TestCreateFeed_Scrape_IndexFetchFails(t *testing.T) {
-	// indexURL is intentionally never registered with mockWebFetch, so the
-	// initial fetch itself 404s before link discovery ever runs.
+	// Never registered, so the initial fetch 404s.
 	indexURL := uniqueBlogBase() + "/blog-never-registered"
 
 	client := newFeedsClient(t)
@@ -436,8 +419,7 @@ func TestCreateFeed_Scrape_ContentFetchFails(t *testing.T) {
 	mockWebFetch.SetHTML(
 		indexURL, blogIndexHTML(postURL, "Unreachable post with a long title"),
 	)
-	// postURL is intentionally never registered, so its content fetch 404s
-	// and ingestDiscoveredLink drops the item (marked seen, never retried).
+	// postURL is never registered, so the item is dropped and marked seen.
 
 	client := newFeedsClient(t)
 	created, err := client.CreateFeed(
@@ -515,9 +497,7 @@ func TestRefreshFeed_Scrape_DiscoverFails(t *testing.T) {
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
 
-	// The site redesigns and the index page no longer has any post-like
-	// links — RefreshFeed should surface discoverPostLinks' error rather
-	// than ingesting nothing silently.
+	// With no post-like links left, RefreshFeed must surface the error.
 	mockWebFetch.SetHTML(
 		indexURL, `<html><body><a href="/about">About</a></body></html>`,
 	)
@@ -529,8 +509,7 @@ func TestRefreshFeed_Scrape_DiscoverFails(t *testing.T) {
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
 
-// blogIndexHTMLTwoLinks builds an index page with two post-like links, for
-// tests exercising discovery/ingest of more than one candidate at once.
+// blogIndexHTMLTwoLinks builds an index page with two post-like links.
 func blogIndexHTMLTwoLinks(url1, title1, url2, title2 string) string {
 	return `<!DOCTYPE html><html><head><title>Two Post Blog</title></head><body>` +
 		`<article><a href="` + url1 + `">` + title1 + `</a></article>` +
@@ -542,9 +521,7 @@ func TestCreateFeed_Scrape_DedupesByCanonicalURL(t *testing.T) {
 	base := uniqueBlogBase()
 	indexURL := base + "/blog-utm"
 	postURL := base + "/posts/tracked-post-with-a-long-title"
-	// Two distinct hrefs on the page (different utm_ query params) that
-	// canonicalize to the same post URL — ingestDiscoveredLinks must only
-	// ingest it once.
+	// Two hrefs differing only in utm_ params must be ingested once.
 	mockWebFetch.SetHTML(indexURL, blogIndexHTMLTwoLinks(
 		postURL+"?utm_source=twitter", "Tracked post with a long title (twitter)",
 		postURL+"?utm_source=newsletter", "Tracked post with a long title (newsletter)",
@@ -561,8 +538,7 @@ func TestCreateFeed_Scrape_DedupesByCanonicalURL(t *testing.T) {
 	)
 	require.NoError(t, err)
 	waitForFeedImport(t, client, created.Msg.Feed.Id)
-	// Give the background import time to also process the second (deduped)
-	// link, if it were wrongly going to ingest it separately.
+	// Give the import time to wrongly ingest the duplicate, if it would.
 	time.Sleep(50 * time.Millisecond)
 
 	items, err := client.ListFeedItems(
@@ -605,9 +581,7 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// The initial import ingests maxItemsPerPoll and leaves the overflow
-	// unseen — the uncapped pagination walk resurfaces it on the next poll
-	// (issue #1842), so marking it seen here would drop it forever.
+	// The import ingests maxItemsPerPoll and leaves the overflow unseen.
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) &&
 		countSeenRows(t, created.Msg.Feed.Id) < 20 {
@@ -634,8 +608,7 @@ func TestCreateFeed_Scrape_CapsItemsPerPoll(t *testing.T) {
 		"only the per-poll cap's worth should be listed",
 	)
 
-	// The next poll backfills the leftover five: they were left unseen, so
-	// the (uncapped) index walk finds them again.
+	// The next poll backfills the leftover five.
 	require.NoError(t, testApp.RunPollNow(context.Background()))
 	require.Eventually(t, func() bool {
 		return countSeenRows(t, created.Msg.Feed.Id) == len(postURLs)
@@ -664,9 +637,8 @@ func TestCreateFeed_Scrape_TitleUsesAnchorText(t *testing.T) {
 	mockWebFetch.SetHTML(
 		indexURL, blogIndexHTML(postURL, "Untitled post with a long anchor title"),
 	)
-	// The linked page itself has no <title>/<h1> — extractReadable would
-	// otherwise fall back to the raw URL as its title, so this proves the
-	// discovered anchor text wins instead.
+	// The page has no <title>/<h1>, proving the anchor text wins over the
+	// URL fallback.
 	mockWebFetch.SetHTML(postURL, `<!DOCTYPE html><html><body><article><p>`+
 		`Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do `+
 		`eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut `+
@@ -732,8 +704,6 @@ func TestRefreshFeed_Scrape_NewPost_Ingests(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int32(1), refreshed.Msg.Ingested)
 }
-
-// ── RefreshFeed ──────────────────────────────────────────────────────────
 
 func TestRefreshFeed_InvalidID(t *testing.T) {
 	client := newFeedsClient(t)
@@ -876,8 +846,6 @@ func findFeed(feeds []*feedsv1.Feed, id string) *feedsv1.Feed {
 	return nil
 }
 
-// ── UpdateFeed / DeleteFeed ─────────────────────────────────────────────────
-
 func TestUpdateFeed_Success(t *testing.T) {
 	feedURL := uniqueBlogBase() + "/feed.xml"
 	mockWebFetch.SetBody(feedURL, "application/rss+xml", []byte(rssXML("Old Title")))
@@ -958,8 +926,6 @@ func TestDeleteFeed_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
-// ── Email feeds ─────────────────────────────────────────────────────────────
-
 func TestCreateFeed_Email_Success(t *testing.T) {
 	client := newFeedsClient(t)
 	resp, err := client.CreateFeed(
@@ -986,8 +952,6 @@ func TestCreateFeed_Email_URLMustBeEmpty(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
 }
-
-// ── UpdateItem ───────────────────────────────────────────────────────────────
 
 // createItem imports one feed with a single item and returns its item ID.
 func createItem(t *testing.T, client feedsv1connect.FeedServiceClient) string {
@@ -1019,8 +983,7 @@ func createItem(t *testing.T, client feedsv1connect.FeedServiceClient) string {
 	return ""
 }
 
-// createItemAndFeed is createItem plus the feed ID, for tests that need to
-// distinguish items across multiple feeds.
+// createItemAndFeed is createItem plus the feed ID.
 func createItemAndFeed(
 	t *testing.T, client feedsv1connect.FeedServiceClient,
 ) (string, string) {
@@ -1219,9 +1182,7 @@ func TestListFeedItems_BookmarkedOnly(t *testing.T) {
 	)
 }
 
-// Other tests in this package share the same test user/DB (see app_test.go),
-// so the item count here is relative to whatever already accumulated rather
-// than an absolute number.
+// The test DB is shared across the package, so counts are relative.
 func TestListFeedItems_Pagination(t *testing.T) {
 	client := newFeedsClient(t)
 	createItem(t, client)
@@ -1253,8 +1214,7 @@ func TestListFeedItems_Pagination(t *testing.T) {
 	assert.False(t, resp.Msg.HasMore)
 }
 
-// TestListFeedItems_FeedIDFilter creates items on two different feeds and
-// asserts feed_id restricts results to just one of them.
+// TestListFeedItems_FeedIDFilter: feed_id restricts results to one feed.
 func TestListFeedItems_FeedIDFilter(t *testing.T) {
 	client := newFeedsClient(t)
 	itemA, feedA := createItemAndFeed(t, client)
@@ -1309,9 +1269,7 @@ func TestUpdateItem_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
-// TestGetFeedItem_NotFound covers the stale-list case (issue #1819): the
-// frontend's cached list can reference an item deleted between listing and
-// opening, so the body fetch 404s — the handler logs it and maps to
+// TestGetFeedItem_NotFound: an item deleted after listing maps to
 // CodeNotFound.
 func TestGetFeedItem_NotFound(t *testing.T) {
 	client := newFeedsClient(t)
@@ -1323,9 +1281,8 @@ func TestGetFeedItem_NotFound(t *testing.T) {
 	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
 }
 
-// TestUpdateItem_ReadProgressClampsAndMonotonic covers issue #798's
-// read-completion signal: values are clamped to [0,100] and never lowered
-// by a later, smaller update.
+// TestUpdateItem_ReadProgressClampsAndMonotonic: clamped to [0,100], never
+// lowered.
 func TestUpdateItem_ReadProgressClampsAndMonotonic(t *testing.T) {
 	client := newFeedsClient(t)
 	itemID := createItem(t, client)
@@ -1352,9 +1309,7 @@ func TestUpdateItem_ReadProgressClampsAndMonotonic(t *testing.T) {
 	assert.Equal(t, int32(100), resp.Msg.Item.ReadProgressPct)
 }
 
-// TestGetFeedStats_Basic proves GetFeedStats aggregates item count and read
-// rate for the caller's feeds (issue #798); cadence/histogram computation
-// (isFeedQuiet) has its own dedicated unit tests.
+// TestGetFeedStats_Basic: item count and read rate aggregate per feed.
 func TestGetFeedStats_Basic(t *testing.T) {
 	client := newFeedsClient(t)
 	base := uniqueBlogBase()
@@ -1422,11 +1377,7 @@ func TestRefreshFeed_EmailFeed_NoOp(t *testing.T) {
 	assert.Equal(t, int32(0), resp.Msg.Ingested)
 }
 
-// ── Article bodies stay out of multi-row reads (issue #1027) ────────────────
-
-// listFeedWithBody creates a one-item RSS feed whose article body is large
-// enough that shipping it in a list response would be obvious, and returns
-// the imported item.
+// listFeedWithBody creates a one-item RSS feed with a large body.
 func listFeedWithBody(t *testing.T, body string) (
 	feedsv1connect.FeedServiceClient, *feedsv1.Item,
 ) {
@@ -1456,9 +1407,8 @@ func listFeedWithBody(t *testing.T, body string) (
 	return client, items.Msg.Items[0]
 }
 
-// This is the regression guard for the Supabase egress overage: a list read
-// must never carry content_html, or every page of items drags every article
-// body out of Postgres.
+// A list read must never carry content_html, or every page drags every
+// article body out of Postgres.
 func TestListFeedItems_OmitsArticleBody(t *testing.T) {
 	body := "<p>" + strings.Repeat("egress ", 5000) + "</p>"
 	client, item := listFeedWithBody(t, body)
@@ -1466,7 +1416,6 @@ func TestListFeedItems_OmitsArticleBody(t *testing.T) {
 	assert.Empty(t, item.ContentHtml, "list responses must not carry the body")
 	assert.True(t, item.HasContent, "but must still report that a body exists")
 
-	// GetFeedItem is where the body actually comes from.
 	full, err := client.GetFeedItem(
 		context.Background(),
 		connect.NewRequest(&feedsv1.GetFeedItemRequest{ItemId: item.Id}),
@@ -1476,8 +1425,7 @@ func TestListFeedItems_OmitsArticleBody(t *testing.T) {
 	assert.True(t, full.Msg.Item.HasContent)
 }
 
-// UpdateItem fires on every debounced scroll tick in the reader, so its
-// response must not carry the body either.
+// UpdateItem fires on every scroll tick, so it must not carry the body either.
 func TestUpdateItem_OmitsArticleBody(t *testing.T) {
 	client, item := listFeedWithBody(t, "<p>"+strings.Repeat("scroll ", 2000)+"</p>")
 
@@ -1494,14 +1442,12 @@ func TestUpdateItem_OmitsArticleBody(t *testing.T) {
 	assert.Equal(t, int32(42), updated.Msg.Item.ReadProgressPct)
 }
 
-// An item with no stored body reports HasContent=false, which is what lets
-// the reader distinguish "nothing stored" from "not loaded yet" now that an
-// empty content_html in a list response no longer means either.
+// A body-less item reports HasContent=false, distinguishing "nothing stored"
+// from "not loaded yet".
 func TestFeedItem_NoBodyReportsHasContentFalse(t *testing.T) {
 	client, seeded := listFeedWithBody(t, "<p>seed</p>")
 
-	// Insert a body-less item directly: the ingest paths that produce one
-	// mark it with an ingest_error, which ListFeedItems filters out.
+	// Inserted directly: ingest paths mark body-less items with ingest_error.
 	var itemID string
 	err := testDB.QueryRow(context.Background(), `
 		INSERT INTO feeds.items (feed_id, guid, title, source_url, content_html)

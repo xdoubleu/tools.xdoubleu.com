@@ -111,8 +111,7 @@ func (x *ImportBooksResponse) GetImportedCount() int32 {
 
 type DuplicateGroup struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Library entries judged to be the same book. entries[0] is the suggested
-	// winner (the entry to keep); the rest are the suggested losers.
+	// Entries judged the same book; entries[0] is the suggested one to keep.
 	Entries []*UserBook `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
 	// Strongest matching signal: "isbn13" | "isbn10" | "title+author"
 	Reason        string `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
@@ -250,18 +249,13 @@ type MergeBooksRequest struct {
 	WinnerBookId string `protobuf:"bytes,1,opt,name=winner_book_id,json=winnerBookId,proto3" json:"winner_book_id,omitempty"`
 	// book_ids of UserBook entries to merge into the winner, then delete.
 	LoserBookIds []string `protobuf:"bytes,2,rep,name=loser_book_ids,json=loserBookIds,proto3" json:"loser_book_ids,omitempty"`
-	// When set, these field values overwrite the winner's catalog Book row after
-	// the merge. cover_url is excluded — control cover resolution via
-	// resolved_cover_source_book_id instead.
-	// Omit to keep the winner's existing metadata unchanged (current behavior).
+	// Overwrites the winner's catalog metadata after merging (cover_url
+	// excluded; see resolved_cover_source_book_id). Omit to keep it.
 	ResolvedMetadata *Book `protobuf:"bytes,3,opt,name=resolved_metadata,json=resolvedMetadata,proto3,oneof" json:"resolved_metadata,omitempty"`
-	// book_id whose cover should be used for the merged winner. The backend
-	// copies that entry's raw cover URL and clears the winner's cover cache.
-	// Omit to keep the winner's existing cover unchanged.
+	// book_id whose cover the winner takes. Omit to keep the winner's cover.
 	ResolvedCoverSourceBookId *string `protobuf:"bytes,4,opt,name=resolved_cover_source_book_id,json=resolvedCoverSourceBookId,proto3,oneof" json:"resolved_cover_source_book_id,omitempty"`
-	// When set, overrides the auto-consolidated status/shelf of the merged winner.
-	// Omit to use the automatic rule: a custom shelf wins over built-in statuses
-	// (custom-shelf > read > currently-reading > to-read > dropped).
+	// Overrides the merged status/shelf. Omit for the automatic rule:
+	// custom-shelf > read > currently-reading > to-read > dropped.
 	ResolvedStatus *string `protobuf:"bytes,5,opt,name=resolved_status,json=resolvedStatus,proto3,oneof" json:"resolved_status,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -388,11 +382,8 @@ func (x *MergeBooksResponse) GetDeletedFiles() uint32 {
 
 type StartResyncRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Force re-queries every source (UniCat, Hardcover) for
-	// every book, ignoring the skip-if-known cache
-	// (unicat_found / hardcover_found).
-	// Use to recover books stuck unresolved after a rate-limit trip or a stale
-	// cached miss.
+	// Re-query every source for every book, ignoring the skip-if-known cache
+	// (recovers books stuck after a rate limit or stale miss).
 	Force         bool `protobuf:"varint,1,opt,name=force,proto3" json:"force,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -471,9 +462,8 @@ func (*StartResyncResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{8}
 }
 
-// CancelResync stops an in-progress resync scan started by StartResync. A
-// no-op if no scan is running. Books already processed keep their scan
-// status; the proposals table is left untouched by the cancelled run.
+// CancelResync stops a running resync scan (no-op if none). Processed books
+// and proposals are left as is.
 type CancelResyncRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -546,9 +536,8 @@ func (*CancelResyncResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{10}
 }
 
-// SourceBook is one candidate set of metadata for a catalog book — either the
-// current library values (source = "") or one external provider's proposal
-// (source = "unicat" | "hardcover").
+// SourceBook is one candidate metadata set: the library values (source "")
+// or a provider's proposal ("unicat" | "hardcover").
 type SourceBook struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
 	Source      string                 `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
@@ -558,14 +547,10 @@ type SourceBook struct {
 	Isbn13      string                 `protobuf:"bytes,5,opt,name=isbn13,proto3" json:"isbn13,omitempty"`
 	Title       string                 `protobuf:"bytes,6,opt,name=title,proto3" json:"title,omitempty"`
 	Authors     []string               `protobuf:"bytes,7,rep,name=authors,proto3" json:"authors,omitempty"`
-	// differs lists which fields differ from the library row. Empty for the
-	// library SourceBook itself.
+	// Fields differing from the library row; empty for the library itself.
 	Differs []string `protobuf:"bytes,8,rep,name=differs,proto3" json:"differs,omitempty"`
-	// index is this candidate's ordinal position (0-based) among other
-	// SourceBooks sharing the same source. Always 0 for the library SourceBook
-	// and for sources that only ever produce one candidate (the guarded
-	// search). The manual override search ("Search with these terms") can
-	// return up to 5 candidates per source, distinguished by this index.
+	// 0-based ordinal among candidates of the same source; only a manual
+	// override search yields more than one (up to 5).
 	Index         int32 `protobuf:"varint,9,opt,name=index,proto3" json:"index,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -664,8 +649,7 @@ func (x *SourceBook) GetIndex() int32 {
 	return 0
 }
 
-// ResyncProposal describes one catalog book that differs from at least one
-// external source, for the admin resync wizard to step through.
+// ResyncProposal is one catalog book differing from an external source.
 type ResyncProposal struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	BookId        string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
@@ -809,9 +793,8 @@ func (x *ListResyncProposalsResponse) GetProposals() []*ResyncProposal {
 type ApplyResyncChoiceRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
-	// source selects which SourceBook wins: "" keeps the library row unchanged
-	// (and simply dismisses the proposal), or one of
-	// "unicat" | "hardcover".
+	// Winning source: "" keeps the library row (dismisses), or "unicat" |
+	// "hardcover".
 	Source        string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -985,14 +968,12 @@ func (*SetBookISBNResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{18}
 }
 
-// UpdateBook lets an admin hand-correct a catalog book's metadata directly,
-// bypassing the external-source sync flow.
+// UpdateBook hand-corrects a catalog book's metadata.
 type UpdateBookRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
-	// Full replacement for the book's catalog metadata (title, authors,
-	// isbn13, description, page_count, cover_url). An empty cover_url clears
-	// the cover; any other value is fetched and cached as the new cover.
+	// Full replacement of catalog metadata. Empty cover_url clears the cover;
+	// any other value is fetched and cached.
 	Metadata      *Book `protobuf:"bytes,2,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1086,16 +1067,12 @@ func (x *UpdateBookResponse) GetBook() *Book {
 	return nil
 }
 
-// GetBookSources live-fetches one book's candidates from every configured
-// source, for the admin book-page source selector. Unlike
-// ListResyncProposals, this works on any book on demand — it doesn't require
-// a prior wizard scan to have flagged the book first.
+// GetBookSources live-fetches any book's candidates from every source.
 type GetBookSourcesRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
-	// When set, replaces the stored title/author in the live source search,
-	// skips the strict match guards, and forces the search path even when the
-	// book has an ISBN — for manually steering the search on unmatched books.
+	// Replaces title/author in the search, skips strict match guards, and
+	// forces search even for books with an ISBN.
 	OverrideTitle  *string `protobuf:"bytes,2,opt,name=override_title,json=overrideTitle,proto3,oneof" json:"override_title,omitempty"`
 	OverrideAuthor *string `protobuf:"bytes,3,opt,name=override_author,json=overrideAuthor,proto3,oneof" json:"override_author,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -1197,21 +1174,16 @@ func (x *GetBookSourcesResponse) GetProposal() *ResyncProposal {
 	return nil
 }
 
-// ApplyBookSource live-fetches the book's sources and applies the chosen one
-// — the book-page equivalent of ApplyResyncChoice, usable on any book.
+// ApplyBookSource live-fetches the book's sources and applies the chosen one.
 type ApplyBookSourceRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	BookId string                 `protobuf:"bytes,1,opt,name=book_id,json=bookId,proto3" json:"book_id,omitempty"`
-	// source selects which source wins: one of
 	// "unicat" | "hardcover".
 	Source string `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	// Must repeat the override used in GetBookSources so the apply-time
-	// re-fetch finds the same candidates.
+	// Must repeat GetBookSources' override so the re-fetch matches.
 	OverrideTitle  *string `protobuf:"bytes,3,opt,name=override_title,json=overrideTitle,proto3,oneof" json:"override_title,omitempty"`
 	OverrideAuthor *string `protobuf:"bytes,4,opt,name=override_author,json=overrideAuthor,proto3,oneof" json:"override_author,omitempty"`
-	// index selects which of the source's candidates to apply (0-based),
-	// matching SourceBook.index. 0 for sources that only ever produce one
-	// candidate.
+	// Candidate to apply, matching SourceBook.index.
 	Index         int32 `protobuf:"varint,5,opt,name=index,proto3" json:"index,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1318,8 +1290,7 @@ func (*ApplyBookSourceResponse) Descriptor() ([]byte, []int) {
 	return file_books_v1_catalog_proto_rawDescGZIP(), []int{24}
 }
 
-// GetSourceStats reports per-source coverage over the whole catalog, for
-// scoring metadata sources.
+// GetSourceStats reports per-source coverage over the catalog.
 type GetSourceStatsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1364,8 +1335,7 @@ type SourceStat struct {
 	FoundCount int32 `protobuf:"varint,2,opt,name=found_count,json=foundCount,proto3" json:"found_count,omitempty"`
 	// Books found ONLY in this source (found here, nowhere else).
 	UniqueCount int32 `protobuf:"varint,3,opt,name=unique_count,json=uniqueCount,proto3" json:"unique_count,omitempty"`
-	// Books this source actually checked and came back empty (found_column IS
-	// FALSE) — distinct from never having been scanned at all.
+	// Books this source checked and missed (vs never scanned).
 	MissedCount   int32 `protobuf:"varint,4,opt,name=missed_count,json=missedCount,proto3" json:"missed_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1429,10 +1399,7 @@ func (x *SourceStat) GetMissedCount() int32 {
 	return 0
 }
 
-// SourceComboStat reports how many books were found by exactly this set of
-// sources (a genuine overlap) — the complement of SourceStat's unique_count,
-// which is the one-source case. With two configured sources there is exactly
-// one combo: both.
+// SourceComboStat counts books found by exactly this set of sources.
 type SourceComboStat struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// "unicat" | "hardcover", both entries.
@@ -1496,9 +1463,7 @@ type GetSourceStatsResponse struct {
 	NeverScanned int32 `protobuf:"varint,4,opt,name=never_scanned,json=neverScanned,proto3" json:"never_scanned,omitempty"`
 	// The one two-source combo (both sources).
 	Overlaps []*SourceComboStat `protobuf:"bytes,5,rep,name=overlaps,proto3" json:"overlaps,omitempty"`
-	// The mirror of overlaps: books missed by exactly this set of sources (those
-	// sources IS FALSE, every other source IS TRUE). Same partition model as
-	// overlaps, just complemented.
+	// Books missed by exactly this set of sources and found by all others.
 	MissedOverlaps []*SourceComboStat `protobuf:"bytes,6,rep,name=missed_overlaps,json=missedOverlaps,proto3" json:"missed_overlaps,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
@@ -1576,10 +1541,8 @@ func (x *GetSourceStatsResponse) GetMissedOverlaps() []*SourceComboStat {
 	return nil
 }
 
-// ListBooksInExactSources lists the catalog books found by exactly the given
-// set of sources — one source is the books behind GetSourceStats'
-// unique_count, both is the overlaps combo — for drilling into the
-// source-stats report.
+// ListBooksInExactSources lists catalog books found by exactly the given
+// sources, drilling into GetSourceStats.
 type ListBooksInExactSourcesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// "unicat" | "hardcover", 1 to 2 entries.

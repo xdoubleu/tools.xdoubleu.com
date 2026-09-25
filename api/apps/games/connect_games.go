@@ -91,8 +91,7 @@ func (h *gamesConnectHandler) RefreshSteamGame(
 	return connect.NewResponse(&gamesv1.RefreshSteamGameResponse{Data: data}), nil
 }
 
-// SetGameFavourite flips the user-set favourite flag on a game and returns
-// the updated game.
+// SetGameFavourite flips a game's favourite flag and returns the game.
 func (h *gamesConnectHandler) SetGameFavourite(
 	ctx context.Context,
 	req *connect.Request[gamesv1.SetGameFavouriteRequest],
@@ -178,8 +177,6 @@ func (h *gamesConnectHandler) GetRecentlyActiveGames(
 		Games: protoRecentGames(games),
 	}), nil
 }
-
-// Proto conversion helpers for games
 
 func protoGame(g models.Game) *gamesv1.Game {
 	return &gamesv1.Game{

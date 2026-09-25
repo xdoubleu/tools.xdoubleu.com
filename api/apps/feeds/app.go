@@ -28,8 +28,7 @@ var embedMigrations embed.FS
 type Feeds struct {
 	app.Base
 	db postgres.DB
-	// Services is exported so integration tests can seed data through the
-	// real service layer.
+	// Services is exported so integration tests can seed through it.
 	Services    *services.Services
 	jobQueue    *jobqueue.JobQueue
 	feedPollJob *jobs.FeedPollJob
@@ -108,8 +107,7 @@ func (a *Feeds) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {
 	return a.ApplyMigrationsFromFS(ctx, db, embedMigrations, a.GetName())
 }
 
-// RunPollNow runs the RSS poll synchronously, wrapped in the same TrackedJob
-// used for the scheduled run so a manual trigger still shows up in
+// RunPollNow runs the poll synchronously as a TrackedJob, so it shows up in
 // global.job_runs.
 func (a *Feeds) RunPollNow(ctx context.Context) error {
 	return observability.NewTrackedJob(a.feedPollJob, a.db).Run(ctx, a.Logger)

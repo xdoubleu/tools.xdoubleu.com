@@ -18,9 +18,8 @@ type mcpRecipeArgs struct {
 	Servings int32  `json:"servings,omitempty" jsonschema:"scale ingredients to servings"`
 }
 
-// RegisterMCPTools exposes the recipes app's read-only RPCs on the combined apps
-// MCP server. Every tool returns recipes belonging to the calling user's
-// family.
+// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
+// the caller's family.
 func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 	h := &recipesConnectHandler{app: a}
 

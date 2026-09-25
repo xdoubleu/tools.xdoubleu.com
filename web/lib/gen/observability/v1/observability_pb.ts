@@ -156,9 +156,7 @@ export type UsageDay = Message<"observability.v1.UsageDay"> & {
   count: bigint;
 
   /**
-   * Total response body bytes served by these requests. Measures what left
-   * the api, a proxy for what it read out of the database rather than a
-   * direct measure of database egress (issue #1027).
+   * Response body bytes served; a proxy for database reads, not egress.
    *
    * @generated from field: int64 bytes = 5;
    */
@@ -287,18 +285,15 @@ export type StorageSnapshot = Message<"observability.v1.StorageSnapshot"> & {
   prefixBreakdown: PrefixStat[];
 
   /**
-   * orphan_keys is a capped sample of the orphaned object keys; orphan_count
-   * tallies every orphan found even when this list is truncated.
+   * Capped sample of orphaned keys; orphan_count counts all of them.
    *
    * @generated from field: repeated string orphan_keys = 9;
    */
   orphanKeys: string[];
 
   /**
-   * deleted_orphan_size_bytes/deleted_orphan_count cover orphans this same
-   * scan actually deleted (past a grace period) — a subset of
-   * orphan_size_bytes/orphan_count, which count every orphan seen regardless
-   * of age or delete outcome.
+   * Orphans this scan deleted (past a grace period); a subset of
+   * orphan_size_bytes/orphan_count.
    *
    * @generated from field: int64 deleted_orphan_size_bytes = 10;
    */
@@ -419,9 +414,7 @@ export const GetDatabaseStatsRequestSchema: GenMessage<GetDatabaseStatsRequest> 
   messageDesc(file_observability_v1_observability, 14);
 
 /**
- * GetDatabaseStatsResponse is a live snapshot (pg_database_size/pg_class) —
- * growth-over-time now lives in Grafana/Prometheus (issue #1468), which is
- * why this carries no window or history any more.
+ * GetDatabaseStatsResponse is a live size snapshot; history lives in Grafana.
  *
  * @generated from message observability.v1.GetDatabaseStatsResponse
  */
@@ -445,8 +438,7 @@ export const GetDatabaseStatsResponseSchema: GenMessage<GetDatabaseStatsResponse
   messageDesc(file_observability_v1_observability, 15);
 
 /**
- * FailingCheck is a single non-passing CI check run on a pull request's head
- * commit.
+ * FailingCheck is a non-passing CI check on a pull request's head commit.
  *
  * @generated from message observability.v1.FailingCheck
  */
@@ -536,9 +528,8 @@ export const GetFailingPullRequestsRequestSchema: GenMessage<GetFailingPullReque
   messageDesc(file_observability_v1_observability, 18);
 
 /**
- * GetFailingPullRequestsResponse carries the failing pull requests. configured
- * is false when no GitHub token/repo is set — the section is degraded, not
- * failed.
+ * GetFailingPullRequestsResponse: configured is false without a GitHub
+ * token/repo (degraded, not failed).
  *
  * @generated from message observability.v1.GetFailingPullRequestsResponse
  */
@@ -567,8 +558,8 @@ export const GetFailingPullRequestsResponseSchema: GenMessage<GetFailingPullRequ
   messageDesc(file_observability_v1_observability, 19);
 
 /**
- * ProjectIssue is a single open issue on a GitHub Projects (v2) board,
- * annotated with the Status field value it currently sits under.
+ * ProjectIssue is an open issue on a GitHub Projects (v2) board, with its
+ * Status value.
  *
  * @generated from message observability.v1.ProjectIssue
  */
@@ -602,12 +593,8 @@ export const ProjectIssueSchema: GenMessage<ProjectIssue> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 20);
 
 /**
- * GetProjectIssuesByStatusRequest looks up issues on the configured
- * repository owner's GitHub Projects (v2) board number project_number whose
- * Status field matches status (case-insensitive, e.g. "Ready") — issue
- * #1357, filling the gap left by the separate GitHub MCP server tooling,
- * which can't resolve custom project fields on a personal (user-owned)
- * project board.
+ * GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
+ * board project_number whose Status matches status (case-insensitive).
  *
  * @generated from message observability.v1.GetProjectIssuesByStatusRequest
  */
@@ -631,9 +618,8 @@ export const GetProjectIssuesByStatusRequestSchema: GenMessage<GetProjectIssuesB
   messageDesc(file_observability_v1_observability, 21);
 
 /**
- * GetProjectIssuesByStatusResponse carries the matching issues. configured is
- * false when no GitHub token/repo is set — the section is degraded, not
- * failed.
+ * GetProjectIssuesByStatusResponse: configured is false without a GitHub
+ * token/repo (degraded, not failed).
  *
  * @generated from message observability.v1.GetProjectIssuesByStatusResponse
  */
@@ -657,15 +643,9 @@ export const GetProjectIssuesByStatusResponseSchema: GenMessage<GetProjectIssues
   messageDesc(file_observability_v1_observability, 22);
 
 /**
- * WorkflowRun is a single GitHub Actions workflow run, either from a pull
- * request or a push to the default branch. duration_ms is only meaningful
- * once status == "completed" — zero for runs still in progress. failed_jobs
- * names the specific jobs that failed (e.g. "Deploy to Hetzner via Kamal")
- * — populated only for failed runs on a push to main, since that's the only
- * case worth an extra per-run GitHub API call: a failing PR run is already
- * explained by its own checks in the PR UI, but a failing main-push run is
- * an incident someone here needs to act on, and "the run failed" alone
- * doesn't say which job to look at.
+ * WorkflowRun is one GitHub Actions run from a PR or a default-branch push.
+ * duration_ms is zero until completed. failed_jobs is populated only for
+ * failed pushes to main.
  *
  * @generated from message observability.v1.WorkflowRun
  */
@@ -746,9 +726,8 @@ export const GetWorkflowRunsRequestSchema: GenMessage<GetWorkflowRunsRequest> = 
   messageDesc(file_observability_v1_observability, 24);
 
 /**
- * GetWorkflowRunsResponse carries the most recent pull-request and push
- * workflow runs. configured is false when no GitHub token/repo is set — the
- * section is degraded, not failed.
+ * GetWorkflowRunsResponse carries recent PR and push runs. configured is
+ * false without a GitHub token/repo (degraded, not failed).
  *
  * @generated from message observability.v1.GetWorkflowRunsResponse
  */
@@ -772,11 +751,8 @@ export const GetWorkflowRunsResponseSchema: GenMessage<GetWorkflowRunsResponse> 
   messageDesc(file_observability_v1_observability, 25);
 
 /**
- * SecurityAlert is a single open Dependabot, code-scanning, or
- * secret-scanning alert on the repo. package_name/ecosystem are set only for
- * alert_type == SECURITY_ALERT_TYPE_DEPENDABOT; rule_id/file_path/line only
- * for SECURITY_ALERT_TYPE_CODE_SCANNING; secret_type only for
- * SECURITY_ALERT_TYPE_SECRET_SCANNING.
+ * SecurityAlert is one open alert. package_name/ecosystem are Dependabot-only,
+ * rule_id/file_path/line code-scanning-only, secret_type secret-scanning-only.
  *
  * @generated from message observability.v1.SecurityAlert
  */
@@ -867,9 +843,8 @@ export const GetSecurityAlertsRequestSchema: GenMessage<GetSecurityAlertsRequest
   messageDesc(file_observability_v1_observability, 27);
 
 /**
- * GetSecurityAlertsResponse carries the open Dependabot, code-scanning, and
- * secret-scanning alerts. configured is false when no GitHub token/repo is
- * set — the section is degraded, not failed.
+ * GetSecurityAlertsResponse: configured is false without a GitHub token/repo
+ * (degraded, not failed).
  *
  * @generated from message observability.v1.GetSecurityAlertsResponse
  */
@@ -898,8 +873,7 @@ export const GetSecurityAlertsResponseSchema: GenMessage<GetSecurityAlertsRespon
   messageDesc(file_observability_v1_observability, 28);
 
 /**
- * SentryIssue is a single unresolved issue on one of the configured
- * projects.
+ * SentryIssue is an unresolved issue on a configured project.
  *
  * @generated from message observability.v1.SentryIssue
  */
@@ -959,12 +933,11 @@ export const SentryIssueSchema: GenMessage<SentryIssue> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 29);
 
 /**
- * DismissSecurityAlertRequest dismisses/resolves one open alert. reason must
- * be one of the values GitHub's API accepts for alert_type: dependabot/
- * code_scanning use "fix_started"|"inaccurate"|"no_bandwidth"|"not_used"|
- * "tolerable_risk" and "false positive"|"won't fix"|"used in tests"
- * respectively; secret_scanning uses "false_positive"|"wont_fix"|"revoked"|
- * "used_in_tests"|"pattern_deleted".
+ * DismissSecurityAlertRequest dismisses one alert. reason must be a value
+ * GitHub accepts for alert_type: dependabot "fix_started"|"inaccurate"|
+ * "no_bandwidth"|"not_used"|"tolerable_risk"; code_scanning "false positive"|
+ * "won't fix"|"used in tests"; secret_scanning "false_positive"|"wont_fix"|
+ * "revoked"|"used_in_tests"|"pattern_deleted".
  *
  * @generated from message observability.v1.DismissSecurityAlertRequest
  */
@@ -1019,8 +992,7 @@ export const GetSentryIssuesRequestSchema: GenMessage<GetSentryIssuesRequest> = 
   messageDesc(file_observability_v1_observability, 32);
 
 /**
- * GetSentryIssuesResponse carries the unresolved issues. configured is false
- * when no Sentry org/project/token is set — the section is degraded.
+ * GetSentryIssuesResponse: configured is false without Sentry settings.
  *
  * @generated from message observability.v1.GetSentryIssuesResponse
  */
@@ -1079,9 +1051,7 @@ export const ResolveSentryIssueResponseSchema: GenMessage<ResolveSentryIssueResp
   messageDesc(file_observability_v1_observability, 35);
 
 /**
- * SlowTransaction is one transaction's (an API endpoint or a frontend
- * page/route) p95 duration + request count over the last 24h, sourced live
- * from Sentry.
+ * SlowTransaction is one endpoint's or page's live 24h p95 and count.
  *
  * @generated from message observability.v1.SlowTransaction
  */
@@ -1115,9 +1085,8 @@ export const SlowTransactionSchema: GenMessage<SlowTransaction> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 36);
 
 /**
- * TransactionTrend flags a transaction whose p95 duration is regressing:
- * recent_avg_p95_ms vs prior_avg_p95_ms are averages over two adjacent
- * historical windows, and pct_change is the increase between them.
+ * TransactionTrend flags a regressing p95: averages over two adjacent
+ * windows and the pct_change between them.
  *
  * @generated from message observability.v1.TransactionTrend
  */
@@ -1169,11 +1138,8 @@ export const GetSlowTransactionsRequestSchema: GenMessage<GetSlowTransactionsReq
   messageDesc(file_observability_v1_observability, 38);
 
 /**
- * GetSlowTransactionsResponse carries both views: current is live from
- * Sentry (configured is false when no Sentry org/project/token is set —
- * current is degraded, empty). trending is computed from stored history
- * and populated independently of configured — it still reports past
- * regressions even when Sentry is unreachable right now.
+ * GetSlowTransactionsResponse: current is live from Sentry (empty when not
+ * configured); trending comes from stored history regardless.
  *
  * @generated from message observability.v1.GetSlowTransactionsResponse
  */
@@ -1247,8 +1213,8 @@ export const LogEntrySchema: GenMessage<LogEntry> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 40);
 
 /**
- * GetLogsRequest filters global.log_entries. source/min_level empty means
- * "any"; since bounds how far back to look.
+ * GetLogsRequest filters global.log_entries; empty source/min_level means
+ * any.
  *
  * @generated from message observability.v1.GetLogsRequest
  */
@@ -1309,8 +1275,8 @@ export const GetHealthOverviewRequestSchema: GenMessage<GetHealthOverviewRequest
   messageDesc(file_observability_v1_observability, 43);
 
 /**
- * GetHealthOverviewResponse rolls up external signals into one call, each
- * section degrading independently.
+ * GetHealthOverviewResponse rolls up external signals, each degrading
+ * independently.
  *
  * @generated from message observability.v1.GetHealthOverviewResponse
  */
@@ -1370,8 +1336,7 @@ export const SentryConfigSchema: GenMessage<SentryConfig> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 46);
 
 /**
- * ProviderConfig is the admin-picked identifier(s) for a connected provider
- * (issue #440 follow-up: picked interactively instead of a static env var).
+ * ProviderConfig is the admin-picked identifier(s) for a connected provider.
  *
  * @generated from message observability.v1.ProviderConfig
  */
@@ -1402,8 +1367,7 @@ export const ProviderConfigSchema: GenMessage<ProviderConfig> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 47);
 
 /**
- * OAuthConnectionStatus is the admin-facing status of one provider's OAuth
- * connection (issue #440) — never the token itself.
+ * OAuthConnectionStatus is a provider's OAuth connection status (no token).
  *
  * @generated from message observability.v1.OAuthConnectionStatus
  */
@@ -1449,11 +1413,8 @@ export type OAuthConnectionStatus = Message<"observability.v1.OAuthConnectionSta
   config?: ProviderConfig | undefined;
 
   /**
-   * Scope diagnostics, always populated — including for a provider reported
-   * not connected, which is exactly when they explain why. requested_scope is
-   * what the connection was authorized with and what `connected` is judged
-   * against; granted_scope is the provider's own normalized echo, which can
-   * legitimately omit scopes a broader one subsumes.
+   * Always populated. `connected` is judged against requested_scope;
+   * granted_scope is the provider's echo and may omit subsumed scopes.
    *
    * space-separated, empty if never recorded
    *
@@ -1544,9 +1505,8 @@ export const DisconnectOAuthConnectionResponseSchema: GenMessage<DisconnectOAuth
   messageDesc(file_observability_v1_observability, 52);
 
 /**
- * GetProviderOptionsRequest asks a connected provider what identifiers are
- * available to pick from. sentry_org disambiguates the second Sentry step:
- * empty lists orgs, set lists that org's projects.
+ * GetProviderOptionsRequest lists a provider's pickable identifiers. For
+ * Sentry, empty sentry_org lists orgs; set lists that org's projects.
  *
  * @generated from message observability.v1.GetProviderOptionsRequest
  */
@@ -1632,9 +1592,8 @@ export const SetProviderConfigResponseSchema: GenMessage<SetProviderConfigRespon
   messageDesc(file_observability_v1_observability, 56);
 
 /**
- * NotificationSetting is one email-notifying source (Sentry issues, failing
- * dependency PRs, unhealthy feeds, failing main-branch CI runs) and whether
- * it's currently allowed to email an admin (issue #1214).
+ * NotificationSetting is one email-notifying source and whether it may
+ * currently email an admin.
  *
  * @generated from message observability.v1.NotificationSetting
  */
@@ -1728,13 +1687,9 @@ export const UpdateNotificationSettingsResponseSchema: GenMessage<UpdateNotifica
   messageDesc(file_observability_v1_observability, 61);
 
 /**
- * AutomatedAction is one run of a self-healing routine that executes outside
- * api's own process (e.g. on Anthropic's scheduled-agent infrastructure), so
- * unlike global.job_runs (populated automatically by TrackedJob for
- * in-process jobs) the routine itself must open this row as its first step
- * and close it as its last, via OpenAutomatedAction/CloseAutomatedAction.
- * finished_at/outcome/pr_url/error are all unset while the run is still
- * open.
+ * AutomatedAction is one run of an out-of-process routine, which opens and
+ * closes its own row via Open/CloseAutomatedAction. finished_at, outcome,
+ * pr_url and error are unset while open.
  *
  * @generated from message observability.v1.AutomatedAction
  */
@@ -1796,9 +1751,8 @@ export const AutomatedActionSchema: GenMessage<AutomatedAction> = /*@__PURE__*/
   messageDesc(file_observability_v1_observability, 62);
 
 /**
- * OpenAutomatedActionRequest records that routine_name has started, fired by
- * trigger_source. Returns the row id CloseAutomatedAction needs to close it
- * out.
+ * OpenAutomatedActionRequest records that routine_name started; returns the
+ * row id.
  *
  * @generated from message observability.v1.OpenAutomatedActionRequest
  */
@@ -1839,10 +1793,7 @@ export const OpenAutomatedActionResponseSchema: GenMessage<OpenAutomatedActionRe
   messageDesc(file_observability_v1_observability, 64);
 
 /**
- * CloseAutomatedActionRequest closes out the row OpenAutomatedAction
- * returned, recording how the run ended. pr_url/error are optional — set
- * pr_url when the routine opened a pull request, error when outcome is
- * "failed".
+ * CloseAutomatedActionRequest closes the row; pr_url and error are optional.
  *
  * @generated from message observability.v1.CloseAutomatedActionRequest
  */

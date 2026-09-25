@@ -27,10 +27,7 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-// capturingMailServer stands in for Resend, recording every send request —
-// issue #799's problem-email alert tests assert against these instead of a
-// real mailbox. FailNextSend lets a test force one send to fail, exercising
-// notifyProblem's send-error branch (issue #923).
+// capturingMailServer stands in for Resend and records every send.
 type capturingMailServer struct {
 	*httptest.Server
 	mu       sync.Mutex
@@ -76,14 +73,9 @@ func (c *capturingMailServer) FailNextSend() {
 	c.failNext = true
 }
 
-// newNotifyTestApp builds a second feeds app instance sharing testDB (whose
-// migrations are already applied by app_test.go's TestMain) but with its
-// own webfetch mock and a mailer pointed at a local capturing server —
-// testApp's own mailer is deliberately not-configured so unrelated tests
-// never send real requests. The returned notifications.Service lets callers
-// wait for a RefreshFeed-triggered alert to actually be delivered (issue
-// #923: delivery now happens off the RPC handler's own path); the returned
-// buffer captures FeedService's own log output.
+// newNotifyTestApp builds a feeds app on testDB with its own webfetch mock
+// and a mailer pointed at a capturing server. It returns the
+// notifications.Service to wait on delivery and a buffer of FeedService logs.
 func newNotifyTestApp(
 	t *testing.T,
 ) (
@@ -143,10 +135,8 @@ func feedConsecutiveFailuresAndNotified(
 	return failures, notifiedAt != nil
 }
 
-// TestFeedNotify_ErrorThreshold_DedupAndRecovery covers issue #799's
-// error-triggered alert end to end: no email until 3 consecutive failures,
-// exactly one email while broken (dedup), and the notified marker clears on
-// recovery.
+// TestFeedNotify_ErrorThreshold_DedupAndRecovery: no email before 3
+// failures, exactly one while broken, marker cleared on recovery.
 func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 	client, webFetch, mailSrv, notifSvc, _ := newNotifyTestApp(t)
 
@@ -209,10 +199,8 @@ func TestFeedNotify_ErrorThreshold_DedupAndRecovery(t *testing.T) {
 	assert.Equal(t, 1, mailSrv.count(), "recovery sends no further email")
 }
 
-// TestFeedNotify_SendFailure_LoggedAndNotMarkedNotified covers notifyProblem's
-// send-error branch (issue #923: delivery moved onto notifications.Service,
-// off the polling job's own path) -- a failed send must be logged and must
-// not mark the feed as notified, so the alert is retried on the next poll.
+// TestFeedNotify_SendFailure_LoggedAndNotMarkedNotified: a failed send is
+// logged and not marked notified, so it retries next poll.
 func TestFeedNotify_SendFailure_LoggedAndNotMarkedNotified(t *testing.T) {
 	client, webFetch, mailSrv, notifSvc, logBuf := newNotifyTestApp(t)
 

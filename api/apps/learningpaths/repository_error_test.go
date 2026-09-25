@@ -14,10 +14,8 @@ import (
 	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
-// TestLearningPathsRepository_ErrorPropagation exercises the
-// postgres.PgxErrorToHTTPError error branch of every repository method —
-// hard to reach with a valid query, so this uses an already-canceled
-// context to force each query to fail fast.
+// TestLearningPathsRepository_ErrorPropagation forces every method's error
+// branch with an already-canceled context.
 func TestLearningPathsRepository_ErrorPropagation(t *testing.T) {
 	testSealer, err := crypto.New(testCfg.EncryptionKey)
 	assert.NoError(t, err)
@@ -65,9 +63,8 @@ func TestLearningPathsRepository_ErrorPropagation(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestOAuthConnectionsRepository_ErrorPropagation exercises the
-// postgres.PgxErrorToHTTPError error branch of the per-user Todoist OAuth
-// connections repository (issue #1475), the same way as above.
+// TestOAuthConnectionsRepository_ErrorPropagation does the same for the
+// OAuth connections repository.
 func TestOAuthConnectionsRepository_ErrorPropagation(t *testing.T) {
 	testSealer, err := crypto.New(testCfg.EncryptionKey)
 	assert.NoError(t, err)

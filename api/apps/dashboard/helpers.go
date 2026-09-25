@@ -7,8 +7,7 @@ import (
 	dashboardv1 "tools.xdoubleu.com/gen/dashboard/v1"
 )
 
-// dateFormat matches the format games/books use for their own progress-chart
-// date range params (apps/games/books' ProgressDateFormat).
+// dateFormat matches games/books' ProgressDateFormat.
 const dateFormat = "2006-01-02"
 
 func parseDateRangeFromStrings(dateStart, dateEnd string) (time.Time, time.Time) {
