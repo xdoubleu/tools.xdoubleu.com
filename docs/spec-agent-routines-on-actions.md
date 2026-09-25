@@ -1,9 +1,9 @@
 # Spec: agent routines on GitHub Actions
 
-- Status: red-PR repair piloting; the other three routines still run on
-  claude.ai
-- Issues: #1902, part of #1851. Depends on #1899 (intake hardening), #1901
-  (machine identity).
+- Status: all four routines have Actions workflows, each switched on by its
+  `ROUTINE_<NAME>_ENABLED` variable once its claude.ai routine is disabled
+- Issues: #1902, #1903, part of #1851. Depends on #1899 (intake hardening),
+  #1901 (machine identity). Grafana-fired runs: #1907.
 
 Each routine is a thin caller workflow (`routine-<name>.yml`, `schedule:` +
 `workflow_dispatch:` only) around `.github/workflows/agent-routine.yml`. That
@@ -16,6 +16,9 @@ workflow:
 3. uploads the transcript encrypted,
 4. always posts a Slack notice: the job outcome, the agent's summary, and the
    run link.
+
+A red `main` also starts red-PR repair: `main.yml`'s `notify-main-ci-red` job
+calls `agent-routine.yml` directly.
 
 Rules the routines follow: [convention-unattended-agent-trust](convention-unattended-agent-trust.md).
 
@@ -41,12 +44,19 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    - `SLACK_WEBHOOK_URL`: the same webhook `notify_slack` uses.
    - `ROUTINE_TRANSCRIPT_PASSPHRASE`: `openssl rand -hex 32`. Without it, no
      transcript is uploaded.
+   - `POSTHOG_MCP_API_KEY`: a PostHog personal API key with read access to the
+     project, for the PostHog UX discovery routine only.
 3. **Repository variables**:
    - `ROUTINES_APP_ID`.
    - `ROUTINES_MODEL`: an OpenRouter model id without the `openrouter/`
      prefix, e.g. a GLM or DeepSeek flash model.
+   - `POSTHOG_MCP_URL`: PostHog's remote MCP endpoint for your region, from
+     PostHog's MCP docs.
    - `ROUTINE_<NAME>_ENABLED=true` per routine, once its claude.ai routine is
-     disabled. `workflow_dispatch` runs regardless.
+     disabled: `RED_PR_REPAIR`, `NIGHTLY_MAINTENANCE_SWEEP`,
+     `READY_ISSUES_EXECUTOR`, `POSTHOG_UX_DISCOVERY`. These must be
+     repo-level: the callers' `if:` runs outside the `agents` environment.
+     `workflow_dispatch` runs regardless.
 
 ## Reading a transcript
 
@@ -63,7 +73,8 @@ openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$ROUTINE_TRANSCRIPT_PASSPHRASE" 
 
 - The MCP token lasts an hour, so the agent step is capped at 55 minutes.
 - OpenCode subagents share one checkout, so routines work through items in
-  sequence rather than in parallel isolated subagents.
+  sequence rather than in parallel isolated subagents. The ready-issues
+  executor takes at most 2 issues per run to fit the cap.
 - `.opencode/plugins/repo-guard` does nothing under `GITHUB_ACTIONS`, because
   the runner's checkout is throwaway.
 - The agent's shell holds the App, MCP and OpenRouter credentials. The bash

@@ -14,6 +14,11 @@ turns the issues into PRs later.
 connector below — the trigger-creation API silently drops connectors the
 creating session lacks (#1438).
 
+**Moving to GitHub Actions:** `.github/workflows/routine-nightly-maintenance-sweep.yml`
+([spec-agent-routines-on-actions](spec-agent-routines-on-actions.md)) carries
+this prompt, adapted to OpenCode. To switch over, disable the claude.ai routine
+and set `ROUTINE_NIGHTLY_MAINTENANCE_SWEEP_ENABLED=true`.
+
 ## Setup
 
 1. claude.ai/code/routines → New routine.

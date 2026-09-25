@@ -708,10 +708,9 @@ jobs:
                   -H "Authorization: Bearer $HCLOUD_TOKEN"
               done
 
-  # main deploys without re-testing, so a red push-to-main job fires the
-  # red-pr-repair routine immediately via /webhooks/grafana-alert
-  # (api/cmd/api/routines_webhook.go) rather than waiting for its schedule.
-  # `needs` lists every push-to-main job so `always()` waits for all of them.
+  # main deploys without re-testing, so a red push-to-main job starts the
+  # red-PR repair routine now rather than at its morning run. `needs` lists
+  # every push-to-main job so `always()` waits for all of them.
   notify-main-ci-red:
     needs:
       [
@@ -730,39 +729,24 @@ jobs:
       always() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      contains(needs.*.result, 'failure')
-    name: Notify red-pr-repair of a red main branch
-    runs-on: ubuntu-latest
-    environment: production
+      contains(needs.*.result, 'failure') &&
+      vars.ROUTINE_RED_PR_REPAIR_ENABLED == 'true'
+    name: Start red-PR repair on a red main branch
     permissions:
       contents: read
-    steps:
-      # labels.routine picks the routine to fire; same payload shape as
-      # contactpoints.yml's routine-fire contact point.
-      - name: POST failing-job context to the routine-fire webhook
-        env:
-          ROUTINE_FIRE_TOKEN: ${{ secrets.ROUTINE_FIRE_TOKEN }}
-          NEEDS_JSON: ${{ toJson(needs) }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          failing_jobs=$(echo "$NEEDS_JSON" | jq -r '
-            to_entries | map(select(.value.result == "failure")) | map(.key) | join(", ")
-          ')
-          payload=$(jq -n \
-            --arg summary "main branch CI is red" \
-            --arg description "Push to main at $COMMIT_SHA failed. Failing job(s): $failing_jobs. Run: $RUN_URL" \
-            --arg url "$RUN_URL" \
-            '{
-              status: "firing",
-              alerts: [{
-                status: "firing",
-                labels: {alertname: "MainCIRed", routine: "red-pr-repair"},
-                annotations: {summary: $summary, description: $description},
-                generatorURL: $url
-              }]
-            }')
-          curl -sf -X POST "https://tools.xdoubleu.com/api/webhooks/grafana-alert" \
-            -H "Authorization: Bearer $ROUTINE_FIRE_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "$payload"
+    uses: ./.github/workflows/agent-routine.yml
+    secrets: inherit
+    with:
+      routine: red-pr-repair
+      prompt: >-
+        Run the red-pr-repair skill (.claude/skills/red-pr-repair/SKILL.md),
+        entry point 2 (a red main branch); if the skill tool can't load it, read
+        that file and follow it by hand. Call record_action with mode=open,
+        trigger_source=webhook, routine_name=red-pr-repair first. The push to
+        main at ${{ github.sha }} failed in run
+        ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }};
+        find the failing jobs with gh run view --log-failed. Fix on a new
+        branch off origin/main and open a PR gated by normal CI — never push to
+        main. With no determinable fix, file a tracking issue describing the
+        investigation. Then call record_action with mode=close (the id the open
+        call returned) and the outcome.

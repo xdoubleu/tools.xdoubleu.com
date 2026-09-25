@@ -21,14 +21,10 @@ creating session lacks (#1438).
 
 ## Second trigger: a red `main`
 
-`main.yml`'s `notify-main-ci-red` job POSTs a Grafana-alert-shaped body
-(`labels.routine: "red-pr-repair"`) to `/webhooks/grafana-alert`
-(`api/cmd/api/routines_webhook.go`) the moment a push-to-main job fails,
-authenticated with the `ROUTINE_FIRE_TOKEN` bearer (also a GitHub Actions
-secret, see `infra/README.md`). It is the same route Grafana's `routine-fire`
-contact point (`infra/grafana/provisioning/alerting/contactpoints.yml`)
-targets, skipping Grafana's evaluation latency. The fix still goes through a
-new PR — see the skill's "Entry point 2".
+`main.yml`'s `notify-main-ci-red` job calls `agent-routine.yml` directly the
+moment a push-to-main job fails, with the commit SHA and run URL in the
+prompt. It is gated on `ROUTINE_RED_PR_REPAIR_ENABLED` like the schedule. The
+fix still goes through a new PR — see the skill's "Entry point 2".
 
 ## Setup
 

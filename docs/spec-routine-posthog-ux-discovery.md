@@ -13,6 +13,11 @@ run is expected to report `no_action_needed`.
 connectors below — the trigger-creation API silently drops connectors the
 creating session lacks (#1438).
 
+**Moving to GitHub Actions:** `.github/workflows/routine-posthog-ux-discovery.yml`
+([spec-agent-routines-on-actions](spec-agent-routines-on-actions.md)) carries
+this prompt, adapted to OpenCode. To switch over, disable the claude.ai routine
+and set `ROUTINE_POSTHOG_UX_DISCOVERY_ENABLED=true`.
+
 ## Setup
 
 1. claude.ai/code/routines → New routine.
