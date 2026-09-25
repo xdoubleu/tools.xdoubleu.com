@@ -12,6 +12,9 @@ type Role string
 const (
 	RoleAdmin Role = "admin"
 	RoleUser  Role = "user"
+	// RoleService is a headless machine identity: observability tools only, no
+	// app access or user data.
+	RoleService Role = "service"
 )
 
 type User struct {

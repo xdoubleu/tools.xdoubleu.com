@@ -28,7 +28,9 @@ func (r *AppUsersRepository) Upsert(ctx context.Context, id, email string) error
 
 func (r *AppUsersRepository) GetAll(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, email, role FROM global.app_users ORDER BY last_seen DESC
+		SELECT id, email, role FROM global.app_users
+		WHERE role <> 'service'
+		ORDER BY last_seen DESC
 	`)
 	if err != nil {
 		return nil, err

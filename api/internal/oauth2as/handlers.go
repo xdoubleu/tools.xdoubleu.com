@@ -85,7 +85,8 @@ func AuthorizeHandler(
 	}
 }
 
-// TokenHandler serves /oauth2/token (authorization_code and refresh_token).
+// TokenHandler serves /oauth2/token (authorization_code, refresh_token, and
+// client_credentials for machine clients).
 func TokenHandler(
 	provider fosite.OAuth2Provider,
 	logger *slog.Logger,
@@ -101,6 +102,19 @@ func TokenHandler(
 			logOAuthError(ctx, logger, endpointToken, ar, err)
 			provider.WriteAccessError(ctx, w, ar, err)
 			return
+		}
+
+		if ar.GetGrantTypes().ExactOne("client_credentials") {
+			subject, ok := machineSubject(ar.GetClient().GetID())
+			if !ok {
+				err = fosite.ErrUnauthorizedClient.WithHint(
+					"The client has no machine identity.",
+				)
+				logOAuthError(ctx, logger, endpointToken, ar, err)
+				provider.WriteAccessError(ctx, w, ar, err)
+				return
+			}
+			session.Subject = subject
 		}
 
 		resp, err := provider.NewAccessResponse(ctx, ar)

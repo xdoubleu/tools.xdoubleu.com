@@ -83,6 +83,7 @@ func (app *Application) oauth2MetadataHandler() http.HandlerFunc {
 			"grant_types_supported": []string{
 				"authorization_code",
 				"refresh_token",
+				"client_credentials",
 			},
 			// Dynamic (MCP) clients only get offline_access; the OIDC scopes are for the
 			// static Grafana SSO client.

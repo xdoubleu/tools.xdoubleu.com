@@ -31,6 +31,19 @@ func requireAdmin(ctx context.Context) error {
 	return nil
 }
 
+// requireObservability gates the observability MCP tools: admins and the
+// service role, which has no access to user data.
+func requireObservability(ctx context.Context) error {
+	user := contexttools.GetValue[models.User](ctx, constants.UserContextKey)
+	if user.Role != models.RoleAdmin && user.Role != models.RoleService {
+		return connect.NewError(
+			connect.CodePermissionDenied,
+			errors.New("admin access required"),
+		)
+	}
+	return nil
+}
+
 func protoAppUser(u models.User) *accessv1.AppUser {
 	access := u.AppAccess
 	if access == nil {

@@ -20,7 +20,8 @@ const (
 )
 
 // NewProvider builds the embedded OAuth 2.1 / OIDC server: authorization code
-// and refresh grants, PKCE required, RS256 ID tokens for openid clients.
+// and refresh grants, PKCE required, RS256 ID tokens for openid clients, and
+// client_credentials for confidential clients registered with that grant.
 // Access tokens are opaque HMAC tokens; oidcKey signs only ID tokens.
 func NewProvider(
 	cfg config.Config,
@@ -53,6 +54,7 @@ func NewProvider(
 		strategy,
 		compose.OAuth2AuthorizeExplicitFactory,
 		compose.OAuth2RefreshTokenGrantFactory,
+		compose.OAuth2ClientCredentialsGrantFactory,
 		compose.OAuth2PKCEFactory,
 		// OIDC must come after the authorize-code handler: it adds an ID token to the
 		// code that handler issued.
