@@ -44,6 +44,9 @@ type Config struct {
 	// OAuthGrafanaClientSecret is the static "grafana" OAuth client's secret; its
 	// bcrypt hash is reconciled on startup. Empty disables Grafana SSO.
 	OAuthGrafanaClientSecret string
+	// OAuthRoutinesClientSecret is the static "routines" machine client's
+	// secret, reconciled like Grafana's. Empty disables the client.
+	OAuthRoutinesClientSecret string
 	// AuthIssuer is this api's OAuth 2.1 issuer URL. Defaults to APIURL.
 	AuthIssuer      string
 	SteamAPIKey     string
@@ -240,6 +243,7 @@ func New(logger *slog.Logger) Config {
 	cfg.OAuthHMACSecret = p.envSecret("OAUTH_HMAC_SECRET", "")
 	cfg.OAuthOIDCPrivateKey = p.envSecret("OAUTH_OIDC_PRIVATE_KEY", "")
 	cfg.OAuthGrafanaClientSecret = p.envSecret("OAUTH_GRAFANA_CLIENT_SECRET", "")
+	cfg.OAuthRoutinesClientSecret = p.envSecret("OAUTH_ROUTINES_CLIENT_SECRET", "")
 	cfg.AuthIssuer = p.envStr("AUTH_ISSUER", "")
 	if cfg.AuthIssuer == "" {
 		cfg.AuthIssuer = cfg.APIURL

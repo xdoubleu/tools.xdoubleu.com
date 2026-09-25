@@ -300,6 +300,10 @@ OAUTH_GRAFANA_CLIENT_SECRET  (static "grafana" OAuth client secret; api
                               reconciles its bcrypt hash on boot; unset ⇒
                               Grafana SSO unusable. Also passed to Grafana as
                               GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET)
+OAUTH_ROUTINES_CLIENT_SECRET (static "routines" machine client secret for the
+                              scheduled agent routines' client_credentials
+                              grant; unset ⇒ that client can't authenticate.
+                              Also an Actions secret in the agents environment)
 GRAFANA_ADMIN_PASSWORD       (Grafana break-glass admin, GF_SECURITY_ADMIN_PASSWORD;
                               also given to api for get_grafana_alerts)
 STEAM_API_KEY

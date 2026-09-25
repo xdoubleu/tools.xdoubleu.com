@@ -485,6 +485,11 @@ func NewApplication(
 	); err != nil {
 		panic(err)
 	}
+	if err = oauth2as.EnsureRoutinesClientSecret(
+		ctx, spanDB, config.OAuthRoutinesClientSecret, logger,
+	); err != nil {
+		panic(err)
+	}
 
 	// Flush request counts for the process lifetime.
 	app.usage.Start(ctx, usageFlushInterval)

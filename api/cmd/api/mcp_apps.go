@@ -12,7 +12,8 @@ import (
 )
 
 // The apps MCP server exposes each app's read RPCs plus admin observability
-// tools over streamable HTTP. Tools are gated by per-app access or requireAdmin.
+// tools over streamable HTTP. Tools are gated by per-app access or
+// requireObservability.
 // Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
 // admin tools resolve_sentry_issue, dismiss_security_alert, record_action and
 // notify_slack.
@@ -277,7 +278,7 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 		})
 }
 
-// addObsTool registers a read-only observability tool: admin gate, then the
+// addObsTool registers an observability tool: requireObservability, then the
 // proto response marshalled to JSON text.
 func addObsTool[In any](
 	srv *mcp.Server,
@@ -291,7 +292,7 @@ func addObsTool[In any](
 			_ *mcp.CallToolRequest,
 			args In,
 		) (*mcp.CallToolResult, any, error) {
-			if err := requireAdmin(ctx); err != nil {
+			if err := requireObservability(ctx); err != nil {
 				return nil, nil, err
 			}
 			msg, err := produce(ctx, args)

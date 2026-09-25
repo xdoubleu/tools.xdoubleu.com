@@ -34,7 +34,7 @@ func registerPromQueryMCPTool(srv *mcp.Server, app *Application) {
 		_ *mcp.CallToolRequest,
 		args promQueryArgs,
 	) (*mcp.CallToolResult, any, error) {
-		if err := requireAdmin(ctx); err != nil {
+		if err := requireObservability(ctx); err != nil {
 			return nil, nil, err
 		}
 		body, err := promQuery(ctx, app.config.PrometheusURL, args.Query)

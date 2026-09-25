@@ -69,6 +69,8 @@ env:
     - OAUTH_OIDC_PRIVATE_KEY
     # Its bcrypt hash is reconciled into auth.oauth2_clients on startup.
     - OAUTH_GRAFANA_CLIENT_SECRET
+    # The "routines" machine client's secret, reconciled the same way.
+    - OAUTH_ROUTINES_CLIENT_SECRET
     # Repo Secrets read by main.yml's deploy-kamal job, not tfvars: Tofu
     # provisions the host, it doesn't deploy the app.
     - STEAM_API_KEY
