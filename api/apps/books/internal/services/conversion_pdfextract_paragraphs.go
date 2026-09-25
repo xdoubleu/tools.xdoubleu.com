@@ -8,37 +8,45 @@ import (
 	"unicode/utf8"
 )
 
-// Step 6 (headings): a paragraph taller than these ratios of the document's
-// modal body height becomes <h1>/<h2>.
+// headingH1Ratio/headingH2Ratio implement step 6 (headings): a paragraph
+// whose median character height exceeds these ratios of the document's modal
+// (body text) character height becomes an <h1>/<h2>.
 const (
 	headingH1Ratio = 1.4
 	headingH2Ratio = 1.15
-	// Step 4 (paragraphs).
+	// paragraphGapRatio/paragraphIndentChars implement step 4 (paragraphs).
 	paragraphGapRatio    = 1.5
 	paragraphIndentChars = 2
-	// A line ending short of the right margin by more than this ends its paragraph.
+	// paragraphShortLineRatio: a line ending short of the column's right
+	// margin by more than this fraction ends its paragraph.
 	paragraphShortLineRatio = 0.85
 )
 
-// streamItem is a text line or a figure in a page's reading order.
+// streamItem is one entry in a page's reading-order stream: either a line of
+// text or a figure placed between lines.
 type streamItem struct {
 	line   *pdfLine
 	figure *pdfFigure
 }
 
-// htmlBlock is one paragraph, heading, or image block.
+// htmlBlock is one block-level element of the extracted document: a
+// paragraph, heading, or image.
 type htmlBlock struct {
 	html string
 	tag  string // "p", "h1", "h2", or "img" — used for title fallback/tests.
 	text string // raw (unescaped) text; empty for "img".
-	// medHeight and isText are set only for paragraph blocks, for finalizeHeadings
-	// to classify with document-wide context.
+	// medHeight and isText are populated only for paragraph blocks
+	// (renderParagraph), never "img" blocks, and are consumed by
+	// finalizeHeadings — which assigns the final tag/html using
+	// document-wide context to avoid misclassifying bibliography/list-style
+	// large text as a heading (issue #1654).
 	medHeight float64
 	isText    bool
 }
 
-// mergeColumn inserts each figure after the last line whose y-midpoint is above
-// the figure's top.
+// mergeColumn interleaves a column's lines (already sorted top-to-bottom)
+// with its figures, inserting each figure after the last line whose
+// y-midpoint is above the figure's top bound (step: figure placement).
 func mergeColumn(lines []pdfLine, figures []pdfFigure) []streamItem {
 	linesBefore := make([]int, len(figures))
 	for i, f := range figures {
@@ -70,8 +78,10 @@ func mergeColumn(lines []pdfLine, figures []pdfFigure) []streamItem {
 	return items
 }
 
-// buildPageStream merges each column's lines and figures, left column first.
-// A full-width figure goes after the left column.
+// buildPageStream assigns lines/figures to columns and merges each column's
+// lines with its figures, concatenating left-column then right-column (step
+// 3: reading order). A full-width figure (bounds straddle the gutter) is
+// always appended after the last line of the left column.
 func buildPageStream(
 	lines []pdfLine,
 	figures []pdfFigure,
@@ -103,8 +113,11 @@ func buildPageStream(
 	return append(leftStream, rightStream...)
 }
 
-// buildPageBlocks groups a page's stream into paragraphs; a figure flushes the
-// current paragraph. Headings are classified later by finalizeHeadings.
+// buildPageBlocks groups a page's stream into paragraphs, applying
+// hyphenation joins within each paragraph (heading classification is
+// deferred to finalizeHeadings, which needs document-wide context — see
+// conversion_pdfextract_page.go's extractDocument). A figure always flushes
+// the current paragraph and is emitted as its own <img> block.
 func buildPageBlocks(
 	items []streamItem, medLineHeight, pageMedianCharWidth float64,
 ) []htmlBlock {
@@ -154,8 +167,10 @@ func buildPageBlocks(
 	return blocks
 }
 
-// startsNewParagraph: a large vertical gap, an indent past the column's modal
-// start, or a short previous line.
+// startsNewParagraph implements step 4: a new paragraph starts when the
+// vertical gap to the previous line is too large, the current line is
+// indented past the column's modal start, or the previous line ends well
+// short of the column's right margin.
 func startsNewParagraph(prev, cur pdfLine, medLineHeight, medCharWidth float64) bool {
 	if medLineHeight > 0 && prev.bottom-cur.top > paragraphGapRatio*medLineHeight {
 		return true
@@ -170,7 +185,10 @@ func startsNewParagraph(prev, cur pdfLine, medLineHeight, medCharWidth float64) 
 	return false
 }
 
-// renderParagraph joins a paragraph's lines (dehyphenating) into a "p" block.
+// renderParagraph joins a paragraph's lines (applying hyphenation, step 5)
+// into a plain-paragraph block, carrying its median character height for
+// finalizeHeadings to classify (step 6) once every paragraph in the document
+// is known.
 func renderParagraph(lines []pdfLine) htmlBlock {
 	text := joinLinesWithHyphenation(lines)
 
@@ -189,10 +207,35 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 	}
 }
 
-// finalizeHeadings assigns each paragraph's final tag by height ratio, then
-// demotes candidates that aren't real headings: list-like runs
-// (demoteHeadingRuns) first, then survivors that start lowercase, are
-// loop-diagram labels ("R B"), or fail isHeadingFalsePositive.
+// finalizeHeadings assigns each paragraph block's final tag ("h1"/"h2"/"p")
+// and renders its html, in place. A paragraph is classified purely by height
+// ratio to the document's modal (body text) character height, as before.
+// A candidate that passes the ratio test is then demoted to "p" when its
+// shape or context says it isn't a real heading:
+//
+//   - startsLowercase: a real title never starts mid-sentence — catches
+//     large-font marginal pull-quote words and run-on paragraph fragments
+//     (issue #1698).
+//   - isLoopDiagramLabel: text made up only of single uppercase-letter
+//     tokens ("B", "R B", "B B") is a systems-diagram loop-label callout,
+//     never a title (issue #1698 follow-up left open by #1766).
+//   - startsLowercase: a real title never starts mid-sentence — catches
+//     large-font marginal pull-quote words and run-on paragraph fragments
+//     (issue #1698).
+//   - isLoopDiagramLabel: text made up only of single uppercase-letter
+//     tokens ("B", "R B", "B B") is a systems-diagram loop-label callout,
+//     never a title (issue #1698 follow-up left open by #1766).
+//   - isHeadingFalsePositive: a candidate ending in sentence punctuation
+//     (a quoted pull quote, a numbered list item, a question fragment) or
+//     referencing a figure number ("Delays, Figure 30:", "(see Figure 39)")
+//     is body text or a caption; an h1 candidate that is a single word at
+//     mid-band size (above body text but well below real title-page type)
+//     is an embedded diagram label ("Cooling") (issue #1698).
+//
+// The shape guards run after demoteHeadingRuns so that a run member already
+// flattened as a list entry can't "shield" its neighbours: every member of a
+// run goes to "p" regardless of its own shape, and the guards judge only
+// survivors in isolation.
 func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	tags := make([]string, len(blocks))
 	for i, b := range blocks {
@@ -212,9 +255,13 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 			tags[i] = "p"
 			continue
 		}
-		// Sentence punctuation and figure references demote both sizes. The one-word
-		// mid-band guard is h1-only: a one-word h2 is a normal section heading, while
-		// a mid-size one-word h1 is a figure label ("Cooling").
+		// Sentence punctuation and figure references are decisive across
+		// both heading sizes — no real title/section heading ends in a
+		// sentence or cites a figure number. The one-word mid-band guard
+		// stays h1-only: a one-word h2 (above body text but under the h1
+		// threshold) is a normal small section heading ("Resilience"),
+		// while a one-worder that clears the h1 threshold at mid-band size
+		// is an embedded figure label ("Cooling").
 		if isHeadingFalsePositive(
 			b.text, b.medHeight, docModalCharHeight, tags[i] == "h1",
 		) {
@@ -233,6 +280,8 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	}
 }
 
+// headingCandidateTag classifies a single paragraph by height ratio alone,
+// ignoring surrounding context (that's demoteHeadingRuns's job).
 func headingCandidateTag(medHeight, docModalCharHeight float64) string {
 	if docModalCharHeight <= 0 {
 		return "p"
@@ -247,31 +296,46 @@ func headingCandidateTag(medHeight, docModalCharHeight float64) string {
 	}
 }
 
+// startsLowercase reports whether text's first rune is a lowercase letter.
+// Text with no leading letter (empty, or starting with punctuation/digits)
+// is not considered lowercase-started.
 func startsLowercase(text string) bool {
 	r, _ := utf8.DecodeRuneInString(text)
 	return r != utf8.RuneError && unicode.IsLower(r)
 }
 
-// loopDiagramLabelRe matches single uppercase letters ("B", "R B"): a
-// systems-diagram loop label.
+// loopDiagramLabelRe matches text made up of one or more single uppercase
+// ASCII letters separated by single spaces ("B", "R B", "B B", …) — the
+// shape of a systems-diagram loop-label callout, never of a real
+// title/heading (see finalizeHeadings, issue #1698).
 var loopDiagramLabelRe = regexp.MustCompile(`^[A-Z](?: [A-Z])*$`)
 
+// isLoopDiagramLabel reports whether text (after trimming surrounding
+// whitespace) matches loopDiagramLabelRe.
 func isLoopDiagramLabel(text string) bool {
 	return loopDiagramLabelRe.MatchString(strings.TrimSpace(text))
 }
 
-// headingH1MidBandRatio: real one-word headings render at title size, well
-// above this; diagram labels sit just above the h1 threshold.
+// headingH1MidBandRatio bounds the size band in which a one-word h1
+// candidate is treated as an embedded figure label: real one-word headings
+// ("Appendix", chapter titles) are rendered at title-page size, well above
+// this ratio, while diagram labels ("Cooling") sit just above the h1
+// threshold.
 const headingH1MidBandRatio = 1.6
 
-// closingQuoteChars may follow final punctuation without changing its shape.
+// closingQuoteChars are closing punctuation that may follow a sentence's
+// final punctuation mark without changing its shape ("…like a pillar.”").
 const closingQuoteChars = "”’\"')]}»·"
 
-// trailingEllipsisRe matches a trailing ellipsis, which a title may end in.
+// trailingEllipsisRe matches a trailing typographic ellipsis, spaced dots
+// ("System Traps . . .") or "…" — a title can end in one, so it doesn't
+// make the text sentence-shaped.
 var trailingEllipsisRe = regexp.MustCompile(`(?:\s*\.\s*){3,}$`)
 
-// endsSentencePunctuation reports whether text ends in sentence punctuation,
-// ignoring a trailing ellipsis and closing quotes.
+// endsSentencePunctuation reports whether trimmed heading-candidate text
+// ends in sentence punctuation once a trailing ellipsis and trailing
+// closing quotes/brackets are stripped — the shape of a sentence, numbered
+// list item, or question fragment, never of a real title/heading.
 func endsSentencePunctuation(text string) bool {
 	stripped := strings.TrimRight(strings.TrimSpace(text), closingQuoteChars)
 	stripped = strings.TrimRight(stripped, "…")
@@ -288,11 +352,13 @@ func endsSentencePunctuation(text string) bool {
 	}
 }
 
-// figureRefRe marks a caption or cross-reference rather than a heading.
+// figureRefRe matches a figure-number reference ("Figure 39", "Figure 1 2"),
+// the marker of a caption or cross-reference fragment rather than a heading.
 var figureRefRe = regexp.MustCompile(`Figure \d`)
 
-// isHeadingFalsePositive reports whether a candidate's text shape rules it
-// out; isH1 enables the one-word mid-band guard.
+// isHeadingFalsePositive reports whether a heading candidate's text shape
+// says it isn't a heading (see finalizeHeadings). isH1 controls the
+// one-word mid-band guard, which applies to h1 candidates only.
 func isHeadingFalsePositive(
 	text string, medHeight, docModalCharHeight float64, isH1 bool,
 ) bool {
@@ -308,10 +374,17 @@ func isHeadingFalsePositive(
 	return false
 }
 
-// demoteHeadingRuns flattens chains of consecutive similar-size heading
-// candidates: 3+ is a bibliography/list page; a pair only when one member is
-// list-shaped (listShapedPair), so a title page's banner+title or a two-line
-// title survives. A non-paragraph block breaks a chain.
+// demoteHeadingRuns rewrites tags in place, flattening chains of
+// consecutive non-"p" text blocks that look like a list (see
+// finalizeHeadings): candidates chain while consecutive AND rendered at a
+// similar size, and a chain of 3+ is a bibliography/citation page
+// regardless of its members' text shapes (issue #1654), while a 2-member
+// chain counts as a list only when one member has a list entry's text
+// shape (see listShapedPair) — a chapter title page's decoration banner
+// (h2-sized) beside its h1-sized title is a dissimilar pair, and a
+// two-line title at one size has no entry shape; flattening either would
+// erase the TOC's chapter entry (issue #1698). A non-paragraph block (e.g.
+// an image) breaks a chain.
 func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
 	chainStart := -1
 	prevHeight := 0.0
@@ -340,6 +413,8 @@ func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
 			prevHeight = b.medHeight
 			continue
 		}
+		// A size jump splits the chain: decide the chain so far, start a
+		// new one here.
 		flush(i)
 		chainStart = i
 		prevHeight = b.medHeight
@@ -349,8 +424,12 @@ func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
 	}
 }
 
-// listShapedPair reports whether either member of a two-member chain has a
-// list entry's text shape.
+// listShapedPair reports whether a two-member same-size chain counts as
+// list entries: at least one member has an entry's text shape (sentence
+// punctuation, a figure reference, a lowercase start, or a loop-label
+// shape). Without the shape requirement, a two-line title rendered at one
+// size ("Leverage Points—" / "Places to I ntervene in a System") would be
+// flattened and vanish from the chapter TOC.
 func listShapedPair(blocks []htmlBlock, start int) bool {
 	for i := start; i < start+2; i++ {
 		if endsSentencePunctuation(blocks[i].text) ||
@@ -363,8 +442,9 @@ func listShapedPair(blocks []htmlBlock, start int) bool {
 	return false
 }
 
-// headingRunSimilarity is the max relative height difference for two
-// candidates to count as the same font size.
+// headingRunSimilarity is the maximum relative height difference two
+// adjacent heading candidates may have and still count as list entries
+// rendered in the same font size.
 const headingRunSimilarity = 0.1
 
 func heightsSimilar(a, b float64) bool {
@@ -377,8 +457,9 @@ func heightsSimilar(a, b float64) bool {
 	return a-b <= headingRunSimilarity*b
 }
 
-// joinLinesWithHyphenation joins lines with spaces, except a trailing '-'
-// before a lowercase start joins directly with the hyphen dropped.
+// joinLinesWithHyphenation joins consecutive line texts with a space, except
+// when a line ends with '-' and the next starts with a lowercase letter, in
+// which case they're joined directly with the hyphen dropped.
 func joinLinesWithHyphenation(lines []pdfLine) string {
 	if len(lines) == 0 {
 		return ""

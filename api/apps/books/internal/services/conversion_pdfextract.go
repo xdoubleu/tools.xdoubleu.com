@@ -15,14 +15,19 @@ import (
 	"github.com/klippa-app/go-pdfium/webassembly"
 )
 
-// pdfSem allows one concurrent conversion: wazero keeps memory until an
-// instance closes, so concurrency is a memory risk on a 512 MB box.
+// pdfSem limits PDF extraction to one concurrent conversion, mirroring the
+// former calibreSem. Wazero does not return memory to the OS until an
+// instance is closed, so concurrency here is a memory risk on a 512 MB box,
+// not a throughput win.
 //
 //nolint:gochecknoglobals // package-level semaphore; no per-instance state needed
 var pdfSem = make(chan struct{}, 1)
 
-// pdfiumPool is safe to reuse; the per-conversion instances borrowed from it
-// must be closed right after use.
+// pdfiumPool is a lazily-initialized, package-level wasm runtime pool. The
+// pool itself (which compiles the embedded PDFium wasm module) is safe and
+// cheap to reuse; per the operational constraints, it is per-conversion
+// *instances* — borrowed from the pool and closed immediately after use —
+// that must never be held long-lived.
 //
 //nolint:gochecknoglobals // lazily-initialized singleton wasm runtime pool
 var (
@@ -47,10 +52,16 @@ func getPDFiumPool() (pdfium.Pool, error) {
 	return pdfiumPool, pdfiumPoolErr
 }
 
-// goPDFConverter converts a PDF to EPUB in pure Go: go-pdfium extracts
-// text, positions and images, which are rebuilt as reading-order HTML for
-// goHTMLConverter. Catalog title/authors win over PDF-derived metadata;
-// identifier is stamped into dc:identifier.
+// goPDFConverter converts a PDF at inPath into an EPUB at outPath using a
+// pure-Go pipeline: go-pdfium extracts text/positions/images (see
+// conversion_pdfextract_page.go for the per-page/per-document orchestration),
+// which are reassembled into reading-order HTML and handed to
+// goHTMLConverter for EPUB assembly. catalogTitle/catalogAuthors are the
+// book's already-known bibliographic metadata (its catalog title/author, per
+// EnsureKEPUB) and take priority over anything documentMeta could otherwise
+// derive from the PDF itself — see documentMeta (issue #1654). identifier is
+// the book's stable unique-identifier, stamped into the EPUB's dc:identifier
+// so regenerated files keep the same internal identity (issue #1734).
 func goPDFConverter(
 	ctx context.Context, inPath, outPath, identifier, catalogTitle string,
 	catalogAuthors []string,
@@ -120,7 +131,9 @@ func goPDFConverter(
 	return goHTMLConverter(ctx, htmlPath, outPath, meta)
 }
 
-// renderHTML wraps the blocks in a minimal document for goHTMLConverter.
+// renderHTML wraps the extracted blocks in a minimal standalone document —
+// goHTMLConverter (and buildArticleXHTML underneath it) parses this the same
+// way it parses a readability-extracted article body.
 func renderHTML(blocks []htmlBlock) string {
 	var b strings.Builder
 	b.WriteString(
@@ -134,8 +147,13 @@ func renderHTML(blocks []htmlBlock) string {
 	return b.String()
 }
 
-// documentMeta prefers catalog title/author, then the PDF info dict, then the
-// first heading (often frontmatter), then a placeholder.
+// documentMeta derives EPUB metadata for a PDF conversion, preferring the
+// book's catalog title/author — already known and correct by the time
+// EnsureKEPUB needs a PDF converted — over anything derived from the PDF
+// itself. When catalog metadata is unavailable it falls back to the PDF's
+// own Title/Author info dictionary entries, then the document's first
+// heading (often frontmatter, not the real title — issue #1654), then a
+// fixed placeholder.
 func documentMeta(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, blocks []htmlBlock,
 	identifier, catalogTitle string, catalogAuthors []string,
@@ -182,7 +200,8 @@ func firstHeadingText(blocks []htmlBlock) string {
 	return ""
 }
 
-// splitAuthors splits a comma/semicolon-separated Author string.
+// splitAuthors splits a PDF's raw Author metadata string (typically
+// comma/semicolon separated) into individual names.
 func splitAuthors(raw string) []string {
 	if raw == "" {
 		return nil

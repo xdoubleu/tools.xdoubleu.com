@@ -10,8 +10,9 @@ import (
 	"github.com/klippa-app/go-pdfium/requests"
 )
 
-// pageResult is a full-page fallback image or a reading-order stream with
-// its typographic stats.
+// pageResult is one page's contribution to the document: either a full-page
+// fallback image (image-only page) or a reading-order stream plus the
+// typographic stats needed to group it into paragraphs later.
 type pageResult struct {
 	items         []streamItem
 	fullPageImage string
@@ -19,12 +20,20 @@ type pageResult struct {
 	medCharWidth  float64
 }
 
+// noPageResult is the zero-value pageResult returned alongside every error
+// below — a plain zero-value var (not a composite literal) so it needs no
+// exhaustruct suppression.
+//
 //nolint:gochecknoglobals // deliberately the zero value; read-only
 var noPageResult pageResult
 
+// charHeightBucketSize is the granularity computeModalCharHeight rounds
+// character heights to before finding the most common (modal) value.
 const charHeightBucketSize = 0.5
 
-// extractPage runs the per-page pipeline through reading-order assembly.
+// extractPage runs the full per-page pipeline: text/position extraction,
+// figure extraction, the image-only-page fallback, line grouping, column
+// detection, and reading-order stream assembly.
 func extractPage(
 	instance pdfium.Pdfium, doc references.FPDF_DOCUMENT, index int,
 	workDir string, tracker *figureTracker,
@@ -42,7 +51,10 @@ func extractPage(
 	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no pixel info
 		Page: page,
 		Mode: requests.GetPageTextStructuredModeChars,
-		// Font names expose run boundaries that leave no measurable gap.
+		// Font name is used to detect text-run boundaries mid-line (#1653):
+		// a style/font change at a word boundary doesn't reliably produce a
+		// physical gap large enough for buildLine's geometric space check to
+		// catch on its own.
 		CollectFontInformation: true,
 	}
 	textResp, err := instance.GetPageTextStructured(&textReq)
@@ -61,7 +73,9 @@ func extractPage(
 		if renderErr != nil {
 			return noPageResult, renderErr
 		}
-		// "" means the tracker rejected the raster (duplicate or over cap).
+		// fileName is "" when the tracker rejected this raster as a
+		// duplicate or over the per-document cap; the page then contributes
+		// no image at all, same as a deduped regular figure.
 		return pageResult{ //nolint:exhaustruct // no text stream for an image-only page
 			fullPageImage: fileName,
 		}, nil
@@ -101,7 +115,9 @@ func extractPage(
 	}, nil
 }
 
-// extractDocument extracts every page and returns the final ordered blocks.
+// extractDocument runs extractPage over every page, computes the
+// document-wide modal character height needed for heading detection, and
+// returns the final ordered list of HTML blocks.
 func extractDocument(
 	ctx context.Context,
 	instance pdfium.Pdfium,
@@ -164,8 +180,9 @@ func extractDocument(
 	return blocks, nil
 }
 
-// computeModalCharHeight returns the most common line char height (the body
-// baseline for heading detection).
+// computeModalCharHeight finds the document's most common line character
+// height (bucketed to the nearest charHeightBucketSize), used as the "body
+// text" baseline for heading detection.
 func computeModalCharHeight(pages []pageResult) float64 {
 	freq := map[float64]int{}
 	for _, p := range pages {

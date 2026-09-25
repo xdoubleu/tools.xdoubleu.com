@@ -14,8 +14,10 @@ import (
 	"github.com/klippa-app/go-pdfium/requests"
 )
 
-// Figure filters: drop rules/bullets/glyph fragments by pixel size and tiny
-// page coverage, and cap figures per document.
+// figureMinPixels/figureMinAreaFraction/figureMaxPerDoc implement the figure
+// filtering rules: drop rules/bullets/glyph fragments by pixel size, drop
+// anything covering too little of the page, and cap the total kept per
+// document.
 const (
 	figureMinPixels       = 50
 	figureMinAreaFraction = 0.01
@@ -24,16 +26,21 @@ const (
 	imageOnlyPageMaxChars = 200
 )
 
+// noFigure is the zero-value rawFigure returned alongside ok=false by every
+// rejected candidate below.
+//
 //nolint:exhaustruct,gochecknoglobals // deliberately the zero value; read-only
 var noFigure = rawFigure{}
 
-// rawFigure has passed the per-object filters, not yet dedupe/cap.
+// rawFigure is a candidate figure image that has passed the per-object
+// filters but not yet the document-level dedupe/cap.
 type rawFigure struct {
 	png                      []byte
 	left, top, right, bottom float64
 }
 
-// pdfFigure is a placed figure already written to workDir.
+// pdfFigure is a figure placed in the page's reading-order stream, already
+// written to workDir under fileName.
 type pdfFigure struct {
 	fileName                 string
 	left, top, right, bottom float64
@@ -43,7 +50,8 @@ type pdfFigure struct {
 //nolint:mnd // midpoint of a bounding box
 func (f pdfFigure) xMid() float64 { return (f.left + f.right) / 2 }
 
-// figureTracker dedupes figures by PNG SHA-256 and enforces the cap.
+// figureTracker dedupes figures by the SHA-256 of their encoded PNG across
+// the whole document and enforces the per-document cap.
 type figureTracker struct {
 	seen  map[[32]byte]bool
 	count int
@@ -53,7 +61,8 @@ func newFigureTracker() *figureTracker {
 	return &figureTracker{seen: map[[32]byte]bool{}, count: 0}
 }
 
-// accept returns the filename and true for a first occurrence under the cap.
+// accept returns the filename to use for pngData and true if it should be
+// kept (first occurrence, under the cap), or "", false otherwise.
 func (t *figureTracker) accept(pngData []byte) (string, bool) {
 	if t.count >= figureMaxPerDoc {
 		return "", false
@@ -68,7 +77,9 @@ func (t *figureTracker) accept(pngData []byte) (string, bool) {
 	return name, true
 }
 
-// extractPageImages keeps image objects passing the size and area filters.
+// extractPageImages enumerates a page's objects, keeping image objects that
+// survive the pixel-size and page-area filters (steps performed before
+// dedupe, which is a document-level concern).
 func extractPageImages(
 	instance pdfium.Pdfium, page requests.Page, pageArea float64,
 ) ([]rawFigure, error) {
@@ -172,7 +183,9 @@ func renderImageObjectPNG(
 	return buf.Bytes(), nil
 }
 
-// placeFigures resolves placement, applies dedupe/cap, and writes PNGs.
+// placeFigures resolves each raw figure's column/full-width placement,
+// applies the document-level dedupe/cap via tracker, and writes accepted
+// PNGs into workDir.
 func placeFigures(
 	raw []rawFigure, gutterLeft, gutterRight float64, twoColumn bool,
 	tracker *figureTracker, workDir string,
@@ -202,9 +215,15 @@ func placeFigures(
 	return figures, nil
 }
 
-// renderFullPage rasterizes an image-only page at 150 DPI through the same
-// figureTracker, so duplicate (e.g. blank) pages dedupe and the cap applies.
-// An empty name with nil error means the tracker rejected it.
+// renderFullPage rasterizes an image-only page (scanned content, or a page
+// with too little extractable text and no surviving figures) to a single PNG
+// at 150 DPI, per the image-only-page fallback. The raster is run through the
+// same document-wide figureTracker as regular figures, so a page whose
+// rendered bitmap is byte-identical to one already kept (most commonly a
+// blank page) dedupes instead of being re-embedded, and the fallback path
+// respects the same figureMaxPerDoc cap. An empty name with a nil error means
+// the render was rejected by the tracker (duplicate or over cap); the caller
+// should treat the page as if it contributed no image.
 func renderFullPage(
 	instance pdfium.Pdfium, page requests.Page, workDir string, tracker *figureTracker,
 ) (string, error) {

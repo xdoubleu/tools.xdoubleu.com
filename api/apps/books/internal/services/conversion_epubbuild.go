@@ -190,8 +190,9 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 	if meta.Identifier != "" {
 		b.WriteString(meta.Identifier)
 	} else {
-		// Only tests and callers without a stable identity reach this; Kobo
-		// needs a per-book identity to correlate regenerated files.
+		// Only tests and callers without a stable identity reach this; a
+		// per-book identity is required for the Kobo firmware to correlate
+		// regenerated files with the book it already has (issue #1734).
 		b.WriteString(uuid.NewString())
 	}
 	b.WriteString("</dc:identifier>\n")
@@ -232,7 +233,7 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 // buildNavXHTML renders the EPUB nav document's TOC as one chapter link per
 // toc entry (assignHeadingIDs), falling back to a single link to the whole
 // book when the article has no <h1> headings at all (e.g. a short feed
-// article).
+// article) — see issue #1698, which the single-link case predates.
 func buildNavXHTML(title string, toc []tocEntry) string {
 	escaped := escapeXMLText(title)
 
