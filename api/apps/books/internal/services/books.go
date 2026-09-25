@@ -711,6 +711,14 @@ func (s *BookService) GetKoboSyncBook(
 
 // UpdateReadingProgress upserts a resumable reading position for a book.
 // source must be one of web/kobo/manual; percent is clamped to 0-100.
+//
+// A kobo-sourced update that would regress percent below the currently
+// stored value is dropped rather than applied: the Kobo device re-reports
+// its local bookmark on every sync, which can be stale (e.g. right after a
+// KEPUB regeneration forces a re-download, the device opens the "new" file
+// with no local bookmark yet) and must not clobber a correct, previously
+// synced position. web/manual sources are exempt since those reflect an
+// explicit, current user action (including deliberately restarting a book).
 func (s *BookService) UpdateReadingProgress(
 	ctx context.Context,
 	userID string,
@@ -729,6 +737,15 @@ func (s *BookService) UpdateReadingProgress(
 	}
 	if percent > models.MaxProgressPercent {
 		percent = models.MaxProgressPercent
+	}
+
+	if source == models.ReadingSourceKobo {
+		// Any error here (including "no existing state") just means there's
+		// nothing to regress against — fall through to the upsert below.
+		if existing, err := s.readingState.Get(ctx, userID, bookID); err == nil &&
+			percent < existing.Percent {
+			return nil
+		}
 	}
 
 	if err := s.readingState.Upsert(

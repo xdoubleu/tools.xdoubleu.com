@@ -1055,6 +1055,52 @@ func TestKoboState_PutEmptyReadingStates(t *testing.T) {
 		"empty ReadingStates must preserve existing progress, not zero it")
 }
 
+// TestKoboState_PutLowerProgress_DoesNotRegress verifies that a PUT reporting
+// a lower percent than the currently stored state is dropped rather than
+// applied — regression test for #1889, where a device re-syncing a stale
+// local bookmark (e.g. right after a KEPUB regeneration forces a
+// re-download) clobbered a correct, previously-synced position.
+func TestKoboState_PutLowerProgress_DoesNotRegress(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+
+	const owner = "kobo-state-regression-user"
+	rawToken, bookID := setupKoboSyncBook(t, owner)
+
+	// Seed a higher progress value first.
+	seedBody, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 80},
+		}},
+	})
+	require.NoError(t, err)
+	seedResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), seedBody))
+	require.NoError(t, err)
+	seedResp.Body.Close()
+	require.Equal(t, http.StatusOK, seedResp.StatusCode)
+
+	// A stale device PUT reporting a lower percent must not regress it.
+	staleBody, err := json.Marshal(map[string]any{
+		"ReadingStates": []map[string]any{{
+			"CurrentBookmark": map[string]any{"ProgressPercent": 5},
+		}},
+	})
+	require.NoError(t, err)
+	putResp, err := http.DefaultClient.Do(koboReq(t, http.MethodPut,
+		koboURL(ts, rawToken, "/v1/library/"+bookID.String()+"/state"), staleBody))
+	require.NoError(t, err)
+	defer putResp.Body.Close()
+	require.Equal(t, http.StatusOK, putResp.StatusCode)
+
+	var state map[string]any
+	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	bm, ok := state["CurrentBookmark"].(map[string]any)
+	require.True(t, ok)
+	assert.InDelta(t, 80.0, bm["ProgressPercent"], 0.01,
+		"a lower device-reported percent must not regress existing progress")
+}
+
 // TestKoboState_PutZeroProgressReportsReadyToRead verifies that an existing
 // (non-nil) reading state at 0% still reports "ReadyToRead", exercising the
 // default branch of koboStatusForPercent — distinct from the never-synced
