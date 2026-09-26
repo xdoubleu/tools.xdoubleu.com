@@ -83,6 +83,11 @@ matched on `content.number`. Without `gh`, use the
 Check both (`command -v gh`); a Claude Code on the web session has neither
 the plugins nor `gh`.
 
+- **Cloud session pinned to a branch, in the main checkout:** `git fetch
+  origin main && git checkout --detach origin/main && git branch -f <branch>
+  origin/main && git worktree add .claude/worktrees/<name> <branch>`, then
+  `cd` there before the first edit. The guard doesn't cover Bash writes, so
+  don't edit before this.
 - **No `task-worktree`**: create the branch off up-to-date `origin/main`
   yourself (`EnterWorktree` or `git worktree add`); needs no `gh`.
 - **`refine-issue` loaded, no `gh`**: follow its "When `gh` isn't available"
