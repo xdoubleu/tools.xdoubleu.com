@@ -14,9 +14,14 @@ import { DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { swrKeys } from '@/lib/swrKeys'
+import { track } from '@/lib/analytics'
+
+/** Which control opened the progress dialog, sent as the analytics `source`. */
+export type BookProgressSource = 'progress_cell' | 'progress_editor'
 
 interface BookProgressFormProps {
   userBook: UserBook
+  source?: BookProgressSource
   onSaved?: () => void
   /** Called after save and on Cancel/Escape, so the dialog can close itself. */
   onClose?: () => void
@@ -32,7 +37,12 @@ const modeOptions = [
  * on blur: mobile keypads often lack Enter, and blurring into Cancel would
  * save first. Rendered inside `BookProgressDialog`.
  */
-export default function BookProgressForm({ userBook, onSaved, onClose }: BookProgressFormProps) {
+export default function BookProgressForm({
+  userBook,
+  source,
+  onSaved,
+  onClose
+}: BookProgressFormProps) {
   const [progressMode, setProgressMode] = useState(defaultProgressMode(userBook))
   const [currentPage, setCurrentPage] = useState(userBook.currentPage)
   const [progressPercent, setProgressPercent] = useState(userBook.progressPercent)
@@ -52,6 +62,7 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
         progressPercent
       })
       mutate(swrKeys.books)
+      track('book_progress_updated', { source, progress_mode: progressMode })
       onSaved?.()
       onClose?.()
     } catch {
@@ -62,6 +73,7 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
   }
 
   const handleCancel = () => {
+    track('book_progress_dialog_cancelled', { source })
     onClose?.()
     setProgressMode(defaultProgressMode(userBook))
     setCurrentPage(userBook.currentPage)

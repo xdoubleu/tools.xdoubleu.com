@@ -5,6 +5,7 @@ import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import BookProgressDialog from '@/components/books/BookProgressDialog'
 import { Button } from '@/components/ui/button'
+import { track } from '@/lib/analytics'
 
 interface BookProgressCellProps {
   userBook: UserBook
@@ -20,7 +21,10 @@ export default function BookProgressCell({ userBook, onSaved }: BookProgressCell
     <>
       <Button
         variant="ghost"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          track('book_progress_dialog_opened', { source: 'progress_cell' })
+          setOpen(true)
+        }}
         className="h-auto min-h-11 w-full min-w-32 justify-start px-1 text-left font-normal"
         aria-label={`Edit reading progress for ${userBook.book?.title ?? 'book'}`}
       >
@@ -30,6 +34,7 @@ export default function BookProgressCell({ userBook, onSaved }: BookProgressCell
       </Button>
       <BookProgressDialog
         userBook={userBook}
+        source="progress_cell"
         open={open}
         onOpenChange={setOpen}
         onSaved={onSaved}

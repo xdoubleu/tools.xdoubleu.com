@@ -15,8 +15,10 @@ if (postHogKey) {
   posthog.init(postHogKey, {
     api_host: getPostHogHost(),
     person_profiles: 'identified_only',
-    capture_pageview: true,
-    capture_pageleave: true
+    capture_pageview: 'history_change',
+    capture_pageleave: true,
+    autocapture: true,
+    capture_dead_clicks: true
   })
 }
 

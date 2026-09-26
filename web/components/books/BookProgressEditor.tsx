@@ -5,6 +5,7 @@ import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import BookProgressDialog from '@/components/books/BookProgressDialog'
 import { Button } from '@/components/ui/button'
+import { track } from '@/lib/analytics'
 
 interface BookProgressEditorProps {
   userBook: UserBook
@@ -29,7 +30,10 @@ export default function BookProgressEditor({
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            track('book_progress_dialog_opened', { source: 'progress_editor' })
+            setOpen(true)
+          }}
           aria-label={title ? `Update progress for ${title}` : 'Update progress'}
         >
           Update progress
@@ -38,6 +42,7 @@ export default function BookProgressEditor({
       </div>
       <BookProgressDialog
         userBook={userBook}
+        source="progress_editor"
         open={open}
         onOpenChange={setOpen}
         onSaved={onSaved}
