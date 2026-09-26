@@ -11,9 +11,13 @@ import {
 import type { DeleteLearningPathInput } from '@/hooks/useLearningPaths'
 import { useTodoistConnection, useSendItemToTodoist } from '@/hooks/useTodoistConnection'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
+import { cn } from '@/lib/cn'
 
 export default function PathClient({ id }: { id: string }) {
   const { data, error, isLoading, mutate } = useLearningPath(id)
@@ -58,21 +62,16 @@ export default function PathClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      <Breadcrumb
-        className="mb-4"
-        items={[
+      <PageHeader
+        className="mb-2"
+        title={learningPath?.title ?? 'Learning Path'}
+        breadcrumb={[
           { label: 'Learning Paths', href: '/learningpaths/list' },
           { label: learningPath?.title ?? 'Learning Path' }
         ]}
-      />
-
-      {isLoading && !learningPath && <p className="text-muted">Loading learning path…</p>}
-      {error && <p className="text-danger">Failed to load learning path.</p>}
-      {learningPath && (
-        <>
-          <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-            <h1 className="text-3xl font-bold min-w-0 break-words">{learningPath.title}</h1>
-            <div className="flex flex-wrap justify-end gap-2">
+        actions={
+          learningPath && (
+            <>
               {!todoistStatus?.connected && (
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/learningpaths/settings">Connect Todoist</Link>
@@ -82,22 +81,28 @@ export default function PathClient({ id }: { id: string }) {
                 <Link href={`/learningpaths/${learningPath.id}/edit`}>Edit</Link>
               </Button>
               {deleteConfirm ? (
-                <div className="flex flex-wrap gap-2 items-center">
+                <>
                   <Button variant="destructive" size="sm" onClick={handleDelete}>
                     Confirm delete
                   </Button>
                   <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
                     Cancel
                   </Button>
-                </div>
+                </>
               ) : (
                 <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
                   Delete
                 </Button>
               )}
-            </div>
-          </div>
+            </>
+          )
+        }
+      />
 
+      {isLoading && !learningPath && <LoadingState label="learning path" />}
+      {error && <ErrorState what="learning path" />}
+      {learningPath && (
+        <>
           {learningPath.goal && <p className="text-subtle mb-2">{learningPath.goal}</p>}
           {learningPath.routine && (
             <p className="text-sm text-muted mb-4">Routine: {learningPath.routine}</p>
@@ -111,36 +116,31 @@ export default function PathClient({ id }: { id: string }) {
           {learningPath.modules.length > 0 && (
             <section className="mb-6 space-y-4">
               {learningPath.modules.map((module) => (
-                <div
-                  key={module.id}
-                  className="rounded-2xl border border-border bg-surface/50 overflow-hidden"
-                >
-                  <h2 className="bg-surface px-4 py-2 text-lg font-semibold border-b border-border">
-                    {module.title}
-                  </h2>
-                  <ul className="px-4 py-2">
+                <Card key={module.id} variant="inset">
+                  <h2 className="text-lg font-semibold">{module.title}</h2>
+                  <ul>
                     {module.items.map((item) => (
                       <li
                         key={item.id}
-                        className="flex flex-wrap items-start gap-2 py-2 border-b last:border-0 border-border"
+                        className="flex flex-wrap items-center gap-x-2 border-b border-border py-1 last:border-0"
                       >
                         <Checkbox
                           checked={item.completed}
                           onChange={(e) => handleToggleItem(item.id, e.target.checked)}
-                          aria-label={item.description}
-                        />
-                        <div className="flex-1 min-w-0">
-                          {item.type && (
-                            <span className="text-xs uppercase tracking-wide text-muted mr-2">
-                              {item.type}
+                          labelClassName="min-w-0 flex-1"
+                          label={
+                            <span className="min-w-0 break-words">
+                              {item.type && (
+                                <span className="mr-2 text-xs uppercase tracking-wide text-muted">
+                                  {item.type}
+                                </span>
+                              )}
+                              <span className={cn(item.completed && 'text-muted line-through')}>
+                                {item.description}
+                              </span>
                             </span>
-                          )}
-                          <span
-                            className={`break-words ${item.completed ? 'line-through text-muted' : ''}`}
-                          >
-                            {item.description}
-                          </span>
-                        </div>
+                          }
+                        />
                         {todoistStatus?.connected && (
                           <Button
                             variant="secondary"
@@ -159,7 +159,7 @@ export default function PathClient({ id }: { id: string }) {
                       </li>
                     ))}
                   </ul>
-                </div>
+                </Card>
               ))}
             </section>
           )}
@@ -172,22 +172,22 @@ export default function PathClient({ id }: { id: string }) {
                   <li key={resource.id} className="flex flex-col gap-1">
                     {resource.text && <span className="break-words">{resource.text}</span>}
                     {resource.linkedBook && (
-                      <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-sm text-accent">
+                      <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
                         <span className="break-words">📚 {resource.linkedBook.title}</span>
                         <span className="text-muted">
                           — {resource.linkedBook.status.replace('_', ' ')}
                           {resource.linkedBook.progressPercent > 0 &&
                             `, ${resource.linkedBook.progressPercent}%`}
                         </span>
-                      </span>
+                      </Badge>
                     )}
                     {resource.linkedFeedItem && (
-                      <span className="inline-flex max-w-full flex-wrap items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-sm text-accent">
+                      <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
                         <span className="break-words">📰 {resource.linkedFeedItem.title}</span>
                         <span className="text-muted">
                           — {resource.linkedFeedItem.read ? 'read' : 'unread'}
                         </span>
-                      </span>
+                      </Badge>
                     )}
                     {((resource.linkedBookId && !resource.linkedBook) ||
                       (resource.linkedFeedItemId && !resource.linkedFeedItem)) && (
