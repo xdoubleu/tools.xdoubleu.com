@@ -31,8 +31,9 @@ that change the issue set (naming of a new app/schema, domain scope,
 build-vs-adopt, first-cut slices). Decide the rest yourself and record it in
 the parent's `## Decisions`.
 
-For feature-track work this is the **only** pre-merge human checkpoint —
-every PR under a feature epic auto-merges unreviewed
+For feature-track work this is the **only** human checkpoint on the code —
+every PR under a feature epic auto-merges unreviewed and a human tests the
+output at the end
 ([`convention-feature-review-policy`](../../../docs/convention-feature-review-policy.md)).
 Be exhaustive; an unresolved choice ships as whatever the implementer assumed.
 
@@ -69,7 +70,6 @@ parent carries rationale; sub-issues carry work.
   don't resolve its fields; read columns via `get_project_issues_by_status`.
   If nothing can write board fields, tell the user the manual step instead of
   reporting the issues as triaged.
-- No Slack step — `finish-task` posts the epic summary.
 
 ## 6. Close the loop
 

@@ -72,11 +72,13 @@ whichever side changed:
 1. `code-review` skill on the diff; apply findings.
 2. `cd api && make lint` (depguard) / `cd web && npm run lint`
    (dependency-cruiser).
-3. `cd api && make arch/diagram` / `cd web && npm run arch:diagram` (for step 7).
-4. `cd api && make test/mutation/diff` / `cd web && npm run
+3. `cd api && make test/mutation/diff` / `cd web && npm run
    test:mutation:diff`; kill every surviving mutant.
 
-Then tell `ship-pr` to enable auto-merge.
+Then tell `ship-pr` to enable auto-merge. Feature work is never completed
+headless — a human drives the implementation and tests the output at the
+end; no PR under a feature epic is reviewed
+([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
 
 **B — no `feature` label: tiered rule.**
 
@@ -112,15 +114,7 @@ matched on `content.number`. Without `gh`, use the
 For each `https://xdoubleu.sentry.io/issues/<id>/` permalink in the tracking
 issue, call `resolve_sentry_issue` (`issue_id` = `<id>`).
 
-## 7. Feature epic completion: Slack summary
-
-Only for a merged `feature` issue with a parent. If any sibling sub-issue
-is still open, stop. If this was the last, call `notify_slack` (`message`,
-optional `title`) summarizing what the epic built, key design decisions
-(from all sub-issues' PRs), how to try it, plus step 5's Mermaid diagrams
-when available. Sent once per epic, only here.
-
-## 8. Session retro
+## 7. Session retro
 
 Once CI is green, always run `session-retro`. Any fix it finds ships as its
 own issue and PR, never stacked on this one.

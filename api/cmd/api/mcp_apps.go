@@ -16,8 +16,7 @@ import (
 // tools over streamable HTTP. Tools are gated by per-app access or
 // requireObservability.
 // Deliberate mutations: learningpaths' write tools (docs/adr-0023) and the
-// admin tools resolve_sentry_issue, dismiss_security_alert, record_action and
-// notify_slack.
+// admin tools resolve_sentry_issue, dismiss_security_alert and record_action.
 
 const (
 	appsMCPServerName = "tools-apps"
@@ -96,12 +95,6 @@ func (m *runMetricsArgs) proto() *observabilityv1.RunMetrics {
 		ToolErrors:        m.ToolErrors,
 		RepeatedToolCalls: m.RepeatedToolCalls,
 	}
-}
-
-// notifySlackArgs: Title, if set, is bolded above Message.
-type notifySlackArgs struct {
-	Message string `json:"message"         jsonschema:"the summary to post to Slack"`
-	Title   string `json:"title,omitempty" jsonschema:"optional bolded title line"`
 }
 
 // projectIssuesByStatusArgs is the input for get_project_issues_by_status.
@@ -243,21 +236,19 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	registerAlertMCPTools(srv, h)
 }
 
-// registerMutatingObservabilityMCPTools registers the four mutating tools
+// registerMutatingObservabilityMCPTools registers the three mutating tools
 // (split out for the function-length lint).
 func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 	addObsTool(srv, "resolve_sentry_issue",
-		"Marks a Sentry issue as resolved. One of four mutating observability "+
-			"tools, alongside dismiss_security_alert, record_action, and "+
-			"notify_slack.",
+		"Marks a Sentry issue as resolved. One of three mutating observability "+
+			"tools, alongside dismiss_security_alert and record_action.",
 		func(ctx context.Context, a resolveSentryIssueArgs) (proto.Message, error) {
 			return h.resolveSentryIssue(ctx, a.IssueID)
 		})
 	addObsTool(srv, "dismiss_security_alert",
 		"Dismisses/resolves a GitHub Dependabot, code-scanning, or "+
-			"secret-scanning security alert. One of four mutating observability "+
-			"tools, alongside resolve_sentry_issue, record_action, and "+
-			"notify_slack.",
+			"secret-scanning security alert. One of three mutating observability "+
+			"tools, alongside resolve_sentry_issue and record_action.",
 		func(ctx context.Context, a dismissSecurityAlertArgs) (proto.Message, error) {
 			return h.dismissSecurityAlert(
 				ctx, github.SecurityAlertType(a.AlertType), a.AlertNumber, a.Reason,
@@ -268,19 +259,10 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 			"(global.automated_actions): mode=open first, mode=close last, "+
 			"since it executes outside api's own process. The routine "+
 			"workflow does this itself and adds the run's metrics on close. "+
-			"One of four mutating observability tools, alongside "+
-			"resolve_sentry_issue, dismiss_security_alert, and notify_slack.",
+			"One of three mutating observability tools, alongside "+
+			"resolve_sentry_issue and dismiss_security_alert.",
 		func(ctx context.Context, a recordActionArgs) (proto.Message, error) {
 			return h.recordAction(ctx, a)
-		})
-	addObsTool(srv, "notify_slack",
-		"Posts a summary to a configured Slack Incoming Webhook — used to "+
-			"announce an epic-complete summary from either a local Claude Code "+
-			"session or Claude Code on the web, since the send happens "+
-			"server-side. One of four mutating observability tools, alongside "+
-			"resolve_sentry_issue, dismiss_security_alert, and record_action.",
-		func(ctx context.Context, a notifySlackArgs) (proto.Message, error) {
-			return h.notifySlack(ctx, a.Title, a.Message)
 		})
 }
 

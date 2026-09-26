@@ -100,5 +100,3 @@ env:
     # Same as grafana's GF_SECURITY_ADMIN_PASSWORD; get_grafana_alerts logs in as
     # `admin` via the public host.
     - GRAFANA_ADMIN_PASSWORD
-    # notify_slack's webhook; distinct from GRAFANA_SLACK_WEBHOOK_URL.
-    - SLACK_WEBHOOK_URL

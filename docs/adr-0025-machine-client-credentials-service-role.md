@@ -44,9 +44,8 @@ observability tools, and they must not see user data.
 ## Consequences
 
 - One secret opens every observability tool, including the mutating ones
-  (`resolve_sentry_issue`, `dismiss_security_alert`, `notify_slack`,
-  `record_action`). Rotate it by updating the Actions and deploy secrets
-  together.
+  (`resolve_sentry_issue`, `dismiss_security_alert`, `record_action`). Rotate
+  it by updating the Actions and deploy secrets together.
 - Observability output that embeds user data (`get_logs` lines,
   `get_oauth_connections`' connected-by email) remains visible to the service
   role.

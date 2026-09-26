@@ -65,7 +65,8 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    - `OPENROUTER_API_KEY`: a key with a credit limit, since the agent's shell
      can read it.
    - `OAUTH_ROUTINES_CLIENT_SECRET`: the same value as the deploy secret.
-   - `SLACK_WEBHOOK_URL`: the same webhook `notify_slack` uses.
+   - `SLACK_WEBHOOK_URL`: a Slack Incoming Webhook the routine steps post
+     their outcome notice to.
    - `ROUTINE_TRANSCRIPT_PASSPHRASE`: `openssl rand -hex 32`. Without it, no
      transcript is uploaded.
    - `POSTHOG_MCP_API_KEY`: a PostHog personal API key with read access to the
