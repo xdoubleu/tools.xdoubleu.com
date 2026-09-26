@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useLearningPath } from '@/hooks/useLearningPaths'
 import LearningPathForm from '@/components/learningpaths/LearningPathForm'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 
 export default function EditLearningPathClient({ id }: { id: string }) {
   const { data, isLoading } = useLearningPath(id)
@@ -13,16 +14,15 @@ export default function EditLearningPathClient({ id }: { id: string }) {
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[
+      <PageHeader
+        title="Edit Learning Path"
+        breadcrumb={[
           { label: 'Learning Paths', href: '/learningpaths/list' },
           { label: learningPath?.title ?? 'Edit', href: `/learningpaths/${id}` },
           { label: 'Edit' }
         ]}
       />
-      <h1 className="text-3xl font-bold mb-6">Edit Learning Path</h1>
-      {isLoading && !learningPath && <p className="text-muted">Loading…</p>}
+      {isLoading && !learningPath && <LoadingState />}
       {learningPath && (
         <LearningPathForm
           learningPath={learningPath}

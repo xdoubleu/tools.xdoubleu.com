@@ -12,6 +12,7 @@ import type {
 } from '@/lib/gen/dashboard/v1/games_pb'
 import GamesDashboardView from '@/components/games/GamesDashboardView'
 import { Button } from '@/components/ui/button'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
 
@@ -42,8 +43,8 @@ export default function GamesDashboardPublicClient({
       value: parseFloat(progressSteam.values?.[idx] ?? '0')
     })) ?? []
 
-  if (isLoading && !steam) return <p className="text-muted">Loading games…</p>
-  if (error && !steam) return <p className="text-danger">Failed to load games.</p>
+  if (isLoading && !steam) return <LoadingState label="games" />
+  if (error && !steam) return <ErrorState what="games" />
   if (!steam) return null
 
   return (
