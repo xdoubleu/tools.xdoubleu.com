@@ -173,8 +173,8 @@ jobs:
           $ROUTINE_PROMPT
 
           When the routine's work is done, finish with these steps in order.
-          1. Write {"outcome": "succeeded"|"no_action_needed"|"failed",
-          "pr_url": "", "error": ""} to $ROUTINE_OUTCOME_PATH, choosing
+          1. Write {\"outcome\": \"succeeded\"|\"no_action_needed\"|\"failed\",
+          \"pr_url\": \"\", \"error\": \"\"} to $ROUTINE_OUTCOME_PATH, choosing
           the outcome as the skill defines it.
           2. Retro: list what got in the way of this run, from what actually
           happened, not guesses. Report blockers (a tool or MCP error, missing
@@ -182,7 +182,7 @@ jobs:
           date) and concrete waste (the same call repeated, a missing tool
           that forced a workaround). For each, search open issues labelled
           routine-feedback (gh issue list --label routine-feedback --search);
-          comment on a match, otherwise open one titled "$ROUTINE: <problem>"
+          comment on a match, otherwise open one titled \"$ROUTINE: <problem>\"
           with labels routine-feedback plus bug or enhancement. At most 2
           issues or comments per run; skip minor findings. Each names the
           routine, the skill step and $RUN_URL, and states the problem and a

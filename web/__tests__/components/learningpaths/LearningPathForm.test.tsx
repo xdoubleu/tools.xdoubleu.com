@@ -235,4 +235,20 @@ describe('LearningPathForm (edit)', () => {
       expect(onSave).toHaveBeenCalledWith('lp-1')
     })
   })
+
+  it('submits the goal and routine entered through their labelled fields', async () => {
+    mockCreateLearningPath.mockResolvedValue({ learningPath: { id: 'new-id' } })
+    render(<LearningPathForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Learn Go' } })
+    fireEvent.change(screen.getByLabelText('Goal'), { target: { value: 'Ship it' } })
+    fireEvent.change(screen.getByLabelText('Recurring routine'), { target: { value: 'Daily' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+
+    await waitFor(() =>
+      expect(mockCreateLearningPath).toHaveBeenCalledWith(
+        expect.objectContaining({ title: 'Learn Go', goal: 'Ship it', routine: 'Daily' })
+      )
+    )
+  })
 })

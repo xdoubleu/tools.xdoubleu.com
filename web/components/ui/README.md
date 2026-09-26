@@ -148,6 +148,21 @@ Disclosure section with a chevron trigger and its own open state.
 | `autoFocus` | `boolean` |  |  |
 | `onEnter` | `() => void` |  | Called when Enter is pressed and no suggestion is highlighted. |
 | `'aria-label'` | `string` |  |  |
+| `filterSuggestions` | `boolean` |  | `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). |
+
+### `connection-row.tsx`
+
+#### `ConnectionRow`
+
+One third-party integration with its connection status and controls.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `name` | `ReactNode` | yes | Provider name, e.g. "Todoist". |
+| `connected` | `boolean` | yes |  |
+| `detail` | `ReactNode` |  | Muted line under the name, e.g. when it was connected. |
+| `actions` | `ReactNode` |  | Connect/disconnect controls; they wrap under the name on narrow screens. |
+| `className` | `string` |  |  |
 
 ### `date-input.tsx` — client component
 
@@ -163,6 +178,21 @@ Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''.
 | `id` | `string` |  |  |
 | `className` | `string` |  |  |
 | `'aria-label'` | `string` |  |  |
+
+### `date-range-fields.tsx` — client component
+
+#### `DateRangeFields`
+
+Labelled From/To date pair: stacked on phones, side by side from `sm`.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `idPrefix` | `string` | yes | Prefix for the two input ids (`<prefix>-from`, `<prefix>-to`); unique per page. |
+| `start` | `string` | yes |  |
+| `onStartChange` | `(value: string) => void` | yes |  |
+| `end` | `string` | yes |  |
+| `onEndChange` | `(value: string) => void` | yes |  |
+| `className` | `string` |  |  |
 
 ### `dialog.tsx` — client component
 

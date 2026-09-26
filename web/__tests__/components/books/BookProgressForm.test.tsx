@@ -15,6 +15,11 @@ jest.mock('@/hooks/useBooks', () => ({
   useUpdateProgress: () => mockUpdateProgress
 }))
 
+const mockTrack = jest.fn()
+jest.mock('@/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args)
+}))
+
 import BookProgressForm from '@/components/books/BookProgressForm'
 
 function makeBook(
@@ -47,6 +52,7 @@ describe('BookProgressForm', () => {
   beforeEach(() => {
     mockUpdateProgress.mockReset()
     mockMutate.mockReset()
+    mockTrack.mockReset()
     mockUpdateProgress.mockResolvedValue({})
   })
 
@@ -245,5 +251,24 @@ describe('BookProgressForm', () => {
     fireEvent.focus(input)
 
     expect(selectSpy).toHaveBeenCalled()
+  })
+
+  it('tracks a saved update with its source', async () => {
+    render(<BookProgressForm source="progress_cell" userBook={makeBook()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() =>
+      expect(mockTrack).toHaveBeenCalledWith('book_progress_updated', {
+        source: 'progress_cell',
+        progress_mode: 'pages'
+      })
+    )
+  })
+
+  it('tracks a cancel with its source', () => {
+    render(<BookProgressForm source="progress_editor" userBook={makeBook()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(mockTrack).toHaveBeenCalledWith('book_progress_dialog_cancelled', {
+      source: 'progress_editor'
+    })
   })
 })

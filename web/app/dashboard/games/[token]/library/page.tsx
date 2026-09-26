@@ -5,8 +5,8 @@ import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { PublicGamesDashboardService } from '@/lib/gen/dashboard/v1/games_pb'
 import GamesDashboardPublicLibrary from '@/components/dashboard/GamesDashboardPublicLibrary'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 // Token URLs are capability links — keep them out of search indexes.
 export const metadata: Metadata = {
@@ -25,9 +25,9 @@ export default async function GamesDashboardPublicLibraryPage({
 
   return (
     <PageContainer>
-      <Breadcrumb
-        className="mb-6"
-        items={[
+      <PageHeader
+        title="Library"
+        breadcrumb={[
           {
             label: steam?.displayName ? `${steam.displayName}'s games` : 'Games',
             href: `/dashboard/games/${token}`
@@ -35,8 +35,6 @@ export default async function GamesDashboardPublicLibraryPage({
           { label: 'Library' }
         ]}
       />
-
-      <h1 className="mb-6 text-3xl font-bold">Library</h1>
 
       <SWRFallback fallback={steam ? { [swrKeys.dashboardGames(token)]: steam } : {}}>
         <GamesDashboardPublicLibrary token={token} initialData={steam ?? undefined} />

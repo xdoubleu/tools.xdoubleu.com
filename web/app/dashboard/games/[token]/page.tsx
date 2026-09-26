@@ -6,6 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { PublicGamesDashboardService } from '@/lib/gen/dashboard/v1/games_pb'
 import GamesDashboardPublicClient from '@/components/dashboard/GamesDashboardPublicClient'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 // Token URLs are capability links — keep them out of search indexes.
 export const metadata: Metadata = {
@@ -27,9 +28,10 @@ export default async function GamesDashboardPublicPage({
 
   return (
     <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
-      <h1 className="mb-6 text-3xl font-bold lg:mb-3 lg:text-2xl">
-        {steam?.displayName ? `${steam.displayName}'s games` : 'Shared games'}
-      </h1>
+      <PageHeader
+        title={steam?.displayName ? `${steam.displayName}'s games` : 'Shared games'}
+        className="lg:mb-3"
+      />
       <SWRFallback
         fallback={{
           ...(steam ? { [swrKeys.dashboardGames(token)]: steam } : {}),
