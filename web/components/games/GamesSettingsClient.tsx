@@ -6,9 +6,12 @@ import { mutate } from 'swr'
 import type { GetIntegrationsResponse, Integrations } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { Alert } from '@/components/ui/alert'
+import { Field } from '@/components/ui/field'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function GamesSettingsClient({
   initialData
@@ -30,11 +33,11 @@ export default function GamesSettingsClient({
   }
 
   if (isLoading) {
-    return <p className="py-16 text-center text-sm text-muted">Loading…</p>
+    return <LoadingState className="py-16 text-center text-sm" />
   }
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-danger">Failed to load settings.</p>
+    return <ErrorState what="settings" className="py-16 text-center text-sm" />
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -59,37 +62,34 @@ export default function GamesSettingsClient({
 
   return (
     <PageContainer size="narrow">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Settings' }]}
+      <PageHeader
+        title="Games Settings"
+        breadcrumb={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Settings' }]}
       />
-      <h1 className="mb-6 text-3xl font-bold">Games Settings</h1>
 
       {saved && (
-        <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+        <Alert tone="success" className="mb-4">
           Settings saved successfully.
-        </div>
+        </Alert>
       )}
       {saveError && (
-        <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+        <Alert tone="danger" className="mb-4">
           {saveError}
-        </div>
+        </Alert>
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
         <section>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Steam</h2>
-          <div>
-            <label htmlFor="steam_user_id" className="mb-1 block text-sm text-subtle">
-              Steam User ID
-            </label>
+          <Field label="Steam User ID" htmlFor="steam_user_id">
             <Input
               id="steam_user_id"
               type="text"
+              inputMode="numeric"
               value={steamUserId}
               onChange={(e) => setSteamUserId(e.target.value)}
             />
-          </div>
+          </Field>
         </section>
 
         <Button type="submit" disabled={saving}>

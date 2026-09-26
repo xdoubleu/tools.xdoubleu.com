@@ -11,6 +11,7 @@ import GamesSearch from '@/components/games/GamesSearch'
 import GamesDashboardView from '@/components/games/GamesDashboardView'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -45,8 +46,8 @@ export default function GamesDashboard({
       value: parseFloat(progressSteam.values?.[idx] ?? '0')
     })) ?? []
 
-  if (steamLoading && !steam) return <p className="text-muted">Loading dashboard…</p>
-  if (steamError && !steam) return <p className="text-danger">Failed to load Steam data.</p>
+  if (steamLoading && !steam) return <LoadingState label="dashboard" />
+  if (steamError && !steam) return <ErrorState what="Steam data" />
   if (!steam) return null
 
   return (

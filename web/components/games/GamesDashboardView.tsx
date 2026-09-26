@@ -7,8 +7,9 @@ import type { RecentGame, SteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
-import { Button } from '@/components/ui/button'
-import { DateInput } from '@/components/ui/date-input'
+import { DateRangeFields } from '@/components/ui/date-range-fields'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
+import { LoadingState } from '@/components/ui/states'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { cn } from '@/lib/cn'
@@ -98,56 +99,29 @@ export default function GamesDashboardView({
 
         <div className="flex min-h-0 flex-col">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
-            <div
-              role="tablist"
+            <SegmentedTabs
               aria-label="Chart view"
-              className="flex gap-1 rounded-xl border border-border bg-surface p-1"
-            >
-              <Button
-                role="tab"
-                aria-selected={view === 'distribution'}
-                size="sm"
-                variant={view === 'distribution' ? 'default' : 'ghost'}
-                onClick={() => setView('distribution')}
-              >
-                Distribution
-              </Button>
-              <Button
-                role="tab"
-                aria-selected={view === 'progress'}
-                size="sm"
-                variant={view === 'progress' ? 'default' : 'ghost'}
-                onClick={() => setView('progress')}
-              >
-                Progress
-              </Button>
-            </div>
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'distribution', label: 'Distribution' },
+                { value: 'progress', label: 'Progress' }
+              ]}
+            />
             {view === 'progress' && (
-              <div className="flex gap-3">
-                <div>
-                  <label htmlFor="dash-from" className="mb-1 block text-xs text-muted">
-                    From
-                  </label>
-                  <DateInput
-                    id="dash-from"
-                    value={start}
-                    onChange={setStart}
-                    className="h-9 w-40"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dash-to" className="mb-1 block text-xs text-muted">
-                    To
-                  </label>
-                  <DateInput id="dash-to" value={end} onChange={setEnd} className="h-9 w-40" />
-                </div>
-              </div>
+              <DateRangeFields
+                idPrefix="dash"
+                start={start}
+                onStartChange={setStart}
+                end={end}
+                onEndChange={setEnd}
+              />
             )}
           </div>
 
           {view === 'progress' && (
             <>
-              {progressLoading && <p className="text-muted">Loading progress…</p>}
+              {progressLoading && <LoadingState label="progress" />}
               {!progressLoading && progressChartData.length === 0 && (
                 <p className="text-muted">No progress data for this range.</p>
               )}
