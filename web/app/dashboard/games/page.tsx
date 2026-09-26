@@ -15,7 +15,7 @@ export default async function GamesDashboardPage() {
   ])
 
   return (
-    <PageContainer className="p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
+    <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
       <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
         <h1 className="text-3xl font-bold lg:text-2xl">Games</h1>
         <Button asChild variant="ghost" size="sm" className="gap-2">

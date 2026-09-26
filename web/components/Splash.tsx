@@ -1,7 +1,9 @@
+import { LoadingState } from '@/components/ui/states'
+
 // Suspense fallback for AppShell while the current-user fetch resolves.
 export default function Splash() {
   return (
-    <div className="flex min-h-screen flex-1 flex-col items-center justify-center gap-3">
+    <div className="flex min-h-dvh flex-1 flex-col items-center justify-center gap-3">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 32 32"
@@ -16,7 +18,7 @@ export default function Splash() {
           d="M21 7a5 5 0 0 0-4.8 6.3l-7.8 7.8a1.5 1.5 0 1 0 2.1 2.1l7.8-7.8A5 5 0 0 0 26 11l-2.8 2.8-2-.5-.5-2 2.8-2.8A5 5 0 0 0 21 7z"
         />
       </svg>
-      <p className="text-sm text-muted">Loading…</p>
+      <LoadingState className="text-sm" />
     </div>
   )
 }

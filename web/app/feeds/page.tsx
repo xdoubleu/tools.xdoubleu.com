@@ -17,7 +17,7 @@ export default async function FeedsPage() {
   ])
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <SWRFallback
         fallback={{
           ...(feedItems ? { [swrKeys.feedItems(true)]: feedItems } : {}),

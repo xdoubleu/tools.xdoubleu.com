@@ -114,7 +114,7 @@ export default function FamilyPageClient() {
   }
 
   return (
-    <PageContainer className="max-w-lg p-6">
+    <PageContainer size="narrow">
       <h1 className="mb-2 text-3xl font-bold">Family</h1>
       <p className="mb-6 text-sm text-muted">
         A family shares one recipe book, one meal plan and one shopping list together — not separate

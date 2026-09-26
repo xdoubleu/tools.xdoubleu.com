@@ -12,7 +12,7 @@ export default function EditPlanClient({ id }: { id: string }) {
   const plan = data?.plan
 
   return (
-    <PageContainer className="max-w-2xl p-6">
+    <PageContainer size="form">
       <Breadcrumb
         className="mb-4"
         items={[

@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import AppShell from '@/components/AppShell'
 import Splash from '@/components/Splash'
@@ -18,15 +18,24 @@ export const metadata: Metadata = {
   }
 }
 
+// Zoom stays disabled for an app-like feel (docs/convention-ui-standards.md).
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f2f2f7' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' }
+  ]
+}
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // themeInitScript sets data-theme before hydration.
     <html lang="en" suppressHydrationWarning>
       <head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
-        />
         <meta name="msapplication-TileColor" content="#7c3aed" />
         <meta name="msapplication-TileImage" content="/apple-icon.png" />
         <link rel="mask-icon" href="/icon.svg" color="#7c3aed" />
@@ -42,7 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className="flex min-h-screen flex-col bg-bg text-fg">
+      <body className="flex min-h-dvh flex-col bg-bg text-fg">
         <WebVitals />
         <Suspense fallback={<Splash />}>
           <AppShell>{children}</AppShell>

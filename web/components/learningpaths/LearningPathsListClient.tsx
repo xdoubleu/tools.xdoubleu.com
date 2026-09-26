@@ -61,7 +61,7 @@ export default function LearningPathsListClient() {
   } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Learning Paths</h1>
         <Button asChild>

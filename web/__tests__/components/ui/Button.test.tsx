@@ -28,17 +28,17 @@ describe('Button', () => {
     )
     const btn = screen.getByRole('button', { name: 'Delete' })
     expect(btn).toHaveClass('bg-danger')
-    expect(btn).toHaveClass('h-8')
+    expect(btn).toHaveClass('h-11', 'sm:h-8')
   })
 
-  it('renders the small icon size as a squared rounded-lg control', () => {
+  it('renders the small icon size as a 44px square on phones, compact from sm', () => {
     render(
       <Button size="iconSm" aria-label="remove">
         ×
       </Button>
     )
     const btn = screen.getByRole('button', { name: 'remove' })
-    expect(btn).toHaveClass('h-6', 'w-6', 'rounded-lg')
+    expect(btn).toHaveClass('size-11', 'sm:size-6', 'rounded-lg')
   })
 
   it('gives touch devices a pressed state via active: classes, not just hover:', () => {
@@ -80,5 +80,18 @@ describe('Button', () => {
     expect(link).toHaveAttribute('href', '/somewhere')
     expect(link).toHaveClass('bg-accent', 'rounded-xl')
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+})
+
+describe('Button link variant', () => {
+  it('ignores size and keeps a 44px row on phones', () => {
+    render(
+      <Button variant="link" size="sm">
+        Inline
+      </Button>
+    )
+    const btn = screen.getByRole('button', { name: 'Inline' })
+    expect(btn).toHaveClass('min-h-11', 'sm:min-h-0', 'px-0')
+    expect(btn).not.toHaveClass('h-11')
   })
 })

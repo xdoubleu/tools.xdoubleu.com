@@ -10,7 +10,7 @@ export default async function BacklogGamesLibraryPage() {
   const steam = await fetchOrNull(() => client.getSteam({}))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-6"
         items={[{ label: 'Games', href: '/dashboard/games' }, { label: 'Library' }]}

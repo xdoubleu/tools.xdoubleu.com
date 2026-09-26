@@ -113,7 +113,7 @@ export function Combobox({
               key={`${s}-${i}`}
               onMouseDown={() => select(s)}
               className={cn(
-                'px-3 py-2 cursor-pointer text-sm transition-colors',
+                'flex min-h-11 items-center px-3 py-2 cursor-pointer text-sm transition-colors sm:min-h-9',
                 i === highlightedIndex
                   ? 'bg-accent text-white'
                   : 'text-fg hover:bg-hover active:bg-hover'

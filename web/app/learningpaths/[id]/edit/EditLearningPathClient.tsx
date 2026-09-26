@@ -12,7 +12,7 @@ export default function EditLearningPathClient({ id }: { id: string }) {
   const learningPath = data?.learningPath
 
   return (
-    <PageContainer className="max-w-2xl p-6">
+    <PageContainer size="form">
       <Breadcrumb
         className="mb-4"
         items={[

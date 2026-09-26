@@ -23,7 +23,10 @@ export function Breadcrumb({ items, className }: { items: BreadcrumbItem[]; clas
           <Fragment key={index}>
             {index > 0 && <span aria-hidden="true">/</span>}
             {item.href && !isLast ? (
-              <Link href={item.href} className="hover:text-accent">
+              <Link
+                href={item.href}
+                className="inline-flex min-h-11 min-w-11 items-center hover:text-accent sm:min-h-0 sm:min-w-0"
+              >
                 {item.label}
               </Link>
             ) : (

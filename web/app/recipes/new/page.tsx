@@ -9,7 +9,7 @@ export default function NewRecipePage() {
   const router = useRouter()
 
   return (
-    <PageContainer className="max-w-2xl p-6">
+    <PageContainer size="form">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'New' }]}

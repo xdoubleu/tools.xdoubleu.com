@@ -116,8 +116,17 @@ describe('ReadingDashboard', () => {
   it('links reading cards to the book detail page', () => {
     mockLibrary()
     const { container } = render(<ReadingDashboard />)
-    // The card link is a stretched overlay sibling, not an ancestor.
     expect(container.querySelector('a[href="/books/1"]')).toBeInTheDocument()
+  })
+
+  it('opens the progress sheet from a visible button outside the card link', async () => {
+    mockLibrary()
+    const { container } = render(<ReadingDashboard />)
+
+    const update = screen.getByRole('button', { name: /Update progress/ })
+    expect(container.querySelector('a[href="/books/1"]')).not.toContainElement(update)
+    fireEvent.click(update)
+    expect(await screen.findByLabelText('Current page')).toBeInTheDocument()
   })
 
   it('does not show quick-step buttons on currently-reading cards', () => {

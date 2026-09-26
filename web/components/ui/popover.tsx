@@ -60,10 +60,13 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
         : // Default — open downward
           { top: rect.bottom + 4, maxHeight: Math.max(spaceBelow, 100) }
 
+    // Keep the panel's anchored edge on-screen when the trigger is scrolled
+    // partly out of view (e.g. inside a horizontally scrolling table).
+    const vw = window.innerWidth
     if (align === 'right') {
-      c.right = window.innerWidth - rect.right
+      c.right = Math.min(Math.max(vw - rect.right, MARGIN), vw - MARGIN)
     } else {
-      c.left = rect.left
+      c.left = Math.min(Math.max(rect.left, MARGIN), vw - MARGIN)
     }
     setCoords(c)
   }, [align])
@@ -118,7 +121,7 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
               maxHeight: coords.maxHeight
             }}
             className={cn(
-              'z-50 min-w-55 rounded-2xl border border-border bg-card shadow-elevated p-3',
+              'z-50 min-w-55 max-w-[calc(100vw-1rem)] rounded-2xl border border-border bg-card shadow-elevated p-3',
               'overflow-y-auto',
               className
             )}
@@ -138,7 +141,7 @@ export function PopoverTrigger({ className, ...props }: ButtonHTMLAttributes<HTM
     <button
       type="button"
       className={cn(
-        'flex items-center justify-center rounded-lg px-2 py-1 text-sm text-subtle',
+        'flex min-h-11 items-center justify-center rounded-lg px-2 py-1 text-sm text-subtle sm:min-h-0',
         'transition-colors hover:bg-hover hover:text-fg active:bg-hover active:text-fg',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         className

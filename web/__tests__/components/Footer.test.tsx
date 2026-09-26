@@ -143,7 +143,12 @@ describe('Footer', () => {
     const { container } = render(<Footer />)
 
     const footer = container.querySelector('footer')
-    expect(footer).toHaveClass('px-4', 'py-3', 'sm:px-6')
+    expect(footer).toHaveClass(
+      'px-4',
+      'sm:py-3',
+      'sm:px-6',
+      'pb-[calc(0.25rem+env(safe-area-inset-bottom))]'
+    )
 
     const divWrapper = footer?.querySelector('div')
     expect(divWrapper).toHaveClass(

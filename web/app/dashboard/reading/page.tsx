@@ -14,7 +14,7 @@ export default async function ReadingDashboardPage() {
   const library = await fetchOrNull(() => client.getLibrary({}))
 
   return (
-    <PageContainer className="p-6 lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden lg:p-4">
+    <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
       <SWRFallback
         fallback={{
           ...(library ? { [swrKeys.books]: library } : {})

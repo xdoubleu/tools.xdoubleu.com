@@ -69,7 +69,7 @@ export default function UserManagementClient() {
   }
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <h1 className="mb-6 text-3xl font-bold">User Management</h1>
 
       <div className="overflow-x-auto rounded-2xl border border-border">

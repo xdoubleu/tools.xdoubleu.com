@@ -10,7 +10,7 @@ const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
         ref={ref}
         type={type}
         className={cn(
-          'flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg',
+          'flex min-h-11 w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg sm:min-h-9',
           'transition-colors hover:bg-hover active:bg-hover',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
           'disabled:pointer-events-none disabled:opacity-50',

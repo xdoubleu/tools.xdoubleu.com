@@ -56,6 +56,27 @@ describe('BookProgressEditor', () => {
     mockUpdateProgress.mockResolvedValue({})
   })
 
+  it('shows a visible Update progress button', () => {
+    render(<BookProgressEditor userBook={makeBook()} />)
+    expect(screen.getByRole('button', { name: 'Update progress for Test Book' })).toHaveTextContent(
+      'Update progress'
+    )
+  })
+
+  it('falls back to a generic label when the book has no title', () => {
+    const book = makeBook()
+    book.book = undefined
+    render(<BookProgressEditor userBook={book} />)
+    expect(screen.getByRole('button', { name: 'Update progress' })).toBeInTheDocument()
+  })
+
+  it('renders extra actions next to the button', () => {
+    render(
+      <BookProgressEditor userBook={makeBook()} actions={<button>Mark as completed</button>} />
+    )
+    expect(screen.getByRole('button', { name: 'Mark as completed' })).toBeInTheDocument()
+  })
+
   it('renders the progress bar in read-only mode initially', () => {
     render(<BookProgressEditor userBook={makeBook()} />)
     expect(screen.getByTestId('progress-bar')).toBeInTheDocument()
@@ -68,15 +89,15 @@ describe('BookProgressEditor', () => {
     expect(screen.queryByText('+1')).not.toBeInTheDocument()
   })
 
-  it('shows the edit form when the progress bar is clicked', () => {
+  it('opens the progress dialog when Update progress is clicked', () => {
     render(<BookProgressEditor userBook={makeBook()} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
     expect(screen.getByLabelText('Current page')).toBeInTheDocument()
   })
 
   it('commits pages progress on Enter and calls UpdateProgress', async () => {
     render(<BookProgressEditor userBook={makeBook({ progressMode: 'pages', currentPage: 50 })} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
 
     const input = screen.getByLabelText('Current page')
     fireEvent.change(input, { target: { value: '120' } })
@@ -99,7 +120,7 @@ describe('BookProgressEditor', () => {
         userBook={makeBook({ progressMode: 'percent', progressPercent: 20, tags: ['own-digital'] })}
       />
     )
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
 
     const input = screen.getByLabelText('Progress percent')
     fireEvent.change(input, { target: { value: '75' } })
@@ -114,7 +135,7 @@ describe('BookProgressEditor', () => {
 
   it('closes editor after successful save', async () => {
     render(<BookProgressEditor userBook={makeBook()} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
     expect(screen.getByLabelText('Current page')).toBeInTheDocument()
 
     fireEvent.keyDown(screen.getByLabelText('Current page'), { key: 'Enter' })
@@ -126,7 +147,7 @@ describe('BookProgressEditor', () => {
 
   it('pressing Escape cancels editing without saving', () => {
     render(<BookProgressEditor userBook={makeBook({ currentPage: 50 })} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
 
     const input = screen.getByLabelText('Current page')
     fireEvent.change(input, { target: { value: '99' } })
@@ -139,7 +160,7 @@ describe('BookProgressEditor', () => {
   it('calls onSaved after successful save', async () => {
     const onSaved = jest.fn()
     render(<BookProgressEditor userBook={makeBook()} onSaved={onSaved} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
     fireEvent.keyDown(screen.getByLabelText('Current page'), { key: 'Enter' })
 
     await waitFor(() => {
@@ -149,7 +170,7 @@ describe('BookProgressEditor', () => {
 
   it('selects the existing value on focus so retyping does not require clearing it first', () => {
     render(<BookProgressEditor userBook={makeBook({ currentPage: 50 })} />)
-    fireEvent.click(screen.getByLabelText('Edit reading progress'))
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
 
     const input = screen.getByLabelText('Current page') as HTMLInputElement
     const selectSpy = jest.spyOn(input, 'select')

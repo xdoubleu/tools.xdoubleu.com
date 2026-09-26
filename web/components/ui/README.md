@@ -28,6 +28,18 @@ Spinner inside a card's (relative) `<Link>` while its navigation is pending.
 
 #### `PageLoading`
 
+### `alert.tsx`
+
+#### `Alert`
+
+Inline message banner. `danger` announces immediately (`role="alert"`); the other tones are polite (`role="status"`).
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `tone` | `'danger' \| 'success' \| 'warn' \| 'info'` |  |  |
+
+Also accepts: `HTMLAttributes<HTMLDivElement>`
+
 ### `badge.tsx`
 
 #### `Badge`
@@ -62,7 +74,13 @@ Also accepts: `ButtonHTMLAttributes<HTMLButtonElement>`
 
 #### `Card`
 
-Static surface for grouped content. Use `interactiveCardClass` when the card is clickable.
+Static surface for grouped content. Use `LinkCard` when the card navigates, `interactiveCardClass` for other clickable cards.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `variant` | `keyof typeof cardVariants` |  | `inset` is a flat, padded panel nested inside a card or dialog (list rows, notes). |
+
+Also accepts: `HTMLAttributes<HTMLDivElement>`
 
 #### `CardContent`
 
@@ -92,11 +110,12 @@ Hover/focus treatment for clickable cards. The accent ring shows at rest so card
 
 #### `Checkbox`
 
-Styled native checkbox; pass `label` to get the wrapping `<label>`.
+Styled native checkbox; pass `label` to get the wrapping `<label>` (a bare one is a 16px target).
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
-| `label` | `string` |  |  |
+| `label` | `ReactNode` |  | Rendered in a 44px-tall wrapping `<label>`; wrap text in `sr-only` to hide it visually. |
+| `labelClassName` | `string` |  |  |
 
 Also accepts: `Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>`
 
@@ -177,23 +196,40 @@ Confirmation prompt for an irreversible action. Prefer this over composing `Dial
 
 #### `DialogClose`
 
+44px close control; defaults to a `×` glyph labelled "Close".
+
 #### `DialogContent`
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
-| `side` | `'center' \| 'right' \| 'fullscreen'` |  |  |
+| `side` | `'center' \| 'right' \| 'fullscreen' \| 'sheet'` |  | `sheet` is a bottom sheet on phones and a centered dialog from `sm` up. |
 
 #### `DialogDescription`
 
 #### `DialogFooter`
 
-Right-aligned action row at the bottom of a dialog. Put the confirming action last.
+Right-aligned action row, pinned to the bottom of a scrolling dialog so its actions stay reachable. Put the confirming action last.
 
 #### `DialogHeader`
 
 #### `DialogTitle`
+
+### `field.tsx`
+
+#### `Field`
+
+A form control with its label and hint/error, stacked.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `label` | `ReactNode` | yes |  |
+| `htmlFor` | `string` | yes | The control's `id`, so tapping the label focuses it. |
+| `hint` | `ReactNode` |  | Muted help text under the control. |
+| `error` | `ReactNode` |  | Validation message; replaces `hint` while set. |
+| `children` | `ReactNode` | yes |  |
+| `className` | `string` |  |  |
 
 ### `input.tsx`
 
@@ -202,6 +238,21 @@ Right-aligned action row at the bottom of a dialog. Put the confirming action la
 ### `label.tsx`
 
 #### `Label`
+
+### `link-card.tsx`
+
+#### `LinkCard`
+
+A card that navigates, with its controls kept out of the link area.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` | yes |  |
+| `children` | `ReactNode` | yes | The navigating zone: cover, title, meta. Keep controls out of it. |
+| `actions` | `ReactNode` |  | Controls in a separate footer that never navigates, so a near-miss can't open the page. |
+| `'aria-label'` | `string` |  | Accessible name for the link when `children` has no clear text. |
+| `className` | `string` |  |  |
+| `linkClassName` | `string` |  |  |
 
 ### `menu-item.tsx`
 
@@ -216,6 +267,20 @@ Right-aligned action row at the bottom of a dialog. Put the confirming action la
 | `size` | `keyof typeof sizes` |  |  |
 
 Also accepts: `HTMLAttributes<HTMLDivElement>`
+
+### `page-header.tsx`
+
+#### `PageHeader`
+
+The page's `<h1>` row. Every page uses this instead of a hand-styled heading.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `title` | `ReactNode` | yes |  |
+| `breadcrumb` | `BreadcrumbItem[]` |  | Trail above the title; the last item is the current page. |
+| `description` | `ReactNode` |  | Muted line under the title. |
+| `actions` | `ReactNode` |  | Page-level controls; they wrap under the title on narrow screens. |
+| `className` | `string` |  |  |
 
 ### `popover.tsx` — client component
 
@@ -279,6 +344,20 @@ A `Card` with the standard title/description/action header; don't hand-assemble 
 | `className` | `string` |  |  |
 | `contentClassName` | `string` |  | Applied to the body wrapper, not the card. |
 
+### `segmented-tabs.tsx` — client component
+
+#### `SegmentedTabs`
+
+Single-choice switch between a few views or modes, rendered as a tablist.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `value` | `T` | yes |  |
+| `onChange` | `(value: T) => void` | yes |  |
+| `options` | `SegmentedTabsOption<T>[]` | yes |  |
+| `'aria-label'` | `string` | yes | Names the tablist for screen readers. |
+| `className` | `string` |  |  |
+
 ### `select.tsx`
 
 #### `Select`
@@ -301,6 +380,26 @@ One labelled number in a stats row; structured content belongs in a `SectionCard
 #### `StatTileGrid`
 
 Responsive grid for a row of `StatTile`s — two up on mobile, four from `sm`.
+
+### `states.tsx`
+
+#### `EmptyState`
+
+Message for a list or section with nothing in it yet.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `children` | `ReactNode` | yes |  |
+| `action` | `ReactNode` |  | Optional call to action under the message, e.g. a "New recipe" button. |
+| `className` | `string` |  |  |
+
+#### `ErrorState`
+
+Fetch failure message: "Failed to load {what}."
+
+#### `LoadingState`
+
+Loading placeholder; `label` names what is loading ("recipe" → "Loading recipe…").
 
 ### `table.tsx`
 

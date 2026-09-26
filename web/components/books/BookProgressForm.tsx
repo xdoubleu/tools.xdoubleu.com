@@ -10,21 +10,27 @@ import {
   defaultProgressMode
 } from '@/lib/books/bookProgress'
 import { Button } from '@/components/ui/button'
+import { DialogFooter } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { swrKeys } from '@/lib/swrKeys'
 
 interface BookProgressFormProps {
   userBook: UserBook
   onSaved?: () => void
-  /** Called after save and on Cancel/Escape, so a popover can close itself. */
+  /** Called after save and on Cancel/Escape, so the dialog can close itself. */
   onClose?: () => void
 }
+
+const modeOptions = [
+  { value: PROGRESS_MODE_PAGES, label: 'Pages' },
+  { value: PROGRESS_MODE_PERCENT, label: 'Percent' }
+]
 
 /**
  * Reading-progress form (pages/percent), committed via Save or Enter — never
  * on blur: mobile keypads often lack Enter, and blurring into Cancel would
- * save first.
+ * save first. Rendered inside `BookProgressDialog`.
  */
 export default function BookProgressForm({ userBook, onSaved, onClose }: BookProgressFormProps) {
   const [progressMode, setProgressMode] = useState(defaultProgressMode(userBook))
@@ -32,6 +38,8 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
   const [progressPercent, setProgressPercent] = useState(userBook.progressPercent)
   const [isSaving, setIsSaving] = useState(false)
   const updateProgress = useUpdateProgress()
+  const pageCount = userBook.book?.pageCount ?? 0
+  const isPages = progressMode === PROGRESS_MODE_PAGES
 
   const handleCommit = async () => {
     if (isSaving) return
@@ -70,63 +78,54 @@ export default function BookProgressForm({ userBook, onSaved, onClose }: BookPro
   }
 
   return (
-    <div className="space-y-2" onKeyDown={handleKeyDown}>
-      <div className="flex gap-2 items-center">
-        <Select
-          value={progressMode}
-          onChange={(e) => setProgressMode(e.target.value)}
-          className="w-28"
-          aria-label="Progress mode"
-        >
-          <option value={PROGRESS_MODE_PAGES}>Pages</option>
-          <option value={PROGRESS_MODE_PERCENT}>Percent</option>
-        </Select>
+    <div className="space-y-4" onKeyDown={handleKeyDown}>
+      <SegmentedTabs
+        aria-label="Progress mode"
+        value={progressMode}
+        onChange={setProgressMode}
+        options={modeOptions}
+      />
 
-        {progressMode === PROGRESS_MODE_PAGES ? (
-          <>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={currentPage}
-              onChange={(e) => setCurrentPage(Number(e.target.value))}
-              onFocus={(e) => e.target.select()}
-              autoFocus
-              aria-label="Current page"
-              className="w-20"
-            />
-            {userBook.book?.pageCount ? (
-              <span className="text-xs text-muted whitespace-nowrap">
-                / {userBook.book.pageCount}
-              </span>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={100}
-              value={progressPercent}
-              onChange={(e) => setProgressPercent(Number(e.target.value))}
-              onFocus={(e) => e.target.select()}
-              autoFocus
-              aria-label="Progress percent"
-              className="w-20"
-            />
-            <span className="text-xs text-muted">%</span>
-          </>
-        )}
+      <div className="flex items-center gap-3">
+        <Input
+          key={progressMode}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={isPages ? undefined : 100}
+          value={isPages ? currentPage : progressPercent}
+          onChange={(e) =>
+            isPages
+              ? setCurrentPage(Number(e.target.value))
+              : setProgressPercent(Number(e.target.value))
+          }
+          onFocus={(e) => e.target.select()}
+          autoFocus
+          aria-label={isPages ? 'Current page' : 'Progress percent'}
+          className="h-14 min-w-0 flex-1 text-2xl font-semibold md:text-2xl"
+        />
+        <span className="shrink-0 text-muted">
+          {isPages ? (pageCount > 0 ? `of ${pageCount} pages` : 'pages') : '%'}
+        </span>
       </div>
-      <div className="flex gap-2">
-        <Button onClick={() => void handleCommit()} disabled={isSaving}>
-          {isSaving ? 'Saving…' : 'Save'}
-        </Button>
-        <Button variant="secondary" onClick={handleCancel} disabled={isSaving}>
+
+      <DialogFooter>
+        <Button
+          variant="secondary"
+          onClick={handleCancel}
+          disabled={isSaving}
+          className="flex-1 sm:flex-none"
+        >
           Cancel
         </Button>
-      </div>
+        <Button
+          onClick={() => void handleCommit()}
+          disabled={isSaving}
+          className="flex-1 sm:flex-none"
+        >
+          {isSaving ? 'Saving…' : 'Save'}
+        </Button>
+      </DialogFooter>
     </div>
   )
 }

@@ -18,7 +18,7 @@ export default function PlansListClient() {
   }, [data, router])
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
 
       {isLoading && <p className="text-muted">Loading…</p>}

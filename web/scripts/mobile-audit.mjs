@@ -66,19 +66,12 @@ function collect({ minTap, minGap, minInputFont, tolerance }) {
   const findings = []
 
   // Without it the page lays out at ~980px, invalidating everything else.
-  const viewportMeta = document.querySelector('meta[name="viewport"]')
-  if (!viewportMeta) {
+  // Pinch-zoom is disabled on purpose (docs/convention-ui-standards.md).
+  if (!document.querySelector('meta[name="viewport"]')) {
     findings.push({
       severity: 'broken',
       kind: 'no-viewport-meta',
       detail: `no <meta name="viewport"> — the page lays out at ${viewportWidth}px and is scaled down to fit, so all text and targets render tiny`,
-      elements: []
-    })
-  } else if (/user-scalable\s*=\s*no|maximum-scale\s*=\s*1/.test(viewportMeta.content)) {
-    findings.push({
-      severity: 'degraded',
-      kind: 'zoom-disabled',
-      detail: `viewport meta blocks pinch-zoom ("${viewportMeta.content}"), which fails WCAG 1.4.4`,
       elements: []
     })
   }

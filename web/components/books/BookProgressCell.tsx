@@ -1,36 +1,39 @@
 'use client'
 
+import { useState } from 'react'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookProgressBar from '@/components/books/BookProgressBar'
-import BookProgressForm from '@/components/books/BookProgressForm'
-import { Popover, PopoverTrigger } from '@/components/ui/popover'
+import BookProgressDialog from '@/components/books/BookProgressDialog'
+import { Button } from '@/components/ui/button'
 
 interface BookProgressCellProps {
   userBook: UserBook
   onSaved?: () => void
 }
 
-/**
- * Inline progress editor for the library table. The Popover portals out of
- * the table's overflow wrapper so it stays on-screen on mobile.
- */
+/** Library-table progress cell: the bar itself opens `BookProgressDialog`. */
 export default function BookProgressCell({ userBook, onSaved }: BookProgressCellProps) {
+  const [open, setOpen] = useState(false)
   if (userBook.status !== 'currently-reading') return null
 
   return (
-    <Popover
-      align="left"
-      trigger={({ onClick }) => (
-        <PopoverTrigger
-          onClick={onClick}
-          className="block w-full text-left px-1 py-1.5 -mx-1"
-          aria-label={`Edit reading progress for ${userBook.book?.title ?? 'book'}`}
-        >
+    <>
+      <Button
+        variant="ghost"
+        onClick={() => setOpen(true)}
+        className="h-auto min-h-11 w-full min-w-32 justify-start px-1 text-left font-normal"
+        aria-label={`Edit reading progress for ${userBook.book?.title ?? 'book'}`}
+      >
+        <span className="w-full">
           <BookProgressBar userBook={userBook} />
-        </PopoverTrigger>
-      )}
-    >
-      <BookProgressForm userBook={userBook} onSaved={onSaved} />
-    </Popover>
+        </span>
+      </Button>
+      <BookProgressDialog
+        userBook={userBook}
+        open={open}
+        onOpenChange={setOpen}
+        onSaved={onSaved}
+      />
+    </>
   )
 }

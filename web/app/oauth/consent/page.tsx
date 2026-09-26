@@ -37,14 +37,14 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
   const info = await getConsentInfo(params)
   if (!info) {
     return (
-      <PageContainer size="narrow" className="p-6">
+      <PageContainer size="narrow">
         <p className="text-danger">This authorization request is invalid or has expired.</p>
       </PageContainer>
     )
   }
 
   return (
-    <PageContainer size="narrow" className="p-6">
+    <PageContainer size="narrow">
       <ConsentForm requestQuery={query} clientName={info.clientName} scope={info.scope} />
     </PageContainer>
   )

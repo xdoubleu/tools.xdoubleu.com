@@ -29,3 +29,10 @@ describe('PageContainer', () => {
     expect(container.firstChild).toHaveClass('w-full')
   })
 })
+
+describe('PageContainer form size', () => {
+  it('applies max-w-2xl for size="form"', () => {
+    const { container } = render(<PageContainer size="form">content</PageContainer>)
+    expect(container.firstChild).toHaveClass('max-w-2xl')
+  })
+})

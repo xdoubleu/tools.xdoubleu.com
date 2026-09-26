@@ -187,7 +187,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <PageContainer size="narrow" className="p-6 space-y-10">
+    <PageContainer size="narrow" className="space-y-10">
       <h1 className="text-3xl font-bold">Account Settings</h1>
 
       <section>

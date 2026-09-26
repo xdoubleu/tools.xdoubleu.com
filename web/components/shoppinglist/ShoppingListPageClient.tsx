@@ -85,7 +85,7 @@ export default function ShoppingListPageClient() {
   }
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <div className="mb-6 flex items-center justify-between gap-2">
         <h1 className="text-3xl font-bold">Shopping List</h1>
         <Link href="/shoppinglist/settings" className="text-sm text-accent hover:underline">

@@ -81,7 +81,7 @@ export default function RecipeClient({ id }: { id: string }) {
   }
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe?.name ?? 'Recipe' }]}
