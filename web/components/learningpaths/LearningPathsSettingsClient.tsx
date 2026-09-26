@@ -7,10 +7,12 @@ import {
   useConnectTodoist,
   useDisconnectTodoist
 } from '@/hooks/useTodoistConnection'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Alert } from '@/components/ui/alert'
+import { ConnectionRow } from '@/components/ui/connection-row'
+import { LoadingState } from '@/components/ui/states'
 import { formatDateTime } from '@/lib/dates'
 
 export default function LearningPathsSettingsClient() {
@@ -44,11 +46,13 @@ export default function LearningPathsSettingsClient() {
 
   return (
     <PageContainer size="narrow">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'Settings' }]}
+      <PageHeader
+        title="Learning Paths Settings"
+        breadcrumb={[
+          { label: 'Learning Paths', href: '/learningpaths/list' },
+          { label: 'Settings' }
+        ]}
       />
-      <h1 className="mb-6 text-3xl font-bold">Learning Paths Settings</h1>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Todoist</h2>
@@ -59,36 +63,34 @@ export default function LearningPathsSettingsClient() {
         </p>
 
         {todoistError && (
-          <p className="mb-3 text-xs text-danger">Connecting Todoist failed. Please try again.</p>
+          <Alert tone="danger" className="mb-3">
+            Connecting Todoist failed. Please try again.
+          </Alert>
         )}
 
         {isLoading ? (
-          <p className="text-sm text-muted">Loading…</p>
+          <LoadingState className="text-sm" />
         ) : (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-fg">Todoist</span>
-                <Badge variant={data?.connected ? 'success' : 'secondary'}>
-                  {data?.connected ? 'Connected' : 'Not connected'}
-                </Badge>
-              </div>
-              {data?.connected && data.connectedAt && (
-                <p className="mt-1 text-xs text-muted">
-                  Connected on {formatDateTime(data.connectedAt)}
-                </p>
-              )}
-            </div>
-            {data?.connected ? (
-              <Button variant="destructive" size="sm" disabled={busy} onClick={handleDisconnect}>
-                Disconnect
-              </Button>
-            ) : (
-              <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
-                Connect
-              </Button>
-            )}
-          </div>
+          <ConnectionRow
+            name="Todoist"
+            connected={!!data?.connected}
+            detail={
+              data?.connected &&
+              data.connectedAt &&
+              `Connected on ${formatDateTime(data.connectedAt)}`
+            }
+            actions={
+              data?.connected ? (
+                <Button variant="destructive" size="sm" disabled={busy} onClick={handleDisconnect}>
+                  Disconnect
+                </Button>
+              ) : (
+                <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
+                  Connect
+                </Button>
+              )
+            }
+          />
         )}
       </section>
     </PageContainer>

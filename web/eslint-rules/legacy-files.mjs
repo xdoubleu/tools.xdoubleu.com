@@ -98,14 +98,6 @@ export const legacyUiFiles = [
   'components/shoppinglist/ShoppingList.tsx',
   'components/shoppinglist/ShoppingListPageClient.tsx',
   'components/shoppinglist/StoreManager.tsx',
-  // learningpaths
-  'app/learningpaths/\\[id\\]/PathClient.tsx',
-  'app/learningpaths/\\[id\\]/edit/EditLearningPathClient.tsx',
-  'app/learningpaths/new/page.tsx',
-  'components/learningpaths/LearningPathForm.tsx',
-  'components/learningpaths/LearningPathsListClient.tsx',
-  'components/learningpaths/LearningPathsSettingsClient.tsx',
-  'components/learningpaths/ResourceLinkPicker.tsx',
   // trains + watchparty
   'app/watchparty/\\[id\\]/ViewerClient.tsx',
   'app/watchparty/\\[id\\]/presenter/PresenterClient.tsx',

@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useSearchLibrary } from '@/hooks/useBooks'
 import { useFeedItems } from '@/hooks/useFeeds'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { MenuItem } from '@/components/ui/menu-item'
+import { Combobox } from '@/components/ui/combobox'
 
 // Attaches a library book or feed item to a resource. Results come only from
 // the caller's own data, so they pass the server's link validation.
@@ -39,9 +39,7 @@ export default function ResourceLinkPicker({
   if (linkedBook) {
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="max-w-full break-words rounded-full bg-accent/10 px-2.5 py-1 text-accent">
-          📚 {linkedBook.title}
-        </span>
+        <Badge className="max-w-full break-words text-sm">📚 {linkedBook.title}</Badge>
         <Button type="button" variant="ghost" size="sm" onClick={onUnlink}>
           Unlink
         </Button>
@@ -52,9 +50,7 @@ export default function ResourceLinkPicker({
   if (linkedFeedItem) {
     return (
       <div className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="max-w-full break-words rounded-full bg-accent/10 px-2.5 py-1 text-accent">
-          📰 {linkedFeedItem.title}
-        </span>
+        <Badge className="max-w-full break-words text-sm">📰 {linkedFeedItem.title}</Badge>
         <Button type="button" variant="ghost" size="sm" onClick={onUnlink}>
           Unlink
         </Button>
@@ -130,30 +126,24 @@ function BookLinkSearch({
   }, [query, searchLibrary])
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          autoFocus
-          placeholder="Search your library…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-      {hits.length > 0 && (
-        <ul className="max-h-40 overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated">
-          {hits.map((hit) => (
-            <li key={hit.id}>
-              <MenuItem onClick={() => onPick(hit)}>{hit.title}</MenuItem>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <SearchRow onCancel={onCancel}>
+      <Combobox
+        autoFocus
+        placeholder="Search your library…"
+        aria-label="Search your library"
+        value={query}
+        onChange={setQuery}
+        suggestions={hits.map((hit) => hit.title)}
+        filterSuggestions={false}
+        onSelect={(title) =>
+          hits
+            .filter((h) => h.title === title)
+            .slice(0, 1)
+            .forEach(onPick)
+        }
+        className="min-w-0 flex-1"
+      />
+    </SearchRow>
   )
 }
 
@@ -173,31 +163,34 @@ function FeedItemLinkSearch({
     .slice(0, 8)
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          autoFocus
-          placeholder="Search your feed items…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="flex-1"
-        />
-        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-      {query.trim() && hits.length > 0 && (
-        <ul className="max-h-40 overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated">
-          {hits.map((item) => (
-            <li key={item.id}>
-              <MenuItem onClick={() => onPick({ id: item.id, title: item.title })}>
-                {item.title}
-              </MenuItem>
-            </li>
-          ))}
-        </ul>
-      )}
+    <SearchRow onCancel={onCancel}>
+      <Combobox
+        autoFocus
+        placeholder="Search your feed items…"
+        aria-label="Search your feed items"
+        value={query}
+        onChange={setQuery}
+        suggestions={query.trim() ? hits.map((item) => item.title) : []}
+        filterSuggestions={false}
+        onSelect={(title) =>
+          hits
+            .filter((h) => h.title === title)
+            .slice(0, 1)
+            .forEach((item) => onPick({ id: item.id, title: item.title }))
+        }
+        className="min-w-0 flex-1"
+      />
+    </SearchRow>
+  )
+}
+
+function SearchRow({ onCancel, children }: { onCancel: () => void; children: ReactNode }) {
+  return (
+    <div className="flex gap-2">
+      {children}
+      <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+        Cancel
+      </Button>
     </div>
   )
 }
