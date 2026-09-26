@@ -39,7 +39,7 @@ func TestAutomatedActionsOpenAndClose(t *testing.T) {
 	assert.Empty(t, runs[0].Error)
 
 	require.NoError(t, repo.Close(
-		t.Context(), id, "succeeded", "https://github.com/o/r/pull/1", "",
+		t.Context(), id, "succeeded", "https://github.com/o/r/pull/1", "", nil,
 	))
 
 	runs, err = repo.ListRecent(t.Context(), time.Now().Add(-time.Hour), 10)
@@ -49,6 +49,89 @@ func TestAutomatedActionsOpenAndClose(t *testing.T) {
 	assert.Equal(t, "succeeded", runs[0].Outcome)
 	assert.Equal(t, "https://github.com/o/r/pull/1", runs[0].PRURL)
 	assert.Empty(t, runs[0].Error)
+	assert.Nil(t, runs[0].Metrics)
+}
+
+func testRunMetrics(requests int32) *models.RunMetrics {
+	return &models.RunMetrics{
+		Requests:          requests,
+		InputTokens:       1000,
+		OutputTokens:      200,
+		ReasoningTokens:   50,
+		CacheReadTokens:   300,
+		CostUSD:           0.012,
+		DurationSeconds:   61.5,
+		ToolCalls:         9,
+		ToolErrors:        1,
+		RepeatedToolCalls: 2,
+	}
+}
+
+func TestAutomatedActionsCloseWithMetrics(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	id, err := repo.Open(t.Context(), "ci", "red-pr-repair")
+	require.NoError(t, err)
+	require.NoError(t, repo.Close(
+		t.Context(), id, "no_action_needed", "", "", testRunMetrics(12),
+	))
+
+	runs, err := repo.ListRecent(t.Context(), time.Now().Add(-time.Hour), 10)
+	require.NoError(t, err)
+	require.Len(t, runs, 1)
+	assert.Equal(t, "ci", runs[0].TriggerSource)
+	assert.Equal(t, testRunMetrics(12), runs[0].Metrics)
+}
+
+func TestAutomatedActionsLatestRunMetrics(t *testing.T) {
+	clearAutomatedActions(t)
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	// An older measured run is superseded by the newer one.
+	_, err := testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome, requests)
+		VALUES (now() - INTERVAL '2 hours', now() - INTERVAL '2 hours',
+		        'schedule', 'red-pr-repair', 'succeeded', 99)
+	`)
+	require.NoError(t, err)
+	id, err := repo.Open(t.Context(), "schedule", "red-pr-repair")
+	require.NoError(t, err)
+	require.NoError(t, repo.Close(
+		t.Context(), id, "succeeded", "", "", testRunMetrics(7),
+	))
+
+	// Runs without metrics and runs outside the window are skipped.
+	id, err = repo.Open(t.Context(), "schedule", "unmeasured-routine")
+	require.NoError(t, err)
+	require.NoError(t, repo.Close(t.Context(), id, "succeeded", "", "", nil))
+	_, err = testDB.Exec(t.Context(), `
+		INSERT INTO global.automated_actions
+			(fired_at, finished_at, trigger_source, routine_name, outcome, requests)
+		VALUES (now() - INTERVAL '30 days', now() - INTERVAL '30 days',
+		        'schedule', 'old-routine', 'succeeded', 5)
+	`)
+	require.NoError(t, err)
+
+	latest, err := repo.LatestRunMetrics(
+		t.Context(), time.Now().Add(-14*24*time.Hour),
+	)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]models.RunMetrics{
+		"red-pr-repair": *testRunMetrics(7),
+	}, latest)
+}
+
+func TestAutomatedActionsLatestRunMetricsQueryError(t *testing.T) {
+	repo := repositories.NewAutomatedActionsRepository(testDB)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	latest, err := repo.LatestRunMetrics(ctx, time.Now())
+	require.Error(t, err)
+	assert.Nil(t, latest)
 }
 
 func TestAutomatedActionsCloseFailed(t *testing.T) {
@@ -58,7 +141,7 @@ func TestAutomatedActionsCloseFailed(t *testing.T) {
 	id, err := repo.Open(t.Context(), "manual", "restart-worker")
 	require.NoError(t, err)
 
-	require.NoError(t, repo.Close(t.Context(), id, "failed", "", "boom"))
+	require.NoError(t, repo.Close(t.Context(), id, "failed", "", "boom", nil))
 
 	runs, err := repo.ListRecent(t.Context(), time.Now().Add(-time.Hour), 10)
 	require.NoError(t, err)

@@ -10,11 +10,31 @@ workflow:
 
 1. mints a one-hour GitHub App token and a client_credentials MCP token
    ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)),
-2. runs `opencode run --auto` on OpenRouter with the routine's prompt, writing
+2. opens the run's `automated_actions` row through `record_action`
+   (`scripts/routine_record.sh`; `trigger_source` `schedule`, `manual`, or `ci`
+   for a red `main`),
+3. runs `opencode run --auto` on OpenRouter with the routine's prompt, writing
    the transcript to a file rather than the public job log,
-3. uploads the transcript encrypted,
-4. always posts a Slack notice: the job outcome, the agent's summary, and the
-   run link.
+4. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
+   tokens, estimated cost, duration, tool calls, failed and repeated calls)
+   into the job summary,
+5. closes the row with the agent's outcome file (`failed` if the agent step
+   didn't succeed or wrote none) and those metrics,
+6. uploads the transcript encrypted,
+7. always posts a Slack notice: the job outcome, the agent's summary, the
+   metrics line, and the run link.
+
+The collector exports each routine's latest measured run as
+`automated_action_last_run{routine,metric}`; `AutomatedRoutineRunHeavy` flags a
+run with over 3x its 14-day average requests.
+
+## Feedback issues
+
+The agent ends each run with a retro. It reports blockers and concrete waste
+from that run as `routine-feedback` issues, commenting on an open match
+instead of duplicating, at most 2 per run. They never go to Ready: the owner
+triages them like any Backlog issue. They hold no log excerpts or copied
+input text, since the inputs are untrusted.
 
 A red `main` also starts red-PR repair: `main.yml`'s `notify-main-ci-red` job
 calls `agent-routine.yml` directly.
@@ -69,7 +89,10 @@ openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$ROUTINE_TRANSCRIPT_PASSPHRASE" 
 
 ## Constraints
 
-- The MCP token lasts an hour, so the agent step is capped at 55 minutes.
+- The MCP token lasts an hour, so the agent step is capped at 55 minutes,
+  leaving time to close the run record.
+- Metric cost is OpenCode's estimate from its model catalog, not the
+  OpenRouter bill. Requests count the main session's model calls only.
 - OpenCode subagents share one checkout, so routines work through items in
   sequence rather than in parallel isolated subagents. The ready-issues
   executor takes at most 2 issues per run to fit the cap.

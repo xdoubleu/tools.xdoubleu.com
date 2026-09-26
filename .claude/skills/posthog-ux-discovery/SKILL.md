@@ -17,7 +17,8 @@ create a PR, or edit a repo file.
 ## Steps
 
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
-   "schedule", routine_name: "posthog-ux-discovery")`. Keep the `id`.
+   "schedule", routine_name: "posthog-ux-discovery")`. Keep the `id`. Skip
+   under the workflow (step 6).
 
 1. **Enumerate key flows** — named multi-step journeys (e.g. recipes → add to
    meal plan → export shopping list; books → sync to Kobo). Prefer insights
@@ -69,7 +70,9 @@ create a PR, or edit a repo file.
 6. **Close the run record:** `record_action(mode: "close", id, outcome)` —
    `"no_action_needed"` (no threshold crossed), `"succeeded"` (filed/updated
    a finding or provisional), `"failed"` (the run broke, e.g. PostHog
-   connector error). An unclosed row is its own detectable problem.
+   connector error). An unclosed row is its own detectable problem. Workflow
+   runs write `{"outcome", "pr_url", "error"}` JSON to
+   `$ROUTINE_OUTCOME_PATH` instead.
 
 7. **Summarize:** one line per finding (flow/step → evidence → issue link),
    provisionals opened/closed, and gaps from steps 1–2 (missing saved

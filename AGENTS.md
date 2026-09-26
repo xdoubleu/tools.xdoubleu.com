@@ -53,7 +53,7 @@ npx jest path/to/file.test.ts -t "test name"
 make build | dist | test | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test
+make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test
 
 # proto changes: run BOTH generators (…/local variants avoid buf.build)
 cd api && make proto/generate    # check: make proto/check

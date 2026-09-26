@@ -106,6 +106,28 @@ func (s stubAutomatedActionGetter) MostRecentOpenedAt(
 	return s.firedAt, s.err
 }
 
+func (s stubAutomatedActionGetter) LatestRunMetrics(
+	_ context.Context,
+	_ time.Time,
+) (map[string]models.RunMetrics, error) {
+	return map[string]models.RunMetrics{}, nil
+}
+
+// stubRunMetricsGetter overrides LatestRunMetrics.
+type stubRunMetricsGetter struct {
+	stubAutomatedActionGetter
+
+	metrics map[string]models.RunMetrics
+	err     error
+}
+
+func (s stubRunMetricsGetter) LatestRunMetrics(
+	_ context.Context,
+	_ time.Time,
+) (map[string]models.RunMetrics, error) {
+	return s.metrics, s.err
+}
+
 func loggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	buf := &bytes.Buffer{}
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
@@ -161,7 +183,89 @@ func resetGauges() {
 	postgresSchemaSizeBytes.Reset()
 	automatedActionOldestOpenAgeSeconds.Set(0)
 	automatedActionSecondsSinceLastOpen.Reset()
+	automatedActionLastRun.Reset()
 	sentryUnresolvedIssues.Set(0)
+}
+
+func emptyStubJob(automatedAction automatedActionGetter) *IssueSignalCollectorJob {
+	return NewIssueSignalCollectorJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+		},
+		stubSentryClient{issues: nil, err: nil},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		automatedAction,
+	)
+}
+
+func TestIssueSignalCollectorRoutineRunMetrics(t *testing.T) {
+	resetGauges()
+	// A routine missing from the latest result must not keep a stale value.
+	automatedActionLastRun.WithLabelValues("retired", "requests").Set(9)
+
+	job := emptyStubJob(stubRunMetricsGetter{
+		stubAutomatedActionGetter: stubAutomatedActionGetter{
+			firedAt: time.Now(), err: nil, byRoutine: nil,
+		},
+		metrics: map[string]models.RunMetrics{
+			"red-pr-repair": {
+				Requests:          14,
+				InputTokens:       52000,
+				OutputTokens:      3100,
+				ReasoningTokens:   900,
+				CacheReadTokens:   40000,
+				CostUSD:           0.021,
+				DurationSeconds:   95,
+				ToolCalls:         22,
+				ToolErrors:        2,
+				RepeatedToolCalls: 1,
+			},
+		},
+		err: nil,
+	})
+
+	logger, _ := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	for metric, want := range map[string]float64{
+		"requests":            14,
+		"input_tokens":        52000,
+		"output_tokens":       3100,
+		"reasoning_tokens":    900,
+		"cache_read_tokens":   40000,
+		"cost_usd":            0.021,
+		"duration_seconds":    95,
+		"tool_calls":          22,
+		"tool_errors":         2,
+		"repeated_tool_calls": 1,
+	} {
+		assert.InDelta(t, want, testutil.ToFloat64(
+			automatedActionLastRun.WithLabelValues("red-pr-repair", metric)),
+			1e-9, metric)
+	}
+	assert.Equal(t, 10, testutil.CollectAndCount(automatedActionLastRun))
+}
+
+func TestIssueSignalCollectorRoutineRunMetricsErrorKeepsGauges(t *testing.T) {
+	resetGauges()
+	automatedActionLastRun.WithLabelValues("red-pr-repair", "requests").Set(7)
+
+	job := emptyStubJob(stubRunMetricsGetter{
+		stubAutomatedActionGetter: stubAutomatedActionGetter{
+			firedAt: time.Now(), err: nil, byRoutine: nil,
+		},
+		metrics: nil,
+		err:     errors.New("boom"),
+	})
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 7.0, testutil.ToFloat64(
+		automatedActionLastRun.WithLabelValues("red-pr-repair", "requests")), 0)
+	assert.Contains(t, buf.String(), "failed to load routine run metrics")
 }
 
 func newStubJob(

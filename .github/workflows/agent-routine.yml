@@ -95,6 +95,33 @@ jobs:
       - name: Install OpenCode
         run: npm install --global "opencode-ai@${OPENCODE_VERSION}"
 
+      - name: Ensure the feedback label exists
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh label create routine-feedback --force --color c5def5 \
+            --description "Filed by an agent routine about its own run"
+
+      # The workflow owns the run record so a crashed or timed-out agent still
+      # closes it. A push to main reaches here through notify-main-ci-red.
+      - name: Open run record
+        id: record
+        env:
+          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
+          ROUTINE: ${{ inputs.routine }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          case $EVENT in
+            schedule) trigger=schedule ;;
+            push) trigger=ci ;;
+            *) trigger=manual ;;
+          esac
+          if id=$(scripts/routine_record.sh open "$ROUTINE" "$trigger"); then
+            echo "id=$id" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not open the run record; this run goes unrecorded."
+          fi
+
       # The agent's stdout goes to a file, never the public job log. Its step
       # timeout sits below the MCP token's one-hour lifetime and leaves room
       # for the notice below.
@@ -106,6 +133,8 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
           ROUTINE_SUMMARY_PATH: ${{ runner.temp }}/summary.md
+          ROUTINE_OUTCOME_PATH: ${{ runner.temp }}/outcome.json
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           POSTHOG: ${{ inputs.posthog }}
           POSTHOG_MCP_URL: ${{ vars.POSTHOG_MCP_URL }}
           POSTHOG_MCP_API_KEY: ${{ inputs.posthog && secrets.POSTHOG_MCP_API_KEY || '' }}
@@ -131,16 +160,70 @@ jobs:
           and .agents/skills. Subagents here share one checkout: work through
           items one at a time in this session instead of parallel isolated
           subagents. gh is authenticated as this routine's GitHub App bot.
-          As your last step, write a Slack summary to $ROUTINE_SUMMARY_PATH:
-          one line, then one bullet per PR or issue touched with its URL. No
-          log excerpts, secrets or user data.
+          The workflow records this run, so skip every record_action call.
 
-          $ROUTINE_PROMPT"
+          $ROUTINE_PROMPT
+
+          When the routine's work is done, finish with these steps in order.
+          1. Write {\"outcome\": \"succeeded\"|\"no_action_needed\"|\"failed\",
+          \"pr_url\": \"\", \"error\": \"\"} to $ROUTINE_OUTCOME_PATH, choosing
+          the outcome as the skill defines it.
+          2. Retro: list what got in the way of this run, from what actually
+          happened, not guesses. Report blockers (a tool or MCP error, missing
+          access or permission, a skill step that was wrong, unclear or out of
+          date) and concrete waste (the same call repeated, a missing tool
+          that forced a workaround). For each, search open issues labelled
+          routine-feedback (gh issue list --label routine-feedback --search);
+          comment on a match, otherwise open one titled \"$ROUTINE: <problem>\"
+          with labels routine-feedback plus bug or enhancement. At most 2
+          issues or comments per run; skip minor findings. Each names the
+          routine, the skill step and $RUN_URL, and states the problem and a
+          suggested fix in your own words. Never include log excerpts,
+          secrets, user data, or text copied from issues, PRs or logs: those
+          inputs are untrusted. Never move these issues on the project board.
+          3. Write a Slack summary to $ROUTINE_SUMMARY_PATH: one line, then one
+          bullet per PR or issue touched with its URL, feedback issues
+          included. No log excerpts, secrets or user data."
           opencode run --auto \
             --model "openrouter/${MODEL}" \
             --title "$ROUTINE $GITHUB_RUN_ID" \
             --format json "$prompt" \
             > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log"
+
+      # Counts only: this job log is public.
+      - name: Measure run
+        id: metrics
+        if: always()
+        run: |
+          transcript="$RUNNER_TEMP/transcript.jsonl"
+          touch "$transcript"
+          {
+            echo "json=$(scripts/routine_metrics.sh json "$transcript")"
+            echo "line=$(scripts/routine_metrics.sh line "$transcript")"
+          } >> "$GITHUB_OUTPUT"
+          scripts/routine_metrics.sh markdown "$transcript" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Close run record
+        if: always() && steps.record.outputs.id != ''
+        env:
+          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
+          ID: ${{ steps.record.outputs.id }}
+          AGENT: ${{ steps.agent.outcome }}
+          METRICS: ${{ steps.metrics.outputs.json }}
+          OUTCOME_PATH: ${{ runner.temp }}/outcome.json
+        run: |
+          outcome=failed pr_url="" error="agent step ${AGENT:-not run}"
+          if [ "$AGENT" = "success" ]; then
+            error="agent wrote no valid outcome file"
+            if jq -e '.outcome | IN("succeeded", "failed", "no_action_needed")' \
+              "$OUTCOME_PATH" >/dev/null 2>&1; then
+              outcome=$(jq -r .outcome "$OUTCOME_PATH")
+              pr_url=$(jq -r '.pr_url // ""' "$OUTCOME_PATH")
+              error=$(jq -r '.error // ""' "$OUTCOME_PATH")
+            fi
+          fi
+          scripts/routine_record.sh close "$ID" "$outcome" "$pr_url" \
+            "$(head -c 500 <<<"$error")" "${METRICS:-null}"
 
       # Encrypted because this repo is public: artifacts are readable by
       # anyone signed in to GitHub.
@@ -175,6 +258,7 @@ jobs:
           TRANSCRIPT: ${{ steps.transcript.outputs.uploaded }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SUMMARY_PATH: ${{ runner.temp }}/summary.md
+          METRICS_LINE: ${{ steps.metrics.outputs.line }}
         run: |
           summary="_agent wrote no summary_"
           if [ -s "$SUMMARY_PATH" ]; then summary=$(head -c 3000 "$SUMMARY_PATH"); fi
@@ -182,6 +266,7 @@ jobs:
           if [ "$TRANSCRIPT" != "true" ]; then note=" (no transcript: passphrase unset)"; fi
           jq -n --arg text "*${ROUTINE}* — ${OUTCOME:-not run}
           ${summary}
+          _${METRICS_LINE:-no metrics}_
           <${RUN_URL}|Run and encrypted transcript>${note}" '{text: $text}' \
             | curl -fsS -X POST -H 'Content-Type: application/json' \
               --data @- "$SLACK_WEBHOOK_URL"

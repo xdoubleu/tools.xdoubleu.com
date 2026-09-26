@@ -300,6 +300,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: make lint/workflows
         run: make lint/workflows
+      - name: make routines/test
+        run: make routines/test
 
   # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:
@@ -737,12 +739,10 @@ jobs:
       prompt: >-
         Run the red-pr-repair skill (.claude/skills/red-pr-repair/SKILL.md),
         entry point 2 (a red main branch); if the skill tool can't load it, read
-        that file and follow it by hand. Call record_action with mode=open,
-        trigger_source=webhook, routine_name=red-pr-repair first. The push to
-        main at ${{ github.sha }} failed in run
+        that file and follow it by hand. The push to main at ${{ github.sha }}
+        failed in run
         ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }};
         find the failing jobs with gh run view --log-failed. Fix on a new
         branch off origin/main and open a PR gated by normal CI — never push to
         main. With no determinable fix, file a tracking issue describing the
-        investigation. Then call record_action with mode=close (the id the open
-        call returned) and the outcome.
+        investigation.

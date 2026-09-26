@@ -18,7 +18,7 @@ question.
 
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
    "schedule"` (unattended) / `"manual"`, `routine_name:
-   "ready-issues-executor")`. Keep the `id`.
+   "ready-issues-executor")`. Keep the `id`. Skip under the workflow (step 6).
 
 1. **Pull the column:** `get_project_issues_by_status(status="Ready",
    project_number=<from config>)`.
@@ -65,7 +65,8 @@ question.
    subagent reached an open PR; a blocked issue is a normal per-issue
    outcome), `"failed"` (the sweep itself broke — missing scope, MCP error;
    set `error`). Set `pr_url` for a single PR. An unclosed row is its own
-   detectable problem.
+   detectable problem. Workflow runs write `{"outcome", "pr_url", "error"}`
+   JSON to `$ROUTINE_OUTCOME_PATH` instead.
 
 ## Related
 

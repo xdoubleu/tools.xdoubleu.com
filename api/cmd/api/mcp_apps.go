@@ -7,6 +7,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/protobuf/proto"
 
+	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
 	"tools.xdoubleu.com/internal/mcptools"
 )
@@ -51,8 +52,8 @@ type dismissSecurityAlertArgs struct {
 }
 
 // recordActionArgs: a routine calls "open" first (TriggerSource
-// schedule|api|manual, RoutineName) and "close" last (the returned ID,
-// Outcome succeeded|failed|no_action_needed, optional PRURL/Error).
+// schedule|api|manual|ci, RoutineName) and "close" last (the returned ID,
+// Outcome succeeded|failed|no_action_needed, optional PRURL/Error/Metrics).
 type recordActionArgs struct {
 	Mode          string `json:"mode"                     jsonschema:"open or close"`
 	TriggerSource string `json:"trigger_source,omitempty" jsonschema:"see doc comment"`
@@ -61,6 +62,40 @@ type recordActionArgs struct {
 	Outcome       string `json:"outcome,omitempty"        jsonschema:"see doc comment"`
 	PRURL         string `json:"pr_url,omitempty"         jsonschema:"see doc comment"`
 	Error         string `json:"error,omitempty"          jsonschema:"see doc comment"`
+
+	Metrics *runMetricsArgs `json:"metrics,omitempty" jsonschema:"see doc comment"`
+}
+
+// runMetricsArgs mirrors observabilityv1.RunMetrics with its JSON names.
+type runMetricsArgs struct {
+	Requests          int32   `json:"requests"`
+	InputTokens       int64   `json:"input_tokens"`
+	OutputTokens      int64   `json:"output_tokens"`
+	ReasoningTokens   int64   `json:"reasoning_tokens"`
+	CacheReadTokens   int64   `json:"cache_read_tokens"`
+	CostUSD           float64 `json:"cost_usd"`
+	DurationSeconds   float64 `json:"duration_seconds"`
+	ToolCalls         int32   `json:"tool_calls"`
+	ToolErrors        int32   `json:"tool_errors"`
+	RepeatedToolCalls int32   `json:"repeated_tool_calls"`
+}
+
+func (m *runMetricsArgs) proto() *observabilityv1.RunMetrics {
+	if m == nil {
+		return nil
+	}
+	return &observabilityv1.RunMetrics{
+		Requests:          m.Requests,
+		InputTokens:       m.InputTokens,
+		OutputTokens:      m.OutputTokens,
+		ReasoningTokens:   m.ReasoningTokens,
+		CacheReadTokens:   m.CacheReadTokens,
+		CostUsd:           m.CostUSD,
+		DurationSeconds:   m.DurationSeconds,
+		ToolCalls:         m.ToolCalls,
+		ToolErrors:        m.ToolErrors,
+		RepeatedToolCalls: m.RepeatedToolCalls,
+	}
 }
 
 // notifySlackArgs: Title, if set, is bolded above Message.
@@ -230,9 +265,9 @@ func registerMutatingObservabilityMCPTools(srv *mcp.Server, h *obsConnectHandler
 		})
 	addObsTool(srv, "record_action",
 		"Opens or closes a run record for a self-healing routine "+
-			"(global.automated_actions) — a routine calls this with mode=open "+
-			"as its first step and mode=close as its last, since it executes "+
-			"outside api's own process and nothing else observes it running. "+
+			"(global.automated_actions): mode=open first, mode=close last, "+
+			"since it executes outside api's own process. The routine "+
+			"workflow does this itself and adds the run's metrics on close. "+
 			"One of four mutating observability tools, alongside "+
 			"resolve_sentry_issue, dismiss_security_alert, and notify_slack.",
 		func(ctx context.Context, a recordActionArgs) (proto.Message, error) {
