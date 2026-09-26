@@ -6,6 +6,8 @@ import type { PlanMeal } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import MealPlanMealChip from './MealPlanMealChip'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -43,9 +45,12 @@ export default function MealPlanWeekGrid({
     const meals = getMealsForSlot(formattedDate, slot)
     const hasMeals = meals.length > 0
     return (
-      <div
+      <Card
         key={`${formattedDate}-${slot}`}
-        className={`min-h-14 min-w-0 space-y-1 rounded-xl border bg-card p-1.5 ${swappingMeal ? 'hover:border-accent/50 hover:bg-accent/10' : 'border-border'}`}
+        className={cn(
+          'min-h-14 min-w-0 space-y-1 rounded-xl p-1.5 shadow-none',
+          swappingMeal && 'border-dashed border-accent/50 bg-accent/5 hover:bg-accent/10'
+        )}
         onClick={() => onCellClick(formattedDate, slot)}
       >
         {meals.map((meal) => (
@@ -70,31 +75,34 @@ export default function MealPlanWeekGrid({
         ) : (
           <Button
             variant="ghost"
-            title={hasMeals ? 'Add another meal' : 'Add meal'}
+            aria-label={hasMeals ? 'Add another meal' : 'Add meal'}
             onClick={(e) => {
               e.stopPropagation()
               onAddClick(formattedDate, slot)
             }}
-            className={`w-full px-0 text-muted ${hasMeals ? 'min-h-10 text-base' : 'h-full min-h-10 text-lg'}`}
+            className={cn(
+              'min-h-11 w-full px-0 text-muted',
+              hasMeals ? 'text-base' : 'h-full text-lg'
+            )}
           >
             +
           </Button>
         )}
-      </div>
+      </Card>
     )
   }
 
   return (
     <div className="flex flex-col gap-4 items-start">
       <div className="w-full min-w-0">
-        <div className={`sm:hidden space-y-3 text-xs${swappingMeal ? ' cursor-crosshair' : ''}`}>
+        <div className={cn('space-y-3 text-xs sm:hidden', swappingMeal && 'cursor-crosshair')}>
           {weekDates.map((date) => {
             const formattedDate = formatMealDate(date)
             const isToday = formattedDate === today
             return (
-              <div key={formattedDate} className="rounded-xl border border-border bg-card p-2">
+              <Card key={formattedDate} className="rounded-xl p-2 shadow-none">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <div className={`font-semibold text-sm${isToday ? ' text-accent' : ' text-fg'}`}>
+                  <div className={cn('text-sm font-semibold', isToday ? 'text-accent' : 'text-fg')}>
                     {DAY_NAMES[date.getDay()]} {date.getDate()}
                     {isToday && <span className="ml-1 text-xs font-normal">(today)</span>}
                   </div>
@@ -117,14 +125,12 @@ export default function MealPlanWeekGrid({
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )
           })}
         </div>
 
-        <div
-          className={`hidden sm:block overflow-x-auto${swappingMeal ? ' cursor-crosshair' : ''}`}
-        >
+        <div className={cn('hidden overflow-x-auto sm:block', swappingMeal && 'cursor-crosshair')}>
           <div
             className="grid gap-1.5 text-sm"
             style={{ gridTemplateColumns: 'minmax(5rem, auto) repeat(7, 1fr)' }}
@@ -136,13 +142,16 @@ export default function MealPlanWeekGrid({
               return (
                 <div
                   key={formattedDate}
-                  className={`flex flex-col items-center gap-0.5 py-1 text-center font-semibold${isToday ? ' text-accent' : ' text-fg'}`}
+                  className={cn(
+                    'flex flex-col items-center gap-0.5 py-1 text-center font-semibold',
+                    isToday ? 'text-accent' : 'text-fg'
+                  )}
                 >
                   {DAY_NAMES[date.getDay()]}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-auto rounded-lg px-1.5 py-0 text-xs font-normal text-muted"
+                    className="rounded-lg px-1.5 text-xs font-normal text-muted"
                     onClick={() => onFillDay(formattedDate)}
                   >
                     Fill day
@@ -157,7 +166,10 @@ export default function MealPlanWeekGrid({
               return (
                 <div
                   key={formatMealDate(date)}
-                  className={`py-1 text-center${isToday ? ' text-accent font-semibold' : ' text-muted'}`}
+                  className={cn(
+                    'py-1 text-center',
+                    isToday ? 'font-semibold text-accent' : 'text-muted'
+                  )}
                 >
                   {date.getDate()}
                 </div>

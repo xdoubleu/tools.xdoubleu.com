@@ -7,6 +7,7 @@ import MealPlanEntryForm from './MealPlanEntryForm'
 import MealPlanWeekGrid from './MealPlanWeekGrid'
 import { useMealCalendarState } from './useMealCalendarState'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { formatCustomNameLabel } from '@/lib/customItems'
 import { formatDate } from '@/lib/dates'
 
@@ -81,7 +82,7 @@ export default function MealPlanCalendar({
       </div>
 
       {swappingMeal && (
-        <div className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl border border-accent/30 bg-card px-4 py-2.5 text-sm text-accent shadow-elevated">
+        <Card className="fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100vw-2rem)] items-center gap-3 border-accent/30 px-4 py-2.5 text-sm text-accent shadow-elevated">
           <span className="min-w-0 truncate">
             Swapping <strong>{swappingMealName}</strong> — tap another meal or an empty cell
           </span>
@@ -93,7 +94,7 @@ export default function MealPlanCalendar({
           >
             Cancel
           </Button>
-        </div>
+        </Card>
       )}
 
       <MealPlanWeekGrid

@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import PlanForm from '@/components/mealplans/PlanForm'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function EditPlanClient({ id }: { id: string }) {
   const { data, isLoading, error } = useMealPlan(id)
@@ -13,18 +14,17 @@ export default function EditPlanClient({ id }: { id: string }) {
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[
+      <PageHeader
+        title="Settings"
+        breadcrumb={[
           { label: 'Meal Plans', href: '/mealplans' },
           { label: plan?.name ?? 'Plan', href: `/mealplans/${id}` },
           { label: 'Settings' }
         ]}
       />
-      <h1 className="text-3xl font-bold mb-6">Settings</h1>
 
-      {isLoading && <p className="text-muted">Loading plan…</p>}
-      {error && <p className="text-danger">Failed to load plan.</p>}
+      {isLoading && <LoadingState label="plan" />}
+      {error && <ErrorState what="plan" />}
       {plan && (
         <PlanForm
           plan={plan}

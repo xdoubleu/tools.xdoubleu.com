@@ -17,6 +17,9 @@ interface PopoverProps {
   className?: string
   /** Alignment of the panel relative to the trigger. Defaults to "right". */
   align?: 'left' | 'right'
+  /** Controls the open state, e.g. to close the panel after a menu action. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 interface PanelCoords {
@@ -37,13 +40,28 @@ const MARGIN = 8 // px clearance from viewport edges
  * that closes on outside click and Escape, flips upward when space below is
  * short, and caps its height to the viewport.
  */
-export function Popover({ trigger, children, className, align = 'right' }: PopoverProps) {
-  const [open, setOpen] = useState(false)
+export function Popover({
+  trigger,
+  children,
+  className,
+  align = 'right',
+  open: controlledOpen,
+  onOpenChange
+}: PopoverProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (controlledOpen === undefined) setUncontrolledOpen(next)
+      onOpenChange?.(next)
+    },
+    [controlledOpen, onOpenChange]
+  )
   const [coords, setCoords] = useState<PanelCoords>({ top: 0, maxHeight: 400 })
   const triggerRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  const close = useCallback(() => setOpen(false), [])
+  const close = useCallback(() => setOpen(false), [setOpen])
 
   const computeCoords = useCallback(() => {
     if (!triggerRef.current) return
@@ -109,7 +127,7 @@ export function Popover({ trigger, children, className, align = 'right' }: Popov
 
   return (
     <div ref={triggerRef} className="relative">
-      {trigger({ open, onClick: () => setOpen((v) => !v) })}
+      {trigger({ open, onClick: () => setOpen(!open) })}
       {open &&
         createPortal(
           <div

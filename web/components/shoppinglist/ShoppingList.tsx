@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { cn } from '@/lib/cn'
 
 export interface ShoppingItemEdit {
   name: string
@@ -76,19 +78,17 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
 
             if (isEditing && item.id) {
               return (
-                <div
-                  key={key}
-                  className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3"
-                >
+                <Card key={key} variant="inset" className="flex flex-wrap items-center gap-2">
                   <Input
                     type="number"
+                    inputMode="decimal"
                     aria-label="Amount"
                     placeholder="Amount"
                     value={draft.amount}
                     onChange={(e) => setDraft({ ...draft, amount: e.target.value })}
                     min="0"
                     step="any"
-                    className="w-24"
+                    className="min-w-0 flex-1 sm:w-24 sm:flex-none"
                   />
                   <Input
                     type="text"
@@ -96,7 +96,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                     placeholder="Unit"
                     value={draft.unit}
                     onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
-                    className="w-24"
+                    className="min-w-0 flex-1 sm:w-24 sm:flex-none"
                   />
                   <Input
                     type="text"
@@ -104,7 +104,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                     placeholder="Item name"
                     value={draft.name}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    className="min-w-32 flex-1"
+                    className="min-w-0 flex-1 basis-full sm:basis-32"
                   />
                   <Button
                     size="sm"
@@ -116,21 +116,27 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                   <Button variant="ghost" size="sm" onClick={cancelEdit} disabled={saving}>
                     Cancel
                   </Button>
-                </div>
+                </Card>
               )
             }
 
             return (
-              <div
-                key={key}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
-              >
-                <Checkbox checked={isChecked} onChange={() => toggleItem(key)} />
-                <span
-                  className={`flex-1 text-sm ${isChecked ? 'line-through text-muted' : 'text-fg'}`}
-                >
-                  {item.amount} {item.unit} - {item.name}
-                </span>
+              <Card key={key} variant="inset" className="flex flex-wrap items-center gap-x-3 py-0">
+                <Checkbox
+                  checked={isChecked}
+                  onChange={() => toggleItem(key)}
+                  labelClassName="min-w-0 flex-1"
+                  label={
+                    <span
+                      className={cn(
+                        'min-w-0 break-words text-sm',
+                        isChecked ? 'text-muted line-through' : 'text-fg'
+                      )}
+                    >
+                      {item.amount} {item.unit} - {item.name}
+                    </span>
+                  }
+                />
                 {item.id && onEdit && (
                   <Button
                     variant="ghost"
@@ -153,7 +159,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                     ×
                   </Button>
                 )}
-              </div>
+              </Card>
             )
           })}
         </div>
