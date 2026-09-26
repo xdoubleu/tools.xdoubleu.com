@@ -17,7 +17,7 @@ export default async function BacklogBooksLibraryPage() {
   const library = await fetchOrNull(() => client.getLibrary({}))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-6"
         items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Library' }]}

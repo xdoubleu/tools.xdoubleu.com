@@ -37,3 +37,11 @@ describe('Checkbox', () => {
     expect(screen.getByRole('checkbox')).toHaveClass('custom-class')
   })
 })
+
+describe('Checkbox node label', () => {
+  it('wraps a ReactNode label in a 44px label', () => {
+    render(<Checkbox id="c" label={<span className="sr-only">Done</span>} />)
+    const box = screen.getByLabelText('Done')
+    expect(box.closest('label')).toHaveClass('min-h-11', 'min-w-11')
+  })
+})

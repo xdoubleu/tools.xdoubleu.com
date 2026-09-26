@@ -43,7 +43,7 @@ export default function LearningPathsSettingsClient() {
   }
 
   return (
-    <PageContainer size="narrow" className="p-6">
+    <PageContainer size="narrow">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'Settings' }]}

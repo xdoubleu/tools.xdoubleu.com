@@ -33,7 +33,7 @@ interface RadioGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, 'onChange
 function RadioGroup({ name, value, onChange, className, children, ...props }: RadioGroupProps) {
   return (
     <RadioGroupContext.Provider value={{ name, value, onChange }}>
-      <div role="radiogroup" className={cn('flex flex-col gap-1', className)} {...props}>
+      <div role="radiogroup" className={cn('flex flex-col gap-2', className)} {...props}>
         {children}
       </div>
     </RadioGroupContext.Provider>
@@ -56,7 +56,7 @@ const RadioGroupItem = forwardRef<HTMLInputElement, RadioGroupItemProps>(
     return (
       <label
         htmlFor={inputId}
-        className="inline-flex items-center gap-2 cursor-pointer select-none"
+        className="inline-flex min-h-11 items-center gap-2 cursor-pointer select-none"
       >
         <input
           ref={ref}

@@ -86,10 +86,10 @@ describe('BookProgressForm', () => {
     })
   })
 
-  it('switches the input to percent mode when the mode select changes', () => {
+  it('switches the input to percent mode when the Percent tab is chosen', () => {
     render(<BookProgressForm userBook={makeBook({ progressMode: 'pages' })} />)
 
-    fireEvent.change(screen.getByLabelText('Progress mode'), { target: { value: 'percent' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Percent' }))
 
     expect(screen.getByLabelText('Progress percent')).toBeInTheDocument()
     expect(screen.queryByLabelText('Current page')).not.toBeInTheDocument()
@@ -205,10 +205,23 @@ describe('BookProgressForm', () => {
     await waitFor(() => expect(mockUpdateProgress).toHaveBeenCalledTimes(1))
   })
 
-  it('omits the page-count suffix when the book has no page count', () => {
+  it('shows the page count next to the page field', () => {
+    render(<BookProgressForm userBook={makeBook({ pageCount: 200 })} />)
+
+    expect(screen.getByText('of 200 pages')).toBeInTheDocument()
+  })
+
+  it('omits the page count when the book has none', () => {
     render(<BookProgressForm userBook={makeBook({ pageCount: 0 })} />)
 
-    expect(screen.queryByText(/^\/ /)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^of /)).not.toBeInTheDocument()
+    expect(screen.getByText('pages')).toBeInTheDocument()
+  })
+
+  it('shows a percent suffix in percent mode', () => {
+    render(<BookProgressForm userBook={makeBook({ progressMode: 'percent' })} />)
+
+    expect(screen.getByText('%')).toBeInTheDocument()
   })
 
   it('keeps the form open if the save fails', async () => {

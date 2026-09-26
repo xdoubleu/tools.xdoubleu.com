@@ -41,7 +41,7 @@ describe('BookProgressCell', () => {
     expect(screen.queryByTestId('progress-form')).not.toBeInTheDocument()
   })
 
-  it('opens the edit form in a popover when the trigger is clicked', () => {
+  it('opens the progress dialog when the bar is clicked', () => {
     render(<BookProgressCell userBook={makeBook('currently-reading')} />)
     fireEvent.click(screen.getByLabelText('Edit reading progress for Test Book'))
     expect(screen.getByTestId('progress-form')).toBeInTheDocument()

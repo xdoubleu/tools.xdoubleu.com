@@ -24,7 +24,7 @@ export default async function GamesDashboardPublicLibraryPage({
   const steam = await fetchOrNull(() => client.getSharedSteam({ token }))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-6"
         items={[

@@ -85,7 +85,7 @@ export default function SteamGameClient({
     : sortedAchievements.filter((a) => !a.achieved)
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
       {isLoading && <p className="mt-6 text-muted">Loading game…</p>}

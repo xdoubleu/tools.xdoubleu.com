@@ -20,7 +20,7 @@ export default function SteamDistributionClient({
   const games = data?.data?.games ?? []
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb items={[{ label: 'Games', href: '/dashboard/games' }, { label }]} />
 
       {isLoading && <p className="mt-6 text-muted">Loading…</p>}

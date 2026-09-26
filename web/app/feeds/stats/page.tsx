@@ -13,7 +13,7 @@ export default async function FeedStatsPage() {
   const stats = await fetchOrNull(() => feedsClient.getFeedStats({}))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <SWRFallback fallback={stats ? { [swrKeys.feedStats]: stats } : {}}>
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Feed Stats</h1>

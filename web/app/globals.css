@@ -27,6 +27,8 @@
   --success-rgb: 52 199 89;
   --warn-rgb: 255 149 0;
   --danger-rgb: 255 59 48;
+  /* Favourite hearts and rating stars */
+  --star-rgb: 245 158 11;
 
   /* Translucent sticky navbar/footer */
   --glass-rgb: 255 255 255;
@@ -57,6 +59,7 @@
   --success-rgb: 48 209 88;
   --warn-rgb: 255 159 10;
   --danger-rgb: 255 69 58;
+  --star-rgb: 251 191 36;
 
   --glass-rgb: 28 28 30;
   --glass-opacity: 0.8;
@@ -79,6 +82,7 @@
   --color-success: rgb(var(--success-rgb));
   --color-warn: rgb(var(--warn-rgb));
   --color-danger: rgb(var(--danger-rgb));
+  --color-star: rgb(var(--star-rgb));
   --color-glass: rgb(var(--glass-rgb) / var(--glass-opacity));
 }
 

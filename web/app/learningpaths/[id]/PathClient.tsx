@@ -57,7 +57,7 @@ export default function PathClient({ id }: { id: string }) {
     0
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-4"
         items={[

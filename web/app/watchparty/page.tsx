@@ -46,7 +46,7 @@ export default function WatchpartyPage() {
   }
 
   return (
-    <PageContainer className="max-w-md p-6">
+    <PageContainer size="narrow">
       <h1 className="text-3xl font-bold mb-6">Watch Party</h1>
 
       <div className="mb-8">

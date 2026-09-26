@@ -12,7 +12,7 @@ export default async function FeedsSettingsPage() {
   const notificationSettings = await fetchOrNull(() => client.getNotificationSettings({}))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <SWRFallback
         fallback={
           notificationSettings

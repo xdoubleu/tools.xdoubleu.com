@@ -44,7 +44,7 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
   const handleSaved = () => void mutate(swrKeys.books)
 
   return (
-    <PageContainer className="p-6 space-y-4">
+    <PageContainer className="space-y-4">
       <Breadcrumb items={breadcrumbItems} />
       <h1 className="text-3xl font-bold">{name}</h1>
       <p className="text-muted text-sm">

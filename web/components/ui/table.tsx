@@ -33,7 +33,7 @@ function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElemen
   return (
     <th
       className={cn(
-        'h-10 px-3 text-left align-middle text-xs font-medium text-muted',
+        'h-11 px-3 text-left align-middle text-xs font-medium text-muted',
         'has-[[role=checkbox]]:pr-0',
         className
       )}
@@ -62,7 +62,7 @@ function SortableHeader({ dir, onSort, children, className, ...props }: Sortable
       <button
         type="button"
         onClick={onSort}
-        className="flex items-center gap-1 text-xs font-medium text-muted hover:text-fg transition-colors whitespace-nowrap"
+        className="flex min-h-11 w-full items-center gap-1 text-xs font-medium text-muted hover:text-fg transition-colors whitespace-nowrap"
       >
         {children}
         {indicator && (

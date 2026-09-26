@@ -2,28 +2,22 @@
 import nextPlugin from '@next/eslint-plugin-next'
 import typescriptEslint from 'typescript-eslint'
 import js from '@eslint/js'
+import uiPlugin from './eslint-rules/index.mjs'
+import { legacyUiFiles } from './eslint-rules/legacy-files.mjs'
 
-// Class-string shapes of mobile-first violations (docs/convention-ui-standards.md).
-// grid-cols-2 is allowed: StatTileGrid runs two-up on mobile by design.
-const mobileFirstRestrictedSyntax = [
-  {
-    selector:
-      "JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)grid-cols-(3|4|5|6|7|8|9|10|11|12)(\\s|$)/]",
-    message:
-      'Bare grid-cols-N (N≥3) with no sm:/md: prefix starts at N columns on a phone. Write grid-cols-1 sm:grid-cols-N instead.'
-  },
-  {
-    selector: "JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)h-screen(\\s|$)/]",
-    message:
-      'h-screen is taller than the visible area once mobile browser chrome collapses. Use h-dvh (or min-h-dvh) instead.'
-  },
-  {
-    selector:
-      "JSXAttribute[name.name='className'] > Literal[value=/\\b(w|min-w|max-w|h)-\\[\\d+px\\]/]",
-    message:
-      'Fixed-pixel width/height breaks at narrow viewports. Use relative units (%, rem, fr) or a responsive class instead.'
-  }
-]
+// ui/* rules (eslint-rules/, docs/convention-ui-standards.md). The first
+// three also apply inside components/ui; the rest police call sites.
+const uiEverywhere = {
+  'ui/mobile-first-classes': 'error',
+  'ui/theme-tokens': 'error',
+  'ui/no-classname-template': 'error'
+}
+const uiCallSites = {
+  ...uiEverywhere,
+  'ui/touch-targets': 'error',
+  'ui/use-primitives': 'error'
+}
+const uiOff = Object.fromEntries(Object.keys(uiCallSites).map((rule) => [rule, 'off']))
 
 export default [
   {
@@ -34,7 +28,8 @@ export default [
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     plugins: {
-      '@next/next': nextPlugin
+      '@next/next': nextPlugin,
+      ui: uiPlugin
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
@@ -78,9 +73,9 @@ export default [
           selector: "JSXOpeningElement[name.name='textarea']",
           message:
             'Use Textarea from @/components/ui/textarea instead of a raw <textarea>. See components/ui/README.md.'
-        },
-        ...mobileFirstRestrictedSyntax
-      ]
+        }
+      ],
+      ...uiCallSites
     }
   },
   {
@@ -91,13 +86,29 @@ export default [
         {
           selector: 'TSSatisfiesExpression',
           message: 'Use create(Schema, fields) from @bufbuild/protobuf instead of satisfies.'
-        },
-        ...mobileFirstRestrictedSyntax
-      ]
+        }
+      ],
+      ...uiEverywhere,
+      'ui/touch-targets': 'off',
+      'ui/use-primitives': 'off'
     }
   },
   {
-    files: ['scripts/**/*.mjs'],
+    // Brand icons and the splash logo are fixed artwork, not themed UI.
+    files: [
+      'app/**/apple-icon.tsx',
+      'app/**/icon.tsx',
+      'app/icon-*/**/*.tsx',
+      'app/layout.tsx',
+      'components/Splash.tsx'
+    ],
+    rules: { 'ui/theme-tokens': 'off' }
+  },
+  // Files not yet migrated to the ui/* rules; each domain PR deletes
+  // its entries, and new files are always checked.
+  ...(legacyUiFiles.length > 0 ? [{ files: legacyUiFiles, rules: uiOff }] : []),
+  {
+    files: ['scripts/**/*.mjs', 'eslint-rules/**/*.mjs'],
     languageOptions: {
       globals: {
         console: 'readonly',

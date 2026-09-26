@@ -28,7 +28,7 @@ export default async function ShoppingListSettingsPage() {
         ...(stores ? { [swrKeys.stores]: stores } : {})
       }}
     >
-      <PageContainer className="max-w-3xl p-6">
+      <PageContainer size="form">
         <Breadcrumb
           className="mb-4"
           items={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}

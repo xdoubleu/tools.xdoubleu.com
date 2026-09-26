@@ -129,6 +129,18 @@ describe('BookCard', () => {
     expect(screen.getByTestId('progress-editor')).toBeInTheDocument()
   })
 
+  it('keeps every control outside the detail link so a near-miss cannot navigate', () => {
+    render(
+      <BookCard
+        userBook={makeBook({ status: 'currently-reading', tags: ['own-physical'] })}
+        onSaved={jest.fn()}
+      />
+    )
+    const link = screen.getByRole('link', { name: 'Test Book' })
+    expect(link).not.toContainElement(screen.getByTestId('progress-editor'))
+    expect(link).not.toContainElement(screen.getByTestId('ownership-toggles'))
+  })
+
   it('hides progress editor for non-reading books', () => {
     render(<BookCard userBook={makeBook({ status: 'to-read' })} onSaved={jest.fn()} />)
     expect(screen.queryByTestId('progress-editor')).not.toBeInTheDocument()

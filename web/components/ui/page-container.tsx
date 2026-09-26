@@ -3,7 +3,10 @@ import { cn } from '@/lib/cn'
 
 const sizes = {
   default: '',
-  narrow: 'max-w-xl'
+  /** Settings and single-column forms. */
+  narrow: 'max-w-xl',
+  /** Longer create/edit forms. */
+  form: 'max-w-2xl'
 } as const
 
 interface PageContainerProps extends HTMLAttributes<HTMLDivElement> {

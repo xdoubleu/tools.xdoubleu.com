@@ -37,7 +37,7 @@ pixel sizes:
   ≥44px tappable ancestor).
 - `crowded-tap-targets` — targets under 8px apart.
 - `ios-focus-zoom` — fields under 16px font-size.
-- `no-viewport-meta` / `zoom-disabled`.
+- `no-viewport-meta`. Pinch-zoom is deliberately disabled.
 
 Exits 1 on anything `broken`. Flags: `--json`, `--theme dark`, `--base-url`,
 `--width`, `--storage-state <file>` (most routes need login).
@@ -104,11 +104,9 @@ Greps are leads; confirm by reading the component and its container.
    **Degraded** (cramped, truncation, zoom), **Polish** — each with
    `file:line`, the concrete failure with measured numbers, and the exact
    class or primitive change. No finding without a fix.
-5. Close the enforcement gap: class-string patterns (bare `grid-cols-N`,
-   `h-screen`, sub-16px input text, fixed `px` widths in
-   `app/**`/`components/**`) get a `no-restricted-syntax` rule in
-   `eslint.config.mjs` in the same change; measurement-only problems get a
-   check in `scripts/mobile-audit.mjs`. Only design judgement stays
-   review-only.
+5. Close the enforcement gap: a class-string or element pattern gets a
+   `ui/*` rule (with RuleTester cases) in `web/eslint-rules/` in the same
+   change; measurement-only problems get a check in
+   `scripts/mobile-audit.mjs`. Only design judgement stays review-only.
 6. Apply fixes when asked, or when small and local; otherwise report. Then
    `finish-task`.

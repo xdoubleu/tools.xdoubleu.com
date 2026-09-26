@@ -73,7 +73,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   }
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
       {isLoading && <p className="mt-6 text-muted">Loading book…</p>}

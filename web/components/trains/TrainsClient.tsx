@@ -76,7 +76,7 @@ export default function TrainsClient() {
   }
 
   return (
-    <PageContainer size="narrow" className="p-6">
+    <PageContainer size="narrow">
       <h1 className="mb-6 text-3xl font-bold">Trains</h1>
 
       <div className="mb-6">

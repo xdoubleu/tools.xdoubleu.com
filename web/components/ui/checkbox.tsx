@@ -1,13 +1,15 @@
-import { forwardRef, type InputHTMLAttributes } from 'react'
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
 interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  label?: string
+  /** Rendered in a 44px-tall wrapping `<label>`; wrap text in `sr-only` to hide it visually. */
+  label?: ReactNode
+  labelClassName?: string
 }
 
-/** Styled native checkbox; pass `label` to get the wrapping `<label>`. */
+/** Styled native checkbox; pass `label` to get the wrapping `<label>` (a bare one is a 16px target). */
 const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ label, className, id, ...props }, ref) => {
+  ({ label, labelClassName, className, id, ...props }, ref) => {
     const inputEl = (
       <input
         ref={ref}
@@ -30,10 +32,13 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     return (
       <label
         htmlFor={id}
-        className="inline-flex min-h-11 items-center gap-2 cursor-pointer select-none"
+        className={cn(
+          'inline-flex min-h-11 min-w-11 items-center gap-2 cursor-pointer select-none',
+          labelClassName
+        )}
       >
         {inputEl}
-        <span className="text-sm">{label}</span>
+        {typeof label === 'string' ? <span className="text-sm">{label}</span> : label}
       </label>
     )
   }

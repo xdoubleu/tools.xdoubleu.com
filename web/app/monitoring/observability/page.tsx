@@ -5,7 +5,7 @@ import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 // p95; ObservabilityClient's SWR hook fetches client-side.
 export default function MonitoringObservabilityPage() {
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <h1 className="mb-6 text-3xl font-bold">Observability</h1>
       <ObservabilityClient />
     </PageContainer>

@@ -28,9 +28,9 @@ npm run generate:ui-catalog             # regenerate components/ui/README.md (li
 
 ## UI rules → [`convention-ui-standards`](../docs/convention-ui-standards.md)
 
-- **ESLint rejects raw `<button>`/`<input>`/`<select>`/`<textarea>` outside `components/ui/`.** Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive rather than styling a raw element.
-- Merge classes with `cn()`; clickable cards use `interactiveCardClass` (`components/ui/card.tsx`).
-- Loading: `<p className="text-muted">Loading…</p>`; errors: `<p className="text-danger">Failed to load X.</p>`; pending buttons use a present participle with the typographic `…`, never `...`.
+- **ESLint rejects raw controls and the hand-rolled forms of existing primitives** (`<h1>`, cards, banners, stretched links, loading text…) via the `ui/*` rules in `eslint-rules/`. Check [`components/ui/README.md`](components/ui/README.md) first; add a primitive rather than styling a raw element. A new class-pattern check goes into `eslint-rules/` with a RuleTester case.
+- Merge classes with `cn()`; navigating cards use `LinkCard`, with controls in its `actions` footer.
+- Pending buttons use a present participle with the typographic `…`, never `...`.
 - Tailwind v4 CSS-first (no `tailwind.config.ts`); dark tokens key off `:root[data-theme='dark']`, owned by `lib/theme.ts`.
 - **A Server Component must never import a file that pulls in client-only hooks**, even for a constant. Only `next build` catches it — put shared constants in a React-free `lib/` module.
 

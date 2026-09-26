@@ -1,5 +1,12 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ConfirmDialog, DialogFooter } from '@/components/ui/dialog'
+import {
+  ConfirmDialog,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogTitle
+} from '@/components/ui/dialog'
 
 describe('DialogFooter', () => {
   it('renders its children in a right-aligned row', () => {
@@ -92,5 +99,21 @@ describe('ConfirmDialog', () => {
       </ConfirmDialog>
     )
     expect(screen.getByText('extra detail')).toBeInTheDocument()
+  })
+})
+
+describe('DialogClose', () => {
+  it('defaults to a labelled × with a 44px target', () => {
+    render(
+      <Dialog open onOpenChange={jest.fn()}>
+        <DialogContent side="sheet">
+          <DialogTitle>Sheet</DialogTitle>
+          <DialogClose />
+        </DialogContent>
+      </Dialog>
+    )
+    const close = screen.getByRole('button', { name: 'Close' })
+    expect(close).toHaveTextContent('×')
+    expect(close).toHaveClass('size-11')
   })
 })

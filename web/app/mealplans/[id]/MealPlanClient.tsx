@@ -29,7 +29,7 @@ export default function MealPlanClient({ id }: { id: string }) {
   const recipes = recipesData?.recipes ?? []
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       {isLoading && <p className="text-muted">Loading meal plan…</p>}
       {error && <p className="text-danger">Failed to load meal plan.</p>}
 

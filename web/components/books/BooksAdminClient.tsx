@@ -25,7 +25,7 @@ export default function BooksAdminClient() {
   const [duplicatesDialogOpen, setDuplicatesDialogOpen] = useState(false)
 
   return (
-    <PageContainer className="max-w-2xl p-6">
+    <PageContainer size="form">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Admin tools' }]}

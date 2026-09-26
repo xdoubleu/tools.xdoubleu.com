@@ -22,7 +22,7 @@ function TogglePill({ label, active, className, ...props }: TogglePillProps) {
       type="button"
       size="sm"
       variant={active ? 'default' : 'secondary'}
-      className={cn('h-auto rounded-full px-2.5 py-0.5 text-xs', className)}
+      className={cn('rounded-full px-3 sm:h-auto sm:px-2.5 sm:py-0.5', className)}
       aria-pressed={active}
       {...props}
     >

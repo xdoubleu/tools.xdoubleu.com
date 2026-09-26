@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
 
 /** Amber-when-on treatment shared by every glyph toggle. */
 const toggleGlyphClass = (active: boolean) =>
-  active ? 'text-amber-500' : 'text-border hover:text-amber-400 active:text-amber-400'
+  active ? 'text-star' : 'text-border hover:text-star/80 active:text-star/80'
 
 interface ToggleIconButtonProps {
   /** Current state — drives `aria-pressed` and the amber treatment. */

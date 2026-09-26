@@ -24,7 +24,7 @@ export default async function ReadingDashboardPublicLibraryPage({
   const library = await fetchOrNull(() => client.getSharedLibrary({ token }))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <Breadcrumb
         className="mb-6"
         items={[

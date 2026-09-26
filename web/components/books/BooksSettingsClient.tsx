@@ -36,7 +36,7 @@ export default function BooksSettingsClient() {
   }
 
   return (
-    <PageContainer size="narrow" className="p-6">
+    <PageContainer size="narrow">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Settings' }]}

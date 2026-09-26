@@ -14,7 +14,7 @@ export default async function FeedHealthPage() {
   const unhealthyFeeds = await fetchOrNull(() => feedsClient.getUnhealthyFeeds({}))
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <SWRFallback fallback={unhealthyFeeds ? { [swrKeys.unhealthyFeeds]: unhealthyFeeds } : {}}>
         <div className="mb-6 flex items-center justify-between gap-4">
           <h1 className="text-3xl font-bold">Feed Health</h1>

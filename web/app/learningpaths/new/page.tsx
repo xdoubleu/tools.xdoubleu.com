@@ -9,7 +9,7 @@ export default function NewLearningPathPage() {
   const router = useRouter()
 
   return (
-    <PageContainer className="max-w-2xl p-6">
+    <PageContainer size="form">
       <Breadcrumb
         className="mb-4"
         items={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'New' }]}

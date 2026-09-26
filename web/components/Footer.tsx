@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { getApiUrl, getRelease } from '@/lib/env'
 
 // api and web build independently, so show both releases.
@@ -37,16 +38,13 @@ export default function Footer() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 px-4 py-3 text-xs sm:px-6 lg:px-10">
+    <footer className="border-t border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 px-4 pt-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] text-xs sm:px-6 sm:py-3 lg:px-10">
       <div className="mx-auto flex flex-wrap items-center justify-center gap-3 sm:gap-4">
         <div className="text-muted">
           © {year}{' '}
-          <Link
-            href="https://xdoubleu.com"
-            className="-my-[15px] inline-block py-[15px] underline hover:text-fg transition-colors"
-          >
-            xdoubleu
-          </Link>
+          <Button asChild variant="link" className="text-xs font-normal text-muted underline">
+            <Link href="https://xdoubleu.com">xdoubleu</Link>
+          </Button>
         </div>
 
         <ReleaseBadge label="web" release={webRelease} />

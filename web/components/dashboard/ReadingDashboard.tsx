@@ -6,14 +6,13 @@ import { useLibrary, useBooksProgress } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import BookSearchBar from '@/components/books/BookSearchBar'
-import BookQuickProgress from '@/components/books/BookQuickProgress'
+import BookProgressEditor from '@/components/books/BookProgressEditor'
 import MarkAsCompletedDialog from '@/components/books/MarkAsCompletedDialog'
 import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayout'
 import DashboardShareButton from '@/components/dashboard/DashboardShareButton'
 import { Button } from '@/components/ui/button'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
-import { cn } from '@/lib/cn'
+import { LinkCard } from '@/components/ui/link-card'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 
 function ReadingBookCard({ userBook }: { userBook: UserBook }) {
@@ -21,35 +20,36 @@ function ReadingBookCard({ userBook }: { userBook: UserBook }) {
   const book = userBook.book
   if (!book) return null
   return (
-    <div
-      className={cn(
-        interactiveCardClass,
-        'relative flex w-full gap-3 p-4 text-left sm:w-60 self-start'
-      )}
+    <LinkCard
+      href={`/books/${userBook.id}`}
+      aria-label={book.title}
+      className="w-full self-start sm:w-72"
+      linkClassName="flex gap-3 p-4"
+      actions={
+        <>
+          <BookProgressEditor
+            userBook={userBook}
+            actions={
+              <Button variant="secondary" size="sm" onClick={() => setCompleting(true)}>
+                Mark as completed
+              </Button>
+            }
+          />
+          {/* Outside the link: portalled dialog events still bubble through React. */}
+          <MarkAsCompletedDialog
+            userBook={userBook}
+            open={completing}
+            onOpenChange={setCompleting}
+          />
+        </>
+      }
     >
-      {/* Progress controls sit above the stretched link via z-10. */}
-      <Link
-        href={`/books/${userBook.id}`}
-        className="absolute inset-0 rounded-2xl"
-        aria-label={book.title}
-      >
-        <CardLinkStatus />
-      </Link>
       <BookCover coverUrl={book.coverUrl} title={book.title} size="md" />
       <div className="min-w-0 flex-1">
-        <h3 className="font-semibold truncate">{book.title}</h3>
+        <h3 className="font-semibold break-words">{book.title}</h3>
         <p className="text-sm text-muted truncate">{book.authors.join(', ')}</p>
-        <div className="relative z-10 mt-2">
-          <BookQuickProgress userBook={userBook} />
-        </div>
-        <div className="relative z-10 mt-2">
-          <Button variant="secondary" size="sm" onClick={() => setCompleting(true)}>
-            Mark as completed
-          </Button>
-        </div>
       </div>
-      <MarkAsCompletedDialog userBook={userBook} open={completing} onOpenChange={setCompleting} />
-    </div>
+    </LinkCard>
   )
 }
 
@@ -70,8 +70,8 @@ export default function ReadingDashboard() {
       value: parseInt(progressData.progress?.values?.[idx] ?? '0', 10)
     })) ?? []
 
-  if (libLoading && !library) return <p className="text-muted">Loading dashboard…</p>
-  if (libError && !library) return <p className="text-danger">Failed to load books.</p>
+  if (libLoading && !library) return <LoadingState label="dashboard" />
+  if (libError && !library) return <ErrorState what="books" />
   if (!library) return null
 
   return (

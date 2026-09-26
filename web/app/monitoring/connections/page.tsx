@@ -14,7 +14,7 @@ export default async function MonitoringConnectionsPage() {
   if (oauthConnections) fallback[swrKeys.monitoringOAuthConnections] = oauthConnections
 
   return (
-    <PageContainer className="p-6">
+    <PageContainer>
       <SWRFallback fallback={fallback}>
         <h1 className="mb-6 text-3xl font-bold">Connections</h1>
         <MonitoringSettingsClient />

@@ -19,7 +19,7 @@ export default function JourneyDetailClient({ journeyId }: { journeyId: string }
   if (!journey) return <p className="text-danger">Failed to load journey.</p>
 
   return (
-    <PageContainer size="narrow" className="p-6">
+    <PageContainer size="narrow">
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-3xl font-bold">Journey</h1>
         <Badge variant={connected ? 'success' : 'secondary'}>
