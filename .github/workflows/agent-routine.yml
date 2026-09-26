@@ -165,8 +165,8 @@ jobs:
           $ROUTINE_PROMPT
 
           When the routine's work is done, finish with these steps in order.
-          1. Write {\"outcome\": \"succeeded\"|\"no_action_needed\"|\"failed\",
-          \"pr_url\": \"\", \"error\": \"\"} to $ROUTINE_OUTCOME_PATH, choosing
+          1. Write {"outcome": "succeeded"|"no_action_needed"|"failed",
+          "pr_url": "", "error": ""} to $ROUTINE_OUTCOME_PATH, choosing
           the outcome as the skill defines it.
           2. Retro: list what got in the way of this run, from what actually
           happened, not guesses. Report blockers (a tool or MCP error, missing
@@ -174,7 +174,7 @@ jobs:
           date) and concrete waste (the same call repeated, a missing tool
           that forced a workaround). For each, search open issues labelled
           routine-feedback (gh issue list --label routine-feedback --search);
-          comment on a match, otherwise open one titled \"$ROUTINE: <problem>\"
+          comment on a match, otherwise open one titled "$ROUTINE: <problem>"
           with labels routine-feedback plus bug or enhancement. At most 2
           issues or comments per run; skip minor findings. Each names the
           routine, the skill step and $RUN_URL, and states the problem and a
@@ -184,11 +184,33 @@ jobs:
           3. Write a Slack summary to $ROUTINE_SUMMARY_PATH: one line, then one
           bullet per PR or issue touched with its URL, feedback issues
           included. No log excerpts, secrets or user data."
+          # Run opencode in the background; the watchdog circuit-breaker runs
+          # in the foreground beside it and kills opencode if the agent falls
+          # into a degenerate tool loop instead of spinning until the timeout.
           opencode run --auto \
             --model "openrouter/${MODEL}" \
             --title "$ROUTINE $GITHUB_RUN_ID" \
             --format json "$prompt" \
-            > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log"
+            > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log" &
+          OPENCODE_PID=$!
+
+          "$GITHUB_WORKSPACE/scripts/routine_watchdog.sh" \
+            --transcript "$RUNNER_TEMP/transcript.jsonl" \
+            --stamp "$RUNNER_TEMP/watchdog.stamp" \
+            --kill-pid "$OPENCODE_PID" &
+          WATCHDOG_PID=$!
+
+          set +e
+          wait "$OPENCODE_PID"; OPENCODE_RC=$?
+          set -e
+          kill "$WATCHDOG_PID" 2>/dev/null || true
+          wait "$WATCHDOG_PID" 2>/dev/null || true
+
+          if [ -f "$RUNNER_TEMP/watchdog.stamp" ]; then
+            echo "::error:: routine_watchdog tripped: agent fell into a degenerate tool loop; opencode killed"
+            exit 1
+          fi
+          exit "$OPENCODE_RC"
 
       # Counts only: this job log is public.
       - name: Measure run
