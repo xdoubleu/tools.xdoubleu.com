@@ -24,8 +24,9 @@ describe('FeedStatsPage', () => {
     expect(screen.getByTestId('feed-stats-client')).toBeInTheDocument()
   })
 
-  it('links back to /feeds', async () => {
+  it('shows a breadcrumb back to /feeds', async () => {
     render(await FeedStatsPage())
-    expect(screen.getByRole('link', { name: 'Back to feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByRole('link', { name: 'Feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByText('Stats')).toHaveAttribute('aria-current', 'page')
   })
 })

@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogClose
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { sanitizeArticleHtml } from '@/lib/sanitizeHtml'
 import { cn } from '@/lib/cn'
 
@@ -28,6 +29,10 @@ interface ArticleReaderDialogProps {
   bleedDesktop?: boolean
 }
 
+// Clears the notch and home indicator on phones; `dvh` tracks mobile browser chrome.
+const safeAreaPadding =
+  'p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:h-[90dvh] sm:p-5'
+
 // Full-screen reader scaffold shared by books and feeds: header plus a
 // sanitized prose body. Callers fetch their own content.
 export default function ArticleReaderDialog({
@@ -46,12 +51,13 @@ export default function ArticleReaderDialog({
 }: ArticleReaderDialogProps) {
   const dialogClassName = bleedDesktop
     ? cn(
-        'max-w-none w-full p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col',
+        'max-w-none w-full flex flex-col',
+        safeAreaPadding,
         // Undo the primitive's `sm:` centering at `lg`.
         'lg:inset-0 lg:h-full lg:w-full lg:max-w-none lg:max-h-full',
         'lg:rounded-none lg:translate-x-0 lg:translate-y-0'
       )
-    : 'max-w-2xl lg:max-w-4xl p-4 pt-[calc(1rem+env(safe-area-inset-top))] sm:h-[90vh] sm:p-5 flex flex-col'
+    : cn('max-w-2xl lg:max-w-4xl flex flex-col', safeAreaPadding)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -60,20 +66,17 @@ export default function ArticleReaderDialog({
           <div className="min-w-0 flex-1">
             <DialogTitle className="leading-tight">{title}</DialogTitle>
             {sourceUrl && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block py-1 text-xs text-accent underline-offset-4 hover:underline"
-              >
-                View original ↗
-              </a>
+              <Button asChild variant="link" className="mt-1 text-xs">
+                <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                  View original ↗
+                </a>
+              </Button>
             )}
           </div>
           {actions}
           <DialogClose
             aria-label="Close reader"
-            className="flex h-11 w-11 shrink-0 items-center justify-center text-lg"
+            className="m-0 flex h-11 w-11 shrink-0 items-center justify-center text-lg"
           >
             X
           </DialogClose>

@@ -7,8 +7,10 @@ import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { Select } from '@/components/ui/select'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/dates'
 import type { Item } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -81,16 +83,17 @@ export default function FeedReaderClient() {
     })
   }, [])
 
-  if (isLoading) return <p className="text-muted">Loading…</p>
-  if (error) return <p className="text-danger">Failed to load feed items.</p>
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState what="feed items" />
 
   return (
     <div>
-      <div className="mb-4 flex justify-end gap-2">
+      <div className="mb-4 flex flex-wrap justify-end gap-2">
         <Select
           value={selectedFeedId ?? ''}
           onChange={(e) => setSelectedFeedId(e.target.value || undefined)}
-          className="w-auto"
+          aria-label="Filter by feed"
+          className="w-full sm:w-auto"
         >
           <option value="">All feeds</option>
           {(feedsData?.feeds ?? []).map((feed) => (
@@ -181,12 +184,8 @@ function FeedReaderCard({
   )
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-2 rounded-2xl border border-border bg-card p-3 shadow-card',
-        isNew && 'border-accent',
-        isRead && 'opacity-60'
-      )}
+    <Card
+      className={cn('flex flex-col gap-2 p-3', isNew && 'border-accent', isRead && 'opacity-60')}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
@@ -196,7 +195,7 @@ function FeedReaderCard({
               variant="link"
               onClick={() => handleOpenChange(true)}
               // A wrapped title still inherits the button's text-align: center.
-              className="h-auto justify-start p-0 text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
+              className="h-auto min-w-0 justify-start p-0 wrap-anywhere text-left font-semibold text-sm leading-snug text-fg no-underline hover:text-accent"
             >
               {item.title}
             </Button>
@@ -218,6 +217,6 @@ function FeedReaderCard({
         onMarkRead={handleMarkRead}
         onSettled={handleReaderSettled}
       />
-    </div>
+    </Card>
   )
 }
