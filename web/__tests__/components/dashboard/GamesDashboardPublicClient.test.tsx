@@ -123,6 +123,13 @@ describe('GamesDashboardPublicClient', () => {
     expect(screen.getByText('Failed to load games.')).toBeInTheDocument()
   })
 
+  it('shows a loading state before the first response', () => {
+    mockUseSharedSteam.mockReturnValue({ data: undefined, isLoading: true })
+    render(<GamesDashboardPublicClient token="tok-1" />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading games…')
+  })
+
   it('omits the last-synced line when it is unset', () => {
     const steam = makeSteam()
     steam.lastSyncedAt = ''
