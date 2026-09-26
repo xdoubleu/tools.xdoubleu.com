@@ -25,6 +25,10 @@ lint/workflows:
 lint/watchdog:
 	./scripts/test_routine_watchdog.sh
 
+# Exercise scripts/routine_preflight.sh against a mock MCP server.
+lint/preflight:
+	./scripts/test_routine_preflight.sh
+
 # The agent-routine workflow's transcript metrics script.
 routines/test:
 	./scripts/test_routine_metrics.sh

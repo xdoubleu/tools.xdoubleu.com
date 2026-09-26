@@ -15,16 +15,18 @@ workflow:
    for a red `main`),
 3. runs `opencode run --auto` on OpenRouter with the routine's prompt, writing
    the transcript to a file rather than the public job log,
-4. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
+4. preflights the apps MCP server (`scripts/routine_preflight.sh`): fails the
+   job before the agent starts if the required tools aren't exposed,
+5. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
    fails the step if the agent loops on the same tool call (a degenerate loop
    would otherwise spin until the step timeout since every call "succeeds"),
-5. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
+6. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
    tokens, estimated cost, duration, tool calls, failed and repeated calls)
    into the job summary,
-6. closes the row with the agent's outcome file (`failed` if the agent step
+7. closes the row with the agent's outcome file (`failed` if the agent step
    didn't succeed or wrote none) and those metrics,
-7. uploads the transcript encrypted,
-8. always posts a Slack notice: the job outcome, the agent's summary, the
+8. uploads the transcript encrypted,
+9. always posts a Slack notice: the job outcome, the agent's summary, the
    metrics line, and the run link.
 
 The collector exports each routine's latest measured run as

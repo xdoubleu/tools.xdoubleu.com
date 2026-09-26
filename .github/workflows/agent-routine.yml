@@ -122,6 +122,14 @@ jobs:
             echo "::warning::Could not open the run record; this run goes unrecorded."
           fi
 
+      # Fail fast if the apps MCP server can't be reached or exposes none of
+      # the routine's tools, so the agent never starts without its tools.
+      - name: Preflight MCP tools
+        env:
+          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
+        run: |
+          scripts/routine_preflight.sh
+
       # The agent's stdout goes to a file, never the public job log. Its step
       # timeout sits below the MCP token's one-hour lifetime and leaves room
       # for the notice below.
