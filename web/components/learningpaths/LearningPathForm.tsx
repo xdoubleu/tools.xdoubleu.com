@@ -5,6 +5,8 @@ import { useCreateLearningPath, useUpdateLearningPath } from '@/hooks/useLearnin
 import type { CreateLearningPathInput, UpdateLearningPathInput } from '@/hooks/useLearningPaths'
 import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -202,29 +204,43 @@ export default function LearningPathForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label>Title</Label>
-        <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </div>
+      <Field label="Title" htmlFor="learningpath-title">
+        <Input
+          id="learningpath-title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          required
+        />
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label>Goal</Label>
-        <Textarea value={goal} onChange={(e) => setGoal(e.target.value)} rows={2} />
-      </div>
+      <Field label="Goal" htmlFor="learningpath-goal">
+        <Textarea
+          id="learningpath-goal"
+          value={goal}
+          onChange={(e) => setGoal(e.target.value)}
+          rows={2}
+        />
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label>Recurring routine</Label>
-        <p className="text-xs text-muted-foreground">
-          e.g. &ldquo;30 min every weekday morning&rdquo;
-        </p>
-        <Input type="text" value={routine} onChange={(e) => setRoutine(e.target.value)} />
-      </div>
+      <Field
+        label="Recurring routine"
+        htmlFor="learningpath-routine"
+        hint={<>e.g. &ldquo;30 min every weekday morning&rdquo;</>}
+      >
+        <Input
+          id="learningpath-routine"
+          type="text"
+          value={routine}
+          onChange={(e) => setRoutine(e.target.value)}
+        />
+      </Field>
 
       <div className="space-y-1.5">
         <Label>Modules</Label>
         <div className="space-y-3">
           {modules.map((module, mIdx) => (
-            <div key={mIdx} className="rounded-2xl border border-border bg-surface/50 p-3">
+            <Card key={mIdx} variant="inset">
               <div className="flex gap-2 mb-2">
                 <Input
                   type="text"
@@ -237,7 +253,7 @@ export default function LearningPathForm({
                   <Button
                     type="button"
                     variant="destructive"
-                    size="sm"
+                    size="iconSm"
                     aria-label="Remove module"
                     onClick={() => removeModule(mIdx)}
                   >
@@ -253,7 +269,7 @@ export default function LearningPathForm({
                       placeholder="Type (read/study/do/checkpoint)"
                       value={item.type}
                       onChange={(e) => updateItem(mIdx, iIdx, 'type', e.target.value)}
-                      className="w-48"
+                      className="w-full sm:w-48"
                     />
                     <Input
                       type="text"
@@ -266,7 +282,7 @@ export default function LearningPathForm({
                       <Button
                         type="button"
                         variant="destructive"
-                        size="sm"
+                        size="iconSm"
                         aria-label="Remove item"
                         onClick={() => removeItem(mIdx, iIdx)}
                       >
@@ -279,7 +295,7 @@ export default function LearningPathForm({
                   Add Item
                 </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={addModule}>
@@ -289,12 +305,12 @@ export default function LearningPathForm({
 
       <div className="space-y-1.5">
         <Label>Resources</Label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           Freeform text, or link an existing book/feed item — both may be set together.
         </p>
         <div className="space-y-3">
           {resources.map((resource, idx) => (
-            <div key={idx} className="space-y-1.5 rounded-2xl border border-border p-3">
+            <Card key={idx} variant="inset" className="space-y-2">
               <div className="flex gap-2">
                 <Input
                   type="text"
@@ -307,7 +323,7 @@ export default function LearningPathForm({
                   <Button
                     type="button"
                     variant="destructive"
-                    size="sm"
+                    size="iconSm"
                     aria-label="Remove resource"
                     onClick={() => removeResource(idx)}
                   >
@@ -330,7 +346,7 @@ export default function LearningPathForm({
                 onLinkFeedItem={(item) => linkResourceFeedItem(idx, item)}
                 onUnlink={() => unlinkResource(idx)}
               />
-            </div>
+            </Card>
           ))}
         </div>
         <Button type="button" variant="secondary" size="sm" onClick={addResource}>

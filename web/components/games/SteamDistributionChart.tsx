@@ -81,7 +81,7 @@ export default function SteamDistributionChart({
             }
           >
             {chartData.map((entry) => (
-              <Cell key={entry.range} fill="#3b82f6" />
+              <Cell key={entry.range} fill="var(--color-accent)" />
             ))}
           </Bar>
         </BarChart>

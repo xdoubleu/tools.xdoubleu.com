@@ -2,25 +2,6 @@
 // Each domain PR deletes its section; delete this file once it is empty.
 // Entries are globs, so route brackets are escaped.
 export const legacyUiFiles = [
-  // games + games dashboard
-  'app/dashboard/games/\\[token\\]/library/page.tsx',
-  'app/dashboard/games/\\[token\\]/page.tsx',
-  'app/dashboard/games/page.tsx',
-  'app/games/\\[id\\]/SteamGameClient.tsx',
-  'app/games/distribution/\\[bucket\\]/SteamDistributionClient.tsx',
-  'app/games/library/page.tsx',
-  'components/dashboard/GamesDashboard.tsx',
-  'components/dashboard/GamesDashboardPublicClient.tsx',
-  'components/dashboard/GamesDashboardPublicGameClient.tsx',
-  'components/dashboard/GamesDashboardPublicLibrary.tsx',
-  'components/games/AchievementCard.tsx',
-  'components/games/GameCards.tsx',
-  'components/games/GamesDashboardView.tsx',
-  'components/games/GamesLibrary.tsx',
-  'components/games/GamesSearch.tsx',
-  'components/games/GamesSettingsClient.tsx',
-  'components/games/GamesStatsPanel.tsx',
-  'components/games/SteamDistributionChart.tsx',
   // feeds
   'app/feeds/health/page.tsx',
   'app/feeds/page.tsx',
@@ -60,14 +41,6 @@ export const legacyUiFiles = [
   'components/shoppinglist/ShoppingList.tsx',
   'components/shoppinglist/ShoppingListPageClient.tsx',
   'components/shoppinglist/StoreManager.tsx',
-  // learningpaths
-  'app/learningpaths/\\[id\\]/PathClient.tsx',
-  'app/learningpaths/\\[id\\]/edit/EditLearningPathClient.tsx',
-  'app/learningpaths/new/page.tsx',
-  'components/learningpaths/LearningPathForm.tsx',
-  'components/learningpaths/LearningPathsListClient.tsx',
-  'components/learningpaths/LearningPathsSettingsClient.tsx',
-  'components/learningpaths/ResourceLinkPicker.tsx',
   // trains + watchparty
   'app/watchparty/\\[id\\]/ViewerClient.tsx',
   'app/watchparty/\\[id\\]/presenter/PresenterClient.tsx',

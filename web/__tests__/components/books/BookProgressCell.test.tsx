@@ -15,6 +15,11 @@ jest.mock('@/components/books/BookProgressForm', () => {
   }
 })
 
+const mockTrack = jest.fn()
+jest.mock('@/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args)
+}))
+
 import BookProgressCell from '@/components/books/BookProgressCell'
 
 function makeBook(status: string, withBook = true) {
@@ -50,5 +55,13 @@ describe('BookProgressCell', () => {
   it('falls back to a generic label when the book has no title', () => {
     render(<BookProgressCell userBook={makeBook('currently-reading', false)} />)
     expect(screen.getByLabelText('Edit reading progress for book')).toBeInTheDocument()
+  })
+
+  it('tracks the dialog opening with its source', () => {
+    render(<BookProgressCell userBook={makeBook('currently-reading')} />)
+    fireEvent.click(screen.getByLabelText('Edit reading progress for Test Book'))
+    expect(mockTrack).toHaveBeenCalledWith('book_progress_dialog_opened', {
+      source: 'progress_cell'
+    })
   })
 })
