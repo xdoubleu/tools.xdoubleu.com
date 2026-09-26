@@ -345,9 +345,6 @@ GRAFANA_SENTRY_DATASOURCE_TOKEN  (Sentry token, org:read + project:read +
                               event:read, for grafana-sentry-datasource)
 GRAFANA_SLACK_WEBHOOK_URL    (Slack webhook for the alert contact point,
                               infra/grafana/provisioning/alerting/contactpoints.yml)
-SLACK_WEBHOOK_URL            (Slack webhook the notify_slack MCP tool posts to;
-                              separate from GRAFANA_SLACK_WEBHOOK_URL. Unset ⇒
-                              ErrNotConfigured)
 POSTHOG_KEY                  (web's PostHog Cloud EU project key; POSTHOG_HOST
                               is plain env.clear in config/deploy.web.yml)
 ```

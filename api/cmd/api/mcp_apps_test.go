@@ -61,7 +61,7 @@ var appsToolNames = []string{
 	"get_sentry_issues", "resolve_sentry_issue", "get_logs",
 	"get_slow_transactions", "prom_query", "get_grafana_alerts",
 	"get_oauth_connections", "get_notification_settings",
-	"get_project_issues_by_status", "notify_slack",
+	"get_project_issues_by_status",
 }
 
 // appsNetworkTools call external providers; skipped to stay hermetic.
@@ -309,7 +309,6 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 			"alert_number": 1,
 			"reason":       "not_used",
 		},
-		"notify_slack": map[string]any{"message": "test summary"},
 	}
 
 	session := appsMCPSession(t, accessToken.Value)

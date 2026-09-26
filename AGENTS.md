@@ -68,7 +68,7 @@ Fresh branch off up-to-date `main`, tracking issue before the first edit, lint/c
 
 ## MCP
 
-`/apps/mcp` (`api/cmd/api/mcp_apps.go`) exposes each app's read RPCs as `<app>_<rpc>` tools (caller's own data only) plus admin-only observability tools (`prom_query`, `get_grafana_alerts`, `get_sentry_issues`, …). Mutating tools: learningpaths' write tools ([adr-0023](docs/adr-0023-learningpaths-mcp-write-tools.md)) and `resolve_sentry_issue`, `dismiss_security_alert`, `record_action`, `notify_slack` (admin). Auth is first-party OAuth 2.1 with dynamic client registration → [adr-0006](docs/adr-0006-embedded-oauth21-authorization-server.md). Headless routines use client_credentials as the `service` role: observability tools only, no user data → [adr-0025](docs/adr-0025-machine-client-credentials-service-role.md).
+`/apps/mcp` (`api/cmd/api/mcp_apps.go`) exposes each app's read RPCs as `<app>_<rpc>` tools (caller's own data only) plus admin-only observability tools (`prom_query`, `get_grafana_alerts`, `get_sentry_issues`, …). Mutating tools: learningpaths' write tools ([adr-0023](docs/adr-0023-learningpaths-mcp-write-tools.md)) and `resolve_sentry_issue`, `dismiss_security_alert`, `record_action` (admin). Auth is first-party OAuth 2.1 with dynamic client registration → [adr-0006](docs/adr-0006-embedded-oauth21-authorization-server.md). Headless routines use client_credentials as the `service` role: observability tools only, no user data → [adr-0025](docs/adr-0025-machine-client-credentials-service-role.md).
 
 **Gap first:** if no MCP tool surfaces a production issue, or one returns wrong data, fix the tool before the issue → [convention-mcp-gap-first](docs/convention-mcp-gap-first.md).
 

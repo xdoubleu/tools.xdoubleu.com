@@ -97,10 +97,6 @@ type Config struct {
 	// ObservabilityIngestSecret gates POST /api/observability/logs (web has no
 	// user session). Empty rejects every request.
 	ObservabilityIngestSecret string
-
-	// SlackWebhookURL is the Slack webhook for notify_slack, distinct from
-	// Grafana's GRAFANA_SLACK_WEBHOOK_URL. Empty disables the tool.
-	SlackWebhookURL string
 }
 
 type parser struct {
@@ -278,8 +274,6 @@ func New(logger *slog.Logger) Config {
 	)
 	cfg.GrafanaAdminPassword = p.envSecret("GRAFANA_ADMIN_PASSWORD", "")
 	cfg.ObservabilityIngestSecret = p.envSecret("OBSERVABILITY_INGEST_SECRET", "")
-
-	cfg.SlackWebhookURL = p.envSecret("SLACK_WEBHOOK_URL", "")
 
 	return cfg
 }
