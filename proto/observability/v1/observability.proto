@@ -430,18 +430,34 @@ message UpdateNotificationSettingsRequest {
 
 message UpdateNotificationSettingsResponse {}
 
-// AutomatedAction is one run of an out-of-process routine, which opens and
-// closes its own row via Open/CloseAutomatedAction. finished_at, outcome,
-// pr_url and error are unset while open.
+// AutomatedAction is one run of an out-of-process routine, recorded via
+// Open/CloseAutomatedAction by the routine or its workflow. finished_at,
+// outcome, pr_url, error and metrics are unset while open.
 message AutomatedAction {
   int64 id = 1;
   string fired_at = 2;  // RFC3339
-  string trigger_source = 3;  // "schedule" | "api" | "manual"
+  string trigger_source = 3;  // "schedule" | "api" | "manual" | "ci"
   string routine_name = 4;
   string finished_at = 5;  // RFC3339, empty while open
   string outcome = 6;  // "succeeded" | "failed" | "no_action_needed", empty while open
   string pr_url = 7;
   string error = 8;
+  RunMetrics metrics = 9;  // unset unless closed with metrics
+}
+
+// RunMetrics is what a routine run cost, measured from its agent transcript.
+// cost_usd is the agent's estimate, not the provider's bill.
+message RunMetrics {
+  int32 requests = 1;
+  int64 input_tokens = 2;
+  int64 output_tokens = 3;
+  int64 reasoning_tokens = 4;
+  int64 cache_read_tokens = 5;
+  double cost_usd = 6;
+  double duration_seconds = 7;
+  int32 tool_calls = 8;
+  int32 tool_errors = 9;
+  int32 repeated_tool_calls = 10;
 }
 
 // OpenAutomatedActionRequest records that routine_name started; returns the
@@ -455,12 +471,14 @@ message OpenAutomatedActionResponse {
   int64 id = 1;
 }
 
-// CloseAutomatedActionRequest closes the row; pr_url and error are optional.
+// CloseAutomatedActionRequest closes the row; pr_url, error and metrics are
+// optional.
 message CloseAutomatedActionRequest {
   int64 id = 1;
   string outcome = 2;
   string pr_url = 3;
   string error = 4;
+  RunMetrics metrics = 5;
 }
 
 message CloseAutomatedActionResponse {}

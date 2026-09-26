@@ -573,3 +573,43 @@ groups:
                 - evaluator:
                     type: gt
                     params: [0]
+
+      # The 14-day average of a last-run gauge weights runs by how long each
+      # stayed latest, close enough for a 3x jump. The 30-request floor keeps
+      # small runs quiet. No notify label: the nightly sweep picks it up.
+      - uid: automated-routine-run-heavy
+        title: AutomatedRoutineRunHeavy
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: A routine's latest run made far more model requests than usual
+          description: >-
+            {{ $labels.routine }}'s latest run made {{ $values.A }} requests,
+            over 3x its 14-day average. Check the run's metrics in its job
+            summary and any routine-feedback issue it filed.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1209600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                automated_action_last_run{metric="requests"} > 30
+                and automated_action_last_run{metric="requests"}
+                > 3 * avg_over_time(automated_action_last_run{metric="requests"}[14d])
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]

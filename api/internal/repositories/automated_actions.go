@@ -30,21 +30,95 @@ func (r *AutomatedActionsRepository) Open(
 	return id, err
 }
 
-// Close closes the row; empty prURL/errorText are stored as NULL.
+// Close closes the row; empty prURL/errorText and nil metrics are stored as
+// NULL.
 func (r *AutomatedActionsRepository) Close(
 	ctx context.Context,
 	id int64,
 	outcome, prURL, errorText string,
+	metrics *models.RunMetrics,
 ) error {
+	m := runMetricsParams(metrics)
 	_, err := r.db.Exec(ctx, `
 		UPDATE global.automated_actions
 		SET finished_at = now(),
 		    outcome = $2,
 		    pr_url = NULLIF($3, ''),
-		    error = NULLIF($4, '')
+		    error = NULLIF($4, ''),
+		    requests = $5,
+		    input_tokens = $6,
+		    output_tokens = $7,
+		    reasoning_tokens = $8,
+		    cache_read_tokens = $9,
+		    cost_usd = $10,
+		    duration_seconds = $11,
+		    tool_calls = $12,
+		    tool_errors = $13,
+		    repeated_tool_calls = $14
 		WHERE id = $1
-	`, id, outcome, prURL, errorText)
+	`, append([]any{id, outcome, prURL, errorText}, m...)...)
 	return err
+}
+
+// runMetricsParams returns Close's metric parameters, all nil for nil m.
+func runMetricsParams(m *models.RunMetrics) []any {
+	if m == nil {
+		return make([]any, runMetricsColumns)
+	}
+	return []any{
+		m.Requests, m.InputTokens, m.OutputTokens, m.ReasoningTokens,
+		m.CacheReadTokens, m.CostUSD, m.DurationSeconds, m.ToolCalls,
+		m.ToolErrors, m.RepeatedToolCalls,
+	}
+}
+
+const runMetricsColumns = 10
+
+// runMetricsSelect lists the metric columns in scanRunMetrics' order.
+const runMetricsSelect = `requests, input_tokens, output_tokens,
+	reasoning_tokens, cache_read_tokens, cost_usd, duration_seconds,
+	tool_calls, tool_errors, repeated_tool_calls`
+
+// runMetricsScan holds nullable metric columns until they're known present.
+type runMetricsScan struct {
+	requests, toolCalls, toolErrors, repeated *int32
+	input, output, reasoning, cacheRead       *int64
+	cost, duration                            *float64
+}
+
+func (s *runMetricsScan) dest() []any {
+	return []any{
+		&s.requests, &s.input, &s.output, &s.reasoning, &s.cacheRead,
+		&s.cost, &s.duration, &s.toolCalls, &s.toolErrors, &s.repeated,
+	}
+}
+
+// metrics is nil when the row was closed without metrics; requests is
+// always set when any metric is.
+func (s *runMetricsScan) metrics() *models.RunMetrics {
+	if s.requests == nil {
+		return nil
+	}
+	return &models.RunMetrics{
+		Requests:          *s.requests,
+		InputTokens:       deref(s.input),
+		OutputTokens:      deref(s.output),
+		ReasoningTokens:   deref(s.reasoning),
+		CacheReadTokens:   deref(s.cacheRead),
+		CostUSD:           deref(s.cost),
+		DurationSeconds:   deref(s.duration),
+		ToolCalls:         deref(s.toolCalls),
+		ToolErrors:        deref(s.toolErrors),
+		RepeatedToolCalls: deref(s.repeated),
+	}
+}
+
+func deref[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // staleActionSweepError is the error CloseStale records.
@@ -89,7 +163,8 @@ func (r *AutomatedActionsRepository) ListRecent(
 ) ([]models.AutomatedAction, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, fired_at, trigger_source, routine_name, finished_at,
-		       COALESCE(outcome, ''), COALESCE(pr_url, ''), COALESCE(error, '')
+		       COALESCE(outcome, ''), COALESCE(pr_url, ''), COALESCE(error, ''),
+		       `+runMetricsSelect+`
 		FROM global.automated_actions
 		WHERE fired_at >= $1
 		ORDER BY fired_at DESC
@@ -103,7 +178,8 @@ func (r *AutomatedActionsRepository) ListRecent(
 	var actions []models.AutomatedAction
 	for rows.Next() {
 		var a models.AutomatedAction
-		if err = rows.Scan(
+		var m runMetricsScan
+		if err = rows.Scan(append([]any{
 			&a.ID,
 			&a.FiredAt,
 			&a.TriggerSource,
@@ -112,9 +188,10 @@ func (r *AutomatedActionsRepository) ListRecent(
 			&a.Outcome,
 			&a.PRURL,
 			&a.Error,
-		); err != nil {
+		}, m.dest()...)...); err != nil {
 			return nil, err
 		}
+		a.Metrics = m.metrics()
 		actions = append(actions, a)
 	}
 
@@ -158,4 +235,34 @@ func (r *AutomatedActionsRepository) MostRecentOpenedAt(
 		return time.Time{}, postgres.PgxErrorToHTTPError(err)
 	}
 	return firedAt, nil
+}
+
+// LatestRunMetrics returns each routine's most recent run closed with
+// metrics since the given time, keyed by routine name.
+func (r *AutomatedActionsRepository) LatestRunMetrics(
+	ctx context.Context,
+	since time.Time,
+) (map[string]models.RunMetrics, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT ON (routine_name) routine_name, `+runMetricsSelect+`
+		FROM global.automated_actions
+		WHERE fired_at >= $1 AND requests IS NOT NULL
+		ORDER BY routine_name, fired_at DESC
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	latest := map[string]models.RunMetrics{}
+	for rows.Next() {
+		var routine string
+		var m runMetricsScan
+		if err = rows.Scan(append([]any{&routine}, m.dest()...)...); err != nil {
+			return nil, err
+		}
+		latest[routine] = *m.metrics()
+	}
+
+	return latest, rows.Err()
 }

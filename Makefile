@@ -21,6 +21,10 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
+# The agent-routine workflow's transcript metrics script.
+routines/test:
+	./scripts/test_routine_metrics.sh
+
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:
 	./scripts/lint_skills.sh

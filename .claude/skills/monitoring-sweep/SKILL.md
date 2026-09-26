@@ -28,6 +28,7 @@ The invoking prompt states the mode; default to interactive.
 0. **Open the run record:** `record_action(mode: "open", trigger_source:
    "schedule"` (unattended) / `"manual"` (interactive), `routine_name:
    "nightly-maintenance-sweep")` before pulling data. Keep the returned `id`.
+   Skip under the workflow (step 9).
 
 1. **Pull every data source, MCP-only.**
    - **`get_grafana_alerts` first.** Grafana-managed alerts never reach
@@ -118,7 +119,7 @@ The invoking prompt states the mode; default to interactive.
    (every workstream reached a PR or filed issue), or `"failed"` (the sweep
    itself broke — MCP error, missing connector; a workstream needing a human
    is still success). Set `pr_url` for a single interactive PR; `error` on
-   failure. An unclosed row is its own detectable problem.
+   failure. Workflow runs write these as JSON to `$ROUTINE_OUTCOME_PATH`.
 
 Related: `sentry-triage`, `postmortem`; routine setup in
 `.github/workflows/routine-nightly-maintenance-sweep.yml`.

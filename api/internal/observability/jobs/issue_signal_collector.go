@@ -72,7 +72,19 @@ var (
 			"routine that has never opened a row at all reports a very large " +
 			"value rather than 0, so it reads as overdue rather than healthy.",
 	}, []string{"routine"})
+	automatedActionLastRun = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_last_run",
+		Help: "The latest measured run of each routine in the last " +
+			"14 days, by metric: requests, input_tokens, output_tokens, " +
+			"reasoning_tokens, cache_read_tokens, cost_usd (the agent's " +
+			"estimate), duration_seconds, tool_calls, tool_errors, " +
+			"repeated_tool_calls.",
+	}, []string{"routine", "metric"})
 )
+
+// runMetricsWindow bounds automated_action_last_run so a retired routine's
+// last run eventually drops out.
+const runMetricsWindow = 14 * 24 * time.Hour
 
 // knownRoutines are the scheduled agent routines tracked by
 // automated_action_seconds_since_last_open. Keep in sync by hand with
@@ -117,9 +129,16 @@ type mostRecentOpenedAtGetter interface {
 	MostRecentOpenedAt(ctx context.Context, routineName string) (time.Time, error)
 }
 
+type latestRunMetricsGetter interface {
+	LatestRunMetrics(
+		ctx context.Context, since time.Time,
+	) (map[string]models.RunMetrics, error)
+}
+
 type automatedActionGetter interface {
 	oldestOpenAutomatedActionGetter
 	mostRecentOpenedAtGetter
+	latestRunMetricsGetter
 }
 
 type workflowRunsLister interface {
@@ -198,6 +217,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectSchemaSizes(ctx, logger)
 	j.collectAutomatedActionAge(ctx, logger)
 	j.collectRoutineLiveness(ctx, logger)
+	j.collectRoutineRunMetrics(ctx, logger)
 	return nil
 }
 
@@ -353,6 +373,40 @@ func (j *IssueSignalCollectorJob) collectAutomatedActionAge(
 		return
 	}
 	automatedActionOldestOpenAgeSeconds.Set(time.Since(firedAt).Seconds())
+}
+
+// collectRoutineRunMetrics sets automated_action_last_run from each
+// routine's latest measured run.
+func (j *IssueSignalCollectorJob) collectRoutineRunMetrics(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	latest, err := j.automatedAction.LatestRunMetrics(
+		ctx, time.Now().Add(-runMetricsWindow),
+	)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load routine run metrics",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	automatedActionLastRun.Reset()
+	for routine, m := range latest {
+		for metric, v := range map[string]float64{
+			"requests":            float64(m.Requests),
+			"input_tokens":        float64(m.InputTokens),
+			"output_tokens":       float64(m.OutputTokens),
+			"reasoning_tokens":    float64(m.ReasoningTokens),
+			"cache_read_tokens":   float64(m.CacheReadTokens),
+			"cost_usd":            m.CostUSD,
+			"duration_seconds":    m.DurationSeconds,
+			"tool_calls":          float64(m.ToolCalls),
+			"tool_errors":         float64(m.ToolErrors),
+			"repeated_tool_calls": float64(m.RepeatedToolCalls),
+		} {
+			automatedActionLastRun.WithLabelValues(routine, metric).Set(v)
+		}
+	}
 }
 
 // collectRoutineLiveness sets automated_action_seconds_since_last_open per

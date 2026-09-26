@@ -303,6 +303,32 @@
         "overrides": []
       },
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" }
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Routine requests per run",
+      "description": "Model requests in each routine's latest measured run. AutomatedRoutineRunHeavy fires above 3x the 14-day average.",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "automated_action_last_run{metric=\"requests\"}", "legendFormat": "{{routine}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Routine cost per run",
+      "description": "The agent's estimated cost of each routine's latest measured run, not the OpenRouter bill.",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 26 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "automated_action_last_run{metric=\"cost_usd\"}", "legendFormat": "{{routine}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
     }
   ]
 }
