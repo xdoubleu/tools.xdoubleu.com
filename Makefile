@@ -21,6 +21,10 @@ lint/conflict-markers:
 lint/workflows:
 	./scripts/lint_workflows.sh
 
+# Exercise scripts/routine_watchdog.sh against synthetic transcripts.
+lint/watchdog:
+	./scripts/test_routine_watchdog.sh
+
 # The agent-routine workflow's transcript metrics script.
 routines/test:
 	./scripts/test_routine_metrics.sh

@@ -302,6 +302,8 @@ jobs:
         run: make lint/workflows
       - name: make routines/test
         run: make routines/test
+      - name: make lint/watchdog
+        run: make lint/watchdog
 
   # Unconditional: invalid frontmatter makes harnesses silently drop a skill.
   skills-lint:
