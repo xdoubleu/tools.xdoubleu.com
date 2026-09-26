@@ -1,4 +1,5 @@
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import RssIcon from '@/components/RssIcon'
 import type { SharedFeed } from '@/lib/gen/dashboard/v1/reading_pb'
 
@@ -17,14 +18,11 @@ export default function SharedFeedsCard({ feeds }: { feeds?: SharedFeed[] }) {
         {feeds.map((feed) => (
           <li key={feed.title} className="truncate text-sm">
             {feed.url ? (
-              <a
-                href={feed.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted hover:underline"
-              >
-                {feed.title}
-              </a>
+              <Button asChild variant="link" className="flex max-w-full justify-start text-muted">
+                <a href={feed.url} target="_blank" rel="noopener noreferrer">
+                  <span className="truncate">{feed.title}</span>
+                </a>
+              </Button>
             ) : (
               <span className="text-muted">{feed.title}</span>
             )}

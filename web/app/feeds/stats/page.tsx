@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
@@ -7,6 +6,8 @@ import { swrKeys } from '@/lib/swrKeys'
 import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import FeedStatsClient from '@/components/feeds/FeedStatsClient'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 
 export default async function FeedStatsPage() {
   const feedsClient = await createServerClient(FeedService)
@@ -15,14 +16,12 @@ export default async function FeedStatsPage() {
   return (
     <PageContainer>
       <SWRFallback fallback={stats ? { [swrKeys.feedStats]: stats } : {}}>
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-bold">Feed Stats</h1>
-          <Link href="/feeds" className="text-sm text-accent underline-offset-4 hover:underline">
-            Back to feeds
-          </Link>
-        </div>
+        <PageHeader
+          title="Feed Stats"
+          breadcrumb={[{ label: 'Feeds', href: '/feeds' }, { label: 'Stats' }]}
+        />
 
-        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+        <Suspense fallback={<LoadingState />}>
           <FeedStatsClient />
         </Suspense>
       </SWRFallback>

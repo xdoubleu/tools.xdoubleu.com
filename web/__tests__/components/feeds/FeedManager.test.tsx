@@ -107,4 +107,29 @@ describe('FeedManager', () => {
     expect(screen.queryByRole('button', { name: 'Refresh' })).not.toBeInTheDocument()
     expect(screen.getByText(/Waiting for your first email/)).toBeInTheDocument()
   })
+
+  it.each([
+    [{ ...rssFeed, title: '', lastError: 'timeout' }, rssFeed.url, 'Last poll failed: timeout'],
+    [
+      { ...emailFeed, title: '', lastError: 'bounced' },
+      'Email newsletter',
+      'Last email failed: bounced'
+    ]
+  ])('shows the last error for %#', (feed, name, errorText) => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [feed] }, error: undefined, isLoading: false })
+    render(<FeedManager />)
+
+    expect(screen.getAllByText(name)[0]).toBeInTheDocument()
+    expect(screen.getByText(errorText)).toBeInTheDocument()
+  })
+
+  it.each([
+    [{ ...rssFeed, lastFetchedAt: '2026-01-01T00:00:00Z' }, /^Last fetched/],
+    [{ ...emailFeed, lastFetchedAt: '2026-01-01T00:00:00Z' }, /^Verified — last email received/]
+  ])('shows when a feed was last fetched for %#', (feed, text) => {
+    mockUseFeeds.mockReturnValue({ data: { feeds: [feed] }, error: undefined, isLoading: false })
+    render(<FeedManager />)
+
+    expect(screen.getByText(text)).toBeInTheDocument()
+  })
 })

@@ -3,6 +3,7 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useFeedStats } from '@/hooks/useFeeds'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 const tooltipContentStyle = {
   backgroundColor: 'var(--color-surface)',
@@ -25,8 +26,8 @@ function formatPct(fraction: number): string {
 export default function FeedStatsClient() {
   const { data, error, isLoading } = useFeedStats()
 
-  if (isLoading) return <p className="text-muted">Loading…</p>
-  if (error) return <p className="text-danger">Failed to load feed stats.</p>
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState what="feed stats" />
   if (!data || data.stats.length === 0) {
     return <p className="text-muted">No feed activity yet.</p>
   }
@@ -59,7 +60,7 @@ export default function FeedStatsClient() {
                     labelStyle={{ color: 'var(--color-fg)' }}
                     itemStyle={{ color: 'var(--color-fg)' }}
                   />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="var(--color-accent)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

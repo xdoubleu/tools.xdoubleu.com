@@ -28,8 +28,9 @@ describe('FeedsSettingsPage', () => {
     expect(screen.getByTestId('feeds-notification-settings-card')).toBeInTheDocument()
   })
 
-  it('links back to /feeds', async () => {
+  it('shows a breadcrumb back to /feeds', async () => {
     render(await FeedsSettingsPage())
-    expect(screen.getByRole('link', { name: 'Back to feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByRole('link', { name: 'Feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByText('Settings')).toHaveAttribute('aria-current', 'page')
   })
 })
