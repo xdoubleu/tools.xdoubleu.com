@@ -4,7 +4,15 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import type { Book } from '@/lib/gen/books/v1/library_pb'
 import { useUpdateBook } from '@/hooks/useBooks'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
+import { Field } from '@/components/ui/field'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -59,50 +67,59 @@ export default function BookEditDialog({ book, open, onOpenChange, onSaved }: Bo
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>Edit book</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-xs text-muted mb-1">Title</p>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
+          <Field label="Title" htmlFor="edit-book-title">
+            <Input id="edit-book-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </Field>
 
-          <div>
-            <p className="text-xs text-muted mb-1">Authors (comma-separated)</p>
-            <Input value={authors} onChange={(e) => setAuthors(e.target.value)} />
-          </div>
+          <Field label="Authors (comma-separated)" htmlFor="edit-book-authors">
+            <Input
+              id="edit-book-authors"
+              value={authors}
+              onChange={(e) => setAuthors(e.target.value)}
+            />
+          </Field>
 
-          <div>
-            <p className="text-xs text-muted mb-1">ISBN-13</p>
-            <Input value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
-          </div>
+          <Field label="ISBN-13" htmlFor="edit-book-isbn">
+            <Input
+              id="edit-book-isbn"
+              inputMode="numeric"
+              value={isbn13}
+              onChange={(e) => setIsbn13(e.target.value)}
+            />
+          </Field>
 
-          <div>
-            <p className="text-xs text-muted mb-1">Description</p>
+          <Field label="Description" htmlFor="edit-book-description">
             <Textarea
+              id="edit-book-description"
               rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div>
-            <p className="text-xs text-muted mb-1">Page count</p>
+          <Field label="Page count" htmlFor="edit-book-pages">
             <Input
+              id="edit-book-pages"
               type="number"
+              inputMode="numeric"
               min={0}
               value={pageCount}
               onChange={(e) => setPageCount(e.target.value)}
             />
-          </div>
+          </Field>
 
-          <div>
-            <p className="text-xs text-muted mb-1">Cover URL</p>
+          <Field label="Cover URL" htmlFor="edit-book-cover">
             <div className="flex gap-2">
               <Input
+                id="edit-book-cover"
+                type="url"
+                className="min-w-0 flex-1"
                 value={coverUrl}
                 onChange={(e) => setCoverUrl(e.target.value)}
                 placeholder="No cover"
@@ -117,23 +134,23 @@ export default function BookEditDialog({ book, open, onOpenChange, onSaved }: Bo
                 Remove
               </Button>
             </div>
-          </div>
+          </Field>
         </div>
 
         {error && (
-          <p className="mt-2 text-sm text-danger" data-testid="edit-book-error">
+          <Alert tone="danger" className="mt-2" data-testid="edit-book-error">
             {error}
-          </p>
+          </Alert>
         )}
 
-        <div className="mt-6 flex flex-wrap justify-end gap-2">
+        <DialogFooter>
           <Button variant="ghost" disabled={saving} onClick={() => handleOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving} data-testid="edit-book-save-btn">
             {saving ? 'Saving…' : 'Save'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

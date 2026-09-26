@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { getApiUrl } from '@/lib/env'
 import { KOBO_DEFAULT_ENDPOINT, isManagedEndpoint } from '@/lib/books/koboConf'
@@ -170,6 +171,7 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
               key={k.volumePath}
               type="button"
               variant="secondary"
+              className="h-auto min-h-11 max-w-full whitespace-normal break-all py-2 text-left"
               onClick={() => setSelectedVolume(k.volumePath)}
             >
               {k.volumePath} {k.serial && `(${defaultDeviceName(k.serial)})`}
@@ -190,12 +192,9 @@ export default function KoboGatewaySetup({ status, pollIntervalMs = 1500 }: Kobo
 
       {kobo && state === 'idle' && isManagedEndpoint(kobo.currentEndpoint, getApiUrl()) && (
         <div className="space-y-2">
-          <div
-            className="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success"
-            data-testid="kobo-gateway-already-configured"
-          >
+          <Alert tone="success" data-testid="kobo-gateway-already-configured">
             This Kobo is already configured for sync with this server.
-          </div>
+          </Alert>
           <Button
             type="button"
             variant="secondary"

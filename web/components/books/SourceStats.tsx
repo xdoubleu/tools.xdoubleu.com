@@ -4,6 +4,15 @@ import { useState } from 'react'
 import { useSourceStats, useBooksInExactSources } from '@/hooks/useBooks'
 import { SOURCE_LABELS } from '@/components/books/SourceCompare'
 import { Card } from '@/components/ui/card'
+import { LoadingState, ErrorState } from '@/components/ui/states'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -45,10 +54,10 @@ function ExactSourcesDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogClose aria-label="Close">×</DialogClose>
+          <DialogClose />
         </DialogHeader>
-        {isLoading && <p className="text-xs text-muted">Loading…</p>}
-        {error && <p className="text-xs text-danger">Failed to load books.</p>}
+        {isLoading && <LoadingState className="text-xs" />}
+        {error && <ErrorState what="books" className="text-xs" />}
         {data && (
           <ul className="space-y-2">
             {data.books.map((b) => (
@@ -75,101 +84,101 @@ export default function SourceStats() {
   const { data, isLoading, error } = useSourceStats()
   const [openSources, setOpenSources] = useState<string[] | null>(null)
 
-  if (isLoading) return <p className="text-xs text-muted">Loading…</p>
-  if (error || !data) return <p className="text-xs text-danger">Failed to load source stats.</p>
+  if (isLoading) return <LoadingState className="text-xs" />
+  if (error || !data) return <ErrorState what="source stats" className="text-xs" />
 
   const overlaps = data.overlaps.filter((o) => o.count > 0)
   const missedOverlaps = data.missedOverlaps.filter((o) => o.count > 0)
   const foundTotal = data.totalBooks - data.notFoundAnywhere - data.neverScanned
 
   return (
-    <Card className="rounded-2xl p-4">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-muted">
-              <th className="pb-2 font-semibold">Source</th>
-              <th className="pb-2 text-right font-semibold">Found</th>
-              <th className="pb-2 text-right font-semibold">Missed</th>
-              <th className="pb-2 text-right font-semibold">Unique</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.sources.map((s) => (
-              <tr key={s.source} className="border-t border-border">
-                <td className="py-1.5">{sourceLabel(s.source)}</td>
-                <td className="py-1.5 text-right tabular-nums">{s.foundCount}</td>
-                <td className="py-1.5 text-right tabular-nums">{s.missedCount}</td>
-                <td className="py-1.5 text-right tabular-nums">
-                  {s.uniqueCount > 0 ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto px-1 py-0 tabular-nums"
-                      onClick={() => setOpenSources([s.source])}
-                    >
-                      {s.uniqueCount}
-                    </Button>
-                  ) : (
-                    s.uniqueCount
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-3 space-y-0.5 text-xs text-muted">
-        <p className="font-medium text-fg">
-          {foundTotal} found across all sources (in at least one).
-        </p>
-        <p>{data.totalBooks} books in the catalog.</p>
-        <p>{data.notFoundAnywhere} missing from all sources.</p>
-        <p>{data.neverScanned} never scanned.</p>
-      </div>
-      {overlaps.length > 0 && (
-        <div className="mt-4 border-t border-border pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Overlap — found in exactly these sources
+    <div className="space-y-3">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead>Source</TableHead>
+            <TableHead className="text-right">Found</TableHead>
+            <TableHead className="text-right">Missed</TableHead>
+            <TableHead className="text-right">Unique</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.sources.map((s) => (
+            <TableRow key={s.source}>
+              <TableCell>{sourceLabel(s.source)}</TableCell>
+              <TableCell className="text-right tabular-nums">{s.foundCount}</TableCell>
+              <TableCell className="text-right tabular-nums">{s.missedCount}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {s.uniqueCount > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-w-11 px-2 tabular-nums sm:min-w-0"
+                    onClick={() => setOpenSources([s.source])}
+                  >
+                    {s.uniqueCount}
+                  </Button>
+                ) : (
+                  s.uniqueCount
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <Card className="rounded-2xl p-4">
+        <div className="space-y-0.5 text-xs text-muted">
+          <p className="font-medium text-fg">
+            {foundTotal} found across all sources (in at least one).
           </p>
-          <ul className="space-y-1">
-            {overlaps.map((o) => (
-              <li key={o.sources.join('+')} className="flex items-center justify-between">
-                <span className="text-sm">{comboLabel(o.sources)}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto px-1 py-0 tabular-nums"
-                  onClick={() => setOpenSources(o.sources)}
-                >
-                  {o.count}
-                </Button>
-              </li>
-            ))}
-          </ul>
+          <p>{data.totalBooks} books in the catalog.</p>
+          <p>{data.notFoundAnywhere} missing from all sources.</p>
+          <p>{data.neverScanned} never scanned.</p>
         </div>
-      )}
-      {missedOverlaps.length > 0 && (
-        <div className="mt-4 border-t border-border pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
-            Missed overlaps — missed by exactly these sources
-          </p>
-          <ul className="space-y-1">
-            {missedOverlaps.map((o) => (
-              <li key={o.sources.join('+')} className="flex items-center justify-between">
-                <span className="text-sm">{comboLabel(o.sources)}</span>
-                <span className="text-sm tabular-nums">{o.count}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      {openSources && (
-        <ExactSourcesDialog
-          sources={openSources}
-          onOpenChange={(open) => !open && setOpenSources(null)}
-        />
-      )}
-    </Card>
+        {overlaps.length > 0 && (
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              Overlap — found in exactly these sources
+            </p>
+            <ul className="space-y-1">
+              {overlaps.map((o) => (
+                <li key={o.sources.join('+')} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{comboLabel(o.sources)}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="min-w-11 px-2 tabular-nums sm:min-w-0"
+                    onClick={() => setOpenSources(o.sources)}
+                  >
+                    {o.count}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {missedOverlaps.length > 0 && (
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              Missed overlaps — missed by exactly these sources
+            </p>
+            <ul className="space-y-1">
+              {missedOverlaps.map((o) => (
+                <li key={o.sources.join('+')} className="flex items-center justify-between gap-2">
+                  <span className="text-sm">{comboLabel(o.sources)}</span>
+                  <span className="text-sm tabular-nums">{o.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {openSources && (
+          <ExactSourcesDialog
+            sources={openSources}
+            onOpenChange={(open) => !open && setOpenSources(null)}
+          />
+        )}
+      </Card>
+    </div>
   )
 }

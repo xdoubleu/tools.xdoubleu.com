@@ -4,7 +4,8 @@ import { Fragment, type ReactNode } from 'react'
 import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
 import { StatTile } from '@/components/ui/stat'
 import BooksProgressChart from '@/components/books/BooksProgressChart'
-import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { DateInput } from '@/components/ui/date-input'
 import { ytdProgress } from '@/lib/books/ytdProgress'
 import { statusLabel } from '@/lib/books/bookShelves'
@@ -63,55 +64,29 @@ export default function BooksDashboardView({
 
         <div className="flex min-h-0 flex-col">
           <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
-            <div
-              role="tablist"
+            <SegmentedTabs
               aria-label="Chart view"
-              className="flex gap-1 rounded-xl border border-border bg-surface p-1"
-            >
-              <Button
-                role="tab"
-                aria-selected={view === 'ytd'}
-                size="sm"
-                variant={view === 'ytd' ? 'default' : 'ghost'}
-                onClick={() => setView('ytd')}
-              >
-                This year
-              </Button>
-              <Button
-                role="tab"
-                aria-selected={view === 'all'}
-                size="sm"
-                variant={view === 'all' ? 'default' : 'ghost'}
-                onClick={() => setView('all')}
-              >
-                All time
-              </Button>
-            </div>
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'ytd', label: 'This year' },
+                { value: 'all', label: 'All time' }
+              ]}
+            />
 
             {view === 'all' && (
-              <div className="flex gap-3">
-                <div>
-                  <label htmlFor="books-dash-from" className="mb-1 block text-xs text-muted">
-                    From
-                  </label>
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <Field label="From" htmlFor="books-dash-from">
                   <DateInput
                     id="books-dash-from"
                     value={start}
                     onChange={setStart}
-                    className="h-9 w-40"
+                    className="sm:w-40"
                   />
-                </div>
-                <div>
-                  <label htmlFor="books-dash-to" className="mb-1 block text-xs text-muted">
-                    To
-                  </label>
-                  <DateInput
-                    id="books-dash-to"
-                    value={end}
-                    onChange={setEnd}
-                    className="h-9 w-40"
-                  />
-                </div>
+                </Field>
+                <Field label="To" htmlFor="books-dash-to">
+                  <DateInput id="books-dash-to" value={end} onChange={setEnd} className="sm:w-40" />
+                </Field>
               </div>
             )}
           </div>

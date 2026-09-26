@@ -6,6 +6,7 @@ import { useLibrary } from '@/hooks/useBooks'
 import BookSearchBar from '@/components/books/BookSearchBar'
 import BooksLibrary from '@/components/books/BooksLibrary'
 import { swrKeys } from '@/lib/swrKeys'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 
 export default function BooksSection() {
   const { data: libraryData, error: libError, isLoading: libLoading } = useLibrary()
@@ -36,8 +37,8 @@ export default function BooksSection() {
         <BookSearchBar query={query} onChange={setQuery} />
       </div>
 
-      {libLoading && <p className="text-muted">Loading books…</p>}
-      {libError && <p className="text-danger">Failed to load books.</p>}
+      {libLoading && <LoadingState label="books" />}
+      {libError && <ErrorState what="books" />}
       {library && (
         <BooksLibrary
           library={library}

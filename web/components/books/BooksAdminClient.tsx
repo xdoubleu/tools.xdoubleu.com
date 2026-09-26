@@ -9,7 +9,7 @@ import ResyncWizard from '@/components/books/ResyncWizard'
 import SourceStats from '@/components/books/SourceStats'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { formatDateTime } from '@/lib/dates'
@@ -26,11 +26,10 @@ export default function BooksAdminClient() {
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Admin tools' }]}
+      <PageHeader
+        breadcrumb={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Admin tools' }]}
+        title="Books admin tools"
       />
-      <h1 className="mb-6 text-3xl font-bold">Books admin tools</h1>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">

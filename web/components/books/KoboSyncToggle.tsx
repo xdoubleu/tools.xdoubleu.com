@@ -5,7 +5,8 @@ import { mutate } from 'swr'
 import { useEnableKoboSync, useToggleTag, useKEPUBStatus } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Radio } from '@/components/ui/radio-group'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { cn } from '@/lib/cn'
 
 interface KoboSyncToggleProps {
   bookId: string
@@ -85,18 +86,14 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="kobo-sync-toggle"
-          checked={enabledState}
-          disabled={(!canEnable && !enabledState) || toggling}
-          onChange={handleToggle}
-          data-testid="kobo-sync-checkbox"
-        />
-        <label htmlFor="kobo-sync-toggle" className="text-sm text-subtle cursor-pointer">
-          Kobo sync
-        </label>
-      </div>
+      <Checkbox
+        id="kobo-sync-toggle"
+        checked={enabledState}
+        disabled={(!canEnable && !enabledState) || toggling}
+        onChange={handleToggle}
+        data-testid="kobo-sync-checkbox"
+        label={<span className="text-sm text-subtle">Kobo sync</span>}
+      />
 
       {!canEnable && !enabledState && (
         <p className="text-xs text-muted">Upload an EPUB or PDF to enable Kobo sync.</p>
@@ -105,34 +102,32 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
       {enabledState && hasPdf && (
         <div className="space-y-1">
           <p className="text-xs text-muted">Send to Kobo as:</p>
-          <div className="flex gap-3">
-            <label className="flex items-center gap-1.5 text-xs text-subtle cursor-pointer">
-              <Radio
-                name={`kobo-format-${bookId}`}
-                checked={!wantsPDF}
-                disabled={toggling}
-                onChange={() => wantsPDF && handleFormatChange(false)}
-                data-testid="kobo-format-kepub"
-              />
-              EPUB (converted)
-            </label>
-            <label className="flex items-center gap-1.5 text-xs text-subtle cursor-pointer">
-              <Radio
-                name={`kobo-format-${bookId}`}
-                checked={wantsPDF}
-                disabled={toggling}
-                onChange={() => !wantsPDF && handleFormatChange(true)}
-                data-testid="kobo-format-pdf"
-              />
-              PDF (as-is)
-            </label>
-          </div>
+          <RadioGroup
+            name={`kobo-format-${bookId}`}
+            value={wantsPDF ? 'pdf' : 'kepub'}
+            onChange={(v) => handleFormatChange(v === 'pdf')}
+            aria-label="Send to Kobo as"
+            className="flex-row flex-wrap gap-x-4 gap-y-0"
+          >
+            <RadioGroupItem
+              value="kepub"
+              label="EPUB (converted)"
+              disabled={toggling}
+              data-testid="kobo-format-kepub"
+            />
+            <RadioGroupItem
+              value="pdf"
+              label="PDF (as-is)"
+              disabled={toggling}
+              data-testid="kobo-format-pdf"
+            />
+          </RadioGroup>
         </div>
       )}
 
       {enabledState && !wantsPDF && kepubStatus && (
         <p
-          className={`text-xs ${kepubStatus === 'failed' ? 'text-danger' : 'text-muted'}`}
+          className={cn('text-xs', kepubStatus === 'failed' ? 'text-danger' : 'text-muted')}
           data-testid="kepub-status"
         >
           {kepubStatusLabel(kepubStatus)}

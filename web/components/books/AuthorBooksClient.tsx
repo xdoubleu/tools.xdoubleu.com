@@ -3,7 +3,9 @@
 import { useMemo } from 'react'
 import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
-import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
+import { type BreadcrumbItem } from '@/components/ui/breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 import BooksTable from '@/components/books/BooksTable'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import { PageContainer } from '@/components/ui/page-container'
@@ -45,14 +47,14 @@ export default function AuthorBooksClient({ name }: AuthorBooksClientProps) {
 
   return (
     <PageContainer className="space-y-4">
-      <Breadcrumb items={breadcrumbItems} />
-      <h1 className="text-3xl font-bold">{name}</h1>
-      <p className="text-muted text-sm">
-        {authorBooks.length} book{authorBooks.length !== 1 ? 's' : ''} in your library
-      </p>
+      <PageHeader
+        breadcrumb={breadcrumbItems}
+        title={name}
+        description={`${authorBooks.length} book${authorBooks.length !== 1 ? 's' : ''} in your library`}
+      />
 
-      {isLoading && <p className="text-muted text-sm">Loading…</p>}
-      {error && <p className="text-danger text-sm">Failed to load library.</p>}
+      {isLoading && <LoadingState className="text-sm" />}
+      {error && <ErrorState what="library" className="text-sm" />}
 
       {!isLoading && !error && (
         <BooksTable

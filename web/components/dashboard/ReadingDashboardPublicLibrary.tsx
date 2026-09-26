@@ -12,6 +12,7 @@ import LibrarySidebar, {
 import DashboardBookCard from '@/components/dashboard/DashboardBookCard'
 import { Input } from '@/components/ui/input'
 import { flattenLibrary } from '@/lib/books/bookShelves'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 
 function booksForShelf(library: LibraryResponse, shelfId: ShelfId): UserBook[] {
   if (shelfId === 'all') return flattenLibrary(library)
@@ -60,8 +61,8 @@ export default function ReadingDashboardPublicLibrary({
     })
   }, [library, shelfBooks, search])
 
-  if (isLoading && !library) return <p className="text-muted">Loading books…</p>
-  if (error && !library) return <p className="text-danger">Failed to load books.</p>
+  if (isLoading && !library) return <LoadingState label="books" />
+  if (error && !library) return <ErrorState what="books" />
   if (!library) return null
 
   const shelves = buildShelves(library)

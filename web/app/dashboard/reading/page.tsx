@@ -8,6 +8,7 @@ import ReadingDashboard from '@/components/dashboard/ReadingDashboard'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function ReadingDashboardPage() {
   const client = await createServerClient(LibraryService)
@@ -20,17 +21,18 @@ export default async function ReadingDashboardPage() {
           ...(library ? { [swrKeys.books]: library } : {})
         }}
       >
-        <div className="mb-4 flex items-center justify-between gap-4 lg:mb-3">
-          <h1 className="text-3xl font-bold lg:text-2xl">Reading</h1>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Reading"
+          className="mb-4 lg:mb-3"
+          actions={
             <Button asChild variant="ghost" size="sm" className="gap-2">
               <Link href="/books/settings">
                 <SettingsIcon />
                 Settings
               </Link>
             </Button>
-          </div>
-        </div>
+          }
+        />
 
         <ReadingDashboard />
       </SWRFallback>

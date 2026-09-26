@@ -57,7 +57,7 @@ describe('KoboDevices — empty state', () => {
   it('shows loading state', () => {
     mockUseListKoboDevices.mockReturnValue({ data: undefined, isLoading: true, mutate: mockMutate })
     render(<KoboDevices />)
-    expect(screen.getByTestId('kobo-devices-loading')).toBeInTheDocument()
+    expect(screen.getByText('Loading devices…')).toBeInTheDocument()
   })
 })
 

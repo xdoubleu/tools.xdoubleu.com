@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/cn'
 import { MenuItem } from '@/components/ui/menu-item'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import type { LibraryResponse } from '@/lib/gen/books/v1/library_pb'
 import { SPECIAL_TAGS, flattenLibrary, statusLabel } from '@/lib/books/bookShelves'
@@ -163,29 +164,21 @@ export default function LibrarySidebar({
       </nav>
 
       <div className="flex md:hidden flex-col gap-2">
-        <div
-          className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1"
-          role="tablist"
+        <SegmentedTabs<ShelfId>
           aria-label="Shelves"
-        >
-          {shelves.map((shelf) => (
-            <TogglePill
-              key={shelf.id}
-              role="tab"
-              aria-selected={selectedShelfId === shelf.id}
-              aria-pressed={undefined}
-              active={selectedShelfId === shelf.id}
-              onClick={() => onSelectShelf(shelf.id)}
-              label={
-                <>
-                  {shelf.label}
-                  <span className="ml-1 text-xs opacity-60">{shelf.count}</span>
-                </>
-              }
-              className="shrink-0 px-3 py-1.5 text-sm whitespace-nowrap"
-            />
-          ))}
-        </div>
+          value={selectedShelfId ?? ''}
+          onChange={onSelectShelf}
+          options={shelves.map((shelf) => ({
+            value: shelf.id,
+            label: (
+              <>
+                {shelf.label}
+                <span className="ml-1 text-xs opacity-60">{shelf.count}</span>
+              </>
+            )
+          }))}
+          className="-mx-1 flex-nowrap overflow-x-auto px-1 pb-1 *:shrink-0 *:whitespace-nowrap"
+        />
         {allTags.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
             {allTags.map((tag) => (

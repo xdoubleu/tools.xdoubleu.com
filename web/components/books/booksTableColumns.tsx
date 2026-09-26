@@ -127,7 +127,7 @@ export const ALL_COLUMNS: BookColumn[] = [
     renderCell: (ub) => (
       <Link
         href={`/books/${ub.id}`}
-        className="text-sm font-medium hover:text-accent transition-colors line-clamp-2"
+        className="line-clamp-2 py-3 text-sm font-medium transition-colors hover:text-accent sm:py-0"
       >
         {ub.book?.title ?? ''}
       </Link>
@@ -143,12 +143,12 @@ export const ALL_COLUMNS: BookColumn[] = [
       const shown = authors.slice(0, MAX_AUTHORS_SHOWN)
       const hiddenCount = authors.length - shown.length
       return (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-2 sm:gap-0.5">
           {shown.map((author) => (
             <Link
               key={author}
               href={`/books/author/${encodeURIComponent(author)}`}
-              className="text-sm text-subtle hover:text-accent transition-colors truncate"
+              className="truncate py-3 text-sm text-subtle transition-colors hover:text-accent sm:py-0"
             >
               {author}
             </Link>
@@ -159,7 +159,7 @@ export const ALL_COLUMNS: BookColumn[] = [
               trigger={({ onClick }) => (
                 <PopoverTrigger
                   onClick={onClick}
-                  className="block px-1 py-0.5 -mx-1 -my-0.5 text-xs text-muted"
+                  className="-mx-1 justify-start px-1 text-xs text-muted"
                   aria-label="Show all authors"
                 >
                   +{hiddenCount} more
@@ -177,6 +177,7 @@ export const ALL_COLUMNS: BookColumn[] = [
     key: 'pages',
     label: 'Pages',
     sortKey: 'pages',
+    headClassName: 'min-w-20',
     cellClassName: 'w-16 text-right',
     renderCell: (ub) => <span className="text-sm text-muted">{ub.book?.pageCount ?? ''}</span>
   },

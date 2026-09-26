@@ -8,6 +8,7 @@ import {
   TableBody,
   TableRow,
   TableCell,
+  TableHead,
   SortableHeader,
   type SortDir
 } from '@/components/ui/table'
@@ -174,16 +175,22 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
       <Table>
         <TableHeader>
           <TableRow>
-            {activeColumns.map((col) => (
-              <SortableHeader
-                key={col.key}
-                dir={col.sortKey ? sortDir(col.sortKey) : null}
-                onSort={col.sortKey ? () => handleSort(col.sortKey!) : () => {}}
-                className={col.headClassName}
-              >
-                {col.label}
-              </SortableHeader>
-            ))}
+            {activeColumns.map((col) =>
+              col.sortKey ? (
+                <SortableHeader
+                  key={col.key}
+                  dir={sortDir(col.sortKey)}
+                  onSort={() => handleSort(col.sortKey!)}
+                  className={col.headClassName}
+                >
+                  {col.label}
+                </SortableHeader>
+              ) : (
+                <TableHead key={col.key} className={col.headClassName}>
+                  {col.label}
+                </TableHead>
+              )
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
