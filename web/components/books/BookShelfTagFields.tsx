@@ -98,9 +98,9 @@ export default function BookShelfTagFields({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-1.5">
+      <div className="space-y-2 sm:space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Shelf</Label>
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-1.5">
           {BOOK_STATUSES.map(({ value, label }) => (
             <TogglePill
               key={value}
@@ -144,12 +144,12 @@ export default function BookShelfTagFields({
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2 sm:space-y-1.5">
         <Label className="text-xs font-semibold text-muted uppercase tracking-wide">Tags</Label>
         {allTags.length === 0 ? (
           <p className="text-xs text-muted">No tags yet.</p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2 sm:gap-1.5">
             {allTags.map((tag) => {
               const active = tags.includes(tag)
               return (

@@ -5,7 +5,7 @@ import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { PublicReadingDashboardService } from '@/lib/gen/dashboard/v1/reading_pb'
 import ReadingDashboardPublicLibrary from '@/components/dashboard/ReadingDashboardPublicLibrary'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
 import { PageContainer } from '@/components/ui/page-container'
 
 // Token URLs are capability links — keep them out of search indexes.
@@ -25,9 +25,9 @@ export default async function ReadingDashboardPublicLibraryPage({
 
   return (
     <PageContainer>
-      <Breadcrumb
-        className="mb-6"
-        items={[
+      <PageHeader
+        title="Library"
+        breadcrumb={[
           {
             label: library?.displayName ? `${library.displayName}'s reading` : 'Reading',
             href: `/dashboard/reading/${token}`
@@ -35,8 +35,6 @@ export default async function ReadingDashboardPublicLibraryPage({
           { label: 'Library' }
         ]}
       />
-
-      <h1 className="mb-6 text-3xl font-bold">Library</h1>
 
       <SWRFallback fallback={library ? { [swrKeys.dashboardReading(token)]: library } : {}}>
         <ReadingDashboardPublicLibrary token={token} initialData={library ?? undefined} />

@@ -3,7 +3,9 @@
 import type { DuplicateGroup } from '@/lib/gen/books/v1/catalog_pb'
 import type { BookConflictField, FieldConflict } from './duplicateConflicts'
 import BookCover from '@/components/books/BookCover'
+import { Label } from '@/components/ui/label'
 import { Radio } from '@/components/ui/radio-group'
+import { cn } from '@/lib/cn'
 
 const FIELD_LABELS: Record<BookConflictField, string> = {
   status: 'Shelf / status',
@@ -26,23 +28,24 @@ interface CoverChoiceProps {
 
 function CoverChoice({ bookId, coverUrl, title, checked, onChange, groupKey }: CoverChoiceProps) {
   return (
-    <label className="flex flex-col items-center gap-1 cursor-pointer">
+    <Label className="flex min-w-11 cursor-pointer flex-col items-center gap-1 font-normal">
       <Radio
         name={`cover-${groupKey}`}
         value={bookId}
         checked={checked}
         onChange={onChange}
-        className="sr-only"
+        className="sr-only text-base"
       />
       <div
-        className={`rounded-lg overflow-hidden border-2 transition-colors ${
-          checked ? 'border-primary' : 'border-transparent'
-        }`}
+        className={cn(
+          'overflow-hidden rounded-lg border-2 transition-colors',
+          checked ? 'border-accent' : 'border-transparent'
+        )}
       >
         <BookCover coverUrl={coverUrl} title={title} size="sm" />
       </div>
       <span className="text-xs text-muted">{checked ? 'Selected' : 'Use this'}</span>
-    </label>
+    </Label>
   )
 }
 
@@ -80,7 +83,7 @@ export default function ConflictFieldPicker({
             <p className="text-xs text-subtle">{FIELD_LABELS[field]}</p>
 
             {field === 'cover' ? (
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {choices.map((c) => {
                   const book = bookById.get(c.bookId)
                   return (
@@ -99,23 +102,27 @@ export default function ConflictFieldPicker({
             ) : (
               <div className="flex flex-wrap gap-2">
                 {choices.map((c) => (
-                  <label
+                  <Label
                     key={c.bookId}
-                    className={`flex items-center gap-1.5 cursor-pointer rounded-lg border px-2 py-1 text-xs transition-colors ${
+                    className={cn(
+                      'flex min-h-11 min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1 text-xs font-normal transition-colors sm:min-h-8',
+                      'has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50',
                       chosen === c.bookId
-                        ? 'border-primary bg-primary/5 text-fg'
+                        ? 'border-accent bg-accent/5 text-fg'
                         : 'border-border text-muted hover:border-muted'
-                    }`}
+                    )}
                   >
                     <Radio
                       name={`${field}-${groupKey}`}
                       value={c.bookId}
                       checked={chosen === c.bookId}
                       onChange={() => onChoiceChange(field, c.bookId)}
-                      className="sr-only"
+                      className="sr-only text-base"
                     />
-                    <span className={c.hasValue ? '' : 'italic'}>{c.displayValue}</span>
-                  </label>
+                    <span className={cn('min-w-0 break-words', !c.hasValue && 'italic')}>
+                      {c.displayValue}
+                    </span>
+                  </Label>
                 ))}
               </div>
             )}

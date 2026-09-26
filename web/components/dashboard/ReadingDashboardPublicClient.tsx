@@ -8,6 +8,7 @@ import ReadingDashboardLayout from '@/components/dashboard/ReadingDashboardLayou
 import { Button } from '@/components/ui/button'
 import { useDashboardChartState } from '@/hooks/useDashboardChartState'
 import { formatDateTime } from '@/lib/dates'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 
 export default function ReadingDashboardPublicClient({
   token,
@@ -31,8 +32,8 @@ export default function ReadingDashboardPublicClient({
       value: parseInt(progressData.progress?.values?.[idx] ?? '0', 10)
     })) ?? []
 
-  if (isLoading && !library) return <p className="text-muted">Loading books…</p>
-  if (error && !library) return <p className="text-danger">Failed to load books.</p>
+  if (isLoading && !library) return <LoadingState label="books" />
+  if (error && !library) return <ErrorState what="books" />
   if (!library) return null
 
   return (

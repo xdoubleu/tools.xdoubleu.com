@@ -31,7 +31,7 @@ beforeEach(() => {
 it('shows loading state', () => {
   mockUseKoboDeviceLogs.mockReturnValue({ data: undefined, isLoading: true, mutate: mockMutate })
   render(<KoboDeviceLogs deviceId="dev-1" />)
-  expect(screen.getByTestId('kobo-logs-loading')).toBeInTheDocument()
+  expect(screen.getByText('Loading logs…')).toBeInTheDocument()
 })
 
 it('shows empty state when no entries', () => {

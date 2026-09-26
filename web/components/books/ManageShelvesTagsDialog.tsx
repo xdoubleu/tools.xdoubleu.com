@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogClose
 } from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -130,10 +131,14 @@ export default function ManageShelvesTagsDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Edit shelves & tags</DialogTitle>
-          <DialogClose aria-label="Close">x</DialogClose>
+          <DialogClose />
         </DialogHeader>
 
-        {error && <p className="mb-3 text-sm text-danger">{error}</p>}
+        {error && (
+          <Alert tone="danger" className="mb-3">
+            {error}
+          </Alert>
+        )}
 
         <section className="mb-4">
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
@@ -143,9 +148,9 @@ export default function ManageShelvesTagsDialog({
             {builtInShelves.map((shelf) => (
               <div
                 key={shelf.id}
-                className="flex items-center justify-between rounded-xl px-3 py-2 bg-surface text-sm text-subtle"
+                className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2 text-sm text-subtle"
               >
-                <span>{shelf.label}</span>
+                <span className="min-w-0 break-words">{shelf.label}</span>
                 <span className="text-xs text-muted">{shelf.count}</span>
               </div>
             ))}
@@ -156,7 +161,7 @@ export default function ManageShelvesTagsDialog({
           <h3 className="mb-2 text-xs font-semibold text-muted uppercase tracking-wide">
             Custom shelves
           </h3>
-          <div className="mb-2 flex gap-2">
+          <div className="mb-2 flex flex-wrap gap-2">
             <Input
               value={newShelfName}
               onChange={(e) => setNewShelfName(e.target.value)}
@@ -164,7 +169,8 @@ export default function ManageShelvesTagsDialog({
                 if (e.key === 'Enter') void handleCreateShelf()
               }}
               placeholder="New shelf name…"
-              className="flex-1 h-8 text-sm"
+              aria-label="New shelf name"
+              className="min-w-0 flex-1 basis-40"
             />
             <Button
               size="sm"
@@ -181,7 +187,7 @@ export default function ManageShelvesTagsDialog({
             {customShelves.map((shelf) => (
               <div key={shelf.id}>
                 {renaming?.type === 'shelf' && renaming.name === shelf.id ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Input
                       value={renaming.newName}
                       onChange={(e) => setRenaming({ ...renaming, newName: e.target.value })}
@@ -190,7 +196,8 @@ export default function ManageShelvesTagsDialog({
                         if (e.key === 'Escape') setRenaming(null)
                       }}
                       autoFocus
-                      className="flex-1 h-8 text-sm"
+                      aria-label="New name"
+                      className="min-w-0 flex-1 basis-40"
                     />
                     <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
                       Save
@@ -200,8 +207,8 @@ export default function ManageShelvesTagsDialog({
                     </Button>
                   </div>
                 ) : deletingShelf?.name === shelf.id ? (
-                  <div className="space-y-2 p-3 rounded-xl border border-danger/30 bg-danger/5">
-                    <p className="text-sm">
+                  <Alert tone="danger" role="group" className="space-y-2 p-3 text-fg">
+                    <p>
                       Move {shelf.count} book{shelf.count !== 1 ? 's' : ''} from{' '}
                       <strong>{shelf.label}</strong> to:
                     </p>
@@ -210,7 +217,7 @@ export default function ManageShelvesTagsDialog({
                       onChange={(e) =>
                         setDeletingShelf({ ...deletingShelf, targetName: e.target.value })
                       }
-                      className="h-8 text-sm"
+                      aria-label="Move books to"
                     >
                       {deleteTargets.map(({ value, label }) => (
                         <option key={value} value={value}>
@@ -218,7 +225,7 @@ export default function ManageShelvesTagsDialog({
                         </option>
                       ))}
                     </Select>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="destructive"
@@ -231,12 +238,13 @@ export default function ManageShelvesTagsDialog({
                         Cancel
                       </Button>
                     </div>
-                  </div>
+                  </Alert>
                 ) : (
-                  <div className="flex items-center justify-between rounded-xl px-3 py-2 bg-surface text-sm">
-                    <span>{shelf.label}</span>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted mr-2">{shelf.count}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-surface px-3 py-1 text-sm">
+                    <span className="min-w-0 break-words">
+                      {shelf.label} <span className="ml-1 text-xs text-muted">{shelf.count}</span>
+                    </span>
+                    <div className="flex items-center gap-2 sm:gap-1">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -274,7 +282,7 @@ export default function ManageShelvesTagsDialog({
             {tags.map((tag) => (
               <div key={tag}>
                 {renaming?.type === 'tag' && renaming.name === tag ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Input
                       value={renaming.newName}
                       onChange={(e) => setRenaming({ ...renaming, newName: e.target.value })}
@@ -283,7 +291,8 @@ export default function ManageShelvesTagsDialog({
                         if (e.key === 'Escape') setRenaming(null)
                       }}
                       autoFocus
-                      className="flex-1 h-8 text-sm"
+                      aria-label="New name"
+                      className="min-w-0 flex-1 basis-40"
                     />
                     <Button size="sm" onClick={() => void handleRename()} disabled={busy}>
                       Save
@@ -293,9 +302,9 @@ export default function ManageShelvesTagsDialog({
                     </Button>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between rounded-xl px-3 py-2 bg-surface text-sm">
-                    <span>{tag}</span>
-                    <div className="flex gap-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 rounded-xl bg-surface px-3 py-1 text-sm">
+                    <span className="min-w-0 break-words">{tag}</span>
+                    <div className="flex gap-2 sm:gap-1">
                       <Button
                         size="sm"
                         variant="ghost"

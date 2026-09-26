@@ -40,7 +40,7 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
   return (
     <div>
       <p className="text-xs text-muted mb-1">{dates.length === 1 ? 'Finished' : 'Read dates'}</p>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-2">
         {dates.map((date, i) => (
           <div key={i} className="flex items-center gap-2">
             <DateInput
@@ -51,7 +51,7 @@ export default function BookReadDatesEditor({ userBook, onSaved }: BookReadDates
                 setDates(next)
               }}
               onBlur={() => void save(dates)}
-              className="h-9 w-40"
+              className="min-w-0 flex-1 sm:w-40 sm:flex-none"
               aria-label={`Read date ${i + 1}`}
             />
             <Button

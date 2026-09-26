@@ -3,7 +3,9 @@
 import { useState, DragEvent } from 'react'
 import { useUploadBookFile } from '@/hooks/useBooks'
 import type { UploadBookFileResult } from '@/hooks/useBooks'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
 import { isBookFile, filesFromDataTransfer, MAX_UPLOAD_BYTES } from '@/lib/books/zipFiles'
@@ -157,9 +159,7 @@ export default function BulkBookUploader() {
         data-testid="drop-zone"
         className={cn(
           'flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 transition-colors',
-          dragging
-            ? 'border-primary bg-primary/5'
-            : 'border-border bg-card hover:border-primary/50',
+          dragging ? 'border-accent bg-accent/5' : 'border-border bg-card hover:border-accent/50',
           busy && 'pointer-events-none opacity-60'
         )}
         onClick={() => !busy && document.getElementById('bulk-file-input')?.click()}
@@ -196,9 +196,9 @@ export default function BulkBookUploader() {
           onRetry={retryFailedUpload}
         />
       )}
-      {phase.kind === 'error' && <p className="text-sm text-danger">{phase.message}</p>}
+      {phase.kind === 'error' && <Alert tone="danger">{phase.message}</Alert>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -238,7 +238,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
   const allFailed = done && failed === total
 
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+    <Card className="space-y-2 p-3">
       <div className="flex items-center justify-between text-sm">
         <span className="text-fg">
           {processed} / {total} uploaded
@@ -261,7 +261,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
         <ul className="space-y-2">
           {errors.map((item, i) => (
             <li key={i}>
-              <p className="truncate text-xs text-danger">
+              <p className="break-words text-xs text-danger">
                 {item.file.name}: {item.message}
               </p>
               {done && item.message.includes(UNRECOGNIZED_BOOK_TEXT) && (
@@ -271,7 +271,7 @@ function UploadProgressDisplay({ progress, done, onRetry }: UploadProgressDispla
           ))}
         </ul>
       )}
-    </div>
+    </Card>
   )
 }
 
@@ -297,19 +297,19 @@ function FailedFileRecovery({ item, onRetry }: FailedFileRecoveryProps) {
   }
 
   return (
-    <div className="mt-1 flex flex-col gap-1 sm:flex-row">
+    <div className="mt-1 flex flex-col gap-2 sm:flex-row">
       <Input
         placeholder="Title"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="h-8 text-xs"
+        className="min-w-0 sm:flex-1"
         disabled={retrying}
       />
       <Input
         placeholder="Author (optional)"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
-        className="h-8 text-xs"
+        className="min-w-0 sm:flex-1"
         disabled={retrying}
       />
       <Button

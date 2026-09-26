@@ -148,7 +148,7 @@ export default function BooksLibrary({
 
         <div className="flex-1 min-w-0">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">
+            <h2 className="min-w-0 truncate text-lg font-semibold">
               {headerLabel}
               <span className="ml-2 text-sm font-normal text-muted">{resultCount}</span>
             </h2>
