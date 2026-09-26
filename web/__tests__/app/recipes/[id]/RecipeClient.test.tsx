@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react'
 
 jest.mock('@/hooks/useRecipes', () => ({
   useRecipe: jest.fn(),
@@ -396,5 +396,58 @@ describe('RecipeClient', () => {
 
     render(<RecipeClient id="r1" />)
     expect(screen.queryByText('Draft')).not.toBeInTheDocument()
+  })
+
+  it('lets an owner edit and confirm or cancel deletion from the header', async () => {
+    const deleteRecipe = jest.fn().mockResolvedValue(undefined)
+    jest.mocked(useDeleteRecipe).mockReturnValue(deleteRecipe)
+    const recipe = create(RecipeSchema, {
+      id: 'r1',
+      name: 'Pasta',
+      baseServings: 2,
+      batchServings: 10
+    })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, {
+        recipe,
+        isOwner: true,
+        canEdit: true,
+        scaledIngredients: []
+      }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pasta' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Edit' })).toHaveAttribute('href', '/recipes/r1/edit')
+    expect(screen.getByText('Batch prep: 10 servings')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('button', { name: 'Confirm delete' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }))
+    await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith('/recipes/list'))
+  })
+
+  it('scales servings from the numeric servings field', () => {
+    const recipe = create(RecipeSchema, { id: 'r1', name: 'Pasta', baseServings: 2 })
+    jest.mocked(useRecipe).mockReturnValue({
+      data: create(GetRecipeResponseSchema, { recipe, isOwner: false, scaledIngredients: [] }),
+      isLoading: false,
+      isValidating: false,
+      error: undefined,
+      mutate: jest.fn()
+    })
+
+    render(<RecipeClient id="r1" />)
+    const field = screen.getByRole('spinbutton', { name: 'Servings' })
+    expect(field).toHaveAttribute('inputMode', 'numeric')
+    fireEvent.change(field, { target: { value: '4' } })
+    expect(useRecipe).toHaveBeenLastCalledWith('r1', 4)
   })
 })

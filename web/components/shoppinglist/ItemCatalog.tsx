@@ -5,9 +5,12 @@ import { useItemNames, useCategories } from '@/hooks/useShoppingList'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { ItemName } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
-import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Collapsible } from '@/components/ui/collapsible'
+import { EmptyState, LoadingState } from '@/components/ui/states'
+import { cn } from '@/lib/cn'
 
 const NOT_EXPORTED = 'Not exported'
 const UNASSIGNED = 'Unassigned'
@@ -53,9 +56,6 @@ export default function ItemCatalog() {
   const { data: namesData, isLoading, mutate } = useItemNames()
   const { data: categoriesData } = useCategories()
   const [error, setError] = useState('')
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    [NOT_EXPORTED]: true
-  })
 
   const client = createServiceClient(ShoppingListService)
   const names = namesData?.names ?? []
@@ -89,78 +89,66 @@ export default function ItemCatalog() {
     }
   }
 
-  const toggleGroup = (key: string) => setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }))
-
-  if (isLoading) return <p className="text-sm text-muted">Loading…</p>
+  if (isLoading) return <LoadingState className="text-sm" />
   if (names.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        No items yet. Add custom items or recipe ingredients first.
-      </p>
-    )
+    return <EmptyState>No items yet. Add custom items or recipe ingredients first.</EmptyState>
   }
 
   return (
     <div className="space-y-3">
       {error && <p className="text-sm text-danger">{error}</p>}
-      {groups.map((group) => {
-        const isCollapsed = collapsed[group.key] ?? false
-        return (
-          <div key={group.key} className="space-y-2">
-            <Button
-              variant="ghost"
-              onClick={() => toggleGroup(group.key)}
-              aria-expanded={!isCollapsed}
-              className="h-auto w-full justify-start gap-2 px-0 py-0 text-left text-sm font-semibold hover:bg-transparent"
-            >
-              <span aria-hidden className="text-muted">
-                {isCollapsed ? '▸' : '▾'}
-              </span>
+      {groups.map((group) => (
+        <Collapsible
+          key={group.key}
+          defaultCollapsed={group.key === NOT_EXPORTED}
+          triggerClassName="text-sm"
+          title={
+            <>
               {group.title}
               <span className="text-xs font-normal text-muted">({group.items.length})</span>
-            </Button>
-            {!isCollapsed && (
-              <ul className="space-y-2">
-                {group.items.map((item) => (
-                  <li
-                    key={item.name}
-                    className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2"
-                  >
-                    <span
-                      className={`flex-1 text-sm ${item.excluded ? 'text-muted line-through' : 'text-fg'}`}
-                    >
-                      {item.name}
-                    </span>
-                    {!item.excluded && (
-                      <Select
-                        aria-label={`Category for ${item.name}`}
-                        value={item.categoryId}
-                        onChange={(e) => handleCategoryChange(item.name, e.target.value)}
-                        className="h-9 w-auto px-2"
-                      >
-                        <option value="">-- Unassigned --</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </Select>
+            </>
+          }
+        >
+          <ul className="space-y-2">
+            {group.items.map((item) => (
+              <li key={item.name}>
+                <Card variant="inset" className="flex flex-wrap items-center gap-2 p-2">
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1 basis-32 break-words text-sm',
+                      item.excluded ? 'text-muted line-through' : 'text-fg'
                     )}
-                    <label className="flex shrink-0 items-center gap-1.5 text-xs text-muted">
-                      <Checkbox
-                        aria-label={`Export ${item.name} to list`}
-                        checked={!item.excluded}
-                        onChange={(e) => handleExcludedChange(item.name, !e.target.checked)}
-                      />
-                      Export
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )
-      })}
+                  >
+                    {item.name}
+                  </span>
+                  {!item.excluded && (
+                    <Select
+                      aria-label={`Category for ${item.name}`}
+                      value={item.categoryId}
+                      onChange={(e) => handleCategoryChange(item.name, e.target.value)}
+                      className="w-auto min-w-0 max-w-full px-2"
+                    >
+                      <option value="">-- Unassigned --</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                  <Checkbox
+                    aria-label={`Export ${item.name} to list`}
+                    checked={!item.excluded}
+                    onChange={(e) => handleExcludedChange(item.name, !e.target.checked)}
+                    label={<span className="text-xs text-muted">Export</span>}
+                    labelClassName="shrink-0"
+                  />
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </Collapsible>
+      ))}
     </div>
   )
 }

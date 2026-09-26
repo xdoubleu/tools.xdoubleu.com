@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useMealPlans } from '@/hooks/useMealPlans'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function PlansListClient() {
   const { data, error, isLoading } = useMealPlans()
@@ -19,17 +21,20 @@ export default function PlansListClient() {
 
   return (
     <PageContainer>
-      <h1 className="text-3xl font-bold mb-6">Meal Plan</h1>
+      <PageHeader title="Meal Plan" />
 
-      {isLoading && <p className="text-muted">Loading…</p>}
-      {error && <p className="text-danger">Failed to load meal plan.</p>}
+      {isLoading && <LoadingState />}
+      {error && <ErrorState what="meal plan" />}
       {data && data.plans.length === 0 && (
-        <div>
-          <p className="text-muted mb-4">You don&apos;t have a meal plan yet.</p>
-          <Button asChild>
-            <Link href="/mealplans/new">Create Meal Plan</Link>
-          </Button>
-        </div>
+        <EmptyState
+          action={
+            <Button asChild>
+              <Link href="/mealplans/new">Create Meal Plan</Link>
+            </Button>
+          }
+        >
+          You don&apos;t have a meal plan yet.
+        </EmptyState>
       )}
     </PageContainer>
   )

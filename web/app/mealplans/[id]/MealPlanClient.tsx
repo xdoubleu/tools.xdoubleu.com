@@ -8,6 +8,8 @@ import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function MealPlanClient({ id }: { id: string }) {
   const [offset, setOffset] = useState(0)
@@ -30,24 +32,26 @@ export default function MealPlanClient({ id }: { id: string }) {
 
   return (
     <PageContainer>
-      {isLoading && <p className="text-muted">Loading meal plan…</p>}
-      {error && <p className="text-danger">Failed to load meal plan.</p>}
+      {isLoading && <LoadingState label="meal plan" />}
+      {error && <ErrorState what="meal plan" />}
 
       {plan && (
         <>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold">{plan.name}</h1>
-            <div className="flex gap-2">
-              {data?.icalUrl && (
-                <Button variant="secondary" size="sm" onClick={handleCopyIcal}>
-                  {icalCopied ? 'Copied!' : 'iCal Link'}
+          <PageHeader
+            title={plan.name}
+            actions={
+              <>
+                {data?.icalUrl && (
+                  <Button variant="secondary" size="sm" onClick={handleCopyIcal}>
+                    {icalCopied ? 'Copied!' : 'iCal Link'}
+                  </Button>
+                )}
+                <Button asChild variant="secondary" size="sm">
+                  <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
                 </Button>
-              )}
-              <Button asChild variant="secondary" size="sm">
-                <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
-              </Button>
-            </div>
-          </div>
+              </>
+            }
+          />
 
           <MealPlanCalendar
             plan={plan}

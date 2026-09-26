@@ -22,8 +22,10 @@ import { useStores, useStoreCategories, useCategories } from '@/hooks/useShoppin
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { EmptyState, LoadingState } from '@/components/ui/states'
 
 interface OrderedCategory {
   id: string
@@ -84,32 +86,31 @@ export default function StoreManager() {
       </form>
 
       {error && <p className="text-sm text-danger">{error}</p>}
-      {isLoading && <p className="text-sm text-muted">Loading…</p>}
-      {!isLoading && stores.length === 0 && <p className="text-sm text-muted">No stores yet.</p>}
+      {isLoading && <LoadingState className="text-sm" />}
+      {!isLoading && stores.length === 0 && <EmptyState>No stores yet.</EmptyState>}
 
       <ul className="space-y-2">
         {stores.map((store) => (
-          <li
-            key={store.id}
-            className="flex items-center gap-2 rounded-2xl border border-border bg-surface p-2"
-          >
-            <span className="flex-1 text-sm text-fg">{store.name}</span>
-            <Button
-              size="sm"
-              variant={selectedStoreId === store.id ? 'default' : 'ghost'}
-              onClick={() => setSelectedStoreId(selectedStoreId === store.id ? '' : store.id)}
-            >
-              {selectedStoreId === store.id ? 'Editing' : 'Edit order'}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={busy}
-              onClick={() => handleDelete(store.id)}
-              aria-label={`Delete ${store.name}`}
-            >
-              Delete
-            </Button>
+          <li key={store.id}>
+            <Card variant="inset" className="flex flex-wrap items-center gap-2 p-2">
+              <span className="min-w-0 flex-1 break-words text-sm text-fg">{store.name}</span>
+              <Button
+                size="sm"
+                variant={selectedStoreId === store.id ? 'default' : 'ghost'}
+                onClick={() => setSelectedStoreId(selectedStoreId === store.id ? '' : store.id)}
+              >
+                {selectedStoreId === store.id ? 'Editing' : 'Edit order'}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => handleDelete(store.id)}
+                aria-label={`Delete ${store.name}`}
+              >
+                Delete
+              </Button>
+            </Card>
           </li>
         ))}
       </ul>
@@ -181,7 +182,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-border bg-card p-3">
+    <Card className="space-y-3 p-3">
       <h3 className="text-sm font-semibold text-fg">Aisle order</h3>
       <p className="text-xs text-muted">
         Arrange categories in the order you walk this store. Items export in this order.
@@ -227,7 +228,7 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
         </Button>
         {saved && <span className="text-sm text-success">Saved!</span>}
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -251,31 +252,29 @@ function SortableCategoryRow({
   }
 
   return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 rounded-xl border border-border bg-surface p-2"
-    >
-      <Button
-        size="iconSm"
-        variant="ghost"
-        className="cursor-grab touch-none active:cursor-grabbing"
-        aria-label={`Reorder ${category.name}`}
-        {...attributes}
-        {...listeners}
-      >
-        ⠿
-      </Button>
-      <span className="w-6 text-xs text-muted">{index + 1}.</span>
-      <span className="flex-1 text-sm text-fg">{category.name}</span>
-      <Button
-        size="sm"
-        variant="ghost"
-        onClick={() => onRemove(category.id)}
-        aria-label={`Remove ${category.name}`}
-      >
-        ×
-      </Button>
+    <li ref={setNodeRef} style={style}>
+      <Card variant="inset" className="flex items-center gap-2 rounded-xl p-2">
+        <Button
+          size="iconSm"
+          variant="ghost"
+          className="cursor-grab touch-none active:cursor-grabbing"
+          aria-label={`Reorder ${category.name}`}
+          {...attributes}
+          {...listeners}
+        >
+          ⠿
+        </Button>
+        <span className="w-6 text-xs text-muted">{index + 1}.</span>
+        <span className="min-w-0 flex-1 break-words text-sm text-fg">{category.name}</span>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onRemove(category.id)}
+          aria-label={`Remove ${category.name}`}
+        >
+          ×
+        </Button>
+      </Card>
     </li>
   )
 }

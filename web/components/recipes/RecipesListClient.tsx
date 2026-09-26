@@ -6,11 +6,14 @@ import { useRecipes, useFetchRecipesPage } from '@/hooks/useRecipes'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { cn } from '@/lib/cn'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { interactiveCardClass } from '@/components/ui/card'
 import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
@@ -20,9 +23,9 @@ function RecipeCard({ recipe }: { recipe: Recipe }) {
       <p className="text-sm text-muted mt-1">
         Serves {recipe.baseServings}
         {recipe.isDraft && (
-          <span className="ml-2 rounded-full bg-surface border border-border px-2 py-0.5 text-xs">
+          <Badge variant="secondary" className="ml-2">
             Draft
-          </span>
+          </Badge>
         )}
       </p>
     </Link>
@@ -46,17 +49,19 @@ export default function RecipesListClient() {
 
   return (
     <PageContainer>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Recipes</h1>
-        <Button asChild>
-          <Link href="/recipes/new">New Recipe</Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Recipes"
+        actions={
+          <Button asChild>
+            <Link href="/recipes/new">New Recipe</Link>
+          </Button>
+        }
+      />
 
-      {isLoading && <p className="text-muted">Loading recipes…</p>}
-      {error && <p className="text-danger">Failed to load recipes.</p>}
+      {isLoading && <LoadingState label="recipes" />}
+      {error && <ErrorState what="recipes" />}
       {data && recipes.length === 0 && (
-        <p className="text-muted">No recipes yet. Create your first one!</p>
+        <EmptyState>No recipes yet. Create your first one!</EmptyState>
       )}
       {data && recipes.length > 0 && (
         <>

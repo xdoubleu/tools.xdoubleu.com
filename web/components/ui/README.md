@@ -294,6 +294,8 @@ Trigger plus a portalled fixed panel (never clipped by overflow ancestors) that 
 | `children` | `ReactNode` | yes |  |
 | `className` | `string` |  |  |
 | `align` | `'left' \| 'right'` |  | Alignment of the panel relative to the trigger. Defaults to "right". |
+| `open` | `boolean` |  | Controls the open state, e.g. to close the panel after a menu action. |
+| `onOpenChange` | `(open: boolean) => void` |  |  |
 
 #### `PopoverTrigger`
 
