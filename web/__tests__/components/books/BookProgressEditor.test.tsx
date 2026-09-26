@@ -21,6 +21,11 @@ jest.mock('@/components/books/BookProgressBar', () => {
   }
 })
 
+const mockTrack = jest.fn()
+jest.mock('@/lib/analytics', () => ({
+  track: (...args: unknown[]) => mockTrack(...args)
+}))
+
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 
 function makeBook(
@@ -177,5 +182,13 @@ describe('BookProgressEditor', () => {
     fireEvent.focus(input)
 
     expect(selectSpy).toHaveBeenCalled()
+  })
+
+  it('tracks the dialog opening with its source', () => {
+    render(<BookProgressEditor userBook={makeBook()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Update progress/ }))
+    expect(mockTrack).toHaveBeenCalledWith('book_progress_dialog_opened', {
+      source: 'progress_editor'
+    })
   })
 })
