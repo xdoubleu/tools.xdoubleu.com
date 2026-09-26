@@ -18,8 +18,13 @@ export function buildWsUrl(apiUrl: string, roomId: string, isPresenter: boolean)
   return `${wsBase}/watchparty/api/signaling?roomCode=${encodeURIComponent(roomId)}&role=${role}`
 }
 
-/** Makes an element draggable within its positioned parent; returns a cleanup. */
+/**
+ * Makes an element draggable within its positioned parent; returns a cleanup.
+ * Disables touch panning on it so a touch drag moves the element, not the page.
+ */
 export function attachDraggable(el: HTMLElement): () => void {
+  const prevTouchAction = el.style.touchAction
+  el.style.touchAction = 'none'
   let startX = 0,
     startY = 0,
     origLeft = 0,
@@ -57,6 +62,7 @@ export function attachDraggable(el: HTMLElement): () => void {
     el.removeEventListener('pointerdown', onDown)
     el.removeEventListener('pointermove', onMove)
     el.removeEventListener('pointerup', onUp)
+    el.style.touchAction = prevTouchAction
   }
 }
 

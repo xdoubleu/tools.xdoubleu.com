@@ -15,7 +15,7 @@ export const STATUS_LABEL: Record<ConnectionStatus, string> = {
 }
 
 export const STATUS_COLOR: Record<ConnectionStatus, string> = {
-  connecting: 'bg-yellow-400',
-  connected: 'bg-green-500',
-  disconnected: 'bg-red-500'
+  connecting: 'bg-warn',
+  connected: 'bg-success',
+  disconnected: 'bg-danger'
 }

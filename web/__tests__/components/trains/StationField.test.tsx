@@ -12,15 +12,11 @@ jest.mock('@/components/ui/combobox', () => ({
     value: string
     onChange: (v: string) => void
     onSelect?: (name: string) => void
-    'aria-label'?: string
+    id?: string
   }) => {
     capturedOnSelect = props.onSelect
     return (
-      <input
-        aria-label={props['aria-label']}
-        value={props.value}
-        onChange={(e) => props.onChange(e.target.value)}
-      />
+      <input id={props.id} value={props.value} onChange={(e) => props.onChange(e.target.value)} />
     )
   }
 }))

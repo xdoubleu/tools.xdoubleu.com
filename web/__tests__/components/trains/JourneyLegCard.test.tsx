@@ -80,4 +80,18 @@ describe('JourneyLegCard', () => {
     expect(screen.getByText('Signal failure')).toBeInTheDocument()
     expect(screen.getByText('Delays expected')).toBeInTheDocument()
   })
+
+  it('falls back to the stop ID and omits an empty alert description', () => {
+    const leg = create(LegDetailSchema, {
+      tripShortName: 'IC900',
+      routeShortName: 'IC',
+      headsign: 'Echo',
+      stops: [create(StopCallSchema, { stopId: 'X9', status: 'on_time' })],
+      alerts: [create(AlertSchema, { id: 'a2', headerText: 'Works' })]
+    })
+
+    render(<JourneyLegCard leg={leg} />)
+    expect(screen.getByText('X9')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/^Works$/)
+  })
 })
