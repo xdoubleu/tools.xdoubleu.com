@@ -1,10 +1,12 @@
 import Image from 'next/image'
 import type { Achievement } from '@/lib/gen/games/v1/games_pb'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 
 // Shared by the owner's game detail page and the public profile game page.
 export default function AchievementCard({ achievement }: { achievement: Achievement }) {
   return (
-    <div className="border border-border bg-card rounded-2xl p-3 flex gap-3 items-start">
+    <Card className="flex items-start gap-3 p-3">
       {achievement.iconUrl && (
         <Image
           src={achievement.iconUrl}
@@ -16,17 +18,13 @@ export default function AchievementCard({ achievement }: { achievement: Achievem
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-semibold text-sm">{achievement.displayName}</h3>
+          <h3 className="min-w-0 break-words font-semibold text-sm">{achievement.displayName}</h3>
           {achievement.achieved ? (
-            <span className="rounded-full border border-success/20 bg-success/10 px-2 py-0.5 text-xs text-success">
-              Achieved
-            </span>
+            <Badge variant="success">Achieved</Badge>
           ) : (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Locked</span>
+            <Badge variant="secondary">Locked</Badge>
           )}
-          {!achievement.description && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-surface text-muted">Hidden</span>
-          )}
+          {!achievement.description && <Badge variant="secondary">Hidden</Badge>}
         </div>
         {achievement.description && (
           <p className="text-xs text-muted mt-0.5 line-clamp-2">{achievement.description}</p>
@@ -37,6 +35,6 @@ export default function AchievementCard({ achievement }: { achievement: Achievem
           </p>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
