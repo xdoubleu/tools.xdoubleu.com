@@ -166,6 +166,12 @@ Re-applying redeploys the Prometheus accessory; `kamal deploy -c
 config/deploy.grafana.yml` (or a push to `main` touching `infra/grafana/**` or
 `infra/grafana.Dockerfile`) redeploys Grafana.
 
+A systemd unit (`prometheus-compose.service`, installed by
+`prometheus-setup.sh`) keeps the stack up across reboots and after infra-apply
+no-ops, and `DOCKER_GID` is persisted to the project's `.env`, so a plain
+`docker compose up -d` from `/home/deploy/prometheus` (no exported var) is all
+a manual recovery needs.
+
 **Troubleshooting:** if `prom_query` reports a target `down`, check
 `ssh deploy@<ip> docker ps` for `prometheus`/`postgres-exporter`/`node-exporter`.
 If the `api` or `web` target is **missing entirely**, Docker service discovery
