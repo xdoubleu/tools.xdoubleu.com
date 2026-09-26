@@ -2,19 +2,18 @@
 
 import { useRouter } from 'next/navigation'
 import LearningPathForm from '@/components/learningpaths/LearningPathForm'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function NewLearningPathPage() {
   const router = useRouter()
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'New' }]}
+      <PageHeader
+        title="New Learning Path"
+        breadcrumb={[{ label: 'Learning Paths', href: '/learningpaths/list' }, { label: 'New' }]}
       />
-      <h1 className="text-3xl font-bold mb-6">New Learning Path</h1>
       <LearningPathForm
         onSave={(id) => router.push(`/learningpaths/${id}`)}
         onCancel={() => router.push('/learningpaths/list')}

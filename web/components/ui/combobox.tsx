@@ -16,6 +16,8 @@ interface ComboboxProps {
   /** Called when Enter is pressed and no suggestion is highlighted. */
   onEnter?: () => void
   'aria-label'?: string
+  /** `false` shows `suggestions` as given, for results already filtered elsewhere (e.g. a server search). */
+  filterSuggestions?: boolean
 }
 
 export function Combobox({
@@ -27,7 +29,8 @@ export function Combobox({
   className,
   autoFocus,
   onEnter,
-  'aria-label': ariaLabel
+  'aria-label': ariaLabel,
+  filterSuggestions = true
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -37,12 +40,13 @@ export function Combobox({
     if (autoFocus) inputRef.current?.focus()
   }, [autoFocus])
 
-  const filtered = value
-    ? suggestions.filter(
-        (s) =>
-          s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
-      )
-    : suggestions
+  const filtered =
+    value && filterSuggestions
+      ? suggestions.filter(
+          (s) =>
+            s.toLowerCase().includes(value.toLowerCase()) && s.toLowerCase() !== value.toLowerCase()
+        )
+      : suggestions
 
   const select = (suggestion: string) => {
     setOpen(false)

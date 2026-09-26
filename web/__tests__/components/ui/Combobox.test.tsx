@@ -4,10 +4,12 @@ import { Combobox } from '@/components/ui/combobox'
 
 function Harness({
   suggestions,
-  onSelect
+  onSelect,
+  filterSuggestions
 }: {
   suggestions: string[]
   onSelect?: (value: string) => void
+  filterSuggestions?: boolean
 }) {
   const [value, setValue] = useState('')
   return (
@@ -19,6 +21,7 @@ function Harness({
         onSelect?.(v)
       }}
       suggestions={suggestions}
+      filterSuggestions={filterSuggestions}
       placeholder="Pick one"
       aria-label="picker"
     />
@@ -28,6 +31,12 @@ function Harness({
 const suggestions = ['Apple', 'Apricot', 'Banana']
 
 describe('Combobox', () => {
+  it('shows suggestions as given when filterSuggestions is false', () => {
+    render(<Harness suggestions={suggestions} filterSuggestions={false} />)
+    fireEvent.change(screen.getByLabelText('picker'), { target: { value: 'ap' } })
+    expect(screen.getByText('Banana')).toBeInTheDocument()
+  })
+
   it('shows filtered suggestions when typing', () => {
     render(<Harness suggestions={suggestions} />)
     fireEvent.change(screen.getByLabelText('picker'), { target: { value: 'ap' } })
