@@ -8,11 +8,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  DialogFooter
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Field } from '@/components/ui/field'
+import { LoadingState } from '@/components/ui/states'
 
 const PROVIDER_LABELS: Record<string, string> = {
   github: 'GitHub',
@@ -108,20 +111,19 @@ export default function ProviderConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>Configure {PROVIDER_LABELS[provider] ?? provider}</DialogTitle>
           <DialogClose aria-label="Close">x</DialogClose>
         </DialogHeader>
 
         {loading ? (
-          <p className="py-8 text-center text-sm text-muted">Loading…</p>
+          <LoadingState className="py-8 text-center text-sm" />
         ) : (
           <div className="space-y-4">
             {provider === 'github' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-fg">Repository</label>
-                <Select value={repo} onChange={(e) => setRepo(e.target.value)}>
+              <Field label="Repository" htmlFor="provider-repo">
+                <Select id="provider-repo" value={repo} onChange={(e) => setRepo(e.target.value)}>
                   <option value="">Select a repository…</option>
                   {repos.map((r) => (
                     <option key={r} value={r}>
@@ -129,14 +131,17 @@ export default function ProviderConfigDialog({
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
             )}
 
             {provider === 'sentry' && (
               <>
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-fg">Organization</label>
-                  <Select value={org} onChange={(e) => handleOrgChange(e.target.value)}>
+                <Field label="Organization" htmlFor="provider-org">
+                  <Select
+                    id="provider-org"
+                    value={org}
+                    onChange={(e) => handleOrgChange(e.target.value)}
+                  >
                     <option value="">Select an organization…</option>
                     {orgs.map((o) => (
                       <option key={o} value={o}>
@@ -144,11 +149,13 @@ export default function ProviderConfigDialog({
                       </option>
                     ))}
                   </Select>
-                </div>
+                </Field>
 
                 {org !== '' && (
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-fg">Projects</label>
+                  <div role="group" aria-labelledby="provider-projects">
+                    <p id="provider-projects" className="mb-1 text-sm text-subtle">
+                      Projects
+                    </p>
                     {projects.length === 0 ? (
                       <p className="text-sm text-muted">No projects found in {org}.</p>
                     ) : (
@@ -173,14 +180,14 @@ export default function ProviderConfigDialog({
 
         {error && <p className="mt-3 text-sm text-danger">{error}</p>}
 
-        <div className="mt-6 flex justify-end gap-2">
+        <DialogFooter>
           <Button variant="ghost" disabled={saving} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={() => void handleSave()} disabled={saving || loading || !canSave}>
             {saving ? 'Saving…' : 'Save'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

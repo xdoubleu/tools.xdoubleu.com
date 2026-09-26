@@ -101,6 +101,7 @@ describe('HomeClient', () => {
       expect(screen.getByLabelText('Password')).toBeInTheDocument()
       expect(screen.getByRole('button', { name: /Sign in/ })).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /Forgot password/i })).toBeInTheDocument()
+      expect(screen.getByLabelText('Password')).toHaveAttribute('autocomplete', 'current-password')
     })
   })
 

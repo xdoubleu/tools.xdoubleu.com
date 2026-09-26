@@ -14,6 +14,10 @@ import {
 } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Alert } from '@/components/ui/alert'
+import { Field } from '@/components/ui/field'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 import { McpSetupSection } from '@/components/settings/McpSetupSection'
@@ -58,7 +62,7 @@ export default function SettingsPage() {
   const [recoveryCodesError, setRecoveryCodesError] = useState('')
 
   if (isLoading || !data) {
-    return <p className="py-16 text-center text-sm text-muted">Loading…</p>
+    return <LoadingState className="py-16 text-center text-sm" />
   }
 
   const hasMFA = data.hasMfa
@@ -188,7 +192,7 @@ export default function SettingsPage() {
 
   return (
     <PageContainer size="narrow" className="space-y-10">
-      <h1 className="text-3xl font-bold">Account Settings</h1>
+      <PageHeader title="Account Settings" className="mb-0" />
 
       <section>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -200,21 +204,18 @@ export default function SettingsPage() {
         </p>
 
         {nameSaved && (
-          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+          <Alert tone="success" className="mb-4">
             Display name updated successfully.
-          </div>
+          </Alert>
         )}
         {nameError && (
-          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+          <Alert tone="danger" className="mb-4">
             {nameError}
-          </div>
+          </Alert>
         )}
 
         <form onSubmit={handleDisplayNameSave} className="space-y-3">
-          <div>
-            <label htmlFor="display_name" className="mb-1 block text-sm text-subtle">
-              Display name
-            </label>
+          <Field label="Display name" htmlFor="display_name">
             <Input
               id="display_name"
               type="text"
@@ -222,7 +223,7 @@ export default function SettingsPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               required
             />
-          </div>
+          </Field>
           <Button type="submit" size="sm" disabled={nameSaving || !displayName.trim()}>
             {nameSaving ? 'Saving…' : 'Save display name'}
           </Button>
@@ -235,21 +236,18 @@ export default function SettingsPage() {
         </h2>
 
         {pwSaved && (
-          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+          <Alert tone="success" className="mb-4">
             Password updated successfully.
-          </div>
+          </Alert>
         )}
         {pwError && (
-          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+          <Alert tone="danger" className="mb-4">
             {pwError}
-          </div>
+          </Alert>
         )}
 
         <form onSubmit={handlePasswordSave} className="space-y-3">
-          <div>
-            <label htmlFor="new_password" className="mb-1 block text-sm text-subtle">
-              New password
-            </label>
+          <Field label="New password" htmlFor="new_password">
             <Input
               id="new_password"
               type="password"
@@ -258,11 +256,8 @@ export default function SettingsPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               required
             />
-          </div>
-          <div>
-            <label htmlFor="confirm_password" className="mb-1 block text-sm text-subtle">
-              Confirm new password
-            </label>
+          </Field>
+          <Field label="Confirm new password" htmlFor="confirm_password">
             <Input
               id="confirm_password"
               type="password"
@@ -271,7 +266,7 @@ export default function SettingsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
             />
-          </div>
+          </Field>
           <Button type="submit" size="sm" disabled={pwSaving}>
             {pwSaving ? 'Updating…' : 'Update password'}
           </Button>
@@ -284,15 +279,15 @@ export default function SettingsPage() {
         </h2>
 
         {mfaError && (
-          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
+          <Alert tone="danger" className="mb-4">
             {mfaError}
-          </div>
+          </Alert>
         )}
 
         {mfaState === 'done' && (
-          <div className="mb-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-sm text-success">
+          <Alert tone="success" className="mb-4">
             Two-factor authentication enabled successfully.
-          </div>
+          </Alert>
         )}
 
         {hasMFA && mfaState === 'idle' ? (
@@ -300,12 +295,8 @@ export default function SettingsPage() {
             <p className="text-sm text-subtle">
               Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
             </p>
-            {recoveryCodesError && (
-              <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
-                {recoveryCodesError}
-              </div>
-            )}
-            <div className="flex gap-2">
+            {recoveryCodesError && <Alert tone="danger">{recoveryCodesError} </Alert>}
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 size="sm"
@@ -333,21 +324,19 @@ export default function SettingsPage() {
               <span className="font-mono text-fg">{mfaSecret}</span>
             </p>
             <form onSubmit={handleMFAVerify} className="space-y-3">
-              <div>
-                <label htmlFor="mfa_code" className="mb-1 block text-sm text-subtle">
-                  Authenticator code
-                </label>
+              <Field label="Authenticator code" htmlFor="mfa_code">
                 <Input
                   id="mfa_code"
                   type="text"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={6}
                   value={mfaCode}
                   onChange={(e) => setMfaCode(e.target.value)}
                   required
                 />
-              </div>
-              <div className="flex gap-2">
+              </Field>
+              <div className="flex flex-wrap gap-2">
                 <Button type="submit" size="sm" disabled={mfaBusy || mfaCode.length < 6}>
                   {mfaBusy ? 'Verifying…' : 'Verify & enable'}
                 </Button>

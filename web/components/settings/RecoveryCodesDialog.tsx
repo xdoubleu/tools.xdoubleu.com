@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Card } from '@/components/ui/card'
 
 interface RecoveryCodesDialogProps {
   codes: string[]
@@ -36,24 +37,22 @@ export default function RecoveryCodesDialog({ codes, onDismiss }: RecoveryCodesD
             won&apos;t be shown again — save them somewhere safe.
           </p>
 
-          <div className="grid grid-cols-2 gap-2 rounded-xl border border-border bg-background p-4 font-mono text-sm">
+          <Card variant="inset" className="grid grid-cols-2 gap-2 p-4 font-mono text-sm">
             {codes.map((code) => (
               <span key={code}>{code}</span>
             ))}
-          </div>
+          </Card>
 
           <Button variant="secondary" size="sm" onClick={copyCodes}>
             {copied ? 'Copied!' : 'Copy codes'}
           </Button>
 
-          <label className="flex items-start gap-2 text-sm text-subtle">
-            <Checkbox
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-              className="mt-1"
-            />
-            I&apos;ve saved these recovery codes somewhere safe.
-          </label>
+          <Checkbox
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+            label="I've saved these recovery codes somewhere safe."
+            labelClassName="text-subtle"
+          />
 
           <Button className="w-full" disabled={!confirmed} onClick={onDismiss}>
             Done
