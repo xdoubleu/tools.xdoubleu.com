@@ -6,6 +6,7 @@ import type { GetSharedSteamResponse } from '@/lib/gen/dashboard/v1/games_pb'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
 import { GameGroup } from '@/components/games/GameCards'
 import { Input } from '@/components/ui/input'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 // Read-only shared games library: the same grouped game grid as the owner's
 // /games/library, with game cards linking to the public game pages.
@@ -23,8 +24,8 @@ export default function GamesDashboardPublicLibrary({
   const steam = data?.steam
   const gameHref = (game: Game) => `/dashboard/games/${token}/${game.id}`
 
-  if (isLoading && !steam) return <p className="text-muted">Loading games…</p>
-  if (error && !steam) return <p className="text-danger">Failed to load games.</p>
+  if (isLoading && !steam) return <LoadingState label="games" />
+  if (error && !steam) return <ErrorState what="games" />
   if (!steam) return null
 
   const filterGames = (games: Game[]) => {

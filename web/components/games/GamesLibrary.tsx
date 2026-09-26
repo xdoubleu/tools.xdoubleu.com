@@ -6,6 +6,7 @@ import { useSteam } from '@/hooks/useGames'
 import { useSteamRefresh } from '@/lib/games/steamRefresh'
 import type { Game, GetSteamResponse } from '@/lib/gen/games/v1/games_pb'
 import { Button } from '@/components/ui/button'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { Input } from '@/components/ui/input'
 import { GameGroup } from '@/components/games/GameCards'
 import { swrKeys } from '@/lib/swrKeys'
@@ -55,8 +56,8 @@ export default function GamesLibrary({ initialSteam }: { initialSteam?: GetSteam
         </div>
       </div>
 
-      {steamLoading && <p className="text-muted">Loading Steam library…</p>}
-      {steamError && <p className="text-danger">Failed to load Steam data.</p>}
+      {steamLoading && <LoadingState label="Steam library" />}
+      {steamError && <ErrorState what="Steam data" />}
       {steam && (
         <>
           <p className="mb-4 text-muted text-sm">

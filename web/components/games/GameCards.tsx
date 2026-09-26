@@ -1,10 +1,7 @@
-import Link from 'next/link'
 import Image from 'next/image'
 import type { Game } from '@/lib/gen/games/v1/games_pb'
-import { interactiveCardClass } from '@/components/ui/card'
-import { CardLinkStatus } from '@/components/ui/CardLinkStatus'
+import { LinkCard } from '@/components/ui/link-card'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
-import { cn } from '@/lib/cn'
 
 // Shared by the owner library and public profiles; the caller picks the link
 // target and whether the favourite is an interactive toggle.
@@ -18,8 +15,11 @@ export function GameCard({
   showFavourite?: boolean
 }) {
   return (
-    <Link href={href} className={cn(interactiveCardClass, 'relative flex gap-3 p-4')}>
-      <CardLinkStatus />
+    <LinkCard
+      href={href}
+      linkClassName="flex gap-3 p-4"
+      actions={showFavourite && <GameFavouriteButton game={game} className="text-lg" />}
+    >
       {game.imageUrl && (
         <Image
           src={game.imageUrl}
@@ -30,10 +30,10 @@ export function GameCard({
         />
       )}
       <div className="min-w-0 flex-1">
-        <h3 className="font-semibold">
+        <h3 className="break-words font-semibold">
           {game.name}
           {!showFavourite && game.favourite && (
-            <span className="ml-2 text-amber-500" aria-label="Favourite">
+            <span className="ml-2 text-star" aria-label="Favourite">
               ♥
             </span>
           )}
@@ -41,10 +41,7 @@ export function GameCard({
         <p className="text-sm text-muted">Playtime: {Math.round(game.playtime / 60)} hrs</p>
         <p className="text-sm text-muted">Completion: {game.completionRate}%</p>
       </div>
-      {showFavourite && (
-        <GameFavouriteButton game={game} className="absolute right-1 top-1 z-10 p-2 text-lg" />
-      )}
-    </Link>
+    </LinkCard>
   )
 }
 

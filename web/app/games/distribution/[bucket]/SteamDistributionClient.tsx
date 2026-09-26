@@ -4,6 +4,8 @@ import { useSteamDistribution } from '@/hooks/useGames'
 import type { GetSteamDistributionResponse } from '@/lib/gen/games/v1/games_pb'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { GameCard } from '@/components/games/GameCards'
 
 export default function SteamDistributionClient({
@@ -23,12 +25,12 @@ export default function SteamDistributionClient({
     <PageContainer>
       <Breadcrumb items={[{ label: 'Games', href: '/dashboard/games' }, { label }]} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading…</p>}
-      {error && <p className="mt-6 text-danger">Failed to load distribution.</p>}
+      {isLoading && <LoadingState className="mt-6" />}
+      {error && <ErrorState what="distribution" className="mt-6" />}
 
       {!isLoading && (
         <>
-          <h1 className="text-3xl font-bold mt-4 mb-6">{label}</h1>
+          <PageHeader title={label} className="mt-4" />
           {games.length === 0 && <p className="text-muted">No games in this range.</p>}
           {games.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-3">

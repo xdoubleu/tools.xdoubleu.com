@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSteam } from '@/hooks/useGames'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/cn'
 
@@ -35,23 +36,25 @@ export default function GamesSearch({ className }: GamesSearchProps) {
         placeholder="Search games…"
       />
       {results.length > 0 && (
-        <ul className="absolute z-10 mt-1 w-full overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated max-h-48">
-          {results.map((game) => (
-            <li key={game.id}>
-              <Link
-                href={`/games/${game.id}`}
-                onClick={() => setQuery('')}
-                className={cn(
-                  'flex w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg',
-                  'transition-colors hover:bg-hover active:bg-hover',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
-                )}
-              >
-                {game.name}
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <Card className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto shadow-elevated">
+          <ul>
+            {results.map((game) => (
+              <li key={game.id}>
+                <Link
+                  href={`/games/${game.id}`}
+                  onClick={() => setQuery('')}
+                  className={cn(
+                    'flex min-h-11 w-full items-center gap-2 rounded-lg px-4 py-2 text-left text-sm text-fg sm:min-h-0',
+                    'transition-colors hover:bg-hover active:bg-hover',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent'
+                  )}
+                >
+                  {game.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
     </div>
   )

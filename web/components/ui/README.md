@@ -164,6 +164,21 @@ Native date input on every viewport; its value is always 'YYYY-MM-DD' or ''.
 | `className` | `string` |  |  |
 | `'aria-label'` | `string` |  |  |
 
+### `date-range-fields.tsx` — client component
+
+#### `DateRangeFields`
+
+Labelled From/To date pair: stacked on phones, side by side from `sm`.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `idPrefix` | `string` | yes | Prefix for the two input ids (`<prefix>-from`, `<prefix>-to`); unique per page. |
+| `start` | `string` | yes |  |
+| `onStartChange` | `(value: string) => void` | yes |  |
+| `end` | `string` | yes |  |
+| `onEndChange` | `(value: string) => void` | yes |  |
+| `className` | `string` |  |  |
+
 ### `dialog.tsx` — client component
 
 #### `ConfirmDialog`

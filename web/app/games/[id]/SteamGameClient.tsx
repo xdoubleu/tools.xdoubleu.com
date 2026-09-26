@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { create } from '@bufbuild/protobuf'
 import { mutate as globalMutate } from 'swr'
@@ -11,9 +11,14 @@ import { swrKeys } from '@/lib/swrKeys'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import GamesStatsPanel from '@/components/games/GamesStatsPanel'
 import GameFavouriteButton from '@/components/games/GameFavouriteButton'
-import AchievementCard from '@/components/games/AchievementCard'
+import {
+  GameAchievements,
+  SteamGameHeader,
+  countAchieved
+} from '@/components/games/SteamGameDetail'
 import { formatDateTime } from '@/lib/dates'
 
 const REFRESH_INTERVAL_MS = 60_000
@@ -74,44 +79,27 @@ export default function SteamGameClient({
     { label: game?.name ?? 'Game' }
   ]
 
-  const sortedAchievements = useMemo(
-    () => [...achievements].sort((a, b) => (b.globalPercent ?? -1) - (a.globalPercent ?? -1)),
-    [achievements]
-  )
-
-  const achievedCount = sortedAchievements.filter((a) => a.achieved).length
-  const visibleAchievements = showCompleted
-    ? sortedAchievements
-    : sortedAchievements.filter((a) => !a.achieved)
+  const achievedCount = countAchieved(achievements)
 
   return (
     <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading game…</p>}
-      {error && <p className="mt-6 text-danger">Failed to load game.</p>}
+      {isLoading && <LoadingState label="game" className="mt-6" />}
+      {error && <ErrorState what="game" className="mt-6" />}
 
       {game && (
         <>
-          <div className="mt-4 mb-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{game.name}</h1>
-              <GameFavouriteButton game={game} className="text-2xl" />
-            </div>
-            <div className="flex gap-6 mt-2 text-muted">
-              <span>{Math.round(game.playtime / 60)} hrs played</span>
-              <span>Completion: {game.completionRate}%</span>
-              {game.isDelisted && (
-                <span className="text-amber-600 text-sm font-medium">Delisted</span>
-              )}
-            </div>
-          </div>
+          <SteamGameHeader
+            game={game}
+            actions={<GameFavouriteButton game={game} className="text-2xl" />}
+          />
 
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <Button
               variant="secondary"
               size="sm"
-              className="h-auto flex-col gap-0.5 py-1.5"
+              className="h-auto min-h-11 flex-col gap-0.5 py-1.5"
               aria-label={isRefetching ? 'Refreshing…' : 'Refresh'}
               onClick={() => void refetch()}
               disabled={isRefetching}
@@ -142,28 +130,7 @@ export default function SteamGameClient({
             <GamesStatsPanel />
           </div>
 
-          {achievements.length > 0 && (
-            <section>
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">
-                  Achievements ({achievedCount}/{achievements.length})
-                </h2>
-              </div>
-              {visibleAchievements.length > 0 ? (
-                <div className="flex flex-col gap-3">
-                  {visibleAchievements.map((achievement) => (
-                    <AchievementCard key={achievement.name} achievement={achievement} />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted">All achievements completed.</p>
-              )}
-            </section>
-          )}
-
-          {achievements.length === 0 && (
-            <p className="text-muted">No achievements for this game.</p>
-          )}
+          <GameAchievements achievements={achievements} showCompleted={showCompleted} />
         </>
       )}
     </PageContainer>

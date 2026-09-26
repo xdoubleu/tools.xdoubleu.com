@@ -6,8 +6,10 @@ import { StatTile } from '@/components/ui/stat'
 import SteamDistributionChart from '@/components/games/SteamDistributionChart'
 import SteamProgressChart from '@/components/games/SteamProgressChart'
 import { Button } from '@/components/ui/button'
-import { DateInput } from '@/components/ui/date-input'
+import { DateRangeFields } from '@/components/ui/date-range-fields'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ErrorState, LoadingState } from '@/components/ui/states'
+import { cn } from '@/lib/cn'
 import { oneYearAgo, today } from '@/lib/dates'
 
 // ponytail: panel width mirrors dialog.tsx's rightContentClass (`w-[calc(100%-3rem)] max-w-md`)
@@ -34,8 +36,8 @@ function GamesStatsPanelContent() {
 
   return (
     <>
-      {steamLoading && <p className="text-muted">Loading stats…</p>}
-      {steamError && <p className="text-danger">Failed to load Steam data.</p>}
+      {steamLoading && <LoadingState label="stats" />}
+      {steamError && <ErrorState what="Steam data" />}
 
       {steam && (
         <div className="flex flex-col gap-6">
@@ -56,32 +58,15 @@ function GamesStatsPanelContent() {
           <div>
             <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
               <h3 className="text-sm font-semibold">Progress</h3>
-              <div className="flex gap-3">
-                <div>
-                  <label htmlFor="panel-from" className="mb-1 block text-xs text-muted">
-                    From
-                  </label>
-                  <DateInput
-                    id="panel-from"
-                    value={progressStart}
-                    onChange={setProgressStart}
-                    className="h-9 w-36"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="panel-to" className="mb-1 block text-xs text-muted">
-                    To
-                  </label>
-                  <DateInput
-                    id="panel-to"
-                    value={progressEnd}
-                    onChange={setProgressEnd}
-                    className="h-9 w-36"
-                  />
-                </div>
-              </div>
+              <DateRangeFields
+                idPrefix="panel"
+                start={progressStart}
+                onStartChange={setProgressStart}
+                end={progressEnd}
+                onEndChange={setProgressEnd}
+              />
             </div>
-            {progressLoading && <p className="text-muted">Loading progress…</p>}
+            {progressLoading && <LoadingState label="progress" />}
             {!progressLoading && progressChartData.length === 0 && (
               <p className="text-muted">No progress data for this range.</p>
             )}
@@ -106,11 +91,13 @@ export default function GamesStatsPanel() {
         <Button
           variant="secondary"
           size="sm"
-          className="fixed right-0 top-1/2 z-40 -translate-y-1/2 rounded-l-xl rounded-r-none"
+          className="sm:fixed sm:right-[env(safe-area-inset-right)] sm:top-1/2 sm:z-40 sm:min-w-11 sm:-translate-y-1/2 sm:rounded-l-xl sm:rounded-r-none"
           aria-label="Open library stats"
           onClick={() => setOpen(true)}
         >
-          ‹
+          {/* Inline in the page's button row on phones, where a fixed edge tab would cover content. */}
+          <span className="sm:hidden">Library stats</span>
+          <span className="hidden sm:inline">‹</span>
         </Button>
       )}
       <Dialog open={open} onOpenChange={setOpen} modal={false}>
@@ -125,7 +112,10 @@ export default function GamesStatsPanel() {
         <Button
           variant="secondary"
           size="sm"
-          className={`fixed ${PANEL_OFFSET} top-1/2 z-60 -translate-y-1/2 rounded-l-xl rounded-r-none`}
+          className={cn(
+            'fixed top-1/2 z-60 min-w-11 -translate-y-1/2 rounded-l-xl rounded-r-none',
+            PANEL_OFFSET
+          )}
           aria-label="Close library stats"
           onClick={() => setOpen(false)}
         >
