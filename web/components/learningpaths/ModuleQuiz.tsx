@@ -115,7 +115,8 @@ export default function ModuleQuiz({ module, onPassed }: ModuleQuizProps) {
       {result === 'failed' && (
         <div className="flex items-center gap-2 mb-3">
           <Badge variant="warn">
-            Not quite — {percentCorrect(questions, selection)}% (need {QUIZ_PASS_THRESHOLD_PERCENT}%)
+            Not quite — {percentCorrect(questions, selection)}% (need {QUIZ_PASS_THRESHOLD_PERCENT}
+            %)
           </Badge>
           <Button variant="secondary" size="sm" onClick={retake}>
             Retake

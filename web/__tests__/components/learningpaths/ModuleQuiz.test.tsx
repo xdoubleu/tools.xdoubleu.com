@@ -1,7 +1,11 @@
 import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
-import { ModuleSchema, ItemSchema, QuizQuestionSchema } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
+import {
+  ModuleSchema,
+  ItemSchema,
+  QuizQuestionSchema
+} from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import ModuleQuiz from '@/components/learningpaths/ModuleQuiz'
 
 function moduleWithQuiz() {

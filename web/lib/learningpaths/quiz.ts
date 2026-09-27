@@ -24,7 +24,10 @@ export function quizCheckpointItemId(module: Module): string | undefined {
 }
 
 // isAnswerCorrect checks one selection against the authored correct index.
-export function isAnswerCorrect(question: QuizQuestion, selectedIndex: number | undefined): boolean {
+export function isAnswerCorrect(
+  question: QuizQuestion,
+  selectedIndex: number | undefined
+): boolean {
   return selectedIndex !== undefined && selectedIndex === question.correctAnswerIndex
 }
 
@@ -32,9 +35,7 @@ export function isAnswerCorrect(question: QuizQuestion, selectedIndex: number | 
 // right; unanswered questions count as wrong.
 export function percentCorrect(questions: QuizQuestion[], selection: QuizSelection): number {
   if (questions.length === 0) return 0
-  const correct = questions.filter((question, i) =>
-    isAnswerCorrect(question, selection[i])
-  ).length
+  const correct = questions.filter((question, i) => isAnswerCorrect(question, selection[i])).length
   return Math.round((correct / questions.length) * 100)
 }
 
