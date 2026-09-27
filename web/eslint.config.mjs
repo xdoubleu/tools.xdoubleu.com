@@ -3,7 +3,6 @@ import nextPlugin from '@next/eslint-plugin-next'
 import typescriptEslint from 'typescript-eslint'
 import js from '@eslint/js'
 import uiPlugin from './eslint-rules/index.mjs'
-import { legacyUiFiles } from './eslint-rules/legacy-files.mjs'
 
 // ui/* rules (eslint-rules/, docs/convention-ui-standards.md). The first
 // three also apply inside components/ui; the rest police call sites.
@@ -17,7 +16,6 @@ const uiCallSites = {
   'ui/touch-targets': 'error',
   'ui/use-primitives': 'error'
 }
-const uiOff = Object.fromEntries(Object.keys(uiCallSites).map((rule) => [rule, 'off']))
 
 export default [
   {
@@ -104,9 +102,6 @@ export default [
     ],
     rules: { 'ui/theme-tokens': 'off' }
   },
-  // Files not yet migrated to the ui/* rules; each domain PR deletes
-  // its entries, and new files are always checked.
-  ...(legacyUiFiles.length > 0 ? [{ files: legacyUiFiles, rules: uiOff }] : []),
   {
     files: ['scripts/**/*.mjs', 'eslint-rules/**/*.mjs'],
     languageOptions: {
