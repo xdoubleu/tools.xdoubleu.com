@@ -30,10 +30,16 @@ var accessToken = http.Cookie{
 	Value: "",
 }
 
-// mfaAccessToken is a real aal1 session JWT for mfaUserID.
+// mfaAccessToken is a real aal1 (pre-MFA) session JWT for mfaUserID.
 //
 //nolint:gochecknoglobals //needed for tests
 var mfaAccessToken = http.Cookie{Name: "accessToken", Value: ""}
+
+// mfaSessionToken is an aal2 session JWT for mfaUserID, minted by passing the
+// MFA challenge.
+//
+//nolint:gochecknoglobals //needed for tests
+var mfaSessionToken = http.Cookie{Name: "accessToken", Value: ""}
 
 // mfaUserID is a shared, read-only user with a verified TOTP factor. Tests
 // that mutate MFA state must use freshTestUser.
@@ -123,10 +129,13 @@ func seedTestUsers(ctx context.Context) error {
 	); err != nil {
 		return err
 	}
-	if _, err = testApp.db.Exec(ctx, `
+	var mfaFactorID uuid.UUID
+	if err = testApp.db.QueryRow(ctx, `
 		INSERT INTO auth.totp_factors (user_id, secret, status)
 		VALUES ($1, $2, 'verified')
-	`, mfaUserID, base64.StdEncoding.EncodeToString(sealed)); err != nil {
+		RETURNING id
+	`, mfaUserID, base64.StdEncoding.EncodeToString(sealed)).
+		Scan(&mfaFactorID); err != nil {
 		return err
 	}
 
@@ -148,6 +157,18 @@ func seedTestUsers(ctx context.Context) error {
 		return err
 	}
 	mfaAccessToken.Value = *mfaTok
+
+	code, err := totp.GenerateCode(mfaTOTPSecret, time.Now())
+	if err != nil {
+		return err
+	}
+	sessionTok, _, err := testApp.auth.VerifyMFA(
+		ctx, *mfaTok, mfaFactorID, uuid.Nil, code,
+	)
+	if err != nil {
+		return err
+	}
+	mfaSessionToken.Value = *sessionTok
 
 	return nil
 }

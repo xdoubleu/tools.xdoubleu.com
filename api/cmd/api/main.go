@@ -71,6 +71,7 @@ type Application struct {
 	transactionLatencyRepo        *repositories.TransactionLatencyRepository
 	transactionLatencySnapshotJob *jobs.TransactionLatencySnapshotJob
 	weeklyDigestJob               *jobs.WeeklyDigestJob
+	logPruneJob                   *jobs.LogPruneJob
 	globalJobQueue                *jobqueue.JobQueue
 }
 
@@ -332,8 +333,13 @@ func startCrossAppJobs(app *Application) error {
 	); err != nil {
 		return err
 	}
-	return app.globalJobQueue.AddJob(
+	if err := app.globalJobQueue.AddJob(
 		observability.NewTrackedJob(app.weeklyDigestJob, app.db), noopCallback,
+	); err != nil {
+		return err
+	}
+	return app.globalJobQueue.AddJob(
+		observability.NewTrackedJob(app.logPruneJob, app.db), noopCallback,
 	)
 }
 
@@ -454,6 +460,7 @@ func NewApplication(
 	app.weeklyDigestJob = newWeeklyDigestJob(
 		feedsApp, notificationsSvc, notificationSettingsRepo,
 	)
+	app.logPruneJob = jobs.NewLogPruneJob(logsRepo)
 
 	err = app.ApplyMigrations(db)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -43,6 +44,7 @@ type BookService struct {
 	uniCat       unicat.Client
 	hardcover    hardcover.Client
 	resyncSource ResyncSource
+	coverClient  *http.Client
 }
 
 // SearchLibrary searches the user's own library by title/author substring.

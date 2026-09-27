@@ -181,7 +181,9 @@ func TestOIDC_DynamicallyRegisteredClient_CanRequestOpenID(t *testing.T) {
 		"scope":                 {"openid profile"},
 		"consent":               {"allow"},
 	}
-	errResp, err := noRedirectClient().Get(srv.ts.URL + "/oauth2/authorize?" + q.Encode())
+	errResp, err := noRedirectClient().Post(
+		srv.ts.URL+"/oauth2/authorize?"+q.Encode(), "", nil,
+	)
 	require.NoError(t, err)
 	defer errResp.Body.Close()
 	errLoc, err := url.Parse(errResp.Header.Get("Location"))

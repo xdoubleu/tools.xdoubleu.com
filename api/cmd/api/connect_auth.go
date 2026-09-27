@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
 	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/errortools"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -35,6 +37,16 @@ func (h *authConnectHandler) parseCookie(
 	return (&http.Request{
 		Header: http.Header{"Cookie": {header.Get("Cookie")}},
 	}).Cookie(name)
+}
+
+// authErrorCode maps an auth rejection (bad or pre-MFA token) to
+// Unauthenticated and anything else to Internal.
+func authErrorCode(err error) connect.Code {
+	var unauthorized errortools.UnauthorizedError
+	if errors.As(err, &unauthorized) {
+		return connect.CodeUnauthenticated
+	}
+	return connect.CodeInternal
 }
 
 func (h *authConnectHandler) secure() bool {

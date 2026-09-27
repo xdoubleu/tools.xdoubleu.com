@@ -87,8 +87,9 @@ func enrollAndVerify(
 	t.Helper()
 	factorID, secret := enrollFactor(t, client, token)
 	t.Cleanup(func() {
-		_ = testApp.auth.UnenrollTOTP(
-			context.Background(), token.Value, uuid.MustParse(factorID),
+		_, _ = testApp.db.Exec(
+			context.Background(),
+			`DELETE FROM auth.totp_factors WHERE id = $1`, factorID,
 		)
 	})
 
@@ -100,6 +101,18 @@ func enrollAndVerify(
 	resp, err := client.MFAEnrollVerify(context.Background(), req)
 	require.NoError(t, err)
 	return resp
+}
+
+// sessionCookie returns the accessToken cookie a response set.
+func sessionCookie(t *testing.T, header http.Header) http.Cookie {
+	t.Helper()
+	for _, c := range (&http.Response{Header: header}).Cookies() {
+		if c.Name == "accessToken" && c.Value != "" {
+			return http.Cookie{Name: c.Name, Value: c.Value}
+		}
+	}
+	require.FailNow(t, "no accessToken Set-Cookie header")
+	return http.Cookie{}
 }
 
 func TestMFAEnrollVerify_Success(t *testing.T) {
@@ -280,8 +293,10 @@ func TestRegenerateRecoveryCodes_NoToken(t *testing.T) {
 func TestRegenerateRecoveryCodes_Success(t *testing.T) {
 	client := mfaClient(t)
 	token := freshTestUser(t)
-	accessCookie := http.Cookie{Name: "accessToken", Value: token}
-	enrollAndVerify(t, client, accessCookie)
+	enrolled := enrollAndVerify(
+		t, client, http.Cookie{Name: "accessToken", Value: token},
+	)
+	accessCookie := sessionCookie(t, enrolled.Header())
 
 	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
 	setCookieOnRequest(req, accessCookie)
@@ -295,9 +310,11 @@ func TestRegenerateRecoveryCodes_Success(t *testing.T) {
 func TestRegenerateRecoveryCodes_ReplacesEarlierCodes(t *testing.T) {
 	client := mfaClient(t)
 	token := freshTestUser(t)
-	accessCookie := http.Cookie{Name: "accessToken", Value: token}
-	first := enrollAndVerify(t, client, accessCookie)
+	first := enrollAndVerify(
+		t, client, http.Cookie{Name: "accessToken", Value: token},
+	)
 	require.NotEmpty(t, first.Msg.RecoveryCodes)
+	accessCookie := sessionCookie(t, first.Header())
 
 	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
 	setCookieOnRequest(req, accessCookie)
@@ -328,4 +345,38 @@ func TestMFAEnrollVerify_SettingsFlow_PreservesRememberMe(t *testing.T) {
 	)
 	_, err := client.MFAEnrollVerify(context.Background(), req)
 	require.NoError(t, err)
+}
+
+// A pre-MFA (aal1) token can't manage the factors of a user who has one.
+func TestRegenerateRecoveryCodes_PreMFAToken_Unauthenticated(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
+	setCookieOnRequest(req, mfaAccessToken)
+	_, err := client.RegenerateRecoveryCodes(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+func TestMFAEnroll_PreMFAToken_VerifiedFactor_Unauthenticated(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollRequest{})
+	setCookieOnRequest(
+		req, http.Cookie{Name: mfaTokenCookieName, Value: mfaAccessToken.Value},
+	)
+	_, err := client.MFAEnroll(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+func TestMFAEnrollSkip_VerifiedFactor_PermissionDenied(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.MFAEnrollSkipRequest{})
+	setCookieOnRequest(
+		req,
+		http.Cookie{Name: mfaTokenCookieName, Value: mfaAccessToken.Value},
+		http.Cookie{Name: mfaRefreshTokenCookieName, Value: "unused"},
+	)
+	_, err := client.MFAEnrollSkip(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }

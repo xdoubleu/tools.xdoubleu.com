@@ -86,7 +86,7 @@ func TestGetBookCover_SelfHealsOnMiss(t *testing.T) {
 	imgServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "image/jpeg")
-			_, _ = w.Write([]byte("self-healed-cover-bytes"))
+			_, _ = w.Write([]byte("\xff\xd8\xffself-healed-cover-bytes"))
 		},
 	))
 	defer imgServer.Close()
@@ -117,7 +117,7 @@ func TestGetBookCover_SelfHealsOnMiss(t *testing.T) {
 
 	data, cached := store.GetContent(coverKey)
 	require.True(t, cached, "cover should be re-cached after self-heal")
-	assert.Equal(t, "self-healed-cover-bytes", string(data))
+	assert.Equal(t, "\xff\xd8\xffself-healed-cover-bytes", string(data))
 }
 
 // TestGetBookCover_UnknownBook checks ErrCoverNotFound for an unknown ID.
@@ -227,7 +227,7 @@ func TestAddToLibrary_CachesCoverEagerly(t *testing.T) {
 	imgServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "image/jpeg")
-			_, _ = w.Write([]byte("eager-cover-bytes"))
+			_, _ = w.Write([]byte("\xff\xd8\xffeager-cover-bytes"))
 		},
 	))
 	defer imgServer.Close()
@@ -250,7 +250,7 @@ func TestAddToLibrary_CachesCoverEagerly(t *testing.T) {
 	coverKey := "books/" + ub.BookID.String() + "/cover.jpg"
 	data, cached := store.GetContent(coverKey)
 	require.True(t, cached, "cover should be cached in R2 right after add")
-	assert.Equal(t, "eager-cover-bytes", string(data))
+	assert.Equal(t, "\xff\xd8\xffeager-cover-bytes", string(data))
 }
 
 // TestAddToLibrary_CoverFetchFailure_DoesNotBlockAdd checks the add succeeds.

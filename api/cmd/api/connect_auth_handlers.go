@@ -132,7 +132,7 @@ func (h *authConnectHandler) ExchangeToken(
 		)
 	}
 
-	if _, err := h.app.auth.GetUser(ctx, req.Msg.AccessToken); err != nil {
+	if err := h.app.auth.ValidateAccessToken(req.Msg.AccessToken); err != nil {
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
 			errors.New("invalid or expired token"),
@@ -182,7 +182,7 @@ func (h *authConnectHandler) UpdatePassword(
 	if err = h.app.auth.UpdatePassword(
 		ctx, accessToken.Value, req.Msg.NewPassword,
 	); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(authErrorCode(err), err)
 	}
 
 	return connect.NewResponse(&authv1.UpdatePasswordResponse{}), nil

@@ -161,6 +161,71 @@ func (service *LocalService) parseAccessToken(accessToken string) (*claims, erro
 	return &c, nil
 }
 
+// ValidateAccessToken checks a session token's signature and expiry only, for
+// callers that route an MFA user to the challenge themselves.
+func (service *LocalService) ValidateAccessToken(accessToken string) error {
+	_, err := service.parseAccessToken(accessToken)
+	return err
+}
+
+// errMFARequired rejects a pre-MFA (aal1) token of a user with a verified
+// TOTP factor.
+var errMFARequired = errortools.NewUnauthorizedError(errors.New("mfa required"))
+
+// parseSessionToken parses a session access token, refusing an aal1 token once
+// the user has a verified factor. It reports whether that factor exists.
+func (service *LocalService) parseSessionToken(
+	ctx context.Context,
+	accessToken string,
+) (*claims, bool, error) {
+	c, err := service.parseAccessToken(accessToken)
+	if err != nil {
+		return nil, false, err
+	}
+	hasMFA, err := service.hasVerifiedFactor(ctx, c.Subject)
+	if err != nil {
+		return nil, false, err
+	}
+	if hasMFA && c.AAL != aal2 {
+		return nil, false, errMFARequired
+	}
+	return c, hasMFA, nil
+}
+
+// requireMFAIfEnrolled refuses a non-aal2 credential once userID has a
+// verified factor.
+func (service *LocalService) requireMFAIfEnrolled(
+	ctx context.Context,
+	userID, aal string,
+) error {
+	if aal == aal2 {
+		return nil
+	}
+	hasMFA, err := service.hasVerifiedFactor(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if hasMFA {
+		return errMFARequired
+	}
+	return nil
+}
+
+// hasVerifiedFactor fails closed: only a not-found result means no factor.
+func (service *LocalService) hasVerifiedFactor(
+	ctx context.Context,
+	userID string,
+) (bool, error) {
+	_, err := service.usersStore.GetVerifiedTOTPFactor(ctx, userID)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, errNotFound) {
+		return false, nil
+	}
+	return false, err
+}
+
 func (service *LocalService) issueRefreshToken(
 	ctx context.Context,
 	userID, aal string,
@@ -214,7 +279,7 @@ func (service *LocalService) GetUser(
 	ctx context.Context,
 	accessToken string,
 ) (*models.User, error) {
-	c, err := service.parseAccessToken(accessToken)
+	c, hasMFA, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +288,6 @@ func (service *LocalService) GetUser(
 	if err != nil {
 		return nil, err
 	}
-
-	_, hasMFA := service.HasVerifiedTOTP(ctx, accessToken)
 
 	return &models.User{
 		ID:          row.ID,
@@ -255,6 +318,10 @@ func (service *LocalService) SignInWithRefreshToken(
 
 	// Rotate: the old token is single-use.
 	if err = service.usersStore.DeleteRefreshToken(ctx, row.ID); err != nil {
+		return nil, nil, err
+	}
+
+	if err = service.requireMFAIfEnrolled(ctx, row.UserID, row.AAL); err != nil {
 		return nil, nil, err
 	}
 
@@ -422,7 +489,7 @@ func (service *LocalService) UpdatePassword(
 	ctx context.Context,
 	accessToken, newPassword string,
 ) error {
-	c, err := service.parseAccessToken(accessToken)
+	c, _, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return err
 	}

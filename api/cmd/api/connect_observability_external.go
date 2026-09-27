@@ -459,6 +459,9 @@ func (h *obsConnectHandler) GetLogs(
 	return connect.NewResponse(resp), nil
 }
 
+// maxLogEntries caps one GetLogs response.
+const maxLogEntries = 1000
+
 func (h *obsConnectHandler) logs(
 	ctx context.Context, source, minLevel, since string,
 ) (*observabilityv1.GetLogsResponse, error) {
@@ -469,7 +472,9 @@ func (h *obsConnectHandler) logs(
 		}
 	}
 
-	entries, err := h.app.logsRepo.Query(ctx, sinceTime, source, minLevel)
+	entries, err := h.app.logsRepo.Query(
+		ctx, sinceTime, source, minLevel, maxLogEntries,
+	)
 	if err != nil {
 		return nil, err
 	}

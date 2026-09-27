@@ -2482,7 +2482,7 @@ func (x *GetSlowTransactionsResponse) GetTrending() []*TransactionTrend {
 type LogEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OccurredAt    string                 `protobuf:"bytes,1,opt,name=occurred_at,json=occurredAt,proto3" json:"occurred_at,omitempty"` // RFC3339
-	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`                           // "api" | "web"
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`                           // "api" | "web" | "web-client" (browser-supplied)
 	Level         string                 `protobuf:"bytes,3,opt,name=level,proto3" json:"level,omitempty"`
 	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
 	AttrsJson     string                 `protobuf:"bytes,5,opt,name=attrs_json,json=attrsJson,proto3" json:"attrs_json,omitempty"` // opaque JSON, empty if there were no attrs

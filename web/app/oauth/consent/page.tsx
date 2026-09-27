@@ -29,12 +29,13 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
   if (!params.get('client_id')) redirect('/')
 
   const store = await cookies()
-  if (!store.get('accessToken')) {
+  const accessToken = store.get('accessToken')?.value
+  if (!accessToken) {
     const next = `/oauth/consent?${query}`
     redirect(`/auth/sign-in?next=${encodeURIComponent(next)}`)
   }
 
-  const info = await getConsentInfo(params)
+  const info = await getConsentInfo(params, accessToken)
   if (!info) {
     return (
       <PageContainer size="narrow">
@@ -45,7 +46,12 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
 
   return (
     <PageContainer size="narrow">
-      <ConsentForm requestQuery={query} clientName={info.clientName} scope={info.scope} />
+      <ConsentForm
+        requestQuery={query}
+        consentToken={info.consentToken ?? ''}
+        clientName={info.clientName}
+        scope={info.scope}
+      />
     </PageContainer>
   )
 }

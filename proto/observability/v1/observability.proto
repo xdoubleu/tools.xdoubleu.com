@@ -319,7 +319,7 @@ message GetSlowTransactionsResponse {
 // LogEntry is one application log line forwarded from api or web.
 message LogEntry {
   string occurred_at = 1;  // RFC3339
-  string source = 2;       // "api" | "web"
+  string source = 2;       // "api" | "web" | "web-client" (browser-supplied)
   string level = 3;
   string message = 4;
   string attrs_json = 5;  // opaque JSON, empty if there were no attrs

@@ -51,19 +51,39 @@ describe('ConsentPage', () => {
 
   it('renders the consent form with client details', async () => {
     withCookies({ accessToken: 'at' })
+    jest.mocked(getConsentInfo).mockResolvedValue({
+      clientId: 'c1',
+      clientName: 'Claude CLI',
+      scope: 'openid email',
+      consentToken: 'tok'
+    })
+    await renderPage({ client_id: 'c1', scope: 'openid email', state: 's1' })
+    expect(screen.getByText('Authorize Claude CLI')).toBeInTheDocument()
+    expect(getConsentInfo).toHaveBeenCalledWith(
+      new URLSearchParams('client_id=c1&scope=openid+email&state=s1'),
+      'at'
+    )
+  })
+
+  // The api refuses an approval without a valid token, so the page needn't.
+  it('still renders the form when the api issues no consent token', async () => {
+    withCookies({ accessToken: 'at' })
     jest
       .mocked(getConsentInfo)
-      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid email' })
-    await renderPage({ client_id: 'c1', scope: 'openid email', state: 's1' })
+      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid' })
+    await renderPage({ client_id: 'c1' })
     expect(screen.getByText('Authorize Claude CLI')).toBeInTheDocument()
   })
 
   it('takes the first value of a repeated query param', async () => {
     withCookies({ accessToken: 'at' })
-    jest
-      .mocked(getConsentInfo)
-      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid' })
+    jest.mocked(getConsentInfo).mockResolvedValue({
+      clientId: 'c1',
+      clientName: 'Claude CLI',
+      scope: 'openid',
+      consentToken: 'tok'
+    })
     await renderPage({ client_id: ['c1', 'c2'], scope: undefined })
-    expect(getConsentInfo).toHaveBeenCalledWith(new URLSearchParams('client_id=c1'))
+    expect(getConsentInfo).toHaveBeenCalledWith(new URLSearchParams('client_id=c1'), 'at')
   })
 })
