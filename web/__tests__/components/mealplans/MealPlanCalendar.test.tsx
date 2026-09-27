@@ -85,13 +85,13 @@ beforeEach(() => {
 })
 
 function openAddDialog() {
-  fireEvent.click(screen.getAllByRole('button', { name: '+' })[0])
+  fireEvent.click(screen.getAllByRole('button', { name: /^Add (another )?meal$/ })[0])
 }
 
 // The add dialog opens on the Recipe tab; switch to Custom.
 function openAddDialogCustom() {
   openAddDialog()
-  fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+  fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
 }
 
 function openMealMenu() {
@@ -113,10 +113,10 @@ describe('MealPlanCalendar', () => {
   it('opens add dialog with Recipe and Custom tabs when + is clicked', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
-    expect(screen.getByRole('button', { name: 'Recipe' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Custom' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Recipe' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Custom' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Event' })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     expect(screen.getByPlaceholderText('Item 1')).toBeInTheDocument()
   })
 
@@ -175,7 +175,7 @@ describe('MealPlanCalendar', () => {
   it('shows recipe combobox when Recipe tab is selected', () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
-    fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
     expect(screen.getByPlaceholderText(/recipe name or custom meal/i)).toBeInTheDocument()
   })
 
@@ -190,7 +190,7 @@ describe('MealPlanCalendar', () => {
       />
     )
     openAddDialog()
-    fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
@@ -244,7 +244,7 @@ describe('MealPlanCalendar', () => {
   it('sends custom servings value in CreateMealRequest', async () => {
     render(<MealPlanCalendar plan={basePlan} recipes={baseRecipes} {...defaultNavProps} />)
     openAddDialog()
-    fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
@@ -274,7 +274,7 @@ describe('MealPlanCalendar', () => {
       />
     )
     openAddDialog()
-    fireEvent.click(screen.getByRole('button', { name: 'Recipe' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Recipe' }))
     const input = screen.getByPlaceholderText(/recipe name or custom meal/i)
     fireEvent.change(input, { target: { value: 'Past' } })
     fireEvent.mouseDown(screen.getByText('Pasta'))
@@ -398,9 +398,8 @@ describe('MealPlanCalendar', () => {
     )
 
     startSwap()
-    // "+" buttons are hidden in swap mode; index 1 is the first empty slot.
-    const swapCells = document.querySelectorAll('[class*="hover:border-accent"]')
-    fireEvent.click(swapCells[1])
+    // "+" buttons are hidden in swap mode; empty slots show a drop cue instead.
+    fireEvent.click(screen.getAllByText('Place here')[0])
 
     await waitFor(() => expect(mockMoveMeal).toHaveBeenCalled())
     // Empty target → only the picked meal moves, no swap-back.
@@ -693,11 +692,11 @@ describe('MealPlanCalendar', () => {
       />
     )
     // 7 days × 1 slot, all with a "+" (occupied slot included), mobile + desktop.
-    const addButtons = screen.getAllByRole('button', { name: '+' })
+    const addButtons = screen.getAllByRole('button', { name: /^Add (another )?meal$/ })
     expect(addButtons.length).toBe(14)
 
     fireEvent.click(addButtons[0])
-    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     fireEvent.change(screen.getByPlaceholderText('Item 1'), { target: { value: 'Bacon' } })
     fireEvent.click(screen.getByRole('button', { name: /^Add$/i }))
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
@@ -795,7 +794,7 @@ describe('MealPlanCalendar', () => {
       />
     )
     fireEvent.click(screen.getAllByRole('button', { name: 'Fill day' })[0])
-    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Leftovers' }
     })
@@ -827,7 +826,7 @@ describe('MealPlanCalendar', () => {
 
     render(<MealPlanCalendar plan={planWithMeal} recipes={baseRecipes} {...defaultNavProps} />)
     fireEvent.click(screen.getAllByRole('button', { name: 'Fill day' })[0])
-    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     fireEvent.change(screen.getByPlaceholderText('Item 1'), {
       target: { value: 'Leftovers' }
     })

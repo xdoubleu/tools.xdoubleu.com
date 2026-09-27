@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation'
 import { useRecipe, useDeleteRecipe } from '@/hooks/useRecipes'
 import type { DeleteRecipeInput } from '@/hooks/useRecipes'
 import { useWakeLock } from '@/hooks/useWakeLock'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function RecipeClient({ id }: { id: string }) {
   const [servings, setServings] = useState(0)
@@ -87,44 +90,57 @@ export default function RecipeClient({ id }: { id: string }) {
         items={[{ label: 'Recipes', href: '/recipes/list' }, { label: recipe?.name ?? 'Recipe' }]}
       />
 
-      {isLoading && !recipe && <p className="text-muted">Loading recipe…</p>}
-      {error && <p className="text-danger">Failed to load recipe.</p>}
+      {isLoading && !recipe && <LoadingState label="recipe" />}
+      {error && <ErrorState what="recipe" />}
       {recipe && (
         <>
-          <div className="flex items-start justify-between mb-2">
-            <h1 className="text-3xl font-bold">{recipe.name}</h1>
-            {canEdit && (
-              <div className="flex gap-2 ml-4 shrink-0">
-                <Button asChild variant="secondary" size="sm">
-                  <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
-                </Button>
-                {isOwner &&
-                  (deleteConfirm ? (
-                    <div className="flex gap-2 items-center">
-                      <Button variant="destructive" size="sm" onClick={handleDelete}>
-                        Confirm delete
+          <PageHeader
+            className="mb-2"
+            title={recipe.name}
+            actions={
+              canEdit && (
+                <>
+                  <Button asChild variant="secondary" size="sm">
+                    <Link href={`/recipes/${recipe.id}/edit`}>Edit</Link>
+                  </Button>
+                  {isOwner &&
+                    (deleteConfirm ? (
+                      <>
+                        <Button variant="destructive" size="sm" onClick={handleDelete}>
+                          Confirm delete
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setDeleteConfirm(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeleteConfirm(true)}
+                      >
+                        Delete
                       </Button>
-                      <Button variant="secondary" size="sm" onClick={() => setDeleteConfirm(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button variant="destructive" size="sm" onClick={() => setDeleteConfirm(true)}>
-                      Delete
-                    </Button>
-                  ))}
-              </div>
-            )}
-          </div>
+                    ))}
+                </>
+              )
+            }
+          />
 
           <div className="flex items-center gap-3 mb-6 flex-wrap">
             <span className="text-muted text-sm">Serves</span>
             <Input
               type="number"
+              inputMode="numeric"
               min="1"
               value={displayServings}
               onChange={(e) => handleServingsChange(parseInt(e.target.value, 10) || 1)}
-              className="h-9 w-16 px-2"
+              aria-label="Servings"
+              className="w-16 px-2"
             />
             {servings > 0 && servings !== recipe.baseServings && (
               <Button
@@ -137,15 +153,9 @@ export default function RecipeClient({ id }: { id: string }) {
               </Button>
             )}
             {recipe.batchServings != null && (
-              <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">
-                Batch prep: {recipe.batchServings} servings
-              </span>
+              <Badge variant="secondary">Batch prep: {recipe.batchServings} servings</Badge>
             )}
-            {recipe.isDraft && (
-              <span className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs text-muted">
-                Draft
-              </span>
-            )}
+            {recipe.isDraft && <Badge variant="secondary">Draft</Badge>}
             {wakeLockSupported && (
               <Button
                 variant={cookingModeActive ? 'default' : 'secondary'}

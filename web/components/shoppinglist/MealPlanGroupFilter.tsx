@@ -32,11 +32,17 @@ export default function MealPlanGroupFilter({
           const key = `${g.recipeName}::${g.groupName}`
           const checked = !excludedGroups.has(g.groupName)
           return (
-            <label key={key} className="flex items-center gap-2 text-sm">
-              <Checkbox checked={checked} onChange={() => onToggle(g.groupName)} />
-              <span className="text-fg">{g.groupName}</span>
-              <span className="text-muted">({g.recipeName})</span>
-            </label>
+            <Checkbox
+              key={key}
+              checked={checked}
+              onChange={() => onToggle(g.groupName)}
+              label={
+                <span className="min-w-0 break-words text-sm">
+                  <span className="text-fg">{g.groupName}</span>{' '}
+                  <span className="text-muted">({g.recipeName})</span>
+                </span>
+              }
+            />
           )
         })}
       </div>

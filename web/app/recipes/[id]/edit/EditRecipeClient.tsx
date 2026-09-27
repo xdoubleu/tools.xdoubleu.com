@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import { useRecipe } from '@/hooks/useRecipes'
 import RecipeForm from '@/components/recipes/RecipeForm'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function EditRecipeClient({ id }: { id: string }) {
   const { data, isLoading, error } = useRecipe(id)
@@ -13,17 +14,16 @@ export default function EditRecipeClient({ id }: { id: string }) {
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[
+      <PageHeader
+        title="Edit Recipe"
+        breadcrumb={[
           { label: 'Recipes', href: '/recipes/list' },
           { label: recipe?.name ?? 'Recipe', href: `/recipes/${id}` },
           { label: 'Edit' }
         ]}
       />
-      <h1 className="text-3xl font-bold mb-6">Edit Recipe</h1>
-      {isLoading && <p className="text-muted">Loading recipe…</p>}
-      {error && <p className="text-danger">Failed to load recipe.</p>}
+      {isLoading && <LoadingState label="recipe" />}
+      {error && <ErrorState what="recipe" />}
       {recipe && (
         <RecipeForm
           recipe={recipe}

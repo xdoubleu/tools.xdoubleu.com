@@ -65,25 +65,22 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
         <p className="text-sm font-medium text-subtle">iCal — Hide meal slots</p>
         <div className="flex flex-wrap gap-4">
           {SLOT_NAMES.map((slot) => (
-            <label key={slot} className="flex items-center gap-2 text-sm text-fg cursor-pointer">
-              <Checkbox checked={hiddenSlots.includes(slot)} onChange={() => toggleSlot(slot)} />
-              {slot.charAt(0).toUpperCase() + slot.slice(1)}
-            </label>
+            <Checkbox
+              key={slot}
+              checked={hiddenSlots.includes(slot)}
+              onChange={() => toggleSlot(slot)}
+              label={slot.charAt(0).toUpperCase() + slot.slice(1)}
+            />
           ))}
         </div>
       </div>
 
-      <label
-        htmlFor="ical-hide-past"
-        className="flex items-center gap-2 text-sm text-fg cursor-pointer"
-      >
-        <Checkbox
-          id="ical-hide-past"
-          checked={hidePast}
-          onChange={(e) => setHidePast(e.target.checked)}
-        />
-        <span className="font-medium">iCal — Hide past events</span>
-      </label>
+      <Checkbox
+        id="ical-hide-past"
+        checked={hidePast}
+        onChange={(e) => setHidePast(e.target.checked)}
+        label={<span className="text-sm font-medium">iCal — Hide past events</span>}
+      />
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

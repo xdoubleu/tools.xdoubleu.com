@@ -13,7 +13,10 @@ import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
 import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
+import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/shoppinglist/shoppingExport'
@@ -86,12 +89,14 @@ export default function ShoppingListPageClient() {
 
   return (
     <PageContainer>
-      <div className="mb-6 flex items-center justify-between gap-2">
-        <h1 className="text-3xl font-bold">Shopping List</h1>
-        <Link href="/shoppinglist/settings" className="text-sm text-accent hover:underline">
-          Settings
-        </Link>
-      </div>
+      <PageHeader
+        title="Shopping List"
+        actions={
+          <Button asChild variant="link" size="sm">
+            <Link href="/shoppinglist/settings">Settings</Link>
+          </Button>
+        }
+      />
 
       <AddItemForm
         categories={categories}
@@ -99,7 +104,7 @@ export default function ShoppingListPageClient() {
         onCategoriesChanged={mutateCategories}
       />
 
-      {isLoading && <p className="text-muted">Loading…</p>}
+      {isLoading && <LoadingState />}
       {!isLoading && (
         <ShoppingList
           items={items}

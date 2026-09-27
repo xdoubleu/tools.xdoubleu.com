@@ -14,12 +14,13 @@ let mockMealExport: { data: { items: unknown[] }; isLoading: boolean } = {
   data: { items: [] },
   isLoading: false
 }
+let mockListLoading = false
 let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
 
 jest.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
     data: { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
-    isLoading: false,
+    isLoading: mockListLoading,
     mutate: listMutate
   }),
   useCategories: () => ({
@@ -49,6 +50,7 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockMealExport = { data: { items: [] }, isLoading: false }
   mockPlanGroups = { data: { groups: [] } }
+  mockListLoading = false
 })
 
 describe('ShoppingPage add form', () => {
@@ -188,5 +190,22 @@ describe('ShoppingPage meal-plan section', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.queryByText('Export Shopping List')).not.toBeInTheDocument()
+  })
+})
+
+describe('ShoppingPage header and loading', () => {
+  it('links to settings from the page header', () => {
+    render(<ShoppingListPageClient />)
+    expect(screen.getByRole('heading', { level: 1, name: 'Shopping List' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/shoppinglist/settings'
+    )
+  })
+
+  it('shows a loading state while the list loads', () => {
+    mockListLoading = true
+    render(<ShoppingListPageClient />)
+    expect(screen.getByRole('status')).toHaveTextContent('Loading…')
   })
 })
