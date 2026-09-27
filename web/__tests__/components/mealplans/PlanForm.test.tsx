@@ -73,4 +73,12 @@ describe('PlanForm', () => {
     fireEvent.click(noonCheckbox)
     expect(noonCheckbox).toBeChecked()
   })
+
+  it('toggles the hide-past-events checkbox', () => {
+    render(<PlanForm plan={existingPlan} onSave={jest.fn()} onCancel={jest.fn()} />)
+    const hidePast = screen.getByLabelText(/Hide past events/i)
+    expect(hidePast).toBeChecked()
+    fireEvent.click(hidePast)
+    expect(hidePast).not.toBeChecked()
+  })
 })

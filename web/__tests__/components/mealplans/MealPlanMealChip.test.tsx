@@ -94,6 +94,7 @@ describe('MealPlanMealChip', () => {
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
     fireEvent.click(screen.getByRole('menuitem', { name: /Swap/i }))
     expect(onSwapClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'm1' }))
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
   it('Edit action calls onEditClick', () => {
@@ -129,11 +130,10 @@ describe('MealPlanMealChip', () => {
   it('opens the menu downward when there is room below', () => {
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
-    const menu = screen.getByRole('menu')
-    expect(menu).toHaveStyle({ position: 'fixed' })
-    expect(menu.style.top).not.toBe('')
-    expect(menu.style.bottom).toBe('')
-    expect(menu).not.toHaveAttribute('data-open-up')
+    const panel = screen.getByRole('menu').parentElement!
+    expect(panel).toHaveStyle({ position: 'fixed' })
+    expect(panel.style.top).not.toBe('')
+    expect(panel.style.bottom).toBe('')
   })
 
   it('flips the menu upward when the trigger is near the bottom of the viewport', () => {
@@ -154,11 +154,10 @@ describe('MealPlanMealChip', () => {
 
     renderChip()
     fireEvent.click(screen.getByRole('button', { name: /Meal actions/i }))
-    const menu = screen.getByRole('menu')
-    expect(menu).toHaveStyle({ position: 'fixed' })
-    expect(menu.style.bottom).not.toBe('')
-    expect(menu.style.top).toBe('')
-    expect(menu).toHaveAttribute('data-open-up')
+    const panel = screen.getByRole('menu').parentElement!
+    expect(panel).toHaveStyle({ position: 'fixed' })
+    expect(panel.style.bottom).not.toBe('')
+    expect(panel.style.top).toBe('')
 
     rectSpy.mockRestore()
     Object.defineProperty(window, 'innerHeight', {

@@ -8,7 +8,9 @@ import RecipeCombobox from '@/components/mealplans/RecipeCombobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
+import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
 import { cn } from '@/lib/cn'
 import { parseCustomItems, encodeCustomItems, type CustomItem } from '@/lib/customItems'
 import { useCategories, useItemCategories } from '@/hooks/useShoppingList'
@@ -19,7 +21,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  DialogFooter
 } from '@/components/ui/dialog'
 
 type Tab = 'recipe' | 'custom'
@@ -140,30 +143,22 @@ export default function MealPlanEntryForm({
         if (!o) onCancel()
       }}
     >
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogClose aria-label="Close">×</DialogClose>
         </DialogHeader>
 
-        <div className="flex gap-1 rounded-xl bg-hover p-1 mb-4">
-          {(['recipe', 'custom'] as Tab[]).map((t) => (
-            <Button
-              key={t}
-              variant="ghost"
-              size="sm"
-              onClick={() => setTab(t)}
-              className={cn(
-                'flex-1 rounded-lg',
-                tab === t
-                  ? 'bg-card text-fg shadow-sm'
-                  : 'text-muted hover:bg-transparent hover:text-fg'
-              )}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </Button>
-          ))}
-        </div>
+        <SegmentedTabs<Tab>
+          aria-label="Meal type"
+          className="mb-4"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'recipe', label: 'Recipe' },
+            { value: 'custom', label: 'Custom' }
+          ]}
+        />
 
         {tab === 'recipe' ? (
           <div className="space-y-3">
@@ -195,6 +190,7 @@ export default function MealPlanEntryForm({
             />
             <Input
               type="number"
+              inputMode="numeric"
               min="1"
               value={servings}
               onChange={(e) => setServings(parseInt(e.target.value, 10))}
@@ -205,12 +201,13 @@ export default function MealPlanEntryForm({
         ) : (
           <div className="space-y-2">
             {customItems.map((item, i) => (
-              <div key={i} className="space-y-2 rounded-xl border border-border bg-card p-2">
-                <div className="flex gap-2">
+              <Card key={i} variant="inset" className="space-y-2 p-2">
+                <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                   {!excludeFromShoppingList && (
                     <>
                       <Input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         step="any"
                         value={item.amount}
@@ -223,7 +220,7 @@ export default function MealPlanEntryForm({
                         }}
                         placeholder="Qty"
                         aria-label={`Amount for item ${i + 1}`}
-                        className="w-20"
+                        className="min-w-0 flex-1 sm:w-20 sm:flex-none"
                       />
                       <Input
                         type="text"
@@ -237,7 +234,7 @@ export default function MealPlanEntryForm({
                         }}
                         placeholder="Unit"
                         aria-label={`Unit for item ${i + 1}`}
-                        className="w-20"
+                        className="min-w-0 flex-1 sm:w-20 sm:flex-none"
                       />
                     </>
                   )}
@@ -253,7 +250,10 @@ export default function MealPlanEntryForm({
                     }}
                     placeholder={`Item ${i + 1}`}
                     autoFocus={i === 0}
-                    className="flex-1"
+                    className={cn(
+                      'min-w-0 flex-1',
+                      !excludeFromShoppingList && 'order-last basis-full sm:order-none sm:basis-0'
+                    )}
                   />
                   {customItems.length > 1 && (
                     <Button
@@ -271,7 +271,6 @@ export default function MealPlanEntryForm({
                     aria-label={`Category for item ${i + 1}`}
                     value={effectiveCategoryId(item)}
                     onChange={(e) => updateCustomItem(i, { categoryId: e.target.value })}
-                    className="h-9"
                   >
                     <option value="">-- Category --</option>
                     {categories.map((category) => (
@@ -281,29 +280,27 @@ export default function MealPlanEntryForm({
                     ))}
                   </Select>
                 )}
-              </div>
+              </Card>
             ))}
             <Button variant="link" size="sm" className="self-start" onClick={addCustomItem}>
               + Add item
             </Button>
-            <label className="flex items-center gap-2 pt-1 text-xs text-muted">
-              <Checkbox
-                checked={excludeFromShoppingList}
-                onChange={(e) => setExcludeFromShoppingList(e.target.checked)}
-              />
-              Keep off the shopping list
-            </label>
+            <Checkbox
+              checked={excludeFromShoppingList}
+              onChange={(e) => setExcludeFromShoppingList(e.target.checked)}
+              label={<span className="text-xs text-muted">Keep off the shopping list</span>}
+            />
           </div>
         )}
 
-        <div className="mt-4 flex gap-2">
-          <Button onClick={handleSave} className="flex-1">
-            {saveLabel}
-          </Button>
-          <Button variant="secondary" onClick={onCancel} className="flex-1">
+        <DialogFooter>
+          <Button variant="secondary" onClick={onCancel} className="flex-1 sm:flex-none">
             Cancel
           </Button>
-        </div>
+          <Button onClick={handleSave} className="flex-1 sm:flex-none">
+            {saveLabel}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

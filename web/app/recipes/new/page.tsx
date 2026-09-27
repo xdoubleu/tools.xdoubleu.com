@@ -2,19 +2,18 @@
 
 import { useRouter } from 'next/navigation'
 import RecipeForm from '@/components/recipes/RecipeForm'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function NewRecipePage() {
   const router = useRouter()
 
   return (
     <PageContainer size="form">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'New' }]}
+      <PageHeader
+        title="New Recipe"
+        breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'New' }]}
       />
-      <h1 className="text-3xl font-bold mb-6">New Recipe</h1>
       <RecipeForm
         onSave={(id) => router.push(`/recipes/${id}`)}
         onCancel={() => router.push('/recipes/list')}

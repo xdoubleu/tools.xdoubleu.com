@@ -20,8 +20,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  DialogFooter
 } from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
@@ -137,25 +139,25 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
           </div>
 
           {storeHasNoCategories && (
-            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+            <Alert tone="warn">
               This store has no categories configured. Items will be exported as a flat list.
-            </p>
+            </Alert>
           )}
 
           {!storeHasNoCategories && uncategorizedCount > 0 && (
-            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+            <Alert tone="warn">
               {uncategorizedCount === 1
                 ? '1 item has no category assigned and will appear under "Other".'
                 : `${uncategorizedCount} items have no category assigned and will appear under "Other".`}
-            </p>
+            </Alert>
           )}
 
           {!storeHasNoCategories && unorderedCount > 0 && (
-            <p className="rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+            <Alert tone="warn">
               {unorderedCount === 1
                 ? '1 item has a category that this store doesn\'t order, so its place in the aisle order is unknown. It will appear under "Other".'
                 : `${unorderedCount} items have a category that this store doesn't order, so their place in the aisle order is unknown. They will appear under "Other".`}
-            </p>
+            </Alert>
           )}
 
           {selectedStoreId && exportGroups && (
@@ -204,20 +206,24 @@ export default function ExportDialog({ customItems, mealItems, onClose }: Export
               </ul>
             </div>
           )}
-
-          <div className="flex flex-wrap items-center gap-2 border-t border-border pt-4">
-            <Button size="sm" onClick={handleExportClipboard}>
-              Copy to Clipboard
-            </Button>
-            <Button size="sm" onClick={handleExportAppleNotes}>
-              Share to Apple Notes
-            </Button>
-            <Button size="sm" variant="secondary" onClick={handleExportTxt}>
-              Download .txt
-            </Button>
-            {copyFeedback && <span className="text-sm text-success">{copyFeedback}</span>}
-          </div>
         </div>
+
+        <DialogFooter>
+          {copyFeedback && (
+            <span role="status" className="mr-auto text-sm text-success">
+              {copyFeedback}
+            </span>
+          )}
+          <Button size="sm" variant="secondary" onClick={handleExportTxt}>
+            Download .txt
+          </Button>
+          <Button size="sm" onClick={handleExportAppleNotes}>
+            Share to Apple Notes
+          </Button>
+          <Button size="sm" onClick={handleExportClipboard}>
+            Copy to Clipboard
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
