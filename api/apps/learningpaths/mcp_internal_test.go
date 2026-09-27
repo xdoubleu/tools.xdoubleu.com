@@ -323,6 +323,19 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 	require.Error(t, err)
 }
 
+// TestDTOToQuiz_NilSkipped: a nil question element is carried through as an
+// empty slot when converting a Module's quiz from proto to the model.
+func TestDTOToQuiz_NilSkipped(t *testing.T) {
+	got := dtoToQuiz([]*learningpathsv1.QuizQuestion{
+		{Prompt: "Q", Options: []string{"a", "b"}, CorrectAnswerIndex: 1},
+		nil,
+	})
+	require.Len(t, got, 2)
+	assert.Equal(t, "Q", got[0].Prompt)
+	assert.Equal(t, 1, got[0].CorrectAnswerIndex)
+	assert.Empty(t, got[1].Prompt)
+}
+
 // TestMCPAuthoringGuide_ResourceExistsAndReads: the guide is served as an MCP
 // resource, and the write-tool descriptions embed its essentials for clients
 // that only read tool metadata.
