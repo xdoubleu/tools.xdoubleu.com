@@ -2,6 +2,7 @@
 
 import { prepareForExport, formatOrigins } from '@/lib/shoppinglist/shoppingExport'
 import type { ShoppingItem } from '@/lib/shoppinglist/shoppingExport'
+import { LoadingState } from '@/components/ui/states'
 
 interface MealPlanItemsPreviewProps {
   mealItems: ShoppingItem[]
@@ -12,7 +13,7 @@ interface MealPlanItemsPreviewProps {
 // (custom items render in the editable list above).
 export default function MealPlanItemsPreview({ mealItems, isLoading }: MealPlanItemsPreviewProps) {
   if (isLoading) {
-    return <p className="text-sm text-muted">Loading…</p>
+    return <LoadingState className="text-sm" />
   }
 
   const items = prepareForExport([], mealItems)

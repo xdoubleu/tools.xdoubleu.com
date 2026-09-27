@@ -70,19 +70,20 @@ export default function AddItemForm({
     <form onSubmit={handleAdd} className="flex flex-wrap gap-2 mb-6">
       <Input
         type="number"
+        inputMode="decimal"
         placeholder="Amount"
         value={newAmount}
         onChange={(e) => setNewAmount(e.target.value)}
         min="0"
         step="any"
-        className="w-24"
+        className="min-w-0 flex-1 sm:w-24 sm:flex-none"
       />
       <Input
         type="text"
         placeholder="Unit"
         value={newUnit}
         onChange={(e) => setNewUnit(e.target.value)}
-        className="w-24"
+        className="min-w-0 flex-1 sm:w-24 sm:flex-none"
       />
       <Input
         type="text"
@@ -113,7 +114,7 @@ export default function AddItemForm({
           aria-label="New category name"
           value={newCategoryName}
           onChange={(e) => setNewCategoryName(e.target.value)}
-          className="w-32"
+          className="w-full sm:w-32"
         />
       )}
       <Button type="submit" disabled={adding || !newName.trim()}>

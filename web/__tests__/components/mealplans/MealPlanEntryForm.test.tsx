@@ -149,7 +149,7 @@ describe('MealPlanEntryForm category picker', () => {
         onCancel={onCancel}
       />
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Custom' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom' }))
     expect(screen.queryByText('Suggestions')).not.toBeInTheDocument()
   })
 

@@ -7,8 +7,8 @@ import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import ItemCatalog from '@/components/shoppinglist/ItemCatalog'
 import StoreManager from '@/components/shoppinglist/StoreManager'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function ShoppingListSettingsPage() {
   const client = await createServerClient(ShoppingListService)
@@ -29,11 +29,10 @@ export default async function ShoppingListSettingsPage() {
       }}
     >
       <PageContainer size="form">
-        <Breadcrumb
-          className="mb-4"
-          items={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
+        <PageHeader
+          title="Shopping List Settings"
+          breadcrumb={[{ label: 'Shopping List', href: '/shoppinglist' }, { label: 'Settings' }]}
         />
-        <h1 className="mb-6 text-3xl font-bold">Shopping List Settings</h1>
 
         <div className="space-y-6">
           <Card>

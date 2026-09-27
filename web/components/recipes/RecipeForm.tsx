@@ -194,6 +194,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         <Label>Servings</Label>
         <Input
           type="number"
+          inputMode="numeric"
           value={servings}
           onChange={(e) => setServings(e.target.value)}
           min="1"
@@ -203,12 +204,13 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
 
       <div className="space-y-1.5">
         <Label>Batch prep servings</Label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           When set, the shopping list buys for this many servings instead of summing scheduled
           occurrences. Leave empty to use the scheduled total.
         </p>
         <Input
           type="number"
+          inputMode="numeric"
           value={batchServings}
           onChange={(e) => setBatchServings(e.target.value)}
           min="1"
@@ -224,7 +226,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
           checked={isDraft}
           onChange={(e) => setIsDraft(e.target.checked)}
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           Mark a recipe you haven&apos;t cooked yet. Drafts stay in the recipe book with a badge but
           are left out of meal-plan suggestions.
         </p>
@@ -247,7 +249,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 placeholder="Unit"
                 value={ing.unit}
                 onChange={(e) => updateIngredient(idx, 'unit', e.target.value)}
-                className="w-20"
+                className="min-w-0 flex-1 sm:w-20 sm:flex-none"
               />
               <Combobox
                 value={ing.name}
@@ -263,7 +265,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 placeholder="Group (optional)"
                 value={ing.group}
                 onChange={(e) => updateIngredient(idx, 'group', e.target.value)}
-                className="w-28"
+                className="w-full sm:w-28"
               />
               <Select
                 aria-label="Category"
@@ -286,7 +288,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                   aria-label="New category name"
                   value={ing.newCategoryName}
                   onChange={(e) => updateIngredient(idx, 'newCategoryName', e.target.value)}
-                  className="w-32"
+                  className="w-full sm:w-32"
                 />
               )}
               {ingredients.length > 1 && (

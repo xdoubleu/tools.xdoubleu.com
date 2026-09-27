@@ -135,4 +135,30 @@ describe('Popover', () => {
 
     spy.mockRestore()
   })
+
+  it('follows a controlled open prop and reports toggles through onOpenChange', () => {
+    const onOpenChange = jest.fn()
+    const trigger = ({ open, onClick }: { open: boolean; onClick: () => void }) => (
+      <PopoverTrigger onClick={onClick} aria-expanded={open} aria-label="Open menu">
+        Open
+      </PopoverTrigger>
+    )
+    const { rerender } = render(
+      <Popover open={false} onOpenChange={onOpenChange} trigger={trigger}>
+        <p>Panel content</p>
+      </Popover>
+    )
+    fireEvent.click(screen.getByLabelText('Open menu'))
+    expect(onOpenChange).toHaveBeenCalledWith(true)
+    expect(screen.queryByText('Panel content')).not.toBeInTheDocument()
+
+    rerender(
+      <Popover open onOpenChange={onOpenChange} trigger={trigger}>
+        <p>Panel content</p>
+      </Popover>
+    )
+    expect(screen.getByText('Panel content')).toBeInTheDocument()
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onOpenChange).toHaveBeenLastCalledWith(false)
+  })
 })
