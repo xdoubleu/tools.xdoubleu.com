@@ -34,9 +34,16 @@ type mcpItemArg struct {
 	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
 }
 
+type mcpQuizQuestionArg struct {
+	Prompt             string   `json:"prompt"               jsonschema:"question"`
+	Options            []string `json:"options"              jsonschema:"choices"`
+	CorrectAnswerIndex int32    `json:"correct_answer_index" jsonschema:"correct index"`
+}
+
 type mcpModuleArg struct {
-	Title string       `json:"title"           jsonschema:"module title"`
-	Items []mcpItemArg `json:"items,omitempty" jsonschema:"ordered items"`
+	Title string               `json:"title,omitempty" jsonschema:"module title"`
+	Items []mcpItemArg         `json:"items,omitempty" jsonschema:"ordered items"`
+	Quiz  []mcpQuizQuestionArg `json:"quiz,omitempty"  jsonschema:"MCQ on checkpoint item"`
 }
 
 type mcpResourceArg struct {
@@ -158,9 +165,22 @@ func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {
 		modules[i] = &learningpathsv1.Module{
 			Title: m.Title,
 			Items: items,
+			Quiz:  toProtoQuiz(m.Quiz),
 		}
 	}
 	return modules
+}
+
+func toProtoQuiz(in []mcpQuizQuestionArg) []*learningpathsv1.QuizQuestion {
+	quiz := make([]*learningpathsv1.QuizQuestion, len(in))
+	for i, q := range in {
+		quiz[i] = &learningpathsv1.QuizQuestion{
+			Prompt:             q.Prompt,
+			Options:            q.Options,
+			CorrectAnswerIndex: q.CorrectAnswerIndex,
+		}
+	}
+	return quiz
 }
 
 func toProtoResources(in []mcpResourceArg) []*learningpathsv1.Resource {

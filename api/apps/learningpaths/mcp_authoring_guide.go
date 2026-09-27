@@ -15,18 +15,24 @@ const (
 const mcpCreatePathDescription = "Creates a new learning path: a title, a goal " +
 	"(what the learner will be able to do afterward), a freeform routine (the " +
 	"recurring cadence, e.g. \"30 min every weekday morning\"), ordered modules " +
-	"each with ordered items, and a freeform resources list. Modules, items, and " +
-	"resources are created in the order given and keep that order. Always " +
-	"confirm the full proposed tree with the user before calling this — it " +
-	"persists real data. Mutating — see this app's ADR for why."
+	"each with ordered items and an optional MCQ quiz, and a freeform resources " +
+	"list. One quiz per module, carried on the module's terminal checkpoint " +
+	"item; each quiz question has a prompt, ordered options, and a " +
+	"correct_answer_index. Suggest whole books only — never a partial-book " +
+	"checkpoint. Modules, items, and resources are created in the order given " +
+	"and keep that order. Always confirm the full proposed tree with the user " +
+	"before calling this — it persists real data. Mutating — see this app's " +
+	"ADR for why."
 
 // mcpUpdatePathDescription is the description for learningpaths_update_path.
 const mcpUpdatePathDescription = "Wholesale-replaces a learning path's " +
 	"title/goal/routine/modules/resources — the full tree, not a partial patch: " +
 	"every field you pass replaces what's there, and modules/resources replace " +
-	"the prior lists entirely. Read the current path first with " +
-	"learningpaths_get_path and pass the complete desired tree. Mutating — see " +
-	"this app's ADR for why."
+	"the prior lists entirely. A module may carry one MCQ quiz on its terminal " +
+	"checkpoint item (quiz on the module: prompt, options, correct_answer_index). " +
+	"Read the current path first with learningpaths_get_path and pass the " +
+	"complete desired tree. Suggest whole books only — never a partial-book " +
+	"checkpoint. Mutating — see this app's ADR for why."
 
 // mcpRecordProgressDescription is the description for
 // learningpaths_record_progress.
@@ -71,6 +77,10 @@ Everything operates only on the calling user's own paths (scoped server-side).
     routine      string   optional  (freeform cadence, e.g. "daily morning")
     modules[]    ordered
       title      string   required
+      quiz[]     optional  (one quiz per module, MCQ)
+        prompt         string  required
+        options[]      string  required, ordered
+        correct_answer_index int  required (index into options)
       items[]    ordered
         type            string  optional (freeform verb: read / do / checkpoint …)
         description     string  required
@@ -115,8 +125,11 @@ Everything operates only on the calling user's own paths (scoped server-side).
   feed-article read), leave linked_book_id unset so the manual toggle applies.
 - Shape: roughly 3–6 items per module; one goal per path. Suggest a more
   focused path before writing 20+ modules or 60+ items.
-- Checkpoint items: include a checkpoint-type item at a module's mid-point or
-  end so progress can register.
+- End each module with one terminal checkpoint item that carries its quiz:
+  a checkpoint-type item with a quiz[] of 3–6 MCQs whose passing completes
+  the checkpoint (and thus the module). A module without a quiz still
+  completes on its items.
+- Suggest whole books only — never a partial-book checkpoint.
 - Resource curation: link a real books library entry or feeds item when one
   matches, else a freeform URL/description.
 
