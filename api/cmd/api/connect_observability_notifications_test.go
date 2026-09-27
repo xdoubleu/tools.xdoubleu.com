@@ -31,7 +31,7 @@ func TestGetNotificationSettings_AsAdmin(t *testing.T) {
 	assert.Equal(t, testApp.config.NotifyEmailTo, resp.Msg.AdminEmail)
 }
 
-// TestGetNotificationSettings_AsNonAdmin_Allowed: not admin-gated.
+// Non-admins can read the toggles but not the admin's address.
 func TestGetNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
 	req := connect.NewRequest(&observabilityv1.GetNotificationSettingsRequest{})
 	setCookieOnRequest(req, accessToken)
@@ -40,6 +40,20 @@ func TestGetNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
 	).GetNotificationSettings(context.Background(), req)
 	require.NoError(t, err)
 	assert.NotEmpty(t, resp.Msg.Settings)
+	assert.Empty(t, resp.Msg.AdminEmail)
+}
+
+// The settings are global, so only admins may change them.
+func TestUpdateNotificationSettings_AsNonAdmin_Denied(t *testing.T) {
+	req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
+		SourceKey: "open_feed_items",
+		Enabled:   false,
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := observabilityClient(
+		t,
+	).UpdateNotificationSettings(context.Background(), req)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }
 
 func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
@@ -78,27 +92,4 @@ func TestUpdateNotificationSettings_AsAdmin(t *testing.T) {
 			assert.False(t, s.Enabled)
 		}
 	}
-}
-
-func TestUpdateNotificationSettings_AsNonAdmin_Allowed(t *testing.T) {
-	t.Cleanup(func() {
-		req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
-			SourceKey: "unhealthy_feeds",
-			Enabled:   true,
-		})
-		setCookieOnRequest(req, accessToken)
-		_, _ = observabilityClient(
-			t,
-		).UpdateNotificationSettings(context.Background(), req)
-	})
-
-	req := connect.NewRequest(&observabilityv1.UpdateNotificationSettingsRequest{
-		SourceKey: "unhealthy_feeds",
-		Enabled:   false,
-	})
-	setCookieOnRequest(req, accessToken)
-	_, err := observabilityClient(
-		t,
-	).UpdateNotificationSettings(context.Background(), req)
-	require.NoError(t, err)
 }

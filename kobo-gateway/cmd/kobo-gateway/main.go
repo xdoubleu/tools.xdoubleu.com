@@ -142,7 +142,7 @@ func run(args []string, stdout io.Writer) error {
 	cfg := kobogateway.Config{
 		Port: *port,
 		AllowedOrigins: append(
-			kobogateway.DefaultAllowedOrigins(),
+			kobogateway.DefaultAllowedOrigins(Release),
 			extraOrigins...),
 		VolumesRoot: *volumesRoot,
 		Release:     Release,

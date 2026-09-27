@@ -59,3 +59,19 @@ func scrapeMetrics(t *testing.T) string {
 	require.Equal(t, http.StatusOK, rec.Code)
 	return rec.Body.String()
 }
+
+// A client-chosen method token doesn't mint a new series.
+func TestRequestDurationBucketsUnknownMethods(t *testing.T) {
+	t.Parallel()
+
+	handler := middleware.RequestDuration()(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) },
+	))
+	handler.ServeHTTP(
+		httptest.NewRecorder(), httptest.NewRequest("BREW", "/unknown-method", nil),
+	)
+
+	metrics := scrapeMetrics(t)
+	assert.NotContains(t, metrics, `method="BREW"`)
+	assert.Contains(t, metrics, `method="other"`)
+}

@@ -488,3 +488,14 @@ func TestResolveIssue_NetworkError(t *testing.T) {
 	err := newClient().ResolveIssue(context.Background(), "42")
 	require.Error(t, err)
 }
+
+// issueID goes into the URL path, so anything but a number is refused before
+// any request.
+func TestResolveIssue_RejectsNonNumericID(t *testing.T) {
+	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
+	for _, id := range []string{"../projects", "42?x=1", ""} {
+		err := c.ResolveIssue(context.Background(), id)
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
+	}
+}

@@ -17,8 +17,27 @@ import (
 // ErrBlockedAddress is returned when a connection resolves to a non-public IP.
 var ErrBlockedAddress = errors.New("connection to non-public address blocked")
 
-// cgnat is RFC 6598 shared address space — not covered by netip's IsPrivate.
-var cgnat = netip.MustParsePrefix("100.64.0.0/10") //nolint:gochecknoglobals //const
+// inBlockedRange reports whether ip is in a non-public range netip's
+// predicates don't cover: "this network", CGNAT, IETF protocol assignments,
+// benchmarking, reserved, and the NAT64/6to4 prefixes that translate to
+// (possibly private) IPv4.
+func inBlockedRange(ip netip.Addr) bool {
+	for _, prefix := range []string{
+		"0.0.0.0/8",
+		"100.64.0.0/10",
+		"192.0.0.0/24",
+		"198.18.0.0/15",
+		"240.0.0.0/4",
+		"64:ff9b::/96",
+		"64:ff9b:1::/48",
+		"2002::/16",
+	} {
+		if netip.MustParsePrefix(prefix).Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
 
 // Client blocks non-public IPs and stops after maxRedirects hops. allowPrivate
 // disables the check; pass cfg.Env != config.ProdEnv (tests use loopback).
@@ -34,6 +53,8 @@ func Client(timeout time.Duration, maxRedirects int, allowPrivate bool) *http.Cl
 	}
 	transport = transport.Clone()
 	transport.DialContext = dialer.DialContext
+	// A proxy would dial the target itself, bypassing the check.
+	transport.Proxy = nil
 
 	return &http.Client{
 		Timeout:   timeout,
@@ -68,7 +89,8 @@ func control(_, address string, _ syscall.RawConn) error {
 }
 
 // IsPublic reports whether addr is a routable public IP (not loopback,
-// private, link-local, CGNAT, multicast, unspecified or unparseable).
+// private, link-local, multicast, unspecified, an inBlockedRange range or
+// unparseable).
 func IsPublic(addr string) bool {
 	ip, err := netip.ParseAddr(addr)
 	if err != nil {
@@ -76,14 +98,6 @@ func IsPublic(addr string) bool {
 	}
 	ip = ip.Unmap()
 
-	switch {
-	case !ip.IsGlobalUnicast(),
-		ip.IsPrivate(),
-		ip.IsLoopback(),
-		ip.IsLinkLocalUnicast(),
-		cgnat.Contains(ip):
-		return false
-	default:
-		return true
-	}
+	return ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback() &&
+		!ip.IsLinkLocalUnicast() && !inBlockedRange(ip)
 }

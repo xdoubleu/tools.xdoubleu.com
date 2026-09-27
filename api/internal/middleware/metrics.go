@@ -60,10 +60,21 @@ func requestDurationHandler(next http.Handler) http.Handler {
 
 		requestDuration.WithLabelValues(
 			route,
-			r.Method,
+			methodLabel(r.Method),
 			statusClass(rw.Status()),
 		).Observe(time.Since(start).Seconds())
 	})
+}
+
+// methodLabel bounds the method label; clients choose any token.
+func methodLabel(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+		http.MethodPatch, http.MethodDelete, http.MethodOptions:
+		return method
+	default:
+		return "other"
+	}
 }
 
 const statusClassDivisor = 100

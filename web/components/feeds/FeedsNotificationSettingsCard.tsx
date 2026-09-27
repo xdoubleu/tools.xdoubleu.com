@@ -1,14 +1,19 @@
 'use client'
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { useCurrentUser } from '@/hooks/useAuth'
 import { useNotificationSettings } from '@/hooks/useMonitoring'
 import NotificationToggleList from '@/components/notifications/NotificationToggleList'
 
 // The other sources live on the monitoring page.
 const FEEDS_SOURCE_KEYS = ['unhealthy_feeds', 'open_feed_items']
 
+// Admin-only: the toggles are global and only admins may change them.
 export default function FeedsNotificationSettingsCard() {
+  const { data: currentUser } = useCurrentUser()
   const notificationSettings = useNotificationSettings()
+
+  if (currentUser?.role !== 'admin') return null
 
   return (
     <Card>

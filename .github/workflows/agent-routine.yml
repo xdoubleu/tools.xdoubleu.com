@@ -23,6 +23,13 @@ on:
         required: false
         type: boolean
         default: false
+      issues_only:
+        description: >-
+          Mint a token that can file issues but not push code or edit PRs, for
+          detection routines that read outsider-influenced text
+        required: false
+        type: boolean
+        default: false
 
 env:
   OPENCODE_VERSION: 2.0.18
@@ -56,6 +63,11 @@ jobs:
         with:
           app-id: ${{ vars.ROUTINES_APP_ID }}
           private-key: ${{ secrets.ROUTINES_APP_PRIVATE_KEY }}
+          # Empty values fall back to the App's full installation permissions.
+          permission-contents: ${{ inputs.issues_only && 'read' || '' }}
+          permission-issues: ${{ inputs.issues_only && 'write' || '' }}
+          permission-pull-requests: ${{ inputs.issues_only && 'read' || '' }}
+          permission-actions: ${{ inputs.issues_only && 'read' || '' }}
 
       - uses: actions/checkout@v7
         with:

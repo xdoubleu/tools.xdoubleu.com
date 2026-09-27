@@ -32,9 +32,13 @@ const (
 )
 
 // DefaultAllowedOrigins returns the origins allowed to drive the gateway
-// when no extra --allow-origin flags are passed.
-func DefaultAllowedOrigins() []string {
-	return []string{DefaultWebOrigin, DevWebOrigin}
+// when no extra --allow-origin flags are passed. Only dev builds trust the
+// local dev server: any page on that port could otherwise drive the gateway.
+func DefaultAllowedOrigins(release string) []string {
+	if release == "dev" {
+		return []string{DefaultWebOrigin, DevWebOrigin}
+	}
+	return []string{DefaultWebOrigin}
 }
 
 // UpdateRunner downloads the latest gateway binary over the running one.

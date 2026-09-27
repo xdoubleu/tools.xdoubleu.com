@@ -2,6 +2,8 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   extends: [
     'config:recommended',
+    // Third-party actions run with deploy/infra secrets; pin them to digests.
+    'helpers:pinGitHubActionDigests',
   ],
   customManagers: [
     {

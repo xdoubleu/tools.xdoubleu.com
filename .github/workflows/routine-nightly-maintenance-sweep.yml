@@ -17,6 +17,7 @@ jobs:
     secrets: inherit
     with:
       routine: nightly-maintenance-sweep
+      issues_only: true
       prompt: >-
         Run the monitoring-sweep skill (.claude/skills/monitoring-sweep/SKILL.md)
         in its unattended, detection-only mode; if the skill tool can't load it,

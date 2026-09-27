@@ -148,6 +148,10 @@ func (c *client) ListTransactionStats(ctx context.Context) ([]TransactionStat, e
 // ResolveIssue resolves issueID. The endpoint needs no org, but config is
 // checked first so an unconfigured connection fails consistently.
 func (c *client) ResolveIssue(ctx context.Context, issueID string) error {
+	// issueID lands in the URL path; only a numeric ID keeps the PUT on it.
+	if _, err := strconv.ParseUint(issueID, 10, 64); err != nil {
+		return fmt.Errorf("invalid Sentry issue ID %q", issueID)
+	}
 	if _, err := c.resolveConfig(ctx); err != nil {
 		return err
 	}

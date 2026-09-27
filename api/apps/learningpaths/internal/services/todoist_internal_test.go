@@ -124,7 +124,7 @@ func TestHandleCallback_UnknownStateErrors(t *testing.T) {
 		oauthconn.NewStateStore(),
 	)
 
-	_, err := svc.HandleCallback(t.Context(), "not-a-real-state", "code")
+	_, err := svc.HandleCallback(t.Context(), "user-1", "not-a-real-state", "code")
 	assert.Error(t, err)
 }
 
@@ -142,7 +142,7 @@ func TestHandleCallback_ExchangeFailure(t *testing.T) {
 	svc := NewTodoistService(repo, &fakeLearningPathsStore{}, conf, state)
 
 	validState := state.New(sharedmodels.OAuthProviderTodoist, "user-1")
-	_, err := svc.HandleCallback(t.Context(), validState, "some-code")
+	_, err := svc.HandleCallback(t.Context(), "user-1", validState, "some-code")
 	assert.Error(t, err)
 }
 
@@ -381,4 +381,18 @@ func TestSyncPath_PropagatesModuleLoadError(t *testing.T) {
 	svc, _ := newTestTodoistService(store)
 
 	assert.Error(t, svc.SyncPath(t.Context(), "user-1", uuid.New()))
+}
+
+// A state issued to another user can't link the session user's Todoist.
+func TestHandleCallback_StateOfOtherUserRejected(t *testing.T) {
+	//nolint:exhaustruct //endpoint URLs, not credentials
+	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}
+	repo := repositories.NewOAuthConnectionsRepository(nil, nil)
+	state := oauthconn.NewStateStore()
+	//nolint:exhaustruct //only fields relevant to this test
+	svc := NewTodoistService(repo, &fakeLearningPathsStore{}, conf, state)
+
+	attackerState := state.New(sharedmodels.OAuthProviderTodoist, "attacker")
+	_, err := svc.HandleCallback(t.Context(), "victim", attackerState, "code")
+	assert.ErrorContains(t, err, "invalid or expired oauth state")
 }
