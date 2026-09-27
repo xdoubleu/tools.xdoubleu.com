@@ -46,6 +46,7 @@ lint/proto: tools/proto
 
 lint/migrations:
 	./scripts/check_migration_versions.sh
+	sqlfluff lint --dialect postgres apps/*/migrations
 
 lint/kamal-secrets:
 	./scripts/check_kamal_secrets.sh
