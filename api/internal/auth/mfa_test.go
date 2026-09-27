@@ -218,7 +218,9 @@ func TestChallengeMFA_ReturnsFreshUUIDEachTime(t *testing.T) {
 
 // enrolledUser signs in a fresh user and verifies a TOTP factor, returning the
 // pre-MFA (aal1) access and refresh tokens plus the enrollment.
-func enrolledUser(t *testing.T) (*auth.LocalService, string, string, *auth.TOTPEnrollment) {
+func enrolledUser(
+	t *testing.T,
+) (*auth.LocalService, string, string, *auth.TOTPEnrollment) {
 	t.Helper()
 	service, db := newTestService(t)
 	userID := seedUser(t, db)
@@ -250,7 +252,10 @@ func TestSignInWithRefreshToken_PreMFAToken_Rejected(t *testing.T) {
 
 func TestUpdatePassword_PreMFAToken_Rejected(t *testing.T) {
 	service, access, _, _ := enrolledUser(t)
-	require.Error(t, service.UpdatePassword(context.Background(), access, "new-password"))
+	require.Error(
+		t,
+		service.UpdatePassword(context.Background(), access, "new-password"),
+	)
 }
 
 func TestEnrollTOTP_PreMFAToken_Rejected(t *testing.T) {

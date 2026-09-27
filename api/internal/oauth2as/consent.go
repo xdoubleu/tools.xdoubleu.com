@@ -11,6 +11,8 @@ import (
 )
 
 // ConsentTokenHeader carries the consent token on the approving POST.
+//
+//nolint:gosec // a header name, not a credential
 const ConsentTokenHeader = "X-OAuth-Consent-Token"
 
 const consentTokenTTL = 10 * time.Minute

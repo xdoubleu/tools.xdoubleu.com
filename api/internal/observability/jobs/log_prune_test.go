@@ -30,10 +30,17 @@ func TestLogPruneJob_PrunesPastRetention(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), logging.NewNopLogger()))
 	assert.Equal(t, "prune-log-entries", job.ID())
 	assert.Equal(t, 24*time.Hour, job.RunEvery())
-	assert.WithinDuration(t, time.Now().Add(-jobs.LogRetention), pruner.cutoff, time.Minute)
+	assert.WithinDuration(
+		t,
+		time.Now().Add(-jobs.LogRetention),
+		pruner.cutoff,
+		time.Minute,
+	)
 }
 
 func TestLogPruneJob_PropagatesError(t *testing.T) {
-	job := jobs.NewLogPruneJob(&fakeLogPruner{err: errors.New("boom")}) //nolint:exhaustruct // cutoff is output
+	job := jobs.NewLogPruneJob(
+		&fakeLogPruner{cutoff: time.Time{}, err: errors.New("boom")},
+	)
 	assert.Error(t, job.Run(t.Context(), logging.NewNopLogger()))
 }

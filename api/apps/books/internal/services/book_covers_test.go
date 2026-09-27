@@ -46,7 +46,7 @@ func TestCacheCoverFromURL_SlowSourceFailsFast(t *testing.T) {
 }
 
 // pngBytes is a minimal PNG signature, enough for content sniffing.
-var pngBytes = []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR") //nolint:gochecknoglobals // test fixture
+const pngBytes = "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
 
 func coverServer(t *testing.T, body []byte) *httptest.Server {
 	t.Helper()
@@ -70,7 +70,7 @@ func TestCacheCoverFromURL_StoresSniffedImage(t *testing.T) {
 	bookID := uuid.New()
 
 	require.NoError(t, svc.cacheCoverFromURL(
-		t.Context(), bookID, coverServer(t, pngBytes).URL,
+		t.Context(), bookID, coverServer(t, []byte(pngBytes)).URL,
 	))
 	exists, err := store.Exists(t.Context(), bookCoverKey(bookID))
 	require.NoError(t, err)
@@ -91,7 +91,10 @@ func TestCacheCoverFromURL_RejectsNonHTTPScheme(t *testing.T) {
 		objectStore: objectstore.NewFake(),
 		coverClient: newCoverClient("test"),
 	}
-	assert.Error(t, svc.cacheCoverFromURL(t.Context(), uuid.New(), "file:///etc/passwd"))
+	assert.Error(
+		t,
+		svc.cacheCoverFromURL(t.Context(), uuid.New(), "file:///etc/passwd"),
+	)
 }
 
 // The default client, like production, refuses private addresses.
@@ -99,7 +102,8 @@ func TestCacheCoverFromURL_BlocksPrivateAddressByDefault(t *testing.T) {
 	svc := &BookService{ //nolint:exhaustruct // partial
 		objectStore: objectstore.NewFake(),
 	}
-	err := svc.cacheCoverFromURL(t.Context(), uuid.New(), coverServer(t, pngBytes).URL)
+	srv := coverServer(t, []byte(pngBytes))
+	err := svc.cacheCoverFromURL(t.Context(), uuid.New(), srv.URL)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "non-public")
 }

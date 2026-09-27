@@ -134,7 +134,8 @@ func seedTestUsers(ctx context.Context) error {
 		INSERT INTO auth.totp_factors (user_id, secret, status)
 		VALUES ($1, $2, 'verified')
 		RETURNING id
-	`, mfaUserID, base64.StdEncoding.EncodeToString(sealed)).Scan(&mfaFactorID); err != nil {
+	`, mfaUserID, base64.StdEncoding.EncodeToString(sealed)).
+		Scan(&mfaFactorID); err != nil {
 		return err
 	}
 
