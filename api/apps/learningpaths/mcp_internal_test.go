@@ -71,7 +71,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 			{
 				Title: "Month 1",
 				Items: []mcpItemArg{
-{
+					{
 						Type:         "read",
 						Description:  "Read the tour of Go",
 						Completed:    false,
@@ -199,8 +199,13 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 			Title: "Basics",
 			// Terminal checkpoint item carries the quiz.
 			Items: []mcpItemArg{
-				{Type: "read", Description: "Read the tour", Completed: false},
-				{Type: "checkpoint", Description: "Pass the quiz", Completed: false},
+				{Type: "read", Description: "Read the tour", Completed: false, LinkedBookID: nil},
+				{
+					Type:         "checkpoint",
+					Description:  "Pass the quiz",
+					Completed:    false,
+					LinkedBookID: nil,
+				},
 			},
 			Quiz: quiz,
 		}},
@@ -293,7 +298,9 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 		Routine: "",
 		Modules: []mcpModuleArg{{
 			Title: "Broken",
-			Items: []mcpItemArg{{Type: "read", Description: "x", Completed: false}},
+			Items: []mcpItemArg{
+				{Type: "read", Description: "x", Completed: false, LinkedBookID: nil},
+			},
 			Quiz: []mcpQuizQuestionArg{{
 				Prompt: "?", Options: []string{"a", "b"}, CorrectAnswerIndex: 0,
 			}},
