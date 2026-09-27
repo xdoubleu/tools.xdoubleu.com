@@ -134,4 +134,13 @@ else
   failn "v2 varied execute work false-tripped"
 fi
 
+# regression: the tool/input key must not contain a NUL byte, which bash
+# strips from $(...) with a noisy "ignored null byte in input" warning
+for name in degen benign exec_degen exec_benign; do
+  if grep -q "null byte" "$WORK/$name.out"; then
+    failn "$name transcript emitted a null-byte warning"
+  fi
+done
+[ "$fail" = 0 ] && pass "no null-byte warnings emitted"
+
 exit "$fail"

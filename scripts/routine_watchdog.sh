@@ -54,7 +54,7 @@ while :; do
 		processed=$idx
 		[ -n "$line" ] || continue
 		key=$(printf '%s' "$line" \
-			| jq -r 'select(.type=="tool_use") | .part.tool + "\u0000" + (.part.state.input | tostring)' 2>/dev/null) \
+			| jq -r 'select(.type=="tool_use") | [.part.tool, (.part.state.input | tostring)] | @base64' 2>/dev/null) \
 			|| key=""
 		[ -n "$key" ] || continue
 		if [ "$key" = "$prev_key" ]; then
