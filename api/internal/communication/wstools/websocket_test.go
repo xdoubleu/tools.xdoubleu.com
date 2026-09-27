@@ -2,6 +2,7 @@ package wstools_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -275,4 +276,32 @@ func TestForbiddenOrigin(t *testing.T) {
 	var got errortools.ErrorDto
 	require.NoError(t, wsjson.Read(ctx, conn, &got))
 	assert.Equal(t, http.StatusText(http.StatusForbidden), got.Error)
+}
+
+// Topics are added at request time while subscribers look them up; run with
+// -race to catch unsynchronised map access.
+func TestWebSocketConcurrentAddTopicAndSubscribe(t *testing.T) {
+	t.Parallel()
+
+	ws := wstools.CreateWebSocketHandler[testSubscribeMsg](
+		t.Context(), logging.NewNopLogger(), 1, 10,
+	)
+	_, err := ws.AddTopic("exists", []string{"http://localhost"},
+		func(_ context.Context, _ *wstools.Topic) (any, error) {
+			return testResponse{Ok: true}, nil
+		})
+	require.NoError(t, err)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := range 50 {
+			_, _ = ws.AddTopic(fmt.Sprintf("topic-%d", i), nil, nil)
+		}
+	}()
+
+	var got testResponse
+	dialAndExchange(t, ws.Handler(), testSubscribeMsg{TopicName: "exists"}, &got)
+	<-done
+	assert.True(t, got.Ok)
 }

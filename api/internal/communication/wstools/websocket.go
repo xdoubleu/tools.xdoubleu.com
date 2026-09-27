@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -28,7 +29,10 @@ type WebSocketHandler[T SubscribeMessageDto] struct {
 	logger                 *slog.Logger
 	maxTopicWorkers        int
 	topicChannelBufferSize int
-	topicMap               map[string]*Topic
+	// mu is shared by copies of the handler; topics are added at request
+	// time while subscribers read the map.
+	mu       *sync.RWMutex
+	topicMap map[string]*Topic
 }
 
 // CreateWebSocketHandler creates a new [WebSocketHandler].
@@ -43,6 +47,7 @@ func CreateWebSocketHandler[T SubscribeMessageDto](
 		logger:                 logger,
 		maxTopicWorkers:        maxTopicWorkers,
 		topicChannelBufferSize: topicChannelBufferSize,
+		mu:                     &sync.RWMutex{},
 		topicMap:               make(map[string]*Topic),
 	}
 }
@@ -54,6 +59,9 @@ func (h *WebSocketHandler[T]) AddTopic(
 	allowedOrigins []string,
 	onSubscribeCallback OnSubscribeCallback,
 ) (*Topic, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	_, ok := h.topicMap[topicName]
 	if ok {
 		return nil, fmt.Errorf("topic '%s' has already been added", topicName)
@@ -78,6 +86,9 @@ func (h *WebSocketHandler[T]) UpdateTopicName(
 	topic *Topic,
 	newName string,
 ) (*Topic, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	newTopic, ok := h.topicMap[topic.Name]
 	if !ok {
 		return nil, fmt.Errorf("topic '%s' doesn't exist", topic.Name)
@@ -97,6 +108,9 @@ func (h *WebSocketHandler[T]) UpdateTopicName(
 
 // RemoveTopic removes a topic.
 func (h *WebSocketHandler[T]) RemoveTopic(topic *Topic) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
 	_, ok := h.topicMap[topic.Name]
 	if !ok {
 		return fmt.Errorf("topic '%s' doesn't exist", topic.Name)
@@ -128,7 +142,9 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 				return
 			}
 
+			h.mu.RLock()
 			topic, ok := h.topicMap[msg.Topic()]
+			h.mu.RUnlock()
 			if !ok {
 				ErrorResponse(
 					r.Context(),
@@ -142,6 +158,7 @@ func (h WebSocketHandler[T]) Handler() http.HandlerFunc {
 			err = authenticateOrigin(r, topic.allowedOrigins)
 			if err != nil {
 				ForbiddenResponse(r.Context(), conn)
+				return
 			}
 
 			err = topic.Subscribe(conn)
