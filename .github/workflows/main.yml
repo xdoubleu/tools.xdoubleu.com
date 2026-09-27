@@ -1,9 +1,8 @@
 name: Main Workflow
 
+# Least privilege: jobs that push images or need more ask for it themselves.
 permissions:
-  actions: write
   contents: read
-  packages: write
 
 on:
   workflow_dispatch:
@@ -89,6 +88,9 @@ jobs:
       needs.changes.outputs.proto == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Proto Staleness Check Workflow
+    permissions:
+      contents: read
+      actions: write
     uses: ./.github/workflows/proto-check.yml
     secrets: inherit
 
@@ -106,6 +108,9 @@ jobs:
       needs.changes.outputs.config_api == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build API Workflow
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-api.yml
     secrets: inherit
 
@@ -119,6 +124,9 @@ jobs:
       needs.changes.outputs.config_grafana == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Grafana Workflow
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-grafana.yml
     secrets: inherit
 
@@ -138,6 +146,9 @@ jobs:
       needs.changes.outputs.config_web == 'true' ||
       needs.changes.outputs.workflows == 'true')
     name: Build Web Workflow
+    permissions:
+      contents: read
+      packages: write
     uses: ./.github/workflows/build-web.yml
     secrets: inherit
 
