@@ -356,8 +356,10 @@ func NewApplication(
 		Environment:      config.Env,
 		Release:          config.Release,
 		EnableTracing:    true,
-		TracesSampleRate: config.SampleRate,
-		SampleRate:       config.SampleRate,
+		TracesSampleRate:      config.SampleRate,
+		SampleRate:            config.SampleRate,
+		BeforeSend:            scrubSentryEvent,
+		BeforeSendTransaction: scrubSentryEvent,
 	})
 	if err != nil {
 		panic(err)
