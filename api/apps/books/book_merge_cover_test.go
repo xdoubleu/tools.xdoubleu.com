@@ -22,7 +22,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	imgServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "image/jpeg")
-			_, _ = w.Write([]byte("merge-cover-bytes"))
+			_, _ = w.Write([]byte("\xff\xd8\xffmerge-cover-bytes"))
 		},
 	))
 	defer imgServer.Close()
@@ -73,7 +73,7 @@ func TestMergeBooks_CoverSource_CachesCoverEagerly(t *testing.T) {
 	coverKey := "books/" + winner.BookID.String() + "/cover.jpg"
 	data, cached := fakeStore.GetContent(coverKey)
 	require.True(t, cached, "winner's cover should be cached in R2 after merge")
-	assert.Equal(t, "merge-cover-bytes", string(data))
+	assert.Equal(t, "\xff\xd8\xffmerge-cover-bytes", string(data))
 }
 
 // TestMergeBooks_CoverSource_NoCover_ClearsCache verifies that resolving a
@@ -84,7 +84,7 @@ func TestMergeBooks_CoverSource_NoCover_ClearsCache(t *testing.T) {
 	imgServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "image/jpeg")
-			_, _ = w.Write([]byte("stale-cover-bytes"))
+			_, _ = w.Write([]byte("\xff\xd8\xffstale-cover-bytes"))
 		},
 	))
 	defer imgServer.Close()

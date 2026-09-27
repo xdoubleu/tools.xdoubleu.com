@@ -7,9 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+
+	"tools.xdoubleu.com/internal/config"
+	"tools.xdoubleu.com/internal/safedial"
 )
 
 // ErrCoverNotFound is returned when no cover is cached for the book.
@@ -24,6 +29,16 @@ const maxCoverBytes = 20 * 1024 * 1024
 // cover handler, so a dead source must fail fast rather than outlive the
 // server's write timeout.
 const coverFetchTimeout = 5 * time.Second
+
+const maxCoverRedirects = 5
+
+// newCoverClient fetches cover URLs, which can be user-supplied; private
+// addresses are reachable only outside production.
+func newCoverClient(env string) *http.Client {
+	return safedial.Client(
+		coverFetchTimeout, maxCoverRedirects, env != config.ProdEnv,
+	)
+}
 
 // GetBookCoverResult holds the outcome of a successful GetBookCover call.
 type GetBookCoverResult struct {
@@ -80,12 +95,21 @@ func (s *BookService) cacheCoverFromURL(
 	bookID uuid.UUID,
 	coverURL string,
 ) error {
+	parsed, err := url.Parse(coverURL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return fmt.Errorf("cover url %q: only http(s) is allowed", coverURL)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, coverURL, nil)
 	if err != nil {
 		return fmt.Errorf("build cover request: %w", err)
 	}
 
-	resp, err := (&http.Client{Timeout: coverFetchTimeout}).Do(req)
+	client := s.coverClient
+	if client == nil {
+		client = newCoverClient(config.ProdEnv)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("fetch cover: %w", err)
 	}
@@ -104,9 +128,10 @@ func (s *BookService) cacheCoverFromURL(
 		return fmt.Errorf("cover from %s exceeds %d bytes", coverURL, maxCoverBytes)
 	}
 
-	contentType := resp.Header.Get("Content-Type")
-	if contentType == "" {
-		contentType = contentTypeJPEG
+	// Sniffed, not the upstream header, so only raster images are stored.
+	contentType := http.DetectContentType(data)
+	if !strings.HasPrefix(contentType, "image/") {
+		return fmt.Errorf("cover from %s is %s, not an image", coverURL, contentType)
 	}
 
 	return s.objectStore.Put(

@@ -53,6 +53,7 @@ func New(
 		uniCat:       uniCat,
 		hardcover:    hardcoverClient,
 		resyncSource: repositories.Books,
+		coverClient:  newCoverClient(config.Env),
 	}
 
 	conversionSvc := NewConversionService(
