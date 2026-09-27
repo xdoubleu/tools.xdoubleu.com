@@ -252,6 +252,14 @@ func TestAppsMCPRecordActionOpenAndClose(t *testing.T) {
 	openedID, err := strconv.ParseInt(opened.ID, 10, 64)
 	require.NoError(t, err)
 
+	// The id is also exposed as structured output for JSON readers.
+	structuredJSON, err := json.Marshal(openRes.StructuredContent)
+	require.NoError(t, err)
+	var structured map[string]any
+	require.NoError(t, json.Unmarshal(structuredJSON, &structured))
+	structuredID, _ := structured["id"].(string)
+	assert.Equal(t, opened.ID, structuredID)
+
 	//nolint:exhaustruct // name + arguments are all a tool call needs
 	closeRes, err := session.CallTool(context.Background(), &mcp.CallToolParams{
 		Name: "record_action",

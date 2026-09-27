@@ -35,6 +35,7 @@ routines/test:
 	./scripts/test_routine_metrics.sh
 	./scripts/test_routine_watchdog.sh
 	./scripts/test_routine_preflight.sh
+	./scripts/test_routine_record.sh
 
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:
