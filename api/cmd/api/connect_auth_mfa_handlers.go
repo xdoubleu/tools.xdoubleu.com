@@ -28,7 +28,7 @@ func (h *authConnectHandler) MFAEnroll(
 
 	enrollment, err := h.app.auth.EnrollTOTP(ctx, tokenCookie.Value)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(authErrorCode(err), err)
 	}
 
 	return connect.NewResponse(&authv1.MFAEnrollResponse{
@@ -118,7 +118,7 @@ func (h *authConnectHandler) RegenerateRecoveryCodes(
 
 	codes, err := h.app.auth.GenerateRecoveryCodes(ctx, accessToken.Value)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(authErrorCode(err), err)
 	}
 
 	return connect.NewResponse(&authv1.RegenerateRecoveryCodesResponse{
@@ -127,7 +127,7 @@ func (h *authConnectHandler) RegenerateRecoveryCodes(
 }
 
 func (h *authConnectHandler) MFAEnrollSkip(
-	_ context.Context,
+	ctx context.Context,
 	req *connect.Request[authv1.MFAEnrollSkipRequest],
 ) (*connect.Response[authv1.MFAEnrollSkipResponse], error) {
 	mfaToken, err := h.parseCookie(req.Header(), "mfaToken")
@@ -135,6 +135,13 @@ func (h *authConnectHandler) MFAEnrollSkip(
 		return nil, connect.NewError(
 			connect.CodeUnauthenticated,
 			errors.New("mfa token required"),
+		)
+	}
+	// Skipping is only for users with no factor; others must pass the challenge.
+	if _, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, mfaToken.Value); hasMFA {
+		return nil, connect.NewError(
+			connect.CodePermissionDenied,
+			errors.New("mfa challenge required"),
 		)
 	}
 	mfaRefreshToken, err := h.parseCookie(req.Header(), "mfaRefreshToken")
@@ -233,7 +240,7 @@ func (h *authConnectHandler) MFAUnenroll(
 	}
 
 	if err = h.app.auth.UnenrollTOTP(ctx, accessToken.Value, factorID); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
+		return nil, connect.NewError(authErrorCode(err), err)
 	}
 
 	return connect.NewResponse(&authv1.MFAUnenrollResponse{}), nil

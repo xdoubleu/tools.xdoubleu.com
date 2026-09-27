@@ -158,12 +158,18 @@ func TestMFAUnenroll_Success(t *testing.T) {
 		Code:     currentTOTPCode(t, secret),
 	})
 	setCookieOnRequest(verifyReq, tokenCookie)
-	_, err := mfaClient.MFAEnrollVerify(context.Background(), verifyReq)
+	verifyResp, err := mfaClient.MFAEnrollVerify(context.Background(), verifyReq)
 	require.NoError(t, err)
 
+	// The pre-enrolment aal1 token no longer grants a session.
 	client := authClient(t)
+	staleReq := connect.NewRequest(&authv1.MFAUnenrollRequest{})
+	setCookieOnRequest(staleReq, tokenCookie)
+	_, err = client.MFAUnenroll(context.Background(), staleReq)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+
 	req := connect.NewRequest(&authv1.MFAUnenrollRequest{})
-	setCookieOnRequest(req, tokenCookie)
+	setCookieOnRequest(req, sessionCookie(t, verifyResp.Header()))
 	_, err = client.MFAUnenroll(context.Background(), req)
 	require.NoError(t, err)
 }
@@ -189,8 +195,18 @@ func TestGetCurrentUser_HasMFA_False(t *testing.T) {
 func TestGetCurrentUser_HasMFA_True(t *testing.T) {
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
-	setCookieOnRequest(req, mfaAccessToken)
+	setCookieOnRequest(req, mfaSessionToken)
 	resp, err := client.GetCurrentUser(context.Background(), req)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.HasMfa)
+}
+
+// The aal1 token issued before the MFA challenge is not a session.
+func TestGetCurrentUser_PreMFAToken_Unauthenticated(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.GetCurrentUserRequest{})
+	setCookieOnRequest(req, mfaAccessToken)
+	_, err := client.GetCurrentUser(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }

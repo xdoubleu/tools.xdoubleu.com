@@ -10,6 +10,8 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/auth"
 )
 
 func totpCode(t *testing.T, secret string) string {
@@ -83,13 +85,13 @@ func TestRecoveryCode_FallbackConsumesExactlyOnce(t *testing.T) {
 
 	enrollment, err := service.EnrollTOTP(context.Background(), *access)
 	require.NoError(t, err)
-	_, _, err = service.VerifyMFA(
+	session, _, err := service.VerifyMFA(
 		context.Background(), *access, enrollment.ID, enrollment.ID,
 		totpCode(t, enrollment.Secret),
 	)
 	require.NoError(t, err)
 
-	codes, err := service.GenerateRecoveryCodes(context.Background(), *access)
+	codes, err := service.GenerateRecoveryCodes(context.Background(), *session)
 	require.NoError(t, err)
 	require.NotEmpty(t, codes)
 
@@ -116,17 +118,17 @@ func TestUnenrollTOTP_ClearsFactorAndRecoveryCodes(t *testing.T) {
 
 	enrollment, err := service.EnrollTOTP(context.Background(), *access)
 	require.NoError(t, err)
-	_, _, err = service.VerifyMFA(
+	session, _, err := service.VerifyMFA(
 		context.Background(), *access, enrollment.ID, enrollment.ID,
 		totpCode(t, enrollment.Secret),
 	)
 	require.NoError(t, err)
 
-	_, err = service.GenerateRecoveryCodes(context.Background(), *access)
+	_, err = service.GenerateRecoveryCodes(context.Background(), *session)
 	require.NoError(t, err)
 
 	require.NoError(t, service.UnenrollTOTP(
-		context.Background(), *access, enrollment.ID,
+		context.Background(), *session, enrollment.ID,
 	))
 
 	_, hasMFA := service.HasVerifiedTOTP(context.Background(), *access)
@@ -212,4 +214,72 @@ func TestChallengeMFA_ReturnsFreshUUIDEachTime(t *testing.T) {
 	c2, err := service.ChallengeMFA(context.Background(), "any", uuid.UUID{})
 	require.NoError(t, err)
 	assert.NotEqual(t, c1.ID, c2.ID)
+}
+
+// enrolledUser signs in a fresh user and verifies a TOTP factor, returning the
+// pre-MFA (aal1) access and refresh tokens plus the enrollment.
+func enrolledUser(t *testing.T) (*auth.LocalService, string, string, *auth.TOTPEnrollment) {
+	t.Helper()
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	access, refresh, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+	enrollment, err := service.EnrollTOTP(context.Background(), *access)
+	require.NoError(t, err)
+	_, _, err = service.VerifyMFA(
+		context.Background(), *access, enrollment.ID, enrollment.ID,
+		totpCode(t, enrollment.Secret),
+	)
+	require.NoError(t, err)
+	return service, *access, *refresh, enrollment
+}
+
+func TestGetUser_PreMFAToken_Rejected(t *testing.T) {
+	service, access, _, _ := enrolledUser(t)
+	_, err := service.GetUser(context.Background(), access)
+	require.Error(t, err)
+}
+
+func TestSignInWithRefreshToken_PreMFAToken_Rejected(t *testing.T) {
+	service, _, refresh, _ := enrolledUser(t)
+	_, _, err := service.SignInWithRefreshToken(context.Background(), refresh)
+	require.Error(t, err)
+}
+
+func TestUpdatePassword_PreMFAToken_Rejected(t *testing.T) {
+	service, access, _, _ := enrolledUser(t)
+	require.Error(t, service.UpdatePassword(context.Background(), access, "new-password"))
+}
+
+func TestEnrollTOTP_PreMFAToken_Rejected(t *testing.T) {
+	service, access, _, _ := enrolledUser(t)
+	_, err := service.EnrollTOTP(context.Background(), access)
+	require.Error(t, err)
+}
+
+// The pre-MFA token can pass the challenge but can't verify a second factor.
+func TestVerifyMFA_PreMFAToken_CannotVerifyNewFactor(t *testing.T) {
+	service, access, _, enrollment := enrolledUser(t)
+	session, _, err := service.VerifyMFA(
+		context.Background(), access, enrollment.ID, enrollment.ID,
+		totpCode(t, enrollment.Secret),
+	)
+	require.NoError(t, err)
+
+	second, err := service.EnrollTOTP(context.Background(), *session)
+	require.NoError(t, err)
+
+	_, _, err = service.VerifyMFA(
+		context.Background(), access, second.ID, second.ID,
+		totpCode(t, second.Secret),
+	)
+	require.Error(t, err)
+}
+
+func TestValidateAccessToken(t *testing.T) {
+	service, access, _, _ := enrolledUser(t)
+	require.NoError(t, service.ValidateAccessToken(access))
+	require.Error(t, service.ValidateAccessToken("not-a-jwt"))
 }

@@ -60,7 +60,7 @@ func (service *LocalService) EnrollTOTP(
 	ctx context.Context,
 	accessToken string,
 ) (*TOTPEnrollment, error) {
-	c, err := service.parseAccessToken(accessToken)
+	c, _, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
@@ -155,6 +155,17 @@ func (service *LocalService) VerifyMFA(
 		return nil, nil, invalidCode
 	}
 
+	// Enrolling a second factor needs an aal2 session, not the pre-MFA token.
+	if factor.Status != "verified" && c.AAL != aal2 {
+		hasMFA, mfaErr := service.hasVerifiedFactor(ctx, c.Subject)
+		if mfaErr != nil {
+			return nil, nil, mfaErr
+		}
+		if hasMFA {
+			return nil, nil, errMFARequired
+		}
+	}
+
 	sealed, err := base64.StdEncoding.DecodeString(factor.Secret)
 	if err != nil {
 		return nil, nil, err
@@ -232,7 +243,7 @@ func (service *LocalService) UnenrollTOTP(
 ) error {
 	service.userCache.evict(accessToken)
 
-	c, err := service.parseAccessToken(accessToken)
+	c, _, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return err
 	}
@@ -249,7 +260,7 @@ func (service *LocalService) GenerateRecoveryCodes(
 	ctx context.Context,
 	accessToken string,
 ) ([]string, error) {
-	c, err := service.parseAccessToken(accessToken)
+	c, _, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
