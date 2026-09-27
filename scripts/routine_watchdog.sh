@@ -29,7 +29,7 @@ done
 	|| { echo "usage: --transcript <path> --stamp <path> --kill-pid <pid>" >&2; exit 2; }
 
 processed=0   # number of transcript lines already handled
-prev_key=""   # "tool\0command" of the last tool_use seen
+prev_key=""   # "tool\0serialized-input" of the last tool_use seen
 run=0         # current run of identical tool_use
 
 trip() {
@@ -54,7 +54,7 @@ while :; do
 		processed=$idx
 		[ -n "$line" ] || continue
 		key=$(printf '%s' "$line" \
-			| jq -r 'select(.type=="tool_use") | .part.tool + "\u0000" + ((.part.state.input.command // "") | tostring)' 2>/dev/null) \
+			| jq -r 'select(.type=="tool_use") | .part.tool + "\u0000" + (.part.state.input | tostring)' 2>/dev/null) \
 			|| key=""
 		[ -n "$key" ] || continue
 		if [ "$key" = "$prev_key" ]; then

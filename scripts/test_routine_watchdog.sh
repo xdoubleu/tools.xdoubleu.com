@@ -84,4 +84,54 @@ else
   failn "varied benign work false-tripped"
 fi
 
+# v2 Code Mode wraps every tool call in an `execute` step whose input is
+# `.code`, not `.command`: identical-code loops must trip, distinct codes must
+# not all share one "execute" key and false-trip.
+python3 - "$WORK/exec_degen.jsonl" <<'PY'
+import json, sys
+ts = 1790000000000
+def ev(code):
+    global ts; ts += 500
+    return json.dumps({"type": "tool_use", "timestamp": ts, "sessionID": "s",
+        "part": {"type": "tool", "tool": "execute", "callID": "c",
+                 "state": {"status": "completed", "input": {"code": code}}}})
+f = open(sys.argv[1], "w")
+f.write(json.dumps({"type": "step_start", "timestamp": ts, "sessionID": "s", "part": {}}) + "\n")
+for _ in range(40):
+    f.write(ev("await tools['tools-apps'].prom_query('up')") + "\n")
+f.close()
+PY
+
+python3 - "$WORK/exec_benign.jsonl" <<'PY'
+import json, sys
+ts = 1790000000000
+def ev(code):
+    global ts; ts += 500
+    return json.dumps({"type": "tool_use", "timestamp": ts, "sessionID": "s",
+        "part": {"type": "tool", "tool": "execute", "callID": "c",
+                 "state": {"status": "completed", "input": {"code": code}}}})
+def st(t):
+    global ts; ts += 500
+    return json.dumps({"type": t, "timestamp": ts, "sessionID": "s", "part": {}})
+f = open(sys.argv[1], "w")
+for i in range(100):
+    f.write(st("step_start") + "\n")
+    for j in range(3):
+        f.write(ev("await callstep(%d, %d)" % (i, j)) + "\n")
+    f.write(st("step_finish") + "\n")
+f.close()
+PY
+
+if [ "$(run_watchdog "$WORK/exec_degen.jsonl" exec_degen)" = "trip" ]; then
+  pass "v2 identical execute loops trip the watchdog"
+else
+  failn "v2 identical execute loop did not trip"
+fi
+
+if [ "$(run_watchdog "$WORK/exec_benign.jsonl" exec_benign)" = "quiet" ]; then
+  pass "v2 varied execute work stays quiet"
+else
+  failn "v2 varied execute work false-tripped"
+fi
+
 exit "$fail"

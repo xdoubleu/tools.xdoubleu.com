@@ -13,8 +13,9 @@ workflow:
 2. opens the run's `automated_actions` row through `record_action`
    (`scripts/routine_record.sh`; `trigger_source` `schedule`, `manual`, or `ci`
    for a red `main`),
-3. runs `opencode run --auto` on OpenRouter with the routine's prompt, writing
-   the transcript to a file rather than the public job log,
+3. runs `opencode run --standalone --auto` (OpenCode CLI v2, pinned via
+   `@opencode/cli`) on OpenRouter with the routine's prompt, writing the
+   transcript to a file rather than the public job log,
 4. preflights the apps MCP server (`scripts/routine_preflight.sh`): fails the
    job before the agent starts if the required tools aren't exposed,
 5. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
