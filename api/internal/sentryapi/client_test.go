@@ -494,7 +494,8 @@ func TestResolveIssue_NetworkError(t *testing.T) {
 func TestResolveIssue_RejectsNonNumericID(t *testing.T) {
 	c := sentryapi.New(logging.NewNopLogger(), stubToken("token"), configNotConnected())
 	for _, id := range []string{"../projects", "42?x=1", ""} {
-		require.Error(t, c.ResolveIssue(context.Background(), id))
-		assert.NotErrorIs(t, c.ResolveIssue(context.Background(), id), sentryapi.ErrNotConfigured)
+		err := c.ResolveIssue(context.Background(), id)
+		require.Error(t, err)
+		assert.NotErrorIs(t, err, sentryapi.ErrNotConfigured)
 	}
 }
