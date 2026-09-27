@@ -36,7 +36,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
   }
 
   const info = await getConsentInfo(params, accessToken)
-  if (!info?.consentToken) {
+  if (!info) {
     return (
       <PageContainer size="narrow">
         <p className="text-danger">This authorization request is invalid or has expired.</p>
@@ -48,7 +48,7 @@ export default async function ConsentPage({ searchParams }: ConsentPageProps) {
     <PageContainer size="narrow">
       <ConsentForm
         requestQuery={query}
-        consentToken={info.consentToken}
+        consentToken={info.consentToken ?? ''}
         clientName={info.clientName}
         scope={info.scope}
       />

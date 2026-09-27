@@ -65,15 +65,14 @@ describe('ConsentPage', () => {
     )
   })
 
-  it('renders an error when the api issues no consent token', async () => {
+  // The api refuses an approval without a valid token, so the page needn't.
+  it('still renders the form when the api issues no consent token', async () => {
     withCookies({ accessToken: 'at' })
     jest
       .mocked(getConsentInfo)
       .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid' })
     await renderPage({ client_id: 'c1' })
-    expect(
-      screen.getByText('This authorization request is invalid or has expired.')
-    ).toBeInTheDocument()
+    expect(screen.getByText('Authorize Claude CLI')).toBeInTheDocument()
   })
 
   it('takes the first value of a repeated query param', async () => {

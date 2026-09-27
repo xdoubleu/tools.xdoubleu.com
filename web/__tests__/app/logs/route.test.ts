@@ -109,7 +109,7 @@ describe('POST /logs', () => {
           body: '{"entries":[]}'
         })
       )
-    for (let i = 0; i < 30; i++) expect((await send()).status).toBe(204)
+    for (let i = 0; i < 60; i++) expect((await send()).status).toBe(204)
     expect((await send()).status).toBe(429)
   })
 

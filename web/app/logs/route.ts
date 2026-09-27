@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic'
 
 const MAX_BODY_BYTES = 64 * 1024
 
-const limiter = createRateLimiter(30, 60_000)
+const limiter = createRateLimiter(60, 60_000)
 
 function crossSite(request: Request): boolean {
   const site = request.headers.get('sec-fetch-site')
