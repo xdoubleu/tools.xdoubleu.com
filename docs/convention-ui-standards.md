@@ -27,13 +27,6 @@
 - **Pending buttons** use `Saving…`. Always `…`, never `...`.
 - **Pinch-zoom is disabled** for an app-like feel (the `viewport` export in `app/layout.tsx`). That makes 16px fields and 44px targets mandatory.
 
-## Rollout
-
-`web/eslint-rules/legacy-files.mjs` exempts files, grouped by domain, that predate the `ui/*` rules. New files are always checked.
-- **Migrating a domain:** delete its section, then fix what lint reports.
-- **Never add an entry.**
-- **When the list is empty:** delete the file.
-
 ## Why
 
 - `cn()` lets a `className` prop reliably override defaults; concatenation loses to Tailwind ordering.
