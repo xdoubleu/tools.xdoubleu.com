@@ -31,17 +31,17 @@ func TestLogsInsertAndQuery(t *testing.T) {
 		Message: "web oops", AttrsJSON: nil,
 	}))
 
-	all, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "")
+	all, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "", 100)
 	require.NoError(t, err)
 	require.Len(t, all, 2)
 	assert.Equal(t, "web oops", all[0].Message)
 
-	apiOnly, err := repo.Query(t.Context(), now.Add(-time.Hour), "api", "")
+	apiOnly, err := repo.Query(t.Context(), now.Add(-time.Hour), "api", "", 100)
 	require.NoError(t, err)
 	require.Len(t, apiOnly, 1)
 	assert.Equal(t, "api hello", apiOnly[0].Message)
 
-	errOnly, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "error")
+	errOnly, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "error", 100)
 	require.NoError(t, err)
 	require.Len(t, errOnly, 1)
 	assert.Equal(t, "web oops", errOnly[0].Message)
@@ -65,8 +65,24 @@ func TestLogsPruneOlderThan(t *testing.T) {
 		t, repo.PruneOlderThan(t.Context(), time.Now().AddDate(0, 0, -30)),
 	)
 
-	entries, err := repo.Query(t.Context(), time.Now().AddDate(0, 0, -90), "", "")
+	entries, err := repo.Query(t.Context(), time.Now().AddDate(0, 0, -90), "", "", 100)
 	require.NoError(t, err)
 	require.Len(t, entries, 1)
 	assert.Equal(t, "fresh", entries[0].Message)
+}
+
+func TestLogsQuery_RespectsLimit(t *testing.T) {
+	clearLogs(t)
+	repo := repositories.NewLogsRepository(testDB)
+	now := time.Now()
+	for i := range 3 {
+		require.NoError(t, repo.Insert(t.Context(), models.LogEntry{
+			OccurredAt: now.Add(time.Duration(i) * time.Second), Source: "api",
+			Level: "info", Message: "entry", AttrsJSON: nil,
+		}))
+	}
+
+	entries, err := repo.Query(t.Context(), now.Add(-time.Hour), "", "", 2)
+	require.NoError(t, err)
+	assert.Len(t, entries, 2)
 }

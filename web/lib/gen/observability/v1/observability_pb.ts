@@ -1181,7 +1181,7 @@ export type LogEntry = Message<"observability.v1.LogEntry"> & {
   occurredAt: string;
 
   /**
-   * "api" | "web"
+   * "api" | "web" | "web-client" (browser-supplied)
    *
    * @generated from field: string source = 2;
    */

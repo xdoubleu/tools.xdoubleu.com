@@ -33,12 +33,13 @@ func (r *LogsRepository) Insert(ctx context.Context, entry models.LogEntry) erro
 	return err
 }
 
-// Query returns entries since since, newest first; empty source/level match
-// any.
+// Query returns up to limit entries since since, newest first; empty
+// source/level match any.
 func (r *LogsRepository) Query(
 	ctx context.Context,
 	since time.Time,
 	source, level string,
+	limit int,
 ) ([]models.LogEntry, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT occurred_at, source, level, message, attrs
@@ -47,7 +48,8 @@ func (r *LogsRepository) Query(
 		  AND ($2 = '' OR source = $2)
 		  AND ($3 = '' OR level = $3)
 		ORDER BY occurred_at DESC
-	`, since, source, level)
+		LIMIT $4
+	`, since, source, level, limit)
 	if err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+	"unicode/utf8"
 
 	"tools.xdoubleu.com/internal/models"
 )
@@ -30,6 +31,29 @@ type ingestLogsRequest struct {
 	Entries []ingestLogEntry `json:"entries"`
 }
 
+// Ingest bounds: web's relay forwards browser-supplied batches.
+const (
+	maxIngestBodyBytes    = 256 * 1024
+	maxIngestEntries      = 100
+	maxIngestMessageBytes = 4 * 1024
+	maxIngestAttrsBytes   = 8 * 1024
+	maxIngestClockSkew    = 10 * time.Minute
+)
+
+//nolint:gochecknoglobals //read-only allowlist
+var ingestLevels = map[string]bool{
+	"debug": true, "info": true, "warn": true, "error": true,
+}
+
+// ingestSource is web's server-side logger by default; its public relay
+// marks browser-supplied entries web-client.
+func ingestSource(r *http.Request) string {
+	if r.URL.Query().Get("source") == "web-client" {
+		return "web-client"
+	}
+	return "web"
+}
+
 // observabilityIngestRoute authenticates with the shared secret.
 func (app *Application) observabilityIngestRoute() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -39,8 +63,13 @@ func (app *Application) observabilityIngestRoute() http.HandlerFunc {
 		}
 
 		var req ingestLogsRequest
+		r.Body = http.MaxBytesReader(w, r.Body, maxIngestBodyBytes)
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		if len(req.Entries) > maxIngestEntries {
+			http.Error(w, "too many entries", http.StatusRequestEntityTooLarge)
 			return
 		}
 
@@ -70,23 +99,44 @@ func (app *Application) observabilityIngestAuthorized(r *http.Request) bool {
 func (app *Application) insertIngestedLogs(
 	r *http.Request, entries []ingestLogEntry,
 ) error {
+	source := ingestSource(r)
 	for _, e := range entries {
-		occurredAt := time.Now()
-		if e.OccurredAt != "" {
-			if parsed, err := time.Parse(time.RFC3339, e.OccurredAt); err == nil {
-				occurredAt = parsed
-			}
+		now := time.Now()
+		occurredAt := now
+		if parsed, err := time.Parse(time.RFC3339, e.OccurredAt); err == nil &&
+			parsed.Sub(now).Abs() <= maxIngestClockSkew {
+			occurredAt = parsed
+		}
+
+		level := e.Level
+		if !ingestLevels[level] {
+			level = "info"
+		}
+		attrs := e.Attrs
+		if len(attrs) > maxIngestAttrsBytes {
+			attrs = nil
 		}
 
 		if err := app.logsRepo.Insert(r.Context(), models.LogEntry{
 			OccurredAt: occurredAt,
-			Source:     "web",
-			Level:      e.Level,
-			Message:    e.Message,
-			AttrsJSON:  e.Attrs,
+			Source:     source,
+			Level:      level,
+			Message:    truncateUTF8(e.Message, maxIngestMessageBytes),
+			AttrsJSON:  attrs,
 		}); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// truncateUTF8 cuts s to at most n bytes without splitting a rune.
+func truncateUTF8(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
 }
