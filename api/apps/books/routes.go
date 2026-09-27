@@ -12,10 +12,6 @@ func (a *Books) booksRoutes(prefix string, mux *http.ServeMux) {
 		"GET /"+prefix+"/api/progress",
 		a.Services.Auth.Access(a.Services.WebSocket.Handler()),
 	)
-	mux.HandleFunc(
-		"GET /"+prefix+"/api/progress/{id}/refresh",
-		a.Services.Auth.Access(a.refreshHandler),
-	)
 
 	handler := &booksConnectHandler{app: a}
 	scrub := iapp.ScrubInternalErrors(a.Logger)
