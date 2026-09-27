@@ -17,6 +17,7 @@ jobs:
     secrets: inherit
     with:
       routine: posthog-ux-discovery
+      issues_only: true
       posthog: true
       prompt: >-
         Run the posthog-ux-discovery skill

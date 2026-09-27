@@ -9,7 +9,9 @@ Each routine is a thin caller workflow (`routine-<name>.yml`, `schedule:` +
 workflow:
 
 1. mints a one-hour GitHub App token and a client_credentials MCP token
-   ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)),
+   ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)); with
+   `issues_only` (the detection routines) the App token can file issues but
+   not push or edit PRs,
 2. opens the run's `automated_actions` row through `record_action`
    (`scripts/routine_record.sh`; `trigger_source` `schedule`, `manual`, or `ci`
    for a red `main`),
