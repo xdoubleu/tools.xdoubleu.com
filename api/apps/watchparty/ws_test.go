@@ -284,3 +284,22 @@ func TestSignalingViewerWithoutJoinRefused(t *testing.T) {
 	// The server closes the socket after refusing.
 	assert.Error(t, wsjson.Read(readCtx, viewConn, &resp))
 }
+
+// Knowing the code doesn't let another user take the presenter socket.
+func TestSignalingPresenterOfOtherRoomRefused(t *testing.T) {
+	app, routes := newTestApp()
+	srv := httptest.NewServer(routes)
+	defer srv.Close()
+
+	ctx := context.Background()
+	roomCode := app.Services.Room.CreateRoom(ctx, "someone-else")
+
+	presConn := dialSignaling(t, srv, roomCode, dtos.Presenter)
+	defer presConn.CloseNow() //nolint:errcheck // cleanup in test
+
+	var resp map[string]any
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	require.NoError(t, wsjson.Read(readCtx, presConn, &resp))
+	assert.NotEmpty(t, resp["error"])
+}

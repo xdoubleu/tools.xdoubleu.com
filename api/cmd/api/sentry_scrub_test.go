@@ -16,7 +16,8 @@ func TestScrubSentryEvent_RedactsKoboToken(t *testing.T) {
 			QueryString: "a=b",
 		},
 		Spans: []*sentry.Span{
-			{Description: "GET /api/books/kobo/secret-token/v1/x"}, //nolint:exhaustruct // description only
+			//nolint:exhaustruct // description only
+			{Description: "GET /api/books/kobo/secret-token/v1/x"},
 		},
 	}
 

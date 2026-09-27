@@ -38,7 +38,7 @@ func loggerHandler(logger *slog.Logger, next http.Handler) http.Handler {
 
 // koboTokenSegment matches the Kobo sync token, a bearer credential carried
 // as a path segment.
-var koboTokenSegment = regexp.MustCompile(`(/kobo/)[^/?#]+`) //nolint:gochecknoglobals //compiled once
+var koboTokenSegment = regexp.MustCompile(`(/kobo/)[^/?#]+`)
 
 // RedactPath masks credentials in a request path before it is logged or sent
 // to Sentry: the Kobo device token, and the query string.

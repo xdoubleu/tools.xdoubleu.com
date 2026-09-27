@@ -125,3 +125,21 @@ func TestPingLoopExitsOnConnectionClose(t *testing.T) {
 		t.Fatal("pingLoop did not exit after TCP connection was dropped")
 	}
 }
+
+func TestWsSignalingHandler_NoUserUnauthorized(t *testing.T) {
+	//nolint:exhaustruct // only Config and Logger are read before the user check
+	app := &WatchParty{}
+	rec := httptest.NewRecorder()
+	app.WsSignalingHandler()(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestWebOriginPatterns(t *testing.T) {
+	//nolint:exhaustruct // only Config is read
+	app := &WatchParty{}
+	app.Config.WebURL = "http://localhost:3000"
+	assert.Equal(t, []string{"localhost:3000"}, app.webOriginPatterns())
+
+	app.Config.WebURL = "://bad"
+	assert.Nil(t, app.webOriginPatterns())
+}

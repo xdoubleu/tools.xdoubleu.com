@@ -352,10 +352,10 @@ func NewApplication(
 	ctx := context.Background()
 
 	sentryHub, err := sentrytools.Init(config.Env, sentry.ClientOptions{
-		Dsn:              config.SentryDsn,
-		Environment:      config.Env,
-		Release:          config.Release,
-		EnableTracing:    true,
+		Dsn:                   config.SentryDsn,
+		Environment:           config.Env,
+		Release:               config.Release,
+		EnableTracing:         true,
 		TracesSampleRate:      config.SampleRate,
 		SampleRate:            config.SampleRate,
 		BeforeSend:            scrubSentryEvent,
