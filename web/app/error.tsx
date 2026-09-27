@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/nextjs'
 import { useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function ErrorBoundary({
   error,
@@ -17,14 +19,14 @@ export default function ErrorBoundary({
   }, [error])
 
   return (
-    <div className="mx-auto w-full max-w-sm py-12 text-center">
-      <h1 className="text-lg font-semibold text-fg">Something went wrong</h1>
-      <p className="mt-2 text-sm text-muted">
-        {error.digest ? `Error reference: ${error.digest}` : 'An unexpected error occurred.'}
-      </p>
-      <Button onClick={reset} className="mt-6">
-        Try again
-      </Button>
-    </div>
+    <PageContainer size="narrow">
+      <PageHeader
+        title="Something went wrong"
+        description={
+          error.digest ? `Error reference: ${error.digest}` : 'An unexpected error occurred.'
+        }
+      />
+      <Button onClick={reset}>Try again</Button>
+    </PageContainer>
   )
 }

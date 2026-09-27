@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Checkbox } from '@/components/ui/checkbox'
+import { LoadingState } from '@/components/ui/states'
 import type { GetNotificationSettingsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { useUpdateNotificationSettings } from '@/hooks/useMonitoring'
 
@@ -53,7 +54,7 @@ export default function NotificationToggleList({
   }
 
   if (!data) {
-    return <p className="py-8 text-center text-sm text-muted">Loading…</p>
+    return <LoadingState className="py-8 text-center text-sm" />
   }
 
   const settings = data.settings.filter((s) => sourceKeys.includes(s.sourceKey))
@@ -70,7 +71,11 @@ export default function NotificationToggleList({
             checked={setting.enabled}
             disabled={pendingKey === setting.sourceKey}
             onChange={(e) => handleToggle(setting.sourceKey, e.target.checked)}
-            aria-label={`Email notifications for ${sourceLabel(setting.sourceKey)}`}
+            label={
+              <span className="sr-only">
+                Email notifications for {sourceLabel(setting.sourceKey)}
+              </span>
+            }
           />
         </li>
       ))}
