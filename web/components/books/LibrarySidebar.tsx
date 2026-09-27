@@ -177,10 +177,10 @@ export default function LibrarySidebar({
               </>
             )
           }))}
-          className="-mx-1 flex-nowrap overflow-x-auto px-1 pb-1 *:shrink-0 *:whitespace-nowrap"
+          className="-mx-1 flex-wrap px-1 pb-1"
         />
         {allTags.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex flex-wrap gap-2 px-1 pb-1">
             {allTags.map((tag) => (
               <TogglePill
                 key={tag.name}

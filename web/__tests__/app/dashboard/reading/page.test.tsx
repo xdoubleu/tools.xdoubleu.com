@@ -27,9 +27,9 @@ jest.mock('@/components/SWRFallback', () => ({
 import ReadingDashboardPage from '@/app/dashboard/reading/page'
 
 describe('ReadingDashboardPage', () => {
-  it('renders the Reading heading', async () => {
+  it('renders the Books heading', async () => {
     render(await ReadingDashboardPage())
-    expect(screen.getByRole('heading', { name: 'Reading' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Books' })).toBeInTheDocument()
   })
 
   it('renders a settings link pointing to /books/settings', async () => {

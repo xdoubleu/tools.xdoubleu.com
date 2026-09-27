@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 import BooksTable from '@/components/books/BooksTable'
@@ -12,9 +12,10 @@ jest.mock('next/image', () => {
 })
 
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+  const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
 
 jest.mock('@/components/books/BookRatingStars', () => {
@@ -66,6 +67,13 @@ beforeEach(() => {
   localStorage.clear()
 })
 
+// BooksTable renders a mobile-first card list (`sm:hidden`) *and* the desktop
+// table; jsdom can't apply responsive hiding, so table-behaviour tests scope
+// their queries to the table.
+function withinTable() {
+  return within(screen.getByRole('table'))
+}
+
 describe('BooksTable', () => {
   it('renders a table with all column headers', () => {
     render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
@@ -99,7 +107,7 @@ describe('BooksTable', () => {
   it('renders ownership toggles for each book row', () => {
     const books = [makeBook('1', 'Dune'), makeBook('2', 'Hyperion')]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
-    expect(screen.getAllByTestId('ownership-toggles')).toHaveLength(2)
+    expect(withinTable().getAllByTestId('ownership-toggles')).toHaveLength(2)
   })
 
   it('renders a remove action for each book row', () => {
@@ -111,14 +119,15 @@ describe('BooksTable', () => {
   it('renders books in rows', () => {
     const books = [makeBook('1', 'Dune', 'Frank Herbert'), makeBook('2', 'Hyperion')]
     render(<BooksTable books={books} knownShelves={[]} knownTags={[]} />)
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Hyperion')).toBeInTheDocument()
-    expect(screen.getByText('Frank Herbert')).toBeInTheDocument()
+    const table = withinTable()
+    expect(table.getByText('Dune')).toBeInTheDocument()
+    expect(table.getByText('Hyperion')).toBeInTheDocument()
+    expect(table.getByText('Frank Herbert')).toBeInTheDocument()
   })
 
   it('shows empty message when no books', () => {
     render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
-    expect(screen.getByText('No books match the current filters.')).toBeInTheDocument()
+    expect(withinTable().getByText('No books match the current filters.')).toBeInTheDocument()
   })
 
   it('title links to the book detail page', () => {
@@ -367,7 +376,7 @@ describe('BooksTable', () => {
       // Only cover + title + actions remain.
       localStorage.setItem('backlog:library:columns', JSON.stringify([]))
       render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
-      const emptyCell = screen.getByText('No books match the current filters.').closest('td')
+      const emptyCell = withinTable().getByText('No books match the current filters.').closest('td')
       expect(emptyCell).toHaveAttribute('colspan', '3')
     })
   })
@@ -383,7 +392,7 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
 
-      expect(screen.getByText('Physical Book')).toBeInTheDocument()
+      expect(withinTable().getByText('Physical Book')).toBeInTheDocument()
       expect(screen.queryByText('No Physical')).not.toBeInTheDocument()
     })
 
@@ -397,7 +406,7 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'EPUB' }))
 
-      expect(screen.getByText('Epub Book')).toBeInTheDocument()
+      expect(withinTable().getByText('Epub Book')).toBeInTheDocument()
       expect(screen.queryByText('PDF Only')).not.toBeInTheDocument()
     })
 
@@ -415,8 +424,8 @@ describe('BooksTable', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
-      expect(screen.getByText('Physical Book')).toBeInTheDocument()
-      expect(screen.getByText('No Physical')).toBeInTheDocument()
+      expect(withinTable().getByText('Physical Book')).toBeInTheDocument()
+      expect(withinTable().getByText('No Physical')).toBeInTheDocument()
     })
 
     it('shows active filter count badge on Filters button', () => {
@@ -439,7 +448,7 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('button', { name: /Filters/ }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'Synced to Kobo' }))
 
-      expect(screen.getByText('Kobo Book')).toBeInTheDocument()
+      expect(withinTable().getByText('Kobo Book')).toBeInTheDocument()
       expect(screen.queryByText('Non-Kobo Book')).not.toBeInTheDocument()
     })
 
@@ -457,8 +466,8 @@ describe('BooksTable', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
 
-      expect(screen.getByText('Kobo Book')).toBeInTheDocument()
-      expect(screen.getByText('Non-Kobo Book')).toBeInTheDocument()
+      expect(withinTable().getByText('Kobo Book')).toBeInTheDocument()
+      expect(withinTable().getByText('Non-Kobo Book')).toBeInTheDocument()
     })
 
     it('applies ownership and format filters together (AND between groups)', () => {
@@ -473,7 +482,7 @@ describe('BooksTable', () => {
       fireEvent.click(screen.getByRole('checkbox', { name: 'Physical' }))
       fireEvent.click(screen.getByRole('checkbox', { name: 'EPUB' }))
 
-      expect(screen.getByText('Both')).toBeInTheDocument()
+      expect(withinTable().getByText('Both')).toBeInTheDocument()
       expect(screen.queryByText('Physical no epub')).not.toBeInTheDocument()
       expect(screen.queryByText('Epub no physical')).not.toBeInTheDocument()
     })

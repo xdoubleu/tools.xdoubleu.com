@@ -22,7 +22,7 @@ export default async function ReadingDashboardPage() {
         }}
       >
         <PageHeader
-          title="Reading"
+          title="Books"
           className="mb-4 lg:mb-3"
           actions={
             <Button asChild variant="ghost" size="sm" className="gap-2">

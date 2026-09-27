@@ -18,9 +18,10 @@ jest.mock('next/image', () => {
 })
 
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
+  const Link = ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   )
+  return Object.assign(Link, { useLinkStatus: () => ({ pending: false }) })
 })
 
 jest.mock('@/components/books/BookRatingStars', () => {
@@ -103,7 +104,7 @@ describe('AuthorBooksClient', () => {
 
   it('shows only books by the specified author', () => {
     render(<AuthorBooksClient name="Frank Herbert" />)
-    expect(screen.getByText('Dune')).toBeInTheDocument()
+    expect(screen.getAllByText('Dune').length).toBeGreaterThan(0)
     expect(screen.queryByText('The Left Hand of Darkness')).not.toBeInTheDocument()
   })
 
@@ -125,7 +126,7 @@ describe('AuthorBooksClient', () => {
   it('shows no books message for unknown author', () => {
     render(<AuthorBooksClient name="Unknown Author" />)
     expect(screen.getByText('0 books in your library')).toBeInTheDocument()
-    expect(screen.getByText('No books match the current filters.')).toBeInTheDocument()
+    expect(screen.getAllByText('No books match the current filters.').length).toBeGreaterThan(0)
   })
 
   it('includes books from custom shelves (covers flattenLibrary shelf branch)', () => {
@@ -144,7 +145,7 @@ describe('AuthorBooksClient', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([], [shelf]))
     render(<AuthorBooksClient name="Frank Herbert" />)
-    expect(screen.getByText('Chapterhouse: Dune')).toBeInTheDocument()
+    expect(screen.getAllByText('Chapterhouse: Dune').length).toBeGreaterThan(0)
   })
 
   it('collects non-special tags from books (covers knownTags tag filter)', () => {
@@ -162,7 +163,7 @@ describe('AuthorBooksClient', () => {
     // @ts-expect-error -- mock returns partial SWRResponse for test purposes
     mockUseBacklogLibrary.mockReturnValue(makeLibraryWith([taggedBook], []))
     render(<AuthorBooksClient name="Frank Herbert" />)
-    expect(screen.getByText('Dune Messiah')).toBeInTheDocument()
+    expect(screen.getAllByText('Dune Messiah').length).toBeGreaterThan(0)
   })
 
   it('renders a breadcrumb back to library', () => {

@@ -128,27 +128,27 @@ describe('BooksLibrary', () => {
 
   it('defaults to the All books shelf', () => {
     renderLibrary(makeLibrary())
-    expect(screen.getByRole('heading')).toHaveTextContent('All books')
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Hyperion')).toBeInTheDocument()
-    expect(screen.getByText('Foundation')).toBeInTheDocument()
-    expect(screen.getByText('Neuromancer')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('All books')
+    expect(screen.getAllByText('Dune').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Hyperion').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Foundation').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Neuromancer').length).toBeGreaterThan(0)
   })
 
   it('switches to All books when clicked', () => {
     renderLibrary(makeLibrary())
     const allBtns = screen.getAllByText('All books')
     fireEvent.click(allBtns[0])
-    expect(screen.getByText('Dune')).toBeInTheDocument()
-    expect(screen.getByText('Hyperion')).toBeInTheDocument()
-    expect(screen.getByText('Foundation')).toBeInTheDocument()
+    expect(screen.getAllByText('Dune').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Hyperion').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Foundation').length).toBeGreaterThan(0)
   })
 
   it('switches shelf when sidebar nav is clicked', () => {
     renderLibrary(makeLibrary())
     const wantBtns = screen.getAllByText('Want to read')
     fireEvent.click(wantBtns[0])
-    expect(screen.getByText('Hyperion')).toBeInTheDocument()
+    expect(screen.getAllByText('Hyperion').length).toBeGreaterThan(0)
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
   })
 
@@ -160,7 +160,7 @@ describe('BooksLibrary', () => {
   it('navigates to a dynamic shelf', () => {
     renderLibrary(makeLibrary())
     fireEvent.click(screen.getAllByText('Sci-Fi')[0])
-    expect(screen.getByText('Neuromancer')).toBeInTheDocument()
+    expect(screen.getAllByText('Neuromancer').length).toBeGreaterThan(0)
   })
 
   it('opens manage dialog when Edit shelves & tags is clicked', () => {
@@ -184,8 +184,8 @@ describe('BooksLibrary', () => {
     renderLibrary(library)
 
     fireEvent.click(screen.getAllByText('fantasy')[0])
-    expect(screen.getByText('Tagged Reading')).toBeInTheDocument()
-    expect(screen.getByText('Tagged Finished')).toBeInTheDocument()
+    expect(screen.getAllByText('Tagged Reading').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Tagged Finished').length).toBeGreaterThan(0)
     expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
   })
 
@@ -206,8 +206,8 @@ describe('BooksLibrary', () => {
 
     // A tag spans all shelves.
     fireEvent.click(screen.getAllByText('fantasy')[0])
-    expect(screen.getByText('Tagged')).toBeInTheDocument()
-    expect(screen.getByText('Wishlist Tagged')).toBeInTheDocument()
+    expect(screen.getAllByText('Tagged').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Wishlist Tagged').length).toBeGreaterThan(0)
   })
 
   it('re-clicking the active tag returns to All books', () => {
@@ -224,8 +224,8 @@ describe('BooksLibrary', () => {
     expect(screen.queryByText('Untagged')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getAllByText('fantasy')[0]) // deactivate → back to all
-    expect(screen.getByText('Tagged')).toBeInTheDocument()
-    expect(screen.getByText('Untagged')).toBeInTheDocument()
+    expect(screen.getAllByText('Tagged').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Untagged').length).toBeGreaterThan(0)
   })
 
   it('shows only favourite books when Favourites shelf is selected', () => {
@@ -242,8 +242,8 @@ describe('BooksLibrary', () => {
     renderLibrary(library)
 
     fireEvent.click(screen.getAllByText('Favourites')[0])
-    expect(screen.getByText('Fav Reading')).toBeInTheDocument()
-    expect(screen.getByText('Fav Finished')).toBeInTheDocument()
+    expect(screen.getAllByText('Fav Reading').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Fav Finished').length).toBeGreaterThan(0)
     expect(screen.queryByText('Not Fav')).not.toBeInTheDocument()
   })
 
@@ -256,7 +256,7 @@ describe('BooksLibrary', () => {
     renderLibrary(library)
 
     fireEvent.click(screen.getAllByText('Favourites')[0])
-    expect(screen.getByText('Fav Wishlist')).toBeInTheDocument()
+    expect(screen.getAllByText('Fav Wishlist').length).toBeGreaterThan(0)
   })
 
   it('Favourites shelf is mutually exclusive with tag selection', () => {
@@ -272,12 +272,12 @@ describe('BooksLibrary', () => {
     renderLibrary(library)
 
     fireEvent.click(screen.getAllByText('Favourites')[0])
-    expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
+    expect(screen.getAllByText('Fav Tagged').length).toBeGreaterThan(0)
     expect(screen.queryByText('Tagged Only')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getAllByText('fantasy')[0])
-    expect(screen.getByText('Fav Tagged')).toBeInTheDocument()
-    expect(screen.getByText('Tagged Only')).toBeInTheDocument()
+    expect(screen.getAllByText('Fav Tagged').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Tagged Only').length).toBeGreaterThan(0)
   })
 
   it('does not default to Favourites shelf on initial render', () => {
@@ -287,14 +287,14 @@ describe('BooksLibrary', () => {
     })
     const library = makeLibrary({ reading: [favBook] })
     renderLibrary(library)
-    const header = screen.getByRole('heading')
+    const header = screen.getByRole('heading', { level: 2 })
     expect(header.textContent).not.toMatch(/Favourites/)
   })
 
   it('shows empty message when library has no books', () => {
     const emptyLib = makeLibrary({ reading: [], wishlist: [], finished: [], shelves: [] })
     renderLibrary(emptyLib)
-    expect(screen.getByText('No books match the current filters.')).toBeInTheDocument()
+    expect(screen.getAllByText('No books match the current filters.').length).toBeGreaterThan(0)
   })
 
   it('shows pagination for large book lists', () => {
@@ -314,7 +314,7 @@ describe('BooksLibrary', () => {
 
   it('filters across all shelves by title when searchQuery is set', () => {
     renderLibrary(makeLibrary(), { searchQuery: 'dune' })
-    expect(screen.getByText('Dune')).toBeInTheDocument()
+    expect(screen.getAllByText('Dune').length).toBeGreaterThan(0)
     expect(screen.queryByText('Hyperion')).not.toBeInTheDocument()
     expect(screen.queryByText('Foundation')).not.toBeInTheDocument()
   })
