@@ -156,13 +156,9 @@ func (service *LocalService) VerifyMFA(
 	}
 
 	// Enrolling a second factor needs an aal2 session, not the pre-MFA token.
-	if factor.Status != "verified" && c.AAL != aal2 {
-		hasMFA, mfaErr := service.hasVerifiedFactor(ctx, c.Subject)
-		if mfaErr != nil {
-			return nil, nil, mfaErr
-		}
-		if hasMFA {
-			return nil, nil, errMFARequired
+	if factor.Status != "verified" {
+		if err = service.requireMFAIfEnrolled(ctx, c.Subject, c.AAL); err != nil {
+			return nil, nil, err
 		}
 	}
 

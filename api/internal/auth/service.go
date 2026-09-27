@@ -192,6 +192,25 @@ func (service *LocalService) parseSessionToken(
 	return c, hasMFA, nil
 }
 
+// requireMFAIfEnrolled refuses a non-aal2 credential once userID has a
+// verified factor.
+func (service *LocalService) requireMFAIfEnrolled(
+	ctx context.Context,
+	userID, aal string,
+) error {
+	if aal == aal2 {
+		return nil
+	}
+	hasMFA, err := service.hasVerifiedFactor(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if hasMFA {
+		return errMFARequired
+	}
+	return nil
+}
+
 // hasVerifiedFactor fails closed: only a not-found result means no factor.
 func (service *LocalService) hasVerifiedFactor(
 	ctx context.Context,
@@ -302,14 +321,8 @@ func (service *LocalService) SignInWithRefreshToken(
 		return nil, nil, err
 	}
 
-	if row.AAL != aal2 {
-		hasMFA, mfaErr := service.hasVerifiedFactor(ctx, row.UserID)
-		if mfaErr != nil {
-			return nil, nil, mfaErr
-		}
-		if hasMFA {
-			return nil, nil, errMFARequired
-		}
+	if err = service.requireMFAIfEnrolled(ctx, row.UserID, row.AAL); err != nil {
+		return nil, nil, err
 	}
 
 	newRefreshToken, err := service.issueRefreshToken(ctx, row.UserID, row.AAL)

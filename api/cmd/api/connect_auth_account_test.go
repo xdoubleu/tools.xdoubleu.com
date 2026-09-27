@@ -210,3 +210,14 @@ func TestGetCurrentUser_PreMFAToken_Unauthenticated(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
+
+func TestUpdatePassword_PreMFAToken_Unauthenticated(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+		NewPassword: "another-password",
+	})
+	setCookieOnRequest(req, mfaAccessToken)
+	_, err := client.UpdatePassword(context.Background(), req)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
