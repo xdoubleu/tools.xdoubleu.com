@@ -7,6 +7,11 @@ import AppGrid, { type AppLink, type AppSection } from '@/components/AppGrid'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 import { ConnectError } from '@connectrpc/connect'
 
 type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'mfa-challenge'
@@ -209,7 +214,7 @@ export default function HomeClient() {
   }
 
   if (authState === 'loading') {
-    return <p className="text-muted">Loading…</p>
+    return <LoadingState />
   }
 
   if (authState === 'authenticated' && data) {
@@ -229,26 +234,23 @@ export default function HomeClient() {
 
   if (authState === 'mfa-challenge') {
     return (
-      <div className="mx-auto w-full max-w-sm">
-        <h1 className="mb-4 text-center text-lg font-semibold text-fg">tools.xdoubleu.com</h1>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <PageContainer size="narrow">
+        <PageHeader title="tools.xdoubleu.com" />
+        <Card className="p-6">
           <h2 className="text-lg font-semibold text-fg">Two-factor authentication</h2>
           <div className="mt-6 space-y-4">
             <p className="text-sm text-subtle">Enter the code from your authenticator app.</p>
-            <div>
-              <label htmlFor="mfaChallengeCode" className="block text-sm font-medium text-subtle">
-                Authenticator code
-              </label>
+            <Field label="Authenticator code" htmlFor="mfaChallengeCode">
               <Input
                 id="mfaChallengeCode"
                 type="text"
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value)}
-                className="mt-1"
               />
-            </div>
+            </Field>
             {mfaError && (
               <p role="alert" className="text-sm text-danger">
                 {mfaError}
@@ -258,50 +260,43 @@ export default function HomeClient() {
               {mfaSubmitting ? 'Verifying…' : 'Verify'}
             </Button>
           </div>
-        </div>
-      </div>
+        </Card>
+      </PageContainer>
     )
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm">
-      <h1 className="mb-4 text-center text-lg font-semibold text-fg">tools.xdoubleu.com</h1>
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <PageContainer size="narrow">
+      <PageHeader title="tools.xdoubleu.com" />
+      <Card className="p-6">
         <h2 className="text-lg font-semibold text-fg">Sign In</h2>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-subtle">
-              Email
-            </label>
+          <Field label="Email" htmlFor="email">
             <Input
               id="email"
               type="email"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1"
             />
-          </div>
+          </Field>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-subtle">
-              Password
-            </label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1"
-            />
+            <Field label="Password" htmlFor="password">
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </Field>
             <div className="mt-2 text-right">
-              <Link
-                href="/auth/forgot-password"
-                className="inline-block py-3 text-sm text-accent hover:underline"
-              >
-                Forgot password?
-              </Link>
+              <Button asChild variant="link">
+                <Link href="/auth/forgot-password">Forgot password?</Link>
+              </Button>
             </div>
           </div>
 
@@ -322,7 +317,7 @@ export default function HomeClient() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
-      </div>
-    </div>
+      </Card>
+    </PageContainer>
   )
 }

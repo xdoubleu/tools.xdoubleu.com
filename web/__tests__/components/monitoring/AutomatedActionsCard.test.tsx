@@ -89,6 +89,7 @@ describe('AutomatedActionsCard', () => {
 
     render(<AutomatedActionsCard data={data} />)
     expect(screen.getByText('Failed')).toBeInTheDocument()
+    expect(screen.getByText('boom')).toBeInTheDocument()
   })
 
   it('flags a still-open run under the threshold as running, not overdue', () => {

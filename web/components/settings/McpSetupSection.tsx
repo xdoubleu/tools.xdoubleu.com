@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 
 type McpCommand = {
   key: string
@@ -43,9 +44,9 @@ export function McpSetupSection() {
             <p className="mb-1 text-sm font-medium text-fg">{cmd.title}</p>
             <p className="mb-2 text-sm text-subtle">{cmd.description}</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs">
-                {cmd.command}
-              </code>
+              <Card variant="inset" className="min-w-0 flex-1 overflow-x-auto px-3 py-2">
+                <code className="whitespace-nowrap font-mono text-xs">{cmd.command}</code>
+              </Card>
               <Button variant="secondary" size="sm" onClick={() => handleCopy(cmd)}>
                 {copiedKey === cmd.key ? 'Copied!' : 'Copy'}
               </Button>

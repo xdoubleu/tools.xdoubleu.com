@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import ArticleReaderDialog from '@/components/ArticleReaderDialog'
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
@@ -130,10 +131,8 @@ export default function FeedArticleReaderDialog({
           </p>
         )}
 
-        {item.hasContent && isLoading && !error && <p className="text-muted p-4">Loading…</p>}
-        {item.hasContent && error && !notFound && (
-          <p className="text-danger p-4">Failed to load the article.</p>
-        )}
+        {item.hasContent && isLoading && !error && <LoadingState className="p-4" />}
+        {item.hasContent && error && !notFound && <ErrorState what="the article" className="p-4" />}
       </ArticleReaderDialog>
 
       <Dialog open={zoomedSrc !== null} onOpenChange={() => setZoomedSrc(null)}>
@@ -152,7 +151,7 @@ export default function FeedArticleReaderDialog({
               <img
                 src={zoomedSrc}
                 alt=""
-                className="mx-auto max-h-[90vh] w-auto max-w-full object-contain"
+                className="mx-auto max-h-[90dvh] w-auto max-w-full object-contain"
               />
             </DialogClose>
           </DialogContent>

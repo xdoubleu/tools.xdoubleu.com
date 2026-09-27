@@ -4,6 +4,7 @@ import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { ObservabilityService } from '@/lib/gen/observability/v1/observability_pb'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import MonitoringSettingsClient from '@/components/monitoring/MonitoringSettingsClient'
 
 export default async function MonitoringConnectionsPage() {
@@ -16,7 +17,7 @@ export default async function MonitoringConnectionsPage() {
   return (
     <PageContainer>
       <SWRFallback fallback={fallback}>
-        <h1 className="mb-6 text-3xl font-bold">Connections</h1>
+        <PageHeader title="Connections" />
         <MonitoringSettingsClient />
       </SWRFallback>
     </PageContainer>

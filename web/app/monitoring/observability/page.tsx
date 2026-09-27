@@ -1,4 +1,5 @@
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 
 // No server-side prefetch: the extra round trip on the SSR path dominated
@@ -6,7 +7,7 @@ import ObservabilityClient from '@/components/monitoring/ObservabilityClient'
 export default function MonitoringObservabilityPage() {
   return (
     <PageContainer>
-      <h1 className="mb-6 text-3xl font-bold">Observability</h1>
+      <PageHeader title="Observability" />
       <ObservabilityClient />
     </PageContainer>
   )
