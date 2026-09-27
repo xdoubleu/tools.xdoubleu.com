@@ -341,7 +341,7 @@ export default function SettingsPage() {
             </div>
           </div>
         ) : mfaState === 'qr' ? (
-          <div className="space-y-4">
+          <div className="ph-no-capture space-y-4">
             <p className="text-sm text-subtle">
               Scan this QR code with your authenticator app, then enter the 6-digit code below.
             </p>

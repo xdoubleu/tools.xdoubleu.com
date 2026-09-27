@@ -46,7 +46,8 @@ describe('instrumentation-client', () => {
       capture_pageview: 'history_change',
       capture_pageleave: true,
       autocapture: true,
-      capture_dead_clicks: true
+      capture_dead_clicks: true,
+      before_send: expect.any(Function)
     })
   })
 
