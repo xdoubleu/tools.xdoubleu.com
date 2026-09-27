@@ -33,6 +33,25 @@
   /* Translucent sticky navbar/footer */
   --glass-rgb: 255 255 255;
   --glass-opacity: 0.72;
+
+  /* Top padding for surfaces under the status bar. */
+  --inset-top: calc(env(safe-area-inset-top) + var(--glass-edge-clear, 0px));
+}
+
+/* An installed iOS 26+ app gets a Liquid Glass blur ~38pt past the status
+ * bar that no CSS turns off, so keep content below it (`-webkit-touch-callout`
+ * is iOS-only). Landscape phones hide the status bar. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    :root {
+      --glass-edge-clear: 2.5rem;
+    }
+  }
+  @media (display-mode: standalone) and (orientation: landscape) and (max-height: 500px) {
+    :root {
+      --glass-edge-clear: 0px;
+    }
+  }
 }
 
 /* Keyed off `data-theme` so the Appearance setting can force a scheme;

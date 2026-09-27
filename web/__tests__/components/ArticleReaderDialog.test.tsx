@@ -15,6 +15,7 @@ describe('ArticleReaderDialog', () => {
     expect(cls).toContain('max-w-2xl')
     expect(cls).toContain('lg:max-w-4xl')
     expect(cls).toContain('sm:h-[90dvh]')
+    expect(cls).toContain('pt-[calc(1rem+var(--inset-top))]')
     expect(cls).toContain('pb-[calc(1rem+env(safe-area-inset-bottom))]')
   })
 

@@ -31,7 +31,7 @@ interface ArticleReaderDialogProps {
 
 // Clears the notch and home indicator on phones; `dvh` tracks mobile browser chrome.
 const safeAreaPadding =
-  'p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:h-[90dvh] sm:p-5'
+  'p-4 pt-[calc(1rem+var(--inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:h-[90dvh] sm:p-5'
 
 // Full-screen reader scaffold shared by books and feeds: header plus a
 // sanitized prose body. Callers fetch their own content.
