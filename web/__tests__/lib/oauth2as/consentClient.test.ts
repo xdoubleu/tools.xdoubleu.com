@@ -20,19 +20,41 @@ describe('consentClient', () => {
       expect(await getConsentInfo(new URLSearchParams('client_id=c1'))).toBeNull()
     })
 
-    it('fetches and maps the consent info response', async () => {
-      const json = jest
-        .fn()
-        .mockResolvedValue({ client_id: 'c1', client_name: 'Claude CLI', scope: 'openid email' })
+    it('fetches the full request with the session and maps the response', async () => {
+      const json = jest.fn().mockResolvedValue({
+        client_id: 'c1',
+        client_name: 'Claude CLI',
+        scope: 'openid email',
+        consent_token: 'tok'
+      })
       global.fetch = jest.fn().mockResolvedValue({ ok: true, json })
 
-      const info = await getConsentInfo(new URLSearchParams('client_id=c1&scope=openid+email'))
-
-      expect(info).toEqual({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid email' })
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/oauth2/consent-info?client_id=c1&scope=openid+email'),
-        expect.objectContaining({ cache: 'no-store' })
+      const info = await getConsentInfo(
+        new URLSearchParams('client_id=c1&scope=openid+email&state=s1'),
+        'at'
       )
+
+      expect(info).toEqual({
+        clientId: 'c1',
+        clientName: 'Claude CLI',
+        scope: 'openid email',
+        consentToken: 'tok'
+      })
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/oauth2/consent-info?client_id=c1&scope=openid+email&state=s1'),
+        expect.objectContaining({ cache: 'no-store', headers: { cookie: 'accessToken=at' } })
+      )
+    })
+
+    it('omits the cookie without a session', async () => {
+      const json = jest.fn().mockResolvedValue({ client_id: 'c1', client_name: 'X', scope: '' })
+      global.fetch = jest.fn().mockResolvedValue({ ok: true, json })
+
+      const info = await getConsentInfo(new URLSearchParams('client_id=c1'))
+
+      expect(info?.consentToken).toBeUndefined()
+      const [, init] = jest.mocked(global.fetch).mock.calls[0]
+      expect(init).toEqual(expect.objectContaining({ headers: undefined }))
     })
   })
 
@@ -44,7 +66,8 @@ describe('consentClient', () => {
       const location = await decideAuthorization(
         new URLSearchParams('client_id=c1&state=s1'),
         'allow',
-        'accessToken=at'
+        'accessToken=at',
+        'tok'
       )
 
       expect(location).toBe('https://cb?code=1')
@@ -56,7 +79,7 @@ describe('consentClient', () => {
         expect.objectContaining({
           method: 'POST',
           redirect: 'manual',
-          headers: { cookie: 'accessToken=at' }
+          headers: { cookie: 'accessToken=at', 'X-OAuth-Consent-Token': 'tok' }
         })
       )
     })

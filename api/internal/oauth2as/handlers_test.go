@@ -84,7 +84,10 @@ func newOAuth2asTestServer(t *testing.T) *oauth2asTestServer {
 	)
 	mux.HandleFunc("/oauth2/token", oauth2as.TokenHandler(provider, logger))
 	mux.HandleFunc("/oauth2/register", oauth2as.RegisterHandler(store, logger))
-	mux.HandleFunc("/oauth2/consent-info", oauth2as.ConsentInfoHandler(store))
+	mux.HandleFunc(
+		"/oauth2/consent-info",
+		oauth2as.ConsentInfoHandler(store, cfg, resolveUser),
+	)
 	mux.HandleFunc("/oauth2/jwks", oauth2as.JWKSHandler(key))
 
 	ts := httptest.NewServer(mux)
@@ -187,8 +190,15 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 	require.True(t, strings.HasPrefix(loc, "http://localhost:3000/oauth/consent?"))
 	require.Contains(t, loc, "client_id="+client.ID)
 
+	token := s.consentToken(t, q)
 	q.Set("consent", "allow")
-	resp2, err := client2.Get(s.ts.URL + "/oauth2/authorize?" + q.Encode())
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost,
+		s.ts.URL+"/oauth2/authorize?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.Header.Set(oauth2as.ConsentTokenHeader, token)
+	resp2, err := client2.Do(req)
 	require.NoError(t, err)
 	defer resp2.Body.Close()
 	// fosite's WriteAuthorizeResponse uses 303, not 302.
@@ -200,6 +210,19 @@ func (s *oauth2asTestServer) authorizeAndGetCodeWithScope(
 	code := redirectLoc.Query().Get("code")
 	require.NotEmpty(t, code)
 	return code
+}
+
+// consentToken fetches the token the consent page gets for q.
+func (s *oauth2asTestServer) consentToken(t *testing.T, q url.Values) string {
+	t.Helper()
+	resp, err := http.Get(s.ts.URL + "/oauth2/consent-info?" + q.Encode())
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var out map[string]string
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
+	require.NotEmpty(t, out["consent_token"])
+	return out["consent_token"]
 }
 
 func (s *oauth2asTestServer) exchangeToken(
@@ -331,7 +354,9 @@ func TestOAuth2Flow_ConsentDeny(t *testing.T) {
 		"consent":               {"deny"},
 	}
 
-	resp, err := noRedirectClient().Get(srv.ts.URL + "/oauth2/authorize?" + q.Encode())
+	resp, err := noRedirectClient().Post(
+		srv.ts.URL+"/oauth2/authorize?"+q.Encode(), "", nil,
+	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	// fosite's WriteAuthorizeError uses 303, not 302.
@@ -399,4 +424,38 @@ func TestConsentInfoHandler_UnknownClient(t *testing.T) {
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// A token minted for one request can't approve another (here: another state).
+func TestOAuth2Authorize_ConsentTokenBoundToRequest(t *testing.T) {
+	srv := newOAuth2asTestServer(t)
+	client := srv.registerClient(t)
+	_, challenge := pkcePair(t)
+
+	q := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {client.ID},
+		"redirect_uri":          {client.RedirectURIs[0]},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"state":                 {"original-state-abcdefgh"},
+	}
+	token := srv.consentToken(t, q)
+
+	q.Set("state", "swapped-state-abcdefgh")
+	q.Set("consent", "allow")
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost,
+		srv.ts.URL+"/oauth2/authorize?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.Header.Set(oauth2as.ConsentTokenHeader, token)
+	resp, err := noRedirectClient().Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, "request_unauthorized", loc.Query().Get("error"))
+	assert.Empty(t, loc.Query().Get("code"))
 }

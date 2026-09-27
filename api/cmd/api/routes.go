@@ -106,7 +106,9 @@ func (app *Application) Routes() http.Handler {
 		oauth2as.RegisterHandler(app.oauth2as.store, app.logger),
 	)
 	mux.HandleFunc(
-		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(app.oauth2as.store),
+		"GET "+oauth2ConsentInfoPath, oauth2as.ConsentInfoHandler(
+			app.oauth2as.store, app.config, app.oauth2SessionUserResolver(),
+		),
 	)
 	mux.HandleFunc("GET "+oauth2MetadataPath, app.oauth2MetadataHandler())
 	// Same path-insertion alias for AuthIssuer's path.

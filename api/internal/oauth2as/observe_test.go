@@ -181,7 +181,9 @@ func TestObserve_ConsentDeniedLogsAtWarn(t *testing.T) {
 		"scope":                 {"offline_access"},
 		"consent":               {"deny"},
 	}
-	resp, err := noRedirectClient().Get(s(srv) + "/oauth2/authorize?" + q.Encode())
+	resp, err := noRedirectClient().Post(
+		s(srv)+"/oauth2/authorize?"+q.Encode(), "", nil,
+	)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 

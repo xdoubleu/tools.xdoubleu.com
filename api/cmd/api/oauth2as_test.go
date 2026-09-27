@@ -14,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"tools.xdoubleu.com/internal/oauth2as"
 )
 
 const (
@@ -138,6 +140,104 @@ func oauth2asPKCEChallenge(t *testing.T) string {
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
+// oauth2asConsentToken fetches the consent token the web consent page gets.
+func oauth2asConsentToken(
+	t *testing.T, baseURL string, q url.Values, cookie http.Cookie,
+) string {
+	t.Helper()
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet,
+		baseURL+oauth2ConsentInfoPath+"?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.AddCookie(&cookie)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var out struct {
+		ConsentToken string `json:"consent_token"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&out))
+	require.NotEmpty(t, out.ConsentToken)
+	return out.ConsentToken
+}
+
+// A cross-site GET carrying consent=allow and the session cookie only reaches
+// the consent page; it never issues a code.
+func TestOAuth2Authorize_GetWithConsentAllow_RedirectsToConsentPage(t *testing.T) {
+	ts := connectServer(t)
+	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	q := url.Values{
+		"response_type":         {oauth2asTestResponseType},
+		"client_id":             {clientID},
+		"redirect_uri":          {redirectURI},
+		"code_challenge":        {oauth2asPKCEChallenge(t)},
+		"code_challenge_method": {oauth2asTestCodeChallengeMethod},
+		"state":                 {"csrf-state-123"},
+		"consent":               {"allow"},
+	}
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodGet,
+		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.AddCookie(&accessToken)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusFound, resp.StatusCode)
+	loc := resp.Header.Get("Location")
+	assert.Contains(t, loc, "/oauth/consent?")
+	assert.NotContains(t, loc, "consent=allow")
+	assert.NotContains(t, loc, "code=")
+}
+
+// A same-origin POST (e.g. a form) with the session cookie but no consent
+// token is refused.
+func TestOAuth2Authorize_PostWithoutConsentToken_Unauthorized(t *testing.T) {
+	ts := connectServer(t)
+	clientID, redirectURI := oauth2asRegisterTestClient(t, ts.URL)
+	client := &http.Client{
+		CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	q := url.Values{
+		"response_type":         {oauth2asTestResponseType},
+		"client_id":             {clientID},
+		"redirect_uri":          {redirectURI},
+		"code_challenge":        {oauth2asPKCEChallenge(t)},
+		"code_challenge_method": {oauth2asTestCodeChallengeMethod},
+		"state":                 {"no-token-state-123"},
+		"consent":               {"allow"},
+	}
+	req, err := http.NewRequestWithContext(
+		context.Background(), http.MethodPost,
+		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
+	)
+	require.NoError(t, err)
+	req.AddCookie(&accessToken)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
+	loc, err := url.Parse(resp.Header.Get("Location"))
+	require.NoError(t, err)
+	assert.Equal(t, "request_unauthorized", loc.Query().Get("error"))
+	assert.Empty(t, loc.Query().Get("code"))
+}
+
 // TestOAuth2Authorize_SessionResolver_NoCookie: consent without a valid
 // cookie is unauthorized.
 func TestOAuth2Authorize_SessionResolver_NoCookie(t *testing.T) {
@@ -161,7 +261,7 @@ func TestOAuth2Authorize_SessionResolver_NoCookie(t *testing.T) {
 		"consent":               {"allow"},
 	}
 
-	resp, err := client.Get(ts.URL + oauth2AuthorizePath + "?" + q.Encode())
+	resp, err := client.Post(ts.URL+oauth2AuthorizePath+"?"+q.Encode(), "", nil)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 	require.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -191,15 +291,17 @@ func TestOAuth2Authorize_SessionResolver_ValidCookie_IssuesCode(t *testing.T) {
 		"code_challenge_method": {oauth2asTestCodeChallengeMethod},
 		"scope":                 {"offline_access"},
 		"state":                 {"valid-cookie-state-123"},
-		"consent":               {"allow"},
 	}
+	token := oauth2asConsentToken(t, ts.URL, q, accessToken)
+	q.Set("consent", "allow")
 
 	req, err := http.NewRequestWithContext(
-		context.Background(), http.MethodGet,
+		context.Background(), http.MethodPost,
 		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)
 	req.AddCookie(&accessToken)
+	req.Header.Set(oauth2as.ConsentTokenHeader, token)
 
 	resp, err := client.Do(req)
 	require.NoError(t, err)
@@ -236,7 +338,7 @@ func TestOAuth2Authorize_SessionResolver_InvalidCookie(t *testing.T) {
 	}
 
 	req, err := http.NewRequestWithContext(
-		context.Background(), http.MethodGet,
+		context.Background(), http.MethodPost,
 		ts.URL+oauth2AuthorizePath+"?"+q.Encode(), nil,
 	)
 	require.NoError(t, err)

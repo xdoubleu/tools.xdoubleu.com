@@ -51,19 +51,40 @@ describe('ConsentPage', () => {
 
   it('renders the consent form with client details', async () => {
     withCookies({ accessToken: 'at' })
-    jest
-      .mocked(getConsentInfo)
-      .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid email' })
+    jest.mocked(getConsentInfo).mockResolvedValue({
+      clientId: 'c1',
+      clientName: 'Claude CLI',
+      scope: 'openid email',
+      consentToken: 'tok'
+    })
     await renderPage({ client_id: 'c1', scope: 'openid email', state: 's1' })
     expect(screen.getByText('Authorize Claude CLI')).toBeInTheDocument()
+    expect(getConsentInfo).toHaveBeenCalledWith(
+      new URLSearchParams('client_id=c1&scope=openid+email&state=s1'),
+      'at'
+    )
   })
 
-  it('takes the first value of a repeated query param', async () => {
+  it('renders an error when the api issues no consent token', async () => {
     withCookies({ accessToken: 'at' })
     jest
       .mocked(getConsentInfo)
       .mockResolvedValue({ clientId: 'c1', clientName: 'Claude CLI', scope: 'openid' })
+    await renderPage({ client_id: 'c1' })
+    expect(
+      screen.getByText('This authorization request is invalid or has expired.')
+    ).toBeInTheDocument()
+  })
+
+  it('takes the first value of a repeated query param', async () => {
+    withCookies({ accessToken: 'at' })
+    jest.mocked(getConsentInfo).mockResolvedValue({
+      clientId: 'c1',
+      clientName: 'Claude CLI',
+      scope: 'openid',
+      consentToken: 'tok'
+    })
     await renderPage({ client_id: ['c1', 'c2'], scope: undefined })
-    expect(getConsentInfo).toHaveBeenCalledWith(new URLSearchParams('client_id=c1'))
+    expect(getConsentInfo).toHaveBeenCalledWith(new URLSearchParams('client_id=c1'), 'at')
   })
 })

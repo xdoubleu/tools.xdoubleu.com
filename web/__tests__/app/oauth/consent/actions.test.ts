@@ -27,13 +27,14 @@ describe('consent server actions', () => {
     mockCookies({ accessToken: 'at' })
     jest.mocked(decideAuthorization).mockResolvedValue('https://cb?code=1')
 
-    await expect(approveAuthorization('client_id=c1&state=s1')).rejects.toThrow(
+    await expect(approveAuthorization('client_id=c1&state=s1', 'tok')).rejects.toThrow(
       'REDIRECT:https://cb?code=1'
     )
     expect(decideAuthorization).toHaveBeenCalledWith(
       new URLSearchParams('client_id=c1&state=s1'),
       'allow',
-      'accessToken=at'
+      'accessToken=at',
+      'tok'
     )
   })
 
@@ -47,14 +48,15 @@ describe('consent server actions', () => {
     expect(decideAuthorization).toHaveBeenCalledWith(
       new URLSearchParams('client_id=c1'),
       'deny',
-      'accessToken=at'
+      'accessToken=at',
+      undefined
     )
   })
 
   it('throws when the api does not return a redirect location', async () => {
     mockCookies({ accessToken: 'at' })
     jest.mocked(decideAuthorization).mockRejectedValue(new Error('Failed to approve authorization'))
-    await expect(approveAuthorization('client_id=c1')).rejects.toThrow(
+    await expect(approveAuthorization('client_id=c1', 'tok')).rejects.toThrow(
       'Failed to approve authorization'
     )
   })

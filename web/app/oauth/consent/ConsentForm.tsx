@@ -7,6 +7,7 @@ import { approveAuthorization, denyAuthorization } from './actions'
 
 interface ConsentFormProps {
   requestQuery: string
+  consentToken: string
   clientName: string
   scope: string
 }
@@ -18,17 +19,22 @@ const scopeLabels: Record<string, string> = {
   profile: 'Read your basic profile'
 }
 
-export default function ConsentForm({ requestQuery, clientName, scope }: ConsentFormProps) {
+export default function ConsentForm({
+  requestQuery,
+  consentToken,
+  clientName,
+  scope
+}: ConsentFormProps) {
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
   const scopes = scope.split(' ').filter(Boolean)
 
-  function decide(action: (id: string) => Promise<void>) {
+  function decide(action: () => Promise<void>) {
     setError(null)
     startTransition(async () => {
       try {
-        await action(requestQuery)
+        await action()
       } catch {
         setError('Something went wrong. Please try again.')
       }
@@ -59,7 +65,7 @@ export default function ConsentForm({ requestQuery, clientName, scope }: Consent
           <Button
             className="flex-1"
             disabled={pending}
-            onClick={() => decide(approveAuthorization)}
+            onClick={() => decide(() => approveAuthorization(requestQuery, consentToken))}
           >
             Approve
           </Button>
@@ -67,7 +73,7 @@ export default function ConsentForm({ requestQuery, clientName, scope }: Consent
             variant="secondary"
             className="flex-1"
             disabled={pending}
-            onClick={() => decide(denyAuthorization)}
+            onClick={() => decide(() => denyAuthorization(requestQuery))}
           >
             Deny
           </Button>

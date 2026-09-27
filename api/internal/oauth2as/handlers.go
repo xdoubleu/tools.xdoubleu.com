@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/ory/fosite"
 	"github.com/ory/fosite/handler/openid"
@@ -17,9 +18,10 @@ import (
 // injected by cmd/api to avoid an auth <-> oauth2as import cycle.
 type SessionUserResolver func(r *http.Request) (user ResolvedUser, ok bool)
 
-// AuthorizeHandler serves /oauth2/authorize: first hit redirects to the web
-// consent page; consent=allow re-verifies the session and completes,
-// consent=deny returns access_denied.
+// AuthorizeHandler serves /oauth2/authorize. A GET, or a request without a
+// decision, redirects to the web consent page. A POST with consent=deny
+// returns access_denied; consent=allow completes only with the consent token
+// that page obtained for this user and request.
 func AuthorizeHandler(
 	provider fosite.OAuth2Provider,
 	cfg config.Config,
@@ -31,12 +33,14 @@ func AuthorizeHandler(
 		ctx := r.Context()
 		consent := r.URL.Query().Get("consent")
 
-		if consent == "" {
+		if consent == "" || r.Method != http.MethodPost {
+			query := r.URL.Query()
+			query.Del("consent")
 			//nolint:gosec // base URL is the server's own cfg.WebURL, not
 			// user input — only the query string (the OAuth request
 			// parameters the consent page needs) is taken from the request.
 			http.Redirect(
-				w, r, cfg.WebURL+"/oauth/consent?"+r.URL.RawQuery, http.StatusFound,
+				w, r, cfg.WebURL+"/oauth/consent?"+query.Encode(), http.StatusFound,
 			)
 			return
 		}
@@ -58,7 +62,10 @@ func AuthorizeHandler(
 		}
 
 		user, ok := resolveUser(r)
-		if !ok {
+		if !ok || !verifyConsentToken(
+			[]byte(cfg.OAuthHMACSecret), user.ID, r.URL.Query(),
+			r.Header.Get(ConsentTokenHeader), time.Now(),
+		) {
 			logOAuthError(
 				ctx, logger, endpointAuthorize, ar, fosite.ErrRequestUnauthorized,
 			)
@@ -181,8 +188,13 @@ func RegisterHandler(store *Store, logger *slog.Logger) http.HandlerFunc {
 }
 
 // ConsentInfoHandler serves GET /oauth2/consent-info: the pending request's
-// client name and the scope approval will grant.
-func ConsentInfoHandler(store *Store) http.HandlerFunc {
+// client name and the scope approval will grant, plus, for a signed-in caller,
+// the consent token that approving requires.
+func ConsentInfoHandler(
+	store *Store,
+	cfg config.Config,
+	resolveUser SessionUserResolver,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		clientID := r.URL.Query().Get("client_id")
 		name, err := store.GetClientName(r.Context(), clientID)
@@ -197,11 +209,18 @@ func ConsentInfoHandler(store *Store) http.HandlerFunc {
 			clientScopes = client.GetScopes()
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
+		info := map[string]any{
 			"client_name": name,
 			"scope":       effectiveScope(r.URL.Query().Get("scope"), clientScopes),
 			"client_id":   clientID,
-		})
+		}
+		if user, ok := resolveUser(r); ok {
+			info["consent_token"] = newConsentToken(
+				[]byte(cfg.OAuthHMACSecret), user.ID, r.URL.Query(), time.Now(),
+			)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(info)
 	}
 }
