@@ -65,6 +65,20 @@ describe('Navbar', () => {
     expect(screen.queryByRole('link', { name: 'Admin' })).not.toBeInTheDocument()
   })
 
+  it('pads the header below the iOS status-bar blur', () => {
+    // @ts-expect-error -- mock returns partial hook response for test purposes
+    mockUseCurrentUser.mockReturnValue({
+      data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
+      isLoading: false,
+      error: undefined
+    })
+    mockUseSignOut.mockReturnValue(jest.fn())
+
+    render(<Navbar />)
+
+    expect(screen.getByRole('banner')).toHaveClass('pt-[var(--inset-top)]')
+  })
+
   it('renders nothing on a public shared profile page', () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({

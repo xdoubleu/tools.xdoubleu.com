@@ -46,7 +46,7 @@ const rightContentClass = [
   'inset-y-0 right-0',
   'w-[calc(100%-3rem)] max-w-md h-full',
   'rounded-l-2xl p-5',
-  'pt-[calc(1.25rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
+  'pt-[calc(1.25rem+var(--inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
   'pr-[calc(1.25rem+env(safe-area-inset-right))]',
   'data-[state=closed]:slide-out-to-right',
   'data-[state=open]:slide-in-from-right'
@@ -55,7 +55,7 @@ const rightContentClass = [
 // Full-screen on mobile (no floating popup box), centered modal from `sm` up.
 const fullscreenContentClass = [
   'inset-0 h-full w-full rounded-none p-0',
-  'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+  'pt-[var(--inset-top)] pb-[env(safe-area-inset-bottom)]',
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:h-auto sm:w-[calc(100%-2rem)]',
   'sm:max-w-2xl sm:max-h-[85dvh] sm:-translate-x-1/2 sm:-translate-y-1/2',
   'sm:rounded-2xl sm:p-5',
