@@ -209,6 +209,44 @@ func TestUpdateLearningPath_Success(t *testing.T) {
 	assert.Len(t, updateResp.Msg.LearningPath.Modules[0].Items, 2)
 }
 
+// TestCreateLearningPath_QuizRoundTrip: a module's quiz persists and returns
+// through the Connect CRUD surface. A nil quiz element is skipped by dtoToQuiz.
+func TestCreateLearningPath_QuizRoundTrip(t *testing.T) {
+	client := setupClient(getRoutes())
+	ctx := newCtx()
+
+	resp, err := client.CreateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Learn Go",
+			Modules: []*learningpathsv1.Module{
+				{
+					Title: "Basics",
+					Items: []*learningpathsv1.Item{{Type: "checkpoint", Description: "Pass the quiz"}},
+					Quiz: []*learningpathsv1.QuizQuestion{
+						{Prompt: "What is 2+2?", Options: []string{"3", "4"}, CorrectAnswerIndex: 1},
+						nil,
+					},
+				},
+			},
+		}),
+	)
+	require.NoError(t, err)
+	pathID := resp.Msg.LearningPath.Id
+
+	got, err := client.GetLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+	)
+	require.NoError(t, err)
+	require.Len(t, got.Msg.LearningPath.Modules, 1)
+	quiz := got.Msg.LearningPath.Modules[0].Quiz
+	// The nil question element is carried through as an empty slot.
+	require.Len(t, quiz, 2)
+	assert.Equal(t, "What is 2+2?", quiz[0].Prompt)
+	assert.Equal(t, int32(1), quiz[0].CorrectAnswerIndex)
+	assert.Empty(t, quiz[1].Prompt)
+}
+
 func TestUpdateLearningPath_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 

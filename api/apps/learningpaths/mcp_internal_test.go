@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,6 +79,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 					},
 					{Type: "do", Description: "Write a CLI tool", Completed: false, LinkedBookID: nil},
 				},
+				Quiz: nil,
 			},
 		},
 		Resources: []mcpResourceArg{{Text: "https://go.dev/tour/"}},
@@ -114,6 +116,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						LinkedBookID: nil,
 					},
 				},
+				Quiz: nil,
 			},
 		},
 		Resources: nil,
@@ -153,6 +156,184 @@ func TestMCPTools_RequireAppAccess(t *testing.T) {
 		sharedmodels.User{ID: "no-access"},
 	)
 	require.Error(t, mcptools.RequireAppAccess(ctx, mcpAppName))
+}
+
+// TestMCPQuiz_RoundTrip: a module's quiz survives create_path -> get_path and
+// gets replaced by update_path, proving the JSONB column round-trips through
+// the same service layer as the Connect RPCs.
+func TestMCPQuiz_RoundTrip(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
+
+	testSealer, err := crypto.New(cfg.EncryptionKey)
+	require.NoError(t, err)
+
+	const quizUserID = "mcp-quiz-user"
+	app := New(
+		sharedmocks.NewMockedAuthService(quizUserID),
+		logging.NewNopLogger(),
+		cfg,
+		pg,
+		testSealer,
+		nil,
+		nil,
+	)
+	h := &learningPathsConnectHandler{app: app}
+	ctx := mcpCtx(quizUserID)
+
+	quiz := []mcpQuizQuestionArg{{
+		Prompt:             "What is 2+2?",
+		Options:            []string{"3", "4", "5"},
+		CorrectAnswerIndex: 1,
+	}, {
+		Prompt:             "What is Go?",
+		Options:            []string{"a game", "a language"},
+		CorrectAnswerIndex: 1,
+	}}
+
+	createdMsg, err := h.mcpCreatePath(ctx, mcpCreatePathArgs{
+		Title:   "Learn Go",
+		Goal:    "",
+		Routine: "",
+		Modules: []mcpModuleArg{{
+			Title: "Basics",
+			// Terminal checkpoint item carries the quiz.
+			Items: []mcpItemArg{
+				{Type: "read", Description: "Read the tour", Completed: false, LinkedBookID: nil},
+				{
+					Type:         "checkpoint",
+					Description:  "Pass the quiz",
+					Completed:    false,
+					LinkedBookID: nil,
+				},
+			},
+			Quiz: quiz,
+		}},
+		Resources: nil,
+	})
+	require.NoError(t, err)
+	created, ok := createdMsg.(*learningpathsv1.CreateLearningPathResponse)
+	require.True(t, ok)
+	pathID := created.LearningPath.Id
+
+	got, err := h.mcpGetPath(ctx, mcpPathIDArgs{ID: pathID})
+	require.NoError(t, err)
+	gotResp, ok := got.(*learningpathsv1.GetLearningPathResponse)
+	require.True(t, ok)
+	gotPath := gotResp.LearningPath
+	require.Len(t, gotPath.Modules, 1)
+	assert.Equal(t, quiz, mcpModuleQuizFromProto(t, gotPath.Modules[0].Quiz))
+	// The quiz is carried by the module, not duplicated per item.
+	assert.Len(t, gotPath.Modules[0].Items, 2)
+
+	// update_path replaces the quiz wholesale.
+	replaced := []mcpQuizQuestionArg{{
+		Prompt:             "Replaced?",
+		Options:            []string{"yes", "no"},
+		CorrectAnswerIndex: 0,
+	}}
+	updatedMsg, err := h.mcpUpdatePath(ctx, mcpUpdatePathArgs{
+		ID:      pathID,
+		Title:   "Learn Go",
+		Goal:    "",
+		Routine: "",
+		Modules: []mcpModuleArg{{
+			Title: "Basics",
+			Items: nil,
+			Quiz:  replaced,
+		}},
+		Resources: nil,
+	})
+	require.NoError(t, err)
+	updated, ok := updatedMsg.(*learningpathsv1.UpdateLearningPathResponse)
+	require.True(t, ok)
+	updatedPath := updated.LearningPath
+	require.Len(t, updatedPath.Modules, 1)
+	assert.Equal(t, replaced, mcpModuleQuizFromProto(t, updatedPath.Modules[0].Quiz))
+}
+
+// mcpModuleQuizFromProto converts generated quiz messages back to the arg
+// shape for direct comparison.
+func mcpModuleQuizFromProto(
+	t *testing.T,
+	in []*learningpathsv1.QuizQuestion,
+) []mcpQuizQuestionArg {
+	t.Helper()
+	out := make([]mcpQuizQuestionArg, len(in))
+	for i, q := range in {
+		out[i] = mcpQuizQuestionArg{
+			Prompt:             q.Prompt,
+			Options:            q.Options,
+			CorrectAnswerIndex: q.CorrectAnswerIndex,
+		}
+	}
+	return out
+}
+
+// TestMCPQuiz_MalformedJSONErrors: a module whose quiz column holds invalid
+// JSON must surface an error on get_path rather than silently drop it.
+func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	var pg postgres.DB = testhelper.ConnectTestDB(cfg.DBDsn)
+
+	testSealer, err := crypto.New(cfg.EncryptionKey)
+	require.NoError(t, err)
+
+	const malformedUserID = "mcp-malformed-quiz-user"
+	app := New(
+		sharedmocks.NewMockedAuthService(malformedUserID),
+		logging.NewNopLogger(),
+		cfg,
+		pg,
+		testSealer,
+		nil,
+		nil,
+	)
+	h := &learningPathsConnectHandler{app: app}
+	ctx := mcpCtx(malformedUserID)
+
+	createdMsg, err := h.mcpCreatePath(ctx, mcpCreatePathArgs{
+		Title:   "Corrupt",
+		Goal:    "",
+		Routine: "",
+		Modules: []mcpModuleArg{{
+			Title: "Broken",
+			Items: []mcpItemArg{
+				{Type: "read", Description: "x", Completed: false, LinkedBookID: nil},
+			},
+			Quiz: []mcpQuizQuestionArg{{
+				Prompt: "?", Options: []string{"a", "b"}, CorrectAnswerIndex: 0,
+			}},
+		}},
+		Resources: nil,
+	})
+	require.NoError(t, err)
+	created, ok := createdMsg.(*learningpathsv1.CreateLearningPathResponse)
+	require.True(t, ok)
+	pathID := created.LearningPath.Id
+
+	// Corrupt the quiz JSON directly in the DB: a JSON object where an array is
+	// expected surfaces an unmarshal error on get_path.
+	_, err = pg.Exec(ctx,
+		`UPDATE learningpaths.modules SET quiz = '{"not":"an array"}'
+		 WHERE learning_path_id = $1`, uuid.MustParse(pathID))
+	require.NoError(t, err)
+
+	_, err = h.mcpGetPath(ctx, mcpPathIDArgs{ID: pathID})
+	require.Error(t, err)
+}
+
+// TestDTOToQuiz_NilSkipped: a nil question element is carried through as an
+// empty slot when converting a Module's quiz from proto to the model.
+func TestDTOToQuiz_NilSkipped(t *testing.T) {
+	got := dtoToQuiz([]*learningpathsv1.QuizQuestion{
+		{Prompt: "Q", Options: []string{"a", "b"}, CorrectAnswerIndex: 1},
+		nil,
+	})
+	require.Len(t, got, 2)
+	assert.Equal(t, "Q", got[0].Prompt)
+	assert.Equal(t, 1, got[0].CorrectAnswerIndex)
+	assert.Empty(t, got[1].Prompt)
 }
 
 // TestMCPAuthoringGuide_ResourceExistsAndReads: the guide is served as an MCP

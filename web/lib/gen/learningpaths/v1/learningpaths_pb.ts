@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file learningpaths/v1/learningpaths.proto.
  */
 export const file_learningpaths_v1_learningpaths: GenFile = /*@__PURE__*/
-  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEi0gEKBEl0ZW0SCgoCaWQYASABKAkSEQoJbW9kdWxlX2lkGAIgASgJEgwKBHR5cGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEgoKc29ydF9vcmRlchgFIAEoBRIRCgljb21wbGV0ZWQYBiABKAgSGwoObGlua2VkX2Jvb2tfaWQYByABKAlIAIgBARIxCgtsaW5rZWRfYm9vaxgIIAEoCzIcLmxlYXJuaW5ncGF0aHMudjEuTGlua2VkQm9va0IRCg9fbGlua2VkX2Jvb2tfaWQieAoGTW9kdWxlEgoKAmlkGAEgASgJEhgKEGxlYXJuaW5nX3BhdGhfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc29ydF9vcmRlchgEIAEoBRIlCgVpdGVtcxgFIAMoCzIWLmxlYXJuaW5ncGF0aHMudjEuSXRlbSJYCgpMaW5rZWRCb29rEg0KBXRpdGxlGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIYChBwcm9ncmVzc19wZXJjZW50GAMgASgFEhEKCWNvdmVyX3VybBgEIAEoCSJVCg5MaW5rZWRGZWVkSXRlbRINCgV0aXRsZRgBIAEoCRISCgpzb3VyY2VfdXJsGAIgASgJEgwKBHJlYWQYAyABKAgSEgoKYm9va21hcmtlZBgEIAEoCCKrAgoIUmVzb3VyY2USCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRIMCgR0ZXh0GAMgASgJEhIKCnNvcnRfb3JkZXIYBCABKAUSGwoObGlua2VkX2Jvb2tfaWQYBSABKAlIAIgBARIgChNsaW5rZWRfZmVlZF9pdGVtX2lkGAYgASgJSAGIAQESMQoLbGlua2VkX2Jvb2sYByABKAsyHC5sZWFybmluZ3BhdGhzLnYxLkxpbmtlZEJvb2sSOgoQbGlua2VkX2ZlZWRfaXRlbRgIIAEoCzIgLmxlYXJuaW5ncGF0aHMudjEuTGlua2VkRmVlZEl0ZW1CEQoPX2xpbmtlZF9ib29rX2lkQhYKFF9saW5rZWRfZmVlZF9pdGVtX2lkItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UiWQoOTW9kdWxlUHJvZ3Jlc3MSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLdG90YWxfaXRlbXMYAyABKAUSFwoPY29tcGxldGVkX2l0ZW1zGAQgASgFIiwKHkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBIKCgJpZBgBIAEoCSKrAQofR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZRIYChBsZWFybmluZ19wYXRoX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC3RvdGFsX2l0ZW1zGAMgASgFEhcKD2NvbXBsZXRlZF9pdGVtcxgEIAEoBRIxCgdtb2R1bGVzGAUgAygLMiAubGVhcm5pbmdwYXRocy52MS5Nb2R1bGVQcm9ncmVzcyIXChVDb25uZWN0VG9kb2lzdFJlcXVlc3QiLwoWQ29ubmVjdFRvZG9pc3RSZXNwb25zZRIVCg1hdXRob3JpemVfdXJsGAEgASgJIhoKGERpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdCIbChlEaXNjb25uZWN0VG9kb2lzdFJlc3BvbnNlIiMKIUdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdCJNCiJHZXRUb2RvaXN0Q29ubmVjdGlvblN0YXR1c1Jlc3BvbnNlEhEKCWNvbm5lY3RlZBgBIAEoCBIUCgxjb25uZWN0ZWRfYXQYAiABKAkiKwoYU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiNAoZU2VuZEl0ZW1Ub1RvZG9pc3RSZXNwb25zZRIXCg90b2RvaXN0X3Rhc2tfaWQYASABKAkysAYKFExlYXJuaW5nUGF0aHNTZXJ2aWNlEmwKEUxpc3RMZWFybmluZ1BhdGhzEioubGVhcm5pbmdwYXRocy52MS5MaXN0TGVhcm5pbmdQYXRoc1JlcXVlc3QaKy5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVzcG9uc2USZgoPR2V0TGVhcm5pbmdQYXRoEigubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXF1ZXN0GikubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXNwb25zZRJvChJDcmVhdGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElVwZGF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSRGVsZXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJSZWNvcmRJdGVtUHJvZ3Jlc3MSKy5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1Jlc3BvbnNlEn4KF0dldExlYXJuaW5nUGF0aFByb2dyZXNzEjAubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhQcm9ncmVzc1JlcXVlc3QaMS5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVzcG9uc2Uy2wMKDlRvZG9pc3RTZXJ2aWNlEmMKDkNvbm5lY3RUb2RvaXN0EicubGVhcm5pbmdwYXRocy52MS5Db25uZWN0VG9kb2lzdFJlcXVlc3QaKC5sZWFybmluZ3BhdGhzLnYxLkNvbm5lY3RUb2RvaXN0UmVzcG9uc2USbAoRRGlzY29ubmVjdFRvZG9pc3QSKi5sZWFybmluZ3BhdGhzLnYxLkRpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdBorLmxlYXJuaW5ncGF0aHMudjEuRGlzY29ubmVjdFRvZG9pc3RSZXNwb25zZRKHAQoaR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXMSMy5sZWFybmluZ3BhdGhzLnYxLkdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdBo0LmxlYXJuaW5ncGF0aHMudjEuR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXNSZXNwb25zZRJsChFTZW5kSXRlbVRvVG9kb2lzdBIqLmxlYXJuaW5ncGF0aHMudjEuU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0GisubGVhcm5pbmdwYXRocy52MS5TZW5kSXRlbVRvVG9kb2lzdFJlc3BvbnNlQjlaN3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vbGVhcm5pbmdwYXRocy92MTtsZWFybmluZ3BhdGhzdjFiBnByb3RvMw");
+  fileDesc("CiRsZWFybmluZ3BhdGhzL3YxL2xlYXJuaW5ncGF0aHMucHJvdG8SEGxlYXJuaW5ncGF0aHMudjEi0gEKBEl0ZW0SCgoCaWQYASABKAkSEQoJbW9kdWxlX2lkGAIgASgJEgwKBHR5cGUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSEgoKc29ydF9vcmRlchgFIAEoBRIRCgljb21wbGV0ZWQYBiABKAgSGwoObGlua2VkX2Jvb2tfaWQYByABKAlIAIgBARIxCgtsaW5rZWRfYm9vaxgIIAEoCzIcLmxlYXJuaW5ncGF0aHMudjEuTGlua2VkQm9va0IRCg9fbGlua2VkX2Jvb2tfaWQiTQoMUXVpelF1ZXN0aW9uEg4KBnByb21wdBgBIAEoCRIPCgdvcHRpb25zGAIgAygJEhwKFGNvcnJlY3RfYW5zd2VyX2luZGV4GAMgASgFIqYBCgZNb2R1bGUSCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRISCgpzb3J0X29yZGVyGAQgASgFEiUKBWl0ZW1zGAUgAygLMhYubGVhcm5pbmdwYXRocy52MS5JdGVtEiwKBHF1aXoYBiADKAsyHi5sZWFybmluZ3BhdGhzLnYxLlF1aXpRdWVzdGlvbiJYCgpMaW5rZWRCb29rEg0KBXRpdGxlGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIYChBwcm9ncmVzc19wZXJjZW50GAMgASgFEhEKCWNvdmVyX3VybBgEIAEoCSJVCg5MaW5rZWRGZWVkSXRlbRINCgV0aXRsZRgBIAEoCRISCgpzb3VyY2VfdXJsGAIgASgJEgwKBHJlYWQYAyABKAgSEgoKYm9va21hcmtlZBgEIAEoCCKrAgoIUmVzb3VyY2USCgoCaWQYASABKAkSGAoQbGVhcm5pbmdfcGF0aF9pZBgCIAEoCRIMCgR0ZXh0GAMgASgJEhIKCnNvcnRfb3JkZXIYBCABKAUSGwoObGlua2VkX2Jvb2tfaWQYBSABKAlIAIgBARIgChNsaW5rZWRfZmVlZF9pdGVtX2lkGAYgASgJSAGIAQESMQoLbGlua2VkX2Jvb2sYByABKAsyHC5sZWFybmluZ3BhdGhzLnYxLkxpbmtlZEJvb2sSOgoQbGlua2VkX2ZlZWRfaXRlbRgIIAEoCzIgLmxlYXJuaW5ncGF0aHMudjEuTGlua2VkRmVlZEl0ZW1CEQoPX2xpbmtlZF9ib29rX2lkQhYKFF9saW5rZWRfZmVlZF9pdGVtX2lkItsBCgxMZWFybmluZ1BhdGgSCgoCaWQYASABKAkSDwoHdXNlcl9pZBgCIAEoCRINCgV0aXRsZRgDIAEoCRIMCgRnb2FsGAQgASgJEg8KB3JvdXRpbmUYBSABKAkSEgoKY3JlYXRlZF9hdBgGIAEoCRISCgp1cGRhdGVkX2F0GAcgASgJEikKB21vZHVsZXMYCCADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYCSADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIjkKGExpc3RMZWFybmluZ1BhdGhzUmVxdWVzdBINCgVsaW1pdBgBIAEoBRIOCgZvZmZzZXQYAiABKAUiZQoZTGlzdExlYXJuaW5nUGF0aHNSZXNwb25zZRI2Cg5sZWFybmluZ19wYXRocxgBIAMoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoEhAKCGhhc19tb3JlGAIgASgIIiQKFkdldExlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkiUAoXR2V0TGVhcm5pbmdQYXRoUmVzcG9uc2USNQoNbGVhcm5pbmdfcGF0aBgBIAEoCzIeLmxlYXJuaW5ncGF0aHMudjEuTGVhcm5pbmdQYXRoIqMBChlDcmVhdGVMZWFybmluZ1BhdGhSZXF1ZXN0Eg0KBXRpdGxlGAEgASgJEgwKBGdvYWwYAiABKAkSDwoHcm91dGluZRgDIAEoCRIpCgdtb2R1bGVzGAQgAygLMhgubGVhcm5pbmdwYXRocy52MS5Nb2R1bGUSLQoJcmVzb3VyY2VzGAUgAygLMhoubGVhcm5pbmdwYXRocy52MS5SZXNvdXJjZSJTChpDcmVhdGVMZWFybmluZ1BhdGhSZXNwb25zZRI1Cg1sZWFybmluZ19wYXRoGAEgASgLMh4ubGVhcm5pbmdwYXRocy52MS5MZWFybmluZ1BhdGgirwEKGVVwZGF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSDAoEZ29hbBgDIAEoCRIPCgdyb3V0aW5lGAQgASgJEikKB21vZHVsZXMYBSADKAsyGC5sZWFybmluZ3BhdGhzLnYxLk1vZHVsZRItCglyZXNvdXJjZXMYBiADKAsyGi5sZWFybmluZ3BhdGhzLnYxLlJlc291cmNlIlMKGlVwZGF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEjUKDWxlYXJuaW5nX3BhdGgYASABKAsyHi5sZWFybmluZ3BhdGhzLnYxLkxlYXJuaW5nUGF0aCInChlEZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0EgoKAmlkGAEgASgJIhwKGkRlbGV0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlIj8KGVJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgljb21wbGV0ZWQYAiABKAgiHAoaUmVjb3JkSXRlbVByb2dyZXNzUmVzcG9uc2UiWQoOTW9kdWxlUHJvZ3Jlc3MSCgoCaWQYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLdG90YWxfaXRlbXMYAyABKAUSFwoPY29tcGxldGVkX2l0ZW1zGAQgASgFIiwKHkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVxdWVzdBIKCgJpZBgBIAEoCSKrAQofR2V0TGVhcm5pbmdQYXRoUHJvZ3Jlc3NSZXNwb25zZRIYChBsZWFybmluZ19wYXRoX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC3RvdGFsX2l0ZW1zGAMgASgFEhcKD2NvbXBsZXRlZF9pdGVtcxgEIAEoBRIxCgdtb2R1bGVzGAUgAygLMiAubGVhcm5pbmdwYXRocy52MS5Nb2R1bGVQcm9ncmVzcyIXChVDb25uZWN0VG9kb2lzdFJlcXVlc3QiLwoWQ29ubmVjdFRvZG9pc3RSZXNwb25zZRIVCg1hdXRob3JpemVfdXJsGAEgASgJIhoKGERpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdCIbChlEaXNjb25uZWN0VG9kb2lzdFJlc3BvbnNlIiMKIUdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdCJNCiJHZXRUb2RvaXN0Q29ubmVjdGlvblN0YXR1c1Jlc3BvbnNlEhEKCWNvbm5lY3RlZBgBIAEoCBIUCgxjb25uZWN0ZWRfYXQYAiABKAkiKwoYU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiNAoZU2VuZEl0ZW1Ub1RvZG9pc3RSZXNwb25zZRIXCg90b2RvaXN0X3Rhc2tfaWQYASABKAkysAYKFExlYXJuaW5nUGF0aHNTZXJ2aWNlEmwKEUxpc3RMZWFybmluZ1BhdGhzEioubGVhcm5pbmdwYXRocy52MS5MaXN0TGVhcm5pbmdQYXRoc1JlcXVlc3QaKy5sZWFybmluZ3BhdGhzLnYxLkxpc3RMZWFybmluZ1BhdGhzUmVzcG9uc2USZgoPR2V0TGVhcm5pbmdQYXRoEigubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXF1ZXN0GikubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhSZXNwb25zZRJvChJDcmVhdGVMZWFybmluZ1BhdGgSKy5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLkNyZWF0ZUxlYXJuaW5nUGF0aFJlc3BvbnNlEm8KElVwZGF0ZUxlYXJuaW5nUGF0aBIrLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVxdWVzdBosLmxlYXJuaW5ncGF0aHMudjEuVXBkYXRlTGVhcm5pbmdQYXRoUmVzcG9uc2USbwoSRGVsZXRlTGVhcm5pbmdQYXRoEisubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXF1ZXN0GiwubGVhcm5pbmdwYXRocy52MS5EZWxldGVMZWFybmluZ1BhdGhSZXNwb25zZRJvChJSZWNvcmRJdGVtUHJvZ3Jlc3MSKy5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1JlcXVlc3QaLC5sZWFybmluZ3BhdGhzLnYxLlJlY29yZEl0ZW1Qcm9ncmVzc1Jlc3BvbnNlEn4KF0dldExlYXJuaW5nUGF0aFByb2dyZXNzEjAubGVhcm5pbmdwYXRocy52MS5HZXRMZWFybmluZ1BhdGhQcm9ncmVzc1JlcXVlc3QaMS5sZWFybmluZ3BhdGhzLnYxLkdldExlYXJuaW5nUGF0aFByb2dyZXNzUmVzcG9uc2Uy2wMKDlRvZG9pc3RTZXJ2aWNlEmMKDkNvbm5lY3RUb2RvaXN0EicubGVhcm5pbmdwYXRocy52MS5Db25uZWN0VG9kb2lzdFJlcXVlc3QaKC5sZWFybmluZ3BhdGhzLnYxLkNvbm5lY3RUb2RvaXN0UmVzcG9uc2USbAoRRGlzY29ubmVjdFRvZG9pc3QSKi5sZWFybmluZ3BhdGhzLnYxLkRpc2Nvbm5lY3RUb2RvaXN0UmVxdWVzdBorLmxlYXJuaW5ncGF0aHMudjEuRGlzY29ubmVjdFRvZG9pc3RSZXNwb25zZRKHAQoaR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXMSMy5sZWFybmluZ3BhdGhzLnYxLkdldFRvZG9pc3RDb25uZWN0aW9uU3RhdHVzUmVxdWVzdBo0LmxlYXJuaW5ncGF0aHMudjEuR2V0VG9kb2lzdENvbm5lY3Rpb25TdGF0dXNSZXNwb25zZRJsChFTZW5kSXRlbVRvVG9kb2lzdBIqLmxlYXJuaW5ncGF0aHMudjEuU2VuZEl0ZW1Ub1RvZG9pc3RSZXF1ZXN0GisubGVhcm5pbmdwYXRocy52MS5TZW5kSXRlbVRvVG9kb2lzdFJlc3BvbnNlQjlaN3Rvb2xzLnhkb3VibGV1LmNvbS9nZW4vbGVhcm5pbmdwYXRocy92MTtsZWFybmluZ3BhdGhzdjFiBnByb3RvMw");
 
 /**
  * @generated from message learningpaths.v1.Item
@@ -77,6 +77,36 @@ export const ItemSchema: GenMessage<Item> = /*@__PURE__*/
   messageDesc(file_learningpaths_v1_learningpaths, 0);
 
 /**
+ * QuizQuestion is one multiple-choice item in a module's quiz. One quiz per
+ * module; the terminal checkpoint item carries it (see the authoring guide).
+ *
+ * @generated from message learningpaths.v1.QuizQuestion
+ */
+export type QuizQuestion = Message<"learningpaths.v1.QuizQuestion"> & {
+  /**
+   * @generated from field: string prompt = 1;
+   */
+  prompt: string;
+
+  /**
+   * @generated from field: repeated string options = 2;
+   */
+  options: string[];
+
+  /**
+   * @generated from field: int32 correct_answer_index = 3;
+   */
+  correctAnswerIndex: number;
+};
+
+/**
+ * Describes the message learningpaths.v1.QuizQuestion.
+ * Use `create(QuizQuestionSchema)` to create a new message.
+ */
+export const QuizQuestionSchema: GenMessage<QuizQuestion> = /*@__PURE__*/
+  messageDesc(file_learningpaths_v1_learningpaths, 1);
+
+/**
  * @generated from message learningpaths.v1.Module
  */
 export type Module = Message<"learningpaths.v1.Module"> & {
@@ -104,6 +134,13 @@ export type Module = Message<"learningpaths.v1.Module"> & {
    * @generated from field: repeated learningpaths.v1.Item items = 5;
    */
   items: Item[];
+
+  /**
+   * Quiz carried by the module's terminal checkpoint item.
+   *
+   * @generated from field: repeated learningpaths.v1.QuizQuestion quiz = 6;
+   */
+  quiz: QuizQuestion[];
 };
 
 /**
@@ -111,7 +148,7 @@ export type Module = Message<"learningpaths.v1.Module"> & {
  * Use `create(ModuleSchema)` to create a new message.
  */
 export const ModuleSchema: GenMessage<Module> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 1);
+  messageDesc(file_learningpaths_v1_learningpaths, 2);
 
 /**
  * LinkedBook is the read-only resolved state of a resource's linked books
@@ -146,7 +183,7 @@ export type LinkedBook = Message<"learningpaths.v1.LinkedBook"> & {
  * Use `create(LinkedBookSchema)` to create a new message.
  */
 export const LinkedBookSchema: GenMessage<LinkedBook> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 2);
+  messageDesc(file_learningpaths_v1_learningpaths, 3);
 
 /**
  * LinkedFeedItem is the feeds counterpart to LinkedBook.
@@ -180,7 +217,7 @@ export type LinkedFeedItem = Message<"learningpaths.v1.LinkedFeedItem"> & {
  * Use `create(LinkedFeedItemSchema)` to create a new message.
  */
 export const LinkedFeedItemSchema: GenMessage<LinkedFeedItem> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 3);
+  messageDesc(file_learningpaths_v1_learningpaths, 4);
 
 /**
  * Resource is freeform text, optionally linked to a books entry or feeds
@@ -235,7 +272,7 @@ export type Resource = Message<"learningpaths.v1.Resource"> & {
  * Use `create(ResourceSchema)` to create a new message.
  */
 export const ResourceSchema: GenMessage<Resource> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 4);
+  messageDesc(file_learningpaths_v1_learningpaths, 5);
 
 /**
  * @generated from message learningpaths.v1.LearningPath
@@ -294,7 +331,7 @@ export type LearningPath = Message<"learningpaths.v1.LearningPath"> & {
  * Use `create(LearningPathSchema)` to create a new message.
  */
 export const LearningPathSchema: GenMessage<LearningPath> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 5);
+  messageDesc(file_learningpaths_v1_learningpaths, 6);
 
 /**
  * @generated from message learningpaths.v1.ListLearningPathsRequest
@@ -316,7 +353,7 @@ export type ListLearningPathsRequest = Message<"learningpaths.v1.ListLearningPat
  * Use `create(ListLearningPathsRequestSchema)` to create a new message.
  */
 export const ListLearningPathsRequestSchema: GenMessage<ListLearningPathsRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 6);
+  messageDesc(file_learningpaths_v1_learningpaths, 7);
 
 /**
  * @generated from message learningpaths.v1.ListLearningPathsResponse
@@ -338,7 +375,7 @@ export type ListLearningPathsResponse = Message<"learningpaths.v1.ListLearningPa
  * Use `create(ListLearningPathsResponseSchema)` to create a new message.
  */
 export const ListLearningPathsResponseSchema: GenMessage<ListLearningPathsResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 7);
+  messageDesc(file_learningpaths_v1_learningpaths, 8);
 
 /**
  * @generated from message learningpaths.v1.GetLearningPathRequest
@@ -355,7 +392,7 @@ export type GetLearningPathRequest = Message<"learningpaths.v1.GetLearningPathRe
  * Use `create(GetLearningPathRequestSchema)` to create a new message.
  */
 export const GetLearningPathRequestSchema: GenMessage<GetLearningPathRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 8);
+  messageDesc(file_learningpaths_v1_learningpaths, 9);
 
 /**
  * @generated from message learningpaths.v1.GetLearningPathResponse
@@ -372,7 +409,7 @@ export type GetLearningPathResponse = Message<"learningpaths.v1.GetLearningPathR
  * Use `create(GetLearningPathResponseSchema)` to create a new message.
  */
 export const GetLearningPathResponseSchema: GenMessage<GetLearningPathResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 9);
+  messageDesc(file_learningpaths_v1_learningpaths, 10);
 
 /**
  * @generated from message learningpaths.v1.CreateLearningPathRequest
@@ -409,7 +446,7 @@ export type CreateLearningPathRequest = Message<"learningpaths.v1.CreateLearning
  * Use `create(CreateLearningPathRequestSchema)` to create a new message.
  */
 export const CreateLearningPathRequestSchema: GenMessage<CreateLearningPathRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 10);
+  messageDesc(file_learningpaths_v1_learningpaths, 11);
 
 /**
  * @generated from message learningpaths.v1.CreateLearningPathResponse
@@ -426,7 +463,7 @@ export type CreateLearningPathResponse = Message<"learningpaths.v1.CreateLearnin
  * Use `create(CreateLearningPathResponseSchema)` to create a new message.
  */
 export const CreateLearningPathResponseSchema: GenMessage<CreateLearningPathResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 11);
+  messageDesc(file_learningpaths_v1_learningpaths, 12);
 
 /**
  * @generated from message learningpaths.v1.UpdateLearningPathRequest
@@ -468,7 +505,7 @@ export type UpdateLearningPathRequest = Message<"learningpaths.v1.UpdateLearning
  * Use `create(UpdateLearningPathRequestSchema)` to create a new message.
  */
 export const UpdateLearningPathRequestSchema: GenMessage<UpdateLearningPathRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 12);
+  messageDesc(file_learningpaths_v1_learningpaths, 13);
 
 /**
  * @generated from message learningpaths.v1.UpdateLearningPathResponse
@@ -485,7 +522,7 @@ export type UpdateLearningPathResponse = Message<"learningpaths.v1.UpdateLearnin
  * Use `create(UpdateLearningPathResponseSchema)` to create a new message.
  */
 export const UpdateLearningPathResponseSchema: GenMessage<UpdateLearningPathResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 13);
+  messageDesc(file_learningpaths_v1_learningpaths, 14);
 
 /**
  * @generated from message learningpaths.v1.DeleteLearningPathRequest
@@ -502,7 +539,7 @@ export type DeleteLearningPathRequest = Message<"learningpaths.v1.DeleteLearning
  * Use `create(DeleteLearningPathRequestSchema)` to create a new message.
  */
 export const DeleteLearningPathRequestSchema: GenMessage<DeleteLearningPathRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 14);
+  messageDesc(file_learningpaths_v1_learningpaths, 15);
 
 /**
  * @generated from message learningpaths.v1.DeleteLearningPathResponse
@@ -515,7 +552,7 @@ export type DeleteLearningPathResponse = Message<"learningpaths.v1.DeleteLearnin
  * Use `create(DeleteLearningPathResponseSchema)` to create a new message.
  */
 export const DeleteLearningPathResponseSchema: GenMessage<DeleteLearningPathResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 15);
+  messageDesc(file_learningpaths_v1_learningpaths, 16);
 
 /**
  * RecordItemProgress toggles one item's completion without resending the
@@ -540,7 +577,7 @@ export type RecordItemProgressRequest = Message<"learningpaths.v1.RecordItemProg
  * Use `create(RecordItemProgressRequestSchema)` to create a new message.
  */
 export const RecordItemProgressRequestSchema: GenMessage<RecordItemProgressRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 16);
+  messageDesc(file_learningpaths_v1_learningpaths, 17);
 
 /**
  * @generated from message learningpaths.v1.RecordItemProgressResponse
@@ -553,7 +590,7 @@ export type RecordItemProgressResponse = Message<"learningpaths.v1.RecordItemPro
  * Use `create(RecordItemProgressResponseSchema)` to create a new message.
  */
 export const RecordItemProgressResponseSchema: GenMessage<RecordItemProgressResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 17);
+  messageDesc(file_learningpaths_v1_learningpaths, 18);
 
 /**
  * ModuleProgress is one module's completion count.
@@ -587,7 +624,7 @@ export type ModuleProgress = Message<"learningpaths.v1.ModuleProgress"> & {
  * Use `create(ModuleProgressSchema)` to create a new message.
  */
 export const ModuleProgressSchema: GenMessage<ModuleProgress> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 18);
+  messageDesc(file_learningpaths_v1_learningpaths, 19);
 
 /**
  * @generated from message learningpaths.v1.GetLearningPathProgressRequest
@@ -604,7 +641,7 @@ export type GetLearningPathProgressRequest = Message<"learningpaths.v1.GetLearni
  * Use `create(GetLearningPathProgressRequestSchema)` to create a new message.
  */
 export const GetLearningPathProgressRequestSchema: GenMessage<GetLearningPathProgressRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 19);
+  messageDesc(file_learningpaths_v1_learningpaths, 20);
 
 /**
  * GetLearningPathProgressResponse reports server-derived completion counts,
@@ -644,7 +681,7 @@ export type GetLearningPathProgressResponse = Message<"learningpaths.v1.GetLearn
  * Use `create(GetLearningPathProgressResponseSchema)` to create a new message.
  */
 export const GetLearningPathProgressResponseSchema: GenMessage<GetLearningPathProgressResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 20);
+  messageDesc(file_learningpaths_v1_learningpaths, 21);
 
 /**
  * TodoistService connects a user's own Todoist account and sends single
@@ -660,7 +697,7 @@ export type ConnectTodoistRequest = Message<"learningpaths.v1.ConnectTodoistRequ
  * Use `create(ConnectTodoistRequestSchema)` to create a new message.
  */
 export const ConnectTodoistRequestSchema: GenMessage<ConnectTodoistRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 21);
+  messageDesc(file_learningpaths_v1_learningpaths, 22);
 
 /**
  * @generated from message learningpaths.v1.ConnectTodoistResponse
@@ -680,7 +717,7 @@ export type ConnectTodoistResponse = Message<"learningpaths.v1.ConnectTodoistRes
  * Use `create(ConnectTodoistResponseSchema)` to create a new message.
  */
 export const ConnectTodoistResponseSchema: GenMessage<ConnectTodoistResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 22);
+  messageDesc(file_learningpaths_v1_learningpaths, 23);
 
 /**
  * @generated from message learningpaths.v1.DisconnectTodoistRequest
@@ -693,7 +730,7 @@ export type DisconnectTodoistRequest = Message<"learningpaths.v1.DisconnectTodoi
  * Use `create(DisconnectTodoistRequestSchema)` to create a new message.
  */
 export const DisconnectTodoistRequestSchema: GenMessage<DisconnectTodoistRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 23);
+  messageDesc(file_learningpaths_v1_learningpaths, 24);
 
 /**
  * @generated from message learningpaths.v1.DisconnectTodoistResponse
@@ -706,7 +743,7 @@ export type DisconnectTodoistResponse = Message<"learningpaths.v1.DisconnectTodo
  * Use `create(DisconnectTodoistResponseSchema)` to create a new message.
  */
 export const DisconnectTodoistResponseSchema: GenMessage<DisconnectTodoistResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 24);
+  messageDesc(file_learningpaths_v1_learningpaths, 25);
 
 /**
  * @generated from message learningpaths.v1.GetTodoistConnectionStatusRequest
@@ -719,7 +756,7 @@ export type GetTodoistConnectionStatusRequest = Message<"learningpaths.v1.GetTod
  * Use `create(GetTodoistConnectionStatusRequestSchema)` to create a new message.
  */
 export const GetTodoistConnectionStatusRequestSchema: GenMessage<GetTodoistConnectionStatusRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 25);
+  messageDesc(file_learningpaths_v1_learningpaths, 26);
 
 /**
  * @generated from message learningpaths.v1.GetTodoistConnectionStatusResponse
@@ -743,7 +780,7 @@ export type GetTodoistConnectionStatusResponse = Message<"learningpaths.v1.GetTo
  * Use `create(GetTodoistConnectionStatusResponseSchema)` to create a new message.
  */
 export const GetTodoistConnectionStatusResponseSchema: GenMessage<GetTodoistConnectionStatusResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 26);
+  messageDesc(file_learningpaths_v1_learningpaths, 27);
 
 /**
  * @generated from message learningpaths.v1.SendItemToTodoistRequest
@@ -760,7 +797,7 @@ export type SendItemToTodoistRequest = Message<"learningpaths.v1.SendItemToTodoi
  * Use `create(SendItemToTodoistRequestSchema)` to create a new message.
  */
 export const SendItemToTodoistRequestSchema: GenMessage<SendItemToTodoistRequest> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 27);
+  messageDesc(file_learningpaths_v1_learningpaths, 28);
 
 /**
  * @generated from message learningpaths.v1.SendItemToTodoistResponse
@@ -779,7 +816,7 @@ export type SendItemToTodoistResponse = Message<"learningpaths.v1.SendItemToTodo
  * Use `create(SendItemToTodoistResponseSchema)` to create a new message.
  */
 export const SendItemToTodoistResponseSchema: GenMessage<SendItemToTodoistResponse> = /*@__PURE__*/
-  messageDesc(file_learningpaths_v1_learningpaths, 28);
+  messageDesc(file_learningpaths_v1_learningpaths, 29);
 
 /**
  * @generated from service learningpaths.v1.LearningPathsService

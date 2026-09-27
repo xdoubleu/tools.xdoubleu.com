@@ -84,7 +84,25 @@ func protoModule(m *models.Module) *learningpathsv1.Module {
 		Title:          m.Title,
 		SortOrder:      sortOrder,
 		Items:          items,
+		Quiz:           protoQuiz(m.Quiz),
 	}
+}
+
+func protoQuiz(quiz []models.QuizQuestion) []*learningpathsv1.QuizQuestion {
+	result := make([]*learningpathsv1.QuizQuestion, len(quiz))
+	for i, q := range quiz {
+		result[i] = &learningpathsv1.QuizQuestion{
+			Prompt:             q.Prompt,
+			Options:            q.Options,
+			CorrectAnswerIndex: quizCorrectIndex(q),
+		}
+	}
+	return result
+}
+
+//nolint:gosec // int32 safe for domain values
+func quizCorrectIndex(q models.QuizQuestion) int32 {
+	return int32(q.CorrectAnswerIndex)
 }
 
 func protoItem(it *models.Item) *learningpathsv1.Item {
@@ -191,9 +209,25 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 			Title:     m.Title,
 			SortOrder: i,
 			Items:     items,
+			Quiz:      dtoToQuiz(m.Quiz),
 		}
 	}
 	return modules
+}
+
+func dtoToQuiz(in []*learningpathsv1.QuizQuestion) []models.QuizQuestion {
+	quiz := make([]models.QuizQuestion, len(in))
+	for i, q := range in {
+		if q == nil {
+			continue
+		}
+		quiz[i] = models.QuizQuestion{
+			Prompt:             q.Prompt,
+			Options:            q.Options,
+			CorrectAnswerIndex: int(q.CorrectAnswerIndex),
+		}
+	}
+	return quiz
 }
 
 // progressFromLearningPath derives per-module and overall completion counts.

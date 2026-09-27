@@ -28,6 +28,14 @@ type Module struct {
 	Title          string
 	SortOrder      int
 	Items          []Item
+	Quiz           []QuizQuestion
+}
+
+// QuizQuestion is one multiple-choice item in a module's quiz.
+type QuizQuestion struct {
+	Prompt             string   `json:"prompt"`
+	Options            []string `json:"options"`
+	CorrectAnswerIndex int      `json:"correct_answer_index"`
 }
 
 type Item struct {

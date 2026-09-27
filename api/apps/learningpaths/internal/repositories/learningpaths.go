@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -142,12 +143,21 @@ func (r *LearningPathsRepository) ReplaceModules(
 	}
 
 	for i := range modules {
+		quizJSON, marshalErr := json.Marshal(modules[i].Quiz)
+		if marshalErr != nil {
+			return marshalErr
+		}
+
 		var moduleID uuid.UUID
-		err = r.db.QueryRow(ctx,
-			`INSERT INTO learningpaths.modules (learning_path_id, title, sort_order)
-			VALUES ($1, $2, $3)
+		err = r.db.QueryRow(
+			ctx,
+			`INSERT INTO learningpaths.modules (learning_path_id, title, sort_order, quiz)
+			VALUES ($1, $2, $3, $4)
 			RETURNING id`,
-			learningPathID, modules[i].Title, i,
+			learningPathID,
+			modules[i].Title,
+			i,
+			quizJSON,
 		).Scan(&moduleID)
 		if err != nil {
 			return postgres.PgxErrorToHTTPError(err)
@@ -195,7 +205,7 @@ func (r *LearningPathsRepository) GetModules(
 	learningPathID uuid.UUID,
 ) ([]models.Module, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, learning_path_id, title, sort_order
+		SELECT id, learning_path_id, title, sort_order, quiz
 		FROM learningpaths.modules
 		WHERE learning_path_id = $1
 		ORDER BY sort_order`,
@@ -209,8 +219,16 @@ func (r *LearningPathsRepository) GetModules(
 	var modules []models.Module
 	for rows.Next() {
 		var m models.Module
-		if err = rows.Scan(&m.ID, &m.LearningPathID, &m.Title, &m.SortOrder); err != nil {
+		var quizJSON []byte
+		if err = rows.Scan(
+			&m.ID, &m.LearningPathID, &m.Title, &m.SortOrder, &quizJSON,
+		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
+		}
+		if len(quizJSON) > 0 {
+			if jsonErr := json.Unmarshal(quizJSON, &m.Quiz); jsonErr != nil {
+				return nil, jsonErr
+			}
 		}
 		modules = append(modules, m)
 	}
