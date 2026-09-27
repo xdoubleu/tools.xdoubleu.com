@@ -60,10 +60,26 @@ func requestDurationHandler(next http.Handler) http.Handler {
 
 		requestDuration.WithLabelValues(
 			route,
-			r.Method,
+			methodLabel(r.Method),
 			statusClass(rw.Status()),
 		).Observe(time.Since(start).Seconds())
 	})
+}
+
+// knownMethods bounds the method label; clients choose any token.
+//
+//nolint:gochecknoglobals //effectively const
+var knownMethods = map[string]bool{
+	http.MethodGet: true, http.MethodHead: true, http.MethodPost: true,
+	http.MethodPut: true, http.MethodPatch: true, http.MethodDelete: true,
+	http.MethodOptions: true,
+}
+
+func methodLabel(method string) string {
+	if knownMethods[method] {
+		return method
+	}
+	return "other"
 }
 
 const statusClassDivisor = 100

@@ -9,9 +9,9 @@ import (
 	"tools.xdoubleu.com/internal/repositories"
 )
 
-// GetNotificationSettings/UpdateNotificationSettings are not admin-gated: the
-// unhealthy-feeds toggle is surfaced from the feeds app. They control which
-// sources jobs.WeeklyDigestJob may email about.
+// Notification settings control which sources jobs.WeeklyDigestJob may email
+// the admin about. They're global, so only admins may change them; anyone can
+// read the toggles, but only admins see the admin's address.
 
 func (h *obsConnectHandler) GetNotificationSettings(
 	ctx context.Context,
@@ -20,6 +20,9 @@ func (h *obsConnectHandler) GetNotificationSettings(
 	resp, err := h.notificationSettings(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	if requireAdmin(ctx) != nil {
+		resp.AdminEmail = ""
 	}
 	return connect.NewResponse(resp), nil
 }
@@ -51,6 +54,9 @@ func (h *obsConnectHandler) UpdateNotificationSettings(
 	ctx context.Context,
 	req *connect.Request[observabilityv1.UpdateNotificationSettingsRequest],
 ) (*connect.Response[observabilityv1.UpdateNotificationSettingsResponse], error) {
+	if err := requireAdmin(ctx); err != nil {
+		return nil, err
+	}
 	source := repositories.NotificationSource(req.Msg.GetSourceKey())
 	if err := h.app.notificationSettingsRepo.SetEnabled(
 		ctx, source, req.Msg.GetEnabled(),

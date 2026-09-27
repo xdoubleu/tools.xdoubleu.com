@@ -28,6 +28,11 @@ func TestIsPublic(t *testing.T) {
 		"fc00::1":                false,
 		"fe80::1":                false,
 		"100.64.0.1":             false, // CGNAT
+		"0.1.2.3":                false, // "this network"
+		"198.18.0.1":             false, // benchmarking
+		"240.0.0.1":              false, // reserved
+		"64:ff9b::a00:1":         false, // NAT64 of 10.0.0.1
+		"2002:a00:1::1":          false, // 6to4 of 10.0.0.1
 		"0.0.0.0":                false,
 		"255.255.255.255":        false,
 		"224.0.0.1":              false, // multicast
@@ -139,4 +144,10 @@ func TestClientStopsAfterMaxRedirects(t *testing.T) {
 	_, err = client.Do(req)
 	require.ErrorContains(t, err, "stopped after 2 redirects")
 	assert.Equal(t, int32(maxRedirects), requestCount.Load())
+}
+
+func TestClientIgnoresEnvironmentProxy(t *testing.T) {
+	transport, ok := safedial.Client(time.Second, 1, false).Transport.(*http.Transport)
+	require.True(t, ok)
+	assert.Nil(t, transport.Proxy)
 }

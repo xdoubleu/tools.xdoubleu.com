@@ -70,13 +70,16 @@ func (s *TodoistService) AuthorizeURL(userID string) string {
 	return s.conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
 }
 
-// HandleCallback consumes state, exchanges code, and stores the connection,
-// returning the userID the state was issued for.
+// HandleCallback consumes state, exchanges code, and stores the connection
+// for sessionUserID, who must be the user the state was issued for: otherwise
+// a victim following an attacker's authorize link would link their Todoist
+// account to the attacker.
 func (s *TodoistService) HandleCallback(
-	ctx context.Context, state, code string,
+	ctx context.Context, sessionUserID, state, code string,
 ) (string, error) {
 	provider, userID, ok := s.state.Consume(state)
-	if !ok || provider != sharedmodels.OAuthProviderTodoist {
+	if !ok || provider != sharedmodels.OAuthProviderTodoist ||
+		userID != sessionUserID {
 		return "", errors.New("todoist: invalid or expired oauth state")
 	}
 

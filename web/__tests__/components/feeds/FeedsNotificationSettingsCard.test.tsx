@@ -9,7 +9,23 @@ jest.mock('@/hooks/useMonitoring', () => ({
   useUpdateNotificationSettings: () => jest.fn()
 }))
 
+const mockUseCurrentUser = jest.fn()
+jest.mock('@/hooks/useAuth', () => ({
+  useCurrentUser: () => mockUseCurrentUser()
+}))
+
 describe('FeedsNotificationSettingsCard', () => {
+  beforeEach(() => {
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'admin' } })
+  })
+
+  it('renders nothing for non-admins, who cannot change the global toggles', () => {
+    mockUseCurrentUser.mockReturnValue({ data: { role: 'user' } })
+    mockUseNotificationSettings.mockReturnValue({ data: undefined })
+    const { container } = render(<FeedsNotificationSettingsCard />)
+    expect(container).toBeEmptyDOMElement()
+  })
+
   it('renders unhealthy_feeds and open_feed_items, not the monitoring-owned sources', () => {
     mockUseNotificationSettings.mockReturnValue({
       data: create(GetNotificationSettingsResponseSchema, {

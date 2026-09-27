@@ -3,6 +3,10 @@ package learningpaths
 import (
 	"log/slog"
 	"net/http"
+
+	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	sharedmodels "tools.xdoubleu.com/internal/models"
 )
 
 // todoistOAuthCallbackRoute is the browser leg of the per-user Todoist OAuth
@@ -12,7 +16,14 @@ func (a *LearningPaths) todoistOAuthCallbackRoute() http.HandlerFunc {
 		state := r.URL.Query().Get("state")
 		code := r.URL.Query().Get("code")
 
-		_, err := a.services.Todoist.HandleCallback(r.Context(), state, code)
+		userID := ""
+		if user := contexttools.GetValue[sharedmodels.User](
+			r.Context(), constants.UserContextKey,
+		); user != nil {
+			userID = user.ID
+		}
+
+		_, err := a.services.Todoist.HandleCallback(r.Context(), userID, state, code)
 		if err != nil {
 			a.Logger.ErrorContext(r.Context(), "todoist oauth callback failed",
 				slog.Any("error", err))
