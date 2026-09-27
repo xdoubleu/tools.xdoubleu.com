@@ -1,6 +1,8 @@
 'use client'
 
+import { useId } from 'react'
 import { Combobox } from '@/components/ui/combobox'
+import { Field } from '@/components/ui/field'
 import { useStationSearch } from '@/hooks/useTrains'
 import type { Station } from '@/lib/gen/trains/v1/trains_pb'
 
@@ -29,13 +31,14 @@ export default function StationField({
   placeholder,
   autoFocus
 }: StationFieldProps) {
+  const id = useId()
   const { stations } = useStationSearch(query)
   const stopIdByName = new Map(stations.map((s) => [displayName(s), s.stopId]))
 
   return (
-    <div>
-      <label className="mb-1 block text-sm font-medium text-subtle">{label}</label>
+    <Field label={label} htmlFor={id}>
       <Combobox
+        id={id}
         value={query}
         onChange={onQueryChange}
         onSelect={(name) => {
@@ -45,8 +48,7 @@ export default function StationField({
         suggestions={stations.map(displayName)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        aria-label={label}
       />
-    </div>
+    </Field>
   )
 }

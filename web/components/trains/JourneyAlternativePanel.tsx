@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Card } from '@/components/ui/card'
+import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { JourneyRow } from '@/components/trains/JourneyResults'
@@ -17,7 +17,7 @@ export default function JourneyAlternativePanel({
   const journey = alternative.journey
 
   return (
-    <Card className="border-warn/40 bg-warn/5 p-4">
+    <Alert tone="warn" className="p-4">
       <div className="flex items-center gap-2">
         <Badge variant="warn">Journey disrupted</Badge>
       </div>
@@ -44,6 +44,6 @@ export default function JourneyAlternativePanel({
           No alternative route found from {alternative.fromStopName} right now.
         </p>
       )}
-    </Card>
+    </Alert>
   )
 }

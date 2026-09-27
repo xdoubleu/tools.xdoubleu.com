@@ -6,6 +6,8 @@ import { RoomService } from '@/lib/gen/watchparty/v1/rooms_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { Alert } from '@/components/ui/alert'
 
 export default function WatchpartyPage() {
   const [roomCode, setRoomCode] = useState('')
@@ -47,7 +49,7 @@ export default function WatchpartyPage() {
 
   return (
     <PageContainer size="narrow">
-      <h1 className="text-3xl font-bold mb-6">Watch Party</h1>
+      <PageHeader title="Watch Party" />
 
       <div className="mb-8">
         <Button size="lg" className="w-full" onClick={handleCreate} disabled={loading}>
@@ -70,14 +72,18 @@ export default function WatchpartyPage() {
           value={roomCode}
           onChange={(e) => setRoomCode(e.target.value)}
           placeholder="Room code"
-          className="flex-1"
+          className="min-w-0 flex-1"
         />
         <Button type="submit" variant="secondary" disabled={loading || !roomCode.trim()}>
           Join
         </Button>
       </form>
 
-      {error && <p className="mt-4 text-center text-sm text-danger">{error}</p>}
+      {error && (
+        <Alert tone="danger" className="mt-4">
+          {error}
+        </Alert>
+      )}
     </PageContainer>
   )
 }

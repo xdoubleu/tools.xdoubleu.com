@@ -145,6 +145,7 @@ Disclosure section with a chevron trigger and its own open state.
 | `suggestions` | `string[]` | yes |  |
 | `placeholder` | `string` |  |  |
 | `className` | `string` |  |  |
+| `id` | `string` |  | The input's `id`, for a `Field` label. |
 | `autoFocus` | `boolean` |  |  |
 | `onEnter` | `() => void` |  | Called when Enter is pressed and no suggestion is highlighted. |
 | `'aria-label'` | `string` |  |  |

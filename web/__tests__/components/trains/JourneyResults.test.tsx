@@ -29,7 +29,7 @@ describe('JourneyResults', () => {
 
   it('shows the loading state', () => {
     render(<JourneyResults ready isLoading error={undefined} feedImported journeys={[]} />)
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    expect(screen.getByText('Loading journeys…')).toBeInTheDocument()
   })
 
   it('shows the error state', () => {

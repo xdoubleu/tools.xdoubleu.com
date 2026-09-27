@@ -29,7 +29,7 @@ describe('JourneyDetailClient', () => {
       mutate: mockMutate
     })
     render(<JourneyDetailClient journeyId="journey-1" />)
-    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    expect(screen.getByText('Loading journey…')).toBeInTheDocument()
   })
 
   it('shows the error state', () => {
@@ -78,6 +78,8 @@ describe('JourneyDetailClient', () => {
     render(<JourneyDetailClient journeyId="journey-1" />)
     expect(screen.getByText(/IC900/)).toBeInTheDocument()
     expect(screen.getByText('Live')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Journey' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Trains' })).toHaveAttribute('href', '/trains')
   })
 
   it('surfaces an inline alternative when the journey is disrupted', () => {
