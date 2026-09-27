@@ -40,3 +40,21 @@ func TestStripAPIPathPrefix(t *testing.T) {
 		})
 	}
 }
+
+// /metrics is scraped over the Docker network; through kamal-proxy it is 404.
+func TestStripAPIPathPrefix_MetricsNotPublic(t *testing.T) {
+	called := false
+	handler := stripAPIPathPrefix(http.HandlerFunc(
+		func(_ http.ResponseWriter, _ *http.Request) { called = true },
+	))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/metrics", nil))
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.False(t, called)
+
+	handler.ServeHTTP(
+		httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/metrics", nil),
+	)
+	assert.True(t, called)
+}
