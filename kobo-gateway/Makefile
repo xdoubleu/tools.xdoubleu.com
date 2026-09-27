@@ -21,7 +21,7 @@ test/cov: test/cov/report
 tools/lint:
 	# auto for the tool build only: golangci-lint may need a newer Go than the
 	# pin. Builds/tests still use the pinned toolchain.
-	GOTOOLCHAIN=auto go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+	GOTOOLCHAIN=auto go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 
 lint: tools/lint
 	golangci-lint run
