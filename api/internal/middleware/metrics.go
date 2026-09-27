@@ -66,20 +66,15 @@ func requestDurationHandler(next http.Handler) http.Handler {
 	})
 }
 
-// knownMethods bounds the method label; clients choose any token.
-//
-//nolint:gochecknoglobals //effectively const
-var knownMethods = map[string]bool{
-	http.MethodGet: true, http.MethodHead: true, http.MethodPost: true,
-	http.MethodPut: true, http.MethodPatch: true, http.MethodDelete: true,
-	http.MethodOptions: true,
-}
-
+// methodLabel bounds the method label; clients choose any token.
 func methodLabel(method string) string {
-	if knownMethods[method] {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut,
+		http.MethodPatch, http.MethodDelete, http.MethodOptions:
 		return method
+	default:
+		return "other"
 	}
-	return "other"
 }
 
 const statusClassDivisor = 100

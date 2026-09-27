@@ -69,11 +69,6 @@ func EnsureCert(dir string) (tls.Certificate, string, error) {
 	return cert, certPath, nil
 }
 
-// loopbackHost is 127.0.0.1/32.
-//
-//nolint:gochecknoglobals,mnd // a fixed address
-var loopbackHost = &net.IPNet{IP: net.IPv4(127, 0, 0, 1), Mask: net.CIDRMask(32, 32)}
-
 // isNameConstrained reports whether cert's trusted root is confined to
 // loopback; older gateways generated an unconstrained one.
 func isNameConstrained(cert tls.Certificate) bool {
@@ -115,7 +110,10 @@ func generateCert() ([]byte, []byte, error) {
 		// key to loopback, so a leaked key can't impersonate other sites.
 		PermittedDNSDomainsCritical: true,
 		PermittedDNSDomains:         []string{"localhost"},
-		PermittedIPRanges:           []*net.IPNet{loopbackHost},
+		PermittedIPRanges: []*net.IPNet{{
+			IP:   net.IPv4(127, 0, 0, 1), //nolint:mnd // loopback
+			Mask: net.CIDRMask(32, 32),   //nolint:mnd // a single host
+		}},
 	}
 
 	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv) //nolint:lll
