@@ -8,11 +8,15 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/oauth2"
 
 	"tools.xdoubleu.com/apps/feeds"
+	"tools.xdoubleu.com/apps/learningpaths/internal/mocks"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/oauthconn"
+	"tools.xdoubleu.com/internal/todoist"
 )
 
 // fakeLearningPathsStore is an in-memory learningPathsStore.
@@ -40,6 +44,13 @@ type fakeLearningPathsStore struct {
 
 	// resources is returned by GetResources, for resource-link tests.
 	resources []models.Resource
+
+	// SyncPath fixtures: modules is returned by GetModules; getPathID is the
+	// path a GetPathIDForItem returns; taskIDWrites records SetItemTodoistTaskID.
+	modules      []models.Module
+	getPathID    uuid.UUID
+	getPathIDErr error
+	taskIDWrites []string
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -64,7 +75,7 @@ func (f *fakeLearningPathsStore) GetModules(
 	if f.getModulesErr != nil {
 		return nil, f.getModulesErr
 	}
-	return nil, nil
+	return f.modules, nil
 }
 
 func (f *fakeLearningPathsStore) GetResources(
@@ -142,16 +153,45 @@ func (f *fakeLearningPathsStore) GetItemForUser(
 	return f.item, nil
 }
 
+func (f *fakeLearningPathsStore) GetPathIDForItem(
+	_ context.Context, _ uuid.UUID, _ string,
+) (uuid.UUID, error) {
+	if f.getPathIDErr != nil {
+		return uuid.UUID{}, f.getPathIDErr
+	}
+	return f.getPathID, nil
+}
+
+func (f *fakeLearningPathsStore) SetItemTodoistTaskID(
+	_ context.Context, _ uuid.UUID, taskID string,
+) error {
+	f.taskIDWrites = append(f.taskIDWrites, taskID)
+	return nil
+}
+
 func newFixture() *models.LearningPath {
 	//nolint:exhaustruct //only fields relevant to ownership scoping
 	return &models.LearningPath{ID: uuid.New(), UserID: "owner"}
 }
 
 // newTestService builds a service with no books/feeds lookup; these tests use
-// no linked resources (resource_links_test.go covers those).
+// no linked resources (resource_links_test.go covers those). The Todoist
+// service is a real one with a mock client and a not-connected fake store, so
+// Create/RecordItemProgress can call SyncPath harmlessly against the fake.
 func newTestService(store learningPathsStore) *LearningPathService {
+	//nolint:exhaustruct //endpoint URLs, not credentials
+	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}
+	todoistSvc := NewTodoistService(
+		&fakeConnections{connected: false}, //nolint:exhaustruct // statusErr unused
+		store,
+		conf,
+		oauthconn.NewStateStore(),
+	)
+	todoistSvc.newClient = func(oauthconn.TokenFunc) todoist.Client {
+		return mocks.NewMockTodoistClient("task-x")
+	}
 	//nolint:exhaustruct //books/feeds intentionally nil, see doc comment above
-	return &LearningPathService{repo: store}
+	return &LearningPathService{repo: store, todoist: todoistSvc}
 }
 
 // fakeBookLookup is an in-memory bookLookup for error-propagation tests.
@@ -420,6 +460,38 @@ func TestRecordItemProgress_PropagatesGetItemError(t *testing.T) {
 
 	err := svc.RecordItemProgress(t.Context(), "owner", uuid.New(), true)
 	assert.ErrorIs(t, err, getItemErr)
+}
+
+// TestRecordItemProgress_NoSyncWhenIncomplete: only a completion flips the
+// Todoist pipeline, so GetPathIDForItem is not consulted for un-completing.
+func TestRecordItemProgress_NoSyncWhenIncomplete(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		item: &models.ItemForTask{
+			Item: models.Item{Description: "manual"},
+			//nolint:exhaustruct //only the non-book item matters
+		},
+	}
+	svc := newTestService(store)
+
+	require.NoError(t, svc.RecordItemProgress(t.Context(), "owner", uuid.New(), false))
+	assert.False(t, store.progressCompletedTo)
+}
+
+func TestRecordItemProgress_PropagatesPathLookupError(t *testing.T) {
+	lookupErr := errors.New("path lookup infra error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		item: &models.ItemForTask{
+			Item: models.Item{Description: "manual"},
+			//nolint:exhaustruct //only the non-book item matters
+		},
+		getPathIDErr: lookupErr,
+	}
+	svc := newTestService(store)
+
+	err := svc.RecordItemProgress(t.Context(), "owner", uuid.New(), true)
+	assert.ErrorIs(t, err, lookupErr)
 }
 
 // --- resource-link error propagation -------------------------------------

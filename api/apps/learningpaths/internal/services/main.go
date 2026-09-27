@@ -28,17 +28,19 @@ func New(
 	booksApp *books.Books,
 	feedsApp *feeds.Feeds,
 ) *Services {
+	todoist := NewTodoistService(
+		repos.OAuthConnections, repos.LearningPaths, todoistConf,
+		oauthconn.NewStateStore(),
+	)
 	learningPaths := &LearningPathService{
-		repo:  repos.LearningPaths,
-		books: booksApp,
-		feeds: feedsApp,
+		repo:    repos.LearningPaths,
+		books:   booksApp,
+		feeds:   feedsApp,
+		todoist: todoist,
 	}
 	return &Services{
 		Auth:          authService,
 		LearningPaths: learningPaths,
-		Todoist: NewTodoistService(
-			repos.OAuthConnections, repos.LearningPaths, todoistConf,
-			oauthconn.NewStateStore(),
-		),
+		Todoist:       todoist,
 	}
 }

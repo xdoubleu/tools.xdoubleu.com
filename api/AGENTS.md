@@ -76,7 +76,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
   - Scoped by `user_id` only (no family); another user's path reads as not-found.
   - Proto uses nested `LearningPath{modules{items}}`; Create/Update round-trip the whole tree; `RecordItemProgress` is the single-item exception.
   - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp_authoring_guide.go`.
-  - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `internal/todoist` is create-only.
+  - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`. `internal/todoist` creates and deletes tasks as a one-way reminder pipeline — the active module's items are tasks; completing a module removes its tasks and activates the next, and completing a task never flips the path.
   - Linked books/feed items resolve through exported `Books`/`Feeds` methods, never their internals.
 
 ### Database
