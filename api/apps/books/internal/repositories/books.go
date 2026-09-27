@@ -17,6 +17,18 @@ import (
 	"tools.xdoubleu.com/internal/pagination"
 )
 
+// catalogFillOnly is the ON CONFLICT update for user-driven upserts:
+// books.books is shared, so a user's data only fills fields that are empty;
+// catalog corrections go through the admin-gated edit and resync paths.
+const catalogFillOnly = `
+		    title       = COALESCE(NULLIF(books.books.title, ''), EXCLUDED.title),
+		    authors     = CASE WHEN cardinality(books.books.authors) > 0
+		                       THEN books.books.authors ELSE EXCLUDED.authors END,
+		    cover_url   = COALESCE(books.books.cover_url, EXCLUDED.cover_url),
+		    description = COALESCE(books.books.description, EXCLUDED.description),
+		    page_count  = COALESCE(books.books.page_count, EXCLUDED.page_count),
+		    updated_at  = now()`
+
 type BooksRepository struct {
 	db postgres.DB
 }
@@ -32,16 +44,10 @@ func (repo *BooksRepository) UpsertBook(
 		     metadata_source, source_url)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
-		DO UPDATE SET
-		    title         = EXCLUDED.title,
-		    authors       = EXCLUDED.authors,
-		    cover_url     = COALESCE(EXCLUDED.cover_url, books.books.cover_url),
-		    description   = COALESCE(EXCLUDED.description, books.books.description),
-		    page_count    = COALESCE(EXCLUDED.page_count, books.books.page_count),
+		DO UPDATE SET` + catalogFillOnly + `,
 		    metadata_source = COALESCE(
-		        EXCLUDED.metadata_source, books.books.metadata_source
-		    ),
-		    updated_at    = now()
+		        books.books.metadata_source, EXCLUDED.metadata_source
+		    )
 		RETURNING ` + bookColumns
 
 	row := repo.db.QueryRow(ctx, query,
@@ -340,13 +346,7 @@ func (repo *BooksRepository) BatchUpsert(
 		    (title, authors, isbn13, cover_url, description, page_count)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (isbn13) WHERE isbn13 IS NOT NULL
-		DO UPDATE SET
-		    title         = EXCLUDED.title,
-		    authors       = EXCLUDED.authors,
-		    cover_url     = COALESCE(EXCLUDED.cover_url, books.books.cover_url),
-		    description   = COALESCE(EXCLUDED.description, books.books.description),
-		    page_count    = COALESCE(EXCLUDED.page_count, books.books.page_count),
-		    updated_at    = now()
+		DO UPDATE SET` + catalogFillOnly + `
 		RETURNING id
 	`
 

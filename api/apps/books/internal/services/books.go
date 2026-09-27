@@ -238,8 +238,10 @@ func (s *BookService) AddToLibrary(
 		return nil, err
 	}
 
-	// Eager-fetch into R2 so the cover proxy never needs a live fetch.
-	if book.CoverURL != nil && *book.CoverURL != "" {
+	// Eager-fetch into R2 so the cover proxy never needs a live fetch; only
+	// when this call's URL is the one the catalog kept.
+	if book.CoverURL != nil && *book.CoverURL != "" &&
+		saved.CoverURL != nil && *saved.CoverURL == *book.CoverURL {
 		if cacheErr := s.cacheCoverFromURL(ctx, saved.ID, *book.CoverURL); cacheErr != nil {
 			s.logger.WarnContext(ctx, "failed to cache book cover",
 				"bookID", saved.ID, "error", cacheErr)

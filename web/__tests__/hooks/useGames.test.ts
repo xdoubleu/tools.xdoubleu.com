@@ -141,11 +141,12 @@ describe('useSteamProgress', () => {
 })
 
 describe('useRefreshSteam', () => {
-  it('fetches the steam refresh endpoint with credentials', async () => {
+  it('POSTs the steam refresh endpoint with credentials', async () => {
     global.fetch = jest.fn().mockResolvedValue({})
     const { result } = renderHook(() => useRefreshSteam())
     await result.current()
     expect(global.fetch).toHaveBeenCalledWith('https://api.test/games/api/progress/steam/refresh', {
+      method: 'POST',
       credentials: 'include'
     })
   })

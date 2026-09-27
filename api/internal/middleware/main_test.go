@@ -20,3 +20,12 @@ func TestDefault(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, handlers)
 }
+
+func TestRedactPath(t *testing.T) {
+	assert.Equal(t,
+		"/api/books/kobo/redacted/v1/library/sync",
+		middleware.RedactPath("/api/books/kobo/abc123/v1/library/sync?x=1"),
+	)
+	assert.Equal(t, "/books/kobo/redacted", middleware.RedactPath("/books/kobo/abc123"))
+	assert.Equal(t, "/api/feeds", middleware.RedactPath("/api/feeds?token=t"))
+}

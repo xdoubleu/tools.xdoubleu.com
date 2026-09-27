@@ -68,6 +68,7 @@ export function useRefreshSteamGame() {
 export function useRefreshSteam() {
   return () =>
     fetch(`${getApiUrl()}/games/api/progress/steam/refresh`, {
+      method: 'POST',
       credentials: 'include'
     })
 }

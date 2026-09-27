@@ -2,6 +2,7 @@ package books_test
 
 import (
 	"context"
+	"crypto/sha256"
 	"net/http"
 	"os"
 	"testing"
@@ -160,13 +161,32 @@ func addTestBookNoISBN(t *testing.T, title string) *models.UserBook {
 	return ub
 }
 
+// testISBN is a valid ISBN-13 derived from seed: the catalog is shared and
+// keyed on ISBN, so distinct books need distinct ISBNs.
+func testISBN(seed string) string {
+	sum := sha256.Sum256([]byte(seed))
+	digits := []byte("978")
+	for _, b := range sum[:9] {
+		digits = append(digits, '0'+b%10)
+	}
+	total := 0
+	for i, d := range digits {
+		weight := 1
+		if i%2 == 1 {
+			weight = 3
+		}
+		total += int(d-'0') * weight
+	}
+	return string(append(digits, byte('0'+(10-total%10)%10)))
+}
+
 func addTestBook(t *testing.T, title string) *models.UserBook {
 	t.Helper()
 	ext := services.SourceProposal{ //nolint:exhaustruct //Index/Differs unused
 		Source:      "manual",
 		Title:       title,
 		Authors:     []string{"Test Author"},
-		ISBN13:      "9780140449112",
+		ISBN13:      testISBN(title),
 		CoverURL:    "https://example.com/cover.jpg",
 		Description: "Test description.",
 	}

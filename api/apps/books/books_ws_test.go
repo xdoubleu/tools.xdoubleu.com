@@ -9,16 +9,17 @@ import (
 	"tools.xdoubleu.com/internal/testhelper"
 )
 
-func TestRefreshGoodreads(t *testing.T) {
+// Job runs are triggered through the admin-gated RPCs, not a GET route.
+func TestRefreshRoute_Removed(t *testing.T) {
 	tReq := testhelper.CreateRequestTester(
 		getRoutes(),
 		http.MethodGet,
-		"/"+testApp.GetName()+"/api/progress/goodreads/refresh",
+		"/"+testApp.GetName()+"/api/progress/books-storage-scan/refresh",
 	)
 	tReq.AddCookie(&accessToken)
 
 	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusNoContent, rs.StatusCode)
+	assert.Equal(t, http.StatusNotFound, rs.StatusCode)
 }
 
 func TestWebSocketProgress_Unauthenticated(t *testing.T) {
@@ -34,27 +35,3 @@ func TestWebSocketProgress_Unauthenticated(t *testing.T) {
 	// processes the upgrade
 	assert.Equal(t, http.StatusUpgradeRequired, rs.StatusCode)
 }
-
-/* tests broken
-func TestRefreshSteam_Unauthenticated(t *testing.T) {
-	tReq := testhelper.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/api/progress/steam/refresh",
-	)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusUnauthorized, rs.StatusCode)
-}
-
-func TestRefreshGoodreads_Unauthenticated(t *testing.T) {
-	tReq := testhelper.CreateRequestTester(
-		getRoutes(),
-		http.MethodGet,
-		"/"+testApp.GetName()+"/api/progress/goodreads/refresh",
-	)
-
-	rs := tReq.Do(t)
-	assert.Equal(t, http.StatusUnauthorized, rs.StatusCode)
-}
-*/

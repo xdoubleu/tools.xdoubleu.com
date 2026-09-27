@@ -205,6 +205,20 @@ func (r *PlansRepository) UpdateMeal(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// RecipeInFamily reports whether recipeID belongs to familyID.
+func (r *PlansRepository) RecipeInFamily(
+	ctx context.Context,
+	recipeID, familyID uuid.UUID,
+) (bool, error) {
+	var ok bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS (
+		    SELECT 1 FROM recipes.recipes WHERE id = $1 AND family_id = $2
+		)`, recipeID, familyID,
+	).Scan(&ok)
+	return ok, postgres.PgxErrorToHTTPError(err)
+}
+
 // GetMealsInWindow returns a plan's meals in the date range; a zero start
 // returns all meals.
 func (r *PlansRepository) GetMealsInWindow(
@@ -220,7 +234,9 @@ func (r *PlansRepository) GetMealsInWindow(
 		       pm.recipe_id, pm.custom_name, pm.servings,
 		       pm.exclude_from_shopping_list, r.name
 		FROM mealplans.plan_meals pm
-		LEFT JOIN recipes.recipes r ON r.id = pm.recipe_id`
+		JOIN mealplans.plans p ON p.id = pm.plan_id
+		LEFT JOIN recipes.recipes r
+		    ON r.id = pm.recipe_id AND r.family_id = p.family_id`
 
 	if start.IsZero() {
 		rows, err = r.db.Query(ctx,

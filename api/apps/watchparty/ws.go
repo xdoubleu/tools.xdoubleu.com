@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/coder/websocket"
@@ -14,6 +15,9 @@ import (
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	wstools "tools.xdoubleu.com/internal/communication/wstools"
+	"tools.xdoubleu.com/internal/constants"
+	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/models"
 )
 
 const (
@@ -60,17 +64,24 @@ func isExpectedCloseErr(err error) bool {
 func (app *WatchParty) wsRoutes(prefix string, mux *http.ServeMux) {
 	mux.HandleFunc(
 		fmt.Sprintf("GET %s/signaling", prefix),
-		app.Services.Auth.Access(app.WsSignalingHandler()),
+		app.Services.Auth.AppAccess(app.GetName(), app.WsSignalingHandler()),
 	)
 }
 
 func (app *WatchParty) WsSignalingHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		user := contexttools.GetValue[models.User](r.Context(), constants.UserContextKey)
+		if user == nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Same-host origins are always allowed; web runs on another port in dev.
 		conn, err := websocket.Accept(
 			w,
 			r,
 			//nolint:exhaustruct //other fields are optional
-			&websocket.AcceptOptions{InsecureSkipVerify: true},
+			&websocket.AcceptOptions{OriginPatterns: app.webOriginPatterns()},
 		)
 		if err != nil {
 			app.Logger.ErrorContext(
@@ -96,9 +107,9 @@ func (app *WatchParty) WsSignalingHandler() http.HandlerFunc {
 
 		switch msg.Role {
 		case dtos.Presenter:
-			app.handlePresenter(r.Context(), conn, msg)
+			app.handlePresenter(r.Context(), conn, msg, user.ID)
 		case dtos.Viewer:
-			app.handleViewer(r.Context(), conn, msg)
+			app.handleViewer(r.Context(), conn, msg, user.ID)
 		}
 	}
 }
@@ -107,8 +118,9 @@ func (app *WatchParty) handlePresenter(
 	ctx context.Context,
 	conn *websocket.Conn,
 	msg dtos.SubscribeMessageDto,
+	userID string,
 ) {
-	if !app.Services.Room.JoinPresenter(ctx, msg.RoomCode, conn) {
+	if !app.Services.Room.JoinPresenter(ctx, msg.RoomCode, userID, conn) {
 		wstools.ServerErrorResponse(
 			ctx,
 			conn,
@@ -147,9 +159,17 @@ func (app *WatchParty) handleViewer(
 	ctx context.Context,
 	conn *websocket.Conn,
 	msg dtos.SubscribeMessageDto,
+	userID string,
 ) {
-	app.Services.Room.JoinViewerWS(ctx, msg.RoomCode, conn)
-	defer app.Services.Room.LeaveViewer(ctx, msg.RoomCode)
+	if !app.Services.Room.JoinViewerWS(ctx, msg.RoomCode, userID, conn) {
+		wstools.ServerErrorResponse(
+			ctx,
+			conn,
+			errors.New("couldn't set viewer websocket"),
+		)
+		return
+	}
+	defer app.Services.Room.DisconnectViewer(msg.RoomCode, conn)
 
 	go pingLoop(ctx, conn, pingInterval, pingTimeout)
 
@@ -175,4 +195,13 @@ func (app *WatchParty) handleViewer(
 		)
 		app.Services.Room.SendToPresenter(ctx, msg.RoomCode, trackMsg)
 	}
+}
+
+// webOriginPatterns allows the web app's host to open the signaling socket.
+func (app *WatchParty) webOriginPatterns() []string {
+	u, err := url.Parse(app.Config.WebURL)
+	if err != nil || u.Host == "" {
+		return nil
+	}
+	return []string{u.Host}
 }

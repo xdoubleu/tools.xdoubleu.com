@@ -1,9 +1,12 @@
 package games
 
-import "net/http"
+import (
+	"net/http"
 
-func (a *Games) refreshHandler(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	a.Services.WebSocket.ForceRun(id)
+	"tools.xdoubleu.com/apps/games/internal/jobs"
+)
+
+func (a *Games) refreshSteamHandler(w http.ResponseWriter, _ *http.Request) {
+	a.Services.WebSocket.ForceRun(jobs.SteamJobID)
 	w.WriteHeader(http.StatusNoContent)
 }

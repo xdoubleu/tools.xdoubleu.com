@@ -13,6 +13,7 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	"tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // fakePlansStore implements plansStore in memory for family-scoping tests.
@@ -21,6 +22,8 @@ type fakePlansStore struct {
 	getErr        error
 	mealsInWindow []models.PlanMeal
 	mealsErr      error
+	// familyRecipes are the recipe IDs RecipeInFamily accepts.
+	familyRecipes map[uuid.UUID]bool
 
 	updated     bool
 	deleted     bool
@@ -100,6 +103,12 @@ func (f *fakePlansStore) CreateMeal(
 func (f *fakePlansStore) UpdateMeal(_ context.Context, _ models.PlanMeal) error {
 	f.mealUpdated = true
 	return nil
+}
+
+func (f *fakePlansStore) RecipeInFamily(
+	_ context.Context, recipeID, _ uuid.UUID,
+) (bool, error) {
+	return f.familyRecipes[recipeID], nil
 }
 
 func (f *fakePlansStore) DeleteMeal(_ context.Context, _, _ uuid.UUID) error {
@@ -344,4 +353,29 @@ func TestFamilyResolutionErrors_Propagate(t *testing.T) {
 
 	err = svc.Delete(ctx, store.plan.ID, "member")
 	assert.ErrorIs(t, err, familyErr)
+}
+
+// A recipe ID from another family can't be attached to a plan.
+func TestPlanMealMutations_ForeignRecipeNotFound(t *testing.T) {
+	ownRecipe, foreignRecipe := uuid.New(), uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakePlansStore{
+		plan:          newPlanFixture(),
+		familyRecipes: map[uuid.UUID]bool{ownRecipe: true},
+	}
+	svc := &PlanService{repo: store, family: newFamilyStore()}
+
+	err := svc.CreateMeal(t.Context(), store.plan.ID, "editor",
+		models.PlanMeal{RecipeID: &foreignRecipe}) //nolint:exhaustruct //recipe only
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+	assert.False(t, store.mealCreated)
+
+	err = svc.UpdateMeal(t.Context(), store.plan.ID, "editor",
+		models.PlanMeal{RecipeID: &foreignRecipe}) //nolint:exhaustruct //recipe only
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+	assert.False(t, store.mealUpdated)
+
+	require.NoError(t, svc.CreateMeal(t.Context(), store.plan.ID, "editor",
+		models.PlanMeal{RecipeID: &ownRecipe})) //nolint:exhaustruct //recipe only
+	assert.True(t, store.mealCreated)
 }

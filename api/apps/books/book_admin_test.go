@@ -292,11 +292,10 @@ func TestSetBookISBN_DuplicateISBN_AlreadyExists(t *testing.T) {
 	client := newAdminBooksTestClient(t)
 	req := connect.NewRequest(&booksv1.SetBookISBNRequest{
 		BookId: ubB.BookID.String(),
-		Isbn13: "9780140449112", // same ISBN addTestBook uses
+		Isbn13: testISBN("SetISBNDuplicateBookA"),
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// addTestBook's ISBN is hard-coded and may already exist.
 	require.NotNil(t, ubA)
 
 	_, err := client.SetBookISBN(context.Background(), req)
@@ -471,7 +470,7 @@ func TestUpdateBook_DuplicateISBN_AlreadyExists(t *testing.T) {
 		BookId: ubB.BookID.String(),
 		Metadata: &booksv1.Book{
 			Title:  "UpdateBookDuplicateISBNBookB",
-			Isbn13: "9780140449112", // same ISBN addTestBook uses
+			Isbn13: testISBN("UpdateBookDuplicateISBNBookA"),
 		},
 	})
 	req.Header().Set("Cookie", accessToken.String())

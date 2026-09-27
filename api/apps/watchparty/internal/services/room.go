@@ -2,12 +2,13 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/coder/websocket"
-	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/watchparty/internal/dtos"
 	"tools.xdoubleu.com/apps/watchparty/internal/models"
@@ -63,8 +64,18 @@ func (rs *RoomService) RoomExists(code string) bool {
 
 // Room creation and removal.
 
+// roomCodeBytes gives 64-bit codes: a code is the only thing standing
+// between another user and joining the room.
+const roomCodeBytes = 8
+
+func newRoomCode() string {
+	b := make([]byte, roomCodeBytes)
+	_, _ = rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
 func (rs *RoomService) CreateRoom(ctx context.Context, presenterID string) string {
-	code := uuid.New().String()[:6]
+	code := newRoomCode()
 
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
@@ -95,19 +106,22 @@ func (rs *RoomService) RemoveRoom(ctx context.Context, code string) bool {
 
 // WebSocket handling.
 
+// JoinPresenter attaches conn as the room's presenter socket; only the
+// room's presenter may.
 func (rs *RoomService) JoinPresenter(
 	ctx context.Context,
-	code string,
+	code, userID string,
 	conn *websocket.Conn,
 ) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	room, exists := rs.activeRooms[code]
-	if !exists {
+	if !exists || room.Presenter.ID != userID {
 		rs.logger.WarnContext(ctx,
-			"Attempted to join non-existent room as presenter",
+			"Refused presenter join",
 			slog.String("code", code),
+			slog.Bool("roomExists", exists),
 		)
 		return false
 	}
@@ -129,6 +143,12 @@ func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool
 		)
 		return false
 	}
+	// A connected viewer keeps their seat.
+	if room.Viewer.ID != "" && room.Viewer.ID != userID && room.Viewer.WS != nil {
+		rs.logger.WarnContext(ctx, "Refused viewer join: seat taken",
+			slog.String("code", code))
+		return false
+	}
 
 	room.SetViewer(userID)
 	rs.logger.InfoContext(ctx,
@@ -139,19 +159,22 @@ func (rs *RoomService) JoinViewer(ctx context.Context, code, userID string) bool
 	return true
 }
 
+// JoinViewerWS attaches conn as the viewer socket; only the viewer who
+// joined through the RPC may.
 func (rs *RoomService) JoinViewerWS(
 	ctx context.Context,
-	code string,
+	code, userID string,
 	conn *websocket.Conn,
 ) bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
 
 	room, exists := rs.activeRooms[code]
-	if !exists {
+	if !exists || room.Viewer.ID == "" || room.Viewer.ID != userID {
 		rs.logger.WarnContext(ctx,
-			"Attempted to join non-existent room as viewer",
+			"Refused viewer join",
 			slog.String("code", code),
+			slog.Bool("roomExists", exists),
 		)
 		return false
 	}
@@ -159,6 +182,17 @@ func (rs *RoomService) JoinViewerWS(
 	room.SetViewerWS(conn)
 	rs.logger.InfoContext(ctx, "Viewer WebSocket connected", slog.String("code", code))
 	return true
+}
+
+// DisconnectViewer handles a closed viewer socket; the seat stays with the
+// viewer until they leave through the RPC.
+func (rs *RoomService) DisconnectViewer(code string, conn *websocket.Conn) {
+	rs.mu.Lock()
+	defer rs.mu.Unlock()
+
+	if room, exists := rs.activeRooms[code]; exists {
+		room.ClearViewerWS(conn)
+	}
 }
 
 func (rs *RoomService) LeaveViewer(ctx context.Context, code string) {

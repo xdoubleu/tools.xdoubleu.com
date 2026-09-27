@@ -9,6 +9,9 @@ import (
 	internalmodels "tools.xdoubleu.com/internal/models"
 )
 
+// SteamJobID identifies the Steam sync job, which users can force-run.
+const SteamJobID = "steam"
+
 // steamSyncer is the slice of services.SteamService SteamJob needs.
 type steamSyncer interface {
 	SyncUser(ctx context.Context, userID string) error
@@ -30,7 +33,7 @@ func NewSteamJob(
 }
 
 func (j SteamJob) ID() string {
-	return "steam"
+	return SteamJobID
 }
 
 func (j SteamJob) RunEvery() time.Duration {

@@ -13,8 +13,8 @@ func (a *Games) Routes(prefix string, mux *http.ServeMux) {
 		a.Services.Auth.Access(a.Services.WebSocket.Handler()),
 	)
 	mux.HandleFunc(
-		"GET /"+prefix+"/api/progress/{id}/refresh",
-		a.Services.Auth.Access(a.refreshHandler),
+		"POST /"+prefix+"/api/progress/steam/refresh",
+		a.Services.Auth.AppAccess(prefix, a.refreshSteamHandler),
 	)
 
 	gamesPath, gamesHandler := gamesv1connect.NewGamesServiceHandler(
