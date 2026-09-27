@@ -407,7 +407,9 @@ func (*MFAEnrollSkipResponse) Descriptor() ([]byte, []int) {
 }
 
 type MFAUnenrollRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A current TOTP code or an unused recovery code.
+	Code          string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -440,6 +442,13 @@ func (x *MFAUnenrollRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use MFAUnenrollRequest.ProtoReflect.Descriptor instead.
 func (*MFAUnenrollRequest) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *MFAUnenrollRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
 }
 
 type MFAUnenrollResponse struct {
@@ -735,10 +744,11 @@ func (x *ExchangeTokenResponse) GetNeedsMfa() bool {
 }
 
 type UpdatePasswordRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NewPassword   string                 `protobuf:"bytes,1,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	NewPassword     string                 `protobuf:"bytes,1,opt,name=new_password,json=newPassword,proto3" json:"new_password,omitempty"`
+	CurrentPassword string                 `protobuf:"bytes,2,opt,name=current_password,json=currentPassword,proto3" json:"current_password,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdatePasswordRequest) Reset() {
@@ -774,6 +784,13 @@ func (*UpdatePasswordRequest) Descriptor() ([]byte, []int) {
 func (x *UpdatePasswordRequest) GetNewPassword() string {
 	if x != nil {
 		return x.NewPassword
+	}
+	return ""
+}
+
+func (x *UpdatePasswordRequest) GetCurrentPassword() string {
+	if x != nil {
+		return x.CurrentPassword
 	}
 	return ""
 }
@@ -1090,7 +1107,9 @@ func (*ResetPasswordResponse) Descriptor() ([]byte, []int) {
 }
 
 type RegenerateRecoveryCodesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A current TOTP code or an unused recovery code.
+	Code          string `protobuf:"bytes,1,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1123,6 +1142,13 @@ func (x *RegenerateRecoveryCodesRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use RegenerateRecoveryCodesRequest.ProtoReflect.Descriptor instead.
 func (*RegenerateRecoveryCodesRequest) Descriptor() ([]byte, []int) {
 	return file_auth_v1_auth_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RegenerateRecoveryCodesRequest) GetCode() string {
+	if x != nil {
+		return x.Code
+	}
+	return ""
 }
 
 type RegenerateRecoveryCodesResponse struct {
@@ -1195,8 +1221,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x17MFAEnrollVerifyResponse\x12%\n" +
 	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"\x16\n" +
 	"\x14MFAEnrollSkipRequest\"\x17\n" +
-	"\x15MFAEnrollSkipResponse\"\x14\n" +
-	"\x12MFAUnenrollRequest\"\x15\n" +
+	"\x15MFAEnrollSkipResponse\"(\n" +
+	"\x12MFAUnenrollRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"\x15\n" +
 	"\x13MFAUnenrollResponse\")\n" +
 	"\x13MFAChallengeRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"\x16\n" +
@@ -1208,9 +1235,10 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"4\n" +
 	"\x15ExchangeTokenResponse\x12\x1b\n" +
-	"\tneeds_mfa\x18\x01 \x01(\bR\bneedsMfa\":\n" +
+	"\tneeds_mfa\x18\x01 \x01(\bR\bneedsMfa\"e\n" +
 	"\x15UpdatePasswordRequest\x12!\n" +
-	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\"\x18\n" +
+	"\fnew_password\x18\x01 \x01(\tR\vnewPassword\x12)\n" +
+	"\x10current_password\x18\x02 \x01(\tR\x0fcurrentPassword\"\x18\n" +
 	"\x16UpdatePasswordResponse\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
 	"\x0fSignOutResponse\"\x17\n" +
@@ -1225,8 +1253,9 @@ const file_auth_v1_auth_proto_rawDesc = "" +
 	"\x14ResetPasswordRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
 	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\x17\n" +
-	"\x15ResetPasswordResponse\" \n" +
-	"\x1eRegenerateRecoveryCodesRequest\"H\n" +
+	"\x15ResetPasswordResponse\"4\n" +
+	"\x1eRegenerateRecoveryCodesRequest\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\tR\x04code\"H\n" +
 	"\x1fRegenerateRecoveryCodesResponse\x12%\n" +
 	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes2\x8e\b\n" +
 	"\vAuthService\x129\n" +

@@ -151,6 +151,38 @@ describe('SettingsPage', () => {
     })
   })
 
+  it('changes the password with the current password', async () => {
+    mockUpdatePassword.mockResolvedValue({})
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'old-pass' } })
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'new-password' } })
+    fireEvent.change(screen.getByLabelText('Confirm new password'), {
+      target: { value: 'new-password' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
+
+    expect(await screen.findByText('Password updated successfully.')).toBeInTheDocument()
+    expect(mockUpdatePassword).toHaveBeenCalledWith('old-pass', 'new-password')
+    expect(screen.getByLabelText('Current password')).toHaveValue('')
+  })
+
+  it('shows the api error when the current password is wrong', async () => {
+    mockUpdatePassword.mockRejectedValue(
+      new ConnectError('current password or code is incorrect', Code.PermissionDenied)
+    )
+    render(<SettingsPage />)
+
+    fireEvent.change(screen.getByLabelText('Current password'), { target: { value: 'wrong' } })
+    fireEvent.change(screen.getByLabelText('New password'), { target: { value: 'new-password' } })
+    fireEvent.change(screen.getByLabelText('Confirm new password'), {
+      target: { value: 'new-password' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Update password' }))
+
+    expect(await screen.findByText(/current password or code is incorrect/)).toBeInTheDocument()
+  })
+
   describe('regenerating recovery codes', () => {
     beforeEach(() => {
       mockUseCurrentUser.mockReturnValue({
@@ -159,20 +191,55 @@ describe('SettingsPage', () => {
       })
     })
 
+    function enterFactorCode() {
+      fireEvent.change(screen.getByLabelText('Authenticator or recovery code'), {
+        target: { value: ' 123456 ' }
+      })
+    }
+
+    it('needs a code before managing the factor', () => {
+      render(<SettingsPage />)
+      expect(screen.getByRole('button', { name: 'Regenerate recovery codes' })).toBeDisabled()
+      expect(screen.getByRole('button', { name: 'Disable MFA' })).toBeDisabled()
+    })
+
     it('shows the recovery codes dialog on success', async () => {
       mockRegenerateRecoveryCodes.mockResolvedValue({ recoveryCodes: ['new-code-1'] })
       render(<SettingsPage />)
 
+      enterFactorCode()
       fireEvent.click(screen.getByRole('button', { name: 'Regenerate recovery codes' }))
 
       expect(await screen.findByText('Save your recovery codes')).toBeInTheDocument()
       expect(screen.getByText('new-code-1')).toBeInTheDocument()
+      expect(mockRegenerateRecoveryCodes).toHaveBeenCalledWith('123456')
+    })
+
+    it('disables MFA with the step-up code', async () => {
+      mockMFAUnenroll.mockResolvedValue({})
+      render(<SettingsPage />)
+
+      enterFactorCode()
+      fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }))
+
+      await waitFor(() => expect(mockMFAUnenroll).toHaveBeenCalledWith('123456'))
+    })
+
+    it('shows an error when disabling fails', async () => {
+      mockMFAUnenroll.mockRejectedValue(new Error('boom'))
+      render(<SettingsPage />)
+
+      enterFactorCode()
+      fireEvent.click(screen.getByRole('button', { name: 'Disable MFA' }))
+
+      expect(await screen.findByText('Failed to disable MFA.')).toBeInTheDocument()
     })
 
     it('shows an error when regenerating fails', async () => {
       mockRegenerateRecoveryCodes.mockRejectedValue(new Error('boom'))
       render(<SettingsPage />)
 
+      enterFactorCode()
       fireEvent.click(screen.getByRole('button', { name: 'Regenerate recovery codes' }))
 
       expect(await screen.findByText('Failed to regenerate recovery codes.')).toBeInTheDocument()

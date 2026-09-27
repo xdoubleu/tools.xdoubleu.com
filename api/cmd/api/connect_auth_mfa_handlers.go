@@ -116,6 +116,12 @@ func (h *authConnectHandler) RegenerateRecoveryCodes(
 		)
 	}
 
+	if err = h.app.auth.VerifyCurrentFactor(
+		ctx, accessToken.Value, req.Msg.Code,
+	); err != nil {
+		return nil, connect.NewError(authErrorCode(err), err)
+	}
+
 	codes, err := h.app.auth.GenerateRecoveryCodes(ctx, accessToken.Value)
 	if err != nil {
 		return nil, connect.NewError(authErrorCode(err), err)
@@ -237,6 +243,12 @@ func (h *authConnectHandler) MFAUnenroll(
 			connect.CodeFailedPrecondition,
 			errors.New("MFA is not enabled"),
 		)
+	}
+
+	if err = h.app.auth.VerifyCurrentFactor(
+		ctx, accessToken.Value, req.Msg.Code,
+	); err != nil {
+		return nil, connect.NewError(authErrorCode(err), err)
 	}
 
 	if err = h.app.auth.UnenrollTOTP(ctx, accessToken.Value, factorID); err != nil {

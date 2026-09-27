@@ -218,3 +218,43 @@ func TestResolveAccessToken_RevokedToken(t *testing.T) {
 	_, err = resolver.ResolveAccessToken(context.Background(), token)
 	require.Error(t, err)
 }
+
+// Grafana's SSO tokens don't grant MCP access.
+func TestResolveAccessToken_GrafanaClientToken_Rejected(t *testing.T) {
+	store, db := newTestStore(t)
+	cfg := testhelper.NewTestConfig()
+	provider := newTestProvider(t, cfg, store)
+	resolver := oauth2as.NewTokenResolver(provider)
+	require.NoError(t, oauth2as.EnsureGrafanaClientSecret(
+		context.Background(), db, "grafana-resolver-test-secret-0123456789", nil,
+	))
+	client, err := store.GetClient(context.Background(), oauth2as.GrafanaClientID)
+	require.NoError(t, err)
+
+	//nolint:exhaustruct //Username/Extra are unused by this test
+	session := &fosite.DefaultSession{
+		Subject: uuid.NewString(),
+		//nolint:exhaustive //only AccessToken expiry matters for this test
+		ExpiresAt: map[fosite.TokenType]time.Time{
+			fosite.AccessToken: time.Now().Add(time.Hour),
+		},
+	}
+	//nolint:exhaustruct //other fosite.Request fields are optional for this test
+	request := &fosite.Request{
+		ID:          uuid.NewString(),
+		RequestedAt: time.Now(),
+		Client:      client,
+		Session:     session,
+	}
+	token, signature, err := hmacStrategyFor(t).GenerateAccessToken(
+		context.Background(), request,
+	)
+	require.NoError(t, err)
+	require.NoError(
+		t,
+		store.CreateAccessTokenSession(context.Background(), signature, request),
+	)
+
+	_, err = resolver.ResolveAccessToken(context.Background(), token)
+	require.Error(t, err)
+}

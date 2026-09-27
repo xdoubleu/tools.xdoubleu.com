@@ -23,11 +23,15 @@ func (t *TokenResolver) ResolveAccessToken(
 ) (string, error) {
 	//nolint:exhaustruct //other DefaultSession fields are optional
 	session := &fosite.DefaultSession{}
-	_, _, err := t.provider.IntrospectToken(
+	_, requester, err := t.provider.IntrospectToken(
 		ctx, token, fosite.AccessToken, session,
 	)
 	if err != nil {
 		return "", err
+	}
+	// Grafana's SSO tokens are for Grafana, not the MCP resource server.
+	if requester.GetClient().GetID() == GrafanaClientID {
+		return "", errors.New("oauth2as: token was issued to another client")
 	}
 	if session.Subject == "" {
 		return "", errors.New("oauth2as: token has no subject")

@@ -115,8 +115,11 @@ describe('useUpdatePassword', () => {
     })
 
     const { result } = renderHook(() => useUpdatePassword())
-    result.current('newpass123')
-    expect(mockUpdatePassword).toHaveBeenCalledWith({ newPassword: 'newpass123' })
+    result.current('oldpass123', 'newpass123')
+    expect(mockUpdatePassword).toHaveBeenCalledWith({
+      currentPassword: 'oldpass123',
+      newPassword: 'newpass123'
+    })
   })
 })
 
@@ -146,8 +149,8 @@ describe('useRegenerateRecoveryCodes', () => {
     })
 
     const { result } = renderHook(() => useRegenerateRecoveryCodes())
-    result.current()
-    expect(mockRegenerateRecoveryCodes).toHaveBeenCalledWith({})
+    result.current('123456')
+    expect(mockRegenerateRecoveryCodes).toHaveBeenCalledWith({ code: '123456' })
   })
 })
 
@@ -205,8 +208,8 @@ describe('useMFAUnenroll', () => {
     })
 
     const { result } = renderHook(() => useMFAUnenroll())
-    result.current()
-    expect(mockMFAUnenroll).toHaveBeenCalledWith({})
+    result.current('123456')
+    expect(mockMFAUnenroll).toHaveBeenCalledWith({ code: '123456' })
   })
 })
 

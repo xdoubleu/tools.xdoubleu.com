@@ -116,9 +116,9 @@ func TestUpdatePassword_Success(t *testing.T) {
 	// A throwaway user, so changing its password doesn't break shared fixtures.
 	token := freshTestUser(t)
 	client := authClient(t)
-	req := connect.NewRequest(
-		&authv1.UpdatePasswordRequest{NewPassword: "newpassword123"},
-	)
+	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+		NewPassword: "newpassword123", CurrentPassword: testUserPassword,
+	})
 	setCookieOnRequest(req, http.Cookie{Name: "accessToken", Value: token})
 	_, err := client.UpdatePassword(context.Background(), req)
 	require.NoError(t, err)
@@ -168,7 +168,9 @@ func TestMFAUnenroll_Success(t *testing.T) {
 	_, err = client.MFAUnenroll(context.Background(), staleReq)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 
-	req := connect.NewRequest(&authv1.MFAUnenrollRequest{})
+	req := connect.NewRequest(&authv1.MFAUnenrollRequest{
+		Code: verifyResp.Msg.RecoveryCodes[0],
+	})
 	setCookieOnRequest(req, sessionCookie(t, verifyResp.Header()))
 	_, err = client.MFAUnenroll(context.Background(), req)
 	require.NoError(t, err)
@@ -214,10 +216,47 @@ func TestGetCurrentUser_PreMFAToken_Unauthenticated(t *testing.T) {
 func TestUpdatePassword_PreMFAToken_Unauthenticated(t *testing.T) {
 	client := authClient(t)
 	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
-		NewPassword: "another-password",
+		NewPassword: "another-password", CurrentPassword: testUserPassword,
 	})
 	setCookieOnRequest(req, mfaAccessToken)
 	_, err := client.UpdatePassword(context.Background(), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+func TestUpdatePassword_WrongCurrentPassword_PermissionDenied(t *testing.T) {
+	token := freshTestUser(t)
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+		NewPassword: "newpassword123", CurrentPassword: "wrong",
+	})
+	setCookieOnRequest(req, http.Cookie{Name: "accessToken", Value: token})
+	_, err := client.UpdatePassword(context.Background(), req)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestUpdatePassword_TooShort_InvalidArgument(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.UpdatePasswordRequest{
+		NewPassword: "short", CurrentPassword: testUserPassword,
+	})
+	setCookieOnRequest(req, accessToken)
+	_, err := client.UpdatePassword(context.Background(), req)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestResetPassword_TooShort_InvalidArgument(t *testing.T) {
+	client := authClient(t)
+	_, err := client.ResetPassword(context.Background(), connect.NewRequest(
+		&authv1.ResetPasswordRequest{Token: "t", NewPassword: "short"},
+	))
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+}
+
+func TestMFAUnenroll_WrongCode_PermissionDenied(t *testing.T) {
+	client := authClient(t)
+	req := connect.NewRequest(&authv1.MFAUnenrollRequest{Code: "000000"})
+	setCookieOnRequest(req, mfaSessionToken)
+	_, err := client.MFAUnenroll(context.Background(), req)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
 }

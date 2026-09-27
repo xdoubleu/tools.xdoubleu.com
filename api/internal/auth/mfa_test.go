@@ -16,8 +16,16 @@ import (
 
 func totpCode(t *testing.T, secret string) string {
 	t.Helper()
+	return totpCodeAt(t, secret, 0)
+}
+
+// totpCodeAt is the code offsetSteps periods from now; each step is accepted
+// once.
+func totpCodeAt(t *testing.T, secret string, offsetSteps int) string {
+	t.Helper()
+	at := time.Now().Add(time.Duration(offsetSteps) * 30 * time.Second)
 	//nolint:exhaustruct //Encoder uses the library default
-	code, err := totp.GenerateCodeCustom(secret, time.Now(), totp.ValidateOpts{
+	code, err := totp.GenerateCodeCustom(secret, at, totp.ValidateOpts{
 		Period:    30,
 		Skew:      1,
 		Digits:    otp.DigitsSix,
@@ -254,7 +262,9 @@ func TestUpdatePassword_PreMFAToken_Rejected(t *testing.T) {
 	service, access, _, _ := enrolledUser(t)
 	require.Error(
 		t,
-		service.UpdatePassword(context.Background(), access, "new-password"),
+		service.UpdatePassword(
+			context.Background(), access, testPassword, "new-password",
+		),
 	)
 }
 
@@ -269,7 +279,7 @@ func TestVerifyMFA_PreMFAToken_CannotVerifyNewFactor(t *testing.T) {
 	service, access, _, enrollment := enrolledUser(t)
 	session, _, err := service.VerifyMFA(
 		context.Background(), access, enrollment.ID, enrollment.ID,
-		totpCode(t, enrollment.Secret),
+		totpCodeAt(t, enrollment.Secret, 1),
 	)
 	require.NoError(t, err)
 
@@ -287,4 +297,61 @@ func TestValidateAccessToken(t *testing.T) {
 	service, access, _, _ := enrolledUser(t)
 	require.NoError(t, service.ValidateAccessToken(access))
 	require.Error(t, service.ValidateAccessToken("not-a-jwt"))
+}
+
+func TestVerifyMFA_RejectsReplayedCode(t *testing.T) {
+	service, access, _, enrollment := enrolledUser(t)
+	code := totpCodeAt(t, enrollment.Secret, 1)
+
+	_, _, err := service.VerifyMFA(
+		context.Background(), access, enrollment.ID, enrollment.ID, code,
+	)
+	require.NoError(t, err)
+	_, _, err = service.VerifyMFA(
+		context.Background(), access, enrollment.ID, enrollment.ID, code,
+	)
+	require.Error(t, err)
+
+	// An earlier step than the last accepted one is a replay too.
+	_, _, err = service.VerifyMFA(
+		context.Background(), access, enrollment.ID, enrollment.ID,
+		totpCodeAt(t, enrollment.Secret, 0),
+	)
+	require.Error(t, err)
+}
+
+func TestVerifyCurrentFactor(t *testing.T) {
+	service, access, _, enrollment := enrolledUser(t)
+	session, _, err := service.VerifyMFA(
+		context.Background(), access, enrollment.ID, enrollment.ID,
+		totpCodeAt(t, enrollment.Secret, 1),
+	)
+	require.NoError(t, err)
+
+	assert.ErrorIs(t,
+		service.VerifyCurrentFactor(context.Background(), *session, "000000"),
+		auth.ErrWrongCredential,
+	)
+	codes, err := service.GenerateRecoveryCodes(context.Background(), *session)
+	require.NoError(t, err)
+	require.NoError(t,
+		service.VerifyCurrentFactor(context.Background(), *session, codes[0]),
+	)
+	// A pre-MFA token can't pass the step-up.
+	require.Error(t,
+		service.VerifyCurrentFactor(context.Background(), access, codes[1]),
+	)
+}
+
+func TestVerifyCurrentFactor_NoFactor(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	access, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+	assert.ErrorIs(t,
+		service.VerifyCurrentFactor(context.Background(), *access, "123456"),
+		auth.ErrWrongCredential,
+	)
 }
