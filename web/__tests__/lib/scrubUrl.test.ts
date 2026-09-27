@@ -16,13 +16,15 @@ describe('stripSensitiveParams', () => {
 
 describe('scrubPostHogEvent', () => {
   it('redacts URL properties', () => {
-    const event = {
+    const event: CaptureResult = {
+      uuid: 'u',
+      event: '$pageview',
       properties: {
         $current_url: 'https://x.test/auth/reset-password?token=abc',
         $referrer: 'https://x.test/?code=1',
         other: 'https://x.test/?token=kept'
       }
-    } as unknown as CaptureResult
+    }
 
     const out = scrubPostHogEvent(event)
 
