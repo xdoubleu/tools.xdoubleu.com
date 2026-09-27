@@ -39,7 +39,7 @@ func newTestServer(volumesRoot string, updater *stubUpdater) *kobogateway.Server
 
 	return kobogateway.NewServer(kobogateway.Config{
 		Port:           kobogateway.DefaultPort,
-		AllowedOrigins: kobogateway.DefaultAllowedOrigins(),
+		AllowedOrigins: kobogateway.DefaultAllowedOrigins("dev"),
 		VolumesRoot:    volumesRoot,
 		Release:        "testsha",
 	}, updater)
@@ -501,4 +501,13 @@ func TestSetNotifierIgnoresNil(t *testing.T) {
 	assert.NotPanics(t, func() {
 		doRequest(gateway.Handler(), http.MethodPost, "/update", testOrigin, `{}`)
 	})
+}
+
+// Release builds don't let a page on the dev server's port drive the gateway.
+func TestDefaultAllowedOrigins_DevOriginOnlyInDevBuilds(t *testing.T) {
+	assert.Contains(t, kobogateway.DefaultAllowedOrigins("dev"), kobogateway.DevWebOrigin)
+	assert.Equal(t,
+		[]string{kobogateway.DefaultWebOrigin},
+		kobogateway.DefaultAllowedOrigins("abc1234"),
+	)
 }

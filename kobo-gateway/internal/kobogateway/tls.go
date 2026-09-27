@@ -39,9 +39,12 @@ func EnsureCert(dir string) (tls.Certificate, string, error) {
 	certPath := filepath.Join(dir, certFileName)
 	keyPath := filepath.Join(dir, keyFileName)
 
-	if cert, err := tls.LoadX509KeyPair(certPath, keyPath); err == nil {
+	if cert, err := tls.LoadX509KeyPair(certPath, keyPath); err == nil &&
+		isNameConstrained(cert) {
 		return cert, certPath, nil
 	}
+	// A missing or unconstrained cert is replaced and must be trusted again.
+	_ = os.Remove(filepath.Join(dir, trustedMarker))
 
 	certPEM, keyPEM, err := generateCert()
 	if err != nil {
@@ -64,6 +67,22 @@ func EnsureCert(dir string) (tls.Certificate, string, error) {
 	}
 
 	return cert, certPath, nil
+}
+
+// loopbackHost is 127.0.0.1/32.
+//
+//nolint:gochecknoglobals,mnd // a fixed address
+var loopbackHost = &net.IPNet{IP: net.IPv4(127, 0, 0, 1), Mask: net.CIDRMask(32, 32)}
+
+// isNameConstrained reports whether cert's trusted root is confined to
+// loopback; older gateways generated an unconstrained one.
+func isNameConstrained(cert tls.Certificate) bool {
+	if len(cert.Certificate) == 0 {
+		return false
+	}
+	leaf, err := x509.ParseCertificate(cert.Certificate[0])
+	return err == nil && leaf.PermittedDNSDomainsCritical &&
+		len(leaf.PermittedDNSDomains) > 0
 }
 
 // serialBits sizes the certificate serial number's random range, per the
@@ -92,6 +111,11 @@ func generateCert() ([]byte, []byte, error) {
 		BasicConstraintsValid: true,
 		DNSNames:              []string{"localhost"},
 		IPAddresses:           []net.IP{net.ParseIP("127.0.0.1")},
+		// The cert is a trusted root; these confine anything signed with its
+		// key to loopback, so a leaked key can't impersonate other sites.
+		PermittedDNSDomainsCritical: true,
+		PermittedDNSDomains:         []string{"localhost"},
+		PermittedIPRanges:           []*net.IPNet{loopbackHost},
 	}
 
 	der, err := x509.CreateCertificate(rand.Reader, template, template, &priv.PublicKey, priv) //nolint:lll
