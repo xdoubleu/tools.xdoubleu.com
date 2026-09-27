@@ -161,6 +161,16 @@ describe('attachDraggable', () => {
     document.body.removeChild(container)
   })
 
+  it('disables touch panning while attached and restores it on cleanup', () => {
+    const { el, container } = makeEl()
+    el.style.touchAction = 'pan-y'
+    const cleanup = attachDraggable(el)
+    expect(el.style.touchAction).toBe('none')
+    cleanup()
+    expect(el.style.touchAction).toBe('pan-y')
+    document.body.removeChild(container)
+  })
+
   it('removes listeners on cleanup', () => {
     const { el, container } = makeEl()
     const removeSpy = jest.spyOn(el, 'removeEventListener')
@@ -208,8 +218,8 @@ describe('STATUS_LABEL and STATUS_COLOR constants', () => {
   })
 
   it('STATUS_COLOR has entries for all statuses', () => {
-    expect(STATUS_COLOR.connecting).toContain('yellow')
-    expect(STATUS_COLOR.connected).toContain('green')
-    expect(STATUS_COLOR.disconnected).toContain('red')
+    expect(STATUS_COLOR.connecting).toBe('bg-warn')
+    expect(STATUS_COLOR.connected).toBe('bg-success')
+    expect(STATUS_COLOR.disconnected).toBe('bg-danger')
   })
 })

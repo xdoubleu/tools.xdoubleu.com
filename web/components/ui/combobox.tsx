@@ -12,6 +12,8 @@ interface ComboboxProps {
   suggestions: string[]
   placeholder?: string
   className?: string
+  /** The input's `id`, for a `Field` label. */
+  id?: string
   autoFocus?: boolean
   /** Called when Enter is pressed and no suggestion is highlighted. */
   onEnter?: () => void
@@ -27,6 +29,7 @@ export function Combobox({
   suggestions,
   placeholder,
   className,
+  id,
   autoFocus,
   onEnter,
   'aria-label': ariaLabel,
@@ -101,6 +104,7 @@ export function Combobox({
     <div className={cn('relative', className)}>
       <Input
         ref={inputRef}
+        id={id}
         type="text"
         value={value}
         onChange={handleChange}

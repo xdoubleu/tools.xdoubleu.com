@@ -10,6 +10,7 @@ import { DateInput } from '@/components/ui/date-input'
 import { Input } from '@/components/ui/input'
 import { TogglePill } from '@/components/ui/toggle-pill'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 import { useJourneySearch, useSavedCommutes, useTrainsFeedInfo } from '@/hooks/useTrains'
 
 function nowParts(): { date: string; time: string } {
@@ -77,7 +78,7 @@ export default function TrainsClient() {
 
   return (
     <PageContainer size="narrow">
-      <h1 className="mb-6 text-3xl font-bold">Trains</h1>
+      <PageHeader title="Trains" />
 
       <div className="mb-6">
         <SavedCommutes
@@ -91,7 +92,7 @@ export default function TrainsClient() {
 
       <div className="space-y-4">
         <div className="flex items-end gap-2">
-          <div className="flex-1 space-y-4">
+          <div className="min-w-0 flex-1 space-y-4">
             <StationField
               label="From"
               query={originQuery}
@@ -137,13 +138,13 @@ export default function TrainsClient() {
         </div>
 
         <div className="flex gap-2">
-          <DateInput value={date} onChange={setDate} className="flex-1" aria-label="Date" />
+          <DateInput value={date} onChange={setDate} className="min-w-0 flex-1" aria-label="Date" />
           <Input
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
             aria-label="Time"
-            className="w-32"
+            className="min-w-0 flex-1 sm:w-32 sm:flex-none"
           />
         </div>
       </div>

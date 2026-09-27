@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Card, interactiveCardClass } from '@/components/ui/card'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
 import type { Journey } from '@/lib/gen/trains/v1/trains_pb'
 
@@ -80,8 +81,8 @@ export default function JourneyResults({
   journeys
 }: JourneyResultsProps) {
   if (!ready) return null
-  if (isLoading) return <p className="text-muted">Loading…</p>
-  if (error) return <p className="text-danger">Failed to load journeys.</p>
+  if (isLoading) return <LoadingState label="journeys" />
+  if (error) return <ErrorState what="journeys" />
   if (!feedImported) {
     return <p className="text-muted">The timetable hasn&apos;t been imported yet.</p>
   }
