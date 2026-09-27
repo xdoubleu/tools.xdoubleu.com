@@ -242,6 +242,13 @@ linters:
       - linters:
           - gocritic
         source: //noinspection
+      # resolveArticleImage's Clean + containment check blocks the path
+      # traversal gosec's G703 taint analysis can't reason about
+      # (conversion_epubbuild_xhtml.go).
+      - linters:
+          - gosec
+        path: conversion_epubbuild_xhtml\.go
+        text: G703
       # Apple's plist DOCTYPE line is fixed-format content inside a raw
       # string literal — a trailing //nolint would corrupt the string.
       - linters:
