@@ -6,11 +6,12 @@ import type { CreateLearningPathInput, UpdateLearningPathInput } from '@/hooks/u
 import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import ResourceLinkPicker from '@/components/learningpaths/ResourceLinkPicker'
+import ResourceLinkPicker, { BookLinkSearch } from '@/components/learningpaths/ResourceLinkPicker'
 
 interface LearningPathFormProps {
   learningPath?: LearningPath
@@ -22,6 +23,8 @@ interface ItemRow {
   type: string
   description: string
   completed: boolean
+  linkedBookId?: string
+  linkedBookTitle?: string
 }
 
 interface ModuleRow {
@@ -59,7 +62,9 @@ export default function LearningPathForm({
             ? m.items.map((i) => ({
                 type: i.type,
                 description: i.description,
-                completed: i.completed
+                completed: i.completed,
+                linkedBookId: i.linkedBookId,
+                linkedBookTitle: i.linkedBook?.title
               }))
             : [emptyItem()]
         }))
@@ -76,6 +81,8 @@ export default function LearningPathForm({
         }))
       : [emptyResource()]
   )
+  // pickingBook is the module/item index whose "Link book" search is open.
+  const [pickingBook, setPickingBook] = useState<{ m: number; i: number } | null>(null)
 
   const createLearningPath = useCreateLearningPath()
   const updateLearningPath = useUpdateLearningPath()
@@ -113,6 +120,31 @@ export default function LearningPathForm({
     const updated = [...modules]
     const items = [...updated[moduleIdx].items]
     items[itemIdx] = { ...items[itemIdx], [field]: value }
+    updated[moduleIdx] = { ...updated[moduleIdx], items }
+    setModules(updated)
+  }
+
+  const linkItemBook = (
+    moduleIdx: number,
+    itemIdx: number,
+    book: { id: string; title: string }
+  ) => {
+    const updated = [...modules]
+    const items = [...updated[moduleIdx].items]
+    items[itemIdx] = {
+      ...items[itemIdx],
+      linkedBookId: book.id,
+      linkedBookTitle: book.title,
+      completed: false
+    }
+    updated[moduleIdx] = { ...updated[moduleIdx], items }
+    setModules(updated)
+  }
+
+  const unlinkItemBook = (moduleIdx: number, itemIdx: number) => {
+    const updated = [...modules]
+    const items = [...updated[moduleIdx].items]
+    items[itemIdx] = { ...items[itemIdx], linkedBookId: undefined, linkedBookTitle: undefined }
     updated[moduleIdx] = { ...updated[moduleIdx], items }
     setModules(updated)
   }
@@ -167,7 +199,12 @@ export default function LearningPathForm({
           title: m.title,
           items: m.items
             .filter((i) => i.description.trim())
-            .map((i) => ({ type: i.type, description: i.description, completed: i.completed }))
+            .map((i) => ({
+              type: i.type,
+              description: i.description,
+              completed: i.completed,
+              linkedBookId: i.linkedBookId
+            }))
         }))
       const resourcePayload = resources
         .filter((r) => r.text.trim() || r.linkedBookId || r.linkedFeedItemId)
@@ -278,6 +315,38 @@ export default function LearningPathForm({
                       onChange={(e) => updateItem(mIdx, iIdx, 'description', e.target.value)}
                       className="flex-1 min-w-40"
                     />
+                    {pickingBook?.m === mIdx && pickingBook.i === iIdx ? (
+                      <BookLinkSearch
+                        onPick={(book) => {
+                          linkItemBook(mIdx, iIdx, book)
+                          setPickingBook(null)
+                        }}
+                        onCancel={() => setPickingBook(null)}
+                      />
+                    ) : item.linkedBookTitle ? (
+                      <span className="inline-flex items-center gap-1 text-sm">
+                        <Badge className="max-w-full break-words text-sm">
+                          📚 {item.linkedBookTitle}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => unlinkItemBook(mIdx, iIdx)}
+                        >
+                          Unlink
+                        </Button>
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setPickingBook({ m: mIdx, i: iIdx })}
+                      >
+                        Link book
+                      </Button>
+                    )}
                     {module.items.length > 1 && (
                       <Button
                         type="button"

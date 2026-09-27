@@ -70,8 +70,13 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 			{
 				Title: "Month 1",
 				Items: []mcpItemArg{
-					{Type: "read", Description: "Read the tour of Go", Completed: false},
-					{Type: "do", Description: "Write a CLI tool", Completed: false},
+					{
+						Type:         "read",
+						Description:  "Read the tour of Go",
+						Completed:    false,
+						LinkedBookID: nil,
+					},
+					{Type: "do", Description: "Write a CLI tool", Completed: false, LinkedBookID: nil},
 				},
 			},
 		},
@@ -102,7 +107,12 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 			{
 				Title: "Month 1",
 				Items: []mcpItemArg{
-					{Type: "read", Description: "Read the tour of Go", Completed: false},
+					{
+						Type:         "read",
+						Description:  "Read the tour of Go",
+						Completed:    false,
+						LinkedBookID: nil,
+					},
 				},
 			},
 		},

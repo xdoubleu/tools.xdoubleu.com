@@ -124,23 +124,41 @@ export default function PathClient({ id }: { id: string }) {
                         key={item.id}
                         className="flex flex-wrap items-center gap-x-2 border-b border-border py-1 last:border-0"
                       >
-                        <Checkbox
-                          checked={item.completed}
-                          onChange={(e) => handleToggleItem(item.id, e.target.checked)}
-                          labelClassName="min-w-0 flex-1"
-                          label={
+                        {item.linkedBook ? (
+                          <Badge className="max-w-full flex-wrap gap-1.5 self-start text-sm">
                             <span className="min-w-0 break-words">
                               {item.type && (
                                 <span className="mr-2 text-xs uppercase tracking-wide text-muted">
                                   {item.type}
                                 </span>
                               )}
-                              <span className={cn(item.completed && 'text-muted line-through')}>
-                                {item.description}
-                              </span>
+                              {item.description}
                             </span>
-                          }
-                        />
+                            <span className="text-muted">
+                              — 📚 {item.linkedBook.title}
+                              {item.linkedBook.progressPercent > 0 &&
+                                `, ${item.linkedBook.progressPercent}%`}
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Checkbox
+                            checked={item.completed}
+                            onChange={(e) => handleToggleItem(item.id, e.target.checked)}
+                            labelClassName="min-w-0 flex-1"
+                            label={
+                              <span className="min-w-0 break-words">
+                                {item.type && (
+                                  <span className="mr-2 text-xs uppercase tracking-wide text-muted">
+                                    {item.type}
+                                  </span>
+                                )}
+                                <span className={cn(item.completed && 'text-muted line-through')}>
+                                  {item.description}
+                                </span>
+                              </span>
+                            }
+                          />
+                        )}
                         {todoistStatus?.connected && (
                           <Button
                             variant="secondary"

@@ -94,7 +94,7 @@ export default function ResourceLinkPicker({
   )
 }
 
-function BookLinkSearch({
+export function BookLinkSearch({
   onPick,
   onCancel
 }: {

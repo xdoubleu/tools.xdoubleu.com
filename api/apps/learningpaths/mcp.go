@@ -27,9 +27,11 @@ type mcpPathIDArgs struct {
 }
 
 type mcpItemArg struct {
-	Type        string `json:"type,omitempty"      jsonschema:"read/do/checkpoint..."`
-	Description string `json:"description"         jsonschema:"what to do"`
-	Completed   bool   `json:"completed,omitempty" jsonschema:"already completed"`
+	Type        string `json:"type,omitempty"           jsonschema:"read/do/checkpoint..."`
+	Description string `json:"description"              jsonschema:"what to do"`
+	Completed   bool   `json:"completed,omitempty"      jsonschema:"already completed"`
+	//nolint:gostruct //LinkedBook is read-only, never authored
+	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
 }
 
 type mcpModuleArg struct {
@@ -147,9 +149,10 @@ func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {
 		items := make([]*learningpathsv1.Item, len(m.Items))
 		for j, it := range m.Items {
 			items[j] = &learningpathsv1.Item{
-				Type:        it.Type,
-				Description: it.Description,
-				Completed:   it.Completed,
+				Type:         it.Type,
+				Description:  it.Description,
+				Completed:    it.Completed,
+				LinkedBookId: it.LinkedBookID,
 			}
 		}
 		modules[i] = &learningpathsv1.Module{

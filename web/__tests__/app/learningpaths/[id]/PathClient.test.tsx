@@ -159,6 +159,46 @@ describe('PathClient', () => {
     expect(screen.getAllByText('Linked resource no longer available')).toHaveLength(2)
   })
 
+  it('hides the manual toggle for book-linked items and shows book progress', () => {
+    const learningPath = create(LearningPathSchema, {
+      id: 'lp1',
+      title: 'Learn Go',
+      modules: [
+        create(ModuleSchema, {
+          id: 'm1',
+          title: 'Month 1',
+          items: [
+            create(ItemSchema, {
+              id: 'i1',
+              type: 'read',
+              description: 'Read Dune',
+              linkedBookId: 'b1',
+              linkedBook: { title: 'Dune', status: 'in_progress', progressPercent: 42 }
+            }),
+            create(ItemSchema, { id: 'i2', description: 'Write summary', completed: false })
+          ]
+        })
+      ]
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLearningPath).mockReturnValue({
+      data: create(GetLearningPathResponseSchema, { learningPath }),
+      isLoading: false,
+      error: undefined,
+      mutate: mockMutate
+    })
+    render(<PathClient id="lp1" />)
+
+    // The book-linked item shows its book + progress and NO manual checkbox.
+    expect(screen.getByText(/Read Dune/)).toBeInTheDocument()
+    expect(screen.getAllByText(/Dune/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/, 42%/)).toBeInTheDocument()
+    // Only the plain "do" item renders a checkbox.
+    const checkboxes = screen.getAllByRole('checkbox')
+    expect(checkboxes).toHaveLength(1)
+    expect(screen.getByText('Write summary')).toBeInTheDocument()
+  })
+
   it('records progress and revalidates when a checkbox is toggled', async () => {
     const learningPath = create(LearningPathSchema, {
       id: 'lp1',

@@ -164,10 +164,11 @@ func (r *LearningPathsRepository) ReplaceModules(
 		for j, item := range modules[i].Items {
 			batch.Queue(`
 				INSERT INTO learningpaths.items
-				(module_id, type, description, sort_order, completed)
-				VALUES ($1, $2, $3, $4, $5)
+				(module_id, type, description, sort_order, completed, linked_book_id)
+				VALUES ($1, $2, $3, $4, $5, $6)
 				RETURNING id`,
 				moduleID, item.Type, item.Description, j, item.Completed,
+				item.LinkedBookID,
 			)
 		}
 
@@ -234,7 +235,8 @@ func (r *LearningPathsRepository) getItemsForPath(
 	learningPathID uuid.UUID,
 ) (map[uuid.UUID][]models.Item, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT i.id, i.module_id, i.type, i.description, i.sort_order, i.completed
+		SELECT i.id, i.module_id, i.type, i.description, i.sort_order, i.completed,
+			i.linked_book_id
 		FROM learningpaths.items i
 		JOIN learningpaths.modules m ON m.id = i.module_id
 		WHERE m.learning_path_id = $1
@@ -251,7 +253,7 @@ func (r *LearningPathsRepository) getItemsForPath(
 		var item models.Item
 		if err = rows.Scan(
 			&item.ID, &item.ModuleID, &item.Type, &item.Description,
-			&item.SortOrder, &item.Completed,
+			&item.SortOrder, &item.Completed, &item.LinkedBookID,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
@@ -374,14 +376,15 @@ func (r *LearningPathsRepository) GetItemForUser(
 	var out models.ItemForTask
 	err := r.db.QueryRow(ctx, `
 		SELECT i.id, i.module_id, i.type, i.description, i.sort_order,
-		       i.completed, lp.title
+		       i.completed, i.linked_book_id, lp.title
 		FROM learningpaths.items i
 		JOIN learningpaths.modules m ON m.id = i.module_id
 		JOIN learningpaths.learning_paths lp ON lp.id = m.learning_path_id
 		WHERE i.id = $1 AND lp.user_id = $2
 	`, itemID, userID).Scan(
 		&out.Item.ID, &out.Item.ModuleID, &out.Item.Type, &out.Item.Description,
-		&out.Item.SortOrder, &out.Item.Completed, &out.PathTitle,
+		&out.Item.SortOrder, &out.Item.Completed, &out.Item.LinkedBookID,
+		&out.PathTitle,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)

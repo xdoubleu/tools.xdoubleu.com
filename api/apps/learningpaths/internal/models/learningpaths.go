@@ -6,6 +6,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// FullProgressPercent is the reading progress at which a book-linked item is
+// complete.
+const FullProgressPercent = 100
+
 type LearningPath struct {
 	ID        uuid.UUID
 	UserID    string
@@ -33,6 +37,12 @@ type Item struct {
 	Description string
 	SortOrder   int
 	Completed   bool
+	// LinkedBookID pins a book-linked item; its Completed is derived on read.
+	LinkedBookID *uuid.UUID
+
+	// LinkedBook is resolved by LearningPathService.Get when the link still
+	// resolves for the caller, else nil. Never persisted.
+	LinkedBook *LinkedBook
 }
 
 type Resource struct {
