@@ -2,6 +2,7 @@
 
 import { SectionCard } from '@/components/ui/section-card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableHeader,
@@ -13,6 +14,7 @@ import {
 import type { GetAutomatedActionsResponse } from '@/lib/gen/observability/v1/observability_pb'
 import { formatDuration, isAutomatedActionStale } from '@/lib/observability'
 import { formatDateTime } from '@/lib/dates'
+import { cn } from '@/lib/cn'
 
 function outcomeBadge(outcome: string, stale: boolean) {
   if (!outcome) {
@@ -71,23 +73,28 @@ export default function AutomatedActionsCard({ data }: { data?: GetAutomatedActi
                   <TableCell className="text-sm text-muted">{action.triggerSource}</TableCell>
                   <TableCell className="text-sm font-medium">{action.routineName}</TableCell>
                   <TableCell
-                    className={`text-sm whitespace-nowrap ${stale ? 'text-warn font-medium' : 'text-muted'}`}
+                    className={cn(
+                      'whitespace-nowrap text-sm',
+                      stale ? 'font-medium text-warn' : 'text-muted'
+                    )}
                   >
                     {durationCell(action.firedAt, action.finishedAt, stale)}
                   </TableCell>
-                  <TableCell title={action.error || undefined}>
+                  <TableCell>
                     {outcomeBadge(action.outcome, stale)}
+                    {action.error && (
+                      <p className="mt-1 max-w-xs break-words text-xs text-danger">
+                        {action.error}
+                      </p>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">
                     {action.prUrl ? (
-                      <a
-                        href={action.prUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="-m-2 inline-block p-2 text-accent hover:underline"
-                      >
-                        View PR
-                      </a>
+                      <Button asChild variant="link" className="px-2">
+                        <a href={action.prUrl} target="_blank" rel="noopener noreferrer">
+                          View PR
+                        </a>
+                      </Button>
                     ) : (
                       <span className="text-muted">—</span>
                     )}

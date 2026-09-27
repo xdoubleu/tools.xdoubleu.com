@@ -6,6 +6,10 @@ import { useForgotPassword } from '@/hooks/useAuth'
 import { ConnectError } from '@connectrpc/connect'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function ForgotPasswordPage() {
   const forgotPassword = useForgotPassword()
@@ -34,57 +38,49 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-fg">Reset your password</h2>
-
-      {sent ? (
-        <div className="mt-6 space-y-4">
-          <p className="text-sm text-subtle">
-            If an account with that email exists, you will receive a password reset link shortly.
-          </p>
-          <Link
-            href="/auth/sign-in"
-            className="block py-3 text-center text-sm text-accent hover:underline"
-          >
-            Back to sign in
-          </Link>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-subtle">
-              Email
-            </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1"
-            />
-          </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-danger">
-              {error}
+    <PageContainer size="narrow">
+      <PageHeader title="Reset your password" />
+      <Card className="p-6">
+        {sent ? (
+          <div className="space-y-4">
+            <p className="text-sm text-subtle">
+              If an account with that email exists, you will receive a password reset link shortly.
             </p>
-          )}
-
-          <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sending…' : 'Send reset link'}
-          </Button>
-
-          <div className="text-center">
-            <Link
-              href="/auth/sign-in"
-              className="inline-block py-3 text-sm text-accent hover:underline"
-            >
-              Back to sign in
-            </Link>
+            <Button asChild variant="link" className="w-full">
+              <Link href="/auth/sign-in">Back to sign in</Link>
+            </Button>
           </div>
-        </form>
-      )}
-    </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="Email" htmlFor="email">
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Field>
+
+            {error && (
+              <p role="alert" className="text-sm text-danger">
+                {error}
+              </p>
+            )}
+
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? 'Sending…' : 'Send reset link'}
+            </Button>
+
+            <div className="text-center">
+              <Button asChild variant="link">
+                <Link href="/auth/sign-in">Back to sign in</Link>
+              </Button>
+            </div>
+          </form>
+        )}
+      </Card>
+    </PageContainer>
   )
 }

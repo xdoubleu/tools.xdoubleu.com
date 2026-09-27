@@ -89,23 +89,5 @@ export const legacyUiFiles = [
   'components/trains/JourneyResults.tsx',
   'components/trains/SavedCommutes.tsx',
   'components/trains/StationField.tsx',
-  'components/trains/TrainsClient.tsx',
-  // platform pages and shared components
-  'app/auth/forgot-password/page.tsx',
-  'app/auth/reset-password/page.tsx',
-  'app/error.tsx',
-  'app/monitoring/connections/page.tsx',
-  'app/monitoring/observability/page.tsx',
-  'app/settings/page.tsx',
-  'components/HomeClient.tsx',
-  'components/family/FamilyPageClient.tsx',
-  'components/monitoring/AutomatedActionsCard.tsx',
-  'components/monitoring/MonitoringSettingsClient.tsx',
-  'components/monitoring/OAuthConnectionsCard.tsx',
-  'components/monitoring/ProviderConfigDialog.tsx',
-  'components/notifications/NotificationToggleList.tsx',
-  'components/settings/McpSetupSection.tsx',
-  'components/settings/RecoveryCodesDialog.tsx',
-  'components/user-management/UserManagementClient.tsx',
-  'components/user-management/UsersTable.tsx'
+  'components/trains/TrainsClient.tsx'
 ]

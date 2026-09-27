@@ -1,7 +1,8 @@
 'use client'
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { SectionCard } from '@/components/ui/section-card'
+import { ConnectionRow } from '@/components/ui/connection-row'
+import { LoadingState } from '@/components/ui/states'
 import { Button } from '@/components/ui/button'
 import { useDisconnectOAuthConnection } from '@/hooks/useMonitoring'
 import type { ListOAuthConnectionsResponse } from '@/lib/gen/observability/v1/observability_pb'
@@ -28,61 +29,53 @@ export default function OAuthConnectionsCard({
   const disconnect = useDisconnectOAuthConnection()
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Integrations</CardTitle>
-        <CardDescription>
-          Connect GitHub and Sentry via OAuth so this dashboard can read their data.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {!data ? (
-          <p className="py-8 text-center text-sm text-muted">Loading…</p>
-        ) : (
-          <ul className="space-y-2">
-            {data.connections.map((c) => (
-              <li
-                key={c.provider}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 text-sm"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-fg">
-                      {PROVIDER_LABELS[c.provider] ?? c.provider}
-                    </span>
-                    <Badge variant={c.connected ? 'success' : 'secondary'}>
-                      {c.connected ? 'Connected' : 'Not connected'}
-                    </Badge>
-                  </div>
-                  {c.connected && (
-                    <p className="mt-1 text-xs text-muted">
-                      By {c.connectedBy} on {formatDateTime(c.connectedAt)}
-                    </p>
-                  )}
-                </div>
-                {c.connected ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => onConfiguringProviderChange(c.provider)}
-                    >
-                      Configure
+    <SectionCard
+      title="Integrations"
+      description="Connect GitHub and Sentry via OAuth so this dashboard can read their data."
+    >
+      {!data ? (
+        <LoadingState className="py-8 text-center text-sm" />
+      ) : (
+        <ul className="space-y-2">
+          {data.connections.map((c) => (
+            <li key={c.provider}>
+              <ConnectionRow
+                name={PROVIDER_LABELS[c.provider] ?? c.provider}
+                connected={c.connected}
+                detail={
+                  c.connected
+                    ? `By ${c.connectedBy} on ${formatDateTime(c.connectedAt)}`
+                    : undefined
+                }
+                actions={
+                  c.connected ? (
+                    <>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onConfiguringProviderChange(c.provider)}
+                      >
+                        Configure
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => disconnect(c.provider)}
+                      >
+                        Disconnect
+                      </Button>
+                    </>
+                  ) : (
+                    <Button asChild variant="secondary" size="sm">
+                      <a href={`${getApiUrl()}/admin/oauth/${c.provider}/start`}>Connect</a>
                     </Button>
-                    <Button variant="destructive" size="sm" onClick={() => disconnect(c.provider)}>
-                      Disconnect
-                    </Button>
-                  </div>
-                ) : (
-                  <Button asChild variant="secondary" size="sm">
-                    <a href={`${getApiUrl()}/admin/oauth/${c.provider}/start`}>Connect</a>
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
+                  )
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
       {configuringProvider && (
         <ProviderConfigDialog
@@ -93,6 +86,6 @@ export default function OAuthConnectionsCard({
           }}
         />
       )}
-    </Card>
+    </SectionCard>
   )
 }
