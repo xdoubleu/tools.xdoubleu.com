@@ -175,7 +175,7 @@ func TestLeaveViewerFromNonExistentRoom(t *testing.T) {
 func TestJoinPresenterToNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	ok := rs.JoinPresenter(t.Context(), "XXXXXX", nil)
+	ok := rs.JoinPresenter(t.Context(), "XXXXXX", "presenter-1", nil)
 
 	assert.False(t, ok)
 }
@@ -183,7 +183,7 @@ func TestJoinPresenterToNonExistentRoom(t *testing.T) {
 func TestJoinViewerWSToNonExistentRoom(t *testing.T) {
 	rs := newRoomService(t)
 
-	ok := rs.JoinViewerWS(t.Context(), "XXXXXX", nil)
+	ok := rs.JoinViewerWS(t.Context(), "XXXXXX", "viewer-1", nil)
 
 	assert.False(t, ok)
 }
@@ -204,7 +204,7 @@ func TestSendToViewerWriteError(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
 	rs.JoinViewer(t.Context(), code, "viewer-1")
-	rs.JoinViewerWS(t.Context(), code, closedWSConn(t))
+	rs.JoinViewerWS(t.Context(), code, "viewer-1", closedWSConn(t))
 
 	// A write to a closed connection is logged, not a panic.
 	rs.SendToViewer(t.Context(), code, trackMsg())
@@ -213,7 +213,7 @@ func TestSendToViewerWriteError(t *testing.T) {
 func TestSendToPresenterWriteError(t *testing.T) {
 	rs := newRoomService(t)
 	code := rs.CreateRoom(t.Context(), "presenter-1")
-	rs.JoinPresenter(t.Context(), code, closedWSConn(t))
+	rs.JoinPresenter(t.Context(), code, "presenter-1", closedWSConn(t))
 
 	// A write to a closed connection is logged, not a panic.
 	rs.SendToPresenter(t.Context(), code, trackMsg())
@@ -230,4 +230,52 @@ func TestGetRoomForUserAfterPresenterRemovesRoom(t *testing.T) {
 	assert.False(t, exists)
 	exists, _, _ = rs.GetRoomForUser("viewer-1")
 	assert.False(t, exists)
+}
+
+func TestCreateRoom_CodeHas64Bits(t *testing.T) {
+	rs := newRoomService(t)
+	assert.Len(t, rs.CreateRoom(t.Context(), "user-1"), 16)
+}
+
+// Knowing a room's code doesn't let another user take either seat.
+func TestJoinPresenter_OtherUserRefused(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	assert.False(t, rs.JoinPresenter(t.Context(), code, "intruder", nil))
+}
+
+func TestJoinViewerWS_UnregisteredUserRefused(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	assert.False(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", nil))
+
+	rs.JoinViewer(t.Context(), code, "viewer-1")
+	assert.False(t, rs.JoinViewerWS(t.Context(), code, "intruder", nil))
+}
+
+func TestJoinViewer_ConnectedSeatNotReplaced(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	require.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+	require.True(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", closedWSConn(t)))
+
+	assert.False(t, rs.JoinViewer(t.Context(), code, "intruder"))
+	assert.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+}
+
+// A dropped viewer socket keeps the seat, so the client's reconnect works.
+func TestDisconnectViewer_KeepsSeatForReconnect(t *testing.T) {
+	rs := newRoomService(t)
+	code := rs.CreateRoom(t.Context(), "presenter-1")
+	require.True(t, rs.JoinViewer(t.Context(), code, "viewer-1"))
+	conn := closedWSConn(t)
+	require.True(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", conn))
+
+	rs.DisconnectViewer(code, conn)
+	rs.DisconnectViewer("XXXXXX", conn)
+
+	assert.True(t, rs.JoinViewerWS(t.Context(), code, "viewer-1", closedWSConn(t)))
+	exists, _, role := rs.GetRoomForUser("viewer-1")
+	assert.True(t, exists)
+	assert.Equal(t, dtos.Viewer, role)
 }

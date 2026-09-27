@@ -98,6 +98,15 @@ func (r *Room) SetViewerWS(ws *websocket.Conn) {
 	}
 }
 
+// ClearViewerWS drops the viewer's socket if it is still ws, keeping their
+// seat so the client can reconnect.
+func (r *Room) ClearViewerWS(ws *websocket.Conn) {
+	if r.Viewer.WS == ws {
+		r.Viewer.WS = nil
+	}
+	r.updateLastActive()
+}
+
 func (r *Room) RemoveViewer() {
 	//nolint:exhaustruct //other fields are optional
 	r.Viewer = RoomUser{}

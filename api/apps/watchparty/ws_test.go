@@ -262,3 +262,25 @@ func TestSignalingViewerReconnectReceivesBufferedOffer(t *testing.T) {
 	assert.Equal(t, dtos.Offer, received.Type)
 	assert.Equal(t, "cam", received.TrackType)
 }
+
+// A viewer socket needs the viewer seat taken through the JoinRoom RPC.
+func TestSignalingViewerWithoutJoinRefused(t *testing.T) {
+	app, routes := newTestApp()
+	srv := httptest.NewServer(routes)
+	defer srv.Close()
+
+	ctx := context.Background()
+	roomCode := app.Services.Room.CreateRoom(ctx, "someone-else")
+
+	viewConn := dialSignaling(t, srv, roomCode, dtos.Viewer)
+	defer viewConn.CloseNow() //nolint:errcheck // cleanup in test
+
+	var resp map[string]any
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	require.NoError(t, wsjson.Read(readCtx, viewConn, &resp))
+	assert.NotEmpty(t, resp["error"])
+
+	// The server closes the socket after refusing.
+	assert.Error(t, wsjson.Read(readCtx, viewConn, &resp))
+}
