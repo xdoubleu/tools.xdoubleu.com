@@ -80,3 +80,37 @@ func TestRateLimitReturnsRESTErrorForNonRPCRequests(t *testing.T) {
 	assert.InEpsilon(t, float64(http.StatusTooManyRequests), body["status"], 0)
 	assert.Equal(t, errortools.MessageTooManyRequests, body["message"])
 }
+
+func TestClientIP(t *testing.T) {
+	cases := []struct {
+		name, remote, forwarded, want string
+	}{
+		{"public peer ignores the header", "203.0.113.5:1", "198.51.100.1", "203.0.113.5"},
+		{
+			"proxy peer uses the last hop",
+			"172.18.0.2:1", "1.1.1.1, 198.51.100.7", "198.51.100.7",
+		},
+		{"loopback peer uses the header", "127.0.0.1:1", "198.51.100.8", "198.51.100.8"},
+		{"proxy peer without header", "172.18.0.2:1", "", "172.18.0.2"},
+		{"unparseable hop falls back", "10.0.0.2:1", "not-an-ip", "10.0.0.2"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.RemoteAddr = tc.remote
+			if tc.forwarded != "" {
+				req.Header.Set("X-Forwarded-For", tc.forwarded)
+			}
+			got, err := middleware.ClientIP(req)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestClientIP_BadRemoteAddr(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "no-port"
+	_, err := middleware.ClientIP(req)
+	require.Error(t, err)
+}

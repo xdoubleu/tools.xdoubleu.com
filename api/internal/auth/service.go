@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -49,6 +50,7 @@ const (
 	aal2 = "aal2"
 
 	passwordResetTTL  = time.Hour
+	minPasswordLength = 8
 	refreshTokenBytes = 32
 	recoveryCodeBytes = 10
 )
@@ -82,6 +84,10 @@ func NewService(
 	sealer *crypto.Sealer,
 	mailerClient mailer.Client,
 ) *LocalService {
+	// golang-jwt accepts an empty HMAC key, which would make sessions forgeable.
+	if cfg.Env == config.ProdEnv && cfg.JWTSecret == "" {
+		panic("auth: JWT_SECRET must be set in production")
+	}
 	return &LocalService{
 		usersStore:       store,
 		jwtSecret:        []byte(cfg.JWTSecret),
@@ -167,6 +173,21 @@ func (service *LocalService) ValidateAccessToken(accessToken string) error {
 	_, err := service.parseAccessToken(accessToken)
 	return err
 }
+
+//nolint:gochecknoglobals //computed once, read-only
+var dummyPasswordHash = sync.OnceValue(func() []byte {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("unused"), bcrypt.DefaultCost)
+	return hash
+})
+
+// ErrWrongCredential rejects a step-up check: a wrong current password, MFA
+// code or recovery code.
+var ErrWrongCredential = errors.New("current password or code is incorrect")
+
+// ErrPasswordTooShort rejects a new password under minPasswordLength.
+var ErrPasswordTooShort = fmt.Errorf(
+	"password must be at least %d characters", minPasswordLength,
+)
 
 // errMFARequired rejects a pre-MFA (aal1) token of a user with a verified
 // TOTP factor.
@@ -254,6 +275,9 @@ func (service *LocalService) SignInWithEmail(
 
 	user, err := service.usersStore.GetUserByEmail(ctx, email)
 	if err != nil {
+		// Same bcrypt cost as a real account, so timing doesn't reveal which
+		// emails are registered.
+		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash(), []byte(password))
 		return nil, nil, invalidCreds
 	}
 
@@ -310,15 +334,22 @@ func (service *LocalService) SignInWithRefreshToken(
 		)
 	}
 	if time.Now().After(row.ExpiresAt) {
-		_ = service.usersStore.DeleteRefreshToken(ctx, row.ID)
+		_, _ = service.usersStore.DeleteRefreshToken(ctx, row.ID)
 		return nil, nil, errortools.NewUnauthorizedError(
 			errors.New("refresh token expired"),
 		)
 	}
 
-	// Rotate: the old token is single-use.
-	if err = service.usersStore.DeleteRefreshToken(ctx, row.ID); err != nil {
+	// Rotate: the old token is single-use, so only the caller that deletes it
+	// gets new tokens.
+	deleted, err := service.usersStore.DeleteRefreshToken(ctx, row.ID)
+	if err != nil {
 		return nil, nil, err
+	}
+	if !deleted {
+		return nil, nil, errortools.NewUnauthorizedError(
+			errors.New("refresh token already used"),
+		)
 	}
 
 	if err = service.requireMFAIfEnrolled(ctx, row.UserID, row.AAL); err != nil {
@@ -487,11 +518,25 @@ func (service *LocalService) ForgotPassword(
 
 func (service *LocalService) UpdatePassword(
 	ctx context.Context,
-	accessToken, newPassword string,
+	accessToken, currentPassword, newPassword string,
 ) error {
+	if len(newPassword) < minPasswordLength {
+		return ErrPasswordTooShort
+	}
+
 	c, _, err := service.parseSessionToken(ctx, accessToken)
 	if err != nil {
 		return err
+	}
+
+	user, err := service.usersStore.GetUserByID(ctx, c.Subject)
+	if err != nil {
+		return err
+	}
+	if bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash), []byte(currentPassword),
+	) != nil {
+		return ErrWrongCredential
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(
@@ -505,23 +550,37 @@ func (service *LocalService) UpdatePassword(
 		return err
 	}
 
-	// A password reset is meant to kick out any other session too.
-	if err = service.usersStore.DeleteAllRefreshTokensForUser(
-		ctx, c.Subject,
+	return service.revokeAllSessions(ctx, c.Subject)
+}
+
+// revokeAllSessions signs the user out everywhere: every refresh token and
+// every OAuth grant.
+func (service *LocalService) revokeAllSessions(
+	ctx context.Context,
+	userID string,
+) error {
+	if err := service.usersStore.DeleteAllRefreshTokensForUser(
+		ctx, userID,
 	); err != nil {
 		return err
 	}
-
+	if err := service.usersStore.RevokeOAuthGrants(ctx, userID); err != nil {
+		return err
+	}
 	service.InvalidateUserCache()
 	return nil
 }
 
-// ResetPasswordWithToken validates the reset token, sets the password, marks
-// the token used, and revokes all refresh tokens.
+// ResetPasswordWithToken consumes the reset token, sets the password and
+// signs the user out everywhere.
 func (service *LocalService) ResetPasswordWithToken(
 	ctx context.Context,
 	resetToken, newPassword string,
 ) error {
+	if len(newPassword) < minPasswordLength {
+		return ErrPasswordTooShort
+	}
+
 	row, err := service.usersStore.GetPasswordResetTokenByHash(
 		ctx, hashToken(resetToken),
 	)
@@ -533,6 +592,15 @@ func (service *LocalService) ResetPasswordWithToken(
 	}
 	if time.Now().After(row.ExpiresAt) {
 		return errortools.NewUnauthorizedError(errors.New("reset token expired"))
+	}
+
+	// Consume first, so concurrent uses of one token can't both reset.
+	consumed, err := service.usersStore.MarkPasswordResetTokenUsed(ctx, row.ID)
+	if err != nil {
+		return err
+	}
+	if !consumed {
+		return errortools.NewUnauthorizedError(errors.New("reset token already used"))
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(
@@ -547,15 +615,6 @@ func (service *LocalService) ResetPasswordWithToken(
 	); err != nil {
 		return err
 	}
-	if err = service.usersStore.MarkPasswordResetTokenUsed(ctx, row.ID); err != nil {
-		return err
-	}
-	if err = service.usersStore.DeleteAllRefreshTokensForUser(
-		ctx, row.UserID,
-	); err != nil {
-		return err
-	}
 
-	service.InvalidateUserCache()
-	return nil
+	return service.revokeAllSessions(ctx, row.UserID)
 }

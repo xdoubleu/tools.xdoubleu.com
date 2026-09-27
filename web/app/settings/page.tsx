@@ -45,6 +45,7 @@ export default function SettingsPage() {
     if (data) setDisplayName(data.displayName)
   }, [data])
 
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwSaving, setPwSaving] = useState(false)
@@ -56,6 +57,8 @@ export default function SettingsPage() {
   const [mfaSecret, setMfaSecret] = useState('')
   const [mfaFactorId, setMfaFactorId] = useState('')
   const [mfaCode, setMfaCode] = useState('')
+  // Step-up code for managing an enabled factor.
+  const [factorCode, setFactorCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
   const [mfaError, setMfaMfaError] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
@@ -101,8 +104,9 @@ export default function SettingsPage() {
     }
     setPwSaving(true)
     try {
-      await updatePassword(newPassword)
+      await updatePassword(currentPassword, newPassword)
       setPwSaved(true)
+      setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
     } catch (err) {
@@ -160,8 +164,9 @@ export default function SettingsPage() {
     setMfaBusy(true)
     setRecoveryCodesError('')
     try {
-      const res = await regenerateRecoveryCodes()
+      const res = await regenerateRecoveryCodes(factorCode)
       setRecoveryCodes(res.recoveryCodes)
+      setFactorCode('')
     } catch (err) {
       if (err instanceof ConnectError) {
         setRecoveryCodesError(err.message)
@@ -177,7 +182,8 @@ export default function SettingsPage() {
     setMfaBusy(true)
     setMfaMfaError('')
     try {
-      await mfaUnenroll()
+      await mfaUnenroll(factorCode)
+      setFactorCode('')
       await mutate(swrKeys.currentUser)
     } catch (err) {
       if (err instanceof ConnectError) {
@@ -247,6 +253,16 @@ export default function SettingsPage() {
         )}
 
         <form onSubmit={handlePasswordSave} className="space-y-3">
+          <Field label="Current password" htmlFor="current_password">
+            <Input
+              id="current_password"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              required
+            />
+          </Field>
           <Field label="New password" htmlFor="new_password">
             <Input
               id="new_password"
@@ -296,16 +312,30 @@ export default function SettingsPage() {
               Two-factor authentication is <span className="font-medium text-fg">enabled</span>.
             </p>
             {recoveryCodesError && <Alert tone="danger">{recoveryCodesError} </Alert>}
+            <Field label="Authenticator or recovery code" htmlFor="factor_code">
+              <Input
+                id="factor_code"
+                type="text"
+                autoComplete="one-time-code"
+                value={factorCode}
+                onChange={(e) => setFactorCode(e.target.value.trim())}
+              />
+            </Field>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={handleRegenerateRecoveryCodes}
-                disabled={mfaBusy}
+                disabled={mfaBusy || !factorCode}
               >
                 {mfaBusy ? 'Generating…' : 'Regenerate recovery codes'}
               </Button>
-              <Button variant="destructive" size="sm" onClick={handleMFADisable} disabled={mfaBusy}>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleMFADisable}
+                disabled={mfaBusy || !factorCode}
+              >
                 {mfaBusy ? 'Disabling…' : 'Disable MFA'}
               </Button>
             </div>

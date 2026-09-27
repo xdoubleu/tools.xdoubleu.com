@@ -28,7 +28,8 @@ export function useExchangeToken() {
 
 export function useUpdatePassword() {
   const client = createServiceClient(AuthService)
-  return (newPassword: string) => client.updatePassword({ newPassword })
+  return (currentPassword: string, newPassword: string) =>
+    client.updatePassword({ currentPassword, newPassword })
 }
 
 export function useResetPassword() {
@@ -38,7 +39,7 @@ export function useResetPassword() {
 
 export function useRegenerateRecoveryCodes() {
   const client = createServiceClient(AuthService)
-  return () => client.regenerateRecoveryCodes({})
+  return (code: string) => client.regenerateRecoveryCodes({ code })
 }
 
 export function useUpdateDisplayName() {
@@ -63,7 +64,7 @@ export function useMFAEnrollVerify() {
 
 export function useMFAUnenroll() {
   const client = createServiceClient(AuthService)
-  return () => client.mFAUnenroll({})
+  return (code: string) => client.mFAUnenroll({ code })
 }
 
 export function useCurrentUser() {

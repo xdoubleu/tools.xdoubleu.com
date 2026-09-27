@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/gen/auth/v1/authv1connect"
+	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/errortools"
 	"tools.xdoubleu.com/internal/models"
@@ -39,14 +40,20 @@ func (h *authConnectHandler) parseCookie(
 	}).Cookie(name)
 }
 
-// authErrorCode maps an auth rejection (bad or pre-MFA token) to
-// Unauthenticated and anything else to Internal.
+// authErrorCode maps auth rejections to their Connect codes and anything
+// else to Internal.
 func authErrorCode(err error) connect.Code {
 	var unauthorized errortools.UnauthorizedError
-	if errors.As(err, &unauthorized) {
+	switch {
+	case errors.As(err, &unauthorized):
 		return connect.CodeUnauthenticated
+	case errors.Is(err, auth.ErrWrongCredential):
+		return connect.CodePermissionDenied
+	case errors.Is(err, auth.ErrPasswordTooShort):
+		return connect.CodeInvalidArgument
+	default:
+		return connect.CodeInternal
 	}
-	return connect.CodeInternal
 }
 
 func (h *authConnectHandler) secure() bool {

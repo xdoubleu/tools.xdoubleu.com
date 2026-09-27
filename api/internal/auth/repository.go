@@ -65,6 +65,7 @@ type usersStore interface {
 	) (*TOTPFactor, error)
 	GetTOTPFactor(ctx context.Context, factorID uuid.UUID) (*TOTPFactor, error)
 	VerifyTOTPFactor(ctx context.Context, factorID uuid.UUID) error
+	ClaimTOTPStep(ctx context.Context, factorID uuid.UUID, step int64) (bool, error)
 	DeleteUnverifiedTOTPFactors(ctx context.Context, userID string) error
 	DeleteAllTOTPFactors(ctx context.Context, userID string) error
 
@@ -74,7 +75,7 @@ type usersStore interface {
 	GetUnusedRecoveryCodes(
 		ctx context.Context, userID string,
 	) ([]RecoveryCode, error)
-	MarkRecoveryCodeUsed(ctx context.Context, id uuid.UUID) error
+	MarkRecoveryCodeUsed(ctx context.Context, id uuid.UUID) (bool, error)
 	DeleteRecoveryCodes(ctx context.Context, userID string) error
 
 	CreateRefreshToken(
@@ -83,8 +84,9 @@ type usersStore interface {
 	GetRefreshTokenByHash(
 		ctx context.Context, tokenHash string,
 	) (*RefreshTokenRow, error)
-	DeleteRefreshToken(ctx context.Context, id uuid.UUID) error
+	DeleteRefreshToken(ctx context.Context, id uuid.UUID) (bool, error)
 	DeleteAllRefreshTokensForUser(ctx context.Context, userID string) error
+	RevokeOAuthGrants(ctx context.Context, userID string) error
 
 	CreatePasswordResetToken(
 		ctx context.Context, userID, tokenHash string, expiresAt time.Time,
@@ -92,7 +94,7 @@ type usersStore interface {
 	GetPasswordResetTokenByHash(
 		ctx context.Context, tokenHash string,
 	) (*PasswordResetTokenRow, error)
-	MarkPasswordResetTokenUsed(ctx context.Context, id uuid.UUID) error
+	MarkPasswordResetTokenUsed(ctx context.Context, id uuid.UUID) (bool, error)
 }
 
 // Repository is the Postgres-backed usersStore over the auth schema.
@@ -226,6 +228,20 @@ func (r *Repository) VerifyTOTPFactor(
 	return err
 }
 
+// ClaimTOTPStep records step as the factor's last accepted TOTP step,
+// reporting false when it isn't newer (a replayed code).
+func (r *Repository) ClaimTOTPStep(
+	ctx context.Context,
+	factorID uuid.UUID,
+	step int64,
+) (bool, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE auth.totp_factors SET last_used_step = $2
+		WHERE id = $1 AND (last_used_step IS NULL OR last_used_step < $2)
+	`, factorID, step)
+	return tag.RowsAffected() == 1, err
+}
+
 func (r *Repository) DeleteUnverifiedTOTPFactors(
 	ctx context.Context,
 	userID string,
@@ -294,14 +310,16 @@ func (r *Repository) GetUnusedRecoveryCodes(
 	return codes, rows.Err()
 }
 
+// MarkRecoveryCodeUsed reports whether this call consumed the code.
 func (r *Repository) MarkRecoveryCodeUsed(
 	ctx context.Context,
 	id uuid.UUID,
-) error {
-	_, err := r.db.Exec(
-		ctx, `UPDATE auth.recovery_codes SET used_at = now() WHERE id = $1`, id,
-	)
-	return err
+) (bool, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE auth.recovery_codes SET used_at = now()
+		WHERE id = $1 AND used_at IS NULL
+	`, id)
+	return tag.RowsAffected() == 1, err
 }
 
 func (r *Repository) DeleteRecoveryCodes(
@@ -341,9 +359,25 @@ func (r *Repository) GetRefreshTokenByHash(
 	return &t, nil
 }
 
-func (r *Repository) DeleteRefreshToken(ctx context.Context, id uuid.UUID) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM auth.refresh_tokens WHERE id = $1`, id)
-	return err
+// DeleteRefreshToken reports whether this call removed the token.
+func (r *Repository) DeleteRefreshToken(
+	ctx context.Context,
+	id uuid.UUID,
+) (bool, error) {
+	tag, err := r.db.Exec(ctx, `DELETE FROM auth.refresh_tokens WHERE id = $1`, id)
+	return tag.RowsAffected() == 1, err
+}
+
+// RevokeOAuthGrants deletes the user's OAuth access and refresh tokens.
+func (r *Repository) RevokeOAuthGrants(ctx context.Context, userID string) error {
+	for _, table := range []string{"oauth2_access_tokens", "oauth2_refresh_tokens"} {
+		if _, err := r.db.Exec(
+			ctx, `DELETE FROM auth.`+table+` WHERE user_id = $1`, userID,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *Repository) DeleteAllRefreshTokensForUser(
@@ -383,12 +417,14 @@ func (r *Repository) GetPasswordResetTokenByHash(
 	return &t, nil
 }
 
+// MarkPasswordResetTokenUsed reports whether this call consumed the token.
 func (r *Repository) MarkPasswordResetTokenUsed(
 	ctx context.Context,
 	id uuid.UUID,
-) error {
-	_, err := r.db.Exec(ctx, `
-		UPDATE auth.password_reset_tokens SET used_at = now() WHERE id = $1
+) (bool, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE auth.password_reset_tokens SET used_at = now()
+		WHERE id = $1 AND used_at IS NULL
 	`, id)
-	return err
+	return tag.RowsAffected() == 1, err
 }

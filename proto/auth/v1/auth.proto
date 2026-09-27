@@ -52,7 +52,10 @@ message MFAEnrollSkipRequest {}
 
 message MFAEnrollSkipResponse {}
 
-message MFAUnenrollRequest {}
+message MFAUnenrollRequest {
+  // A current TOTP code or an unused recovery code.
+  string code = 1;
+}
 
 message MFAUnenrollResponse {}
 
@@ -79,6 +82,7 @@ message ExchangeTokenResponse {
 
 message UpdatePasswordRequest {
   string new_password = 1;
+  string current_password = 2;
 }
 
 message UpdatePasswordResponse {}
@@ -107,7 +111,10 @@ message ResetPasswordRequest {
 
 message ResetPasswordResponse {}
 
-message RegenerateRecoveryCodesRequest {}
+message RegenerateRecoveryCodesRequest {
+  // A current TOTP code or an unused recovery code.
+  string code = 1;
+}
 
 message RegenerateRecoveryCodesResponse {
   repeated string recovery_codes = 1;

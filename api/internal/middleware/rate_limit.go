@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -69,7 +71,7 @@ func rateLimit(
 	next http.Handler,
 ) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
+		ip, err := ClientIP(r)
 		if err != nil {
 			httptools.ServerErrorResponse(w, r, err)
 			return
@@ -108,4 +110,26 @@ func rateLimit(
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// ClientIP is the request's client address. Behind kamal-proxy (a private or
+// loopback peer) it is the right-most X-Forwarded-For hop, which the proxy
+// appended; earlier hops are client-supplied. A public peer's header is
+// ignored.
+func ClientIP(r *http.Request) (string, error) {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return "", err
+	}
+	peer, err := netip.ParseAddr(host)
+	if err != nil || (!peer.IsPrivate() && !peer.IsLoopback()) {
+		return host, nil //nolint:nilerr // an unparseable peer is its own key
+	}
+
+	hops := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+	last := strings.TrimSpace(hops[len(hops)-1])
+	if forwarded, parseErr := netip.ParseAddr(last); parseErr == nil {
+		return forwarded.String(), nil
+	}
+	return host, nil
 }

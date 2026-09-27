@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 
 	authv1 "tools.xdoubleu.com/gen/auth/v1"
+	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/models"
 )
 
@@ -109,7 +110,11 @@ func (h *authConnectHandler) ResetPassword(
 	if err := h.app.auth.ResetPasswordWithToken(
 		ctx, req.Msg.Token, req.Msg.NewPassword,
 	); err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		code := connect.CodeUnauthenticated
+		if errors.Is(err, auth.ErrPasswordTooShort) {
+			code = connect.CodeInvalidArgument
+		}
+		return nil, connect.NewError(code, err)
 	}
 
 	return connect.NewResponse(&authv1.ResetPasswordResponse{}), nil
@@ -180,7 +185,7 @@ func (h *authConnectHandler) UpdatePassword(
 	}
 
 	if err = h.app.auth.UpdatePassword(
-		ctx, accessToken.Value, req.Msg.NewPassword,
+		ctx, accessToken.Value, req.Msg.CurrentPassword, req.Msg.NewPassword,
 	); err != nil {
 		return nil, connect.NewError(authErrorCode(err), err)
 	}

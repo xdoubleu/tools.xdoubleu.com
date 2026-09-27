@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/internal/auth"
+	"tools.xdoubleu.com/internal/config"
 	"tools.xdoubleu.com/internal/crypto"
 	"tools.xdoubleu.com/internal/mailer"
 	"tools.xdoubleu.com/internal/models"
@@ -132,7 +133,7 @@ func TestUpdatePassword_RevokesAllRefreshTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, service.UpdatePassword(
-		context.Background(), *access, "a-new-password",
+		context.Background(), *access, testPassword, "a-new-password",
 	))
 
 	_, _, err = service.SignInWithRefreshToken(context.Background(), *refresh)
@@ -247,7 +248,8 @@ func TestUpdatePassword_InvalidAccessToken(t *testing.T) {
 	service, _ := newTestService(t)
 
 	err := service.UpdatePassword(
-		context.Background(), "not-a-real-access-token", "a-new-password",
+		context.Background(), "not-a-real-access-token", testPassword,
+		"a-new-password",
 	)
 	require.Error(t, err)
 }
@@ -374,5 +376,74 @@ func TestGetCookieName_InvalidScopePanics(t *testing.T) {
 	service, _ := newTestService(t)
 	assert.Panics(t, func() {
 		service.GetCookieName(models.Scope(99))
+	})
+}
+
+func TestUpdatePassword_WrongCurrentPassword(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	access, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	err = service.UpdatePassword(
+		context.Background(), *access, "not-the-password", "a-new-password",
+	)
+	assert.ErrorIs(t, err, auth.ErrWrongCredential)
+}
+
+func TestUpdatePassword_TooShort(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.UpdatePassword(context.Background(), "unused", testPassword, "short")
+	assert.ErrorIs(t, err, auth.ErrPasswordTooShort)
+}
+
+func TestResetPasswordWithToken_TooShort(t *testing.T) {
+	service, _ := newTestService(t)
+	err := service.ResetPasswordWithToken(context.Background(), "unused", "short")
+	assert.ErrorIs(t, err, auth.ErrPasswordTooShort)
+}
+
+// A password change signs the user out of every OAuth client too.
+func TestUpdatePassword_RevokesOAuthGrants(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	access, _, err := service.SignInWithEmail(
+		context.Background(), userID+"@example.com", testPassword,
+	)
+	require.NoError(t, err)
+
+	clientID := "revoke-test-" + userID
+	_, err = db.Exec(context.Background(),
+		`INSERT INTO auth.oauth2_clients (id) VALUES ($1)`, clientID)
+	require.NoError(t, err)
+	for _, table := range []string{"oauth2_access_tokens", "oauth2_refresh_tokens"} {
+		_, err = db.Exec(context.Background(), `
+			INSERT INTO auth.`+table+`
+				(signature, request, client_id, user_id, expires_at)
+			VALUES ($1, '{}', $2, $3, now() + interval '1 hour')
+		`, table+userID, clientID, userID)
+		require.NoError(t, err)
+	}
+
+	require.NoError(t, service.UpdatePassword(
+		context.Background(), *access, testPassword, "a-new-password",
+	))
+
+	var remaining int
+	require.NoError(t, db.QueryRow(context.Background(), `
+		SELECT (SELECT count(*) FROM auth.oauth2_access_tokens WHERE user_id = $1)
+		     + (SELECT count(*) FROM auth.oauth2_refresh_tokens WHERE user_id = $1)
+	`, userID).Scan(&remaining))
+	assert.Zero(t, remaining)
+}
+
+func TestNewService_PanicsWithoutJWTSecretInProduction(t *testing.T) {
+	cfg := testhelper.NewTestConfig()
+	cfg.Env = config.ProdEnv
+	cfg.JWTSecret = ""
+	assert.Panics(t, func() {
+		auth.NewService(cfg, nil, nil, nil, mailer.New("", "", ""))
 	})
 }

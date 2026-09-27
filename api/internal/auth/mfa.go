@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -162,31 +163,10 @@ func (service *LocalService) VerifyMFA(
 		}
 	}
 
-	sealed, err := base64.StdEncoding.DecodeString(factor.Secret)
+	valid, err := service.checkFactorCode(ctx, factor, code)
 	if err != nil {
 		return nil, nil, err
 	}
-	secret, err := service.sealer.Decrypt(sealed)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// A malformed code (e.g. a recovery code) errors here; ignore it so the
-	// recovery-code fallback still runs.
-	//nolint:exhaustruct //Encoder uses the library default
-	valid, _ := totp.ValidateCustom(
-		code, string(secret), time.Now(), totp.ValidateOpts{
-			Period:    totpPeriodSeconds,
-			Skew:      totpSkew,
-			Digits:    otp.DigitsSix,
-			Algorithm: otp.AlgorithmSHA1,
-		},
-	)
-
-	if !valid && factor.Status == "verified" {
-		valid = service.tryRecoveryCode(ctx, factor.UserID, code)
-	}
-
 	if !valid {
 		return nil, nil, invalidCode
 	}
@@ -211,6 +191,76 @@ func (service *LocalService) VerifyMFA(
 	return &newAccessToken, &newRefreshToken, nil
 }
 
+// VerifyCurrentFactor is the step-up check for factor management: code must
+// be a current TOTP code or an unused recovery code of the user's factor.
+func (service *LocalService) VerifyCurrentFactor(
+	ctx context.Context,
+	accessToken, code string,
+) error {
+	c, _, err := service.parseSessionToken(ctx, accessToken)
+	if err != nil {
+		return err
+	}
+	factor, err := service.usersStore.GetVerifiedTOTPFactor(ctx, c.Subject)
+	if err != nil {
+		return ErrWrongCredential
+	}
+	valid, err := service.checkFactorCode(ctx, factor, code)
+	if err != nil {
+		return err
+	}
+	if !valid {
+		return ErrWrongCredential
+	}
+	return nil
+}
+
+// checkFactorCode accepts a TOTP code once per time step or, for a verified
+// factor, an unused recovery code, which it consumes.
+func (service *LocalService) checkFactorCode(
+	ctx context.Context,
+	factor *TOTPFactor,
+	code string,
+) (bool, error) {
+	sealed, err := base64.StdEncoding.DecodeString(factor.Secret)
+	if err != nil {
+		return false, err
+	}
+	secret, err := service.sealer.Decrypt(sealed)
+	if err != nil {
+		return false, err
+	}
+
+	if step, ok := matchTOTPStep(string(secret), code, time.Now()); ok {
+		return service.usersStore.ClaimTOTPStep(ctx, factor.ID, step)
+	}
+	if factor.Status == "verified" {
+		return service.tryRecoveryCode(ctx, factor.UserID, code), nil
+	}
+	return false, nil
+}
+
+// matchTOTPStep returns the time step, within the allowed skew, whose code
+// matches.
+func matchTOTPStep(secret, code string, now time.Time) (int64, bool) {
+	current := now.Unix() / totpPeriodSeconds
+	for step := current - totpSkew; step <= current+totpSkew; step++ {
+		//nolint:exhaustruct //Encoder uses the library default
+		want, err := totp.GenerateCodeCustom(
+			secret, time.Unix(step*totpPeriodSeconds, 0), totp.ValidateOpts{
+				Period:    totpPeriodSeconds,
+				Skew:      0,
+				Digits:    otp.DigitsSix,
+				Algorithm: otp.AlgorithmSHA1,
+			},
+		)
+		if err == nil && subtle.ConstantTimeCompare([]byte(want), []byte(code)) == 1 {
+			return step, true
+		}
+	}
+	return 0, false
+}
+
 // tryRecoveryCode consumes the first unused recovery code matching code.
 func (service *LocalService) tryRecoveryCode(
 	ctx context.Context,
@@ -224,8 +274,8 @@ func (service *LocalService) tryRecoveryCode(
 		if bcrypt.CompareHashAndPassword(
 			[]byte(rc.CodeHash), []byte(code),
 		) == nil {
-			_ = service.usersStore.MarkRecoveryCodeUsed(ctx, rc.ID)
-			return true
+			consumed, markErr := service.usersStore.MarkRecoveryCodeUsed(ctx, rc.ID)
+			return markErr == nil && consumed
 		}
 	}
 	return false
@@ -247,7 +297,10 @@ func (service *LocalService) UnenrollTOTP(
 	if err = service.usersStore.DeleteAllTOTPFactors(ctx, c.Subject); err != nil {
 		return err
 	}
-	return service.usersStore.DeleteRecoveryCodes(ctx, c.Subject)
+	if err = service.usersStore.DeleteRecoveryCodes(ctx, c.Subject); err != nil {
+		return err
+	}
+	return service.usersStore.RevokeOAuthGrants(ctx, c.Subject)
 }
 
 // GenerateRecoveryCodes replaces the user's recovery codes with 10 new ones,

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -298,7 +299,9 @@ func TestRegenerateRecoveryCodes_Success(t *testing.T) {
 	)
 	accessCookie := sessionCookie(t, enrolled.Header())
 
-	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{
+		Code: enrolled.Msg.RecoveryCodes[0],
+	})
 	setCookieOnRequest(req, accessCookie)
 	resp, err := client.RegenerateRecoveryCodes(context.Background(), req)
 	require.NoError(t, err)
@@ -316,7 +319,9 @@ func TestRegenerateRecoveryCodes_ReplacesEarlierCodes(t *testing.T) {
 	require.NotEmpty(t, first.Msg.RecoveryCodes)
 	accessCookie := sessionCookie(t, first.Header())
 
-	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{})
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{
+		Code: first.Msg.RecoveryCodes[0],
+	})
 	setCookieOnRequest(req, accessCookie)
 	resp, err := client.RegenerateRecoveryCodes(context.Background(), req)
 	require.NoError(t, err)
@@ -379,4 +384,18 @@ func TestMFAEnrollSkip_VerifiedFactor_PermissionDenied(t *testing.T) {
 	_, err := client.MFAEnrollSkip(context.Background(), req)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestRegenerateRecoveryCodes_WrongCode_PermissionDenied(t *testing.T) {
+	client := mfaClient(t)
+	req := connect.NewRequest(&authv1.RegenerateRecoveryCodesRequest{
+		Code: "000000",
+	})
+	setCookieOnRequest(req, mfaSessionToken)
+	_, err := client.RegenerateRecoveryCodes(context.Background(), req)
+	assert.Equal(t, connect.CodePermissionDenied, connect.CodeOf(err))
+}
+
+func TestAuthErrorCode_UnknownErrorIsInternal(t *testing.T) {
+	assert.Equal(t, connect.CodeInternal, authErrorCode(errors.New("boom")))
 }
