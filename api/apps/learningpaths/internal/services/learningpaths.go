@@ -37,6 +37,10 @@ type learningPathsStore interface {
 	GetItemForUser(
 		ctx context.Context, itemID uuid.UUID, userID string,
 	) (*models.ItemForTask, error)
+	GetPathIDForItem(
+		ctx context.Context, itemID uuid.UUID, userID string,
+	) (uuid.UUID, error)
+	SetItemTodoistTaskID(ctx context.Context, itemID uuid.UUID, taskID string) error
 }
 
 // bookLookup is the books surface (*books.Books) for linked resources.
@@ -54,9 +58,10 @@ type feedItemLookup interface {
 }
 
 type LearningPathService struct {
-	repo  learningPathsStore
-	books bookLookup
-	feeds feedItemLookup
+	repo    learningPathsStore
+	books   bookLookup
+	feeds   feedItemLookup
+	todoist *TodoistService
 }
 
 func (s *LearningPathService) List(
@@ -282,6 +287,11 @@ func (s *LearningPathService) Create(
 
 	created.Modules = lp.Modules
 	created.Resources = lp.Resources
+
+	// Activate the first module's items as Todoist tasks on path creation.
+	// Todoist is a best-effort reminder outbox: a failure here must not fail
+	// creating the path, and an absent connection is a graceful no-op.
+	_ = s.todoist.SyncPath(ctx, userID, created.ID)
 	return created, nil
 }
 
@@ -330,7 +340,9 @@ func (s *LearningPathService) Delete(
 // RecordItemProgress toggles a non-book-linked item's completion; ownership is
 // enforced in the repository query. Book-linked items derive completion from
 // the book and can't be toggled — returning ErrResourceNotFound-equivalent
-// would mislead, so reject with a 400.
+// would mislead, so reject with a 400. When a non-book item completes, the
+// Todoist pipeline is reconciled (module N done → its tasks removed, module
+// N+1 activated).
 func (s *LearningPathService) RecordItemProgress(
 	ctx context.Context,
 	userID string,
@@ -347,7 +359,19 @@ func (s *LearningPathService) RecordItemProgress(
 			Message: "book-linked items complete automatically from your reading progress",
 		}
 	}
-	return s.repo.RecordItemProgress(ctx, itemID, userID, completed)
+	if err = s.repo.RecordItemProgress(ctx, itemID, userID, completed); err != nil {
+		return err
+	}
+	if !completed {
+		return nil
+	}
+
+	pathID, err := s.repo.GetPathIDForItem(ctx, itemID, userID)
+	if err != nil {
+		return err
+	}
+	_ = s.todoist.SyncPath(ctx, userID, pathID)
+	return nil
 }
 
 // GetProgress is Get, named for the progress read.

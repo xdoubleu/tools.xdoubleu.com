@@ -138,3 +138,81 @@ func TestCreateTask_DecodeError(t *testing.T) {
 	_, err := c.CreateTask(t.Context(), "content", "")
 	assert.Error(t, err)
 }
+
+func TestDeleteTask_Success(t *testing.T) {
+	var gotAuth, gotPath string
+
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gotAuth = r.Header.Get("Authorization")
+			gotPath = r.URL.Path
+			w.WriteHeader(http.StatusNoContent)
+		}),
+	)
+	defer srv.Close()
+	withTestBaseURL(t, srv.URL)
+
+	c := NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "token", nil
+	}))
+
+	err := c.DeleteTask(t.Context(), "task-7")
+	require.NoError(t, err)
+	assert.Equal(t, "Bearer token", gotAuth)
+	assert.Equal(t, "/tasks/task-7", gotPath)
+}
+
+// TestDeleteTask_NotFoundSucceeds: a task Todoist already completed or deleted
+// is 404; the idempotent pipeline treats that as success.
+func TestDeleteTask_NotFoundSucceeds(t *testing.T) {
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	)
+	defer srv.Close()
+	withTestBaseURL(t, srv.URL)
+
+	c := NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "token", nil
+	}))
+
+	require.NoError(t, c.DeleteTask(t.Context(), "task-missing"))
+}
+
+func TestDeleteTask_PropagatesOtherError(t *testing.T) {
+	srv := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"error":"boom"}`))
+		}),
+	)
+	defer srv.Close()
+	withTestBaseURL(t, srv.URL)
+
+	c := NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "token", nil
+	}))
+
+	require.Error(t, c.DeleteTask(t.Context(), "task-7"))
+}
+
+func TestDeleteTask_TokenFuncError(t *testing.T) {
+	tokenErr := errors.New("not connected")
+	c := NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "", tokenErr
+	}))
+
+	assert.ErrorIs(t, c.DeleteTask(t.Context(), "task-7"), tokenErr)
+}
+
+// baseURL points at a closed port, so the delete request is refused.
+func TestDeleteTask_RequestFails(t *testing.T) {
+	withTestBaseURL(t, "http://127.0.0.1:1")
+
+	c := NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "token", nil
+	}))
+
+	assert.Error(t, c.DeleteTask(t.Context(), "task-7"))
+}

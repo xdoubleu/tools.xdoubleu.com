@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 
+	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	"tools.xdoubleu.com/apps/learningpaths/internal/repositories"
 	"tools.xdoubleu.com/internal/database"
 	sharedmodels "tools.xdoubleu.com/internal/models"
@@ -20,11 +21,26 @@ import (
 // callers map it to FailedPrecondition, not a 500.
 var ErrTodoistNotConnected = oauthconn.ErrNotConnected
 
-// TodoistService connects a user's own Todoist account and sends single
-// learning-path items to it as tasks, one-way. Strictly per-user; no admin
-// bypass.
+// todoistConnections is the oauth-connections surface TodoistService needs: a
+// connected check plus per-user token lookup and connection mutation.
+type todoistConnections interface {
+	Status(ctx context.Context, userID string) (*sharedmodels.OAuthConnection, error)
+	Upsert(
+		ctx context.Context, userID string, provider sharedmodels.OAuthProvider,
+		tok *oauth2.Token,
+	) error
+	Delete(
+		ctx context.Context,
+		userID string,
+		provider sharedmodels.OAuthProvider,
+	) error
+	ForUser(userID string) repositories.UserScopedOAuthStore
+}
+
+// TodoistService connects a user's own Todoist account and mirrors learning
+// path items to it as tasks, one-way. Strictly per-user; no admin bypass.
 type TodoistService struct {
-	oauthRepo     *repositories.OAuthConnectionsRepository
+	oauthRepo     todoistConnections
 	learningPaths learningPathsStore
 	conf          *oauth2.Config
 	state         *oauthconn.StateStore
@@ -33,7 +49,7 @@ type TodoistService struct {
 }
 
 func NewTodoistService(
-	oauthRepo *repositories.OAuthConnectionsRepository,
+	oauthRepo todoistConnections,
 	learningPaths learningPathsStore,
 	conf *oauth2.Config,
 	state *oauthconn.StateStore,
@@ -88,9 +104,7 @@ func (s *TodoistService) Disconnect(ctx context.Context, userID string) error {
 func (s *TodoistService) Status(
 	ctx context.Context, userID string,
 ) (bool, time.Time, error) {
-	conn, err := s.oauthRepo.GetStatus(
-		ctx, userID, sharedmodels.OAuthProviderTodoist,
-	)
+	conn, err := s.oauthRepo.Status(ctx, userID)
 	if errors.Is(err, database.ErrResourceNotFound) {
 		return false, time.Time{}, nil
 	}
@@ -118,6 +132,125 @@ func (s *TodoistService) SendItem(
 
 	content := fmt.Sprintf("%s: %s", item.PathTitle, item.Item.Description)
 	return client.CreateTask(ctx, content, "")
+}
+
+// SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
+// only the active module (the first with an incomplete item, in sort order)
+// has tasks. On path creation that is the first module; completing module N
+// removes its tasks and activates N+1. Idempotent — a task already completed
+// or deleted in Todoist is ignored — and a graceful no-op when Todoist is
+// disconnected. Completion is one-way: Todoist never flips a path item.
+func (s *TodoistService) SyncPath(
+	ctx context.Context, userID string, pathID uuid.UUID,
+) error {
+	connected, _, err := s.Status(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if !connected {
+		return nil
+	}
+
+	lp, err := s.learningPaths.GetByID(ctx, pathID)
+	if err != nil {
+		return err
+	}
+	if lp.UserID != userID {
+		return database.ErrResourceNotFound
+	}
+
+	modules, err := s.learningPaths.GetModules(ctx, pathID)
+	if err != nil {
+		return err
+	}
+
+	active := s.activeModule(modules)
+	client := s.newClient(oauthconn.NewTokenFunc(
+		s.oauthRepo.ForUser(userID), sharedmodels.OAuthProviderTodoist, s.conf,
+	))
+	if err = s.clearNonActiveTasks(ctx, client, modules, active); err != nil {
+		return err
+	}
+	return s.createActiveTasks(ctx, client, lp.Title, modules, active)
+}
+
+// activeModule returns the index of the first module with an incomplete item,
+// or -1 when every module is done (so no module should carry tasks).
+func (s *TodoistService) activeModule(modules []models.Module) int {
+	for i := range modules {
+		for _, it := range modules[i].Items {
+			if !it.Completed {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// clearNonActiveTasks removes (and forgets) the stored task of every item
+// whose module is not active. Deleting a task Todoist no longer knows is not
+// an error, so retries stay idempotent.
+func (s *TodoistService) clearNonActiveTasks(
+	ctx context.Context,
+	client todoist.Client,
+	modules []models.Module,
+	active int,
+) error {
+	for i := range modules {
+		if i == active {
+			continue
+		}
+		if err := s.clearModuleTasks(ctx, client, modules[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *TodoistService) clearModuleTasks(
+	ctx context.Context, client todoist.Client, module models.Module,
+) error {
+	for _, it := range module.Items {
+		if it.TodoistTaskID == nil || *it.TodoistTaskID == "" {
+			continue
+		}
+		if err := client.DeleteTask(ctx, *it.TodoistTaskID); err != nil {
+			return err
+		}
+		if err := s.learningPaths.SetItemTodoistTaskID(ctx, it.ID, ""); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// createActiveTasks creates a task for each item of the active module that
+// does not already carry one, persisting the new task id on the item.
+func (s *TodoistService) createActiveTasks(
+	ctx context.Context,
+	client todoist.Client,
+	pathTitle string,
+	modules []models.Module,
+	active int,
+) error {
+	if active < 0 {
+		return nil
+	}
+	for _, it := range modules[active].Items {
+		if it.TodoistTaskID != nil && *it.TodoistTaskID != "" {
+			continue
+		}
+		taskID, err := client.CreateTask(
+			ctx, fmt.Sprintf("%s: %s", pathTitle, it.Description), "",
+		)
+		if err != nil {
+			return err
+		}
+		if err = s.learningPaths.SetItemTodoistTaskID(ctx, it.ID, taskID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // SetOAuthConfigForTest overrides the Todoist OAuth2 config, e.g. to point

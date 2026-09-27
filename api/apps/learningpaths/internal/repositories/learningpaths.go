@@ -254,7 +254,7 @@ func (r *LearningPathsRepository) getItemsForPath(
 ) (map[uuid.UUID][]models.Item, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT i.id, i.module_id, i.type, i.description, i.sort_order, i.completed,
-			i.linked_book_id
+			i.linked_book_id, i.todoist_task_id
 		FROM learningpaths.items i
 		JOIN learningpaths.modules m ON m.id = i.module_id
 		WHERE m.learning_path_id = $1
@@ -271,7 +271,7 @@ func (r *LearningPathsRepository) getItemsForPath(
 		var item models.Item
 		if err = rows.Scan(
 			&item.ID, &item.ModuleID, &item.Type, &item.Description,
-			&item.SortOrder, &item.Completed, &item.LinkedBookID,
+			&item.SortOrder, &item.Completed, &item.LinkedBookID, &item.TodoistTaskID,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
@@ -408,4 +408,34 @@ func (r *LearningPathsRepository) GetItemForUser(
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return &out, nil
+}
+
+// GetPathIDForItem returns the id of the path that owns itemID for userID,
+// scoped so a foreign item reads as not found.
+func (r *LearningPathsRepository) GetPathIDForItem(
+	ctx context.Context, itemID uuid.UUID, userID string,
+) (uuid.UUID, error) {
+	var pathID uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		SELECT m.learning_path_id
+		FROM learningpaths.items i
+		JOIN learningpaths.modules m ON m.id = i.module_id
+		JOIN learningpaths.learning_paths lp ON lp.id = m.learning_path_id
+		WHERE i.id = $1 AND lp.user_id = $2
+	`, itemID, userID).Scan(&pathID)
+	if err != nil {
+		return uuid.UUID{}, postgres.PgxErrorToHTTPError(err)
+	}
+	return pathID, nil
+}
+
+// SetItemTodoistTaskID stores/clears the Todoist task id for an item.
+func (r *LearningPathsRepository) SetItemTodoistTaskID(
+	ctx context.Context, itemID uuid.UUID, taskID string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE learningpaths.items SET todoist_task_id = $1 WHERE id = $2`,
+		taskID, itemID,
+	)
+	return postgres.PgxErrorToHTTPError(err)
 }

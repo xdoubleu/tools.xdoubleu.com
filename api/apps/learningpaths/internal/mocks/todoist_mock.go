@@ -13,6 +13,7 @@ type MockTodoistClient struct {
 
 	LastContent   string
 	LastDueString string
+	LastDeletedID string
 }
 
 func NewMockTodoistClient(taskID string) *MockTodoistClient {
@@ -28,4 +29,12 @@ func (m *MockTodoistClient) CreateTask(
 		return "", m.Err
 	}
 	return m.TaskID, nil
+}
+
+func (m *MockTodoistClient) DeleteTask(_ context.Context, taskID string) error {
+	m.LastDeletedID = taskID
+	if m.Err != nil {
+		return m.Err
+	}
+	return nil
 }

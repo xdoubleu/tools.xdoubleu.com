@@ -51,6 +51,10 @@ type Item struct {
 	// LinkedBook is resolved by LearningPathService.Get when the link still
 	// resolves for the caller, else nil. Never persisted.
 	LinkedBook *LinkedBook
+
+	// TodoistTaskID is the id of the item's task in Todoist while its module
+	// is active; empty/nil means no task is expected. Never sent over the wire.
+	TodoistTaskID *string
 }
 
 type Resource struct {

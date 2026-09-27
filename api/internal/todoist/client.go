@@ -96,3 +96,36 @@ func (c *client) CreateTask(
 	}
 	return out.ID, nil
 }
+
+// DeleteTask deletes the task at /tasks/{id}. A 404 (already completed or
+// deleted in Todoist) counts as success so retries are idempotent.
+func (c *client) DeleteTask(ctx context.Context, taskID string) error {
+	token, err := c.tokenFn(ctx)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(
+		ctx, http.MethodDelete, baseURL+"/tasks/"+taskID, nil,
+	)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil
+	}
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
+		raw, _ := io.ReadAll(resp.Body)
+		return &apiError{status: resp.StatusCode, body: string(raw)}
+	}
+	return nil
+}

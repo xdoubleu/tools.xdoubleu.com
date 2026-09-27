@@ -136,6 +136,14 @@ func (r *OAuthConnectionsRepository) GetStatus(
 	return rowToConnection(provider, userID, row), nil
 }
 
+// Status is GetStatus for the user's Todoist connection; it satisfies the
+// todoistConnections interface the service depends on.
+func (r *OAuthConnectionsRepository) Status(
+	ctx context.Context, userID string,
+) (*sharedmodels.OAuthConnection, error) {
+	return r.GetStatus(ctx, userID, sharedmodels.OAuthProviderTodoist)
+}
+
 // ForUser binds userID so the repository structurally satisfies oauthconn's
 // provider-only connectionStore interface for that user.
 func (r *OAuthConnectionsRepository) ForUser(userID string) UserScopedOAuthStore {
