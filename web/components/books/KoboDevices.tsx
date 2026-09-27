@@ -7,6 +7,8 @@ import {
   useSetKoboDeviceLogging
 } from '@/hooks/useBooks'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { LoadingState } from '@/components/ui/states'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/dates'
 import KoboDeviceLogs from '@/components/books/KoboDeviceLogs'
@@ -104,11 +106,7 @@ export default function KoboDevices() {
   }
 
   if (isLoading) {
-    return (
-      <p className="text-xs text-muted" data-testid="kobo-devices-loading">
-        Loading devices…
-      </p>
-    )
+    return <LoadingState label="devices" className="text-xs" />
   }
 
   if (devices.length === 0) {
@@ -123,59 +121,55 @@ export default function KoboDevices() {
     <>
       <ul className="space-y-2" data-testid="kobo-devices-list">
         {devices.map((device) => (
-          <li
-            key={device.id}
-            className="rounded-xl border border-border bg-card px-4 py-3"
-            data-testid={`kobo-device-${device.id}`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{device.name}</p>
-                <p className="text-xs text-muted">
-                  {device.serial ? `Serial: ${device.serial} · ` : ''}
-                  {formatLastSeen(device.lastSeenAt)}
-                </p>
+          <li key={device.id}>
+            <Card className="rounded-xl px-4 py-3" data-testid={`kobo-device-${device.id}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{device.name}</p>
+                  <p className="text-xs text-muted">
+                    {device.serial ? `Serial: ${device.serial} · ` : ''}
+                    {formatLastSeen(device.lastSeenAt)}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => {
+                    setPendingId(device.id)
+                    setPendingName(device.name)
+                  }}
+                  data-testid={`kobo-disconnect-btn-${device.id}`}
+                >
+                  Disconnect
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="ml-4 shrink-0"
-                onClick={() => {
-                  setPendingId(device.id)
-                  setPendingName(device.name)
-                }}
-                data-testid={`kobo-disconnect-btn-${device.id}`}
-              >
-                Disconnect
-              </Button>
-            </div>
 
-            <div className="mt-2 flex items-center gap-3">
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-subtle">
+              <div className="mt-2 flex flex-wrap items-center gap-3">
                 <Checkbox
                   checked={device.loggingEnabled}
                   onChange={(e) => handleToggleLogging(device.id, e.target.checked)}
                   data-testid={`kobo-logging-toggle-${device.id}`}
+                  label={<span className="text-xs text-subtle">Debug logging</span>}
                 />
-                Debug logging
-              </label>
-              {device.loggingEnabled && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setExpandedId((prev) => (prev === device.id ? null : device.id))}
-                  data-testid={`kobo-logs-toggle-${device.id}`}
-                >
-                  {expandedId === device.id ? 'Hide logs' : 'View logs'}
-                </Button>
-              )}
-            </div>
+                {device.loggingEnabled && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setExpandedId((prev) => (prev === device.id ? null : device.id))}
+                    data-testid={`kobo-logs-toggle-${device.id}`}
+                  >
+                    {expandedId === device.id ? 'Hide logs' : 'View logs'}
+                  </Button>
+                )}
+              </div>
 
-            {device.loggingEnabled && expandedId === device.id && (
-              <KoboDeviceLogs deviceId={device.id} />
-            )}
+              {device.loggingEnabled && expandedId === device.id && (
+                <KoboDeviceLogs deviceId={device.id} />
+              )}
+            </Card>
           </li>
         ))}
       </ul>

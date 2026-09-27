@@ -104,6 +104,13 @@ describe('ExternalBookDetailClient', () => {
     expect(screen.getByText('Hardcover')).toBeInTheDocument()
   })
 
+  it('omits the author line when the book has no authors', () => {
+    mockResult(create(ExternalBookResultSchema, { ...mockBook, authors: [] }))
+    render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
+    expect(screen.getByRole('heading', { name: 'The Go Programming Language' })).toBeInTheDocument()
+    expect(screen.queryByText('Alan Donovan, Brian Kernighan')).not.toBeInTheDocument()
+  })
+
   it('shows no description fallback when description is empty', () => {
     mockResult(create(ExternalBookResultSchema, { ...mockBook, description: '' }))
     render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)

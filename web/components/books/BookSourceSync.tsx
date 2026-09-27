@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { mutate } from 'swr'
 import { useBookSources, useApplyBookSource, type SourceSearchOverride } from '@/hooks/useBooks'
 import SourceCompare from '@/components/books/SourceCompare'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -31,7 +32,7 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card shadow-card p-4">
+    <Card className="p-4">
       {isLoading && <p className="text-sm text-muted">Fetching sources…</p>}
       {fetchError && <p className="text-sm text-danger">Failed to fetch sources.</p>}
       {data?.proposal && (
@@ -42,6 +43,6 @@ export default function BookSourceSync({ bookId }: { bookId: string }) {
           onSearch={(title, author) => setOverride({ title, author })}
         />
       )}
-    </div>
+    </Card>
   )
 }

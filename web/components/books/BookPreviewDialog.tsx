@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { useGetBookFile, useRequestKEPUBConversion, useKEPUBStatus } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
+import { cn } from '@/lib/cn'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 
 // react-reader uses the DOM and cannot be server-rendered.
 const ReactReader = dynamic(
@@ -84,12 +86,10 @@ export default function BookPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={isPDF ? 'max-w-4xl h-[85vh] flex flex-col' : 'max-w-2xl h-[85vh] flex flex-col'}
-      >
+      <DialogContent className={cn('flex h-[85dvh] flex-col', isPDF ? 'max-w-4xl' : 'max-w-2xl')}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogClose aria-label="Close preview">X</DialogClose>
+          <DialogClose aria-label="Close preview" />
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden rounded-xl">
@@ -100,15 +100,11 @@ export default function BookPreviewDialog({
             <p className="text-sm text-muted p-4">Converting… this may take a moment.</p>
           )}
 
-          {!isKepub && error && <p className="text-sm text-danger p-4">Failed to load preview.</p>}
+          {!isKepub && error && <ErrorState what="preview" className="p-4 text-sm" />}
 
-          {!isKepub && !data && !error && (
-            <p className="text-sm text-muted p-4">Loading preview…</p>
-          )}
+          {!isKepub && !data && !error && <LoadingState label="preview" className="p-4 text-sm" />}
 
-          {isKepub && kepubReady && error && (
-            <p className="text-sm text-danger p-4">Failed to load preview.</p>
-          )}
+          {isKepub && kepubReady && error && <ErrorState what="preview" className="p-4 text-sm" />}
 
           {data && isPDF && (
             <iframe src={data.url} title={`Preview: ${title}`} className="w-full h-full border-0" />

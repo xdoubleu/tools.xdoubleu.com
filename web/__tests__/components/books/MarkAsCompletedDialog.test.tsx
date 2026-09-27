@@ -94,7 +94,7 @@ describe('MarkAsCompletedDialog', () => {
 
     const star3 = screen.getByLabelText('Rate 3 stars')
     fireEvent.mouseEnter(star3)
-    expect(star3).toHaveClass('text-amber-400')
+    expect(star3).toHaveClass('text-star')
 
     fireEvent.mouseLeave(star3.parentElement!)
     expect(star3).toHaveClass('text-border')

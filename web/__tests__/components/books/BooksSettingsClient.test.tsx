@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 
 const mockImportBooks = jest.fn()
 
@@ -48,6 +48,14 @@ describe('BooksSettingsClient', () => {
     render(<BooksSettingsClient />)
     expect(screen.getByText('Import books')).toBeInTheDocument()
     expect(screen.getByText('Import CSV')).toBeInTheDocument()
+  })
+
+  it('opens the CSV file picker from the Import CSV button', () => {
+    render(<BooksSettingsClient />)
+    const input = screen.getByTestId('csv-input') as HTMLInputElement
+    const click = jest.spyOn(input, 'click')
+    fireEvent.click(screen.getByRole('button', { name: 'Import CSV' }))
+    expect(click).toHaveBeenCalled()
   })
 
   it('renders the Upload ebooks section with BulkBookUploader', () => {

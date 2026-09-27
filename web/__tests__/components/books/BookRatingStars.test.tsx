@@ -90,10 +90,23 @@ describe('BookRatingStars', () => {
     })
   })
 
-  it('does not fire click handler when readOnly', () => {
-    render(<BookRatingStars userBook={makeBook(2)} readOnly />)
+  it('renders read-only stars as an image, not buttons', () => {
+    render(<BookRatingStars userBook={makeBook(2)} readOnly size="md" />)
 
-    fireEvent.click(screen.getAllByRole('button')[0])
-    expect(mockUpdateBookStatus).not.toHaveBeenCalled()
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    expect(screen.getByRole('img', { name: '2 out of 5 stars' })).toBeInTheDocument()
+  })
+
+  it('labels an unrated read-only book', () => {
+    render(<BookRatingStars userBook={makeBook(0)} readOnly />)
+
+    expect(screen.getByRole('img', { name: 'No rating' })).toBeInTheDocument()
+  })
+
+  it('renders md interactive stars', () => {
+    render(<BookRatingStars userBook={makeBook(1)} size="md" />)
+    fireEvent.mouseEnter(screen.getByLabelText('Rate 3 stars'))
+    fireEvent.mouseLeave(screen.getByLabelText('1 out of 5 stars'))
+    expect(screen.getAllByRole('button')).toHaveLength(5)
   })
 })

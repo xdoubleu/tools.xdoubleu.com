@@ -23,7 +23,10 @@ import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 import BookEditDialog from '@/components/books/BookEditDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { formatDate } from '@/lib/dates'
 
@@ -76,8 +79,8 @@ export default function BookDetailClient({ id }: { id: string }) {
     <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading book…</p>}
-      {error && <p className="mt-6 text-danger">Failed to load book.</p>}
+      {isLoading && <LoadingState label="book" className="mt-6" />}
+      {error && <ErrorState what="book" className="mt-6" />}
       {!isLoading && !error && !userBook && <p className="mt-6 text-muted">Book not found.</p>}
 
       {book && userBook && (
@@ -88,10 +91,11 @@ export default function BookDetailClient({ id }: { id: string }) {
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold leading-tight">{book.title}</h1>
-              {book.authors.length > 0 && (
-                <p className="mt-1 text-lg text-muted">{book.authors.join(', ')}</p>
-              )}
+              <PageHeader
+                title={book.title}
+                description={book.authors.length > 0 ? book.authors.join(', ') : undefined}
+                className="mb-0"
+              />
 
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {userBook.status === 'read' && (
@@ -107,24 +111,20 @@ export default function BookDetailClient({ id }: { id: string }) {
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
               {book.sourceUrl && (
-                <p className="mt-2 flex items-center gap-3 text-xs text-muted">
+                <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
                   <Button
                     type="button"
                     variant="link"
-                    size="sm"
                     onClick={() => setReaderOpen(true)}
-                    className="h-auto p-0 text-xs"
+                    className="text-xs"
                   >
                     Read in app
                   </Button>
-                  <a
-                    href={book.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-accent underline-offset-4 hover:underline"
-                  >
-                    Open original ↗
-                  </a>
+                  <Button asChild variant="link" className="text-xs">
+                    <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer">
+                      Open original ↗
+                    </a>
+                  </Button>
                 </p>
               )}
 
@@ -171,7 +171,7 @@ export default function BookDetailClient({ id }: { id: string }) {
 
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-3">Your reading</h2>
-            <div className="rounded-2xl border border-border bg-card shadow-card p-4 flex flex-col gap-4">
+            <Card className="flex flex-col gap-4 p-4">
               {userBook.status === 'currently-reading' && (
                 <div>
                   <p className="text-xs text-muted mb-1">Progress</p>
@@ -253,7 +253,7 @@ export default function BookDetailClient({ id }: { id: string }) {
                   Remove from library
                 </Button>
               </div>
-            </div>
+            </Card>
           </section>
         </>
       )}

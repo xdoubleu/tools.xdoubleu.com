@@ -76,9 +76,9 @@ export default function MarkAsCompletedDialog({
       pending={completing}
       onConfirm={handleConfirm}
     >
-      <div className="mt-4 flex items-center justify-between gap-3">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div
-          className="flex items-center gap-0.5"
+          className="flex items-center"
           aria-label={rating > 0 ? `${rating} out of 5 stars` : 'No rating'}
           onMouseLeave={() => setHover(0)}
         >
@@ -91,8 +91,8 @@ export default function MarkAsCompletedDialog({
               onMouseEnter={() => setHover(star)}
               aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
               className={cn(
-                'h-auto w-auto p-0 leading-none hover:bg-transparent hover:text-amber-400',
-                star <= displayed ? 'text-amber-400' : 'text-border'
+                'leading-none hover:bg-transparent hover:text-star',
+                star <= displayed ? 'text-star' : 'text-border'
               )}
             >
               ★

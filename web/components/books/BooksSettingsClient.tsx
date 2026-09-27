@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useImportBooks } from '@/hooks/useBooks'
 import BulkBookUploader from '@/components/books/BulkBookUploader'
 import KoboSetup from '@/components/books/KoboSetup'
 import KoboDevices from '@/components/books/KoboDevices'
 import { mutate } from 'swr'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
 
@@ -14,6 +15,7 @@ export default function BooksSettingsClient() {
   const importBooks = useImportBooks()
 
   const [importStatus, setImportStatus] = useState('')
+  const csvInputRef = useRef<HTMLInputElement>(null)
 
   function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -37,11 +39,10 @@ export default function BooksSettingsClient() {
 
   return (
     <PageContainer size="narrow">
-      <Breadcrumb
-        className="mb-4"
-        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Settings' }]}
+      <PageHeader
+        breadcrumb={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Settings' }]}
+        title="Reading Settings"
       />
-      <h1 className="mb-6 text-3xl font-bold">Reading Settings</h1>
 
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -50,12 +51,24 @@ export default function BooksSettingsClient() {
         <p className="mb-3 text-xs text-muted">
           Import your library from a Goodreads (or compatible) CSV export.
         </p>
-        <div className="flex items-center gap-2">
-          <label className="inline-flex h-9 cursor-pointer items-center rounded-xl border border-border bg-surface px-3 text-sm text-fg transition-colors hover:bg-hover active:bg-hover">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => csvInputRef.current?.click()}
+          >
             Import CSV
-            {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
-            <input type="file" accept=".csv" onChange={handleImport} className="hidden" />
-          </label>
+          </Button>
+          {/* eslint-disable-next-line no-restricted-syntax -- a file picker must be a real hidden <input type="file">; no primitive can wrap it */}
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv"
+            onChange={handleImport}
+            className="hidden"
+            data-testid="csv-input"
+          />
           {importStatus && <span className="text-sm text-muted">{importStatus}</span>}
         </div>
       </section>

@@ -112,6 +112,13 @@ describe('ReadingDashboardPublicClient', () => {
     expect(screen.queryByRole('button', { name: /refresh/i })).not.toBeInTheDocument()
   })
 
+  it('shows a loading state before the library arrives', () => {
+    mockUseSharedLibrary.mockReturnValue({ data: undefined, isLoading: true })
+    render(<ReadingDashboardPublicClient token="tok-1" />)
+
+    expect(screen.getByText('Loading books…')).toBeInTheDocument()
+  })
+
   it('shows an error state when the library fails to load', () => {
     mockUseSharedLibrary.mockReturnValue({ data: undefined, error: new Error('nope') })
     render(<ReadingDashboardPublicClient token="tok-1" />)

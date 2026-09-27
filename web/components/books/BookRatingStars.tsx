@@ -12,7 +12,7 @@ interface BookRatingStarsProps {
   userBook: UserBook
   /** Render as a read-only display (no click handlers). */
   readOnly?: boolean
-  /** "sm" = 14px stars (card); "md" = 18px stars (detail page). Default "sm". */
+  /** Glyph size: "sm" for cards, "md" for the detail page. Interactive stars are 44px targets on phones. */
   size?: 'sm' | 'md'
   onSaved?: () => void
 }
@@ -28,7 +28,6 @@ export default function BookRatingStars({
   const updateBookStatus = useUpdateBookStatus()
 
   const handleClick = async (star: number) => {
-    if (readOnly) return
     // Clicking the current rating clears it.
     const newRating = star === rating ? 0 : star
     const prev = rating
@@ -48,28 +47,38 @@ export default function BookRatingStars({
   }
 
   const displayed = hover > 0 ? hover : rating
+  const label = rating > 0 ? `${rating} out of 5 stars` : 'No rating'
+
+  if (readOnly) {
+    return (
+      <span
+        role="img"
+        aria-label={label}
+        className={cn('inline-flex leading-none', size === 'md' ? 'text-lg' : 'text-sm')}
+      >
+        {[1, 2, 3, 4, 5].map((star) => (
+          <span key={star} aria-hidden className={star <= rating ? 'text-star' : 'text-border'}>
+            ★
+          </span>
+        ))}
+      </span>
+    )
+  }
 
   return (
-    <div
-      className="flex items-center gap-0.5"
-      aria-label={rating > 0 ? `${rating} out of 5 stars` : 'No rating'}
-      onMouseLeave={() => setHover(0)}
-    >
+    <div className="flex items-center" aria-label={label} onMouseLeave={() => setHover(0)}>
       {[1, 2, 3, 4, 5].map((star) => (
         <Button
           key={star}
           variant="ghost"
           size="iconSm"
           onClick={() => handleClick(star)}
-          onMouseEnter={() => !readOnly && setHover(star)}
-          disabled={readOnly}
+          onMouseEnter={() => setHover(star)}
           aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
           className={cn(
-            'h-auto w-auto p-0 leading-none hover:bg-transparent',
-            size === 'md' ? 'text-lg' : 'text-sm',
-            star <= displayed ? 'text-amber-400' : 'text-border',
-            // Read-only stars must stay legible, not dimmed like disabled buttons.
-            readOnly ? 'cursor-default disabled:opacity-100' : 'hover:text-amber-400'
+            'leading-none hover:bg-transparent hover:text-star',
+            size === 'md' && 'text-xl sm:text-lg',
+            star <= displayed ? 'text-star' : 'text-border'
           )}
         >
           ★

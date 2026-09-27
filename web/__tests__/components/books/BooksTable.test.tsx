@@ -73,9 +73,9 @@ describe('BooksTable', () => {
     expect(screen.getByRole('button', { name: 'Title' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Author' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Pages' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'ISBN' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'ISBN' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Rating' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Owned' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Owned' })).toBeInTheDocument()
   })
 
   it('renders isbn13 value in the ISBN column', () => {
@@ -326,7 +326,7 @@ describe('BooksTable', () => {
       expect(isbnCheckbox).toBeChecked()
       fireEvent.click(isbnCheckbox)
 
-      expect(screen.queryByRole('button', { name: 'ISBN' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('columnheader', { name: 'ISBN' })).not.toBeInTheDocument()
     })
 
     it('shows a hidden column when toggled on', () => {
@@ -352,7 +352,7 @@ describe('BooksTable', () => {
       expect(isbnCheckbox).not.toBeChecked()
       fireEvent.click(isbnCheckbox)
 
-      expect(screen.getByRole('button', { name: 'ISBN' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'ISBN' })).toBeInTheDocument()
     })
 
     it('cover and title columns are always visible and not in the toggle list', () => {

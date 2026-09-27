@@ -84,7 +84,7 @@ describe('ReadingDashboardPublicLibrary', () => {
     mockUseSharedLibrary.mockReturnValue({ data: makeLibrary() })
     render(<ReadingDashboardPublicLibrary token="tok-1" />)
 
-    expect(screen.getByLabelText('Rated 4 of 5')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '4 out of 5 stars' })).toBeInTheDocument()
   })
 
   it('renders a loading state before data arrives', () => {

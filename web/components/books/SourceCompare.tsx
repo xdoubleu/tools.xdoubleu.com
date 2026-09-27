@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import type { SourceBook, ResyncProposal } from '@/lib/gen/books/v1/catalog_pb'
 import BookCover from '@/components/books/BookCover'
 import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { cn } from '@/lib/cn'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
@@ -36,7 +39,7 @@ function fieldValue(s: SourceBook, field: string): string {
 // Highlights fields differing from the library row.
 function SourceCard({ label, source }: { label: string; source: SourceBook }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-3 text-sm">
+    <Card variant="inset" className="rounded-xl text-sm">
       <div className="mb-2 flex items-center gap-2">
         <BookCover coverUrl={source.coverUrl} title={source.title} size="sm" />
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
@@ -49,10 +52,10 @@ function SourceCard({ label, source }: { label: string; source: SourceBook }) {
             <li key={field} className="flex items-start justify-between gap-2">
               <span className="shrink-0 text-xs text-muted">{field.replace('_', ' ')}</span>
               <span
-                className={
-                  (differs ? 'font-medium text-fg' : 'text-muted') +
-                  ' min-w-0 break-words text-right'
-                }
+                className={cn(
+                  'min-w-0 break-words text-right',
+                  differs ? 'font-medium text-fg' : 'text-muted'
+                )}
               >
                 {value || <span className="italic text-muted">none</span>}
               </span>
@@ -60,7 +63,7 @@ function SourceCard({ label, source }: { label: string; source: SourceBook }) {
           )
         })}
       </ul>
-    </div>
+    </Card>
   )
 }
 
@@ -92,27 +95,28 @@ function SearchOverrideForm({
 }) {
   const [title, setTitle] = useState(proposal.library?.title ?? '')
   const [author, setAuthor] = useState(proposal.library?.authors[0] ?? '')
+  const id = useId()
 
   return (
     <div className="mb-3 flex flex-wrap items-end gap-2">
-      <label className="min-w-0 flex-1 text-xs text-muted">
-        Search title
+      <Field label="Search title" htmlFor={`${id}-title`} className="flex-1 basis-40">
         <Input
-          className="mt-1"
+          id={`${id}-title`}
+          type="search"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Title"
         />
-      </label>
-      <label className="min-w-0 flex-1 text-xs text-muted">
-        Search author
+      </Field>
+      <Field label="Search author" htmlFor={`${id}-author`} className="flex-1 basis-40">
         <Input
-          className="mt-1"
+          id={`${id}-author`}
+          type="search"
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           placeholder="Author"
         />
-      </label>
+      </Field>
       <Button variant="secondary" size="sm" onClick={() => onSearch(title, author)}>
         Search with these terms
       </Button>
@@ -166,10 +170,10 @@ export default function SourceCompare({
       {onSearch && <SearchOverrideForm proposal={proposal} onSearch={onSearch} />}
 
       {proposal.sources.length === 0 ? (
-        <p className="rounded-xl border border-border bg-surface p-3 text-sm text-muted">
+        <Card variant="inset" className="rounded-xl text-sm text-muted">
           No configured source (UniCat, Hardcover) has this book. Consider adding a new source, or
           dismiss if this is expected.
-        </p>
+        </Card>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {proposal.library && <SourceCard label="Library" source={proposal.library} />}

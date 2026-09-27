@@ -6,6 +6,7 @@ import { swrKeys } from '@/lib/swrKeys'
 import { PublicReadingDashboardService } from '@/lib/gen/dashboard/v1/reading_pb'
 import ReadingDashboardPublicClient from '@/components/dashboard/ReadingDashboardPublicClient'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 // Token URLs are capability links — keep them out of search indexes.
 export const metadata: Metadata = {
@@ -27,9 +28,10 @@ export default async function ReadingDashboardPublicPage({
 
   return (
     <PageContainer className="lg:flex lg:h-[calc(100dvh-9rem)] lg:flex-col lg:overflow-hidden">
-      <h1 className="mb-6 text-3xl font-bold lg:mb-3 lg:text-2xl">
-        {library?.displayName ? `${library.displayName}'s reading` : 'Shared reading'}
-      </h1>
+      <PageHeader
+        title={library?.displayName ? `${library.displayName}'s reading` : 'Shared reading'}
+        className="lg:mb-3"
+      />
       <SWRFallback
         fallback={{
           ...(library ? { [swrKeys.dashboardReading(token)]: library } : {}),

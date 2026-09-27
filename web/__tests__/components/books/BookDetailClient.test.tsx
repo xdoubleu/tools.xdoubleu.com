@@ -210,6 +210,22 @@ describe('BookDetailClient', () => {
     expect(screen.getByText('Frank Herbert')).toBeInTheDocument()
   })
 
+  it('renders the title without an author line when the book has no authors', () => {
+    const noAuthorBook = create(UserBookSchema, {
+      ...mockUserBook,
+      book: create(BookSchema, { ...mockBook, authors: [] })
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([noAuthorBook]),
+      isLoading: false,
+      error: undefined
+    })
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
+    expect(screen.queryByText('Frank Herbert')).not.toBeInTheDocument()
+  })
+
   it('renders description', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByText('A science fiction epic set in the far future.')).toBeInTheDocument()

@@ -309,6 +309,17 @@ describe('BulkBookUploader', () => {
     expect(screen.getByPlaceholderText('Title')).toBeInTheDocument()
   })
 
+  it('highlights the drop zone while a drag is over it', () => {
+    render(<BulkBookUploader />)
+    const dropZone = screen.getByTestId('drop-zone')
+
+    fireEvent.dragOver(dropZone)
+    expect(dropZone).toHaveClass('border-accent')
+
+    fireEvent.dragLeave(dropZone)
+    expect(dropZone).not.toHaveClass('border-accent')
+  })
+
   it('accepts drag-and-drop files and uploads each', async () => {
     mockUploadBookFile.mockResolvedValue({})
 

@@ -14,6 +14,7 @@ import { TogglePill } from '@/components/ui/toggle-pill'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { LoadingState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 
 export default function ResyncWizard() {
@@ -64,7 +65,7 @@ export default function ResyncWizard() {
     // The list shrinks, so the same index shows the next book.
   }
 
-  if (isLoading) return <p className="text-xs text-muted">Loading…</p>
+  if (isLoading) return <LoadingState className="text-xs" />
   if (proposals.length === 0) {
     return (
       <p className="text-xs text-muted">No flagged differences. Run a scan to check for updates.</p>

@@ -7,8 +7,10 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
+  DialogFooter
 } from '@/components/ui/dialog'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -72,10 +74,10 @@ export default function AddManualBookDialog({
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
-      <DialogContent>
+      <DialogContent side="sheet">
         <DialogHeader>
           <DialogTitle>Add book manually</DialogTitle>
-          <DialogClose>×</DialogClose>
+          <DialogClose />
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,13 +98,19 @@ export default function AddManualBookDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="manual-isbn13">ISBN-13</Label>
-            <Input id="manual-isbn13" value={isbn13} onChange={(e) => setIsbn13(e.target.value)} />
+            <Input
+              id="manual-isbn13"
+              inputMode="numeric"
+              value={isbn13}
+              onChange={(e) => setIsbn13(e.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="manual-cover-url">Cover URL</Label>
             <Input
               id="manual-cover-url"
+              type="url"
               value={coverUrl}
               onChange={(e) => setCoverUrl(e.target.value)}
             />
@@ -138,16 +146,16 @@ export default function AddManualBookDialog({
             </Select>
           </div>
 
-          {error && <p className="text-sm text-danger">{error}</p>}
+          {error && <Alert tone="danger">{error}</Alert>}
 
-          <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={isSubmitting || !title.trim()} className="flex-1">
-              {isSubmitting ? 'Adding…' : 'Add Book'}
-            </Button>
-            <Button type="button" variant="secondary" onClick={onClose} className="flex-1">
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-          </div>
+            <Button type="submit" disabled={isSubmitting || !title.trim()}>
+              {isSubmitting ? 'Adding…' : 'Add Book'}
+            </Button>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

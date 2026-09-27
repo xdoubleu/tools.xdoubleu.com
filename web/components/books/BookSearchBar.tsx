@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchLibrary, useSearchExternal } from '@/hooks/useBooks'
 import type { ExternalBookResult } from '@/lib/gen/books/v1/library_pb'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { MenuItem } from '@/components/ui/menu-item'
 
@@ -93,7 +94,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
   if (isControlled) {
     return (
       <Input
-        type="text"
+        type="search"
         value={controlledInput}
         onChange={(e) => handleInputChange(e.target.value)}
         placeholder="Search books…"
@@ -108,7 +109,7 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
     <div className="space-y-3">
       <div className="relative">
         <Input
-          type="text"
+          type="search"
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           placeholder="Search books…"
@@ -120,41 +121,43 @@ export default function BookSearchBar({ query: controlledQuery, onChange }: Book
         )}
 
         {(showLibraryDropdown || showExternalDropdown) && (
-          <ul className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-2xl border border-border bg-card shadow-elevated">
-            {showLibraryDropdown
-              ? libraryHits.map((ub) => (
-                  <li key={ub.id}>
-                    <MenuItem
-                      onClick={() => {
-                        router.push(`/books/${ub.id}`)
-                        setLibraryHits([])
-                        setStandaloneQuery('')
-                      }}
-                    >
-                      <span className="font-medium">{ub.book?.title}</span>
-                      {ub.book && ub.book.authors.length > 0 && (
-                        <span className="ml-2 text-muted">— {ub.book.authors.join(', ')}</span>
-                      )}
-                    </MenuItem>
-                  </li>
-                ))
-              : externalResults.map((book) => (
-                  <li key={`${book.provider}-${book.providerId}`}>
-                    <MenuItem
-                      onClick={() => {
-                        router.push(`/books/external/${book.provider}/${book.providerId}`)
-                        setExternalResults([])
-                        setStandaloneQuery('')
-                      }}
-                    >
-                      <span className="font-medium">{book.title}</span>
-                      {book.authors.length > 0 && (
-                        <span className="ml-2 text-muted">— {book.authors.join(', ')}</span>
-                      )}
-                    </MenuItem>
-                  </li>
-                ))}
-          </ul>
+          <Card className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto shadow-elevated">
+            <ul>
+              {showLibraryDropdown
+                ? libraryHits.map((ub) => (
+                    <li key={ub.id}>
+                      <MenuItem
+                        onClick={() => {
+                          router.push(`/books/${ub.id}`)
+                          setLibraryHits([])
+                          setStandaloneQuery('')
+                        }}
+                      >
+                        <span className="font-medium">{ub.book?.title}</span>
+                        {ub.book && ub.book.authors.length > 0 && (
+                          <span className="ml-2 text-muted">— {ub.book.authors.join(', ')}</span>
+                        )}
+                      </MenuItem>
+                    </li>
+                  ))
+                : externalResults.map((book) => (
+                    <li key={`${book.provider}-${book.providerId}`}>
+                      <MenuItem
+                        onClick={() => {
+                          router.push(`/books/external/${book.provider}/${book.providerId}`)
+                          setExternalResults([])
+                          setStandaloneQuery('')
+                        }}
+                      >
+                        <span className="font-medium">{book.title}</span>
+                        {book.authors.length > 0 && (
+                          <span className="ml-2 text-muted">— {book.authors.join(', ')}</span>
+                        )}
+                      </MenuItem>
+                    </li>
+                  ))}
+            </ul>
+          </Card>
         )}
       </div>
     </div>

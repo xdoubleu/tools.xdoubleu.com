@@ -11,6 +11,8 @@ import BookDialog from '@/components/books/BookDialog'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 import { swrKeys } from '@/lib/swrKeys'
 import { providerLabel } from '@/lib/books/bookShelves'
 
@@ -39,8 +41,8 @@ export default function ExternalBookDetailClient({
     <PageContainer>
       <Breadcrumb items={breadcrumbItems} />
 
-      {isLoading && <p className="mt-6 text-muted">Loading book…</p>}
-      {error && <p className="mt-6 text-danger">Failed to load book.</p>}
+      {isLoading && <LoadingState label="book" className="mt-6" />}
+      {error && <ErrorState what="book" className="mt-6" />}
       {!isLoading && !error && !book && <p className="mt-6 text-muted">Book not found.</p>}
 
       {book && (
@@ -51,10 +53,11 @@ export default function ExternalBookDetailClient({
             </div>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold leading-tight">{book.title}</h1>
-              {book.authors.length > 0 && (
-                <p className="mt-1 text-lg text-muted">{book.authors.join(', ')}</p>
-              )}
+              <PageHeader
+                title={book.title}
+                description={book.authors.length > 0 ? book.authors.join(', ') : undefined}
+                className="mb-0"
+              />
 
               <p className="mt-3 text-xs px-2 py-0.5 rounded-full bg-surface text-subtle inline-block">
                 {providerLabel(book.provider)}

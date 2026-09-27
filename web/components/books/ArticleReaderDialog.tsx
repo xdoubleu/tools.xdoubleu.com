@@ -2,6 +2,7 @@
 
 import ArticleReaderDialog from '@/components/ArticleReaderDialog'
 import { useGetBookContent } from '@/hooks/useBooks'
+import { LoadingState, ErrorState } from '@/components/ui/states'
 
 interface BookArticleReaderDialogProps {
   bookId: string
@@ -30,9 +31,9 @@ export default function BookArticleReaderDialog({
       onOpenChange={onOpenChange}
       html={html}
     >
-      {error && <p className="text-sm text-danger p-4">Failed to load article.</p>}
+      {error && <ErrorState what="article" className="p-4 text-sm" />}
 
-      {!error && !data && <p className="text-sm text-muted p-4">Loading…</p>}
+      {!error && !data && <LoadingState className="p-4 text-sm" />}
 
       {!error && data && !html && (
         <p className="text-sm text-muted p-4">

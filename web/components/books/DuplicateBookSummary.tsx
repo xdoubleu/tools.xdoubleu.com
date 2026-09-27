@@ -67,15 +67,13 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
     <div className="flex items-start gap-3">
       <BookCover coverUrl={book.coverUrl} title={book.title} size="sm" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-tight">{book.title}</p>
+        <p className="break-words text-sm font-medium leading-tight">{book.title}</p>
         <p className="text-xs text-muted truncate">{book.authors.join(', ')}</p>
 
         <p className="text-xs text-subtle mt-0.5">{metaTokens.join(' · ')}</p>
 
         <div className="flex flex-wrap gap-1 mt-1">
-          <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle">
-            Metadata {score}/5
-          </span>
+          <Badge variant="secondary">Metadata {score}/5</Badge>
           {fields.map((f) => (
             <Badge key={f.label} variant={f.present ? 'default' : 'secondary'}>
               {f.present ? f.label : `No ${f.label.toLowerCase()}`}
@@ -84,9 +82,9 @@ export default function DuplicateBookSummary({ ub }: DuplicateBookSummaryProps) 
         </div>
 
         <div className="flex flex-wrap gap-1 mt-1">
-          <span className="text-xs px-1.5 py-0.5 rounded-full bg-surface text-subtle capitalize">
+          <Badge variant="secondary" className="capitalize">
             {ub.status}
-          </span>
+          </Badge>
           {hasPhysical && <Badge variant="secondary">Physical</Badge>}
           {hasDigital && <Badge variant="default">Digital</Badge>}
           {hasPdf && <Badge variant="default">PDF</Badge>}

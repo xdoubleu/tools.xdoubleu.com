@@ -1,5 +1,6 @@
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
+import BookRatingStars from '@/components/books/BookRatingStars'
 import BookProgressBar from '@/components/books/BookProgressBar'
 import { Card } from '@/components/ui/card'
 import { statusLabel, displayTags } from '@/lib/books/bookShelves'
@@ -16,19 +17,14 @@ export default function DashboardBookCard({ userBook }: { userBook: UserBook }) 
         <h3 className="font-semibold truncate">
           {book.title}
           {userBook.tags.includes('favourite') && (
-            <span className="ml-2 text-amber-500" aria-label="Favourite">
+            <span className="ml-2 text-star" aria-label="Favourite">
               ♥
             </span>
           )}
         </h3>
         <p className="text-sm text-muted truncate">{book.authors.join(', ')}</p>
         <p className="text-sm text-muted">{statusLabel(userBook.status)}</p>
-        {userBook.rating > 0 && (
-          <p className="text-sm text-amber-500" aria-label={`Rated ${userBook.rating} of 5`}>
-            {'★'.repeat(userBook.rating)}
-            <span className="text-border">{'★'.repeat(Math.max(0, 5 - userBook.rating))}</span>
-          </p>
-        )}
+        {userBook.rating > 0 && <BookRatingStars userBook={userBook} readOnly />}
         {userBook.status === 'currently-reading' && (
           <div className="mt-2">
             <BookProgressBar userBook={userBook} />

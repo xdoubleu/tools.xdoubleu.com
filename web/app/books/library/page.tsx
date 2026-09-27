@@ -6,7 +6,8 @@ import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/books/v1/library_pb'
-import { Breadcrumb } from '@/components/ui/breadcrumb'
+import { PageHeader } from '@/components/ui/page-header'
+import { LoadingState } from '@/components/ui/states'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
@@ -18,29 +19,27 @@ export default async function BacklogBooksLibraryPage() {
 
   return (
     <PageContainer>
-      <Breadcrumb
-        className="mb-6"
-        items={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Library' }]}
+      <PageHeader
+        breadcrumb={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Library' }]}
+        title="Library"
+        actions={
+          <>
+            <LibraryAdminButton />
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/feeds">Feed</Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="gap-2">
+              <Link href="/books/settings">
+                <SettingsIcon />
+                Settings
+              </Link>
+            </Button>
+          </>
+        }
       />
 
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Library</h1>
-        <div className="flex items-center gap-2">
-          <LibraryAdminButton />
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/feeds">Feed</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="gap-2">
-            <Link href="/books/settings">
-              <SettingsIcon />
-              Settings
-            </Link>
-          </Button>
-        </div>
-      </div>
-
       <SWRFallback fallback={library ? { [swrKeys.books]: library } : {}}>
-        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+        <Suspense fallback={<LoadingState />}>
           <BooksSection />
         </Suspense>
       </SWRFallback>
