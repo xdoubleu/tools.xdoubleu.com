@@ -12,8 +12,8 @@ jobs:
     name: Kobo Gateway Test
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: './kobo-gateway/go.mod'
           cache-dependency-path: './kobo-gateway/go.sum'
@@ -21,7 +21,7 @@ jobs:
         working-directory: './kobo-gateway'
       - name: Upload coverage reports to Codecov
         if: always()
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: kobo_gateway

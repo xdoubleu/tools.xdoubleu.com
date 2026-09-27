@@ -27,10 +27,10 @@ jobs:
       config_grafana: ${{ steps.filter.outputs.config_grafana }}
       grafana_dockerfile: ${{ steps.proto-workflows.outputs.grafana_dockerfile }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # 'every' makes '!api/**/*.md' mean "and isn't an api/ doc"; under the
       # default 'some', a lone negation matches every file outside api/.
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -62,7 +62,7 @@ jobs:
               - 'config/deploy.grafana.yml'
       # Positive-only multi-pattern filters need 'some': under 'every' they
       # can never match.
-      - uses: dorny/paths-filter@v4
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: proto-workflows
         with:
           filters: |
@@ -269,9 +269,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # tofu_wrapper off so lint_infra.sh sees real exit codes.
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
           tofu_wrapper: false
       - name: make lint/infra
@@ -296,7 +296,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: make lint/conflict-markers
         run: make lint/conflict-markers
 
@@ -308,7 +308,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: make lint/workflows
         run: make lint/workflows
       - name: make routines/test
@@ -326,7 +326,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: make lint/skills
         run: make lint/skills
 
@@ -337,7 +337,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - name: make lint/docs
@@ -463,7 +463,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -610,9 +610,9 @@ jobs:
       run:
         working-directory: infra
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: opentofu/setup-opentofu@v2
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
 
       # Same key as deploy-kamal; already authorized for Tofu's provisioners.
       - name: Load the deploy SSH key
