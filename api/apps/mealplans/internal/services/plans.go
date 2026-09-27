@@ -2,11 +2,13 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
+	"tools.xdoubleu.com/internal/database"
 )
 
 const (
@@ -46,6 +48,7 @@ type plansStore interface {
 	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
 	CreateMeal(ctx context.Context, meal models.PlanMeal) (*models.PlanMeal, error)
 	UpdateMeal(ctx context.Context, meal models.PlanMeal) error
+	RecipeInFamily(ctx context.Context, recipeID, familyID uuid.UUID) (bool, error)
 	DeleteMeal(ctx context.Context, mealID, planID uuid.UUID) error
 	MoveMeal(
 		ctx context.Context,
@@ -207,12 +210,36 @@ func (s *PlanService) CreateMeal(
 	userID string,
 	meal models.PlanMeal,
 ) error {
-	if _, err := s.Get(ctx, planID, userID); err != nil {
+	plan, err := s.Get(ctx, planID, userID)
+	if err != nil {
+		return err
+	}
+	if err = s.requireFamilyRecipe(ctx, meal.RecipeID, plan.FamilyID); err != nil {
 		return err
 	}
 	meal.PlanID = planID
-	_, err := s.repo.CreateMeal(ctx, meal)
+	_, err = s.repo.CreateMeal(ctx, meal)
 	return err
+}
+
+// requireFamilyRecipe refuses a recipe outside the plan's family, reporting
+// it as not found so recipe IDs of other families stay unconfirmed.
+func (s *PlanService) requireFamilyRecipe(
+	ctx context.Context,
+	recipeID *uuid.UUID,
+	familyID uuid.UUID,
+) error {
+	if recipeID == nil {
+		return nil
+	}
+	ok, err := s.repo.RecipeInFamily(ctx, *recipeID, familyID)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("recipe: %w", database.ErrResourceNotFound)
+	}
+	return nil
 }
 
 func (s *PlanService) UpdateMeal(
@@ -221,7 +248,11 @@ func (s *PlanService) UpdateMeal(
 	userID string,
 	meal models.PlanMeal,
 ) error {
-	if _, err := s.Get(ctx, planID, userID); err != nil {
+	plan, err := s.Get(ctx, planID, userID)
+	if err != nil {
+		return err
+	}
+	if err = s.requireFamilyRecipe(ctx, meal.RecipeID, plan.FamilyID); err != nil {
 		return err
 	}
 	meal.PlanID = planID

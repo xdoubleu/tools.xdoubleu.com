@@ -174,7 +174,9 @@ func (r *ShoppingRepository) GetMealPlanExportItems(
 		            AS effective_servings,
 		        r.base_servings::NUMERIC
 		    FROM mealplans.plan_meals pm
-		    JOIN recipes.recipes r ON r.id = pm.recipe_id
+		    JOIN mealplans.plans p ON p.id = pm.plan_id
+		    JOIN recipes.recipes r
+		        ON r.id = pm.recipe_id AND r.family_id = p.family_id
 		    WHERE pm.plan_id = $1
 		      AND pm.meal_date BETWEEN $2 AND $3
 		      AND NOT (pm.meal_date = $2 AND pm.meal_slot = ANY($4::text[]))
@@ -258,7 +260,9 @@ func (r *ShoppingRepository) GetPlanIngredientGroups(
 	rows, err := r.db.Query(ctx, `
 		SELECT DISTINCT r.name AS recipe_name, i.group_name
 		FROM mealplans.plan_meals pm
-		JOIN recipes.recipes r ON r.id = pm.recipe_id
+		JOIN mealplans.plans p ON p.id = pm.plan_id
+		JOIN recipes.recipes r
+		    ON r.id = pm.recipe_id AND r.family_id = p.family_id
 		JOIN recipes.ingredients i ON i.recipe_id = r.id
 		WHERE pm.plan_id = $1
 		  AND pm.meal_date BETWEEN $2 AND $3
