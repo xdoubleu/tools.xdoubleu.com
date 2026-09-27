@@ -49,8 +49,14 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/60 bg-glass pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150 shadow-glass">
-      <nav className="mx-auto flex items-center justify-between py-1 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] sm:px-6 sm:py-2 lg:px-10">
+    <header className="sticky top-0 z-50 pt-[env(safe-area-inset-top)]">
+      {/* Frosted glass on its own layer so iOS doesn't rasterize the nav text
+          into the backdrop-blur and render it soft/blurry. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 border-b border-border/60 bg-glass backdrop-blur-xl backdrop-saturate-150 shadow-glass"
+      />
+      <nav className="relative mx-auto flex items-center justify-between py-1 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] sm:px-6 sm:py-2 lg:px-10">
         <Link
           href="/"
           className="flex min-h-11 min-w-0 items-center truncate text-sm font-semibold text-fg transition-colors hover:text-accent"
