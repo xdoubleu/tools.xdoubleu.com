@@ -26,10 +26,19 @@ type Item struct {
 	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	ModuleId string                 `protobuf:"bytes,2,opt,name=module_id,json=moduleId,proto3" json:"module_id,omitempty"`
 	// Freeform (e.g. "read", "study", "do", "checkpoint").
-	Type          string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Description   string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	SortOrder     int32  `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
-	Completed     bool   `protobuf:"varint,6,opt,name=completed,proto3" json:"completed,omitempty"`
+	Type        string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	Description string `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	SortOrder   int32  `protobuf:"varint,5,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	// completed is ignored for book-linked items — it is derived on read from
+	// the linked book at 100% progress.
+	Completed bool `protobuf:"varint,6,opt,name=completed,proto3" json:"completed,omitempty"`
+	// When set, the item is book-linked: completion derives from the book's
+	// progress and the manual toggle is hidden. Read-only resolved state is in
+	// linked_book.
+	LinkedBookId *string `protobuf:"bytes,7,opt,name=linked_book_id,json=linkedBookId,proto3,oneof" json:"linked_book_id,omitempty"`
+	// linked_book is the resolved state of a book-linked item, set on read when
+	// it still resolves; ignored on Create/Update.
+	LinkedBook    *LinkedBook `protobuf:"bytes,8,opt,name=linked_book,json=linkedBook,proto3" json:"linked_book,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -104,6 +113,20 @@ func (x *Item) GetCompleted() bool {
 		return x.Completed
 	}
 	return false
+}
+
+func (x *Item) GetLinkedBookId() string {
+	if x != nil && x.LinkedBookId != nil {
+		return *x.LinkedBookId
+	}
+	return ""
+}
+
+func (x *Item) GetLinkedBook() *LinkedBook {
+	if x != nil {
+		return x.LinkedBook
+	}
+	return nil
 }
 
 type Module struct {
@@ -1671,7 +1694,7 @@ var File_learningpaths_v1_learningpaths_proto protoreflect.FileDescriptor
 
 const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\n" +
-	"$learningpaths/v1/learningpaths.proto\x12\x10learningpaths.v1\"\xa6\x01\n" +
+	"$learningpaths/v1/learningpaths.proto\x12\x10learningpaths.v1\"\xa3\x02\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tmodule_id\x18\x02 \x01(\tR\bmoduleId\x12\x12\n" +
@@ -1679,7 +1702,11 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1d\n" +
 	"\n" +
 	"sort_order\x18\x05 \x01(\x05R\tsortOrder\x12\x1c\n" +
-	"\tcompleted\x18\x06 \x01(\bR\tcompleted\"\xa5\x01\n" +
+	"\tcompleted\x18\x06 \x01(\bR\tcompleted\x12)\n" +
+	"\x0elinked_book_id\x18\a \x01(\tH\x00R\flinkedBookId\x88\x01\x01\x12=\n" +
+	"\vlinked_book\x18\b \x01(\v2\x1c.learningpaths.v1.LinkedBookR\n" +
+	"linkedBookB\x11\n" +
+	"\x0f_linked_book_id\"\xa5\x01\n" +
 	"\x06Module\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12(\n" +
 	"\x10learning_path_id\x18\x02 \x01(\tR\x0elearningPathId\x12\x14\n" +
@@ -1847,47 +1874,48 @@ var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
 	(*SendItemToTodoistResponse)(nil),          // 28: learningpaths.v1.SendItemToTodoistResponse
 }
 var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
-	0,  // 0: learningpaths.v1.Module.items:type_name -> learningpaths.v1.Item
-	2,  // 1: learningpaths.v1.Resource.linked_book:type_name -> learningpaths.v1.LinkedBook
-	3,  // 2: learningpaths.v1.Resource.linked_feed_item:type_name -> learningpaths.v1.LinkedFeedItem
-	1,  // 3: learningpaths.v1.LearningPath.modules:type_name -> learningpaths.v1.Module
-	4,  // 4: learningpaths.v1.LearningPath.resources:type_name -> learningpaths.v1.Resource
-	5,  // 5: learningpaths.v1.ListLearningPathsResponse.learning_paths:type_name -> learningpaths.v1.LearningPath
-	5,  // 6: learningpaths.v1.GetLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	1,  // 7: learningpaths.v1.CreateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
-	4,  // 8: learningpaths.v1.CreateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
-	5,  // 9: learningpaths.v1.CreateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	1,  // 10: learningpaths.v1.UpdateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
-	4,  // 11: learningpaths.v1.UpdateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
-	5,  // 12: learningpaths.v1.UpdateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	18, // 13: learningpaths.v1.GetLearningPathProgressResponse.modules:type_name -> learningpaths.v1.ModuleProgress
-	6,  // 14: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
-	8,  // 15: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
-	10, // 16: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
-	12, // 17: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
-	14, // 18: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
-	16, // 19: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
-	19, // 20: learningpaths.v1.LearningPathsService.GetLearningPathProgress:input_type -> learningpaths.v1.GetLearningPathProgressRequest
-	21, // 21: learningpaths.v1.TodoistService.ConnectTodoist:input_type -> learningpaths.v1.ConnectTodoistRequest
-	23, // 22: learningpaths.v1.TodoistService.DisconnectTodoist:input_type -> learningpaths.v1.DisconnectTodoistRequest
-	25, // 23: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:input_type -> learningpaths.v1.GetTodoistConnectionStatusRequest
-	27, // 24: learningpaths.v1.TodoistService.SendItemToTodoist:input_type -> learningpaths.v1.SendItemToTodoistRequest
-	7,  // 25: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
-	9,  // 26: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
-	11, // 27: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
-	13, // 28: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
-	15, // 29: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
-	17, // 30: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
-	20, // 31: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
-	22, // 32: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
-	24, // 33: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
-	26, // 34: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
-	28, // 35: learningpaths.v1.TodoistService.SendItemToTodoist:output_type -> learningpaths.v1.SendItemToTodoistResponse
-	25, // [25:36] is the sub-list for method output_type
-	14, // [14:25] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	2,  // 0: learningpaths.v1.Item.linked_book:type_name -> learningpaths.v1.LinkedBook
+	0,  // 1: learningpaths.v1.Module.items:type_name -> learningpaths.v1.Item
+	2,  // 2: learningpaths.v1.Resource.linked_book:type_name -> learningpaths.v1.LinkedBook
+	3,  // 3: learningpaths.v1.Resource.linked_feed_item:type_name -> learningpaths.v1.LinkedFeedItem
+	1,  // 4: learningpaths.v1.LearningPath.modules:type_name -> learningpaths.v1.Module
+	4,  // 5: learningpaths.v1.LearningPath.resources:type_name -> learningpaths.v1.Resource
+	5,  // 6: learningpaths.v1.ListLearningPathsResponse.learning_paths:type_name -> learningpaths.v1.LearningPath
+	5,  // 7: learningpaths.v1.GetLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	1,  // 8: learningpaths.v1.CreateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
+	4,  // 9: learningpaths.v1.CreateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
+	5,  // 10: learningpaths.v1.CreateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	1,  // 11: learningpaths.v1.UpdateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
+	4,  // 12: learningpaths.v1.UpdateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
+	5,  // 13: learningpaths.v1.UpdateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	18, // 14: learningpaths.v1.GetLearningPathProgressResponse.modules:type_name -> learningpaths.v1.ModuleProgress
+	6,  // 15: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
+	8,  // 16: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
+	10, // 17: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
+	12, // 18: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
+	14, // 19: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
+	16, // 20: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
+	19, // 21: learningpaths.v1.LearningPathsService.GetLearningPathProgress:input_type -> learningpaths.v1.GetLearningPathProgressRequest
+	21, // 22: learningpaths.v1.TodoistService.ConnectTodoist:input_type -> learningpaths.v1.ConnectTodoistRequest
+	23, // 23: learningpaths.v1.TodoistService.DisconnectTodoist:input_type -> learningpaths.v1.DisconnectTodoistRequest
+	25, // 24: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:input_type -> learningpaths.v1.GetTodoistConnectionStatusRequest
+	27, // 25: learningpaths.v1.TodoistService.SendItemToTodoist:input_type -> learningpaths.v1.SendItemToTodoistRequest
+	7,  // 26: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
+	9,  // 27: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
+	11, // 28: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
+	13, // 29: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
+	15, // 30: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
+	17, // 31: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
+	20, // 32: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
+	22, // 33: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
+	24, // 34: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
+	26, // 35: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
+	28, // 36: learningpaths.v1.TodoistService.SendItemToTodoist:output_type -> learningpaths.v1.SendItemToTodoistResponse
+	26, // [26:37] is the sub-list for method output_type
+	15, // [15:26] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_learningpaths_v1_learningpaths_proto_init() }
@@ -1895,6 +1923,7 @@ func file_learningpaths_v1_learningpaths_proto_init() {
 	if File_learningpaths_v1_learningpaths_proto != nil {
 		return
 	}
+	file_learningpaths_v1_learningpaths_proto_msgTypes[0].OneofWrappers = []any{}
 	file_learningpaths_v1_learningpaths_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import ResourceLinkPicker from '@/components/learningpaths/ResourceLinkPicker'
+import ResourceLinkPicker, { BookLinkSearch } from '@/components/learningpaths/ResourceLinkPicker'
 
 const mockSearchLibrary = jest.fn()
 const mockUseFeedItems = jest.fn()
@@ -83,6 +83,29 @@ describe('ResourceLinkPicker — linked feed item', () => {
 })
 
 describe('ResourceLinkPicker — book search', () => {
+  it('exposes BookLinkSearch for item authoring', async () => {
+    const onPick = jest.fn()
+    mockSearchLibrary.mockResolvedValue({
+      books: [{ bookId: 'b1', book: { title: 'Dune' } }]
+    })
+    render(<BookLinkSearch onPick={onPick} onCancel={jest.fn()} />)
+    fireEvent.change(screen.getByPlaceholderText('Search your library…'), {
+      target: { value: 'Dune' }
+    })
+    await act(async () => {
+      jest.advanceTimersByTime(300)
+    })
+    await waitFor(() => screen.getByText('Dune'))
+    fireEvent.mouseDown(screen.getByText('Dune'))
+    expect(onPick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'b1', title: 'Dune' }),
+      expect.anything(),
+      expect.anything()
+    )
+    expect(onPick).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  })
+
   it('searches the library after debounce and picks a result', async () => {
     const onLinkBook = jest.fn()
     mockSearchLibrary.mockResolvedValue({

@@ -72,9 +72,11 @@ Everything operates only on the calling user's own paths (scoped server-side).
     modules[]    ordered
       title      string   required
       items[]    ordered
-        type         string  optional (freeform verb: read / do / checkpoint …)
-        description  string  required
-        completed    bool    optional
+        type            string  optional (freeform verb: read / do / checkpoint …)
+        description     string  required
+        completed       bool    optional
+        linked_book_id  string  optional (a library book id; this item then
+                                auto-completes at 100% read — no manual toggle)
     resources[]  ordered
       text       string   required (a URL, "Book: …", etc.)
 
@@ -105,6 +107,12 @@ Everything operates only on the calling user's own paths (scoped server-side).
 - Prerequisite ordering: modules progress foundations → advanced.
 - Actionable, checkable items: not "learn X" but a concrete completing action
   ("read chapter 3 and summarize it"). Each item is checkable.
+- Book-linked items: when an item maps to a whole book the user will read,
+  set its linked_book_id from their library. The item then auto-completes when
+  the book reaches 100% read — the user doesn't check it off. Prefer wrapping
+  a book with "read" items (suggest whole books, never a partial-book
+  checkpoint). For items a user can check off themselves (a "do" task, a
+  feed-article read), leave linked_book_id unset so the manual toggle applies.
 - Shape: roughly 3–6 items per module; one goal per path. Suggest a more
   focused path before writing 20+ modules or 60+ items.
 - Checkpoint items: include a checkpoint-type item at a module's mid-point or

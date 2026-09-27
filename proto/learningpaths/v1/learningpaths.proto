@@ -12,7 +12,16 @@ message Item {
   string type = 3;
   string description = 4;
   int32 sort_order = 5;
+  // completed is ignored for book-linked items — it is derived on read from
+  // the linked book at 100% progress.
   bool completed = 6;
+  // When set, the item is book-linked: completion derives from the book's
+  // progress and the manual toggle is hidden. Read-only resolved state is in
+  // linked_book.
+  optional string linked_book_id = 7;
+  // linked_book is the resolved state of a book-linked item, set on read when
+  // it still resolves; ignored on Create/Update.
+  LinkedBook linked_book = 8;
 }
 
 message Module {

@@ -91,7 +91,8 @@ func protoItem(it *models.Item) *learningpathsv1.Item {
 	if it == nil {
 		return nil
 	}
-	return &learningpathsv1.Item{
+
+	out := &learningpathsv1.Item{
 		Id:          it.ID.String(),
 		ModuleId:    it.ModuleID.String(),
 		Type:        it.Type,
@@ -99,6 +100,14 @@ func protoItem(it *models.Item) *learningpathsv1.Item {
 		SortOrder:   int32(it.SortOrder), //nolint:gosec // int32 safe for domain values
 		Completed:   it.Completed,
 	}
+	if it.LinkedBookID != nil {
+		id := it.LinkedBookID.String()
+		out.LinkedBookId = &id
+	}
+	if it.LinkedBook != nil {
+		out.LinkedBook = protoLinkedBook(it.LinkedBook)
+	}
+	return out
 }
 
 func protoResource(r *models.Resource) *learningpathsv1.Resource {
@@ -170,10 +179,11 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 			}
 			//nolint:exhaustruct //ID/ModuleID assigned by the repository
 			items[j] = models.Item{
-				Type:        it.Type,
-				Description: it.Description,
-				SortOrder:   j,
-				Completed:   it.Completed,
+				Type:         it.Type,
+				Description:  it.Description,
+				SortOrder:    j,
+				Completed:    it.Completed,
+				LinkedBookID: parseOptionalUUID(it.LinkedBookId),
 			}
 		}
 		//nolint:exhaustruct //ID/LearningPathID assigned by the repository

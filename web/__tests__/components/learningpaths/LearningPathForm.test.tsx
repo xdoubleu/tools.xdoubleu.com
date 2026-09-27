@@ -20,30 +20,34 @@ jest.mock('@/hooks/useLearningPaths', () => ({
 // Thin stand-in so the form's link/unlink wiring can be tested without
 // driving the picker's search UI (covered by its own tests).
 jest.mock('@/components/learningpaths/ResourceLinkPicker', () => {
-  return function MockResourceLinkPicker(props: {
+  const MockResourceLinkPicker = (props: {
     linkedBook?: { id: string; title: string }
     linkedFeedItem?: { id: string; title: string }
     onLinkBook: (v: { id: string; title: string }) => void
     onLinkFeedItem: (v: { id: string; title: string }) => void
     onUnlink: () => void
-  }) {
-    return (
-      <div>
-        {props.linkedBook && <span>Linked book: {props.linkedBook.title}</span>}
-        {props.linkedFeedItem && <span>Linked feed item: {props.linkedFeedItem.title}</span>}
-        <button type="button" onClick={() => props.onLinkBook({ id: 'b1', title: 'Dune' })}>
-          Mock link book
-        </button>
-        <button
-          type="button"
-          onClick={() => props.onLinkFeedItem({ id: 'f1', title: 'An Article' })}
-        >
-          Mock link feed item
-        </button>
-        <button type="button" onClick={props.onUnlink}>
-          Mock unlink
-        </button>
-      </div>
+  }) => (
+    <div>
+      {props.linkedBook && <span>Linked book: {props.linkedBook.title}</span>}
+      {props.linkedFeedItem && <span>Linked feed item: {props.linkedFeedItem.title}</span>}
+      <button type="button" onClick={() => props.onLinkBook({ id: 'b1', title: 'Dune' })}>
+        Mock link book
+      </button>
+      <button type="button" onClick={() => props.onLinkFeedItem({ id: 'f1', title: 'An Article' })}>
+        Mock link feed item
+      </button>
+      <button type="button" onClick={props.onUnlink}>
+        Mock unlink
+      </button>
+    </div>
+  )
+  return {
+    __esModule: true,
+    default: MockResourceLinkPicker,
+    BookLinkSearch: ({ onPick }: { onPick: (v: { id: string; title: string }) => void }) => (
+      <button type="button" onClick={() => onPick({ id: 'b1', title: 'Dune' })}>
+        Mock pick item book
+      </button>
     )
   }
 })
@@ -149,6 +153,48 @@ describe('LearningPathForm (new)', () => {
     })
   })
 
+  it('links a book to an item and submits its id', async () => {
+    const onSave = jest.fn()
+    mockCreateLearningPath.mockResolvedValue({ learningPath: { id: 'new-id' } })
+    render(<LearningPathForm onSave={onSave} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getByPlaceholderText('Module title (e.g. Month 1)'), {
+      target: { value: 'M1' }
+    })
+    fireEvent.change(screen.getByPlaceholderText('Description'), {
+      target: { value: 'Read Dune' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Link book' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mock pick item book' }))
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockCreateLearningPath).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modules: [
+            expect.objectContaining({
+              items: [expect.objectContaining({ linkedBookId: 'b1' })]
+            })
+          ]
+        })
+      )
+      expect(onSave).toHaveBeenCalledWith('new-id')
+    })
+  })
+
+  it('unlinks a book from an item', () => {
+    render(<LearningPathForm onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Link book' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mock pick item book' }))
+    expect(screen.getByText('📚 Dune')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Unlink' }))
+    expect(screen.queryByText('📚 Dune')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Link book' })).toBeInTheDocument()
+  })
+
   it('calls createLearningPath and onSave on submit, dropping empty rows', async () => {
     const onSave = jest.fn()
     mockCreateLearningPath.mockResolvedValue({ learningPath: { id: 'new-id' } })
@@ -212,6 +258,28 @@ describe('LearningPathForm (edit)', () => {
     expect(screen.getByDisplayValue('item 1')).toBeInTheDocument()
     expect(screen.getByDisplayValue('A note')).toBeInTheDocument()
     expect(screen.getByText('Linked book: Dune')).toBeInTheDocument()
+  })
+
+  it('pre-fills a book-linked item in edit mode', () => {
+    const withBookItem = create(LearningPathSchema, {
+      id: 'lp-1',
+      title: 'Reading Path',
+      modules: [
+        create(ModuleSchema, {
+          title: 'M1',
+          items: [
+            create(ItemSchema, {
+              type: 'read',
+              description: 'Read Dune',
+              linkedBookId: 'b9',
+              linkedBook: { title: 'Dune', progressPercent: 100 }
+            })
+          ]
+        })
+      ]
+    })
+    render(<LearningPathForm learningPath={withBookItem} onSave={jest.fn()} onCancel={jest.fn()} />)
+    expect(screen.getByText('📚 Dune')).toBeInTheDocument()
   })
 
   it('calls updateLearningPath preserving the completed flag on submit', async () => {

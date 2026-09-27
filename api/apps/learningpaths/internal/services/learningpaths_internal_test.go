@@ -373,13 +373,53 @@ func TestGetByID_PropagatesError(t *testing.T) {
 
 func TestRecordItemProgress_DelegatesToRepo(t *testing.T) {
 	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeLearningPathsStore{}
+	store := &fakeLearningPathsStore{
+		item: &models.ItemForTask{
+			Item: models.Item{
+				Description: "manual",
+				//nolint:exhaustruct //only Description matters for the toggle
+			},
+		},
+	}
 	svc := newTestService(store)
 
 	err := svc.RecordItemProgress(t.Context(), "owner", uuid.New(), true)
 	require.NoError(t, err)
 	assert.True(t, store.progressRecorded)
 	assert.True(t, store.progressCompletedTo)
+}
+
+// TestRecordItemProgress_BookLinkedRejected: a book-linked item can't be
+// manually toggled — the reading app owns its completion.
+func TestRecordItemProgress_BookLinkedRejected(t *testing.T) {
+	bookID := uuid.New()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{
+		item: &models.ItemForTask{
+			Item: models.Item{
+				Description:  "automatic",
+				LinkedBookID: &bookID,
+				//nolint:exhaustruct //only Description/LinkedBookID matter
+			},
+		},
+	}
+	svc := newTestService(store)
+
+	err := svc.RecordItemProgress(t.Context(), "owner", uuid.New(), true)
+	require.Error(t, err)
+	assert.False(t, store.progressRecorded)
+}
+
+// TestRecordItemProgress_PropagatesGetItemError: store lookup failure
+// propagates.
+func TestRecordItemProgress_PropagatesGetItemError(t *testing.T) {
+	getItemErr := errors.New("get item db error")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeLearningPathsStore{getItemErr: getItemErr}
+	svc := newTestService(store)
+
+	err := svc.RecordItemProgress(t.Context(), "owner", uuid.New(), true)
+	assert.ErrorIs(t, err, getItemErr)
 }
 
 // --- resource-link error propagation -------------------------------------

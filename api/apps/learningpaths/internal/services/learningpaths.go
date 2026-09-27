@@ -89,6 +89,10 @@ func (s *LearningPathService) Get(
 	}
 	lp.Modules = modules
 
+	if err = s.resolveItemLinks(ctx, userID, modules); err != nil {
+		return nil, err
+	}
+
 	resources, err := s.repo.GetResources(ctx, id)
 	if err != nil {
 		return nil, err
@@ -101,6 +105,46 @@ func (s *LearningPathService) Get(
 	return lp, nil
 }
 
+// resolveItemLinks derives each book-linked item's Completed from its linked
+// book and populates LinkedBook in place. A link that no longer resolves
+// reads as incomplete rather than failing Get. A book at 100% progress is
+// complete; below that it is not. Non-book items are untouched — their stored
+// Completed stands.
+func (s *LearningPathService) resolveItemLinks(
+	ctx context.Context,
+	userID string,
+	modules []models.Module,
+) error {
+	for i := range modules {
+		for j := range modules[i].Items {
+			if modules[i].Items[j].LinkedBookID == nil {
+				continue
+			}
+			book, err := s.books.GetLibraryBookByID(
+				ctx,
+				userID,
+				*modules[i].Items[j].LinkedBookID,
+			)
+			if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
+				return err
+			}
+			if book == nil {
+				modules[i].Items[j].Completed = false
+				continue
+			}
+			modules[i].Items[j].LinkedBook = &models.LinkedBook{
+				Title:           book.Book.GetTitle(),
+				Status:          book.Status,
+				ProgressPercent: int(book.ProgressPercent),
+				CoverURL:        book.Book.GetCoverUrl(),
+			}
+			modules[i].Items[j].Completed =
+				book.ProgressPercent >= int32(models.FullProgressPercent)
+		}
+	}
+	return nil
+}
+
 // resolveResourceLinks populates LinkedBook/LinkedFeedItem in place. A link
 // that no longer resolves is left empty rather than failing Get; other
 // errors propagate.
@@ -111,7 +155,11 @@ func (s *LearningPathService) resolveResourceLinks(
 ) error {
 	for i := range resources {
 		if resources[i].LinkedBookID != nil {
-			book, err := s.books.GetLibraryBookByID(ctx, userID, *resources[i].LinkedBookID)
+			book, err := s.books.GetLibraryBookByID(
+				ctx,
+				userID,
+				*resources[i].LinkedBookID,
+			)
 			if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 				return err
 			}
@@ -125,7 +173,11 @@ func (s *LearningPathService) resolveResourceLinks(
 			}
 		}
 		if resources[i].LinkedFeedItemID != nil {
-			item, err := s.feeds.GetItemByID(ctx, userID, *resources[i].LinkedFeedItemID)
+			item, err := s.feeds.GetItemByID(
+				ctx,
+				userID,
+				*resources[i].LinkedFeedItemID,
+			)
 			if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 				return err
 			}
@@ -143,23 +195,24 @@ func (s *LearningPathService) resolveResourceLinks(
 }
 
 // validateResourceLinks rejects any linked_book_id/linked_feed_item_id that
-// doesn't resolve for userID before it is persisted.
+// doesn't resolve for userID before it is persisted. Resource links and
+// book-linked item links are validated the same way; item feed links don't
+// exist, so items only validate books.
 func (s *LearningPathService) validateResourceLinks(
 	ctx context.Context,
 	userID string,
-	resources []models.Resource,
+	lp models.LearningPath,
 ) error {
-	for _, r := range resources {
-		if r.LinkedBookID != nil {
-			if _, err := s.books.GetLibraryBookByID(ctx, userID, *r.LinkedBookID); err != nil {
-				if errors.Is(err, database.ErrResourceNotFound) {
-					return &iapp.HTTPError{
-						Status:  http.StatusBadRequest,
-						Message: "linked_book_id does not resolve to a book in your library",
-					}
-				}
+	for _, m := range lp.Modules {
+		for _, it := range m.Items {
+			if err := s.validateBookLink(ctx, userID, it.LinkedBookID); err != nil {
 				return err
 			}
+		}
+	}
+	for _, r := range lp.Resources {
+		if err := s.validateBookLink(ctx, userID, r.LinkedBookID); err != nil {
+			return err
 		}
 		if r.LinkedFeedItemID != nil {
 			if _, err := s.feeds.GetItemByID(ctx, userID, *r.LinkedFeedItemID); err != nil {
@@ -176,6 +229,28 @@ func (s *LearningPathService) validateResourceLinks(
 	return nil
 }
 
+// validateBookLink returns nil when bookID is nil or resolves for userID,
+// else a 400 (unknown) or the underlying error.
+func (s *LearningPathService) validateBookLink(
+	ctx context.Context,
+	userID string,
+	bookID *uuid.UUID,
+) error {
+	if bookID == nil {
+		return nil
+	}
+	if _, err := s.books.GetLibraryBookByID(ctx, userID, *bookID); err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return &iapp.HTTPError{
+				Status:  http.StatusBadRequest,
+				Message: "linked_book_id does not resolve to a book in your library",
+			}
+		}
+		return err
+	}
+	return nil
+}
+
 func (s *LearningPathService) Create(
 	ctx context.Context,
 	userID string,
@@ -183,7 +258,7 @@ func (s *LearningPathService) Create(
 ) (*models.LearningPath, error) {
 	lp.UserID = userID
 
-	if err := s.validateResourceLinks(ctx, userID, lp.Resources); err != nil {
+	if err := s.validateResourceLinks(ctx, userID, lp); err != nil {
 		return nil, err
 	}
 
@@ -199,6 +274,9 @@ func (s *LearningPathService) Create(
 		return nil, err
 	}
 	if err = s.resolveResourceLinks(ctx, userID, lp.Resources); err != nil {
+		return nil, err
+	}
+	if err = s.resolveItemLinks(ctx, userID, lp.Modules); err != nil {
 		return nil, err
 	}
 
@@ -220,7 +298,7 @@ func (s *LearningPathService) Update(
 		return database.ErrResourceNotFound
 	}
 
-	if err = s.validateResourceLinks(ctx, userID, lp.Resources); err != nil {
+	if err = s.validateResourceLinks(ctx, userID, lp); err != nil {
 		return err
 	}
 
@@ -249,14 +327,26 @@ func (s *LearningPathService) Delete(
 	return s.repo.Delete(ctx, id, userID)
 }
 
-// RecordItemProgress toggles an item's completion; ownership is enforced in
-// the repository query.
+// RecordItemProgress toggles a non-book-linked item's completion; ownership is
+// enforced in the repository query. Book-linked items derive completion from
+// the book and can't be toggled — returning ErrResourceNotFound-equivalent
+// would mislead, so reject with a 400.
 func (s *LearningPathService) RecordItemProgress(
 	ctx context.Context,
 	userID string,
 	itemID uuid.UUID,
 	completed bool,
 ) error {
+	item, err := s.repo.GetItemForUser(ctx, itemID, userID)
+	if err != nil {
+		return err
+	}
+	if item.Item.LinkedBookID != nil {
+		return &iapp.HTTPError{
+			Status:  http.StatusBadRequest,
+			Message: "book-linked items complete automatically from your reading progress",
+		}
+	}
 	return s.repo.RecordItemProgress(ctx, itemID, userID, completed)
 }
 
