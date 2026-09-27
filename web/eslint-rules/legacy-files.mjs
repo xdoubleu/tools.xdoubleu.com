@@ -2,21 +2,6 @@
 // Each domain PR deletes its section; delete this file once it is empty.
 // Entries are globs, so route brackets are escaped.
 export const legacyUiFiles = [
-  // feeds
-  'app/feeds/health/page.tsx',
-  'app/feeds/page.tsx',
-  'app/feeds/settings/page.tsx',
-  'app/feeds/stats/page.tsx',
-  'components/ArticleReaderDialog.tsx',
-  'components/dashboard/SharedFeedsCard.tsx',
-  'components/feeds/AddFeedForm.tsx',
-  'components/feeds/ArticleReaderDialog.tsx',
-  'components/feeds/FeedList.tsx',
-  'components/feeds/FeedManager.tsx',
-  'components/feeds/FeedReaderClient.tsx',
-  'components/feeds/FeedStatsClient.tsx',
-  'components/feeds/FeedsCard.tsx',
-  'components/feeds/FeedsHeader.tsx',
   // recipes, mealplans, shoppinglist
   'app/mealplans/\\[id\\]/MealPlanClient.tsx',
   'app/mealplans/\\[id\\]/edit/EditPlanClient.tsx',
@@ -51,23 +36,5 @@ export const legacyUiFiles = [
   'components/trains/JourneyResults.tsx',
   'components/trains/SavedCommutes.tsx',
   'components/trains/StationField.tsx',
-  'components/trains/TrainsClient.tsx',
-  // platform pages and shared components
-  'app/auth/forgot-password/page.tsx',
-  'app/auth/reset-password/page.tsx',
-  'app/error.tsx',
-  'app/monitoring/connections/page.tsx',
-  'app/monitoring/observability/page.tsx',
-  'app/settings/page.tsx',
-  'components/HomeClient.tsx',
-  'components/family/FamilyPageClient.tsx',
-  'components/monitoring/AutomatedActionsCard.tsx',
-  'components/monitoring/MonitoringSettingsClient.tsx',
-  'components/monitoring/OAuthConnectionsCard.tsx',
-  'components/monitoring/ProviderConfigDialog.tsx',
-  'components/notifications/NotificationToggleList.tsx',
-  'components/settings/McpSetupSection.tsx',
-  'components/settings/RecoveryCodesDialog.tsx',
-  'components/user-management/UserManagementClient.tsx',
-  'components/user-management/UsersTable.tsx'
+  'components/trains/TrainsClient.tsx'
 ]

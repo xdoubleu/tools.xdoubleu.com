@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useOAuthConnections } from '@/hooks/useMonitoring'
+import { Alert } from '@/components/ui/alert'
 import OAuthConnectionsCard from './OAuthConnectionsCard'
 
 export default function MonitoringSettingsClient() {
@@ -42,13 +43,7 @@ export default function MonitoringSettingsClient() {
 
   return (
     <div className="space-y-4">
-      {oauthMessage && (
-        <p
-          className={`text-sm ${oauthMessage.tone === 'success' ? 'text-success' : 'text-danger'}`}
-        >
-          {oauthMessage.text}
-        </p>
-      )}
+      {oauthMessage && <Alert tone={oauthMessage.tone}>{oauthMessage.text}</Alert>}
       <OAuthConnectionsCard
         data={oauthConnections.data}
         configuringProvider={configuringProvider}

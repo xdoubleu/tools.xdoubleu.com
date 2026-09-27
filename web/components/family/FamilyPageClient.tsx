@@ -14,6 +14,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { swrKeys } from '@/lib/swrKeys'
 import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
+import { Alert } from '@/components/ui/alert'
+import { Card } from '@/components/ui/card'
+import { SectionCard } from '@/components/ui/section-card'
+import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function FamilyPageClient() {
   const { data, isLoading, error } = useFamily()
@@ -106,27 +111,27 @@ export default function FamilyPageClient() {
   }
 
   if (isLoading) {
-    return <p className="py-16 text-center text-sm text-muted">Loading…</p>
+    return <LoadingState className="py-16 text-center text-sm" />
   }
 
   if (error) {
-    return <p className="py-16 text-center text-sm text-danger">Failed to load family.</p>
+    return <ErrorState what="family" className="py-16 text-center text-sm" />
   }
 
   return (
-    <PageContainer size="narrow">
-      <h1 className="mb-2 text-3xl font-bold">Family</h1>
-      <p className="mb-6 text-sm text-muted">
-        A family shares one recipe book, one meal plan and one shopping list together — not separate
-        lists cross-shared, but a single set everyone in it sees and edits.
-      </p>
+    <PageContainer size="narrow" className="space-y-6">
+      <PageHeader
+        title="Family"
+        description="A family shares one recipe book, one meal plan and one shopping list together — not separate lists cross-shared, but a single set everyone in it sees and edits."
+        className="mb-0"
+      />
 
       {incomingInvite && (
-        <section className="mb-6 rounded-2xl border border-warn/30 bg-warn/10 p-4">
-          <p className="mb-3 text-sm font-semibold text-fg">
+        <Alert tone="warn" className="space-y-3 p-4">
+          <p className="break-all font-semibold">
             {incomingInvite.fromEmail} invited you to join their family
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button onClick={handleAccept} disabled={accepting}>
               {accepting ? 'Accepting…' : 'Accept'}
             </Button>
@@ -134,56 +139,55 @@ export default function FamilyPageClient() {
               {declining ? 'Declining…' : 'Decline'}
             </Button>
           </div>
-        </section>
+        </Alert>
       )}
 
-      <div className="mb-6 rounded-2xl border border-border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold text-subtle">Invite to your family</h2>
+      <SectionCard title="Invite to your family">
         {inviteError && <p className="mb-2 text-xs text-danger">{inviteError}</p>}
         <form onSubmit={handleInvite} className="flex gap-2">
           <Input
             type="email"
             required
+            autoComplete="off"
+            aria-label="Email address"
             placeholder="Email address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
           <Button type="submit" disabled={inviting}>
             {inviting ? 'Inviting…' : 'Invite'}
           </Button>
         </form>
-      </div>
+      </SectionCard>
 
-      <div className="mb-6 rounded-2xl border border-border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold text-subtle">Your name</h2>
-        <p className="mb-3 text-xs text-muted">
-          Shown to the rest of your family in place of your email.
-        </p>
+      <SectionCard
+        title="Your name"
+        description="Shown to the rest of your family in place of your email."
+      >
         <form onSubmit={handleSaveName} className="flex gap-2">
           <Input
             type="text"
+            aria-label="Your name"
             placeholder="Your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
           <Button type="submit" disabled={savingName || name.trim() === selfDisplayName}>
             {savingName ? 'Saving…' : 'Save'}
           </Button>
         </form>
-      </div>
+      </SectionCard>
 
-      <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Members</h2>
+      <SectionCard title="Members">
         {members.length > 0 ? (
           <ul className="mb-4 space-y-2">
             {members.map((m) => (
-              <li
-                key={m.userId}
-                className="rounded-2xl border border-border bg-card px-3 py-2 text-sm font-medium text-fg"
-              >
-                {m.displayName || m.email}
+              <li key={m.userId}>
+                <Card variant="inset" className="break-all text-sm font-medium text-fg">
+                  {m.displayName || m.email}
+                </Card>
               </li>
             ))}
           </ul>
@@ -200,12 +204,12 @@ export default function FamilyPageClient() {
             size="sm"
             onClick={handleLeave}
             disabled={leaving}
-            className="h-auto px-0 text-xs text-danger focus-visible:ring-danger/50"
+            className="text-xs text-danger focus-visible:ring-danger/50"
           >
             {leaving ? 'Leaving…' : 'Leave family'}
           </Button>
         )}
-      </section>
+      </SectionCard>
     </PageContainer>
   )
 }

@@ -40,9 +40,10 @@ describe('FeedHealthPage', () => {
     expect(screen.getByTestId('unhealthy-feeds')).toBeInTheDocument()
   })
 
-  it('links back to /feeds', async () => {
+  it('shows a breadcrumb back to /feeds', async () => {
     render(await FeedHealthPage())
-    expect(screen.getByRole('link', { name: 'Back to feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByRole('link', { name: 'Feeds' })).toHaveAttribute('href', '/feeds')
+    expect(screen.getByText('Health')).toHaveAttribute('aria-current', 'page')
   })
 
   it('passes the prefetch under the unhealthy-feeds SWR key when the api returns data', async () => {

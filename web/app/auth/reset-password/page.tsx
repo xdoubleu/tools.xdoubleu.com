@@ -7,6 +7,11 @@ import { ConnectError } from '@connectrpc/connect'
 import { useResetPassword } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Alert } from '@/components/ui/alert'
+import { Card } from '@/components/ui/card'
+import { Field } from '@/components/ui/field'
+import { PageContainer } from '@/components/ui/page-container'
+import { PageHeader } from '@/components/ui/page-header'
 
 type State = 'form' | 'done' | 'invalid'
 
@@ -52,79 +57,58 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex justify-center py-8">
-      <div className="w-full max-w-sm">
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-fg">Set new password</h2>
+    <PageContainer size="narrow">
+      <PageHeader title="Set new password" />
+      <Card className="p-6">
+        {state === 'invalid' && (
+          <div className="space-y-4">
+            <Alert tone="danger">{error ?? 'Invalid or expired reset link.'}</Alert>
+            <Button asChild variant="link" className="w-full">
+              <Link href="/auth/forgot-password">Request a new reset link</Link>
+            </Button>
+          </div>
+        )}
 
-          {state === 'invalid' && (
-            <div className="mt-6 space-y-4">
-              <p className="text-sm text-danger">{error ?? 'Invalid or expired reset link.'}</p>
-              <Link
-                href="/auth/forgot-password"
-                className="block py-3 text-center text-sm text-accent hover:underline"
-              >
-                Request a new reset link
-              </Link>
-            </div>
-          )}
+        {state === 'done' && (
+          <div className="space-y-4">
+            <Alert tone="success">Your password has been updated successfully.</Alert>
+            <Button asChild variant="link" className="w-full">
+              <Link href="/">Continue to app</Link>
+            </Button>
+          </div>
+        )}
 
-          {state === 'done' && (
-            <div className="mt-6 space-y-4">
-              <p className="text-sm text-subtle">Your password has been updated successfully.</p>
-              <Link href="/" className="block py-3 text-center text-sm text-accent hover:underline">
-                Continue to app
-              </Link>
-            </div>
-          )}
+        {state === 'form' && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Field label="New password" htmlFor="new_password">
+              <Input
+                id="new_password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </Field>
+            <Field label="Confirm new password" htmlFor="confirm_password">
+              <Input
+                id="confirm_password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </Field>
 
-          {state === 'form' && (
-            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="new_password" className="block text-sm font-medium text-subtle">
-                  New password
-                </label>
-                <Input
-                  id="new_password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label htmlFor="confirm_password" className="block text-sm font-medium text-subtle">
-                  Confirm new password
-                </label>
-                <Input
-                  id="confirm_password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
+            {error && <Alert tone="danger">{error}</Alert>}
 
-              {error && (
-                <div
-                  role="alert"
-                  className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger"
-                >
-                  {error}
-                </div>
-              )}
-
-              <Button type="submit" disabled={submitting} className="w-full">
-                {submitting ? 'Updating…' : 'Update password'}
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? 'Updating…' : 'Update password'}
+            </Button>
+          </form>
+        )}
+      </Card>
+    </PageContainer>
   )
 }

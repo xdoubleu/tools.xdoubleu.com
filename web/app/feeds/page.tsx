@@ -7,6 +7,7 @@ import { FeedService } from '@/lib/gen/feeds/v1/feeds_pb'
 import FeedReaderClient from '@/components/feeds/FeedReaderClient'
 import FeedsHeader from '@/components/feeds/FeedsHeader'
 import { PageContainer } from '@/components/ui/page-container'
+import { LoadingState } from '@/components/ui/states'
 
 export default async function FeedsPage() {
   const feedsClient = await createServerClient(FeedService)
@@ -26,7 +27,7 @@ export default async function FeedsPage() {
       >
         <FeedsHeader />
 
-        <Suspense fallback={<p className="text-muted">Loading…</p>}>
+        <Suspense fallback={<LoadingState />}>
           <FeedReaderClient />
         </Suspense>
       </SWRFallback>

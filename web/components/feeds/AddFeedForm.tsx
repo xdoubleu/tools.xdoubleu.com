@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useCreateFeed } from '@/hooks/useFeeds'
@@ -81,7 +82,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
           setAddStatus('')
           setInboundAddress('')
         }}
-        className="mb-2 flex-row gap-4"
+        className="mb-2 flex-row flex-wrap gap-x-4 gap-y-0"
       >
         <RadioGroupItem value="rss" label="RSS feed" />
         <RadioGroupItem value="email" label="Email newsletter" />
@@ -127,11 +128,12 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
       )}
       {addStatus && <p className="mt-2 text-xs text-muted">{addStatus}</p>}
       {inboundAddress && (
-        <div className="mt-2">
-          <label className="text-xs text-subtle" htmlFor="inbound-address">
-            Give this address to the newsletter — save it now, it won&apos;t be shown again:
-          </label>
-          <div className="mt-1 flex items-center gap-2">
+        <Field
+          className="mt-2"
+          htmlFor="inbound-address"
+          label="Give this address to the newsletter — save it now, it won't be shown again:"
+        >
+          <div className="flex items-center gap-2">
             <Input id="inbound-address" readOnly value={inboundAddress} className="flex-1" />
             <Button
               type="button"
@@ -142,7 +144,7 @@ export default function AddFeedForm({ onAdded }: { onAdded?: () => void }) {
               Copy
             </Button>
           </div>
-        </div>
+        </Field>
       )}
     </div>
   )
