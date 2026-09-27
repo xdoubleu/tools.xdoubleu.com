@@ -356,11 +356,36 @@ func (s *ConversionService) downloadBytes(
 	}
 	defer rc.Close()
 
-	data, err := io.ReadAll(rc)
+	data, err := io.ReadAll(io.LimitReader(rc, maxConversionInputBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("read epub: %w", err)
 	}
+	if len(data) > maxConversionInputBytes {
+		return nil, fmt.Errorf("epub exceeds %d bytes", maxConversionInputBytes)
+	}
 	return data, nil
+}
+
+const (
+	// maxConversionInputBytes leaves room for EPUBs built from large PDFs.
+	maxConversionInputBytes = 2 * MaxUploadBytes
+	// maxEPUBUncompressedBytes bounds what kepubify inflates into memory;
+	// archive/zip refuses to read past an entry's declared size, so checking
+	// the declared sizes is enough to stop a zip bomb.
+	maxEPUBUncompressedBytes = 1 << 30
+)
+
+// checkEPUBSize rejects an archive whose entries inflate past
+// maxEPUBUncompressedBytes.
+func checkEPUBSize(zr *zip.Reader) error {
+	var total uint64
+	for _, f := range zr.File {
+		total += f.UncompressedSize64
+		if total > maxEPUBUncompressedBytes {
+			return fmt.Errorf("epub inflates past %d bytes", maxEPUBUncompressedBytes)
+		}
+	}
+	return nil
 }
 
 type kepubifyConverter struct {
@@ -378,6 +403,9 @@ func (k *kepubifyConverter) Convert(
 	zr, err := zip.NewReader(bytes.NewReader(epubData), int64(len(epubData)))
 	if err != nil {
 		return nil, fmt.Errorf("open epub zip: %w", err)
+	}
+	if err = checkEPUBSize(zr); err != nil {
+		return nil, err
 	}
 
 	var buf bytes.Buffer

@@ -1,6 +1,10 @@
 package middleware_test
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,4 +32,21 @@ func TestRedactPath(t *testing.T) {
 	)
 	assert.Equal(t, "/books/kobo/redacted", middleware.RedactPath("/books/kobo/abc123"))
 	assert.Equal(t, "/api/feeds", middleware.RedactPath("/api/feeds?token=t"))
+}
+
+func TestMaxBodyBytes(t *testing.T) {
+	var readErr error
+	handler := middleware.MaxBodyBytes(4)(http.HandlerFunc(
+		func(_ http.ResponseWriter, r *http.Request) {
+			_, readErr = io.ReadAll(r.Body)
+		},
+	))
+
+	handler.ServeHTTP(httptest.NewRecorder(),
+		httptest.NewRequest(http.MethodPost, "/", strings.NewReader("12345")))
+	require.Error(t, readErr)
+
+	handler.ServeHTTP(httptest.NewRecorder(),
+		httptest.NewRequest(http.MethodPost, "/", strings.NewReader("1234")))
+	require.NoError(t, readErr)
 }

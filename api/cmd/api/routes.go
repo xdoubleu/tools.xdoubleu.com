@@ -19,6 +19,10 @@ import (
 	"tools.xdoubleu.com/internal/oauth2as"
 )
 
+// maxRequestBodyBytes bounds every request body, e.g. inbound newsletter
+// emails and CSV imports; book files upload straight to R2.
+const maxRequestBodyBytes = 10 << 20
+
 //nolint:funlen //route registration: a long list, not complex logic
 func (app *Application) Routes() http.Handler {
 	mux := http.NewServeMux()
@@ -160,7 +164,9 @@ func (app *Application) Routes() http.Handler {
 		handlers = middleware.Minimal(app.logger)
 	}
 
-	handlers = append(handlers, securityHeadersMiddleware)
+	handlers = append(
+		handlers, securityHeadersMiddleware, middleware.MaxBodyBytes(maxRequestBodyBytes),
+	)
 	// usageMiddleware runs after domainMiddleware so custom-domain requests
 	// are already rewritten to /<app>/… before their labels are derived.
 	handlers = append(handlers, app.domainMiddleware, app.usageMiddleware)

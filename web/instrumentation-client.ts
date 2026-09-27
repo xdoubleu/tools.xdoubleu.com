@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { getSentryDsn, getRelease, getPostHogKey, getPostHogHost } from './lib/env'
+import { scrubPostHogEvent } from './lib/scrubUrl'
 
 Sentry.init({
   dsn: getSentryDsn(),
@@ -15,7 +16,7 @@ Sentry.init({
       response: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] }
     },
     httpBodies: [],
-    urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user'] },
+    urlQueryParams: { deny: ['forwarded', '-ip', 'remote-', 'via', '-user', 'token', 'code'] },
     genAI: { inputs: false, outputs: false },
     databaseQueryData: false,
     graphQL: { document: false, variables: false }
@@ -32,7 +33,9 @@ if (postHogKey) {
     capture_pageview: 'history_change',
     capture_pageleave: true,
     autocapture: true,
-    capture_dead_clicks: true
+    capture_dead_clicks: true,
+    // Replay and autocapture skip `.ph-no-capture` (MFA secrets, recovery codes).
+    before_send: scrubPostHogEvent
   })
 }
 

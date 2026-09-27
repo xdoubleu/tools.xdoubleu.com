@@ -273,11 +273,18 @@ func (s *BookService) loadUploadedFile(
 		return nil, fmt.Errorf("create temp file: %w", err)
 	}
 
-	size, err := io.Copy(tmp, rc)
+	// The presigned PUT doesn't bind the declared size, so bound it here.
+	size, err := io.Copy(tmp, io.LimitReader(rc, MaxUploadBytes+1))
 	if err != nil {
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
 		return nil, fmt.Errorf("stream upload to disk: %w", err)
+	}
+	if size > MaxUploadBytes {
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+		_ = s.objectStore.Delete(ctx, uploadID)
+		return nil, ErrFileTooLarge
 	}
 
 	magic := make([]byte, magicBytesLen)
