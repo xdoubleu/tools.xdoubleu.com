@@ -8,8 +8,9 @@ set -euo pipefail
 
 : "${APPS_BASE_URL:?}" "${TOOLS_APPS_MCP_TOKEN:?}"
 
-# call ARGUMENTS_JSON prints record_action's structured result. The server is
-# stateless, so a bare tools/call needs no initialize handshake.
+# call ARGUMENTS_JSON prints record_action's structured result as a JSON
+# object. The server is stateless, so a bare tools/call needs no initialize
+# handshake.
 call() {
   local body reply
   body=$(jq -nc --argjson args "$1" '{jsonrpc: "2.0", id: 1,
@@ -27,7 +28,15 @@ call() {
     echo "record_action failed: $(jq -c '.error // .result.content' <<<"$reply")" >&2
     return 1
   fi
-  jq -c '.result.structuredContent // {}' <<<"$reply"
+  # Prefer structuredContent; fall back to parsing the protojson text Content
+  # for servers that only send text (mcptools.Result).
+  jq -c '
+    if (.result.structuredContent? // null) != null then
+      .result.structuredContent
+    else
+      (first(.result.content[]? | select(.type? == "text")
+        | .text? | fromjson?) // {})
+    end' <<<"$reply"
 }
 
 case ${1:-} in

@@ -4,6 +4,7 @@ package mcptools
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
@@ -75,7 +76,8 @@ func Unwrap[T any](resp *connect.Response[T], err error) (proto.Message, error) 
 	return msg, nil
 }
 
-// Result marshals a proto response to JSON text content for a tool result.
+// Result marshals a proto response to a tool result, as JSON text content and
+// as structured output (raw protojson, embedded by the SDK).
 func Result(msg proto.Message) (*mcp.CallToolResult, any, error) {
 	data, err := protojson.Marshal(msg)
 	if err != nil {
@@ -85,5 +87,5 @@ func Result(msg proto.Message) (*mcp.CallToolResult, any, error) {
 	return &mcp.CallToolResult{
 		//nolint:exhaustruct // TextContent needs only Text
 		Content: []mcp.Content{&mcp.TextContent{Text: string(data)}},
-	}, nil, nil
+	}, json.RawMessage(data), nil
 }
