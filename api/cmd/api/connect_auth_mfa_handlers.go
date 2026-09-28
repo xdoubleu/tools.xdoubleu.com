@@ -72,7 +72,7 @@ func (h *authConnectHandler) MFAEnrollVerify(
 		ctx, tokenCookie.Value, factorID, challenge.ID, req.Msg.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(signInErrorCode(err), err)
 	}
 
 	rememberMe := false
@@ -208,7 +208,7 @@ func (h *authConnectHandler) MFAChallenge(
 		ctx, mfaToken.Value, factorID, challenge.ID, req.Msg.Code,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(signInErrorCode(err), err)
 	}
 
 	rememberMe := false

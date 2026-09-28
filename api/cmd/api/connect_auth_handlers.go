@@ -46,7 +46,7 @@ func (h *authConnectHandler) SignIn(
 		req.Msg.Password,
 	)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+		return nil, connect.NewError(signInErrorCode(err), err)
 	}
 
 	factorID, hasMFA := h.app.auth.HasVerifiedTOTP(ctx, *accessToken)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,6 +33,20 @@ func TestSignIn_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, resp.Msg.NeedsMfa)
 	assert.False(t, resp.Msg.EnrollMfa)
+}
+
+func TestSignIn_LockoutReturnsResourceExhausted(t *testing.T) {
+	client := authClient(t)
+	email := "lockout-" + uuid.NewString() + "@example.com"
+
+	var err error
+	for range 7 {
+		_, err = client.SignIn(context.Background(), connect.NewRequest(
+			&authv1.SignInRequest{Email: email, Password: "wrong", Redirect: "/"},
+		))
+		require.Error(t, err)
+	}
+	assert.Equal(t, connect.CodeResourceExhausted, connect.CodeOf(err))
 }
 
 func TestSignIn_WithMFA(t *testing.T) {

@@ -82,6 +82,21 @@ func TestSignInWithEmail_NoUser(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestSignInWithEmail_LocksOutAfterRepeatedFailures(t *testing.T) {
+	service, db := newTestService(t)
+	userID := seedUser(t, db)
+	email := userID + "@example.com"
+
+	for range 6 {
+		_, _, err := service.SignInWithEmail(context.Background(), email, "wrong")
+		require.Error(t, err)
+	}
+
+	_, _, err := service.SignInWithEmail(context.Background(), email, testPassword)
+	require.ErrorIs(t, err, auth.ErrTooManyAttempts,
+		"the right password is refused during a lockout")
+}
+
 func TestRefreshToken_RotatesAndInvalidatesOldToken(t *testing.T) {
 	service, db := newTestService(t)
 	userID := seedUser(t, db)

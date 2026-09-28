@@ -51,9 +51,20 @@ func authErrorCode(err error) connect.Code {
 		return connect.CodePermissionDenied
 	case errors.Is(err, auth.ErrPasswordTooShort):
 		return connect.CodeInvalidArgument
+	case errors.Is(err, auth.ErrTooManyAttempts):
+		return connect.CodeResourceExhausted
 	default:
 		return connect.CodeInternal
 	}
+}
+
+// signInErrorCode maps a failed sign-in or MFA check: Unauthenticated,
+// except ResourceExhausted during a lockout.
+func signInErrorCode(err error) connect.Code {
+	if errors.Is(err, auth.ErrTooManyAttempts) {
+		return connect.CodeResourceExhausted
+	}
+	return connect.CodeUnauthenticated
 }
 
 func (h *authConnectHandler) secure() bool {
