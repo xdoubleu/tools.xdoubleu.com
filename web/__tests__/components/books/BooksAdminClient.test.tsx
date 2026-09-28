@@ -47,7 +47,7 @@ describe('BooksAdminClient', () => {
 
   it('renders a breadcrumb link back to /dashboard/reading', () => {
     render(<BooksAdminClient />)
-    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
       'href',
       '/dashboard/reading'
     )

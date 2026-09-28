@@ -49,7 +49,7 @@ describe('UserManagementClient', () => {
   it('shows an empty state when there are no users', () => {
     mockUseUsers.mockReturnValue({ data: { users: [] }, isLoading: false, error: undefined })
     render(<UserManagementClient />)
-    expect(screen.getByText('No users found.')).toBeInTheDocument()
+    expect(screen.getAllByText('No users found.').length).toBeGreaterThan(0)
   })
 
   it('renders a row per user and calls setRole + setAppAccess on interaction', async () => {
@@ -62,12 +62,14 @@ describe('UserManagementClient', () => {
 
     render(<UserManagementClient />)
 
-    expect(screen.getByText('a@b.com')).toBeInTheDocument()
+    // Both the mobile card view and the desktop table render in jsdom (CSS
+    // `sm:` hiding doesn't remove nodes), so the email appears twice.
+    expect(screen.getAllByText('a@b.com').length).toBeGreaterThan(0)
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'admin' } })
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'admin' } })
     await waitFor(() => expect(mockSetRole).toHaveBeenCalledWith('1', 'admin'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Revoke' })[0])
     await waitFor(() => expect(mockSetAppAccess).toHaveBeenCalledWith('1', 'games', false))
 
     expect(mockMutate).toHaveBeenCalledWith('/user-management/users')

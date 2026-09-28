@@ -13,6 +13,7 @@ import {
   type SortDir
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import BookCard from '@/components/books/BookCard'
 import BooksTableToolbar, { type LibraryFilters } from '@/components/books/BooksTableToolbar'
 import {
   ALL_COLUMNS,
@@ -172,50 +173,66 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
         onClearFilters={handleClearFilters}
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {activeColumns.map((col) =>
-              col.sortKey ? (
-                <SortableHeader
-                  key={col.key}
-                  dir={sortDir(col.sortKey)}
-                  onSort={() => handleSort(col.sortKey!)}
-                  className={col.headClassName}
-                >
-                  {col.label}
-                </SortableHeader>
-              ) : (
-                <TableHead key={col.key} className={col.headClassName}>
-                  {col.label}
-                </TableHead>
-              )
-            )}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pageBooks.length === 0 ? (
+      {/* Mobile-first card-per-row view; the rich table would force a ~1167px
+          wide sideways scroll below `sm`. */}
+      <ul className="grid grid-cols-1 gap-3 sm:hidden">
+        {pageBooks.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted">No books match the current filters.</p>
+        ) : (
+          pageBooks.map((ub) => (
+            <li key={ub.id}>
+              <BookCard userBook={ub} onSaved={onSaved} query={undefined} />
+            </li>
+          ))
+        )}
+      </ul>
+
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell
-                colSpan={activeColumns.length}
-                className="py-8 text-center text-muted text-sm"
-              >
-                No books match the current filters.
-              </TableCell>
+              {activeColumns.map((col) =>
+                col.sortKey ? (
+                  <SortableHeader
+                    key={col.key}
+                    dir={sortDir(col.sortKey)}
+                    onSort={() => handleSort(col.sortKey!)}
+                    className={col.headClassName}
+                  >
+                    {col.label}
+                  </SortableHeader>
+                ) : (
+                  <TableHead key={col.key} className={col.headClassName}>
+                    {col.label}
+                  </TableHead>
+                )
+              )}
             </TableRow>
-          ) : (
-            pageBooks.map((ub) => (
-              <TableRow key={ub.id}>
-                {activeColumns.map((col) => (
-                  <TableCell key={col.key} className={col.cellClassName}>
-                    {col.renderCell(ub, ctx)}
-                  </TableCell>
-                ))}
+          </TableHeader>
+          <TableBody>
+            {pageBooks.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={activeColumns.length}
+                  className="py-8 text-center text-muted text-sm"
+                >
+                  No books match the current filters.
+                </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : (
+              pageBooks.map((ub) => (
+                <TableRow key={ub.id}>
+                  {activeColumns.map((col) => (
+                    <TableCell key={col.key} className={col.cellClassName}>
+                      {col.renderCell(ub, ctx)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-3">

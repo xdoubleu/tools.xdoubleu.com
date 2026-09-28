@@ -12,7 +12,7 @@ import { displayTags } from '@/lib/books/bookShelves'
 
 interface BookCardProps {
   userBook: UserBook
-  onSaved: () => void
+  onSaved?: () => void
   /** Carried into the detail link so the breadcrumb can restore it. */
   query?: string
 }

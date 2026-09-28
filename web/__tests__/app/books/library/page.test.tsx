@@ -44,7 +44,7 @@ describe('BacklogBooksLibraryPage', () => {
 
   it('renders a breadcrumb link back to /dashboard/reading', async () => {
     render(await BacklogBooksLibraryPage())
-    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
       'href',
       '/dashboard/reading'
     )

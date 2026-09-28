@@ -42,7 +42,7 @@ const ALL_APPS: AppLink[] = [
   },
   {
     name: 'books',
-    label: 'Reading',
+    label: 'Books',
     href: '/dashboard/reading',
     description: 'Search, library and reading progress.'
   },

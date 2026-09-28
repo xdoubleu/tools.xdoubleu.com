@@ -117,10 +117,10 @@ describe('ExternalBookDetailClient', () => {
     expect(screen.getByText('No description available.')).toBeInTheDocument()
   })
 
-  it('renders breadcrumb with Reading and Library links', () => {
+  it('renders breadcrumb with Books and Library links', () => {
     mockResult()
     render(<ExternalBookDetailClient provider="hardcover" providerId="9780134190440" />)
-    expect(screen.getByText('Reading').closest('a')).toHaveAttribute('href', '/dashboard/reading')
+    expect(screen.getByText('Books').closest('a')).toHaveAttribute('href', '/dashboard/reading')
     expect(screen.getByText('Library').closest('a')).toHaveAttribute('href', '/books/library')
   })
 

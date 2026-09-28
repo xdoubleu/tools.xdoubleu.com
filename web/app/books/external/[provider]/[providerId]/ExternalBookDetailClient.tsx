@@ -32,7 +32,7 @@ export default function ExternalBookDetailClient({
   const book = data?.result
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: 'Reading', href: '/dashboard/reading' },
+    { label: 'Books', href: '/dashboard/reading' },
     { label: 'Library', href: '/books/library' },
     { label: book?.title ?? 'Book' }
   ]

@@ -31,14 +31,14 @@ describe('BooksSettingsClient', () => {
     jest.clearAllMocks()
   })
 
-  it('renders the Reading Settings heading', () => {
+  it('renders the Books Settings heading', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('heading', { name: 'Reading Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Books Settings' })).toBeInTheDocument()
   })
 
   it('renders a breadcrumb link back to /dashboard/reading', () => {
     render(<BooksSettingsClient />)
-    expect(screen.getByRole('link', { name: 'Reading' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Books' })).toHaveAttribute(
       'href',
       '/dashboard/reading'
     )

@@ -20,7 +20,7 @@ export default async function BacklogBooksLibraryPage() {
   return (
     <PageContainer>
       <PageHeader
-        breadcrumb={[{ label: 'Reading', href: '/dashboard/reading' }, { label: 'Library' }]}
+        breadcrumb={[{ label: 'Books', href: '/dashboard/reading' }, { label: 'Library' }]}
         title="Library"
         actions={
           <>
