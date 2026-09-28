@@ -33,7 +33,7 @@ export default function SteamDistributionClient({
           <PageHeader title={label} className="mt-4" />
           {games.length === 0 && <p className="text-muted">No games in this range.</p>}
           {games.length > 0 && (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {games.map((g) => (
                 <GameCard
                   key={g.id}

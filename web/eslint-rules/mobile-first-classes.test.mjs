@@ -5,6 +5,8 @@ ruleTester.run('ui/mobile-first-classes', rule, {
   valid: [
     '<div className="grid grid-cols-1 sm:grid-cols-3" />',
     '<div className="grid-cols-2" />',
+    '<div className="grid grid-cols-2 gap-3 lg:grid-cols-5" />',
+    '<div className="flex lg:grid lg:grid-cols-2" />',
     '<div className="min-h-dvh h-[85dvh]" />',
     '<div className={cn("w-full", open && "lg:grid-cols-4")} />',
     '<div style={{ width: 48 }} />',
@@ -16,6 +18,14 @@ ruleTester.run('ui/mobile-first-classes', rule, {
     {
       code: '<div className={cn("a", x ? "grid-cols-4" : "")} />',
       errors: [{ messageId: 'gridCols' }]
+    },
+    {
+      code: '<div className="grid gap-3 lg:grid-cols-2" />',
+      errors: [{ messageId: 'implicitGridCol' }]
+    },
+    {
+      code: '<div className={cn("grid gap-3", wide && "md:grid-cols-3")} />',
+      errors: [{ messageId: 'implicitGridCol' }]
     },
     { code: '<div className="min-h-screen" />', errors: [{ messageId: 'screen' }] },
     { code: '<div className={`h-screen ${x}`} />', errors: [{ messageId: 'screen' }] },

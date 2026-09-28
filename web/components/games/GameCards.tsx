@@ -62,7 +62,7 @@ export function GameGroup({
       <h2 className="text-lg font-semibold mb-3">
         {title} ({games.length})
       </h2>
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {games.map((g) => (
           <GameCard key={g.id} game={g} href={hrefFor(g)} showFavourite={showFavourite} />
         ))}

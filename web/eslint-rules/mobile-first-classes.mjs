@@ -11,6 +11,8 @@ export default {
     messages: {
       gridCols:
         '`{{token}}` starts at {{n}} columns on a phone. Write `grid-cols-1 sm:{{token}}` (or grid-cols-2) instead.',
+      implicitGridCol:
+        '`{{token}}` leaves the phone layout on an implicit `auto` column, which grows to its widest unwrappable content (e.g. `truncate` text) and scrolls the page sideways. Add `grid-cols-1`.',
       screen:
         '`{{token}}` is taller than the visible area once mobile browser chrome shows. Use the `dvh` equivalent (e.g. `min-h-dvh`).',
       vh: '`{{token}}` uses `vh`, which ignores mobile browser chrome. Use `dvh`.',
@@ -22,6 +24,17 @@ export default {
   },
   create(context) {
     const check = (tokens) => {
+      const parsed = tokens.map(({ token, node }) => ({ node, ...parseToken(token) }))
+      const isGrid = parsed.some((t) => t.base === 'grid' && t.variants.length === 0)
+      const hasBaseCols = parsed.some((t) => t.base.startsWith('grid-cols-') && !t.responsive)
+      const firstResponsiveCols = parsed.find((t) => t.responsive && /^grid-cols-/.test(t.base))
+      if (isGrid && !hasBaseCols && firstResponsiveCols) {
+        context.report({
+          node: firstResponsiveCols.node,
+          messageId: 'implicitGridCol',
+          data: { token: firstResponsiveCols.variants.concat(firstResponsiveCols.base).join(':') }
+        })
+      }
       for (const { token, node } of tokens) {
         const { base, responsive } = parseToken(token)
         const grid = /^grid-cols-(\d+)$/.exec(base)
