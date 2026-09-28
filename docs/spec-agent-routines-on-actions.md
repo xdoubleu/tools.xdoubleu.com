@@ -27,14 +27,17 @@ workflow:
 7. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
    fails the step if the agent loops on the same tool call (a degenerate loop
    would otherwise spin until the step timeout since every call "succeeds"),
-8. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
+8. caps the agent at 47 minutes; if it ends without a valid outcome file or
+   summary, `scripts/routine_finish.sh` resumes its session for up to 6 more
+   to write them and run the retro,
+9. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
    tokens, estimated cost, duration, tool calls, failed and repeated calls)
    into the job summary,
-9. closes the row with the agent's outcome file (`failed` if the agent step
-   didn't succeed or wrote none) and those metrics,
-10. uploads the transcript encrypted,
-11. always posts a Slack notice: the job outcome, the agent's summary, the
-    metrics line, and the run link.
+10. closes the row with the agent's outcome file (`failed` if the agent step
+    didn't succeed or wrote none) and those metrics,
+11. uploads the transcript encrypted,
+12. always posts a Slack notice: the recorded outcome and error, the agent's
+    summary, the metrics line, and the run link.
 
 The collector exports each routine's latest measured run as
 `automated_action_last_run{routine,metric}`; `AutomatedRoutineRunHeavy` flags a

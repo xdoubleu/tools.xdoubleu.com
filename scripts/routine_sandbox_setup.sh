@@ -21,7 +21,7 @@ chmod 700 "$private"
 bin="$private/routine-bin"
 mkdir -p "$bin" "$private/no-git-hooks"
 install -m 755 "$scripts/routine_sandbox.sh" "$bin/routine-sandbox"
-for s in routine_metrics.sh routine_record.sh routine_watchdog.sh; do
+for s in routine_finish.sh routine_metrics.sh routine_record.sh routine_watchdog.sh; do
   install -m 755 "$scripts/$s" "$bin/$s"
 done
 
