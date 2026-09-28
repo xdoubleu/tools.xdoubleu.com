@@ -82,12 +82,10 @@ func (h *mealplansConnectHandler) GetPlan(
 		return nil, mapError(err)
 	}
 
-	icalURL := fmt.Sprintf("/%s/ical/%s.ics", h.app.GetName(), plan.ICalToken)
-
 	return connect.NewResponse(&mealplansv1.GetPlanResponse{
 		Plan:        protoPlan(plan),
 		Recipes:     []*recipesv1.Recipe{},
-		IcalUrl:     icalURL,
+		IcalUrl:     h.icalURL(plan.ICalToken),
 		IsOwner:     plan.OwnerUserID == user.ID,
 		Offset:      int32(offset),     //nolint:gosec // pagination offset fits int32
 		PrevOffset:  int32(offset - 1), //nolint:gosec // pagination offset fits int32
@@ -129,4 +127,38 @@ func (h *mealplansConnectHandler) UpdatePlan(
 	}
 
 	return connect.NewResponse(&mealplansv1.UpdatePlanResponse{}), nil
+}
+
+func (h *mealplansConnectHandler) RotateICalToken(
+	ctx context.Context,
+	req *connect.Request[mealplansv1.RotateICalTokenRequest],
+) (*connect.Response[mealplansv1.RotateICalTokenResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	id, err := uuid.Parse(req.Msg.Id)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			fmt.Errorf("invalid plan ID"),
+		)
+	}
+
+	token, err := h.app.services.Plans.RotateICalToken(ctx, id, user.ID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	return connect.NewResponse(&mealplansv1.RotateICalTokenResponse{
+		IcalUrl: h.icalURL(token),
+	}), nil
+}
+
+func (h *mealplansConnectHandler) icalURL(token uuid.UUID) string {
+	return fmt.Sprintf("/%s/ical/%s.ics", h.app.GetName(), token)
 }

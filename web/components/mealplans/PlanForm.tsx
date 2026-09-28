@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useUpdatePlan } from '@/hooks/useMealPlans'
+import { useRotateICalToken, useUpdatePlan } from '@/hooks/useMealPlans'
 import type { UpdatePlanInput } from '@/hooks/useMealPlans'
 import type { Plan } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { Button } from '@/components/ui/button'
@@ -22,8 +22,23 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
   const [hiddenSlots, setHiddenSlots] = useState<string[]>(plan.icalHideSlots)
   const [hidePast, setHidePast] = useState(plan.icalHidePast)
   const [error, setError] = useState<string | null>(null)
+  const [confirmReset, setConfirmReset] = useState(false)
+  const [resetDone, setResetDone] = useState(false)
 
   const updatePlan = useUpdatePlan()
+  const rotateICalToken = useRotateICalToken()
+
+  const handleResetLink = async () => {
+    setError(null)
+    try {
+      await rotateICalToken(plan.id)
+      setResetDone(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset iCal link.')
+    } finally {
+      setConfirmReset(false)
+    }
+  }
 
   const toggleSlot = (slot: string) => {
     setHiddenSlots((prev) =>
@@ -81,6 +96,34 @@ export default function PlanForm({ plan, onSave, onCancel }: PlanFormProps) {
         onChange={(e) => setHidePast(e.target.checked)}
         label={<span className="text-sm font-medium">iCal — Hide past events</span>}
       />
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-subtle">iCal — Link</p>
+        {resetDone ? (
+          <p className="text-sm text-subtle">
+            Link reset. Copy the new one from the plan page; the old one no longer works.
+          </p>
+        ) : confirmReset ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm">Calendars subscribed to the old link stop updating.</p>
+            <Button type="button" variant="destructive" size="sm" onClick={handleResetLink}>
+              Reset link
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setConfirmReset(false)}
+            >
+              Keep link
+            </Button>
+          </div>
+        ) : (
+          <Button type="button" variant="secondary" size="sm" onClick={() => setConfirmReset(true)}>
+            Reset iCal link
+          </Button>
+        )}
+      </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -62,8 +63,12 @@ func writeZipEntry(zw *zip.Writer, name, content string) {
 	_, _ = w.Write([]byte(content))
 }
 
+// minimalPDFData returns a metadata-less PDF, unique per call so uploads don't
+// dedup against another test's blob.
 func minimalPDFData() []byte {
-	return []byte("%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\n%%EOF")
+	return []byte(
+		"%PDF-1.4\n%" + uuid.NewString() + "\n1 0 obj<</Type/Catalog>>endobj\n%%EOF",
+	)
 }
 
 // simulateUpload runs CreateUpload (empty checksum, so bytes always go through
@@ -377,9 +382,23 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 		"user A's blob must be at canonical key")
 
 	checksum := *r1.BookFile.Checksum
-	r2, err := testApp.Services.Books.FinalizeUpload(
+	_, _, alreadyExists, err := testApp.Services.Books.CreateUpload(
+		context.Background(), userB, "cross-user.epub",
+		"application/epub+zip", int64(len(data)), checksum,
+	)
+	require.NoError(t, err)
+	assert.False(t, alreadyExists, "another user's checksum must not skip the upload")
+
+	_, err = testApp.Services.Books.FinalizeUpload(
 		context.Background(), userB, "", "cross-user.epub", "application/epub+zip",
 		checksum, "", "",
+	)
+	require.ErrorIs(t, err, bsvc.ErrInvalidUploadID,
+		"claiming another user's checksum without the bytes must fail")
+
+	r2, err := simulateUpload(
+		context.Background(), t, userB,
+		"cross-user.epub", "application/epub+zip", data, fakeStore,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, r2)
@@ -390,6 +409,66 @@ func TestUploadFile_GlobalDedup_CrossUser(t *testing.T) {
 
 	_, existsA := fakeStore.GetContent(canonicalKey)
 	assert.True(t, existsA, "canonical blob must still exist")
+}
+
+// TestUploadFile_GlobalDedup_UsesServerChecksum: a client checksum naming
+// another user's blob is ignored in favour of the uploaded bytes' checksum.
+func TestUploadFile_GlobalDedup_UsesServerChecksum(t *testing.T) {
+	const userB = "server-checksum-dedup-user-b"
+	t.Cleanup(func() {
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.user_books WHERE user_id = $1`, userB)
+		_, _ = testDB.Exec(context.Background(),
+			`DELETE FROM books.book_files WHERE user_id = $1`, userB)
+	})
+
+	addTestBookWithISBN(t, "ServerChecksumA", "9780001004004")
+	victim, err := simulateUpload(
+		context.Background(), t, userID, "a.epub", "application/epub+zip",
+		buildEPUBBytes("ServerChecksumA", "SC Author", "9780001004004"), fakeStore,
+	)
+	require.NoError(t, err)
+
+	seedBookInLibrary(t, userB, "ServerChecksumB", "SC Author B", "9780001005005")
+	own := buildEPUBBytes("ServerChecksumB", "SC Author B", "9780001005005")
+	uploadID, _, _, err := testApp.Services.Books.CreateUpload(
+		context.Background(), userB, "b.epub", "application/epub+zip",
+		int64(len(own)), *victim.BookFile.Checksum,
+	)
+	require.NoError(t, err)
+	require.NoError(t, fakeStore.Put(
+		context.Background(), uploadID, bytes.NewReader(own), int64(len(own)),
+		"application/epub+zip",
+	))
+
+	got, err := testApp.Services.Books.FinalizeUpload(
+		context.Background(), userB, uploadID, "b.epub", "application/epub+zip",
+		*victim.BookFile.Checksum, "", "",
+	)
+	require.NoError(t, err)
+	assert.NotEqual(t, victim.BookFile.BookID, got.BookFile.BookID)
+	assert.NotEqual(t, victim.BookFile.StorageKey, got.BookFile.StorageKey)
+	assert.NotEqual(t, *victim.BookFile.Checksum, *got.BookFile.Checksum)
+}
+
+func TestBookFilesRepo_FindByChecksumForUser(t *testing.T) {
+	addTestBookWithISBN(t, "ForUserChecksumBook", "9780001006006")
+	r1, err := uploadViaTestApp(
+		t, userID, "for-user.epub", "application/epub+zip",
+		buildEPUBBytes("ForUserChecksumBook", "FU Author", "9780001006006"),
+	)
+	require.NoError(t, err)
+
+	got, err := testApp.Repositories.BookFiles.FindByChecksumForUser(
+		context.Background(), userID, *r1.BookFile.Checksum,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, userID, got.UserID)
+
+	_, err = testApp.Repositories.BookFiles.FindByChecksumForUser(
+		context.Background(), "someone-else", *r1.BookFile.Checksum,
+	)
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
 }
 
 func TestBooksRepo_FindUserBookByISBN13_Found(t *testing.T) {
@@ -1127,4 +1206,24 @@ func TestConnectFinalizeBookUpload_Unrecognized_ReturnsInvalidArgument(t *testin
 	var connectErr *connect.Error
 	require.ErrorAs(t, err, &connectErr)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr.Code())
+}
+
+func TestUpload_ChecksumLookupErrors(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := testApp.Repositories.BookFiles.FindByChecksumForUser(ctx, userID, "x")
+	require.Error(t, err)
+	require.NotErrorIs(t, err, database.ErrResourceNotFound)
+
+	_, _, _, err = testApp.Services.Books.CreateUpload(
+		ctx, userID, "a.epub", "application/epub+zip", 10, "x",
+	)
+	require.Error(t, err)
+
+	_, err = testApp.Services.Books.FinalizeUpload(
+		ctx, userID, "", "a.epub", "application/epub+zip", "x", "", "",
+	)
+	require.Error(t, err)
+	require.NotErrorIs(t, err, bsvc.ErrInvalidUploadID)
 }

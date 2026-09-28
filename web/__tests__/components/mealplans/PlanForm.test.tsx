@@ -2,19 +2,21 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 jest.mock('@/hooks/useMealPlans', () => ({
-  useUpdatePlan: jest.fn()
+  useUpdatePlan: jest.fn(),
+  useRotateICalToken: jest.fn()
 }))
 jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
   ...jest.requireActual('@/lib/gen/mealplans/v1/mealplans_pb'),
   UpdatePlanRequest: jest.fn().mockImplementation((d) => d)
 }))
 
-import { useUpdatePlan } from '@/hooks/useMealPlans'
+import { useRotateICalToken, useUpdatePlan } from '@/hooks/useMealPlans'
 import PlanForm from '@/components/mealplans/PlanForm'
 import { create } from '@bufbuild/protobuf'
 import { PlanSchema } from '@/lib/gen/mealplans/v1/mealplans_pb'
 
 const mockUpdate = jest.fn()
+const mockRotate = jest.fn()
 
 const existingPlan = create(PlanSchema, {
   id: 'plan-1',
@@ -28,6 +30,8 @@ beforeEach(() => {
   jest.clearAllMocks()
   jest.mocked(useUpdatePlan).mockReturnValue(mockUpdate)
   mockUpdate.mockResolvedValue({})
+  jest.mocked(useRotateICalToken).mockReturnValue(mockRotate)
+  mockRotate.mockResolvedValue({ icalUrl: '/mealplans/ical/new.ics' })
 })
 
 describe('PlanForm', () => {
@@ -80,5 +84,30 @@ describe('PlanForm', () => {
     expect(hidePast).toBeChecked()
     fireEvent.click(hidePast)
     expect(hidePast).not.toBeChecked()
+  })
+
+  it('resets the iCal link after confirmation', async () => {
+    render(<PlanForm plan={existingPlan} onSave={jest.fn()} onCancel={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Reset iCal link/i }))
+    expect(mockRotate).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: /^Reset link$/i }))
+    await waitFor(() => expect(mockRotate).toHaveBeenCalledWith('plan-1'))
+    expect(await screen.findByText(/Link reset/i)).toBeInTheDocument()
+  })
+
+  it('keeps the iCal link when the reset is cancelled', () => {
+    render(<PlanForm plan={existingPlan} onSave={jest.fn()} onCancel={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Reset iCal link/i }))
+    fireEvent.click(screen.getByRole('button', { name: /Keep link/i }))
+    expect(mockRotate).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /Reset iCal link/i })).toBeInTheDocument()
+  })
+
+  it('shows an error when the iCal reset fails', async () => {
+    mockRotate.mockRejectedValue(new Error('rotate failed'))
+    render(<PlanForm plan={existingPlan} onSave={jest.fn()} onCancel={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: /Reset iCal link/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^Reset link$/i }))
+    expect(await screen.findByText('rotate failed')).toBeInTheDocument()
   })
 })

@@ -14,6 +14,7 @@ import {
   useMealPlan,
   useMealSuggestions,
   useUpdatePlan,
+  useRotateICalToken,
   useAddMeal,
   useUpdateMeal,
   useDeleteMeal,
@@ -71,6 +72,16 @@ describe('mutation hooks return functions', () => {
   it('useUpdatePlan returns a function', () => {
     const { result } = renderHook(() => useUpdatePlan())
     expect(typeof result.current).toBe('function')
+  })
+
+  it('useRotateICalToken calls client.rotateICalToken with the plan id', () => {
+    const rotateICalToken = jest.fn()
+    jest.mocked(jest.requireMock('@/lib/client').createServiceClient).mockReturnValueOnce({
+      rotateICalToken
+    })
+    const { result } = renderHook(() => useRotateICalToken())
+    result.current('p1')
+    expect(rotateICalToken).toHaveBeenCalledWith({ id: 'p1' })
   })
 
   it('useAddMeal returns a function', () => {

@@ -41,7 +41,9 @@ type Service interface {
 		ctx context.Context,
 		userID string,
 	) (models.FamilyInvite, bool, error)
-	Accept(ctx context.Context, userID string) error
+	// Accept joins the family of invite inviteID; database.ErrResourceNotFound
+	// when that invite is no longer pending for userID.
+	Accept(ctx context.Context, userID string, inviteID uuid.UUID) error
 	Decline(ctx context.Context, userID string) error
 	// SetDisplayName sets the caller's own display name within their family.
 	SetDisplayName(ctx context.Context, userID, displayName string) error
@@ -184,8 +186,12 @@ func (s *familyService) GetIncomingInvite(
 	return s.repo.GetInvite(ctx, userID)
 }
 
-func (s *familyService) Accept(ctx context.Context, userID string) error {
-	_, err := s.repo.AcceptInvite(ctx, userID)
+func (s *familyService) Accept(
+	ctx context.Context,
+	userID string,
+	inviteID uuid.UUID,
+) error {
+	_, err := s.repo.AcceptInvite(ctx, userID, inviteID)
 	return err
 }
 

@@ -2,12 +2,14 @@ package feeds
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/google/uuid"
 )
 
-// SharedFeed is one subscription in the reading dashboard's feeds widget;
-// URL is empty for kinds without one (email).
+// SharedFeed is one subscription in the reading dashboard's feeds widget.
+// URL is the feed's origin only, since paths, queries and userinfo can carry
+// private-feed credentials; it is empty for kinds without one (email).
 type SharedFeed struct {
 	Title string
 	URL   string
@@ -28,11 +30,21 @@ func (a *Feeds) BuildSharedFeeds(
 	for _, f := range feeds {
 		shared = append(shared, SharedFeed{
 			Title: f.Title,
-			URL:   f.URL,
+			URL:   feedOrigin(f.URL),
 		})
 	}
 
 	return shared, nil
+}
+
+// feedOrigin returns rawURL's scheme://host, or "" when it isn't an http(s)
+// URL.
+func feedOrigin(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // SharedItem is a feed item's summary and read state for learningpaths'

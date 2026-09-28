@@ -64,6 +64,10 @@ message UpdatePlanRequest {
 }
 message UpdatePlanResponse {}
 
+// RotateICalTokenRequest replaces the plan's iCal token, revoking the old link.
+message RotateICalTokenRequest { string id = 1; }
+message RotateICalTokenResponse { string ical_url = 1; }
+
 message CreateMealRequest {
   string plan_id = 1;
   string meal_date = 2;
@@ -114,6 +118,7 @@ service MealPlansService {
   rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
   rpc GetPlan(GetPlanRequest) returns (GetPlanResponse);
   rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse);
+  rpc RotateICalToken(RotateICalTokenRequest) returns (RotateICalTokenResponse);
   rpc CreateMeal(CreateMealRequest) returns (CreateMealResponse);
   rpc UpdateMeal(UpdateMealRequest) returns (UpdateMealResponse);
   rpc DeleteMeal(DeleteMealRequest) returns (DeleteMealResponse);

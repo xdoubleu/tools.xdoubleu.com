@@ -37,7 +37,7 @@ func (erroringFamilyService) GetIncomingInvite(
 	return models.FamilyInvite{}, false, errFamilyServiceFake
 }
 
-func (erroringFamilyService) Accept(context.Context, string) error {
+func (erroringFamilyService) Accept(context.Context, string, uuid.UUID) error {
 	return errFamilyServiceFake
 }
 
@@ -83,6 +83,15 @@ func insertPendingFamilyInvite(t *testing.T) string {
 	require.NoError(t, testApp.family.InviteByEmail(ctx, senderID, "user@example.com"))
 
 	return senderID
+}
+
+// pendingInviteID returns the id of testUserID's pending invite.
+func pendingInviteID(t *testing.T) string {
+	t.Helper()
+	invite, ok, err := testApp.family.GetIncomingInvite(context.Background(), testUserID)
+	require.NoError(t, err)
+	require.True(t, ok)
+	return invite.ID.String()
 }
 
 func TestGetFamily_Unauthenticated(t *testing.T) {
@@ -151,7 +160,9 @@ func TestAcceptFamilyInvite_Success(t *testing.T) {
 	senderID := insertPendingFamilyInvite(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{})
+	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+		InviteId: pendingInviteID(t),
+	})
 	setCookieOnRequest(req, accessToken)
 	_, err := client.AcceptFamilyInvite(context.Background(), req)
 	require.NoError(t, err)
@@ -162,6 +173,25 @@ func TestAcceptFamilyInvite_Success(t *testing.T) {
 
 	// Leave so later tests see testUserID in a solo family.
 	require.NoError(t, testApp.family.Leave(context.Background(), testUserID))
+}
+
+func TestAcceptFamilyInvite_StaleOrInvalidID(t *testing.T) {
+	insertPendingFamilyInvite(t)
+	t.Cleanup(func() {
+		_ = testApp.family.Decline(context.Background(), testUserID)
+	})
+
+	client := familyClient(t)
+	for id, code := range map[string]connect.Code{
+		"":                  connect.CodeInvalidArgument,
+		uuid.New().String(): connect.CodeNotFound,
+	} {
+		req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{InviteId: id})
+		setCookieOnRequest(req, accessToken)
+		_, err := client.AcceptFamilyInvite(context.Background(), req)
+		require.Error(t, err)
+		assert.Equal(t, code, connect.CodeOf(err), id)
+	}
 }
 
 func TestDeclineFamilyInvite_Success(t *testing.T) {
@@ -202,7 +232,9 @@ func TestSetFamilyDisplayName_Success(t *testing.T) {
 
 	client := familyClient(t)
 
-	acceptReq := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{})
+	acceptReq := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+		InviteId: pendingInviteID(t),
+	})
 	setCookieOnRequest(acceptReq, accessToken)
 	_, err := client.AcceptFamilyInvite(context.Background(), acceptReq)
 	require.NoError(t, err)
@@ -272,7 +304,9 @@ func TestAcceptFamilyInvite_InternalError(t *testing.T) {
 	withErroringFamilyService(t)
 
 	client := familyClient(t)
-	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{})
+	req := connect.NewRequest(&familyv1.AcceptFamilyInviteRequest{
+		InviteId: uuid.New().String(),
+	})
 	setCookieOnRequest(req, accessToken)
 	_, err := client.AcceptFamilyInvite(context.Background(), req)
 	require.Error(t, err)

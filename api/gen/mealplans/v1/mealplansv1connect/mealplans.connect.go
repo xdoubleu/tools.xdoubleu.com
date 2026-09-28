@@ -42,6 +42,9 @@ const (
 	// MealPlansServiceUpdatePlanProcedure is the fully-qualified name of the MealPlansService's
 	// UpdatePlan RPC.
 	MealPlansServiceUpdatePlanProcedure = "/mealplans.v1.MealPlansService/UpdatePlan"
+	// MealPlansServiceRotateICalTokenProcedure is the fully-qualified name of the MealPlansService's
+	// RotateICalToken RPC.
+	MealPlansServiceRotateICalTokenProcedure = "/mealplans.v1.MealPlansService/RotateICalToken"
 	// MealPlansServiceCreateMealProcedure is the fully-qualified name of the MealPlansService's
 	// CreateMeal RPC.
 	MealPlansServiceCreateMealProcedure = "/mealplans.v1.MealPlansService/CreateMeal"
@@ -64,6 +67,7 @@ type MealPlansServiceClient interface {
 	ListPlans(context.Context, *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error)
 	GetPlan(context.Context, *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error)
 	UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error)
+	RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error)
 	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
 	UpdateMeal(context.Context, *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
@@ -98,6 +102,12 @@ func NewMealPlansServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			httpClient,
 			baseURL+MealPlansServiceUpdatePlanProcedure,
 			connect.WithSchema(mealPlansServiceMethods.ByName("UpdatePlan")),
+			connect.WithClientOptions(opts...),
+		),
+		rotateICalToken: connect.NewClient[v1.RotateICalTokenRequest, v1.RotateICalTokenResponse](
+			httpClient,
+			baseURL+MealPlansServiceRotateICalTokenProcedure,
+			connect.WithSchema(mealPlansServiceMethods.ByName("RotateICalToken")),
 			connect.WithClientOptions(opts...),
 		),
 		createMeal: connect.NewClient[v1.CreateMealRequest, v1.CreateMealResponse](
@@ -135,14 +145,15 @@ func NewMealPlansServiceClient(httpClient connect.HTTPClient, baseURL string, op
 
 // mealPlansServiceClient implements MealPlansServiceClient.
 type mealPlansServiceClient struct {
-	listPlans      *connect.Client[v1.ListPlansRequest, v1.ListPlansResponse]
-	getPlan        *connect.Client[v1.GetPlanRequest, v1.GetPlanResponse]
-	updatePlan     *connect.Client[v1.UpdatePlanRequest, v1.UpdatePlanResponse]
-	createMeal     *connect.Client[v1.CreateMealRequest, v1.CreateMealResponse]
-	updateMeal     *connect.Client[v1.UpdateMealRequest, v1.UpdateMealResponse]
-	deleteMeal     *connect.Client[v1.DeleteMealRequest, v1.DeleteMealResponse]
-	moveMeal       *connect.Client[v1.MoveMealRequest, v1.MoveMealResponse]
-	suggestRecipes *connect.Client[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse]
+	listPlans       *connect.Client[v1.ListPlansRequest, v1.ListPlansResponse]
+	getPlan         *connect.Client[v1.GetPlanRequest, v1.GetPlanResponse]
+	updatePlan      *connect.Client[v1.UpdatePlanRequest, v1.UpdatePlanResponse]
+	rotateICalToken *connect.Client[v1.RotateICalTokenRequest, v1.RotateICalTokenResponse]
+	createMeal      *connect.Client[v1.CreateMealRequest, v1.CreateMealResponse]
+	updateMeal      *connect.Client[v1.UpdateMealRequest, v1.UpdateMealResponse]
+	deleteMeal      *connect.Client[v1.DeleteMealRequest, v1.DeleteMealResponse]
+	moveMeal        *connect.Client[v1.MoveMealRequest, v1.MoveMealResponse]
+	suggestRecipes  *connect.Client[v1.SuggestRecipesRequest, v1.SuggestRecipesResponse]
 }
 
 // ListPlans calls mealplans.v1.MealPlansService.ListPlans.
@@ -158,6 +169,11 @@ func (c *mealPlansServiceClient) GetPlan(ctx context.Context, req *connect.Reque
 // UpdatePlan calls mealplans.v1.MealPlansService.UpdatePlan.
 func (c *mealPlansServiceClient) UpdatePlan(ctx context.Context, req *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error) {
 	return c.updatePlan.CallUnary(ctx, req)
+}
+
+// RotateICalToken calls mealplans.v1.MealPlansService.RotateICalToken.
+func (c *mealPlansServiceClient) RotateICalToken(ctx context.Context, req *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error) {
+	return c.rotateICalToken.CallUnary(ctx, req)
 }
 
 // CreateMeal calls mealplans.v1.MealPlansService.CreateMeal.
@@ -190,6 +206,7 @@ type MealPlansServiceHandler interface {
 	ListPlans(context.Context, *connect.Request[v1.ListPlansRequest]) (*connect.Response[v1.ListPlansResponse], error)
 	GetPlan(context.Context, *connect.Request[v1.GetPlanRequest]) (*connect.Response[v1.GetPlanResponse], error)
 	UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error)
+	RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error)
 	CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error)
 	UpdateMeal(context.Context, *connect.Request[v1.UpdateMealRequest]) (*connect.Response[v1.UpdateMealResponse], error)
 	DeleteMeal(context.Context, *connect.Request[v1.DeleteMealRequest]) (*connect.Response[v1.DeleteMealResponse], error)
@@ -220,6 +237,12 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 		MealPlansServiceUpdatePlanProcedure,
 		svc.UpdatePlan,
 		connect.WithSchema(mealPlansServiceMethods.ByName("UpdatePlan")),
+		connect.WithHandlerOptions(opts...),
+	)
+	mealPlansServiceRotateICalTokenHandler := connect.NewUnaryHandler(
+		MealPlansServiceRotateICalTokenProcedure,
+		svc.RotateICalToken,
+		connect.WithSchema(mealPlansServiceMethods.ByName("RotateICalToken")),
 		connect.WithHandlerOptions(opts...),
 	)
 	mealPlansServiceCreateMealHandler := connect.NewUnaryHandler(
@@ -260,6 +283,8 @@ func NewMealPlansServiceHandler(svc MealPlansServiceHandler, opts ...connect.Han
 			mealPlansServiceGetPlanHandler.ServeHTTP(w, r)
 		case MealPlansServiceUpdatePlanProcedure:
 			mealPlansServiceUpdatePlanHandler.ServeHTTP(w, r)
+		case MealPlansServiceRotateICalTokenProcedure:
+			mealPlansServiceRotateICalTokenHandler.ServeHTTP(w, r)
 		case MealPlansServiceCreateMealProcedure:
 			mealPlansServiceCreateMealHandler.ServeHTTP(w, r)
 		case MealPlansServiceUpdateMealProcedure:
@@ -289,6 +314,10 @@ func (UnimplementedMealPlansServiceHandler) GetPlan(context.Context, *connect.Re
 
 func (UnimplementedMealPlansServiceHandler) UpdatePlan(context.Context, *connect.Request[v1.UpdatePlanRequest]) (*connect.Response[v1.UpdatePlanResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.UpdatePlan is not implemented"))
+}
+
+func (UnimplementedMealPlansServiceHandler) RotateICalToken(context.Context, *connect.Request[v1.RotateICalTokenRequest]) (*connect.Response[v1.RotateICalTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("mealplans.v1.MealPlansService.RotateICalToken is not implemented"))
 }
 
 func (UnimplementedMealPlansServiceHandler) CreateMeal(context.Context, *connect.Request[v1.CreateMealRequest]) (*connect.Response[v1.CreateMealResponse], error) {

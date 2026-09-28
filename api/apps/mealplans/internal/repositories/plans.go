@@ -144,6 +144,23 @@ func (r *PlansRepository) Update(
 	return err
 }
 
+// RotateICalToken gives the plan a fresh iCal token and returns it.
+func (r *PlansRepository) RotateICalToken(
+	ctx context.Context,
+	id uuid.UUID,
+	familyID uuid.UUID,
+) (uuid.UUID, error) {
+	var token uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		UPDATE mealplans.plans
+		SET ical_token = gen_random_uuid(), updated_at = now()
+		WHERE id = $1 AND family_id = $2
+		RETURNING ical_token`,
+		id, familyID,
+	).Scan(&token)
+	return token, postgres.PgxErrorToHTTPError(err)
+}
+
 func (r *PlansRepository) Delete(
 	ctx context.Context,
 	id uuid.UUID,
