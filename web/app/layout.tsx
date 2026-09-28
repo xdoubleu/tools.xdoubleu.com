@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata, Viewport } from 'next'
+import { headers } from 'next/headers'
 import './globals.css'
 import AppShell from '@/components/AppShell'
 import Splash from '@/components/Splash'
@@ -31,7 +32,10 @@ export const viewport: Viewport = {
   ]
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set by middleware.ts; the CSP allows only inline scripts carrying it.
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   return (
     // themeInitScript sets data-theme before hydration.
     <html lang="en" suppressHydrationWarning>
@@ -40,12 +44,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-TileImage" content="/apple-icon.png" />
         <link rel="mask-icon" href="/icon.svg" color="#7c3aed" />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `window.__ENV__=${JSON.stringify({ API_URL: process.env.API_URL ?? '', SENTRY_DSN_WEB: process.env.SENTRY_DSN_WEB ?? '', RELEASE: process.env.RELEASE ?? 'dev', KOBO_GATEWAY_RELEASE: process.env.KOBO_GATEWAY_RELEASE ?? 'dev', POSTHOG_KEY: process.env.POSTHOG_KEY ?? '', POSTHOG_HOST: process.env.POSTHOG_HOST ?? '' })}`
           }}
         />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `document.addEventListener('gesturestart',function(e){e.preventDefault()});document.addEventListener('gesturechange',function(e){e.preventDefault()});`
           }}

@@ -2,10 +2,15 @@
  * @jest-environment node
  */
 // next/server needs the real Request/Response globals, which jsdom lacks.
+import { NextRequest } from 'next/server'
 import { middleware } from '@/middleware'
 
+function run() {
+  return middleware(new NextRequest('https://tools.example.com/'))
+}
+
 function cspDirective(name: string): string {
-  const csp = middleware().headers.get('Content-Security-Policy') ?? ''
+  const csp = run().headers.get('Content-Security-Policy') ?? ''
   return csp.split('; ').find((d) => d.startsWith(`${name} `)) ?? ''
 }
 
@@ -40,5 +45,35 @@ describe('middleware CSP', () => {
   it('adds no PostHog directives when POSTHOG_HOST is unset', () => {
     expect(connectSrc()).not.toContain('posthog.com')
     expect(cspDirective('script-src')).not.toContain('posthog.com')
+  })
+
+  it('allows inline scripts only by a fresh per-request nonce', () => {
+    const scriptSrc = cspDirective('script-src')
+    expect(scriptSrc).not.toContain("'unsafe-inline'")
+    expect(scriptSrc).toContain("'strict-dynamic'")
+    expect(scriptSrc).toMatch(/'nonce-[A-Za-z0-9+/=]{20,}'/)
+    expect(cspDirective('script-src')).not.toEqual(scriptSrc)
+  })
+
+  it('forwards the nonce and CSP to rendering via request headers', () => {
+    const res = run()
+    const nonce = res.headers.get('x-middleware-request-x-nonce')
+    expect(nonce).toBeTruthy()
+    expect(res.headers.get('Content-Security-Policy')).toContain(`'nonce-${nonce}'`)
+    expect(res.headers.get('x-middleware-request-content-security-policy')).toEqual(
+      res.headers.get('Content-Security-Policy')
+    )
+  })
+
+  it('adds unsafe-eval only in development', () => {
+    expect(cspDirective('script-src')).not.toContain("'unsafe-eval'")
+    const env = process.env as Record<string, string | undefined>
+    const original = env.NODE_ENV
+    env.NODE_ENV = 'development'
+    try {
+      expect(cspDirective('script-src')).toContain("'unsafe-eval'")
+    } finally {
+      env.NODE_ENV = original
+    }
   })
 })
