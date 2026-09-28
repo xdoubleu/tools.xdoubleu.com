@@ -47,7 +47,7 @@ export default function BooksDashboardView({
         <StatTile label={statusLabel('to-read')} value={library.wishlist.length} />
       </div>
 
-      <div className="grid gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-2">
         <div className="flex min-h-0 flex-col gap-3">
           <div className="flex min-h-0 flex-col lg:flex-1">
             <h2 className="mb-2 text-base font-semibold">Currently reading</h2>

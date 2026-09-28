@@ -175,7 +175,7 @@ export default function SourceCompare({
           dismiss if this is expected.
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {proposal.library && <SourceCard label="Library" source={proposal.library} />}
           {Array.from(groups.entries()).map(([source, candidates]) =>
             candidates.length === 1 ? (
@@ -189,7 +189,7 @@ export default function SourceCompare({
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                   {SOURCE_LABELS[source] ?? source} ({candidates.length} candidates)
                 </p>
-                <div className="grid max-h-80 gap-3 overflow-y-auto sm:grid-cols-2">
+                <div className="grid grid-cols-1 max-h-80 gap-3 overflow-y-auto sm:grid-cols-2">
                   {candidates.map((s) => (
                     <SourceCard key={s.index} label={`Candidate ${s.index + 1}`} source={s} />
                   ))}
