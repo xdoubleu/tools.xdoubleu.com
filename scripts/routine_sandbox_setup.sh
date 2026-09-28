@@ -50,4 +50,5 @@ done
 chmod +t "$workspace"
 
 git config --global core.hooksPath "$private/no-git-hooks"
-sudo -u "$user" -H git config --global --add safe.directory '*'
+# From /: the sandbox user can't stat the caller's directory.
+(cd / && sudo -u "$user" -H git config --global --add safe.directory '*')

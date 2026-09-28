@@ -18,6 +18,10 @@ if [ -z "$home" ]; then
 fi
 
 # Tools the sandbox installs (go install, pip --user) land in its own home.
+# sudo starts from /, since the caller's directory's parents may be closed to
+# the sandbox user; bash then enters the (shared) working directory.
+dir=$PWD
+cd /
 exec sudo -n -u "$user" -- env -i \
   PATH="$home/go/bin:$home/.local/bin:$PATH" HOME="$home" USER="$user" LANG=C.UTF-8 TERM=dumb CI=true \
-  bash -c 'cd "$1" && shift && exec "$@"' routine-sandbox "$PWD" "$@"
+  bash -c 'cd "$1" && shift && exec "$@"' routine-sandbox "$dir" "$@"
