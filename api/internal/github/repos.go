@@ -43,3 +43,41 @@ func (c *client) ListRepos(ctx context.Context) ([]Repo, error) {
 	}
 	return repos, nil
 }
+
+// ListRepositoryVariables returns the repo's Actions variables by name. The
+// list is paginated; a missing variable simply never appears.
+func (c *client) ListRepositoryVariables(
+	ctx context.Context,
+) (map[string]string, error) {
+	repo, err := c.resolveRepo(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := c.tokenFn(ctx)
+	if errors.Is(err, oauthconn.ErrNotConnected) {
+		return nil, ErrNotConfigured
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	vars := make(map[string]string)
+	for page := 1; ; page++ {
+		endpoint := fmt.Sprintf(
+			"%s/repos/%s/actions/variables?per_page=100&page=%d",
+			baseURL, repo, page,
+		)
+
+		var wire repositoryVariablesWire
+		if getErr := c.get(ctx, endpoint, token, &wire); getErr != nil {
+			return nil, getErr
+		}
+		for _, v := range wire.Variables {
+			vars[v.Name] = v.Value
+		}
+		if len(vars) >= wire.TotalCount {
+			return vars, nil
+		}
+	}
+}

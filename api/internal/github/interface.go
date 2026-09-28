@@ -36,4 +36,6 @@ type Client interface {
 	ListProjectIssuesByStatus(
 		ctx context.Context, projectNumber int64, status string,
 	) ([]ProjectIssue, error)
+	// ListRepositoryVariables returns the repo's Actions variables by name.
+	ListRepositoryVariables(ctx context.Context) (map[string]string, error)
 }

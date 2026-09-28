@@ -538,7 +538,9 @@ groups:
 
       # 27h = daily cadence + 3h buffer. Hardcoded, like knownRoutines in
       # issue_signal_collector.go: update both by hand if a routine's cadence
-      # changes or a routine is added/removed.
+      # changes or a routine is added/removed. Routines whose ROUTINE_*_ENABLED
+      # repo variable isn't "true" are excluded — a deliberate pause, not a
+      # missed run.
       - uid: automated-routine-missed
         title: AutomatedRoutineMissed
         condition: C
@@ -562,7 +564,9 @@ groups:
             model:
               refId: A
               instant: true
-              expr: automated_action_seconds_since_last_open > 97200
+              expr: >-
+                automated_action_seconds_since_last_open > 97200
+                unless on(routine) automated_action_routine_paused == 1
           - refId: C
             datasourceUid: __expr__
             model:

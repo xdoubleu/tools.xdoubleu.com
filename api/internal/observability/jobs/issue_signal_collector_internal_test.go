@@ -25,12 +25,20 @@ type stubGithubClient struct {
 	runsErr   error
 	alerts    []github.SecurityAlert
 	alertsErr error
+	vars      map[string]string
+	varsErr   error
 }
 
 func (g stubGithubClient) ListFailingPullRequests(
 	_ context.Context,
 ) ([]github.PullRequest, error) {
 	return g.prs, g.prsErr
+}
+
+func (g stubGithubClient) ListRepositoryVariables(
+	_ context.Context,
+) (map[string]string, error) {
+	return g.vars, g.varsErr
 }
 
 func (g stubGithubClient) ListWorkflowRuns(
@@ -183,6 +191,7 @@ func resetGauges() {
 	postgresSchemaSizeBytes.Reset()
 	automatedActionOldestOpenAgeSeconds.Set(0)
 	automatedActionSecondsSinceLastOpen.Reset()
+	automatedActionRoutinePaused.Reset()
 	automatedActionLastRun.Reset()
 	sentryUnresolvedIssues.Set(0)
 }
@@ -192,6 +201,7 @@ func emptyStubJob(automatedAction automatedActionGetter) *IssueSignalCollectorJo
 		stubGithubClient{
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
 		},
 		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
@@ -283,6 +293,7 @@ func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
 		stubGithubClient{
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
 		},
 		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: nil},
@@ -315,6 +326,7 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 				alertWithSeverity("low"),
 			},
 			alertsErr: nil,
+			vars:      nil, varsErr: nil,
 		},
 		stubSentryClient{
 			//nolint:exhaustruct //only the count of issues drives the gauge
@@ -384,6 +396,8 @@ func TestIssueSignalCollectorNotConnectedLeavesGaugesUntouched(t *testing.T) {
 			runsErr:   github.ErrNotConfigured,
 			alerts:    nil,
 			alertsErr: github.ErrNotConfigured,
+			vars:      nil,
+			varsErr:   github.ErrNotConfigured,
 		},
 		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
@@ -417,6 +431,7 @@ func TestIssueSignalCollectorRoutineLivenessMixedStates(t *testing.T) {
 		stubGithubClient{
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
 		},
 		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
@@ -462,6 +477,7 @@ func TestIssueSignalCollectorRoutineLivenessLogsNonNotFoundError(t *testing.T) {
 		stubGithubClient{
 			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
 			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
 		},
 		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
@@ -478,6 +494,89 @@ func TestIssueSignalCollectorRoutineLivenessLogsNonNotFoundError(t *testing.T) {
 	assert.Contains(t, buf.String(), "most recent open")
 }
 
+func TestIssueSignalCollectorRoutinePausedStates(t *testing.T) {
+	resetGauges()
+	job := newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+			vars: map[string]string{
+				"ROUTINE_NIGHTLY_MAINTENANCE_SWEEP_ENABLED": "true",
+				"ROUTINE_READY_ISSUES_EXECUTOR_ENABLED":     "false",
+				// "red-pr-repair" has no variable at all — paused like "false".
+			},
+			varsErr: nil,
+		},
+		stubSentryClient{issues: nil, err: nil},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Now(), err: nil, byRoutine: nil},
+	)
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 0.0, testutil.ToFloat64(
+		automatedActionRoutinePaused.
+			WithLabelValues("nightly-maintenance-sweep")), 0)
+	assert.InDelta(t, 1.0, testutil.ToFloat64(
+		automatedActionRoutinePaused.
+			WithLabelValues("ready-issues-executor")), 0)
+	assert.InDelta(t, 1.0, testutil.ToFloat64(
+		automatedActionRoutinePaused.
+			WithLabelValues("red-pr-repair")), 0)
+	assert.Empty(t, buf.String())
+}
+
+func TestIssueSignalCollectorRoutinePausedErrorLeavesGauge(t *testing.T) {
+	resetGauges()
+	automatedActionRoutinePaused.WithLabelValues("nightly-maintenance-sweep").Set(1)
+
+	boom := errors.New("upstream down")
+	job := newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: boom,
+		},
+		stubSentryClient{issues: nil, err: nil},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Now(), err: nil, byRoutine: nil},
+	)
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 1.0, testutil.ToFloat64(
+		automatedActionRoutinePaused.
+			WithLabelValues("nightly-maintenance-sweep")), 0)
+	assert.Contains(t, buf.String(), "failed to list repository variables")
+}
+
+func TestIssueSignalCollectorRoutinePausedNotConfiguredIsSilent(t *testing.T) {
+	resetGauges()
+	job := newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: github.ErrNotConfigured,
+			runs: nil, runsErr: github.ErrNotConfigured,
+			alerts: nil, alertsErr: github.ErrNotConfigured,
+			vars: nil, varsErr: github.ErrNotConfigured,
+		},
+		stubSentryClient{issues: nil, err: sentryapi.ErrNotConfigured},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{
+			firedAt: time.Time{}, err: database.ErrResourceNotFound,
+			byRoutine: nil,
+		},
+	)
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+	assert.Empty(t, buf.String())
+}
+
 func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 	resetGauges()
 	boom := errors.New("upstream down")
@@ -489,6 +588,8 @@ func TestIssueSignalCollectorTransientErrorsAreLoggedNotFatal(t *testing.T) {
 			runsErr:   boom,
 			alerts:    nil,
 			alertsErr: boom,
+			vars:      nil,
+			varsErr:   boom,
 		},
 		stubSentryClient{issues: nil, err: boom},
 		stubStorageGetter{snap: nil, err: boom},
@@ -511,6 +612,8 @@ func TestIssueSignalCollectorPartialProviderStillCollectsOthers(t *testing.T) {
 			runsErr:   nil,
 			alerts:    nil,
 			alertsErr: nil,
+			vars:      nil,
+			varsErr:   nil,
 		},
 		stubSentryClient{issues: nil, err: nil},
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},

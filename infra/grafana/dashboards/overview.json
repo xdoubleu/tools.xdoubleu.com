@@ -289,11 +289,11 @@
       "id": 15,
       "type": "stat",
       "title": "Longest since a routine last started",
-      "description": "Mirrors the AutomatedRoutineMissed alert rule exactly — threshold 27h, worst case across the three known routines. See global.automated_actions.",
+      "description": "Mirrors the AutomatedRoutineMissed alert rule exactly — threshold 27h, worst case across the enabled routines (paused routines excluded). See global.automated_actions.",
       "gridPos": { "h": 6, "w": 4, "x": 4, "y": 26 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(automated_action_seconds_since_last_open)" }
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "max(automated_action_seconds_since_last_open unless on(routine) automated_action_routine_paused == 1)" }
       ],
       "fieldConfig": {
         "defaults": {

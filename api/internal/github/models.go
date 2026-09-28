@@ -252,6 +252,16 @@ type secretScanningAlertWire struct {
 	SecretTypeDisplayName string    `json:"secret_type_display_name"`
 }
 
+type repositoryVariablesWire struct {
+	TotalCount int                      `json:"total_count"`
+	Variables  []repositoryVariableWire `json:"variables"`
+}
+
+type repositoryVariableWire struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 // Empty conclusion means still running, not failing.
 //
 //nolint:gochecknoglobals // static lookup table
