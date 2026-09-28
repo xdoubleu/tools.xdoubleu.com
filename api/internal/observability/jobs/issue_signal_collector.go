@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -71,7 +72,12 @@ var (
 			"failed to fire), which a stalled-but-opened row can't catch. A " +
 			"routine that has never opened a row at all reports a very large " +
 			"value rather than 0, so it reads as overdue rather than healthy.",
-	}, []string{"routine"})
+	}, []string{routineLabel})
+	automatedActionRoutinePaused = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "automated_action_routine_paused",
+		Help: "1 when a routine's ROUTINE_*_ENABLED repo variable isn't \"true\" " +
+			"(scheduled runs are skipped), 0 when enabled.",
+	}, []string{routineLabel})
 	automatedActionLastRun = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "automated_action_last_run",
 		Help: "The latest measured run of each routine in the last " +
@@ -79,12 +85,15 @@ var (
 			"reasoning_tokens, cache_read_tokens, cost_usd (the agent's " +
 			"estimate), duration_seconds, tool_calls, tool_errors, " +
 			"repeated_tool_calls.",
-	}, []string{"routine", "metric"})
+	}, []string{routineLabel, "metric"})
 )
 
 // runMetricsWindow bounds automated_action_last_run so a retired routine's
 // last run eventually drops out.
 const runMetricsWindow = 14 * 24 * time.Hour
+
+// routineLabel is the label named for both per-routine gauges.
+const routineLabel = "routine"
 
 // knownRoutines are the scheduled agent routines tracked by
 // automated_action_seconds_since_last_open. Keep in sync by hand with
@@ -149,6 +158,11 @@ type issueSignalGithubClient interface {
 	failingPRLister
 	securityAlertLister
 	workflowRunsLister
+	repositoryVariablesLister
+}
+
+type repositoryVariablesLister interface {
+	ListRepositoryVariables(ctx context.Context) (map[string]string, error)
 }
 
 type unresolvedIssueLister interface {
@@ -216,6 +230,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectStorage(ctx, logger)
 	j.collectSchemaSizes(ctx, logger)
 	j.collectAutomatedActionAge(ctx, logger)
+	j.collectRoutinePaused(ctx, logger)
 	j.collectRoutineLiveness(ctx, logger)
 	j.collectRoutineRunMetrics(ctx, logger)
 	return nil
@@ -407,6 +422,43 @@ func (j *IssueSignalCollectorJob) collectRoutineRunMetrics(
 			automatedActionLastRun.WithLabelValues(routine, metric).Set(v)
 		}
 	}
+}
+
+// collectRoutinePaused marks routines whose ROUTINE_*_ENABLED repo variable
+// isn't "true", so AutomatedRoutineMissed can ignore a deliberately disabled
+// routine. A fetch error leaves the gauge untouched — the alert keeps firing
+// until the enabled state is known.
+func (j *IssueSignalCollectorJob) collectRoutinePaused(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	vars, err := j.gh.ListRepositoryVariables(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		return
+	}
+	if err != nil {
+		logAPIErr(ctx, logger,
+			"issue-signal-collector: failed to list repository variables",
+			err, github.IsTransientAPIError(err))
+		return
+	}
+
+	automatedActionRoutinePaused.Reset()
+	for _, routine := range knownRoutines {
+		paused := 0.0
+		if vars[routineEnabledVariable(routine)] != "true" {
+			paused = 1
+		}
+		automatedActionRoutinePaused.WithLabelValues(routine).Set(paused)
+	}
+}
+
+// routineEnabledVariable is the workflow gate variable for a routine; keep in
+// sync with the `vars.ROUTINE_*_ENABLED == 'true'` job conditions in
+// .github/workflows/routine-*.yml.
+func routineEnabledVariable(routine string) string {
+	return "ROUTINE_" +
+		strings.ToUpper(strings.ReplaceAll(routine, "-", "_")) + "_ENABLED"
 }
 
 // collectRoutineLiveness sets automated_action_seconds_since_last_open per
