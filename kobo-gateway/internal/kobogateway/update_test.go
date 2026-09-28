@@ -2,6 +2,7 @@ package kobogateway_test
 
 import (
 	"context"
+	"crypto/ed25519"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,11 +14,54 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/kobo-gateway/internal/kobogateway"
+	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
 )
 
 // machO64Header is the magic prefix of a darwin/arm64 binary.
 func machO64Header(payload string) []byte {
 	return append([]byte{0xcf, 0xfa, 0xed, 0xfe}, []byte(payload)...)
+}
+
+// testKey signs the fake downloads served by signedDownloads.
+type testKey struct {
+	pub  ed25519.PublicKey
+	seed string
+}
+
+func newTestKey(t *testing.T) testKey {
+	t.Helper()
+
+	pubB64, seed, err := updatesig.GenerateKey()
+	require.NoError(t, err)
+	pub, err := updatesig.ParsePublicKey(pubB64)
+	require.NoError(t, err)
+
+	return testKey{pub: pub, seed: seed}
+}
+
+// signedDownloads serves body at DownloadPath and its signature (by signer)
+// at SignaturePath.
+func signedDownloads(t *testing.T, signer testKey, body []byte) *httptest.Server {
+	t.Helper()
+
+	sig, err := updatesig.Sign(signer.seed, body)
+	require.NoError(t, err)
+
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case kobogateway.DownloadPath:
+				_, _ = w.Write(body)
+			case kobogateway.SignaturePath:
+				_, _ = w.Write([]byte(sig))
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		},
+	))
+	t.Cleanup(server.Close)
+
+	return server
 }
 
 func writeFakeExecutable(t *testing.T) string {
@@ -33,16 +77,11 @@ func writeFakeExecutable(t *testing.T) string {
 }
 
 func TestSelfUpdate(t *testing.T) {
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, kobogateway.DownloadPath, r.URL.Path)
-			_, _ = w.Write(machO64Header("new"))
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, machO64Header("new"))
 
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 
 	err := updater.SelfUpdate(context.Background(), downloads.URL)
 
@@ -61,15 +100,11 @@ func TestSelfUpdate(t *testing.T) {
 }
 
 func TestSelfUpdateRejectsNonBinary(t *testing.T) {
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write([]byte("<html>not a binary</html>"))
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, []byte("<html>not a binary</html>"))
 
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 
 	err := updater.SelfUpdate(context.Background(), downloads.URL)
 
@@ -89,16 +124,63 @@ func TestSelfUpdateDownloadError(t *testing.T) {
 	defer downloads.Close()
 
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(
+		executable, downloads.Client(), newTestKey(t).pub,
+	)
 
 	err := updater.SelfUpdate(context.Background(), downloads.URL)
 
 	assert.ErrorContains(t, err, "update download failed")
 }
 
+func TestSelfUpdateRejectsBadSignatures(t *testing.T) {
+	key := newTestKey(t)
+	cases := map[string]*httptest.Server{
+		"signed by another key": signedDownloads(t, newTestKey(t), machO64Header("evil")),
+		"signature missing": httptest.NewServer(http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == kobogateway.DownloadPath {
+					_, _ = w.Write(machO64Header("evil"))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+			},
+		)),
+	}
+
+	for name, downloads := range cases {
+		t.Run(name, func(t *testing.T) {
+			defer downloads.Close()
+
+			executable := writeFakeExecutable(t)
+			updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
+
+			require.Error(t, updater.SelfUpdate(context.Background(), downloads.URL))
+
+			data, err := os.ReadFile(executable)
+			require.NoError(t, err)
+			assert.Equal(t, machO64Header("old"), data, "binary left untouched")
+		})
+	}
+}
+
+func TestSelfUpdateDisabledWithoutKey(t *testing.T) {
+	downloads := signedDownloads(t, newTestKey(t), machO64Header("new"))
+	executable := writeFakeExecutable(t)
+
+	for _, updater := range []*kobogateway.Updater{
+		kobogateway.NewUpdaterFor(executable, downloads.Client(), nil),
+		kobogateway.NewUpdater(""),
+		kobogateway.NewUpdater("not-a-key"),
+	} {
+		err := updater.SelfUpdate(context.Background(), downloads.URL)
+		require.ErrorIs(t, err, kobogateway.ErrUpdateSigningUnset)
+	}
+}
+
 func TestSelfUpdateUnreachableServer(t *testing.T) {
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, http.DefaultClient)
+	updater := kobogateway.NewUpdaterFor(executable, http.DefaultClient, newTestKey(t).pub)
 
 	err := updater.SelfUpdate(
 		context.Background(),
@@ -110,15 +192,11 @@ func TestSelfUpdateUnreachableServer(t *testing.T) {
 
 func TestSelfUpdateSkipsResignOutsideBundle(t *testing.T) {
 	// Not inside a ".app", so resignBundle is a no-op and codesign isn't needed.
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write(machO64Header("new"))
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, machO64Header("new"))
 
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 
 	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
 }
@@ -135,14 +213,10 @@ func TestSelfUpdateFailsWhenResignFails(t *testing.T) {
 	executable := filepath.Join(macOSDir, "kobo-gateway")
 	require.NoError(t, os.WriteFile(executable, machO64Header("old"), 0o755))
 
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write(machO64Header("new"))
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, machO64Header("new"))
 
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 	err := updater.SelfUpdate(context.Background(), downloads.URL)
 
 	assert.ErrorContains(t, err, "could not re-sign updated app bundle")
@@ -172,14 +246,10 @@ func TestSelfUpdateResignsAppBundle(t *testing.T) {
 		0o644,
 	))
 
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write(machO64Header("new"))
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, machO64Header("new"))
 
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
 
 	verify := exec.Command("codesign", "--verify", "--strict", appDir)
@@ -200,15 +270,11 @@ func TestAppBundlePath(t *testing.T) {
 
 func TestSelfUpdateAcceptsFatBinary(t *testing.T) {
 	fat := append([]byte{0xca, 0xfe, 0xba, 0xbe}, []byte("universal")...)
-	downloads := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, _ *http.Request) {
-			_, _ = w.Write(fat)
-		},
-	))
-	defer downloads.Close()
+	key := newTestKey(t)
+	downloads := signedDownloads(t, key, fat)
 
 	executable := writeFakeExecutable(t)
-	updater := kobogateway.NewUpdaterFor(executable, downloads.Client())
+	updater := kobogateway.NewUpdaterFor(executable, downloads.Client(), key.pub)
 
 	require.NoError(t, updater.SelfUpdate(context.Background(), downloads.URL))
 }

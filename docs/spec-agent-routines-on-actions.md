@@ -8,29 +8,33 @@ Each routine is a thin caller workflow (`routine-<name>.yml`, `schedule:` +
 `workflow_dispatch:` only) around `.github/workflows/agent-routine.yml`. That
 workflow:
 
-1. mints a one-hour GitHub App token and a client_credentials MCP token
+1. runs step-security/harden-runner (egress audit; block mode once the host
+   list is known),
+2. mints a one-hour GitHub App token and a client_credentials MCP token
    ([ADR-0025](adr-0025-machine-client-credentials-service-role.md)); with
    `issues_only` (the detection routines) the App token can file issues but
    not push or edit PRs,
-2. opens the run's `automated_actions` row through `record_action`
+3. sets up the dependency sandbox (`scripts/routine_sandbox_setup.sh`, see
+   Constraints),
+4. opens the run's `automated_actions` row through `record_action`
    (`scripts/routine_record.sh`; `trigger_source` `schedule`, `manual`, or `ci`
    for a red `main`),
-3. runs `opencode run --standalone --auto` (OpenCode CLI v2, pinned via
+5. runs `opencode run --standalone --auto` (OpenCode CLI v2, pinned via
    `@opencode/cli`) on OpenRouter with the routine's prompt, writing the
    transcript to a file rather than the public job log,
-4. preflights the apps MCP server (`scripts/routine_preflight.sh`): fails the
+6. preflights the apps MCP server (`scripts/routine_preflight.sh`): fails the
    job before the agent starts if the required tools aren't exposed,
-5. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
+7. runs `scripts/routine_watchdog.sh` beside the agent; it kills opencode and
    fails the step if the agent loops on the same tool call (a degenerate loop
    would otherwise spin until the step timeout since every call "succeeds"),
-6. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
+8. measures the run from the transcript (`scripts/routine_metrics.sh`: requests,
    tokens, estimated cost, duration, tool calls, failed and repeated calls)
    into the job summary,
-7. closes the row with the agent's outcome file (`failed` if the agent step
+9. closes the row with the agent's outcome file (`failed` if the agent step
    didn't succeed or wrote none) and those metrics,
-8. uploads the transcript encrypted,
-9. always posts a Slack notice: the job outcome, the agent's summary, the
-   metrics line, and the run link.
+10. uploads the transcript encrypted,
+11. always posts a Slack notice: the job outcome, the agent's summary, the
+    metrics line, and the run link.
 
 The collector exports each routine's latest measured run as
 `automated_action_last_run{routine,metric}`; `AutomatedRoutineRunHeavy` flags a
@@ -61,7 +65,7 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
    Apps can't reach user-owned Projects, so board reads go through
    `get_project_issues_by_status`. Status writes fail, and the routine reports
    that.
-2. **Environment `agents`** (Settings → Environments), with deployment branches
+3. **Environment `agents`** (Settings → Environments), with deployment branches
    limited to `main`. Give `production` the same limit, so a workflow on a bot
    branch can read neither environment. Secrets:
    - `ROUTINES_APP_PRIVATE_KEY`: the App's private key (.pem contents).
@@ -74,7 +78,7 @@ Rules the routines follow: [convention-unattended-agent-trust](convention-unatte
      transcript is uploaded.
    - `POSTHOG_MCP_API_KEY`: a PostHog personal API key with read access to the
      project, for the PostHog UX discovery routine only.
-3. **Repository variables**:
+4. **Repository variables**:
    - `ROUTINES_APP_ID`.
    - `ROUTINES_MODEL`: an OpenRouter model id without the `openrouter/`
      prefix, e.g. a GLM or DeepSeek flash model.
@@ -111,3 +115,12 @@ openssl enc -d -aes-256-cbc -pbkdf2 -pass pass:"$ROUTINE_TRANSCRIPT_PASSPHRASE" 
   deny-list (force-push, `gh pr merge`, `gh secret`) is defence in depth, not
   a boundary. The boundaries are the trust convention, short-lived tokens,
   the App's permissions, and human merges.
+- Dependency code runs through `routine-sandbox <cmd>`
+  (`scripts/routine_sandbox.sh`): an unprivileged user with an empty
+  environment, which can't read the agent's `/proc` environ or `RUNNER_TEMP`,
+  or write `.git`, skills and `AGENTS.md` (nested ones can still be renamed
+  away). The job runs its post-agent scripts
+  from `RUNNER_TEMP` copies, checks out without persisted credentials, and
+  disables git hooks. The agent is told to use the sandbox; deny rules on bare
+  `npm`/`make`/`go test` and `npm_config_ignore_scripts` back that up, but a
+  command the agent runs outside it isn't isolated.

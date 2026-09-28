@@ -72,8 +72,8 @@ func TestRunUnknownCommand(t *testing.T) {
 }
 
 func TestRunUpdateCommandFailure(t *testing.T) {
-	// The origin serves HTML instead of a Mach-O binary, so the update
-	// fails safely before anything replaces the running executable.
+	// Test builds carry no update public key, so the update fails closed
+	// before anything replaces the running executable.
 	downloads := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			_, _ = w.Write([]byte("<html>not a binary</html>"))
@@ -85,7 +85,7 @@ func TestRunUpdateCommandFailure(t *testing.T) {
 
 	err := run([]string{"--origin", downloads.URL, "update"}, &out)
 
-	assert.ErrorContains(t, err, "not a valid gateway binary")
+	assert.ErrorContains(t, err, "no update signing key")
 	assert.Contains(t, out.String(), "downloading latest gateway")
 }
 

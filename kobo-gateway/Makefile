@@ -31,7 +31,7 @@ lint/fix: tools/lint
 
 # macOS only (cgo + AppKit, arm64 native); Linux compiles only the no-UI stub.
 build:
-	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.SentryDSN=$(SENTRY_DSN)" \
+	go build -ldflags="-w -s -X main.Release=$(RELEASE) -X main.SentryDSN=$(SENTRY_DSN) -X main.UpdatePublicKey=$(UPDATE_PUBLIC_KEY)" \
 		-o=./bin/kobo-gateway-darwin-arm64 ./cmd/kobo-gateway
 
 # Packages KoboGateway.app + .dmg plus the raw binary into ./dist/kobo-gateway/.

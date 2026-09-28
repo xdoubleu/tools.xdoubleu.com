@@ -57,6 +57,12 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
+      # Audit mode logs every outbound host to StepSecurity; switch to
+      # egress-policy: block with an allowed-endpoints list once known.
+      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
       - name: Mint GitHub App token
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
@@ -69,10 +75,13 @@ jobs:
           permission-pull-requests: ${{ inputs.issues_only && 'read' || '' }}
           permission-actions: ${{ inputs.issues_only && 'read' || '' }}
 
+      # No token in .git/config, which sandboxed code can read; git gets it
+      # from gh's credential helper, reading GH_TOKEN from the caller's env.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
@@ -91,6 +100,14 @@ jobs:
           id=$(gh api "/users/${bot}" --jq .id)
           git config --global user.name "$bot"
           git config --global user.email "${id}+${bot}@users.noreply.github.com"
+          git config --global credential.https://github.com.helper '!gh auth git-credential'
+
+      # Dependency code (npm install scripts, tests) runs as an unprivileged
+      # user through routine-sandbox, so it can't read this job's tokens.
+      - name: Set up the dependency sandbox
+        run: |
+          scripts/routine_sandbox_setup.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/routine-bin" >> "$GITHUB_PATH"
 
       - name: Mint MCP token (client_credentials)
         id: mcp-token
@@ -155,6 +172,8 @@ jobs:
           ROUTINE_SUMMARY_PATH: ${{ runner.temp }}/summary.md
           ROUTINE_OUTCOME_PATH: ${{ runner.temp }}/outcome.json
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # An install outside the sandbox still runs no package scripts.
+          npm_config_ignore_scripts: 'true'
           POSTHOG: ${{ inputs.posthog }}
           POSTHOG_MCP_URL: ${{ vars.POSTHOG_MCP_URL }}
           POSTHOG_MCP_API_KEY: ${{ inputs.posthog && secrets.POSTHOG_MCP_API_KEY || '' }}
@@ -176,7 +195,16 @@ jobs:
               {action: "shell", resource: "git push --force*", effect: "deny"},
               {action: "shell", resource: "git push -f*", effect: "deny"},
               {action: "shell", resource: "gh pr merge*", effect: "deny"},
-              {action: "shell", resource: "gh secret*", effect: "deny"}]}')
+              {action: "shell", resource: "gh secret*", effect: "deny"},
+              {action: "shell", resource: "npm *", effect: "deny"},
+              {action: "shell", resource: "npx *", effect: "deny"},
+              {action: "shell", resource: "node *", effect: "deny"},
+              {action: "shell", resource: "make *", effect: "deny"},
+              {action: "shell", resource: "go build*", effect: "deny"},
+              {action: "shell", resource: "go generate*", effect: "deny"},
+              {action: "shell", resource: "go run*", effect: "deny"},
+              {action: "shell", resource: "go test*", effect: "deny"},
+              {action: "shell", resource: "golangci-lint*", effect: "deny"}]}')
           export OPENCODE_CONFIG_CONTENT
           prompt="You run unattended in GitHub Actions via OpenCode; no human
           is present, so never ask or wait. Skills live under .claude/skills
@@ -184,6 +212,12 @@ jobs:
           items one at a time in this session instead of parallel isolated
           subagents. gh is authenticated as this routine's GitHub App bot.
           The workflow records this run, so skip every record_action call.
+          Run anything that installs dependencies or executes repo or
+          dependency code (npm, npx, node, make, go build/test/run/generate,
+          golangci-lint, buf, test scripts) as routine-sandbox <command>, e.g.
+          cd web && routine-sandbox npm ci, or routine-sandbox make -C api
+          test. It runs as a user without your tokens that can't modify .git,
+          skills or AGENTS.md. Keep git and gh outside it.
 
           $ROUTINE_PROMPT
 
@@ -217,7 +251,7 @@ jobs:
             > "$RUNNER_TEMP/transcript.jsonl" 2> "$RUNNER_TEMP/opencode.log" &
           OPENCODE_PID=$!
 
-          "$GITHUB_WORKSPACE/scripts/routine_watchdog.sh" \
+          "$RUNNER_TEMP/routine-bin/routine_watchdog.sh" \
             --transcript "$RUNNER_TEMP/transcript.jsonl" \
             --stamp "$RUNNER_TEMP/watchdog.stamp" \
             --kill-pid "$OPENCODE_PID" &
@@ -240,13 +274,16 @@ jobs:
         id: metrics
         if: always()
         run: |
+          # The sandbox-proof copy; the workspace's only if setup never ran.
+          bin="$RUNNER_TEMP/routine-bin"
+          [ -x "$bin/routine_metrics.sh" ] || bin=scripts
           transcript="$RUNNER_TEMP/transcript.jsonl"
           touch "$transcript"
           {
-            echo "json=$(scripts/routine_metrics.sh json "$transcript")"
-            echo "line=$(scripts/routine_metrics.sh line "$transcript")"
+            echo "json=$("$bin/routine_metrics.sh" json "$transcript")"
+            echo "line=$("$bin/routine_metrics.sh" line "$transcript")"
           } >> "$GITHUB_OUTPUT"
-          scripts/routine_metrics.sh markdown "$transcript" >> "$GITHUB_STEP_SUMMARY"
+          "$bin/routine_metrics.sh" markdown "$transcript" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Close run record
         if: always() && steps.record.outputs.id != ''
@@ -267,7 +304,9 @@ jobs:
               error=$(jq -r '.error // ""' "$OUTCOME_PATH")
             fi
           fi
-          scripts/routine_record.sh close "$ID" "$outcome" "$pr_url" \
+          bin="$RUNNER_TEMP/routine-bin"
+          [ -x "$bin/routine_record.sh" ] || bin=scripts
+          "$bin/routine_record.sh" close "$ID" "$outcome" "$pr_url" \
             "$(head -c 500 <<<"$error")" "${METRICS:-null}"
 
       # Encrypted because this repo is public: artifacts are readable by

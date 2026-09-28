@@ -1,6 +1,9 @@
 package kobogateway
 
-import "net/http"
+import (
+	"crypto/ed25519"
+	"net/http"
+)
 
 // init stubs launchctl so tests never touch real login-item state.
 //
@@ -12,11 +15,16 @@ func init() {
 // TrustCertArgsForTest exposes trustCertArgs to the _test package.
 func TrustCertArgsForTest(certPath string) []string { return trustCertArgs(certPath) }
 
-// NewUpdaterFor builds an Updater with an explicit executable path and
-// client, for tests.
-func NewUpdaterFor(executable string, client *http.Client) *Updater {
+// NewUpdaterFor builds an Updater with an explicit executable path, client
+// and public key, for tests.
+func NewUpdaterFor(
+	executable string,
+	client *http.Client,
+	publicKey ed25519.PublicKey,
+) *Updater {
 	return &Updater{
 		client:         client,
 		executablePath: func() (string, error) { return executable, nil },
+		publicKey:      publicKey,
 	}
 }

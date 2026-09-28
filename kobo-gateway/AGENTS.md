@@ -12,7 +12,9 @@ cmd/kobo-gateway/
   menubar_other.go   # !darwin no-op stub (keeps Linux/CI green)
   notify.go, recover.go
   assets/            # Info.plist, icons, package.sh (.app/.dmg)
+cmd/kobo-sign/       # self-update key generation and signing (CI)
 internal/kobogateway/  # loopback HTTPS server; no AppKit
+internal/updatesig/    # ed25519 sign/verify for self-updates
 ```
 
 `conf.go` is the only parser/serializer of `Kobo eReader.conf` — the browser never reads it (`web/lib/books/koboConf.ts` does only string checks).
@@ -32,4 +34,4 @@ internal/kobogateway/  # loopback HTTPS server; no AppKit
 
 ## Distribution
 
-`build-kobo-gateway.yml` builds `kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (self-update target) on `macos-14`; `build-web.yml` stages them into the `web` image's `public/downloads/`. The build is cached, so its release can be older than the deploy — `KOBO_GATEWAY_RELEASE` tracks it → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md), [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
+`build-kobo-gateway.yml` builds `kobo-gateway.dmg` and `kobo-gateway-darwin-arm64` (self-update target) on `macos-14`, and on `main` signs the latter into `kobo-gateway-darwin-arm64.sig` with `cmd/kobo-sign` (secret `KOBO_GATEWAY_SIGNING_KEY`). `SelfUpdate` installs only binaries verifying against the ed25519 key compiled in from variable `KOBO_GATEWAY_UPDATE_PUBKEY` (none disables self-update); `kobo-sign keygen` makes the pair; `build-web.yml` stages them into the `web` image's `public/downloads/`. The build is cached, so its release can be older than the deploy — `KOBO_GATEWAY_RELEASE` tracks it → [`adr-0004`](../docs/adr-0004-runtime-release-env-vs-compile-stamp.md), [`adr-0002`](../docs/adr-0002-kobo-gateway-ci-cache-split.md).
