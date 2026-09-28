@@ -30,13 +30,14 @@ lint/preflight:
 	./scripts/test_routine_preflight.sh
 
 # The agent-routine workflow's script suites: sandbox, metrics, watchdog (loop
-# circuit-breaker), and preflight (MCP tool check).
+# circuit-breaker), preflight (MCP tool check), record, and finish (resume).
 routines/test:
 	./scripts/test_routine_sandbox.sh
 	./scripts/test_routine_metrics.sh
 	./scripts/test_routine_watchdog.sh
 	./scripts/test_routine_preflight.sh
 	./scripts/test_routine_record.sh
+	./scripts/test_routine_finish.sh
 
 # Fail on invalid SKILL.md frontmatter (harnesses silently drop the skill).
 lint/skills:

@@ -41,7 +41,8 @@ HOME="$WORK" "$ROOT_DIR/scripts/routine_sandbox_setup.sh" "$ws" "$private" \
 sandbox="$private/routine-bin/routine-sandbox"
 
 check "setup installs the wrapper and post-agent scripts" \
-  '[ -x "$sandbox" ] && [ -x "$private/routine-bin/routine_record.sh" ]'
+  '[ -x "$sandbox" ] && [ -x "$private/routine-bin/routine_record.sh" ] \
+    && [ -x "$private/routine-bin/routine_finish.sh" ]'
 check "setup disables git hooks for the job user" \
   '[ "$(HOME="$WORK" git config --global core.hooksPath)" = "$private/no-git-hooks" ]'
 

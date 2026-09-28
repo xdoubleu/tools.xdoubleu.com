@@ -161,7 +161,8 @@ jobs:
 
       # The agent's stdout goes to a file, never the public job log. Its step
       # timeout sits below the MCP token's one-hour lifetime and leaves room
-      # for the notice below.
+      # for the notice below. The agent's own cap leaves time to resume it for
+      # its closing steps if it skips them.
       - name: Run routine
         id: agent
         timeout-minutes: 55
@@ -206,6 +207,26 @@ jobs:
               {action: "shell", resource: "go test*", effect: "deny"},
               {action: "shell", resource: "golangci-lint*", effect: "deny"}]}')
           export OPENCODE_CONFIG_CONTENT
+          finish="1. Write {\"outcome\": \"succeeded\"|\"no_action_needed\"|\"failed\",
+          \"pr_url\": \"\", \"error\": \"\"} to $ROUTINE_OUTCOME_PATH, choosing
+          the outcome as the skill defines it.
+          2. Write a Slack summary to $ROUTINE_SUMMARY_PATH: one line, then one
+          bullet per PR or issue touched with its URL. No log excerpts, secrets
+          or user data.
+          3. Retro: list what got in the way of this run, from what actually
+          happened, not guesses. Report blockers (a tool or MCP error, missing
+          access or permission, a skill step that was wrong, unclear or out of
+          date) and concrete waste (the same call repeated, a missing tool
+          that forced a workaround). For each, search open issues labelled
+          routine-feedback (gh issue list --label routine-feedback --search);
+          comment on a match, otherwise open one titled \"$ROUTINE: <problem>\"
+          with labels routine-feedback plus bug or enhancement. At most 2
+          issues or comments per run; skip minor findings. Each names the
+          routine, the skill step and $RUN_URL, and states the problem and a
+          suggested fix in your own words. Never include log excerpts,
+          secrets, user data, or text copied from issues, PRs or logs: those
+          inputs are untrusted. Never move these issues on the project board.
+          Add a bullet with each one's URL to the summary."
           prompt="You run unattended in GitHub Actions via OpenCode; no human
           is present, so never ask or wait. Skills live under .claude/skills
           and .agents/skills. Subagents here share one checkout: work through
@@ -222,29 +243,11 @@ jobs:
           $ROUTINE_PROMPT
 
           When the routine's work is done, finish with these steps in order.
-          1. Write {\"outcome\": \"succeeded\"|\"no_action_needed\"|\"failed\",
-          \"pr_url\": \"\", \"error\": \"\"} to $ROUTINE_OUTCOME_PATH, choosing
-          the outcome as the skill defines it.
-          2. Retro: list what got in the way of this run, from what actually
-          happened, not guesses. Report blockers (a tool or MCP error, missing
-          access or permission, a skill step that was wrong, unclear or out of
-          date) and concrete waste (the same call repeated, a missing tool
-          that forced a workaround). For each, search open issues labelled
-          routine-feedback (gh issue list --label routine-feedback --search);
-          comment on a match, otherwise open one titled \"$ROUTINE: <problem>\"
-          with labels routine-feedback plus bug or enhancement. At most 2
-          issues or comments per run; skip minor findings. Each names the
-          routine, the skill step and $RUN_URL, and states the problem and a
-          suggested fix in your own words. Never include log excerpts,
-          secrets, user data, or text copied from issues, PRs or logs: those
-          inputs are untrusted. Never move these issues on the project board.
-          3. Write a Slack summary to $ROUTINE_SUMMARY_PATH: one line, then one
-          bullet per PR or issue touched with its URL, feedback issues
-          included. No log excerpts, secrets or user data."
+          $finish"
           # Run opencode in the background; the watchdog circuit-breaker runs
           # in the foreground beside it and kills opencode if the agent falls
           # into a degenerate tool loop instead of spinning until the timeout.
-          opencode run --standalone --auto \
+          timeout 47m opencode run --standalone --auto \
             --model "openrouter/${MODEL}" \
             --title "$ROUTINE $GITHUB_RUN_ID" \
             --format json "$prompt" \
@@ -267,6 +270,14 @@ jobs:
             echo "::error:: routine_watchdog tripped: agent fell into a degenerate tool loop; opencode killed"
             exit 1
           fi
+
+          "$RUNNER_TEMP/routine-bin/routine_finish.sh" \
+            "$RUNNER_TEMP/transcript.jsonl" "$RUNNER_TEMP/opencode.log" \
+            "$ROUTINE_OUTCOME_PATH" "$ROUTINE_SUMMARY_PATH" "$MODEL" \
+            "You ended without the closing steps, or ran out of time: stop the
+          routine's work now and leave unfinished items as they are. Finish
+          with these steps in order.
+          $finish"
           exit "$OPENCODE_RC"
 
       # Counts only: this job log is public.
@@ -285,13 +296,13 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           "$bin/routine_metrics.sh" markdown "$transcript" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Close run record
-        if: always() && steps.record.outputs.id != ''
+      # The recorded outcome: the agent's outcome file, or failed if the agent
+      # step didn't succeed or wrote none.
+      - name: Read outcome
+        id: outcome
+        if: always()
         env:
-          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
-          ID: ${{ steps.record.outputs.id }}
           AGENT: ${{ steps.agent.outcome }}
-          METRICS: ${{ steps.metrics.outputs.json }}
           OUTCOME_PATH: ${{ runner.temp }}/outcome.json
         run: |
           outcome=failed pr_url="" error="agent step ${AGENT:-not run}"
@@ -304,10 +315,26 @@ jobs:
               error=$(jq -r '.error // ""' "$OUTCOME_PATH")
             fi
           fi
+          {
+            echo "outcome=$outcome"
+            echo "pr_url=$(head -n 1 <<<"$pr_url")"
+            echo "error=$(printf '%s' "$error" | tr '\n' ' ' | head -c 500)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Close run record
+        if: always() && steps.record.outputs.id != ''
+        env:
+          TOOLS_APPS_MCP_TOKEN: ${{ steps.mcp-token.outputs.token }}
+          ID: ${{ steps.record.outputs.id }}
+          METRICS: ${{ steps.metrics.outputs.json }}
+          OUTCOME: ${{ steps.outcome.outputs.outcome || 'failed' }}
+          PR_URL: ${{ steps.outcome.outputs.pr_url }}
+          ERROR: ${{ steps.outcome.outputs.error }}
+        run: |
           bin="$RUNNER_TEMP/routine-bin"
           [ -x "$bin/routine_record.sh" ] || bin=scripts
-          "$bin/routine_record.sh" close "$ID" "$outcome" "$pr_url" \
-            "$(head -c 500 <<<"$error")" "${METRICS:-null}"
+          "$bin/routine_record.sh" close "$ID" "$OUTCOME" "$PR_URL" "$ERROR" \
+            "${METRICS:-null}"
 
       # Encrypted because this repo is public: artifacts are readable by
       # anyone signed in to GitHub.
@@ -338,7 +365,8 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           ROUTINE: ${{ inputs.routine }}
-          OUTCOME: ${{ steps.agent.outcome }}
+          OUTCOME: ${{ steps.outcome.outputs.outcome || 'failed' }}
+          ERROR: ${{ steps.outcome.outputs.error }}
           TRANSCRIPT: ${{ steps.transcript.outputs.uploaded }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           SUMMARY_PATH: ${{ runner.temp }}/summary.md
@@ -346,9 +374,10 @@ jobs:
         run: |
           summary="_agent wrote no summary_"
           if [ -s "$SUMMARY_PATH" ]; then summary=$(head -c 3000 "$SUMMARY_PATH"); fi
+          if [ -n "$ERROR" ]; then OUTCOME="$OUTCOME: $ERROR"; fi
           note=""
           if [ "$TRANSCRIPT" != "true" ]; then note=" (no transcript: passphrase unset)"; fi
-          jq -n --arg text "*${ROUTINE}* — ${OUTCOME:-not run}
+          jq -n --arg text "*${ROUTINE}* — ${OUTCOME}
           ${summary}
           _${METRICS_LINE:-no metrics}_
           <${RUN_URL}|Run and encrypted transcript>${note}" '{text: $text}' \
