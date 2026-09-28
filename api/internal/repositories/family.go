@@ -154,7 +154,8 @@ func (r *FamilyRepository) EnsureFamily(
 }
 
 // Invite creates or replaces an invite from fromUserID's family (created if
-// needed) to toUserID.
+// needed) to toUserID. A replaced invite gets a new id, so accepting by the old
+// id fails.
 func (r *FamilyRepository) Invite(
 	ctx context.Context,
 	fromUserID, toUserID string,
@@ -168,7 +169,8 @@ func (r *FamilyRepository) Invite(
 		INSERT INTO global.family_invites (family_id, from_user_id, to_user_id)
 		VALUES ($1, $2, $3)
 		ON CONFLICT (to_user_id)
-		DO UPDATE SET family_id = EXCLUDED.family_id,
+		DO UPDATE SET id = gen_random_uuid(),
+		              family_id = EXCLUDED.family_id,
 		              from_user_id = EXCLUDED.from_user_id,
 		              created_at = now()`,
 		familyID, fromUserID, toUserID,
@@ -206,11 +208,13 @@ func (r *FamilyRepository) DeclineInvite(ctx context.Context, userID string) err
 	return err
 }
 
-// AcceptInvite deletes the invite, upserts the membership and returns the
-// family_id.
+// AcceptInvite deletes invite inviteID addressed to userID, upserts the
+// membership and returns the family_id. It returns ErrResourceNotFound when
+// that invite is no longer pending.
 func (r *FamilyRepository) AcceptInvite(
 	ctx context.Context,
 	userID string,
+	inviteID uuid.UUID,
 ) (uuid.UUID, error) {
 	//nolint:exhaustruct // default tx options
 	tx, err := r.db.BeginTx(ctx, pgx.TxOptions{})
@@ -222,12 +226,12 @@ func (r *FamilyRepository) AcceptInvite(
 	var familyID uuid.UUID
 	err = tx.QueryRow(ctx, `
 		DELETE FROM global.family_invites
-		WHERE to_user_id = $1
+		WHERE to_user_id = $1 AND id = $2
 		RETURNING family_id`,
-		userID,
+		userID, inviteID,
 	).Scan(&familyID)
 	if err != nil {
-		return uuid.Nil, err
+		return uuid.Nil, postgres.PgxErrorToHTTPError(err)
 	}
 
 	if _, err = tx.Exec(ctx, `

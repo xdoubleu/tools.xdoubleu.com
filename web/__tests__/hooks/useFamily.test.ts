@@ -79,8 +79,8 @@ describe('useAcceptFamilyInvite', () => {
     })
 
     const { result } = renderHook(() => useAcceptFamilyInvite())
-    result.current()
-    expect(mockAccept).toHaveBeenCalledWith({})
+    result.current('inv-1')
+    expect(mockAccept).toHaveBeenCalledWith({ inviteId: 'inv-1' })
   })
 })
 

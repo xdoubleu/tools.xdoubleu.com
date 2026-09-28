@@ -9,7 +9,7 @@ const setFamilyDisplayName = jest.fn().mockResolvedValue({})
 
 let mockData: {
   members: { userId: string; email: string; displayName?: string }[]
-  incomingInvite?: { fromUserId: string; fromEmail: string } | undefined
+  incomingInvite?: { id?: string; fromUserId: string; fromEmail: string } | undefined
   selfDisplayName?: string
 } = { members: [], incomingInvite: undefined }
 let mockIsLoading = false
@@ -96,13 +96,13 @@ describe('FamilyPageClient', () => {
   it('accepts an incoming invite', async () => {
     mockData = {
       members: [],
-      incomingInvite: { fromUserId: 'u2', fromEmail: 'sender@example.com' }
+      incomingInvite: { id: 'inv-1', fromUserId: 'u2', fromEmail: 'sender@example.com' }
     }
     render(<FamilyPageClient />)
     expect(screen.getByText(/sender@example.com invited you/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Accept' }))
-    await waitFor(() => expect(acceptFamilyInvite).toHaveBeenCalled())
+    await waitFor(() => expect(acceptFamilyInvite).toHaveBeenCalledWith('inv-1'))
   })
 
   it('declines an incoming invite', async () => {

@@ -88,6 +88,14 @@ func (f *fakePlansStore) Update(_ context.Context, _ models.Plan) error {
 	return nil
 }
 
+func (f *fakePlansStore) RotateICalToken(
+	_ context.Context,
+	_ uuid.UUID,
+	_ uuid.UUID,
+) (uuid.UUID, error) {
+	return uuid.New(), nil
+}
+
 func (f *fakePlansStore) Delete(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
 	f.deleted = true
 	return nil

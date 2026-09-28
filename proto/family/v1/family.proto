@@ -42,7 +42,10 @@ message InviteToFamilyRequest {
 
 message InviteToFamilyResponse {}
 
-message AcceptFamilyInviteRequest {}
+message AcceptFamilyInviteRequest {
+  // The FamilyInvite.id the caller saw; a replaced invite gets a new id.
+  string invite_id = 1;
+}
 
 message AcceptFamilyInviteResponse {}
 

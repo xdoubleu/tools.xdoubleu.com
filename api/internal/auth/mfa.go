@@ -216,8 +216,30 @@ func (service *LocalService) VerifyCurrentFactor(
 }
 
 // checkFactorCode accepts a TOTP code once per time step or, for a verified
-// factor, an unused recovery code, which it consumes.
+// factor, an unused recovery code, which it consumes. Repeated wrong codes
+// lock the user out (ErrTooManyAttempts).
 func (service *LocalService) checkFactorCode(
+	ctx context.Context,
+	factor *TOTPFactor,
+	code string,
+) (bool, error) {
+	attemptKey := "mfa:" + factor.UserID
+	if err := service.attempts.check(attemptKey); err != nil {
+		return false, err
+	}
+	valid, err := service.matchFactorCode(ctx, factor, code)
+	if err != nil {
+		return false, err
+	}
+	if valid {
+		service.attempts.succeed(attemptKey)
+	} else {
+		service.attempts.fail(attemptKey)
+	}
+	return valid, nil
+}
+
+func (service *LocalService) matchFactorCode(
 	ctx context.Context,
 	factor *TOTPFactor,
 	code string,

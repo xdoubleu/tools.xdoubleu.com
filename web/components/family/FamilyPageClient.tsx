@@ -62,9 +62,10 @@ export default function FamilyPageClient() {
   }
 
   async function handleAccept() {
+    if (!incomingInvite) return
     setAccepting(true)
     try {
-      await acceptInvite()
+      await acceptInvite(incomingInvite.id)
       await mutate(swrKeys.family)
     } catch {
       // ignore

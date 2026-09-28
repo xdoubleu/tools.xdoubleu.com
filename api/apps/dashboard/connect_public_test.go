@@ -385,7 +385,10 @@ func TestGetSharedBooksProgress_UnknownToken(t *testing.T) {
 
 func TestGetSharedFeedsSummary_Success(t *testing.T) {
 	ensureProfileShare(t)
-	seedPublicFeed(t, "Dashboard Test Feed", "https://example.com/dashboard-test-feed")
+	seedPublicFeed(
+		t, "Dashboard Test Feed",
+		"https://u:p@example.com/private/dashboard-test-feed?token=secret",
+	)
 
 	client := newPublicReadingClient(t)
 	resp, err := client.GetSharedFeedsSummary(
@@ -399,11 +402,11 @@ func TestGetSharedFeedsSummary_Success(t *testing.T) {
 	var found bool
 	for _, feed := range resp.Msg.Feeds {
 		if feed.Title == "Dashboard Test Feed" &&
-			feed.Url == "https://example.com/dashboard-test-feed" {
+			feed.Url == "https://example.com" {
 			found = true
 		}
 	}
-	assert.True(t, found, "seeded feed should be in the shared feeds list")
+	assert.True(t, found, "seeded feed should be shared with its origin only")
 }
 
 func TestGetSharedFeedsSummary_UnknownToken(t *testing.T) {

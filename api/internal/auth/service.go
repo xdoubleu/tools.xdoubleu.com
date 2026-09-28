@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,6 +68,7 @@ type LocalService struct {
 	refreshExpiry    string
 	appUsersRepo     appUsersStore
 	userCache        *userCache
+	attempts         *attemptLimiter
 	// resolveGroup coalesces concurrent cache misses for the same token.
 	resolveGroup singleflight.Group
 	// SignInRenderer is set by cmd/api to avoid an import cycle with package main.
@@ -101,6 +103,7 @@ func NewService(
 		userCache: newUserCache(
 			time.Duration(cfg.AuthCacheTTL) * time.Second,
 		),
+		attempts:            newAttemptLimiter(),
 		resolveGroup:        singleflight.Group{},
 		SignInRenderer:      nil,
 		OAuth2TokenResolver: nil,
@@ -273,19 +276,28 @@ func (service *LocalService) SignInWithEmail(
 ) (*string, *string, error) {
 	invalidCreds := errortools.NewUnauthorizedError(errors.New("invalid credentials"))
 
+	// Keyed by email, known or not, so a lockout reveals nothing either.
+	attemptKey := "signin:" + strings.ToLower(strings.TrimSpace(email))
+	if err := service.attempts.check(attemptKey); err != nil {
+		return nil, nil, err
+	}
+
 	user, err := service.usersStore.GetUserByEmail(ctx, email)
 	if err != nil {
 		// Same bcrypt cost as a real account, so timing doesn't reveal which
 		// emails are registered.
 		_ = bcrypt.CompareHashAndPassword(dummyPasswordHash(), []byte(password))
+		service.attempts.fail(attemptKey)
 		return nil, nil, invalidCreds
 	}
 
 	if bcrypt.CompareHashAndPassword(
 		[]byte(user.PasswordHash), []byte(password),
 	) != nil {
+		service.attempts.fail(attemptKey)
 		return nil, nil, invalidCreds
 	}
+	service.attempts.succeed(attemptKey)
 
 	accessToken, err := service.mintAccessToken(user.ID, aal1)
 	if err != nil {

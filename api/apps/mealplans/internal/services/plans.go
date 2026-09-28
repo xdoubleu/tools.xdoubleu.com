@@ -45,6 +45,7 @@ type plansStore interface {
 	GetByICalToken(ctx context.Context, token uuid.UUID) (*models.Plan, error)
 	Create(ctx context.Context, plan models.Plan) (*models.Plan, error)
 	Update(ctx context.Context, plan models.Plan) error
+	RotateICalToken(ctx context.Context, id, familyID uuid.UUID) (uuid.UUID, error)
 	Delete(ctx context.Context, id uuid.UUID, familyID uuid.UUID) error
 	CreateMeal(ctx context.Context, meal models.PlanMeal) (*models.PlanMeal, error)
 	UpdateMeal(ctx context.Context, meal models.PlanMeal) error
@@ -187,6 +188,19 @@ func (s *PlanService) Update(
 	}
 	plan.FamilyID = existing.FamilyID
 	return s.repo.Update(ctx, plan)
+}
+
+// RotateICalToken replaces the plan's iCal token, revoking the old feed URL.
+func (s *PlanService) RotateICalToken(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+) (uuid.UUID, error) {
+	plan, err := s.Get(ctx, id, userID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return s.repo.RotateICalToken(ctx, id, plan.FamilyID)
 }
 
 func (s *PlanService) Delete(

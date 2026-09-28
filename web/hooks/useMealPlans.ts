@@ -49,6 +49,11 @@ export function useUpdatePlan() {
   return (req: UpdatePlanInput) => client.updatePlan(req)
 }
 
+export function useRotateICalToken() {
+  const client = createServiceClient(MealPlansService)
+  return (id: string) => client.rotateICalToken({ id })
+}
+
 export function useAddMeal() {
   const client = createServiceClient(MealPlansService)
   return (req: AddMealInput) => client.createMeal(req)

@@ -76,7 +76,7 @@ func racyService(store racyStore) *LocalService {
 	return &LocalService{
 		usersStore: store, jwtSecret: []byte("secret"),
 		accessExpiry: "1h", refreshExpiry: "1h",
-		userCache: newUserCache(time.Minute),
+		userCache: newUserCache(time.Minute), attempts: newAttemptLimiter(),
 	}
 }
 

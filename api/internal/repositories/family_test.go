@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/repositories"
 )
 
@@ -56,7 +57,7 @@ func TestFamilyRepository_InviteAcceptRoundTrip(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, ownerID, invite.FromUserID)
 
-	joinedFamilyID, err := repo.AcceptInvite(t.Context(), inviteeID)
+	joinedFamilyID, err := repo.AcceptInvite(t.Context(), inviteeID, invite.ID)
 	require.NoError(t, err)
 
 	ownerFamilyID, ok, err := repo.GetFamilyID(t.Context(), ownerID)
@@ -73,6 +74,31 @@ func TestFamilyRepository_InviteAcceptRoundTrip(t *testing.T) {
 	_, ok, err = repo.GetFamilyID(t.Context(), inviteeID)
 	require.NoError(t, err)
 	assert.False(t, ok, "leaving should remove the membership row")
+}
+
+// TestFamilyRepository_AcceptReplacedInvite: an invite replaced by another
+// sender gets a new id, so accepting the old id joins nobody.
+func TestFamilyRepository_AcceptReplacedInvite(t *testing.T) {
+	const ownerID = "family-repo-owner-3"
+	const otherID = "family-repo-other-3"
+	const inviteeID = "family-repo-invitee-3"
+	clearFamily(t, ownerID, otherID, inviteeID)
+	repo := repositories.NewFamilyRepository(testDB)
+
+	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
+	seen, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+
+	require.NoError(t, repo.Invite(t.Context(), otherID, inviteeID))
+	replaced, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.NotEqual(t, seen.ID, replaced.ID)
+
+	_, err = repo.AcceptInvite(t.Context(), inviteeID, seen.ID)
+	require.ErrorIs(t, err, database.ErrResourceNotFound)
+	_, ok, err := repo.GetFamilyID(t.Context(), inviteeID)
+	require.NoError(t, err)
+	assert.False(t, ok, "a stale invite id must not create a membership")
 }
 
 func TestFamilyRepository_DeclineInvite(t *testing.T) {
@@ -114,7 +140,9 @@ func TestFamilyRepository_DisplayName(t *testing.T) {
 	repo := repositories.NewFamilyRepository(testDB)
 
 	require.NoError(t, repo.Invite(t.Context(), ownerID, inviteeID))
-	familyID, err := repo.AcceptInvite(t.Context(), inviteeID)
+	invite, _, err := repo.GetInvite(t.Context(), inviteeID)
+	require.NoError(t, err)
+	familyID, err := repo.AcceptInvite(t.Context(), inviteeID, invite.ID)
 	require.NoError(t, err)
 
 	names, err := repo.MemberDisplayNames(t.Context(), familyID)

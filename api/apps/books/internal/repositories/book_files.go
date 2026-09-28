@@ -228,22 +228,24 @@ func (r *BookFilesRepository) FindByChecksumGlobal(
 		LIMIT 1
 	`
 
-	rows, err := r.db.Query(ctx, query, checksum)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer rows.Close()
+	return r.queryOne(ctx, query, checksum)
+}
 
-	if !rows.Next() {
-		return nil, database.ErrResourceNotFound
-	}
+// FindByChecksumForUser returns any of userID's rows with the checksum, or
+// ErrResourceNotFound.
+func (r *BookFilesRepository) FindByChecksumForUser(
+	ctx context.Context,
+	userID string,
+	checksum string,
+) (*models.BookFile, error) {
+	query := `
+		SELECT ` + bookFileColumns + `
+		FROM books.book_files
+		WHERE user_id = $1 AND checksum = $2
+		LIMIT 1
+	`
 
-	f, err := scanBookFile(rows)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-
-	return f, nil
+	return r.queryOne(ctx, query, userID, checksum)
 }
 
 // FindByStorageKeyGlobal returns any ready row with the key, for cross-user
@@ -311,7 +313,17 @@ func (r *BookFilesRepository) FindByChecksum(
 		LIMIT 1
 	`
 
-	rows, err := r.db.Query(ctx, query, userID, bookID, format, checksum)
+	return r.queryOne(ctx, query, userID, bookID, format, checksum)
+}
+
+// queryOne returns the first book_files row query yields, or
+// ErrResourceNotFound.
+func (r *BookFilesRepository) queryOne(
+	ctx context.Context,
+	query string,
+	args ...any,
+) (*models.BookFile, error) {
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}

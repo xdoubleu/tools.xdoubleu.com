@@ -1033,3 +1033,64 @@ func TestSuggestRecipes_InvalidDate(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }
+
+func TestRotateICalToken_RevokesOldLink(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+	planID := createPlanInDB(t, "Rotate iCal Plan")
+
+	getResp, err := client.GetPlan(
+		ctx, connect.NewRequest(&mealplansv1.GetPlanRequest{Id: planID, Offset: 0}),
+	)
+	require.NoError(t, err)
+	oldURL := getResp.Msg.IcalUrl
+
+	rotResp, err := client.RotateICalToken(
+		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{Id: planID}),
+	)
+	require.NoError(t, err)
+	newURL := rotResp.Msg.IcalUrl
+	assert.NotEqual(t, oldURL, newURL)
+
+	ts := httptest.NewServer(getRoutes())
+	defer ts.Close()
+
+	oldResp, err := http.Get(ts.URL + oldURL)
+	require.NoError(t, err)
+	defer oldResp.Body.Close()
+	assert.Equal(t, http.StatusNotFound, oldResp.StatusCode)
+
+	newResp, err := http.Get(ts.URL + newURL)
+	require.NoError(t, err)
+	defer newResp.Body.Close()
+	assert.Equal(t, http.StatusOK, newResp.StatusCode)
+}
+
+func TestRotateICalToken_InvalidAndUnknownPlan(t *testing.T) {
+	client := setupMealPlansClient(getRoutes())
+	ctx := contextWithUser(
+		context.Background(),
+		&sharedmodels.User{ //nolint:exhaustruct // only ID needed
+			ID: userID,
+		},
+	)
+
+	_, err := client.RotateICalToken(
+		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{Id: "not-a-uuid"}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
+
+	_, err = client.RotateICalToken(
+		ctx, connect.NewRequest(&mealplansv1.RotateICalTokenRequest{
+			Id: uuid.New().String(),
+		}),
+	)
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
+}

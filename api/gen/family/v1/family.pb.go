@@ -330,7 +330,9 @@ func (*InviteToFamilyResponse) Descriptor() ([]byte, []int) {
 }
 
 type AcceptFamilyInviteRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The FamilyInvite.id the caller saw; a replaced invite gets a new id.
+	InviteId      string `protobuf:"bytes,1,opt,name=invite_id,json=inviteId,proto3" json:"invite_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -363,6 +365,13 @@ func (x *AcceptFamilyInviteRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AcceptFamilyInviteRequest.ProtoReflect.Descriptor instead.
 func (*AcceptFamilyInviteRequest) Descriptor() ([]byte, []int) {
 	return file_family_v1_family_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AcceptFamilyInviteRequest) GetInviteId() string {
+	if x != nil {
+		return x.InviteId
+	}
+	return ""
 }
 
 type AcceptFamilyInviteResponse struct {
@@ -649,8 +658,9 @@ const file_family_v1_family_proto_rawDesc = "" +
 	"\x11self_display_name\x18\x03 \x01(\tR\x0fselfDisplayName\"-\n" +
 	"\x15InviteToFamilyRequest\x12\x14\n" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"\x18\n" +
-	"\x16InviteToFamilyResponse\"\x1b\n" +
-	"\x19AcceptFamilyInviteRequest\"\x1c\n" +
+	"\x16InviteToFamilyResponse\"8\n" +
+	"\x19AcceptFamilyInviteRequest\x12\x1b\n" +
+	"\tinvite_id\x18\x01 \x01(\tR\binviteId\"\x1c\n" +
 	"\x1aAcceptFamilyInviteResponse\"\x1c\n" +
 	"\x1aDeclineFamilyInviteRequest\"\x1d\n" +
 	"\x1bDeclineFamilyInviteResponse\"@\n" +

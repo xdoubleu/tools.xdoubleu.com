@@ -75,8 +75,8 @@ type UploadFileResult struct {
 	MatchedExisting bool
 }
 
-// CreateUpload validates the size and, unless a blob with the checksum already
-// exists, returns a presigned R2 PUT URL. When alreadyExists is true the
+// CreateUpload validates the size and, unless userID already holds a blob with
+// the checksum, returns a presigned R2 PUT URL. When alreadyExists is true the
 // client skips the PUT and calls FinalizeUpload directly.
 func (s *BookService) CreateUpload(
 	ctx context.Context,
@@ -91,7 +91,7 @@ func (s *BookService) CreateUpload(
 	}
 
 	if checksum != "" {
-		_, lookupErr := s.bookFiles.FindByChecksumGlobal(ctx, checksum)
+		_, lookupErr := s.bookFiles.FindByChecksumForUser(ctx, userID, checksum)
 		if lookupErr == nil {
 			return "", "", true, nil
 		}
@@ -115,8 +115,10 @@ func (s *BookService) CreateUpload(
 	return uploadID, presignURL, false, nil
 }
 
-// FinalizeUpload processes an uploaded (or skipped, already-existing) file,
-// storing one canonical R2 object per content checksum across all users.
+// FinalizeUpload processes an uploaded file, storing one canonical R2 object
+// per content checksum across all users. Only a checksum userID already holds
+// skips the upload; reusing another user's blob needs the uploaded bytes, whose
+// server-side checksum picks the blob.
 func (s *BookService) FinalizeUpload(
 	ctx context.Context,
 	userID string,
@@ -127,16 +129,43 @@ func (s *BookService) FinalizeUpload(
 	titleOverride string,
 	authorOverride string,
 ) (*UploadFileResult, error) {
-	existing, err := s.bookFiles.FindByChecksumGlobal(ctx, checksum)
+	if checksum != "" {
+		own, err := s.bookFiles.FindByChecksumForUser(ctx, userID, checksum)
+		if err == nil {
+			return s.finalizeDuplicate(ctx, userID, uploadID, filename, checksum, own)
+		}
+		if !errors.Is(err, database.ErrResourceNotFound) {
+			return nil, err
+		}
+	}
+
+	prefix := fmt.Sprintf("users/%s/uploads/", userID)
+	if !strings.HasPrefix(uploadID, prefix) {
+		return nil, ErrInvalidUploadID
+	}
+
+	uf, err := s.loadUploadedFile(ctx, uploadID)
+	if err != nil {
+		if errors.Is(err, ErrInvalidFormat) {
+			_ = s.objectStore.Delete(context.WithoutCancel(ctx), uploadID)
+		}
+		return nil, err
+	}
+	defer func() {
+		_ = uf.tmp.Close()
+		_ = os.Remove(uf.tmp.Name())
+	}()
+
+	existing, err := s.bookFiles.FindByChecksumGlobal(ctx, uf.checksum)
 	if err == nil {
-		return s.finalizeDuplicate(ctx, userID, uploadID, filename, checksum, existing)
+		return s.finalizeDuplicate(ctx, userID, uploadID, filename, uf.checksum, existing)
 	}
 	if !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, err
 	}
 
 	return s.finalizeNew(
-		ctx, userID, uploadID, filename, checksum, titleOverride, authorOverride,
+		ctx, userID, uploadID, filename, uf, titleOverride, authorOverride,
 	)
 }
 
@@ -317,34 +346,17 @@ func (s *BookService) loadUploadedFile(
 	}, nil
 }
 
-// finalizeNew validates new content, copies it to its content-addressed key,
-// and inserts the book_files row.
+// finalizeNew recognizes the book, copies the upload to its content-addressed
+// key, and inserts the book_files row.
 func (s *BookService) finalizeNew(
 	ctx context.Context,
 	userID string,
 	uploadID string,
 	filename string,
-	_ string,
+	uf *uploadedFile,
 	titleOverride string,
 	authorOverride string,
 ) (*UploadFileResult, error) {
-	prefix := fmt.Sprintf("users/%s/uploads/", userID)
-	if !strings.HasPrefix(uploadID, prefix) {
-		return nil, ErrInvalidUploadID
-	}
-
-	uf, err := s.loadUploadedFile(ctx, uploadID)
-	if err != nil {
-		if errors.Is(err, ErrInvalidFormat) {
-			_ = s.objectStore.Delete(context.WithoutCancel(ctx), uploadID)
-		}
-		return nil, err
-	}
-	defer func() {
-		_ = uf.tmp.Close()
-		_ = os.Remove(uf.tmp.Name())
-	}()
-
 	if len(filename) > maxFilenameBytes {
 		filename = filename[:maxFilenameBytes]
 	}

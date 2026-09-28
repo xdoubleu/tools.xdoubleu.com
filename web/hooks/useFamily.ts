@@ -16,7 +16,7 @@ export function useInviteToFamily() {
 
 export function useAcceptFamilyInvite() {
   const client = createServiceClient(FamilyService)
-  return () => client.acceptFamilyInvite({})
+  return (inviteId: string) => client.acceptFamilyInvite({ inviteId })
 }
 
 export function useDeclineFamilyInvite() {

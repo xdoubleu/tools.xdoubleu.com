@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 
 	familyv1 "tools.xdoubleu.com/gen/family/v1"
 	"tools.xdoubleu.com/gen/family/v1/familyv1connect"
 	"tools.xdoubleu.com/internal/constants"
 	"tools.xdoubleu.com/internal/contexttools"
+	"tools.xdoubleu.com/internal/database"
 	"tools.xdoubleu.com/internal/family"
 	"tools.xdoubleu.com/internal/models"
 )
@@ -106,11 +109,23 @@ func (h *familyConnectHandler) InviteToFamily(
 
 func (h *familyConnectHandler) AcceptFamilyInvite(
 	ctx context.Context,
-	_ *connect.Request[familyv1.AcceptFamilyInviteRequest],
+	req *connect.Request[familyv1.AcceptFamilyInviteRequest],
 ) (*connect.Response[familyv1.AcceptFamilyInviteResponse], error) {
 	userID := h.userID(ctx)
 
-	if err := h.app.family.Accept(ctx, userID); err != nil {
+	inviteID, err := uuid.Parse(req.Msg.InviteId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, errors.New("invalid invite ID"),
+		)
+	}
+
+	if err = h.app.family.Accept(ctx, userID, inviteID); err != nil {
+		if errors.Is(err, database.ErrResourceNotFound) {
+			return nil, connect.NewError(
+				connect.CodeNotFound, errors.New("invite is no longer pending"),
+			)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
