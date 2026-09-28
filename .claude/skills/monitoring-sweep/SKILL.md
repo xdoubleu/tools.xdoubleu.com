@@ -6,10 +6,9 @@ description: Sweep the /monitoring Issues page for every currently-open problem 
 # Monitoring Sweep
 
 Work through everything the `/monitoring` Issues page
-(`web/components/monitoring/IssuesClient.tsx`) reports as non-zero via
-isolated subagents. This session triages and dispatches only — if you
-start reading application code to diagnose one issue, that belongs in a
-subagent.
+(`web/components/monitoring/ObservabilityClient.tsx`) reports as non-zero via
+isolated subagents. This session triages and dispatches only — diagnosing one issue's
+root cause belongs in a subagent.
 
 ## Modes
 
@@ -44,8 +43,9 @@ The invoking prompt states the mode; default to interactive.
    - `get_security_alerts` — gauge `github_open_security_alerts`.
    - `get_storage_stats` — `.latest.orphanCount`/`orphanKeys`; gauges
      `r2_orphaned_objects`, `r2_storage_bytes`.
-   - `get_slow_transactions` — live Sentry p95 "currently slow" list;
-     thresholds in `web/lib/observability.ts` (`SLOW_TRANSACTION_THRESHOLDS_MS`).
+   - `get_slow_transactions` — p95 list, informational; thresholds:
+     Grafana rules (`RequestP95High`, `JobP95High`, `FrontendP95High`
+     — `infra/grafana/provisioning/alerting/rules.yml`).
    - `prom_query` for raw gauges (`issue_signal_collector.go`).
 
 2. **Sentry resolution backstop** (inline, no subagent; independent of page
