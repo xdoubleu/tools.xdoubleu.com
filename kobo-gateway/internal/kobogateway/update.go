@@ -3,6 +3,7 @@ package kobogateway
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"tools.xdoubleu.com/kobo-gateway/internal/updatesig"
 )
 
 const (
@@ -20,40 +23,72 @@ const (
 	// DownloadPath is where the web app serves the latest gateway binary.
 	DownloadPath = "/downloads/" + BinaryName
 
+	// SignaturePath serves DownloadPath's base64 ed25519 signature.
+	SignaturePath = DownloadPath + ".sig"
+
 	downloadTimeout = 60 * time.Second
 
 	// maxBinarySize caps the download (the real binary is a few MB).
 	maxBinarySize = 512 << 20
+
+	maxSignatureSize = 1 << 10
 )
 
+// ErrUpdateSigningUnset means the build carries no update public key, so no
+// download can be trusted.
+var ErrUpdateSigningUnset = errors.New("self-update is disabled: no update signing key")
+
 // Updater implements UpdateRunner by atomically replacing the running
-// executable. Go's HTTP client sets no quarantine attribute, so Gatekeeper
-// isn't re-triggered.
+// executable with a download signed by the release key. Go's HTTP client sets
+// no quarantine attribute, so Gatekeeper isn't re-triggered.
 type Updater struct {
 	client *http.Client
 	// executablePath is os.Executable, injectable for tests.
 	executablePath func() (string, error)
+	// publicKey verifies downloads; nil disables self-update.
+	publicKey ed25519.PublicKey
 }
 
-// NewUpdater builds an Updater that replaces the current executable.
-func NewUpdater() *Updater {
+// NewUpdater builds an Updater that replaces the current executable, trusting
+// binaries signed by publicKeyB64 (base64 ed25519). An empty or invalid key
+// disables self-update.
+func NewUpdater(publicKeyB64 string) *Updater {
+	publicKey, err := updatesig.ParsePublicKey(publicKeyB64)
+	if err != nil {
+		publicKey = nil
+	}
+
 	return &Updater{
 		client:         &http.Client{Timeout: downloadTimeout},
 		executablePath: os.Executable,
+		publicKey:      publicKey,
 	}
 }
 
-// SelfUpdate downloads origin+DownloadPath to a temp file next to the
-// current executable, sanity-checks it, and atomically renames it over the
-// executable. On any failure the running binary is left untouched.
+// SelfUpdate downloads origin+DownloadPath, verifies its signature, writes it
+// to a temp file next to the current executable, and atomically renames it
+// over the executable. On any failure the running binary is left untouched.
 func (u *Updater) SelfUpdate(ctx context.Context, origin string) error {
+	if u.publicKey == nil {
+		return ErrUpdateSigningUnset
+	}
+
 	executable, err := u.executablePath()
 	if err != nil {
 		return fmt.Errorf("could not resolve executable path: %w", err)
 	}
 
-	data, err := u.download(ctx, origin+DownloadPath)
+	data, err := u.download(ctx, origin+DownloadPath, maxBinarySize)
 	if err != nil {
+		return err
+	}
+
+	sig, err := u.download(ctx, origin+SignaturePath, maxSignatureSize)
+	if err != nil {
+		return err
+	}
+
+	if err = updatesig.Verify(u.publicKey, data, string(sig)); err != nil {
 		return err
 	}
 
@@ -102,7 +137,11 @@ func AppBundlePath(executable string) string {
 	return appDir
 }
 
-func (u *Updater) download(ctx context.Context, downloadURL string) ([]byte, error) {
+func (u *Updater) download(
+	ctx context.Context,
+	downloadURL string,
+	maxSize int64,
+) ([]byte, error) {
 	req, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
@@ -123,7 +162,7 @@ func (u *Updater) download(ctx context.Context, downloadURL string) ([]byte, err
 		return nil, fmt.Errorf("update download failed: %s", resp.Status)
 	}
 
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBinarySize))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxSize))
 	if err != nil {
 		return nil, fmt.Errorf("could not read update: %w", err)
 	}

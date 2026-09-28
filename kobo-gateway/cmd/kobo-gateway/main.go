@@ -30,6 +30,12 @@ var Release = "dev"
 //nolint:gochecknoglobals // ldflags injection point, mirrors Release above.
 var SentryDSN = ""
 
+// UpdatePublicKey (base64 ed25519) is set via -ldflags; self-updates must be
+// signed by it, and an empty key disables them.
+//
+//nolint:gochecknoglobals // ldflags injection point, mirrors Release above.
+var UpdatePublicKey = ""
+
 // headless skips the AppKit menu bar and login-item registration under go
 // test (no window server; would touch ~/Library/LaunchAgents).
 //
@@ -129,7 +135,7 @@ func run(args []string, stdout io.Writer) error {
 		return err
 	}
 
-	updater := kobogateway.NewUpdater()
+	updater := kobogateway.NewUpdater(UpdatePublicKey)
 
 	if flags.NArg() > 0 {
 		if flags.Arg(0) != "update" {

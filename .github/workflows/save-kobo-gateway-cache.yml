@@ -26,7 +26,7 @@ jobs:
         id: cache
         with:
           path: kobo-gateway/dist/kobo-gateway
-          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}-${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
           lookup-only: true
 
   save:
@@ -47,8 +47,9 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: kobo-gateway/dist/kobo-gateway
-          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}-${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
       - run: |
-          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
+          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }} \
+            UPDATE_PUBLIC_KEY=${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
           echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'

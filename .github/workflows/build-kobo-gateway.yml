@@ -27,12 +27,28 @@ jobs:
         id: cache
         with:
           path: kobo-gateway/dist/kobo-gateway
-          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}
+          # The public key is compiled in, so it's part of the key.
+          key: build-kobo-gateway-${{ hashFiles('kobo-gateway/**') }}-${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
       - if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }}
+          make dist RELEASE=${{ github.sha }} SENTRY_DSN=${{ secrets.GATEWAY_SENTRY_DSN }} \
+            UPDATE_PUBLIC_KEY=${{ vars.KOBO_GATEWAY_UPDATE_PUBKEY }}
           echo -n "${{ github.sha }}" > dist/kobo-gateway/RELEASE
         working-directory: './kobo-gateway'
+      # Gateways only install self-updates signed by the release key. Signed
+      # only for main (what deploys), after any cache hit, never inside the
+      # cached build, so PR code never sees the key.
+      - name: Sign the self-update binary
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          KOBO_GATEWAY_SIGNING_KEY: ${{ secrets.KOBO_GATEWAY_SIGNING_KEY }}
+        working-directory: './kobo-gateway'
+        run: |
+          if [ -z "$KOBO_GATEWAY_SIGNING_KEY" ]; then
+            echo "::warning::KOBO_GATEWAY_SIGNING_KEY is unset; gateway self-update stays disabled."
+            exit 0
+          fi
+          go run ./cmd/kobo-sign sign dist/kobo-gateway/kobo-gateway-darwin-arm64
       # build-web downloads this artifact rather than racing a cache save.
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
