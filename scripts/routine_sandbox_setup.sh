@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-# Prepares routine_sandbox.sh for an agent-routine job (Linux runner with
-# passwordless sudo):
-#   routine_sandbox_setup.sh <workspace> <private-dir>
-# - creates the unprivileged sandbox user and lets it read and write the
-#   workspace, except .git and the agent's instruction files (read-only), so
-#   sandboxed code can't plant git config/hooks or edit skills;
-# - makes <private-dir> (the job's RUNNER_TEMP, which holds step outputs such
-#   as tokens) unreadable to it;
-# - disables git hooks for the job user;
-# - installs routine-sandbox and the routine scripts the job runs after the
-#   agent into <private-dir>/routine-bin, out of the sandbox's reach.
+# Prepares routine_sandbox.sh on a Linux runner with passwordless sudo:
+#   routine_sandbox_setup.sh <workspace> <private-dir (RUNNER_TEMP)>
+# Creates the sandbox user with workspace access minus .git and instruction
+# files, hides <private-dir> from it, disables git hooks, and installs
+# routine-sandbox plus the post-agent scripts into <private-dir>/routine-bin.
 set -euo pipefail
 
 workspace=$(cd "${1:?workspace}" && pwd)
