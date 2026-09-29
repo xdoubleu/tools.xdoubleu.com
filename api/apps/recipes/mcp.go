@@ -36,6 +36,8 @@ func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpGetRecipe)
 	mcptools.AddWriteTool(srv, mcpAppName, "recipes_create_recipe",
 		mcpCreateRecipeDescription, h.mcpCreateRecipe)
+	mcptools.AddReadTool(srv, mcpAppName, "recipes_fetch_video",
+		mcpFetchVideoDescription, h.mcpFetchVideo)
 }
 
 func (h *recipesConnectHandler) mcpListRecipes(

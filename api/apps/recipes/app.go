@@ -9,6 +9,7 @@ import (
 
 	"tools.xdoubleu.com/apps/recipes/internal/repositories"
 	"tools.xdoubleu.com/apps/recipes/internal/services"
+	"tools.xdoubleu.com/apps/recipes/pkg/videofetch"
 	"tools.xdoubleu.com/internal/app"
 	"tools.xdoubleu.com/internal/auth"
 	"tools.xdoubleu.com/internal/config"
@@ -22,6 +23,7 @@ var embedMigrations embed.FS
 type Recipes struct {
 	app.Base
 	services *services.Services
+	videos   videoFetcher
 }
 
 func New(
@@ -41,6 +43,7 @@ func New(
 		),
 	}
 	a.services = services.New(a.Logger, repositories.New(db), authService, familyRepo)
+	a.videos = videofetch.New(cfg.Env != config.ProdEnv)
 
 	return a
 }
