@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type Dispatch } from 'react'
 import { useFeeds } from '@/hooks/useFeeds'
 import {
   useFetchFilteredFeedItemsPage,
@@ -30,13 +30,17 @@ function FilterReason({ rule, scope }: { rule?: FilterRule; scope: string }) {
   )
 }
 
+// Named types, not inline function types: StrykerJS's instrumenter crashes
+// printing a TS function type.
 interface FilteredItemRowProps {
   item: Item
-  feedTitle: (feedId: string) => string
-  onRestored: (item: Item) => void
+  // Feed id to label.
+  feedTitles: ReadonlyMap<string, string>
+  onRestored: Dispatch<Item>
 }
 
-function FilteredItemRow({ item, feedTitle, onRestored }: FilteredItemRowProps) {
+function FilteredItemRow({ item, feedTitles, onRestored }: FilteredItemRowProps) {
+  const feedTitle = (id: string) => feedTitles.get(id) ?? 'Unknown feed'
   const restore = useRestoreFeedItem()
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -110,13 +114,7 @@ export default function FeedFilteredItemsClient({ initialFeedId }: { initialFeed
   const [restoredTitle, setRestoredTitle] = useState<string | null>(null)
 
   const feeds = useMemo(() => feedsData?.feeds ?? [], [feedsData])
-  const feedTitle = useCallback(
-    (id: string) => {
-      const feed = feeds.find((f) => f.id === id)
-      return feed ? feedLabel(feed) : 'Unknown feed'
-    },
-    [feeds]
-  )
+  const feedTitles = useMemo(() => new Map(feeds.map((f) => [f.id, feedLabel(f)])), [feeds])
   const handleRestored = useCallback((item: Item) => {
     setRestoredIds((prev) => new Set(prev).add(item.id))
     setRestoredTitle(item.title)
@@ -153,7 +151,7 @@ export default function FeedFilteredItemsClient({ initialFeedId }: { initialFeed
             <FilteredItemRow
               key={item.id}
               item={item}
-              feedTitle={feedTitle}
+              feedTitles={feedTitles}
               onRestored={handleRestored}
             />
           ))}

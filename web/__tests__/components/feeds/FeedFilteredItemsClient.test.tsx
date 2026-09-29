@@ -96,6 +96,40 @@ describe('FeedFilteredItemsClient', () => {
     expect(second).toHaveTextContent('Title contains sponsored · All feeds')
 
     expect(row('Orphaned item')).toHaveTextContent('Rule deleted')
+
+    const button = within(first).getByRole('button', { name: 'Restore New model launch' })
+    expect(button).toHaveTextContent(/^Restore$/)
+    expect(screen.queryByText('Restoring failed. Please try again.')).not.toBeInTheDocument()
+    expect(screen.queryByText('No filtered items.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Load more/i })).not.toBeInTheDocument()
+  })
+
+  it('labels a feed it no longer knows, and relabels once feeds load', () => {
+    mockUseFeeds.mockReturnValue({ data: undefined })
+    const { rerender } = render(<FeedFilteredItemsClient />)
+    expect(row('New model launch')).toHaveTextContent(
+      'Category is Product announcements · Unknown feed'
+    )
+    expect(within(screen.getByLabelText('Filter by feed')).getAllByRole('option')).toHaveLength(1)
+
+    mockUseFeeds.mockReturnValue({ data: { feeds } })
+    rerender(<FeedFilteredItemsClient />)
+    expect(row('New model launch')).toHaveTextContent(
+      'Category is Product announcements · Claude blog'
+    )
+  })
+
+  it('shows refreshed items when the list revalidates', () => {
+    const { rerender } = render(<FeedFilteredItemsClient />)
+    mockUseFilteredFeedItems.mockReturnValue({
+      data: { items: items.slice(2), hasMore: false },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedFilteredItemsClient />)
+    expect(screen.queryByText('New model launch')).not.toBeInTheDocument()
+    expect(screen.getByText('Orphaned item')).toBeInTheDocument()
   })
 
   it('lists the chosen feed only', () => {
@@ -144,6 +178,12 @@ describe('FeedFilteredItemsClient', () => {
     const orphan = row('Orphaned item')
     expect(orphan).toHaveTextContent('Restoring failed. Please try again.')
     expect(within(orphan).getByRole('button', { name: /Restore/ })).toBeEnabled()
+
+    const retry = deferred<unknown>()
+    mockRestore.mockReturnValueOnce(retry.promise)
+    fireEvent.click(within(orphan).getByRole('button', { name: /Restore/ }))
+    expect(orphan).not.toHaveTextContent('Restoring failed.')
+    await act(async () => retry.resolve({}))
   })
 
   it('shows an empty state', () => {
@@ -160,6 +200,9 @@ describe('FeedFilteredItemsClient', () => {
     mockUseFilteredFeedItems.mockReturnValue({ data: undefined, error: undefined, isLoading: true })
     const { rerender } = render(<FeedFilteredItemsClient />)
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Loading filtered items…')
+    expect(screen.queryByText('No filtered items.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Load more/i })).not.toBeInTheDocument()
 
     mockUseFilteredFeedItems.mockReturnValue({
       data: undefined,
@@ -168,6 +211,7 @@ describe('FeedFilteredItemsClient', () => {
     })
     rerender(<FeedFilteredItemsClient />)
     expect(screen.getByRole('alert')).toHaveTextContent('Failed to load filtered items.')
+    expect(screen.queryByText('No filtered items.')).not.toBeInTheDocument()
   })
 
   it('loads more pages', async () => {
@@ -185,5 +229,35 @@ describe('FeedFilteredItemsClient', () => {
 
     expect(mockFetchPage).toHaveBeenCalledWith(1)
     expect(screen.getByText('A sponsored post')).toBeInTheDocument()
+  })
+
+  it('keeps loaded pages when the first page revalidates unchanged, and resets otherwise', async () => {
+    mockUseFilteredFeedItems.mockReturnValue({
+      data: { items: items.slice(0, 1), hasMore: true },
+      error: undefined,
+      isLoading: false
+    })
+    mockFetchPage.mockResolvedValueOnce({ items: items.slice(1, 2), hasMore: false })
+    const { rerender } = render(<FeedFilteredItemsClient />)
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Load more/i }))
+    })
+
+    mockUseFilteredFeedItems.mockReturnValue({
+      data: { items: [{ ...items[0] }], hasMore: true },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedFilteredItemsClient />)
+    expect(screen.getByText('A sponsored post')).toBeInTheDocument()
+
+    mockUseFilteredFeedItems.mockReturnValue({
+      data: { items: items.slice(2), hasMore: true },
+      error: undefined,
+      isLoading: false
+    })
+    rerender(<FeedFilteredItemsClient />)
+    expect(screen.queryByText('A sponsored post')).not.toBeInTheDocument()
+    expect(screen.getByText('Orphaned item')).toBeInTheDocument()
   })
 })

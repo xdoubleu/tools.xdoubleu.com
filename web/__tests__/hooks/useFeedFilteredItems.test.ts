@@ -67,6 +67,17 @@ describe('filtered item hooks', () => {
     })
   })
 
+  it('useFetchFilteredFeedItemsPage follows a feed change', async () => {
+    const { result, rerender } = renderHook(({ feedId }) => useFetchFilteredFeedItemsPage(feedId), {
+      initialProps: { feedId: 'a' }
+    })
+    rerender({ feedId: 'b' })
+    await result.current(0)
+    expect(clientMocks.listFeedItems).toHaveBeenLastCalledWith(
+      expect.objectContaining({ feedId: 'b' })
+    )
+  })
+
   it('useRestoreFeedItem restores and refreshes items, stats, summary and rule counts', async () => {
     const { result } = renderHook(() => useRestoreFeedItem())
     const resp = await result.current('i1')

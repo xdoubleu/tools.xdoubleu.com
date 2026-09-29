@@ -14,9 +14,10 @@ import (
 // ErrItemNotFiltered is returned when restoring an item no rule filters.
 var ErrItemNotFiltered = errors.New("item is not filtered")
 
-// restoreFetchTimeout keeps RestoreItem's content fetch under kamal-proxy's
-// response timeout (adr-0017); a timed-out fetch restores without content.
-const restoreFetchTimeout = 20 * time.Second
+// restoreFetchTimeout keeps RestoreItem's content fetch under the server's
+// write timeout (httpWriteTimeout in cmd/api/main.go), so the client always
+// gets a response; a timed-out fetch restores without content.
+const restoreFetchTimeout = 7 * time.Second
 
 // RestoreItem returns one of the user's filtered items to the inbox as
 // unread at its original date; no rule filters it again. An item without
