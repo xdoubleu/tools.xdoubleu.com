@@ -49,13 +49,14 @@ describe('filter rule hooks', () => {
     expect(clientMocks.listFilterRules).toHaveBeenCalledWith({})
   })
 
-  it('useCreateFilterRule refreshes rules only when nothing was filtered', async () => {
+  it('useCreateFilterRule refreshes only rules and suggestions when nothing was filtered', async () => {
     const { result } = renderHook(() => useCreateFilterRule())
     const input = { feedId: '', kind: 2, value: 'sponsored' }
     await result.current(input)
     expect(clientMocks.createFilterRule).toHaveBeenCalledWith(input)
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRules)
-    expect(mutateMock).toHaveBeenCalledTimes(1)
+    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRuleSuggestions)
+    expect(mutateMock).toHaveBeenCalledTimes(2)
   })
 
   it('useCreateFilterRule also refreshes items and stats when items were filtered', async () => {
@@ -75,14 +76,15 @@ describe('filter rule hooks', () => {
     clientMocks.createFilterRule.mockResolvedValueOnce({})
     const { result } = renderHook(() => useCreateFilterRule())
     await result.current({ feedId: '', kind: 2, value: 'x' })
-    expect(mutateMock).toHaveBeenCalledTimes(1)
+    expect(mutateMock).toHaveBeenCalledTimes(2)
   })
 
-  it('useDeleteFilterRule deletes and refreshes rules', async () => {
+  it('useDeleteFilterRule deletes and refreshes rules and suggestions', async () => {
     const { result } = renderHook(() => useDeleteFilterRule())
     await result.current('r1')
     expect(clientMocks.deleteFilterRule).toHaveBeenCalledWith({ ruleId: 'r1' })
     expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRules)
+    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRuleSuggestions)
   })
 
   it('useDeleteFeed refreshes rules, since a feed takes its rules with it', async () => {

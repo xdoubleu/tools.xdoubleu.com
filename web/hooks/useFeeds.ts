@@ -186,14 +186,16 @@ export interface CreateFilterRuleInput {
   value: string
 }
 
-// useCreateFilterRule creates a rule; when it filtered existing items, the
-// item lists and stats that counted them are refetched.
+// useCreateFilterRule creates a rule and refetches the rules and the
+// suggestions it may cover; when it filtered existing items, the item lists
+// and stats that counted them are refetched too.
 export function useCreateFilterRule() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
     async (input: CreateFilterRuleInput): Promise<CreateFilterRuleResponse> => {
       const resp = await client.createFilterRule(input)
       await mutate(swrKeys.feedFilterRules)
+      await mutate(swrKeys.feedFilterRuleSuggestions)
       if ((resp.rule?.filteredCount ?? 0) > 0) {
         await mutateFeedItems()
         await mutate(swrKeys.feedStats)
@@ -205,13 +207,15 @@ export function useCreateFilterRule() {
   )
 }
 
-// useDeleteFilterRule deletes a rule; its items stay filtered.
+// useDeleteFilterRule deletes a rule; its items stay filtered, and the
+// suggestions it covered can return.
 export function useDeleteFilterRule() {
   const client = useMemo(() => createServiceClient(FeedService), [])
   return useCallback(
     async (ruleId: string) => {
       await client.deleteFilterRule({ ruleId })
       await mutate(swrKeys.feedFilterRules)
+      await mutate(swrKeys.feedFilterRuleSuggestions)
     },
     [client]
   )

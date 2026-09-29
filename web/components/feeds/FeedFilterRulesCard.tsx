@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { ConnectError, Code } from '@connectrpc/connect'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,23 +16,12 @@ import {
   useFilterRules
 } from '@/hooks/useFeeds'
 import { feedLabel } from '@/lib/feeds/feedLabel'
+import { createRuleErrorMessage, filteredMessage } from '@/lib/feeds/filterRuleMessages'
 import { FilterRuleKind } from '@/lib/gen/feeds/v1/feeds_pb'
 import type { FilterRule } from '@/lib/gen/feeds/v1/feeds_pb'
 
 function kindLabel(kind: FilterRuleKind): string {
   return kind === FilterRuleKind.CATEGORY ? 'Category' : 'Title contains'
-}
-
-function filteredMessage(count: number): string {
-  if (count === 0) return 'Rule added. No existing items matched.'
-  return `Filtered ${count} existing ${count === 1 ? 'item' : 'items'}.`
-}
-
-function createErrorMessage(err: unknown): string {
-  if (err instanceof ConnectError && err.code === Code.AlreadyExists) {
-    return 'That rule already exists.'
-  }
-  return 'Adding the rule failed. Please try again.'
 }
 
 function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
@@ -112,7 +100,7 @@ export default function FeedFilterRulesCard() {
       setStatus({ ok: true, message: filteredMessage(resp.rule?.filteredCount ?? 0) })
       setValue('')
     } catch (err) {
-      setStatus({ ok: false, message: createErrorMessage(err) })
+      setStatus({ ok: false, message: createRuleErrorMessage(err) })
     } finally {
       setBusy(false)
     }
