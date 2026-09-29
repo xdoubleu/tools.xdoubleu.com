@@ -5,6 +5,8 @@ describe('FeedItemCategories', () => {
   it('renders one chip per category in a labelled list', () => {
     render(<FeedItemCategories categories={['Product announcements', 'Claude Code']} />)
     const list = screen.getByRole('list', { name: 'Categories' })
+    // Chips wrap instead of overflowing a phone-width card.
+    expect(list).toHaveClass('flex-wrap')
     const chips = within(list).getAllByRole('listitem')
     expect(chips.map((c) => c.textContent)).toEqual(['Product announcements', 'Claude Code'])
   })
