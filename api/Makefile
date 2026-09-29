@@ -150,7 +150,7 @@ test/mutation/diff: tools/mutation
 		for pkg in $$pkgs; do \
 			echo "Diff-scoped mutation testing: $$pkg"; \
 			(cd "$$pkg" && \
-				GOFLAGS="$$GOFLAGS -p=1" GIT_CONFIG_COUNT=2 \
+				GOFLAGS="$$GOFLAGS -p=1 -count=1" GIT_CONFIG_COUNT=2 \
 				GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
 				GIT_CONFIG_KEY_1=diff.context GIT_CONFIG_VALUE_1=0 \
 				gremlins unleash --diff origin/main --workers 1 \
@@ -163,7 +163,7 @@ test/mutation/diff: tools/mutation
 
 # Full-repo baseline; slow, not for routine use.
 test/mutation: tools/mutation
-	GOFLAGS="$$GOFLAGS -p=1" gremlins unleash --workers 1 ./...
+	GOFLAGS="$$GOFLAGS -p=1 -count=1" gremlins unleash --workers 1 ./...
 
 test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
