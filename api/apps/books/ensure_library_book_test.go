@@ -45,6 +45,30 @@ func TestAddToLibraryIfAbsent_OwnedBookKeepsShelf(t *testing.T) {
 	assert.Equal(t, models.StatusReading, ub.Status)
 }
 
+// The Hardcover mock resolves every ISBN to one fixed book other tests may
+// already own, so this asserts resolution and idempotence, not the shelf.
+func TestEnsureLibraryBook_ResolvesIntoLibrary(t *testing.T) {
+	ctx := context.Background()
+
+	bookID, err := testApp.EnsureLibraryBook(
+		ctx,
+		userID,
+		"hardcover",
+		"978",
+		"To Learn",
+	)
+	require.NoError(t, err)
+	first, err := testApp.Services.Books.GetUserBook(ctx, userID, bookID)
+	require.NoError(t, err)
+
+	againID, err := testApp.EnsureLibraryBook(ctx, userID, "hardcover", "978", "Other")
+	require.NoError(t, err)
+	again, err := testApp.Services.Books.GetUserBook(ctx, userID, againID)
+	require.NoError(t, err)
+	assert.Equal(t, bookID, againID)
+	assert.Equal(t, first.Status, again.Status)
+}
+
 func TestEnsureLibraryBook_UnknownProviderNotFound(t *testing.T) {
 	_, err := testApp.EnsureLibraryBook(
 		context.Background(), userID, "no-such-provider", "123", "To Learn",
