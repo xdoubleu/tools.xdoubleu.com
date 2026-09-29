@@ -37,8 +37,8 @@ var appsToolNames = []string{
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
 	// feeds (2)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
-	// recipes (2)
-	"recipes_list_recipes", "recipes_get_recipe",
+	// recipes (3); create_recipe mutates, draft-only (adr-0026)
+	"recipes_list_recipes", "recipes_get_recipe", "recipes_create_recipe",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
 	// shoppinglist (8)
@@ -350,10 +350,15 @@ func TestAppsMCPAccessGate(t *testing.T) {
 	deniedToolArgs := map[string]any{
 		"learningpaths_get_path":    map[string]any{"id": uuid.NewString()},
 		"learningpaths_create_path": map[string]any{"title": "Hidden Path"},
+		"recipes_create_recipe": map[string]any{
+			"name": "Hidden Recipe", "steps": []string{}, "base_servings": 2,
+			"ingredients": []any{},
+		},
 	}
 	for _, name := range []string{
 		"books_get_library", "recipes_list_recipes",
 		"learningpaths_get_path", "learningpaths_create_path",
+		"recipes_create_recipe",
 	} {
 		//nolint:exhaustruct // name + optional arguments are all a call needs
 		res, callErr := session.CallTool(ctx, &mcp.CallToolParams{

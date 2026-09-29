@@ -1,5 +1,5 @@
 // Package mcptools holds shared MCP building blocks: the per-app access gate,
-// a read-tool registrar, and the proto-to-JSON result marshaler.
+// read and write tool registrars, and the proto-to-JSON result marshaler.
 package mcptools
 
 import (
@@ -41,6 +41,24 @@ func RequireAppAccess(ctx context.Context, appName string) error {
 // AddReadTool registers a read-only tool with the app-access gate and JSON
 // result marshaling.
 func AddReadTool[In any](
+	srv *mcp.Server,
+	appName, name, description string,
+	produce func(context.Context, In) (proto.Message, error),
+) {
+	addTool(srv, appName, name, description, produce)
+}
+
+// AddWriteTool registers a mutating tool behind the same gate as AddReadTool.
+// Each app's mutating tools need their own ADR (adr-0023, adr-0026).
+func AddWriteTool[In any](
+	srv *mcp.Server,
+	appName, name, description string,
+	produce func(context.Context, In) (proto.Message, error),
+) {
+	addTool(srv, appName, name, description, produce)
+}
+
+func addTool[In any](
 	srv *mcp.Server,
 	appName, name, description string,
 	produce func(context.Context, In) (proto.Message, error),
