@@ -1,6 +1,7 @@
 package services
 
 import (
+	"math"
 	"slices"
 	"sort"
 )
@@ -183,10 +184,17 @@ func assignColumns(
 		left = append(left, lines...)
 	} else {
 		gutterMid := (gutterLeft + gutterRight) / midpointDivisor
+		leftTop := math.Inf(-1)
 		for _, l := range lines {
-			// A line straddling the gutter (a title above both columns)
-			// reads with the left column, which sorts it first.
-			if l.left < gutterMid {
+			if l.right <= gutterMid {
+				leftTop = max(leftTop, l.top)
+			}
+		}
+		for _, l := range lines {
+			// A line straddling the gutter (a title) or above the whole
+			// left column (a recto page's running header) reads with the
+			// left column, which sorts it first.
+			if l.left < gutterMid || l.bottom > leftTop {
 				left = append(left, l)
 			} else {
 				right = append(right, l)

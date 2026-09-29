@@ -68,7 +68,8 @@ type paraRules struct {
 //     hanging entry. Indents are judged against the previous line, since
 //     every line of an epigraph, or of text narrowed beside a margin note,
 //     starts right of the column's usual start;
-//   - a line ending short (endsShort).
+//   - a line ending short (endsShort), unless it ends where the line above
+//     it does.
 func startsNewParagraph(para []pdfLine, cur pdfLine, r paraRules) bool {
 	prev := para[len(para)-1]
 	if r.medLineHeight > 0 && prev.bottom-cur.top > paragraphGapRatio*r.medLineHeight {
@@ -97,6 +98,11 @@ func startsNewParagraph(para []pdfLine, cur pdfLine, r paraRules) bool {
 		case step > paragraphIndentChars*ch && step <= paragraphMaxIndentChars*ch:
 			return true
 		}
+	}
+	// A line ending where the line above it ends is justified to a shared
+	// margin — narrowed beside a figure, it's still a full line.
+	if len(para) > 1 && math.Abs(para[len(para)-2].right-prev.right) <= justifiedEdgeChars*ch {
+		return false
 	}
 	return endsShort(prev, cur, ch)
 }

@@ -251,6 +251,9 @@ func extractDocument(
 		)
 	}
 	pageBlocks = removeProofSlugLines(pageBlocks)
+	pageBlocks = joinPageContinuations(
+		removeRunningHeaders(pageBlocks, docModalHeight), docModalHeight,
+	)
 
 	var blocks []htmlBlock
 	for _, pb := range pageBlocks {

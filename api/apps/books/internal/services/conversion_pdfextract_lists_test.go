@@ -261,3 +261,26 @@ func TestBuildPageBlocks_IndexEntriesStaySeparate(t *testing.T) {
 	add(testColLeft, "Bateson, Gregory, ix")
 	assert.Equal(t, []int{1, 4, 8, 5, 4, 3}, paragraphsOf(lines))
 }
+
+// TestBuildPageBlocks_JustifiedBandAfterFullLines: a paragraph narrowing
+// beside a figure keeps its lines together; the last line of the narrowed
+// band still ends it.
+func TestBuildPageBlocks_JustifiedBandAfterFullLines(t *testing.T) {
+	t.Parallel()
+
+	var lines []pdfLine
+	y := 600.0
+	add := func(text string) {
+		lines = append(lines, lineAt(text, testColLeft, y))
+		y -= testLineH
+	}
+	for range 3 {
+		add(strings.TrimSpace(strings.Repeat("full ", 16)))
+	}
+	add(strings.TrimSpace(strings.Repeat("band ", 10)))
+	add(strings.TrimSpace(strings.Repeat("band ", 10)))
+	add("last line of it.")
+	add(strings.TrimSpace(strings.Repeat("next ", 16)))
+	add("end.")
+	assert.Equal(t, []int{72, 17}, paragraphsOf(lines))
+}

@@ -131,3 +131,16 @@ func TestSplitAtGutter(t *testing.T) {
 	_, _, ok = splitAtGutter([]pdfChar{b}, 12)
 	require.False(t, ok)
 }
+
+// TestAssignColumns_HeaderAboveBothColumnsReadsFirst: a recto page's running
+// header sits right of the gutter but above both columns, so it reads first.
+func TestAssignColumns_HeaderAboveBothColumnsReadsFirst(t *testing.T) {
+	t.Parallel()
+
+	header := lineAt("INDEX 217", 330, 640)
+	left := lineAt("Daly, Herman, ix, 106", 54, 600)
+	right := lineAt("Nasar, Sylvia, 127", 222, 600)
+	gotLeft, gotRight := assignColumns([]pdfLine{left, right, header}, 210, 222, true)
+	require.Equal(t, "INDEX 217", gotLeft[0].text)
+	require.Len(t, gotRight, 1)
+}
