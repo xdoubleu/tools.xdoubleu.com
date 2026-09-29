@@ -22,11 +22,15 @@ const (
 	paragraphShortLineRatio = 0.85
 )
 
-// streamItem is one entry in a page's reading-order stream: either a line of
-// text or a figure placed between lines.
+// asideTag is the htmlBlock tag of a margin note.
+const asideTag = "blockquote"
+
+// streamItem is one entry in a page's reading-order stream: a line of text,
+// a figure placed between lines, or a margin note (aside) beside them.
 type streamItem struct {
 	line   *pdfLine
 	figure *pdfFigure
+	aside  []pdfLine
 }
 
 // htmlBlock is one block-level element of the extracted document: a
@@ -63,15 +67,15 @@ func mergeColumn(lines []pdfLine, figures []pdfFigure) []streamItem {
 	figIdx := 0
 	for i := range lines {
 		for figIdx < len(figures) && linesBefore[figIdx] == i {
-			//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
+			//nolint:exhaustruct // streamItem is a line/figure/aside union
 			items = append(items, streamItem{figure: &figures[figIdx]})
 			figIdx++
 		}
-		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
+		//nolint:exhaustruct // streamItem is a line/figure/aside union
 		items = append(items, streamItem{line: &lines[i]})
 	}
 	for figIdx < len(figures) {
-		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
+		//nolint:exhaustruct // streamItem is a line/figure/aside union
 		items = append(items, streamItem{figure: &figures[figIdx]})
 		figIdx++
 	}
@@ -89,6 +93,10 @@ func buildPageStream(
 	twoColumn bool,
 ) []streamItem {
 	leftLines, rightLines := assignColumns(lines, gutterLeft, gutterRight, twoColumn)
+	leftLines, leftNotes := separateAsides(leftLines)
+	rightLines, rightNotes := separateAsides(rightLines)
+	applyColStats(leftLines, 0)
+	applyColStats(rightLines, 1)
 
 	gutterMid := (gutterLeft + gutterRight) / midpointDivisor
 	var leftFigs, rightFigs, fullWidthFigs []pdfFigure
@@ -103,12 +111,12 @@ func buildPageStream(
 		}
 	}
 
-	leftStream := mergeColumn(leftLines, leftFigs)
+	leftStream := insertAsides(mergeColumn(leftLines, leftFigs), leftNotes)
 	for i := range fullWidthFigs {
-		//nolint:exhaustruct // streamItem is a line/figure union; exactly one is set
+		//nolint:exhaustruct // streamItem is a line/figure/aside union
 		leftStream = append(leftStream, streamItem{figure: &fullWidthFigs[i]})
 	}
-	rightStream := mergeColumn(rightLines, rightFigs)
+	rightStream := insertAsides(mergeColumn(rightLines, rightFigs), rightNotes)
 
 	return append(leftStream, rightStream...)
 }
@@ -123,17 +131,27 @@ func buildPageBlocks(
 ) []htmlBlock {
 	var blocks []htmlBlock
 	var paraLines []pdfLine
+	var pendingNotes [][]pdfLine
 	figureCount := 0
 
 	flush := func() {
-		if len(paraLines) == 0 {
-			return
+		if len(paraLines) > 0 {
+			blocks = append(blocks, renderParagraph(paraLines))
+			paraLines = nil
 		}
-		blocks = append(blocks, renderParagraph(paraLines))
-		paraLines = nil
+		for _, note := range pendingNotes {
+			blocks = append(blocks, renderAside(note, medLineHeight, pageMedianCharWidth))
+		}
+		pendingNotes = nil
 	}
 
 	for _, item := range items {
+		if item.aside != nil {
+			// A note sits beside a paragraph without ending it; it follows
+			// the paragraph once that ends.
+			pendingNotes = append(pendingNotes, item.aside)
+			continue
+		}
 		if item.figure != nil {
 			flush()
 			figureCount++
@@ -183,6 +201,31 @@ func startsNewParagraph(prev, cur pdfLine, medLineHeight, medCharWidth float64) 
 		return true
 	}
 	return false
+}
+
+// renderAside renders a margin note as a blockquote of its own paragraphs.
+func renderAside(lines []pdfLine, medLineHeight, medCharWidth float64) htmlBlock {
+	var b strings.Builder
+	var texts []string
+	para := []pdfLine{lines[0]}
+	emit := func() {
+		text := joinLinesWithHyphenation(para)
+		texts = append(texts, text)
+		b.WriteString("<p>" + escapeXMLText(text) + "</p>")
+	}
+	for _, l := range lines[1:] {
+		if startsNewParagraph(para[len(para)-1], l, medLineHeight, medCharWidth) {
+			emit()
+			para = nil
+		}
+		para = append(para, l)
+	}
+	emit()
+	return htmlBlock{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
+		html: "<blockquote>" + b.String() + "</blockquote>",
+		tag:  asideTag,
+		text: strings.Join(texts, " "),
+	}
 }
 
 // renderParagraph joins a paragraph's lines (applying hyphenation, step 5)

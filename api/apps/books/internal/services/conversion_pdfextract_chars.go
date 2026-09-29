@@ -164,6 +164,10 @@ const (
 	// no whitespace between but that are positioned a word apart (a tab
 	// stop); letter gaps, tracked headings included, stay under ~0.3.
 	streamWideGapRatio = 0.6
+	// ligatureSpaceGapRatio: after a ligature's spurious space glyph, the
+	// next letter sits at most ~0.3 away mid-word and ~0.5 after a real
+	// word space.
+	ligatureSpaceGapRatio = 0.4
 )
 
 // median returns the middle value of a sorted-in-place copy of vs, or 0 for
@@ -192,186 +196,6 @@ func medianCharWidth(chars []pdfChar) float64 {
 		widths[i] = c.right - c.left
 	}
 	return median(widths)
-}
-
-// normalCharHeightRatio distinguishes an ordinary letter — whose box spans
-// most of the page's median character height — from small punctuation
-// (commas, apostrophes, quotation marks, ...) whose box is much shorter and
-// sits off to one side of the baseline: low for commas/descenders, high for
-// apostrophes/quotes. Only normal-height characters take part in line
-// clustering (clusterNormalChars); small characters are attached afterwards
-// to whichever established line they're vertically closest to
-// (attachSmallChars). Letting punctuation's own off-center box influence
-// clustering is what caused #594 (commas split into their own line) and
-// #618 (apostrophes/quotes did the same, the opposite direction) — and
-// widening the clustering window to tolerate both directions at once (tried
-// while fixing #618) let unrelated lines merge into one, scrambling reading
-// order within the merged group.
-const normalCharHeightRatio = 0.7
-
-// groupLines clusters chars into lines (step 1 of the text algorithm): the
-// normal-height characters are clustered by y-midpoint proximity first
-// (clusterNormalChars), then every short-box punctuation character is
-// attached to its nearest resulting line (attachSmallChars) rather than
-// being allowed to shift where lines split.
-func groupLines(chars []pdfChar) []pdfLine {
-	if len(chars) == 0 {
-		return nil
-	}
-	medH := medianCharHeight(chars)
-	if medH <= 0 {
-		medH = 1
-	}
-
-	var normal, small []pdfChar
-	for _, c := range chars {
-		if c.top-c.bottom >= normalCharHeightRatio*medH {
-			normal = append(normal, c)
-		} else {
-			small = append(small, c)
-		}
-	}
-	if len(normal) == 0 {
-		// Degenerate page (every character is "small") — cluster everything
-		// so a page like this still produces output.
-		normal, small = chars, nil
-	}
-
-	groups := clusterNormalChars(normal, medH)
-	groups = attachSmallChars(groups, small, medH)
-
-	// clusterNormalChars produces groups in descending y-midpoint (top to
-	// bottom) order; attachSmallChars can append a new group past the end
-	// when no existing line is close enough, so restore that order before
-	// building lines.
-	sort.SliceStable(groups, func(i, j int) bool {
-		return groupYMid(groups[i]) > groupYMid(groups[j])
-	})
-
-	lines := make([]pdfLine, len(groups))
-	for i, g := range groups {
-		lines[i] = buildLine(g)
-	}
-	return lines
-}
-
-// clusterNormalCharsOverlapMarginRatio is the small float-rounding tolerance
-// applied to the vertical-interval overlap check in clusterNormalChars — not
-// a line-spacing allowance like lineGroupYMidRatio (that ratio is deliberately
-// too large for this check: applying it here reintroduces the false merge it
-// was tuned to avoid, see the comment below).
-const clusterNormalCharsOverlapMarginRatio = 0.05
-
-// clusterNormalChars groups normal-height characters into lines by
-// vertical-interval overlap rather than y-midpoint distance: sort by
-// descending midpoint, then join a character to the line being built when
-// its own [bottom, top] box overlaps the running envelope (min bottom, max
-// top seen so far) of the line, within a small float-rounding margin.
-//
-// A single physical line set in a large or stylized font can span a wide
-// range of y-midpoints — a cap-height letter's midpoint sits well above an
-// x-height letter's, which sits above a descender's — and that spread can
-// exceed lineGroupYMidRatio * medH when medH is calibrated off a much
-// smaller body-text font sharing the page (the chapter-title fracturing in
-// issue #1651). Cap, x-height, and descender glyphs on one baseline all
-// still overlap each other's box near the baseline/x-height band regardless
-// of font size, so overlap keeps them together where midpoint distance
-// would not. Genuinely separate lines set with normal leading still don't
-// overlap, so they still split — this only requires actual box overlap, not
-// lineGroupYMidRatio * medH of slack the way attachSmallChars allows for
-// small punctuation: that much tolerance here would let lines separated by
-// a narrow but real gap merge into one.
-func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
-	sorted := make([]pdfChar, len(chars))
-	copy(sorted, chars)
-	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].yMid() > sorted[j].yMid()
-	})
-
-	var groups [][]pdfChar
-	var group []pdfChar
-	var envTop, envBottom float64
-	margin := clusterNormalCharsOverlapMarginRatio * medH
-
-	flush := func() {
-		if len(group) == 0 {
-			return
-		}
-		groups = append(groups, group)
-		group = nil
-	}
-
-	for _, c := range sorted {
-		if len(group) > 0 && (c.bottom > envTop+margin || c.top < envBottom-margin) {
-			flush()
-		}
-		if len(group) == 0 {
-			envTop, envBottom = c.top, c.bottom
-		} else {
-			envTop = max(envTop, c.top)
-			envBottom = min(envBottom, c.bottom)
-		}
-		group = append(group, c)
-	}
-	flush()
-
-	return groups
-}
-
-// attachSmallChars assigns each short-box character to a group by
-// vertical-interval overlap, not by distance from a single point: a small
-// character joins the group whose [bottom, top] envelope — computed once
-// from that group's normal-height characters, before any small characters
-// are attached, so it can't grow across attachments — overlaps the
-// character's own [bottom, top] box within lineGroupYMidRatio * medH.
-// Overlap tolerates punctuation sitting on either side of the baseline
-// (comma low, apostrophe high); among multiple overlapping groups the one
-// whose y-midpoint is closest wins. A small character with no overlapping
-// group starts its own group, so a page of pure punctuation still produces
-// output.
-func attachSmallChars(groups [][]pdfChar, small []pdfChar, medH float64) [][]pdfChar {
-	margin := lineGroupYMidRatio * medH
-
-	envelopes := make([]pdfLine, len(groups))
-	for i, g := range groups {
-		envelopes[i] = buildLine(append([]pdfChar(nil), g...))
-	}
-
-	for _, c := range small {
-		best := -1
-		var bestDist float64
-
-		for i, env := range envelopes {
-			if c.bottom > env.top+margin || c.top < env.bottom-margin {
-				continue
-			}
-			dist := groupYMid(groups[i]) - c.yMid()
-			if dist < 0 {
-				dist = -dist
-			}
-			if best == -1 || dist < bestDist {
-				best = i
-				bestDist = dist
-			}
-		}
-
-		if best == -1 {
-			groups = append(groups, []pdfChar{c})
-			continue
-		}
-		groups[best] = append(groups[best], c)
-	}
-
-	return groups
-}
-
-// groupYMid returns the average y-midpoint of a group of characters.
-func groupYMid(g []pdfChar) float64 {
-	var sum float64
-	for _, c := range g {
-		sum += c.yMid()
-	}
-	return sum / float64(len(g))
 }
 
 // lastRune/firstRune return the last/first rune of s, or the zero rune for
@@ -410,7 +234,7 @@ func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	gap := c.left - prev.right
 	if streamAdjacent(prev, c) {
 		space := c.stream.spaceBefore &&
-			(!c.stream.afterLigature || gap > lineSpaceGapRatio*medH)
+			(!c.stream.afterLigature || gap > ligatureSpaceGapRatio*medH)
 		return space || gap > streamWideGapRatio*medH || isFontRunBoundary(prev, c)
 	}
 	if gap > spaceRatio*medH {

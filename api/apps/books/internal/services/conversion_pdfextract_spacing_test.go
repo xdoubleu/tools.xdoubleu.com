@@ -125,8 +125,60 @@ func TestBuildLine_WordEndingInLigatureKeepsSpace(t *testing.T) {
 		structuredChar("f", 230.4, 235.9, 571.5, 579.3),
 		structuredChar(" ", 233.0, 235.6, 571.5, 571.5),
 		structuredChar("m", 238.5, 246.0, 571.4, 576.4),
+		structuredChar("e", 246.6, 250.5, 571.4, 576.4),
+		structuredChar("e", 251.1, 255.0, 571.4, 576.4),
 	)
 
 	line := buildLine(extractChars(resp))
-	assert.Equal(t, "aff m", line.text)
+	assert.Equal(t, "aff mee", line.text)
+}
+
+// TestBuildLine_LigatureSpaceBeforeSideBearing: a letter with a wide
+// side-bearing after a ligature ("fi ll" in a sans margin note) is still
+// mid-word.
+func TestBuildLine_LigatureSpaceBeforeSideBearing(t *testing.T) {
+	resp := structuredPage(
+		structuredChar("f", 140.8, 144.7, 418.5, 425.1),
+		structuredChar("i", 140.8, 144.7, 418.5, 425.1),
+		structuredChar(" ", 142.9, 144.9, 418.5, 418.5),
+		structuredChar("l", 146.0, 147.0, 418.5, 425.1),
+		structuredChar("l", 148.2, 149.2, 418.5, 425.1),
+		structuredChar("s", 150.0, 153.4, 418.4, 423.3),
+		structuredChar(" ", 153.4, 155.4, 418.5, 418.5),
+		structuredChar("u", 156.0, 159.8, 418.4, 423.3),
+		structuredChar("s", 160.4, 163.8, 418.4, 423.3),
+		structuredChar("e", 164.4, 168.2, 418.4, 423.3),
+		structuredChar("s", 168.8, 172.2, 418.4, 423.3),
+	)
+
+	line := buildLine(extractChars(resp))
+	assert.Equal(t, "fills uses", line.text)
+}
+
+// TestGroupLines_HighApostropheStaysInStreamRun: an apostrophe set above the
+// x-height of the letter before it still continues the word it's part of.
+func TestGroupLines_HighApostropheStaysInStreamRun(t *testing.T) {
+	resp := structuredPage(
+		structuredChar("T", 100.0, 104.6, 50.0, 57.0),
+		structuredChar("h", 104.8, 109.0, 50.0, 57.2),
+		structuredChar("e", 109.4, 113.2, 49.9, 54.8),
+		structuredChar("r", 113.8, 116.3, 50.0, 54.8),
+		structuredChar("e", 116.6, 120.4, 49.9, 54.8),
+		structuredChar("’", 120.8, 122.0, 55.2, 57.2),
+		structuredChar("s", 122.4, 125.8, 49.9, 54.8),
+		// A body line beside the note, on a baseline nearer the apostrophe.
+		structuredChar("\r", 126, 126, 50, 50),
+		structuredChar("\n", 126, 126, 50, 50),
+		structuredChar("b", 200.0, 204.0, 52.5, 59.7),
+		structuredChar("o", 204.4, 208.2, 52.4, 57.3),
+		structuredChar("d", 208.6, 212.4, 52.4, 59.7),
+		structuredChar("y", 212.8, 216.4, 50.1, 57.3),
+	)
+
+	lines := groupLines(extractChars(resp))
+	texts := make([]string, len(lines))
+	for i, l := range lines {
+		texts[i] = l.text
+	}
+	assert.Equal(t, []string{"body", "There’s"}, texts)
 }
