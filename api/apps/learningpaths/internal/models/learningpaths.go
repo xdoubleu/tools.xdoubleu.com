@@ -10,6 +10,9 @@ import (
 // complete.
 const FullProgressPercent = 100
 
+// LearnShelf is the books shelf an item's ExternalBook is added to.
+const LearnShelf = "To Learn"
+
 type LearningPath struct {
 	ID        uuid.UUID
 	UserID    string
@@ -48,6 +51,10 @@ type Item struct {
 	// LinkedBookID pins a book-linked item; its Completed is derived on read.
 	LinkedBookID *uuid.UUID
 
+	// ExternalBook, on Create/Update only, is resolved into LinkedBookID by
+	// adding the book to the library. Never persisted.
+	ExternalBook *ExternalBookRef
+
 	// LinkedBook is resolved by LearningPathService.Get when the link still
 	// resolves for the caller, else nil. Never persisted.
 	LinkedBook *LinkedBook
@@ -78,6 +85,12 @@ type LinkedBook struct {
 	Status          string
 	ProgressPercent int
 	CoverURL        string
+}
+
+// ExternalBookRef is a books external search result.
+type ExternalBookRef struct {
+	Provider   string
+	ProviderID string
 }
 
 // LinkedFeedItem is the resolved state of a resource linked to a feeds item.

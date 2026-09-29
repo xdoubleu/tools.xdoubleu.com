@@ -202,6 +202,7 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 				SortOrder:    j,
 				Completed:    it.Completed,
 				LinkedBookID: parseOptionalUUID(it.LinkedBookId),
+				ExternalBook: dtoToExternalBook(it.ExternalBook),
 			}
 		}
 		//nolint:exhaustruct //ID/LearningPathID assigned by the repository
@@ -213,6 +214,13 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 		}
 	}
 	return modules
+}
+
+func dtoToExternalBook(in *learningpathsv1.ExternalBookRef) *models.ExternalBookRef {
+	if in == nil || in.Provider == "" || in.ProviderId == "" {
+		return nil
+	}
+	return &models.ExternalBookRef{Provider: in.Provider, ProviderID: in.ProviderId}
 }
 
 func dtoToQuiz(in []*learningpathsv1.QuizQuestion) []models.QuizQuestion {

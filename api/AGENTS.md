@@ -63,7 +63,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### Apps — non-obvious rules
 
-- **books** — any byte change to the KEPUB pipeline files (list in `converter_version_check_test.go`), comments included, requires bumping `currentKEPUBConverterVersion`, which re-converts every book. Avoid cosmetic edits there.
+- **books** — any byte change to the KEPUB pipeline files (list in `converter_version_check_test.go`), comments included, requires bumping `currentKEPUBConverterVersion`, which re-converts every book. A trigger pins `read` books at 100%.
 - **watchparty** — no DB, own domain `watchparty.xdoubleu.com`.
 - **mealplans/shoppinglist/recipes** — family-scoped by `family_id`; shoppinglist stores stay per-user.
 - **dashboard** — public services (`apps/dashboard/connect_public.go`) run **without auth middleware**; they resolve an opaque share token (`global.profile_shares`) and **must never read the user-context key**, then delegate to exported methods on the live app structs. Token management is in `DashboardService` behind `Access`, not `dashboard`'s `AppAccess` → [`adr-0007`](../docs/adr-0007-dashboard-app-owns-public-sharing.md).
@@ -73,8 +73,8 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
   - **Keep GTFS-RT trip `CANCELED` distinct from stop `SKIPPED`/`NO_DATA`** — conflating them fakes cancellations.
   - **Never persist, return, or join on `trip_id`** (churns daily); correlate by `(trip_short_name, service date)`.
 - **learningpaths** → [`adr-0023`](../docs/adr-0023-learningpaths-mcp-write-tools.md):
-  - Scoped by `user_id` only (no family); another user's path reads as not-found.
-  - Proto uses nested `LearningPath{modules{items}}`; Create/Update round-trip the whole tree; `RecordItemProgress` is the single-item exception.
+  - Scoped by `user_id`; another user's path reads as not-found.
+  - Proto nests `LearningPath{modules{items}}`; Create/Update replace the whole tree; `RecordItemProgress` is the single-item exception.
   - MCP write tools are gated by `RequireAppAccess` and scope via context, never an argument. Authoring guidance lives in tool descriptions and `mcp_authoring_guide.go`.
   - Todoist: per-user `learningpaths.oauth_connections` (PK `user_id, provider`), separate from admin `global.oauth_connections`; `internal/todoist` is create+delete, idempotent — only the active module's items are tasks.
   - Linked books/feed items resolve through exported `Books`/`Feeds` methods, never their internals.

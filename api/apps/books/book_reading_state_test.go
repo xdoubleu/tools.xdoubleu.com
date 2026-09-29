@@ -391,7 +391,13 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, models.StatusRead, ub.Status) // not demoted
-	assert.Equal(t, 80, ub.ProgressPercent)       // progress still recorded
+	assert.Equal(t, 100, ub.ProgressPercent)      // a read book stays at 100%
+
+	state, err := testApp.Services.Books.GetReadingState(
+		context.Background(), userID, book.ID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, 80, state.Percent) // resume position still recorded
 }
 
 // TestUpdateReadingProgress_NoPromote_ZeroPercent: Kobo sends 0 on open.

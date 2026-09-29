@@ -46,6 +46,9 @@ type TodoistService struct {
 	state         *oauthconn.StateStore
 	// newClient is a field so tests can substitute a mock Client.
 	newClient func(oauthconn.TokenFunc) todoist.Client
+	// resolveItems derives book-linked items' Completed before the active
+	// module is picked; nil leaves the stored flags.
+	resolveItems func(ctx context.Context, userID string, modules []models.Module) error
 }
 
 func NewTodoistService(
@@ -60,6 +63,7 @@ func NewTodoistService(
 		conf:          conf,
 		state:         state,
 		newClient:     todoist.NewClient,
+		resolveItems:  nil,
 	}
 }
 
@@ -128,13 +132,8 @@ func (s *TodoistService) SendItem(
 		return "", err
 	}
 
-	tokenFn := oauthconn.NewTokenFunc(
-		s.oauthRepo.ForUser(userID), sharedmodels.OAuthProviderTodoist, s.conf,
-	)
-	client := s.newClient(tokenFn)
-
 	content := fmt.Sprintf("%s: %s", item.PathTitle, item.Item.Description)
-	return client.CreateTask(ctx, content, "")
+	return s.userClient(userID).CreateTask(ctx, content, "")
 }
 
 // SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
@@ -166,15 +165,36 @@ func (s *TodoistService) SyncPath(
 	if err != nil {
 		return err
 	}
+	if s.resolveItems != nil {
+		if err = s.resolveItems(ctx, userID, modules); err != nil {
+			return err
+		}
+	}
 
 	active := s.activeModule(modules)
-	client := s.newClient(oauthconn.NewTokenFunc(
-		s.oauthRepo.ForUser(userID), sharedmodels.OAuthProviderTodoist, s.conf,
-	))
+	client := s.userClient(userID)
 	if err = s.clearNonActiveTasks(ctx, client, modules, active); err != nil {
 		return err
 	}
 	return s.createActiveTasks(ctx, client, lp.Title, modules, active)
+}
+
+// ClearTasks deletes every task modules' items carry; a no-op when Todoist
+// is disconnected.
+func (s *TodoistService) ClearTasks(
+	ctx context.Context, userID string, modules []models.Module,
+) error {
+	connected, _, err := s.Status(ctx, userID)
+	if err != nil || !connected {
+		return err
+	}
+	return s.clearNonActiveTasks(ctx, s.userClient(userID), modules, -1)
+}
+
+func (s *TodoistService) userClient(userID string) todoist.Client {
+	return s.newClient(oauthconn.NewTokenFunc(
+		s.oauthRepo.ForUser(userID), sharedmodels.OAuthProviderTodoist, s.conf,
+	))
 }
 
 // activeModule returns the index of the first module with an incomplete item,

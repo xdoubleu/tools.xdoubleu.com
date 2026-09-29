@@ -19,7 +19,9 @@ const mcpCreatePathDescription = "Creates a new learning path: a title, a goal "
 	"list. One quiz per module, carried on the module's terminal checkpoint " +
 	"item; each quiz question has a prompt, ordered options, and a " +
 	"correct_answer_index. Suggest whole books only — never a partial-book " +
-	"checkpoint. Modules, items, and resources are created in the order given " +
+	"checkpoint; link each book item via linked_book_id (owned) or " +
+	"external_book (from books_search_external; added to the To Learn shelf). " +
+	"Modules, items, and resources are created in the order given " +
 	"and keep that order. Always confirm the full proposed tree with the user " +
 	"before calling this — it persists real data. Mutating — see this app's " +
 	"ADR for why."
@@ -32,7 +34,8 @@ const mcpUpdatePathDescription = "Wholesale-replaces a learning path's " +
 	"checkpoint item (quiz on the module: prompt, options, correct_answer_index). " +
 	"Read the current path first with learningpaths_get_path and pass the " +
 	"complete desired tree. Suggest whole books only — never a partial-book " +
-	"checkpoint. Mutating — see this app's ADR for why."
+	"checkpoint; link books via linked_book_id or external_book. Recreates the " +
+	"active module's Todoist reminders. Mutating — see this app's ADR for why."
 
 // mcpRecordProgressDescription is the description for
 // learningpaths_record_progress.
@@ -87,6 +90,9 @@ Everything operates only on the calling user's own paths (scoped server-side).
         completed       bool    optional
         linked_book_id  string  optional (a library book id; this item then
                                 auto-completes at 100% read — no manual toggle)
+        external_book   object  optional (a book not in the library: provider +
+                                provider_id from books_search_external; added to
+                                the "To Learn" shelf, then linked as above)
     resources[]  ordered
       text       string   required (a URL, "Book: …", etc.)
 
@@ -118,8 +124,10 @@ Everything operates only on the calling user's own paths (scoped server-side).
 - Actionable, checkable items: not "learn X" but a concrete completing action
   ("read chapter 3 and summarize it"). Each item is checkable.
 - Book-linked items: when an item maps to a whole book the user will read,
-  set its linked_book_id from their library. The item then auto-completes when
-  the book reaches 100% read — the user doesn't check it off. Prefer wrapping
+  set its linked_book_id from their library, or external_book when they don't
+  own it yet (search with books_search_external). The item then auto-completes
+  when the book is on the read shelf or at 100% — the user doesn't check it
+  off. Prefer wrapping
   a book with "read" items (suggest whole books, never a partial-book
   checkpoint). For items a user can check off themselves (a "do" task, a
   feed-article read), leave linked_book_id unset so the manual toggle applies.
@@ -141,6 +149,7 @@ Everything operates only on the calling user's own paths (scoped server-side).
   only for structural changes.
 - update_path replaces: pass the full title/goal/routine AND the full
   modules/resources arrays read from get_path, or you'll drop what you omit.
+- update_path deletes and recreates the active module's Todoist reminders.
 - Scoping is automatic: these tools can only touch the calling user's own
   paths.
 `

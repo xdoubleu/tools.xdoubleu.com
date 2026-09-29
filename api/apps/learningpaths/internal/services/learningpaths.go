@@ -3,10 +3,12 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
 
+	"tools.xdoubleu.com/apps/books"
 	"tools.xdoubleu.com/apps/feeds"
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
@@ -48,6 +50,9 @@ type bookLookup interface {
 	GetLibraryBookByID(
 		ctx context.Context, userID string, bookID uuid.UUID,
 	) (*booksv1.UserBook, error)
+	EnsureLibraryBook(
+		ctx context.Context, userID, provider, providerID, shelf string,
+	) (uuid.UUID, error)
 }
 
 // feedItemLookup is the feeds surface (*feeds.Feeds) for linked resources.
@@ -263,6 +268,9 @@ func (s *LearningPathService) Create(
 ) (*models.LearningPath, error) {
 	lp.UserID = userID
 
+	if err := s.linkExternalBooks(ctx, userID, lp.Modules); err != nil {
+		return nil, err
+	}
 	if err := s.validateResourceLinks(ctx, userID, lp); err != nil {
 		return nil, err
 	}
@@ -308,8 +316,18 @@ func (s *LearningPathService) Update(
 		return database.ErrResourceNotFound
 	}
 
+	if err = s.linkExternalBooks(ctx, userID, lp.Modules); err != nil {
+		return err
+	}
 	if err = s.validateResourceLinks(ctx, userID, lp); err != nil {
 		return err
+	}
+
+	// Replacing modules reinserts every item, so their tasks would orphan:
+	// clear them first and let the sync below recreate the active module's.
+	// Best-effort, like every Todoist call.
+	if oldModules, modErr := s.repo.GetModules(ctx, lp.ID); modErr == nil {
+		_ = s.todoist.ClearTasks(ctx, userID, oldModules)
 	}
 
 	lp.UserID = existing.UserID
@@ -319,7 +337,48 @@ func (s *LearningPathService) Update(
 	if err = s.repo.ReplaceModules(ctx, lp.ID, lp.Modules); err != nil {
 		return err
 	}
-	return s.repo.ReplaceResources(ctx, lp.ID, lp.Resources)
+	if err = s.repo.ReplaceResources(ctx, lp.ID, lp.Resources); err != nil {
+		return err
+	}
+	_ = s.todoist.SyncPath(ctx, userID, lp.ID)
+	return nil
+}
+
+// linkExternalBooks resolves each item's ExternalBook into LinkedBookID,
+// adding the book to the LearnShelf when userID doesn't own it yet. An
+// explicit LinkedBookID wins.
+func (s *LearningPathService) linkExternalBooks(
+	ctx context.Context,
+	userID string,
+	modules []models.Module,
+) error {
+	for i := range modules {
+		for j := range modules[i].Items {
+			it := &modules[i].Items[j]
+			if it.ExternalBook == nil || it.LinkedBookID != nil {
+				continue
+			}
+			bookID, err := s.books.EnsureLibraryBook(
+				ctx, userID,
+				it.ExternalBook.Provider, it.ExternalBook.ProviderID,
+				models.LearnShelf,
+			)
+			if errors.Is(err, books.ErrExternalBookNotFound) {
+				return &iapp.HTTPError{
+					Status: http.StatusBadRequest,
+					Message: fmt.Sprintf(
+						"external_book %s/%s does not resolve to a book",
+						it.ExternalBook.Provider, it.ExternalBook.ProviderID,
+					),
+				}
+			}
+			if err != nil {
+				return err
+			}
+			it.LinkedBookID = &bookID
+		}
+	}
+	return nil
 }
 
 func (s *LearningPathService) Delete(

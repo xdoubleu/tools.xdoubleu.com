@@ -76,8 +76,15 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						Description:  "Read the tour of Go",
 						Completed:    false,
 						LinkedBookID: nil,
+						ExternalBook: nil,
 					},
-					{Type: "do", Description: "Write a CLI tool", Completed: false, LinkedBookID: nil},
+					{
+						Type:         "do",
+						Description:  "Write a CLI tool",
+						Completed:    false,
+						LinkedBookID: nil,
+						ExternalBook: nil,
+					},
 				},
 				Quiz: nil,
 			},
@@ -114,6 +121,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						Description:  "Read the tour of Go",
 						Completed:    false,
 						LinkedBookID: nil,
+						ExternalBook: nil,
 					},
 				},
 				Quiz: nil,
@@ -199,12 +207,19 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 			Title: "Basics",
 			// Terminal checkpoint item carries the quiz.
 			Items: []mcpItemArg{
-				{Type: "read", Description: "Read the tour", Completed: false, LinkedBookID: nil},
+				{
+					Type:         "read",
+					Description:  "Read the tour",
+					Completed:    false,
+					LinkedBookID: nil,
+					ExternalBook: nil,
+				},
 				{
 					Type:         "checkpoint",
 					Description:  "Pass the quiz",
 					Completed:    false,
 					LinkedBookID: nil,
+					ExternalBook: nil,
 				},
 			},
 			Quiz: quiz,
@@ -299,7 +314,13 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 		Modules: []mcpModuleArg{{
 			Title: "Broken",
 			Items: []mcpItemArg{
-				{Type: "read", Description: "x", Completed: false, LinkedBookID: nil},
+				{
+					Type:         "read",
+					Description:  "x",
+					Completed:    false,
+					LinkedBookID: nil,
+					ExternalBook: nil,
+				},
 			},
 			Quiz: []mcpQuizQuestionArg{{
 				Prompt: "?", Options: []string{"a", "b"}, CorrectAnswerIndex: 0,
@@ -339,6 +360,28 @@ func TestDTOToQuiz_NilSkipped(t *testing.T) {
 // TestMCPAuthoringGuide_ResourceExistsAndReads: the guide is served as an MCP
 // resource, and the write-tool descriptions embed its essentials for clients
 // that only read tool metadata.
+func TestToProtoModules_ExternalBookRoundTrips(t *testing.T) {
+	//nolint:exhaustruct //fixture sets only the fields under test
+	modules := toProtoModules([]mcpModuleArg{{Items: []mcpItemArg{
+		{Description: "owned"},
+		{
+			Description:  "unowned",
+			ExternalBook: &mcpExternalBookArg{Provider: "hardcover", ProviderID: "978"},
+		},
+	}}})
+
+	items := dtoToModules(modules)[0].Items
+	assert.Nil(t, items[0].ExternalBook)
+	require.NotNil(t, items[1].ExternalBook)
+	assert.Equal(t, "hardcover", items[1].ExternalBook.Provider)
+	assert.Equal(t, "978", items[1].ExternalBook.ProviderID)
+}
+
+func TestDTOToExternalBook_IncompleteIgnored(t *testing.T) {
+	ref := &learningpathsv1.ExternalBookRef{Provider: "hardcover"}
+	assert.Nil(t, dtoToExternalBook(ref))
+}
+
 func TestMCPAuthoringGuide_ResourceExistsAndReads(t *testing.T) {
 	require.Contains(t, mcpCreatePathDescription, "confirm the full proposed tree")
 	require.Contains(t, mcpCreatePathDescription, "modules")

@@ -32,6 +32,13 @@ type mcpItemArg struct {
 	Completed   bool   `json:"completed,omitempty"      jsonschema:"already completed"`
 	//nolint:gostruct //LinkedBook is read-only, never authored
 	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
+	//nolint:lll //jsonschema description
+	ExternalBook *mcpExternalBookArg `json:"external_book,omitempty" jsonschema:"book not in library, from books_search_external; added to To Learn and linked"`
+}
+
+type mcpExternalBookArg struct {
+	Provider   string `json:"provider"    jsonschema:"search result provider"`
+	ProviderID string `json:"provider_id" jsonschema:"search result provider_id"`
 }
 
 type mcpQuizQuestionArg struct {
@@ -135,6 +142,12 @@ func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {
 				Description:  it.Description,
 				Completed:    it.Completed,
 				LinkedBookId: it.LinkedBookID,
+			}
+			if it.ExternalBook != nil {
+				items[j].ExternalBook = &learningpathsv1.ExternalBookRef{
+					Provider:   it.ExternalBook.Provider,
+					ProviderId: it.ExternalBook.ProviderID,
+				}
 			}
 		}
 		modules[i] = &learningpathsv1.Module{
