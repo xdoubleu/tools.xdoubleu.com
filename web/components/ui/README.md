@@ -313,6 +313,20 @@ The page's `<h1>` row. Every page uses this instead of a hand-styled heading.
 | `actions` | `ReactNode` |  | Page-level controls; they wrap under the title on narrow screens. |
 | `className` | `string` |  |  |
 
+#### `PageHeaderLink`
+
+Navigation to another page in `PageHeader` `actions`. Commands in the same row use a `secondary` `Button`, and create actions use the default one.
+
+| Prop | Type | Required | Notes |
+|---|---|---|---|
+| `href` | `string` | yes |  |
+| `children` | `ReactNode` | yes |  |
+| `icon` | `ReactNode` |  | Leading icon; mark it `aria-hidden`. |
+
+#### `PageHeaderSettingsLink`
+
+`PageHeaderLink` to an app's settings page, with the gear icon.
+
 ### `popover.tsx` — client component
 
 #### `Popover`

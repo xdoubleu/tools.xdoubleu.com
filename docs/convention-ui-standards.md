@@ -14,7 +14,7 @@
   - No fixed pixel sizes, no `vh`/`h-screen` (use `dvh`), and no bare `grid-cols-N≥3`.
 - **Server Components by default.** Use Client Components only for interactivity.
 - **Primitives for every control and repeated pattern.** The inventory is [`web/components/ui/README.md`](../web/components/ui/README.md) (generated). If nothing fits, add a primitive.
-  - `PageHeader` for the page `<h1>`.
+  - `PageHeader` for the page `<h1>`. In its `actions`, `PageHeaderLink`/`PageHeaderSettingsLink` navigate, `secondary` buttons run commands, and the default button creates.
   - `PageContainer size` for page width. The shell owns padding.
   - `Card`/`SectionCard`, and `Card variant="inset"`.
   - `LinkCard` for cards that navigate, with controls in its `actions` footer.

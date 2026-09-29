@@ -1,14 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { getApiUrl } from '@/lib/env'
 import { useMealPlan } from '@/hooks/useMealPlans'
 import { useRecipes } from '@/hooks/useRecipes'
 import MealPlanCalendar from '@/components/mealplans/MealPlanCalendar'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function MealPlanClient({ id }: { id: string }) {
@@ -46,9 +45,7 @@ export default function MealPlanClient({ id }: { id: string }) {
                     {icalCopied ? 'Copied!' : 'iCal Link'}
                   </Button>
                 )}
-                <Button asChild variant="secondary" size="sm">
-                  <Link href={`/mealplans/${plan.id}/edit`}>Settings</Link>
-                </Button>
+                <PageHeaderSettingsLink href={`/mealplans/${plan.id}/edit`} />
               </>
             }
           />

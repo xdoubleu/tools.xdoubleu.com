@@ -1,5 +1,8 @@
 import { type ReactNode } from 'react'
+import Link from 'next/link'
+import SettingsIcon from '@/components/SettingsIcon'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 
 interface PageHeaderProps {
@@ -29,5 +32,36 @@ function PageHeader({ title, breadcrumb, description, actions, className }: Page
   )
 }
 
-export { PageHeader }
-export type { PageHeaderProps }
+interface PageHeaderLinkProps {
+  href: string
+  children: ReactNode
+  /** Leading icon; mark it `aria-hidden`. */
+  icon?: ReactNode
+}
+
+/**
+ * Navigation to another page in `PageHeader` `actions`. Commands in the same
+ * row use a `secondary` `Button`, and create actions use the default one.
+ */
+function PageHeaderLink({ href, children, icon }: PageHeaderLinkProps) {
+  return (
+    <Button asChild variant="ghost" size="sm" className="gap-2">
+      <Link href={href}>
+        {icon}
+        {children}
+      </Link>
+    </Button>
+  )
+}
+
+/** `PageHeaderLink` to an app's settings page, with the gear icon. */
+function PageHeaderSettingsLink({ href }: { href: string }) {
+  return (
+    <PageHeaderLink href={href} icon={<SettingsIcon />}>
+      Settings
+    </PageHeaderLink>
+  )
+}
+
+export { PageHeader, PageHeaderLink, PageHeaderSettingsLink }
+export type { PageHeaderProps, PageHeaderLinkProps }

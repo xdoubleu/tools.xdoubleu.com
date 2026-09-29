@@ -2,13 +2,9 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 
 jest.mock('@/components/feeds/FeedStatsClient', () => () => <div data-testid="feed-stats-client" />)
-jest.mock('@/components/feeds/FeedRuleSuggestionsCard', () => () => (
-  <div data-testid="feed-rule-suggestions" />
-))
 
 const mockServerClient = {
-  getFeedStats: jest.fn(),
-  getFilterRuleSuggestions: jest.fn()
+  getFeedStats: jest.fn()
 }
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => mockServerClient)
@@ -42,27 +38,18 @@ describe('FeedStatsPage', () => {
     fallbackProps.length = 0
   })
 
-  it('renders the rule suggestions and the stats client', async () => {
+  it('renders the stats client', async () => {
     render(await FeedStatsPage())
-    expect(screen.getByTestId('feed-rule-suggestions')).toBeInTheDocument()
     expect(screen.getByTestId('feed-stats-client')).toBeInTheDocument()
     expect(fallbackProps[0]).toEqual({})
   })
 
-  it('prefetches the stats and the suggestions', async () => {
+  it('prefetches the stats', async () => {
     const stats = { stats: [], itemsPerDay: [] }
-    const suggestions = { suggestions: [] }
     mockServerClient.getFeedStats.mockResolvedValueOnce(stats)
-    mockServerClient.getFilterRuleSuggestions.mockResolvedValueOnce(suggestions)
-    jest
-      .mocked(fetchOrNull)
-      .mockImplementationOnce((fetcher) => fetcher())
-      .mockImplementationOnce((fetcher) => fetcher())
+    jest.mocked(fetchOrNull).mockImplementationOnce((fetcher) => fetcher())
     render(await FeedStatsPage())
-    expect(fallbackProps[0]).toEqual({
-      [swrKeys.feedStats]: stats,
-      [swrKeys.feedFilterRuleSuggestions]: suggestions
-    })
+    expect(fallbackProps[0]).toEqual({ [swrKeys.feedStats]: stats })
   })
 
   it('shows a breadcrumb back to /feeds', async () => {

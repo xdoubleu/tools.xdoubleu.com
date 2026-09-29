@@ -1,14 +1,11 @@
-import Link from 'next/link'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/books/v1/library_pb'
 import ReadingDashboard from '@/components/dashboard/ReadingDashboard'
-import { Button } from '@/components/ui/button'
-import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 export default async function ReadingDashboardPage() {
   const client = await createServerClient(LibraryService)
@@ -24,14 +21,7 @@ export default async function ReadingDashboardPage() {
         <PageHeader
           title="Books"
           className="mb-4 lg:mb-3"
-          actions={
-            <Button asChild variant="ghost" size="sm" className="gap-2">
-              <Link href="/books/settings">
-                <SettingsIcon />
-                Settings
-              </Link>
-            </Button>
-          }
+          actions={<PageHeaderSettingsLink href="/books/settings" />}
         />
 
         <ReadingDashboard />

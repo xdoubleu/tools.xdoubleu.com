@@ -95,7 +95,7 @@ function SuggestionRow({
 
 // Suggests category rules for feed categories the user rarely reads; hidden
 // while there are none.
-export default function FeedRuleSuggestionsCard() {
+export default function FeedRuleSuggestionsCard({ className }: { className?: string }) {
   const { data } = useFilterRuleSuggestions()
   const [status, setStatus] = useState<Status | null>(null)
   const suggestions = data?.suggestions ?? []
@@ -103,7 +103,7 @@ export default function FeedRuleSuggestionsCard() {
   if (suggestions.length === 0 && !status) return null
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>Suggested filters</CardTitle>
         <CardDescription>
