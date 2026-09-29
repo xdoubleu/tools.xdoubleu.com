@@ -136,6 +136,11 @@ tools/mutation:
 # Runs gremlins on Go packages changed vs origin/main (one invocation per
 # package); --diff further scopes mutants to changed lines. .gremlins.yaml
 # excludes gen/ and *_mock.go.
+# gremlins matches `git diff` paths against paths relative to the dir it
+# scans, so it runs from inside each package with diff.relative set. git diff
+# omits untracked files; `git add -N` new files first.
+# -count=1 keeps a cached test result from shrinking the per-mutant timeout
+# (see .gremlins.yaml) to near zero.
 test/mutation/diff: tools/mutation
 	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
 	if [ -z "$$pkgs" ]; then \
@@ -144,7 +149,10 @@ test/mutation/diff: tools/mutation
 		status=0; \
 		for pkg in $$pkgs; do \
 			echo "Diff-scoped mutation testing: $$pkg"; \
-			gremlins unleash --diff origin/main "$$pkg" || status=1; \
+			(cd "$$pkg" && \
+				GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
+				GOFLAGS="$$GOFLAGS -count=1" \
+				gremlins unleash --diff origin/main) || status=1; \
 		done; \
 		exit $$status; \
 	fi

@@ -5,3 +5,7 @@ unleash:
   exclude-files:
     - "(^|/)gen/"
     - "_mock\\.go$"
+  # Per-mutant timeout is coverage time x this. Coverage reuses cached builds
+  # while each mutant recompiles and relinks, so the default 3 reports slow
+  # builds as TIMED OUT.
+  timeout-coefficient: 10
