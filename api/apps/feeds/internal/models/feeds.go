@@ -102,6 +102,16 @@ type FilterRule struct {
 	FilteredCount int
 }
 
+// FilterRuleSuggestion is a feed category the user rarely reads.
+type FilterRuleSuggestion struct {
+	FeedID    uuid.UUID
+	FeedTitle string
+	FeedURL   string
+	Category  string
+	ItemCount int
+	ReadCount int
+}
+
 // FeedUnreadCount is one feed's open (unread, non-dismissed, ingested) item
 // count.
 type FeedUnreadCount struct {

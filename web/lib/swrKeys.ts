@@ -70,6 +70,7 @@ export const swrKeys = {
   feedItem: (id: string) => `/feeds/item/${id}`,
   feedStats: '/feeds/stats',
   feedFilterRules: '/feeds/filter-rules',
+  feedFilterRuleSuggestions: '/feeds/filter-rule-suggestions',
   // Owner's reading-dashboard feeds widget.
   feedsSummary: '/feeds/summary',
   unhealthyFeeds: '/feeds/unhealthy',

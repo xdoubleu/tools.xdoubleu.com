@@ -40,6 +40,11 @@ func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_filter_rules",
 		"The user's rules hiding feed items by category or title, each with "+
 			"how many items it filtered.", h.mcpListFilterRules)
+	mcptools.AddReadTool(srv, mcpAppName, "feeds_get_filter_rule_suggestions",
+		"Feed categories the user rarely reads (at least 10 items in the last "+
+			"90 days, at most 10% read), not yet covered by a rule or "+
+			"dismissed, as candidate category filter rules.",
+		h.mcpGetFilterRuleSuggestions)
 }
 
 type mcpGetItemArgs struct {
@@ -82,5 +87,13 @@ func (h *feedsConnectHandler) mcpListFilterRules(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListFilterRules(ctx, connect.NewRequest(
 		&feedsv1.ListFilterRulesRequest{},
+	)))
+}
+
+func (h *feedsConnectHandler) mcpGetFilterRuleSuggestions(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetFilterRuleSuggestions(ctx, connect.NewRequest(
+		&feedsv1.GetFilterRuleSuggestionsRequest{},
 	)))
 }

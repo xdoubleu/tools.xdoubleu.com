@@ -35,9 +35,9 @@ var appsToolNames = []string{
 	"books_get_source_stats", "books_list_books_in_exact_sources",
 	"books_find_duplicates", "books_get_book_file", "books_get_kepub_status",
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
-	// feeds (4)
+	// feeds (5)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
-	"feeds_list_filter_rules",
+	"feeds_list_filter_rules", "feeds_get_filter_rule_suggestions",
 	// recipes (4); create_recipe mutates, draft-only (adr-0026)
 	"recipes_list_recipes", "recipes_get_recipe", "recipes_create_recipe",
 	"recipes_fetch_video",

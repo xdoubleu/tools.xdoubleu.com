@@ -68,6 +68,12 @@ const (
 	// FeedServiceRestoreFeedItemProcedure is the fully-qualified name of the FeedService's
 	// RestoreFeedItem RPC.
 	FeedServiceRestoreFeedItemProcedure = "/feeds.v1.FeedService/RestoreFeedItem"
+	// FeedServiceGetFilterRuleSuggestionsProcedure is the fully-qualified name of the FeedService's
+	// GetFilterRuleSuggestions RPC.
+	FeedServiceGetFilterRuleSuggestionsProcedure = "/feeds.v1.FeedService/GetFilterRuleSuggestions"
+	// FeedServiceDismissFilterRuleSuggestionProcedure is the fully-qualified name of the FeedService's
+	// DismissFilterRuleSuggestion RPC.
+	FeedServiceDismissFilterRuleSuggestionProcedure = "/feeds.v1.FeedService/DismissFilterRuleSuggestion"
 )
 
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
@@ -86,6 +92,8 @@ type FeedServiceClient interface {
 	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
 	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
 	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
+	GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error)
+	DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error)
 }
 
 // NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
@@ -183,25 +191,39 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
 			connect.WithClientOptions(opts...),
 		),
+		getFilterRuleSuggestions: connect.NewClient[v1.GetFilterRuleSuggestionsRequest, v1.GetFilterRuleSuggestionsResponse](
+			httpClient,
+			baseURL+FeedServiceGetFilterRuleSuggestionsProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("GetFilterRuleSuggestions")),
+			connect.WithClientOptions(opts...),
+		),
+		dismissFilterRuleSuggestion: connect.NewClient[v1.DismissFilterRuleSuggestionRequest, v1.DismissFilterRuleSuggestionResponse](
+			httpClient,
+			baseURL+FeedServiceDismissFilterRuleSuggestionProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("DismissFilterRuleSuggestion")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // feedServiceClient implements FeedServiceClient.
 type feedServiceClient struct {
-	listFeeds         *connect.Client[v1.ListFeedsRequest, v1.ListFeedsResponse]
-	createFeed        *connect.Client[v1.CreateFeedRequest, v1.CreateFeedResponse]
-	updateFeed        *connect.Client[v1.UpdateFeedRequest, v1.UpdateFeedResponse]
-	deleteFeed        *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
-	refreshFeed       *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
-	listFeedItems     *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
-	getFeedItem       *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
-	updateItem        *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
-	getFeedStats      *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
-	getUnhealthyFeeds *connect.Client[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse]
-	listFilterRules   *connect.Client[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse]
-	createFilterRule  *connect.Client[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse]
-	deleteFilterRule  *connect.Client[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse]
-	restoreFeedItem   *connect.Client[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse]
+	listFeeds                   *connect.Client[v1.ListFeedsRequest, v1.ListFeedsResponse]
+	createFeed                  *connect.Client[v1.CreateFeedRequest, v1.CreateFeedResponse]
+	updateFeed                  *connect.Client[v1.UpdateFeedRequest, v1.UpdateFeedResponse]
+	deleteFeed                  *connect.Client[v1.DeleteFeedRequest, v1.DeleteFeedResponse]
+	refreshFeed                 *connect.Client[v1.RefreshFeedRequest, v1.RefreshFeedResponse]
+	listFeedItems               *connect.Client[v1.ListFeedItemsRequest, v1.ListFeedItemsResponse]
+	getFeedItem                 *connect.Client[v1.GetFeedItemRequest, v1.GetFeedItemResponse]
+	updateItem                  *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
+	getFeedStats                *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
+	getUnhealthyFeeds           *connect.Client[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse]
+	listFilterRules             *connect.Client[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse]
+	createFilterRule            *connect.Client[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse]
+	deleteFilterRule            *connect.Client[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse]
+	restoreFeedItem             *connect.Client[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse]
+	getFilterRuleSuggestions    *connect.Client[v1.GetFilterRuleSuggestionsRequest, v1.GetFilterRuleSuggestionsResponse]
+	dismissFilterRuleSuggestion *connect.Client[v1.DismissFilterRuleSuggestionRequest, v1.DismissFilterRuleSuggestionResponse]
 }
 
 // ListFeeds calls feeds.v1.FeedService.ListFeeds.
@@ -274,6 +296,16 @@ func (c *feedServiceClient) RestoreFeedItem(ctx context.Context, req *connect.Re
 	return c.restoreFeedItem.CallUnary(ctx, req)
 }
 
+// GetFilterRuleSuggestions calls feeds.v1.FeedService.GetFilterRuleSuggestions.
+func (c *feedServiceClient) GetFilterRuleSuggestions(ctx context.Context, req *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error) {
+	return c.getFilterRuleSuggestions.CallUnary(ctx, req)
+}
+
+// DismissFilterRuleSuggestion calls feeds.v1.FeedService.DismissFilterRuleSuggestion.
+func (c *feedServiceClient) DismissFilterRuleSuggestion(ctx context.Context, req *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error) {
+	return c.dismissFilterRuleSuggestion.CallUnary(ctx, req)
+}
+
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
 	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
@@ -290,6 +322,8 @@ type FeedServiceHandler interface {
 	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
 	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
 	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
+	GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error)
+	DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error)
 }
 
 // NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -383,6 +417,18 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceGetFilterRuleSuggestionsHandler := connect.NewUnaryHandler(
+		FeedServiceGetFilterRuleSuggestionsProcedure,
+		svc.GetFilterRuleSuggestions,
+		connect.WithSchema(feedServiceMethods.ByName("GetFilterRuleSuggestions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	feedServiceDismissFilterRuleSuggestionHandler := connect.NewUnaryHandler(
+		FeedServiceDismissFilterRuleSuggestionProcedure,
+		svc.DismissFilterRuleSuggestion,
+		connect.WithSchema(feedServiceMethods.ByName("DismissFilterRuleSuggestion")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FeedServiceListFeedsProcedure:
@@ -413,6 +459,10 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceDeleteFilterRuleHandler.ServeHTTP(w, r)
 		case FeedServiceRestoreFeedItemProcedure:
 			feedServiceRestoreFeedItemHandler.ServeHTTP(w, r)
+		case FeedServiceGetFilterRuleSuggestionsProcedure:
+			feedServiceGetFilterRuleSuggestionsHandler.ServeHTTP(w, r)
+		case FeedServiceDismissFilterRuleSuggestionProcedure:
+			feedServiceDismissFilterRuleSuggestionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -476,4 +526,12 @@ func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *connec
 
 func (UnimplementedFeedServiceHandler) RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.RestoreFeedItem is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) GetFilterRuleSuggestions(context.Context, *connect.Request[v1.GetFilterRuleSuggestionsRequest]) (*connect.Response[v1.GetFilterRuleSuggestionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetFilterRuleSuggestions is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) DismissFilterRuleSuggestion(context.Context, *connect.Request[v1.DismissFilterRuleSuggestionRequest]) (*connect.Response[v1.DismissFilterRuleSuggestionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DismissFilterRuleSuggestion is not implemented"))
 }

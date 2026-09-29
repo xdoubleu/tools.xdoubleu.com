@@ -212,6 +212,33 @@ message DeleteFilterRuleResponse {}
 message RestoreFeedItemRequest { string item_id = 1; }
 message RestoreFeedItemResponse { Item item = 1; }
 
+// FilterRuleSuggestion proposes a category rule for one feed: the caller
+// rarely reads the category's recent, unfiltered, never-restored items.
+message FilterRuleSuggestion {
+  string feed_id = 1;
+  string feed_title = 2;
+  string feed_url = 3;
+  string category = 4;
+  // Items published in the last 90 days.
+  int32 item_count = 5;
+  int32 read_count = 6;
+  // read_count / item_count (0-1).
+  double read_rate = 7;
+}
+
+message GetFilterRuleSuggestionsRequest {}
+message GetFilterRuleSuggestionsResponse {
+  repeated FilterRuleSuggestion suggestions = 1;
+}
+
+// DismissFilterRuleSuggestion hides the feed's category suggestion for
+// good.
+message DismissFilterRuleSuggestionRequest {
+  string feed_id = 1;
+  string category = 2;
+}
+message DismissFilterRuleSuggestionResponse {}
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -232,4 +259,8 @@ service FeedService {
       returns (DeleteFilterRuleResponse);
   rpc RestoreFeedItem(RestoreFeedItemRequest)
       returns (RestoreFeedItemResponse);
+  rpc GetFilterRuleSuggestions(GetFilterRuleSuggestionsRequest)
+      returns (GetFilterRuleSuggestionsResponse);
+  rpc DismissFilterRuleSuggestion(DismissFilterRuleSuggestionRequest)
+      returns (DismissFilterRuleSuggestionResponse);
 }
