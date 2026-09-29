@@ -315,7 +315,7 @@ The page's `<h1>` row. Every page uses this instead of a hand-styled heading.
 
 #### `PageHeaderLink`
 
-Navigation to another page in `PageHeader` `actions`. Commands in the same row use a `secondary` `Button`, and create actions use the default one.
+Navigation to another page in `PageHeader` `actions`, bordered like the `secondary` command buttons beside it.
 
 | Prop | Type | Required | Notes |
 |---|---|---|---|
