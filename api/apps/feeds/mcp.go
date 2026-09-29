@@ -34,6 +34,9 @@ func (a *Feeds) RegisterMCPTools(srv *mcp.Server) {
 		h.mcpListItems)
 	mcptools.AddReadTool(srv, mcpAppName, "feeds_get_item",
 		"One feed item including its extracted article body.", h.mcpGetItem)
+	mcptools.AddReadTool(srv, mcpAppName, "feeds_list_filter_rules",
+		"The user's rules hiding feed items by category or title, each with "+
+			"how many items it filtered.", h.mcpListFilterRules)
 }
 
 type mcpGetItemArgs struct {
@@ -67,5 +70,13 @@ func (h *feedsConnectHandler) mcpGetItem(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetFeedItem(ctx, connect.NewRequest(
 		&feedsv1.GetFeedItemRequest{ItemId: args.ItemID},
+	)))
+}
+
+func (h *feedsConnectHandler) mcpListFilterRules(
+	ctx context.Context, _ mcptools.NoArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.ListFilterRules(ctx, connect.NewRequest(
+		&feedsv1.ListFilterRulesRequest{},
 	)))
 }

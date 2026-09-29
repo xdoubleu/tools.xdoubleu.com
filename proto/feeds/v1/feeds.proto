@@ -160,6 +160,43 @@ message GetUnhealthyFeedsResponse {
   repeated UnhealthyFeed feeds = 1;
 }
 
+enum FilterRuleKind {
+  FILTER_RULE_KIND_UNSPECIFIED = 0; // rejected
+  // Exact category match, ignoring case.
+  FILTER_RULE_KIND_CATEGORY = 1;
+  // Title substring match, ignoring case.
+  FILTER_RULE_KIND_TITLE = 2;
+}
+
+// FilterRule hides matching items from the inbox, unread counts and stats.
+message FilterRule {
+  string id = 1;
+  // Empty for a rule covering all of the caller's feeds.
+  string feed_id = 2;
+  FilterRuleKind kind = 3;
+  string value = 4;
+  string created_at = 5;
+  // Items the rule has filtered, at ingest or retroactively.
+  int32 filtered_count = 6;
+}
+
+message ListFilterRulesRequest {}
+message ListFilterRulesResponse { repeated FilterRule rules = 1; }
+
+// CreateFilterRule also filters the scope's existing unread,
+// unbookmarked, undismissed items; rule.filtered_count is how many.
+message CreateFilterRuleRequest {
+  // Empty applies the rule to all of the caller's feeds.
+  string feed_id = 1;
+  FilterRuleKind kind = 2;
+  string value = 3;
+}
+message CreateFilterRuleResponse { FilterRule rule = 1; }
+
+// DeleteFilterRule stops future filtering; filtered items stay filtered.
+message DeleteFilterRuleRequest { string rule_id = 1; }
+message DeleteFilterRuleResponse {}
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -172,4 +209,10 @@ service FeedService {
   rpc GetFeedStats(GetFeedStatsRequest) returns (GetFeedStatsResponse);
   rpc GetUnhealthyFeeds(GetUnhealthyFeedsRequest)
       returns (GetUnhealthyFeedsResponse);
+  rpc ListFilterRules(ListFilterRulesRequest)
+      returns (ListFilterRulesResponse);
+  rpc CreateFilterRule(CreateFilterRuleRequest)
+      returns (CreateFilterRuleResponse);
+  rpc DeleteFilterRule(DeleteFilterRuleRequest)
+      returns (DeleteFilterRuleResponse);
 }

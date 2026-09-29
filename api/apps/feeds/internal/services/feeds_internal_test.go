@@ -38,7 +38,8 @@ func TestTitleOrDefault(t *testing.T) {
 // falls back to the canonical URL.
 func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	s := NewFeedService(
-		slog.Default(), nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil, "",
+		slog.Default(), nil, nil, nil, mocks.NewMockWebFetchClient(), "", nil, nil,
+		"",
 	)
 	//nolint:exhaustruct // only title/link/description are relevant here
 	item := &gofeed.Item{
@@ -49,7 +50,7 @@ func TestBuildItemWhitespaceTitleFallsBackToCanonical(t *testing.T) {
 	//nolint:exhaustruct // buildItem only reads ID off the feed
 	feed := models.Feed{ID: uuid.New()}
 
-	built, err := s.buildItem(context.Background(), feed, item, "guid-1")
+	built, err := s.buildItem(context.Background(), feed, item, "guid-1", nil)
 	require.NoError(t, err)
 	assert.Equal(t, "https://example.com/post", built.Title)
 }

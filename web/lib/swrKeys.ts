@@ -67,6 +67,7 @@ export const swrKeys = {
   // Singular so mutateFeedItems' '/feeds/items' prefix sweep keeps bodies.
   feedItem: (id: string) => `/feeds/item/${id}`,
   feedStats: '/feeds/stats',
+  feedFilterRules: '/feeds/filter-rules',
   // Owner's reading-dashboard feeds widget.
   feedsSummary: '/feeds/summary',
   unhealthyFeeds: '/feeds/unhealthy',

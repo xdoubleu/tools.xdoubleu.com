@@ -68,7 +68,33 @@ type Item struct {
 	// IngestError is the latest ingest failure; the guid stays seen so it
 	// is never retried automatically.
 	IngestError *string
-	CreatedAt   time.Time
+	// FilteredAt is set when a filter rule hid the item; FilteredRuleID is
+	// that rule, nil once the rule is deleted. Only Insert uses them.
+	FilteredAt     *time.Time
+	FilteredRuleID *uuid.UUID
+	CreatedAt      time.Time
+}
+
+// FilterRuleKindCategory/Title are the FilterRule.Kind values.
+const (
+	FilterRuleKindCategory = "category"
+	FilterRuleKindTitle    = "title"
+)
+
+// FilterRule hides matching items from the inbox (feeds.filter_rules).
+type FilterRule struct {
+	ID     uuid.UUID
+	UserID string
+	// FeedID is nil for a rule covering all of the user's feeds.
+	FeedID *uuid.UUID
+	// Kind is one of the FilterRuleKind* constants. Value matches
+	// case-insensitively: an exact category, or a title substring.
+	Kind      string
+	Value     string
+	CreatedAt time.Time
+	// FilteredCount is how many items the rule filters; set by list and
+	// create only.
+	FilteredCount int
 }
 
 // FeedUnreadCount is one feed's open (unread, non-dismissed, ingested) item

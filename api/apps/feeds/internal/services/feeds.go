@@ -61,6 +61,7 @@ type FeedService struct {
 	logger        *slog.Logger
 	feeds         *repositories.FeedsRepository
 	items         *repositories.ItemsRepository
+	filterRules   *repositories.FilterRulesRepository
 	webFetch      webfetch.Client
 	inboundDomain string
 	notifications *notifications.Service
@@ -74,6 +75,7 @@ func NewFeedService(
 	logger *slog.Logger,
 	feeds *repositories.FeedsRepository,
 	items *repositories.ItemsRepository,
+	filterRules *repositories.FilterRulesRepository,
 	webFetchClient webfetch.Client,
 	inboundDomain string,
 	notifications *notifications.Service,
@@ -84,6 +86,7 @@ func NewFeedService(
 		logger:        logger,
 		feeds:         feeds,
 		items:         items,
+		filterRules:   filterRules,
 		webFetch:      webFetchClient,
 		inboundDomain: inboundDomain,
 		notifications: notifications,
@@ -236,6 +239,9 @@ func (s *FeedService) IngestEmail(
 		ContentHTML: htmlBody,
 		PublishedAt: time.Now(),
 	}
+	markFiltered(&item, matchFilterRule(
+		s.feedFilterRules(ctx, feed), feed.ID, item.Title, nil,
+	))
 
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "email feed ingest failed",
@@ -467,6 +473,7 @@ func (s *FeedService) processItems(
 	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
 		return normalizeCategories(byGUID[guid].Categories)
 	})
+	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
 	ingested := 0
 	for i, guid := range newGUIDs {
@@ -477,22 +484,24 @@ func (s *FeedService) processItems(
 			s.markSeenError(ctx, feed.ID, guid, "skipped: over per-poll cap")
 			continue
 		}
-		if s.ingestItem(ctx, feed, byGUID[guid], guid) {
+		if s.ingestItem(ctx, feed, byGUID[guid], guid, rules) {
 			ingested++
 		}
 	}
 	return ingested
 }
 
-// ingestItem ingests one feed item and reports whether it stored one. The
-// guid is marked seen regardless; RefreshFeed re-parses the live feed.
+// ingestItem ingests one feed item and reports whether it stored an
+// unfiltered one. The guid is marked seen regardless; RefreshFeed re-parses
+// the live feed.
 func (s *FeedService) ingestItem(
 	ctx context.Context,
 	feed models.Feed,
 	item *gofeed.Item,
 	guid string,
+	rules []models.FilterRule,
 ) bool {
-	built, err := s.buildItem(ctx, feed, item, guid)
+	built, err := s.buildItem(ctx, feed, item, guid, rules)
 	if err != nil {
 		s.logger.WarnContext(ctx, "feed item ingest failed",
 			"feedID", feed.ID, "guid", guid, "error", err)
@@ -505,16 +514,18 @@ func (s *FeedService) ingestItem(
 			"feedID", feed.ID, "guid", guid, "error", err)
 		return false
 	}
-	return true
+	return built.FilteredAt == nil
 }
 
 // buildItem resolves item content: embedded content, else the extracted
-// linked page, else the RSS description.
+// linked page, else the RSS description. An item matching a filter rule
+// keeps only embedded content, so it costs no fetch.
 func (s *FeedService) buildItem(
 	ctx context.Context,
 	feed models.Feed,
 	item *gofeed.Item,
 	guid string,
+	rules []models.FilterRule,
 ) (*models.Item, error) {
 	if item.Link == "" {
 		return nil, errors.New("feed item has no link")
@@ -525,11 +536,15 @@ func (s *FeedService) buildItem(
 	}
 
 	title := item.Title
+	categories := normalizeCategories(item.Categories)
+	rule := matchFilterRule(
+		rules, feed.ID, titleOrDefault(title, canonical), categories,
+	)
 	html := feedItemHTML(item)
-	if html == "" {
+	if html == "" && rule == nil {
 		html = s.fetchLinkedPageHTML(ctx, canonical, &title)
 	}
-	if html == "" {
+	if html == "" && rule == nil {
 		html = item.Description
 	}
 	title = titleOrDefault(title, canonical)
@@ -540,15 +555,17 @@ func (s *FeedService) buildItem(
 	}
 
 	//nolint:exhaustruct // read/dismissed/bookmarked/ingest_error start empty
-	return &models.Item{
+	built := &models.Item{
 		FeedID:      feed.ID,
 		GUID:        guid,
 		Title:       title,
 		SourceURL:   canonical,
 		ContentHTML: html,
 		PublishedAt: publishedAt,
-		Categories:  normalizeCategories(item.Categories),
-	}, nil
+		Categories:  categories,
+	}
+	markFiltered(built, rule)
+	return built, nil
 }
 
 // fetchLinkedPageHTML extracts the linked page, returning "" on any failure;

@@ -69,4 +69,8 @@ func TestMCPTools_ListFeedsAndItems(t *testing.T) {
 	resp, ok := msg.(*feedsv1.ListFeedItemsResponse)
 	require.True(t, ok)
 	require.Empty(t, resp.Items)
+
+	rules, err := h.mcpListFilterRules(ctx, mcptools.NoArgs{})
+	require.NoError(t, err)
+	require.IsType(t, &feedsv1.ListFilterRulesResponse{}, rules)
 }
