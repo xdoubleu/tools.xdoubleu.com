@@ -86,7 +86,7 @@
     "@stryker-mutator/instrumenter": {
       "@babel/core": "8.0.6"
     },
-    "ws": "8.21.3",
+    "ws": "8.22.0",
     "@xmldom/xmldom": "0.9.12",
     "browserslist": "4.29.1",
     "baseline-browser-mapping": "2.11.26",
