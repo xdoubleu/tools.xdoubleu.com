@@ -3,6 +3,7 @@ package feeds_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"connectrpc.com/connect"
@@ -24,12 +25,22 @@ func createCategoryFeed(
 	n int,
 ) (string, []string) {
 	t.Helper()
+	return createCategoryFeedOf(t, client, n, suggestedCategory)
+}
+
+func createCategoryFeedOf(
+	t *testing.T,
+	client feedsv1connect.FeedServiceClient,
+	n int,
+	category string,
+) (string, []string) {
+	t.Helper()
 	base := uniqueBlogBase()
 	items := make([]ruleRSSItem, n)
 	for i := range items {
 		items[i] = ruleRSSItem{
 			fmt.Sprintf("Post %d", i), fmt.Sprintf("%s/post-%d", base, i),
-			[]string{suggestedCategory}, itemContent,
+			[]string{category}, itemContent,
 		}
 	}
 	feedID := createRuleFeed(t, client, base+"/feed.xml", items...)
@@ -143,6 +154,15 @@ func TestFilterRuleSuggestions_OnlyCountsLast90Days(t *testing.T) {
 		WHERE id = $1
 	`, ids[0])
 	require.NoError(t, err)
+
+	assert.Nil(t, suggestionFor(t, client, feedID))
+}
+
+// A rule can't hold a category this long, so its suggestion couldn't be
+// acted on.
+func TestFilterRuleSuggestions_SkipCategoriesTooLongForARule(t *testing.T) {
+	client := newFeedsClient(t)
+	feedID, _ := createCategoryFeedOf(t, client, 10, strings.Repeat("x", 201))
 
 	assert.Nil(t, suggestionFor(t, client, feedID))
 }

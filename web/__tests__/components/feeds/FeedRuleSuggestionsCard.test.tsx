@@ -35,7 +35,7 @@ const suggestions = [
 
 const rows = () => screen.queryAllByRole('listitem')
 const rowButton = (index: number, name: string) =>
-  within(rows()[index]!).getByRole('button', { name: new RegExp(name) })
+  within(rows()[index]!).getByRole('button', { name })
 
 describe('FeedRuleSuggestionsCard', () => {
   beforeEach(() => {
@@ -90,7 +90,68 @@ describe('FeedRuleSuggestionsCard', () => {
     rerender(<FeedRuleSuggestionsCard />)
 
     expect(screen.getByRole('status')).toHaveTextContent('Filtered 1 existing item.')
-    expect(rows()).toHaveLength(0)
+    expect(screen.getByRole('status')).toHaveClass('text-success')
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
+  })
+
+  it('reports a rule that filtered nothing', async () => {
+    mockCreate.mockResolvedValue({})
+    render(<FeedRuleSuggestionsCard />)
+
+    fireEvent.click(rowButton(0, 'Create rule'))
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Rule added. No existing items matched.'
+    )
+  })
+
+  it('shows the row as adding while its rule is created', async () => {
+    let resolve!: (v: unknown) => void
+    mockCreate.mockReturnValue(new Promise((res) => (resolve = res)))
+    render(<FeedRuleSuggestionsCard />)
+
+    fireEvent.click(rowButton(0, 'Create rule'))
+
+    expect(rowButton(0, 'Adding…')).toBeDisabled()
+    expect(rowButton(0, 'Dismiss')).toBeDisabled()
+    resolve({ rule: { filteredCount: 2 } })
+    await waitFor(() => expect(rowButton(0, 'Create rule')).not.toBeDisabled())
+  })
+
+  it('clears the previous result when another action starts', async () => {
+    mockCreate.mockRejectedValue(new Error('boom'))
+    mockDismiss.mockReturnValue(new Promise(() => {}))
+    render(<FeedRuleSuggestionsCard />)
+    fireEvent.click(rowButton(0, 'Create rule'))
+    await screen.findByRole('alert')
+
+    fireEvent.click(rowButton(1, 'Dismiss'))
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('clears the previous result when creating another rule', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('boom')).mockReturnValue(new Promise(() => {}))
+    render(<FeedRuleSuggestionsCard />)
+    fireEvent.click(rowButton(0, 'Create rule'))
+    await screen.findByRole('alert')
+
+    fireEvent.click(rowButton(1, 'Create rule'))
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("keeps a row's pending state with its suggestion when the list reorders", () => {
+    mockDismiss.mockReturnValue(new Promise(() => {}))
+    const { rerender } = render(<FeedRuleSuggestionsCard />)
+    fireEvent.click(rowButton(1, 'Dismiss'))
+
+    mockUseSuggestions.mockReturnValue({ data: { suggestions: [...suggestions].reverse() } })
+    rerender(<FeedRuleSuggestionsCard />)
+
+    expect(rows()[0]).toHaveTextContent('Sponsored')
+    expect(rowButton(0, 'Dismissing…')).toBeDisabled()
+    expect(rowButton(1, 'Dismiss')).not.toBeDisabled()
   })
 
   it('reports a rule that already exists', async () => {

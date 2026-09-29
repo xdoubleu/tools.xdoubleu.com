@@ -6,8 +6,12 @@ jest.mock('@/components/feeds/FeedRuleSuggestionsCard', () => () => (
   <div data-testid="feed-rule-suggestions" />
 ))
 
+const mockServerClient = {
+  getFeedStats: jest.fn(),
+  getFilterRuleSuggestions: jest.fn()
+}
 jest.mock('@/lib/server/client', () => ({
-  createServerClient: jest.fn(async () => ({}))
+  createServerClient: jest.fn(async () => mockServerClient)
 }))
 
 jest.mock('@/lib/server/fetchers', () => ({
@@ -48,7 +52,12 @@ describe('FeedStatsPage', () => {
   it('prefetches the stats and the suggestions', async () => {
     const stats = { stats: [], itemsPerDay: [] }
     const suggestions = { suggestions: [] }
-    jest.mocked(fetchOrNull).mockResolvedValueOnce(stats).mockResolvedValueOnce(suggestions)
+    mockServerClient.getFeedStats.mockResolvedValueOnce(stats)
+    mockServerClient.getFilterRuleSuggestions.mockResolvedValueOnce(suggestions)
+    jest
+      .mocked(fetchOrNull)
+      .mockImplementationOnce((fetcher) => fetcher())
+      .mockImplementationOnce((fetcher) => fetcher())
     render(await FeedStatsPage())
     expect(fallbackProps[0]).toEqual({
       [swrKeys.feedStats]: stats,

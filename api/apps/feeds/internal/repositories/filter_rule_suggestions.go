@@ -11,17 +11,25 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
+// SuggestionCriteria bounds which feed categories ListSuggestions returns.
+type SuggestionCriteria struct {
+	Since      time.Time
+	MinItems   int
+	MaxReadPct int
+	// MaxCategoryLen (bytes) leaves out categories no rule could hold.
+	MaxCategoryLen int
+}
+
 // ListSuggestions returns, per feed and category (grouped ignoring case),
-// the user's items published since `since` that are ingested, unfiltered
-// and never restored, where there are at least minItems and at most
-// maxReadPct percent are read. Categories a category rule covers (the
+// the user's items published since c.Since that are ingested, unfiltered
+// and never restored, where there are at least c.MinItems and at most
+// c.MaxReadPct percent are read. Categories a category rule covers (the
 // feed's or a global one) or the user dismissed are left out. Least read
 // first.
 func (repo *FilterRulesRepository) ListSuggestions(
 	ctx context.Context,
 	userID string,
-	since time.Time,
-	minItems, maxReadPct int,
+	c SuggestionCriteria,
 ) ([]models.FilterRuleSuggestion, error) {
 	query := `
 		WITH counts AS (
@@ -41,6 +49,7 @@ func (repo *FilterRulesRepository) ListSuggestions(
 		FROM counts s
 		JOIN feeds.feeds f ON f.id = s.feed_id
 		WHERE s.item_count >= $3 AND s.read_count * 100 <= s.item_count * $4
+		  AND octet_length(s.category) <= $5
 		  AND NOT EXISTS (
 		      SELECT 1 FROM feeds.filter_rules r
 		      WHERE r.user_id = $1 AND r.kind = 'category'
@@ -55,7 +64,9 @@ func (repo *FilterRulesRepository) ListSuggestions(
 		ORDER BY s.read_count::float8 / s.item_count, s.item_count DESC,
 		    f.title, s.key
 	`
-	rows, err := repo.db.Query(ctx, query, userID, since, minItems, maxReadPct)
+	rows, err := repo.db.Query(
+		ctx, query, userID, c.Since, c.MinItems, c.MaxReadPct, c.MaxCategoryLen,
+	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
