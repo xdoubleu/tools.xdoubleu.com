@@ -102,7 +102,7 @@ func (f *Fetcher) Fetch(ctx context.Context, rawURL string) (*Video, error) {
 	if video.Title == "" && video.Description == "" {
 		return nil, ErrNotFound
 	}
-	video.URL = youtubeBaseURL + "/shorts/" + id
+	video.URL = youtubeBaseURL + "/watch?v=" + id
 	return video, nil
 }
 

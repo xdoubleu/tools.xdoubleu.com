@@ -89,7 +89,7 @@ func TestFetch_YouTubeShort(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.Equal(t, "youtube", video.Platform)
-	assert.Equal(t, "https://www.youtube.com/shorts/XsipAaImDVc", video.URL)
+	assert.Equal(t, "https://www.youtube.com/watch?v=XsipAaImDVc", video.URL)
 	assert.Equal(t,
 		"White Sauce Pasta | Creamy & Cheesy White Sauce Pasta | Kanak's Kitchen",
 		video.Title)
