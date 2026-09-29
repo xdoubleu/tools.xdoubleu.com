@@ -20,12 +20,24 @@ var categoryClassWords = map[string]bool{
 	"tag": true, "tags": true, "category": true, "categories": true,
 }
 
+// labelSkippedTags never hold a card's labels: site chrome and filter forms.
+//
+//nolint:gochecknoglobals // static lookup table, read-only after init
+var labelSkippedTags = map[string]bool{
+	"nav": true, "header": true, "footer": true, "aside": true, "form": true,
+	"script": true, "style": true,
+}
+
+// minTagListEntries is the fewest text-bearing children that make a label
+// element a list of separate tags.
+const minTagListEntries = 2
+
 // multiplePostURLs marks a subtree holding more than one distinct post URL.
 const multiplePostURLs = "\x00multiple"
 
 // attachCardCategories sets each link's Categories from the labels on its
-// cards. A card is the highest ancestor below <body> of one of the link's
-// anchors that holds no other post URL; labels from every card showing the
+// cards. A card is the smallest ancestor of one of the link's anchors that
+// holds labels and no other post URL; labels from every card showing the
 // same post (e.g. grid and list views) are merged.
 func attachCardCategories(
 	doc *html.Node,
@@ -48,8 +60,7 @@ func attachCardCategories(
 
 	labels := make(map[string][]string, len(links))
 	for _, a := range finder.anchors {
-		card := finder.card(a.node, a.postURL)
-		labels[a.postURL] = append(labels[a.postURL], cardLabels(card)...)
+		labels[a.postURL] = append(labels[a.postURL], finder.cardLabels(a)...)
 	}
 	for i := range links {
 		links[i].Categories = normalizeCategories(labels[links[i].URL])
@@ -104,45 +115,81 @@ func mergeOwner(a, b string) string {
 	}
 }
 
-// card climbs from anchor while the ancestor holds only postURL.
-func (f *cardFinder) card(anchor *html.Node, postURL string) *html.Node {
-	card := anchor
-	for p := anchor.Parent; p != nil && p.Type == html.ElementNode; p = p.Parent {
-		if p.Data == "body" || p.Data == "html" || f.owner[p] != postURL {
+// cardLabels climbs from the anchor while the ancestor holds only its post
+// URL, returning the labels of the first ancestor that has any.
+func (f *cardFinder) cardLabels(a postAnchor) []string {
+	for n := a.node; n != nil && n.Type == html.ElementNode; n = n.Parent {
+		if n.Data == "body" || n.Data == "html" || f.owner[n] != a.postURL {
 			break
 		}
-		card = p
+		if labels := f.labelsUnder(n); len(labels) > 0 {
+			return labels
+		}
 	}
-	return card
+	return nil
 }
 
-// cardLabels returns the text of the innermost label elements under n.
-func cardLabels(n *html.Node) []string {
-	if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "style") {
+// labelsUnder returns the text of the innermost label elements under n.
+func (f *cardFinder) labelsUnder(n *html.Node) []string {
+	if n.Type == html.ElementNode && labelSkippedTags[n.Data] {
 		return nil
 	}
-	if isCategoryLabel(n) && !hasLabelDescendant(n) {
-		text := strings.Join(strings.Fields(nodeText(n)), " ")
-		if text == "" || utf8.RuneCountInString(text) > maxCategoryLabelLen {
-			return nil
-		}
-		return []string{text}
+	if f.isLabel(n) && !f.hasLabelDescendant(n) {
+		return labelTexts(n)
 	}
 
 	var out []string
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		out = append(out, cardLabels(c)...)
+		out = append(out, f.labelsUnder(c)...)
 	}
 	return out
 }
 
-func hasLabelDescendant(n *html.Node) bool {
+func (f *cardFinder) hasLabelDescendant(n *html.Node) bool {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		if findNode(c, isCategoryLabel) != nil {
+		if findNode(c, f.isLabel) != nil {
 			return true
 		}
 	}
 	return false
+}
+
+// isLabel is isCategoryLabel minus elements wrapping a post link or heading,
+// which are cards carrying taxonomy classes (WordPress's category-news).
+func (f *cardFinder) isLabel(n *html.Node) bool {
+	return isCategoryLabel(n) && f.owner[n] == "" &&
+		findNode(n, func(c *html.Node) bool {
+			return c.Type == html.ElementNode && headingTags[c.Data]
+		}) == nil
+}
+
+// labelTexts is one label per text-bearing child element when there are
+// several (a tag list of plain entries), else the element's own text.
+func labelTexts(n *html.Node) []string {
+	var entries []string
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if c.Type != html.ElementNode {
+			continue
+		}
+		if text := collapsedText(c); text != "" {
+			entries = append(entries, text)
+		}
+	}
+	if len(entries) < minTagListEntries {
+		entries = []string{collapsedText(n)}
+	}
+
+	var out []string
+	for _, text := range entries {
+		if text != "" && utf8.RuneCountInString(text) <= maxCategoryLabelLen {
+			out = append(out, text)
+		}
+	}
+	return out
+}
+
+func collapsedText(n *html.Node) string {
+	return strings.Join(strings.Fields(nodeText(n)), " ")
 }
 
 // isCategoryLabel matches Finsweet's fs-list-field="category", rel="tag"

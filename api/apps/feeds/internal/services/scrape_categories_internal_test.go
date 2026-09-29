@@ -82,6 +82,63 @@ func TestDiscoverPostLinksCardCategories(t *testing.T) {
 	}, linkCategories(links))
 }
 
+func TestDiscoverPostLinksCardCategoriesEdgeCases(t *testing.T) {
+	cases := []struct {
+		name string
+		html string
+		want []string
+	}{
+		{
+			name: "tag list with plain entries splits per entry",
+			html: `<article>
+				<h2><a href="/posts/listed-tags-post">A post with a list of tags</a></h2>
+				<ul class="post-tags"><li>AI</li><li>Safety</li></ul></article>
+				<article>
+				<h2><a href="/posts/other-post-here">Another post for card bounds</a></h2>
+				</article>`,
+			want: []string{"AI", "Safety"},
+		},
+		{
+			name: "taxonomy classes on the card itself are not a label",
+			html: `<article class="post-12 type-post category-news tag-ai">
+				<h2><a href="/posts/wordpress-style-post">A short WordPress post title</a></h2>
+				</article>
+				<article class="post-13 category-news">
+				<h2><a href="/posts/other-wordpress-post">Another WordPress post title</a></h2>
+				</article>`,
+			want: nil,
+		},
+		{
+			name: "lone post ignores site chrome and forms",
+			html: `<header><a class="category" href="/c/news">News</a></header>
+				<form><label class="category">Filter me</label></form>
+				<div><article>
+				<h2><a href="/posts/the-only-post-here">The only post on this page</a></h2>
+				<span class="tag">Real</span></article>
+				<aside><span class="tag">Sidebar</span></aside></div>`,
+			want: []string{"Real"},
+		},
+		{
+			name: "lone post stops at the smallest card with labels",
+			html: `<div><div class="tag">Page level</div>
+				<article><h2><a href="/posts/the-only-post-here">The only post on this page</a></h2>
+				<span class="tag">Card level</span></article></div>`,
+			want: []string{"Card level"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			links, err := discoverPostLinks(
+				"https://example.com/blog",
+				[]byte("<html><body>"+c.html+"</body></html>"),
+			)
+			require.NoError(t, err)
+			require.NotEmpty(t, links)
+			assert.Equal(t, c.want, links[0].Categories)
+		})
+	}
+}
+
 func TestNormalizeCategories(t *testing.T) {
 	assert.Equal(t,
 		[]string{"Product announcements", "AI"},
