@@ -14,18 +14,20 @@ import (
 	"tools.xdoubleu.com/internal/database"
 )
 
+// filterRuleKinds maps proto kinds to models.FilterRuleKind*; UNSPECIFIED
+// maps to "", which CreateFilterRule rejects.
+//
 //nolint:gochecknoglobals // static lookup table, read-only after init
 var filterRuleKinds = map[feedsv1.FilterRuleKind]string{
-	feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY: models.FilterRuleKindCategory,
-	feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE:    models.FilterRuleKindTitle,
+	feedsv1.FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED: "",
+	feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY:    models.FilterRuleKindCategory,
+	feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE:       models.FilterRuleKindTitle,
 }
 
 func protoFilterRule(r models.FilterRule) *feedsv1.FilterRule {
-	kind := feedsv1.FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED
-	for k, v := range filterRuleKinds {
-		if v == r.Kind {
-			kind = k
-		}
+	kind := feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE
+	if r.Kind == models.FilterRuleKindCategory {
+		kind = feedsv1.FilterRuleKind_FILTER_RULE_KIND_CATEGORY
 	}
 	feedID := ""
 	if r.FeedID != nil {

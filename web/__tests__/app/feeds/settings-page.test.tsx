@@ -5,9 +5,15 @@ jest.mock('@/components/feeds/FeedsNotificationSettingsCard', () => () => (
   <div data-testid="feeds-notification-settings-card" />
 ))
 
+jest.mock('@/components/feeds/FeedFilterRulesCard', () => () => (
+  <div data-testid="feed-filter-rules-card" />
+))
+
 jest.mock('@/lib/server/client', () => ({
   createServerClient: jest.fn(async () => ({
-    getNotificationSettings: jest.fn(async () => ({}))
+    getNotificationSettings: jest.fn(async () => ({})),
+    listFeeds: jest.fn(async () => ({})),
+    listFilterRules: jest.fn(async () => ({}))
   }))
 }))
 
@@ -26,6 +32,11 @@ describe('FeedsSettingsPage', () => {
   it('renders the feeds notification settings card', async () => {
     render(await FeedsSettingsPage())
     expect(screen.getByTestId('feeds-notification-settings-card')).toBeInTheDocument()
+  })
+
+  it('renders the filter rules card', async () => {
+    render(await FeedsSettingsPage())
+    expect(screen.getByTestId('feed-filter-rules-card')).toBeInTheDocument()
   })
 
   it('shows a breadcrumb back to /feeds', async () => {
