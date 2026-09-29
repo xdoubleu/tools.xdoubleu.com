@@ -29,7 +29,7 @@ describe('PageHeader', () => {
 })
 
 describe('PageHeaderLink', () => {
-  it('renders a ghost link with its icon', () => {
+  it('renders a bordered link with its icon', () => {
     render(
       <PageHeaderLink href="/feeds/stats" icon={<svg data-testid="icon" aria-hidden="true" />}>
         Stats
@@ -37,8 +37,7 @@ describe('PageHeaderLink', () => {
     )
     const link = screen.getByRole('link', { name: 'Stats' })
     expect(link).toHaveAttribute('href', '/feeds/stats')
-    expect(link).toHaveClass('hover:bg-hover')
-    expect(link).not.toHaveClass('border')
+    expect(link).toHaveClass('border')
     expect(screen.getByTestId('icon')).toBeInTheDocument()
   })
 })

@@ -40,12 +40,12 @@ interface PageHeaderLinkProps {
 }
 
 /**
- * Navigation to another page in `PageHeader` `actions`. Commands in the same
- * row use a `secondary` `Button`, and create actions use the default one.
+ * Navigation to another page in `PageHeader` `actions`, bordered like the
+ * `secondary` command buttons beside it.
  */
 function PageHeaderLink({ href, children, icon }: PageHeaderLinkProps) {
   return (
-    <Button asChild variant="ghost" size="sm" className="gap-2">
+    <Button asChild variant="secondary" size="sm" className="gap-2">
       <Link href={href}>
         {icon}
         {children}
