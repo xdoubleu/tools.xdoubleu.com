@@ -262,13 +262,17 @@ func TestRestoreFeedItem_DeletedRule_ShowsNoRuleAndRestores(t *testing.T) {
 	assert.Contains(t, unreadInbox(t, client, feedID), linked)
 }
 
-// seedFilteredItem stores a filtered item on a new feed owned by owner and
-// returns the feed and item ids.
-func seedFilteredItem(t *testing.T, owner string) (string, string) {
+// seedFilteredItem stores a contentless filtered item at sourceURL (a fresh
+// web URL when empty) on a new feed owned by owner, returning the feed and
+// item ids.
+func seedFilteredItem(t *testing.T, owner, sourceURL string) (string, string) {
 	t.Helper()
 	var feedID, itemID string
 	ctx := context.Background()
 	base := uniqueBlogBase()
+	if sourceURL == "" {
+		sourceURL = base + "/post"
+	}
 	require.NoError(t, testDB.QueryRow(ctx, `
 		INSERT INTO feeds.feeds (user_id, url, title, source_type)
 		VALUES ($1, $2, 'Foreign', 'rss') RETURNING id
@@ -277,15 +281,27 @@ func seedFilteredItem(t *testing.T, owner string) (string, string) {
 		INSERT INTO feeds.items
 		    (feed_id, guid, title, source_url, published_at, filtered_at)
 		VALUES ($1, $2, 'Foreign item', $2, now(), now()) RETURNING id
-	`, feedID, base+"/post").Scan(&itemID))
+	`, feedID, sourceURL).Scan(&itemID))
 	return feedID, itemID
+}
+
+func TestRestoreFeedItem_EmailWithoutContent_SkipsFetch(t *testing.T) {
+	client := newFeedsClient(t)
+	sourceURL := "mailto:" + uuid.NewString()
+	feedID, itemID := seedFilteredItem(t, userID, sourceURL)
+	fetchesBefore := len(mockWebFetch.Calls)
+
+	restored := restoreItem(t, client, itemID)
+
+	assert.False(t, restored.HasContent)
+	assert.Len(t, mockWebFetch.Calls, fetchesBefore)
+	assert.Contains(t, unreadInbox(t, client, feedID), sourceURL)
 }
 
 func TestFilteredItems_OtherUserCannotListOrRestore(t *testing.T) {
 	client := newFeedsClient(t)
 	foreignFeedID, foreignItemID := seedFilteredItem(
-		t,
-		"another-user-"+uuid.NewString(),
+		t, "another-user-"+uuid.NewString(), "",
 	)
 
 	for _, item := range filteredBySourceURL(t, client, nil) {

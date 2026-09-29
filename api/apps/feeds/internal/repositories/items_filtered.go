@@ -26,18 +26,16 @@ func scanFilteredItem(row pgx.Row) (*models.Item, error) {
 		func(i *models.Item) any { return &i.HasContent },
 		&ruleID, &ruleFeedID, &kind, &value, &ruleCreatedAt,
 	)
-	if err != nil {
-		return nil, err
+	if err != nil || ruleID == nil {
+		return item, err
 	}
-	if ruleID != nil {
-		//nolint:exhaustruct // UserID/FilteredCount aren't needed here
-		item.FilterRule = &models.FilterRule{
-			ID:        *ruleID,
-			FeedID:    ruleFeedID,
-			Kind:      *kind,
-			Value:     *value,
-			CreatedAt: *ruleCreatedAt,
-		}
+	//nolint:exhaustruct // UserID/FilteredCount aren't needed here
+	item.FilterRule = &models.FilterRule{
+		ID:        *ruleID,
+		FeedID:    ruleFeedID,
+		Kind:      *kind,
+		Value:     *value,
+		CreatedAt: *ruleCreatedAt,
 	}
 	return item, nil
 }
