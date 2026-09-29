@@ -167,12 +167,19 @@ message GetFailingPullRequestsResponse {
 }
 
 // ProjectIssue is an open issue on a GitHub Projects (v2) board, with its
-// Status value.
+// Status value. author_login uses REST form ("app-slug[bot]" for Apps).
+// body_edited_after_status: someone other than the repo owner edited the body
+// after Status was last set.
 message ProjectIssue {
   int64 number = 1;
   string title = 2;
   string url = 3;
   string status = 4;
+  string author_login = 5;
+  string author_association = 6;  // e.g. "OWNER", "CONTRIBUTOR"
+  string status_updated_at = 7;   // RFC3339
+  bool body_has_html_comment = 8;
+  bool body_edited_after_status = 9;
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)

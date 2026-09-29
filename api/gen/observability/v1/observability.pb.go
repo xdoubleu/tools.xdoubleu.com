@@ -1236,15 +1236,22 @@ func (x *GetFailingPullRequestsResponse) GetFailingCount() int32 {
 }
 
 // ProjectIssue is an open issue on a GitHub Projects (v2) board, with its
-// Status value.
+// Status value. author_login uses REST form ("app-slug[bot]" for Apps).
+// body_edited_after_status: someone other than the repo owner edited the body
+// after Status was last set.
 type ProjectIssue struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Url           string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
-	Status        string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	Number                int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	Title                 string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Url                   string                 `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
+	Status                string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	AuthorLogin           string                 `protobuf:"bytes,5,opt,name=author_login,json=authorLogin,proto3" json:"author_login,omitempty"`
+	AuthorAssociation     string                 `protobuf:"bytes,6,opt,name=author_association,json=authorAssociation,proto3" json:"author_association,omitempty"` // e.g. "OWNER", "CONTRIBUTOR"
+	StatusUpdatedAt       string                 `protobuf:"bytes,7,opt,name=status_updated_at,json=statusUpdatedAt,proto3" json:"status_updated_at,omitempty"`     // RFC3339
+	BodyHasHtmlComment    bool                   `protobuf:"varint,8,opt,name=body_has_html_comment,json=bodyHasHtmlComment,proto3" json:"body_has_html_comment,omitempty"`
+	BodyEditedAfterStatus bool                   `protobuf:"varint,9,opt,name=body_edited_after_status,json=bodyEditedAfterStatus,proto3" json:"body_edited_after_status,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ProjectIssue) Reset() {
@@ -1303,6 +1310,41 @@ func (x *ProjectIssue) GetStatus() string {
 		return x.Status
 	}
 	return ""
+}
+
+func (x *ProjectIssue) GetAuthorLogin() string {
+	if x != nil {
+		return x.AuthorLogin
+	}
+	return ""
+}
+
+func (x *ProjectIssue) GetAuthorAssociation() string {
+	if x != nil {
+		return x.AuthorAssociation
+	}
+	return ""
+}
+
+func (x *ProjectIssue) GetStatusUpdatedAt() string {
+	if x != nil {
+		return x.StatusUpdatedAt
+	}
+	return ""
+}
+
+func (x *ProjectIssue) GetBodyHasHtmlComment() bool {
+	if x != nil {
+		return x.BodyHasHtmlComment
+	}
+	return false
+}
+
+func (x *ProjectIssue) GetBodyEditedAfterStatus() bool {
+	if x != nil {
+		return x.BodyEditedAfterStatus
+	}
+	return false
 }
 
 // GetProjectIssuesByStatusRequest finds issues on the owner's Projects (v2)
@@ -4253,12 +4295,17 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
 	"configured\x12#\n" +
-	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"f\n" +
+	"\rfailing_count\x18\x03 \x01(\x05R\ffailingCount\"\xd0\x02\n" +
 	"\fProjectIssue\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x16\n" +
-	"\x06status\x18\x04 \x01(\tR\x06status\"`\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12!\n" +
+	"\fauthor_login\x18\x05 \x01(\tR\vauthorLogin\x12-\n" +
+	"\x12author_association\x18\x06 \x01(\tR\x11authorAssociation\x12*\n" +
+	"\x11status_updated_at\x18\a \x01(\tR\x0fstatusUpdatedAt\x121\n" +
+	"\x15body_has_html_comment\x18\b \x01(\bR\x12bodyHasHtmlComment\x127\n" +
+	"\x18body_edited_after_status\x18\t \x01(\bR\x15bodyEditedAfterStatus\"`\n" +
 	"\x1fGetProjectIssuesByStatusRequest\x12%\n" +
 	"\x0eproject_number\x18\x01 \x01(\x05R\rprojectNumber\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\"z\n" +

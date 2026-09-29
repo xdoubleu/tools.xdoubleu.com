@@ -9,16 +9,24 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 // ProjectIssue is an open issue on a Projects (v2) board with its Status value.
+// BodyEditedAfterStatus: someone other than the repo owner edited the body
+// after Status was last set.
 type ProjectIssue struct {
-	Number int64
-	Title  string
-	URL    string
-	Status string
+	Number                int64
+	Title                 string
+	URL                   string
+	Status                string
+	AuthorLogin           string
+	AuthorAssociation     string
+	StatusUpdatedAt       time.Time
+	BodyHasHTMLComment    bool
+	BodyEditedAfterStatus bool
 }
 
 const issueStateOpen = "OPEN"
@@ -37,6 +45,7 @@ query($login: String!, $number: Int!, $pageSize: Int!) {
           status: fieldValueByName(name: "Status") {
             ... on ProjectV2ItemFieldSingleSelectValue {
               name
+              updatedAt
             }
           }
           content {
@@ -45,6 +54,11 @@ query($login: String!, $number: Int!, $pageSize: Int!) {
               title
               url
               state
+              body
+              lastEditedAt
+              author { __typename login }
+              authorAssociation
+              editor { login }
             }
           }
         }
@@ -70,14 +84,34 @@ type projectIssuesByStatusResponse struct {
 
 type projectItemNodeWire struct {
 	Status struct {
-		Name string `json:"name"`
+		Name      string    `json:"name"`
+		UpdatedAt time.Time `json:"updatedAt"`
 	} `json:"status"`
 	Content struct {
-		Number int64  `json:"number"`
-		Title  string `json:"title"`
-		URL    string `json:"url"`
-		State  string `json:"state"`
+		Number            int64      `json:"number"`
+		Title             string     `json:"title"`
+		URL               string     `json:"url"`
+		State             string     `json:"state"`
+		Body              string     `json:"body"`
+		LastEditedAt      *time.Time `json:"lastEditedAt"`
+		Author            actorWire  `json:"author"`
+		AuthorAssociation string     `json:"authorAssociation"`
+		Editor            actorWire  `json:"editor"`
 	} `json:"content"`
+}
+
+type actorWire struct {
+	Typename string `json:"__typename"`
+	Login    string `json:"login"`
+}
+
+// restLogin matches the REST API, which suffixes App logins with "[bot]";
+// GraphQL omits the suffix.
+func (a actorWire) restLogin() string {
+	if a.Typename == "Bot" {
+		return a.Login + "[bot]"
+	}
+	return a.Login
 }
 
 // ListProjectIssuesByStatus returns open issues on the owner's Projects (v2)
@@ -118,11 +152,12 @@ func (c *client) ListProjectIssuesByStatus(
 	return filterProjectIssuesByStatus(
 		resp.Data.User.ProjectV2.Items.Nodes,
 		status,
+		owner,
 	), nil
 }
 
 func filterProjectIssuesByStatus(
-	nodes []projectItemNodeWire, status string,
+	nodes []projectItemNodeWire, status, repoOwner string,
 ) []ProjectIssue {
 	issues := make([]ProjectIssue, 0, len(nodes))
 	for _, n := range nodes {
@@ -132,11 +167,19 @@ func filterProjectIssuesByStatus(
 		if !strings.EqualFold(n.Status.Name, status) {
 			continue
 		}
+		edited := n.Content.LastEditedAt
 		issues = append(issues, ProjectIssue{
-			Number: n.Content.Number,
-			Title:  n.Content.Title,
-			URL:    n.Content.URL,
-			Status: n.Status.Name,
+			Number:             n.Content.Number,
+			Title:              n.Content.Title,
+			URL:                n.Content.URL,
+			Status:             n.Status.Name,
+			AuthorLogin:        n.Content.Author.restLogin(),
+			AuthorAssociation:  n.Content.AuthorAssociation,
+			StatusUpdatedAt:    n.Status.UpdatedAt,
+			BodyHasHTMLComment: strings.Contains(n.Content.Body, "<!--"),
+			BodyEditedAfterStatus: edited != nil &&
+				edited.After(n.Status.UpdatedAt) &&
+				!strings.EqualFold(n.Content.Editor.Login, repoOwner),
 		})
 	}
 	return issues
