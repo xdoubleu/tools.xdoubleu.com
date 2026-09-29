@@ -134,24 +134,36 @@ tools/mutation:
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
 # Runs gremlins on Go packages changed vs origin/main (one invocation per
-# package); --diff further scopes mutants to changed lines. .gremlins.yaml
-# excludes gen/ and *_mock.go.
+# package); --diff further scopes mutants to changed lines. gremlins matches
+# `git diff` paths to package-relative mutant paths, so it runs from the
+# package dir with diff.relative (and diff.context=0: it undercounts
+# multi-block hunks); check_mutation_skips_go.py fails if a changed line's
+# mutant is still SKIPPED. Serial because test packages share Postgres
+# schemas. .gremlins.yaml excludes gen/ and *_mock.go.
 test/mutation/diff: tools/mutation
 	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
 	if [ -z "$$pkgs" ]; then \
 		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
 	else \
 		status=0; \
+		report=$$(mktemp); \
 		for pkg in $$pkgs; do \
 			echo "Diff-scoped mutation testing: $$pkg"; \
-			gremlins unleash --diff origin/main "$$pkg" || status=1; \
+			(cd "$$pkg" && \
+				GOFLAGS="$$GOFLAGS -p=1" GIT_CONFIG_COUNT=2 \
+				GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
+				GIT_CONFIG_KEY_1=diff.context GIT_CONFIG_VALUE_1=0 \
+				gremlins unleash --diff origin/main --workers 1 \
+					--output "$$report" "$$PWD") && \
+			python3 ../tools/check_mutation_skips_go.py "$$pkg" "$$report" || status=1; \
 		done; \
+		rm -f "$$report"; \
 		exit $$status; \
 	fi
 
 # Full-repo baseline; slow, not for routine use.
 test/mutation: tools/mutation
-	gremlins unleash ./...
+	GOFLAGS="$$GOFLAGS -p=1" gremlins unleash --workers 1 ./...
 
 test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
