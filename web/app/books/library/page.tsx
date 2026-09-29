@@ -1,15 +1,12 @@
 import { Suspense } from 'react'
-import Link from 'next/link'
 import BooksSection from '@/components/books/BooksSection'
 import SWRFallback from '@/components/SWRFallback'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
 import { swrKeys } from '@/lib/swrKeys'
 import { LibraryService } from '@/lib/gen/books/v1/library_pb'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { LoadingState } from '@/components/ui/states'
-import { Button } from '@/components/ui/button'
-import SettingsIcon from '@/components/SettingsIcon'
 import { PageContainer } from '@/components/ui/page-container'
 import LibraryAdminButton from '@/components/books/LibraryAdminButton'
 
@@ -25,15 +22,7 @@ export default async function BacklogBooksLibraryPage() {
         actions={
           <>
             <LibraryAdminButton />
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/feeds">Feed</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="gap-2">
-              <Link href="/books/settings">
-                <SettingsIcon />
-                Settings
-              </Link>
-            </Button>
+            <PageHeaderSettingsLink href="/books/settings" />
           </>
         }
       />

@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
 import {
   useCustomList,
   useCategories,
@@ -13,9 +12,8 @@ import ExportDialog from '@/components/shoppinglist/ExportDialog'
 import AddItemForm from '@/components/shoppinglist/AddItemForm'
 import MealPlanGroupFilter from '@/components/shoppinglist/MealPlanGroupFilter'
 import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview'
-import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { LoadingState } from '@/components/ui/states'
 import { createServiceClient } from '@/lib/client'
 import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
@@ -91,11 +89,7 @@ export default function ShoppingListPageClient() {
     <PageContainer>
       <PageHeader
         title="Shopping List"
-        actions={
-          <Button asChild variant="link" size="sm">
-            <Link href="/shoppinglist/settings">Settings</Link>
-          </Button>
-        }
+        actions={<PageHeaderSettingsLink href="/shoppinglist/settings" />}
       />
 
       <AddItemForm

@@ -1,12 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useFeeds } from '@/hooks/useFeeds'
 import { useCurrentUser } from '@/hooks/useAuth'
 import FeedManager from '@/components/feeds/FeedManager'
 import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderLink, PageHeaderSettingsLink } from '@/components/ui/page-header'
 
 // The feed-management toggle sits by the title; the panel starts collapsed
 // unless there are no feeds. useFeeds() is deduped by SWR.
@@ -27,20 +26,10 @@ export default function FeedsHeader() {
         title="Feeds"
         actions={
           <>
-            <Button asChild variant="link" className="min-w-11 sm:min-w-0">
-              <Link href="/feeds/filtered">Filtered</Link>
-            </Button>
-            <Button asChild variant="link" className="min-w-11 sm:min-w-0">
-              <Link href="/feeds/stats">Stats</Link>
-            </Button>
-            {isAdmin && (
-              <Button asChild variant="link" className="min-w-11 sm:min-w-0">
-                <Link href="/feeds/health">Health</Link>
-              </Button>
-            )}
-            <Button asChild variant="link" className="min-w-11 sm:min-w-0">
-              <Link href="/feeds/settings">Settings</Link>
-            </Button>
+            <PageHeaderLink href="/feeds/filtered">Filtered</PageHeaderLink>
+            <PageHeaderLink href="/feeds/stats">Stats</PageHeaderLink>
+            {isAdmin && <PageHeaderLink href="/feeds/health">Health</PageHeaderLink>}
+            <PageHeaderSettingsLink href="/feeds/settings" />
             <Button
               variant="secondary"
               size="sm"
