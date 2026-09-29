@@ -37,8 +37,9 @@ var appsToolNames = []string{
 	"books_list_kobo_devices", "books_get_kobo_device_logs",
 	// feeds (2)
 	"feeds_list_feeds", "feeds_list_items", "feeds_get_item",
-	// recipes (3); create_recipe mutates, draft-only (adr-0026)
+	// recipes (4); create_recipe mutates, draft-only (adr-0026)
 	"recipes_list_recipes", "recipes_get_recipe", "recipes_create_recipe",
+	"recipes_fetch_video",
 	// mealplans (3)
 	"mealplans_list_plans", "mealplans_get_plan", "mealplans_suggest_recipes",
 	// shoppinglist (8)
