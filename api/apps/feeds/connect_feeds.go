@@ -90,6 +90,7 @@ func protoItem(item models.Item) *feedsv1.Item {
 		CreatedAt:       item.CreatedAt.Format(time.RFC3339),
 		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
 		HasContent:      item.HasContent,
+		Categories:      item.Categories,
 	}
 }
 

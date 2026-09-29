@@ -63,6 +63,8 @@ type Item struct {
 	Bookmarked bool
 	// ReadProgressPct is the furthest scroll reached (0-100), monotonic.
 	ReadProgressPct int
+	// Categories are the source's RSS categories or scraped card labels.
+	Categories []string
 	// IngestError is the latest ingest failure; the guid stays seen so it
 	// is never retried automatically.
 	IngestError *string

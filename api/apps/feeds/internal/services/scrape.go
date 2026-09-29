@@ -68,6 +68,8 @@ type discoveredLink struct {
 	Title string
 	// PublishedAt is zero when the card had no parseable <time>.
 	PublishedAt time.Time
+	// Categories are the labels on the link's card (see attachCardCategories).
+	Categories []string
 }
 
 // discoverPostLinks heuristically finds post-like links on a page with no
@@ -100,6 +102,8 @@ func discoverPostLinksWithLocaleBase(
 	out := []discoveredLink{}
 	seen := make(map[string]bool)
 	collectPostLinks(doc, base, localeBase, seen, &out)
+	// Before the cap: card boundaries depend on every post link on the page.
+	attachCardCategories(doc, base, localeBase, out)
 
 	if len(out) > maxDiscoveredLinks {
 		out = out[:maxDiscoveredLinks]
@@ -587,6 +591,9 @@ func (s *FeedService) ingestDiscoveredLinks(
 			"feedID", feed.ID, "error", err)
 		return 0
 	}
+	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
+		return byGUID[guid].Categories
+	})
 
 	ingested := 0
 	for i, guid := range newGUIDs {
@@ -632,6 +639,7 @@ func (s *FeedService) ingestDiscoveredLink(
 		SourceURL:   guid,
 		ContentHTML: body,
 		PublishedAt: publishedAt,
+		Categories:  link.Categories,
 	}
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "scrape feed item store failed",

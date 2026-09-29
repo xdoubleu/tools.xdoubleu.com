@@ -683,7 +683,9 @@ type Item struct {
 	ReadProgressPct int32 `protobuf:"varint,12,opt,name=read_progress_pct,json=readProgressPct,proto3" json:"read_progress_pct,omitempty"`
 	// Whether an article body exists, distinguishing "no content" from "not
 	// loaded".
-	HasContent    bool `protobuf:"varint,13,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
+	HasContent bool `protobuf:"varint,13,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
+	// RSS <category> values or scraped card labels; empty when none.
+	Categories    []string `protobuf:"bytes,14,rep,name=categories,proto3" json:"categories,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -807,6 +809,13 @@ func (x *Item) GetHasContent() bool {
 		return x.HasContent
 	}
 	return false
+}
+
+func (x *Item) GetCategories() []string {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
 }
 
 type ListFeedItemsRequest struct {
@@ -1575,7 +1584,7 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x12RefreshFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"1\n" +
 	"\x13RefreshFeedResponse\x12\x1a\n" +
-	"\bingested\x18\x01 \x01(\x05R\bingested\"\x90\x03\n" +
+	"\bingested\x18\x01 \x01(\x05R\bingested\"\xb0\x03\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12\x14\n" +
@@ -1595,7 +1604,10 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"created_at\x18\v \x01(\tR\tcreatedAt\x12*\n" +
 	"\x11read_progress_pct\x18\f \x01(\x05R\x0freadProgressPct\x12\x1f\n" +
 	"\vhas_content\x18\r \x01(\bR\n" +
-	"hasContent\"\xe6\x01\n" +
+	"hasContent\x12\x1e\n" +
+	"\n" +
+	"categories\x18\x0e \x03(\tR\n" +
+	"categories\"\xe6\x01\n" +
 	"\x14ListFeedItemsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
