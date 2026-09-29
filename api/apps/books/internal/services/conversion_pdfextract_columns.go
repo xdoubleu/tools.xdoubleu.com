@@ -1,15 +1,22 @@
 package services
 
-import "sort"
+import (
+	"slices"
+	"sort"
+)
 
 // gutterYBins/gutterXBins discretize the page into a grid used to find the
 // vertical gutter between columns (step 2 of the text algorithm). Fine
 // enough to resolve a typical ~10-20pt column gutter on a ~600x800pt page.
 const (
 	gutterYBins            = 100
-	gutterXBins            = 200
+	gutterXBins            = 400
 	gutterMinEmptyFraction = 0.8
-	gutterMinWidthFraction = 0.04
+	// gutterMinWidthFraction/gutterMinCharWidths: a gutter must be at least
+	// 2% of the page and a few characters wide. An index sets its columns
+	// only ~2.8% apart; a fixed 4% missed it.
+	gutterMinWidthFraction = 0.02
+	gutterMinCharWidths    = 1.5
 	gutterMidLow           = 0.35
 	gutterMidHigh          = 0.65
 	// midpointDivisor halves a (left, right) or (start, end) pair to find its
@@ -21,9 +28,10 @@ const (
 )
 
 // findGutter locates the widest vertical strip of the page that contains no
-// character boxes across at least 80% of the page height. The page is
-// two-column only if that gutter is at least 4% of the page width and its
-// midpoint falls between 35% and 65% of the page width.
+// character boxes across at least 80% of the page's text rows. The page is
+// two-column only if that gutter is at least 2% of the page width and two
+// median character widths, and its midpoint falls between 35% and 65% of
+// the page width.
 func findGutter(
 	chars []pdfChar,
 	pageWidth, pageHeight float64,
@@ -62,12 +70,9 @@ func findGutter(
 
 	gutterLeft := float64(bestStart) * xBinWidth
 	gutterRight := float64(bestEnd) * xBinWidth
-	if gutterRight-gutterLeft < gutterMinWidthFraction*pageWidth {
-		return 0, 0, false
-	}
-
-	midFrac := (gutterLeft + gutterRight) / midpointDivisor / pageWidth
-	if midFrac < gutterMidLow || midFrac > gutterMidHigh {
+	width := gutterRight - gutterLeft
+	if width < gutterMinWidthFraction*pageWidth ||
+		width < gutterMinCharWidths*medianCharWidth(chars) {
 		return 0, 0, false
 	}
 
@@ -84,21 +89,33 @@ func clampBin(v, upper int) int {
 	return v
 }
 
-// widestEmptyRun returns the [start,end) x-bin range of the widest run of
-// columns empty for at least gutterMinEmptyFraction of the page's rows.
+// widestEmptyRun returns the [start,end) x-bin range of the widest centred
+// run (see centralRun) of columns empty for at least gutterMinEmptyFraction
+// of the rows holding any text. Only centred runs compete, so a wide page
+// margin can't outrank a narrow gutter. Blank rows don't count: on a sparse page nearly every strip would
+// otherwise pass.
 func widestEmptyRun(occupied [][]bool) (int, int) {
 	xBins := len(occupied[0])
-	yBins := len(occupied)
+
+	var textRows [][]bool
+	for _, row := range occupied {
+		if slices.Contains(row, true) {
+			textRows = append(textRows, row)
+		}
+	}
+	if len(textRows) == 0 {
+		return -1, -1
+	}
 
 	emptyEnough := make([]bool, xBins)
 	for x := 0; x < xBins; x++ {
 		empty := 0
-		for y := 0; y < yBins; y++ {
-			if !occupied[y][x] {
+		for _, row := range textRows {
+			if !row[x] {
 				empty++
 			}
 		}
-		emptyEnough[x] = float64(empty)/float64(yBins) >= gutterMinEmptyFraction
+		emptyEnough[x] = float64(empty)/float64(len(textRows)) >= gutterMinEmptyFraction
 	}
 
 	bestStart, bestEnd := -1, -1
@@ -109,7 +126,8 @@ func widestEmptyRun(occupied [][]bool) (int, int) {
 		case open && curStart == -1:
 			curStart = x
 		case !open && curStart != -1:
-			if bestStart == -1 || x-curStart > bestEnd-bestStart {
+			if centralRun(curStart, x, xBins) &&
+				(bestStart == -1 || x-curStart > bestEnd-bestStart) {
 				bestStart, bestEnd = curStart, x
 			}
 			curStart = -1
@@ -166,7 +184,9 @@ func assignColumns(
 	} else {
 		gutterMid := (gutterLeft + gutterRight) / midpointDivisor
 		for _, l := range lines {
-			if l.xMid() < gutterMid {
+			// A line straddling the gutter (a title above both columns)
+			// reads with the left column, which sorts it first.
+			if l.left < gutterMid {
 				left = append(left, l)
 			} else {
 				right = append(right, l)
@@ -196,4 +216,11 @@ func sortLinesTopToBottom(lines []pdfLine) {
 		lines,
 		func(i, j int) bool { return lines[i].yMid() > lines[j].yMid() },
 	)
+}
+
+// centralRun reports whether the [start,end) bin run's midpoint falls
+// between gutterMidLow and gutterMidHigh of the page width.
+func centralRun(start, end, bins int) bool {
+	mid := float64(start+end) / midpointDivisor / float64(bins)
+	return mid >= gutterMidLow && mid <= gutterMidHigh
 }

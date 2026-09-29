@@ -61,11 +61,27 @@ func extractPage(
 	if err != nil {
 		return noPageResult, fmt.Errorf("get page text: %w", err)
 	}
-	chars := extractChars(textResp)
+	boxResp, err := instance.FPDF_GetPageBoundingBox(
+		&requests.FPDF_GetPageBoundingBox{Page: page},
+	)
+	if err != nil {
+		return noPageResult, fmt.Errorf("get page bounding box: %w", err)
+	}
+	originX, originY := float64(boxResp.Rect.Left), float64(boxResp.Rect.Bottom)
+
+	chars := visibleChars(
+		extractChars(textResp), originX, originY, sizeResp.Width, sizeResp.Height,
+	)
 
 	rawFigures, err := extractPageImages(instance, page, pageArea)
 	if err != nil {
 		return noPageResult, fmt.Errorf("extract page images: %w", err)
+	}
+	for i := range rawFigures {
+		rawFigures[i].left -= originX
+		rawFigures[i].right -= originX
+		rawFigures[i].top -= originY
+		rawFigures[i].bottom -= originY
 	}
 
 	if len(chars) < imageOnlyPageMaxChars && len(rawFigures) == 0 {
@@ -81,12 +97,12 @@ func extractPage(
 		}, nil
 	}
 
-	lines := groupLines(chars)
 	gutterLeft, gutterRight, twoColumn := findGutter(
 		chars,
 		sizeResp.Width,
 		sizeResp.Height,
 	)
+	lines := groupColumnLines(chars, gutterLeft, gutterRight, twoColumn)
 
 	figures, err := placeFigures(
 		rawFigures,
@@ -113,6 +129,70 @@ func extractPage(
 		medLineHeight: median(lineHeights),
 		medCharWidth:  medianCharWidth(chars),
 	}, nil
+}
+
+// groupColumnLines groups characters into lines, then splits every line that
+// has an empty gap across the gutter into its left and right halves, so
+// columns whose baselines line up (an index) never merge into one line. A
+// line whose text runs across the gutter (a title above both columns) stays
+// whole.
+func groupColumnLines(
+	chars []pdfChar, gutterLeft, gutterRight float64, twoColumn bool,
+) []pdfLine {
+	lines := groupLines(chars)
+	if !twoColumn {
+		return lines
+	}
+	gutterMid := (gutterLeft + gutterRight) / midpointDivisor
+	var out []pdfLine
+	for _, l := range lines {
+		left, right, split := splitAtGutter(l.chars, gutterMid)
+		if !split {
+			out = append(out, l)
+			continue
+		}
+		out = append(out, buildLine(left), buildLine(right))
+	}
+	return out
+}
+
+// splitAtGutter divides a line's x-sorted characters at gutterMid when no
+// character box crosses it and both sides hold text.
+func splitAtGutter(chars []pdfChar, gutterMid float64) ([]pdfChar, []pdfChar, bool) {
+	for i, c := range chars {
+		if c.left < gutterMid && c.right > gutterMid {
+			return nil, nil, false
+		}
+		if c.left >= gutterMid {
+			if i == 0 {
+				return nil, nil, false
+			}
+			return chars[:i], chars[i:], true
+		}
+	}
+	return nil, nil, false
+}
+
+// visibleChars moves character boxes from PDF user space into the visible
+// page's space and drops characters outside it. GetPageSize reports the
+// cropped page, but PDFium positions characters relative to the MediaBox
+// origin: without the shift a CropBox offset (a print PDF trimmed out of a
+// sheet with crop marks) skews every page-relative test, and text in the
+// trimmed-off margin (proof slugs) would be read as content.
+func visibleChars(chars []pdfChar, dx, dy, width, height float64) []pdfChar {
+	visible := chars[:0]
+	for _, c := range chars {
+		c.left -= dx
+		c.right -= dx
+		c.top -= dy
+		c.bottom -= dy
+		x, y := (c.left+c.right)/midpointDivisor, c.yMid()
+		if x < 0 || x > width || y < 0 || y > height {
+			continue
+		}
+		visible = append(visible, c)
+	}
+	return visible
 }
 
 // extractDocument runs extractPage over every page, computes the
