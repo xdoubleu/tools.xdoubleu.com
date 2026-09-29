@@ -76,6 +76,10 @@ func protoItem(item models.Item) *feedsv1.Item {
 	if !item.PublishedAt.IsZero() {
 		publishedAt = item.PublishedAt.Format(time.RFC3339)
 	}
+	var filterRule *feedsv1.FilterRule
+	if item.FilterRule != nil {
+		filterRule = protoFilterRule(*item.FilterRule)
+	}
 	return &feedsv1.Item{
 		Id:              item.ID.String(),
 		FeedId:          item.FeedID.String(),
@@ -91,7 +95,18 @@ func protoItem(item models.Item) *feedsv1.Item {
 		ReadProgressPct: int32(item.ReadProgressPct), //nolint:gosec // clamped [0,100]
 		HasContent:      item.HasContent,
 		Categories:      item.Categories,
+		FilteredAt:      formatOptionalTime(item.FilteredAt),
+		FilterRule:      filterRule,
+		RestoredAt:      formatOptionalTime(item.RestoredAt),
 	}
+}
+
+// formatOptionalTime formats t as RFC3339, or "" when nil.
+func formatOptionalTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
 
 // parseItemID mirrors parseFeedID for the item-scoped RPCs.
@@ -307,7 +322,7 @@ func (h *feedsConnectHandler) ListFeedItems(
 
 	items, hasMore, err := h.app.Services.Feeds.ListItems(
 		ctx, user.ID, req.Msg.Limit, req.Msg.Offset, req.Msg.GetUnreadOnly(),
-		feedID, req.Msg.GetBookmarkedOnly(),
+		feedID, req.Msg.GetBookmarkedOnly(), req.Msg.GetFilteredOnly(),
 	)
 	if err != nil {
 		return nil, feedErrorToConnect(err)

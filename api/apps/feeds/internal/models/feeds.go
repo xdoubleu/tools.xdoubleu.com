@@ -68,11 +68,16 @@ type Item struct {
 	// IngestError is the latest ingest failure; the guid stays seen so it
 	// is never retried automatically.
 	IngestError *string
-	// FilteredAt is set when a filter rule hid the item; FilteredRuleID is
-	// that rule, nil once the rule is deleted. Only Insert uses them.
+	// FilteredAt is set while a filter rule hides the item; FilteredRuleID is
+	// that rule, nil once the rule is deleted.
 	FilteredAt     *time.Time
 	FilteredRuleID *uuid.UUID
-	CreatedAt      time.Time
+	// FilterRule is the FilteredRuleID rule, loaded only by the filtered
+	// listing.
+	FilterRule *FilterRule
+	// RestoredAt is set once the item was restored; no rule filters it again.
+	RestoredAt *time.Time
+	CreatedAt  time.Time
 }
 
 // FilterRuleKindCategory/Title are the FilterRule.Kind values.

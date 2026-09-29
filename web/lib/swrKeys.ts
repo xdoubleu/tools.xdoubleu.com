@@ -64,6 +64,8 @@ export const swrKeys = {
   feeds: '/feeds',
   feedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     `/feeds/items?unread=${unreadOnly}&feed=${feedId ?? ''}&bookmarked=${bookmarkedOnly ?? false}`,
+  // Under '/feeds/items' so mutateFeedItems' prefix sweep refreshes it too.
+  feedFilteredItems: (feedId?: string) => `/feeds/items/filtered?feed=${feedId ?? ''}`,
   // Singular so mutateFeedItems' '/feeds/items' prefix sweep keeps bodies.
   feedItem: (id: string) => `/feeds/item/${id}`,
   feedStats: '/feeds/stats',

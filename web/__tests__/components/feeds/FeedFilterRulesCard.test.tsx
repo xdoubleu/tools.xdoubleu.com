@@ -73,6 +73,18 @@ describe('FeedFilterRulesCard', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
+  it("links each rule's filtered count to the filtered view, scoped to its feed", () => {
+    render(<FeedFilterRulesCard />)
+    expect(screen.getByRole('link', { name: '7 filtered' })).toHaveAttribute(
+      'href',
+      '/feeds/filtered?feed=feed-1'
+    )
+    expect(screen.getByRole('link', { name: '0 filtered' })).toHaveAttribute(
+      'href',
+      '/feeds/filtered'
+    )
+  })
+
   it('offers All feeds plus every feed as the scope', () => {
     render(<FeedFilterRulesCard />)
     const options = within(screen.getByLabelText('Applies to')).getAllByRole('option')

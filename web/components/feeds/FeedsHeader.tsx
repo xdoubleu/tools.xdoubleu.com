@@ -28,6 +28,9 @@ export default function FeedsHeader() {
         actions={
           <>
             <Button asChild variant="link" className="min-w-11 sm:min-w-0">
+              <Link href="/feeds/filtered">Filtered</Link>
+            </Button>
+            <Button asChild variant="link" className="min-w-11 sm:min-w-0">
               <Link href="/feeds/stats">Stats</Link>
             </Button>
             {isAdmin && (

@@ -104,15 +104,19 @@ func (s *FeedService) List(
 }
 
 // ListItems returns a page of the user's items, optionally restricted to one
-// feed or to bookmarked items.
+// feed or to bookmarked items. filteredOnly instead lists the filtered items
+// with their rule, ignoring unreadOnly and bookmarkedOnly.
 func (s *FeedService) ListItems(
 	ctx context.Context,
 	userID string,
 	limit, offset int32,
 	unreadOnly bool,
 	feedID *uuid.UUID,
-	bookmarkedOnly bool,
+	bookmarkedOnly, filteredOnly bool,
 ) ([]models.Item, bool, error) {
+	if filteredOnly {
+		return s.items.ListFilteredByUser(ctx, userID, limit, offset, feedID)
+	}
 	return s.items.ListByUser(
 		ctx, userID, limit, offset, unreadOnly, feedID, bookmarkedOnly,
 	)

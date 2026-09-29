@@ -109,7 +109,8 @@ func (repo *FilterRulesRepository) ListByUser(
 }
 
 // Create stores a rule and, atomically, filters the scope's existing items
-// that are unread, not bookmarked, not dismissed and not yet filtered.
+// that are unread, not bookmarked, not dismissed, not yet filtered and never
+// restored.
 // FilteredCount is how many it filtered. Returns
 // database.ErrResourceNotFound when feedID isn't the user's, and
 // database.ErrResourceConflict for a duplicate rule.
@@ -136,7 +137,7 @@ func (repo *FilterRulesRepository) Create(
 		      AND (r.feed_id IS NULL OR i.feed_id = r.feed_id)
 		      AND i.ingest_error IS NULL AND i.read_at IS NULL
 		      AND NOT i.bookmarked AND NOT i.dismissed
-		      AND i.filtered_at IS NULL
+		      AND i.filtered_at IS NULL AND i.restored_at IS NULL
 		      AND ` + filterRuleMatchesItemSQL + `
 		    RETURNING i.id
 		)
