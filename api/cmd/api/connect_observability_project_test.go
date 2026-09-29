@@ -23,9 +23,14 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 		func(w http.ResponseWriter, _ *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"data":{"user":{"projectV2":{"items":{"nodes":[
-				{"status":{"name":"Ready"},
+				{"status":{"name":"Ready","updatedAt":"2026-09-01T10:00:00Z"},
 				 "content":{"number":1357,"title":"Add MCP tool",
-				            "url":"https://gh/issues/1357","state":"OPEN"}}
+				            "url":"https://gh/issues/1357","state":"OPEN",
+				            "body":"x <!-- y -->",
+				            "lastEditedAt":"2026-09-02T10:00:00Z",
+				            "author":{"__typename":"Bot","login":"app"},
+				            "authorAssociation":"CONTRIBUTOR",
+				            "editor":{"login":"app"}}}
 			]}}}}}`))
 		}))
 	t.Cleanup(srv.Close)
@@ -41,8 +46,14 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.Configured)
 	require.Len(t, resp.Msg.Issues, 1)
-	assert.Equal(t, int64(1357), resp.Msg.Issues[0].Number)
-	assert.Equal(t, "Ready", resp.Msg.Issues[0].Status)
+	is := resp.Msg.Issues[0]
+	assert.Equal(t, int64(1357), is.Number)
+	assert.Equal(t, "Ready", is.Status)
+	assert.Equal(t, "app[bot]", is.AuthorLogin)
+	assert.Equal(t, "CONTRIBUTOR", is.AuthorAssociation)
+	assert.Equal(t, "2026-09-01T10:00:00Z", is.StatusUpdatedAt)
+	assert.True(t, is.BodyHasHtmlComment)
+	assert.True(t, is.BodyEditedAfterStatus)
 }
 
 func TestObservabilityGetProjectIssuesByStatus_NotConfigured(t *testing.T) {

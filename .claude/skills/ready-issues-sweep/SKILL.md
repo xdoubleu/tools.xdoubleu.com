@@ -30,8 +30,13 @@ question.
      Other types aren't safe to implement fully unattended; list skipped
      issues (number + type) in the summary.
    - **Only trusted authors** (`docs/convention-unattended-agent-trust.md`):
-     skip an issue whose `author_association` isn't OWNER and whose author
-     isn't the routine's bot identity; list it as skipped (untrusted author).
+     `author_association` OWNER, or `author_login` exactly
+     `xdoubleu-routines[bot]`. Skip anything else (untrusted author).
+   - **Only what the owner saw when approving.** Skip an issue with
+     `body_has_html_comment` (hidden text) or `body_edited_after_status`
+     (edited after the Ready move); the owner re-approves by removing the
+     comment or moving it out of Ready and back.
+   - List each skipped issue with its reason in the summary.
 
 2. **Overlap:** note in each affected prompt when two issues touch the same
    files, but keep one subagent and one PR per issue.

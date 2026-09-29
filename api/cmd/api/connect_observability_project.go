@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -49,10 +50,15 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 	protoIssues := make([]*observabilityv1.ProjectIssue, len(issues))
 	for i, is := range issues {
 		protoIssues[i] = &observabilityv1.ProjectIssue{
-			Number: is.Number,
-			Title:  is.Title,
-			Url:    is.URL,
-			Status: is.Status,
+			Number:                is.Number,
+			Title:                 is.Title,
+			Url:                   is.URL,
+			Status:                is.Status,
+			AuthorLogin:           is.AuthorLogin,
+			AuthorAssociation:     is.AuthorAssociation,
+			StatusUpdatedAt:       is.StatusUpdatedAt.Format(time.RFC3339),
+			BodyHasHtmlComment:    is.BodyHasHTMLComment,
+			BodyEditedAfterStatus: is.BodyEditedAfterStatus,
 		}
 	}
 	resp.Issues = protoIssues

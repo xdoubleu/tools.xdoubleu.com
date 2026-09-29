@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,6 +56,57 @@ func TestListProjectIssuesByStatus_FiltersByStatusAndOpenState(t *testing.T) {
 	assert.Equal(t, "https://gh/issues/1357", issues[0].URL)
 	assert.Equal(t, "Ready", issues[0].Status)
 	assert.Equal(t, int64(42), issues[1].Number)
+}
+
+func TestListProjectIssuesByStatus_ApprovalFacts(t *testing.T) {
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":{"user":{"projectV2":{"items":{"nodes":[
+				{"status":{"name":"Ready","updatedAt":"2026-09-01T10:00:00Z"},
+				 "content":{"number":1,"state":"OPEN","body":"clean",
+				            "lastEditedAt":null,
+				            "author":{"__typename":"User","login":"xdoubleu"},
+				            "authorAssociation":"OWNER","editor":null}},
+				{"status":{"name":"Ready","updatedAt":"2026-09-01T10:00:00Z"},
+				 "content":{"number":2,"state":"OPEN","body":"a <!-- hidden --> b",
+				            "lastEditedAt":"2026-09-02T10:00:00Z",
+				            "author":{"__typename":"Bot","login":"xdoubleu-routines"},
+				            "authorAssociation":"CONTRIBUTOR",
+				            "editor":{"login":"xdoubleu-routines"}}},
+				{"status":{"name":"Ready","updatedAt":"2026-09-01T10:00:00Z"},
+				 "content":{"number":3,"state":"OPEN","body":"owner edit",
+				            "lastEditedAt":"2026-09-02T10:00:00Z",
+				            "author":{"__typename":"Bot","login":"xdoubleu-routines"},
+				            "authorAssociation":"CONTRIBUTOR",
+				            "editor":{"login":"xdoubleu"}}},
+				{"status":{"name":"Ready","updatedAt":"2026-09-03T10:00:00Z"},
+				 "content":{"number":4,"state":"OPEN","body":"edited before Ready",
+				            "lastEditedAt":"2026-09-02T10:00:00Z",
+				            "author":{"__typename":"Bot","login":"xdoubleu-routines"},
+				            "authorAssociation":"CONTRIBUTOR",
+				            "editor":{"login":"xdoubleu-routines"}}}
+			]}}}}}`))
+		}))
+	defer cleanup()
+
+	issues, err := newClient().ListProjectIssuesByStatus(context.Background(), 8, "Ready")
+	require.NoError(t, err)
+	require.Len(t, issues, 4)
+
+	assert.Equal(t, "xdoubleu", issues[0].AuthorLogin)
+	assert.Equal(t, "OWNER", issues[0].AuthorAssociation)
+	assert.Equal(t,
+		time.Date(2026, 9, 1, 10, 0, 0, 0, time.UTC), issues[0].StatusUpdatedAt)
+	assert.False(t, issues[0].BodyHasHTMLComment)
+	assert.False(t, issues[0].BodyEditedAfterStatus)
+
+	assert.Equal(t, "xdoubleu-routines[bot]", issues[1].AuthorLogin)
+	assert.True(t, issues[1].BodyHasHTMLComment)
+	assert.True(t, issues[1].BodyEditedAfterStatus)
+
+	assert.False(t, issues[2].BodyEditedAfterStatus, "owner edits are approved")
+	assert.False(t, issues[3].BodyEditedAfterStatus, "edit predates the Ready move")
 }
 
 func TestListProjectIssuesByStatus_NotConfigured(t *testing.T) {
