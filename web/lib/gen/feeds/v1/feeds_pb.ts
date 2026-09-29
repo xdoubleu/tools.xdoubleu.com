@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file feeds/v1/feeds.proto.
  */
 export const file_feeds_v1_feeds: GenFile = /*@__PURE__*/
-  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEi9QEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJEgwKBGV0YWcYCSABKAkSFQoNbGFzdF9tb2RpZmllZBgKIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgLIAEoBRITCgtub3RpZmllZF9hdBgMIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjIKEUxpc3RGZWVkc1Jlc3BvbnNlEh0KBWZlZWRzGAEgAygLMg4uZmVlZHMudjEuRmVlZCJRChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSIAoEa2luZBgCIAEoDjISLmZlZWRzLnYxLkZlZWRLaW5kEg0KBXRpdGxlGAMgASgJIjIKEkNyZWF0ZUZlZWRSZXNwb25zZRIcCgRmZWVkGAEgASgLMg4uZmVlZHMudjEuRmVlZCIzChFVcGRhdGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIpgCCgRJdGVtEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc291cmNlX3VybBgEIAEoCRIUCgxjb250ZW50X2h0bWwYBSABKAkSFAoMcHVibGlzaGVkX2F0GAYgASgJEg8KB3JlYWRfYXQYByABKAkSEQoJZGlzbWlzc2VkGAggASgIEhIKCmJvb2ttYXJrZWQYCSABKAgSFAoMaW5nZXN0X2Vycm9yGAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAkSGQoRcmVhZF9wcm9ncmVzc19wY3QYDCABKAUSEwoLaGFzX2NvbnRlbnQYDSABKAgSEgoKY2F0ZWdvcmllcxgOIAMoCSKzAQoUTGlzdEZlZWRJdGVtc1JlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGb2Zmc2V0GAIgASgFEhgKC3VucmVhZF9vbmx5GAMgASgISACIAQESFAoHZmVlZF9pZBgEIAEoCUgBiAEBEhwKD2Jvb2ttYXJrZWRfb25seRgFIAEoCEgCiAEBQg4KDF91bnJlYWRfb25seUIKCghfZmVlZF9pZEISChBfYm9va21hcmtlZF9vbmx5IkgKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRIdCgVpdGVtcxgBIAMoCzIOLmZlZWRzLnYxLkl0ZW0SEAoIaGFzX21vcmUYAiABKAgiJQoSR2V0RmVlZEl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiMwoTR2V0RmVlZEl0ZW1SZXNwb25zZRIcCgRpdGVtGAEgASgLMg4uZmVlZHMudjEuSXRlbSLEAQoRVXBkYXRlSXRlbVJlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgRyZWFkGAIgASgISACIAQESFgoJZGlzbWlzc2VkGAMgASgISAGIAQESFwoKYm9va21hcmtlZBgEIAEoCEgCiAEBEh4KEXJlYWRfcHJvZ3Jlc3NfcGN0GAUgASgFSAOIAQFCBwoFX3JlYWRCDAoKX2Rpc21pc3NlZEINCgtfYm9va21hcmtlZEIUChJfcmVhZF9wcm9ncmVzc19wY3QiMgoSVXBkYXRlSXRlbVJlc3BvbnNlEhwKBGl0ZW0YASABKAsyDi5mZWVkcy52MS5JdGVtIpIBCglGZWVkU3RhdHMSDwoHZmVlZF9pZBgBIAEoCRISCgpmZWVkX3RpdGxlGAIgASgJEhIKCml0ZW1fY291bnQYAyABKAUSGgoSYXZnX2ludGVydmFsX2hvdXJzGAQgASgBEhEKCXJlYWRfcmF0ZRgFIAEoARIdChVhdmdfcmVhZF9wcm9ncmVzc19wY3QYBiABKAEiJgoIRGF5Q291bnQSCwoDZGF5GAEgASgJEg0KBWNvdW50GAIgASgFIhUKE0dldEZlZWRTdGF0c1JlcXVlc3QiZQoUR2V0RmVlZFN0YXRzUmVzcG9uc2USIgoFc3RhdHMYASADKAsyEy5mZWVkcy52MS5GZWVkU3RhdHMSKQoNaXRlbXNfcGVyX2RheRgCIAMoCzISLmZlZWRzLnYxLkRheUNvdW50Il0KDVVuaGVhbHRoeUZlZWQSDQoFdGl0bGUYASABKAkSCwoDdXJsGAIgASgJEhIKCmxhc3RfZXJyb3IYAyABKAkSHAoUY29uc2VjdXRpdmVfZmFpbHVyZXMYBCABKAUiGgoYR2V0VW5oZWFsdGh5RmVlZHNSZXF1ZXN0IkMKGUdldFVuaGVhbHRoeUZlZWRzUmVzcG9uc2USJgoFZmVlZHMYASADKAsyFy5mZWVkcy52MS5VbmhlYWx0aHlGZWVkKmMKCEZlZWRLaW5kEhkKFUZFRURfS0lORF9VTlNQRUNJRklFRBAAEhEKDUZFRURfS0lORF9SU1MQARITCg9GRUVEX0tJTkRfRU1BSUwQAhIUChBGRUVEX0tJTkRfU0NSQVBFEAMyjgYKC0ZlZWRTZXJ2aWNlEkQKCUxpc3RGZWVkcxIaLmZlZWRzLnYxLkxpc3RGZWVkc1JlcXVlc3QaGy5mZWVkcy52MS5MaXN0RmVlZHNSZXNwb25zZRJHCgpDcmVhdGVGZWVkEhsuZmVlZHMudjEuQ3JlYXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5DcmVhdGVGZWVkUmVzcG9uc2USRwoKVXBkYXRlRmVlZBIbLmZlZWRzLnYxLlVwZGF0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlRmVlZFJlc3BvbnNlEkcKCkRlbGV0ZUZlZWQSGy5mZWVkcy52MS5EZWxldGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLkRlbGV0ZUZlZWRSZXNwb25zZRJKCgtSZWZyZXNoRmVlZBIcLmZlZWRzLnYxLlJlZnJlc2hGZWVkUmVxdWVzdBodLmZlZWRzLnYxLlJlZnJlc2hGZWVkUmVzcG9uc2USUAoNTGlzdEZlZWRJdGVtcxIeLmZlZWRzLnYxLkxpc3RGZWVkSXRlbXNSZXF1ZXN0Gh8uZmVlZHMudjEuTGlzdEZlZWRJdGVtc1Jlc3BvbnNlEkoKC0dldEZlZWRJdGVtEhwuZmVlZHMudjEuR2V0RmVlZEl0ZW1SZXF1ZXN0Gh0uZmVlZHMudjEuR2V0RmVlZEl0ZW1SZXNwb25zZRJHCgpVcGRhdGVJdGVtEhsuZmVlZHMudjEuVXBkYXRlSXRlbVJlcXVlc3QaHC5mZWVkcy52MS5VcGRhdGVJdGVtUmVzcG9uc2USTQoMR2V0RmVlZFN0YXRzEh0uZmVlZHMudjEuR2V0RmVlZFN0YXRzUmVxdWVzdBoeLmZlZWRzLnYxLkdldEZlZWRTdGF0c1Jlc3BvbnNlElwKEUdldFVuaGVhbHRoeUZlZWRzEiIuZmVlZHMudjEuR2V0VW5oZWFsdGh5RmVlZHNSZXF1ZXN0GiMuZmVlZHMudjEuR2V0VW5oZWFsdGh5RmVlZHNSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2ZlZWRzL3YxO2ZlZWRzdjFiBnByb3RvMw");
+  fileDesc("ChRmZWVkcy92MS9mZWVkcy5wcm90bxIIZmVlZHMudjEi9QEKBEZlZWQSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg0KBXRpdGxlGAMgASgJEhcKD2xhc3RfZmV0Y2hlZF9hdBgEIAEoCRISCgpsYXN0X2Vycm9yGAUgASgJEhIKCmNyZWF0ZWRfYXQYBiABKAkSEwoLc291cmNlX3R5cGUYByABKAkSFwoPaW5ib3VuZF9hZGRyZXNzGAggASgJEgwKBGV0YWcYCSABKAkSFQoNbGFzdF9tb2RpZmllZBgKIAEoCRIcChRjb25zZWN1dGl2ZV9mYWlsdXJlcxgLIAEoBRITCgtub3RpZmllZF9hdBgMIAEoCSISChBMaXN0RmVlZHNSZXF1ZXN0IjIKEUxpc3RGZWVkc1Jlc3BvbnNlEh0KBWZlZWRzGAEgAygLMg4uZmVlZHMudjEuRmVlZCJRChFDcmVhdGVGZWVkUmVxdWVzdBILCgN1cmwYASABKAkSIAoEa2luZBgCIAEoDjISLmZlZWRzLnYxLkZlZWRLaW5kEg0KBXRpdGxlGAMgASgJIjIKEkNyZWF0ZUZlZWRSZXNwb25zZRIcCgRmZWVkGAEgASgLMg4uZmVlZHMudjEuRmVlZCIzChFVcGRhdGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJEg0KBXRpdGxlGAIgASgJIhQKElVwZGF0ZUZlZWRSZXNwb25zZSIkChFEZWxldGVGZWVkUmVxdWVzdBIPCgdmZWVkX2lkGAEgASgJIhQKEkRlbGV0ZUZlZWRSZXNwb25zZSIlChJSZWZyZXNoRmVlZFJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCSInChNSZWZyZXNoRmVlZFJlc3BvbnNlEhAKCGluZ2VzdGVkGAEgASgFIpgCCgRJdGVtEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSDQoFdGl0bGUYAyABKAkSEgoKc291cmNlX3VybBgEIAEoCRIUCgxjb250ZW50X2h0bWwYBSABKAkSFAoMcHVibGlzaGVkX2F0GAYgASgJEg8KB3JlYWRfYXQYByABKAkSEQoJZGlzbWlzc2VkGAggASgIEhIKCmJvb2ttYXJrZWQYCSABKAgSFAoMaW5nZXN0X2Vycm9yGAogASgJEhIKCmNyZWF0ZWRfYXQYCyABKAkSGQoRcmVhZF9wcm9ncmVzc19wY3QYDCABKAUSEwoLaGFzX2NvbnRlbnQYDSABKAgSEgoKY2F0ZWdvcmllcxgOIAMoCSKzAQoUTGlzdEZlZWRJdGVtc1JlcXVlc3QSDQoFbGltaXQYASABKAUSDgoGb2Zmc2V0GAIgASgFEhgKC3VucmVhZF9vbmx5GAMgASgISACIAQESFAoHZmVlZF9pZBgEIAEoCUgBiAEBEhwKD2Jvb2ttYXJrZWRfb25seRgFIAEoCEgCiAEBQg4KDF91bnJlYWRfb25seUIKCghfZmVlZF9pZEISChBfYm9va21hcmtlZF9vbmx5IkgKFUxpc3RGZWVkSXRlbXNSZXNwb25zZRIdCgVpdGVtcxgBIAMoCzIOLmZlZWRzLnYxLkl0ZW0SEAoIaGFzX21vcmUYAiABKAgiJQoSR2V0RmVlZEl0ZW1SZXF1ZXN0Eg8KB2l0ZW1faWQYASABKAkiMwoTR2V0RmVlZEl0ZW1SZXNwb25zZRIcCgRpdGVtGAEgASgLMg4uZmVlZHMudjEuSXRlbSLEAQoRVXBkYXRlSXRlbVJlcXVlc3QSDwoHaXRlbV9pZBgBIAEoCRIRCgRyZWFkGAIgASgISACIAQESFgoJZGlzbWlzc2VkGAMgASgISAGIAQESFwoKYm9va21hcmtlZBgEIAEoCEgCiAEBEh4KEXJlYWRfcHJvZ3Jlc3NfcGN0GAUgASgFSAOIAQFCBwoFX3JlYWRCDAoKX2Rpc21pc3NlZEINCgtfYm9va21hcmtlZEIUChJfcmVhZF9wcm9ncmVzc19wY3QiMgoSVXBkYXRlSXRlbVJlc3BvbnNlEhwKBGl0ZW0YASABKAsyDi5mZWVkcy52MS5JdGVtIpIBCglGZWVkU3RhdHMSDwoHZmVlZF9pZBgBIAEoCRISCgpmZWVkX3RpdGxlGAIgASgJEhIKCml0ZW1fY291bnQYAyABKAUSGgoSYXZnX2ludGVydmFsX2hvdXJzGAQgASgBEhEKCXJlYWRfcmF0ZRgFIAEoARIdChVhdmdfcmVhZF9wcm9ncmVzc19wY3QYBiABKAEiJgoIRGF5Q291bnQSCwoDZGF5GAEgASgJEg0KBWNvdW50GAIgASgFIhUKE0dldEZlZWRTdGF0c1JlcXVlc3QiZQoUR2V0RmVlZFN0YXRzUmVzcG9uc2USIgoFc3RhdHMYASADKAsyEy5mZWVkcy52MS5GZWVkU3RhdHMSKQoNaXRlbXNfcGVyX2RheRgCIAMoCzISLmZlZWRzLnYxLkRheUNvdW50Il0KDVVuaGVhbHRoeUZlZWQSDQoFdGl0bGUYASABKAkSCwoDdXJsGAIgASgJEhIKCmxhc3RfZXJyb3IYAyABKAkSHAoUY29uc2VjdXRpdmVfZmFpbHVyZXMYBCABKAUiGgoYR2V0VW5oZWFsdGh5RmVlZHNSZXF1ZXN0IkMKGUdldFVuaGVhbHRoeUZlZWRzUmVzcG9uc2USJgoFZmVlZHMYASADKAsyFy5mZWVkcy52MS5VbmhlYWx0aHlGZWVkIowBCgpGaWx0ZXJSdWxlEgoKAmlkGAEgASgJEg8KB2ZlZWRfaWQYAiABKAkSJgoEa2luZBgDIAEoDjIYLmZlZWRzLnYxLkZpbHRlclJ1bGVLaW5kEg0KBXZhbHVlGAQgASgJEhIKCmNyZWF0ZWRfYXQYBSABKAkSFgoOZmlsdGVyZWRfY291bnQYBiABKAUiGAoWTGlzdEZpbHRlclJ1bGVzUmVxdWVzdCI+ChdMaXN0RmlsdGVyUnVsZXNSZXNwb25zZRIjCgVydWxlcxgBIAMoCzIULmZlZWRzLnYxLkZpbHRlclJ1bGUiYQoXQ3JlYXRlRmlsdGVyUnVsZVJlcXVlc3QSDwoHZmVlZF9pZBgBIAEoCRImCgRraW5kGAIgASgOMhguZmVlZHMudjEuRmlsdGVyUnVsZUtpbmQSDQoFdmFsdWUYAyABKAkiPgoYQ3JlYXRlRmlsdGVyUnVsZVJlc3BvbnNlEiIKBHJ1bGUYASABKAsyFC5mZWVkcy52MS5GaWx0ZXJSdWxlIioKF0RlbGV0ZUZpbHRlclJ1bGVSZXF1ZXN0Eg8KB3J1bGVfaWQYASABKAkiGgoYRGVsZXRlRmlsdGVyUnVsZVJlc3BvbnNlKmMKCEZlZWRLaW5kEhkKFUZFRURfS0lORF9VTlNQRUNJRklFRBAAEhEKDUZFRURfS0lORF9SU1MQARITCg9GRUVEX0tJTkRfRU1BSUwQAhIUChBGRUVEX0tJTkRfU0NSQVBFEAMqbQoORmlsdGVyUnVsZUtpbmQSIAocRklMVEVSX1JVTEVfS0lORF9VTlNQRUNJRklFRBAAEh0KGUZJTFRFUl9SVUxFX0tJTkRfQ0FURUdPUlkQARIaChZGSUxURVJfUlVMRV9LSU5EX1RJVExFEAIynAgKC0ZlZWRTZXJ2aWNlEkQKCUxpc3RGZWVkcxIaLmZlZWRzLnYxLkxpc3RGZWVkc1JlcXVlc3QaGy5mZWVkcy52MS5MaXN0RmVlZHNSZXNwb25zZRJHCgpDcmVhdGVGZWVkEhsuZmVlZHMudjEuQ3JlYXRlRmVlZFJlcXVlc3QaHC5mZWVkcy52MS5DcmVhdGVGZWVkUmVzcG9uc2USRwoKVXBkYXRlRmVlZBIbLmZlZWRzLnYxLlVwZGF0ZUZlZWRSZXF1ZXN0GhwuZmVlZHMudjEuVXBkYXRlRmVlZFJlc3BvbnNlEkcKCkRlbGV0ZUZlZWQSGy5mZWVkcy52MS5EZWxldGVGZWVkUmVxdWVzdBocLmZlZWRzLnYxLkRlbGV0ZUZlZWRSZXNwb25zZRJKCgtSZWZyZXNoRmVlZBIcLmZlZWRzLnYxLlJlZnJlc2hGZWVkUmVxdWVzdBodLmZlZWRzLnYxLlJlZnJlc2hGZWVkUmVzcG9uc2USUAoNTGlzdEZlZWRJdGVtcxIeLmZlZWRzLnYxLkxpc3RGZWVkSXRlbXNSZXF1ZXN0Gh8uZmVlZHMudjEuTGlzdEZlZWRJdGVtc1Jlc3BvbnNlEkoKC0dldEZlZWRJdGVtEhwuZmVlZHMudjEuR2V0RmVlZEl0ZW1SZXF1ZXN0Gh0uZmVlZHMudjEuR2V0RmVlZEl0ZW1SZXNwb25zZRJHCgpVcGRhdGVJdGVtEhsuZmVlZHMudjEuVXBkYXRlSXRlbVJlcXVlc3QaHC5mZWVkcy52MS5VcGRhdGVJdGVtUmVzcG9uc2USTQoMR2V0RmVlZFN0YXRzEh0uZmVlZHMudjEuR2V0RmVlZFN0YXRzUmVxdWVzdBoeLmZlZWRzLnYxLkdldEZlZWRTdGF0c1Jlc3BvbnNlElwKEUdldFVuaGVhbHRoeUZlZWRzEiIuZmVlZHMudjEuR2V0VW5oZWFsdGh5RmVlZHNSZXF1ZXN0GiMuZmVlZHMudjEuR2V0VW5oZWFsdGh5RmVlZHNSZXNwb25zZRJWCg9MaXN0RmlsdGVyUnVsZXMSIC5mZWVkcy52MS5MaXN0RmlsdGVyUnVsZXNSZXF1ZXN0GiEuZmVlZHMudjEuTGlzdEZpbHRlclJ1bGVzUmVzcG9uc2USWQoQQ3JlYXRlRmlsdGVyUnVsZRIhLmZlZWRzLnYxLkNyZWF0ZUZpbHRlclJ1bGVSZXF1ZXN0GiIuZmVlZHMudjEuQ3JlYXRlRmlsdGVyUnVsZVJlc3BvbnNlElkKEERlbGV0ZUZpbHRlclJ1bGUSIS5mZWVkcy52MS5EZWxldGVGaWx0ZXJSdWxlUmVxdWVzdBoiLmZlZWRzLnYxLkRlbGV0ZUZpbHRlclJ1bGVSZXNwb25zZUIpWid0b29scy54ZG91YmxldS5jb20vZ2VuL2ZlZWRzL3YxO2ZlZWRzdjFiBnByb3RvMw");
 
 /**
  * Feed is an RSS/Atom, scrape or email-relay subscription.
@@ -723,6 +723,165 @@ export const GetUnhealthyFeedsResponseSchema: GenMessage<GetUnhealthyFeedsRespon
   messageDesc(file_feeds_v1_feeds, 24);
 
 /**
+ * FilterRule hides matching items from the inbox, unread counts and stats.
+ *
+ * @generated from message feeds.v1.FilterRule
+ */
+export type FilterRule = Message<"feeds.v1.FilterRule"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * Empty for a rule covering all of the caller's feeds.
+   *
+   * @generated from field: string feed_id = 2;
+   */
+  feedId: string;
+
+  /**
+   * @generated from field: feeds.v1.FilterRuleKind kind = 3;
+   */
+  kind: FilterRuleKind;
+
+  /**
+   * @generated from field: string value = 4;
+   */
+  value: string;
+
+  /**
+   * @generated from field: string created_at = 5;
+   */
+  createdAt: string;
+
+  /**
+   * Items the rule has filtered, at ingest or retroactively.
+   *
+   * @generated from field: int32 filtered_count = 6;
+   */
+  filteredCount: number;
+};
+
+/**
+ * Describes the message feeds.v1.FilterRule.
+ * Use `create(FilterRuleSchema)` to create a new message.
+ */
+export const FilterRuleSchema: GenMessage<FilterRule> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 25);
+
+/**
+ * @generated from message feeds.v1.ListFilterRulesRequest
+ */
+export type ListFilterRulesRequest = Message<"feeds.v1.ListFilterRulesRequest"> & {
+};
+
+/**
+ * Describes the message feeds.v1.ListFilterRulesRequest.
+ * Use `create(ListFilterRulesRequestSchema)` to create a new message.
+ */
+export const ListFilterRulesRequestSchema: GenMessage<ListFilterRulesRequest> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 26);
+
+/**
+ * @generated from message feeds.v1.ListFilterRulesResponse
+ */
+export type ListFilterRulesResponse = Message<"feeds.v1.ListFilterRulesResponse"> & {
+  /**
+   * @generated from field: repeated feeds.v1.FilterRule rules = 1;
+   */
+  rules: FilterRule[];
+};
+
+/**
+ * Describes the message feeds.v1.ListFilterRulesResponse.
+ * Use `create(ListFilterRulesResponseSchema)` to create a new message.
+ */
+export const ListFilterRulesResponseSchema: GenMessage<ListFilterRulesResponse> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 27);
+
+/**
+ * CreateFilterRule also filters the scope's existing unread,
+ * unbookmarked, undismissed items; rule.filtered_count is how many.
+ *
+ * @generated from message feeds.v1.CreateFilterRuleRequest
+ */
+export type CreateFilterRuleRequest = Message<"feeds.v1.CreateFilterRuleRequest"> & {
+  /**
+   * Empty applies the rule to all of the caller's feeds.
+   *
+   * @generated from field: string feed_id = 1;
+   */
+  feedId: string;
+
+  /**
+   * @generated from field: feeds.v1.FilterRuleKind kind = 2;
+   */
+  kind: FilterRuleKind;
+
+  /**
+   * @generated from field: string value = 3;
+   */
+  value: string;
+};
+
+/**
+ * Describes the message feeds.v1.CreateFilterRuleRequest.
+ * Use `create(CreateFilterRuleRequestSchema)` to create a new message.
+ */
+export const CreateFilterRuleRequestSchema: GenMessage<CreateFilterRuleRequest> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 28);
+
+/**
+ * @generated from message feeds.v1.CreateFilterRuleResponse
+ */
+export type CreateFilterRuleResponse = Message<"feeds.v1.CreateFilterRuleResponse"> & {
+  /**
+   * @generated from field: feeds.v1.FilterRule rule = 1;
+   */
+  rule?: FilterRule | undefined;
+};
+
+/**
+ * Describes the message feeds.v1.CreateFilterRuleResponse.
+ * Use `create(CreateFilterRuleResponseSchema)` to create a new message.
+ */
+export const CreateFilterRuleResponseSchema: GenMessage<CreateFilterRuleResponse> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 29);
+
+/**
+ * DeleteFilterRule stops future filtering; filtered items stay filtered.
+ *
+ * @generated from message feeds.v1.DeleteFilterRuleRequest
+ */
+export type DeleteFilterRuleRequest = Message<"feeds.v1.DeleteFilterRuleRequest"> & {
+  /**
+   * @generated from field: string rule_id = 1;
+   */
+  ruleId: string;
+};
+
+/**
+ * Describes the message feeds.v1.DeleteFilterRuleRequest.
+ * Use `create(DeleteFilterRuleRequestSchema)` to create a new message.
+ */
+export const DeleteFilterRuleRequestSchema: GenMessage<DeleteFilterRuleRequest> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 30);
+
+/**
+ * @generated from message feeds.v1.DeleteFilterRuleResponse
+ */
+export type DeleteFilterRuleResponse = Message<"feeds.v1.DeleteFilterRuleResponse"> & {
+};
+
+/**
+ * Describes the message feeds.v1.DeleteFilterRuleResponse.
+ * Use `create(DeleteFilterRuleResponseSchema)` to create a new message.
+ */
+export const DeleteFilterRuleResponseSchema: GenMessage<DeleteFilterRuleResponse> = /*@__PURE__*/
+  messageDesc(file_feeds_v1_feeds, 31);
+
+/**
  * @generated from enum feeds.v1.FeedKind
  */
 export enum FeedKind {
@@ -754,6 +913,38 @@ export enum FeedKind {
  */
 export const FeedKindSchema: GenEnum<FeedKind> = /*@__PURE__*/
   enumDesc(file_feeds_v1_feeds, 0);
+
+/**
+ * @generated from enum feeds.v1.FilterRuleKind
+ */
+export enum FilterRuleKind {
+  /**
+   * rejected
+   *
+   * @generated from enum value: FILTER_RULE_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Exact category match, ignoring case.
+   *
+   * @generated from enum value: FILTER_RULE_KIND_CATEGORY = 1;
+   */
+  CATEGORY = 1,
+
+  /**
+   * Title substring match, ignoring case.
+   *
+   * @generated from enum value: FILTER_RULE_KIND_TITLE = 2;
+   */
+  TITLE = 2,
+}
+
+/**
+ * Describes the enum feeds.v1.FilterRuleKind.
+ */
+export const FilterRuleKindSchema: GenEnum<FilterRuleKind> = /*@__PURE__*/
+  enumDesc(file_feeds_v1_feeds, 1);
 
 /**
  * @generated from service feeds.v1.FeedService
@@ -838,6 +1029,30 @@ export const FeedService: GenService<{
     methodKind: "unary";
     input: typeof GetUnhealthyFeedsRequestSchema;
     output: typeof GetUnhealthyFeedsResponseSchema;
+  },
+  /**
+   * @generated from rpc feeds.v1.FeedService.ListFilterRules
+   */
+  listFilterRules: {
+    methodKind: "unary";
+    input: typeof ListFilterRulesRequestSchema;
+    output: typeof ListFilterRulesResponseSchema;
+  },
+  /**
+   * @generated from rpc feeds.v1.FeedService.CreateFilterRule
+   */
+  createFilterRule: {
+    methodKind: "unary";
+    input: typeof CreateFilterRuleRequestSchema;
+    output: typeof CreateFilterRuleResponseSchema;
+  },
+  /**
+   * @generated from rpc feeds.v1.FeedService.DeleteFilterRule
+   */
+  deleteFilterRule: {
+    methodKind: "unary";
+    input: typeof DeleteFilterRuleRequestSchema;
+    output: typeof DeleteFilterRuleResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_feeds_v1_feeds, 0);

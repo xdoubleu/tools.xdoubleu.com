@@ -56,6 +56,15 @@ const (
 	// FeedServiceGetUnhealthyFeedsProcedure is the fully-qualified name of the FeedService's
 	// GetUnhealthyFeeds RPC.
 	FeedServiceGetUnhealthyFeedsProcedure = "/feeds.v1.FeedService/GetUnhealthyFeeds"
+	// FeedServiceListFilterRulesProcedure is the fully-qualified name of the FeedService's
+	// ListFilterRules RPC.
+	FeedServiceListFilterRulesProcedure = "/feeds.v1.FeedService/ListFilterRules"
+	// FeedServiceCreateFilterRuleProcedure is the fully-qualified name of the FeedService's
+	// CreateFilterRule RPC.
+	FeedServiceCreateFilterRuleProcedure = "/feeds.v1.FeedService/CreateFilterRule"
+	// FeedServiceDeleteFilterRuleProcedure is the fully-qualified name of the FeedService's
+	// DeleteFilterRule RPC.
+	FeedServiceDeleteFilterRuleProcedure = "/feeds.v1.FeedService/DeleteFilterRule"
 )
 
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
@@ -70,6 +79,9 @@ type FeedServiceClient interface {
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
+	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
+	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
+	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
 }
 
 // NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
@@ -143,6 +155,24 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
 			connect.WithClientOptions(opts...),
 		),
+		listFilterRules: connect.NewClient[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse](
+			httpClient,
+			baseURL+FeedServiceListFilterRulesProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("ListFilterRules")),
+			connect.WithClientOptions(opts...),
+		),
+		createFilterRule: connect.NewClient[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse](
+			httpClient,
+			baseURL+FeedServiceCreateFilterRuleProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("CreateFilterRule")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteFilterRule: connect.NewClient[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse](
+			httpClient,
+			baseURL+FeedServiceDeleteFilterRuleProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -158,6 +188,9 @@ type feedServiceClient struct {
 	updateItem        *connect.Client[v1.UpdateItemRequest, v1.UpdateItemResponse]
 	getFeedStats      *connect.Client[v1.GetFeedStatsRequest, v1.GetFeedStatsResponse]
 	getUnhealthyFeeds *connect.Client[v1.GetUnhealthyFeedsRequest, v1.GetUnhealthyFeedsResponse]
+	listFilterRules   *connect.Client[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse]
+	createFilterRule  *connect.Client[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse]
+	deleteFilterRule  *connect.Client[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse]
 }
 
 // ListFeeds calls feeds.v1.FeedService.ListFeeds.
@@ -210,6 +243,21 @@ func (c *feedServiceClient) GetUnhealthyFeeds(ctx context.Context, req *connect.
 	return c.getUnhealthyFeeds.CallUnary(ctx, req)
 }
 
+// ListFilterRules calls feeds.v1.FeedService.ListFilterRules.
+func (c *feedServiceClient) ListFilterRules(ctx context.Context, req *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error) {
+	return c.listFilterRules.CallUnary(ctx, req)
+}
+
+// CreateFilterRule calls feeds.v1.FeedService.CreateFilterRule.
+func (c *feedServiceClient) CreateFilterRule(ctx context.Context, req *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error) {
+	return c.createFilterRule.CallUnary(ctx, req)
+}
+
+// DeleteFilterRule calls feeds.v1.FeedService.DeleteFilterRule.
+func (c *feedServiceClient) DeleteFilterRule(ctx context.Context, req *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error) {
+	return c.deleteFilterRule.CallUnary(ctx, req)
+}
+
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
 	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
@@ -222,6 +270,9 @@ type FeedServiceHandler interface {
 	UpdateItem(context.Context, *connect.Request[v1.UpdateItemRequest]) (*connect.Response[v1.UpdateItemResponse], error)
 	GetFeedStats(context.Context, *connect.Request[v1.GetFeedStatsRequest]) (*connect.Response[v1.GetFeedStatsResponse], error)
 	GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error)
+	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
+	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
+	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
 }
 
 // NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -291,6 +342,24 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("GetUnhealthyFeeds")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceListFilterRulesHandler := connect.NewUnaryHandler(
+		FeedServiceListFilterRulesProcedure,
+		svc.ListFilterRules,
+		connect.WithSchema(feedServiceMethods.ByName("ListFilterRules")),
+		connect.WithHandlerOptions(opts...),
+	)
+	feedServiceCreateFilterRuleHandler := connect.NewUnaryHandler(
+		FeedServiceCreateFilterRuleProcedure,
+		svc.CreateFilterRule,
+		connect.WithSchema(feedServiceMethods.ByName("CreateFilterRule")),
+		connect.WithHandlerOptions(opts...),
+	)
+	feedServiceDeleteFilterRuleHandler := connect.NewUnaryHandler(
+		FeedServiceDeleteFilterRuleProcedure,
+		svc.DeleteFilterRule,
+		connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FeedServiceListFeedsProcedure:
@@ -313,6 +382,12 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceGetFeedStatsHandler.ServeHTTP(w, r)
 		case FeedServiceGetUnhealthyFeedsProcedure:
 			feedServiceGetUnhealthyFeedsHandler.ServeHTTP(w, r)
+		case FeedServiceListFilterRulesProcedure:
+			feedServiceListFilterRulesHandler.ServeHTTP(w, r)
+		case FeedServiceCreateFilterRuleProcedure:
+			feedServiceCreateFilterRuleHandler.ServeHTTP(w, r)
+		case FeedServiceDeleteFilterRuleProcedure:
+			feedServiceDeleteFilterRuleHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -360,4 +435,16 @@ func (UnimplementedFeedServiceHandler) GetFeedStats(context.Context, *connect.Re
 
 func (UnimplementedFeedServiceHandler) GetUnhealthyFeeds(context.Context, *connect.Request[v1.GetUnhealthyFeedsRequest]) (*connect.Response[v1.GetUnhealthyFeedsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.GetUnhealthyFeeds is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.ListFilterRules is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.CreateFilterRule is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DeleteFilterRule is not implemented"))
 }

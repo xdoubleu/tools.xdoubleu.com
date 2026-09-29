@@ -594,6 +594,10 @@ func (s *FeedService) ingestDiscoveredLinks(
 	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
 		return byGUID[guid].Categories
 	})
+	rules, ok := s.pollFilterRules(ctx, feed, newGUIDs)
+	if !ok {
+		return 0
+	}
 
 	ingested := 0
 	for i, guid := range newGUIDs {
@@ -603,7 +607,7 @@ func (s *FeedService) ingestDiscoveredLinks(
 		if i >= maxItemsPerPoll {
 			continue
 		}
-		if s.ingestDiscoveredLink(ctx, feed, byGUID[guid], guid) {
+		if s.ingestDiscoveredLink(ctx, feed, byGUID[guid], guid, rules) {
 			ingested++
 		}
 	}
@@ -611,19 +615,26 @@ func (s *FeedService) ingestDiscoveredLinks(
 }
 
 // ingestDiscoveredLink fetches and extracts one post, titled by its anchor
-// text. With no feed description to fall back to, a failed fetch/extraction
-// drops the item (marked seen, never retried).
+// text, and reports whether it stored an unfiltered item. With no feed
+// description to fall back to, a failed fetch/extraction drops the item
+// (marked seen, never retried). A link matching a filter rule is stored
+// without fetching.
 func (s *FeedService) ingestDiscoveredLink(
 	ctx context.Context,
 	feed models.Feed,
 	link discoveredLink,
 	guid string,
+	rules []models.FilterRule,
 ) bool {
 	title := link.Title
-	body := s.fetchLinkedPageHTML(ctx, guid, &title)
-	if body == "" {
-		s.markSeenError(ctx, feed.ID, guid, "content fetch failed")
-		return false
+	rule := matchFilterRule(rules, feed.ID, title, link.Categories)
+	var body string
+	if rule == nil {
+		body = s.fetchLinkedPageHTML(ctx, guid, &title)
+		if body == "" {
+			s.markSeenError(ctx, feed.ID, guid, "content fetch failed")
+			return false
+		}
 	}
 
 	publishedAt := time.Now()
@@ -641,10 +652,11 @@ func (s *FeedService) ingestDiscoveredLink(
 		PublishedAt: publishedAt,
 		Categories:  link.Categories,
 	}
+	markFiltered(&item, rule)
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "scrape feed item store failed",
 			"feedID", feed.ID, "guid", guid, "error", err)
 		return false
 	}
-	return true
+	return rule == nil
 }

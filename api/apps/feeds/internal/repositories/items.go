@@ -127,8 +127,8 @@ func (repo *ItemsRepository) Insert(
 	query := `
 		INSERT INTO feeds.items
 			(feed_id, guid, title, source_url, content_html, published_at,
-			 ingest_error, categories)
-		VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7, $8)
+			 ingest_error, categories, filtered_at, filtered_rule_id)
+		VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7, $8, $9, $10)
 		ON CONFLICT (feed_id, guid) DO UPDATE SET
 			read_at = NULL,
 			dismissed = false
@@ -137,6 +137,7 @@ func (repo *ItemsRepository) Insert(
 		ctx, query,
 		item.FeedID, item.GUID, item.Title, item.SourceURL, item.ContentHTML,
 		publishedAt, item.IngestError, nonNilCategories(item.Categories),
+		item.FilteredAt, item.FilteredRuleID,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
@@ -228,8 +229,9 @@ func (repo *ItemsRepository) GetByIDForUser(
 	return item, nil
 }
 
-// ListByUser returns a page of the user's non-dismissed, successfully
-// ingested items, newest first, excluding error/skip dedup markers.
+// ListByUser returns a page of the user's non-dismissed, unfiltered,
+// successfully ingested items, newest first, excluding error/skip dedup
+// markers.
 // unreadOnly, feedID and bookmarkedOnly narrow the results.
 func (repo *ItemsRepository) ListByUser(
 	ctx context.Context,
@@ -246,6 +248,7 @@ func (repo *ItemsRepository) ListByUser(
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
+		  AND i.filtered_at IS NULL
 		  AND ($4::bool = false OR i.read_at IS NULL)
 		  AND ($5::uuid IS NULL OR i.feed_id = $5)
 		  AND ($6::bool = false OR i.bookmarked = true)
@@ -276,7 +279,8 @@ func (repo *ItemsRepository) ListByUser(
 	return page, hasMore, nil
 }
 
-// CountUnread counts the user's non-dismissed, ingested, unread items.
+// CountUnread counts the user's non-dismissed, unfiltered, ingested, unread
+// items.
 func (repo *ItemsRepository) CountUnread(
 	ctx context.Context,
 	userID string,
@@ -287,7 +291,7 @@ func (repo *ItemsRepository) CountUnread(
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.dismissed = false
-		  AND i.read_at IS NULL
+		  AND i.read_at IS NULL AND i.filtered_at IS NULL
 	`, userID).Scan(&count)
 	if err != nil {
 		return 0, postgres.PgxErrorToHTTPError(err)
@@ -295,8 +299,8 @@ func (repo *ItemsRepository) CountUnread(
 	return count, nil
 }
 
-// CountUnreadByFeed counts non-dismissed, ingested, unread items per feed
-// across all users, omitting feeds with none.
+// CountUnreadByFeed counts non-dismissed, unfiltered, ingested, unread items
+// per feed across all users, omitting feeds with none.
 func (repo *ItemsRepository) CountUnreadByFeed(
 	ctx context.Context,
 ) ([]models.FeedUnreadCount, error) {
@@ -305,7 +309,7 @@ func (repo *ItemsRepository) CountUnreadByFeed(
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
 		WHERE i.ingest_error IS NULL AND i.dismissed = false
-		  AND i.read_at IS NULL
+		  AND i.read_at IS NULL AND i.filtered_at IS NULL
 		GROUP BY f.id, f.user_id, f.title, f.url
 		ORDER BY f.user_id, f.title, f.url
 	`
@@ -337,7 +341,7 @@ func (repo *ItemsRepository) CountUnreadByFeed(
 }
 
 // RecentPublishedAt returns the publish times of the feed's most recent
-// ingested items, newest first.
+// unfiltered ingested items, newest first.
 func (repo *ItemsRepository) RecentPublishedAt(
 	ctx context.Context,
 	feedID uuid.UUID,
@@ -346,7 +350,7 @@ func (repo *ItemsRepository) RecentPublishedAt(
 	query := `
 		SELECT published_at
 		FROM feeds.items
-		WHERE feed_id = $1 AND ingest_error IS NULL
+		WHERE feed_id = $1 AND ingest_error IS NULL AND filtered_at IS NULL
 		ORDER BY published_at DESC
 		LIMIT $2
 	`
@@ -370,8 +374,8 @@ func (repo *ItemsRepository) RecentPublishedAt(
 	return out, nil
 }
 
-// Stats aggregates per feed: item count, average interval (0 below 2 items),
-// read rate, and average read completion.
+// Stats aggregates unfiltered items per feed: item count, average interval
+// (0 below 2 items), read rate, and average read completion.
 func (repo *ItemsRepository) Stats(
 	ctx context.Context,
 	userID string,
@@ -386,7 +390,7 @@ func (repo *ItemsRepository) Stats(
 					)
 				)) / 3600.0 AS gap_hours
 			FROM feeds.items
-			WHERE ingest_error IS NULL
+			WHERE ingest_error IS NULL AND filtered_at IS NULL
 		),
 		avg_gaps AS (
 			SELECT feed_id, AVG(gap_hours) AS avg_interval_hours
@@ -403,6 +407,7 @@ func (repo *ItemsRepository) Stats(
 			COALESCE(AVG(i.read_progress_pct), 0)
 		FROM feeds.feeds f
 		LEFT JOIN feeds.items i ON i.feed_id = f.id AND i.ingest_error IS NULL
+		    AND i.filtered_at IS NULL
 		LEFT JOIN avg_gaps ag ON ag.feed_id = f.id
 		WHERE f.user_id = $1
 		GROUP BY f.id, f.title, ag.avg_interval_hours
@@ -431,8 +436,9 @@ func (repo *ItemsRepository) Stats(
 	return out, nil
 }
 
-// ItemsPerDay buckets the user's items by ingest day since the given time;
-// created_at is used since published_at can be backdated or missing.
+// ItemsPerDay buckets the user's unfiltered items by ingest day since the
+// given time; created_at is used since published_at can be backdated or
+// missing.
 func (repo *ItemsRepository) ItemsPerDay(
 	ctx context.Context,
 	userID string,
@@ -442,7 +448,8 @@ func (repo *ItemsRepository) ItemsPerDay(
 		SELECT date_trunc('day', i.created_at) AS day, COUNT(*)
 		FROM feeds.items i
 		JOIN feeds.feeds f ON f.id = i.feed_id
-		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.created_at >= $2
+		WHERE f.user_id = $1 AND i.ingest_error IS NULL AND i.filtered_at IS NULL
+		  AND i.created_at >= $2
 		GROUP BY day
 		ORDER BY day
 	`

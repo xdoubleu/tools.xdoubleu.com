@@ -31,6 +31,7 @@ func New(
 			logger,
 			repos.Feeds,
 			repos.Items,
+			repos.FilterRules,
 			webFetchClient,
 			inboundDomain,
 			notifications,
