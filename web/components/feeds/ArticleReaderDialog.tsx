@@ -5,6 +5,7 @@ import ArticleReaderDialog from '@/components/ArticleReaderDialog'
 import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui/dialog'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
+import FeedItemCategories from '@/components/feeds/FeedItemCategories'
 import FeedItemMarkReadButton, {
   type FeedItemMarkReadHandle
 } from '@/components/feeds/FeedItemMarkReadButton'
@@ -118,6 +119,8 @@ export default function FeedArticleReaderDialog({
           </div>
         }
       >
+        <FeedItemCategories categories={item.categories} className="px-1 pb-2" />
+
         {!item.hasContent && (
           <p className="text-sm text-muted p-4">
             No in-app content stored for this item.

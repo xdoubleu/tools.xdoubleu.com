@@ -87,6 +87,19 @@ describe('FeedReaderClient', () => {
     expect(screen.getByText('No unread feed items.')).toBeInTheDocument()
   })
 
+  it("shows an item's categories as chips", () => {
+    mockUseFeedItems.mockReturnValue({
+      data: {
+        items: [create(ItemSchema, { id: 'a', title: 'Item a', categories: ['Claude Code'] })],
+        hasMore: false
+      },
+      error: undefined,
+      isLoading: false
+    })
+    render(<FeedReaderClient />)
+    expect(screen.getByRole('list', { name: 'Categories' })).toHaveTextContent('Claude Code')
+  })
+
   it('defaults to querying unread-only items', () => {
     mockUseFeedItems.mockReturnValue({
       data: { items: [], hasMore: false },

@@ -49,6 +49,20 @@ describe('ArticleReaderDialog', () => {
     mockError = undefined
   })
 
+  it("shows the item's categories", () => {
+    const item = readerItem({ id: 'item-c', title: 'Tagged', categories: ['Enterprise AI'] })
+    render(
+      <ArticleReaderDialog
+        item={item}
+        open
+        onOpenChange={jest.fn()}
+        onMarkRead={jest.fn()}
+        onSettled={jest.fn()}
+      />
+    )
+    expect(screen.getByRole('list', { name: 'Categories' })).toHaveTextContent('Enterprise AI')
+  })
+
   it('auto-marks the item read once scrolled to the end of the content', () => {
     const item = readerItem({
       id: 'item-1',
