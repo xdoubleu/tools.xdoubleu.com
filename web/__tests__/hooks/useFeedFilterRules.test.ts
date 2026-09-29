@@ -71,6 +71,13 @@ describe('filter rule hooks', () => {
     expect(itemsMatcher(swrKeys.feedFilterRules)).toBe(false)
   })
 
+  it('useCreateFilterRule treats a response without a rule as nothing filtered', async () => {
+    clientMocks.createFilterRule.mockResolvedValueOnce({})
+    const { result } = renderHook(() => useCreateFilterRule())
+    await result.current({ feedId: '', kind: 2, value: 'x' })
+    expect(mutateMock).toHaveBeenCalledTimes(1)
+  })
+
   it('useDeleteFilterRule deletes and refreshes rules', async () => {
     const { result } = renderHook(() => useDeleteFilterRule())
     await result.current('r1')

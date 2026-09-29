@@ -168,7 +168,11 @@ func TestCreateFilterRule_Category_FiltersOnlyUnreadUntouchedItems(t *testing.T)
 	)
 	items := inboxBySourceURL(t, client, feedID)
 	yes := true
-	updateItem(t, client, &feedsv1.UpdateItemRequest{ItemId: items[read].Id, Read: &yes})
+	updateItem(
+		t,
+		client,
+		&feedsv1.UpdateItemRequest{ItemId: items[read].Id, Read: &yes},
+	)
 	updateItem(t, client, &feedsv1.UpdateItemRequest{
 		ItemId: items[bookmarked].Id, Bookmarked: &yes,
 	})
@@ -290,7 +294,10 @@ func TestCreateFilterRule_Errors(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := client.CreateFilterRule(context.Background(), connect.NewRequest(c.req))
+			_, err := client.CreateFilterRule(
+				context.Background(),
+				connect.NewRequest(c.req),
+			)
 			var cerr *connect.Error
 			require.True(t, errors.As(err, &cerr), "want a connect error, got %v", err)
 			assert.Equal(t, c.code, cerr.Code())

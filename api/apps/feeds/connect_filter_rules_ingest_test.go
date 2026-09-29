@@ -131,10 +131,18 @@ func TestCreateFilterRule_GlobalTitle_FiltersEveryFeedIncludingEmail(t *testing.
 		feedsv1.FilterRuleKind_FILTER_RULE_KIND_TITLE, marker)
 	assert.Empty(t, rule.FeedId)
 	assert.Equal(t, int32(2), rule.FilteredCount)
-	assert.Equal(t, []string{baseA + "/regular"}, keys(inboxBySourceURL(t, client, feedA)))
+	assert.Equal(
+		t,
+		[]string{baseA + "/regular"},
+		keys(inboxBySourceURL(t, client, feedA)),
+	)
 	assert.Empty(t, inboxBySourceURL(t, client, feedB))
 
-	body := inboundPayload(token+"@mail.example.com", "This week: "+marker, "email-rule")
+	body := inboundPayload(
+		token+"@mail.example.com",
+		"This week: "+marker,
+		"email-rule",
+	)
 	headers := signEmailWebhookBody(t, emailWebhookSecret(), "msg-rule", body)
 	postWebhook(mux, body, headers)
 
