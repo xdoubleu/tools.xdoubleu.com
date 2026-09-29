@@ -18,9 +18,8 @@ import {
 import { FilterRuleKind } from '@/lib/gen/feeds/v1/feeds_pb'
 import type { Feed, FilterRule } from '@/lib/gen/feeds/v1/feeds_pb'
 
-const KIND_LABEL: Record<number, string> = {
-  [FilterRuleKind.TITLE]: 'Title contains',
-  [FilterRuleKind.CATEGORY]: 'Category'
+function kindLabel(kind: FilterRuleKind): string {
+  return kind === FilterRuleKind.CATEGORY ? 'Category' : 'Title contains'
 }
 
 function feedLabel(feed: Feed): string {
@@ -43,7 +42,7 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
   const deleteRule = useDeleteFilterRule()
   const [busy, setBusy] = useState(false)
   const [failed, setFailed] = useState(false)
-  const kind = KIND_LABEL[rule.kind] ?? 'Rule'
+  const kind = kindLabel(rule.kind)
 
   const remove = async () => {
     setBusy(true)
