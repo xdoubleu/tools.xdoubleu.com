@@ -464,6 +464,9 @@ func (s *FeedService) processItems(
 			"feedID", feed.ID, "error", err)
 		return 0
 	}
+	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
+		return normalizeCategories(byGUID[guid].Categories)
+	})
 
 	ingested := 0
 	for i, guid := range newGUIDs {
@@ -544,6 +547,7 @@ func (s *FeedService) buildItem(
 		SourceURL:   canonical,
 		ContentHTML: html,
 		PublishedAt: publishedAt,
+		Categories:  normalizeCategories(item.Categories),
 	}, nil
 }
 

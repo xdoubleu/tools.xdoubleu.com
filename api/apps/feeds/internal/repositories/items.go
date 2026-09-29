@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -20,14 +21,14 @@ type ItemsRepository struct {
 // itemColumns includes the article body; only GetByIDForUser may use it.
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
-	i.read_progress_pct, i.ingest_error, i.created_at`
+	i.read_progress_pct, i.ingest_error, i.created_at, i.categories`
 
 // itemListColumns replaces the body with a has-content boolean. Every
 // multi-row read and RETURNING clause must use it: bodies are tens of MB per
 // page and exhaust database egress.
 const itemListColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html <> '', i.published_at, i.read_at, i.dismissed, i.bookmarked,
-	i.read_progress_pct, i.ingest_error, i.created_at`
+	i.read_progress_pct, i.ingest_error, i.created_at, i.categories`
 
 // scanItem scans an itemColumns row, deriving HasContent.
 func scanItem(row pgx.Row) (*models.Item, error) {
@@ -64,6 +65,7 @@ func scanItemInto(
 		&item.ReadProgressPct,
 		&item.IngestError,
 		&item.CreatedAt,
+		&item.Categories,
 	)
 	if err != nil {
 		return nil, err
@@ -125,8 +127,8 @@ func (repo *ItemsRepository) Insert(
 	query := `
 		INSERT INTO feeds.items
 			(feed_id, guid, title, source_url, content_html, published_at,
-			 ingest_error)
-		VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7)
+			 ingest_error, categories)
+		VALUES ($1, $2, $3, $4, $5, COALESCE($6, now()), $7, $8)
 		ON CONFLICT (feed_id, guid) DO UPDATE SET
 			read_at = NULL,
 			dismissed = false
@@ -134,9 +136,42 @@ func (repo *ItemsRepository) Insert(
 	_, err := repo.db.Exec(
 		ctx, query,
 		item.FeedID, item.GUID, item.Title, item.SourceURL, item.ContentHTML,
-		publishedAt, item.IngestError,
+		publishedAt, item.IngestError, nonNilCategories(item.Categories),
 	)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// FillMissingCategories sets categories (guid -> labels) on the feed's
+// stored items whose categories are still empty, in one statement.
+func (repo *ItemsRepository) FillMissingCategories(
+	ctx context.Context,
+	feedID uuid.UUID,
+	categories map[string][]string,
+) error {
+	if len(categories) == 0 {
+		return nil
+	}
+	payload, err := json.Marshal(categories)
+	if err != nil {
+		return err
+	}
+	query := `
+		UPDATE feeds.items i
+		SET categories = ARRAY(SELECT jsonb_array_elements_text(c.labels))
+		FROM jsonb_each($2::jsonb) AS c (guid, labels)
+		WHERE i.feed_id = $1 AND i.guid = c.guid AND i.categories = '{}'
+		  AND jsonb_array_length(c.labels) > 0
+	`
+	_, err = repo.db.Exec(ctx, query, feedID, payload)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// nonNilCategories maps nil to empty: pgx encodes a nil slice as NULL.
+func nonNilCategories(categories []string) []string {
+	if categories == nil {
+		return []string{}
+	}
+	return categories
 }
 
 // Update partially updates an item, scoped to its owner; nil leaves a column

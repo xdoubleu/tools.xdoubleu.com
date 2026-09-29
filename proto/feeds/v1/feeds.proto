@@ -84,6 +84,8 @@ message Item {
   // Whether an article body exists, distinguishing "no content" from "not
   // loaded".
   bool has_content = 13;
+  // RSS <category> values or scraped card labels; empty when none.
+  repeated string categories = 14;
 }
 
 message ListFeedItemsRequest {
