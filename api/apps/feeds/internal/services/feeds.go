@@ -239,7 +239,9 @@ func (s *FeedService) IngestEmail(
 		ContentHTML: htmlBody,
 		PublishedAt: time.Now(),
 	}
-	s.filterEmailItem(ctx, feed, &item)
+	markFiltered(&item, matchFilterRule(
+		s.feedFilterRules(ctx, feed), feed.ID, item.Title, nil,
+	))
 
 	if err := s.items.Insert(ctx, item); err != nil {
 		s.logger.WarnContext(ctx, "email feed ingest failed",
@@ -471,10 +473,7 @@ func (s *FeedService) processItems(
 	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
 		return normalizeCategories(byGUID[guid].Categories)
 	})
-	rules, ok := s.pollFilterRules(ctx, feed, newGUIDs)
-	if !ok {
-		return 0
-	}
+	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
 	ingested := 0
 	for i, guid := range newGUIDs {
@@ -538,7 +537,9 @@ func (s *FeedService) buildItem(
 
 	title := item.Title
 	categories := normalizeCategories(item.Categories)
-	rule := matchFilterRule(rules, feed.ID, title, categories)
+	rule := matchFilterRule(
+		rules, feed.ID, titleOrDefault(title, canonical), categories,
+	)
 	html := feedItemHTML(item)
 	if html == "" && rule == nil {
 		html = s.fetchLinkedPageHTML(ctx, canonical, &title)

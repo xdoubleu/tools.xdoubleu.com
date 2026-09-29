@@ -60,40 +60,33 @@ func (s *FeedService) DeleteFilterRule(
 	return s.filterRules.Delete(ctx, userID, id)
 }
 
-// pollFilterRules loads the feed's rules once per poll, skipping the query
-// when nothing is new. ok is false on failure: the poll then stores nothing,
-// so the next one retries rather than letting filtered items through.
-func (s *FeedService) pollFilterRules(
+// feedFilterRules loads the rules applying to feed. A lookup failure is
+// logged and returns none, so ingest proceeds unfiltered: a poll has
+// already stored the feed's validators and a webhook can't be retried, so
+// skipping ingest would lose the items.
+func (s *FeedService) feedFilterRules(
 	ctx context.Context,
 	feed models.Feed,
-	newGUIDs []string,
-) ([]models.FilterRule, bool) {
-	if len(newGUIDs) == 0 {
-		return nil, true
-	}
+) []models.FilterRule {
 	rules, err := s.filterRules.ListForFeed(ctx, feed.UserID, feed.ID)
 	if err != nil {
 		s.logger.WarnContext(ctx, "feed filter rules lookup failed",
 			"feedID", feed.ID, "error", err)
-		return nil, false
+		return nil
 	}
-	return rules, true
+	return rules
 }
 
-// filterEmailItem marks an inbound email filtered when a rule matches its
-// title. A lookup failure ingests it unfiltered: the webhook can't retry.
-func (s *FeedService) filterEmailItem(
+// pollFilterRules is feedFilterRules, skipping the query when nothing is new.
+func (s *FeedService) pollFilterRules(
 	ctx context.Context,
 	feed models.Feed,
-	item *models.Item,
-) {
-	rules, err := s.filterRules.ListForFeed(ctx, feed.UserID, feed.ID)
-	if err != nil {
-		s.logger.WarnContext(ctx, "email feed filter rules lookup failed",
-			"feedID", feed.ID, "error", err)
-		return
+	newGUIDs []string,
+) []models.FilterRule {
+	if len(newGUIDs) == 0 {
+		return nil
 	}
-	markFiltered(item, matchFilterRule(rules, feed.ID, item.Title, nil))
+	return s.feedFilterRules(ctx, feed)
 }
 
 // markFiltered records rule on item; a nil rule leaves it unfiltered.

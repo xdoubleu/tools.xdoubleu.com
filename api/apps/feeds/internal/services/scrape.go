@@ -594,10 +594,7 @@ func (s *FeedService) ingestDiscoveredLinks(
 	s.backfillCategories(ctx, feed.ID, guids, newGUIDs, func(guid string) []string {
 		return byGUID[guid].Categories
 	})
-	rules, ok := s.pollFilterRules(ctx, feed, newGUIDs)
-	if !ok {
-		return 0
-	}
+	rules := s.pollFilterRules(ctx, feed, newGUIDs)
 
 	ingested := 0
 	for i, guid := range newGUIDs {
