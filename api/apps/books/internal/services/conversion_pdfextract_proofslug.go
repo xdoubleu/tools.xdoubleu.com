@@ -31,13 +31,14 @@ const (
 var (
 	proofSlugDateRe    = regexp.MustCompile(`^\d{1,2}/\d{1,2}/\d{2,4}$`)
 	proofSlugTimeRe    = regexp.MustCompile(`^\d{1,2}:\d{2}:\d{2}$`)
-	proofSlugPageNumRe = regexp.MustCompile(`^\d{1,4}$`)
+	proofSlugPageNumRe = regexp.MustCompile(`^(?:\d{1,4}|[ivxlc]{1,7})$`)
 )
 
 // isProofSlugLine reports whether text has the shape of a print-shop proof
 // slug: a short line whose whitespace-delimited tokens include a bare
-// page-number token, an m/d/yy-style date token, and an h:mm:ss-style time
-// token, each as its own token (so a paragraph that merely mentions a date
+// page-number token (arabic or lowercase roman), an m/d/yy-style date token,
+// and an h:mm:ss-style time token, each as its own token (so a paragraph
+// that merely mentions a date
 // in running prose, without a standalone page number and time alongside it,
 // never matches).
 func isProofSlugLine(text string) bool {

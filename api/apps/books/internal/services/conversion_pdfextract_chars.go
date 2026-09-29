@@ -16,8 +16,33 @@ type pdfChar struct {
 	// font is the name of the font this character was rendered with (empty
 	// when font information wasn't collected). A change in font name between
 	// two adjacent characters marks a text-run boundary — see buildLine.
-	font string
+	font   string
+	stream streamPos
 }
+
+// streamPos is a character's place in PDFium's text stream. PDFium reports
+// word spaces as whitespace characters (real or generated from the font's
+// advance widths), which is a far better word-boundary signal than the gap
+// between tight glyph boxes: side-bearings split words like "genera l ly",
+// and an overhanging "f" hides the gap in "of the".
+type streamPos struct {
+	// seq is the 1-based position among the page's non-whitespace
+	// characters; 0 means unknown (synthetic characters).
+	seq int
+	// spaceBefore/breakBefore record whitespace or a PDFium line break
+	// between this character and the previous non-whitespace one.
+	spaceBefore bool
+	breakBefore bool
+	// afterLigature marks a space right after a ligature. InDesign emits
+	// one after every ligature, mid-word included ("fl ows"), so it only
+	// counts when the gap to this character is word-sized.
+	afterLigature bool
+}
+
+// noStreamPos is a character with no known stream position.
+//
+//nolint:gochecknoglobals // deliberately the zero value; read-only
+var noStreamPos streamPos
 
 // pdfLine is one reconstructed line of text with its bounding box and the
 // per-column typographic stats needed for paragraph-break detection.
@@ -58,22 +83,34 @@ func (l pdfLine) xMid() float64 { return (l.left + l.right) / 2 }
 const pdfiumSoftHyphenMarker = "\x02"
 
 // extractChars converts a structured-text response into pdfChars, dropping
-// control characters (empty text) and whitespace — line/paragraph spacing is
-// reconstructed from geometry, not from the whitespace glyphs PDFium reports.
+// control characters (empty text) and whitespace. Whitespace survives only
+// as each following character's streamPos flags.
 func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 	chars := make([]pdfChar, 0, len(resp.Chars))
+	var pos streamPos
 	for _, c := range resp.Chars {
 		text := c.Text
 		if text == pdfiumSoftHyphenMarker {
 			text = "-"
 		}
+		if text == "" {
+			continue
+		}
 		if strings.TrimSpace(text) == "" {
+			switch {
+			case strings.ContainsAny(text, "\r\n"):
+				pos.breakBefore = true
+			default:
+				pos.spaceBefore = true
+				pos.afterLigature = endsInLigature(chars)
+			}
 			continue
 		}
 		var font string
 		if c.FontInformation != nil {
 			font = c.FontInformation.Name
 		}
+		pos.seq++
 		chars = append(chars, pdfChar{
 			text:   text,
 			left:   c.PointPosition.Left,
@@ -81,9 +118,31 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 			right:  c.PointPosition.Right,
 			bottom: c.PointPosition.Bottom,
 			font:   font,
+			stream: pos,
 		})
+		pos = streamPos{seq: pos.seq, spaceBefore: false, breakBefore: false, afterLigature: false}
 	}
 	return chars
+}
+
+// endsInLigature reports whether the last two characters share one box:
+// PDFium's decomposition of a ligature glyph ("fl") into its letters.
+func endsInLigature(chars []pdfChar) bool {
+	n := len(chars)
+	if n < 2 {
+		return false
+	}
+	a, b := chars[n-2], chars[n-1]
+	return a.left == b.left && a.right == b.right &&
+		unicode.IsLetter(lastRune(a.text)) && unicode.IsLetter(firstRune(b.text))
+}
+
+// streamAdjacent reports whether c directly follows prev in PDFium's stream
+// on the same PDFium line, so c's spaceBefore flag describes the gap
+// between them.
+func streamAdjacent(prev, c pdfChar) bool {
+	return prev.stream.seq > 0 && c.stream.seq == prev.stream.seq+1 &&
+		!c.stream.breakBefore
 }
 
 // lineGroupYMidRatio/lineSpaceGapRatio implement step 1 (lines): characters
@@ -101,6 +160,10 @@ const (
 	// only body text's tighter 0.25 threshold mis-splits their words
 	// (issue #1698).
 	headingSpaceRatio = 0.45
+	// streamWideGapRatio spaces stream-adjacent characters that PDFium gave
+	// no whitespace between but that are positioned a word apart (a tab
+	// stop); letter gaps, tracked headings included, stay under ~0.3.
+	streamWideGapRatio = 0.6
 )
 
 // median returns the middle value of a sorted-in-place copy of vs, or 0 for
@@ -329,8 +392,9 @@ func firstRune(s string) rune {
 }
 
 // needsRunBoundarySpace reports whether a space belongs between two
-// horizontally-adjacent characters already known to sit on the same line:
-// either the physical gap between their boxes exceeds spaceRatio * medH
+// horizontally-adjacent characters already known to sit on the same line.
+// Stream-adjacent characters follow PDFium's whitespace (plus the font-run
+// check below). Otherwise: either the physical gap between their boxes exceeds spaceRatio * medH
 // (body text uses lineSpaceGapRatio; heading-sized lines are re-joined
 // with headingSpaceRatio — see rebuildHeadingLineText), or they come from
 // different font/style runs (prev.font != c.font, both known) and both
@@ -344,6 +408,11 @@ func firstRune(s string) rune {
 // buildLine falls back to the pre-#1653 gap-only behavior.
 func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	gap := c.left - prev.right
+	if streamAdjacent(prev, c) {
+		space := c.stream.spaceBefore &&
+			(!c.stream.afterLigature || gap > lineSpaceGapRatio*medH)
+		return space || gap > streamWideGapRatio*medH || isFontRunBoundary(prev, c)
+	}
 	if gap > spaceRatio*medH {
 		return true
 	}
@@ -356,6 +425,12 @@ func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	if gap > lineSpaceGapRatio*medH && !isSmallCapsInitial(prev, c) {
 		return true
 	}
+	return isFontRunBoundary(prev, c)
+}
+
+// isFontRunBoundary reports whether two letters come from different known
+// fonts — a word boundary in body text (#1653).
+func isFontRunBoundary(prev, c pdfChar) bool {
 	if prev.font == "" || c.font == "" || prev.font == c.font {
 		return false
 	}
