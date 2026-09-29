@@ -57,7 +57,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 - **`progressws`** / **`progresshistory`** — job-progress WebSocket topics; cumulative progress with carry-forward reads.
 - **`repositories`** — shared repos over the `global` schema.
 - **`safedial`** — `Client(timeout, maxRedirects, allowPrivate)` blocks non-public IPs at dial time (survives redirects and DNS rebinding); `allowPrivate` is on outside prod.
-- **`mcptools`** — `RequireAppAccess`, `AddReadTool`, `Unwrap`/`Result`.
+- **`mcptools`** — `RequireAppAccess`, `AddReadTool`/`AddWriteTool`, `Unwrap`/`Result`.
 - **`testhelper`** — `ConnectTestDB`, `NewTestConfig`, `BuildMux`, `CreateRequestTester`.
 - Job queue: `internal/threading` + `internal/jobqueue`.
 
@@ -87,7 +87,7 @@ First-party: HS256 JWT access tokens, opaque rotating refresh tokens, TOTP 2FA +
 
 ### MCP
 
-Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`), wrapping only read handlers in `apps/<name>/mcp.go`; shared gating in `internal/mcptools`.
+Apps opt in via `MCPToolProvider` (`cmd/api/apps.go`) in `apps/<name>/mcp.go`; shared gating in `internal/mcptools`. Write tools need an ADR.
 
 ## Linting
 

@@ -86,11 +86,11 @@ func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 		"Completion counts for a learning path, overall and per module.",
 		h.mcpGetProgress)
 
-	addWriteTool(srv, "learningpaths_create_path",
+	mcptools.AddWriteTool(srv, mcpAppName, "learningpaths_create_path",
 		mcpCreatePathDescription, h.mcpCreatePath)
-	addWriteTool(srv, "learningpaths_update_path",
+	mcptools.AddWriteTool(srv, mcpAppName, "learningpaths_update_path",
 		mcpUpdatePathDescription, h.mcpUpdatePath)
-	addWriteTool(srv, "learningpaths_record_progress",
+	mcptools.AddWriteTool(srv, mcpAppName, "learningpaths_record_progress",
 		mcpRecordProgressDescription, h.mcpRecordProgress)
 
 	registerAuthoringGuideResource(srv)
@@ -123,31 +123,6 @@ func authoringGuideHandler(_ context.Context, _ *mcp.ReadResourceRequest,
 			Text:     learningPathsAuthoringGuide,
 		},
 	}}, nil
-}
-
-// addWriteTool registers one mutating tool, mirroring mcptools.AddReadTool.
-// Kept local: this is the only app with mutating tools.
-func addWriteTool[In any](
-	srv *mcp.Server,
-	name, description string,
-	produce func(context.Context, In) (proto.Message, error),
-) {
-	//nolint:exhaustruct // name/description are the only fields tools need
-	mcp.AddTool(srv, &mcp.Tool{Name: name, Description: description},
-		func(
-			ctx context.Context,
-			_ *mcp.CallToolRequest,
-			args In,
-		) (*mcp.CallToolResult, any, error) {
-			if err := mcptools.RequireAppAccess(ctx, mcpAppName); err != nil {
-				return nil, nil, err
-			}
-			msg, err := produce(ctx, args)
-			if err != nil {
-				return nil, nil, err
-			}
-			return mcptools.Result(msg)
-		})
 }
 
 func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {

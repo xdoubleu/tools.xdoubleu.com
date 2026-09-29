@@ -21,8 +21,8 @@ read tools, with no change to the trust model:
 - User scope comes from context: the tools wrap the Connect handlers, which call
   `getUser(ctx)`. There is no `user_id` argument and no cross-user write, admin
   or not.
-- A local `addWriteTool` in `learningpaths/mcp.go` mirrors `AddReadTool`;
-  `internal/mcptools` stays read-only.
+- `mcptools.AddWriteTool` registers them behind the same gate as
+  `AddReadTool` (shared since ADR-0026).
 
 ## Alternatives considered
 

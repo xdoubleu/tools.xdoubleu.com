@@ -13,28 +13,36 @@ import (
 
 const mcpAppName = "recipes"
 
+type mcpListRecipesArgs struct {
+	Limit  int32 `json:"limit,omitempty"  jsonschema:"max recipes, default 50"`
+	Offset int32 `json:"offset,omitempty" jsonschema:"pagination offset"`
+}
+
 type mcpRecipeArgs struct {
 	ID       string `json:"id"                 jsonschema:"recipe id"`
 	Servings int32  `json:"servings,omitempty" jsonschema:"scale ingredients to servings"`
 }
 
-// RegisterMCPTools exposes the app's read-only RPCs as MCP tools, scoped to
-// the caller's family.
+// RegisterMCPTools exposes the app's read RPCs and a draft-only create as MCP
+// tools, scoped to the caller's family (docs/adr-0026-recipes-mcp-write-tool.md).
 func (a *Recipes) RegisterMCPTools(srv *mcp.Server) {
 	h := &recipesConnectHandler{app: a}
 
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_list_recipes",
-		"All recipes in the user's family recipe book.", h.mcpListRecipes)
+		"Recipes in the user's family recipe book, sorted by name. "+
+			"Page with limit/offset while has_more is true.", h.mcpListRecipes)
 	mcptools.AddReadTool(srv, mcpAppName, "recipes_get_recipe",
 		"A single recipe with its ingredients scaled to the requested servings.",
 		h.mcpGetRecipe)
+	mcptools.AddWriteTool(srv, mcpAppName, "recipes_create_recipe",
+		mcpCreateRecipeDescription, h.mcpCreateRecipe)
 }
 
 func (h *recipesConnectHandler) mcpListRecipes(
-	ctx context.Context, _ mcptools.NoArgs,
+	ctx context.Context, args mcpListRecipesArgs,
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.ListRecipes(ctx, connect.NewRequest(
-		&recipesv1.ListRecipesRequest{},
+		&recipesv1.ListRecipesRequest{Limit: args.Limit, Offset: args.Offset},
 	)))
 }
 
