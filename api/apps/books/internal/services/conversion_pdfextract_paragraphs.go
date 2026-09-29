@@ -14,12 +14,6 @@ import (
 const (
 	headingH1Ratio = 1.4
 	headingH2Ratio = 1.15
-	// paragraphGapRatio/paragraphIndentChars implement step 4 (paragraphs).
-	paragraphGapRatio    = 1.5
-	paragraphIndentChars = 2
-	// paragraphShortLineRatio: a line ending short of the column's right
-	// margin by more than this fraction ends its paragraph.
-	paragraphShortLineRatio = 0.85
 )
 
 // asideTag is the htmlBlock tag of a margin note.
@@ -46,6 +40,9 @@ type htmlBlock struct {
 	// large text as a heading (issue #1654).
 	medHeight float64
 	isText    bool
+	// listItem marks a bulleted paragraph, rendered as <li> and never a
+	// heading.
+	listItem bool
 }
 
 // mergeColumn interleaves a column's lines (already sorted top-to-bottom)
@@ -133,14 +130,22 @@ func buildPageBlocks(
 	var paraLines []pdfLine
 	var pendingNotes [][]pdfLine
 	figureCount := 0
+	setLocalRightEdges(items, pageMedianCharWidth)
+	hanging := hangingColumns(items, pageMedianCharWidth)
+	index := indexColumns(items)
 
 	flush := func() {
 		if len(paraLines) > 0 {
-			blocks = append(blocks, renderParagraph(paraLines))
+			blocks = append(blocks, asListItem(renderParagraph(paraLines)))
 			paraLines = nil
 		}
 		for _, note := range pendingNotes {
-			blocks = append(blocks, renderAside(note, medLineHeight, pageMedianCharWidth))
+			blocks = append(blocks, renderAside(note, paraRules{
+				medLineHeight: medLineHeight,
+				medCharWidth:  pageMedianCharWidth,
+				hanging:       false,
+				index:         false,
+			}))
 		}
 		pendingNotes = nil
 	}
@@ -172,9 +177,14 @@ func buildPageBlocks(
 
 		line := *item.line
 		if len(paraLines) > 0 {
-			prev := paraLines[len(paraLines)-1]
-			if prev.col != line.col ||
-				startsNewParagraph(prev, line, medLineHeight, pageMedianCharWidth) {
+			rules := paraRules{
+				medLineHeight: medLineHeight,
+				medCharWidth:  pageMedianCharWidth,
+				hanging:       hanging[line.col],
+				index:         index[line.col],
+			}
+			if paraLines[len(paraLines)-1].col != line.col ||
+				startsNewParagraph(paraLines, line, rules) {
 				flush()
 			}
 		}
@@ -185,26 +195,8 @@ func buildPageBlocks(
 	return blocks
 }
 
-// startsNewParagraph implements step 4: a new paragraph starts when the
-// vertical gap to the previous line is too large, the current line is
-// indented past the column's modal start, or the previous line ends well
-// short of the column's right margin.
-func startsNewParagraph(prev, cur pdfLine, medLineHeight, medCharWidth float64) bool {
-	if medLineHeight > 0 && prev.bottom-cur.top > paragraphGapRatio*medLineHeight {
-		return true
-	}
-	if medCharWidth > 0 &&
-		cur.left > cur.colModalXStart+paragraphIndentChars*medCharWidth {
-		return true
-	}
-	if prev.colRightEdge > 0 && prev.right < paragraphShortLineRatio*prev.colRightEdge {
-		return true
-	}
-	return false
-}
-
 // renderAside renders a margin note as a blockquote of its own paragraphs.
-func renderAside(lines []pdfLine, medLineHeight, medCharWidth float64) htmlBlock {
+func renderAside(lines []pdfLine, rules paraRules) htmlBlock {
 	var b strings.Builder
 	var texts []string
 	para := []pdfLine{lines[0]}
@@ -214,7 +206,7 @@ func renderAside(lines []pdfLine, medLineHeight, medCharWidth float64) htmlBlock
 		b.WriteString("<p>" + escapeXMLText(text) + "</p>")
 	}
 	for _, l := range lines[1:] {
-		if startsNewParagraph(para[len(para)-1], l, medLineHeight, medCharWidth) {
+		if startsNewParagraph(para, l, rules) {
 			emit()
 			para = nil
 		}
@@ -247,6 +239,7 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 		text:      text,
 		medHeight: medHeight,
 		isText:    true,
+		listItem:  false,
 	}
 }
 
@@ -282,16 +275,18 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	tags := make([]string, len(blocks))
 	for i, b := range blocks {
-		if !b.isText {
-			continue
+		switch {
+		case b.listItem:
+			tags[i] = listTag
+		case b.isText:
+			tags[i] = headingCandidateTag(b.medHeight, docModalCharHeight)
 		}
-		tags[i] = headingCandidateTag(b.medHeight, docModalCharHeight)
 	}
 
 	demoteHeadingRuns(blocks, tags)
 
 	for i, b := range blocks {
-		if !b.isText || tags[i] == "p" {
+		if !b.isText || tags[i] == "p" || tags[i] == listTag {
 			continue
 		}
 		if startsLowercase(b.text) || isLoopDiagramLabel(b.text) {
@@ -443,7 +438,7 @@ func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
 		chainStart = -1
 	}
 	for i, b := range blocks {
-		if !b.isText || tags[i] == "p" {
+		if !b.isText || tags[i] == "p" || tags[i] == listTag {
 			flush(i)
 			continue
 		}

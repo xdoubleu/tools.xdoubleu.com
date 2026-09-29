@@ -139,10 +139,7 @@ func renderHTML(blocks []htmlBlock) string {
 	b.WriteString(
 		"<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"/></head><body>\n",
 	)
-	for _, blk := range blocks {
-		b.WriteString(blk.html)
-		b.WriteByte('\n')
-	}
+	writeBlocksHTML(&b, blocks)
 	b.WriteString("</body></html>\n")
 	return b.String()
 }

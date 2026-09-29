@@ -52,6 +52,9 @@ type pdfLine struct {
 	medianCharHeight         float64
 	colRightEdge             float64
 	colModalXStart           float64
+	// localRightEdge is the right margin of the line's own block (see
+	// setLocalRightEdges); 0 until set.
+	localRightEdge float64
 	// col distinguishes the left/single column (0) from the right column (1)
 	// so paragraph grouping can force a break at the column boundary instead
 	// of continuing to compare gap/indent against a line from another column.
