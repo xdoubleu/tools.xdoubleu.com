@@ -117,12 +117,13 @@ func (f *fakeLearningPathsStore) Delete(
 }
 
 func (f *fakeLearningPathsStore) ReplaceModules(
-	_ context.Context, _ uuid.UUID, _ []models.Module,
+	_ context.Context, _ uuid.UUID, modules []models.Module,
 ) error {
 	if f.replaceModulesErr != nil {
 		return f.replaceModulesErr
 	}
 	f.modulesReplaced = true
+	f.modules = modules
 	return nil
 }
 
@@ -202,6 +203,19 @@ type fakeBookLookup struct {
 	errAfterCall int
 	genericErr   error
 	book         *booksv1.UserBook
+
+	// EnsureLibraryBook fixtures: ensureID is returned (or ensureErr), and
+	// ensureShelves records each call's shelf.
+	ensureID      uuid.UUID
+	ensureErr     error
+	ensureShelves []string
+}
+
+func (f *fakeBookLookup) EnsureLibraryBook(
+	_ context.Context, _, _, _, shelf string,
+) (uuid.UUID, error) {
+	f.ensureShelves = append(f.ensureShelves, shelf)
+	return f.ensureID, f.ensureErr
 }
 
 func (f *fakeBookLookup) GetLibraryBookByID(

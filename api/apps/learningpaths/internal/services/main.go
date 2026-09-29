@@ -38,6 +38,7 @@ func New(
 		feeds:   feedsApp,
 		todoist: todoist,
 	}
+	todoist.resolveItems = learningPaths.resolveItemLinks
 	return &Services{
 		Auth:          authService,
 		LearningPaths: learningPaths,

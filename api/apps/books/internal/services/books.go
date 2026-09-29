@@ -232,10 +232,43 @@ func (s *BookService) AddToLibrary(
 	status string,
 	initialTags []string,
 ) (*models.UserBook, error) {
+	bookID, err := s.upsertCatalogBook(ctx, ext)
+	if err != nil {
+		return nil, err
+	}
+	return s.addUserBook(ctx, userID, bookID, status, initialTags)
+}
+
+// AddToLibraryIfAbsent is AddToLibrary, except a book userID already owns is
+// returned untouched rather than moved to status.
+func (s *BookService) AddToLibraryIfAbsent(
+	ctx context.Context,
+	userID string,
+	ext SourceProposal,
+	status string,
+) (*models.UserBook, error) {
+	bookID, err := s.upsertCatalogBook(ctx, ext)
+	if err != nil {
+		return nil, err
+	}
+	existing, err := s.books.GetUserBook(ctx, userID, bookID)
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, database.ErrResourceNotFound) {
+		return nil, err
+	}
+	return s.addUserBook(ctx, userID, bookID, status, []string{})
+}
+
+func (s *BookService) upsertCatalogBook(
+	ctx context.Context,
+	ext SourceProposal,
+) (uuid.UUID, error) {
 	book := externalToBook(s.enrichByISBN(ctx, ext))
 	saved, err := s.books.UpsertBook(ctx, book)
 	if err != nil {
-		return nil, err
+		return uuid.Nil, err
 	}
 
 	// Eager-fetch into R2 so the cover proxy never needs a live fetch; only
@@ -247,22 +280,31 @@ func (s *BookService) AddToLibrary(
 				"bookID", saved.ID, "error", cacheErr)
 		}
 	}
+	return saved.ID, nil
+}
 
+func (s *BookService) addUserBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	status string,
+	initialTags []string,
+) (*models.UserBook, error) {
 	ub := models.UserBook{ //nolint:exhaustruct //optional fields
 		UserID:         userID,
-		BookID:         saved.ID,
+		BookID:         bookID,
 		Status:         status,
 		Tags:           initialTags,
 		ShelfPositions: map[string]int{},
 	}
-	if err = s.books.UpsertUserBook(ctx, ub); err != nil {
+	if err := s.books.UpsertUserBook(ctx, ub); err != nil {
 		return nil, err
 	}
-	if err = s.registerCustomShelf(ctx, userID, status); err != nil {
+	if err := s.registerCustomShelf(ctx, userID, status); err != nil {
 		return nil, err
 	}
 
-	return s.books.GetUserBook(ctx, userID, saved.ID)
+	return s.books.GetUserBook(ctx, userID, bookID)
 }
 
 func (s *BookService) UpdateStatus(

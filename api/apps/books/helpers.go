@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 )
 
@@ -153,9 +154,14 @@ func (app *Books) BuildSharedLibrary(
 	}, lastSyncedAt, nil
 }
 
+// ErrExternalBookNotFound is returned by EnsureLibraryBook for a provider
+// reference no provider resolves.
+var ErrExternalBookNotFound = services.ErrExternalNotFound
+
 // GetLibraryBookByID returns one of userID's library entries, for
-// learningpaths. ErrResourceNotFound also covers another user's book, so
-// existence never leaks.
+// learningpaths; ProgressPercent is the pages-aware display percent.
+// ErrResourceNotFound also covers another user's book, so existence never
+// leaks.
 func (app *Books) GetLibraryBookByID(
 	ctx context.Context,
 	userID string,
@@ -166,7 +172,27 @@ func (app *Books) GetLibraryBookByID(
 		return nil, err
 	}
 
-	return protoUserBook(*ub, app.clients.PublicAPIBaseURL), nil
+	result := protoUserBook(*ub, app.clients.PublicAPIBaseURL)
+	result.ProgressPercent = int32FromInt(ub.DisplayProgressPercent())
+	return result, nil
+}
+
+// EnsureLibraryBook resolves an external provider reference (as returned by
+// SearchExternal) to a book in userID's library, adding it to shelf when
+// absent; a book already owned keeps its shelf.
+func (app *Books) EnsureLibraryBook(
+	ctx context.Context,
+	userID, provider, providerID, shelf string,
+) (uuid.UUID, error) {
+	ext, err := app.Services.Books.GetExternal(ctx, provider, providerID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	ub, err := app.Services.Books.AddToLibraryIfAbsent(ctx, userID, *ext, shelf)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return ub.BookID, nil
 }
 
 // BuildSharedProgress builds the reading dashboard's progress-chart payload.

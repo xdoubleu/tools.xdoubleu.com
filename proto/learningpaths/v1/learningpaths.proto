@@ -22,6 +22,17 @@ message Item {
   // linked_book is the resolved state of a book-linked item, set on read when
   // it still resolves; ignored on Create/Update.
   LinkedBook linked_book = 8;
+  // external_book links a book not yet in the caller's library: on
+  // Create/Update it is added to the "To Learn" shelf (an owned book keeps its
+  // shelf) and becomes linked_book_id. Ignored when linked_book_id is set;
+  // never returned.
+  ExternalBookRef external_book = 9;
+}
+
+// ExternalBookRef is a books external search result (provider, provider_id).
+message ExternalBookRef {
+  string provider = 1;
+  string provider_id = 2;
 }
 
 // QuizQuestion is one multiple-choice item in a module's quiz. One quiz per
