@@ -11,8 +11,10 @@ export default {
   },
   reporters: ['clear-text', 'progress', 'html'],
   coverageAnalysis: 'perTest',
-  // Mirrors jest.config.js's collectCoverageFrom. Pinned to core@9.6.1: the
-  // next major's @babel/generator 8 crashes on TS function-type parameters.
+  // Mirrors jest.config.js's collectCoverageFrom. package.json's overrides
+  // exempt the instrumenter from the global @babel/core 7 pin: a Babel 7 parse
+  // printed by its @babel/generator 8 crashes on TS function types and
+  // `interface extends`.
   mutate: [
     'components/**/*.{ts,tsx}',
     'lib/**/*.{ts,tsx}',
