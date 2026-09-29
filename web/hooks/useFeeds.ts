@@ -5,7 +5,10 @@ import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { createServiceClient } from '@/lib/client'
 import { FeedService, FeedKind } from '@/lib/gen/feeds/v1/feeds_pb'
 import type {
+  CreateFilterRuleResponse,
+  FilterRuleKind,
   Item,
+  ListFilterRulesResponse,
   ListFeedsResponse,
   ListFeedItemsResponse,
   GetFeedItemResponse,
@@ -27,9 +30,9 @@ export interface FeedsSummary {
   items: FeedsSummaryItem[]
 }
 
-// Invalidates both unreadOnly variants. Only for create/delete/refresh;
-// per-item changes use patchCachedItem.
-function mutateFeedItems() {
+// Invalidates every cached item list, filtered ones included. Only for
+// create/delete/refresh/restore; per-item changes use patchCachedItem.
+export function mutateFeedItems() {
   return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
 }
 
@@ -51,7 +54,7 @@ function patchCachedItem(updated: Item) {
 
 // No refetch on focus/reconnect: pages are server-prefetched and refetching
 // wastes egress.
-const noAutoRevalidate = {
+export const noAutoRevalidate = {
   revalidateOnFocus: false,
   revalidateOnReconnect: false
 } as const
@@ -127,6 +130,7 @@ export function useDeleteFeed() {
       await client.deleteFeed({ feedId })
       await mutate(swrKeys.feeds)
       await mutateFeedItems()
+      await mutate(swrKeys.feedFilterRules)
     },
     [client]
   )
@@ -160,6 +164,58 @@ export function useUpdateItem() {
       const resp = await client.updateItem({ itemId, ...updates })
       if (resp.item) await patchCachedItem(resp.item)
       return resp
+    },
+    [client]
+  )
+}
+
+// useFilterRules lists the caller's filter rules with their filtered counts.
+export function useFilterRules() {
+  const client = createServiceClient(FeedService)
+  return useSWR<ListFilterRulesResponse, Error>(
+    swrKeys.feedFilterRules,
+    () => client.listFilterRules({}),
+    noAutoRevalidate
+  )
+}
+
+export interface CreateFilterRuleInput {
+  // Empty applies the rule to all feeds.
+  feedId: string
+  kind: FilterRuleKind
+  value: string
+}
+
+// useCreateFilterRule creates a rule and refetches the rules and the
+// suggestions it may cover; when it filtered existing items, the item lists
+// and stats that counted them are refetched too.
+export function useCreateFilterRule() {
+  const client = useMemo(() => createServiceClient(FeedService), [])
+  return useCallback(
+    async (input: CreateFilterRuleInput): Promise<CreateFilterRuleResponse> => {
+      const resp = await client.createFilterRule(input)
+      await mutate(swrKeys.feedFilterRules)
+      await mutate(swrKeys.feedFilterRuleSuggestions)
+      if ((resp.rule?.filteredCount ?? 0) > 0) {
+        await mutateFeedItems()
+        await mutate(swrKeys.feedStats)
+        await mutate(swrKeys.feedsSummary)
+      }
+      return resp
+    },
+    [client]
+  )
+}
+
+// useDeleteFilterRule deletes a rule; its items stay filtered, and the
+// suggestions it covered can return.
+export function useDeleteFilterRule() {
+  const client = useMemo(() => createServiceClient(FeedService), [])
+  return useCallback(
+    async (ruleId: string) => {
+      await client.deleteFilterRule({ ruleId })
+      await mutate(swrKeys.feedFilterRules)
+      await mutate(swrKeys.feedFilterRuleSuggestions)
     },
     [client]
   )

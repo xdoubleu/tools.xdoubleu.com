@@ -134,32 +134,36 @@ tools/mutation:
 	go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
 
 # Runs gremlins on Go packages changed vs origin/main (one invocation per
-# package); --diff further scopes mutants to changed lines. .gremlins.yaml
-# excludes gen/ and *_mock.go.
-# gremlins matches `git diff` paths against paths relative to the dir it
-# scans, so it runs from inside each package with diff.relative set. git diff
-# omits untracked files; `git add -N` new files first.
-# -count=1 keeps a cached test result from shrinking the per-mutant timeout
-# (see .gremlins.yaml) to near zero.
+# package); --diff further scopes mutants to changed lines. gremlins matches
+# `git diff` paths to package-relative mutant paths, so it runs from the
+# package dir with diff.relative (and diff.context=0: it undercounts
+# multi-block hunks); check_mutation_skips_go.py fails if a changed line's
+# mutant is still SKIPPED. Serial because test packages share Postgres
+# schemas. .gremlins.yaml excludes gen/ and *_mock.go.
 test/mutation/diff: tools/mutation
 	@pkgs=$$(python3 ../tools/diff_packages_go.py); \
 	if [ -z "$$pkgs" ]; then \
 		echo "No changed Go packages vs origin/main -- nothing to mutation-test."; \
 	else \
 		status=0; \
+		report=$$(mktemp); \
 		for pkg in $$pkgs; do \
 			echo "Diff-scoped mutation testing: $$pkg"; \
 			(cd "$$pkg" && \
-				GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
-				GOFLAGS="$$GOFLAGS -count=1" \
-				gremlins unleash --diff origin/main) || status=1; \
+				GOFLAGS="$$GOFLAGS -p=1 -count=1" GIT_CONFIG_COUNT=2 \
+				GIT_CONFIG_KEY_0=diff.relative GIT_CONFIG_VALUE_0=true \
+				GIT_CONFIG_KEY_1=diff.context GIT_CONFIG_VALUE_1=0 \
+				gremlins unleash --diff origin/main --workers 1 \
+					--output "$$report" "$$PWD") && \
+			python3 ../tools/check_mutation_skips_go.py "$$pkg" "$$report" || status=1; \
 		done; \
+		rm -f "$$report"; \
 		exit $$status; \
 	fi
 
 # Full-repo baseline; slow, not for routine use.
 test/mutation: tools/mutation
-	gremlins unleash ./...
+	GOFLAGS="$$GOFLAGS -p=1 -count=1" gremlins unleash --workers 1 ./...
 
 test/cov/report:
 	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp

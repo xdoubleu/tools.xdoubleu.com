@@ -73,6 +73,57 @@ func (FeedKind) EnumDescriptor() ([]byte, []int) {
 	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{0}
 }
 
+type FilterRuleKind int32
+
+const (
+	FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED FilterRuleKind = 0 // rejected
+	// Exact category match, ignoring case.
+	FilterRuleKind_FILTER_RULE_KIND_CATEGORY FilterRuleKind = 1
+	// Title substring match, ignoring case.
+	FilterRuleKind_FILTER_RULE_KIND_TITLE FilterRuleKind = 2
+)
+
+// Enum value maps for FilterRuleKind.
+var (
+	FilterRuleKind_name = map[int32]string{
+		0: "FILTER_RULE_KIND_UNSPECIFIED",
+		1: "FILTER_RULE_KIND_CATEGORY",
+		2: "FILTER_RULE_KIND_TITLE",
+	}
+	FilterRuleKind_value = map[string]int32{
+		"FILTER_RULE_KIND_UNSPECIFIED": 0,
+		"FILTER_RULE_KIND_CATEGORY":    1,
+		"FILTER_RULE_KIND_TITLE":       2,
+	}
+)
+
+func (x FilterRuleKind) Enum() *FilterRuleKind {
+	p := new(FilterRuleKind)
+	*p = x
+	return p
+}
+
+func (x FilterRuleKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FilterRuleKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_feeds_v1_feeds_proto_enumTypes[1].Descriptor()
+}
+
+func (FilterRuleKind) Type() protoreflect.EnumType {
+	return &file_feeds_v1_feeds_proto_enumTypes[1]
+}
+
+func (x FilterRuleKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FilterRuleKind.Descriptor instead.
+func (FilterRuleKind) EnumDescriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{1}
+}
+
 // Feed is an RSS/Atom, scrape or email-relay subscription.
 type Feed struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -685,7 +736,14 @@ type Item struct {
 	// loaded".
 	HasContent bool `protobuf:"varint,13,opt,name=has_content,json=hasContent,proto3" json:"has_content,omitempty"`
 	// RSS <category> values or scraped card labels; empty when none.
-	Categories    []string `protobuf:"bytes,14,rep,name=categories,proto3" json:"categories,omitempty"`
+	Categories []string `protobuf:"bytes,14,rep,name=categories,proto3" json:"categories,omitempty"`
+	// RFC3339; set only while a filter rule hides the item.
+	FilteredAt string `protobuf:"bytes,15,opt,name=filtered_at,json=filteredAt,proto3" json:"filtered_at,omitempty"`
+	// The rule that filtered the item; unset when it was deleted or the item
+	// isn't filtered. Its filtered_count is always 0 here.
+	FilterRule *FilterRule `protobuf:"bytes,16,opt,name=filter_rule,json=filterRule,proto3" json:"filter_rule,omitempty"`
+	// RFC3339; set once the item was restored, which no rule filters again.
+	RestoredAt    string `protobuf:"bytes,17,opt,name=restored_at,json=restoredAt,proto3" json:"restored_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -818,6 +876,27 @@ func (x *Item) GetCategories() []string {
 	return nil
 }
 
+func (x *Item) GetFilteredAt() string {
+	if x != nil {
+		return x.FilteredAt
+	}
+	return ""
+}
+
+func (x *Item) GetFilterRule() *FilterRule {
+	if x != nil {
+		return x.FilterRule
+	}
+	return nil
+}
+
+func (x *Item) GetRestoredAt() string {
+	if x != nil {
+		return x.RestoredAt
+	}
+	return ""
+}
+
 type ListFeedItemsRequest struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Limit  int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
@@ -828,8 +907,11 @@ type ListFeedItemsRequest struct {
 	FeedId *string `protobuf:"bytes,4,opt,name=feed_id,json=feedId,proto3,oneof" json:"feed_id,omitempty"`
 	// When true, excludes unbookmarked items.
 	BookmarkedOnly *bool `protobuf:"varint,5,opt,name=bookmarked_only,json=bookmarkedOnly,proto3,oneof" json:"bookmarked_only,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// When true, returns only filtered items, newest filtered_at first;
+	// unread_only and bookmarked_only are ignored.
+	FilteredOnly  *bool `protobuf:"varint,6,opt,name=filtered_only,json=filteredOnly,proto3,oneof" json:"filtered_only,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListFeedItemsRequest) Reset() {
@@ -893,6 +975,13 @@ func (x *ListFeedItemsRequest) GetFeedId() string {
 func (x *ListFeedItemsRequest) GetBookmarkedOnly() bool {
 	if x != nil && x.BookmarkedOnly != nil {
 		return *x.BookmarkedOnly
+	}
+	return false
+}
+
+func (x *ListFeedItemsRequest) GetFilteredOnly() bool {
+	if x != nil && x.FilteredOnly != nil {
+		return *x.FilteredOnly
 	}
 	return false
 }
@@ -1542,6 +1631,717 @@ func (x *GetUnhealthyFeedsResponse) GetFeeds() []*UnhealthyFeed {
 	return nil
 }
 
+// FilterRule hides matching items from the inbox, unread counts and stats.
+type FilterRule struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Empty for a rule covering all of the caller's feeds.
+	FeedId    string         `protobuf:"bytes,2,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	Kind      FilterRuleKind `protobuf:"varint,3,opt,name=kind,proto3,enum=feeds.v1.FilterRuleKind" json:"kind,omitempty"`
+	Value     string         `protobuf:"bytes,4,opt,name=value,proto3" json:"value,omitempty"`
+	CreatedAt string         `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// Items the rule has filtered, at ingest or retroactively.
+	FilteredCount int32 `protobuf:"varint,6,opt,name=filtered_count,json=filteredCount,proto3" json:"filtered_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FilterRule) Reset() {
+	*x = FilterRule{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FilterRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FilterRule) ProtoMessage() {}
+
+func (x *FilterRule) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FilterRule.ProtoReflect.Descriptor instead.
+func (*FilterRule) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *FilterRule) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *FilterRule) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *FilterRule) GetKind() FilterRuleKind {
+	if x != nil {
+		return x.Kind
+	}
+	return FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED
+}
+
+func (x *FilterRule) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+func (x *FilterRule) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *FilterRule) GetFilteredCount() int32 {
+	if x != nil {
+		return x.FilteredCount
+	}
+	return 0
+}
+
+type ListFilterRulesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFilterRulesRequest) Reset() {
+	*x = ListFilterRulesRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFilterRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFilterRulesRequest) ProtoMessage() {}
+
+func (x *ListFilterRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFilterRulesRequest.ProtoReflect.Descriptor instead.
+func (*ListFilterRulesRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{26}
+}
+
+type ListFilterRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*FilterRule          `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFilterRulesResponse) Reset() {
+	*x = ListFilterRulesResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFilterRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFilterRulesResponse) ProtoMessage() {}
+
+func (x *ListFilterRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFilterRulesResponse.ProtoReflect.Descriptor instead.
+func (*ListFilterRulesResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListFilterRulesResponse) GetRules() []*FilterRule {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+// CreateFilterRule also filters the scope's existing unread,
+// unbookmarked, undismissed items; rule.filtered_count is how many.
+type CreateFilterRuleRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty applies the rule to all of the caller's feeds.
+	FeedId        string         `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	Kind          FilterRuleKind `protobuf:"varint,2,opt,name=kind,proto3,enum=feeds.v1.FilterRuleKind" json:"kind,omitempty"`
+	Value         string         `protobuf:"bytes,3,opt,name=value,proto3" json:"value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateFilterRuleRequest) Reset() {
+	*x = CreateFilterRuleRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateFilterRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateFilterRuleRequest) ProtoMessage() {}
+
+func (x *CreateFilterRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateFilterRuleRequest.ProtoReflect.Descriptor instead.
+func (*CreateFilterRuleRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CreateFilterRuleRequest) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *CreateFilterRuleRequest) GetKind() FilterRuleKind {
+	if x != nil {
+		return x.Kind
+	}
+	return FilterRuleKind_FILTER_RULE_KIND_UNSPECIFIED
+}
+
+func (x *CreateFilterRuleRequest) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+type CreateFilterRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rule          *FilterRule            `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateFilterRuleResponse) Reset() {
+	*x = CreateFilterRuleResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateFilterRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateFilterRuleResponse) ProtoMessage() {}
+
+func (x *CreateFilterRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateFilterRuleResponse.ProtoReflect.Descriptor instead.
+func (*CreateFilterRuleResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CreateFilterRuleResponse) GetRule() *FilterRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+// DeleteFilterRule stops future filtering; filtered items stay filtered.
+type DeleteFilterRuleRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RuleId        string                 `protobuf:"bytes,1,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFilterRuleRequest) Reset() {
+	*x = DeleteFilterRuleRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFilterRuleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFilterRuleRequest) ProtoMessage() {}
+
+func (x *DeleteFilterRuleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFilterRuleRequest.ProtoReflect.Descriptor instead.
+func (*DeleteFilterRuleRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *DeleteFilterRuleRequest) GetRuleId() string {
+	if x != nil {
+		return x.RuleId
+	}
+	return ""
+}
+
+type DeleteFilterRuleResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteFilterRuleResponse) Reset() {
+	*x = DeleteFilterRuleResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFilterRuleResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFilterRuleResponse) ProtoMessage() {}
+
+func (x *DeleteFilterRuleResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteFilterRuleResponse.ProtoReflect.Descriptor instead.
+func (*DeleteFilterRuleResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{31}
+}
+
+// RestoreFeedItem returns a filtered item to the inbox as unread, fetching
+// its content when it has none; no rule filters it again.
+type RestoreFeedItemRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreFeedItemRequest) Reset() {
+	*x = RestoreFeedItemRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreFeedItemRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreFeedItemRequest) ProtoMessage() {}
+
+func (x *RestoreFeedItemRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreFeedItemRequest.ProtoReflect.Descriptor instead.
+func (*RestoreFeedItemRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *RestoreFeedItemRequest) GetItemId() string {
+	if x != nil {
+		return x.ItemId
+	}
+	return ""
+}
+
+type RestoreFeedItemResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Item          *Item                  `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestoreFeedItemResponse) Reset() {
+	*x = RestoreFeedItemResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestoreFeedItemResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestoreFeedItemResponse) ProtoMessage() {}
+
+func (x *RestoreFeedItemResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestoreFeedItemResponse.ProtoReflect.Descriptor instead.
+func (*RestoreFeedItemResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *RestoreFeedItemResponse) GetItem() *Item {
+	if x != nil {
+		return x.Item
+	}
+	return nil
+}
+
+// FilterRuleSuggestion proposes a category rule for one feed: the caller
+// rarely reads the category's recent, unfiltered, never-restored items.
+type FilterRuleSuggestion struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	FeedId    string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	FeedTitle string                 `protobuf:"bytes,2,opt,name=feed_title,json=feedTitle,proto3" json:"feed_title,omitempty"`
+	FeedUrl   string                 `protobuf:"bytes,3,opt,name=feed_url,json=feedUrl,proto3" json:"feed_url,omitempty"`
+	Category  string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	// Items published in the last 90 days.
+	ItemCount int32 `protobuf:"varint,5,opt,name=item_count,json=itemCount,proto3" json:"item_count,omitempty"`
+	ReadCount int32 `protobuf:"varint,6,opt,name=read_count,json=readCount,proto3" json:"read_count,omitempty"`
+	// read_count / item_count (0-1).
+	ReadRate      float64 `protobuf:"fixed64,7,opt,name=read_rate,json=readRate,proto3" json:"read_rate,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FilterRuleSuggestion) Reset() {
+	*x = FilterRuleSuggestion{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FilterRuleSuggestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FilterRuleSuggestion) ProtoMessage() {}
+
+func (x *FilterRuleSuggestion) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FilterRuleSuggestion.ProtoReflect.Descriptor instead.
+func (*FilterRuleSuggestion) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *FilterRuleSuggestion) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *FilterRuleSuggestion) GetFeedTitle() string {
+	if x != nil {
+		return x.FeedTitle
+	}
+	return ""
+}
+
+func (x *FilterRuleSuggestion) GetFeedUrl() string {
+	if x != nil {
+		return x.FeedUrl
+	}
+	return ""
+}
+
+func (x *FilterRuleSuggestion) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *FilterRuleSuggestion) GetItemCount() int32 {
+	if x != nil {
+		return x.ItemCount
+	}
+	return 0
+}
+
+func (x *FilterRuleSuggestion) GetReadCount() int32 {
+	if x != nil {
+		return x.ReadCount
+	}
+	return 0
+}
+
+func (x *FilterRuleSuggestion) GetReadRate() float64 {
+	if x != nil {
+		return x.ReadRate
+	}
+	return 0
+}
+
+type GetFilterRuleSuggestionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFilterRuleSuggestionsRequest) Reset() {
+	*x = GetFilterRuleSuggestionsRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFilterRuleSuggestionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFilterRuleSuggestionsRequest) ProtoMessage() {}
+
+func (x *GetFilterRuleSuggestionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFilterRuleSuggestionsRequest.ProtoReflect.Descriptor instead.
+func (*GetFilterRuleSuggestionsRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{35}
+}
+
+type GetFilterRuleSuggestionsResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Suggestions   []*FilterRuleSuggestion `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetFilterRuleSuggestionsResponse) Reset() {
+	*x = GetFilterRuleSuggestionsResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetFilterRuleSuggestionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetFilterRuleSuggestionsResponse) ProtoMessage() {}
+
+func (x *GetFilterRuleSuggestionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetFilterRuleSuggestionsResponse.ProtoReflect.Descriptor instead.
+func (*GetFilterRuleSuggestionsResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *GetFilterRuleSuggestionsResponse) GetSuggestions() []*FilterRuleSuggestion {
+	if x != nil {
+		return x.Suggestions
+	}
+	return nil
+}
+
+// DismissFilterRuleSuggestion hides the feed's category suggestion for
+// good.
+type DismissFilterRuleSuggestionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FeedId        string                 `protobuf:"bytes,1,opt,name=feed_id,json=feedId,proto3" json:"feed_id,omitempty"`
+	Category      string                 `protobuf:"bytes,2,opt,name=category,proto3" json:"category,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DismissFilterRuleSuggestionRequest) Reset() {
+	*x = DismissFilterRuleSuggestionRequest{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DismissFilterRuleSuggestionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DismissFilterRuleSuggestionRequest) ProtoMessage() {}
+
+func (x *DismissFilterRuleSuggestionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DismissFilterRuleSuggestionRequest.ProtoReflect.Descriptor instead.
+func (*DismissFilterRuleSuggestionRequest) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *DismissFilterRuleSuggestionRequest) GetFeedId() string {
+	if x != nil {
+		return x.FeedId
+	}
+	return ""
+}
+
+func (x *DismissFilterRuleSuggestionRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+type DismissFilterRuleSuggestionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DismissFilterRuleSuggestionResponse) Reset() {
+	*x = DismissFilterRuleSuggestionResponse{}
+	mi := &file_feeds_v1_feeds_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DismissFilterRuleSuggestionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DismissFilterRuleSuggestionResponse) ProtoMessage() {}
+
+func (x *DismissFilterRuleSuggestionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_feeds_v1_feeds_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DismissFilterRuleSuggestionResponse.ProtoReflect.Descriptor instead.
+func (*DismissFilterRuleSuggestionResponse) Descriptor() ([]byte, []int) {
+	return file_feeds_v1_feeds_proto_rawDescGZIP(), []int{38}
+}
+
 var File_feeds_v1_feeds_proto protoreflect.FileDescriptor
 
 const file_feeds_v1_feeds_proto_rawDesc = "" +
@@ -1584,7 +2384,7 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x12RefreshFeedRequest\x12\x17\n" +
 	"\afeed_id\x18\x01 \x01(\tR\x06feedId\"1\n" +
 	"\x13RefreshFeedResponse\x12\x1a\n" +
-	"\bingested\x18\x01 \x01(\x05R\bingested\"\xb0\x03\n" +
+	"\bingested\x18\x01 \x01(\x05R\bingested\"\xa9\x04\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12\x14\n" +
@@ -1607,18 +2407,26 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"hasContent\x12\x1e\n" +
 	"\n" +
 	"categories\x18\x0e \x03(\tR\n" +
-	"categories\"\xe6\x01\n" +
+	"categories\x12\x1f\n" +
+	"\vfiltered_at\x18\x0f \x01(\tR\n" +
+	"filteredAt\x125\n" +
+	"\vfilter_rule\x18\x10 \x01(\v2\x14.feeds.v1.FilterRuleR\n" +
+	"filterRule\x12\x1f\n" +
+	"\vrestored_at\x18\x11 \x01(\tR\n" +
+	"restoredAt\"\xa2\x02\n" +
 	"\x14ListFeedItemsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12$\n" +
 	"\vunread_only\x18\x03 \x01(\bH\x00R\n" +
 	"unreadOnly\x88\x01\x01\x12\x1c\n" +
 	"\afeed_id\x18\x04 \x01(\tH\x01R\x06feedId\x88\x01\x01\x12,\n" +
-	"\x0fbookmarked_only\x18\x05 \x01(\bH\x02R\x0ebookmarkedOnly\x88\x01\x01B\x0e\n" +
+	"\x0fbookmarked_only\x18\x05 \x01(\bH\x02R\x0ebookmarkedOnly\x88\x01\x01\x12(\n" +
+	"\rfiltered_only\x18\x06 \x01(\bH\x03R\ffilteredOnly\x88\x01\x01B\x0e\n" +
 	"\f_unread_onlyB\n" +
 	"\n" +
 	"\b_feed_idB\x12\n" +
-	"\x10_bookmarked_only\"X\n" +
+	"\x10_bookmarked_onlyB\x10\n" +
+	"\x0e_filtered_only\"X\n" +
 	"\x15ListFeedItemsResponse\x12$\n" +
 	"\x05items\x18\x01 \x03(\v2\x0e.feeds.v1.ItemR\x05items\x12\x19\n" +
 	"\bhas_more\x18\x02 \x01(\bR\ahasMore\"-\n" +
@@ -1665,12 +2473,60 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\x14consecutive_failures\x18\x04 \x01(\x05R\x13consecutiveFailures\"\x1a\n" +
 	"\x18GetUnhealthyFeedsRequest\"J\n" +
 	"\x19GetUnhealthyFeedsResponse\x12-\n" +
-	"\x05feeds\x18\x01 \x03(\v2\x17.feeds.v1.UnhealthyFeedR\x05feeds*c\n" +
+	"\x05feeds\x18\x01 \x03(\v2\x17.feeds.v1.UnhealthyFeedR\x05feeds\"\xbf\x01\n" +
+	"\n" +
+	"FilterRule\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\afeed_id\x18\x02 \x01(\tR\x06feedId\x12,\n" +
+	"\x04kind\x18\x03 \x01(\x0e2\x18.feeds.v1.FilterRuleKindR\x04kind\x12\x14\n" +
+	"\x05value\x18\x04 \x01(\tR\x05value\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12%\n" +
+	"\x0efiltered_count\x18\x06 \x01(\x05R\rfilteredCount\"\x18\n" +
+	"\x16ListFilterRulesRequest\"E\n" +
+	"\x17ListFilterRulesResponse\x12*\n" +
+	"\x05rules\x18\x01 \x03(\v2\x14.feeds.v1.FilterRuleR\x05rules\"v\n" +
+	"\x17CreateFilterRuleRequest\x12\x17\n" +
+	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12,\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x18.feeds.v1.FilterRuleKindR\x04kind\x12\x14\n" +
+	"\x05value\x18\x03 \x01(\tR\x05value\"D\n" +
+	"\x18CreateFilterRuleResponse\x12(\n" +
+	"\x04rule\x18\x01 \x01(\v2\x14.feeds.v1.FilterRuleR\x04rule\"2\n" +
+	"\x17DeleteFilterRuleRequest\x12\x17\n" +
+	"\arule_id\x18\x01 \x01(\tR\x06ruleId\"\x1a\n" +
+	"\x18DeleteFilterRuleResponse\"1\n" +
+	"\x16RestoreFeedItemRequest\x12\x17\n" +
+	"\aitem_id\x18\x01 \x01(\tR\x06itemId\"=\n" +
+	"\x17RestoreFeedItemResponse\x12\"\n" +
+	"\x04item\x18\x01 \x01(\v2\x0e.feeds.v1.ItemR\x04item\"\xe0\x01\n" +
+	"\x14FilterRuleSuggestion\x12\x17\n" +
+	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12\x1d\n" +
+	"\n" +
+	"feed_title\x18\x02 \x01(\tR\tfeedTitle\x12\x19\n" +
+	"\bfeed_url\x18\x03 \x01(\tR\afeedUrl\x12\x1a\n" +
+	"\bcategory\x18\x04 \x01(\tR\bcategory\x12\x1d\n" +
+	"\n" +
+	"item_count\x18\x05 \x01(\x05R\titemCount\x12\x1d\n" +
+	"\n" +
+	"read_count\x18\x06 \x01(\x05R\treadCount\x12\x1b\n" +
+	"\tread_rate\x18\a \x01(\x01R\breadRate\"!\n" +
+	"\x1fGetFilterRuleSuggestionsRequest\"d\n" +
+	" GetFilterRuleSuggestionsResponse\x12@\n" +
+	"\vsuggestions\x18\x01 \x03(\v2\x1e.feeds.v1.FilterRuleSuggestionR\vsuggestions\"Y\n" +
+	"\"DismissFilterRuleSuggestionRequest\x12\x17\n" +
+	"\afeed_id\x18\x01 \x01(\tR\x06feedId\x12\x1a\n" +
+	"\bcategory\x18\x02 \x01(\tR\bcategory\"%\n" +
+	"#DismissFilterRuleSuggestionResponse*c\n" +
 	"\bFeedKind\x12\x19\n" +
 	"\x15FEED_KIND_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rFEED_KIND_RSS\x10\x01\x12\x13\n" +
 	"\x0fFEED_KIND_EMAIL\x10\x02\x12\x14\n" +
-	"\x10FEED_KIND_SCRAPE\x10\x032\x8e\x06\n" +
+	"\x10FEED_KIND_SCRAPE\x10\x03*m\n" +
+	"\x0eFilterRuleKind\x12 \n" +
+	"\x1cFILTER_RULE_KIND_UNSPECIFIED\x10\x00\x12\x1d\n" +
+	"\x19FILTER_RULE_KIND_CATEGORY\x10\x01\x12\x1a\n" +
+	"\x16FILTER_RULE_KIND_TITLE\x10\x022\xe3\n" +
+	"\n" +
 	"\vFeedService\x12D\n" +
 	"\tListFeeds\x12\x1a.feeds.v1.ListFeedsRequest\x1a\x1b.feeds.v1.ListFeedsResponse\x12G\n" +
 	"\n" +
@@ -1685,7 +2541,13 @@ const file_feeds_v1_feeds_proto_rawDesc = "" +
 	"\n" +
 	"UpdateItem\x12\x1b.feeds.v1.UpdateItemRequest\x1a\x1c.feeds.v1.UpdateItemResponse\x12M\n" +
 	"\fGetFeedStats\x12\x1d.feeds.v1.GetFeedStatsRequest\x1a\x1e.feeds.v1.GetFeedStatsResponse\x12\\\n" +
-	"\x11GetUnhealthyFeeds\x12\".feeds.v1.GetUnhealthyFeedsRequest\x1a#.feeds.v1.GetUnhealthyFeedsResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
+	"\x11GetUnhealthyFeeds\x12\".feeds.v1.GetUnhealthyFeedsRequest\x1a#.feeds.v1.GetUnhealthyFeedsResponse\x12V\n" +
+	"\x0fListFilterRules\x12 .feeds.v1.ListFilterRulesRequest\x1a!.feeds.v1.ListFilterRulesResponse\x12Y\n" +
+	"\x10CreateFilterRule\x12!.feeds.v1.CreateFilterRuleRequest\x1a\".feeds.v1.CreateFilterRuleResponse\x12Y\n" +
+	"\x10DeleteFilterRule\x12!.feeds.v1.DeleteFilterRuleRequest\x1a\".feeds.v1.DeleteFilterRuleResponse\x12V\n" +
+	"\x0fRestoreFeedItem\x12 .feeds.v1.RestoreFeedItemRequest\x1a!.feeds.v1.RestoreFeedItemResponse\x12q\n" +
+	"\x18GetFilterRuleSuggestions\x12).feeds.v1.GetFilterRuleSuggestionsRequest\x1a*.feeds.v1.GetFilterRuleSuggestionsResponse\x12z\n" +
+	"\x1bDismissFilterRuleSuggestion\x12,.feeds.v1.DismissFilterRuleSuggestionRequest\x1a-.feeds.v1.DismissFilterRuleSuggestionResponseB)Z'tools.xdoubleu.com/gen/feeds/v1;feedsv1b\x06proto3"
 
 var (
 	file_feeds_v1_feeds_proto_rawDescOnce sync.Once
@@ -1699,71 +2561,105 @@ func file_feeds_v1_feeds_proto_rawDescGZIP() []byte {
 	return file_feeds_v1_feeds_proto_rawDescData
 }
 
-var file_feeds_v1_feeds_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_feeds_v1_feeds_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_feeds_v1_feeds_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_feeds_v1_feeds_proto_goTypes = []any{
-	(FeedKind)(0),                     // 0: feeds.v1.FeedKind
-	(*Feed)(nil),                      // 1: feeds.v1.Feed
-	(*ListFeedsRequest)(nil),          // 2: feeds.v1.ListFeedsRequest
-	(*ListFeedsResponse)(nil),         // 3: feeds.v1.ListFeedsResponse
-	(*CreateFeedRequest)(nil),         // 4: feeds.v1.CreateFeedRequest
-	(*CreateFeedResponse)(nil),        // 5: feeds.v1.CreateFeedResponse
-	(*UpdateFeedRequest)(nil),         // 6: feeds.v1.UpdateFeedRequest
-	(*UpdateFeedResponse)(nil),        // 7: feeds.v1.UpdateFeedResponse
-	(*DeleteFeedRequest)(nil),         // 8: feeds.v1.DeleteFeedRequest
-	(*DeleteFeedResponse)(nil),        // 9: feeds.v1.DeleteFeedResponse
-	(*RefreshFeedRequest)(nil),        // 10: feeds.v1.RefreshFeedRequest
-	(*RefreshFeedResponse)(nil),       // 11: feeds.v1.RefreshFeedResponse
-	(*Item)(nil),                      // 12: feeds.v1.Item
-	(*ListFeedItemsRequest)(nil),      // 13: feeds.v1.ListFeedItemsRequest
-	(*ListFeedItemsResponse)(nil),     // 14: feeds.v1.ListFeedItemsResponse
-	(*GetFeedItemRequest)(nil),        // 15: feeds.v1.GetFeedItemRequest
-	(*GetFeedItemResponse)(nil),       // 16: feeds.v1.GetFeedItemResponse
-	(*UpdateItemRequest)(nil),         // 17: feeds.v1.UpdateItemRequest
-	(*UpdateItemResponse)(nil),        // 18: feeds.v1.UpdateItemResponse
-	(*FeedStats)(nil),                 // 19: feeds.v1.FeedStats
-	(*DayCount)(nil),                  // 20: feeds.v1.DayCount
-	(*GetFeedStatsRequest)(nil),       // 21: feeds.v1.GetFeedStatsRequest
-	(*GetFeedStatsResponse)(nil),      // 22: feeds.v1.GetFeedStatsResponse
-	(*UnhealthyFeed)(nil),             // 23: feeds.v1.UnhealthyFeed
-	(*GetUnhealthyFeedsRequest)(nil),  // 24: feeds.v1.GetUnhealthyFeedsRequest
-	(*GetUnhealthyFeedsResponse)(nil), // 25: feeds.v1.GetUnhealthyFeedsResponse
+	(FeedKind)(0),                               // 0: feeds.v1.FeedKind
+	(FilterRuleKind)(0),                         // 1: feeds.v1.FilterRuleKind
+	(*Feed)(nil),                                // 2: feeds.v1.Feed
+	(*ListFeedsRequest)(nil),                    // 3: feeds.v1.ListFeedsRequest
+	(*ListFeedsResponse)(nil),                   // 4: feeds.v1.ListFeedsResponse
+	(*CreateFeedRequest)(nil),                   // 5: feeds.v1.CreateFeedRequest
+	(*CreateFeedResponse)(nil),                  // 6: feeds.v1.CreateFeedResponse
+	(*UpdateFeedRequest)(nil),                   // 7: feeds.v1.UpdateFeedRequest
+	(*UpdateFeedResponse)(nil),                  // 8: feeds.v1.UpdateFeedResponse
+	(*DeleteFeedRequest)(nil),                   // 9: feeds.v1.DeleteFeedRequest
+	(*DeleteFeedResponse)(nil),                  // 10: feeds.v1.DeleteFeedResponse
+	(*RefreshFeedRequest)(nil),                  // 11: feeds.v1.RefreshFeedRequest
+	(*RefreshFeedResponse)(nil),                 // 12: feeds.v1.RefreshFeedResponse
+	(*Item)(nil),                                // 13: feeds.v1.Item
+	(*ListFeedItemsRequest)(nil),                // 14: feeds.v1.ListFeedItemsRequest
+	(*ListFeedItemsResponse)(nil),               // 15: feeds.v1.ListFeedItemsResponse
+	(*GetFeedItemRequest)(nil),                  // 16: feeds.v1.GetFeedItemRequest
+	(*GetFeedItemResponse)(nil),                 // 17: feeds.v1.GetFeedItemResponse
+	(*UpdateItemRequest)(nil),                   // 18: feeds.v1.UpdateItemRequest
+	(*UpdateItemResponse)(nil),                  // 19: feeds.v1.UpdateItemResponse
+	(*FeedStats)(nil),                           // 20: feeds.v1.FeedStats
+	(*DayCount)(nil),                            // 21: feeds.v1.DayCount
+	(*GetFeedStatsRequest)(nil),                 // 22: feeds.v1.GetFeedStatsRequest
+	(*GetFeedStatsResponse)(nil),                // 23: feeds.v1.GetFeedStatsResponse
+	(*UnhealthyFeed)(nil),                       // 24: feeds.v1.UnhealthyFeed
+	(*GetUnhealthyFeedsRequest)(nil),            // 25: feeds.v1.GetUnhealthyFeedsRequest
+	(*GetUnhealthyFeedsResponse)(nil),           // 26: feeds.v1.GetUnhealthyFeedsResponse
+	(*FilterRule)(nil),                          // 27: feeds.v1.FilterRule
+	(*ListFilterRulesRequest)(nil),              // 28: feeds.v1.ListFilterRulesRequest
+	(*ListFilterRulesResponse)(nil),             // 29: feeds.v1.ListFilterRulesResponse
+	(*CreateFilterRuleRequest)(nil),             // 30: feeds.v1.CreateFilterRuleRequest
+	(*CreateFilterRuleResponse)(nil),            // 31: feeds.v1.CreateFilterRuleResponse
+	(*DeleteFilterRuleRequest)(nil),             // 32: feeds.v1.DeleteFilterRuleRequest
+	(*DeleteFilterRuleResponse)(nil),            // 33: feeds.v1.DeleteFilterRuleResponse
+	(*RestoreFeedItemRequest)(nil),              // 34: feeds.v1.RestoreFeedItemRequest
+	(*RestoreFeedItemResponse)(nil),             // 35: feeds.v1.RestoreFeedItemResponse
+	(*FilterRuleSuggestion)(nil),                // 36: feeds.v1.FilterRuleSuggestion
+	(*GetFilterRuleSuggestionsRequest)(nil),     // 37: feeds.v1.GetFilterRuleSuggestionsRequest
+	(*GetFilterRuleSuggestionsResponse)(nil),    // 38: feeds.v1.GetFilterRuleSuggestionsResponse
+	(*DismissFilterRuleSuggestionRequest)(nil),  // 39: feeds.v1.DismissFilterRuleSuggestionRequest
+	(*DismissFilterRuleSuggestionResponse)(nil), // 40: feeds.v1.DismissFilterRuleSuggestionResponse
 }
 var file_feeds_v1_feeds_proto_depIdxs = []int32{
-	1,  // 0: feeds.v1.ListFeedsResponse.feeds:type_name -> feeds.v1.Feed
+	2,  // 0: feeds.v1.ListFeedsResponse.feeds:type_name -> feeds.v1.Feed
 	0,  // 1: feeds.v1.CreateFeedRequest.kind:type_name -> feeds.v1.FeedKind
-	1,  // 2: feeds.v1.CreateFeedResponse.feed:type_name -> feeds.v1.Feed
-	12, // 3: feeds.v1.ListFeedItemsResponse.items:type_name -> feeds.v1.Item
-	12, // 4: feeds.v1.GetFeedItemResponse.item:type_name -> feeds.v1.Item
-	12, // 5: feeds.v1.UpdateItemResponse.item:type_name -> feeds.v1.Item
-	19, // 6: feeds.v1.GetFeedStatsResponse.stats:type_name -> feeds.v1.FeedStats
-	20, // 7: feeds.v1.GetFeedStatsResponse.items_per_day:type_name -> feeds.v1.DayCount
-	23, // 8: feeds.v1.GetUnhealthyFeedsResponse.feeds:type_name -> feeds.v1.UnhealthyFeed
-	2,  // 9: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
-	4,  // 10: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
-	6,  // 11: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
-	8,  // 12: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
-	10, // 13: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
-	13, // 14: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
-	15, // 15: feeds.v1.FeedService.GetFeedItem:input_type -> feeds.v1.GetFeedItemRequest
-	17, // 16: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
-	21, // 17: feeds.v1.FeedService.GetFeedStats:input_type -> feeds.v1.GetFeedStatsRequest
-	24, // 18: feeds.v1.FeedService.GetUnhealthyFeeds:input_type -> feeds.v1.GetUnhealthyFeedsRequest
-	3,  // 19: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
-	5,  // 20: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
-	7,  // 21: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
-	9,  // 22: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
-	11, // 23: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
-	14, // 24: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
-	16, // 25: feeds.v1.FeedService.GetFeedItem:output_type -> feeds.v1.GetFeedItemResponse
-	18, // 26: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
-	22, // 27: feeds.v1.FeedService.GetFeedStats:output_type -> feeds.v1.GetFeedStatsResponse
-	25, // 28: feeds.v1.FeedService.GetUnhealthyFeeds:output_type -> feeds.v1.GetUnhealthyFeedsResponse
-	19, // [19:29] is the sub-list for method output_type
-	9,  // [9:19] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	2,  // 2: feeds.v1.CreateFeedResponse.feed:type_name -> feeds.v1.Feed
+	27, // 3: feeds.v1.Item.filter_rule:type_name -> feeds.v1.FilterRule
+	13, // 4: feeds.v1.ListFeedItemsResponse.items:type_name -> feeds.v1.Item
+	13, // 5: feeds.v1.GetFeedItemResponse.item:type_name -> feeds.v1.Item
+	13, // 6: feeds.v1.UpdateItemResponse.item:type_name -> feeds.v1.Item
+	20, // 7: feeds.v1.GetFeedStatsResponse.stats:type_name -> feeds.v1.FeedStats
+	21, // 8: feeds.v1.GetFeedStatsResponse.items_per_day:type_name -> feeds.v1.DayCount
+	24, // 9: feeds.v1.GetUnhealthyFeedsResponse.feeds:type_name -> feeds.v1.UnhealthyFeed
+	1,  // 10: feeds.v1.FilterRule.kind:type_name -> feeds.v1.FilterRuleKind
+	27, // 11: feeds.v1.ListFilterRulesResponse.rules:type_name -> feeds.v1.FilterRule
+	1,  // 12: feeds.v1.CreateFilterRuleRequest.kind:type_name -> feeds.v1.FilterRuleKind
+	27, // 13: feeds.v1.CreateFilterRuleResponse.rule:type_name -> feeds.v1.FilterRule
+	13, // 14: feeds.v1.RestoreFeedItemResponse.item:type_name -> feeds.v1.Item
+	36, // 15: feeds.v1.GetFilterRuleSuggestionsResponse.suggestions:type_name -> feeds.v1.FilterRuleSuggestion
+	3,  // 16: feeds.v1.FeedService.ListFeeds:input_type -> feeds.v1.ListFeedsRequest
+	5,  // 17: feeds.v1.FeedService.CreateFeed:input_type -> feeds.v1.CreateFeedRequest
+	7,  // 18: feeds.v1.FeedService.UpdateFeed:input_type -> feeds.v1.UpdateFeedRequest
+	9,  // 19: feeds.v1.FeedService.DeleteFeed:input_type -> feeds.v1.DeleteFeedRequest
+	11, // 20: feeds.v1.FeedService.RefreshFeed:input_type -> feeds.v1.RefreshFeedRequest
+	14, // 21: feeds.v1.FeedService.ListFeedItems:input_type -> feeds.v1.ListFeedItemsRequest
+	16, // 22: feeds.v1.FeedService.GetFeedItem:input_type -> feeds.v1.GetFeedItemRequest
+	18, // 23: feeds.v1.FeedService.UpdateItem:input_type -> feeds.v1.UpdateItemRequest
+	22, // 24: feeds.v1.FeedService.GetFeedStats:input_type -> feeds.v1.GetFeedStatsRequest
+	25, // 25: feeds.v1.FeedService.GetUnhealthyFeeds:input_type -> feeds.v1.GetUnhealthyFeedsRequest
+	28, // 26: feeds.v1.FeedService.ListFilterRules:input_type -> feeds.v1.ListFilterRulesRequest
+	30, // 27: feeds.v1.FeedService.CreateFilterRule:input_type -> feeds.v1.CreateFilterRuleRequest
+	32, // 28: feeds.v1.FeedService.DeleteFilterRule:input_type -> feeds.v1.DeleteFilterRuleRequest
+	34, // 29: feeds.v1.FeedService.RestoreFeedItem:input_type -> feeds.v1.RestoreFeedItemRequest
+	37, // 30: feeds.v1.FeedService.GetFilterRuleSuggestions:input_type -> feeds.v1.GetFilterRuleSuggestionsRequest
+	39, // 31: feeds.v1.FeedService.DismissFilterRuleSuggestion:input_type -> feeds.v1.DismissFilterRuleSuggestionRequest
+	4,  // 32: feeds.v1.FeedService.ListFeeds:output_type -> feeds.v1.ListFeedsResponse
+	6,  // 33: feeds.v1.FeedService.CreateFeed:output_type -> feeds.v1.CreateFeedResponse
+	8,  // 34: feeds.v1.FeedService.UpdateFeed:output_type -> feeds.v1.UpdateFeedResponse
+	10, // 35: feeds.v1.FeedService.DeleteFeed:output_type -> feeds.v1.DeleteFeedResponse
+	12, // 36: feeds.v1.FeedService.RefreshFeed:output_type -> feeds.v1.RefreshFeedResponse
+	15, // 37: feeds.v1.FeedService.ListFeedItems:output_type -> feeds.v1.ListFeedItemsResponse
+	17, // 38: feeds.v1.FeedService.GetFeedItem:output_type -> feeds.v1.GetFeedItemResponse
+	19, // 39: feeds.v1.FeedService.UpdateItem:output_type -> feeds.v1.UpdateItemResponse
+	23, // 40: feeds.v1.FeedService.GetFeedStats:output_type -> feeds.v1.GetFeedStatsResponse
+	26, // 41: feeds.v1.FeedService.GetUnhealthyFeeds:output_type -> feeds.v1.GetUnhealthyFeedsResponse
+	29, // 42: feeds.v1.FeedService.ListFilterRules:output_type -> feeds.v1.ListFilterRulesResponse
+	31, // 43: feeds.v1.FeedService.CreateFilterRule:output_type -> feeds.v1.CreateFilterRuleResponse
+	33, // 44: feeds.v1.FeedService.DeleteFilterRule:output_type -> feeds.v1.DeleteFilterRuleResponse
+	35, // 45: feeds.v1.FeedService.RestoreFeedItem:output_type -> feeds.v1.RestoreFeedItemResponse
+	38, // 46: feeds.v1.FeedService.GetFilterRuleSuggestions:output_type -> feeds.v1.GetFilterRuleSuggestionsResponse
+	40, // 47: feeds.v1.FeedService.DismissFilterRuleSuggestion:output_type -> feeds.v1.DismissFilterRuleSuggestionResponse
+	32, // [32:48] is the sub-list for method output_type
+	16, // [16:32] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_feeds_v1_feeds_proto_init() }
@@ -1778,8 +2674,8 @@ func file_feeds_v1_feeds_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_feeds_v1_feeds_proto_rawDesc), len(file_feeds_v1_feeds_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   25,
+			NumEnums:      2,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -7,5 +7,6 @@ unleash:
     - "_mock\\.go$"
   # Per-mutant timeout is coverage time x this. Coverage reuses cached builds
   # but each mutant recompiles and relinks, so the default 3 turns that
-  # rebuild into TIMED OUT.
+  # rebuild into TIMED OUT. The Makefile sets -count=1 so coverage never
+  # replays a cached test result.
   timeout-coefficient: 10

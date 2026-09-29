@@ -38,6 +38,14 @@ describe('FeedsHeader', () => {
     expect(screen.queryByRole('link', { name: /books/i })).not.toBeInTheDocument()
   })
 
+  it('links to the filtered items view', () => {
+    render(<FeedsHeader />)
+    expect(screen.getByRole('link', { name: 'Filtered' })).toHaveAttribute(
+      'href',
+      '/feeds/filtered'
+    )
+  })
+
   it('links to the feed stats page', () => {
     render(<FeedsHeader />)
     expect(screen.getByRole('link', { name: 'Stats' })).toHaveAttribute('href', '/feeds/stats')

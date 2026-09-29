@@ -86,6 +86,13 @@ message Item {
   bool has_content = 13;
   // RSS <category> values or scraped card labels; empty when none.
   repeated string categories = 14;
+  // RFC3339; set only while a filter rule hides the item.
+  string filtered_at = 15;
+  // The rule that filtered the item; unset when it was deleted or the item
+  // isn't filtered. Its filtered_count is always 0 here.
+  FilterRule filter_rule = 16;
+  // RFC3339; set once the item was restored, which no rule filters again.
+  string restored_at = 17;
 }
 
 message ListFeedItemsRequest {
@@ -97,6 +104,9 @@ message ListFeedItemsRequest {
   optional string feed_id = 4;
   // When true, excludes unbookmarked items.
   optional bool bookmarked_only = 5;
+  // When true, returns only filtered items, newest filtered_at first;
+  // unread_only and bookmarked_only are ignored.
+  optional bool filtered_only = 6;
 }
 message ListFeedItemsResponse {
   repeated Item items = 1;
@@ -160,6 +170,75 @@ message GetUnhealthyFeedsResponse {
   repeated UnhealthyFeed feeds = 1;
 }
 
+enum FilterRuleKind {
+  FILTER_RULE_KIND_UNSPECIFIED = 0; // rejected
+  // Exact category match, ignoring case.
+  FILTER_RULE_KIND_CATEGORY = 1;
+  // Title substring match, ignoring case.
+  FILTER_RULE_KIND_TITLE = 2;
+}
+
+// FilterRule hides matching items from the inbox, unread counts and stats.
+message FilterRule {
+  string id = 1;
+  // Empty for a rule covering all of the caller's feeds.
+  string feed_id = 2;
+  FilterRuleKind kind = 3;
+  string value = 4;
+  string created_at = 5;
+  // Items the rule has filtered, at ingest or retroactively.
+  int32 filtered_count = 6;
+}
+
+message ListFilterRulesRequest {}
+message ListFilterRulesResponse { repeated FilterRule rules = 1; }
+
+// CreateFilterRule also filters the scope's existing unread,
+// unbookmarked, undismissed items; rule.filtered_count is how many.
+message CreateFilterRuleRequest {
+  // Empty applies the rule to all of the caller's feeds.
+  string feed_id = 1;
+  FilterRuleKind kind = 2;
+  string value = 3;
+}
+message CreateFilterRuleResponse { FilterRule rule = 1; }
+
+// DeleteFilterRule stops future filtering; filtered items stay filtered.
+message DeleteFilterRuleRequest { string rule_id = 1; }
+message DeleteFilterRuleResponse {}
+
+// RestoreFeedItem returns a filtered item to the inbox as unread, fetching
+// its content when it has none; no rule filters it again.
+message RestoreFeedItemRequest { string item_id = 1; }
+message RestoreFeedItemResponse { Item item = 1; }
+
+// FilterRuleSuggestion proposes a category rule for one feed: the caller
+// rarely reads the category's recent, unfiltered, never-restored items.
+message FilterRuleSuggestion {
+  string feed_id = 1;
+  string feed_title = 2;
+  string feed_url = 3;
+  string category = 4;
+  // Items published in the last 90 days.
+  int32 item_count = 5;
+  int32 read_count = 6;
+  // read_count / item_count (0-1).
+  double read_rate = 7;
+}
+
+message GetFilterRuleSuggestionsRequest {}
+message GetFilterRuleSuggestionsResponse {
+  repeated FilterRuleSuggestion suggestions = 1;
+}
+
+// DismissFilterRuleSuggestion hides the feed's category suggestion for
+// good.
+message DismissFilterRuleSuggestionRequest {
+  string feed_id = 1;
+  string category = 2;
+}
+message DismissFilterRuleSuggestionResponse {}
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -172,4 +251,16 @@ service FeedService {
   rpc GetFeedStats(GetFeedStatsRequest) returns (GetFeedStatsResponse);
   rpc GetUnhealthyFeeds(GetUnhealthyFeedsRequest)
       returns (GetUnhealthyFeedsResponse);
+  rpc ListFilterRules(ListFilterRulesRequest)
+      returns (ListFilterRulesResponse);
+  rpc CreateFilterRule(CreateFilterRuleRequest)
+      returns (CreateFilterRuleResponse);
+  rpc DeleteFilterRule(DeleteFilterRuleRequest)
+      returns (DeleteFilterRuleResponse);
+  rpc RestoreFeedItem(RestoreFeedItemRequest)
+      returns (RestoreFeedItemResponse);
+  rpc GetFilterRuleSuggestions(GetFilterRuleSuggestionsRequest)
+      returns (GetFilterRuleSuggestionsResponse);
+  rpc DismissFilterRuleSuggestion(DismissFilterRuleSuggestionRequest)
+      returns (DismissFilterRuleSuggestionResponse);
 }

@@ -9,10 +9,12 @@ Usage:
     python3 ../tools/diff_packages_go.py
 
 Run with cwd set to api/. Prints one changed package directory per line
-(e.g. "./apps/recipes/internal/services"), omitting any directory nested
-under another printed one: gremlins scans a directory recursively, so the
-ancestor's run already covers it. Prints nothing (and exits 0) when no Go
-package changed vs origin/main.
+(e.g. "./apps/recipes/internal/services"), suitable for
+`gremlins unleash $(python3 ../tools/diff_packages_go.py)`. Prints nothing
+(and exits 0) when no Go package changed vs origin/main.
+
+A directory nested under another printed one is dropped: gremlins walks the
+whole subtree of the path it's given, so it would mutate those files twice.
 """
 
 import os
@@ -40,13 +42,12 @@ def main():
         d = os.path.dirname(path)
         dirs.add('./' + d if d else '.')
 
-    for d in sorted(dirs):
-        if not any(is_nested(d, other) for other in dirs):
-            print(d)
-
-
-def is_nested(d, ancestor):
-    return d != ancestor and (ancestor == '.' or d.startswith(ancestor + '/'))
+    roots = [
+        d for d in dirs
+        if not any(d != p and d.startswith(p.rstrip('/') + '/') for p in dirs)
+    ]
+    for d in sorted(roots):
+        print(d)
 
 
 if __name__ == '__main__':

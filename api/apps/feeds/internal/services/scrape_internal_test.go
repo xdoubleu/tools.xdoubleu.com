@@ -348,7 +348,7 @@ func TestFetchPaginatedPostLinksFollowsNextPageAndDedupes(t *testing.T) {
 		</body></html>
 	`)
 
-	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	s := NewFeedService(slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "")
 	links, err := s.fetchPaginatedPostLinks(
 		context.Background(), "https://example.com/blog",
 		webFetch.Responses["https://example.com/blog"].Body,
@@ -379,7 +379,7 @@ func TestFetchPaginatedPostLinksStopsWhenNextPageHasNoPosts(t *testing.T) {
 		<html><body><nav><a href="/">Home</a></nav></body></html>
 	`))
 
-	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	s := NewFeedService(slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "")
 	links, err := s.fetchPaginatedPostLinks(
 		context.Background(), "https://example.com/blog", firstPage,
 	)
@@ -414,7 +414,7 @@ func TestFetchPaginatedPostLinksFiltersLocaleSwitcherOnLaterPages(t *testing.T) 
 		</body></html>
 	`)
 
-	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	s := NewFeedService(slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "")
 	links, err := s.fetchPaginatedPostLinks(
 		context.Background(),
 		"https://www.uber.com/be/en/blog/engineering",
@@ -465,7 +465,7 @@ func TestFetchPaginatedPostLinksWalksUntilNoNewLinks(t *testing.T) {
 		`)
 	}
 
-	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	s := NewFeedService(slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "")
 	links, err := s.fetchPaginatedPostLinks(
 		context.Background(), "https://example.com/blog", firstPage,
 	)
@@ -502,7 +502,7 @@ func TestFetchPaginatedPostLinksStopsOnPaginationLoop(t *testing.T) {
 		</body></html>
 	`)
 
-	s := NewFeedService(slog.Default(), nil, nil, webFetch, "", nil, nil, "")
+	s := NewFeedService(slog.Default(), nil, nil, nil, webFetch, "", nil, nil, "")
 	links, err := s.fetchPaginatedPostLinks(
 		context.Background(), "https://example.com/blog", firstPage,
 	)
