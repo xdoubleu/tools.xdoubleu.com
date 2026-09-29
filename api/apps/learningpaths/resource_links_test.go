@@ -42,7 +42,8 @@ func seedFeedItem(t *testing.T, owner, title string) uuid.UUID {
 		INSERT INTO feeds.feeds (id, user_id, url, title, source_type)
 		VALUES (gen_random_uuid(), $1, $2, $3, 'rss')
 		RETURNING id
-	`, owner, "https://example.com/"+title, title+" Feed").Scan(&feedID)
+	`, owner, "https://example.com/"+title+"/"+uuid.NewString(), title+" Feed").
+		Scan(&feedID)
 	require.NoError(t, err)
 
 	var itemID uuid.UUID
