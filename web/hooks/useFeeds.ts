@@ -30,9 +30,9 @@ export interface FeedsSummary {
   items: FeedsSummaryItem[]
 }
 
-// Invalidates both unreadOnly variants. Only for create/delete/refresh;
-// per-item changes use patchCachedItem.
-function mutateFeedItems() {
+// Invalidates every cached item list, filtered ones included. Only for
+// create/delete/refresh/restore; per-item changes use patchCachedItem.
+export function mutateFeedItems() {
   return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
 }
 
@@ -54,7 +54,7 @@ function patchCachedItem(updated: Item) {
 
 // No refetch on focus/reconnect: pages are server-prefetched and refetching
 // wastes egress.
-const noAutoRevalidate = {
+export const noAutoRevalidate = {
   revalidateOnFocus: false,
   revalidateOnReconnect: false
 } as const

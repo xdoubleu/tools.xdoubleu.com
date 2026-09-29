@@ -86,6 +86,13 @@ message Item {
   bool has_content = 13;
   // RSS <category> values or scraped card labels; empty when none.
   repeated string categories = 14;
+  // RFC3339; set only while a filter rule hides the item.
+  string filtered_at = 15;
+  // The rule that filtered the item; unset when it was deleted or the item
+  // isn't filtered. Its filtered_count is always 0 here.
+  FilterRule filter_rule = 16;
+  // RFC3339; set once the item was restored, which no rule filters again.
+  string restored_at = 17;
 }
 
 message ListFeedItemsRequest {
@@ -97,6 +104,9 @@ message ListFeedItemsRequest {
   optional string feed_id = 4;
   // When true, excludes unbookmarked items.
   optional bool bookmarked_only = 5;
+  // When true, returns only filtered items, newest filtered_at first;
+  // unread_only and bookmarked_only are ignored.
+  optional bool filtered_only = 6;
 }
 message ListFeedItemsResponse {
   repeated Item items = 1;
@@ -197,6 +207,11 @@ message CreateFilterRuleResponse { FilterRule rule = 1; }
 message DeleteFilterRuleRequest { string rule_id = 1; }
 message DeleteFilterRuleResponse {}
 
+// RestoreFeedItem returns a filtered item to the inbox as unread, fetching
+// its content when it has none; no rule filters it again.
+message RestoreFeedItemRequest { string item_id = 1; }
+message RestoreFeedItemResponse { Item item = 1; }
+
 service FeedService {
   rpc ListFeeds(ListFeedsRequest) returns (ListFeedsResponse);
   rpc CreateFeed(CreateFeedRequest) returns (CreateFeedResponse);
@@ -215,4 +230,6 @@ service FeedService {
       returns (CreateFilterRuleResponse);
   rpc DeleteFilterRule(DeleteFilterRuleRequest)
       returns (DeleteFilterRuleResponse);
+  rpc RestoreFeedItem(RestoreFeedItemRequest)
+      returns (RestoreFeedItemResponse);
 }

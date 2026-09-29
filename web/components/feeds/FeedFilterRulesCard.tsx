@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { Alert } from '@/components/ui/alert'
@@ -15,15 +16,12 @@ import {
   useFeeds,
   useFilterRules
 } from '@/hooks/useFeeds'
+import { feedLabel } from '@/lib/feeds/feedLabel'
 import { FilterRuleKind } from '@/lib/gen/feeds/v1/feeds_pb'
-import type { Feed, FilterRule } from '@/lib/gen/feeds/v1/feeds_pb'
+import type { FilterRule } from '@/lib/gen/feeds/v1/feeds_pb'
 
 function kindLabel(kind: FilterRuleKind): string {
   return kind === FilterRuleKind.CATEGORY ? 'Category' : 'Title contains'
-}
-
-function feedLabel(feed: Feed): string {
-  return feed.title || feed.url || 'Email newsletter'
 }
 
 function filteredMessage(count: number): string {
@@ -60,9 +58,16 @@ function RuleRow({ rule, scope }: { rule: FilterRule; scope: string }) {
       <Card variant="inset" className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-medium">{rule.value}</p>
-          <p className="break-words text-xs text-muted">
-            {kind} · {scope} · {rule.filteredCount} filtered
-          </p>
+          <div className="flex flex-wrap items-center gap-x-1 text-xs text-muted">
+            <span className="break-words">
+              {kind} · {scope} ·{' '}
+            </span>
+            <Button asChild variant="link" className="text-xs">
+              <Link href={rule.feedId ? `/feeds/filtered?feed=${rule.feedId}` : '/feeds/filtered'}>
+                {rule.filteredCount} filtered
+              </Link>
+            </Button>
+          </div>
           {failed && <p className="text-xs text-danger">Deleting the rule failed.</p>}
         </div>
         <Button

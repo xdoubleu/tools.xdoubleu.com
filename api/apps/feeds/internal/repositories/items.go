@@ -21,14 +21,16 @@ type ItemsRepository struct {
 // itemColumns includes the article body; only GetByIDForUser may use it.
 const itemColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html, i.published_at, i.read_at, i.dismissed, i.bookmarked,
-	i.read_progress_pct, i.ingest_error, i.created_at, i.categories`
+	i.read_progress_pct, i.ingest_error, i.created_at, i.categories,
+	i.filtered_at, i.filtered_rule_id, i.restored_at`
 
 // itemListColumns replaces the body with a has-content boolean. Every
 // multi-row read and RETURNING clause must use it: bodies are tens of MB per
 // page and exhaust database egress.
 const itemListColumns = `i.id, i.feed_id, i.guid, i.title, i.source_url,
 	i.content_html <> '', i.published_at, i.read_at, i.dismissed, i.bookmarked,
-	i.read_progress_pct, i.ingest_error, i.created_at, i.categories`
+	i.read_progress_pct, i.ingest_error, i.created_at, i.categories,
+	i.filtered_at, i.filtered_rule_id, i.restored_at`
 
 // scanItem scans an itemColumns row, deriving HasContent.
 func scanItem(row pgx.Row) (*models.Item, error) {
@@ -45,13 +47,15 @@ func scanListItem(row pgx.Row) (*models.Item, error) {
 	return scanItemInto(row, func(i *models.Item) any { return &i.HasContent })
 }
 
-// scanItemInto holds the column order shared by both column lists.
+// scanItemInto holds the column order shared by both column lists; extra
+// receives any columns selected after them.
 func scanItemInto(
 	row pgx.Row,
 	contentTarget func(*models.Item) any,
+	extra ...any,
 ) (*models.Item, error) {
 	var item models.Item
-	err := row.Scan(
+	dest := append([]any{
 		&item.ID,
 		&item.FeedID,
 		&item.GUID,
@@ -66,8 +70,11 @@ func scanItemInto(
 		&item.IngestError,
 		&item.CreatedAt,
 		&item.Categories,
-	)
-	if err != nil {
+		&item.FilteredAt,
+		&item.FilteredRuleID,
+		&item.RestoredAt,
+	}, extra...)
+	if err := row.Scan(dest...); err != nil {
 		return nil, err
 	}
 	return &item, nil

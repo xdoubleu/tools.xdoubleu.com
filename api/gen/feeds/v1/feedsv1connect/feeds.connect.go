@@ -65,6 +65,9 @@ const (
 	// FeedServiceDeleteFilterRuleProcedure is the fully-qualified name of the FeedService's
 	// DeleteFilterRule RPC.
 	FeedServiceDeleteFilterRuleProcedure = "/feeds.v1.FeedService/DeleteFilterRule"
+	// FeedServiceRestoreFeedItemProcedure is the fully-qualified name of the FeedService's
+	// RestoreFeedItem RPC.
+	FeedServiceRestoreFeedItemProcedure = "/feeds.v1.FeedService/RestoreFeedItem"
 )
 
 // FeedServiceClient is a client for the feeds.v1.FeedService service.
@@ -82,6 +85,7 @@ type FeedServiceClient interface {
 	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
 	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
 	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
+	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
 }
 
 // NewFeedServiceClient constructs a client for the feeds.v1.FeedService service. By default, it
@@ -173,6 +177,12 @@ func NewFeedServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
 			connect.WithClientOptions(opts...),
 		),
+		restoreFeedItem: connect.NewClient[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse](
+			httpClient,
+			baseURL+FeedServiceRestoreFeedItemProcedure,
+			connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -191,6 +201,7 @@ type feedServiceClient struct {
 	listFilterRules   *connect.Client[v1.ListFilterRulesRequest, v1.ListFilterRulesResponse]
 	createFilterRule  *connect.Client[v1.CreateFilterRuleRequest, v1.CreateFilterRuleResponse]
 	deleteFilterRule  *connect.Client[v1.DeleteFilterRuleRequest, v1.DeleteFilterRuleResponse]
+	restoreFeedItem   *connect.Client[v1.RestoreFeedItemRequest, v1.RestoreFeedItemResponse]
 }
 
 // ListFeeds calls feeds.v1.FeedService.ListFeeds.
@@ -258,6 +269,11 @@ func (c *feedServiceClient) DeleteFilterRule(ctx context.Context, req *connect.R
 	return c.deleteFilterRule.CallUnary(ctx, req)
 }
 
+// RestoreFeedItem calls feeds.v1.FeedService.RestoreFeedItem.
+func (c *feedServiceClient) RestoreFeedItem(ctx context.Context, req *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error) {
+	return c.restoreFeedItem.CallUnary(ctx, req)
+}
+
 // FeedServiceHandler is an implementation of the feeds.v1.FeedService service.
 type FeedServiceHandler interface {
 	ListFeeds(context.Context, *connect.Request[v1.ListFeedsRequest]) (*connect.Response[v1.ListFeedsResponse], error)
@@ -273,6 +289,7 @@ type FeedServiceHandler interface {
 	ListFilterRules(context.Context, *connect.Request[v1.ListFilterRulesRequest]) (*connect.Response[v1.ListFilterRulesResponse], error)
 	CreateFilterRule(context.Context, *connect.Request[v1.CreateFilterRuleRequest]) (*connect.Response[v1.CreateFilterRuleResponse], error)
 	DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error)
+	RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error)
 }
 
 // NewFeedServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -360,6 +377,12 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(feedServiceMethods.ByName("DeleteFilterRule")),
 		connect.WithHandlerOptions(opts...),
 	)
+	feedServiceRestoreFeedItemHandler := connect.NewUnaryHandler(
+		FeedServiceRestoreFeedItemProcedure,
+		svc.RestoreFeedItem,
+		connect.WithSchema(feedServiceMethods.ByName("RestoreFeedItem")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/feeds.v1.FeedService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case FeedServiceListFeedsProcedure:
@@ -388,6 +411,8 @@ func NewFeedServiceHandler(svc FeedServiceHandler, opts ...connect.HandlerOption
 			feedServiceCreateFilterRuleHandler.ServeHTTP(w, r)
 		case FeedServiceDeleteFilterRuleProcedure:
 			feedServiceDeleteFilterRuleHandler.ServeHTTP(w, r)
+		case FeedServiceRestoreFeedItemProcedure:
+			feedServiceRestoreFeedItemHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -447,4 +472,8 @@ func (UnimplementedFeedServiceHandler) CreateFilterRule(context.Context, *connec
 
 func (UnimplementedFeedServiceHandler) DeleteFilterRule(context.Context, *connect.Request[v1.DeleteFilterRuleRequest]) (*connect.Response[v1.DeleteFilterRuleResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.DeleteFilterRule is not implemented"))
+}
+
+func (UnimplementedFeedServiceHandler) RestoreFeedItem(context.Context, *connect.Request[v1.RestoreFeedItemRequest]) (*connect.Response[v1.RestoreFeedItemResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("feeds.v1.FeedService.RestoreFeedItem is not implemented"))
 }
