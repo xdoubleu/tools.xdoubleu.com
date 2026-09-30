@@ -8,35 +8,12 @@ import (
 	"unicode/utf8"
 )
 
-// finalizeHeadings assigns each paragraph block's final tag ("h1"/"h2"/"p")
-// and renders its html, in place. A paragraph is classified purely by height
-// ratio to the document's modal (body text) character height, as before.
-// A candidate that passes the ratio test is then demoted to "p" when its
-// shape or context says it isn't a real heading:
-//
-//   - startsLowercase: a real title never starts mid-sentence — catches
-//     large-font marginal pull-quote words and run-on paragraph fragments
-//     (issue #1698).
-//   - isLoopDiagramLabel: text made up only of single uppercase-letter
-//     tokens ("B", "R B", "B B") is a systems-diagram loop-label callout,
-//     never a title (issue #1698 follow-up left open by #1766).
-//   - startsLowercase: a real title never starts mid-sentence — catches
-//     large-font marginal pull-quote words and run-on paragraph fragments
-//     (issue #1698).
-//   - isLoopDiagramLabel: text made up only of single uppercase-letter
-//     tokens ("B", "R B", "B B") is a systems-diagram loop-label callout,
-//     never a title (issue #1698 follow-up left open by #1766).
-//   - isHeadingFalsePositive: a candidate ending in sentence punctuation
-//     (a quoted pull quote, a numbered list item, a question fragment) or
-//     referencing a figure number ("Delays, Figure 30:", "(see Figure 39)")
-//     is body text or a caption; an h1 candidate that is a single word at
-//     mid-band size (above body text but well below real title-page type)
-//     is an embedded diagram label ("Cooling") (issue #1698).
-//
-// The shape guards run after demoteHeadingRuns so that a run member already
-// flattened as a list entry can't "shield" its neighbours: every member of a
-// run goes to "p" regardless of its own shape, and the guards judge only
-// survivors in isolation.
+// finalizeHeadings tags each paragraph block h1/h2/p by its height ratio
+// to the document's modal body height, then demotes a candidate to "p" when
+// it runs as a list (demoteHeadingRuns, first, so list members can't shield
+// each other) or has a non-heading shape: a lowercase start, loop-diagram
+// letters ("R B"), sentence punctuation, a figure reference, or a single
+// mid-band word (a diagram label). It renders each block's html in place.
 func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 	tags := make([]string, len(blocks))
 	for i, b := range blocks {
@@ -58,13 +35,9 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 			tags[i] = "p"
 			continue
 		}
-		// Sentence punctuation and figure references are decisive across
-		// both heading sizes — no real title/section heading ends in a
-		// sentence or cites a figure number. The one-word mid-band guard
-		// stays h1-only: a one-word h2 (above body text but under the h1
-		// threshold) is a normal small section heading ("Resilience"),
-		// while a one-worder that clears the h1 threshold at mid-band size
-		// is an embedded figure label ("Cooling").
+		// The one-word mid-band guard is h1-only: a one-word h2 is a normal
+		// section heading ("Resilience"), a one-word h1 at mid-band size an
+		// embedded figure label ("Cooling").
 		if isHeadingFalsePositive(
 			b.text, b.medHeight, docModalCharHeight, tags[i] == "h1",
 		) {
@@ -179,17 +152,11 @@ func isHeadingFalsePositive(
 	return false
 }
 
-// demoteHeadingRuns rewrites tags in place, flattening chains of
-// consecutive non-"p" text blocks that look like a list (see
-// finalizeHeadings): candidates chain while consecutive AND rendered at a
-// similar size, and a chain of 3+ is a bibliography/citation page
-// regardless of its members' text shapes (issue #1654), while a 2-member
-// chain counts as a list only when one member has a list entry's text
-// shape (see listShapedPair) — a chapter title page's decoration banner
-// (h2-sized) beside its h1-sized title is a dissimilar pair, and a
-// two-line title at one size has no entry shape; flattening either would
-// erase the TOC's chapter entry (issue #1698). A non-paragraph block (e.g.
-// an image) breaks a chain.
+// demoteHeadingRuns flattens chains of consecutive heading candidates at a
+// similar size to "p": a chain of 3+ is a bibliography or citation page, a
+// pair only when a member has a list entry's shape (listShapedPair), so a
+// chapter banner beside its title, or a two-line title, keeps its heading.
+// A non-paragraph block breaks a chain.
 func demoteHeadingRuns(blocks []htmlBlock, tags []string) {
 	chainStart := -1
 	prevHeight := 0.0

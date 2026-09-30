@@ -60,7 +60,7 @@ var pipelineFilesHashForVersion = map[int16]string{
 	10: "764f8c35bf4eb890606ddc15ad1f11d19e4fdafc016e37f9b09ada35afe722a8",
 	11: "7edf20385a07433654781d7987b6e1feaed07c24047c90b2ac2c746a3b160126",
 	12: "65f5b8506c78773d4f83fe8b12a2f0962c1fb806cfd722498a1037675a12019a",
-	13: "ff03ae4e59efda5234bb4e7a10675d2a68d2480016bacd9add2c6e51c5ec4dab",
+	13: "51ac2e6279975fb18ab29c1bce52a462dbd935561ceb49a699ee4f9f05f8dbca",
 }
 
 func hashPipelineFiles(t *testing.T) string {
