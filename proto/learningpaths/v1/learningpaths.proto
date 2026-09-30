@@ -97,6 +97,10 @@ message LearningPath {
   string updated_at = 7;
   repeated Module modules = 8;
   repeated Resource resources = 9;
+  // reminder_schedules maps an item type (e.g. "read") to the Todoist due
+  // string (e.g. "every day at 20:00") of its reminder tasks; an item's own
+  // due overrides it.
+  map<string, string> reminder_schedules = 10;
 }
 
 message ListLearningPathsRequest {
@@ -121,6 +125,7 @@ message CreateLearningPathRequest {
   string routine = 3;
   repeated Module modules = 4;
   repeated Resource resources = 5;
+  map<string, string> reminder_schedules = 6;
 }
 message CreateLearningPathResponse {
   LearningPath learning_path = 1;
@@ -133,6 +138,7 @@ message UpdateLearningPathRequest {
   string routine = 4;
   repeated Module modules = 5;
   repeated Resource resources = 6;
+  map<string, string> reminder_schedules = 7;
 }
 message UpdateLearningPathResponse {
   LearningPath learning_path = 1;

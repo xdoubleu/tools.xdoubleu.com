@@ -364,7 +364,7 @@ func (s *TodoistService) createActiveTasks(
 		if it.TodoistTaskID != nil && *it.TodoistTaskID != "" {
 			continue
 		}
-		taskID, createErr := client.CreateTask(ctx, it.Description, it.Due, projectID)
+		taskID, createErr := client.CreateTask(ctx, it.Description, lp.ItemDue(it), projectID)
 		if createErr != nil {
 			return createErr
 		}

@@ -64,6 +64,9 @@ type mcpCreatePathArgs struct {
 	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring cadence"`
 	Modules   []mcpModuleArg   `json:"modules,omitempty"   jsonschema:"ordered modules"`
 	Resources []mcpResourceArg `json:"resources,omitempty" jsonschema:"freeform resources"`
+
+	//nolint:lll // struct tags
+	ReminderSchedules map[string]string `json:"reminder_schedules,omitempty" jsonschema:"item type -> Todoist due string"`
 }
 
 type mcpUpdatePathArgs struct {
@@ -73,6 +76,9 @@ type mcpUpdatePathArgs struct {
 	Routine   string           `json:"routine,omitempty"   jsonschema:"recurring cadence"`
 	Modules   []mcpModuleArg   `json:"modules,omitempty"   jsonschema:"replaces prior"`
 	Resources []mcpResourceArg `json:"resources,omitempty" jsonschema:"replaces prior"`
+
+	//nolint:lll // struct tags
+	ReminderSchedules map[string]string `json:"reminder_schedules,omitempty" jsonschema:"replaces prior"`
 }
 
 type mcpRecordProgressArgs struct {
@@ -229,11 +235,12 @@ func (h *learningPathsConnectHandler) mcpCreatePath(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.CreateLearningPath(ctx, connect.NewRequest(
 		&learningpathsv1.CreateLearningPathRequest{
-			Title:     args.Title,
-			Goal:      args.Goal,
-			Routine:   args.Routine,
-			Modules:   toProtoModules(args.Modules),
-			Resources: toProtoResources(args.Resources),
+			Title:             args.Title,
+			Goal:              args.Goal,
+			Routine:           args.Routine,
+			Modules:           toProtoModules(args.Modules),
+			Resources:         toProtoResources(args.Resources),
+			ReminderSchedules: args.ReminderSchedules,
 		},
 	)))
 }
@@ -243,12 +250,13 @@ func (h *learningPathsConnectHandler) mcpUpdatePath(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.UpdateLearningPath(ctx, connect.NewRequest(
 		&learningpathsv1.UpdateLearningPathRequest{
-			Id:        args.ID,
-			Title:     args.Title,
-			Goal:      args.Goal,
-			Routine:   args.Routine,
-			Modules:   toProtoModules(args.Modules),
-			Resources: toProtoResources(args.Resources),
+			Id:                args.ID,
+			Title:             args.Title,
+			Goal:              args.Goal,
+			Routine:           args.Routine,
+			Modules:           toProtoModules(args.Modules),
+			Resources:         toProtoResources(args.Resources),
+			ReminderSchedules: args.ReminderSchedules,
 		},
 	)))
 }

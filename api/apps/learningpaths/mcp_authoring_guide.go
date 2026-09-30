@@ -21,9 +21,10 @@ const mcpCreatePathDescription = "Creates a new learning path: a title, a goal "
 	"correct_answer_index. Suggest whole books only — never a partial-book " +
 	"checkpoint; link each book item via linked_book_id (owned) or " +
 	"external_book (from books_search_external; added to the To Learn shelf). " +
-	"Give each item a Todoist due string matching the routine (read daily, " +
-	"do on set weekdays, checkpoint weekly). Modules, items, and resources " +
-	"are created in the order given and keep that order. Always confirm the " +
+	"Set reminder_schedules, one Todoist due string per item type, matching " +
+	"the routine (read daily, do on set weekdays, checkpoint weekly). " +
+	"Modules, items, and resources are created in the order given and keep " +
+	"that order. Always confirm the " +
 	"full proposed tree with the user before calling this — it persists real " +
 	"data. Mutating — see this app's ADR for why."
 
@@ -79,6 +80,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
     title        string   required
     goal         string   optional  (what the learner can do afterward)
     routine      string   optional  (freeform cadence, e.g. "daily morning")
+    reminder_schedules  map  optional  (item type -> Todoist due string, e.g.
+                                {"read": "every day at 20:00"})
     modules[]    ordered
       title      string   required
       quiz[]     optional  (one quiz per module, MCQ)
@@ -89,8 +92,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
         type            string  optional (freeform verb: read / do / checkpoint …)
         description     string  required
         completed       bool    optional
-        due             string  optional (Todoist due string for the item's
-                                reminder, e.g. "every day at 20:00")
+        due             string  optional (Todoist due string overriding
+                                reminder_schedules for this item)
         linked_book_id  string  optional (a library book id; this item then
                                 auto-completes at 100% read — no manual toggle)
         external_book   object  optional (a book not in the library: provider +
@@ -142,11 +145,11 @@ Everything operates only on the calling user's own paths (scoped server-side).
   completes on its items.
 - Suggest whole books only — never a partial-book checkpoint.
 - Reminders: when Todoist is connected, the active module's items become
-  tasks in the path's own Todoist project, due per each item's due. Derive
-  due from the routine: read/study items recurring daily ("every day at
-  20:00"), do items on the routine's practice days ("every wed at 19:00"),
-  the checkpoint on its review day ("every sun at 18:00"). Confirm times with
-  the user.
+  tasks in the path's own Todoist project, due per reminder_schedules[type]
+  unless the item sets its own due. Derive reminder_schedules from the
+  routine: read/study recurring daily ("every day at 20:00"), do on the
+  routine's practice days ("every wed at 19:00"), checkpoint on its review
+  day ("every sun at 18:00"). Confirm times with the user.
 - Resource curation: link a real books library entry or feeds item when one
   matches, else a freeform URL/description.
 

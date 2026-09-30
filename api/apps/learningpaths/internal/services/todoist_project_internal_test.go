@@ -44,6 +44,25 @@ func TestSyncPath_FirstSyncCreatesProjectAndScheduledTasks(t *testing.T) {
 	assert.Equal(t, "proj-new", mock.LastProjectID)
 }
 
+func TestSyncPath_DueFromTypeScheduleUnlessItemOverrides(t *testing.T) {
+	read := nextItem("read the book")
+	read.Type = "Read"
+	checkpoint := scheduledItem("pass the quiz", "every sat at 10:00")
+	checkpoint.Type = "checkpoint"
+	store := projectFixture(nil, read, checkpoint)
+	store.lp.ReminderSchedules = map[string]string{
+		"read": "every day at 20:00", "checkpoint": "every sun at 18:00",
+	}
+	svc, mock := newTestTodoistService(store)
+	mock.ProjectID = "proj-new"
+
+	require.NoError(t, svc.SyncPath(t.Context(), "user-1", store.lp.ID))
+
+	assert.Equal(t,
+		[]string{"every day at 20:00", "every sat at 10:00"}, mock.DueStrings,
+	)
+}
+
 func TestSyncPath_ExistingProjectReused(t *testing.T) {
 	projectID := "proj-1"
 	store := projectFixture(&projectID, scheduledItem("do it", "every wed at 19:00"))

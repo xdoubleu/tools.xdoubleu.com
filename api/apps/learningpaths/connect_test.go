@@ -247,6 +247,47 @@ func TestCreateLearningPath_QuizRoundTrip(t *testing.T) {
 	assert.Empty(t, quiz[1].Prompt)
 }
 
+// TestReminderSchedules_RoundTrip: schedules persist normalized (lowercased
+// keys, trimmed values, blanks dropped) and Update replaces them.
+func TestReminderSchedules_RoundTrip(t *testing.T) {
+	client := setupClient(getRoutes())
+	ctx := newCtx()
+
+	createResp, err := client.CreateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Scheduled",
+			ReminderSchedules: map[string]string{
+				"READ": " every day at 20:00 ", "do": " ",
+			},
+		}),
+	)
+	require.NoError(t, err)
+	pathID := createResp.Msg.LearningPath.Id
+
+	got, err := client.GetLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t,
+		map[string]string{"read": "every day at 20:00"},
+		got.Msg.LearningPath.ReminderSchedules,
+	)
+
+	updateResp, err := client.UpdateLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+			Id:                pathID,
+			Title:             "Scheduled",
+			ReminderSchedules: map[string]string{"checkpoint": "every sun at 18:00"},
+		}),
+	)
+	require.NoError(t, err)
+	assert.Equal(t,
+		map[string]string{"checkpoint": "every sun at 18:00"},
+		updateResp.Msg.LearningPath.ReminderSchedules,
+	)
+}
+
 func TestUpdateLearningPath_NotFound(t *testing.T) {
 	client := setupClient(getRoutes())
 

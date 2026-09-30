@@ -50,6 +50,15 @@ const emptyItem = (): ItemRow => ({ type: '', description: '', completed: false 
 const emptyModule = (): ModuleRow => ({ title: '', items: [emptyItem()] })
 const emptyResource = (): ResourceRow => ({ text: '' })
 
+const normalizeType = (type: string) => type.trim().toLowerCase()
+
+// scheduleTypes lists each item type once, in first-use order, followed by
+// types that only have a saved schedule.
+function scheduleTypes(modules: ModuleRow[], schedules: Record<string, string>): string[] {
+  const types = modules.flatMap((m) => m.items.map((i) => normalizeType(i.type)))
+  return [...new Set([...types, ...Object.keys(schedules)])].filter(Boolean)
+}
+
 export default function LearningPathForm({
   learningPath,
   onSave,
@@ -58,6 +67,9 @@ export default function LearningPathForm({
   const [title, setTitle] = useState(learningPath?.title || '')
   const [goal, setGoal] = useState(learningPath?.goal || '')
   const [routine, setRoutine] = useState(learningPath?.routine || '')
+  const [reminderSchedules, setReminderSchedules] = useState<Record<string, string>>(
+    learningPath?.reminderSchedules ?? {}
+  )
   const [modules, setModules] = useState<ModuleRow[]>(
     learningPath?.modules?.length
       ? learningPath.modules.map((m) => ({
@@ -227,7 +239,8 @@ export default function LearningPathForm({
         goal,
         routine,
         modules: modulePayload,
-        resources: resourcePayload
+        resources: resourcePayload,
+        reminderSchedules
       }
 
       let savedId: string
@@ -379,6 +392,30 @@ export default function LearningPathForm({
           Add Module
         </Button>
       </div>
+
+      {scheduleTypes(modules, reminderSchedules).length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Todoist reminders</Label>
+          <p className="text-xs text-muted">
+            How often each item type&apos;s reminder recurs, as a Todoist due date (e.g.
+            &ldquo;every day at 20:00&rdquo;). Leave blank for undated reminders.
+          </p>
+          <div className="space-y-2">
+            {scheduleTypes(modules, reminderSchedules).map((type) => (
+              <Field key={type} label={type} htmlFor={`learningpath-reminder-${type}`}>
+                <Input
+                  id={`learningpath-reminder-${type}`}
+                  type="text"
+                  value={reminderSchedules[type] ?? ''}
+                  onChange={(e) =>
+                    setReminderSchedules({ ...reminderSchedules, [type]: e.target.value })
+                  }
+                />
+              </Field>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>Resources</Label>

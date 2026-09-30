@@ -64,18 +64,22 @@ func (r *LearningPathsRepository) GetByID(
 	id uuid.UUID,
 ) (*models.LearningPath, error) {
 	var lp models.LearningPath
+	var schedulesJSON []byte
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, title, goal, routine, created_at, updated_at,
-			todoist_project_id
+			todoist_project_id, reminder_schedules
 		FROM learningpaths.learning_paths
 		WHERE id = $1`,
 		id,
 	).Scan(
 		&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
-		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID,
+		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID, &schedulesJSON,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	if err = json.Unmarshal(schedulesJSON, &lp.ReminderSchedules); err != nil {
+		return nil, err
 	}
 	return &lp, nil
 }
@@ -84,12 +88,17 @@ func (r *LearningPathsRepository) Create(
 	ctx context.Context,
 	lp models.LearningPath,
 ) (*models.LearningPath, error) {
-	err := r.db.QueryRow(
+	schedulesJSON, err := schedulesToJSON(lp.ReminderSchedules)
+	if err != nil {
+		return nil, err
+	}
+	err = r.db.QueryRow(
 		ctx,
-		`INSERT INTO learningpaths.learning_paths (user_id, title, goal, routine)
-		VALUES ($1, $2, $3, $4)
+		`INSERT INTO learningpaths.learning_paths
+			(user_id, title, goal, routine, reminder_schedules)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at, updated_at`,
-		lp.UserID, lp.Title, lp.Goal, lp.Routine,
+		lp.UserID, lp.Title, lp.Goal, lp.Routine, schedulesJSON,
 	).Scan(&lp.ID, &lp.CreatedAt, &lp.UpdatedAt)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -101,14 +110,27 @@ func (r *LearningPathsRepository) Update(
 	ctx context.Context,
 	lp models.LearningPath,
 ) error {
-	_, err := r.db.Exec(
+	schedulesJSON, err := schedulesToJSON(lp.ReminderSchedules)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(
 		ctx,
 		`UPDATE learningpaths.learning_paths
-		SET title = $2, goal = $3, routine = $4, updated_at = now()
+		SET title = $2, goal = $3, routine = $4, reminder_schedules = $6,
+			updated_at = now()
 		WHERE id = $1 AND user_id = $5`,
-		lp.ID, lp.Title, lp.Goal, lp.Routine, lp.UserID,
+		lp.ID, lp.Title, lp.Goal, lp.Routine, lp.UserID, schedulesJSON,
 	)
 	return postgres.PgxErrorToHTTPError(err)
+}
+
+// schedulesToJSON encodes schedules, storing nil as '{}'.
+func schedulesToJSON(schedules map[string]string) ([]byte, error) {
+	if schedules == nil {
+		schedules = map[string]string{}
+	}
+	return json.Marshal(schedules)
 }
 
 func (r *LearningPathsRepository) Delete(
