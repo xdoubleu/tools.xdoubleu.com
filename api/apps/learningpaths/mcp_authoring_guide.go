@@ -21,10 +21,11 @@ const mcpCreatePathDescription = "Creates a new learning path: a title, a goal "
 	"correct_answer_index. Suggest whole books only — never a partial-book " +
 	"checkpoint; link each book item via linked_book_id (owned) or " +
 	"external_book (from books_search_external; added to the To Learn shelf). " +
-	"Modules, items, and resources are created in the order given " +
-	"and keep that order. Always confirm the full proposed tree with the user " +
-	"before calling this — it persists real data. Mutating — see this app's " +
-	"ADR for why."
+	"Give each item a Todoist due string matching the routine (read daily, " +
+	"do on set weekdays, checkpoint weekly). Modules, items, and resources " +
+	"are created in the order given and keep that order. Always confirm the " +
+	"full proposed tree with the user before calling this — it persists real " +
+	"data. Mutating — see this app's ADR for why."
 
 // mcpUpdatePathDescription is the description for learningpaths_update_path.
 const mcpUpdatePathDescription = "Wholesale-replaces a learning path's " +
@@ -88,6 +89,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
         type            string  optional (freeform verb: read / do / checkpoint …)
         description     string  required
         completed       bool    optional
+        due             string  optional (Todoist due string for the item's
+                                reminder, e.g. "every day at 20:00")
         linked_book_id  string  optional (a library book id; this item then
                                 auto-completes at 100% read — no manual toggle)
         external_book   object  optional (a book not in the library: provider +
@@ -138,6 +141,12 @@ Everything operates only on the calling user's own paths (scoped server-side).
   the checkpoint (and thus the module). A module without a quiz still
   completes on its items.
 - Suggest whole books only — never a partial-book checkpoint.
+- Reminders: when Todoist is connected, the active module's items become
+  tasks in the path's own Todoist project, due per each item's due. Derive
+  due from the routine: read/study items recurring daily ("every day at
+  20:00"), do items on the routine's practice days ("every wed at 19:00"),
+  the checkpoint on its review day ("every sun at 18:00"). Confirm times with
+  the user.
 - Resource curation: link a real books library entry or feeds item when one
   matches, else a freeform URL/description.
 

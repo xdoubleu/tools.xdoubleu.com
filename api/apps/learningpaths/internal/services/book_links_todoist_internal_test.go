@@ -139,7 +139,7 @@ func TestUpdate_ClearsOldTasksThenActivatesActiveModule(t *testing.T) {
 	require.NoError(t, svc.Update(t.Context(), lp.UserID, update))
 
 	assert.Equal(t, "old-1", mock.LastDeletedID)
-	assert.Equal(t, "Architecture: new step", mock.LastContent)
+	assert.Equal(t, "new step", mock.LastContent)
 	assert.Equal(t, []string{"", "task-123"}, store.taskIDWrites)
 }
 
@@ -180,7 +180,7 @@ func TestSyncPath_FinishedBookCompletesModule(t *testing.T) {
 
 	require.NoError(t, svc.todoist.SyncPath(t.Context(), lp.UserID, lp.ID))
 	assert.Equal(t, "book-task", mock.LastDeletedID)
-	assert.Equal(t, "Architecture: apply it", mock.LastContent)
+	assert.Equal(t, "apply it", mock.LastContent)
 }
 
 func TestSyncPath_PropagatesResolveError(t *testing.T) {

@@ -13,7 +13,15 @@ type MockTodoistClient struct {
 
 	LastContent   string
 	LastDueString string
+	LastProjectID string
 	LastDeletedID string
+
+	// ProjectID is returned by CreateProject; ProjectMissing makes
+	// ProjectExists report false.
+	ProjectID            string
+	ProjectMissing       bool
+	CreatedProjects      int
+	LastDeletedProjectID string
 }
 
 func NewMockTodoistClient(taskID string) *MockTodoistClient {
@@ -21,10 +29,11 @@ func NewMockTodoistClient(taskID string) *MockTodoistClient {
 }
 
 func (m *MockTodoistClient) CreateTask(
-	_ context.Context, content, dueString string,
+	_ context.Context, content, dueString, projectID string,
 ) (string, error) {
 	m.LastContent = content
 	m.LastDueString = dueString
+	m.LastProjectID = projectID
 	if m.Err != nil {
 		return "", m.Err
 	}
@@ -37,4 +46,18 @@ func (m *MockTodoistClient) DeleteTask(_ context.Context, taskID string) error {
 		return m.Err
 	}
 	return nil
+}
+
+func (m *MockTodoistClient) CreateProject(_ context.Context, _ string) (string, error) {
+	m.CreatedProjects++
+	return m.ProjectID, m.Err
+}
+
+func (m *MockTodoistClient) ProjectExists(_ context.Context, _ string) (bool, error) {
+	return !m.ProjectMissing, m.Err
+}
+
+func (m *MockTodoistClient) DeleteProject(_ context.Context, projectID string) error {
+	m.LastDeletedProjectID = projectID
+	return m.Err
 }

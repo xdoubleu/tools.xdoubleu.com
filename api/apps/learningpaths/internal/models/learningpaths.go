@@ -23,6 +23,10 @@ type LearningPath struct {
 	UpdatedAt time.Time
 	Modules   []Module
 	Resources []Resource
+
+	// TodoistProjectID is the path's own Todoist project, created on first
+	// sync. Never sent over the wire.
+	TodoistProjectID *string
 }
 
 type Module struct {
@@ -48,6 +52,9 @@ type Item struct {
 	Description string
 	SortOrder   int
 	Completed   bool
+	// Due is the item's Todoist due string (e.g. "every day at 20:00"); empty
+	// leaves its task undated.
+	Due string
 	// LinkedBookID pins a book-linked item; its Completed is derived on read.
 	LinkedBookID *uuid.UUID
 

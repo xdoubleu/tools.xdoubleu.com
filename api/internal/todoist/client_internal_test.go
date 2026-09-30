@@ -33,7 +33,7 @@ func TestCreateTask_Success(t *testing.T) {
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
 
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(createTaskResponse{ID: "task-42"})
+			_ = json.NewEncoder(w).Encode(idResponse{ID: "task-42"})
 		}),
 	)
 	defer srv.Close()
@@ -44,7 +44,9 @@ func TestCreateTask_Success(t *testing.T) {
 	})
 	c := NewClient(tokenFn)
 
-	taskID, err := c.CreateTask(t.Context(), "Learn Go: read ch3", "every Monday")
+	taskID, err := c.CreateTask(
+		t.Context(), "Learn Go: read ch3", "every Monday", "proj-7",
+	)
 	require.NoError(t, err)
 	assert.Equal(t, "task-42", taskID)
 	assert.Equal(t, "Bearer token-abc", gotAuth)
@@ -52,6 +54,7 @@ func TestCreateTask_Success(t *testing.T) {
 	assert.Equal(t, "/tasks", gotPath)
 	assert.Equal(t, "Learn Go: read ch3", gotBody.Content)
 	assert.Equal(t, "every Monday", gotBody.DueString)
+	assert.Equal(t, "proj-7", gotBody.ProjectID)
 }
 
 func TestCreateTask_OmitsEmptyDueString(t *testing.T) {
@@ -61,7 +64,7 @@ func TestCreateTask_OmitsEmptyDueString(t *testing.T) {
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(createTaskResponse{ID: "task-1"})
+			_ = json.NewEncoder(w).Encode(idResponse{ID: "task-1"})
 		}),
 	)
 	defer srv.Close()
@@ -71,9 +74,10 @@ func TestCreateTask_OmitsEmptyDueString(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content only", "")
+	_, err := c.CreateTask(t.Context(), "content only", "", "")
 	require.NoError(t, err)
 	assert.Empty(t, gotBody.DueString)
+	assert.Empty(t, gotBody.ProjectID)
 }
 
 func TestCreateTask_TokenFuncError(t *testing.T) {
@@ -82,7 +86,7 @@ func TestCreateTask_TokenFuncError(t *testing.T) {
 		return "", tokenErr
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "")
 	assert.ErrorIs(t, err, tokenErr)
 }
 
@@ -100,7 +104,7 @@ func TestCreateTask_NonSuccessStatus(t *testing.T) {
 		return "bad-token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "")
 	require.Error(t, err)
 	var apiErr *apiError
 	require.ErrorAs(t, err, &apiErr)
@@ -117,7 +121,7 @@ func TestCreateTask_RequestFails(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "")
 	assert.Error(t, err)
 }
 
@@ -135,7 +139,7 @@ func TestCreateTask_DecodeError(t *testing.T) {
 		return "token", nil
 	}))
 
-	_, err := c.CreateTask(t.Context(), "content", "")
+	_, err := c.CreateTask(t.Context(), "content", "", "")
 	assert.Error(t, err)
 }
 
@@ -215,4 +219,66 @@ func TestDeleteTask_RequestFails(t *testing.T) {
 	}))
 
 	assert.Error(t, c.DeleteTask(t.Context(), "task-7"))
+}
+
+func newProjectTestClient(t *testing.T, handler http.HandlerFunc) Client {
+	t.Helper()
+	srv := httptest.NewServer(handler)
+	t.Cleanup(srv.Close)
+	withTestBaseURL(t, srv.URL)
+	return NewClient(oauthconn.TokenFunc(func(context.Context) (string, error) {
+		return "token", nil
+	}))
+}
+
+func TestCreateProject_ReturnsID(t *testing.T) {
+	var gotPath string
+	var gotBody createProjectRequest
+	c := newProjectTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&gotBody))
+		_ = json.NewEncoder(w).Encode(idResponse{ID: "proj-1"})
+	})
+
+	id, err := c.CreateProject(t.Context(), "Strategic Programming")
+	require.NoError(t, err)
+	assert.Equal(t, "proj-1", id)
+	assert.Equal(t, "/projects", gotPath)
+	assert.Equal(t, "Strategic Programming", gotBody.Name)
+}
+
+func TestProjectExists(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		status int
+		want   bool
+		err    bool
+	}{
+		{"found", http.StatusOK, true, false},
+		{"deleted", http.StatusNotFound, false, false},
+		{"server error", http.StatusInternalServerError, false, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := newProjectTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, http.MethodGet, r.Method)
+				assert.Equal(t, "/projects/proj-1", r.URL.Path)
+				w.WriteHeader(tc.status)
+			})
+
+			got, err := c.ProjectExists(t.Context(), "proj-1")
+			assert.Equal(t, tc.want, got)
+			assert.Equal(t, tc.err, err != nil)
+		})
+	}
+}
+
+func TestDeleteProject_NotFoundSucceeds(t *testing.T) {
+	var gotMethod string
+	c := newProjectTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	require.NoError(t, c.DeleteProject(t.Context(), "proj-1"))
+	assert.Equal(t, http.MethodDelete, gotMethod)
 }

@@ -43,6 +43,7 @@ type learningPathsStore interface {
 		ctx context.Context, itemID uuid.UUID, userID string,
 	) (uuid.UUID, error)
 	SetItemTodoistTaskID(ctx context.Context, itemID uuid.UUID, taskID string) error
+	SetTodoistProjectID(ctx context.Context, pathID uuid.UUID, projectID string) error
 }
 
 // bookLookup is the books surface (*books.Books) for linked resources.
@@ -392,6 +393,10 @@ func (s *LearningPathService) Delete(
 	}
 	if existing.UserID != userID {
 		return database.ErrResourceNotFound
+	}
+	// Best-effort, like every Todoist call.
+	if modules, modErr := s.repo.GetModules(ctx, id); modErr == nil {
+		_ = s.todoist.DeletePath(ctx, userID, existing, modules)
 	}
 	return s.repo.Delete(ctx, id, userID)
 }
