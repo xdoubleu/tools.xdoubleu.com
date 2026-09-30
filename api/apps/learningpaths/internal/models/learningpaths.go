@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,9 @@ type LearningPath struct {
 	UpdatedAt time.Time
 	Modules   []Module
 	Resources []Resource
+	// ReminderSchedules maps a normalized item type to the Todoist due string
+	// of its reminder tasks.
+	ReminderSchedules map[string]string
 
 	// TodoistProjectID is the path's own Todoist project, created on first
 	// sync. Never sent over the wire.
@@ -52,8 +56,8 @@ type Item struct {
 	Description string
 	SortOrder   int
 	Completed   bool
-	// Due is the item's Todoist due string (e.g. "every day at 20:00"); empty
-	// leaves its task undated.
+	// Due is the item's Todoist due string (e.g. "every day at 20:00"),
+	// overriding the path's schedule for its type.
 	Due string
 	// LinkedBookID pins a book-linked item; its Completed is derived on read.
 	LinkedBookID *uuid.UUID
@@ -112,4 +116,31 @@ type LinkedFeedItem struct {
 type ItemForTask struct {
 	Item      Item
 	PathTitle string
+}
+
+// NormalizeItemType is the key an item type has in ReminderSchedules.
+func NormalizeItemType(itemType string) string {
+	return strings.ToLower(strings.TrimSpace(itemType))
+}
+
+// NormalizeReminderSchedules keys schedules by normalized type and drops
+// blank entries.
+func NormalizeReminderSchedules(schedules map[string]string) map[string]string {
+	result := make(map[string]string, len(schedules))
+	for itemType, due := range schedules {
+		key, value := NormalizeItemType(itemType), strings.TrimSpace(due)
+		if key != "" && value != "" {
+			result[key] = value
+		}
+	}
+	return result
+}
+
+// ItemDue is the due string of its reminder task: its own Due, else lp's
+// schedule for its type, else "" (undated).
+func (lp *LearningPath) ItemDue(it Item) string {
+	if it.Due != "" {
+		return it.Due
+	}
+	return lp.ReminderSchedules[NormalizeItemType(it.Type)]
 }

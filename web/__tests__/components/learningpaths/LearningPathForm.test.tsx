@@ -344,6 +344,40 @@ describe('LearningPathForm (edit)', () => {
     })
   })
 
+  it('edits one reminder schedule per item type and submits them', async () => {
+    const withTypes = create(LearningPathSchema, {
+      id: 'lp-1',
+      title: 'Existing Path',
+      reminderSchedules: { read: 'every day at 20:00' },
+      modules: [
+        create(ModuleSchema, {
+          title: 'M1',
+          items: [
+            create(ItemSchema, { type: 'Read', description: 'a book' }),
+            create(ItemSchema, { type: 'read', description: 'another book' }),
+            create(ItemSchema, { type: 'checkpoint', description: 'quiz' })
+          ]
+        })
+      ]
+    })
+    mockUpdateLearningPath.mockResolvedValue({ learningPath: { id: 'lp-1' } })
+    render(<LearningPathForm learningPath={withTypes} onSave={jest.fn()} onCancel={jest.fn()} />)
+
+    expect(screen.getByLabelText('read')).toHaveValue('every day at 20:00')
+    fireEvent.change(screen.getByLabelText('checkpoint'), {
+      target: { value: 'every sun at 18:00' }
+    })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateLearningPath).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reminderSchedules: { read: 'every day at 20:00', checkpoint: 'every sun at 18:00' }
+        })
+      )
+    })
+  })
+
   it('submits the goal and routine entered through their labelled fields', async () => {
     mockCreateLearningPath.mockResolvedValue({ learningPath: { id: 'new-id' } })
     render(<LearningPathForm onSave={jest.fn()} onCancel={jest.fn()} />)

@@ -282,6 +282,7 @@ func (s *LearningPathService) Create(
 	lp models.LearningPath,
 ) (*models.LearningPath, error) {
 	lp.UserID = userID
+	lp.ReminderSchedules = models.NormalizeReminderSchedules(lp.ReminderSchedules)
 
 	if err := s.linkExternalBooks(ctx, userID, lp.Modules); err != nil {
 		return nil, err
@@ -348,6 +349,7 @@ func (s *LearningPathService) Update(
 	}
 
 	lp.UserID = existing.UserID
+	lp.ReminderSchedules = models.NormalizeReminderSchedules(lp.ReminderSchedules)
 	if err = s.repo.Update(ctx, lp); err != nil {
 		return err
 	}

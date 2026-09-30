@@ -15,6 +15,8 @@ type MockTodoistClient struct {
 	LastDueString string
 	LastProjectID string
 	LastDeletedID string
+	// DueStrings records every CreateTask's due string, in call order.
+	DueStrings []string
 
 	// ProjectID is returned by CreateProject; ProjectMissing makes
 	// ProjectExists report false.
@@ -33,6 +35,7 @@ func (m *MockTodoistClient) CreateTask(
 ) (string, error) {
 	m.LastContent = content
 	m.LastDueString = dueString
+	m.DueStrings = append(m.DueStrings, dueString)
 	m.LastProjectID = projectID
 	if m.Err != nil {
 		return "", m.Err

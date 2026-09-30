@@ -599,13 +599,17 @@ type LearningPath struct {
 	Title  string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
 	Goal   string                 `protobuf:"bytes,4,opt,name=goal,proto3" json:"goal,omitempty"`
 	// Freeform recurring routine (e.g. "30 min every weekday morning").
-	Routine       string      `protobuf:"bytes,5,opt,name=routine,proto3" json:"routine,omitempty"`
-	CreatedAt     string      `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string      `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	Modules       []*Module   `protobuf:"bytes,8,rep,name=modules,proto3" json:"modules,omitempty"`
-	Resources     []*Resource `protobuf:"bytes,9,rep,name=resources,proto3" json:"resources,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Routine   string      `protobuf:"bytes,5,opt,name=routine,proto3" json:"routine,omitempty"`
+	CreatedAt string      `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string      `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	Modules   []*Module   `protobuf:"bytes,8,rep,name=modules,proto3" json:"modules,omitempty"`
+	Resources []*Resource `protobuf:"bytes,9,rep,name=resources,proto3" json:"resources,omitempty"`
+	// reminder_schedules maps an item type (e.g. "read") to the Todoist due
+	// string (e.g. "every day at 20:00") of its reminder tasks; an item's own
+	// due overrides it.
+	ReminderSchedules map[string]string `protobuf:"bytes,10,rep,name=reminder_schedules,json=reminderSchedules,proto3" json:"reminder_schedules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *LearningPath) Reset() {
@@ -697,6 +701,13 @@ func (x *LearningPath) GetModules() []*Module {
 func (x *LearningPath) GetResources() []*Resource {
 	if x != nil {
 		return x.Resources
+	}
+	return nil
+}
+
+func (x *LearningPath) GetReminderSchedules() map[string]string {
+	if x != nil {
+		return x.ReminderSchedules
 	}
 	return nil
 }
@@ -894,14 +905,15 @@ func (x *GetLearningPathResponse) GetLearningPath() *LearningPath {
 }
 
 type CreateLearningPathRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Goal          string                 `protobuf:"bytes,2,opt,name=goal,proto3" json:"goal,omitempty"`
-	Routine       string                 `protobuf:"bytes,3,opt,name=routine,proto3" json:"routine,omitempty"`
-	Modules       []*Module              `protobuf:"bytes,4,rep,name=modules,proto3" json:"modules,omitempty"`
-	Resources     []*Resource            `protobuf:"bytes,5,rep,name=resources,proto3" json:"resources,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Title             string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Goal              string                 `protobuf:"bytes,2,opt,name=goal,proto3" json:"goal,omitempty"`
+	Routine           string                 `protobuf:"bytes,3,opt,name=routine,proto3" json:"routine,omitempty"`
+	Modules           []*Module              `protobuf:"bytes,4,rep,name=modules,proto3" json:"modules,omitempty"`
+	Resources         []*Resource            `protobuf:"bytes,5,rep,name=resources,proto3" json:"resources,omitempty"`
+	ReminderSchedules map[string]string      `protobuf:"bytes,6,rep,name=reminder_schedules,json=reminderSchedules,proto3" json:"reminder_schedules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreateLearningPathRequest) Reset() {
@@ -969,6 +981,13 @@ func (x *CreateLearningPathRequest) GetResources() []*Resource {
 	return nil
 }
 
+func (x *CreateLearningPathRequest) GetReminderSchedules() map[string]string {
+	if x != nil {
+		return x.ReminderSchedules
+	}
+	return nil
+}
+
 type CreateLearningPathResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	LearningPath  *LearningPath          `protobuf:"bytes,1,opt,name=learning_path,json=learningPath,proto3" json:"learning_path,omitempty"`
@@ -1014,15 +1033,16 @@ func (x *CreateLearningPathResponse) GetLearningPath() *LearningPath {
 }
 
 type UpdateLearningPathRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Goal          string                 `protobuf:"bytes,3,opt,name=goal,proto3" json:"goal,omitempty"`
-	Routine       string                 `protobuf:"bytes,4,opt,name=routine,proto3" json:"routine,omitempty"`
-	Modules       []*Module              `protobuf:"bytes,5,rep,name=modules,proto3" json:"modules,omitempty"`
-	Resources     []*Resource            `protobuf:"bytes,6,rep,name=resources,proto3" json:"resources,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title             string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Goal              string                 `protobuf:"bytes,3,opt,name=goal,proto3" json:"goal,omitempty"`
+	Routine           string                 `protobuf:"bytes,4,opt,name=routine,proto3" json:"routine,omitempty"`
+	Modules           []*Module              `protobuf:"bytes,5,rep,name=modules,proto3" json:"modules,omitempty"`
+	Resources         []*Resource            `protobuf:"bytes,6,rep,name=resources,proto3" json:"resources,omitempty"`
+	ReminderSchedules map[string]string      `protobuf:"bytes,7,rep,name=reminder_schedules,json=reminderSchedules,proto3" json:"reminder_schedules,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateLearningPathRequest) Reset() {
@@ -1093,6 +1113,13 @@ func (x *UpdateLearningPathRequest) GetModules() []*Module {
 func (x *UpdateLearningPathRequest) GetResources() []*Resource {
 	if x != nil {
 		return x.Resources
+	}
+	return nil
+}
+
+func (x *UpdateLearningPathRequest) GetReminderSchedules() map[string]string {
+	if x != nil {
+		return x.ReminderSchedules
 	}
 	return nil
 }
@@ -2029,7 +2056,7 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"linkedBook\x12J\n" +
 	"\x10linked_feed_item\x18\b \x01(\v2 .learningpaths.v1.LinkedFeedItemR\x0elinkedFeedItemB\x11\n" +
 	"\x0f_linked_book_idB\x16\n" +
-	"\x14_linked_feed_item_id\"\xa7\x02\n" +
+	"\x14_linked_feed_item_id\"\xd3\x03\n" +
 	"\fLearningPath\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -2041,7 +2068,12 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\a \x01(\tR\tupdatedAt\x122\n" +
 	"\amodules\x18\b \x03(\v2\x18.learningpaths.v1.ModuleR\amodules\x128\n" +
-	"\tresources\x18\t \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\"H\n" +
+	"\tresources\x18\t \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\x12d\n" +
+	"\x12reminder_schedules\x18\n" +
+	" \x03(\v25.learningpaths.v1.LearningPath.ReminderSchedulesEntryR\x11reminderSchedules\x1aD\n" +
+	"\x16ReminderSchedulesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"H\n" +
 	"\x18ListLearningPathsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\"}\n" +
@@ -2051,22 +2083,30 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\x16GetLearningPathRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"^\n" +
 	"\x17GetLearningPathResponse\x12C\n" +
-	"\rlearning_path\x18\x01 \x01(\v2\x1e.learningpaths.v1.LearningPathR\flearningPath\"\xcd\x01\n" +
+	"\rlearning_path\x18\x01 \x01(\v2\x1e.learningpaths.v1.LearningPathR\flearningPath\"\x86\x03\n" +
 	"\x19CreateLearningPathRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x12\n" +
 	"\x04goal\x18\x02 \x01(\tR\x04goal\x12\x18\n" +
 	"\aroutine\x18\x03 \x01(\tR\aroutine\x122\n" +
 	"\amodules\x18\x04 \x03(\v2\x18.learningpaths.v1.ModuleR\amodules\x128\n" +
-	"\tresources\x18\x05 \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\"a\n" +
+	"\tresources\x18\x05 \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\x12q\n" +
+	"\x12reminder_schedules\x18\x06 \x03(\v2B.learningpaths.v1.CreateLearningPathRequest.ReminderSchedulesEntryR\x11reminderSchedules\x1aD\n" +
+	"\x16ReminderSchedulesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"a\n" +
 	"\x1aCreateLearningPathResponse\x12C\n" +
-	"\rlearning_path\x18\x01 \x01(\v2\x1e.learningpaths.v1.LearningPathR\flearningPath\"\xdd\x01\n" +
+	"\rlearning_path\x18\x01 \x01(\v2\x1e.learningpaths.v1.LearningPathR\flearningPath\"\x96\x03\n" +
 	"\x19UpdateLearningPathRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
 	"\x04goal\x18\x03 \x01(\tR\x04goal\x12\x18\n" +
 	"\aroutine\x18\x04 \x01(\tR\aroutine\x122\n" +
 	"\amodules\x18\x05 \x03(\v2\x18.learningpaths.v1.ModuleR\amodules\x128\n" +
-	"\tresources\x18\x06 \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\"a\n" +
+	"\tresources\x18\x06 \x03(\v2\x1a.learningpaths.v1.ResourceR\tresources\x12q\n" +
+	"\x12reminder_schedules\x18\a \x03(\v2B.learningpaths.v1.UpdateLearningPathRequest.ReminderSchedulesEntryR\x11reminderSchedules\x1aD\n" +
+	"\x16ReminderSchedulesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"a\n" +
 	"\x1aUpdateLearningPathResponse\x12C\n" +
 	"\rlearning_path\x18\x01 \x01(\v2\x1e.learningpaths.v1.LearningPathR\flearningPath\"+\n" +
 	"\x19DeleteLearningPathRequest\x12\x0e\n" +
@@ -2142,7 +2182,7 @@ func file_learningpaths_v1_learningpaths_proto_rawDescGZIP() []byte {
 	return file_learningpaths_v1_learningpaths_proto_rawDescData
 }
 
-var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
 	(*Item)(nil),                               // 0: learningpaths.v1.Item
 	(*ExternalBookRef)(nil),                    // 1: learningpaths.v1.ExternalBookRef
@@ -2176,6 +2216,9 @@ var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
 	(*GetTodoistSyncStateRequest)(nil),         // 29: learningpaths.v1.GetTodoistSyncStateRequest
 	(*TodoistItemState)(nil),                   // 30: learningpaths.v1.TodoistItemState
 	(*GetTodoistSyncStateResponse)(nil),        // 31: learningpaths.v1.GetTodoistSyncStateResponse
+	nil,                                        // 32: learningpaths.v1.LearningPath.ReminderSchedulesEntry
+	nil,                                        // 33: learningpaths.v1.CreateLearningPathRequest.ReminderSchedulesEntry
+	nil,                                        // 34: learningpaths.v1.UpdateLearningPathRequest.ReminderSchedulesEntry
 }
 var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	4,  // 0: learningpaths.v1.Item.linked_book:type_name -> learningpaths.v1.LinkedBook
@@ -2186,43 +2229,46 @@ var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	5,  // 5: learningpaths.v1.Resource.linked_feed_item:type_name -> learningpaths.v1.LinkedFeedItem
 	3,  // 6: learningpaths.v1.LearningPath.modules:type_name -> learningpaths.v1.Module
 	6,  // 7: learningpaths.v1.LearningPath.resources:type_name -> learningpaths.v1.Resource
-	7,  // 8: learningpaths.v1.ListLearningPathsResponse.learning_paths:type_name -> learningpaths.v1.LearningPath
-	7,  // 9: learningpaths.v1.GetLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	3,  // 10: learningpaths.v1.CreateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
-	6,  // 11: learningpaths.v1.CreateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
-	7,  // 12: learningpaths.v1.CreateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	3,  // 13: learningpaths.v1.UpdateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
-	6,  // 14: learningpaths.v1.UpdateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
-	7,  // 15: learningpaths.v1.UpdateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
-	20, // 16: learningpaths.v1.GetLearningPathProgressResponse.modules:type_name -> learningpaths.v1.ModuleProgress
-	30, // 17: learningpaths.v1.GetTodoistSyncStateResponse.items:type_name -> learningpaths.v1.TodoistItemState
-	8,  // 18: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
-	10, // 19: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
-	12, // 20: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
-	14, // 21: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
-	16, // 22: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
-	18, // 23: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
-	21, // 24: learningpaths.v1.LearningPathsService.GetLearningPathProgress:input_type -> learningpaths.v1.GetLearningPathProgressRequest
-	23, // 25: learningpaths.v1.TodoistService.ConnectTodoist:input_type -> learningpaths.v1.ConnectTodoistRequest
-	25, // 26: learningpaths.v1.TodoistService.DisconnectTodoist:input_type -> learningpaths.v1.DisconnectTodoistRequest
-	27, // 27: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:input_type -> learningpaths.v1.GetTodoistConnectionStatusRequest
-	29, // 28: learningpaths.v1.TodoistService.GetTodoistSyncState:input_type -> learningpaths.v1.GetTodoistSyncStateRequest
-	9,  // 29: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
-	11, // 30: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
-	13, // 31: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
-	15, // 32: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
-	17, // 33: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
-	19, // 34: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
-	22, // 35: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
-	24, // 36: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
-	26, // 37: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
-	28, // 38: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
-	31, // 39: learningpaths.v1.TodoistService.GetTodoistSyncState:output_type -> learningpaths.v1.GetTodoistSyncStateResponse
-	29, // [29:40] is the sub-list for method output_type
-	18, // [18:29] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	32, // 8: learningpaths.v1.LearningPath.reminder_schedules:type_name -> learningpaths.v1.LearningPath.ReminderSchedulesEntry
+	7,  // 9: learningpaths.v1.ListLearningPathsResponse.learning_paths:type_name -> learningpaths.v1.LearningPath
+	7,  // 10: learningpaths.v1.GetLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	3,  // 11: learningpaths.v1.CreateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
+	6,  // 12: learningpaths.v1.CreateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
+	33, // 13: learningpaths.v1.CreateLearningPathRequest.reminder_schedules:type_name -> learningpaths.v1.CreateLearningPathRequest.ReminderSchedulesEntry
+	7,  // 14: learningpaths.v1.CreateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	3,  // 15: learningpaths.v1.UpdateLearningPathRequest.modules:type_name -> learningpaths.v1.Module
+	6,  // 16: learningpaths.v1.UpdateLearningPathRequest.resources:type_name -> learningpaths.v1.Resource
+	34, // 17: learningpaths.v1.UpdateLearningPathRequest.reminder_schedules:type_name -> learningpaths.v1.UpdateLearningPathRequest.ReminderSchedulesEntry
+	7,  // 18: learningpaths.v1.UpdateLearningPathResponse.learning_path:type_name -> learningpaths.v1.LearningPath
+	20, // 19: learningpaths.v1.GetLearningPathProgressResponse.modules:type_name -> learningpaths.v1.ModuleProgress
+	30, // 20: learningpaths.v1.GetTodoistSyncStateResponse.items:type_name -> learningpaths.v1.TodoistItemState
+	8,  // 21: learningpaths.v1.LearningPathsService.ListLearningPaths:input_type -> learningpaths.v1.ListLearningPathsRequest
+	10, // 22: learningpaths.v1.LearningPathsService.GetLearningPath:input_type -> learningpaths.v1.GetLearningPathRequest
+	12, // 23: learningpaths.v1.LearningPathsService.CreateLearningPath:input_type -> learningpaths.v1.CreateLearningPathRequest
+	14, // 24: learningpaths.v1.LearningPathsService.UpdateLearningPath:input_type -> learningpaths.v1.UpdateLearningPathRequest
+	16, // 25: learningpaths.v1.LearningPathsService.DeleteLearningPath:input_type -> learningpaths.v1.DeleteLearningPathRequest
+	18, // 26: learningpaths.v1.LearningPathsService.RecordItemProgress:input_type -> learningpaths.v1.RecordItemProgressRequest
+	21, // 27: learningpaths.v1.LearningPathsService.GetLearningPathProgress:input_type -> learningpaths.v1.GetLearningPathProgressRequest
+	23, // 28: learningpaths.v1.TodoistService.ConnectTodoist:input_type -> learningpaths.v1.ConnectTodoistRequest
+	25, // 29: learningpaths.v1.TodoistService.DisconnectTodoist:input_type -> learningpaths.v1.DisconnectTodoistRequest
+	27, // 30: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:input_type -> learningpaths.v1.GetTodoistConnectionStatusRequest
+	29, // 31: learningpaths.v1.TodoistService.GetTodoistSyncState:input_type -> learningpaths.v1.GetTodoistSyncStateRequest
+	9,  // 32: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
+	11, // 33: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
+	13, // 34: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
+	15, // 35: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
+	17, // 36: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
+	19, // 37: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
+	22, // 38: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
+	24, // 39: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
+	26, // 40: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
+	28, // 41: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
+	31, // 42: learningpaths.v1.TodoistService.GetTodoistSyncState:output_type -> learningpaths.v1.GetTodoistSyncStateResponse
+	32, // [32:43] is the sub-list for method output_type
+	21, // [21:32] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_learningpaths_v1_learningpaths_proto_init() }
@@ -2238,7 +2284,7 @@ func file_learningpaths_v1_learningpaths_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_learningpaths_v1_learningpaths_proto_rawDesc), len(file_learningpaths_v1_learningpaths_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   32,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

@@ -64,9 +64,10 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	ctx := mcpCtx(mcpUserID)
 
 	createdMsg, err := h.mcpCreatePath(ctx, mcpCreatePathArgs{
-		Title:   "Learn Go",
-		Goal:    "Ship a backend service",
-		Routine: "30 min every weekday",
+		ReminderSchedules: nil,
+		Title:             "Learn Go",
+		Goal:              "Ship a backend service",
+		Routine:           "30 min every weekday",
 		Modules: []mcpModuleArg{
 			{
 				Title: "Month 1",
@@ -110,10 +111,11 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 	assert.Contains(t, mcpMsgJSON(t, listMsg), pathID)
 
 	updatedMsg, err := h.mcpUpdatePath(ctx, mcpUpdatePathArgs{
-		ID:      pathID,
-		Title:   "Learn Go, Well",
-		Goal:    "",
-		Routine: "",
+		ReminderSchedules: nil,
+		ID:                pathID,
+		Title:             "Learn Go, Well",
+		Goal:              "",
+		Routine:           "",
 		Modules: []mcpModuleArg{
 			{
 				Title: "Month 1",
@@ -203,9 +205,10 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 	}}
 
 	createdMsg, err := h.mcpCreatePath(ctx, mcpCreatePathArgs{
-		Title:   "Learn Go",
-		Goal:    "",
-		Routine: "",
+		ReminderSchedules: nil,
+		Title:             "Learn Go",
+		Goal:              "",
+		Routine:           "",
 		Modules: []mcpModuleArg{{
 			Title: "Basics",
 			// Terminal checkpoint item carries the quiz.
@@ -253,10 +256,11 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 		CorrectAnswerIndex: 0,
 	}}
 	updatedMsg, err := h.mcpUpdatePath(ctx, mcpUpdatePathArgs{
-		ID:      pathID,
-		Title:   "Learn Go",
-		Goal:    "",
-		Routine: "",
+		ReminderSchedules: nil,
+		ID:                pathID,
+		Title:             "Learn Go",
+		Goal:              "",
+		Routine:           "",
 		Modules: []mcpModuleArg{{
 			Title: "Basics",
 			Items: nil,
@@ -313,9 +317,10 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 	ctx := mcpCtx(malformedUserID)
 
 	createdMsg, err := h.mcpCreatePath(ctx, mcpCreatePathArgs{
-		Title:   "Corrupt",
-		Goal:    "",
-		Routine: "",
+		ReminderSchedules: nil,
+		Title:             "Corrupt",
+		Goal:              "",
+		Routine:           "",
 		Modules: []mcpModuleArg{{
 			Title: "Broken",
 			Items: []mcpItemArg{

@@ -80,11 +80,12 @@ func (h *learningPathsConnectHandler) CreateLearningPath(
 
 	//nolint:exhaustruct //ID/UserID/timestamps assigned by the service/repository
 	lp := models.LearningPath{
-		Title:     req.Msg.Title,
-		Goal:      req.Msg.Goal,
-		Routine:   req.Msg.Routine,
-		Modules:   dtoToModules(req.Msg.Modules),
-		Resources: dtoToResources(req.Msg.Resources),
+		Title:             req.Msg.Title,
+		Goal:              req.Msg.Goal,
+		Routine:           req.Msg.Routine,
+		Modules:           dtoToModules(req.Msg.Modules),
+		Resources:         dtoToResources(req.Msg.Resources),
+		ReminderSchedules: req.Msg.ReminderSchedules,
 	}
 
 	created, err := h.app.services.LearningPaths.Create(ctx, user.ID, lp)
@@ -119,12 +120,13 @@ func (h *learningPathsConnectHandler) UpdateLearningPath(
 
 	//nolint:exhaustruct //UserID/timestamps assigned by the service/repository
 	lp := models.LearningPath{
-		ID:        id,
-		Title:     req.Msg.Title,
-		Goal:      req.Msg.Goal,
-		Routine:   req.Msg.Routine,
-		Modules:   dtoToModules(req.Msg.Modules),
-		Resources: dtoToResources(req.Msg.Resources),
+		ID:                id,
+		Title:             req.Msg.Title,
+		Goal:              req.Msg.Goal,
+		Routine:           req.Msg.Routine,
+		Modules:           dtoToModules(req.Msg.Modules),
+		Resources:         dtoToResources(req.Msg.Resources),
+		ReminderSchedules: req.Msg.ReminderSchedules,
 	}
 
 	if err = h.app.services.LearningPaths.Update(ctx, user.ID, lp); err != nil {
