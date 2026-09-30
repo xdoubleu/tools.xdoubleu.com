@@ -9,8 +9,10 @@ import (
 )
 
 // staleActionMaxAge is how long an automated_actions row may stay open before
-// the sweep fails it; the longest successful routine run takes ~5h.
-const staleActionMaxAge = 24 * time.Hour
+// the sweep fails it: above the 3h AutomatedActionStalled alert threshold (so
+// the alert keeps its signal) and at the longest successful routine run, so a
+// stalled row resolves ~2h after the alert instead of a day later.
+const staleActionMaxAge = 5 * time.Hour
 
 // sweepRunEvery is slower than runEvery; closing stale rows isn't urgent.
 const sweepRunEvery = 15 * time.Minute
