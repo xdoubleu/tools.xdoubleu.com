@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	"tools.xdoubleu.com/internal/database"
+	"tools.xdoubleu.com/internal/logging"
 	"tools.xdoubleu.com/internal/oauthconn"
 	"tools.xdoubleu.com/internal/todoist"
 )
@@ -202,7 +203,9 @@ func newTestService(store learningPathsStore) *LearningPathService {
 		return mocks.NewMockTodoistClient("task-x")
 	}
 	//nolint:exhaustruct //books/feeds intentionally nil, see doc comment above
-	return &LearningPathService{repo: store, todoist: todoistSvc}
+	return &LearningPathService{
+		logger: logging.NewNopLogger(), repo: store, todoist: todoistSvc,
+	}
 }
 
 // fakeBookLookup is an in-memory bookLookup for error-propagation tests.
