@@ -136,6 +136,17 @@ func (s stubRunMetricsGetter) LatestRunMetrics(
 	return s.metrics, s.err
 }
 
+type stubLatencyTrends struct {
+	trends []models.TransactionTrend
+	err    error
+}
+
+func (s stubLatencyTrends) Trends(
+	_ context.Context,
+) ([]models.TransactionTrend, error) {
+	return s.trends, s.err
+}
+
 func loggerWithBuf() (*slog.Logger, *bytes.Buffer) {
 	buf := &bytes.Buffer{}
 	return slog.New(slog.NewTextHandler(buf, nil)), buf
@@ -194,6 +205,7 @@ func resetGauges() {
 	automatedActionRoutinePaused.Reset()
 	automatedActionLastRun.Reset()
 	sentryUnresolvedIssues.Set(0)
+	transactionP95Seconds.Reset()
 }
 
 func emptyStubJob(automatedAction automatedActionGetter) *IssueSignalCollectorJob {
@@ -207,6 +219,7 @@ func emptyStubJob(automatedAction automatedActionGetter) *IssueSignalCollectorJo
 		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
 		stubSchemaSizer{sizes: nil, err: nil},
 		automatedAction,
+		stubLatencyTrends{trends: nil, err: nil},
 	)
 }
 
@@ -278,6 +291,63 @@ func TestIssueSignalCollectorRoutineRunMetricsErrorKeepsGauges(t *testing.T) {
 	assert.Contains(t, buf.String(), "failed to load routine run metrics")
 }
 
+func latencyTrendsJob(trends stubLatencyTrends) *IssueSignalCollectorJob {
+	return NewIssueSignalCollectorJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: nil, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
+		},
+		stubSentryClient{issues: nil, err: nil},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Now(), err: nil, byRoutine: nil},
+		trends,
+	)
+}
+
+func TestIssueSignalCollectorLatencyTrends(t *testing.T) {
+	resetGauges()
+	// A transaction that stopped regressing must not keep a stale value.
+	transactionP95Seconds.WithLabelValues("tools-api", "recovered", "recent").Set(9)
+
+	job := latencyTrendsJob(stubLatencyTrends{
+		trends: []models.TransactionTrend{{
+			Transaction:    "poll-feeds",
+			Project:        "tools-api",
+			PriorAvgP95Ms:  4500,
+			RecentAvgP95Ms: 16000,
+			PctChange:      2.56,
+		}},
+		err: nil,
+	})
+
+	logger, _ := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 16.0, testutil.ToFloat64(
+		transactionP95Seconds.WithLabelValues("tools-api", "poll-feeds", "recent")),
+		1e-9)
+	assert.InDelta(t, 4.5, testutil.ToFloat64(
+		transactionP95Seconds.WithLabelValues("tools-api", "poll-feeds", "prior")),
+		1e-9)
+	assert.Equal(t, 2, testutil.CollectAndCount(transactionP95Seconds))
+}
+
+func TestIssueSignalCollectorLatencyTrendsErrorKeepsGauge(t *testing.T) {
+	resetGauges()
+	transactionP95Seconds.WithLabelValues("tools-api", "poll-feeds", "recent").Set(16)
+
+	job := latencyTrendsJob(stubLatencyTrends{trends: nil, err: errors.New("boom")})
+
+	logger, buf := loggerWithBuf()
+	require.NoError(t, job.Run(t.Context(), logger))
+
+	assert.InDelta(t, 16.0, testutil.ToFloat64(
+		transactionP95Seconds.WithLabelValues("tools-api", "poll-feeds", "recent")), 0)
+	assert.Contains(t, buf.String(), "failed to load transaction latency trends")
+}
+
 func newStubJob(
 	gh stubGithubClient,
 	sentry stubSentryClient,
@@ -285,7 +355,10 @@ func newStubJob(
 	schemas stubSchemaSizer,
 	automatedAction stubAutomatedActionGetter,
 ) *IssueSignalCollectorJob {
-	return NewIssueSignalCollectorJob(gh, sentry, storage, schemas, automatedAction)
+	return NewIssueSignalCollectorJob(
+		gh, sentry, storage, schemas, automatedAction,
+		stubLatencyTrends{trends: nil, err: nil},
+	)
 }
 
 func TestIssueSignalCollectorIDAndRunEvery(t *testing.T) {
