@@ -78,7 +78,7 @@ func TestGoHTMLConverter_MimetypeFirstAndStored(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Test", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Test", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	require.NotEmpty(t, zr.File)
@@ -92,7 +92,7 @@ func TestGoHTMLConverter_ContainerPointsAtOPF(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Test", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Test", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	container := zipEntryContent(t, zr, "META-INF/container.xml")
@@ -108,7 +108,7 @@ func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Book", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
@@ -133,7 +133,7 @@ func TestGoHTMLConverter_NavFallsBackWithNoHeadings(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Article", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Article", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
@@ -158,7 +158,7 @@ func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 func TestGoHTMLConverter_NoAuthorsOmitsCreator(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body><p>hi</p></body></html>", nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "No Authors", Authors: nil, Identifier: ""},
+		t, inPath, ArticleMeta{Title: "No Authors", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -191,7 +191,7 @@ func TestGoHTMLConverter_EmbedsAndManifestsImages(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Img", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Img", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	assert.Equal(t, string(jpg), zipEntryContent(t, zr, "OEBPS/img_0.jpg"))
@@ -212,7 +212,7 @@ func TestGoHTMLConverter_DropsMissingImage(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Missing", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Missing", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	for _, f := range zr.File {
@@ -229,7 +229,7 @@ func TestGoHTMLConverter_MalformedHTMLStillValid(t *testing.T) {
 		`</span><br></body>`
 	inPath := writeArticleFixture(t, malformed, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Malformed", Authors: nil, Identifier: ""},
+		t, inPath, ArticleMeta{Title: "Malformed", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	var buf bytes.Buffer
@@ -267,7 +267,7 @@ func TestGoHTMLConverter_StripsScriptsAndHandlers(t *testing.T) {
 		`</body></html>`
 	inPath := writeArticleFixture(t, body, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: ""},
+		t, inPath, ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
@@ -286,7 +286,7 @@ func TestGoHTMLConverter_VoidElementsSelfClosed(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Void", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Void", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
@@ -302,7 +302,7 @@ func TestGoHTMLConverter_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	meta := ArticleMeta{Title: "Canceled", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "Canceled", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(ctx, inPath, outPath, meta)
 	require.Error(t, err)
 	_, statErr := os.Stat(outPath)
@@ -311,7 +311,7 @@ func TestGoHTMLConverter_ContextCanceled(t *testing.T) {
 
 func TestGoHTMLConverter_ReadInputError(t *testing.T) {
 	outPath := filepath.Join(t.TempDir(), "out.epub")
-	meta := ArticleMeta{Title: "", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(
 		context.Background(), "/nonexistent/path/index.html", outPath, meta,
 	)
@@ -320,7 +320,7 @@ func TestGoHTMLConverter_ReadInputError(t *testing.T) {
 
 func TestGoHTMLConverter_CreateOutputError(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body></body></html>", nil)
-	meta := ArticleMeta{Title: "", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(
 		context.Background(), inPath, "/nonexistent/dir/out.epub", meta,
 	)

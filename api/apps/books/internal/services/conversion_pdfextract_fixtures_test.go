@@ -153,7 +153,6 @@ const (
 	singleColParaA   = "Opening paragraph of the single column body text goes here"
 	singleColParaB   = "Second paragraph of the single column body text follows " +
 		"after a gap"
-	// singleColParaC pushes the page past the 200-char image-only threshold.
 	singleColParaC = "Extra closing paragraph of body text adds more length " +
 		"for this section now and then some more words follow"
 )
@@ -182,12 +181,26 @@ func makeSingleColumnPDF(t *testing.T) string {
 // image-only fallback rasterizes the whole page.
 func makeImageOnlyPDF(t *testing.T) string {
 	t.Helper()
+	return savePDF(t, imageOnlyPage(t, newFixturePDF()), "image-only.pdf")
+}
+
+// makeTextThenImageOnlyPDF puts a text page before the image-only page, so
+// the fallback raster lands in the body rather than becoming the cover.
+func makeTextThenImageOnlyPDF(t *testing.T) string {
+	t.Helper()
 	pdf := newFixturePDF()
+	fixtureText(pdf, fixtureLeftX, 80, fixtureBodySize, singleColParaA)
+	pdf.AddPage()
+	return savePDF(t, imageOnlyPage(t, pdf), "text-then-image-only.pdf")
+}
+
+func imageOnlyPage(t *testing.T, pdf *fpdf.Fpdf) *fpdf.Fpdf {
+	t.Helper()
 	fixtureImage(
 		t, pdf, "fixture-image-only.png", 100, 100, 20, 20,
 		color.RGBA{R: 60, G: 120, B: 200, A: 255},
 	)
-	return savePDF(t, pdf, "image-only.pdf")
+	return pdf
 }
 
 // makeLogoRepeatedPDF repeats one image on three pages (dedupe) plus a
@@ -268,8 +281,7 @@ const (
 	// never be treated as a slug.
 	proofSlugDateInBodyPara = "The revised schedule set the deadline for " +
 		"5/2/09 according to the committee notes"
-	// proofSlugBodyClosingFmt pushes each page past the 200-char image-only
-	// threshold.
+	// proofSlugBodyClosingFmt adds a third body paragraph per page.
 	proofSlugBodyClosingFmt = "Closing paragraph %d wraps up the page with " +
 		"a bit more body text so the page is never treated as image-only content"
 )

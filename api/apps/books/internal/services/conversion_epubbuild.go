@@ -98,10 +98,21 @@ func writeEPUBZip(
 	); err != nil {
 		return err
 	}
+	cover, hasCover := coverImage(meta)
 	if err := writeEntry(
-		zw, "OEBPS/content.opf", buildContentOPF(meta, images),
+		zw, "OEBPS/content.opf", buildContentOPF(meta, images, cover, hasCover),
 	); err != nil {
 		return err
+	}
+	if hasCover {
+		if err := writeEntry(
+			zw, "OEBPS/"+coverPage, buildCoverXHTML(meta.Title, cover.FileName),
+		); err != nil {
+			return err
+		}
+		if err := copyImageEntry(zw, imgDir, cover); err != nil {
+			return err
+		}
 	}
 	if err := writeEntry(
 		zw, "OEBPS/nav.xhtml", buildNavXHTML(meta.Title, toc),
@@ -176,7 +187,34 @@ func buildContainerXML() string {
 	return b.String()
 }
 
-func buildContentOPF(meta ArticleMeta, images []epubImage) string {
+// coverPage is the cover's content document; kepubify leaves a first spine
+// item named like a cover alone instead of adding its own title page.
+const coverPage = "cover.xhtml"
+
+// coverImage returns meta's cover image as a manifest entry.
+func coverImage(meta ArticleMeta) (epubImage, bool) {
+	mediaType, ok := imageMediaTypes[strings.ToLower(filepath.Ext(meta.CoverImage))]
+	if meta.CoverImage == "" || !ok {
+		return epubImage{FileName: "", MediaType: "", ID: ""}, false
+	}
+	return epubImage{FileName: meta.CoverImage, MediaType: mediaType, ID: "cover-image"}, true
+}
+
+// buildCoverXHTML renders the cover page: the cover image alone.
+func buildCoverXHTML(title, fileName string) string {
+	var b strings.Builder
+	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
+	b.WriteString("<!DOCTYPE html>\n")
+	b.WriteString(`<html xmlns="` + xhtmlNamespace + `">` + "\n")
+	b.WriteString("<head><title>" + escapeXMLText(title) + "</title></head>\n")
+	b.WriteString(`<body><img src="` + escapeXMLText(fileName) + `" alt="Cover"/></body>` + "\n")
+	b.WriteString("</html>\n")
+	return b.String()
+}
+
+func buildContentOPF(
+	meta ArticleMeta, images []epubImage, cover epubImage, hasCover bool,
+) string {
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
 	b.WriteString(
@@ -205,9 +243,19 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 		)
 	}
 	b.WriteString("    <dc:language>en</dc:language>\n")
+	if hasCover {
+		fmt.Fprintf(&b, "    <meta name=\"cover\" content=\"%s\"/>\n", cover.ID)
+	}
 	b.WriteString("  </metadata>\n")
 
 	b.WriteString("  <manifest>\n")
+	if hasCover {
+		b.WriteString(`    <item id="cover" href="` + coverPage + `" ` +
+			`media-type="application/xhtml+xml"/>` + "\n")
+		fmt.Fprintf(&b,
+			"    <item id=\"%s\" href=\"%s\" media-type=\"%s\" properties=\"cover-image\"/>\n",
+			cover.ID, cover.FileName, cover.MediaType)
+	}
 	b.WriteString(
 		`    <item id="doc" href="index.xhtml" ` +
 			`media-type="application/xhtml+xml"/>` + "\n",
@@ -223,6 +271,9 @@ func buildContentOPF(meta ArticleMeta, images []epubImage) string {
 	b.WriteString("  </manifest>\n")
 
 	b.WriteString("  <spine>\n")
+	if hasCover {
+		b.WriteString(`    <itemref idref="cover"/>` + "\n")
+	}
 	b.WriteString(`    <itemref idref="doc"/>` + "\n")
 	b.WriteString("  </spine>\n")
 	b.WriteString("</package>\n")

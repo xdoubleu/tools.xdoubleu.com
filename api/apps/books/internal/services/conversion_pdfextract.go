@@ -109,7 +109,7 @@ func goPDFConverter(
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
 
-	blocks, err := extractDocument(ctx, instance, docResp.Document, workDir)
+	blocks, cover, err := extractDocument(ctx, instance, docResp.Document, workDir)
 	if err != nil {
 		return fmt.Errorf("extract pdf content: %w", err)
 	}
@@ -122,6 +122,7 @@ func goPDFConverter(
 		catalogTitle,
 		catalogAuthors,
 	)
+	meta.CoverImage = cover
 
 	htmlPath := filepath.Join(workDir, "index.html")
 	if err = os.WriteFile(htmlPath, []byte(renderHTML(blocks)), 0o600); err != nil {
@@ -175,6 +176,7 @@ func documentMeta(
 		Title:      title,
 		Authors:    authors,
 		Identifier: identifier,
+		CoverImage: "",
 	}
 }
 

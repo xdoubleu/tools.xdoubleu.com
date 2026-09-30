@@ -182,3 +182,21 @@ func TestGroupLines_HighApostropheStaysInStreamRun(t *testing.T) {
 	}
 	assert.Equal(t, []string{"body", "There’s"}, texts)
 }
+
+// TestJoinChars_GeneratedSpacesInTrackedTitle: PDFium generates zero-width
+// spaces between a tracked title's letters ("F O R DA NA" in the reference
+// book); only the word-sized gap is a space at heading spacing.
+func TestJoinChars_GeneratedSpacesInTrackedTitle(t *testing.T) {
+	resp := structuredPage(
+		structuredChar("F", 266.3, 271.2, 586.0, 593.1),
+		structuredChar(" ", 272.9, 272.9, 586.0, 586.0),
+		structuredChar("O", 273.3, 280.6, 585.8, 593.3),
+		structuredChar(" ", 282.4, 282.4, 586.0, 586.0),
+		structuredChar("R", 282.7, 289.3, 585.9, 593.1),
+		structuredChar(" ", 290.5, 290.5, 586.0, 586.0),
+		structuredChar("D", 294.7, 301.9, 586.0, 593.1),
+		structuredChar("A", 303.2, 310.3, 586.0, 593.3),
+	)
+
+	assert.Equal(t, "FOR DA", joinChars(extractChars(resp), headingSpaceRatio))
+}

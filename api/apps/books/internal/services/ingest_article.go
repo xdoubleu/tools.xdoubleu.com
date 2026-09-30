@@ -21,6 +21,9 @@ type ArticleMeta struct {
 	Title      string
 	Authors    []string
 	Identifier string
+	// CoverImage is a cover image's filename beside the source HTML; the
+	// EPUB then opens on a cover page showing it.
+	CoverImage string
 }
 
 // extractedArticle is the readable core of a fetched web page.

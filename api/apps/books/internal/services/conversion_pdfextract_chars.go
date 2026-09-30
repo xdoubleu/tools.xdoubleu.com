@@ -37,6 +37,10 @@ type streamPos struct {
 	// one after every ligature, mid-word included ("fl ows"), so it only
 	// counts when the gap to this character is word-sized.
 	afterLigature bool
+	// generatedSpace marks a zero-width space PDFium inferred rather than
+	// read from the stream; it guesses spaces between a tracked title's
+	// letters too, so only a gap past the line's threshold confirms it.
+	generatedSpace bool
 }
 
 // noStreamPos is a character with no known stream position.
@@ -103,6 +107,8 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 			switch {
 			case strings.ContainsAny(text, "\r\n"):
 				pos.breakBefore = true
+			case c.PointPosition.Right <= c.PointPosition.Left:
+				pos.generatedSpace = true
 			default:
 				pos.spaceBefore = true
 				pos.afterLigature = endsInLigature(chars)
@@ -123,7 +129,10 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 			font:   font,
 			stream: pos,
 		})
-		pos = streamPos{seq: pos.seq, spaceBefore: false, breakBefore: false, afterLigature: false}
+		pos = streamPos{
+			seq: pos.seq, spaceBefore: false, breakBefore: false,
+			afterLigature: false, generatedSpace: false,
+		}
 	}
 	return chars
 }
@@ -238,7 +247,9 @@ func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	if streamAdjacent(prev, c) {
 		space := c.stream.spaceBefore &&
 			(!c.stream.afterLigature || gap > ligatureSpaceGapRatio*medH)
-		return space || gap > streamWideGapRatio*medH || isFontRunBoundary(prev, c)
+		generated := c.stream.generatedSpace && gap > spaceRatio*medH
+		return space || generated || gap > streamWideGapRatio*medH ||
+			isFontRunBoundary(prev, c)
 	}
 	if gap > spaceRatio*medH {
 		return true

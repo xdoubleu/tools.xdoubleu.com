@@ -252,8 +252,8 @@ func TestGoPDFConverter_ImageOnlyMultiPageDeduped(t *testing.T) {
 			pngCount++
 		}
 	}
-	// Four identical blank rasters dedupe to one; the filled page is separate.
-	require.Equal(t, 2, pngCount)
+	// Blank pages contribute nothing; only the filled page is rendered.
+	require.Equal(t, 1, pngCount)
 }
 
 var (
@@ -278,7 +278,7 @@ func TestGoPDFConverter_ImagesHaveAltText(t *testing.T) {
 	figEPUB := convertToEPUB(t, makeTwoColumnPDF(t))
 	requireAllImagesHaveAlt(t, string(readZipEntry(t, figEPUB)))
 
-	fallbackEPUB := convertToEPUB(t, makeImageOnlyPDF(t))
+	fallbackEPUB := convertToEPUB(t, makeTextThenImageOnlyPDF(t))
 	requireAllImagesHaveAlt(
 		t, string(readZipEntry(t, fallbackEPUB)),
 	)

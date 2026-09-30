@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -23,7 +24,6 @@ const (
 	figureMinAreaFraction = 0.01
 	figureMaxPerDoc       = 50
 	fullPageRenderDPI     = 150
-	imageOnlyPageMaxChars = 200
 )
 
 // noFigure is the zero-value rawFigure returned alongside ok=false by every
@@ -215,9 +215,10 @@ func placeFigures(
 	return figures, nil
 }
 
-// renderFullPage rasterizes an image-only page (scanned content, or a page
-// with too little extractable text and no surviving figures) to a single PNG
-// at 150 DPI, per the image-only-page fallback. The raster is run through the
+// renderFullPage rasterizes a page with no extractable text and no
+// surviving figures (vector art, or text drawn as outlines) to a single PNG
+// at 150 DPI, per the image-only-page fallback. A blank page renders to
+// nothing. The raster is run through the
 // same document-wide figureTracker as regular figures, so a page whose
 // rendered bitmap is byte-identical to one already kept (most commonly a
 // blank page) dedupes instead of being re-embedded, and the fallback path
@@ -238,6 +239,10 @@ func renderFullPage(
 	}
 	defer renderResp.Cleanup()
 
+	if isBlank(renderResp.Result.RenderedImage) {
+		return "", nil
+	}
+
 	var buf bytes.Buffer
 	if err = png.Encode(&buf, renderResp.Result.RenderedImage); err != nil {
 		return "", fmt.Errorf("encode full page png: %w", err)
@@ -253,3 +258,21 @@ func renderFullPage(
 	}
 	return name, nil
 }
+
+// isBlank reports whether every pixel of img is white: an empty page, which
+// PDFium renders onto a white background.
+func isBlank(img image.Image) bool {
+	b := img.Bounds()
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			r, g, bl, _ := img.At(x, y).RGBA()
+			if r < blankMinChannel || g < blankMinChannel || bl < blankMinChannel {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// blankMinChannel is the lowest 16-bit channel value still counted as white.
+const blankMinChannel = 0xfa00

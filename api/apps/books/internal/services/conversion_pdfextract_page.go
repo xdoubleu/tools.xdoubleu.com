@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/klippa-app/go-pdfium"
 	"github.com/klippa-app/go-pdfium/references"
@@ -18,6 +19,9 @@ type pageResult struct {
 	fullPageImage string
 	medLineHeight float64
 	medCharWidth  float64
+	// coverImage is an image covering most of the page (a cover, when it's
+	// the first page's).
+	coverImage string
 }
 
 // noPageResult is the zero-value pageResult returned alongside every error
@@ -84,16 +88,17 @@ func extractPage(
 		rawFigures[i].bottom -= originY
 	}
 
-	if len(chars) < imageOnlyPageMaxChars && len(rawFigures) == 0 {
+	if len(chars) == 0 && len(rawFigures) == 0 {
 		fileName, renderErr := renderFullPage(instance, page, workDir, tracker)
 		if renderErr != nil {
 			return noPageResult, renderErr
 		}
-		// fileName is "" when the tracker rejected this raster as a
-		// duplicate or over the per-document cap; the page then contributes
-		// no image at all, same as a deduped regular figure.
+		// fileName is "" for a blank page, or when the tracker rejected
+		// this raster as a duplicate or over the per-document cap; the page
+		// then contributes no image at all, same as a deduped figure.
 		return pageResult{ //nolint:exhaustruct // no text stream for an image-only page
 			fullPageImage: fileName,
+			coverImage:    fileName,
 		}, nil
 	}
 
@@ -118,6 +123,14 @@ func extractPage(
 
 	items := buildPageStream(lines, figures, gutterLeft, gutterRight, twoColumn)
 
+	var cover string
+	for _, f := range figures {
+		if (f.right-f.left)*(f.top-f.bottom) >= coverMinPageShare*pageArea {
+			cover = f.fileName
+			break
+		}
+	}
+
 	lineHeights := make([]float64, len(lines))
 	for i, l := range lines {
 		lineHeights[i] = l.top - l.bottom
@@ -128,6 +141,7 @@ func extractPage(
 		fullPageImage: "",
 		medLineHeight: median(lineHeights),
 		medCharWidth:  medianCharWidth(chars),
+		coverImage:    cover,
 	}, nil
 }
 
@@ -203,23 +217,23 @@ func extractDocument(
 	instance pdfium.Pdfium,
 	doc references.FPDF_DOCUMENT,
 	workDir string,
-) ([]htmlBlock, error) {
+) ([]htmlBlock, string, error) {
 	countResp, err := instance.FPDF_GetPageCount(
 		&requests.FPDF_GetPageCount{Document: doc},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("get page count: %w", err)
+		return nil, "", fmt.Errorf("get page count: %w", err)
 	}
 
 	tracker := newFigureTracker()
 	pages := make([]pageResult, 0, countResp.PageCount)
 	for i := range countResp.PageCount {
 		if err = ctx.Err(); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		pr, pageErr := extractPage(instance, doc, i, workDir, tracker)
 		if pageErr != nil {
-			return nil, fmt.Errorf("extract page %d: %w", i, pageErr)
+			return nil, "", fmt.Errorf("extract page %d: %w", i, pageErr)
 		}
 		pages = append(pages, pr)
 	}
@@ -255,12 +269,34 @@ func extractDocument(
 		removeRunningHeaders(pageBlocks, docModalHeight), docModalHeight,
 	)
 
+	cover := ""
+	if len(pages) > 0 && pages[0].coverImage != "" {
+		cover = pages[0].coverImage
+		pageBlocks[0] = withoutImage(pageBlocks[0], cover)
+	}
+
 	var blocks []htmlBlock
 	for _, pb := range pageBlocks {
 		blocks = append(blocks, pb...)
 	}
 	finalizeHeadings(blocks, docModalHeight)
-	return blocks, nil
+	return blocks, cover, nil
+}
+
+// coverMinPageShare: a first-page image covering this share of the page is
+// the book's cover.
+const coverMinPageShare = 0.5
+
+// withoutImage drops the <img> block showing fileName (the cover, which the
+// EPUB shows on its own page).
+func withoutImage(blocks []htmlBlock, fileName string) []htmlBlock {
+	kept := blocks[:0]
+	for _, b := range blocks {
+		if b.tag != imgTag || !strings.Contains(b.html, `src="`+escapeXMLText(fileName)+`"`) {
+			kept = append(kept, b)
+		}
+	}
+	return kept
 }
 
 // computeModalCharHeight finds the document's most common line character
