@@ -92,34 +92,26 @@ func writeEPUBZip(
 	if err := writeStoredEntry(zw, "mimetype", "application/epub+zip"); err != nil {
 		return err
 	}
-	if err := writeEntry(
-		zw, "META-INF/container.xml", buildContainerXML(),
-	); err != nil {
-		return err
-	}
 	cover, hasCover := coverImage(meta)
-	if err := writeEntry(
-		zw, "OEBPS/content.opf", buildContentOPF(meta, images, docs, cover, hasCover),
-	); err != nil {
-		return err
+	entries := []contentDoc{
+		{Name: "META-INF/container.xml", XHTML: buildContainerXML()},
+		{
+			Name:  "OEBPS/content.opf",
+			XHTML: buildContentOPF(meta, images, docs, cover, hasCover),
+		},
+		{Name: "OEBPS/nav.xhtml", XHTML: buildNavXHTML(meta.Title, toc)},
 	}
 	if hasCover {
-		if err := writeEntry(
-			zw, "OEBPS/"+coverPage, buildCoverXHTML(meta.Title, cover.FileName),
-		); err != nil {
-			return err
-		}
-		if err := copyImageEntry(zw, imgDir, cover); err != nil {
-			return err
-		}
-	}
-	if err := writeEntry(
-		zw, "OEBPS/nav.xhtml", buildNavXHTML(meta.Title, toc),
-	); err != nil {
-		return err
+		entries = append(entries, contentDoc{
+			Name: "OEBPS/" + coverPage, XHTML: buildCoverXHTML(meta.Title, cover.FileName),
+		})
+		images = append([]epubImage{cover}, images...)
 	}
 	for _, doc := range docs {
-		if err := writeEntry(zw, "OEBPS/"+doc.Name, doc.XHTML); err != nil {
+		entries = append(entries, contentDoc{Name: "OEBPS/" + doc.Name, XHTML: doc.XHTML})
+	}
+	for _, e := range entries {
+		if err := writeEntry(zw, e.Name, e.XHTML); err != nil {
 			return err
 		}
 	}

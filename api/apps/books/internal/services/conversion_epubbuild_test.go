@@ -451,3 +451,36 @@ func TestCopyImageEntry_MissingFileErrors(t *testing.T) {
 	})
 	require.Error(t, err)
 }
+
+func TestGoHTMLConverter_CoverPage(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body><p>Body.</p></body></html>",
+		map[string][]byte{"cover.png": []byte("png")})
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{
+		Title: "Book", Authors: nil, Identifier: "", CoverImage: "cover.png",
+	})
+
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/cover.xhtml"), `<img src="cover.png"`)
+	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
+	assert.Contains(
+		t,
+		opf,
+		`href="cover.png" media-type="image/png" properties="cover-image"`,
+	)
+	assert.Regexp(t, `<spine>\s*<itemref idref="cover"/>`, opf)
+}
+
+func TestGoHTMLConverter_CoverErrors(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body><p>Body.</p></body></html>", nil)
+
+	// An unsupported type has no cover page at all.
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{
+		Title: "Book", Authors: nil, Identifier: "", CoverImage: "cover.bmp",
+	})
+	assert.NotContains(t, zipEntryContent(t, zr, "OEBPS/content.opf"), "cover-image")
+
+	// A missing cover file fails the build.
+	err := goHTMLConverter(context.Background(), inPath,
+		filepath.Join(t.TempDir(), "out.epub"),
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: "missing.png"})
+	require.Error(t, err)
+}

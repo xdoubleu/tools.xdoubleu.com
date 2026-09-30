@@ -158,14 +158,7 @@ func (s *BookService) FinalizeUpload(
 
 	existing, err := s.bookFiles.FindByChecksumGlobal(ctx, uf.checksum)
 	if err == nil {
-		return s.finalizeDuplicate(
-			ctx,
-			userID,
-			uploadID,
-			filename,
-			uf.checksum,
-			existing,
-		)
+		return s.finalizeDuplicate(ctx, userID, uploadID, filename, uf.checksum, existing)
 	}
 	if !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, err

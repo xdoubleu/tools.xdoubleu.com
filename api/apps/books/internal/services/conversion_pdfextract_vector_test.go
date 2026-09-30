@@ -190,3 +190,14 @@ func TestGoPDFConverter_ShadedSidebarStaysText(t *testing.T) {
 	}
 	require.Contains(t, strings.Join(texts, " "), "If A causes B")
 }
+
+func TestOutsideFigures(t *testing.T) {
+	t.Parallel()
+
+	fig := func(left, bottom, right, top float64) rawFigure {
+		return rawFigure{png: nil, left: left, top: top, right: right, bottom: bottom}
+	}
+	inside, outside := fig(20, 20, 40, 40), fig(200, 20, 240, 40)
+	got := outsideFigures([]rawFigure{inside, outside}, []rawFigure{fig(10, 10, 100, 100)})
+	require.Equal(t, []rawFigure{outside}, got)
+}
