@@ -304,6 +304,46 @@ describe('LearningPathForm (edit)', () => {
     })
   })
 
+  it('keeps quizzes and due strings the form does not edit', async () => {
+    const quiz = [{ prompt: 'Q?', options: ['a', 'b'], correctAnswerIndex: 1 }]
+    const withQuizAndDue = create(LearningPathSchema, {
+      id: 'lp-1',
+      title: 'Existing Path',
+      modules: [
+        create(ModuleSchema, {
+          title: 'M1',
+          quiz,
+          items: [
+            create(ItemSchema, {
+              type: 'checkpoint',
+              description: 'Pass the quiz',
+              due: 'every sun at 18:00'
+            })
+          ]
+        })
+      ]
+    })
+    mockUpdateLearningPath.mockResolvedValue({ learningPath: { id: 'lp-1' } })
+    render(
+      <LearningPathForm learningPath={withQuizAndDue} onSave={jest.fn()} onCancel={jest.fn()} />
+    )
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Learning Path' }).closest('form')!)
+
+    await waitFor(() => {
+      expect(mockUpdateLearningPath).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modules: [
+            expect.objectContaining({
+              quiz: [expect.objectContaining({ prompt: 'Q?', correctAnswerIndex: 1 })],
+              items: [expect.objectContaining({ due: 'every sun at 18:00' })]
+            })
+          ]
+        })
+      )
+    })
+  })
+
   it('submits the goal and routine entered through their labelled fields', async () => {
     mockCreateLearningPath.mockResolvedValue({ learningPath: { id: 'new-id' } })
     render(<LearningPathForm onSave={jest.fn()} onCancel={jest.fn()} />)
