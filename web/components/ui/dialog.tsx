@@ -1,8 +1,9 @@
 'use client'
 
 import * as RadixDialog from '@radix-ui/react-dialog'
-import { type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
+import { useKeyboardInset } from '@/hooks/useKeyboardInset'
 import { cn } from '@/lib/cn'
 
 interface DialogProps {
@@ -62,12 +63,15 @@ const fullscreenContentClass = [
   'data-[state=closed]:sm:zoom-out-95 data-[state=open]:sm:zoom-in-95'
 ]
 
-// Bottom sheet within thumb reach on phones, centered modal from `sm` up.
+// Bottom sheet within thumb reach on phones, riding above the on-screen
+// keyboard (`--keyboard-inset`); centered modal from `sm` up.
 const sheetContentClass = [
-  'inset-x-0 bottom-0 w-full max-h-[85dvh] rounded-t-2xl p-5',
-  'pb-[calc(1.25rem+env(safe-area-inset-bottom))]',
+  'inset-x-0 bottom-(--keyboard-inset) w-full rounded-t-2xl p-5',
+  'max-h-[min(85dvh,calc(100dvh-var(--keyboard-inset)-var(--inset-top)-1rem))]',
+  'pb-[calc(1.25rem+max(0px,env(safe-area-inset-bottom)-var(--keyboard-inset)))]',
   'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom',
   'sm:inset-auto sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%-2rem)] sm:max-w-md',
+  'sm:max-h-[85dvh]',
   'sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:pb-5'
 ]
 
@@ -82,21 +86,56 @@ function DialogContent({ children, className = '', side = 'center' }: DialogCont
   return (
     <RadixDialog.Portal>
       {side !== 'right' && <DialogOverlay />}
-      <RadixDialog.Content
-        onInteractOutside={side === 'right' ? (e) => e.preventDefault() : undefined}
-        className={cn(
-          'fixed z-50 overflow-x-hidden overflow-y-auto',
-          'border border-border bg-card shadow-elevated',
-          'focus:outline-none',
-          'data-[state=open]:animate-in data-[state=closed]:animate-out',
-          'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-          sideContentClass[side],
-          className
-        )}
-      >
-        {children}
-      </RadixDialog.Content>
+      {side === 'sheet' ? (
+        <SheetContent className={className}>{children}</SheetContent>
+      ) : (
+        <ContentPanel side={side} className={className}>
+          {children}
+        </ContentPanel>
+      )}
     </RadixDialog.Portal>
+  )
+}
+
+// Portal children mount only while open, so the keyboard listener does too.
+function SheetContent({ children, className }: { children: ReactNode; className: string }) {
+  const style: CSSProperties & { '--keyboard-inset': string } = {
+    '--keyboard-inset': `${useKeyboardInset()}px`
+  }
+  return (
+    <ContentPanel side="sheet" className={className} style={style}>
+      {children}
+    </ContentPanel>
+  )
+}
+
+function ContentPanel({
+  children,
+  className,
+  side,
+  style
+}: {
+  children: ReactNode
+  className: string
+  side: NonNullable<DialogContentProps['side']>
+  style?: CSSProperties
+}) {
+  return (
+    <RadixDialog.Content
+      onInteractOutside={side === 'right' ? (e) => e.preventDefault() : undefined}
+      style={style}
+      className={cn(
+        'fixed z-50 overflow-x-hidden overflow-y-auto',
+        'border border-border bg-card shadow-elevated',
+        'focus:outline-none',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+        sideContentClass[side],
+        className
+      )}
+    >
+      {children}
+    </RadixDialog.Content>
   )
 }
 
