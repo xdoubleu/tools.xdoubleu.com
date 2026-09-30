@@ -59,6 +59,8 @@ type pdfLine struct {
 	// localRightEdge is the right margin of the line's own block (see
 	// setLocalRightEdges); 0 until set.
 	localRightEdge float64
+	// spaceRatio is the space-gap threshold text was joined with.
+	spaceRatio float64
 	// col distinguishes the left/single column (0) from the right column (1)
 	// so paragraph grouping can force a break at the column boundary instead
 	// of continuing to compare gap/indent against a line from another column.
@@ -330,6 +332,7 @@ func buildLine(chars []pdfChar) pdfLine {
 	// colRightEdge/colModalXStart/col are set later by assignColumns.
 	return pdfLine{ //nolint:exhaustruct // set later by assignColumns
 		text:             joinChars(chars, lineSpaceGapRatio),
+		spaceRatio:       lineSpaceGapRatio,
 		left:             left,
 		top:              top,
 		right:            right,
@@ -385,6 +388,7 @@ func rebuildHeadingLineText(pages []pageResult, docModalHeight float64) {
 				continue
 			}
 			item.line.text = joinChars(item.line.chars, headingSpaceRatio)
+			item.line.spaceRatio = headingSpaceRatio
 		}
 	}
 }

@@ -41,6 +41,7 @@ func asListItem(b htmlBlock) htmlBlock {
 		return b
 	}
 	b.text = strings.TrimPrefix(b.text, marker)
+	b.inline = stripLeadingMarker(b.inline)
 	b.listItem = true
 	return b
 }

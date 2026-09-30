@@ -111,8 +111,9 @@ func joinPageContinuations(pages [][]htmlBlock, docModalHeight float64) [][]html
 		if lastPage >= 0 {
 			if j := firstTextBlock(pages[p]); j >= 0 &&
 				continuesOnNextPage(pages[lastPage][lastIdx], pages[p][j]) {
-				prev := &pages[lastPage][lastIdx]
-				prev.text = joinContinuation(prev.text, pages[p][j].text)
+				prev, next := &pages[lastPage][lastIdx], pages[p][j]
+				prev.inline = joinContinuationHTML(prev.text, prev.inline, next.text, next.inline)
+				prev.text = joinContinuation(prev.text, next.text)
 				pages[p] = append(pages[p][:j:j], pages[p][j+1:]...)
 			}
 		}

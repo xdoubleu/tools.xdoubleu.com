@@ -46,6 +46,8 @@ type htmlBlock struct {
 	listItem bool
 	// src is an image block's file name.
 	src string
+	// inline is a paragraph's text as escaped HTML with inline markup.
+	inline string
 }
 
 // imageBlock renders an <img> block.
@@ -223,9 +225,8 @@ func renderAside(lines []pdfLine, rules paraRules) htmlBlock {
 	var texts []string
 	para := []pdfLine{lines[0]}
 	emit := func() {
-		text := joinLinesWithHyphenation(para)
-		texts = append(texts, text)
-		b.WriteString("<p>" + escapeXMLText(text) + "</p>")
+		texts = append(texts, joinLinesWithHyphenation(para))
+		b.WriteString("<p>" + paragraphHTML(para) + "</p>")
 	}
 	for _, l := range lines[1:] {
 		if startsNewParagraph(para, l, rules) {
@@ -263,6 +264,7 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 		isText:    true,
 		listItem:  false,
 		src:       "",
+		inline:    paragraphHTML(lines),
 	}
 }
 
@@ -335,9 +337,11 @@ func finalizeHeadings(blocks []htmlBlock, docModalCharHeight float64) {
 			continue
 		}
 		blocks[i].tag = tags[i]
-		blocks[i].html = fmt.Sprintf(
-			"<%s>%s</%s>", tags[i], escapeXMLText(blocks[i].text), tags[i],
-		)
+		body := escapeXMLText(blocks[i].text)
+		if (tags[i] == "p" || tags[i] == listTag) && blocks[i].inline != "" {
+			body = blocks[i].inline
+		}
+		blocks[i].html = fmt.Sprintf("<%s>%s</%s>", tags[i], body, tags[i])
 	}
 }
 
