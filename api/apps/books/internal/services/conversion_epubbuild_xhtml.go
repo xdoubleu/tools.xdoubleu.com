@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	xhtml "golang.org/x/net/html"
@@ -33,55 +34,84 @@ var disallowedElements = map[string]struct{}{
 type tocEntry struct {
 	ID    string
 	Title string
+	// Level is the entry's nesting depth, 1 for top level.
+	Level int
+	// File is the content document holding the heading.
+	File string
 }
 
 // buildArticleXHTML parses htmlBytes, sanitizes the tree in place, collects
 // the images it references (already downloaded as siblings of the source
-// file by localizeImages), assigns anchor ids to every <h1> for the nav
-// document's TOC, and serializes the result as XHTML.
+// file by localizeImages), assigns anchor ids to its TOC headings for the
+// nav document, and serializes the result as one XHTML content document per
+// chapter.
 func buildArticleXHTML(
 	htmlBytes []byte, imgDir string,
-) (string, []epubImage, []tocEntry, error) {
+) ([]contentDoc, []epubImage, []tocEntry, error) {
 	root, err := xhtml.Parse(bytes.NewReader(htmlBytes))
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("parse input html: %w", err)
+		return nil, nil, nil, fmt.Errorf("parse input html: %w", err)
 	}
 
 	images := sanitizeAndCollectImages(root, imgDir)
 	toc := assignHeadingIDs(root)
 
-	doc, err := renderXHTMLDocument(root)
+	docs, err := splitContentDocs(root, toc)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
-	return doc, images, toc, nil
+	return docs, images, toc, nil
 }
 
-// assignHeadingIDs walks the article body, giving every <h1> an anchor id
-// ("heading-N") and returning the ordered list of chapter entries for the
-// nav document's TOC — without this, nav.xhtml had no way to link to any
-// chapter, only the book as a whole (issue #1698).
+// assignHeadingIDs gives the article's TOC headings anchor ids
+// ("heading-N") and returns them as the nav document's entries: headings
+// marked with tocClass, nested by level, when there are any (a PDF with an
+// outline), else every <h1>.
 func assignHeadingIDs(root *xhtml.Node) []tocEntry {
-	var entries []tocEntry
-	count := 0
+	marked := headingsWhere(root, func(n *xhtml.Node) bool {
+		return headingLevel(n) > 0 && hasClass(n, tocClass)
+	})
+	if len(marked) == 0 {
+		marked = headingsWhere(root, func(n *xhtml.Node) bool { return n.Data == "h1" })
+	}
 
+	entries := make([]tocEntry, len(marked))
+	for i, n := range marked {
+		id := fmt.Sprintf("heading-%d", i)
+		setAttr(n, "id", id)
+		entries[i] = tocEntry{
+			ID: id, Title: textContent(n), Level: max(1, headingLevel(n)), File: "",
+		}
+	}
+	return entries
+}
+
+// headingsWhere returns the element nodes matching keep, in document order.
+func headingsWhere(root *xhtml.Node, keep func(*xhtml.Node) bool) []*xhtml.Node {
+	var found []*xhtml.Node
 	var walk func(*xhtml.Node)
 	walk = func(n *xhtml.Node) {
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
-			if child.Type == xhtml.ElementNode && child.Data == "h1" {
-				id := fmt.Sprintf("heading-%d", count)
-				count++
-				setAttr(child, "id", id)
-				entries = append(
-					entries, tocEntry{ID: id, Title: textContent(child)},
-				)
+			if child.Type == xhtml.ElementNode && keep(child) {
+				found = append(found, child)
 			}
 			walk(child)
 		}
 	}
 	walk(root)
+	return found
+}
 
-	return entries
+// headingLevel returns 1–6 for <h1>–<h6>, else 0.
+func headingLevel(n *xhtml.Node) int {
+	if len(n.Data) == 2 && n.Data[0] == 'h' && n.Data[1] >= '1' && n.Data[1] <= '6' {
+		return int(n.Data[1] - '0')
+	}
+	return 0
+}
+
+func hasClass(n *xhtml.Node, class string) bool {
+	return slices.Contains(strings.Fields(attrValue(n, "class")), class)
 }
 
 // textContent concatenates all text descendant nodes of n, e.g. to recover

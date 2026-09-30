@@ -12,12 +12,60 @@ import (
 // its own line. Geometry is from a production PDF.
 func TestGroupLines_CommaStaysOnLine(t *testing.T) {
 	chars := []pdfChar{
-		{text: "h", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
-		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		{text: ",", left: 12, top: 576.36, right: 15, bottom: 571.92, font: ""},
-		{text: "b", left: 18, top: 586.01, right: 26, bottom: 574.12, font: ""},
-		{text: "y", left: 26, top: 580.82, right: 34, bottom: 570.26, font: ""},
-		{text: "e", left: 34, top: 582.03, right: 41, bottom: 574.32, font: ""},
+		{
+			text:   "h",
+			left:   0,
+			top:    584.07,
+			right:  8,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   8,
+			top:    585.77,
+			right:  12,
+			bottom: 574.50,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   ",",
+			left:   12,
+			top:    576.36,
+			right:  15,
+			bottom: 571.92,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "b",
+			left:   18,
+			top:    586.01,
+			right:  26,
+			bottom: 574.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "y",
+			left:   26,
+			top:    580.82,
+			right:  34,
+			bottom: 570.26,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "e",
+			left:   34,
+			top:    582.03,
+			right:  41,
+			bottom: 574.32,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -37,15 +85,87 @@ func TestGroupLines_CommaStaysOnLine(t *testing.T) {
 // into its own line. Geometry is from a production PDF.
 func TestGroupLines_ApostropheStaysOnLine(t *testing.T) {
 	chars := []pdfChar{
-		{text: "k", left: 0, top: 586.01, right: 8, bottom: 574.12, font: ""},
-		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		{text: "d", left: 12, top: 586.01, right: 20, bottom: 574.12, font: ""},
-		{text: "s", left: 20, top: 582.03, right: 27, bottom: 574.32, font: ""},
-		{text: "’", left: 27, top: 586.01, right: 30, bottom: 580.20, font: ""},
-		{text: "t", left: 33, top: 584.07, right: 38, bottom: 574.36, font: ""},
-		{text: "o", left: 38, top: 582.03, right: 46, bottom: 574.32, font: ""},
-		{text: "y", left: 46, top: 580.82, right: 54, bottom: 570.26, font: ""},
-		{text: "s", left: 54, top: 582.03, right: 61, bottom: 574.32, font: ""},
+		{
+			text:   "k",
+			left:   0,
+			top:    586.01,
+			right:  8,
+			bottom: 574.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   8,
+			top:    585.77,
+			right:  12,
+			bottom: 574.50,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "d",
+			left:   12,
+			top:    586.01,
+			right:  20,
+			bottom: 574.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "s",
+			left:   20,
+			top:    582.03,
+			right:  27,
+			bottom: 574.32,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "’",
+			left:   27,
+			top:    586.01,
+			right:  30,
+			bottom: 580.20,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "t",
+			left:   33,
+			top:    584.07,
+			right:  38,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "o",
+			left:   38,
+			top:    582.03,
+			right:  46,
+			bottom: 574.32,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "y",
+			left:   46,
+			top:    580.82,
+			right:  54,
+			bottom: 570.26,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "s",
+			left:   54,
+			top:    582.03,
+			right:  61,
+			bottom: 574.32,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -65,8 +185,24 @@ func TestGroupLines_ApostropheStaysOnLine(t *testing.T) {
 // zero-height chars every char is "small", so groupLines clusters them all.
 func TestGroupLines_AllZeroHeightChars_FallsBackToNormalClustering(t *testing.T) {
 	chars := []pdfChar{
-		{text: "a", left: 0, top: 580, right: 5, bottom: 580, font: ""},
-		{text: "b", left: 5, top: 580, right: 10, bottom: 580, font: ""},
+		{
+			text:   "a",
+			left:   0,
+			top:    580,
+			right:  5,
+			bottom: 580,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "b",
+			left:   5,
+			top:    580,
+			right:  10,
+			bottom: 580,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -89,6 +225,7 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 			right:  8,
 			bottom: 574.36,
 			font:   "Times-Roman",
+			stream: noStreamPos,
 		},
 		{
 			text:   "f",
@@ -97,6 +234,7 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 			right:  12,
 			bottom: 574.36,
 			font:   "Times-Roman",
+			stream: noStreamPos,
 		},
 		{
 			text:   "G",
@@ -105,6 +243,7 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 			right:  20,
 			bottom: 574.36,
 			font:   "Times-Italic",
+			stream: noStreamPos,
 		},
 		{
 			text:   "r",
@@ -113,6 +252,7 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 			right:  26,
 			bottom: 574.36,
 			font:   "Times-Italic",
+			stream: noStreamPos,
 		},
 	}
 
@@ -126,10 +266,42 @@ func TestBuildLine_FontBoundaryInsertsSpace(t *testing.T) {
 // gap-only.
 func TestBuildLine_NoFontInfo_FallsBackToGapCheck(t *testing.T) {
 	chars := []pdfChar{
-		{text: "o", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
-		{text: "f", left: 8, top: 584.07, right: 12, bottom: 574.36, font: ""},
-		{text: "G", left: 12, top: 584.07, right: 20, bottom: 574.36, font: ""},
-		{text: "r", left: 20, top: 584.07, right: 26, bottom: 574.36, font: ""},
+		{
+			text:   "o",
+			left:   0,
+			top:    584.07,
+			right:  8,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "f",
+			left:   8,
+			top:    584.07,
+			right:  12,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "G",
+			left:   12,
+			top:    584.07,
+			right:  20,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "r",
+			left:   20,
+			top:    584.07,
+			right:  26,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	line := buildLine(chars)
@@ -142,9 +314,33 @@ func TestBuildLine_NoFontInfo_FallsBackToGapCheck(t *testing.T) {
 // starts its own line.
 func TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine(t *testing.T) {
 	chars := []pdfChar{
-		{text: "h", left: 0, top: 584.07, right: 8, bottom: 574.36, font: ""},
-		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		{text: ",", left: 0, top: 400, right: 3, bottom: 396, font: ""},
+		{
+			text:   "h",
+			left:   0,
+			top:    584.07,
+			right:  8,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   8,
+			top:    585.77,
+			right:  12,
+			bottom: 574.50,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   ",",
+			left:   0,
+			top:    400,
+			right:  3,
+			bottom: 396,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -157,13 +353,69 @@ func TestGroupLines_SmallCharFarFromAnyLine_StartsOwnLine(t *testing.T) {
 // their line.
 func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
 	chars := []pdfChar{
-		{text: "\"", left: 0, top: 586.01, right: 3, bottom: 580.20, font: ""},
-		{text: "h", left: 3, top: 584.07, right: 11, bottom: 574.36, font: ""},
-		{text: "i", left: 11, top: 585.77, right: 15, bottom: 574.50, font: ""},
-		{text: "b", left: 18, top: 586.01, right: 26, bottom: 574.12, font: ""},
-		{text: "y", left: 26, top: 580.82, right: 34, bottom: 570.26, font: ""},
-		{text: "e", left: 34, top: 582.03, right: 41, bottom: 574.32, font: ""},
-		{text: "\"", left: 41, top: 586.01, right: 44, bottom: 580.20, font: ""},
+		{
+			text:   "\"",
+			left:   0,
+			top:    586.01,
+			right:  3,
+			bottom: 580.20,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "h",
+			left:   3,
+			top:    584.07,
+			right:  11,
+			bottom: 574.36,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   11,
+			top:    585.77,
+			right:  15,
+			bottom: 574.50,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "b",
+			left:   18,
+			top:    586.01,
+			right:  26,
+			bottom: 574.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "y",
+			left:   26,
+			top:    580.82,
+			right:  34,
+			bottom: 570.26,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "e",
+			left:   34,
+			top:    582.03,
+			right:  41,
+			bottom: 574.32,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "\"",
+			left:   41,
+			top:    586.01,
+			right:  44,
+			bottom: 580.20,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -184,14 +436,39 @@ func TestGroupLines_QuotationMarksStayOnLine(t *testing.T) {
 // height comes from the body font.
 func TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine(t *testing.T) {
 	chars := []pdfChar{
-		{text: "W", left: 0, top: 520, right: 14, bottom: 500, font: ""},
-		{text: "h", left: 14, top: 519, right: 24, bottom: 500, font: ""},
-		{text: "y", left: 24, top: 510, right: 34, bottom: 490, font: ""},
+		{
+			text:   "W",
+			left:   0,
+			top:    520,
+			right:  14,
+			bottom: 500,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "h",
+			left:   14,
+			top:    519,
+			right:  24,
+			bottom: 500,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "y",
+			left:   24,
+			top:    510,
+			right:  34,
+			bottom: 490,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 	for i := range 20 {
 		left := float64(i) * 6
 		chars = append(chars, pdfChar{
 			text: "e", left: left, top: 406, right: left + 5, bottom: 400, font: "",
+			stream: noStreamPos,
 		})
 	}
 
@@ -226,13 +503,61 @@ func TestGroupLines_LargeTitleAboveSmallBodyText_StaysOnOneLine(t *testing.T) {
 // char overlapping two envelopes joins the nearest midpoint.
 func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T) {
 	chars := []pdfChar{
-		{text: "h", left: 0, top: 586.01, right: 8, bottom: 574.12, font: ""},
-		{text: "i", left: 8, top: 585.77, right: 12, bottom: 574.50, font: ""},
-		{text: "b", left: 0, top: 572.01, right: 8, bottom: 560.12, font: ""},
-		{text: "y", left: 8, top: 566.82, right: 16, bottom: 556.26, font: ""},
-		{text: "e", left: 16, top: 568.03, right: 23, bottom: 560.32, font: ""},
+		{
+			text:   "h",
+			left:   0,
+			top:    586.01,
+			right:  8,
+			bottom: 574.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   8,
+			top:    585.77,
+			right:  12,
+			bottom: 574.50,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "b",
+			left:   0,
+			top:    572.01,
+			right:  8,
+			bottom: 560.12,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "y",
+			left:   8,
+			top:    566.82,
+			right:  16,
+			bottom: 556.26,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "e",
+			left:   16,
+			top:    568.03,
+			right:  23,
+			bottom: 560.32,
+			font:   "",
+			stream: noStreamPos,
+		},
 		// Closer to line 1's midpoint (~580.07) than line 2's (~566.07).
-		{text: "\"", left: 20, top: 578, right: 23, bottom: 572, font: ""},
+		{
+			text:   "\"",
+			left:   20,
+			top:    578,
+			right:  23,
+			bottom: 572,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 
 	lines := groupLines(chars)
@@ -263,23 +588,159 @@ func TestGroupLines_SmallCharAttachesToClosestOfTwoOverlappingLines(t *testing.T
 func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
 	// Median height 10.4: the body ratio (2.6) wrongly spaces the 2.9pt letter gap.
 	headingChars := []pdfChar{
-		{text: "I", left: 153.5, right: 155.4, top: 110.2, bottom: 92.6, font: ""},
-		{text: "n", left: 158.3, right: 167.2, top: 105.2, bottom: 94.8, font: ""},
-		{text: "t", left: 168.8, right: 175.2, top: 105.2, bottom: 94.8, font: ""},
-		{text: "r", left: 176.9, right: 182.3, top: 105.2, bottom: 94.8, font: ""},
-		{text: "o", left: 183.3, right: 193.5, top: 105.2, bottom: 94.8, font: ""},
-		{text: "d", left: 195.5, right: 205.4, top: 105.2, bottom: 94.8, font: ""},
-		{text: "u", left: 208.0, right: 216.9, top: 105.2, bottom: 94.8, font: ""},
-		{text: "c", left: 219.2, right: 228.1, top: 105.2, bottom: 94.8, font: ""},
-		{text: "t", left: 228.8, right: 235.3, top: 105.2, bottom: 94.8, font: ""},
-		{text: "i", left: 236.8, right: 239.2, top: 105.2, bottom: 94.8, font: ""},
-		{text: "o", left: 241.3, right: 251.5, top: 105.2, bottom: 94.8, font: ""},
-		{text: "n", left: 253.8, right: 262.7, top: 105.2, bottom: 94.8, font: ""},
-		{text: "T", left: 269.3, right: 282.9, top: 110.2, bottom: 92.6, font: ""},
-		{text: "i", left: 283.6, right: 286.0, top: 105.2, bottom: 94.8, font: ""},
-		{text: "t", left: 287.0, right: 293.4, top: 105.2, bottom: 94.8, font: ""},
-		{text: "l", left: 294.4, right: 296.8, top: 105.2, bottom: 94.8, font: ""},
-		{text: "e", left: 297.8, right: 307.1, top: 105.2, bottom: 94.8, font: ""},
+		{
+			text:   "I",
+			left:   153.5,
+			right:  155.4,
+			top:    110.2,
+			bottom: 92.6,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "n",
+			left:   158.3,
+			right:  167.2,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "t",
+			left:   168.8,
+			right:  175.2,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "r",
+			left:   176.9,
+			right:  182.3,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "o",
+			left:   183.3,
+			right:  193.5,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "d",
+			left:   195.5,
+			right:  205.4,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "u",
+			left:   208.0,
+			right:  216.9,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "c",
+			left:   219.2,
+			right:  228.1,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "t",
+			left:   228.8,
+			right:  235.3,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   236.8,
+			right:  239.2,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "o",
+			left:   241.3,
+			right:  251.5,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "n",
+			left:   253.8,
+			right:  262.7,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "T",
+			left:   269.3,
+			right:  282.9,
+			top:    110.2,
+			bottom: 92.6,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   283.6,
+			right:  286.0,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "t",
+			left:   287.0,
+			right:  293.4,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "l",
+			left:   294.4,
+			right:  296.8,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "e",
+			left:   297.8,
+			right:  307.1,
+			top:    105.2,
+			bottom: 94.8,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 	heading := buildLine(headingChars)
 	if got, want := heading.text, "I ntroduction Title"; got != want {
@@ -287,12 +748,60 @@ func TestRebuildHeadingLineText_MergesTrackedSmallCaps(t *testing.T) {
 	}
 
 	bodyChars := []pdfChar{
-		{text: "h", left: 100, right: 106, top: 52.5, bottom: 47.5, font: ""},
-		{text: "i", left: 106.9, right: 110, top: 53.9, bottom: 51.1, font: ""},
-		{text: "w", left: 114.7, right: 122.3, top: 52.4, bottom: 47.6, font: ""},
-		{text: "o", left: 123.1, right: 129.1, top: 52.5, bottom: 47.5, font: ""},
-		{text: "r", left: 129.9, right: 133.4, top: 52.5, bottom: 47.5, font: ""},
-		{text: "d", left: 134.2, right: 139.4, top: 53.9, bottom: 51.1, font: ""},
+		{
+			text:   "h",
+			left:   100,
+			right:  106,
+			top:    52.5,
+			bottom: 47.5,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "i",
+			left:   106.9,
+			right:  110,
+			top:    53.9,
+			bottom: 51.1,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "w",
+			left:   114.7,
+			right:  122.3,
+			top:    52.4,
+			bottom: 47.6,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "o",
+			left:   123.1,
+			right:  129.1,
+			top:    52.5,
+			bottom: 47.5,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "r",
+			left:   129.9,
+			right:  133.4,
+			top:    52.5,
+			bottom: 47.5,
+			font:   "",
+			stream: noStreamPos,
+		},
+		{
+			text:   "d",
+			left:   134.2,
+			right:  139.4,
+			top:    53.9,
+			bottom: 51.1,
+			font:   "",
+			stream: noStreamPos,
+		},
 	}
 	body := buildLine(bodyChars)
 
@@ -326,8 +835,24 @@ func TestIsSmallCapsInitial(t *testing.T) {
 		want    bool
 	}{
 		"tall cap over small-caps continuation": {
-			prev: pdfChar{text: "I", left: 0, right: 2, top: 110, bottom: 92, font: ""},
-			c:    pdfChar{text: "n", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			prev: pdfChar{
+				text:   "I",
+				left:   0,
+				right:  2,
+				top:    110,
+				bottom: 92,
+				font:   "",
+				stream: noStreamPos,
+			},
+			c: pdfChar{
+				text:   "n",
+				left:   3,
+				right:  9,
+				top:    105,
+				bottom: 95,
+				font:   "",
+				stream: noStreamPos,
+			},
 			want: true, // 18 vs 10: 44% taller
 		},
 		"title-case same-height cap over lowercase": {
@@ -338,6 +863,7 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    110,
 				bottom: 102,
 				font:   "",
+				stream: noStreamPos,
 			},
 			c: pdfChar{
 				text:   "w",
@@ -346,11 +872,20 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    110,
 				bottom: 100,
 				font:   "",
+				stream: noStreamPos,
 			},
 			want: false,
 		},
 		"cap over capital continuation": {
-			prev: pdfChar{text: "A", left: 0, right: 2, top: 110, bottom: 92, font: ""},
+			prev: pdfChar{
+				text:   "A",
+				left:   0,
+				right:  2,
+				top:    110,
+				bottom: 92,
+				font:   "",
+				stream: noStreamPos,
+			},
 			c: pdfChar{
 				text:   "N",
 				left:   3,
@@ -358,12 +893,29 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    110,
 				bottom: 102,
 				font:   "",
+				stream: noStreamPos,
 			},
 			want: false, // word boundary in an all-caps heading
 		},
 		"lowercase predecessor": {
-			prev: pdfChar{text: "g", left: 0, right: 2, top: 110, bottom: 92, font: ""},
-			c:    pdfChar{text: "m", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			prev: pdfChar{
+				text:   "g",
+				left:   0,
+				right:  2,
+				top:    110,
+				bottom: 92,
+				font:   "",
+				stream: noStreamPos,
+			},
+			c: pdfChar{
+				text:   "m",
+				left:   3,
+				right:  9,
+				top:    105,
+				bottom: 95,
+				font:   "",
+				stream: noStreamPos,
+			},
 			want: false,
 		},
 		"multi-char predecessor": {
@@ -374,8 +926,17 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    110,
 				bottom: 92,
 				font:   "",
+				stream: noStreamPos,
 			},
-			c:    pdfChar{text: "e", left: 3, right: 9, top: 105, bottom: 95, font: ""},
+			c: pdfChar{
+				text:   "e",
+				left:   3,
+				right:  9,
+				top:    105,
+				bottom: 95,
+				font:   "",
+				stream: noStreamPos,
+			},
 			want: false,
 		},
 		"zero-height boxes": {
@@ -386,6 +947,7 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    100,
 				bottom: 100,
 				font:   "",
+				stream: noStreamPos,
 			},
 			c: pdfChar{
 				text:   "n",
@@ -394,6 +956,7 @@ func TestIsSmallCapsInitial(t *testing.T) {
 				top:    100,
 				bottom: 100,
 				font:   "",
+				stream: noStreamPos,
 			},
 			want: false,
 		},

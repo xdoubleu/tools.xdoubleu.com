@@ -120,6 +120,8 @@ func TestIsProofSlugLine(t *testing.T) {
 	require.True(t, isProofSlugLine("TIS final pgs 72 5/2/09 10:37:39"))
 	require.True(t, isProofSlugLine("72 5/2/09 10:37:39"))
 	require.True(t, isProofSlugLine("10:37:39 5/2/09 72"))
+	// Front matter is numbered in lowercase roman numerals.
+	require.True(t, isProofSlugLine("TIS final pgs xii 5/2/09 10:37:34"))
 
 	// A genuine body paragraph mentioning a date, but missing the other two
 	// tokens, must never match.

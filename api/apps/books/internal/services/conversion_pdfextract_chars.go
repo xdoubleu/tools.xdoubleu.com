@@ -16,8 +16,37 @@ type pdfChar struct {
 	// font is the name of the font this character was rendered with (empty
 	// when font information wasn't collected). A change in font name between
 	// two adjacent characters marks a text-run boundary — see buildLine.
-	font string
+	font   string
+	stream streamPos
 }
+
+// streamPos is a character's place in PDFium's text stream. PDFium reports
+// word spaces as whitespace characters (real or generated from the font's
+// advance widths), which is a far better word-boundary signal than the gap
+// between tight glyph boxes: side-bearings split words like "genera l ly",
+// and an overhanging "f" hides the gap in "of the".
+type streamPos struct {
+	// seq is the 1-based position among the page's non-whitespace
+	// characters; 0 means unknown (synthetic characters).
+	seq int
+	// spaceBefore/breakBefore record whitespace or a PDFium line break
+	// between this character and the previous non-whitespace one.
+	spaceBefore bool
+	breakBefore bool
+	// afterLigature marks a space right after a ligature. InDesign emits
+	// one after every ligature, mid-word included ("fl ows"), so it only
+	// counts when the gap to this character is word-sized.
+	afterLigature bool
+	// generatedSpace marks a zero-width space PDFium inferred rather than
+	// read from the stream; it guesses spaces between a tracked title's
+	// letters too, so only a gap past the line's threshold confirms it.
+	generatedSpace bool
+}
+
+// noStreamPos is a character with no known stream position.
+//
+//nolint:gochecknoglobals // deliberately the zero value; read-only
+var noStreamPos streamPos
 
 // pdfLine is one reconstructed line of text with its bounding box and the
 // per-column typographic stats needed for paragraph-break detection.
@@ -27,6 +56,11 @@ type pdfLine struct {
 	medianCharHeight         float64
 	colRightEdge             float64
 	colModalXStart           float64
+	// localRightEdge is the right margin of the line's own block (see
+	// setLocalRightEdges); 0 until set.
+	localRightEdge float64
+	// spaceRatio is the space-gap threshold text was joined with.
+	spaceRatio float64
 	// col distinguishes the left/single column (0) from the right column (1)
 	// so paragraph grouping can force a break at the column boundary instead
 	// of continuing to compare gap/indent against a line from another column.
@@ -58,22 +92,36 @@ func (l pdfLine) xMid() float64 { return (l.left + l.right) / 2 }
 const pdfiumSoftHyphenMarker = "\x02"
 
 // extractChars converts a structured-text response into pdfChars, dropping
-// control characters (empty text) and whitespace — line/paragraph spacing is
-// reconstructed from geometry, not from the whitespace glyphs PDFium reports.
+// control characters (empty text) and whitespace. Whitespace survives only
+// as each following character's streamPos flags.
 func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 	chars := make([]pdfChar, 0, len(resp.Chars))
+	var pos streamPos
 	for _, c := range resp.Chars {
 		text := c.Text
 		if text == pdfiumSoftHyphenMarker {
 			text = "-"
 		}
+		if text == "" {
+			continue
+		}
 		if strings.TrimSpace(text) == "" {
+			switch {
+			case strings.ContainsAny(text, "\r\n"):
+				pos.breakBefore = true
+			case c.PointPosition.Right <= c.PointPosition.Left:
+				pos.generatedSpace = true
+			default:
+				pos.spaceBefore = true
+				pos.afterLigature = endsInLigature(chars)
+			}
 			continue
 		}
 		var font string
 		if c.FontInformation != nil {
 			font = c.FontInformation.Name
 		}
+		pos.seq++
 		chars = append(chars, pdfChar{
 			text:   text,
 			left:   c.PointPosition.Left,
@@ -81,9 +129,34 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 			right:  c.PointPosition.Right,
 			bottom: c.PointPosition.Bottom,
 			font:   font,
+			stream: pos,
 		})
+		pos = streamPos{
+			seq: pos.seq, spaceBefore: false, breakBefore: false,
+			afterLigature: false, generatedSpace: false,
+		}
 	}
 	return chars
+}
+
+// endsInLigature reports whether the last two characters share one box:
+// PDFium's decomposition of a ligature glyph ("fl") into its letters.
+func endsInLigature(chars []pdfChar) bool {
+	n := len(chars)
+	if n <= 1 {
+		return false
+	}
+	a, b := chars[n-2], chars[n-1]
+	return a.left == b.left && a.right == b.right &&
+		unicode.IsLetter(lastRune(a.text)) && unicode.IsLetter(firstRune(b.text))
+}
+
+// streamAdjacent reports whether c directly follows prev in PDFium's stream
+// on the same PDFium line, so c's spaceBefore flag describes the gap
+// between them.
+func streamAdjacent(prev, c pdfChar) bool {
+	return prev.stream.seq > 0 && c.stream.seq == prev.stream.seq+1 &&
+		!c.stream.breakBefore
 }
 
 // lineGroupYMidRatio/lineSpaceGapRatio implement step 1 (lines): characters
@@ -101,6 +174,14 @@ const (
 	// only body text's tighter 0.25 threshold mis-splits their words
 	// (issue #1698).
 	headingSpaceRatio = 0.45
+	// streamWideGapRatio spaces stream-adjacent characters that PDFium gave
+	// no whitespace between but that are positioned a word apart (a tab
+	// stop); letter gaps, tracked headings included, stay under ~0.3.
+	streamWideGapRatio = 0.6
+	// ligatureSpaceGapRatio: after a ligature's spurious space glyph, the
+	// next letter sits at most ~0.3 away mid-word and ~0.5 after a real
+	// word space.
+	ligatureSpaceGapRatio = 0.4
 )
 
 // median returns the middle value of a sorted-in-place copy of vs, or 0 for
@@ -131,186 +212,6 @@ func medianCharWidth(chars []pdfChar) float64 {
 	return median(widths)
 }
 
-// normalCharHeightRatio distinguishes an ordinary letter — whose box spans
-// most of the page's median character height — from small punctuation
-// (commas, apostrophes, quotation marks, ...) whose box is much shorter and
-// sits off to one side of the baseline: low for commas/descenders, high for
-// apostrophes/quotes. Only normal-height characters take part in line
-// clustering (clusterNormalChars); small characters are attached afterwards
-// to whichever established line they're vertically closest to
-// (attachSmallChars). Letting punctuation's own off-center box influence
-// clustering is what caused #594 (commas split into their own line) and
-// #618 (apostrophes/quotes did the same, the opposite direction) — and
-// widening the clustering window to tolerate both directions at once (tried
-// while fixing #618) let unrelated lines merge into one, scrambling reading
-// order within the merged group.
-const normalCharHeightRatio = 0.7
-
-// groupLines clusters chars into lines (step 1 of the text algorithm): the
-// normal-height characters are clustered by y-midpoint proximity first
-// (clusterNormalChars), then every short-box punctuation character is
-// attached to its nearest resulting line (attachSmallChars) rather than
-// being allowed to shift where lines split.
-func groupLines(chars []pdfChar) []pdfLine {
-	if len(chars) == 0 {
-		return nil
-	}
-	medH := medianCharHeight(chars)
-	if medH <= 0 {
-		medH = 1
-	}
-
-	var normal, small []pdfChar
-	for _, c := range chars {
-		if c.top-c.bottom >= normalCharHeightRatio*medH {
-			normal = append(normal, c)
-		} else {
-			small = append(small, c)
-		}
-	}
-	if len(normal) == 0 {
-		// Degenerate page (every character is "small") — cluster everything
-		// so a page like this still produces output.
-		normal, small = chars, nil
-	}
-
-	groups := clusterNormalChars(normal, medH)
-	groups = attachSmallChars(groups, small, medH)
-
-	// clusterNormalChars produces groups in descending y-midpoint (top to
-	// bottom) order; attachSmallChars can append a new group past the end
-	// when no existing line is close enough, so restore that order before
-	// building lines.
-	sort.SliceStable(groups, func(i, j int) bool {
-		return groupYMid(groups[i]) > groupYMid(groups[j])
-	})
-
-	lines := make([]pdfLine, len(groups))
-	for i, g := range groups {
-		lines[i] = buildLine(g)
-	}
-	return lines
-}
-
-// clusterNormalCharsOverlapMarginRatio is the small float-rounding tolerance
-// applied to the vertical-interval overlap check in clusterNormalChars — not
-// a line-spacing allowance like lineGroupYMidRatio (that ratio is deliberately
-// too large for this check: applying it here reintroduces the false merge it
-// was tuned to avoid, see the comment below).
-const clusterNormalCharsOverlapMarginRatio = 0.05
-
-// clusterNormalChars groups normal-height characters into lines by
-// vertical-interval overlap rather than y-midpoint distance: sort by
-// descending midpoint, then join a character to the line being built when
-// its own [bottom, top] box overlaps the running envelope (min bottom, max
-// top seen so far) of the line, within a small float-rounding margin.
-//
-// A single physical line set in a large or stylized font can span a wide
-// range of y-midpoints — a cap-height letter's midpoint sits well above an
-// x-height letter's, which sits above a descender's — and that spread can
-// exceed lineGroupYMidRatio * medH when medH is calibrated off a much
-// smaller body-text font sharing the page (the chapter-title fracturing in
-// issue #1651). Cap, x-height, and descender glyphs on one baseline all
-// still overlap each other's box near the baseline/x-height band regardless
-// of font size, so overlap keeps them together where midpoint distance
-// would not. Genuinely separate lines set with normal leading still don't
-// overlap, so they still split — this only requires actual box overlap, not
-// lineGroupYMidRatio * medH of slack the way attachSmallChars allows for
-// small punctuation: that much tolerance here would let lines separated by
-// a narrow but real gap merge into one.
-func clusterNormalChars(chars []pdfChar, medH float64) [][]pdfChar {
-	sorted := make([]pdfChar, len(chars))
-	copy(sorted, chars)
-	sort.SliceStable(sorted, func(i, j int) bool {
-		return sorted[i].yMid() > sorted[j].yMid()
-	})
-
-	var groups [][]pdfChar
-	var group []pdfChar
-	var envTop, envBottom float64
-	margin := clusterNormalCharsOverlapMarginRatio * medH
-
-	flush := func() {
-		if len(group) == 0 {
-			return
-		}
-		groups = append(groups, group)
-		group = nil
-	}
-
-	for _, c := range sorted {
-		if len(group) > 0 && (c.bottom > envTop+margin || c.top < envBottom-margin) {
-			flush()
-		}
-		if len(group) == 0 {
-			envTop, envBottom = c.top, c.bottom
-		} else {
-			envTop = max(envTop, c.top)
-			envBottom = min(envBottom, c.bottom)
-		}
-		group = append(group, c)
-	}
-	flush()
-
-	return groups
-}
-
-// attachSmallChars assigns each short-box character to a group by
-// vertical-interval overlap, not by distance from a single point: a small
-// character joins the group whose [bottom, top] envelope — computed once
-// from that group's normal-height characters, before any small characters
-// are attached, so it can't grow across attachments — overlaps the
-// character's own [bottom, top] box within lineGroupYMidRatio * medH.
-// Overlap tolerates punctuation sitting on either side of the baseline
-// (comma low, apostrophe high); among multiple overlapping groups the one
-// whose y-midpoint is closest wins. A small character with no overlapping
-// group starts its own group, so a page of pure punctuation still produces
-// output.
-func attachSmallChars(groups [][]pdfChar, small []pdfChar, medH float64) [][]pdfChar {
-	margin := lineGroupYMidRatio * medH
-
-	envelopes := make([]pdfLine, len(groups))
-	for i, g := range groups {
-		envelopes[i] = buildLine(append([]pdfChar(nil), g...))
-	}
-
-	for _, c := range small {
-		best := -1
-		var bestDist float64
-
-		for i, env := range envelopes {
-			if c.bottom > env.top+margin || c.top < env.bottom-margin {
-				continue
-			}
-			dist := groupYMid(groups[i]) - c.yMid()
-			if dist < 0 {
-				dist = -dist
-			}
-			if best == -1 || dist < bestDist {
-				best = i
-				bestDist = dist
-			}
-		}
-
-		if best == -1 {
-			groups = append(groups, []pdfChar{c})
-			continue
-		}
-		groups[best] = append(groups[best], c)
-	}
-
-	return groups
-}
-
-// groupYMid returns the average y-midpoint of a group of characters.
-func groupYMid(g []pdfChar) float64 {
-	var sum float64
-	for _, c := range g {
-		sum += c.yMid()
-	}
-	return sum / float64(len(g))
-}
-
 // lastRune/firstRune return the last/first rune of s, or the zero rune for
 // an empty string.
 func lastRune(s string) rune {
@@ -329,10 +230,12 @@ func firstRune(s string) rune {
 }
 
 // needsRunBoundarySpace reports whether a space belongs between two
-// horizontally-adjacent characters already known to sit on the same line:
-// either the physical gap between their boxes exceeds spaceRatio * medH
-// (body text uses lineSpaceGapRatio; heading-sized lines are re-joined
-// with headingSpaceRatio — see rebuildHeadingLineText), or they come from
+// horizontally-adjacent characters already known to sit on the same line.
+// Stream-adjacent characters follow PDFium's whitespace (plus the font-run
+// check below). Otherwise: either the physical gap between their boxes
+// exceeds spaceRatio * medH (body text uses lineSpaceGapRatio; heading-sized
+// lines are re-joined with headingSpaceRatio — see rebuildHeadingLineText),
+// or they come from
 // different font/style runs (prev.font != c.font, both known) and both
 // sides of the boundary are alphabetic. The latter catches #1653: PDFium
 // reports no whitespace glyph at a run boundary that falls mid-word-gap
@@ -344,6 +247,13 @@ func firstRune(s string) rune {
 // buildLine falls back to the pre-#1653 gap-only behavior.
 func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	gap := c.left - prev.right
+	if streamAdjacent(prev, c) {
+		space := c.stream.spaceBefore &&
+			(!c.stream.afterLigature || gap > ligatureSpaceGapRatio*medH)
+		generated := c.stream.generatedSpace && gap > spaceRatio*medH
+		return space || generated || gap > streamWideGapRatio*medH ||
+			isFontRunBoundary(prev, c)
+	}
 	if gap > spaceRatio*medH {
 		return true
 	}
@@ -356,6 +266,12 @@ func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 	if gap > lineSpaceGapRatio*medH && !isSmallCapsInitial(prev, c) {
 		return true
 	}
+	return isFontRunBoundary(prev, c)
+}
+
+// isFontRunBoundary reports whether two letters come from different known
+// fonts — a word boundary in body text.
+func isFontRunBoundary(prev, c pdfChar) bool {
 	if prev.font == "" || c.font == "" || prev.font == c.font {
 		return false
 	}
@@ -417,6 +333,7 @@ func buildLine(chars []pdfChar) pdfLine {
 	// colRightEdge/colModalXStart/col are set later by assignColumns.
 	return pdfLine{ //nolint:exhaustruct // set later by assignColumns
 		text:             joinChars(chars, lineSpaceGapRatio),
+		spaceRatio:       lineSpaceGapRatio,
 		left:             left,
 		top:              top,
 		right:            right,
@@ -472,6 +389,7 @@ func rebuildHeadingLineText(pages []pageResult, docModalHeight float64) {
 				continue
 			}
 			item.line.text = joinChars(item.line.chars, headingSpaceRatio)
+			item.line.spaceRatio = headingSpaceRatio
 		}
 	}
 }

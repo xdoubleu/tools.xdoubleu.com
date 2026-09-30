@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -61,7 +59,7 @@ func goHTMLConverter(
 	}
 
 	imgDir := filepath.Dir(inPath)
-	indexXHTML, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
+	docs, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
 	if err != nil {
 		return err
 	}
@@ -72,7 +70,7 @@ func goHTMLConverter(
 	}
 	defer func() { _ = out.Close() }()
 
-	if err = writeEPUBZip(out, meta, images, toc, indexXHTML, imgDir); err != nil {
+	if err = writeEPUBZip(out, meta, images, toc, docs, imgDir); err != nil {
 		return fmt.Errorf("write epub zip: %w", err)
 	}
 	return nil
@@ -86,30 +84,36 @@ func writeEPUBZip(
 	meta ArticleMeta,
 	images []epubImage,
 	toc []tocEntry,
-	indexXHTML, imgDir string,
+	docs []contentDoc,
+	imgDir string,
 ) error {
 	zw := zip.NewWriter(w)
 
 	if err := writeStoredEntry(zw, "mimetype", "application/epub+zip"); err != nil {
 		return err
 	}
-	if err := writeEntry(
-		zw, "META-INF/container.xml", buildContainerXML(),
-	); err != nil {
-		return err
+	cover, hasCover := coverImage(meta)
+	entries := []contentDoc{
+		{Name: "META-INF/container.xml", XHTML: buildContainerXML()},
+		{
+			Name:  "OEBPS/content.opf",
+			XHTML: buildContentOPF(meta, images, docs, cover, hasCover),
+		},
+		{Name: "OEBPS/nav.xhtml", XHTML: buildNavXHTML(meta.Title, toc)},
 	}
-	if err := writeEntry(
-		zw, "OEBPS/content.opf", buildContentOPF(meta, images),
-	); err != nil {
-		return err
+	if hasCover {
+		entries = append(entries, contentDoc{
+			Name: "OEBPS/" + coverPage, XHTML: buildCoverXHTML(meta.Title, cover.FileName),
+		})
+		images = append([]epubImage{cover}, images...)
 	}
-	if err := writeEntry(
-		zw, "OEBPS/nav.xhtml", buildNavXHTML(meta.Title, toc),
-	); err != nil {
-		return err
+	for _, doc := range docs {
+		entries = append(entries, contentDoc{Name: "OEBPS/" + doc.Name, XHTML: doc.XHTML})
 	}
-	if err := writeEntry(zw, "OEBPS/index.xhtml", indexXHTML); err != nil {
-		return err
+	for _, e := range entries {
+		if err := writeEntry(zw, e.Name, e.XHTML); err != nil {
+			return err
+		}
 	}
 	for _, img := range images {
 		if err := copyImageEntry(zw, imgDir, img); err != nil {
@@ -157,114 +161,6 @@ func copyImageEntry(zw *zip.Writer, imgDir string, img epubImage) error {
 	}
 	_, err = io.Copy(w, f)
 	return err
-}
-
-func buildContainerXML() string {
-	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
-	b.WriteString(
-		`<container version="1.0" ` +
-			`xmlns="urn:oasis:names:tc:opendocument:xmlns:container">` + "\n",
-	)
-	b.WriteString("  <rootfiles>\n")
-	b.WriteString(
-		`    <rootfile full-path="OEBPS/content.opf" ` +
-			`media-type="application/oebps-package+xml"/>` + "\n",
-	)
-	b.WriteString("  </rootfiles>\n")
-	b.WriteString("</container>\n")
-	return b.String()
-}
-
-func buildContentOPF(meta ArticleMeta, images []epubImage) string {
-	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
-	b.WriteString(
-		`<package xmlns="http://www.idpf.org/2007/opf" version="3.0" ` +
-			`unique-identifier="pub-id" xml:lang="en">` + "\n",
-	)
-	b.WriteString(
-		`  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">` + "\n",
-	)
-	b.WriteString("    <dc:identifier id=\"pub-id\">urn:uuid:")
-	if meta.Identifier != "" {
-		b.WriteString(meta.Identifier)
-	} else {
-		// Only tests and callers without a stable identity reach this; a
-		// per-book identity is required for the Kobo firmware to correlate
-		// regenerated files with the book it already has (issue #1734).
-		b.WriteString(uuid.NewString())
-	}
-	b.WriteString("</dc:identifier>\n")
-	b.WriteString(
-		"    <dc:title>" + escapeXMLText(meta.Title) + "</dc:title>\n",
-	)
-	for _, author := range meta.Authors {
-		b.WriteString(
-			"    <dc:creator>" + escapeXMLText(author) + "</dc:creator>\n",
-		)
-	}
-	b.WriteString("    <dc:language>en</dc:language>\n")
-	b.WriteString("  </metadata>\n")
-
-	b.WriteString("  <manifest>\n")
-	b.WriteString(
-		`    <item id="doc" href="index.xhtml" ` +
-			`media-type="application/xhtml+xml"/>` + "\n",
-	)
-	b.WriteString(
-		`    <item id="nav" href="nav.xhtml" ` +
-			`media-type="application/xhtml+xml" properties="nav"/>` + "\n",
-	)
-	for _, img := range images {
-		fmt.Fprintf(&b, "    <item id=\"%s\" href=\"%s\" media-type=\"%s\"/>\n",
-			img.ID, img.FileName, img.MediaType)
-	}
-	b.WriteString("  </manifest>\n")
-
-	b.WriteString("  <spine>\n")
-	b.WriteString(`    <itemref idref="doc"/>` + "\n")
-	b.WriteString("  </spine>\n")
-	b.WriteString("</package>\n")
-
-	return b.String()
-}
-
-// buildNavXHTML renders the EPUB nav document's TOC as one chapter link per
-// toc entry (assignHeadingIDs), falling back to a single link to the whole
-// book when the article has no <h1> headings at all (e.g. a short feed
-// article) — see issue #1698, which the single-link case predates.
-func buildNavXHTML(title string, toc []tocEntry) string {
-	escaped := escapeXMLText(title)
-
-	var b strings.Builder
-	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
-	b.WriteString("<!DOCTYPE html>\n")
-	b.WriteString(
-		`<html xmlns="http://www.w3.org/1999/xhtml" ` +
-			`xmlns:epub="http://www.idpf.org/2007/ops">` + "\n",
-	)
-	b.WriteString("<head><title>" + escaped + "</title></head>\n")
-	b.WriteString("<body>\n")
-	b.WriteString(`  <nav epub:type="toc" id="toc">` + "\n")
-	b.WriteString("    <ol>\n")
-	if len(toc) == 0 {
-		b.WriteString(
-			`      <li><a href="index.xhtml">` + escaped + "</a></li>\n",
-		)
-	} else {
-		for _, entry := range toc {
-			b.WriteString(
-				`      <li><a href="index.xhtml#` + entry.ID + `">` +
-					escapeXMLText(entry.Title) + "</a></li>\n",
-			)
-		}
-	}
-	b.WriteString("    </ol>\n")
-	b.WriteString("  </nav>\n")
-	b.WriteString("</body>\n")
-	b.WriteString("</html>\n")
-	return b.String()
 }
 
 // escapeXMLText escapes the characters unsafe in XML text content (not

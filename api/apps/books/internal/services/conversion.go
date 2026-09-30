@@ -35,7 +35,7 @@ type PDFConverter func(
 
 // currentKEPUBConverterVersion: bump by hand whenever the pipeline would
 // produce different output; older rows are then regenerated on access.
-const currentKEPUBConverterVersion int16 = 12
+const currentKEPUBConverterVersion int16 = 13
 
 // IsKEPUBStale reports whether version predates the current pipeline.
 func (s *ConversionService) IsKEPUBStale(version int16) bool {

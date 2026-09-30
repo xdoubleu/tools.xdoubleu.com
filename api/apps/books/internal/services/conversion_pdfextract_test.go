@@ -39,26 +39,25 @@ func convertToEPUBWithCatalog(
 	return outPath
 }
 
-const indexXHTMLEntry = "OEBPS/index.xhtml"
-
+// readZipEntry returns the book's content documents (index.xhtml,
+// index-1.xhtml, …) concatenated in reading order.
 func readZipEntry(t *testing.T, zipPath string) []byte {
 	t.Helper()
-	zr, err := zip.OpenReader(zipPath)
-	require.NoError(t, err)
-	defer func() { _ = zr.Close() }()
-
-	for _, f := range zr.File {
-		if f.Name == indexXHTMLEntry {
-			rc, openErr := f.Open()
-			require.NoError(t, openErr)
-			defer func() { _ = rc.Close() }()
-			data, readErr := io.ReadAll(rc)
-			require.NoError(t, readErr)
-			return data
-		}
+	names := map[string]bool{}
+	for _, n := range zipEntryNames(t, zipPath) {
+		names[n] = true
 	}
-	t.Fatalf("zip entry %s not found in %s", indexXHTMLEntry, zipPath)
-	return nil
+	require.True(
+		t,
+		names["OEBPS/"+contentDocName(0)],
+		"no content document in %s",
+		zipPath,
+	)
+	var all []byte
+	for i := 0; names["OEBPS/"+contentDocName(i)]; i++ {
+		all = append(all, readZipEntryNamed(t, zipPath, "OEBPS/"+contentDocName(i))...)
+	}
+	return all
 }
 
 func readZipEntryNamed(t *testing.T, zipPath, name string) []byte {
@@ -252,8 +251,8 @@ func TestGoPDFConverter_ImageOnlyMultiPageDeduped(t *testing.T) {
 			pngCount++
 		}
 	}
-	// Four identical blank rasters dedupe to one; the filled page is separate.
-	require.Equal(t, 2, pngCount)
+	// Blank pages contribute nothing; only the filled page is rendered.
+	require.Equal(t, 1, pngCount)
 }
 
 var (
@@ -278,7 +277,7 @@ func TestGoPDFConverter_ImagesHaveAltText(t *testing.T) {
 	figEPUB := convertToEPUB(t, makeTwoColumnPDF(t))
 	requireAllImagesHaveAlt(t, string(readZipEntry(t, figEPUB)))
 
-	fallbackEPUB := convertToEPUB(t, makeImageOnlyPDF(t))
+	fallbackEPUB := convertToEPUB(t, makeTextThenImageOnlyPDF(t))
 	requireAllImagesHaveAlt(
 		t, string(readZipEntry(t, fallbackEPUB)),
 	)

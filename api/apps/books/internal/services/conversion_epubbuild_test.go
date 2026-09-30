@@ -78,7 +78,7 @@ func TestGoHTMLConverter_MimetypeFirstAndStored(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Test", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Test", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	require.NotEmpty(t, zr.File)
@@ -92,7 +92,7 @@ func TestGoHTMLConverter_ContainerPointsAtOPF(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Test", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Test", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	container := zipEntryContent(t, zr, "META-INF/container.xml")
@@ -108,20 +108,52 @@ func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Book", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
 	assert.Contains(t, nav, `<a href="index.xhtml#heading-0">Chapter One</a>`)
-	assert.Contains(t, nav, `<a href="index.xhtml#heading-1">Chapter Two</a>`)
+	assert.Contains(t, nav, `<a href="index-1.xhtml#heading-1">Chapter Two</a>`)
 	assert.NotContains(
 		t, nav, `<a href="index.xhtml">Book</a>`,
 		"fallback single entry must not appear when real headings exist",
 	)
 
-	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
-	assert.Contains(t, index, `id="heading-0"`)
-	assert.Contains(t, index, `id="heading-1"`)
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), `id="heading-0"`)
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index-1.xhtml"), `id="heading-1"`)
+}
+
+// TestGoHTMLConverter_SplitsAtTOCHeadings: the body splits into one file per
+// TOC heading of level 1 or 2 (with any content before the first in its own
+// file); deeper headings stay inside their chapter.
+func TestGoHTMLConverter_SplitsAtTOCHeadings(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body>"+
+		"<p>Front matter.</p>"+
+		`<h1 class="toc">Part One</h1><p>Part intro.</p>`+
+		`<h2 class="toc">Chapter One</h2><p>Chapter body.</p>`+
+		`<h3 class="toc">A Section</h3><p>Section body.</p>`+
+		"</body></html>", nil)
+	zr := convertToEPUBZip(
+		t,
+		inPath,
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
+	)
+
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), "Front matter.")
+	assert.NotContains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), "Part intro.")
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index-1.xhtml"), "Part intro.")
+	chapter := zipEntryContent(t, zr, "OEBPS/index-2.xhtml")
+	assert.Contains(t, chapter, "Chapter body.")
+	assert.Contains(t, chapter, "Section body.")
+
+	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
+	assert.Regexp(
+		t,
+		`<itemref idref="doc"/>\s*<itemref idref="doc-1"/>\s*<itemref idref="doc-2"/>`,
+		opf,
+	)
+	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
+	assert.Contains(t, nav, `<a href="index-2.xhtml#heading-2">A Section</a>`)
 }
 
 // TestGoHTMLConverter_NavFallsBackWithNoHeadings: no <h1> still yields a
@@ -133,7 +165,7 @@ func TestGoHTMLConverter_NavFallsBackWithNoHeadings(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Article", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Article", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
@@ -146,6 +178,7 @@ func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 		Title:      "My Article",
 		Authors:    []string{"Alice", "Bob"},
 		Identifier: "",
+		CoverImage: "",
 	})
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -158,7 +191,9 @@ func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 func TestGoHTMLConverter_NoAuthorsOmitsCreator(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body><p>hi</p></body></html>", nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "No Authors", Authors: nil, Identifier: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "No Authors", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -173,6 +208,7 @@ func TestGoHTMLConverter_IdentifierIsMetaIdentifier(t *testing.T) {
 		Title:      "Stable",
 		Authors:    nil,
 		Identifier: "00000000-0000-0000-0000-000000000009",
+		CoverImage: "",
 	})
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -191,7 +227,7 @@ func TestGoHTMLConverter_EmbedsAndManifestsImages(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Img", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Img", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	assert.Equal(t, string(jpg), zipEntryContent(t, zr, "OEBPS/img_0.jpg"))
@@ -212,7 +248,7 @@ func TestGoHTMLConverter_DropsMissingImage(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Missing", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Missing", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	for _, f := range zr.File {
@@ -229,7 +265,9 @@ func TestGoHTMLConverter_MalformedHTMLStillValid(t *testing.T) {
 		`</span><br></body>`
 	inPath := writeArticleFixture(t, malformed, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Malformed", Authors: nil, Identifier: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "Malformed", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	var buf bytes.Buffer
@@ -248,6 +286,7 @@ func TestGoHTMLConverter_KepubifyAcceptsRealisticArticle(t *testing.T) {
 		Title:      "My Article",
 		Authors:    []string{"Jane Doe"},
 		Identifier: "",
+		CoverImage: "",
 	})
 
 	var buf bytes.Buffer
@@ -267,7 +306,9 @@ func TestGoHTMLConverter_StripsScriptsAndHandlers(t *testing.T) {
 		`</body></html>`
 	inPath := writeArticleFixture(t, body, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
@@ -286,7 +327,7 @@ func TestGoHTMLConverter_VoidElementsSelfClosed(t *testing.T) {
 	zr := convertToEPUBZip(
 		t,
 		inPath,
-		ArticleMeta{Title: "Void", Authors: nil, Identifier: ""},
+		ArticleMeta{Title: "Void", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
@@ -302,7 +343,7 @@ func TestGoHTMLConverter_ContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	meta := ArticleMeta{Title: "Canceled", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "Canceled", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(ctx, inPath, outPath, meta)
 	require.Error(t, err)
 	_, statErr := os.Stat(outPath)
@@ -311,7 +352,7 @@ func TestGoHTMLConverter_ContextCanceled(t *testing.T) {
 
 func TestGoHTMLConverter_ReadInputError(t *testing.T) {
 	outPath := filepath.Join(t.TempDir(), "out.epub")
-	meta := ArticleMeta{Title: "", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(
 		context.Background(), "/nonexistent/path/index.html", outPath, meta,
 	)
@@ -320,7 +361,7 @@ func TestGoHTMLConverter_ReadInputError(t *testing.T) {
 
 func TestGoHTMLConverter_CreateOutputError(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body></body></html>", nil)
-	meta := ArticleMeta{Title: "", Authors: nil, Identifier: ""}
+	meta := ArticleMeta{Title: "", Authors: nil, Identifier: "", CoverImage: ""}
 	err := goHTMLConverter(
 		context.Background(), inPath, "/nonexistent/dir/out.epub", meta,
 	)
@@ -408,5 +449,38 @@ func TestCopyImageEntry_MissingFileErrors(t *testing.T) {
 		MediaType: contentTypeJPEG,
 		ID:        "item-img0",
 	})
+	require.Error(t, err)
+}
+
+func TestGoHTMLConverter_CoverPage(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body><p>Body.</p></body></html>",
+		map[string][]byte{"cover.png": []byte("png")})
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{
+		Title: "Book", Authors: nil, Identifier: "", CoverImage: "cover.png",
+	})
+
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/cover.xhtml"), `<img src="cover.png"`)
+	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
+	assert.Contains(
+		t,
+		opf,
+		`href="cover.png" media-type="image/png" properties="cover-image"`,
+	)
+	assert.Regexp(t, `<spine>\s*<itemref idref="cover"/>`, opf)
+}
+
+func TestGoHTMLConverter_CoverErrors(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body><p>Body.</p></body></html>", nil)
+
+	// An unsupported type has no cover page at all.
+	zr := convertToEPUBZip(t, inPath, ArticleMeta{
+		Title: "Book", Authors: nil, Identifier: "", CoverImage: "cover.bmp",
+	})
+	assert.NotContains(t, zipEntryContent(t, zr, "OEBPS/content.opf"), "cover-image")
+
+	// A missing cover file fails the build.
+	err := goHTMLConverter(context.Background(), inPath,
+		filepath.Join(t.TempDir(), "out.epub"),
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: "missing.png"})
 	require.Error(t, err)
 }
