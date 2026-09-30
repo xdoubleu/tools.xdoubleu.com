@@ -29,8 +29,11 @@ create a PR, or edit a repo file.
    approximating them.
 
 2. **Pull signals, every one split by `$device_type`:**
-   - **Rage/dead clicks:** `$rageclick` and `$dead_click` grouped by
-     element/page.
+   - **Rage/dead clicks:** first read the project setting via `project-get`
+     (`capture_dead_clicks`); if disabled, skip `$dead_click` (it is always
+     empty) and report the gap — turn on dead-click capture in the PostHog
+     project data settings — in the summary. Otherwise `$rageclick` and
+     `$dead_click` grouped by element/page.
    - **Mis-navigation:** a detail page (`$pageview`, SPA navigations
      included) reached from a list page, then left within **8s** — the
      user tapped the wrong thing.
