@@ -21,7 +21,7 @@ type Services struct {
 // New wires the services; booksApp/feedsApp are used only via their exported
 // lookup methods.
 func New(
-	_ *slog.Logger,
+	logger *slog.Logger,
 	repos *repositories.Repositories,
 	authService auth.Service,
 	todoistConf *oauth2.Config,
@@ -33,6 +33,7 @@ func New(
 		oauthconn.NewStateStore(),
 	)
 	learningPaths := &LearningPathService{
+		logger:  logger,
 		repo:    repos.LearningPaths,
 		books:   booksApp,
 		feeds:   feedsApp,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -64,10 +65,23 @@ type feedItemLookup interface {
 }
 
 type LearningPathService struct {
+	logger  *slog.Logger
 	repo    learningPathsStore
 	books   bookLookup
 	feeds   feedItemLookup
 	todoist *TodoistService
+}
+
+// logTodoistErr logs a failed best-effort Todoist call at Error level (so it
+// reaches Sentry) without failing the request that triggered it.
+func (s *LearningPathService) logTodoistErr(
+	ctx context.Context, op, userID string, pathID uuid.UUID, err error,
+) {
+	if err == nil {
+		return
+	}
+	s.logger.ErrorContext(ctx, "learningpaths: todoist "+op+" failed",
+		"userID", userID, "pathID", pathID, "error", err)
 }
 
 func (s *LearningPathService) List(
@@ -300,7 +314,8 @@ func (s *LearningPathService) Create(
 	// Activate the first module's items as Todoist tasks on path creation.
 	// Todoist is a best-effort reminder outbox: a failure here must not fail
 	// creating the path, and an absent connection is a graceful no-op.
-	_ = s.todoist.SyncPath(ctx, userID, created.ID)
+	s.logTodoistErr(ctx, "sync", userID, created.ID,
+		s.todoist.SyncPath(ctx, userID, created.ID))
 	return created, nil
 }
 
@@ -328,7 +343,8 @@ func (s *LearningPathService) Update(
 	// clear them first and let the sync below recreate the active module's.
 	// Best-effort, like every Todoist call.
 	if oldModules, modErr := s.repo.GetModules(ctx, lp.ID); modErr == nil {
-		_ = s.todoist.ClearTasks(ctx, userID, oldModules)
+		s.logTodoistErr(ctx, "clear", userID, lp.ID,
+			s.todoist.ClearTasks(ctx, userID, oldModules))
 	}
 
 	lp.UserID = existing.UserID
@@ -341,7 +357,7 @@ func (s *LearningPathService) Update(
 	if err = s.repo.ReplaceResources(ctx, lp.ID, lp.Resources); err != nil {
 		return err
 	}
-	_ = s.todoist.SyncPath(ctx, userID, lp.ID)
+	s.logTodoistErr(ctx, "sync", userID, lp.ID, s.todoist.SyncPath(ctx, userID, lp.ID))
 	return nil
 }
 
@@ -396,7 +412,8 @@ func (s *LearningPathService) Delete(
 	}
 	// Best-effort, like every Todoist call.
 	if modules, modErr := s.repo.GetModules(ctx, id); modErr == nil {
-		_ = s.todoist.DeletePath(ctx, userID, existing, modules)
+		s.logTodoistErr(ctx, "delete", userID, id,
+			s.todoist.DeletePath(ctx, userID, existing, modules))
 	}
 	return s.repo.Delete(ctx, id, userID)
 }
@@ -434,7 +451,7 @@ func (s *LearningPathService) RecordItemProgress(
 	if err != nil {
 		return err
 	}
-	_ = s.todoist.SyncPath(ctx, userID, pathID)
+	s.logTodoistErr(ctx, "sync", userID, pathID, s.todoist.SyncPath(ctx, userID, pathID))
 	return nil
 }
 

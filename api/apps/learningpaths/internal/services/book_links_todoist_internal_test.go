@@ -1,7 +1,9 @@
 package services
 
 import (
+	"bytes"
 	"errors"
+	"log/slog"
 	"net/http"
 	"testing"
 
@@ -14,6 +16,7 @@ import (
 	"tools.xdoubleu.com/apps/learningpaths/internal/models"
 	booksv1 "tools.xdoubleu.com/gen/books/v1"
 	iapp "tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/logging"
 )
 
 func externalBookPath() models.LearningPath {
@@ -41,7 +44,9 @@ func newConnectedService(
 ) (*LearningPathService, *mocks.MockTodoistClient) {
 	todoistSvc, mock := newTestTodoistService(store)
 	//nolint:exhaustruct //feeds unused on these paths
-	svc := &LearningPathService{repo: store, books: bookLookup, todoist: todoistSvc}
+	svc := &LearningPathService{
+		logger: logging.NewNopLogger(), repo: store, books: bookLookup, todoist: todoistSvc,
+	}
 	todoistSvc.resolveItems = svc.resolveItemLinks
 	return svc, mock
 }
@@ -149,10 +154,14 @@ func TestUpdate_ModuleLoadErrorSkipsTodoistButSucceeds(t *testing.T) {
 	store := &fakeLearningPathsStore{lp: lp, getModulesErr: errors.New("db")}
 	//nolint:exhaustruct //unset fields are the fixture defaults
 	svc, mock := newConnectedService(store, &fakeBookLookup{})
+	var logs bytes.Buffer
+	svc.logger = slog.New(slog.NewTextHandler(&logs, nil))
 
 	require.NoError(t, svc.Update(t.Context(), lp.UserID, *lp))
 	assert.True(t, store.modulesReplaced)
 	assert.Empty(t, mock.LastDeletedID)
+	assert.Contains(t, logs.String(), "level=ERROR")
+	assert.Contains(t, logs.String(), "todoist sync failed")
 }
 
 // TestSyncPath_FinishedBookCompletesModule: a book-linked item's stored flag
