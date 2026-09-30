@@ -25,7 +25,8 @@ var (
 	// folioRe matches a page-number token at either end of a header line:
 	// arabic, or roman as front matter numbers its pages.
 	folioRe = regexp.MustCompile(
-		`^(?:\d{1,4}|[ivxlcdm]{1,7}|[IVXLCDM]{1,7})\s+|\s+(?:\d{1,4}|[ivxlcdm]{1,7}|[IVXLCDM]{1,7})$`,
+		`^(?:\d{1,4}|[ivxlcdm]{1,7}|[IVXLCDM]{1,7})\s+|` +
+			`\s+(?:\d{1,4}|[ivxlcdm]{1,7}|[IVXLCDM]{1,7})$`,
 	)
 	bareFolioRe = regexp.MustCompile(`^(?:\d{1,4}|[ivxlcdm]{1,7}|[IVXLCDM]{1,7})$`)
 )
@@ -53,31 +54,12 @@ func pageEdges(blocks []htmlBlock) []int {
 	}
 }
 
-// removeRunningHeaders drops running headers and footers: a page's first
-// or last block below heading size that carries a page number and whose
-// text, page number removed, recurs at a page edge on at least
-// minRunningHeaderPages pages ("12 PART ONE: …" and "CHAPTER ONE: … 13"
-// alike; a bare page number counts too). The recurrence may be a section's
-// own title opening the page before — a short section repeats its header
-// only once. A header without a folio can't be told from a recurring
-// heading, and a folioed line at heading size is a numbered chapter title.
+// removeRunningHeaders drops a page's first or last block below heading size
+// that carries a page number and whose text without it recurs at a page
+// edge on minRunningHeaderPages pages — a short section's title opening the
+// page before counts. Unfolioed lines can't be told from recurring headings.
 func removeRunningHeaders(pages [][]htmlBlock, docModalHeight float64) [][]htmlBlock {
-	counts := map[string]int{}
-	for _, blocks := range pages {
-		seen := map[string]bool{}
-		for _, i := range pageEdges(blocks) {
-			if !blocks[i].isText ||
-				utf8.RuneCountInString(blocks[i].text) > runningHeaderMaxLength {
-				continue
-			}
-			key, _ := runningHeaderKey(blocks[i])
-			if !seen[key] {
-				seen[key] = true
-				counts[key]++
-			}
-		}
-	}
-
+	counts := edgeKeyCounts(pages)
 	result := make([][]htmlBlock, len(pages))
 	for p, blocks := range pages {
 		drop := map[int]bool{}
@@ -100,27 +82,52 @@ func removeRunningHeaders(pages [][]htmlBlock, docModalHeight float64) [][]htmlB
 	return result
 }
 
+// edgeKeyCounts counts, per running-header key, the pages with a short
+// text block at an edge carrying it.
+func edgeKeyCounts(pages [][]htmlBlock) map[string]int {
+	counts := map[string]int{}
+	for _, blocks := range pages {
+		seen := map[string]bool{}
+		for _, i := range pageEdges(blocks) {
+			if !blocks[i].isText ||
+				utf8.RuneCountInString(blocks[i].text) > runningHeaderMaxLength {
+				continue
+			}
+			key, _ := runningHeaderKey(blocks[i])
+			if !seen[key] {
+				seen[key] = true
+				counts[key]++
+			}
+		}
+	}
+	return counts
+}
+
 // joinPageContinuations rejoins paragraphs split by a page break: a page's
 // last body paragraph that doesn't end a sentence absorbs the next page's
 // first text paragraph when that starts in lowercase at a similar size.
 // Figures, notes, and footnotes (text set smaller than body text) after the
 // first half stay after the joined paragraph.
 func joinPageContinuations(pages [][]htmlBlock, docModalHeight float64) [][]htmlBlock {
-	lastPage, lastIdx := -1, -1
+	var last *htmlBlock
 	for p := range pages {
-		if lastPage >= 0 {
-			if j := firstTextBlock(pages[p]); j >= 0 &&
-				continuesOnNextPage(pages[lastPage][lastIdx], pages[p][j]) {
-				prev, next := &pages[lastPage][lastIdx], pages[p][j]
-				prev.inline = joinContinuationHTML(prev.text, prev.inline, next.text, next.inline)
-				prev.text = joinContinuation(prev.text, next.text)
-				pages[p] = append(pages[p][:j:j], pages[p][j+1:]...)
-			}
+		blocks := pages[p]
+		if j := firstTextBlock(blocks); last != nil && j >= 0 &&
+			continuesOnNextPage(*last, blocks[j]) {
+			next := blocks[j]
+			last.inline = joinContinuationHTML(
+				last.text,
+				last.inline,
+				next.text,
+				next.inline,
+			)
+			last.text = joinContinuation(last.text, next.text)
+			pages[p] = append(blocks[:j:j], blocks[j+1:]...)
 		}
 		for i := len(pages[p]) - 1; i >= 0; i-- {
-			b := pages[p][i]
-			if b.isText && b.medHeight >= footnoteHeightRatio*docModalHeight {
-				lastPage, lastIdx = p, i
+			if b := &pages[p][i]; b.isText &&
+				b.medHeight >= footnoteHeightRatio*docModalHeight {
+				last = b
 				break
 			}
 		}

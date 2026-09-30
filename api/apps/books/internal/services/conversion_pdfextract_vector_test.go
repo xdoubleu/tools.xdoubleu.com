@@ -64,7 +64,8 @@ func TestGoPDFConverter_VectorFigureRendered(t *testing.T) {
 	}
 	joined := strings.Join(texts, "\n")
 	for _, text := range texts {
-		for _, label := range []string{"stock", "inflow", "outflow", "minutes", "50", "0", "heat"} {
+		labels := []string{"stock", "inflow", "outflow", "minutes", "50", "0", "heat"}
+		for _, label := range labels {
 			require.NotContains(t, strings.Fields(text)[:1], label,
 				"diagram label leaked into text: %q", text)
 		}
@@ -102,7 +103,10 @@ func makePanelFigurePDF(t *testing.T) string {
 
 func TestGoPDFConverter_PanelFigureWithSideLegends(t *testing.T) {
 	t.Parallel()
-	blocks := extractBlocks(t, string(readZipEntry(t, convertToEPUB(t, makePanelFigurePDF(t)))))
+	blocks := extractBlocks(
+		t,
+		string(readZipEntry(t, convertToEPUB(t, makePanelFigurePDF(t)))),
+	)
 	var tags, texts []string
 	for _, b := range blocks {
 		tags = append(tags, b.tag)
@@ -124,8 +128,14 @@ func makeTwoFiguresPDF(t *testing.T) string {
 		pdf.Line(200, top+60, 380, top+20)
 		fixtureText(pdf, 200, top+92, fixtureBodySize, "0    25    50    75    100")
 	}
-	fixtureText(pdf, fixtureLeftX, 215, fixtureBodySize,
-		"Figure 1. The response of inventory to the same increase in demand with a shortened percep-")
+	fixtureText(
+		pdf,
+		fixtureLeftX,
+		215,
+		fixtureBodySize,
+		"Figure 1. The response of inventory to the same increase in demand "+
+			"with a shortened percep-",
+	)
 	fixtureText(pdf, fixtureLeftX, 227, fixtureBodySize, "tion delay.")
 	fixtureText(pdf, fixtureLeftX, 445, fixtureBodySize, "Figure 2. The second graph.")
 	return savePDF(t, pdf, "two-figures.pdf")
@@ -133,13 +143,21 @@ func makeTwoFiguresPDF(t *testing.T) string {
 
 func TestGoPDFConverter_TwoFiguresInReadingOrder(t *testing.T) {
 	t.Parallel()
-	blocks := extractBlocks(t, string(readZipEntry(t, convertToEPUB(t, makeTwoFiguresPDF(t)))))
+	blocks := extractBlocks(
+		t,
+		string(readZipEntry(t, convertToEPUB(t, makeTwoFiguresPDF(t)))),
+	)
 	var tags, texts []string
 	for _, b := range blocks {
 		tags = append(tags, b.tag)
 		texts = append(texts, b.text)
 	}
-	require.Equal(t, []string{"p", "img", "p", "img", "p"}, tags, strings.Join(texts, "\n"))
+	require.Equal(
+		t,
+		[]string{"p", "img", "p", "img", "p"},
+		tags,
+		strings.Join(texts, "\n"),
+	)
 	require.Equal(t,
 		"Figure 1. The response of inventory to the same increase in demand "+
 			"with a shortened perception delay.", texts[2])
@@ -154,8 +172,17 @@ func TestGoPDFConverter_ShadedSidebarStaysText(t *testing.T) {
 	pdf.SetFillColor(220, 220, 220)
 	pdf.Rect(150, 100, 300, 50, "F")
 	fixtureText(pdf, 250, 118, fixtureBodySize, "THINK ABOUT THIS:")
-	fixtureText(pdf, 170, 138, fixtureBodySize, "If A causes B, is it possible that B also causes A?")
-	blocks := extractBlocks(t, string(readZipEntry(t, convertToEPUB(t, savePDF(t, pdf, "sidebar.pdf")))))
+	fixtureText(
+		pdf,
+		170,
+		138,
+		fixtureBodySize,
+		"If A causes B, is it possible that B also causes A?",
+	)
+	blocks := extractBlocks(
+		t,
+		string(readZipEntry(t, convertToEPUB(t, savePDF(t, pdf, "sidebar.pdf")))),
+	)
 	var texts []string
 	for _, b := range blocks {
 		require.NotEqual(t, "img", b.tag)

@@ -33,7 +33,8 @@ func TestGoPDFConverter_CoverDeclaredAndPartPageKeptAsText(t *testing.T) {
 	requireValidKEPUB(t, epubPath)
 
 	opf := string(readZipEntryNamed(t, epubPath, "OEBPS/content.opf"))
-	coverItem := regexp.MustCompile(`<item [^>]*properties="cover-image"[^>]*/>`).FindString(opf)
+	coverItem := regexp.MustCompile(`<item [^>]*properties="cover-image"[^>]*/>`).
+		FindString(opf)
 	require.NotEmpty(t, coverItem, opf)
 	require.Contains(t, opf, `<meta name="cover" content="`)
 	require.Regexp(t, `<spine>\s*<itemref idref="cover"/>`, opf)

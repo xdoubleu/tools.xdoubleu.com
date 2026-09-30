@@ -17,6 +17,7 @@ import (
 //nolint:gochecknoglobals // fixed test data, not mutable state
 var pipelineFiles = []string{
 	"conversion_epubbuild.go",
+	"conversion_epubbuild_opf.go",
 	"conversion_epubbuild_split.go",
 	"conversion_epubbuild_xhtml.go",
 	"conversion_pdfextract.go",
@@ -24,6 +25,7 @@ var pipelineFiles = []string{
 	"conversion_pdfextract_bitmap.go",
 	"conversion_pdfextract_chars.go",
 	"conversion_pdfextract_columns.go",
+	"conversion_pdfextract_headings.go",
 	"conversion_pdfextract_images.go",
 	"conversion_pdfextract_inline.go",
 	"conversion_pdfextract_lines.go",
@@ -34,7 +36,9 @@ var pipelineFiles = []string{
 	"conversion_pdfextract_parabreaks.go",
 	"conversion_pdfextract_paragraphs.go",
 	"conversion_pdfextract_proofslug.go",
+	"conversion_pdfextract_units.go",
 	"conversion_pdfextract_vector.go",
+	"conversion_pdfextract_vectorlabels.go",
 }
 
 // pipelineFilesHashForVersion maps each converter version to the hash of
@@ -56,6 +60,7 @@ var pipelineFilesHashForVersion = map[int16]string{
 	10: "764f8c35bf4eb890606ddc15ad1f11d19e4fdafc016e37f9b09ada35afe722a8",
 	11: "7edf20385a07433654781d7987b6e1feaed07c24047c90b2ac2c746a3b160126",
 	12: "65f5b8506c78773d4f83fe8b12a2f0962c1fb806cfd722498a1037675a12019a",
+	13: "68e790b1dde51397500b923fb96c23b7b98a1469ea0d61d75df6ab2c6b7e7e3f",
 }
 
 func hashPipelineFiles(t *testing.T) string {

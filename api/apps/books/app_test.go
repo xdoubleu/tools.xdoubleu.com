@@ -136,6 +136,7 @@ func TestGetDisplayName(t *testing.T) {
 	assert.Equal(t, "Books", testApp.GetDisplayName())
 }
 
+//
 //nolint:lll // CSV rows are inherently long
 const goodreadsCSVForImport = `Book Id,Title,Author,ISBN,ISBN13,My Rating,Exclusive Shelf,Bookshelves with positions,Date Read
 99001,Import Test Book,Import Author,"=""0140449116""","=""9780140449112""",4,read,"read (#1)",2023/05/20

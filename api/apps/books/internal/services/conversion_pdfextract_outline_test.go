@@ -15,8 +15,16 @@ func TestApplyOutline(t *testing.T) {
 	img := imageBlock("fig-0.png", "Figure")
 	pages := [][]htmlBlock{
 		{flowBlock("PART ONE"), flowBlock("System Structure and Behavior")},
-		{flowBlock("— ONE —"), flowBlock("The Basics"), flowBlock("Body text starts here.")},
-		{img, flowBlock("More Than the Sum of Its Parts"), flowBlock("A system is more.")},
+		{
+			flowBlock("— ONE —"),
+			flowBlock("The Basics"),
+			flowBlock("Body text starts here."),
+		},
+		{
+			img,
+			flowBlock("More Than the Sum of Its Parts"),
+			flowBlock("A system is more."),
+		},
 		{flowBlock("Body text continues without a heading.")},
 	}
 	outline := []outlineEntry{
@@ -65,9 +73,21 @@ func makeOutlinePDF(t *testing.T) string {
 	pdf.Bookmark("Chapter One The Basics", 1, 0)
 	fixtureText(pdf, fixtureLeftX, 80, fixtureHeadingSize, "The Basics")
 	pdf.Bookmark("More Than the Sum", 2, 0)
-	fixtureText(pdf, fixtureLeftX, 80+fixtureBreakDY, fixtureBodySize, "More Than the Sum")
+	fixtureText(
+		pdf,
+		fixtureLeftX,
+		80+fixtureBreakDY,
+		fixtureBodySize,
+		"More Than the Sum",
+	)
 	fixtureText(pdf, fixtureLeftX, 80+2*fixtureBreakDY, fixtureBodySize, singleColParaA)
-	fixtureText(pdf, fixtureLeftX, 80+3*fixtureBreakDY, fixtureHeadingSize, "THE WAY OUT")
+	fixtureText(
+		pdf,
+		fixtureLeftX,
+		80+3*fixtureBreakDY,
+		fixtureHeadingSize,
+		"THE WAY OUT",
+	)
 	fixtureText(pdf, fixtureLeftX, 80+4*fixtureBreakDY, fixtureBodySize, singleColParaB)
 	return savePDF(t, pdf, "outline.pdf")
 }
@@ -83,8 +103,16 @@ func TestGoPDFConverter_OutlineDrivesTOC(t *testing.T) {
 	for _, m := range titles {
 		got = append(got, m[1])
 	}
-	require.Equal(t, []string{"PART ONE System Structure", "The Basics", "More Than the Sum"}, got)
-	require.Regexp(t, `(?s)<li>.*PART ONE System Structure.*<ol>.*The Basics.*<ol>.*More Than the Sum`, nav)
+	require.Equal(
+		t,
+		[]string{"PART ONE System Structure", "The Basics", "More Than the Sum"},
+		got,
+	)
+	require.Regexp(
+		t,
+		`(?s)<li>.*PART ONE System Structure.*<ol>.*The Basics.*<ol>.*More Than the Sum`,
+		nav,
+	)
 
 	body := string(readZipEntry(t, epubPath))
 	require.Regexp(t, `<h1[^>]*>PART ONE System Structure</h1>`, body)

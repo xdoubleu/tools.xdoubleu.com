@@ -56,20 +56,12 @@ type paraRules struct {
 	index bool
 }
 
-// startsNewParagraph implements step 4: whether cur starts a new paragraph
-// after para, the lines of the paragraph so far. A paragraph breaks at:
-//   - a vertical gap, or a line opening with a list marker;
-//   - a return to the margin of a paragraph whose first line hangs left of
-//     its second (a bibliography entry, a bullet item);
-//   - in an index, a line not stepped right after one ending in a page
-//     reference;
-//   - a first-line indent: a moderate step right of the previous line —
-//     unless it lines up with the text after a list marker, or continues a
-//     hanging entry. Indents are judged against the previous line, since
-//     every line of an epigraph, or of text narrowed beside a margin note,
-//     starts right of the column's usual start;
-//   - a line ending short (endsShort), unless it ends where the line above
-//     it does.
+// startsNewParagraph implements step 4, judging cur against para, the lines
+// so far: a paragraph breaks at a gap, a list marker, a return to a hanging
+// entry's margin, an index line after a page reference, a first-line indent
+// (a moderate step right of the previous line, not under a marker's text or
+// continuing a hanging entry), or a short line not justified with the one
+// above it.
 func startsNewParagraph(para []pdfLine, cur pdfLine, r paraRules) bool {
 	prev := para[len(para)-1]
 	if r.medLineHeight > 0 && prev.bottom-cur.top > paragraphGapRatio*r.medLineHeight {
@@ -101,7 +93,8 @@ func startsNewParagraph(para []pdfLine, cur pdfLine, r paraRules) bool {
 	}
 	// A line ending where the line above it ends is justified to a shared
 	// margin — narrowed beside a figure, it's still a full line.
-	if len(para) > 1 && math.Abs(para[len(para)-2].right-prev.right) <= justifiedEdgeChars*ch {
+	if len(para) > 1 &&
+		math.Abs(para[len(para)-2].right-prev.right) <= justifiedEdgeChars*ch {
 		return false
 	}
 	return endsShort(prev, cur, ch)
@@ -111,7 +104,7 @@ func startsNewParagraph(para []pdfLine, cur pdfLine, r paraRules) bool {
 // line steps a little right of its first) and cur is back at the first
 // line's margin.
 func returnsToEntryMargin(para []pdfLine, cur pdfLine, ch float64) bool {
-	if len(para) < 2 {
+	if len(para) <= 1 {
 		return false
 	}
 	hang := para[1].left - para[0].left
@@ -141,7 +134,8 @@ func hangingColumns(items []streamItem, ch float64) [2]bool {
 				continue
 			}
 			short := endsShort(prev, cur, ch)
-			if !short && step <= hangingIndentChars*ch && !listMarkerRe.MatchString(prev.text) {
+			if !short && step <= hangingIndentChars*ch &&
+				!listMarkerRe.MatchString(prev.text) {
 				hang[c]++
 			}
 			if short && step <= paragraphMaxIndentChars*ch && i+1 < len(lines) &&
@@ -177,7 +171,8 @@ func endsShort(prev, cur pdfLine, medCharWidth float64) bool {
 	if prev.right+medCharWidth+firstWordWidth(cur) <= edge {
 		return true
 	}
-	return prev.right < paragraphShortLineRatio*edge && prev.right < cur.right-medCharWidth
+	return prev.right < paragraphShortLineRatio*edge &&
+		prev.right < cur.right-medCharWidth
 }
 
 // firstWordWidth is the width of a line's first word.

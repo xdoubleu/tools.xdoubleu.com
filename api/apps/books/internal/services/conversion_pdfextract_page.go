@@ -45,56 +45,14 @@ func extractPage(
 		ByIndex: &requests.PageByIndex{Document: doc, Index: index},
 	}
 
-	sizeResp, err := instance.GetPageSize(&requests.GetPageSize{Page: page})
+	geo, chars, err := pageText(instance, page)
 	if err != nil {
-		return noPageResult, fmt.Errorf("get page size: %w", err)
+		return noPageResult, err
 	}
-	pageArea := sizeResp.Width * sizeResp.Height
-
-	textReq := requests.GetPageTextStructured{ //nolint:exhaustruct // no pixel info
-		Page: page,
-		Mode: requests.GetPageTextStructuredModeChars,
-		// Font name is used to detect text-run boundaries mid-line (#1653):
-		// a style/font change at a word boundary doesn't reliably produce a
-		// physical gap large enough for buildLine's geometric space check to
-		// catch on its own.
-		CollectFontInformation: true,
-	}
-	textResp, err := instance.GetPageTextStructured(&textReq)
+	rawFigures, chars, err := pageFigures(instance, page, geo, chars)
 	if err != nil {
-		return noPageResult, fmt.Errorf("get page text: %w", err)
+		return noPageResult, err
 	}
-	boxResp, err := instance.FPDF_GetPageBoundingBox(
-		&requests.FPDF_GetPageBoundingBox{Page: page},
-	)
-	if err != nil {
-		return noPageResult, fmt.Errorf("get page bounding box: %w", err)
-	}
-	originX, originY := float64(boxResp.Rect.Left), float64(boxResp.Rect.Bottom)
-
-	chars := visibleChars(
-		extractChars(textResp), originX, originY, sizeResp.Width, sizeResp.Height,
-	)
-
-	rawFigures, err := extractPageImages(instance, page, pageArea)
-	if err != nil {
-		return noPageResult, fmt.Errorf("extract page images: %w", err)
-	}
-	for i := range rawFigures {
-		rawFigures[i].left -= originX
-		rawFigures[i].right -= originX
-		rawFigures[i].top -= originY
-		rawFigures[i].bottom -= originY
-	}
-
-	vectorFigures, chars, err := extractVectorFigures(instance, page, pageGeometry{
-		originX: originX, originY: originY,
-		width: sizeResp.Width, height: sizeResp.Height,
-	}, chars)
-	if err != nil {
-		return noPageResult, fmt.Errorf("extract vector figures: %w", err)
-	}
-	rawFigures = append(outsideFigures(rawFigures, vectorFigures), vectorFigures...)
 
 	if len(chars) == 0 && len(rawFigures) == 0 {
 		fileName, renderErr := renderFullPage(instance, page, workDir, tracker)
@@ -110,11 +68,7 @@ func extractPage(
 		}, nil
 	}
 
-	gutterLeft, gutterRight, twoColumn := findGutter(
-		chars,
-		sizeResp.Width,
-		sizeResp.Height,
-	)
+	gutterLeft, gutterRight, twoColumn := findGutter(chars, geo.width, geo.height)
 	lines := groupColumnLines(chars, gutterLeft, gutterRight, twoColumn)
 
 	figures, err := placeFigures(
@@ -133,7 +87,7 @@ func extractPage(
 
 	var cover string
 	for _, f := range figures {
-		if (f.right-f.left)*(f.top-f.bottom) >= coverMinPageShare*pageArea {
+		if (f.right-f.left)*(f.top-f.bottom) >= coverMinPageShare*geo.width*geo.height {
 			cover = f.fileName
 			break
 		}
@@ -153,6 +107,67 @@ func extractPage(
 	}, nil
 }
 
+// pageText returns the page's geometry and its visible characters in page
+// space.
+func pageText(
+	instance pdfium.Pdfium, page requests.Page,
+) (pageGeometry, []pdfChar, error) {
+	var geo pageGeometry
+	sizeResp, err := instance.GetPageSize(&requests.GetPageSize{Page: page})
+	if err != nil {
+		return geo, nil, fmt.Errorf("get page size: %w", err)
+	}
+	boxResp, err := instance.FPDF_GetPageBoundingBox(
+		&requests.FPDF_GetPageBoundingBox{Page: page},
+	)
+	if err != nil {
+		return geo, nil, fmt.Errorf("get page bounding box: %w", err)
+	}
+	geo = pageGeometry{
+		originX: float64(boxResp.Rect.Left), originY: float64(boxResp.Rect.Bottom),
+		width: sizeResp.Width, height: sizeResp.Height,
+	}
+
+	textResp, err := instance.GetPageTextStructured(
+		&requests.GetPageTextStructured{ //nolint:exhaustruct // no pixel info
+			Page: page,
+			Mode: requests.GetPageTextStructuredModeChars,
+			// Font names mark text-run boundaries mid-line and inline styles.
+			CollectFontInformation: true,
+		},
+	)
+	if err != nil {
+		return geo, nil, fmt.Errorf("get page text: %w", err)
+	}
+	chars := visibleChars(
+		extractChars(textResp), geo.originX, geo.originY, geo.width, geo.height,
+	)
+	return geo, chars, nil
+}
+
+// pageFigures returns the page's raster and vector figures in page space,
+// with the characters left once vector figures take their labels.
+func pageFigures(
+	instance pdfium.Pdfium, page requests.Page, geo pageGeometry, chars []pdfChar,
+) ([]rawFigure, []pdfChar, error) {
+	raster, err := extractPageImages(instance, page, geo.width*geo.height)
+	if err != nil {
+		return nil, nil, fmt.Errorf("extract page images: %w", err)
+	}
+	for i := range raster {
+		raster[i].left -= geo.originX
+		raster[i].right -= geo.originX
+		raster[i].top -= geo.originY
+		raster[i].bottom -= geo.originY
+	}
+
+	vector, chars, err := extractVectorFigures(instance, page, geo, chars)
+	if err != nil {
+		return nil, nil, fmt.Errorf("extract vector figures: %w", err)
+	}
+	return append(outsideFigures(raster, vector), vector...), chars, nil
+}
+
 // outsideFigures drops raster figures lying within a vector figure, whose
 // render already shows them.
 func outsideFigures(raster, vector []rawFigure) []rawFigure {
@@ -160,7 +175,8 @@ func outsideFigures(raster, vector []rawFigure) []rawFigure {
 	for _, r := range raster {
 		inside := false
 		for _, v := range vector {
-			if r.left >= v.left && r.right <= v.right && r.bottom >= v.bottom && r.top <= v.top {
+			if r.left >= v.left && r.right <= v.right && r.bottom >= v.bottom &&
+				r.top <= v.top {
 				inside = true
 				break
 			}

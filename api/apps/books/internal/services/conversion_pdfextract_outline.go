@@ -79,7 +79,9 @@ func applyOutline(pages [][]htmlBlock, outline []outlineEntry) [][]htmlBlock {
 			heading.text = strings.Join(parts, " ")
 			heading.tocLevel = level
 			heading.listItem = false
-			pages[e.page] = append(append(blocks[:start:start], heading), blocks[end:]...)
+			pages[e.page] = append(
+				append(blocks[:start:start], heading),
+				blocks[end:]...)
 			continue
 		}
 		heading := outlineHeading(title, level)
@@ -158,7 +160,10 @@ func applyOutlineHeadings(blocks []htmlBlock, outlined bool) {
 		case outlined && (b.tag == "h1" || b.tag == "h2"):
 			blocks[i].tag = outlineDemotedTag
 			blocks[i].html = fmt.Sprintf(
-				"<%s>%s</%s>", outlineDemotedTag, escapeXMLText(b.text), outlineDemotedTag,
+				"<%s>%s</%s>",
+				outlineDemotedTag,
+				escapeXMLText(b.text),
+				outlineDemotedTag,
 			)
 		}
 	}

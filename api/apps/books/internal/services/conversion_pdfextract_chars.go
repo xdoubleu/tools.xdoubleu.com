@@ -143,7 +143,7 @@ func extractChars(resp *responses.GetPageTextStructured) []pdfChar {
 // PDFium's decomposition of a ligature glyph ("fl") into its letters.
 func endsInLigature(chars []pdfChar) bool {
 	n := len(chars)
-	if n < 2 {
+	if n <= 1 {
 		return false
 	}
 	a, b := chars[n-2], chars[n-1]
@@ -232,9 +232,10 @@ func firstRune(s string) rune {
 // needsRunBoundarySpace reports whether a space belongs between two
 // horizontally-adjacent characters already known to sit on the same line.
 // Stream-adjacent characters follow PDFium's whitespace (plus the font-run
-// check below). Otherwise: either the physical gap between their boxes exceeds spaceRatio * medH
-// (body text uses lineSpaceGapRatio; heading-sized lines are re-joined
-// with headingSpaceRatio — see rebuildHeadingLineText), or they come from
+// check below). Otherwise: either the physical gap between their boxes
+// exceeds spaceRatio * medH (body text uses lineSpaceGapRatio; heading-sized
+// lines are re-joined with headingSpaceRatio — see rebuildHeadingLineText),
+// or they come from
 // different font/style runs (prev.font != c.font, both known) and both
 // sides of the boundary are alphabetic. The latter catches #1653: PDFium
 // reports no whitespace glyph at a run boundary that falls mid-word-gap
@@ -269,7 +270,7 @@ func needsRunBoundarySpace(prev, c pdfChar, medH, spaceRatio float64) bool {
 }
 
 // isFontRunBoundary reports whether two letters come from different known
-// fonts — a word boundary in body text (#1653).
+// fonts — a word boundary in body text.
 func isFontRunBoundary(prev, c pdfChar) bool {
 	if prev.font == "" || c.font == "" || prev.font == c.font {
 		return false

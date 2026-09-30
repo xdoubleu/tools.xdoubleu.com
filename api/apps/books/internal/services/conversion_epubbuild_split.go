@@ -37,25 +37,7 @@ func splitContentDocs(root *xhtml.Node, toc []tocEntry) ([]contentDoc, error) {
 		return []contentDoc{{Name: contentDocName(0), XHTML: doc}}, err
 	}
 
-	splitAt := map[string]bool{}
-	for _, e := range toc {
-		if e.Level <= splitMaxLevel {
-			splitAt[e.ID] = true
-		}
-	}
-	var chunks [][]*xhtml.Node
-	var cur []*xhtml.Node
-	hasContent := false
-	for n := body.FirstChild; n != nil; n = n.NextSibling {
-		if n.Type == xhtml.ElementNode && splitAt[attrValue(n, "id")] && hasContent {
-			chunks = append(chunks, cur)
-			cur, hasContent = nil, false
-		}
-		cur = append(cur, n)
-		hasContent = hasContent || n.Type == xhtml.ElementNode
-	}
-	chunks = append(chunks, cur)
-
+	chunks := chunkBody(body, toc)
 	for _, n := range append([]*xhtml.Node(nil), nodesOf(body)...) {
 		body.RemoveChild(n)
 	}
@@ -81,6 +63,30 @@ func splitContentDocs(root *xhtml.Node, toc []tocEntry) ([]contentDoc, error) {
 		toc[i].File = fileOf[toc[i].ID]
 	}
 	return docs, nil
+}
+
+// chunkBody groups body's top-level nodes into chapters, starting a new one
+// at each TOC heading of splitMaxLevel or shallower once the current one
+// holds an element.
+func chunkBody(body *xhtml.Node, toc []tocEntry) [][]*xhtml.Node {
+	splitAt := map[string]bool{}
+	for _, e := range toc {
+		if e.Level <= splitMaxLevel {
+			splitAt[e.ID] = true
+		}
+	}
+	var chunks [][]*xhtml.Node
+	var cur []*xhtml.Node
+	hasContent := false
+	for n := body.FirstChild; n != nil; n = n.NextSibling {
+		if n.Type == xhtml.ElementNode && splitAt[attrValue(n, "id")] && hasContent {
+			chunks = append(chunks, cur)
+			cur, hasContent = nil, false
+		}
+		cur = append(cur, n)
+		hasContent = hasContent || n.Type == xhtml.ElementNode
+	}
+	return append(chunks, cur)
 }
 
 func nodesOf(parent *xhtml.Node) []*xhtml.Node {

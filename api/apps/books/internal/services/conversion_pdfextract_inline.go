@@ -149,6 +149,8 @@ func paragraphHTML(lines []pdfLine) string {
 
 // adjacentRuns merges a run closed and reopened with the same tag, as at a
 // line break inside it.
+//
+//nolint:gochecknoglobals // static replacer, read-only
 var adjacentRuns = strings.NewReplacer(
 	"</em><em>", "", "</em> <em>", " ",
 	"</strong><strong>", "", "</strong> <strong>", " ",

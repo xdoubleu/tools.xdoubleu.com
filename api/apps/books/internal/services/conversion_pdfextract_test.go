@@ -47,7 +47,12 @@ func readZipEntry(t *testing.T, zipPath string) []byte {
 	for _, n := range zipEntryNames(t, zipPath) {
 		names[n] = true
 	}
-	require.True(t, names["OEBPS/"+contentDocName(0)], "no content document in %s", zipPath)
+	require.True(
+		t,
+		names["OEBPS/"+contentDocName(0)],
+		"no content document in %s",
+		zipPath,
+	)
 	var all []byte
 	for i := 0; names["OEBPS/"+contentDocName(i)]; i++ {
 		all = append(all, readZipEntryNamed(t, zipPath, "OEBPS/"+contentDocName(i))...)

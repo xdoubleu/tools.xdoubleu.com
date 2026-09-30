@@ -48,7 +48,11 @@ func TestRemoveRunningHeaders(t *testing.T) {
 
 	got := flowTexts(removeRunningHeaders(pages, 10))
 	for i := range 6 {
-		assert.Equal(t, []string{fmt.Sprintf("Body paragraph on page %d.", 12+i)}, got[i])
+		assert.Equal(
+			t,
+			[]string{fmt.Sprintf("Body paragraph on page %d.", 12+i)},
+			got[i],
+		)
 	}
 	assert.Equal(t, []string{"CHAPTER TWO", "Opening paragraph."}, got[6])
 }
@@ -64,8 +68,14 @@ func TestJoinPageContinuations(t *testing.T) {
 	heading.medHeight = 16
 
 	pages := [][]htmlBlock{
-		{flowBlock("A tree is a system, and a forest is a larger system. The earth"), aside},
-		{flowBlock("is a system. So is the solar system."), flowBlock("Next paragraph.")},
+		{
+			flowBlock("A tree is a system, and a forest is a larger system. The earth"),
+			aside,
+		},
+		{
+			flowBlock("is a system. So is the solar system."),
+			flowBlock("Next paragraph."),
+		},
 		{flowBlock("It would seem as if this were circular reason-")},
 		{flowBlock("ing; profits fell because investment fell.")},
 		{flowBlock("A paragraph that ends cleanly.")},
@@ -76,9 +86,16 @@ func TestJoinPageContinuations(t *testing.T) {
 
 	got := flowTexts(joinPageContinuations(pages, 10))
 	assert.Equal(t, [][]string{
-		{"A tree is a system, and a forest is a larger system. The earth is a system. So is the solar system.", "note"},
+		{
+			"A tree is a system, and a forest is a larger system. The earth is a " +
+				"system. So is the solar system.",
+			"note",
+		},
 		{"Next paragraph."},
-		{"It would seem as if this were circular reasoning; profits fell because investment fell."},
+		{
+			"It would seem as if this were circular reasoning; profits fell " +
+				"because investment fell.",
+		},
 		{},
 		{"A paragraph that ends cleanly."},
 		{"new sentence fragment stays apart"},
@@ -118,7 +135,9 @@ func TestRemoveRunningHeaders_ShortSection(t *testing.T) {
 func TestJoinPageContinuations_SkipsFootnote(t *testing.T) {
 	t.Parallel()
 
-	note := flowBlock("* Definitions of words in bold face can be found in the Glossary.")
+	note := flowBlock(
+		"* Definitions of words in bold face can be found in the Glossary.",
+	)
 	note.medHeight = 7
 	pages := [][]htmlBlock{
 		{flowBlock("A tree is a system. The earth"), note},

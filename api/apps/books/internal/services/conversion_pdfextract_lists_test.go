@@ -48,7 +48,11 @@ func TestStartsNewParagraph(t *testing.T) {
 		{
 			name: "block of indented lines (epigraph) continues",
 			prev: lineAt(strings.Repeat("e", 68), 80, 100),
-			cur:  lineAt("looked at in the right way"+strings.Repeat("e", 42), 80, 100-testLineH),
+			cur: lineAt(
+				"looked at in the right way"+strings.Repeat("e", 42),
+				80,
+				100-testLineH,
+			),
 			want: false,
 		},
 		{
@@ -65,7 +69,11 @@ func TestStartsNewParagraph(t *testing.T) {
 		},
 		{
 			name: "hanging continuation under a numbered note continues",
-			prev: lineAt("1. Russell Ackoff, The Future of Operational Research Is Past, Journal of th", 62, 100),
+			prev: lineAt(
+				"1. Russell Ackoff, The Future of Operational Research Is Past, Journal of th",
+				62,
+				100,
+			),
 			cur:  lineAt("Research Society 30", 62+3*testCharW, 100-testLineH),
 			want: false,
 		},
@@ -117,15 +125,24 @@ func makeBulletListPDF(t *testing.T) string {
 		fixtureText(pdf, x, y, fixtureBodySize, cp1252(s))
 		y += fixtureSameParaDY
 	}
-	line(fixtureLeftX, "Consider the combined purposes of the actors involved in this system:")
+	line(
+		fixtureLeftX,
+		"Consider the combined purposes of the actors involved in this system:",
+	)
 	y += fixtureSameParaDY
 	line(fixtureLeftX+30, "• desperate people who want quick relief from psychological")
 	line(fixtureLeftX+37, "pain")
 	line(fixtureLeftX+30, "• farmers, dealers, and bankers who want to earn money")
 	line(fixtureLeftX+30, "• wealthy people living in close proximity to poor people")
 	y += fixtureSameParaDY
-	line(fixtureLeftX, "Altogether, these make up a system from which it is extremely difficult")
-	line(fixtureLeftX, "to eradicate drug addiction and crime. More closing words on this page.")
+	line(
+		fixtureLeftX,
+		"Altogether, these make up a system from which it is extremely difficult",
+	)
+	line(
+		fixtureLeftX,
+		"to eradicate drug addiction and crime. More closing words on this page.",
+	)
 	return savePDF(t, pdf, "bullets.pdf")
 }
 

@@ -20,7 +20,7 @@ const (
 // that continue it, which catches its lines that happen not to
 // sit beside a body line. Notes come back as vertically contiguous groups.
 func separateAsides(lines []pdfLine) ([]pdfLine, [][]pdfLine) {
-	if len(lines) < 2 {
+	if len(lines) <= 1 {
 		return lines, nil
 	}
 	dominant := dominantFamily(lines)

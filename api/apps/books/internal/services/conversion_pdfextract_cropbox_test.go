@@ -55,8 +55,16 @@ func makeCroppedIndexPDF(t *testing.T) string {
 
 	for row := range indexRows {
 		y := 180 + float64(row)*indexLineDY
-		left := padToWidth(pdf, fmt.Sprintf("left entry %c term, %d", 'a'+row%26, row), indexColWidth)
-		right := padToWidth(pdf, fmt.Sprintf("right entry %c term, %d", 'a'+row%26, row), indexColWidth)
+		left := padToWidth(
+			pdf,
+			fmt.Sprintf("left entry %c term, %d", 'a'+row%26, row),
+			indexColWidth,
+		)
+		right := padToWidth(
+			pdf,
+			fmt.Sprintf("right entry %c term, %d", 'a'+row%26, row),
+			indexColWidth,
+		)
 		pdf.Text(indexCropOffset+indexLeftX, y, left)
 		pdf.Text(indexCropOffset+indexRightX, y, right)
 	}

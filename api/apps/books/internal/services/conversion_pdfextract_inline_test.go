@@ -62,6 +62,8 @@ func TestParagraphHTML_MergesRunsAcrossLines(t *testing.T) {
 		}
 		return buildLine(chars)
 	}
-	got := paragraphHTML([]pdfLine{line("the interconnec-", 100), line("tions hold", 90)})
+	got := paragraphHTML(
+		[]pdfLine{line("the interconnec-", 100), line("tions hold", 90)},
+	)
 	require.Equal(t, "<em>the interconnections hold</em>", got)
 }

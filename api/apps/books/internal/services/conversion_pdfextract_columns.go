@@ -91,32 +91,14 @@ func clampBin(v, upper int) int {
 }
 
 // widestEmptyRun returns the [start,end) x-bin range of the widest centred
-// run (see centralRun) of columns empty for at least gutterMinEmptyFraction
-// of the rows holding any text. Only centred runs compete, so a wide page
-// margin can't outrank a narrow gutter. Blank rows don't count: on a sparse page nearly every strip would
-// otherwise pass.
+// run (see centralRun) of columns empty in most rows holding text (see
+// emptyColumns). Only centred runs compete, so a wide page margin can't
+// outrank a narrow gutter.
 func widestEmptyRun(occupied [][]bool) (int, int) {
 	xBins := len(occupied[0])
-
-	var textRows [][]bool
-	for _, row := range occupied {
-		if slices.Contains(row, true) {
-			textRows = append(textRows, row)
-		}
-	}
-	if len(textRows) == 0 {
+	emptyEnough := emptyColumns(occupied)
+	if emptyEnough == nil {
 		return -1, -1
-	}
-
-	emptyEnough := make([]bool, xBins)
-	for x := 0; x < xBins; x++ {
-		empty := 0
-		for _, row := range textRows {
-			if !row[x] {
-				empty++
-			}
-		}
-		emptyEnough[x] = float64(empty)/float64(len(textRows)) >= gutterMinEmptyFraction
 	}
 
 	bestStart, bestEnd := -1, -1
@@ -224,6 +206,31 @@ func sortLinesTopToBottom(lines []pdfLine) {
 		lines,
 		func(i, j int) bool { return lines[i].yMid() > lines[j].yMid() },
 	)
+}
+
+// emptyColumns reports, per x bin, whether it is empty in at least
+// gutterMinEmptyFraction of the rows holding text; nil when no row does.
+func emptyColumns(occupied [][]bool) []bool {
+	var textRows [][]bool
+	for _, row := range occupied {
+		if slices.Contains(row, true) {
+			textRows = append(textRows, row)
+		}
+	}
+	if len(textRows) == 0 {
+		return nil
+	}
+	emptyEnough := make([]bool, len(occupied[0]))
+	for x := range emptyEnough {
+		empty := 0
+		for _, row := range textRows {
+			if !row[x] {
+				empty++
+			}
+		}
+		emptyEnough[x] = float64(empty)/float64(len(textRows)) >= gutterMinEmptyFraction
+	}
+	return emptyEnough
 }
 
 // centralRun reports whether the [start,end) bin run's midpoint falls

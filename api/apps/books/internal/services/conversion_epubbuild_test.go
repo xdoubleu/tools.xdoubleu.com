@@ -134,7 +134,9 @@ func TestGoHTMLConverter_SplitsAtTOCHeadings(t *testing.T) {
 		`<h3 class="toc">A Section</h3><p>Section body.</p>`+
 		"</body></html>", nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), "Front matter.")
@@ -145,8 +147,11 @@ func TestGoHTMLConverter_SplitsAtTOCHeadings(t *testing.T) {
 	assert.Contains(t, chapter, "Section body.")
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
-	assert.Regexp(t,
-		`<itemref idref="doc"/>\s*<itemref idref="doc-1"/>\s*<itemref idref="doc-2"/>`, opf)
+	assert.Regexp(
+		t,
+		`<itemref idref="doc"/>\s*<itemref idref="doc-1"/>\s*<itemref idref="doc-2"/>`,
+		opf,
+	)
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
 	assert.Contains(t, nav, `<a href="index-2.xhtml#heading-2">A Section</a>`)
 }
@@ -173,6 +178,7 @@ func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 		Title:      "My Article",
 		Authors:    []string{"Alice", "Bob"},
 		Identifier: "",
+		CoverImage: "",
 	})
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -185,7 +191,9 @@ func TestGoHTMLConverter_MetadataInOPF(t *testing.T) {
 func TestGoHTMLConverter_NoAuthorsOmitsCreator(t *testing.T) {
 	inPath := writeArticleFixture(t, "<html><body><p>hi</p></body></html>", nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "No Authors", Authors: nil, Identifier: "", CoverImage: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "No Authors", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -200,6 +208,7 @@ func TestGoHTMLConverter_IdentifierIsMetaIdentifier(t *testing.T) {
 		Title:      "Stable",
 		Authors:    nil,
 		Identifier: "00000000-0000-0000-0000-000000000009",
+		CoverImage: "",
 	})
 
 	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
@@ -256,7 +265,9 @@ func TestGoHTMLConverter_MalformedHTMLStillValid(t *testing.T) {
 		`</span><br></body>`
 	inPath := writeArticleFixture(t, malformed, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Malformed", Authors: nil, Identifier: "", CoverImage: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "Malformed", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	var buf bytes.Buffer
@@ -275,6 +286,7 @@ func TestGoHTMLConverter_KepubifyAcceptsRealisticArticle(t *testing.T) {
 		Title:      "My Article",
 		Authors:    []string{"Jane Doe"},
 		Identifier: "",
+		CoverImage: "",
 	})
 
 	var buf bytes.Buffer
@@ -294,7 +306,9 @@ func TestGoHTMLConverter_StripsScriptsAndHandlers(t *testing.T) {
 		`</body></html>`
 	inPath := writeArticleFixture(t, body, nil)
 	zr := convertToEPUBZip(
-		t, inPath, ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: "", CoverImage: ""},
+		t,
+		inPath,
+		ArticleMeta{Title: "Sanitize", Authors: nil, Identifier: "", CoverImage: ""},
 	)
 
 	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")

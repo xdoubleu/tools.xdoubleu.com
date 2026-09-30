@@ -99,7 +99,9 @@ func TestGoPDFConverter_MarginNoteKeptApartFromBody(t *testing.T) {
 	quotes := quoteRe.FindAllStringSubmatch(doc, -1)
 	require.Len(t, quotes, 1, "want one note blockquote in %s", doc)
 	noteText := strings.Join(
-		strings.Fields(regexp.MustCompile(`<[^>]+>`).ReplaceAllString(quotes[0][1], " ")),
+		strings.Fields(
+			regexp.MustCompile(`<[^>]+>`).ReplaceAllString(quotes[0][1], " "),
+		),
 		" ",
 	)
 	require.Equal(t,
