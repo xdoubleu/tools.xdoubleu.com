@@ -27,11 +27,12 @@ func NewOAuthConnectionsRepository(
 }
 
 type oauthConnectionRow struct {
-	accessToken  []byte
-	refreshToken []byte
-	expiresAt    *time.Time
-	connectedAt  time.Time
-	updatedAt    time.Time
+	accessToken    []byte
+	refreshToken   []byte
+	expiresAt      *time.Time
+	connectedAt    time.Time
+	updatedAt      time.Time
+	requestedScope *string
 }
 
 // Get returns the decrypted token and metadata for (userID, provider), or
@@ -41,12 +42,13 @@ func (r *OAuthConnectionsRepository) Get(
 ) (*oauth2.Token, *sharedmodels.OAuthConnection, error) {
 	var row oauthConnectionRow
 	err := r.db.QueryRow(ctx, `
-		SELECT access_token, refresh_token, expires_at, connected_at, updated_at
+		SELECT access_token, refresh_token, expires_at, connected_at, updated_at,
+			requested_scope
 		FROM learningpaths.oauth_connections
 		WHERE user_id = $1 AND provider = $2
 	`, userID, provider).Scan(
 		&row.accessToken, &row.refreshToken, &row.expiresAt,
-		&row.connectedAt, &row.updatedAt,
+		&row.connectedAt, &row.updatedAt, &row.requestedScope,
 	)
 	if err != nil {
 		return nil, nil, postgres.PgxErrorToHTTPError(err)
@@ -61,12 +63,13 @@ func (r *OAuthConnectionsRepository) Get(
 }
 
 // Upsert stores a token for (userID, provider), replacing any existing one.
-// requestedScopes are recorded for oauthconn.ScopesAreStale.
+// requestedScope is recorded for oauthconn.ScopesAreStale.
 func (r *OAuthConnectionsRepository) Upsert(
 	ctx context.Context,
 	userID string,
 	provider sharedmodels.OAuthProvider,
 	tok *oauth2.Token,
+	requestedScope string,
 ) error {
 	access, refresh, err := r.encryptToken(tok)
 	if err != nil {
@@ -75,15 +78,17 @@ func (r *OAuthConnectionsRepository) Upsert(
 
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO learningpaths.oauth_connections
-			(user_id, provider, access_token, refresh_token, expires_at)
-		VALUES ($1, $2, $3, $4, $5)
+			(user_id, provider, access_token, refresh_token, expires_at,
+			 requested_scope)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (user_id, provider) DO UPDATE SET
-			access_token  = EXCLUDED.access_token,
-			refresh_token = EXCLUDED.refresh_token,
-			expires_at    = EXCLUDED.expires_at,
-			connected_at  = now(),
-			updated_at    = now()
-	`, userID, provider, access, refresh, expiryPtr(tok))
+			access_token    = EXCLUDED.access_token,
+			refresh_token   = EXCLUDED.refresh_token,
+			expires_at      = EXCLUDED.expires_at,
+			requested_scope = EXCLUDED.requested_scope,
+			connected_at    = now(),
+			updated_at      = now()
+	`, userID, provider, access, refresh, expiryPtr(tok), requestedScope)
 	return err
 }
 
@@ -126,10 +131,10 @@ func (r *OAuthConnectionsRepository) GetStatus(
 ) (*sharedmodels.OAuthConnection, error) {
 	var row oauthConnectionRow
 	err := r.db.QueryRow(ctx, `
-		SELECT connected_at, updated_at
+		SELECT connected_at, updated_at, requested_scope
 		FROM learningpaths.oauth_connections
 		WHERE user_id = $1 AND provider = $2
-	`, userID, provider).Scan(&row.connectedAt, &row.updatedAt)
+	`, userID, provider).Scan(&row.connectedAt, &row.updatedAt, &row.requestedScope)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
@@ -216,8 +221,8 @@ func (r *OAuthConnectionsRepository) decryptToken(
 func rowToConnection(
 	provider sharedmodels.OAuthProvider, userID string, row oauthConnectionRow,
 ) *sharedmodels.OAuthConnection {
-	//nolint:exhaustruct // GrantedScope/RequestedScope/Config not tracked here
-	return &sharedmodels.OAuthConnection{
+	//nolint:exhaustruct // GrantedScope/Config not tracked here
+	conn := &sharedmodels.OAuthConnection{
 		Provider: provider,
 		// Per-user table: the owner is always who connected it.
 		ConnectedBy: userID,
@@ -225,6 +230,10 @@ func rowToConnection(
 		UpdatedAt:   row.updatedAt,
 		ExpiresAt:   row.expiresAt,
 	}
+	if row.requestedScope != nil {
+		conn.RequestedScope = *row.requestedScope
+	}
+	return conn
 }
 
 func expiryPtr(tok *oauth2.Token) *time.Time {

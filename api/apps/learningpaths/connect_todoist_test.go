@@ -15,6 +15,7 @@ import (
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
 	"tools.xdoubleu.com/internal/crypto"
 	sharedmodels "tools.xdoubleu.com/internal/models"
+	"tools.xdoubleu.com/internal/todoist"
 )
 
 func setupTodoistClient(
@@ -67,6 +68,7 @@ func TestGetTodoistConnectionStatus_Connected(t *testing.T) {
 	tok := &oauth2.Token{AccessToken: "seeded-access-token"}
 	require.NoError(t, repo.Upsert(
 		t.Context(), userID, sharedmodels.OAuthProviderTodoist, tok,
+		todoist.ScopeParam(todoist.RequiredScopes()),
 	))
 	t.Cleanup(func() {
 		_ = repo.Delete(t.Context(), userID, sharedmodels.OAuthProviderTodoist)

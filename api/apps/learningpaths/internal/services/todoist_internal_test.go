@@ -38,6 +38,9 @@ func newTestTodoistService(
 type fakeConnections struct {
 	connected bool
 	statusErr error
+	// requestedScope is the connection's recorded scope; empty means unknown,
+	// which oauthconn treats as covering every scope.
+	requestedScope string
 }
 
 func (f *fakeConnections) Status(
@@ -49,13 +52,17 @@ func (f *fakeConnections) Status(
 	if !f.connected {
 		return nil, database.ErrResourceNotFound
 	}
-	//nolint:exhaustruct //only ConnectedAt is read
-	return &sharedmodels.OAuthConnection{ConnectedAt: time.Now()}, nil
+	//nolint:exhaustruct //only ConnectedAt/RequestedScope are read
+	return &sharedmodels.OAuthConnection{
+		ConnectedAt: time.Now(), RequestedScope: f.requestedScope,
+	}, nil
 }
 
 func (f *fakeConnections) Upsert(
 	_ context.Context, _ string, _ sharedmodels.OAuthProvider, _ *oauth2.Token,
+	requestedScope string,
 ) error {
+	f.requestedScope = requestedScope
 	return nil
 }
 

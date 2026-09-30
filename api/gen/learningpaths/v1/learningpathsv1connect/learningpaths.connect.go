@@ -65,6 +65,9 @@ const (
 	// TodoistServiceGetTodoistConnectionStatusProcedure is the fully-qualified name of the
 	// TodoistService's GetTodoistConnectionStatus RPC.
 	TodoistServiceGetTodoistConnectionStatusProcedure = "/learningpaths.v1.TodoistService/GetTodoistConnectionStatus"
+	// TodoistServiceGetTodoistSyncStateProcedure is the fully-qualified name of the TodoistService's
+	// GetTodoistSyncState RPC.
+	TodoistServiceGetTodoistSyncStateProcedure = "/learningpaths.v1.TodoistService/GetTodoistSyncState"
 )
 
 // LearningPathsServiceClient is a client for the learningpaths.v1.LearningPathsService service.
@@ -299,6 +302,7 @@ type TodoistServiceClient interface {
 	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
 	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
 	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
+	GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error)
 }
 
 // NewTodoistServiceClient constructs a client for the learningpaths.v1.TodoistService service. By
@@ -330,6 +334,12 @@ func NewTodoistServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		getTodoistSyncState: connect.NewClient[v1.GetTodoistSyncStateRequest, v1.GetTodoistSyncStateResponse](
+			httpClient,
+			baseURL+TodoistServiceGetTodoistSyncStateProcedure,
+			connect.WithSchema(todoistServiceMethods.ByName("GetTodoistSyncState")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -338,6 +348,7 @@ type todoistServiceClient struct {
 	connectTodoist             *connect.Client[v1.ConnectTodoistRequest, v1.ConnectTodoistResponse]
 	disconnectTodoist          *connect.Client[v1.DisconnectTodoistRequest, v1.DisconnectTodoistResponse]
 	getTodoistConnectionStatus *connect.Client[v1.GetTodoistConnectionStatusRequest, v1.GetTodoistConnectionStatusResponse]
+	getTodoistSyncState        *connect.Client[v1.GetTodoistSyncStateRequest, v1.GetTodoistSyncStateResponse]
 }
 
 // ConnectTodoist calls learningpaths.v1.TodoistService.ConnectTodoist.
@@ -355,11 +366,17 @@ func (c *todoistServiceClient) GetTodoistConnectionStatus(ctx context.Context, r
 	return c.getTodoistConnectionStatus.CallUnary(ctx, req)
 }
 
+// GetTodoistSyncState calls learningpaths.v1.TodoistService.GetTodoistSyncState.
+func (c *todoistServiceClient) GetTodoistSyncState(ctx context.Context, req *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error) {
+	return c.getTodoistSyncState.CallUnary(ctx, req)
+}
+
 // TodoistServiceHandler is an implementation of the learningpaths.v1.TodoistService service.
 type TodoistServiceHandler interface {
 	ConnectTodoist(context.Context, *connect.Request[v1.ConnectTodoistRequest]) (*connect.Response[v1.ConnectTodoistResponse], error)
 	DisconnectTodoist(context.Context, *connect.Request[v1.DisconnectTodoistRequest]) (*connect.Response[v1.DisconnectTodoistResponse], error)
 	GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error)
+	GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error)
 }
 
 // NewTodoistServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -387,6 +404,12 @@ func NewTodoistServiceHandler(svc TodoistServiceHandler, opts ...connect.Handler
 		connect.WithSchema(todoistServiceMethods.ByName("GetTodoistConnectionStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	todoistServiceGetTodoistSyncStateHandler := connect.NewUnaryHandler(
+		TodoistServiceGetTodoistSyncStateProcedure,
+		svc.GetTodoistSyncState,
+		connect.WithSchema(todoistServiceMethods.ByName("GetTodoistSyncState")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/learningpaths.v1.TodoistService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TodoistServiceConnectTodoistProcedure:
@@ -395,6 +418,8 @@ func NewTodoistServiceHandler(svc TodoistServiceHandler, opts ...connect.Handler
 			todoistServiceDisconnectTodoistHandler.ServeHTTP(w, r)
 		case TodoistServiceGetTodoistConnectionStatusProcedure:
 			todoistServiceGetTodoistConnectionStatusHandler.ServeHTTP(w, r)
+		case TodoistServiceGetTodoistSyncStateProcedure:
+			todoistServiceGetTodoistSyncStateHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -414,4 +439,8 @@ func (UnimplementedTodoistServiceHandler) DisconnectTodoist(context.Context, *co
 
 func (UnimplementedTodoistServiceHandler) GetTodoistConnectionStatus(context.Context, *connect.Request[v1.GetTodoistConnectionStatusRequest]) (*connect.Response[v1.GetTodoistConnectionStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.GetTodoistConnectionStatus is not implemented"))
+}
+
+func (UnimplementedTodoistServiceHandler) GetTodoistSyncState(context.Context, *connect.Request[v1.GetTodoistSyncStateRequest]) (*connect.Response[v1.GetTodoistSyncStateResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.TodoistService.GetTodoistSyncState is not implemented"))
 }

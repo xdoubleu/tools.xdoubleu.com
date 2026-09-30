@@ -200,10 +200,41 @@ message GetTodoistConnectionStatusResponse {
   bool connected = 1;
   // connected_at is RFC3339, empty when not connected.
   string connected_at = 2;
+  // needs_reconnect: connected, but authorized with fewer scopes than
+  // reminders need; reminders are paused until the user reconnects.
+  bool needs_reconnect = 3;
+}
+
+message GetTodoistSyncStateRequest {
+  string learning_path_id = 1;
+}
+
+// TodoistItemState is one item's reminder state.
+message TodoistItemState {
+  string item_id = 1;
+  string description = 2;
+  string due = 3;
+  bool completed = 4;
+  // todoist_task_id is empty when the item has no task.
+  string todoist_task_id = 5;
+}
+
+// GetTodoistSyncStateResponse is a path's Todoist state as stored, without
+// calling Todoist: items of the active module plus any other item with a task.
+message GetTodoistSyncStateResponse {
+  bool connected = 1;
+  bool needs_reconnect = 2;
+  string requested_scope = 3;
+  // todoist_project_id is empty until the first successful sync.
+  string todoist_project_id = 4;
+  // active_module is empty when every module is complete.
+  string active_module = 5;
+  repeated TodoistItemState items = 6;
 }
 
 service TodoistService {
   rpc ConnectTodoist(ConnectTodoistRequest) returns (ConnectTodoistResponse);
   rpc DisconnectTodoist(DisconnectTodoistRequest) returns (DisconnectTodoistResponse);
   rpc GetTodoistConnectionStatus(GetTodoistConnectionStatusRequest) returns (GetTodoistConnectionStatusResponse);
+  rpc GetTodoistSyncState(GetTodoistSyncStateRequest) returns (GetTodoistSyncStateResponse);
 }

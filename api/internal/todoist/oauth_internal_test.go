@@ -21,5 +21,13 @@ func TestOAuthConfig(t *testing.T) {
 		t, "https://api.example.com/learningpaths/oauth/todoist/callback",
 		conf.RedirectURL,
 	)
-	assert.Equal(t, []string{"task:add"}, conf.Scopes)
+	assert.Equal(
+		t, []string{"data:read_write", "data:delete", "project:delete"}, conf.Scopes,
+	)
+}
+
+func TestScopeParam_CommaSeparated(t *testing.T) {
+	assert.Equal(
+		t, "data:read_write,data:delete,project:delete", ScopeParam(RequiredScopes()),
+	)
 }

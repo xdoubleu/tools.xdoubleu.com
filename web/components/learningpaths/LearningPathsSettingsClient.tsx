@@ -57,14 +57,21 @@ export default function LearningPathsSettingsClient() {
       <section>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted">Todoist</h2>
         <p className="mb-3 text-xs text-muted">
-          Connect your own Todoist account to send a path item as a task. This is one-way — Claude
-          never reads your Todoist tasks back, and completing one there doesn&apos;t check the item
-          off here.
+          Connect your own Todoist account for reminders: each path gets its own Todoist project
+          holding the current week&apos;s items as scheduled tasks. This is one-way — completing a
+          task there doesn&apos;t check the item off here.
         </p>
 
         {todoistError && (
           <Alert tone="danger" className="mb-3">
             Connecting Todoist failed. Please try again.
+          </Alert>
+        )}
+
+        {data?.needsReconnect && (
+          <Alert tone="warn" className="mb-3">
+            Reconnect Todoist: reminders now need permission to create projects and remove finished
+            tasks, so they&apos;re paused until you do.
           </Alert>
         )}
 
@@ -81,9 +88,21 @@ export default function LearningPathsSettingsClient() {
             }
             actions={
               data?.connected ? (
-                <Button variant="destructive" size="sm" disabled={busy} onClick={handleDisconnect}>
-                  Disconnect
-                </Button>
+                <>
+                  {data.needsReconnect && (
+                    <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
+                      Reconnect
+                    </Button>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={busy}
+                    onClick={handleDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                </>
               ) : (
                 <Button variant="secondary" size="sm" disabled={busy} onClick={handleConnect}>
                   Connect

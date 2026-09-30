@@ -65,9 +65,11 @@ export default function PathClient({ id }: { id: string }) {
         actions={
           learningPath && (
             <>
-              {!todoistStatus?.connected && (
+              {(!todoistStatus?.connected || todoistStatus.needsReconnect) && (
                 <Button asChild variant="secondary" size="sm">
-                  <Link href="/learningpaths/settings">Connect Todoist</Link>
+                  <Link href="/learningpaths/settings">
+                    {todoistStatus?.needsReconnect ? 'Reconnect Todoist' : 'Connect Todoist'}
+                  </Link>
                 </Button>
               )}
               <Button asChild variant="secondary" size="sm">
@@ -102,7 +104,9 @@ export default function PathClient({ id }: { id: string }) {
           )}
           {todoistStatus?.connected && (
             <p className="text-sm text-muted mb-4">
-              Reminders for the current week are created automatically in your Todoist project.
+              {todoistStatus.needsReconnect
+                ? 'Todoist reminders are paused until you reconnect Todoist.'
+                : 'Reminders for the current week are created automatically in your Todoist project.'}
             </p>
           )}
           {totalItems > 0 && (
