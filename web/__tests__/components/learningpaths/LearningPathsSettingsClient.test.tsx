@@ -86,4 +86,21 @@ describe('LearningPathsSettingsClient', () => {
     await waitFor(() => expect(mutate).toHaveBeenCalled())
     expect(disconnect).toHaveBeenCalled()
   })
+
+  it('asks to reconnect when the connection lacks scopes', async () => {
+    const connect = jest.fn().mockResolvedValue(undefined)
+    jest.mocked(useConnectTodoist).mockReturnValue(connect)
+    mockConnection({
+      data: create(GetTodoistConnectionStatusResponseSchema, {
+        connected: true,
+        connectedAt: '2026-01-02T03:04:05Z',
+        needsReconnect: true
+      })
+    })
+    render(<LearningPathsSettingsClient />)
+    expect(screen.getByRole('status')).toHaveTextContent('Reconnect Todoist')
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }))
+    await waitFor(() => expect(connect).toHaveBeenCalled())
+    expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument()
+  })
 })

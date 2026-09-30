@@ -80,11 +80,17 @@ type mcpRecordProgressArgs struct {
 	Completed bool   `json:"completed" jsonschema:"mark complete/incomplete"`
 }
 
-// RegisterMCPTools exposes three read and three write tools on the combined
+// RegisterMCPTools exposes four read and three write tools on the combined
 // apps MCP server.
 func (a *LearningPaths) RegisterMCPTools(srv *mcp.Server) {
 	h := &learningPathsConnectHandler{app: a}
+	th := &todoistConnectHandler{app: a}
 
+	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_get_todoist_status",
+		"A path's Todoist reminder state as stored (no Todoist call): connection, "+
+			"requested scope and whether it needs a reconnect, the path's project "+
+			"id, and the active module's items with their task ids.",
+		th.mcpGetTodoistStatus)
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_list_paths",
 		"All learning paths owned by the calling user.", h.mcpListPaths)
 	mcptools.AddReadTool(srv, mcpAppName, "learningpaths_get_path",
@@ -199,6 +205,14 @@ func (h *learningPathsConnectHandler) mcpGetPath(
 ) (proto.Message, error) {
 	return mcptools.Unwrap(h.GetLearningPath(ctx, connect.NewRequest(
 		&learningpathsv1.GetLearningPathRequest{Id: args.ID},
+	)))
+}
+
+func (h *todoistConnectHandler) mcpGetTodoistStatus(
+	ctx context.Context, args mcpPathIDArgs,
+) (proto.Message, error) {
+	return mcptools.Unwrap(h.GetTodoistSyncState(ctx, connect.NewRequest(
+		&learningpathsv1.GetTodoistSyncStateRequest{LearningPathId: args.ID},
 	)))
 }
 

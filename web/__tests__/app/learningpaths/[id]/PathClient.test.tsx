@@ -15,6 +15,10 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn()
 }))
 
+jest.mock('@/hooks/useTodoistConnection', () => ({
+  useTodoistConnection: jest.fn(() => ({ data: undefined }))
+}))
+
 jest.mock('next/link', () => {
   return ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -24,6 +28,7 @@ jest.mock('next/link', () => {
 import PathClient from '@/app/learningpaths/[id]/PathClient'
 import { useLearningPath } from '@/hooks/useLearningPaths'
 import { useRouter } from 'next/navigation'
+import { useTodoistConnection } from '@/hooks/useTodoistConnection'
 import { create } from '@bufbuild/protobuf'
 import {
   LearningPathSchema,
@@ -264,5 +269,37 @@ describe('PathClient', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
     expect(mockDeleteLearningPath).not.toHaveBeenCalled()
+  })
+
+  describe('Todoist reminders', () => {
+    function renderWithTodoist(status: { connected: boolean; needsReconnect: boolean }) {
+      // @ts-expect-error -- partial SWRResponse
+      jest.mocked(useTodoistConnection).mockReturnValue({ data: status })
+      // @ts-expect-error -- partial SWRResponse
+      jest.mocked(useLearningPath).mockReturnValue({
+        data: create(GetLearningPathResponseSchema, {
+          learningPath: create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })
+        }),
+        isLoading: false,
+        error: undefined,
+        mutate: mockMutate
+      })
+      render(<PathClient id="lp1" />)
+    }
+
+    it('says reminders are automatic when connected', () => {
+      renderWithTodoist({ connected: true, needsReconnect: false })
+      expect(screen.getByText(/created automatically in your Todoist project/)).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /Todoist/ })).not.toBeInTheDocument()
+    })
+
+    it('asks to reconnect when the connection lacks scopes', () => {
+      renderWithTodoist({ connected: true, needsReconnect: true })
+      expect(screen.getByText(/paused until you reconnect/)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Reconnect Todoist' })).toHaveAttribute(
+        'href',
+        '/learningpaths/settings'
+      )
+    })
   })
 })

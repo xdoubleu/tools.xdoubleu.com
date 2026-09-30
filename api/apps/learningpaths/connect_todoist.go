@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	"github.com/google/uuid"
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
@@ -62,16 +63,67 @@ func (h *todoistConnectHandler) GetTodoistConnectionStatus(
 		)
 	}
 
-	connected, connectedAt, err := h.app.services.Todoist.Status(ctx, user.ID)
+	st, err := h.app.services.Todoist.Status(ctx, user.ID)
 	if err != nil {
 		return nil, mapError(err)
 	}
 
 	resp := &learningpathsv1.GetTodoistConnectionStatusResponse{
-		Connected: connected,
+		Connected:      st.Connected,
+		NeedsReconnect: st.NeedsReconnect,
 	}
-	if connected {
-		resp.ConnectedAt = connectedAt.Format(time.RFC3339)
+	if st.Connected {
+		resp.ConnectedAt = st.ConnectedAt.Format(time.RFC3339)
 	}
 	return connect.NewResponse(resp), nil
+}
+
+func (h *todoistConnectHandler) GetTodoistSyncState(
+	ctx context.Context,
+	req *connect.Request[learningpathsv1.GetTodoistSyncStateRequest],
+) (*connect.Response[learningpathsv1.GetTodoistSyncStateResponse], error) {
+	user := getUser(ctx)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
+		)
+	}
+
+	pathID, err := uuid.Parse(req.Msg.LearningPathId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, fmt.Errorf("invalid learning path ID"),
+		)
+	}
+
+	state, err := h.app.services.Todoist.SyncState(ctx, user.ID, pathID)
+	if err != nil {
+		return nil, mapError(err)
+	}
+
+	items := make([]*learningpathsv1.TodoistItemState, len(state.Items))
+	for i, it := range state.Items {
+		items[i] = &learningpathsv1.TodoistItemState{
+			ItemId:        it.ID.String(),
+			Description:   it.Description,
+			Due:           it.Due,
+			Completed:     it.Completed,
+			TodoistTaskId: derefString(it.TodoistTaskID),
+		}
+	}
+	return connect.NewResponse(&learningpathsv1.GetTodoistSyncStateResponse{
+		Connected:        state.Status.Connected,
+		NeedsReconnect:   state.Status.NeedsReconnect,
+		RequestedScope:   state.Status.RequestedScope,
+		TodoistProjectId: state.ProjectID,
+		ActiveModule:     state.ActiveModule,
+		Items:            items,
+	}), nil
+}
+
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

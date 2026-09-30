@@ -30,7 +30,7 @@ func TestOAuthConnectionsRepository_RoundTrip(t *testing.T) {
 		RefreshToken: "refresh-1",
 		Expiry:       time.Now().Add(time.Hour).Truncate(time.Second),
 	}
-	require.NoError(t, repo.Upsert(ctx, user, provider, tok))
+	require.NoError(t, repo.Upsert(ctx, user, provider, tok, "data:read_write"))
 
 	got, conn, err := repo.Get(ctx, user, provider)
 	require.NoError(t, err)

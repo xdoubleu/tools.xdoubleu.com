@@ -27,7 +27,7 @@ type todoistConnections interface {
 	Status(ctx context.Context, userID string) (*sharedmodels.OAuthConnection, error)
 	Upsert(
 		ctx context.Context, userID string, provider sharedmodels.OAuthProvider,
-		tok *oauth2.Token,
+		tok *oauth2.Token, requestedScope string,
 	) error
 	Delete(
 		ctx context.Context,
@@ -71,7 +71,10 @@ func NewTodoistService(
 // The callback leg is plain HTTP (routes.go).
 func (s *TodoistService) AuthorizeURL(userID string) string {
 	state := s.state.New(sharedmodels.OAuthProviderTodoist, userID)
-	return s.conf.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	return s.conf.AuthCodeURL(
+		state, oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("scope", todoist.ScopeParam(s.conf.Scopes)),
+	)
 }
 
 // HandleCallback consumes state, exchanges code, and stores the connection
@@ -94,6 +97,7 @@ func (s *TodoistService) HandleCallback(
 
 	if err = s.oauthRepo.Upsert(
 		ctx, userID, sharedmodels.OAuthProviderTodoist, tok,
+		todoist.ScopeParam(s.conf.Scopes),
 	); err != nil {
 		return "", err
 	}
@@ -106,19 +110,93 @@ func (s *TodoistService) Disconnect(ctx context.Context, userID string) error {
 	return s.oauthRepo.Delete(ctx, userID, sharedmodels.OAuthProviderTodoist)
 }
 
-// Status reports whether userID is connected and since when; "not connected"
-// is not an error.
+// ConnectionStatus is userID's Todoist connection state.
+type ConnectionStatus struct {
+	Connected   bool
+	ConnectedAt time.Time
+	// NeedsReconnect: connected, but authorized with fewer scopes than the
+	// reminder pipeline needs, so syncs skip it until the user reconnects.
+	NeedsReconnect bool
+	RequestedScope string
+}
+
+// Status reports userID's connection state; "not connected" is not an error.
 func (s *TodoistService) Status(
 	ctx context.Context, userID string,
-) (bool, time.Time, error) {
+) (ConnectionStatus, error) {
 	conn, err := s.oauthRepo.Status(ctx, userID)
 	if errors.Is(err, database.ErrResourceNotFound) {
-		return false, time.Time{}, nil
+		return ConnectionStatus{}, nil //nolint:exhaustruct // zero = disconnected
 	}
 	if err != nil {
-		return false, time.Time{}, err
+		return ConnectionStatus{}, err
 	}
-	return true, conn.ConnectedAt, nil
+	return ConnectionStatus{
+		Connected:      true,
+		ConnectedAt:    conn.ConnectedAt,
+		NeedsReconnect: oauthconn.ScopesAreStale(conn, todoist.RequiredScopes()),
+		RequestedScope: conn.RequestedScope,
+	}, nil
+}
+
+// syncable reports whether userID's connection can run the reminder pipeline.
+func (s *TodoistService) syncable(ctx context.Context, userID string) (bool, error) {
+	st, err := s.Status(ctx, userID)
+	return st.Connected && !st.NeedsReconnect, err
+}
+
+// SyncState is a path's Todoist state, for diagnosing reminders: the items
+// of the active module plus any other item still carrying a task.
+type SyncState struct {
+	Status       ConnectionStatus
+	ProjectID    string
+	ActiveModule string
+	Items        []models.Item
+}
+
+// SyncState reads userID's Todoist state for pathID without calling Todoist.
+func (s *TodoistService) SyncState(
+	ctx context.Context, userID string, pathID uuid.UUID,
+) (*SyncState, error) {
+	st, err := s.Status(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	lp, err := s.learningPaths.GetByID(ctx, pathID)
+	if err != nil {
+		return nil, err
+	}
+	if lp.UserID != userID {
+		return nil, database.ErrResourceNotFound
+	}
+	modules, err := s.learningPaths.GetModules(ctx, pathID)
+	if err != nil {
+		return nil, err
+	}
+	if s.resolveItems != nil {
+		if err = s.resolveItems(ctx, userID, modules); err != nil {
+			return nil, err
+		}
+	}
+
+	//nolint:exhaustruct // filled below
+	out := &SyncState{Status: st}
+	if lp.TodoistProjectID != nil {
+		out.ProjectID = *lp.TodoistProjectID
+	}
+	active := s.activeModule(modules)
+	if active >= 0 {
+		out.ActiveModule = modules[active].Title
+	}
+	for i, m := range modules {
+		for _, it := range m.Items {
+			hasTask := it.TodoistTaskID != nil && *it.TodoistTaskID != ""
+			if i == active || hasTask {
+				out.Items = append(out.Items, it)
+			}
+		}
+	}
+	return out, nil
 }
 
 // SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
@@ -130,7 +208,7 @@ func (s *TodoistService) Status(
 func (s *TodoistService) SyncPath(
 	ctx context.Context, userID string, pathID uuid.UUID,
 ) error {
-	connected, _, err := s.Status(ctx, userID)
+	connected, err := s.syncable(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -172,7 +250,7 @@ func (s *TodoistService) DeletePath(
 	lp *models.LearningPath,
 	modules []models.Module,
 ) error {
-	connected, _, err := s.Status(ctx, userID)
+	connected, err := s.syncable(ctx, userID)
 	if err != nil || !connected {
 		return err
 	}
@@ -191,7 +269,7 @@ func (s *TodoistService) DeletePath(
 func (s *TodoistService) ClearTasks(
 	ctx context.Context, userID string, modules []models.Module,
 ) error {
-	connected, _, err := s.Status(ctx, userID)
+	connected, err := s.syncable(ctx, userID)
 	if err != nil || !connected {
 		return err
 	}
