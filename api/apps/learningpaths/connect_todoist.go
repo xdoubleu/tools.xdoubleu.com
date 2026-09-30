@@ -2,16 +2,13 @@ package learningpaths
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 
 	learningpathsv1 "tools.xdoubleu.com/gen/learningpaths/v1"
 	"tools.xdoubleu.com/gen/learningpaths/v1/learningpathsv1connect"
-	"tools.xdoubleu.com/internal/oauthconn"
 )
 
 type todoistConnectHandler struct {
@@ -77,38 +74,4 @@ func (h *todoistConnectHandler) GetTodoistConnectionStatus(
 		resp.ConnectedAt = connectedAt.Format(time.RFC3339)
 	}
 	return connect.NewResponse(resp), nil
-}
-
-func (h *todoistConnectHandler) SendItemToTodoist(
-	ctx context.Context,
-	req *connect.Request[learningpathsv1.SendItemToTodoistRequest],
-) (*connect.Response[learningpathsv1.SendItemToTodoistResponse], error) {
-	user := getUser(ctx)
-	if user == nil {
-		return nil, connect.NewError(
-			connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"),
-		)
-	}
-
-	itemID, err := uuid.Parse(req.Msg.ItemId)
-	if err != nil {
-		return nil, connect.NewError(
-			connect.CodeInvalidArgument, fmt.Errorf("invalid item ID"),
-		)
-	}
-
-	taskID, err := h.app.services.Todoist.SendItem(ctx, user.ID, itemID)
-	if err != nil {
-		if errors.Is(err, oauthconn.ErrNotConnected) {
-			return nil, connect.NewError(
-				connect.CodeFailedPrecondition,
-				fmt.Errorf("todoist is not connected: %w", err),
-			)
-		}
-		return nil, mapError(err)
-	}
-
-	return connect.NewResponse(&learningpathsv1.SendItemToTodoistResponse{
-		TodoistTaskId: taskID,
-	}), nil
 }

@@ -134,16 +134,3 @@ func TestDelete_RemovesTodoistProject(t *testing.T) {
 	assert.True(t, store.deleted)
 	assert.Equal(t, "proj-1", mock.LastDeletedProjectID)
 }
-
-func TestSendItem_PassesDue(t *testing.T) {
-	//nolint:exhaustruct //unset fields are the fixture defaults
-	store := &fakeLearningPathsStore{item: &models.ItemForTask{
-		Item:      scheduledItem("checkpoint", "every sun at 18:00"),
-		PathTitle: "Architecture",
-	}}
-	svc, mock := newTestTodoistService(store)
-
-	_, err := svc.SendItem(t.Context(), "user-1", uuid.New())
-	require.NoError(t, err)
-	assert.Equal(t, "every sun at 18:00", mock.LastDueString)
-}

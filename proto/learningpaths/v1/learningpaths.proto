@@ -202,17 +202,8 @@ message GetTodoistConnectionStatusResponse {
   string connected_at = 2;
 }
 
-message SendItemToTodoistRequest {
-  string item_id = 1;
-}
-message SendItemToTodoistResponse {
-  // Todoist's id for the created task, for confirmation only; not stored.
-  string todoist_task_id = 1;
-}
-
 service TodoistService {
   rpc ConnectTodoist(ConnectTodoistRequest) returns (ConnectTodoistResponse);
   rpc DisconnectTodoist(DisconnectTodoistRequest) returns (DisconnectTodoistResponse);
   rpc GetTodoistConnectionStatus(GetTodoistConnectionStatusRequest) returns (GetTodoistConnectionStatusResponse);
-  rpc SendItemToTodoist(SendItemToTodoistRequest) returns (SendItemToTodoistResponse);
 }

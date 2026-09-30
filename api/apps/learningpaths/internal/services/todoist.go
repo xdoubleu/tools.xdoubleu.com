@@ -121,21 +121,6 @@ func (s *TodoistService) Status(
 	return true, conn.ConnectedAt, nil
 }
 
-// SendItem creates a Todoist task from itemID's description, prefixed with
-// its path's title; 404 on foreign ownership. Returns ErrTodoistNotConnected
-// if userID hasn't connected Todoist.
-func (s *TodoistService) SendItem(
-	ctx context.Context, userID string, itemID uuid.UUID,
-) (string, error) {
-	item, err := s.learningPaths.GetItemForUser(ctx, itemID, userID)
-	if err != nil {
-		return "", err
-	}
-
-	content := fmt.Sprintf("%s: %s", item.PathTitle, item.Item.Description)
-	return s.userClient(userID).CreateTask(ctx, content, item.Item.Due, "")
-}
-
 // SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
 // only the active module (the first with an incomplete item, in sort order)
 // has tasks. On path creation that is the first module; completing module N

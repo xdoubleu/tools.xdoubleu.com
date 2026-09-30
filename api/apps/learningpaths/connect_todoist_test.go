@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
@@ -93,54 +92,4 @@ func TestGetTodoistConnectionStatus_Connected(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.False(t, statusResp.Msg.Connected)
-}
-
-func TestSendItemToTodoist_InvalidItemID(t *testing.T) {
-	client := setupTodoistClient(getRoutes())
-
-	_, err := client.SendItemToTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.SendItemToTodoistRequest{
-			ItemId: "not-a-uuid",
-		}),
-	)
-	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
-}
-
-func TestSendItemToTodoist_ItemNotFound(t *testing.T) {
-	client := setupTodoistClient(getRoutes())
-
-	_, err := client.SendItemToTodoist(
-		newCtx(), connect.NewRequest(&learningpathsv1.SendItemToTodoistRequest{
-			ItemId: uuid.NewString(),
-		}),
-	)
-	assert.Equal(t, connect.CodeNotFound, connect.CodeOf(err))
-}
-
-// TestSendItemToTodoist_NotConnected: an owned item without a connection
-// fails with FailedPrecondition before any network call.
-func TestSendItemToTodoist_NotConnected(t *testing.T) {
-	lpClient := setupClient(getRoutes())
-	ctx := newCtx()
-
-	createResp, err := lpClient.CreateLearningPath(
-		ctx, connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
-			Title: "Todoist Send Test Path",
-			Modules: []*learningpathsv1.Module{
-				{
-					Title: "Week 1",
-					Items: []*learningpathsv1.Item{{Description: "Send me"}},
-				},
-			},
-		}),
-	)
-	require.NoError(t, err)
-	itemID := createResp.Msg.LearningPath.Modules[0].Items[0].Id
-
-	client := setupTodoistClient(getRoutes())
-	_, err = client.SendItemToTodoist(
-		ctx,
-		connect.NewRequest(&learningpathsv1.SendItemToTodoistRequest{ItemId: itemID}),
-	)
-	assert.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 }

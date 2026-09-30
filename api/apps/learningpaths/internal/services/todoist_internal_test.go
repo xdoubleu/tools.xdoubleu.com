@@ -69,49 +69,6 @@ func (f *fakeConnections) ForUser(_ string) repositories.UserScopedOAuthStore {
 	return repositories.UserScopedOAuthStore{}
 }
 
-func TestSendItem_BuildsContentFromPathTitleAndDescription(t *testing.T) {
-	//nolint:exhaustruct //only fields relevant to this test
-	store := &fakeLearningPathsStore{
-		item: &models.ItemForTask{
-			Item:      models.Item{Description: "Read chapter 3"},
-			PathTitle: "Learn Go",
-		},
-	}
-	svc, mock := newTestTodoistService(store)
-
-	taskID, err := svc.SendItem(t.Context(), "user-1", uuid.New())
-	require.NoError(t, err)
-	assert.Equal(t, "task-123", taskID)
-	assert.Equal(t, "Learn Go: Read chapter 3", mock.LastContent)
-	assert.Empty(t, mock.LastDueString)
-}
-
-func TestSendItem_PropagatesItemLookupError(t *testing.T) {
-	lookupErr := errors.New("item lookup failed")
-	//nolint:exhaustruct //only fields relevant to this test
-	store := &fakeLearningPathsStore{getItemErr: lookupErr}
-	svc, _ := newTestTodoistService(store)
-
-	_, err := svc.SendItem(t.Context(), "user-1", uuid.New())
-	assert.ErrorIs(t, err, lookupErr)
-}
-
-func TestSendItem_PropagatesTodoistClientError(t *testing.T) {
-	clientErr := errors.New("todoist API error")
-	//nolint:exhaustruct //only fields relevant to this test
-	store := &fakeLearningPathsStore{
-		item: &models.ItemForTask{
-			Item:      models.Item{Description: "Read chapter 3"},
-			PathTitle: "Learn Go",
-		},
-	}
-	svc, mock := newTestTodoistService(store)
-	mock.Err = clientErr
-
-	_, err := svc.SendItem(t.Context(), "user-1", uuid.New())
-	assert.ErrorIs(t, err, clientErr)
-}
-
 func TestHandleCallback_UnknownStateErrors(t *testing.T) {
 	//nolint:exhaustruct //endpoint URLs, not credentials
 	conf := &oauth2.Config{ClientID: "id", ClientSecret: "secret"}
