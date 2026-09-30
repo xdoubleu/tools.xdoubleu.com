@@ -62,6 +62,15 @@ describe('LearningPathsListClient', () => {
     expect(screen.getByText('No learning paths yet. Create your first one!')).toBeInTheDocument()
   })
 
+  it('links to settings, where Todoist is connected and reconnected', () => {
+    mockLearningPaths({ isLoading: true })
+    render(<LearningPathsListClient />)
+    expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute(
+      'href',
+      '/learningpaths/settings'
+    )
+  })
+
   it('renders learning path cards with goal and module/item counts', () => {
     mockLearningPaths({
       data: create(ListLearningPathsResponseSchema, {

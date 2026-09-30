@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { PageContainer } from '@/components/ui/page-container'
-import { PageHeader } from '@/components/ui/page-header'
+import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
 function moduleAndItemCounts(path: LearningPath) {
@@ -61,9 +61,12 @@ export default function LearningPathsListClient() {
       <PageHeader
         title="Learning Paths"
         actions={
-          <Button asChild>
-            <Link href="/learningpaths/new">New Learning Path</Link>
-          </Button>
+          <>
+            <PageHeaderSettingsLink href="/learningpaths/settings" />
+            <Button asChild>
+              <Link href="/learningpaths/new">New Learning Path</Link>
+            </Button>
+          </>
         }
       />
 
