@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { act, render, screen, fireEvent } from '@testing-library/react'
 import {
   ConfirmDialog,
   Dialog,
@@ -115,5 +115,60 @@ describe('DialogClose', () => {
     const close = screen.getByRole('button', { name: 'Close' })
     expect(close).toHaveTextContent('×')
     expect(close).toHaveClass('size-11')
+  })
+})
+
+describe('DialogContent sheet', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(window, 'visualViewport')
+  })
+
+  it('rides above the on-screen keyboard', () => {
+    const viewport = Object.assign(new EventTarget(), { height: window.innerHeight, offsetTop: 0 })
+    Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true })
+    render(
+      <Dialog open onOpenChange={jest.fn()}>
+        <DialogContent side="sheet">
+          <DialogTitle>Sheet</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    const sheet = screen.getByRole('dialog')
+    expect(sheet.style.getPropertyValue('--keyboard-inset')).toBe('0px')
+    expect(sheet).toHaveClass('bottom-(--keyboard-inset)')
+
+    act(() => {
+      viewport.height = window.innerHeight - 320
+      viewport.dispatchEvent(new Event('resize'))
+    })
+    expect(sheet.style.getPropertyValue('--keyboard-inset')).toBe('320px')
+  })
+
+  it('leaves other sides without a keyboard inset', () => {
+    render(
+      <Dialog open onOpenChange={jest.fn()}>
+        <DialogContent>
+          <DialogTitle>Centered</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    expect(screen.getByRole('dialog').style.getPropertyValue('--keyboard-inset')).toBe('')
+  })
+})
+
+describe('DialogContent right', () => {
+  it('stays open on an outside pointer-down', async () => {
+    const onOpenChange = jest.fn()
+    render(
+      <Dialog open onOpenChange={onOpenChange}>
+        <DialogContent side="right">
+          <DialogTitle>Panel</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    )
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+    fireEvent.pointerDown(document.body)
+    expect(screen.getByText('Panel')).toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
   })
 })
