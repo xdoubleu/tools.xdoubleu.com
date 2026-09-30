@@ -48,6 +48,9 @@ type htmlBlock struct {
 	src string
 	// inline is a paragraph's text as escaped HTML with inline markup.
 	inline string
+	// tocLevel is the heading level a PDF outline entry gives the block
+	// (0: not in the outline).
+	tocLevel int
 }
 
 // imageBlock renders an <img> block.
@@ -265,6 +268,7 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 		listItem:  false,
 		src:       "",
 		inline:    paragraphHTML(lines),
+		tocLevel:  0,
 	}
 }
 

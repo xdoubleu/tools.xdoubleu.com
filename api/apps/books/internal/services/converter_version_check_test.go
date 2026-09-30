@@ -27,6 +27,7 @@ var pipelineFiles = []string{
 	"conversion_pdfextract_inline.go",
 	"conversion_pdfextract_lines.go",
 	"conversion_pdfextract_lists.go",
+	"conversion_pdfextract_outline.go",
 	"conversion_pdfextract_page.go",
 	"conversion_pdfextract_pageflow.go",
 	"conversion_pdfextract_parabreaks.go",

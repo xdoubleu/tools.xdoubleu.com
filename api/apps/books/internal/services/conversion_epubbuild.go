@@ -281,10 +281,10 @@ func buildContentOPF(
 	return b.String()
 }
 
-// buildNavXHTML renders the EPUB nav document's TOC as one chapter link per
-// toc entry (assignHeadingIDs), falling back to a single link to the whole
-// book when the article has no <h1> headings at all (e.g. a short feed
-// article) — see issue #1698, which the single-link case predates.
+// buildNavXHTML renders the EPUB nav document's TOC as a nested list of
+// links to the toc entries (assignHeadingIDs), falling back to a single
+// link to the whole book when the article has no TOC headings at all (a
+// short feed article).
 func buildNavXHTML(title string, toc []tocEntry) string {
 	escaped := escapeXMLText(title)
 
@@ -298,24 +298,51 @@ func buildNavXHTML(title string, toc []tocEntry) string {
 	b.WriteString("<head><title>" + escaped + "</title></head>\n")
 	b.WriteString("<body>\n")
 	b.WriteString(`  <nav epub:type="toc" id="toc">` + "\n")
-	b.WriteString("    <ol>\n")
 	if len(toc) == 0 {
+		b.WriteString("    <ol>\n")
 		b.WriteString(
 			`      <li><a href="index.xhtml">` + escaped + "</a></li>\n",
 		)
+		b.WriteString("    </ol>\n")
 	} else {
-		for _, entry := range toc {
-			b.WriteString(
-				`      <li><a href="index.xhtml#` + entry.ID + `">` +
-					escapeXMLText(entry.Title) + "</a></li>\n",
-			)
-		}
+		writeNavList(&b, toc)
 	}
-	b.WriteString("    </ol>\n")
 	b.WriteString("  </nav>\n")
 	b.WriteString("</body>\n")
 	b.WriteString("</html>\n")
 	return b.String()
+}
+
+// writeNavList writes toc as nested <ol> lists: a deeper entry opens a
+// list inside the entry before it, a shallower one closes lists back to its
+// level.
+func writeNavList(b *strings.Builder, toc []tocEntry) {
+	depth := 0
+	for i, entry := range toc {
+		level := entry.Level
+		if i == 0 {
+			level = 1
+		}
+		level = min(level, depth+1)
+		switch {
+		case level > depth:
+			b.WriteString("<ol>")
+		case level == depth:
+			b.WriteString("</li>")
+		default:
+			for ; depth > level; depth-- {
+				b.WriteString("</li></ol>")
+			}
+			b.WriteString("</li>")
+		}
+		depth = level
+		b.WriteString(`<li><a href="index.xhtml#` + entry.ID + `">` +
+			escapeXMLText(entry.Title) + "</a>")
+	}
+	for ; depth > 0; depth-- {
+		b.WriteString("</li></ol>")
+	}
+	b.WriteString("\n")
 }
 
 // escapeXMLText escapes the characters unsafe in XML text content (not

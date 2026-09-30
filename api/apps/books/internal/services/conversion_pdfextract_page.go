@@ -286,6 +286,8 @@ func extractDocument(
 	pageBlocks = joinPageContinuations(
 		removeRunningHeaders(pageBlocks, docModalHeight), docModalHeight,
 	)
+	outline := readOutline(instance, doc)
+	pageBlocks = applyOutline(pageBlocks, outline)
 
 	cover := ""
 	if len(pages) > 0 && pages[0].coverImage != "" {
@@ -299,6 +301,7 @@ func extractDocument(
 	}
 	captionFigures(blocks)
 	finalizeHeadings(blocks, docModalHeight)
+	applyOutlineHeadings(blocks, len(outline) > 0)
 	return blocks, cover, nil
 }
 
