@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useCreateLearningPath, useUpdateLearningPath } from '@/hooks/useLearningPaths'
 import type { CreateLearningPathInput, UpdateLearningPathInput } from '@/hooks/useLearningPaths'
-import type { LearningPath } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
+import type { LearningPath, QuizQuestion } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,11 +25,15 @@ interface ItemRow {
   completed: boolean
   linkedBookId?: string
   linkedBookTitle?: string
+  // Not editable here; carried so a save doesn't clear it.
+  due?: string
 }
 
 interface ModuleRow {
   title: string
   items: ItemRow[]
+  // Not editable here; carried so a save doesn't clear it.
+  quiz?: QuizQuestion[]
 }
 
 // A resource can carry text, a books/feeds link, or both. Linked titles are
@@ -64,9 +68,11 @@ export default function LearningPathForm({
                 description: i.description,
                 completed: i.completed,
                 linkedBookId: i.linkedBookId,
-                linkedBookTitle: i.linkedBook?.title
+                linkedBookTitle: i.linkedBook?.title,
+                due: i.due
               }))
-            : [emptyItem()]
+            : [emptyItem()],
+          quiz: m.quiz
         }))
       : [emptyModule()]
   )
@@ -203,8 +209,10 @@ export default function LearningPathForm({
               type: i.type,
               description: i.description,
               completed: i.completed,
-              linkedBookId: i.linkedBookId
-            }))
+              linkedBookId: i.linkedBookId,
+              due: i.due
+            })),
+          quiz: m.quiz
         }))
       const resourcePayload = resources
         .filter((r) => r.text.trim() || r.linkedBookId || r.linkedFeedItemId)
