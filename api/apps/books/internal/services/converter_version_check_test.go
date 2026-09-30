@@ -17,6 +17,7 @@ import (
 //nolint:gochecknoglobals // fixed test data, not mutable state
 var pipelineFiles = []string{
 	"conversion_epubbuild.go",
+	"conversion_epubbuild_split.go",
 	"conversion_epubbuild_xhtml.go",
 	"conversion_pdfextract.go",
 	"conversion_pdfextract_asides.go",

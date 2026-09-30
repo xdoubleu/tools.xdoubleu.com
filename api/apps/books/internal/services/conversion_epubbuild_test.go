@@ -113,15 +113,42 @@ func TestGoHTMLConverter_NavListsChapterHeadings(t *testing.T) {
 
 	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
 	assert.Contains(t, nav, `<a href="index.xhtml#heading-0">Chapter One</a>`)
-	assert.Contains(t, nav, `<a href="index.xhtml#heading-1">Chapter Two</a>`)
+	assert.Contains(t, nav, `<a href="index-1.xhtml#heading-1">Chapter Two</a>`)
 	assert.NotContains(
 		t, nav, `<a href="index.xhtml">Book</a>`,
 		"fallback single entry must not appear when real headings exist",
 	)
 
-	index := zipEntryContent(t, zr, "OEBPS/index.xhtml")
-	assert.Contains(t, index, `id="heading-0"`)
-	assert.Contains(t, index, `id="heading-1"`)
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), `id="heading-0"`)
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index-1.xhtml"), `id="heading-1"`)
+}
+
+// TestGoHTMLConverter_SplitsAtTOCHeadings: the body splits into one file per
+// TOC heading of level 1 or 2 (with any content before the first in its own
+// file); deeper headings stay inside their chapter.
+func TestGoHTMLConverter_SplitsAtTOCHeadings(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body>"+
+		"<p>Front matter.</p>"+
+		`<h1 class="toc">Part One</h1><p>Part intro.</p>`+
+		`<h2 class="toc">Chapter One</h2><p>Chapter body.</p>`+
+		`<h3 class="toc">A Section</h3><p>Section body.</p>`+
+		"</body></html>", nil)
+	zr := convertToEPUBZip(
+		t, inPath, ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
+	)
+
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), "Front matter.")
+	assert.NotContains(t, zipEntryContent(t, zr, "OEBPS/index.xhtml"), "Part intro.")
+	assert.Contains(t, zipEntryContent(t, zr, "OEBPS/index-1.xhtml"), "Part intro.")
+	chapter := zipEntryContent(t, zr, "OEBPS/index-2.xhtml")
+	assert.Contains(t, chapter, "Chapter body.")
+	assert.Contains(t, chapter, "Section body.")
+
+	opf := zipEntryContent(t, zr, "OEBPS/content.opf")
+	assert.Regexp(t,
+		`<itemref idref="doc"/>\s*<itemref idref="doc-1"/>\s*<itemref idref="doc-2"/>`, opf)
+	nav := zipEntryContent(t, zr, "OEBPS/nav.xhtml")
+	assert.Contains(t, nav, `<a href="index-2.xhtml#heading-2">A Section</a>`)
 }
 
 // TestGoHTMLConverter_NavFallsBackWithNoHeadings: no <h1> still yields a

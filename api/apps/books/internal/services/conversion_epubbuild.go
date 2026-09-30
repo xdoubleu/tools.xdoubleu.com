@@ -61,7 +61,7 @@ func goHTMLConverter(
 	}
 
 	imgDir := filepath.Dir(inPath)
-	indexXHTML, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
+	docs, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func goHTMLConverter(
 	}
 	defer func() { _ = out.Close() }()
 
-	if err = writeEPUBZip(out, meta, images, toc, indexXHTML, imgDir); err != nil {
+	if err = writeEPUBZip(out, meta, images, toc, docs, imgDir); err != nil {
 		return fmt.Errorf("write epub zip: %w", err)
 	}
 	return nil
@@ -86,7 +86,8 @@ func writeEPUBZip(
 	meta ArticleMeta,
 	images []epubImage,
 	toc []tocEntry,
-	indexXHTML, imgDir string,
+	docs []contentDoc,
+	imgDir string,
 ) error {
 	zw := zip.NewWriter(w)
 
@@ -100,7 +101,7 @@ func writeEPUBZip(
 	}
 	cover, hasCover := coverImage(meta)
 	if err := writeEntry(
-		zw, "OEBPS/content.opf", buildContentOPF(meta, images, cover, hasCover),
+		zw, "OEBPS/content.opf", buildContentOPF(meta, images, docs, cover, hasCover),
 	); err != nil {
 		return err
 	}
@@ -119,8 +120,10 @@ func writeEPUBZip(
 	); err != nil {
 		return err
 	}
-	if err := writeEntry(zw, "OEBPS/index.xhtml", indexXHTML); err != nil {
-		return err
+	for _, doc := range docs {
+		if err := writeEntry(zw, "OEBPS/"+doc.Name, doc.XHTML); err != nil {
+			return err
+		}
 	}
 	for _, img := range images {
 		if err := copyImageEntry(zw, imgDir, img); err != nil {
@@ -187,6 +190,14 @@ func buildContainerXML() string {
 	return b.String()
 }
 
+// contentDocID is the manifest id of the i-th content document.
+func contentDocID(i int) string {
+	if i == 0 {
+		return "doc"
+	}
+	return fmt.Sprintf("doc-%d", i)
+}
+
 // coverPage is the cover's content document; kepubify leaves a first spine
 // item named like a cover alone instead of adding its own title page.
 const coverPage = "cover.xhtml"
@@ -213,7 +224,7 @@ func buildCoverXHTML(title, fileName string) string {
 }
 
 func buildContentOPF(
-	meta ArticleMeta, images []epubImage, cover epubImage, hasCover bool,
+	meta ArticleMeta, images []epubImage, docs []contentDoc, cover epubImage, hasCover bool,
 ) string {
 	var b strings.Builder
 	b.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")
@@ -256,10 +267,11 @@ func buildContentOPF(
 			"    <item id=\"%s\" href=\"%s\" media-type=\"%s\" properties=\"cover-image\"/>\n",
 			cover.ID, cover.FileName, cover.MediaType)
 	}
-	b.WriteString(
-		`    <item id="doc" href="index.xhtml" ` +
-			`media-type="application/xhtml+xml"/>` + "\n",
-	)
+	for i, doc := range docs {
+		fmt.Fprintf(&b,
+			"    <item id=\"%s\" href=\"%s\" media-type=\"application/xhtml+xml\"/>\n",
+			contentDocID(i), doc.Name)
+	}
 	b.WriteString(
 		`    <item id="nav" href="nav.xhtml" ` +
 			`media-type="application/xhtml+xml" properties="nav"/>` + "\n",
@@ -274,7 +286,9 @@ func buildContentOPF(
 	if hasCover {
 		b.WriteString(`    <itemref idref="cover"/>` + "\n")
 	}
-	b.WriteString(`    <itemref idref="doc"/>` + "\n")
+	for i := range docs {
+		fmt.Fprintf(&b, "    <itemref idref=\"%s\"/>\n", contentDocID(i))
+	}
 	b.WriteString("  </spine>\n")
 	b.WriteString("</package>\n")
 
@@ -336,7 +350,11 @@ func writeNavList(b *strings.Builder, toc []tocEntry) {
 			b.WriteString("</li>")
 		}
 		depth = level
-		b.WriteString(`<li><a href="index.xhtml#` + entry.ID + `">` +
+		file := entry.File
+		if file == "" {
+			file = contentDocName(0)
+		}
+		b.WriteString(`<li><a href="` + file + `#` + entry.ID + `">` +
 			escapeXMLText(entry.Title) + "</a>")
 	}
 	for ; depth > 0; depth-- {

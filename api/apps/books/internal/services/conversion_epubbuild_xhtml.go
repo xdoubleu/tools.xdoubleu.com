@@ -36,28 +36,31 @@ type tocEntry struct {
 	Title string
 	// Level is the entry's nesting depth, 1 for top level.
 	Level int
+	// File is the content document holding the heading.
+	File string
 }
 
 // buildArticleXHTML parses htmlBytes, sanitizes the tree in place, collects
 // the images it references (already downloaded as siblings of the source
-// file by localizeImages), assigns anchor ids to every <h1> for the nav
-// document's TOC, and serializes the result as XHTML.
+// file by localizeImages), assigns anchor ids to its TOC headings for the
+// nav document, and serializes the result as one XHTML content document per
+// chapter.
 func buildArticleXHTML(
 	htmlBytes []byte, imgDir string,
-) (string, []epubImage, []tocEntry, error) {
+) ([]contentDoc, []epubImage, []tocEntry, error) {
 	root, err := xhtml.Parse(bytes.NewReader(htmlBytes))
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("parse input html: %w", err)
+		return nil, nil, nil, fmt.Errorf("parse input html: %w", err)
 	}
 
 	images := sanitizeAndCollectImages(root, imgDir)
 	toc := assignHeadingIDs(root)
 
-	doc, err := renderXHTMLDocument(root)
+	docs, err := splitContentDocs(root, toc)
 	if err != nil {
-		return "", nil, nil, err
+		return nil, nil, nil, err
 	}
-	return doc, images, toc, nil
+	return docs, images, toc, nil
 }
 
 // assignHeadingIDs gives the article's TOC headings anchor ids
@@ -76,7 +79,9 @@ func assignHeadingIDs(root *xhtml.Node) []tocEntry {
 	for i, n := range marked {
 		id := fmt.Sprintf("heading-%d", i)
 		setAttr(n, "id", id)
-		entries[i] = tocEntry{ID: id, Title: textContent(n), Level: max(1, headingLevel(n))}
+		entries[i] = tocEntry{
+			ID: id, Title: textContent(n), Level: max(1, headingLevel(n)), File: "",
+		}
 	}
 	return entries
 }
