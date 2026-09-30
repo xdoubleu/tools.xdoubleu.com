@@ -79,6 +79,7 @@ func TestOAuthConnectionsRepository_ErrorPropagation(t *testing.T) {
 	//nolint:exhaustruct //other fields unused by this test
 	err = repo.Upsert(
 		ctx, userID, sharedmodels.OAuthProviderTodoist, &oauth2.Token{AccessToken: "x"},
+		"",
 	)
 	assert.Error(t, err)
 

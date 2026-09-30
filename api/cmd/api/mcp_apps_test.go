@@ -51,10 +51,11 @@ var appsToolNames = []string{
 	// trains (4)
 	"trains_search_stations", "trains_get_feed_info", "trains_search_journeys",
 	"trains_get_journey_detail",
-	// learningpaths (6); create_path/update_path/record_progress mutate (adr-0023)
+	// learningpaths (7); create_path/update_path/record_progress mutate (adr-0023)
 	"learningpaths_list_paths", "learningpaths_get_path",
-	"learningpaths_get_progress", "learningpaths_create_path",
-	"learningpaths_update_path", "learningpaths_record_progress",
+	"learningpaths_get_progress", "learningpaths_get_todoist_status",
+	"learningpaths_create_path", "learningpaths_update_path",
+	"learningpaths_record_progress",
 	// observability (20, admin-gated)
 	"get_job_stats", "get_automated_actions", "record_action",
 	"get_usage_stats", "get_storage_stats", "get_database_stats",
@@ -296,6 +297,7 @@ func TestAppsMCPCallAllToolsAsAdmin(t *testing.T) {
 		"shoppinglist_get_store_categories":       map[string]any{"store_id": uid},
 		"learningpaths_get_path":                  map[string]any{"id": uid},
 		"learningpaths_get_progress":              map[string]any{"id": uid},
+		"learningpaths_get_todoist_status":        map[string]any{"id": uid},
 		"learningpaths_update_path": map[string]any{
 			"id": uid, "title": "t",
 		},
