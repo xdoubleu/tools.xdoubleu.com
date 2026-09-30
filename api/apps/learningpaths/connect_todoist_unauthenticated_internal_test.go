@@ -38,12 +38,3 @@ func TestGetTodoistConnectionStatus_Unauthenticated(t *testing.T) {
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
-
-func TestSendItemToTodoist_Unauthenticated(t *testing.T) {
-	h := &todoistConnectHandler{app: nil}
-	_, err := h.SendItemToTodoist(
-		context.Background(),
-		connect.NewRequest(&learningpathsv1.SendItemToTodoistRequest{}),
-	)
-	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
-}

@@ -9,7 +9,7 @@ import {
   useRecordItemProgress
 } from '@/hooks/useLearningPaths'
 import type { DeleteLearningPathInput } from '@/hooks/useLearningPaths'
-import { useTodoistConnection, useSendItemToTodoist } from '@/hooks/useTodoistConnection'
+import { useTodoistConnection } from '@/hooks/useTodoistConnection'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -25,12 +25,9 @@ export default function PathClient({ id }: { id: string }) {
   const deleteLearningPath = useDeleteLearningPath()
   const recordItemProgress = useRecordItemProgress()
   const { data: todoistStatus } = useTodoistConnection()
-  const sendItemToTodoist = useSendItemToTodoist()
   const router = useRouter()
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [sendingItemId, setSendingItemId] = useState<string | null>(null)
-  const [sentItemIds, setSentItemIds] = useState<Set<string>>(new Set())
 
   const learningPath = data?.learningPath
 
@@ -49,16 +46,6 @@ export default function PathClient({ id }: { id: string }) {
   const completeCheckpoint = async (itemId: string) => {
     await recordItemProgress({ itemId, completed: true })
     await mutate()
-  }
-
-  const handleSendToTodoist = async (itemId: string) => {
-    setSendingItemId(itemId)
-    try {
-      await sendItemToTodoist(itemId)
-      setSentItemIds((prev) => new Set(prev).add(itemId))
-    } finally {
-      setSendingItemId(null)
-    }
   }
 
   const totalItems = learningPath?.modules.reduce((sum, m) => sum + m.items.length, 0) ?? 0
@@ -113,6 +100,11 @@ export default function PathClient({ id }: { id: string }) {
           {learningPath.routine && (
             <p className="text-sm text-muted mb-4">Routine: {learningPath.routine}</p>
           )}
+          {todoistStatus?.connected && (
+            <p className="text-sm text-muted mb-4">
+              Reminders for the current week are created automatically in your Todoist project.
+            </p>
+          )}
           {totalItems > 0 && (
             <p className="text-sm text-muted mb-6">
               {completedItems}/{totalItems} items complete
@@ -164,21 +156,6 @@ export default function PathClient({ id }: { id: string }) {
                               </span>
                             }
                           />
-                        )}
-                        {todoistStatus?.connected && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="shrink-0"
-                            disabled={sendingItemId === item.id || sentItemIds.has(item.id)}
-                            onClick={() => handleSendToTodoist(item.id)}
-                          >
-                            {sentItemIds.has(item.id)
-                              ? 'Sent'
-                              : sendingItemId === item.id
-                                ? 'Sending…'
-                                : 'Send to Todoist'}
-                          </Button>
                         )}
                       </li>
                     ))}

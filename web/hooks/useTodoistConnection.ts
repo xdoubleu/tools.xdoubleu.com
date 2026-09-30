@@ -28,8 +28,3 @@ export function useDisconnectTodoist() {
   const client = createServiceClient(TodoistService)
   return () => client.disconnectTodoist({})
 }
-
-export function useSendItemToTodoist() {
-  const client = createServiceClient(TodoistService)
-  return (itemId: string) => client.sendItemToTodoist({ itemId })
-}

@@ -1747,95 +1747,6 @@ func (x *GetTodoistConnectionStatusResponse) GetConnectedAt() string {
 	return ""
 }
 
-type SendItemToTodoistRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ItemId        string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendItemToTodoistRequest) Reset() {
-	*x = SendItemToTodoistRequest{}
-	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendItemToTodoistRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendItemToTodoistRequest) ProtoMessage() {}
-
-func (x *SendItemToTodoistRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendItemToTodoistRequest.ProtoReflect.Descriptor instead.
-func (*SendItemToTodoistRequest) Descriptor() ([]byte, []int) {
-	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *SendItemToTodoistRequest) GetItemId() string {
-	if x != nil {
-		return x.ItemId
-	}
-	return ""
-}
-
-type SendItemToTodoistResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Todoist's id for the created task, for confirmation only; not stored.
-	TodoistTaskId string `protobuf:"bytes,1,opt,name=todoist_task_id,json=todoistTaskId,proto3" json:"todoist_task_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendItemToTodoistResponse) Reset() {
-	*x = SendItemToTodoistResponse{}
-	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendItemToTodoistResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendItemToTodoistResponse) ProtoMessage() {}
-
-func (x *SendItemToTodoistResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_learningpaths_v1_learningpaths_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendItemToTodoistResponse.ProtoReflect.Descriptor instead.
-func (*SendItemToTodoistResponse) Descriptor() ([]byte, []int) {
-	return file_learningpaths_v1_learningpaths_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *SendItemToTodoistResponse) GetTodoistTaskId() string {
-	if x != nil {
-		return x.TodoistTaskId
-	}
-	return ""
-}
-
 var File_learningpaths_v1_learningpaths_proto protoreflect.FileDescriptor
 
 const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
@@ -1968,11 +1879,7 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"!GetTodoistConnectionStatusRequest\"e\n" +
 	"\"GetTodoistConnectionStatusResponse\x12\x1c\n" +
 	"\tconnected\x18\x01 \x01(\bR\tconnected\x12!\n" +
-	"\fconnected_at\x18\x02 \x01(\tR\vconnectedAt\"3\n" +
-	"\x18SendItemToTodoistRequest\x12\x17\n" +
-	"\aitem_id\x18\x01 \x01(\tR\x06itemId\"C\n" +
-	"\x19SendItemToTodoistResponse\x12&\n" +
-	"\x0ftodoist_task_id\x18\x01 \x01(\tR\rtodoistTaskId2\xb0\x06\n" +
+	"\fconnected_at\x18\x02 \x01(\tR\vconnectedAt2\xb0\x06\n" +
 	"\x14LearningPathsService\x12l\n" +
 	"\x11ListLearningPaths\x12*.learningpaths.v1.ListLearningPathsRequest\x1a+.learningpaths.v1.ListLearningPathsResponse\x12f\n" +
 	"\x0fGetLearningPath\x12(.learningpaths.v1.GetLearningPathRequest\x1a).learningpaths.v1.GetLearningPathResponse\x12o\n" +
@@ -1980,12 +1887,11 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\x12UpdateLearningPath\x12+.learningpaths.v1.UpdateLearningPathRequest\x1a,.learningpaths.v1.UpdateLearningPathResponse\x12o\n" +
 	"\x12DeleteLearningPath\x12+.learningpaths.v1.DeleteLearningPathRequest\x1a,.learningpaths.v1.DeleteLearningPathResponse\x12o\n" +
 	"\x12RecordItemProgress\x12+.learningpaths.v1.RecordItemProgressRequest\x1a,.learningpaths.v1.RecordItemProgressResponse\x12~\n" +
-	"\x17GetLearningPathProgress\x120.learningpaths.v1.GetLearningPathProgressRequest\x1a1.learningpaths.v1.GetLearningPathProgressResponse2\xdb\x03\n" +
+	"\x17GetLearningPathProgress\x120.learningpaths.v1.GetLearningPathProgressRequest\x1a1.learningpaths.v1.GetLearningPathProgressResponse2\xed\x02\n" +
 	"\x0eTodoistService\x12c\n" +
 	"\x0eConnectTodoist\x12'.learningpaths.v1.ConnectTodoistRequest\x1a(.learningpaths.v1.ConnectTodoistResponse\x12l\n" +
 	"\x11DisconnectTodoist\x12*.learningpaths.v1.DisconnectTodoistRequest\x1a+.learningpaths.v1.DisconnectTodoistResponse\x12\x87\x01\n" +
-	"\x1aGetTodoistConnectionStatus\x123.learningpaths.v1.GetTodoistConnectionStatusRequest\x1a4.learningpaths.v1.GetTodoistConnectionStatusResponse\x12l\n" +
-	"\x11SendItemToTodoist\x12*.learningpaths.v1.SendItemToTodoistRequest\x1a+.learningpaths.v1.SendItemToTodoistResponseB9Z7tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1b\x06proto3"
+	"\x1aGetTodoistConnectionStatus\x123.learningpaths.v1.GetTodoistConnectionStatusRequest\x1a4.learningpaths.v1.GetTodoistConnectionStatusResponseB9Z7tools.xdoubleu.com/gen/learningpaths/v1;learningpathsv1b\x06proto3"
 
 var (
 	file_learningpaths_v1_learningpaths_proto_rawDescOnce sync.Once
@@ -1999,7 +1905,7 @@ func file_learningpaths_v1_learningpaths_proto_rawDescGZIP() []byte {
 	return file_learningpaths_v1_learningpaths_proto_rawDescData
 }
 
-var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_learningpaths_v1_learningpaths_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
 	(*Item)(nil),                               // 0: learningpaths.v1.Item
 	(*ExternalBookRef)(nil),                    // 1: learningpaths.v1.ExternalBookRef
@@ -2030,8 +1936,6 @@ var file_learningpaths_v1_learningpaths_proto_goTypes = []any{
 	(*DisconnectTodoistResponse)(nil),          // 26: learningpaths.v1.DisconnectTodoistResponse
 	(*GetTodoistConnectionStatusRequest)(nil),  // 27: learningpaths.v1.GetTodoistConnectionStatusRequest
 	(*GetTodoistConnectionStatusResponse)(nil), // 28: learningpaths.v1.GetTodoistConnectionStatusResponse
-	(*SendItemToTodoistRequest)(nil),           // 29: learningpaths.v1.SendItemToTodoistRequest
-	(*SendItemToTodoistResponse)(nil),          // 30: learningpaths.v1.SendItemToTodoistResponse
 }
 var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	4,  // 0: learningpaths.v1.Item.linked_book:type_name -> learningpaths.v1.LinkedBook
@@ -2061,20 +1965,18 @@ var file_learningpaths_v1_learningpaths_proto_depIdxs = []int32{
 	23, // 24: learningpaths.v1.TodoistService.ConnectTodoist:input_type -> learningpaths.v1.ConnectTodoistRequest
 	25, // 25: learningpaths.v1.TodoistService.DisconnectTodoist:input_type -> learningpaths.v1.DisconnectTodoistRequest
 	27, // 26: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:input_type -> learningpaths.v1.GetTodoistConnectionStatusRequest
-	29, // 27: learningpaths.v1.TodoistService.SendItemToTodoist:input_type -> learningpaths.v1.SendItemToTodoistRequest
-	9,  // 28: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
-	11, // 29: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
-	13, // 30: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
-	15, // 31: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
-	17, // 32: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
-	19, // 33: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
-	22, // 34: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
-	24, // 35: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
-	26, // 36: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
-	28, // 37: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
-	30, // 38: learningpaths.v1.TodoistService.SendItemToTodoist:output_type -> learningpaths.v1.SendItemToTodoistResponse
-	28, // [28:39] is the sub-list for method output_type
-	17, // [17:28] is the sub-list for method input_type
+	9,  // 27: learningpaths.v1.LearningPathsService.ListLearningPaths:output_type -> learningpaths.v1.ListLearningPathsResponse
+	11, // 28: learningpaths.v1.LearningPathsService.GetLearningPath:output_type -> learningpaths.v1.GetLearningPathResponse
+	13, // 29: learningpaths.v1.LearningPathsService.CreateLearningPath:output_type -> learningpaths.v1.CreateLearningPathResponse
+	15, // 30: learningpaths.v1.LearningPathsService.UpdateLearningPath:output_type -> learningpaths.v1.UpdateLearningPathResponse
+	17, // 31: learningpaths.v1.LearningPathsService.DeleteLearningPath:output_type -> learningpaths.v1.DeleteLearningPathResponse
+	19, // 32: learningpaths.v1.LearningPathsService.RecordItemProgress:output_type -> learningpaths.v1.RecordItemProgressResponse
+	22, // 33: learningpaths.v1.LearningPathsService.GetLearningPathProgress:output_type -> learningpaths.v1.GetLearningPathProgressResponse
+	24, // 34: learningpaths.v1.TodoistService.ConnectTodoist:output_type -> learningpaths.v1.ConnectTodoistResponse
+	26, // 35: learningpaths.v1.TodoistService.DisconnectTodoist:output_type -> learningpaths.v1.DisconnectTodoistResponse
+	28, // 36: learningpaths.v1.TodoistService.GetTodoistConnectionStatus:output_type -> learningpaths.v1.GetTodoistConnectionStatusResponse
+	27, // [27:37] is the sub-list for method output_type
+	17, // [17:27] is the sub-list for method input_type
 	17, // [17:17] is the sub-list for extension type_name
 	17, // [17:17] is the sub-list for extension extendee
 	0,  // [0:17] is the sub-list for field type_name
@@ -2093,7 +1995,7 @@ func file_learningpaths_v1_learningpaths_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_learningpaths_v1_learningpaths_proto_rawDesc), len(file_learningpaths_v1_learningpaths_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   31,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   2,
 		},
