@@ -117,6 +117,7 @@ func protoItem(it *models.Item) *learningpathsv1.Item {
 		Description: it.Description,
 		SortOrder:   int32(it.SortOrder), //nolint:gosec // int32 safe for domain values
 		Completed:   it.Completed,
+		Due:         it.Due,
 	}
 	if it.LinkedBookID != nil {
 		id := it.LinkedBookID.String()
@@ -201,6 +202,7 @@ func dtoToModules(in []*learningpathsv1.Module) []models.Module {
 				Description:  it.Description,
 				SortOrder:    j,
 				Completed:    it.Completed,
+				Due:          it.Due,
 				LinkedBookID: parseOptionalUUID(it.LinkedBookId),
 				ExternalBook: dtoToExternalBook(it.ExternalBook),
 			}

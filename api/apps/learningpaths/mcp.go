@@ -30,6 +30,7 @@ type mcpItemArg struct {
 	Type        string `json:"type,omitempty"           jsonschema:"read/do/checkpoint..."`
 	Description string `json:"description"              jsonschema:"what to do"`
 	Completed   bool   `json:"completed,omitempty"      jsonschema:"already completed"`
+	Due         string `json:"due,omitempty"            jsonschema:"Todoist due string"`
 	//nolint:gostruct //LinkedBook is read-only, never authored
 	LinkedBookID *string `json:"linked_book_id,omitempty" jsonschema:"auto-completes item"`
 	//nolint:lll //jsonschema description
@@ -141,6 +142,7 @@ func toProtoModules(in []mcpModuleArg) []*learningpathsv1.Module {
 				Type:         it.Type,
 				Description:  it.Description,
 				Completed:    it.Completed,
+				Due:          it.Due,
 				LinkedBookId: it.LinkedBookID,
 			}
 			if it.ExternalBook != nil {

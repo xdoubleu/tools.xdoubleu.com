@@ -191,7 +191,7 @@ func TestSyncPath_ConnectedActivatesFirstModule(t *testing.T) {
 
 	require.NoError(t, svc.SyncPath(t.Context(), "user-1", p.ID))
 	assert.Equal(t, 2, len(store.taskIDWrites))
-	assert.Equal(t, "Learn Go: practice", mock.LastContent)
+	assert.Equal(t, "practice", mock.LastContent)
 }
 
 func TestSyncPath_NotConnected_IsNoOp(t *testing.T) {
@@ -248,14 +248,18 @@ func TestSyncPath_ModuleCompleteActivatesNext(t *testing.T) {
 	assert.Equal(t, "task-1", mock.LastDeletedID)
 	// one delete (clear the completed module's task) + one create (module 2).
 	assert.Equal(t, 2, len(store.taskIDWrites))
-	assert.Equal(t, "Learn Go: read ch2", mock.LastContent)
+	assert.Equal(t, "read ch2", mock.LastContent)
 }
 
 // TestSyncPath_IdempotentKeepsExistingTask: an item already carrying a task
 // id in the active module is not re-created.
 func TestSyncPath_IdempotentKeepsExistingTask(t *testing.T) {
+	projectID := "proj-1"
 	//nolint:exhaustruct //fixture path
-	p := &models.LearningPath{ID: uuid.New(), UserID: "user-1", Title: "Learn Go"}
+	p := &models.LearningPath{
+		ID: uuid.New(), UserID: "user-1", Title: "Learn Go",
+		TodoistProjectID: &projectID,
+	}
 	item := nextItem("read ch1")
 	existing := "task-9"
 	item.TodoistTaskID = &existing
@@ -275,6 +279,7 @@ func TestSyncPath_IdempotentKeepsExistingTask(t *testing.T) {
 	require.NoError(t, svc.SyncPath(t.Context(), "user-1", p.ID))
 	assert.Empty(t, store.taskIDWrites)
 	assert.Empty(t, mock.LastContent)
+	assert.Zero(t, mock.CreatedProjects)
 }
 
 // TestSyncPath_AllModulesDoneDeletesEveryTask: with no active module left, all

@@ -27,6 +27,9 @@ message Item {
   // shelf) and becomes linked_book_id. Ignored when linked_book_id is set;
   // never returned.
   ExternalBookRef external_book = 9;
+  // due is the item's Todoist due string (e.g. "every day at 20:00"), used
+  // for its reminder task; empty leaves the task undated.
+  string due = 10;
 }
 
 // ExternalBookRef is a books external search result (provider, provider_id).

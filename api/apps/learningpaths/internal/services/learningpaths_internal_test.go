@@ -51,6 +51,9 @@ type fakeLearningPathsStore struct {
 	getPathID    uuid.UUID
 	getPathIDErr error
 	taskIDWrites []string
+
+	// projectIDWrites records SetTodoistProjectID.
+	projectIDWrites []string
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -167,6 +170,13 @@ func (f *fakeLearningPathsStore) SetItemTodoistTaskID(
 	_ context.Context, _ uuid.UUID, taskID string,
 ) error {
 	f.taskIDWrites = append(f.taskIDWrites, taskID)
+	return nil
+}
+
+func (f *fakeLearningPathsStore) SetTodoistProjectID(
+	_ context.Context, _ uuid.UUID, projectID string,
+) error {
+	f.projectIDWrites = append(f.projectIDWrites, projectID)
 	return nil
 }
 

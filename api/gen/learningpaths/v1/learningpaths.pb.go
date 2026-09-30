@@ -43,7 +43,10 @@ type Item struct {
 	// Create/Update it is added to the "To Learn" shelf (an owned book keeps its
 	// shelf) and becomes linked_book_id. Ignored when linked_book_id is set;
 	// never returned.
-	ExternalBook  *ExternalBookRef `protobuf:"bytes,9,opt,name=external_book,json=externalBook,proto3" json:"external_book,omitempty"`
+	ExternalBook *ExternalBookRef `protobuf:"bytes,9,opt,name=external_book,json=externalBook,proto3" json:"external_book,omitempty"`
+	// due is the item's Todoist due string (e.g. "every day at 20:00"), used
+	// for its reminder task; empty leaves the task undated.
+	Due           string `protobuf:"bytes,10,opt,name=due,proto3" json:"due,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,6 +142,13 @@ func (x *Item) GetExternalBook() *ExternalBookRef {
 		return x.ExternalBook
 	}
 	return nil
+}
+
+func (x *Item) GetDue() string {
+	if x != nil {
+		return x.Due
+	}
+	return ""
 }
 
 // ExternalBookRef is a books external search result (provider, provider_id).
@@ -1830,7 +1840,7 @@ var File_learningpaths_v1_learningpaths_proto protoreflect.FileDescriptor
 
 const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\n" +
-	"$learningpaths/v1/learningpaths.proto\x12\x10learningpaths.v1\"\xeb\x02\n" +
+	"$learningpaths/v1/learningpaths.proto\x12\x10learningpaths.v1\"\xfd\x02\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tmodule_id\x18\x02 \x01(\tR\bmoduleId\x12\x12\n" +
@@ -1842,7 +1852,9 @@ const file_learningpaths_v1_learningpaths_proto_rawDesc = "" +
 	"\x0elinked_book_id\x18\a \x01(\tH\x00R\flinkedBookId\x88\x01\x01\x12=\n" +
 	"\vlinked_book\x18\b \x01(\v2\x1c.learningpaths.v1.LinkedBookR\n" +
 	"linkedBook\x12F\n" +
-	"\rexternal_book\x18\t \x01(\v2!.learningpaths.v1.ExternalBookRefR\fexternalBookB\x11\n" +
+	"\rexternal_book\x18\t \x01(\v2!.learningpaths.v1.ExternalBookRefR\fexternalBook\x12\x10\n" +
+	"\x03due\x18\n" +
+	" \x01(\tR\x03dueB\x11\n" +
 	"\x0f_linked_book_id\"N\n" +
 	"\x0fExternalBookRef\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12\x1f\n" +

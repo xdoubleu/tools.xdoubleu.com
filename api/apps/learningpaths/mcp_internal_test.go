@@ -75,6 +75,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						Type:         "read",
 						Description:  "Read the tour of Go",
 						Completed:    false,
+						Due:          "",
 						LinkedBookID: nil,
 						ExternalBook: nil,
 					},
@@ -82,6 +83,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						Type:         "do",
 						Description:  "Write a CLI tool",
 						Completed:    false,
+						Due:          "",
 						LinkedBookID: nil,
 						ExternalBook: nil,
 					},
@@ -120,6 +122,7 @@ func TestMCPTools_ReadAndWrite(t *testing.T) {
 						Type:         "read",
 						Description:  "Read the tour of Go",
 						Completed:    false,
+						Due:          "",
 						LinkedBookID: nil,
 						ExternalBook: nil,
 					},
@@ -211,6 +214,7 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 					Type:         "read",
 					Description:  "Read the tour",
 					Completed:    false,
+					Due:          "",
 					LinkedBookID: nil,
 					ExternalBook: nil,
 				},
@@ -218,6 +222,7 @@ func TestMCPQuiz_RoundTrip(t *testing.T) {
 					Type:         "checkpoint",
 					Description:  "Pass the quiz",
 					Completed:    false,
+					Due:          "",
 					LinkedBookID: nil,
 					ExternalBook: nil,
 				},
@@ -318,6 +323,7 @@ func TestMCPQuiz_MalformedJSONErrors(t *testing.T) {
 					Type:         "read",
 					Description:  "x",
 					Completed:    false,
+					Due:          "",
 					LinkedBookID: nil,
 					ExternalBook: nil,
 				},
@@ -375,6 +381,17 @@ func TestToProtoModules_ExternalBookRoundTrips(t *testing.T) {
 	require.NotNil(t, items[1].ExternalBook)
 	assert.Equal(t, "hardcover", items[1].ExternalBook.Provider)
 	assert.Equal(t, "978", items[1].ExternalBook.ProviderID)
+}
+
+func TestToProtoModules_DueRoundTrips(t *testing.T) {
+	//nolint:exhaustruct //fixture sets only the fields under test
+	modules := toProtoModules([]mcpModuleArg{{Items: []mcpItemArg{
+		{Description: "read", Due: "every day at 20:00"},
+	}}})
+
+	item := dtoToModules(modules)[0].Items[0]
+	assert.Equal(t, "every day at 20:00", item.Due)
+	assert.Equal(t, "every day at 20:00", protoItem(&item).Due)
 }
 
 func TestDTOToExternalBook_IncompleteIgnored(t *testing.T) {

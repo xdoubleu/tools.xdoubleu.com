@@ -65,13 +65,14 @@ func (r *LearningPathsRepository) GetByID(
 ) (*models.LearningPath, error) {
 	var lp models.LearningPath
 	err := r.db.QueryRow(ctx, `
-		SELECT id, user_id, title, goal, routine, created_at, updated_at
+		SELECT id, user_id, title, goal, routine, created_at, updated_at,
+			todoist_project_id
 		FROM learningpaths.learning_paths
 		WHERE id = $1`,
 		id,
 	).Scan(
 		&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
-		&lp.CreatedAt, &lp.UpdatedAt,
+		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -174,11 +175,12 @@ func (r *LearningPathsRepository) ReplaceModules(
 		for j, item := range modules[i].Items {
 			batch.Queue(`
 				INSERT INTO learningpaths.items
-				(module_id, type, description, sort_order, completed, linked_book_id)
-				VALUES ($1, $2, $3, $4, $5, $6)
+				(module_id, type, description, sort_order, completed,
+				linked_book_id, due)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)
 				RETURNING id`,
 				moduleID, item.Type, item.Description, j, item.Completed,
-				item.LinkedBookID,
+				item.LinkedBookID, item.Due,
 			)
 		}
 
@@ -254,7 +256,7 @@ func (r *LearningPathsRepository) getItemsForPath(
 ) (map[uuid.UUID][]models.Item, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT i.id, i.module_id, i.type, i.description, i.sort_order, i.completed,
-			i.linked_book_id, i.todoist_task_id
+			i.linked_book_id, i.todoist_task_id, i.due
 		FROM learningpaths.items i
 		JOIN learningpaths.modules m ON m.id = i.module_id
 		WHERE m.learning_path_id = $1
@@ -272,6 +274,7 @@ func (r *LearningPathsRepository) getItemsForPath(
 		if err = rows.Scan(
 			&item.ID, &item.ModuleID, &item.Type, &item.Description,
 			&item.SortOrder, &item.Completed, &item.LinkedBookID, &item.TodoistTaskID,
+			&item.Due,
 		); err != nil {
 			return nil, postgres.PgxErrorToHTTPError(err)
 		}
@@ -394,7 +397,7 @@ func (r *LearningPathsRepository) GetItemForUser(
 	var out models.ItemForTask
 	err := r.db.QueryRow(ctx, `
 		SELECT i.id, i.module_id, i.type, i.description, i.sort_order,
-		       i.completed, i.linked_book_id, lp.title
+		       i.completed, i.linked_book_id, i.due, lp.title
 		FROM learningpaths.items i
 		JOIN learningpaths.modules m ON m.id = i.module_id
 		JOIN learningpaths.learning_paths lp ON lp.id = m.learning_path_id
@@ -402,7 +405,7 @@ func (r *LearningPathsRepository) GetItemForUser(
 	`, itemID, userID).Scan(
 		&out.Item.ID, &out.Item.ModuleID, &out.Item.Type, &out.Item.Description,
 		&out.Item.SortOrder, &out.Item.Completed, &out.Item.LinkedBookID,
-		&out.PathTitle,
+		&out.Item.Due, &out.PathTitle,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -436,6 +439,18 @@ func (r *LearningPathsRepository) SetItemTodoistTaskID(
 	_, err := r.db.Exec(ctx, `
 		UPDATE learningpaths.items SET todoist_task_id = $1 WHERE id = $2`,
 		taskID, itemID,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// SetTodoistProjectID stores/clears the Todoist project id for a path.
+func (r *LearningPathsRepository) SetTodoistProjectID(
+	ctx context.Context, pathID uuid.UUID, projectID string,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE learningpaths.learning_paths
+		SET todoist_project_id = NULLIF($1, '') WHERE id = $2`,
+		projectID, pathID,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }
