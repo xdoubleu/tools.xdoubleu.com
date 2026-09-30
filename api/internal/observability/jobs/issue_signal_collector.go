@@ -86,6 +86,12 @@ var (
 			"estimate), duration_seconds, tool_calls, tool_errors, " +
 			"repeated_tool_calls.",
 	}, []string{routineLabel, "metric"})
+	transactionP95Seconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "transaction_p95_seconds",
+		Help: "Average daily p95 of each regressing Sentry transaction, by " +
+			"window: recent (last 7 days) or prior (the 7 before). Only " +
+			"transactions get_slow_transactions lists as trending are set.",
+	}, []string{"project", "transaction", "window"})
 )
 
 // runMetricsWindow bounds automated_action_last_run so a retired routine's
@@ -150,6 +156,10 @@ type automatedActionGetter interface {
 	latestRunMetricsGetter
 }
 
+type latencyTrendsGetter interface {
+	Trends(ctx context.Context) ([]models.TransactionTrend, error)
+}
+
 type workflowRunsLister interface {
 	ListWorkflowRuns(ctx context.Context) ([]github.WorkflowRun, error)
 }
@@ -181,6 +191,7 @@ type IssueSignalCollectorJob struct {
 	storageSnapshot latestStorageSnapshotGetter
 	schemaSizes     schemaSizer
 	automatedAction automatedActionGetter
+	latencyTrends   latencyTrendsGetter
 }
 
 func NewIssueSignalCollectorJob(
@@ -189,6 +200,7 @@ func NewIssueSignalCollectorJob(
 	storageSnapshot latestStorageSnapshotGetter,
 	schemaSizes schemaSizer,
 	automatedAction automatedActionGetter,
+	latencyTrends latencyTrendsGetter,
 ) *IssueSignalCollectorJob {
 	return &IssueSignalCollectorJob{
 		gh:              gh,
@@ -196,6 +208,7 @@ func NewIssueSignalCollectorJob(
 		storageSnapshot: storageSnapshot,
 		schemaSizes:     schemaSizes,
 		automatedAction: automatedAction,
+		latencyTrends:   latencyTrends,
 	}
 }
 
@@ -233,6 +246,7 @@ func (j *IssueSignalCollectorJob) Run(
 	j.collectRoutinePaused(ctx, logger)
 	j.collectRoutineLiveness(ctx, logger)
 	j.collectRoutineRunMetrics(ctx, logger)
+	j.collectLatencyTrends(ctx, logger)
 	return nil
 }
 
@@ -483,5 +497,27 @@ func (j *IssueSignalCollectorJob) collectRoutineLiveness(
 		}
 		automatedActionSecondsSinceLastOpen.
 			WithLabelValues(routine).Set(time.Since(firedAt).Seconds())
+	}
+}
+
+// collectLatencyTrends sets transaction_p95_seconds, which feeds Grafana's
+// TransactionLatencyRegression. A fetch error leaves the gauge untouched.
+func (j *IssueSignalCollectorJob) collectLatencyTrends(
+	ctx context.Context,
+	logger *slog.Logger,
+) {
+	trends, err := j.latencyTrends.Trends(ctx)
+	if err != nil {
+		logger.ErrorContext(ctx,
+			"issue-signal-collector: failed to load transaction latency trends",
+			essentialogger.ErrAttr(err))
+		return
+	}
+	transactionP95Seconds.Reset()
+	for _, t := range trends {
+		transactionP95Seconds.WithLabelValues(t.Project, t.Transaction, "recent").
+			Set(t.RecentAvgP95Ms / millisPerSecond)
+		transactionP95Seconds.WithLabelValues(t.Project, t.Transaction, "prior").
+			Set(t.PriorAvgP95Ms / millisPerSecond)
 	}
 }

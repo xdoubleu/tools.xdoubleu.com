@@ -239,7 +239,7 @@ func newCrossAppJobs(
 
 	issueSignalCollectorJob := jobs.NewIssueSignalCollectorJob(
 		githubClient, sentryClient, storageSnapshotsRepo, dbStatsRepo,
-		automatedActionsRepo,
+		automatedActionsRepo, transactionLatencyRepo,
 	)
 
 	transactionLatencySnapshotJob := jobs.NewTransactionLatencySnapshotJob(

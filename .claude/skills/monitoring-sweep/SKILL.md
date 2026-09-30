@@ -44,8 +44,8 @@ The invoking prompt states the mode; default to interactive.
    - `get_storage_stats` — `.latest.orphanCount`/`orphanKeys`; gauges
      `r2_orphaned_objects`, `r2_storage_bytes`.
    - `get_slow_transactions` — p95 list, informational; thresholds:
-     Grafana rules (`RequestP95High`, `JobP95High`, `FrontendP95High`
-     — `infra/grafana/provisioning/alerting/rules.yml`).
+     Grafana rules (`RequestP95High`, `JobP95High`, `FrontendP95High`;
+     `TransactionLatencyRegression` for `trending` — `rules.yml`).
    - `prom_query` for raw gauges (`issue_signal_collector.go`).
 
 2. **Sentry resolution backstop** (inline, no subagent; independent of page

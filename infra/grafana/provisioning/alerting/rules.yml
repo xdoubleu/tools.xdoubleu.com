@@ -307,6 +307,46 @@ groups:
                     type: gt
                     params: [0]
 
+      # The global p95 rules above dilute one slow route or job among the fast
+      # majority; this fires per Sentry transaction instead. The 1s floor keeps
+      # sub-second noise quiet. No notify label: the nightly sweep picks it up.
+      - uid: transaction-latency-regression
+        title: TransactionLatencyRegression
+        condition: C
+        labels:
+          severity: warning
+        annotations:
+          summary: A transaction's p95 at least doubled week over week
+          description: >-
+            {{ $labels.transaction }} ({{ $labels.project }}) averaged a p95
+            {{ $values.A }}x the prior week's over the last 7 days. See
+            get_slow_transactions' trending list.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                transaction_p95_seconds{window="recent"}
+                / ignoring(window) transaction_p95_seconds{window="prior"} >= 2
+                and ignoring(window) transaction_p95_seconds{window="recent"} >= 1
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
   - orgId: 1
     name: service-health
     folder: tools.xdoubleu.com
