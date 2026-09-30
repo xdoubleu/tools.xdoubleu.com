@@ -31,6 +31,7 @@ var pipelineFiles = []string{
 	"conversion_pdfextract_parabreaks.go",
 	"conversion_pdfextract_paragraphs.go",
 	"conversion_pdfextract_proofslug.go",
+	"conversion_pdfextract_vector.go",
 }
 
 // pipelineFilesHashForVersion maps each converter version to the hash of

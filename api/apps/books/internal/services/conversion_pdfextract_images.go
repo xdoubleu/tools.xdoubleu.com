@@ -22,7 +22,7 @@ import (
 const (
 	figureMinPixels       = 50
 	figureMinAreaFraction = 0.01
-	figureMaxPerDoc       = 50
+	figureMaxPerDoc       = 200
 	fullPageRenderDPI     = 150
 )
 

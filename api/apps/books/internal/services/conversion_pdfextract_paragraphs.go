@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -43,12 +44,46 @@ type htmlBlock struct {
 	// listItem marks a bulleted paragraph, rendered as <li> and never a
 	// heading.
 	listItem bool
+	// src is an image block's file name.
+	src string
 }
+
+// imageBlock renders an <img> block.
+func imageBlock(src, alt string) htmlBlock {
+	return htmlBlock{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
+		html: fmt.Sprintf(`<img src="%s" alt="%s"/>`, escapeXMLText(src), escapeAttr(alt)),
+		tag:  imgTag,
+		src:  src,
+	}
+}
+
+// escapeAttr escapes text for a double-quoted XML attribute value.
+func escapeAttr(s string) string {
+	return strings.ReplaceAll(escapeXMLText(s), `"`, "&quot;")
+}
+
+// captionFigures gives each image the caption right after it ("Figure 10.
+// A cup of coffee cooling…") as its alt text.
+func captionFigures(blocks []htmlBlock) {
+	for i := range blocks {
+		if blocks[i].tag != imgTag || i+1 >= len(blocks) {
+			continue
+		}
+		if next := blocks[i+1]; next.isText && captionRe.MatchString(next.text) {
+			blocks[i] = imageBlock(blocks[i].src, next.text)
+		}
+	}
+}
+
+// captionRe matches a figure caption's opening.
+var captionRe = regexp.MustCompile(`^(?:Figure|Fig\.|Table) \d+`)
 
 // mergeColumn interleaves a column's lines (already sorted top-to-bottom)
 // with its figures, inserting each figure after the last line whose
 // y-midpoint is above the figure's top bound (step: figure placement).
 func mergeColumn(lines []pdfLine, figures []pdfFigure) []streamItem {
+	figures = append([]pdfFigure(nil), figures...)
+	sort.SliceStable(figures, func(i, j int) bool { return figures[i].top > figures[j].top })
 	linesBefore := make([]int, len(figures))
 	for i, f := range figures {
 		count := 0
@@ -129,7 +164,6 @@ func buildPageBlocks(
 	var blocks []htmlBlock
 	var paraLines []pdfLine
 	var pendingNotes [][]pdfLine
-	figureCount := 0
 	setLocalRightEdges(items, pageMedianCharWidth)
 	hanging := hangingColumns(items, pageMedianCharWidth)
 	index := indexColumns(items)
@@ -159,19 +193,7 @@ func buildPageBlocks(
 		}
 		if item.figure != nil {
 			flush()
-			figureCount++
-			blocks = append(
-				blocks,
-				htmlBlock{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
-					html: fmt.Sprintf(
-						`<img src="%s" alt="%s"/>`,
-						escapeXMLText(item.figure.fileName),
-						escapeXMLText(fmt.Sprintf("Figure %d", figureCount)),
-					),
-					tag:  imgTag,
-					text: "",
-				},
-			)
+			blocks = append(blocks, imageBlock(item.figure.fileName, "Figure"))
 			continue
 		}
 
@@ -240,6 +262,7 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 		medHeight: medHeight,
 		isText:    true,
 		listItem:  false,
+		src:       "",
 	}
 }
 

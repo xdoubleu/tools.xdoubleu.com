@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strings"
 
 	"github.com/klippa-app/go-pdfium"
 	"github.com/klippa-app/go-pdfium/references"
@@ -88,6 +87,15 @@ func extractPage(
 		rawFigures[i].bottom -= originY
 	}
 
+	vectorFigures, chars, err := extractVectorFigures(instance, page, pageGeometry{
+		originX: originX, originY: originY,
+		width: sizeResp.Width, height: sizeResp.Height,
+	}, chars)
+	if err != nil {
+		return noPageResult, fmt.Errorf("extract vector figures: %w", err)
+	}
+	rawFigures = append(outsideFigures(rawFigures, vectorFigures), vectorFigures...)
+
 	if len(chars) == 0 && len(rawFigures) == 0 {
 		fileName, renderErr := renderFullPage(instance, page, workDir, tracker)
 		if renderErr != nil {
@@ -143,6 +151,25 @@ func extractPage(
 		medCharWidth:  medianCharWidth(chars),
 		coverImage:    cover,
 	}, nil
+}
+
+// outsideFigures drops raster figures lying within a vector figure, whose
+// render already shows them.
+func outsideFigures(raster, vector []rawFigure) []rawFigure {
+	kept := raster[:0]
+	for _, r := range raster {
+		inside := false
+		for _, v := range vector {
+			if r.left >= v.left && r.right <= v.right && r.bottom >= v.bottom && r.top <= v.top {
+				inside = true
+				break
+			}
+		}
+		if !inside {
+			kept = append(kept, r)
+		}
+	}
+	return kept
 }
 
 // groupColumnLines groups characters into lines, then splits every line that
@@ -244,17 +271,8 @@ func extractDocument(
 	pageBlocks := make([][]htmlBlock, len(pages))
 	for i, p := range pages {
 		if p.fullPageImage != "" {
-			alt := fmt.Sprintf("Page %d illustration", i+1)
 			pageBlocks[i] = []htmlBlock{
-				{ //nolint:exhaustruct // medHeight/isText only apply to text blocks
-					html: fmt.Sprintf(
-						`<img src="%s" alt="%s"/>`,
-						escapeXMLText(p.fullPageImage),
-						escapeXMLText(alt),
-					),
-					tag:  imgTag,
-					text: "",
-				},
+				imageBlock(p.fullPageImage, fmt.Sprintf("Page %d illustration", i+1)),
 			}
 			continue
 		}
@@ -279,6 +297,7 @@ func extractDocument(
 	for _, pb := range pageBlocks {
 		blocks = append(blocks, pb...)
 	}
+	captionFigures(blocks)
 	finalizeHeadings(blocks, docModalHeight)
 	return blocks, cover, nil
 }
@@ -292,7 +311,7 @@ const coverMinPageShare = 0.5
 func withoutImage(blocks []htmlBlock, fileName string) []htmlBlock {
 	kept := blocks[:0]
 	for _, b := range blocks {
-		if b.tag != imgTag || !strings.Contains(b.html, `src="`+escapeXMLText(fileName)+`"`) {
+		if b.src != fileName {
 			kept = append(kept, b)
 		}
 	}
