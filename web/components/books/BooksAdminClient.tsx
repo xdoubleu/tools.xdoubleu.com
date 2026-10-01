@@ -100,9 +100,9 @@ export default function BooksAdminClient() {
                     {processed ?? 0} / {total}
                   </span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-border">
+                <div className="h-2 w-full overflow-hidden rounded-sm bg-border">
                   <div
-                    className="h-full rounded-full bg-fg transition-all duration-300"
+                    className="h-full rounded-sm bg-fg transition-all duration-300"
                     style={{
                       width: `${total > 0 ? (((processed ?? 0) / total) * 100).toFixed(1) : 0}%`
                     }}

@@ -154,7 +154,7 @@ export default function ShoppingList({ items, onDelete, onEdit, onExport }: Shop
                     size="iconSm"
                     onClick={() => onDelete(item.id!)}
                     aria-label={`Remove ${item.name}`}
-                    className="rounded-full text-muted hover:bg-transparent hover:text-danger focus-visible:ring-danger/50"
+                    className="text-muted hover:bg-transparent hover:text-danger focus-visible:ring-danger/50"
                   >
                     ×
                   </Button>

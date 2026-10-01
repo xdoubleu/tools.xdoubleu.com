@@ -22,6 +22,13 @@ describe('Badge', () => {
     expect(screen.getByText('Status')).toHaveClass(expected)
   })
 
+  it('uses the squared corner radius, not a pill', () => {
+    render(<Badge>EPUB</Badge>)
+    const badge = screen.getByText('EPUB')
+    expect(badge).toHaveClass('rounded-lg')
+    expect(badge).not.toHaveClass('rounded-full')
+  })
+
   it('lets a className override win over the variant default', () => {
     render(<Badge className="text-fg">EPUB</Badge>)
     const badge = screen.getByText('EPUB')
