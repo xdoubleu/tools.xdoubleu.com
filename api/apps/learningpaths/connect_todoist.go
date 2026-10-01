@@ -118,6 +118,7 @@ func (h *todoistConnectHandler) GetTodoistSyncState(
 		TodoistProjectId: state.ProjectID,
 		ActiveModule:     state.ActiveModule,
 		Items:            items,
+		Paused:           state.Paused,
 	}), nil
 }
 

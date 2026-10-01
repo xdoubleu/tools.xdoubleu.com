@@ -149,7 +149,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
   unless the item sets its own due. Derive reminder_schedules from the
   routine: read/study recurring daily ("every day at 20:00"), do on the
   routine's practice days ("every wed at 19:00"), checkpoint on its review
-  day ("every sun at 18:00"). Confirm times with the user.
+  day ("every sun at 18:00"). Confirm times with the user. A paused path
+  (paused=true) has no reminders until the user resumes it on the web.
 - Resource curation: link a real books library entry or feeds item when one
   matches, else a freeform URL/description.
 
@@ -161,7 +162,8 @@ Everything operates only on the calling user's own paths (scoped server-side).
   only for structural changes.
 - update_path replaces: pass the full title/goal/routine AND the full
   modules/resources arrays read from get_path, or you'll drop what you omit.
-- update_path deletes and recreates the active module's Todoist reminders.
+- update_path deletes and recreates the active module's Todoist reminders,
+  except on a paused path, which it leaves paused.
 - Scoping is automatic: these tools can only touch the calling user's own
   paths.
 `

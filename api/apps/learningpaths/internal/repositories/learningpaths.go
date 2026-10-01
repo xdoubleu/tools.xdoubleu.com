@@ -28,7 +28,7 @@ func (r *LearningPathsRepository) ListForUser(
 	safeLimit, sqlLimit := pagination.Clamp(limit)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT id, user_id, title, goal, routine, created_at, updated_at
+		SELECT id, user_id, title, goal, routine, created_at, updated_at, paused
 		FROM learningpaths.learning_paths
 		WHERE user_id = $1
 		ORDER BY title, id
@@ -45,7 +45,7 @@ func (r *LearningPathsRepository) ListForUser(
 		var lp models.LearningPath
 		if err = rows.Scan(
 			&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
-			&lp.CreatedAt, &lp.UpdatedAt,
+			&lp.CreatedAt, &lp.UpdatedAt, &lp.Paused,
 		); err != nil {
 			return nil, false, postgres.PgxErrorToHTTPError(err)
 		}
@@ -67,13 +67,14 @@ func (r *LearningPathsRepository) GetByID(
 	var schedulesJSON []byte
 	err := r.db.QueryRow(ctx, `
 		SELECT id, user_id, title, goal, routine, created_at, updated_at,
-			todoist_project_id, reminder_schedules
+			todoist_project_id, reminder_schedules, paused
 		FROM learningpaths.learning_paths
 		WHERE id = $1`,
 		id,
 	).Scan(
 		&lp.ID, &lp.UserID, &lp.Title, &lp.Goal, &lp.Routine,
 		&lp.CreatedAt, &lp.UpdatedAt, &lp.TodoistProjectID, &schedulesJSON,
+		&lp.Paused,
 	)
 	if err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
@@ -473,6 +474,19 @@ func (r *LearningPathsRepository) SetTodoistProjectID(
 		UPDATE learningpaths.learning_paths
 		SET todoist_project_id = NULLIF($1, '') WHERE id = $2`,
 		projectID, pathID,
+	)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
+// SetPaused stores whether userID's path is paused.
+func (r *LearningPathsRepository) SetPaused(
+	ctx context.Context, id uuid.UUID, userID string, paused bool,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE learningpaths.learning_paths
+		SET paused = $3, updated_at = now()
+		WHERE id = $1 AND user_id = $2`,
+		id, userID, paused,
 	)
 	return postgres.PgxErrorToHTTPError(err)
 }

@@ -101,6 +101,9 @@ message LearningPath {
   // string (e.g. "every day at 20:00") of its reminder tasks; an item's own
   // due overrides it.
   map<string, string> reminder_schedules = 10;
+  // paused stops the path's Todoist reminders. Read-only: set it with
+  // SetLearningPathPaused.
+  bool paused = 11;
 }
 
 message ListLearningPathsRequest {
@@ -157,6 +160,16 @@ message RecordItemProgressRequest {
 }
 message RecordItemProgressResponse {}
 
+// SetLearningPathPaused pausing deletes the path's Todoist tasks, and resuming
+// recreates the active module's tasks.
+message SetLearningPathPausedRequest {
+  string id = 1;
+  bool paused = 2;
+}
+message SetLearningPathPausedResponse {
+  LearningPath learning_path = 1;
+}
+
 // ModuleProgress is one module's completion count.
 message ModuleProgress {
   string id = 1;
@@ -186,6 +199,7 @@ service LearningPathsService {
   rpc UpdateLearningPath(UpdateLearningPathRequest) returns (UpdateLearningPathResponse);
   rpc DeleteLearningPath(DeleteLearningPathRequest) returns (DeleteLearningPathResponse);
   rpc RecordItemProgress(RecordItemProgressRequest) returns (RecordItemProgressResponse);
+  rpc SetLearningPathPaused(SetLearningPathPausedRequest) returns (SetLearningPathPausedResponse);
   rpc GetLearningPathProgress(GetLearningPathProgressRequest) returns (GetLearningPathProgressResponse);
 }
 
@@ -233,9 +247,11 @@ message GetTodoistSyncStateResponse {
   string requested_scope = 3;
   // todoist_project_id is empty until the first successful sync.
   string todoist_project_id = 4;
-  // active_module is empty when every module is complete.
+  // active_module is empty when every module is complete or the path is
+  // paused.
   string active_module = 5;
   repeated TodoistItemState items = 6;
+  bool paused = 7;
 }
 
 service TodoistService {

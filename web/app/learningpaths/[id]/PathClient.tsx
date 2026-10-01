@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import {
   useLearningPath,
   useDeleteLearningPath,
-  useRecordItemProgress
+  useRecordItemProgress,
+  useSetLearningPathPaused
 } from '@/hooks/useLearningPaths'
 import type { DeleteLearningPathInput } from '@/hooks/useLearningPaths'
 import { useTodoistConnection } from '@/hooks/useTodoistConnection'
@@ -24,10 +25,12 @@ export default function PathClient({ id }: { id: string }) {
   const { data, error, isLoading, mutate } = useLearningPath(id)
   const deleteLearningPath = useDeleteLearningPath()
   const recordItemProgress = useRecordItemProgress()
+  const setLearningPathPaused = useSetLearningPathPaused()
   const { data: todoistStatus } = useTodoistConnection()
   const router = useRouter()
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [pausing, setPausing] = useState(false)
 
   const learningPath = data?.learningPath
 
@@ -36,6 +39,17 @@ export default function PathClient({ id }: { id: string }) {
     const req: DeleteLearningPathInput = { id: learningPath.id }
     await deleteLearningPath(req)
     router.push('/learningpaths/list')
+  }
+
+  const handleTogglePaused = async () => {
+    if (!learningPath) return
+    setPausing(true)
+    try {
+      await setLearningPathPaused({ id: learningPath.id, paused: !learningPath.paused })
+      await mutate()
+    } finally {
+      setPausing(false)
+    }
   }
 
   const handleToggleItem = async (itemId: string, completed: boolean) => {
@@ -67,6 +81,9 @@ export default function PathClient({ id }: { id: string }) {
                   </Link>
                 </Button>
               )}
+              <Button variant="secondary" size="sm" onClick={handleTogglePaused} disabled={pausing}>
+                {learningPath.paused ? 'Resume' : 'Pause'}
+              </Button>
               <Button asChild variant="secondary" size="sm">
                 <Link href={`/learningpaths/${learningPath.id}/edit`}>Edit</Link>
               </Button>
@@ -97,12 +114,18 @@ export default function PathClient({ id }: { id: string }) {
           {learningPath.routine && (
             <p className="text-sm text-muted mb-4">Routine: {learningPath.routine}</p>
           )}
-          {todoistStatus?.connected && (
+          {learningPath.paused ? (
             <p className="text-sm text-muted mb-4">
-              {todoistStatus.needsReconnect
-                ? 'Todoist reminders are paused until you reconnect Todoist.'
-                : 'Reminders for the current week are created automatically in your Todoist project.'}
+              This path is paused, so it has no Todoist reminders. Resume it to get them again.
             </p>
+          ) : (
+            todoistStatus?.connected && (
+              <p className="text-sm text-muted mb-4">
+                {todoistStatus.needsReconnect
+                  ? 'Todoist reminders are paused until you reconnect Todoist.'
+                  : 'Reminders for the current week are created automatically in your Todoist project.'}
+              </p>
+            )
           )}
           {totalItems > 0 && (
             <p className="text-sm text-muted mb-6">
