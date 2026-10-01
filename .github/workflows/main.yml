@@ -311,6 +311,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: make lint/workflows
         run: make lint/workflows
+      - name: make health-check/test
+        run: make health-check/test
       - name: make routines/test
         run: make routines/test
       - name: make lint/watchdog

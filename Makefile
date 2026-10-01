@@ -1,6 +1,10 @@
 hooks/test:
 	./scripts/test_hooks.sh
 
+# Exercise the scheduled health check's issue-filing script.
+health-check/test:
+	./scripts/test_ci_health_report.sh
+
 # Validate the provisioned Grafana dashboards.
 lint/grafana:
 	python3 scripts/validate_grafana_dashboards.py
