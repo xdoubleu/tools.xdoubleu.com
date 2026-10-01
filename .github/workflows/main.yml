@@ -330,8 +330,9 @@ jobs:
       - name: make lint/skills
         run: make lint/skills
 
+  # Also runs on push: PRs merged off the same base can each pass a word
+  # budget and overrun it together. BASE_REF=HEAD leaves only the budgets.
   docs-lint:
-    if: github.event_name != 'push'
     name: Docs and Comments Lint
     runs-on: ubuntu-latest
     permissions:
@@ -343,7 +344,7 @@ jobs:
       - name: make lint/docs
         run: make lint/docs
         env:
-          BASE_REF: origin/${{ github.base_ref }}
+          BASE_REF: ${{ github.event_name == 'push' && 'HEAD' || format('origin/{0}', github.base_ref) }}
 
   ci-pass:
     needs:
@@ -733,6 +734,7 @@ jobs:
         web-test,
         kobo-gateway-test,
         sentrytools-test,
+        docs-lint,
         infra-apply,
         deploy-kamal,
       ]
