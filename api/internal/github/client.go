@@ -589,6 +589,14 @@ func (c *client) get(ctx context.Context, endpoint, token string, dst any) error
 			)
 		}
 
+		if resp.StatusCode == http.StatusUnauthorized ||
+			resp.StatusCode == http.StatusForbidden {
+			raw, _ := io.ReadAll(resp.Body)
+			return false, fmt.Errorf(
+				"%w (%d): %s", ErrAccessDenied, resp.StatusCode, string(raw),
+			)
+		}
+
 		if resp.StatusCode < http.StatusOK ||
 			resp.StatusCode >= http.StatusMultipleChoices {
 			raw, _ := io.ReadAll(resp.Body)

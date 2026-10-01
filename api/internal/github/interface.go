@@ -9,6 +9,10 @@ import (
 // empty section.
 var ErrNotConfigured = errors.New("github: not configured")
 
+// ErrAccessDenied wraps an upstream 401/403, typically a missing token scope or
+// app permission; the wrapped message carries GitHub's reason.
+var ErrAccessDenied = errors.New("github: access denied")
+
 // Client is the subset of the GitHub REST API used for observability.
 type Client interface {
 	// ListFailingPullRequests returns open PRs with a failing check on their head.
