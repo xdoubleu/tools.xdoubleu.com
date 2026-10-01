@@ -13,7 +13,7 @@ description: >-
 Closing half of every task, paired with `start-task`; implements
 [`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md).
 Run the steps in order. Opening the PR is pre-authorized; a pushed branch
-without a PR, or "CI is running", is not done.
+without a PR, or "CI is running", isn't done.
 
 ## 1. Lint
 
@@ -38,10 +38,8 @@ without a PR, or "CI is running", is not done.
 - Web: `cd web && npm run test:cov`.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
-and the coverage profile at the sandbox user's home, so `make lint/pkg` and
-`make test/cov/report` write nothing into the checkout — but
-`make lint/fix/*` reflows files in place and can't; lint read-only and
-hand-apply golines/gci diffs.
+and the coverage profile at the sandbox user's home; run lint read-only.
+`make lint/fix/*` reflows files in place; hand-apply golines/gci diffs.
 
 ## 3. Build (web changes)
 
@@ -88,7 +86,7 @@ end; no PR under a feature epic is reviewed
 
 **B — no `feature` label: tiered rule.**
 
-- **Small, code-only**: tell `ship-pr` it's small and self-contained; it
+- **Small, code-only**: tell `ship-pr` it's small and self-contained so it
   enables auto-merge.
 - **Tooling/harness or larger/architectural**: no auto-merge; wait for the
   user's review. Tooling/harness: `CLAUDE.md`, Makefile targets, lint config,
@@ -113,7 +111,7 @@ gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
 
 `<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
 matched on `content.number`. Without `gh`, use the
-`updateProjectV2ItemFieldValue` GraphQL mutation, or report that you couldn't.
+`updateProjectV2ItemFieldValue` mutation, or report that you couldn't.
 Unattended: the routine's GitHub App token can't write this user-owned board
 (`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and report
 which status edits were skipped.
