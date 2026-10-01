@@ -3,11 +3,10 @@
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { mutate } from 'swr'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { useLibrary } from '@/hooks/useBooks'
 import { useCurrentUser } from '@/hooks/useAuth'
 import BookCover from '@/components/books/BookCover'
+import BookDescription from '@/components/books/BookDescription'
 import BookSourceSync from '@/components/books/BookSourceSync'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
@@ -143,9 +142,7 @@ export default function BookDetailClient({ id }: { id: string }) {
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Description</h2>
             {book.description ? (
-              <div className="prose prose-sm max-w-none text-fg">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
-              </div>
+              <BookDescription description={book.description} />
             ) : (
               <p className="text-sm text-muted">No description available.</p>
             )}

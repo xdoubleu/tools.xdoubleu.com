@@ -234,4 +234,42 @@ describe('BookCard', () => {
     render(<BookCard userBook={makeBook({ status: 'currently-reading' })} onSaved={jest.fn()} />)
     fireEvent.click(screen.getByTestId('progress-editor'))
   })
+
+  describe('description quick peek', () => {
+    const withDescription = () =>
+      makeBook({
+        book: create(BookSchema, {
+          title: 'Test Book',
+          authors: ['Test Author'],
+          description: 'A gripping tale.'
+        })
+      })
+
+    it('has no toggle unless enabled', () => {
+      render(<BookCard userBook={withDescription()} onSaved={jest.fn()} />)
+      expect(screen.queryByRole('button', { name: 'Show description' })).not.toBeInTheDocument()
+    })
+
+    it('has no toggle for a book without a description', () => {
+      render(<BookCard userBook={makeBook()} onSaved={jest.fn()} showDescriptionToggle />)
+      expect(screen.queryByRole('button', { name: 'Show description' })).not.toBeInTheDocument()
+    })
+
+    it('shows and hides the description outside the detail link', () => {
+      render(<BookCard userBook={withDescription()} onSaved={jest.fn()} showDescriptionToggle />)
+      expect(screen.queryByText('A gripping tale.')).not.toBeInTheDocument()
+
+      const toggle = screen.getByRole('button', { name: 'Show description' })
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      fireEvent.click(toggle)
+
+      const description = screen.getByText('A gripping tale.')
+      expect(screen.getByRole('link', { name: 'Test Book' })).not.toContainElement(description)
+      const hide = screen.getByRole('button', { name: 'Hide description' })
+      expect(hide).toHaveAttribute('aria-expanded', 'true')
+
+      fireEvent.click(hide)
+      expect(screen.queryByText('A gripping tale.')).not.toBeInTheDocument()
+    })
+  })
 })
