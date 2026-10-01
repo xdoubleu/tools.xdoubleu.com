@@ -13,9 +13,8 @@ import (
 )
 
 func setPaused(
-	t *testing.T, ctx context.Context, id string, paused bool,
+	ctx context.Context, id string, paused bool,
 ) (*connect.Response[learningpathsv1.SetLearningPathPausedResponse], error) {
-	t.Helper()
 	return setupClient(getRoutes()).SetLearningPathPaused(
 		ctx, connect.NewRequest(&learningpathsv1.SetLearningPathPausedRequest{
 			Id: id, Paused: paused,
@@ -45,7 +44,7 @@ func TestSetLearningPathPaused_PauseAndResume(t *testing.T) {
 	})
 	assert.False(t, createResp.Msg.LearningPath.Paused)
 
-	resp, err := setPaused(t, ctx, id, true)
+	resp, err := setPaused(ctx, id, true)
 	require.NoError(t, err)
 	assert.True(t, resp.Msg.LearningPath.Paused)
 	assert.Len(t, resp.Msg.LearningPath.Modules, 1)
@@ -71,7 +70,7 @@ func TestSetLearningPathPaused_PauseAndResume(t *testing.T) {
 	require.NotNil(t, listed)
 	assert.True(t, listed.Paused)
 
-	resp, err = setPaused(t, ctx, id, false)
+	resp, err = setPaused(ctx, id, false)
 	require.NoError(t, err)
 	assert.False(t, resp.Msg.LearningPath.Paused)
 }
@@ -85,7 +84,7 @@ func TestSetLearningPathPaused_OtherUserDenied(t *testing.T) {
 	).Scan(&pathID)
 	require.NoError(t, err)
 
-	_, err = setPaused(t, newCtx(), pathID, true)
+	_, err = setPaused(newCtx(), pathID, true)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 
@@ -98,13 +97,13 @@ func TestSetLearningPathPaused_OtherUserDenied(t *testing.T) {
 }
 
 func TestSetLearningPathPaused_NotFound(t *testing.T) {
-	_, err := setPaused(t, newCtx(), uuid.NewString(), true)
+	_, err := setPaused(newCtx(), uuid.NewString(), true)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeNotFound, connectErr(err).Code())
 }
 
 func TestSetLearningPathPaused_InvalidID(t *testing.T) {
-	_, err := setPaused(t, newCtx(), "not-a-uuid", true)
+	_, err := setPaused(newCtx(), "not-a-uuid", true)
 	require.Error(t, err)
 	assert.Equal(t, connect.CodeInvalidArgument, connectErr(err).Code())
 }

@@ -205,9 +205,9 @@ func (s *TodoistService) SyncState(
 // only the active module (the first with an incomplete item, in sort order)
 // has tasks. On path creation that is the first module; completing module N
 // removes its tasks and activates N+1. A paused path has no active module, so
-// all its tasks are removed while its project is kept. Idempotent — a task already completed
-// or deleted in Todoist is ignored — and a graceful no-op when Todoist is
-// disconnected. Completion is one-way: Todoist never flips a path item.
+// all its tasks are removed while its project is kept. Idempotent — a task
+// already completed or deleted in Todoist is ignored — and a graceful no-op
+// when Todoist is disconnected. Completion is one-way: Todoist never flips a path item.
 func (s *TodoistService) SyncPath(
 	ctx context.Context, userID string, pathID uuid.UUID,
 ) error {

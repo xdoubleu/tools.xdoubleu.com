@@ -82,9 +82,7 @@ func TestSetPaused_OtherUserNotFound(t *testing.T) {
 func TestSetPaused_PropagatesErrors(t *testing.T) {
 	dbErr := errors.New("db error")
 	for name, store := range map[string]*fakeLearningPathsStore{
-		//nolint:exhaustruct //unset fields are the fixture defaults
 		"get": {getErr: dbErr},
-		//nolint:exhaustruct //unset fields are the fixture defaults
 		"set": {lp: newFixture(), setPausedErr: dbErr},
 	} {
 		t.Run(name, func(t *testing.T) {
