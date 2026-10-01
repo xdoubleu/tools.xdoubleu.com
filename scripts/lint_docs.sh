@@ -2,7 +2,8 @@
 # Enforces docs/convention-concise-docs-and-comments.md:
 #   1. word budgets for the instruction files agents load every session;
 #   2. no added comment block longer than MAX_COMMENT_LINES, diff-scoped
-#      against BASE_REF (default origin/main) so existing code doesn't fail.
+#      against BASE_REF (default origin/main) plus untracked files, so
+#      existing code doesn't fail.
 # Usage: scripts/lint_docs.sh [files...] — with files, only checks budgets for those.
 set -euo pipefail
 
@@ -47,12 +48,20 @@ if not only:
         print(f"lint/docs: {base} not found, skipping comment check", file=sys.stderr)
         merge_base = None
     if merge_base:
+        pathspecs = ["*.go", "*.ts", "*.tsx", "*.js", "*.mjs", "*.sh", "*.yml",
+                     "*.yaml", "*Makefile",
+                     ":!api/gen/**", ":!web/lib/gen/**", ":!**/mocks/**"]
         diff = subprocess.check_output(
-            ["git", "diff", "-U0", merge_base, "--", "*.go", "*.ts", "*.tsx", "*.js",
-             "*.mjs", "*.sh", "*.yml", "*.yaml", "*Makefile",
-             ":!api/gen/**", ":!web/lib/gen/**", ":!**/mocks/**"],
+            ["git", "diff", "-U0", merge_base, "--", *pathspecs], text=True
+        )
+        # git diff omits untracked files; scan them as all-added hunks.
+        untracked = subprocess.check_output(
+            ["git", "ls-files", "-z", "--others", "--exclude-standard", "--", *pathspecs],
             text=True,
         )
+        for f in filter(None, untracked.split("\0")):
+            with open(f, encoding="utf-8", errors="replace") as fh:
+                diff += f"\n+++ b/{f}\n@@ -0,0 +1 @@\n" + "".join("+" + l for l in fh)
         comment = re.compile(r"^\s*(//|#(?!!)|/\*|\*(\s|/|$))")
         path = None
         run = 0

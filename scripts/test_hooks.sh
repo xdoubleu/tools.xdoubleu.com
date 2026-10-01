@@ -346,6 +346,36 @@ else
 fi
 rm -rf "$stub"
 
+# --- lint_docs.sh comment check on untracked files ----------------------
+lintrepo=$(setup_repo lint-docs)
+mkdir -p "$lintrepo/scripts"
+cp "$ROOT_DIR/scripts/lint_docs.sh" "$lintrepo/scripts/"
+git -C "$lintrepo" add scripts && git -C "$lintrepo" commit -q -m script
+git -C "$lintrepo" update-ref refs/remotes/origin/main HEAD
+write_comment_file() {
+  { for _ in $(seq "$2"); do echo "// note"; done; echo "package x"; } > "$lintrepo/$1"
+}
+write_comment_file new.go 7
+out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1)
+if [ $? -ne 0 ] && printf '%s' "$out" | grep -q "new.go:1: 7-line comment block"; then
+  pass "lint_docs flags a long comment block in an untracked file"
+else
+  fail "lint_docs flags a long comment block in an untracked file" "$out"
+fi
+write_comment_file new.go 6
+if out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1); then
+  pass "lint_docs passes a 6-line comment block in an untracked file"
+else
+  fail "lint_docs passes a 6-line comment block in an untracked file" "$out"
+fi
+printf 'new.go\n' > "$lintrepo/.gitignore"
+write_comment_file new.go 7
+if out=$(BASE_REF=origin/main "$lintrepo/scripts/lint_docs.sh" 2>&1); then
+  pass "lint_docs ignores gitignored files"
+else
+  fail "lint_docs ignores gitignored files" "$out"
+fi
+
 echo "---"
 if [ "$fail_count" -eq 0 ]; then
   echo "All hook tests passed."
