@@ -36,10 +36,6 @@ var (
 		Help: "Duration of the most recent completed run of each GitHub Actions " +
 			"workflow on the default branch, in seconds.",
 	}, []string{"workflow"})
-	githubOpenSecurityAlerts = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "github_open_security_alerts",
-		Help: "Open Dependabot, code-scanning and secret-scanning alerts, by severity.",
-	}, []string{"severity"})
 	r2OrphanedObjects = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "r2_orphaned_objects",
 		Help: "Orphaned R2 storage objects in the latest storage snapshot.",
@@ -303,31 +299,6 @@ func (j *IssueSignalCollectorJob) collectWorkflowRuns(
 	for name, run := range latestByWorkflow {
 		githubWorkflowRunDurationSeconds.WithLabelValues(name).
 			Set(float64(run.DurationMs) / millisPerSecond)
-	}
-}
-
-func (j *IssueSignalCollectorJob) collectSecurityAlerts(
-	ctx context.Context,
-	logger *slog.Logger,
-) {
-	alerts, err := j.gh.ListSecurityAlerts(ctx)
-	if errors.Is(err, github.ErrNotConfigured) {
-		return
-	}
-	if err != nil {
-		logAPIErr(ctx, logger,
-			"issue-signal-collector: failed to list security alerts",
-			err, github.IsTransientAPIError(err))
-		return
-	}
-
-	bySeverity := make(map[string]int, len(alerts))
-	for _, alert := range alerts {
-		bySeverity[alert.Severity]++
-	}
-	githubOpenSecurityAlerts.Reset()
-	for severity, count := range bySeverity {
-		githubOpenSecurityAlerts.WithLabelValues(severity).Set(float64(count))
 	}
 }
 

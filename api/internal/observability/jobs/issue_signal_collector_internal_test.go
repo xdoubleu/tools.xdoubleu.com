@@ -196,6 +196,7 @@ func resetGauges() {
 	githubFailingPullRequests.Set(0)
 	githubWorkflowRunFailed.Reset()
 	githubOpenSecurityAlerts.Reset()
+	githubSecurityAlertsFetchOK.Set(0)
 	r2OrphanedObjects.Set(0)
 	r2StorageBytes.Set(0)
 	githubWorkflowRunDurationSeconds.Reset()

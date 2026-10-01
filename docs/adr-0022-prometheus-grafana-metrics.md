@@ -38,7 +38,7 @@ those and the related MCP tools.
   exposes `/metrics` with `web_vitals_seconds` from a browser beacon.
   `IssueSignalCollectorJob` exports issue signals as gauges every 5 minutes:
   `github_failing_pull_requests`, `github_workflow_run_failed{branch}`,
-  `github_open_security_alerts{severity}`,
+  `github_open_security_alerts{severity}`, `github_security_alerts_fetch_ok`,
   `github_workflow_run_duration_seconds{workflow}`, `sentry_unresolved_issues`,
   `r2_orphaned_objects`, `r2_storage_bytes`, `postgres_schema_size_bytes{schema}`,
   and `automated_action_seconds_since_last_open{routine}`.
@@ -46,7 +46,7 @@ those and the related MCP tools.
   host rules (CPU/memory 80%/85% for 15m, disk 85% instant), p95 rules
   (`RequestP95High`/`JobP95High`/`FrontendP95High`), the `service-health` group
   (`IssueFailingPRs`, `IssueMainCIRed`, `IssueSecurityAlerts`,
-  `IssueSentryUnresolved`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB,
+  `SecurityAlertsUnreadable`, `IssueSentryUnresolved`, `IssueOrphanedStorage`, `R2UsageHigh` at 9 GiB,
   `AutomatedActionStalled`, `AutomatedRoutineMissed`), and `TargetDown`/
   `TargetMissing`. Only `notify: slack` rules (outages:
   targets, disk, stalled or missed routines) reach the Slack contact point
