@@ -71,6 +71,54 @@ func TestObservabilityGetProjectIssuesByStatus_NotConfigured(t *testing.T) {
 	assert.Empty(t, resp.Msg.Issues)
 }
 
+func TestObservabilityGetProjectIssuesByStatus_UpstreamErrorsSurface(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	tests := []struct {
+		name string
+		body string
+		code connect.Code
+		msg  string
+	}{
+		{
+			name: "missing scope",
+			body: `{"errors":[{"type":"INSUFFICIENT_SCOPES",
+				"message":"requires one of the following scopes: ['read:project']"}]}`,
+			code: connect.CodeFailedPrecondition,
+			msg:  "read:project",
+		},
+		{
+			name: "other GraphQL error",
+			body: `{"errors":[{"message":"Could not resolve to a User"}]}`,
+			code: connect.CodeUnavailable,
+			msg:  "Could not resolve to a User",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(
+				func(w http.ResponseWriter, _ *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = w.Write([]byte(tt.body))
+				}))
+			t.Cleanup(srv.Close)
+			github.SetBaseURL(srv.URL)
+			t.Cleanup(func() { github.SetBaseURL("https://api.github.com") })
+			testApp.githubClient = github.New(
+				logging.NewNopLogger(),
+				stubTok("tok"),
+				testConfigJSON(t, map[string]string{"repo": "o/r"}),
+			)
+
+			_, err := callProjectIssuesByStatus(t, 9, "Backlog")
+			require.Error(t, err)
+			assert.Equal(t, tt.code, connect.CodeOf(err))
+			assert.Contains(t, err.Error(), tt.msg)
+		})
+	}
+}
+
 func TestObservabilityGetProjectIssuesByStatus_NonAdmin(t *testing.T) {
 	demoteToUser(t)
 	_, err := callProjectIssuesByStatus(t, 8, "Ready")

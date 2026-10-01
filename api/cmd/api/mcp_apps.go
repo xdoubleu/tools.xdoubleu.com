@@ -291,7 +291,7 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 			"fields on a personal (user-owned) project board, so this is the "+
 			"only way to answer \"which issues are in column X\".",
 		func(ctx context.Context, a projectIssuesByStatusArgs) (proto.Message, error) {
-			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status), nil
+			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status)
 		})
 }
 

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 
 	"connectrpc.com/connect"
@@ -21,14 +20,20 @@ func (h *obsConnectHandler) GetProjectIssuesByStatus(
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(h.projectIssuesByStatus(
+	resp, err := h.projectIssuesByStatus(
 		ctx, req.Msg.GetProjectNumber(), req.Msg.GetStatus(),
-	)), nil
+	)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(resp), nil
 }
 
+// projectIssuesByStatus reports configured=false without a GitHub connection;
+// any other failure is an error, since an empty column would read as "none".
 func (h *obsConnectHandler) projectIssuesByStatus(
 	ctx context.Context, projectNumber int32, status string,
-) *observabilityv1.GetProjectIssuesByStatusResponse {
+) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
 	resp := &observabilityv1.GetProjectIssuesByStatusResponse{
 		Issues:     []*observabilityv1.ProjectIssue{},
 		Configured: true,
@@ -37,14 +42,15 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 	issues, err := h.app.githubClient.ListProjectIssuesByStatus(
 		ctx, int64(projectNumber), status,
 	)
+	if errors.Is(err, github.ErrNotConfigured) {
+		resp.Configured = false
+		return resp, nil
+	}
+	if errors.Is(err, github.ErrInsufficientScopes) {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+	}
 	if err != nil {
-		if errors.Is(err, github.ErrNotConfigured) {
-			resp.Configured = false
-		} else {
-			h.app.logger.WarnContext(ctx, "project issues unavailable",
-				slog.Any("error", err))
-		}
-		return resp
+		return nil, connect.NewError(connect.CodeUnavailable, err)
 	}
 
 	protoIssues := make([]*observabilityv1.ProjectIssue, len(issues))
@@ -62,5 +68,5 @@ func (h *obsConnectHandler) projectIssuesByStatus(
 		}
 	}
 	resp.Issues = protoIssues
-	return resp
+	return resp, nil
 }
