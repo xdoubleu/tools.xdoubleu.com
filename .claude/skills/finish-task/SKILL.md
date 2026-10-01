@@ -108,6 +108,9 @@ gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
 `<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
 matched on `content.number`. Without `gh`, use the
 `updateProjectV2ItemFieldValue` GraphQL mutation, or report that you couldn't.
+Unattended: the routine's GitHub App token can't write this user-owned board
+(`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and report
+which status edits were skipped.
 
 ## 6. Resolve linked Sentry issues once merged
 

@@ -5,10 +5,10 @@ description: Sweep the /monitoring Issues page for every currently-open problem 
 
 # Monitoring Sweep
 
-Work through everything the `/monitoring` Issues page
+Work through everything `/monitoring`
 (`web/components/monitoring/ObservabilityClient.tsx`) reports as non-zero via
-isolated subagents. This session triages and dispatches only — diagnosing one issue's
-root cause belongs in a subagent.
+isolated subagents. This session only triages and dispatches; diagnosing
+root causes belongs in a subagent.
 
 ## Modes
 
@@ -17,10 +17,10 @@ The invoking prompt states the mode; default to interactive.
 - **Interactive** (a human asked): each subagent drives its problem to a
   merged/mergeable PR (`start-task` → fix → `finish-task`).
 - **Unattended** (nightly routine): **detection-only**. Each subagent
-  root-causes and files/updates a refined tracking issue; never writes a fix
-  or opens a PR (`ready-issues-sweep` does, once a human moves them to Ready). Never end
-  on "ask the user" — every decision needing a human resolves to "file/update
-  a tracking issue and move on".
+  root-causes and files/updates a refined tracking issue; never writes fixes
+  or opens PRs (`ready-issues-sweep` does once a human moves them to Ready).
+  Never end on a question — decisions needing a human become
+  "file/update a tracking issue and move on".
 
 ## Steps
 
@@ -94,7 +94,8 @@ The invoking prompt states the mode; default to interactive.
      `refine-issue` (fallback `gh issue create`/`issue_write`) with root
      cause, evidence, and a concrete suggested fix. No branch, no PR.
      **Always add the `bug` label**; board Status Backlog, never Ready
-     (config `statusRule`).
+     (config `statusRule`). The routine bot can't write this board;
+     rely on automation and verify read-only (`refine-issue`).
    - Close the loop on signal data: `resolve_sentry_issue` (interactive: only
      after the fix is confirmed; unattended: only for confirmed
      duplicates/false positives), `dismiss_security_alert` per

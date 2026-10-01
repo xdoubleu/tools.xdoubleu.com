@@ -78,6 +78,10 @@ gh project item-edit --id <ITEM_ID> \
 matched on `content.number`. Without `gh`, use the
 `updateProjectV2ItemFieldValue` GraphQL mutation.
 
+**Unattended:** the routine's GitHub App token can't write this user-owned
+board (`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and
+let the open PR be the in-progress signal.
+
 ## Missing skills or `gh`
 
 Check both (`command -v gh`); a Claude Code on the web session has neither
