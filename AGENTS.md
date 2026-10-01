@@ -74,7 +74,7 @@ Fresh branch off up-to-date `main`, tracking issue before the first edit, lint/c
 
 ## CI
 
-`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps.
+`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except the docs word budgets. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps.
 
 ## Docs
 
