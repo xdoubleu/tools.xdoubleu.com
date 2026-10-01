@@ -451,6 +451,46 @@ groups:
                     type: gt
                     params: [0]
 
+      # IssueSecurityAlerts can't tell "no alerts" from "can't read alerts";
+      # this fires on the latter. The gauge starts at 0 until the collector's
+      # first run, which the 15m hold absorbs.
+      - uid: security-alerts-unreadable
+        title: SecurityAlertsUnreadable
+        condition: C
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: GitHub security alerts can't be read
+          description: >-
+            The issue-signal collector couldn't fetch security alerts (GitHub
+            not connected, or a 401/403 from a missing scope or permission),
+            so IssueSecurityAlerts is blind. See the api logs for
+            "failed to list security alerts"; reconnect GitHub on
+            /monitoring/connections.
+        noDataState: OK
+        execErrState: Alerting
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: 1 - max(github_security_alerts_fetch_ok) > 0
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+
       - uid: issue-main-ci-red
         title: IssueMainCIRed
         condition: C

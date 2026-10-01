@@ -30,9 +30,8 @@ The invoking prompt states the mode; default to interactive.
    Skip under the workflow (step 9).
 
 1. **Pull every data source, MCP-only.**
-   - **`get_grafana_alerts` first.** Grafana-managed alerts never reach
-     Prometheus `ALERTS{}`, so only this tool says whether a rule (e.g.
-     `IssueGithubFailingPRs`, `IssueSecurityAlerts`) is `Alerting`. A rule in
+   - **`get_grafana_alerts` first** — the only source of rule state
+     (Grafana-managed alerts never reach `ALERTS{}`). A rule in
      `Alerting` is the ground truth for "something changed"; the detail tools
      explain what. Rules: `infra/grafana/provisioning/alerting/rules.yml`.
    - `get_sentry_issues` — unresolved errors (no gauge; cross-check Grafana's
@@ -40,7 +39,8 @@ The invoking prompt states the mode; default to interactive.
    - `get_failing_pull_requests` — gauge `github_failing_pull_requests`.
    - `get_workflow_runs` — is the *latest* `event: push, branch: main` run
      failed? Gauge `github_workflow_run_failed{branch="main"}`.
-   - `get_security_alerts` — gauge `github_open_security_alerts`.
+   - `get_security_alerts` — gauge `github_open_security_alerts`; zero is
+     blind while `SecurityAlertsUnreadable` fires.
    - `get_storage_stats` — `.latest.orphanCount`/`orphanKeys`; gauges
      `r2_orphaned_objects`, `r2_storage_bytes`.
    - `get_slow_transactions` — p95 list, informational; thresholds:
