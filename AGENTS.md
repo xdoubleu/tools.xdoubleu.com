@@ -53,7 +53,7 @@ npx jest path/to/file.test.ts -t "test name"
 make build | dist | test | lint/fix
 
 # repo root
-make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | routines/test
+make lint/docs | lint/skills | lint/workflows | lint/infra | lint/grafana | grafana/verify | hooks/test | health-check/test | routines/test
 
 # proto changes: run BOTH generators (…/local variants avoid buf.build)
 cd api && make proto/generate    # check: make proto/check
@@ -74,7 +74,7 @@ Fresh branch off up-to-date `main`, tracking issue before the first edit, lint/c
 
 ## CI
 
-`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except the docs word budgets. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps.
+`.github/workflows/main.yml` runs reusable build/lint/test workflows behind a `changes` path filter (`**/*.md` excluded); kobo-gateway jobs run on macOS. **`ci-pass` is the required check.** Pushes to `main` rebuild and deploy but skip lint, except the docs word budgets. If `ci-pass` times out waiting for Codecov, push a new commit — re-running never helps. `.github/workflows/health-check.yml` reruns the lint/test workflows daily and files an issue when any fail.
 
 ## Docs
 

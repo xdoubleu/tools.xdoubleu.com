@@ -26,11 +26,21 @@ if [ -z "$failed_jobs" ]; then
 	exit 0
 fi
 
-# Bounded excerpt of the failed-job logs; the run link carries the full output.
-log_excerpt=$(
-	gh run view "$HEALTH_CHECK_RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed 2>/dev/null |
-		tail -n "$max_log_lines" || true
-)
+# Bounded excerpt of the failed jobs' logs, fetched per job (available as soon
+# as each job ends, unlike the whole-run log while the run is still in flight).
+log_all=""
+while IFS=$'\t' read -r job_id job_name; do
+	[ -n "$job_id" ] || continue
+	job_log=$(gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$job_id/logs" 2>/dev/null || true)
+	log_all="${log_all}== ${job_name} ==
+${job_log}
+"
+done <<<"$(
+	gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$HEALTH_CHECK_RUN_ID/jobs" \
+		--jq '.jobs[] | select(.conclusion == "failure" or .conclusion == "cancelled") | "\(.id)\t\(.name)"' \
+		2>/dev/null || true
+)"
+log_excerpt=$(printf '%s' "$log_all" | tail -n "$max_log_lines")
 
 body_file=$(mktemp)
 trap 'rm -f "$body_file"' EXIT

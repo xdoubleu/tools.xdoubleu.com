@@ -21,15 +21,21 @@ check_contains() {
 	esac
 }
 
-# Stub gh: dispatch on the subcommand, record calls, keep the issue body.
-mkdir -p "$tmp/bin"
-cat >"$tmp/bin/gh" <<'STUB'
+export GH_TOKEN=test GITHUB_REPOSITORY=owner/repo
+export HEALTH_CHECK_RUN_ID=42 HEALTH_CHECK_RUN_URL=https://example/run/42
+export FAKE_CALLS="$tmp/calls" FAKE_JOBS="$tmp/jobs" FAKE_JOB_LOGS="$tmp/joblogs"
+export FAKE_ISSUE_LIST="$tmp/issues" FAKE_BODY_OUT="$tmp/body"
+
+write_stub() {
+	mkdir -p "$tmp/bin"
+	cat >"$tmp/bin/gh" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CALLS"
-case "$1 $2" in
-"run view") cat "$FAKE_LOGS" ;;
-"issue list") cat "$FAKE_ISSUE_LIST" ;;
-"issue create" | "issue comment")
+case "$*" in
+*"actions/jobs/"*"/logs"*) cat "$FAKE_JOB_LOGS" ;;
+*"actions/runs/"*"/jobs"*) cat "$FAKE_JOBS" ;;
+*"issue list"*) cat "$FAKE_ISSUE_LIST" ;;
+*"issue create"* | *"issue comment"*)
 	body=""
 	while [ $# -gt 0 ]; do
 		[ "$1" = "--body-file" ] && body=$2
@@ -39,13 +45,13 @@ case "$1 $2" in
 	;;
 esac
 STUB
-chmod +x "$tmp/bin/gh"
-export PATH="$tmp/bin:$PATH"
+	chmod +x "$tmp/bin/gh"
+	export PATH="$tmp/bin:$PATH"
+}
+write_stub
 
-export GH_TOKEN=test GITHUB_REPOSITORY=owner/repo
-export HEALTH_CHECK_RUN_ID=42 HEALTH_CHECK_RUN_URL=https://example/run/42
-export FAKE_CALLS="$tmp/calls" FAKE_LOGS="$tmp/logs" FAKE_ISSUE_LIST="$tmp/issues" FAKE_BODY_OUT="$tmp/body"
-echo "boom: lint failed" >"$FAKE_LOGS"
+printf '111\tForced failure\n' >"$FAKE_JOBS"
+echo "boom: lint failed" >"$FAKE_JOB_LOGS"
 
 run() {
 	: >"$FAKE_CALLS"
@@ -63,7 +69,7 @@ run '{"api-lint":{"result":"failure"},"web-test":{"result":"success"}}'
 check_contains "create called" "issue create" "$(cat "$FAKE_CALLS")"
 check_contains "body lists job" "api-lint" "$(cat "$FAKE_BODY_OUT")"
 check_contains "body links run" "https://example/run/42" "$(cat "$FAKE_BODY_OUT")"
-check_contains "body has logs" "boom: lint failed" "$(cat "$FAKE_BODY_OUT")"
+check_contains "body has job logs" "boom: lint failed" "$(cat "$FAKE_BODY_OUT")"
 
 # An open matching issue exists: comment instead of creating a duplicate.
 echo '[{"number":123,"title":"Scheduled health check is failing"}]' >"$FAKE_ISSUE_LIST"
@@ -78,10 +84,10 @@ echo '[]' >"$FAKE_ISSUE_LIST"
 cat >"$tmp/bin/gh" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CALLS"
-case "$1 $2" in
-"run view") exit 1 ;;
-"issue list") echo '[]' ;;
-"issue create")
+case "$*" in
+*"actions/"*) exit 1 ;;
+*"issue list"*) echo '[]' ;;
+*"issue create"*)
 	body=""
 	while [ $# -gt 0 ]; do
 		[ "$1" = "--body-file" ] && body=$2
