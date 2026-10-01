@@ -22,7 +22,7 @@
   - `Field`/`Label` for labelled controls.
   - `Dialog side="sheet"` for edits that should be phone-first.
   - A hidden `<input type="file">` may use `eslint-disable-next-line no-restricted-syntax` with a reason.
-- **Theme tokens only.** Colours and shadows come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour.
+- **Theme tokens only.** Colours, shadows and corner radii come from `app/globals.css`, which `ui/theme-tokens` reads. No `dark:`. Add a token rather than using a palette colour. Corners stay squared: `rounded-full` is only for square circles (`size-*`, equal `h-`/`w-`), never a pill.
 - **Class overrides** go through `cn()` (`lib/cn.ts`), never through a template literal.
 - **Pending buttons** use `Saving…`. Always `…`, never `...`.
 - **Pinch-zoom is disabled** for an app-like feel (the `viewport` export in `app/layout.tsx`). That makes 16px fields and 44px targets mandatory.

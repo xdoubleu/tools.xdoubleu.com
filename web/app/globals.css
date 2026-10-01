@@ -44,7 +44,7 @@
 @supports (-webkit-touch-callout: none) {
   @media (display-mode: standalone) {
     :root {
-      --glass-edge-clear: 2.5rem;
+      --glass-edge-clear: 1.5rem;
     }
   }
   @media (display-mode: standalone) and (orientation: landscape) and (max-height: 500px) {

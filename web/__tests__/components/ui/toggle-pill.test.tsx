@@ -21,6 +21,13 @@ describe('TogglePill', () => {
     )
   })
 
+  it("keeps Button's squared corners", () => {
+    render(<TogglePill label="Physical" active={false} onClick={jest.fn()} />)
+    const pill = screen.getByRole('button', { name: 'Physical' })
+    expect(pill).toHaveClass('rounded-xl')
+    expect(pill).not.toHaveClass('rounded-full')
+  })
+
   it('fires onClick when clicked', () => {
     const onClick = jest.fn()
     render(<TogglePill label="Physical" active={false} onClick={onClick} />)

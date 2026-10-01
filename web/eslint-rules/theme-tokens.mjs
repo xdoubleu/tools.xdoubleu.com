@@ -57,6 +57,18 @@ const PREFIXES = [
   'to'
 ]
 
+// Radii past the theme's `--radius-2xl` round off the squared corners.
+const ROUNDED = /^rounded(-[setrblxy]{1,2})?-(full|[3-9]xl)$/
+
+/** A circle (`size-4`, `h-4 w-4`) may be fully rounded; anything else is a pill. */
+function isSquare(list) {
+  const bases = list.map(({ token }) => parseToken(token)).filter((t) => !t.variants.length)
+  if (bases.some((t) => t.base.startsWith('size-'))) return true
+  const h = bases.find((t) => t.base.startsWith('h-'))?.base.slice(2)
+  const w = bases.find((t) => t.base.startsWith('w-'))?.base.slice(2)
+  return h !== undefined && h === w
+}
+
 /**
  * Colours come from the theme tokens so both schemes stay consistent; `dark:`
  * follows the OS, not the app's theme setting.
@@ -64,14 +76,15 @@ const PREFIXES = [
 export default {
   meta: {
     type: 'problem',
-    docs: { description: 'Colours and shadows must use app/globals.css theme tokens' },
+    docs: { description: 'Colours, shadows and radii must use app/globals.css theme tokens' },
     messages: {
       dark: '`{{token}}`: `dark:` follows the OS, not the in-app theme. Theme tokens already switch per theme.',
       palette:
         '`{{token}}` is a raw palette colour. Use a theme token ({{tokens}}) or add one to app/globals.css.',
       unknown: '`{{token}}` names no theme colour, so it does nothing. Use one of: {{tokens}}.',
       shadow: '`{{token}}`: use a theme shadow ({{shadows}}).',
-      hex: '`{{attr}}="{{value}}"` hard-codes a colour. Use `var(--color-<token>)`.'
+      hex: '`{{attr}}="{{value}}"` hard-codes a colour. Use `var(--color-<token>)`.',
+      pill: '`{{token}}` makes a pill next to squared corners. Use rounded-lg/rounded-xl, or keep it on a square (`size-*`) circle.'
     },
     schema: []
   },
@@ -82,8 +95,13 @@ export default {
     const shadowList = [...shadows].map((s) => `shadow-${s}`).join(', ')
 
     const check = (list) => {
+      const square = isSquare(list)
       for (const { token, node } of list) {
         const { variants, base } = parseToken(token)
+        if (ROUNDED.test(base)) {
+          if (!square) context.report({ node, messageId: 'pill', data: { token } })
+          continue
+        }
         if (variants.includes('dark')) {
           context.report({ node, messageId: 'dark', data: { token } })
           continue

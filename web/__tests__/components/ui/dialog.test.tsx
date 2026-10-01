@@ -114,7 +114,8 @@ describe('DialogClose', () => {
     )
     const close = screen.getByRole('button', { name: 'Close' })
     expect(close).toHaveTextContent('×')
-    expect(close).toHaveClass('size-11')
+    expect(close).toHaveClass('size-11', 'rounded-xl')
+    expect(close).not.toHaveClass('rounded-full')
   })
 })
 

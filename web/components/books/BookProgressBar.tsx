@@ -12,14 +12,14 @@ export default function BookProgressBar({ userBook }: { userBook: UserBook }) {
   return (
     <div>
       <div
-        className="h-2 w-full overflow-hidden rounded-full bg-surface"
+        className="h-2 w-full overflow-hidden rounded-sm bg-surface"
         role="progressbar"
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-300"
+          className="h-full rounded-sm bg-accent transition-[width] duration-300"
           style={{ width: `${percent}%` }}
         />
       </div>

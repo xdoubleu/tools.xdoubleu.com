@@ -15,7 +15,10 @@ ruleTester.run('ui/theme-tokens', rule, {
     '<div className="bg-black/50 text-white fill-current stroke-2 ring-offset-1" />',
     '<div className="shadow-card shadow-elevated shadow-none divide-y outline-none" />',
     '<div className="text-star hover:text-star/80" />',
-    '<Bar fill="var(--color-accent)" />'
+    '<Bar fill="var(--color-accent)" />',
+    '<span className="h-4 w-4 animate-spin rounded-full" />',
+    '<span className="size-2 rounded-full" />',
+    '<div className="rounded-lg rounded-xl rounded-2xl" />'
   ],
   invalid: [
     { code: '<span className="text-amber-500" />', errors: [{ messageId: 'palette' }] },
@@ -29,6 +32,10 @@ ruleTester.run('ui/theme-tokens', rule, {
       code: 'const variantClasses = { a: "bg-red-500" }',
       errors: [{ messageId: 'palette' }]
     },
-    { code: '<Bar fill="#3b82f6" />', errors: [{ messageId: 'hex' }] }
+    { code: '<Bar fill="#3b82f6" />', errors: [{ messageId: 'hex' }] },
+    { code: '<Button className="rounded-full px-3" />', errors: [{ messageId: 'pill' }] },
+    { code: '<div className="h-2 w-full rounded-full" />', errors: [{ messageId: 'pill' }] },
+    { code: '<div className="rounded-3xl" />', errors: [{ messageId: 'pill' }] },
+    { code: '<div className="rounded-t-full" />', errors: [{ messageId: 'pill' }] }
   ]
 })

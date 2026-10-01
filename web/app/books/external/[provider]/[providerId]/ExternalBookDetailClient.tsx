@@ -8,6 +8,7 @@ import remarkGfm from 'remark-gfm'
 import { useExternalBook } from '@/hooks/useBooks'
 import BookCover from '@/components/books/BookCover'
 import BookDialog from '@/components/books/BookDialog'
+import { Badge } from '@/components/ui/badge'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
@@ -59,9 +60,9 @@ export default function ExternalBookDetailClient({
                 className="mb-0"
               />
 
-              <p className="mt-3 text-xs px-2 py-0.5 rounded-full bg-surface text-subtle inline-block">
+              <Badge variant="secondary" className="mt-3">
                 {providerLabel(book.provider)}
-              </p>
+              </Badge>
 
               {book.isbn13 && <p className="mt-2 text-xs text-muted">ISBN: {book.isbn13}</p>}
 
