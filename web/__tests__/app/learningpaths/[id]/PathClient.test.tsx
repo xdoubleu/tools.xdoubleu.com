@@ -35,6 +35,7 @@ import {
   ModuleSchema,
   ItemSchema,
   ResourceSchema,
+  QuizQuestionSchema,
   GetLearningPathResponseSchema
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 
@@ -107,6 +108,53 @@ describe('PathClient', () => {
     const checkboxes = screen.getAllByRole('checkbox')
     expect(checkboxes[0]).toBeChecked()
     expect(checkboxes[1]).not.toBeChecked()
+  })
+
+  it('links each open module quiz to its own page and marks passed ones', () => {
+    const quiz = [create(QuizQuestionSchema, { prompt: 'Q', options: ['a', 'b'] })]
+    const learningPath = create(LearningPathSchema, {
+      id: 'lp1',
+      title: 'Learn Go',
+      modules: [
+        create(ModuleSchema, {
+          id: 'm1',
+          title: 'Week 1',
+          items: [create(ItemSchema, { id: 'c1', type: 'checkpoint', description: 'Quiz 1' })],
+          quiz
+        }),
+        create(ModuleSchema, {
+          id: 'm2',
+          title: 'Week 2',
+          items: [
+            create(ItemSchema, {
+              id: 'c2',
+              type: 'checkpoint',
+              description: 'Quiz 2',
+              completed: true
+            })
+          ],
+          quiz
+        }),
+        create(ModuleSchema, {
+          id: 'm3',
+          title: 'Week 3',
+          items: [create(ItemSchema, { id: 'i3', description: 'No quiz here' })]
+        })
+      ]
+    })
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLearningPath).mockReturnValue({
+      data: create(GetLearningPathResponseSchema, { learningPath }),
+      isLoading: false,
+      error: undefined,
+      mutate: mockMutate
+    })
+    render(<PathClient id="lp1" />)
+
+    const links = screen.getAllByRole('link', { name: 'Take quiz (1 questions)' })
+    expect(links).toHaveLength(1)
+    expect(links[0]).toHaveAttribute('href', '/learningpaths/lp1/quiz/m1')
+    expect(screen.getByText('Quiz passed')).toBeInTheDocument()
   })
 
   it('renders linked book/feed item resources and orphaned link fallbacks', () => {

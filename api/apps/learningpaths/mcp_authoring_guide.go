@@ -140,9 +140,9 @@ Everything operates only on the calling user's own paths (scoped server-side).
 - Shape: roughly 3–6 items per module; one goal per path. Suggest a more
   focused path before writing 20+ modules or 60+ items.
 - End each module with one terminal checkpoint item that carries its quiz:
-  a checkpoint-type item with a quiz[] of 3–6 MCQs whose passing completes
-  the checkpoint (and thus the module). A module without a quiz still
-  completes on its items.
+  a checkpoint-type item with a quiz[] of exactly 10 MCQs whose passing
+  completes the checkpoint (and thus the module). A module without a quiz
+  still completes on its items.
 - Suggest whole books only — never a partial-book checkpoint.
 - Reminders: when Todoist is connected, the active module's items become
   tasks in the path's own Todoist project, due per reminder_schedules[type]

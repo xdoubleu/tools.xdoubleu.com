@@ -18,7 +18,7 @@ import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import { cn } from '@/lib/cn'
-import ModuleQuiz from '@/components/learningpaths/ModuleQuiz'
+import { isQuizPassed, moduleQuiz } from '@/lib/learningpaths/quiz'
 
 export default function PathClient({ id }: { id: string }) {
   const { data, error, isLoading, mutate } = useLearningPath(id)
@@ -40,11 +40,6 @@ export default function PathClient({ id }: { id: string }) {
 
   const handleToggleItem = async (itemId: string, completed: boolean) => {
     await recordItemProgress({ itemId, completed })
-    await mutate()
-  }
-
-  const completeCheckpoint = async (itemId: string) => {
-    await recordItemProgress({ itemId, completed: true })
     await mutate()
   }
 
@@ -164,7 +159,19 @@ export default function PathClient({ id }: { id: string }) {
                       </li>
                     ))}
                   </ul>
-                  {module.quiz && <ModuleQuiz module={module} onPassed={completeCheckpoint} />}
+                  {moduleQuiz(module) && (
+                    <div className="mt-3">
+                      {isQuizPassed(module) ? (
+                        <Badge variant="success">Quiz passed</Badge>
+                      ) : (
+                        <Button asChild size="sm">
+                          <Link href={`/learningpaths/${learningPath.id}/quiz/${module.id}`}>
+                            Take quiz ({module.quiz.length} questions)
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </Card>
               ))}
             </section>

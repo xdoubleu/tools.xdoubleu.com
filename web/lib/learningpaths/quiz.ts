@@ -23,6 +23,13 @@ export function quizCheckpointItemId(module: Module): string | undefined {
   return terminal?.id
 }
 
+// Whether the module's quiz checkpoint is already complete; false when the
+// module has no quiz.
+export function isQuizPassed(module: Module): boolean {
+  const checkpointId = quizCheckpointItemId(module)
+  return module.items.some((item) => item.id === checkpointId && item.completed)
+}
+
 // isAnswerCorrect checks one selection against the authored correct index.
 export function isAnswerCorrect(
   question: QuizQuestion,
