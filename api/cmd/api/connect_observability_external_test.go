@@ -760,7 +760,7 @@ func seedTransactionLatencyDay(
 	_, err := testApp.db.Exec(context.Background(), `
 		INSERT INTO global.transaction_latency_daily
 			(day, project, transaction_name, p95_duration_ms, request_count)
-		VALUES ($1, 'proj', $2, $3, 1)
+		VALUES ($1, 'proj', $2, $3, 100)
 	`, day, transaction, p95Ms)
 	require.NoError(t, err)
 }

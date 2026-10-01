@@ -82,18 +82,22 @@ func TestTransactionLatencyTrendsFlagsRegression(t *testing.T) {
 	repo := repositories.NewTransactionLatencyRepository(testDB)
 	now := time.Now()
 
-	seedDay(t, now.Add(-3*24*time.Hour), "GET /slow", 200)
-	seedDay(t, now.Add(-10*24*time.Hour), "GET /slow", 100)
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /slow", 200, 60)
+	seedDay(t, now.Add(-10*24*time.Hour), "GET /slow", 100, 60)
 
-	seedDay(t, now.Add(-3*24*time.Hour), "GET /stable", 150)
-	seedDay(t, now.Add(-10*24*time.Hour), "GET /stable", 150)
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /stable", 150, 60)
+	seedDay(t, now.Add(-10*24*time.Hour), "GET /stable", 150, 60)
 
 	// Below the 50ms floor: noise.
-	seedDay(t, now.Add(-3*24*time.Hour), "GET /tiny", 10)
-	seedDay(t, now.Add(-10*24*time.Hour), "GET /tiny", 5)
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /tiny", 10, 60)
+	seedDay(t, now.Add(-10*24*time.Hour), "GET /tiny", 5, 60)
 
 	// No prior window: excluded.
-	seedDay(t, now.Add(-3*24*time.Hour), "GET /new", 500)
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /new", 500, 60)
+
+	// Too few requests in a window for its p95 to mean anything.
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /rare", 4000, 60)
+	seedDay(t, now.Add(-10*24*time.Hour), "GET /rare", 400, 9)
 
 	trends, err := repo.Trends(t.Context())
 	require.NoError(t, err)
@@ -105,12 +109,36 @@ func TestTransactionLatencyTrendsFlagsRegression(t *testing.T) {
 	assert.InEpsilon(t, 1.0, trends[0].PctChange, 0.001)
 }
 
-func seedDay(t *testing.T, day time.Time, transaction string, p95Ms float64) {
+func TestTransactionLatencyTrendsWeightsDaysByRequests(t *testing.T) {
+	clearTransactionLatency(t)
+	repo := repositories.NewTransactionLatencyRepository(testDB)
+	now := time.Now()
+
+	// One slow single-request day must not outweigh a busy normal one.
+	seedDay(t, now.Add(-2*24*time.Hour), "GET /page", 5000, 1)
+	seedDay(t, now.Add(-3*24*time.Hour), "GET /page", 200, 99)
+	seedDay(t, now.Add(-10*24*time.Hour), "GET /page", 100, 100)
+
+	trends, err := repo.Trends(t.Context())
+	require.NoError(t, err)
+	require.Len(t, trends, 1)
+	assert.InEpsilon(t, 100.0, trends[0].PriorAvgP95Ms, 0.001)
+	assert.InEpsilon(t, 248.0, trends[0].RecentAvgP95Ms, 0.001)
+	assert.InEpsilon(t, 1.48, trends[0].PctChange, 0.001)
+}
+
+func seedDay(
+	t *testing.T,
+	day time.Time,
+	transaction string,
+	p95Ms float64,
+	requests int64,
+) {
 	t.Helper()
 	_, err := testDB.Exec(t.Context(), `
 		INSERT INTO global.transaction_latency_daily
 			(day, project, transaction_name, p95_duration_ms, request_count)
-		VALUES ($1, 'proj', $2, $3, 1)
-	`, day, transaction, p95Ms)
+		VALUES ($1, 'proj', $2, $3, $4)
+	`, day, transaction, p95Ms, requests)
 	require.NoError(t, err)
 }

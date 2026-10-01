@@ -309,7 +309,9 @@ groups:
 
       # The global p95 rules above dilute one slow route or job among the fast
       # majority; this fires per Sentry transaction instead. The 1s floor keeps
-      # sub-second noise quiet. No notify label: the nightly sweep picks it up.
+      # sub-second noise quiet; the gauge already omits transactions with too
+      # few requests in either week (Trends). No notify label: the nightly
+      # sweep picks it up.
       - uid: transaction-latency-regression
         title: TransactionLatencyRegression
         condition: C
