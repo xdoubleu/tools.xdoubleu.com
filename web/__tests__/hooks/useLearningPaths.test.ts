@@ -2,7 +2,10 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
-  listLearningPaths: jest.fn().mockResolvedValue({ learningPaths: [{ id: 'lp-1' }], hasMore: true })
+  listLearningPaths: jest
+    .fn()
+    .mockResolvedValue({ learningPaths: [{ id: 'lp-1' }], hasMore: true }),
+  setLearningPathPaused: jest.fn().mockResolvedValue({})
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -19,6 +22,7 @@ import {
   useUpdateLearningPath,
   useDeleteLearningPath,
   useRecordItemProgress,
+  useSetLearningPathPaused,
   useFetchLearningPathsPage
 } from '@/hooks/useLearningPaths'
 
@@ -68,6 +72,14 @@ describe('mutation hooks return functions', () => {
   it('useRecordItemProgress returns a function', () => {
     const { result } = renderHook(() => useRecordItemProgress())
     expect(typeof result.current).toBe('function')
+  })
+})
+
+describe('useSetLearningPathPaused', () => {
+  it('sends the paused flag for the path', async () => {
+    const { result } = renderHook(() => useSetLearningPathPaused())
+    await result.current({ id: 'lp-1', paused: true })
+    expect(mockClient.setLearningPathPaused).toHaveBeenCalledWith({ id: 'lp-1', paused: true })
   })
 })
 

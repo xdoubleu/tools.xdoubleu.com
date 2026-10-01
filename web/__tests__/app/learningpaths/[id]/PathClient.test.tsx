@@ -4,11 +4,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 const mockMutate = jest.fn(async () => undefined)
 const mockDeleteLearningPath = jest.fn()
 const mockRecordItemProgress = jest.fn()
+const mockSetLearningPathPaused = jest.fn()
 
 jest.mock('@/hooks/useLearningPaths', () => ({
   useLearningPath: jest.fn(),
   useDeleteLearningPath: () => mockDeleteLearningPath,
-  useRecordItemProgress: () => mockRecordItemProgress
+  useRecordItemProgress: () => mockRecordItemProgress,
+  useSetLearningPathPaused: () => mockSetLearningPathPaused
 }))
 
 jest.mock('next/navigation', () => ({
@@ -320,13 +322,16 @@ describe('PathClient', () => {
   })
 
   describe('Todoist reminders', () => {
-    function renderWithTodoist(status: { connected: boolean; needsReconnect: boolean }) {
+    function renderWithTodoist(
+      status: { connected: boolean; needsReconnect: boolean },
+      paused = false
+    ) {
       // @ts-expect-error -- partial SWRResponse
       jest.mocked(useTodoistConnection).mockReturnValue({ data: status })
       // @ts-expect-error -- partial SWRResponse
       jest.mocked(useLearningPath).mockReturnValue({
         data: create(GetLearningPathResponseSchema, {
-          learningPath: create(LearningPathSchema, { id: 'lp1', title: 'Learn Go' })
+          learningPath: create(LearningPathSchema, { id: 'lp1', title: 'Learn Go', paused })
         }),
         isLoading: false,
         error: undefined,
@@ -339,6 +344,36 @@ describe('PathClient', () => {
       renderWithTodoist({ connected: true, needsReconnect: false })
       expect(screen.getByText(/created automatically in your Todoist project/)).toBeInTheDocument()
       expect(screen.queryByRole('link', { name: /Todoist/ })).not.toBeInTheDocument()
+    })
+
+    it('says a paused path has no reminders', () => {
+      renderWithTodoist({ connected: true, needsReconnect: false }, true)
+      expect(screen.getByText(/This path is paused/)).toBeInTheDocument()
+      expect(screen.queryByText(/created automatically/)).not.toBeInTheDocument()
+    })
+
+    it('pauses the path and revalidates', async () => {
+      mockSetLearningPathPaused.mockResolvedValue({})
+      renderWithTodoist({ connected: true, needsReconnect: false })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Pause' }))
+
+      await waitFor(() => {
+        expect(mockSetLearningPathPaused).toHaveBeenCalledWith({ id: 'lp1', paused: true })
+        expect(mockMutate).toHaveBeenCalled()
+      })
+    })
+
+    it('resumes a paused path', async () => {
+      mockSetLearningPathPaused.mockResolvedValue({})
+      renderWithTodoist({ connected: false, needsReconnect: false }, true)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Resume' }))
+
+      await waitFor(() => {
+        expect(mockSetLearningPathPaused).toHaveBeenCalledWith({ id: 'lp1', paused: false })
+        expect(screen.getByRole('button', { name: 'Resume' })).toBeEnabled()
+      })
     })
 
     it('asks to reconnect when the connection lacks scopes', () => {

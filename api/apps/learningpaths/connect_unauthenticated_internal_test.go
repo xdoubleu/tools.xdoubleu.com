@@ -66,3 +66,12 @@ func TestRecordItemProgress_Unauthenticated(t *testing.T) {
 	)
 	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
 }
+
+func TestSetLearningPathPaused_Unauthenticated(t *testing.T) {
+	h := &learningPathsConnectHandler{app: nil}
+	_, err := h.SetLearningPathPaused(
+		context.Background(),
+		connect.NewRequest(&learningpathsv1.SetLearningPathPausedRequest{}),
+	)
+	assert.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}

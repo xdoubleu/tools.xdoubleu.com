@@ -8,7 +8,8 @@ import {
   CreateLearningPathRequestSchema,
   UpdateLearningPathRequestSchema,
   DeleteLearningPathRequestSchema,
-  RecordItemProgressRequestSchema
+  RecordItemProgressRequestSchema,
+  SetLearningPathPausedRequestSchema
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import type {
   ListLearningPathsResponse,
@@ -20,6 +21,7 @@ export type CreateLearningPathInput = MessageInitShape<typeof CreateLearningPath
 export type UpdateLearningPathInput = MessageInitShape<typeof UpdateLearningPathRequestSchema>
 export type DeleteLearningPathInput = MessageInitShape<typeof DeleteLearningPathRequestSchema>
 export type RecordItemProgressInput = MessageInitShape<typeof RecordItemProgressRequestSchema>
+export type SetLearningPathPausedInput = MessageInitShape<typeof SetLearningPathPausedRequestSchema>
 
 export function useLearningPaths() {
   const client = createServiceClient(LearningPathsService)
@@ -63,4 +65,9 @@ export function useDeleteLearningPath() {
 export function useRecordItemProgress() {
   const client = createServiceClient(LearningPathsService)
   return (req: RecordItemProgressInput) => client.recordItemProgress(req)
+}
+
+export function useSetLearningPathPaused() {
+  const client = createServiceClient(LearningPathsService)
+  return (req: SetLearningPathPausedInput) => client.setLearningPathPaused(req)
 }

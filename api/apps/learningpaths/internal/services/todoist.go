@@ -151,6 +151,7 @@ type SyncState struct {
 	Status       ConnectionStatus
 	ProjectID    string
 	ActiveModule string
+	Paused       bool
 	Items        []models.Item
 }
 
@@ -184,7 +185,8 @@ func (s *TodoistService) SyncState(
 	if lp.TodoistProjectID != nil {
 		out.ProjectID = *lp.TodoistProjectID
 	}
-	active := s.activeModule(modules)
+	out.Paused = lp.Paused
+	active := s.reminderModule(lp, modules)
 	if active >= 0 {
 		out.ActiveModule = modules[active].Title
 	}
@@ -202,7 +204,8 @@ func (s *TodoistService) SyncState(
 // SyncPath reconciles userID's tasks to a strictly linear reminder pipeline:
 // only the active module (the first with an incomplete item, in sort order)
 // has tasks. On path creation that is the first module; completing module N
-// removes its tasks and activates N+1. Idempotent — a task already completed
+// removes its tasks and activates N+1. A paused path has no active module, so
+// all its tasks are removed while its project is kept. Idempotent — a task already completed
 // or deleted in Todoist is ignored — and a graceful no-op when Todoist is
 // disconnected. Completion is one-way: Todoist never flips a path item.
 func (s *TodoistService) SyncPath(
@@ -234,7 +237,7 @@ func (s *TodoistService) SyncPath(
 		}
 	}
 
-	active := s.activeModule(modules)
+	active := s.reminderModule(lp, modules)
 	client := s.userClient(userID)
 	if err = s.clearNonActiveTasks(ctx, client, modules, active); err != nil {
 		return err
@@ -280,6 +283,17 @@ func (s *TodoistService) userClient(userID string) todoist.Client {
 	return s.newClient(oauthconn.NewTokenFunc(
 		s.oauthRepo.ForUser(userID), sharedmodels.OAuthProviderTodoist, s.conf,
 	))
+}
+
+// reminderModule is the module that should carry tasks: none while lp is
+// paused, else the active one.
+func (s *TodoistService) reminderModule(
+	lp *models.LearningPath, modules []models.Module,
+) int {
+	if lp.Paused {
+		return -1
+	}
+	return s.activeModule(modules)
 }
 
 // activeModule returns the index of the first module with an incomplete item,

@@ -53,6 +53,9 @@ const (
 	// LearningPathsServiceRecordItemProgressProcedure is the fully-qualified name of the
 	// LearningPathsService's RecordItemProgress RPC.
 	LearningPathsServiceRecordItemProgressProcedure = "/learningpaths.v1.LearningPathsService/RecordItemProgress"
+	// LearningPathsServiceSetLearningPathPausedProcedure is the fully-qualified name of the
+	// LearningPathsService's SetLearningPathPaused RPC.
+	LearningPathsServiceSetLearningPathPausedProcedure = "/learningpaths.v1.LearningPathsService/SetLearningPathPaused"
 	// LearningPathsServiceGetLearningPathProgressProcedure is the fully-qualified name of the
 	// LearningPathsService's GetLearningPathProgress RPC.
 	LearningPathsServiceGetLearningPathProgressProcedure = "/learningpaths.v1.LearningPathsService/GetLearningPathProgress"
@@ -78,6 +81,7 @@ type LearningPathsServiceClient interface {
 	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
 	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
 	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
+	SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error)
 	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
 }
 
@@ -128,6 +132,12 @@ func NewLearningPathsServiceClient(httpClient connect.HTTPClient, baseURL string
 			connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
 			connect.WithClientOptions(opts...),
 		),
+		setLearningPathPaused: connect.NewClient[v1.SetLearningPathPausedRequest, v1.SetLearningPathPausedResponse](
+			httpClient,
+			baseURL+LearningPathsServiceSetLearningPathPausedProcedure,
+			connect.WithSchema(learningPathsServiceMethods.ByName("SetLearningPathPaused")),
+			connect.WithClientOptions(opts...),
+		),
 		getLearningPathProgress: connect.NewClient[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse](
 			httpClient,
 			baseURL+LearningPathsServiceGetLearningPathProgressProcedure,
@@ -145,6 +155,7 @@ type learningPathsServiceClient struct {
 	updateLearningPath      *connect.Client[v1.UpdateLearningPathRequest, v1.UpdateLearningPathResponse]
 	deleteLearningPath      *connect.Client[v1.DeleteLearningPathRequest, v1.DeleteLearningPathResponse]
 	recordItemProgress      *connect.Client[v1.RecordItemProgressRequest, v1.RecordItemProgressResponse]
+	setLearningPathPaused   *connect.Client[v1.SetLearningPathPausedRequest, v1.SetLearningPathPausedResponse]
 	getLearningPathProgress *connect.Client[v1.GetLearningPathProgressRequest, v1.GetLearningPathProgressResponse]
 }
 
@@ -178,6 +189,11 @@ func (c *learningPathsServiceClient) RecordItemProgress(ctx context.Context, req
 	return c.recordItemProgress.CallUnary(ctx, req)
 }
 
+// SetLearningPathPaused calls learningpaths.v1.LearningPathsService.SetLearningPathPaused.
+func (c *learningPathsServiceClient) SetLearningPathPaused(ctx context.Context, req *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error) {
+	return c.setLearningPathPaused.CallUnary(ctx, req)
+}
+
 // GetLearningPathProgress calls learningpaths.v1.LearningPathsService.GetLearningPathProgress.
 func (c *learningPathsServiceClient) GetLearningPathProgress(ctx context.Context, req *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {
 	return c.getLearningPathProgress.CallUnary(ctx, req)
@@ -192,6 +208,7 @@ type LearningPathsServiceHandler interface {
 	UpdateLearningPath(context.Context, *connect.Request[v1.UpdateLearningPathRequest]) (*connect.Response[v1.UpdateLearningPathResponse], error)
 	DeleteLearningPath(context.Context, *connect.Request[v1.DeleteLearningPathRequest]) (*connect.Response[v1.DeleteLearningPathResponse], error)
 	RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error)
+	SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error)
 	GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error)
 }
 
@@ -238,6 +255,12 @@ func NewLearningPathsServiceHandler(svc LearningPathsServiceHandler, opts ...con
 		connect.WithSchema(learningPathsServiceMethods.ByName("RecordItemProgress")),
 		connect.WithHandlerOptions(opts...),
 	)
+	learningPathsServiceSetLearningPathPausedHandler := connect.NewUnaryHandler(
+		LearningPathsServiceSetLearningPathPausedProcedure,
+		svc.SetLearningPathPaused,
+		connect.WithSchema(learningPathsServiceMethods.ByName("SetLearningPathPaused")),
+		connect.WithHandlerOptions(opts...),
+	)
 	learningPathsServiceGetLearningPathProgressHandler := connect.NewUnaryHandler(
 		LearningPathsServiceGetLearningPathProgressProcedure,
 		svc.GetLearningPathProgress,
@@ -258,6 +281,8 @@ func NewLearningPathsServiceHandler(svc LearningPathsServiceHandler, opts ...con
 			learningPathsServiceDeleteLearningPathHandler.ServeHTTP(w, r)
 		case LearningPathsServiceRecordItemProgressProcedure:
 			learningPathsServiceRecordItemProgressHandler.ServeHTTP(w, r)
+		case LearningPathsServiceSetLearningPathPausedProcedure:
+			learningPathsServiceSetLearningPathPausedHandler.ServeHTTP(w, r)
 		case LearningPathsServiceGetLearningPathProgressProcedure:
 			learningPathsServiceGetLearningPathProgressHandler.ServeHTTP(w, r)
 		default:
@@ -291,6 +316,10 @@ func (UnimplementedLearningPathsServiceHandler) DeleteLearningPath(context.Conte
 
 func (UnimplementedLearningPathsServiceHandler) RecordItemProgress(context.Context, *connect.Request[v1.RecordItemProgressRequest]) (*connect.Response[v1.RecordItemProgressResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.RecordItemProgress is not implemented"))
+}
+
+func (UnimplementedLearningPathsServiceHandler) SetLearningPathPaused(context.Context, *connect.Request[v1.SetLearningPathPausedRequest]) (*connect.Response[v1.SetLearningPathPausedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("learningpaths.v1.LearningPathsService.SetLearningPathPaused is not implemented"))
 }
 
 func (UnimplementedLearningPathsServiceHandler) GetLearningPathProgress(context.Context, *connect.Request[v1.GetLearningPathProgressRequest]) (*connect.Response[v1.GetLearningPathProgressResponse], error) {

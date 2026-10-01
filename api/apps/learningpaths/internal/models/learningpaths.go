@@ -27,6 +27,8 @@ type LearningPath struct {
 	// ReminderSchedules maps a normalized item type to the Todoist due string
 	// of its reminder tasks.
 	ReminderSchedules map[string]string
+	// Paused stops the path's Todoist reminders; plan and progress are kept.
+	Paused bool
 
 	// TodoistProjectID is the path's own Todoist project, created on first
 	// sync. Never sent over the wire.

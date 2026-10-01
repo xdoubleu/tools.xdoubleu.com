@@ -55,6 +55,10 @@ type fakeLearningPathsStore struct {
 
 	// projectIDWrites records SetTodoistProjectID.
 	projectIDWrites []string
+
+	// pausedWrites records SetPaused, which fails with setPausedErr.
+	pausedWrites []bool
+	setPausedErr error
 }
 
 func (f *fakeLearningPathsStore) ListForUser(
@@ -178,6 +182,16 @@ func (f *fakeLearningPathsStore) SetTodoistProjectID(
 	_ context.Context, _ uuid.UUID, projectID string,
 ) error {
 	f.projectIDWrites = append(f.projectIDWrites, projectID)
+	return nil
+}
+
+func (f *fakeLearningPathsStore) SetPaused(
+	_ context.Context, _ uuid.UUID, _ string, paused bool,
+) error {
+	if f.setPausedErr != nil {
+		return f.setPausedErr
+	}
+	f.pausedWrites = append(f.pausedWrites, paused)
 	return nil
 }
 

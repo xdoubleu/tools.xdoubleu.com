@@ -45,6 +45,7 @@ type learningPathsStore interface {
 	) (uuid.UUID, error)
 	SetItemTodoistTaskID(ctx context.Context, itemID uuid.UUID, taskID string) error
 	SetTodoistProjectID(ctx context.Context, pathID uuid.UUID, projectID string) error
+	SetPaused(ctx context.Context, id uuid.UUID, userID string, paused bool) error
 }
 
 // bookLookup is the books surface (*books.Books) for linked resources.
@@ -454,6 +455,28 @@ func (s *LearningPathService) RecordItemProgress(
 		return err
 	}
 	s.logTodoistErr(ctx, "sync", userID, pathID, s.todoist.SyncPath(ctx, userID, pathID))
+	return nil
+}
+
+// SetPaused pauses or resumes userID's path, then reconciles Todoist: pausing
+// removes the path's tasks, resuming recreates the active module's.
+func (s *LearningPathService) SetPaused(
+	ctx context.Context,
+	id uuid.UUID,
+	userID string,
+	paused bool,
+) error {
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if existing.UserID != userID {
+		return database.ErrResourceNotFound
+	}
+	if err = s.repo.SetPaused(ctx, id, userID, paused); err != nil {
+		return err
+	}
+	s.logTodoistErr(ctx, "sync", userID, id, s.todoist.SyncPath(ctx, userID, id))
 	return nil
 }
 

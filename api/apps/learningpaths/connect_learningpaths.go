@@ -59,6 +59,7 @@ func protoLearningPath(lp *models.LearningPath) *learningpathsv1.LearningPath {
 		Modules:           modules,
 		Resources:         resources,
 		ReminderSchedules: lp.ReminderSchedules,
+		Paused:            lp.Paused,
 	}
 }
 
