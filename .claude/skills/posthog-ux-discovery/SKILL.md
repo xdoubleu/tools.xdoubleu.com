@@ -41,15 +41,23 @@ create a PR, or edit a repo file.
      → `book_progress_updated`, by `source`), mobile vs desktop rate.
    - **Funnel drop-off:** each flow's funnel.
    - **Unused features:** 30-day volume of each custom event.
-   - **Replay review:** watch up to 5 mobile replays touching the pages
-     above; note misclicks, backtracks, zoom/scroll fights.
+   - **Session reconstruction** (the connector returns recording metadata,
+     never snapshots): pick up to 5 mobile recordings touching the pages
+     above via `query-session-recordings-list`, then `execute-sql` each
+     `$session_id`'s `$pageview` paths, `$rageclick`/`$dead_click`/
+     `$dead_swipe` with `elements_chain`, and custom events, by timestamp.
+     Note backtracks, repeated friction taps on one element, dialogs opened
+     but not completed. Cite an existing Replay Vision summary
+     (`vision-observations-list`) if one exists; never generate one
+     (`vision-scanners-inline-scan` writes to PostHog and costs credits).
+     Zoom and ordinary taps aren't captured; don't infer them.
 
 3. **Genuine-finding thresholds:**
    - **Click cluster / mis-navigation:** same element or page pair, **≥2
      distinct users or ≥5 occurrences**.
    - **Completion gap:** mobile rate **≥20 points** below desktop, **≥5
      mobile opens**.
-   - **Replay:** the same friction seen in **≥2 sessions**; otherwise cite it
+   - **Session reconstruction:** the same friction in **≥2 sessions**; otherwise cite it
      as evidence for another signal.
    - **Funnel drop-off:** a step loses **>30 percentage points** over **≥5
      entrants**, **persisting across two consecutive weekly runs**:
@@ -94,7 +102,7 @@ create a PR, or edit a repo file.
    `$ROUTINE_OUTCOME_PATH` instead.
 
 7. **Summarize:** one line per finding (flow/step → mobile/desktop evidence
-   → issue link), provisionals opened/closed, replays reviewed, and gaps from
+   → issue link), provisionals opened/closed, sessions reconstructed, and gaps from
    steps 1–2. If a signal has under 14 days of data, say the window is too
    short rather than reporting it clean.
 
