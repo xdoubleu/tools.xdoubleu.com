@@ -33,7 +33,7 @@ write_stub() {
 printf '%s\n' "$*" >>"$FAKE_CALLS"
 case "$*" in
 *"actions/jobs/"*"/logs"*) cat "$FAKE_JOB_LOGS" ;;
-*"actions/runs/"*"/jobs"*) cat "$FAKE_JOBS" ;;
+*"actions/runs/"*"jobs"*) cat "$FAKE_JOBS" ;;
 *"issue list"*) cat "$FAKE_ISSUE_LIST" ;;
 *"issue create"* | *"issue comment"*)
 	body=""
@@ -56,24 +56,28 @@ echo "boom: lint failed" >"$FAKE_JOB_LOGS"
 run() {
 	: >"$FAKE_CALLS"
 	: >"$FAKE_BODY_OUT"
-	HEALTH_CHECK_NEEDS=$1 ./ci_health_report.sh
+	./ci_health_report.sh
 }
 
-# All green: no gh write call at all.
+# All green: no gh issue write at all.
 echo '[]' >"$FAKE_ISSUE_LIST"
-run '{"api-lint":{"result":"success"},"report":{"result":"skipped"}}'
-[ -s "$FAKE_CALLS" ] && fail "green no-op" "no gh calls" "$(cat "$FAKE_CALLS")"
+: >"$FAKE_JOBS"
+run
+case "$(cat "$FAKE_CALLS")" in
+*"issue create"* | *"issue comment"*) fail "green no-op" "no issue write" "$(cat "$FAKE_CALLS")" ;;
+esac
 
 # Failure with no existing issue: files one, with the failing jobs and logs.
-run '{"api-lint":{"result":"failure"},"web-test":{"result":"success"}}'
+printf '111\tForced failure\n' >"$FAKE_JOBS"
+run
 check_contains "create called" "issue create" "$(cat "$FAKE_CALLS")"
-check_contains "body lists job" "api-lint" "$(cat "$FAKE_BODY_OUT")"
+check_contains "body lists job" "Forced failure" "$(cat "$FAKE_BODY_OUT")"
 check_contains "body links run" "https://example/run/42" "$(cat "$FAKE_BODY_OUT")"
 check_contains "body has job logs" "boom: lint failed" "$(cat "$FAKE_BODY_OUT")"
 
 # An open matching issue exists: comment instead of creating a duplicate.
 echo '[{"number":123,"title":"Scheduled health check is failing"}]' >"$FAKE_ISSUE_LIST"
-run '{"api-lint":{"result":"failure"}}'
+run
 check_contains "comment called" "issue comment 123" "$(cat "$FAKE_CALLS")"
 case "$(cat "$FAKE_CALLS")" in
 *"issue create"*) fail "dedupe" "no create" "$(cat "$FAKE_CALLS")" ;;
@@ -85,7 +89,8 @@ cat >"$tmp/bin/gh" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$FAKE_CALLS"
 case "$*" in
-*"actions/"*) exit 1 ;;
+*"/logs"*) exit 1 ;;
+*"actions/runs/"*"jobs"*) printf '111\tForced failure\n' ;;
 *"issue list"*) echo '[]' ;;
 *"issue create"*)
 	body=""
@@ -98,8 +103,8 @@ case "$*" in
 esac
 STUB
 chmod +x "$tmp/bin/gh"
-run '{"api-lint":{"result":"failure"}}'
+run
 check_contains "create despite log error" "issue create" "$(cat "$FAKE_CALLS")"
-check_contains "body still lists job" "api-lint" "$(cat "$FAKE_BODY_OUT")"
+check_contains "body still lists job" "Forced failure" "$(cat "$FAKE_BODY_OUT")"
 
 echo "ci_health_report.sh: all tests passed"

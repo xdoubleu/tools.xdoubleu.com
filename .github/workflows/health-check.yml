@@ -2,8 +2,8 @@ name: Scheduled health check
 
 # Independent, scheduled run of the repo's lint and test suites. Push/PR CI only
 # re-runs when code changes; this catches drift in between (dependency rot,
-# flaky services, expired credentials) and files a tracking issue on failure.
-# Detection-only: it never pushes code and never fixes anything by itself.
+# flaky services, expired credentials). Detection-only: it never pushes code.
+# Failures are reported by .github/workflows/health-check-report.yml.
 
 permissions:
   contents: read
@@ -78,34 +78,3 @@ jobs:
     if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
     uses: ./.github/workflows/sentrytools-test.yml
     secrets: inherit
-
-  report:
-    name: File an issue
-    needs:
-      [
-        force-fail,
-        api-lint,
-        web-lint,
-        kobo-gateway-lint,
-        sentrytools-lint,
-        api-test,
-        web-test,
-        kobo-gateway-test,
-        sentrytools-test,
-      ]
-    if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - name: File or update the health-check issue
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          HEALTH_CHECK_NEEDS: ${{ toJSON(needs) }}
-          HEALTH_CHECK_RUN_ID: ${{ github.run_id }}
-          HEALTH_CHECK_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          HEALTH_CHECK_TRIGGER: ${{ github.event_name }}
-        run: scripts/ci_health_report.sh
