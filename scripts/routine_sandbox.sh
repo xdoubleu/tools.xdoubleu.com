@@ -22,6 +22,16 @@ fi
 # the sandbox user; bash then enters the (shared) working directory.
 dir=$PWD
 cd /
+
+# Tree-writing tool outputs (golangci-lint's cache, coverage profiles) point
+# at a per-checkout scratch dir under the sandbox's own home: the checkout
+# (e.g. a worktree under .claude/) can be read-only to this user.
+key=$(printf '%s' "$dir" | cksum | awk '{print $1}')
+scratch="$home/.cache/routine-sandbox/$key"
+sudo -n -u "$user" mkdir -p "$scratch/golangci-lint"
+
 exec sudo -n -u "$user" -- env -i \
   PATH="$home/go/bin:$home/.local/bin:$PATH" HOME="$home" USER="$user" LANG=C.UTF-8 TERM=dumb CI=true \
+  GOLANGCI_LINT_CACHE="$scratch/golangci-lint/.golangci-cache" \
+  COVERAGE="$scratch/coverage.out" \
   bash -c 'cd "$1" && shift && exec "$@"' routine-sandbox "$dir" "$@"

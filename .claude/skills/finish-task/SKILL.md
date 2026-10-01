@@ -37,6 +37,12 @@ without a PR, or "CI is running", is not done.
   `docker-compose down`** — every worktree shares that Postgres container.
 - Web: `cd web && npm run test:cov`.
 
+**Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
+and the coverage profile at the sandbox user's home, so `make lint/pkg` and
+`make test/cov/report` write nothing into the checkout — but
+`make lint/fix/*` reflows files in place and can't; lint read-only and
+hand-apply golines/gci diffs.
+
 ## 3. Build (web changes)
 
 `cd web && npm run build` — the only check of the server/client boundary.

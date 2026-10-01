@@ -1,7 +1,8 @@
 UNAME_S := $(shell uname -s)
 
 # Per-worktree cache: the shared default mixes worktrees' paths into output.
-export GOLANGCI_LINT_CACHE := $(CURDIR)/.golangci-cache
+# ?= lets a sandbox redirect it out of a read-only checkout.
+export GOLANGCI_LINT_CACHE ?= $(CURDIR)/.golangci-cache
 
 # Recreate the local Postgres volume; use when a failure looks like test-order
 # pollution rather than a real regression.
@@ -166,23 +167,26 @@ test/mutation/diff: tools/mutation
 test/mutation: tools/mutation
 	GOFLAGS="$$GOFLAGS -p=1 -count=1" gremlins unleash --workers 1 ./...
 
+# Overridable so a sandbox can point coverage artifacts outside the checkout.
+COVERAGE ?= coverage.out
+
 test/cov/report:
-	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=coverage.out.tmp
-	cat coverage.out.tmp | grep -v "_mock.go" | grep -v "/gen/" > coverage.out.filtered
-	echo "mode: set" > coverage.out
+	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
+	cat $(COVERAGE).tmp | grep -v "_mock.go" | grep -v "/gen/" > $(COVERAGE).filtered
+	echo "mode: set" > $(COVERAGE)
 	# -coverpkg makes other binaries emit count=0 duplicates that Codecov doesn't
 	# OR-merge; keep the highest count per line.
-	tail -n +2 coverage.out.filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> coverage.out
+	tail -n +2 $(COVERAGE).filtered | sort -t' ' -k1,1 -k3,3rn | awk '!seen[$$1]++' >> $(COVERAGE)
 	# Wrapped signature lines belong to no coverage block; extend blocks back to
 	# `func` so Codecov doesn't count them as missed.
-	python3 ../tools/extend_signature_coverage.py coverage.out
+	python3 ../tools/extend_signature_coverage.py $(COVERAGE)
 
 test/cov: test/cov/report
-	go tool cover -html=coverage.out -o=coverage.html
+	go tool cover -html=$(COVERAGE) -o=coverage.html
 	make test/cov/open
 
 test/cov/diff: test/cov/report
-	python3 ../tools/diff_coverage_go.py coverage.out
+	python3 ../tools/diff_coverage_go.py $(COVERAGE)
 
 test/cov/open:
 	open ./coverage.html

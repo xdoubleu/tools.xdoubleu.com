@@ -74,6 +74,12 @@ check "cannot edit a nested AGENTS.md" \
   '! "$sandbox" sh -c "echo evil >> api/AGENTS.md" 2>/dev/null'
 check "can rename-write files in subdirectories (lockfiles)" \
   'echo "{}" > api/lock.json && "$sandbox" sh -c "echo new > api/.tmp && mv api/.tmp api/lock.json"'
+check "golangci-lint cache lives in the sandbox's per-checkout scratch" \
+  'case "$($sandbox printenv GOLANGCI_LINT_CACHE)" in /home/$ROUTINE_SANDBOX_USER/.cache/routine-sandbox/*/.golangci-cache) ;; *) false ;; esac'
+check "coverage profile lives in the sandbox's per-checkout scratch" \
+  'case "$($sandbox printenv COVERAGE)" in /home/$ROUTINE_SANDBOX_USER/.cache/routine-sandbox/*/coverage.out) ;; *) false ;; esac'
+check "sandbox can write to its scratch dir" \
+  '"$sandbox" sh -c "d=\$(dirname \"\$GOLANGCI_LINT_CACHE\"); touch \"\$d/write-test\" && rm \"\$d/write-test\""'
 check "puts the sandbox's own tool dirs on PATH" \
   '"$sandbox" printenv PATH | grep -q "^/home/$ROUTINE_SANDBOX_USER/go/bin:"'
 check "rejects a missing command" '! "$sandbox" 2>/dev/null'
