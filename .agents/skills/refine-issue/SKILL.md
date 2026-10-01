@@ -73,6 +73,15 @@ can drift.
    gh project item-edit --project-id <PVT_id> --id <item-id> --field-id <field-id> --single-select-option-id <opt-id>
    ```
 
+   **Board writes can be denied:** a GitHub App token can't write a
+   user-owned project V2 board — both mutations above (and the in-progress
+   move below) fail with "Resource not accessible by integration". On that
+   denial, don't fail the run: verify read-only instead (`gh project
+   item-list <number> --owner <owner>`, matched on content number) whether
+   the board already carries the issue and what Status it holds — project
+   automation often auto-adds new issues and applies the repo's statusRule —
+   and state in your report that Priority/Status couldn't be set.
+
 6. **Sanity-check the issue is actually refined, not just labeled.** Before
    considering an issue ready to work (and again before moving it to "in
    progress" below), read it critically:
@@ -184,7 +193,9 @@ not just issue creation), re-run the refined-enough/blast-radius check
 above, and grill the scope with the user as described above, before
 treating the issue as good to go. If a project board is
 configured, set its status field to an "in progress" equivalent via the
-same `gh project item-edit` pattern as above.
+same `gh project item-edit` pattern as above. If that write is denied
+(GitHub App; see the steps 4-5 note), leave Status as-is — the open PR on
+the branch is the in-progress signal.
 
 ## Notes
 
