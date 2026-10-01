@@ -1,6 +1,10 @@
 import { create } from '@bufbuild/protobuf'
-import { QuizQuestionSchema } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
-import { didPass, isAnswerCorrect, percentCorrect } from '@/lib/learningpaths/quiz'
+import {
+  ItemSchema,
+  ModuleSchema,
+  QuizQuestionSchema
+} from '@/lib/gen/learningpaths/v1/learningpaths_pb'
+import { didPass, isAnswerCorrect, isQuizPassed, percentCorrect } from '@/lib/learningpaths/quiz'
 
 function questions(spec: Array<[correct: number, options: number]> = [[0, 2]]) {
   return spec.map(([correct, options]) =>
@@ -85,6 +89,30 @@ describe('quiz gating', () => {
 
     it('never passes a quiz with no questions', () => {
       expect(didPass(questions([]), [])).toBe(false)
+    })
+  })
+
+  describe('isQuizPassed', () => {
+    function quizModule(checkpointCompleted: boolean, withQuiz = true) {
+      return create(ModuleSchema, {
+        items: [
+          create(ItemSchema, { id: 'i1', type: 'read', completed: true }),
+          create(ItemSchema, { id: 'c1', type: 'checkpoint', completed: checkpointCompleted })
+        ],
+        quiz: withQuiz ? questions() : []
+      })
+    }
+
+    it('is true once the quiz checkpoint is complete', () => {
+      expect(isQuizPassed(quizModule(true))).toBe(true)
+    })
+
+    it('is false while the quiz checkpoint is open', () => {
+      expect(isQuizPassed(quizModule(false))).toBe(false)
+    })
+
+    it('is false for a module without a quiz', () => {
+      expect(isQuizPassed(quizModule(true, false))).toBe(false)
     })
   })
 })

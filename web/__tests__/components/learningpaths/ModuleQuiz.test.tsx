@@ -45,23 +45,32 @@ function click(button: HTMLElement) {
 
 describe('ModuleQuiz', () => {
   it('renders nothing for a module without a quiz', () => {
-    render(<ModuleQuiz module={moduleWithoutQuiz()} onPassed={jest.fn()} />)
-    expect(screen.queryByText('Module quiz')).toBeNull()
+    const { container } = render(<ModuleQuiz module={moduleWithoutQuiz()} onPassed={jest.fn()} />)
+    expect(container).toBeEmptyDOMElement()
   })
 
   it('shows the questions with options and a disabled check button until all answered', () => {
     render(<ModuleQuiz module={moduleWithQuiz()} onPassed={jest.fn()} />)
+    expect(screen.getByText(/^2 questions/)).toBeInTheDocument()
     expect(screen.getByText('1. Q1')).toBeInTheDocument()
     expect(screen.getByText('2. Q2')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
   })
 
-  it('shows right/wrong as answers are selected', () => {
+  it('does not reveal right/wrong until answers are checked', () => {
     render(<ModuleQuiz module={moduleWithQuiz()} onPassed={jest.fn()} />)
+    click(screen.getByRole('button', { name: /^b$/ }))
+    expect(screen.getByRole('button', { name: /^b$/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('Correct')).toBeNull()
+    expect(screen.queryByText('Wrong')).toBeNull()
+  })
+
+  it('lets an answer be changed before checking', () => {
+    render(<ModuleQuiz module={moduleWithQuiz()} onPassed={jest.fn()} />)
+    click(screen.getByRole('button', { name: /^b$/ }))
     click(screen.getByRole('button', { name: /^a$/ }))
-    expect(screen.getByText('Correct')).toBeInTheDocument()
-    click(screen.getByRole('button', { name: /^x$/ }))
-    expect(screen.getByText('Wrong')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^a$/ })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: /^b$/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
   it('completes the checkpoint on a passing attempt', async () => {
@@ -76,7 +85,7 @@ describe('ModuleQuiz', () => {
     expect(screen.getByText('Passed — module complete')).toBeInTheDocument()
   })
 
-  it('does not complete on a failing attempt and allows a retake', () => {
+  it('grades on a failing attempt, locks answers, and allows a retake', () => {
     const onPassed = jest.fn()
     render(<ModuleQuiz module={moduleWithQuiz()} onPassed={onPassed} />)
     click(screen.getByRole('button', { name: /^b$/ }))
@@ -84,10 +93,29 @@ describe('ModuleQuiz', () => {
     click(screen.getByRole('button', { name: 'Check answers' }))
     expect(onPassed).not.toHaveBeenCalled()
     expect(screen.getByText(/Not quite — 50%/)).toBeInTheDocument()
+    expect(screen.getByText('Wrong')).toBeInTheDocument()
+    expect(screen.getByText('Correct')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^b ✗$/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^y ✓$/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Check answers' })).toBeNull()
 
     click(screen.getByRole('button', { name: 'Retake' }))
     expect(screen.queryByText(/Not quite/)).toBeNull()
+    expect(screen.queryByText('Wrong')).toBeNull()
     expect(screen.getByRole('button', { name: 'Check answers' })).toBeDisabled()
+  })
+
+  it('shows a saving state while the pass is recorded', async () => {
+    let resolve: () => void = () => {}
+    const onPassed = jest.fn(() => new Promise<void>((r) => (resolve = r)))
+    render(<ModuleQuiz module={moduleWithQuiz()} onPassed={onPassed} />)
+    click(screen.getByRole('button', { name: /^a$/ }))
+    click(screen.getByRole('button', { name: /^y$/ }))
+    click(screen.getByRole('button', { name: 'Check answers' }))
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await act(async () => resolve())
+    expect(screen.queryByRole('button', { name: 'Saving…' })).toBeNull()
+    expect(screen.getByText('Passed — module complete')).toBeInTheDocument()
   })
 
   it('shows a completed summary when the checkpoint is already complete', () => {
