@@ -22,6 +22,7 @@ type PullRequest struct {
 	Author        string
 	UpdatedAt     time.Time
 	HeadSHA       string
+	HeadRef       string
 	Labels        []string
 	FailingChecks []FailingCheck
 }
@@ -140,6 +141,7 @@ type prWire struct {
 	} `json:"user"`
 	Head struct {
 		SHA string `json:"sha"`
+		Ref string `json:"ref"`
 	} `json:"head"`
 	Labels []labelWire `json:"labels"`
 }

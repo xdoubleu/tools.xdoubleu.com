@@ -9,7 +9,6 @@ import (
 
 	observabilityv1 "tools.xdoubleu.com/gen/observability/v1"
 	"tools.xdoubleu.com/internal/github"
-	"tools.xdoubleu.com/internal/mcptools"
 )
 
 // The apps MCP server exposes each app's read RPCs plus admin observability
@@ -194,10 +193,13 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.databaseStats(ctx)
 		})
-	addObsTool(srv, "get_failing_pull_requests",
-		"Open pull requests with at least one failing CI check.",
+	addObsToolWithDefaults(srv, "get_failing_pull_requests",
+		"Open pull requests with at least one failing CI check, limited to "+
+			"red-pr-repair's scope: labelled dependencies or on a claude/ "+
+			"branch. An empty pullRequests list means none; an upstream "+
+			"GitHub failure is a tool error.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
-			return h.failingPullRequests(ctx), nil
+			return h.failingPullRequests(ctx)
 		})
 	addObsTool(srv, "get_workflow_runs",
 		"Recent pull-request and push (main branch) GitHub Actions workflow "+
@@ -292,30 +294,5 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 			"only way to answer \"which issues are in column X\".",
 		func(ctx context.Context, a projectIssuesByStatusArgs) (proto.Message, error) {
 			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status)
-		})
-}
-
-// addObsTool registers an observability tool: requireObservability, then the
-// proto response marshalled to JSON text.
-func addObsTool[In any](
-	srv *mcp.Server,
-	name, description string,
-	produce func(context.Context, In) (proto.Message, error),
-) {
-	//nolint:exhaustruct // name/description are the only fields tools need
-	mcp.AddTool(srv, &mcp.Tool{Name: name, Description: description},
-		func(
-			ctx context.Context,
-			_ *mcp.CallToolRequest,
-			args In,
-		) (*mcp.CallToolResult, any, error) {
-			if err := requireObservability(ctx); err != nil {
-				return nil, nil, err
-			}
-			msg, err := produce(ctx, args)
-			if err != nil {
-				return nil, nil, err
-			}
-			return mcptools.Result(msg)
 		})
 }

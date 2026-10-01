@@ -97,7 +97,18 @@ func Unwrap[T any](resp *connect.Response[T], err error) (proto.Message, error) 
 // Result marshals a proto response to a tool result, as JSON text content and
 // as structured output (raw protojson, embedded by the SDK).
 func Result(msg proto.Message) (*mcp.CallToolResult, any, error) {
-	data, err := protojson.Marshal(msg)
+	return marshalResult(protojson.MarshalOptions{}, msg)
+}
+
+// ResultWithDefaults is Result with zero-valued fields emitted.
+func ResultWithDefaults(msg proto.Message) (*mcp.CallToolResult, any, error) {
+	return marshalResult(protojson.MarshalOptions{EmitUnpopulated: true}, msg)
+}
+
+func marshalResult(
+	opts protojson.MarshalOptions, msg proto.Message,
+) (*mcp.CallToolResult, any, error) {
+	data, err := opts.Marshal(msg)
 	if err != nil {
 		return nil, nil, err
 	}

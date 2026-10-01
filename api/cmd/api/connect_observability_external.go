@@ -27,12 +27,19 @@ func (h *obsConnectHandler) GetFailingPullRequests(
 	if err := requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	return connect.NewResponse(h.failingPullRequests(ctx)), nil
+	resp, err := h.failingPullRequests(ctx)
+	if err != nil {
+		h.app.logger.WarnContext(ctx, "failing pull requests unavailable",
+			slog.Any("error", err))
+	}
+	return connect.NewResponse(resp), nil
 }
 
+// failingPullRequests returns an upstream failure alongside the empty
+// section, so the MCP tool can report it instead of an empty list.
 func (h *obsConnectHandler) failingPullRequests(
 	ctx context.Context,
-) *observabilityv1.GetFailingPullRequestsResponse {
+) (*observabilityv1.GetFailingPullRequestsResponse, error) {
 	resp := &observabilityv1.GetFailingPullRequestsResponse{
 		PullRequests: []*observabilityv1.FailingPullRequest{},
 		Configured:   true,
@@ -40,14 +47,12 @@ func (h *obsConnectHandler) failingPullRequests(
 	}
 
 	prs, err := h.app.githubClient.ListFailingPullRequests(ctx)
+	if errors.Is(err, github.ErrNotConfigured) {
+		resp.Configured = false
+		return resp, nil
+	}
 	if err != nil {
-		if errors.Is(err, github.ErrNotConfigured) {
-			resp.Configured = false
-		} else {
-			h.app.logger.WarnContext(ctx, "failing pull requests unavailable",
-				slog.Any("error", err))
-		}
-		return resp
+		return resp, err
 	}
 
 	protoPRs := make([]*observabilityv1.FailingPullRequest, len(prs))
@@ -71,7 +76,7 @@ func (h *obsConnectHandler) failingPullRequests(
 	}
 	resp.PullRequests = protoPRs
 	resp.FailingCount = int32(len(prs)) //nolint:gosec // count fits int32
-	return resp
+	return resp, nil
 }
 
 func (h *obsConnectHandler) GetWorkflowRuns(
