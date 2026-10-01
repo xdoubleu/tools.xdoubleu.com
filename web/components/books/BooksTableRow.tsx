@@ -17,6 +17,7 @@ interface BooksTableRowProps {
 /** A book's table row, led by a toggle that expands its description in a row below. */
 export default function BooksTableRow({ userBook, columns, ctx }: BooksTableRowProps) {
   const [expanded, setExpanded] = useState(false)
+  const title = userBook.book?.title
   const description = userBook.book?.description ?? ''
   const descriptionId = `book-description-${userBook.id}`
   const open = expanded && description !== ''
@@ -32,7 +33,7 @@ export default function BooksTableRow({ userBook, columns, ctx }: BooksTableRowP
               size="iconSm"
               aria-expanded={open}
               aria-controls={descriptionId}
-              aria-label={`${open ? 'Hide' : 'Show'} description of ${userBook.book?.title}`}
+              aria-label={`${open ? 'Hide' : 'Show'} description of ${title}`}
               onClick={() => setExpanded((prev) => !prev)}
             >
               <span aria-hidden className="text-muted">
