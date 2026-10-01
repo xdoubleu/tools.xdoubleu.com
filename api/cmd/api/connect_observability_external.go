@@ -18,7 +18,8 @@ import (
 const currentSlowTransactionsLimit = 20
 
 // Each external-signal handler guards its source: an unset token yields
-// configured=false; an upstream failure logs and returns an empty section.
+// configured=false; an upstream failure logs and returns an empty section,
+// which GetSecurityAlerts flags with error.
 
 func (h *obsConnectHandler) GetFailingPullRequests(
 	ctx context.Context,
@@ -184,6 +185,7 @@ func (h *obsConnectHandler) securityAlerts(
 		} else {
 			h.app.logger.WarnContext(ctx, "security alerts unavailable",
 				slog.Any("error", err))
+			resp.Error = h.securityAlertsError(ctx, err)
 		}
 		return resp
 	}

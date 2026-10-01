@@ -248,11 +248,13 @@ message SecurityAlert {
 message GetSecurityAlertsRequest {}
 
 // GetSecurityAlertsResponse: configured is false without a GitHub token/repo
-// (degraded, not failed).
+// (degraded, not failed). error is set when the fetch failed; alerts are then
+// unknown, not zero.
 message GetSecurityAlertsResponse {
   repeated SecurityAlert alerts = 1;
   bool configured = 2;
   int32 alert_count = 3;
+  string error = 4;
 }
 
 // SentryIssue is an unresolved issue on a configured project.

@@ -1835,12 +1835,14 @@ func (*GetSecurityAlertsRequest) Descriptor() ([]byte, []int) {
 }
 
 // GetSecurityAlertsResponse: configured is false without a GitHub token/repo
-// (degraded, not failed).
+// (degraded, not failed). error is set when the fetch failed; alerts are then
+// unknown, not zero.
 type GetSecurityAlertsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Alerts        []*SecurityAlert       `protobuf:"bytes,1,rep,name=alerts,proto3" json:"alerts,omitempty"`
 	Configured    bool                   `protobuf:"varint,2,opt,name=configured,proto3" json:"configured,omitempty"`
 	AlertCount    int32                  `protobuf:"varint,3,opt,name=alert_count,json=alertCount,proto3" json:"alert_count,omitempty"`
+	Error         string                 `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1894,6 +1896,13 @@ func (x *GetSecurityAlertsResponse) GetAlertCount() int32 {
 		return x.AlertCount
 	}
 	return 0
+}
+
+func (x *GetSecurityAlertsResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 // SentryIssue is an unresolved issue on a configured project.
@@ -4354,14 +4363,15 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x04line\x18\v \x01(\x05R\x04line\x12\x1f\n" +
 	"\vsecret_type\x18\f \x01(\tR\n" +
 	"secretType\"\x1a\n" +
-	"\x18GetSecurityAlertsRequest\"\x95\x01\n" +
+	"\x18GetSecurityAlertsRequest\"\xab\x01\n" +
 	"\x19GetSecurityAlertsResponse\x127\n" +
 	"\x06alerts\x18\x01 \x03(\v2\x1f.observability.v1.SecurityAlertR\x06alerts\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
 	"configured\x12\x1f\n" +
 	"\valert_count\x18\x03 \x01(\x05R\n" +
-	"alertCount\"\xce\x01\n" +
+	"alertCount\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\xce\x01\n" +
 	"\vSentryIssue\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
