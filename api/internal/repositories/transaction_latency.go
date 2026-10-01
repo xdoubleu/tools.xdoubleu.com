@@ -18,8 +18,11 @@ const (
 	trendPriorWindow  = 7 * 24 * time.Hour
 	// trendMinPriorP95Ms ignores near-zero baselines.
 	trendMinPriorP95Ms = 50.0
-	trendMinPctChange  = 0.20
-	trendLimit         = 20
+	// trendMinWindowRequests (~7/day) keeps a handful of page loads, whose p95
+	// is just their slowest one, from reading as a regression.
+	trendMinWindowRequests = 50
+	trendMinPctChange      = 0.20
+	trendLimit             = 20
 )
 
 type TransactionLatencyRepository struct {
@@ -57,9 +60,9 @@ func (r *TransactionLatencyRepository) Insert(
 	return err
 }
 
-// Trends returns transactions whose average p95 rose by at least
-// trendMinPctChange between the two windows, worst first; ones missing either
-// window are excluded.
+// Trends returns transactions whose request-weighted average p95 rose by at
+// least trendMinPctChange between the two windows, worst first; ones missing
+// either window or under trendMinWindowRequests in either are excluded.
 func (r *TransactionLatencyRepository) Trends(
 	ctx context.Context,
 ) ([]models.TransactionTrend, error) {
@@ -69,15 +72,19 @@ func (r *TransactionLatencyRepository) Trends(
 
 	rows, err := r.db.Query(ctx, `
 		WITH recent AS (
-			SELECT project, transaction_name, AVG(p95_duration_ms) AS avg_p95
+			SELECT project, transaction_name,
+				SUM(p95_duration_ms * request_count) / SUM(request_count) AS avg_p95
 			FROM global.transaction_latency_daily
 			WHERE day >= $1
 			GROUP BY project, transaction_name
+			HAVING SUM(request_count) >= $6
 		), prior AS (
-			SELECT project, transaction_name, AVG(p95_duration_ms) AS avg_p95
+			SELECT project, transaction_name,
+				SUM(p95_duration_ms * request_count) / SUM(request_count) AS avg_p95
 			FROM global.transaction_latency_daily
 			WHERE day >= $2 AND day < $1
 			GROUP BY project, transaction_name
+			HAVING SUM(request_count) >= $6
 		)
 		SELECT
 			r.transaction_name, r.project, p.avg_p95, r.avg_p95,
@@ -88,7 +95,8 @@ func (r *TransactionLatencyRepository) Trends(
 		WHERE p.avg_p95 >= $3 AND (r.avg_p95 - p.avg_p95) / p.avg_p95 >= $4
 		ORDER BY pct_change DESC
 		LIMIT $5
-	`, recentSince, priorSince, trendMinPriorP95Ms, trendMinPctChange, trendLimit)
+	`, recentSince, priorSince, trendMinPriorP95Ms, trendMinPctChange, trendLimit,
+		trendMinWindowRequests)
 	if err != nil {
 		return nil, err
 	}
