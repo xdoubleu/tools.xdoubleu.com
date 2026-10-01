@@ -13,14 +13,17 @@ frontend. Architecture, commands, and conventions live in
 
 - **games** — Steam backlog tracker: library sync, achievements, completion progress and distribution, favourites, live updates over WebSocket.
 - **books** — Book library and e-reader companion: metadata sync (UniCat, Hardcover), EPUB/PDF uploads converted to KEPUB and synced to Kobo devices at `/books/kobo/<token>/…` (devices on an older `/reading/kobo/…` or `/backlog/kobo/…` prefix must re-run setup). Setup is driven by **kobo-gateway** (`kobo-gateway/`), a macOS menu-bar app served as `/downloads/kobo-gateway.dmg`; it's built on a macOS runner and bundled into the *web* image, so its changes rebuild web.
+- **feeds** — RSS and newsletter reader: a unified unread timeline with filter rules and a per-feed inbound email address for newsletters without RSS.
 - **watchparty** — WebRTC screen sharing with draggable camera overlays.
 - **recipes** — Recipe management with fraction parsing and iCal export, shared with your family.
+- **mealplans** — Weekly meal plans built from recipes, with iCal export and ingredient aggregation into the shopping list. Shared with your family.
 - **shoppinglist** — Shopping list with meal-plan ingredient aggregation, categories, and store-ordered export. Shared with your family; stores stay per-user.
 - **family** — Invite users by email into one shared recipe book, meal plan set, and shopping list. One family per user.
+- **dashboard** — Read-only games and reading dashboards, including the public share views.
 - **trains** — SNCB/NMBS journey planner built on the open GTFS timetable (refreshed daily) with a realtime overlay, re-planning when a delay breaks a journey.
 - **learningpaths** — Personal learning curricula: ordered modules of checkable items plus resources, with an optional one-way Todoist connection. Per-user, no family sharing.
 
-Books and games can also be shared publicly via a revocable token link (Sharing page) at `/profile/<token>` — read-only, no account needed.
+Books and games can also be shared publicly via a revocable token link from the share button on their dashboards, at `/dashboard/games/<token>` and `/dashboard/reading/<token>` — read-only, no account needed.
 
 ## Quick Start
 
