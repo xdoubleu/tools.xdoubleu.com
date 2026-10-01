@@ -3,10 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { mutate } from 'swr'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import { useExternalBook } from '@/hooks/useBooks'
 import BookCover from '@/components/books/BookCover'
+import BookDescription from '@/components/books/BookDescription'
 import BookDialog from '@/components/books/BookDialog'
 import { Badge } from '@/components/ui/badge'
 import { Breadcrumb, type BreadcrumbItem } from '@/components/ui/breadcrumb'
@@ -77,9 +76,7 @@ export default function ExternalBookDetailClient({
           <section className="mt-8">
             <h2 className="text-lg font-semibold mb-2">Description</h2>
             {book.description ? (
-              <div className="prose prose-sm max-w-none text-fg">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{book.description}</ReactMarkdown>
-              </div>
+              <BookDescription description={book.description} />
             ) : (
               <p className="text-sm text-muted">No description available.</p>
             )}

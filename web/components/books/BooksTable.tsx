@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import BookCard from '@/components/books/BookCard'
+import BooksTableRow from '@/components/books/BooksTableRow'
 import BooksTableToolbar, { type LibraryFilters } from '@/components/books/BooksTableToolbar'
 import {
   ALL_COLUMNS,
@@ -181,16 +182,20 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
         ) : (
           pageBooks.map((ub) => (
             <li key={ub.id}>
-              <BookCard userBook={ub} onSaved={onSaved} query={undefined} />
+              <BookCard userBook={ub} onSaved={onSaved} query={undefined} showDescriptionToggle />
             </li>
           ))
         )}
       </ul>
 
-      <div className="hidden sm:block">
+      {/* A container, so an expanded description fits the visible width. */}
+      <div className="hidden sm:block @container">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8 pr-0">
+                <span className="sr-only">Description</span>
+              </TableHead>
               {activeColumns.map((col) =>
                 col.sortKey ? (
                   <SortableHeader
@@ -213,7 +218,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
             {pageBooks.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={activeColumns.length}
+                  colSpan={activeColumns.length + 1}
                   className="py-8 text-center text-muted text-sm"
                 >
                   No books match the current filters.
@@ -221,13 +226,7 @@ export default function BooksTable({ books, knownShelves, knownTags, onSaved }: 
               </TableRow>
             ) : (
               pageBooks.map((ub) => (
-                <TableRow key={ub.id}>
-                  {activeColumns.map((col) => (
-                    <TableCell key={col.key} className={col.cellClassName}>
-                      {col.renderCell(ub, ctx)}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <BooksTableRow key={ub.id} userBook={ub} columns={activeColumns} ctx={ctx} />
               ))
             )}
           </TableBody>

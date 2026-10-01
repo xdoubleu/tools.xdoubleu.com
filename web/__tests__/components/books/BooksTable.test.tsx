@@ -373,11 +373,80 @@ describe('BooksTable', () => {
     })
 
     it('empty-state colSpan matches visible column count', () => {
-      // Only cover + title + actions remain.
+      // Only the description toggle + cover + title + actions remain.
       localStorage.setItem('backlog:library:columns', JSON.stringify([]))
       render(<BooksTable books={[]} knownShelves={[]} knownTags={[]} />)
       const emptyCell = withinTable().getByText('No books match the current filters.').closest('td')
-      expect(emptyCell).toHaveAttribute('colspan', '3')
+      expect(emptyCell).toHaveAttribute('colspan', '4')
+    })
+  })
+
+  describe('description quick peek', () => {
+    function withDescription(id: string, title: string, description: string) {
+      return makeBook(id, title, 'A', {
+        book: create(BookSchema, { title, authors: ['A'], description })
+      })
+    }
+
+    it('expands and collapses the description in a row below the book', () => {
+      render(
+        <BooksTable
+          books={[withDescription('1', 'Dune', 'A desert planet.')]}
+          knownShelves={[]}
+          knownTags={[]}
+        />
+      )
+      const table = withinTable()
+      expect(table.queryByText('A desert planet.')).not.toBeInTheDocument()
+
+      const toggle = table.getByRole('button', { name: 'Show description of Dune' })
+      expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      fireEvent.click(toggle)
+
+      const description = table.getByText('A desert planet.')
+      const hide = table.getByRole('button', { name: 'Hide description of Dune' })
+      expect(hide).toHaveAttribute('aria-expanded', 'true')
+      expect(description.closest('td')).toHaveAttribute(
+        'colspan',
+        String(table.getAllByRole('columnheader').length)
+      )
+
+      fireEvent.click(hide)
+      expect(table.queryByText('A desert planet.')).not.toBeInTheDocument()
+    })
+
+    it('expands each book independently', () => {
+      render(
+        <BooksTable
+          books={[
+            withDescription('1', 'Dune', 'Desert.'),
+            withDescription('2', 'Emma', 'Regency.')
+          ]}
+          knownShelves={[]}
+          knownTags={[]}
+        />
+      )
+      const table = withinTable()
+      fireEvent.click(table.getByRole('button', { name: 'Show description of Dune' }))
+      expect(table.getByText('Desert.')).toBeInTheDocument()
+      expect(table.queryByText('Regency.')).not.toBeInTheDocument()
+    })
+
+    it('has no toggle for a book without a description', () => {
+      render(<BooksTable books={[makeBook('1', 'Bare')]} knownShelves={[]} knownTags={[]} />)
+      expect(screen.queryByRole('button', { name: /description of Bare/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Show description' })).not.toBeInTheDocument()
+    })
+
+    it('offers the toggle on the mobile cards', () => {
+      render(
+        <BooksTable
+          books={[withDescription('1', 'Dune', 'Desert.')]}
+          knownShelves={[]}
+          knownTags={[]}
+        />
+      )
+      expect(screen.getByRole('button', { name: 'Show description' })).toBeInTheDocument()
     })
   })
 

@@ -1,12 +1,15 @@
 'use client'
 
+import { useId, useState } from 'react'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import BookCover from '@/components/books/BookCover'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
+import BookDescription from '@/components/books/BookDescription'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { LinkCard } from '@/components/ui/link-card'
 import { displayTags } from '@/lib/books/bookShelves'
 
@@ -15,9 +18,18 @@ interface BookCardProps {
   onSaved?: () => void
   /** Carried into the detail link so the breadcrumb can restore it. */
   query?: string
+  /** Adds a button that expands the description inside the card. */
+  showDescriptionToggle?: boolean
 }
 
-export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
+export default function BookCard({
+  userBook,
+  onSaved,
+  query,
+  showDescriptionToggle = false
+}: BookCardProps) {
+  const [descriptionOpen, setDescriptionOpen] = useState(false)
+  const descriptionId = useId()
   const book = userBook.book
   if (!book) return null
 
@@ -27,6 +39,7 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
     ? `/books/${userBook.id}?q=${encodeURIComponent(query)}`
     : `/books/${userBook.id}`
   const tags = displayTags(userBook.tags)
+  const canPeek = showDescriptionToggle && book.description !== ''
 
   return (
     <LinkCard
@@ -43,6 +56,23 @@ export default function BookCard({ userBook, onSaved, query }: BookCardProps) {
           )}
           <BookOwnershipToggles userBook={userBook} onSaved={onSaved} hideLabel />
           {isReading && <BookProgressEditor userBook={userBook} onSaved={onSaved} />}
+          {canPeek && (
+            <>
+              <Button
+                type="button"
+                variant="link"
+                className="text-sm"
+                aria-expanded={descriptionOpen}
+                aria-controls={descriptionId}
+                onClick={() => setDescriptionOpen((open) => !open)}
+              >
+                {descriptionOpen ? 'Hide description' : 'Show description'}
+              </Button>
+              {descriptionOpen && (
+                <BookDescription id={descriptionId} description={book.description} />
+              )}
+            </>
+          )}
         </div>
       }
     >
