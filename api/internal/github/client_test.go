@@ -175,7 +175,8 @@ func TestListFailingPullRequests_CheckRunsUpstreamError(t *testing.T) {
 				_, _ = w.Write([]byte(`[
 					{"number":1,"title":"Fix bug","html_url":"u",
 					 "updated_at":"2026-07-01T10:00:00Z",
-					 "user":{"login":"alice"},"head":{"sha":"sha1"}}
+					 "user":{"login":"alice"},
+					 "head":{"sha":"sha1","ref":"claude/fix-bug"}}
 				]`))
 			default:
 				w.WriteHeader(http.StatusUnauthorized)

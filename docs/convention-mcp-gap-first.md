@@ -1,7 +1,7 @@
 # Convention: fix the missing MCP tool before investigating the incident
 
 - Enforced by: nothing but review
-- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818
+- Issues: #1027, #1195, #1214, #1357, #1374, #1377, #1397, #1424, #1453, #1459, #1554, #1564, #1616, #1818, #2034
 
 ## Rule
 
@@ -48,3 +48,7 @@ working tool would have saved, often requiring direct database access.
   `job_phase_duration_seconds` (`job_name`, `phase`) via
   `observability.ObserveJobPhase`, plus per-step Sentry spans. **Record phase
   splits when the steps exist, not when an incident forces it.**
+- **#2034** — `get_failing_pull_requests` returned bare `{"configured":true}`:
+  protojson drops empty lists, `claude/` PRs were filtered out, and pages were
+  capped at 30. It now emits defaults, matches red-pr-repair's scope, pages,
+  and errors on upstream failure. **Empty must look different from broken.**
