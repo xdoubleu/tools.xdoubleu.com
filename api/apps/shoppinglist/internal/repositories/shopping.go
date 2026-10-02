@@ -83,21 +83,26 @@ func (r *ShoppingRepository) GetCustomItems(
 	return result, rows.Err()
 }
 
+// AddCustomItem inserts an item. With a valid id, a repeat returns the
+// existing row; an id owned by another family is ErrResourceNotFound.
 func (r *ShoppingRepository) AddCustomItem(
 	ctx context.Context,
 	familyID uuid.UUID,
+	id uuid.NullUUID,
 	name, unit string,
 	amount float64,
 ) (ShoppingItem, error) {
 	var item ShoppingItem
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO shoppinglist.custom_items (family_id, name, amount, unit)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO shoppinglist.custom_items (id, family_id, name, amount, unit)
+		VALUES (COALESCE($5::uuid, gen_random_uuid()), $1, $2, $3, $4)
+		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
+			WHERE custom_items.family_id = EXCLUDED.family_id
 		RETURNING id::text, name, unit, amount::float8`,
-		familyID, name, amount, unit,
+		familyID, name, amount, unit, id,
 	).Scan(&item.ID, &item.Name, &item.Unit, &item.Amount)
 	if err != nil {
-		return ShoppingItem{}, err
+		return ShoppingItem{}, postgres.PgxErrorToHTTPError(err)
 	}
 	return item, nil
 }

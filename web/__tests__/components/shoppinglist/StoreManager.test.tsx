@@ -1,6 +1,12 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import StoreManager from '@/components/shoppinglist/StoreManager'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import {
+  createStoreWrite,
+  deleteStoreWrite,
+  setStoreCategoriesWrite
+} from '@/lib/shoppinglist/offlineWrites'
 
 // jsdom has no layout, so @dnd-kit can't drag; a trigger button calls
 // onDragEnd to exercise the real reorder logic.
@@ -26,17 +32,10 @@ jest.mock('@dnd-kit/core', () => {
   }
 })
 
-const mutateStores = jest.fn().mockResolvedValue(undefined)
-const mutateStoreCategories = jest.fn().mockResolvedValue(undefined)
-const createStore = jest.fn().mockResolvedValue({})
-const deleteStore = jest.fn().mockResolvedValue({})
-const setStoreCategories = jest.fn().mockResolvedValue({})
-
 jest.mock('@/hooks/useShoppingList', () => ({
   useStores: () => ({
     data: { stores: [{ id: 'store-1', name: 'Colruyt' }] },
-    isLoading: false,
-    mutate: mutateStores
+    isLoading: false
   }),
   useStoreCategories: () => ({
     data: {
@@ -44,8 +43,7 @@ jest.mock('@/hooks/useShoppingList', () => ({
         { id: 'cat-veg', name: 'Vegetables' },
         { id: 'cat-dairy', name: 'Dairy' }
       ]
-    },
-    mutate: mutateStoreCategories
+    }
   }),
   useCategories: () => ({
     data: {
@@ -58,9 +56,11 @@ jest.mock('@/hooks/useShoppingList', () => ({
   })
 }))
 
-jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({ createStore, deleteStore, setStoreCategories })
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn().mockResolvedValue(undefined)
 }))
+
+const enqueue = jest.mocked(enqueueWrite)
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -72,17 +72,45 @@ describe('StoreManager', () => {
     expect(screen.getByText('Colruyt')).toBeInTheDocument()
   })
 
-  it('creates a store', async () => {
+  it('queues a store create with a client id', async () => {
     render(<StoreManager />)
     fireEvent.change(screen.getByPlaceholderText(/New store/), { target: { value: 'Aldi' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
-    await waitFor(() => expect(createStore).toHaveBeenCalledWith({ name: 'Aldi' }))
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(createStoreWrite, {
+        id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+        name: 'Aldi'
+      })
+    )
   })
 
-  it('deletes a store', async () => {
+  it('ignores a blank store name', () => {
+    render(<StoreManager />)
+    fireEvent.change(screen.getByPlaceholderText(/New store/), { target: { value: ' ' } })
+    fireEvent.submit(screen.getByPlaceholderText(/New store/))
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+
+  it('queues deleting a store whose editor is closed', async () => {
     render(<StoreManager />)
     fireEvent.click(screen.getByRole('button', { name: /Delete Colruyt/ }))
-    await waitFor(() => expect(deleteStore).toHaveBeenCalledWith({ id: 'store-1' }))
+    await waitFor(() => expect(enqueue).toHaveBeenCalledWith(deleteStoreWrite, { id: 'store-1' }))
+  })
+
+  it('rejects a store name already in use', () => {
+    render(<StoreManager />)
+    fireEvent.change(screen.getByPlaceholderText(/New store/), { target: { value: 'colruyt' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+    expect(screen.getByText('That name is already in use.')).toBeInTheDocument()
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+
+  it('queues a store delete and closes its editor', async () => {
+    render(<StoreManager />)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit order' }))
+    fireEvent.click(screen.getByRole('button', { name: /Delete Colruyt/ }))
+    await waitFor(() => expect(enqueue).toHaveBeenCalledWith(deleteStoreWrite, { id: 'store-1' }))
+    expect(screen.queryByText('Aisle order')).not.toBeInTheDocument()
   })
 
   it('shows the aisle order editor when editing a store', () => {
@@ -99,10 +127,11 @@ describe('StoreManager', () => {
     fireEvent.click(screen.getByRole('button', { name: 'drag Dairy above Vegetables' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save order' }))
     await waitFor(() =>
-      expect(setStoreCategories).toHaveBeenCalledWith({
-        storeId: 'store-1',
-        categoryIds: ['cat-dairy', 'cat-veg']
-      })
+      expect(enqueue).toHaveBeenCalledWith(
+        setStoreCategoriesWrite,
+        { storeId: 'store-1', categoryIds: ['cat-dairy', 'cat-veg'] },
+        { 'cat-dairy': 'Dairy', 'cat-veg': 'Vegetables' }
+      )
     )
   })
 
@@ -121,10 +150,11 @@ describe('StoreManager', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Save order' }))
     await waitFor(() =>
-      expect(setStoreCategories).toHaveBeenCalledWith({
-        storeId: 'store-1',
-        categoryIds: ['cat-veg', 'cat-dairy', 'cat-bakery']
-      })
+      expect(enqueue).toHaveBeenCalledWith(
+        setStoreCategoriesWrite,
+        { storeId: 'store-1', categoryIds: ['cat-veg', 'cat-dairy', 'cat-bakery'] },
+        { 'cat-veg': 'Vegetables', 'cat-dairy': 'Dairy', 'cat-bakery': 'Bakery' }
+      )
     )
   })
 })

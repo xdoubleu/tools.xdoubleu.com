@@ -1,6 +1,9 @@
 import DeployNotification from '@/components/DeployNotification'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
+import OfflineBanner from '@/components/offline/OfflineBanner'
+import OutboxSync from '@/components/offline/OutboxSync'
+import ServiceWorkerRegistrar from '@/components/offline/ServiceWorkerRegistrar'
 import SWRProvider from '@/components/SWRProvider'
 import { createServerClient } from '@/lib/server/client'
 import { fetchOrNull } from '@/lib/server/fetchers'
@@ -16,10 +19,15 @@ export default async function AppShell({ children }: { children: React.ReactNode
     <SWRProvider currentUser={currentUser}>
       <Navbar />
       <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10">
-        <div className="w-full">{children}</div>
+        <div className="w-full">
+          <OfflineBanner />
+          {children}
+        </div>
       </main>
       <Footer />
       <DeployNotification />
+      <ServiceWorkerRegistrar />
+      <OutboxSync />
     </SWRProvider>
   )
 }

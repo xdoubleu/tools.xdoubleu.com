@@ -3,11 +3,14 @@
 import { useEffect } from 'react'
 import { SWRConfig } from 'swr'
 import posthog from 'posthog-js'
+import { persistMiddleware } from '@/lib/offline/persist'
+import { claimOfflineData } from '@/lib/offline/session'
 import { swrKeys } from '@/lib/swrKeys'
 import type { GetCurrentUserResponse } from '@/lib/gen/auth/v1/auth_pb'
 
 // Seeds the SWR cache with server-fetched data (e.g. the current user);
 // hooks still revalidate, keeping the browser-side token refresh alive.
+// Responses are saved for offline use (lib/offline/persist.ts).
 export default function SWRProvider({
   currentUser,
   children
@@ -22,10 +25,15 @@ export default function SWRProvider({
     }
   }, [currentUser?.userId])
 
+  useEffect(() => {
+    if (currentUser?.userId) void claimOfflineData(currentUser.userId)
+  }, [currentUser?.userId])
+
   return (
     <SWRConfig
       value={{
-        fallback: currentUser ? { [swrKeys.currentUser]: currentUser } : {}
+        fallback: currentUser ? { [swrKeys.currentUser]: currentUser } : {},
+        use: [persistMiddleware]
       }}
     >
       {children}

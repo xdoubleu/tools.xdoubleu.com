@@ -1,10 +1,8 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import ItemCatalog from '@/components/shoppinglist/ItemCatalog'
-
-const mutate = jest.fn().mockResolvedValue(undefined)
-const setItemCategory = jest.fn().mockResolvedValue({})
-const setItemExcluded = jest.fn().mockResolvedValue({})
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { setItemCategoryWrite, setItemExcludedWrite } from '@/lib/shoppinglist/offlineWrites'
 
 type Name = { name: string; categoryId: string; excluded: boolean }
 let namesData: { names: Name[] } | undefined
@@ -16,7 +14,7 @@ const defaultNames: Name[] = [
 ]
 
 jest.mock('@/hooks/useShoppingList', () => ({
-  useItemNames: () => ({ data: namesData, isLoading: false, mutate }),
+  useItemNames: () => ({ data: namesData, isLoading: false }),
   useCategories: () => ({
     data: {
       categories: [
@@ -27,9 +25,11 @@ jest.mock('@/hooks/useShoppingList', () => ({
   })
 }))
 
-jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({ setItemCategory, setItemExcluded })
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn().mockResolvedValue(undefined)
 }))
+
+const enqueue = jest.mocked(enqueueWrite)
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -51,18 +51,19 @@ describe('ItemCatalog', () => {
       target: { value: 'cat-produce' }
     })
     await waitFor(() =>
-      expect(setItemCategory).toHaveBeenCalledWith({ name: 'apple', categoryId: 'cat-produce' })
+      expect(enqueue).toHaveBeenCalledWith(setItemCategoryWrite, {
+        name: 'apple',
+        categoryId: 'cat-produce'
+      })
     )
-    expect(mutate).toHaveBeenCalled()
   })
 
   it('removes an item from the export when its toggle is unchecked', async () => {
     render(<ItemCatalog />)
     fireEvent.click(screen.getByLabelText('Export milk to list'))
     await waitFor(() =>
-      expect(setItemExcluded).toHaveBeenCalledWith({ name: 'milk', excluded: true })
+      expect(enqueue).toHaveBeenCalledWith(setItemExcludedWrite, { name: 'milk', excluded: true })
     )
-    expect(mutate).toHaveBeenCalled()
   })
 
   it('shows excluded items under a collapsed "Not exported" group and restores them', async () => {
@@ -75,7 +76,7 @@ describe('ItemCatalog', () => {
 
     fireEvent.click(screen.getByLabelText('Export cake to list'))
     await waitFor(() =>
-      expect(setItemExcluded).toHaveBeenCalledWith({ name: 'cake', excluded: false })
+      expect(enqueue).toHaveBeenCalledWith(setItemExcludedWrite, { name: 'cake', excluded: false })
     )
   })
 

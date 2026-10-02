@@ -88,13 +88,18 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		)
 	}
 
+	id, err := parseClientID(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	item, err := h.app.services.Shopping.AddItem(
-		ctx, userID, req.Msg.Name, req.Msg.Unit, amount,
+		ctx, userID, id, req.Msg.Name, req.Msg.Unit, amount,
 	)
 	if err != nil {
 		return nil, mapError(err)

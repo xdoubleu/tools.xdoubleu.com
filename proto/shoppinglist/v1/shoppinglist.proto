@@ -12,6 +12,8 @@ message ShoppingItem {
 }
 
 // Data RPCs act on the caller's family list; all members have equal access.
+// A Create's optional `id` is a client-generated UUID: repeating the call with
+// it returns the existing row instead of a duplicate (offline replay).
 
 message GetCustomListRequest  { reserved 1; reserved "owner_user_id"; }
 message GetCustomListResponse { repeated ShoppingItem items = 1; }
@@ -21,6 +23,7 @@ message CreateShoppingItemRequest {
   string amount = 2;
   string unit   = 3;
   reserved 4; reserved "owner_user_id";
+  string id     = 5;
 }
 message CreateShoppingItemResponse { ShoppingItem item = 1; }
 
@@ -67,6 +70,7 @@ message ListCategoriesResponse { repeated Category categories = 1; }
 message CreateCategoryRequest  {
   string name = 1;
   reserved 2; reserved "owner_user_id";
+  string id   = 3;
 }
 message CreateCategoryResponse { Category category = 1; }
 
@@ -97,6 +101,7 @@ message ListStoresResponse { repeated Store stores = 1; }
 message CreateStoreRequest  {
   string name = 1;
   reserved 2; reserved "owner_user_id";
+  string id   = 3;
 }
 message CreateStoreResponse { Store store = 1; }
 

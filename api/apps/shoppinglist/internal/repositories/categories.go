@@ -42,17 +42,22 @@ func (r *ShoppingRepository) ListCategories(
 	return result, rows.Err()
 }
 
+// CreateCategory inserts a category; a valid id makes repeats idempotent
+// like AddCustomItem.
 func (r *ShoppingRepository) CreateCategory(
 	ctx context.Context,
 	familyID uuid.UUID,
+	id uuid.NullUUID,
 	name string,
 ) (Category, error) {
 	var c Category
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO shoppinglist.categories (family_id, name)
-		VALUES ($1, $2)
+		INSERT INTO shoppinglist.categories (id, family_id, name)
+		VALUES (COALESCE($3::uuid, gen_random_uuid()), $1, $2)
+		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
+			WHERE categories.family_id = EXCLUDED.family_id
 		RETURNING id::text, name`,
-		familyID, name,
+		familyID, name, id,
 	).Scan(&c.ID, &c.Name)
 	if err != nil {
 		return Category{}, postgres.PgxErrorToHTTPError(err)

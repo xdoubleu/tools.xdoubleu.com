@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
+import { flushOutbox } from '@/lib/offline/outbox'
+import { clearOfflineData } from '@/lib/offline/session'
 
 const navItemClass = 'text-muted hover:bg-transparent hover:text-accent'
 // Icon-only below `sm`; the text label stays for screen readers.
@@ -42,7 +44,10 @@ export default function Navbar() {
   if (pathname?.startsWith('/profile/')) return null
 
   const handleSignOut = async () => {
+    // Send queued writes first; sign-out deletes whatever is left.
+    await flushOutbox()
     await signOut()
+    await clearOfflineData()
     if (typeof window !== 'undefined') {
       window.location.href = '/'
     }
