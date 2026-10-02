@@ -7,6 +7,16 @@ import { createServiceClient } from '@/lib/client'
 import { sha256Hex } from '@/lib/books/checksum'
 import { createRateLimiter } from '@/lib/books/rateLimiter'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import {
+  removeBookWrite,
+  setBookISBNWrite,
+  setBookTagWrite,
+  updateBookStatusWrite,
+  updateBookWrite,
+  updateFinishedAtWrite,
+  updateProgressWrite
+} from '@/lib/books/offlineWrites'
 import {
   LibraryService,
   CreateBookRequestSchema,
@@ -97,29 +107,39 @@ export function useImportBooks() {
   }
 }
 
+// Library writes go through the offline outbox: they show at once, wait for
+// the send attempt, and throw if the server rejects them.
+
 export function useUpdateBookStatus() {
-  const client = createServiceClient(LibraryService)
-  return (req: UpdateBookStatusInput) => client.updateBookStatus(req)
+  // The queue time stamps a new finish, as the API's clock would.
+  return async (req: UpdateBookStatusInput) => {
+    await sendWrite(enqueueWrite(updateBookStatusWrite, req, new Date().toISOString()))
+  }
 }
 
-export function useToggleTag() {
-  const client = createServiceClient(LibraryService)
-  return (bookId: string, tag: string) => client.toggleTag({ bookId, tag })
+/** Adds (enabled) or removes a tag; unlike a toggle, a replay changes nothing. */
+export function useSetBookTag() {
+  return async (bookId: string, tag: string, enabled: boolean) => {
+    await sendWrite(enqueueWrite(setBookTagWrite, { bookId, tag, enabled }))
+  }
 }
 
 export function useUpdateFinishedAt() {
-  const client = createServiceClient(LibraryService)
-  return (bookId: string, finishedAt: string[]) => client.updateFinishedAt({ bookId, finishedAt })
+  return async (bookId: string, finishedAt: string[]) => {
+    await sendWrite(enqueueWrite(updateFinishedAtWrite, { bookId, finishedAt }))
+  }
 }
 
 export function useUpdateProgress() {
-  const client = createServiceClient(LibraryService)
-  return (req: UpdateProgressInput) => client.updateProgress(req)
+  return async (req: UpdateProgressInput) => {
+    await sendWrite(enqueueWrite(updateProgressWrite, req))
+  }
 }
 
 export function useRemoveBook() {
-  const client = createServiceClient(LibraryService)
-  return (bookId: string) => client.removeBook({ bookId })
+  return async (bookId: string) => {
+    await sendWrite(enqueueWrite(removeBookWrite, { bookId }))
+  }
 }
 
 export type UploadBookFileResult = {
@@ -383,19 +403,15 @@ export function useBooksInExactSources(sources: string[] | null) {
 }
 
 export function useSetBookISBN() {
-  const client = useMemo(() => createServiceClient(CatalogService), [])
-  return useCallback(
-    (bookId: string, isbn13: string) => client.setBookISBN({ bookId, isbn13 }),
-    [client]
-  )
+  return useCallback(async (bookId: string, isbn13: string) => {
+    await sendWrite(enqueueWrite(setBookISBNWrite, { bookId, isbn13 }))
+  }, [])
 }
 
 export function useUpdateBook() {
-  const client = useMemo(() => createServiceClient(CatalogService), [])
-  return useCallback(
-    (bookId: string, metadata: UpdateBookMetadataInput) => client.updateBook({ bookId, metadata }),
-    [client]
-  )
+  return useCallback(async (bookId: string, metadata: UpdateBookMetadataInput) => {
+    await sendWrite(enqueueWrite(updateBookWrite, { bookId, metadata }))
+  }, [])
 }
 
 export function useKEPUBStatus(bookId: string | null) {

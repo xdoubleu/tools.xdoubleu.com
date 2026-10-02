@@ -4,11 +4,11 @@ import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 
 const mockUpdateBookStatus = jest.fn()
-const mockToggleTag = jest.fn()
+const mockSetBookTag = jest.fn()
 
 jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => mockUpdateBookStatus,
-  useToggleTag: () => mockToggleTag
+  useSetBookTag: () => mockSetBookTag
 }))
 
 jest.mock('swr', () => ({
@@ -37,7 +37,7 @@ describe('BookShelfTagFields', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUpdateBookStatus.mockResolvedValue(undefined)
-    mockToggleTag.mockResolvedValue(undefined)
+    mockSetBookTag.mockResolvedValue(undefined)
   })
 
   it('renders built-in shelves as toggle pills', () => {
@@ -151,16 +151,16 @@ describe('BookShelfTagFields', () => {
     expect(screen.getByRole('button', { name: 'mystery' })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('calls toggleTag with a single click when an inactive chip is clicked', async () => {
+  it('calls setBookTag with a single click when an inactive chip is clicked', async () => {
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
     )
     fireEvent.click(screen.getByRole('button', { name: 'fantasy' }))
-    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
+    await waitFor(() => expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'fantasy', true))
     expect(mockMutateFn).toHaveBeenCalledWith('/books')
   })
 
-  it('calls toggleTag when an active chip is clicked (removes it)', async () => {
+  it('calls setBookTag when an active chip is clicked (removes it)', async () => {
     render(
       <BookShelfTagFields
         userBook={makeUserBook({ tags: ['fantasy'] })}
@@ -169,11 +169,11 @@ describe('BookShelfTagFields', () => {
       />
     )
     fireEvent.click(screen.getByRole('button', { name: 'fantasy' }))
-    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
+    await waitFor(() => expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'fantasy', false))
   })
 
-  it('reverts chip state on toggleTag failure and shows error', async () => {
-    mockToggleTag.mockRejectedValueOnce(new Error('network'))
+  it('reverts chip state on setBookTag failure and shows error', async () => {
+    mockSetBookTag.mockRejectedValueOnce(new Error('network'))
     render(
       <BookShelfTagFields userBook={makeUserBook()} knownShelves={[]} knownTags={['fantasy']} />
     )
@@ -253,7 +253,7 @@ describe('BookShelfTagFields', () => {
     const combobox = screen.getByLabelText('Add a tag')
     fireEvent.change(combobox, { target: { value: 'fantasy' } })
     fireEvent.keyDown(combobox, { key: 'Enter' })
-    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'fantasy'))
+    await waitFor(() => expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'fantasy', true))
   })
 
   it('adds a new tag via clicking a combobox suggestion', async () => {
@@ -264,7 +264,7 @@ describe('BookShelfTagFields', () => {
     const combobox = screen.getByLabelText('Add a tag')
     fireEvent.change(combobox, { target: { value: 'mys' } })
     fireEvent.mouseDown(screen.getByText('mystery', { selector: 'li' }))
-    await waitFor(() => expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'mystery'))
+    await waitFor(() => expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'mystery', true))
   })
 
   it('does not re-add a tag already on the book via the combobox', async () => {

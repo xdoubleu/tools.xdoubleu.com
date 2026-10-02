@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useToggleTag } from '@/hooks/useBooks'
+import { useSetBookTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
@@ -22,12 +22,12 @@ export default function BookOwnershipToggles({
   hideLabel
 }: BookOwnershipTogglesProps) {
   const [ownPhysical, setOwnPhysical] = useState(userBook.tags.includes('own-physical'))
-  const toggleTag = useToggleTag()
+  const setBookTag = useSetBookTag()
 
   const handleToggle = async (current: boolean) => {
     setOwnPhysical(!current)
     try {
-      await toggleTag(userBook.bookId, 'own-physical')
+      await setBookTag(userBook.bookId, 'own-physical', !current)
       mutate(swrKeys.books)
       onSaved?.()
     } catch {
