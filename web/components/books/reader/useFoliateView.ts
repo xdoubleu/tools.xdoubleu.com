@@ -6,6 +6,12 @@ import {
   type FoliateRelocateDetail,
   type FoliateView
 } from '@/lib/books/foliate'
+import {
+  positionAt,
+  resumeTarget,
+  type ReaderPosition,
+  type ReaderResume
+} from '@/lib/books/readerPosition'
 import { swipeDirection, tapDirection, type PageTurn } from '@/lib/books/readerSettings'
 
 /** Where the reader is; `section` is the spine index, or the page index for a PDF. */
@@ -15,6 +21,8 @@ export interface ReaderLocation {
   cfi?: string
   tocLabel?: string
   tocHref?: string
+  /** Set only on locations passed to `onRelocate`. */
+  position?: ReaderPosition
 }
 
 type Status = 'loading' | 'ready' | 'error'
@@ -27,6 +35,25 @@ function toLocation(detail: FoliateRelocateDetail): ReaderLocation {
     tocLabel: detail.tocItem?.label,
     tocHref: detail.tocItem?.href
   }
+}
+
+function relocateReason(e: Event): unknown {
+  const detail: unknown = e instanceof CustomEvent ? e.detail : undefined
+  return typeof detail === 'object' && detail !== null && 'reason' in detail
+    ? detail.reason
+    : undefined
+}
+
+// Opens at the stored position, else the stored percent, else the start.
+async function openAt(view: FoliateView, resume: ReaderResume | undefined) {
+  const target = resumeTarget(view.book?.sections, resume)
+  try {
+    if (target && 'fraction' in target) return await view.goToFraction(target.fraction)
+    if (target && view.renderer?.goTo) return await view.renderer.goTo(target)
+  } catch {
+    // Fall through to the start.
+  }
+  await view.init({})
 }
 
 const TURNS: Record<PageTurn, (view: FoliateView) => unknown> = {
@@ -86,19 +113,22 @@ function attachSectionHandlers(view: FoliateView, doc: Document) {
 }
 
 /**
- * Mounts a foliate-js view for `url` into `containerRef`, opening at the start.
- * Status isn't reset when `url` changes; key the caller on it.
- * `onRelocate` fires on every page change.
+ * Mounts a foliate-js view for `url` into `containerRef`, opening at
+ * `initialPosition` (read once). Status isn't reset when `url` changes; key the
+ * caller on it. `onRelocate` fires on page changes after the book has opened,
+ * so opening alone never reports a position.
  */
 export function useFoliateView(
   containerRef: RefObject<HTMLDivElement | null>,
   url: string,
-  onRelocate?: (location: ReaderLocation) => void
+  onRelocate?: (location: ReaderLocation) => void,
+  initialPosition?: ReaderResume
 ) {
   const [view, setView] = useState<FoliateView | null>(null)
   const [status, setStatus] = useState<Status>('loading')
   const [location, setLocation] = useState<ReaderLocation | null>(null)
   const onRelocateRef = useRef(onRelocate)
+  const initialPositionRef = useRef(initialPosition)
   useEffect(() => {
     onRelocateRef.current = onRelocate
   }, [onRelocate])
@@ -106,6 +136,8 @@ export function useFoliateView(
   useEffect(() => {
     let cancelled = false
     let created: FoliateView | null = null
+    let opened = false
+    let reason: unknown
     let onKey: (e: KeyboardEvent) => void = () => {}
 
     void (async () => {
@@ -117,7 +149,11 @@ export function useFoliateView(
         v.addEventListener('relocate', (e) => {
           const next = toLocation(e.detail)
           setLocation(next)
-          onRelocateRef.current?.(next)
+          // An 'anchor' relocate is a reflow (resize, image load, styles)
+          // around the same spot, not reading.
+          if (!opened || reason === 'anchor') return
+          const position = positionAt(v.book?.sections, next.section, e.detail.range)
+          onRelocateRef.current?.({ ...next, position })
         })
         v.addEventListener('load', (e) => {
           attachSectionHandlers(v, e.detail.doc)
@@ -129,11 +165,17 @@ export function useFoliateView(
         containerRef.current!.append(v)
         await v.open(url)
         if (cancelled) return
+        // The view re-emits the renderer's relocate without its reason; a
+        // capture listener runs first at the target, so it sees it in time.
+        v.renderer?.addEventListener?.('relocate', (e) => (reason = relocateReason(e)), {
+          capture: true
+        })
         setView(v)
         setStatus('ready')
         onKey = onArrowKey(v)
         window.addEventListener('keydown', onKey)
-        await v.init({})
+        await openAt(v, initialPositionRef.current)
+        opened = true
       } catch {
         if (!cancelled) setStatus('error')
       }
