@@ -134,6 +134,23 @@ describe('book offline writes', () => {
     expect(last.shelves.map((s) => s.name)).toEqual(['dropped', 'zines', 'zzz'])
   })
 
+  it('inserts between titles, ignores other keys and keeps the server order on in-place edits', () => {
+    const middle = lib(run(updateBookStatusWrite, { bookId: 'b', status: 'to-read' }, library()))
+    expect(ids(middle.wishlist)).toEqual(['a', 'b', 'c'])
+
+    const data = library()
+    expect(
+      run(updateBookStatusWrite, { bookId: 'b', status: 'read' }, data, NOW, '/books/progress')
+    ).toBe(data)
+
+    // The API's collation can order titles differently from localeCompare.
+    const unsorted = create(GetLibraryResponseSchema, {
+      library: { wishlist: [book('c', 'gamma', 'to-read'), book('a', 'Alpha', 'to-read')] }
+    })
+    const tagged = lib(run(setBookTagWrite, { bookId: 'c', tag: 'x', enabled: true }, unsorted))
+    expect(ids(tagged.wishlist)).toEqual(['c', 'a'])
+  })
+
   it('replaces read dates with the given days', () => {
     const result = lib(
       run(updateFinishedAtWrite, { bookId: 'd', finishedAt: ['2024-02-03', ''] }, library())
