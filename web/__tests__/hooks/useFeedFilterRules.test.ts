@@ -9,26 +9,30 @@ jest.mock('swr', () => ({
 
 const clientMocks = {
   listFilterRules: jest.fn().mockResolvedValue({ rules: [] }),
-  createFilterRule: jest.fn().mockResolvedValue({ rule: { id: 'r1', filteredCount: 0 } }),
-  deleteFilterRule: jest.fn().mockResolvedValue({}),
-  deleteFeed: jest.fn().mockResolvedValue({})
+  createFilterRule: jest.fn().mockResolvedValue({ rule: { id: 'r1', filteredCount: 0 } })
 }
 
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => 'sent' })),
+  sendWrite: jest.fn(async (pending: Promise<unknown>) => {
+    await pending
+    return 'sent'
+  })
+}))
+jest.mock('@/lib/feeds/offlineWrites', () => ({ deleteFilterRuleWrite: { id: 'deleteRule' } }))
+jest.mock('@/lib/feeds/prefetch', () => ({ prefetchFeedBodies: jest.fn() }))
 jest.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
   FeedService: {},
   FeedKind: { UNSPECIFIED: 0, RSS: 1, EMAIL: 2 }
 }))
 
 import useSWR from 'swr'
-import {
-  useFilterRules,
-  useCreateFilterRule,
-  useDeleteFilterRule,
-  useDeleteFeed
-} from '@/hooks/useFeeds'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import { deleteFilterRuleWrite } from '@/lib/feeds/offlineWrites'
+import { useFilterRules, useCreateFilterRule, useDeleteFilterRule } from '@/hooks/useFeeds'
 import { swrKeys } from '@/lib/swrKeys'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -79,17 +83,10 @@ describe('filter rule hooks', () => {
     expect(mutateMock).toHaveBeenCalledTimes(2)
   })
 
-  it('useDeleteFilterRule deletes and refreshes rules and suggestions', async () => {
+  it('useDeleteFilterRule sends the delete through the outbox', async () => {
     const { result } = renderHook(() => useDeleteFilterRule())
     await result.current('r1')
-    expect(clientMocks.deleteFilterRule).toHaveBeenCalledWith({ ruleId: 'r1' })
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRules)
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRuleSuggestions)
-  })
-
-  it('useDeleteFeed refreshes rules, since a feed takes its rules with it', async () => {
-    const { result } = renderHook(() => useDeleteFeed())
-    await result.current('f1')
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRules)
+    expect(enqueueWrite).toHaveBeenCalledWith(deleteFilterRuleWrite, { ruleId: 'r1' })
+    expect(sendWrite).toHaveBeenCalled()
   })
 })

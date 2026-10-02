@@ -1,26 +1,31 @@
 import { renderHook } from '@testing-library/react'
 
-const mutateMock = jest.fn()
-jest.mock('swr', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  mutate: (...args: unknown[]) => mutateMock(...args)
-}))
+jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 
 const clientMocks = {
-  getFilterRuleSuggestions: jest.fn().mockResolvedValue({ suggestions: [] }),
-  dismissFilterRuleSuggestion: jest.fn().mockResolvedValue({})
+  getFilterRuleSuggestions: jest.fn().mockResolvedValue({ suggestions: [] })
 }
 
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => 'sent' })),
+  sendWrite: jest.fn(async (pending: Promise<unknown>) => {
+    await pending
+    return 'sent'
+  })
+}))
+jest.mock('@/lib/feeds/offlineWrites', () => ({ dismissSuggestionWrite: { id: 'dismiss' } }))
+jest.mock('@/lib/feeds/prefetch', () => ({ prefetchFeedBodies: jest.fn() }))
 jest.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
   FeedService: {},
   FeedKind: { UNSPECIFIED: 0, RSS: 1, EMAIL: 2 }
 }))
 
 import useSWR from 'swr'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import { dismissSuggestionWrite } from '@/lib/feeds/offlineWrites'
 import {
   useDismissFilterRuleSuggestion,
   useFilterRuleSuggestions
@@ -45,20 +50,13 @@ describe('filter rule suggestion hooks', () => {
     expect(clientMocks.getFilterRuleSuggestions).toHaveBeenCalledWith({})
   })
 
-  it('useDismissFilterRuleSuggestion dismisses, then refreshes the suggestions', async () => {
+  it('useDismissFilterRuleSuggestion sends the dismissal through the outbox', async () => {
     const { result } = renderHook(() => useDismissFilterRuleSuggestion())
     await result.current('f1', 'News')
-    expect(clientMocks.dismissFilterRuleSuggestion).toHaveBeenCalledWith({
+    expect(enqueueWrite).toHaveBeenCalledWith(dismissSuggestionWrite, {
       feedId: 'f1',
       category: 'News'
     })
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRuleSuggestions)
-  })
-
-  it('useDismissFilterRuleSuggestion refreshes nothing when dismissing fails', async () => {
-    clientMocks.dismissFilterRuleSuggestion.mockRejectedValueOnce(new Error('boom'))
-    const { result } = renderHook(() => useDismissFilterRuleSuggestion())
-    await expect(result.current('f1', 'News')).rejects.toThrow('boom')
-    expect(mutateMock).not.toHaveBeenCalled()
+    expect(sendWrite).toHaveBeenCalled()
   })
 })

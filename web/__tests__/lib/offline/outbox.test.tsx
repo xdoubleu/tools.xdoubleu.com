@@ -36,7 +36,8 @@ jest.mock('@/lib/shoppinglist/offlineWrites', () => {
         : data
     },
     describe: (bytes: Uint8Array) => `Add ${decode(bytes)}`,
-    revalidate: '/list'
+    revalidate: '/list',
+    revalidateOnSuccess: true
   })
   return { shoppingListWrites: [make('add')] }
 })
@@ -367,6 +368,28 @@ describe('outbox', () => {
 
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
     expect(other).toHaveBeenCalledTimes(1)
+  })
+
+  it('refetches a write that already matches the server only when it is rejected', async () => {
+    write.revalidateOnSuccess = false
+    try {
+      renderProbe()
+      await screen.findByText('a')
+
+      await enqueue('b')
+      await act(async () => {
+        await flushOutbox()
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      })
+      expect(fetcher).toHaveBeenCalledTimes(1)
+
+      send.mockRejectedValue(new ConnectError('gone', Code.NotFound))
+      await enqueue('c')
+      await act(() => flushOutbox())
+      await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    } finally {
+      write.revalidateOnSuccess = true
+    }
   })
 
   it('reset forgets queued writes, failures and the expired session', async () => {

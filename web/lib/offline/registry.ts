@@ -21,6 +21,8 @@ export interface WriteSpec<I extends DescMessage> {
   describe: (request: MessageShape<I>) => string
   /** SWR key prefix refetched once the write is sent or rejected. */
   revalidate: string
+  /** False when `apply` already matches the server, refetching only on rejection. */
+  revalidateOnSuccess?: boolean
 }
 
 /** A write that can be queued offline; built by `defineOfflineWrite`. */
@@ -31,6 +33,7 @@ export interface OfflineWrite<I extends DescMessage = DescMessage> {
   apply(key: unknown, data: unknown, request: Uint8Array, hint: unknown): unknown
   describe(request: Uint8Array): string
   revalidate: string
+  revalidateOnSuccess: boolean
 }
 
 export function defineOfflineWrite<I extends DescMessage>(spec: WriteSpec<I>): OfflineWrite<I> {
@@ -42,6 +45,7 @@ export function defineOfflineWrite<I extends DescMessage>(spec: WriteSpec<I>): O
     send: (bytes) => transport.unary(method, undefined, undefined, undefined, decode(bytes)),
     apply: (key, data, bytes, hint) => spec.apply(key, data, decode(bytes), hint),
     describe: (bytes) => spec.describe(decode(bytes)),
-    revalidate: spec.revalidate
+    revalidate: spec.revalidate,
+    revalidateOnSuccess: spec.revalidateOnSuccess ?? true
   }
 }

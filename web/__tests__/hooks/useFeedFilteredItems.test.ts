@@ -1,26 +1,31 @@
 import { renderHook } from '@testing-library/react'
 
-const mutateMock = jest.fn()
-jest.mock('swr', () => ({
-  __esModule: true,
-  default: jest.fn(),
-  mutate: (...args: unknown[]) => mutateMock(...args)
-}))
+jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 
 const clientMocks = {
-  listFeedItems: jest.fn().mockResolvedValue({ items: [{ id: 'i1' }], hasMore: true }),
-  restoreFeedItem: jest.fn().mockResolvedValue({ item: { id: 'i1' } })
+  listFeedItems: jest.fn().mockResolvedValue({ items: [{ id: 'i1' }], hasMore: true })
 }
 
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => 'sent' })),
+  sendWrite: jest.fn(async (pending: Promise<unknown>) => {
+    await pending
+    return 'sent'
+  })
+}))
+jest.mock('@/lib/feeds/offlineWrites', () => ({ restoreFeedItemWrite: { id: 'restore' } }))
+jest.mock('@/lib/feeds/prefetch', () => ({ prefetchFeedBodies: jest.fn() }))
 jest.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
   FeedService: {},
   FeedKind: { UNSPECIFIED: 0, RSS: 1, EMAIL: 2 }
 }))
 
 import useSWR from 'swr'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import { restoreFeedItemWrite } from '@/lib/feeds/offlineWrites'
 import {
   useFetchFilteredFeedItemsPage,
   useFilteredFeedItems,
@@ -78,16 +83,10 @@ describe('filtered item hooks', () => {
     )
   })
 
-  it('useRestoreFeedItem restores and refreshes items, stats, summary and rule counts', async () => {
+  it('useRestoreFeedItem sends the restore through the outbox', async () => {
     const { result } = renderHook(() => useRestoreFeedItem())
-    const resp = await result.current('i1')
-    expect(resp.item?.id).toBe('i1')
-    expect(clientMocks.restoreFeedItem).toHaveBeenCalledWith({ itemId: 'i1' })
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedStats)
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedsSummary)
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feedFilterRules)
-    const itemsMatcher = mutateMock.mock.calls.find(([k]) => typeof k === 'function')![0]
-    expect(itemsMatcher(swrKeys.feedItems(true))).toBe(true)
-    expect(itemsMatcher(swrKeys.feedFilteredItems())).toBe(true)
+    await result.current('i1')
+    expect(enqueueWrite).toHaveBeenCalledWith(restoreFeedItemWrite, { itemId: 'i1' })
+    expect(sendWrite).toHaveBeenCalled()
   })
 })
