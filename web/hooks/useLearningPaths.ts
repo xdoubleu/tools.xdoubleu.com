@@ -16,6 +16,8 @@ import type {
   GetLearningPathResponse
 } from '@/lib/gen/learningpaths/v1/learningpaths_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
+import { enqueueWrite, flushOutbox } from '@/lib/offline/outbox'
+import { recordItemProgressWrite, setPausedWrite } from '@/lib/learningpaths/offlineWrites'
 
 export type CreateLearningPathInput = MessageInitShape<typeof CreateLearningPathRequestSchema>
 export type UpdateLearningPathInput = MessageInitShape<typeof UpdateLearningPathRequestSchema>
@@ -62,12 +64,20 @@ export function useDeleteLearningPath() {
   return (req: DeleteLearningPathInput) => client.deleteLearningPath(req)
 }
 
+// Progress and pause go through the offline outbox: they show at once, and a
+// rejection (e.g. an item an agent's edit replaced) shows in the offline
+// banner and rolls back.
+
 export function useRecordItemProgress() {
-  const client = createServiceClient(LearningPathsService)
-  return (req: RecordItemProgressInput) => client.recordItemProgress(req)
+  return async (req: RecordItemProgressInput) => {
+    await enqueueWrite(recordItemProgressWrite, req)
+    await flushOutbox()
+  }
 }
 
 export function useSetLearningPathPaused() {
-  const client = createServiceClient(LearningPathsService)
-  return (req: SetLearningPathPausedInput) => client.setLearningPathPaused(req)
+  return async (req: SetLearningPathPausedInput) => {
+    await enqueueWrite(setPausedWrite, req)
+    await flushOutbox()
+  }
 }

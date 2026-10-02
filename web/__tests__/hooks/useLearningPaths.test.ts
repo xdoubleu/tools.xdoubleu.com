@@ -2,10 +2,7 @@ import { renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockClient = {
-  listLearningPaths: jest
-    .fn()
-    .mockResolvedValue({ learningPaths: [{ id: 'lp-1' }], hasMore: true }),
-  setLearningPathPaused: jest.fn().mockResolvedValue({})
+  listLearningPaths: jest.fn().mockResolvedValue({ learningPaths: [{ id: 'lp-1' }], hasMore: true })
 }
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
@@ -13,8 +10,18 @@ jest.mock('@/lib/client', () => ({
 jest.mock('@/lib/gen/learningpaths/v1/learningpaths_pb', () => ({
   LearningPathsService: {}
 }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn().mockResolvedValue({ status: () => 'sent' }),
+  flushOutbox: jest.fn().mockResolvedValue(undefined)
+}))
+jest.mock('@/lib/learningpaths/offlineWrites', () => ({
+  recordItemProgressWrite: { id: 'progress' },
+  setPausedWrite: { id: 'paused' }
+}))
 
 import useSWR from 'swr'
+import { enqueueWrite, flushOutbox } from '@/lib/offline/outbox'
+import { recordItemProgressWrite, setPausedWrite } from '@/lib/learningpaths/offlineWrites'
 import {
   useLearningPaths,
   useLearningPath,
@@ -68,18 +75,23 @@ describe('mutation hooks return functions', () => {
     const { result } = renderHook(() => useDeleteLearningPath())
     expect(typeof result.current).toBe('function')
   })
-
-  it('useRecordItemProgress returns a function', () => {
-    const { result } = renderHook(() => useRecordItemProgress())
-    expect(typeof result.current).toBe('function')
-  })
 })
 
-describe('useSetLearningPathPaused', () => {
-  it('sends the paused flag for the path', async () => {
+describe('progress and pause go through the outbox', () => {
+  it('useRecordItemProgress queues the progress and sends it', async () => {
+    const { result } = renderHook(() => useRecordItemProgress())
+    await result.current({ itemId: 'i-1', completed: true })
+    expect(enqueueWrite).toHaveBeenCalledWith(recordItemProgressWrite, {
+      itemId: 'i-1',
+      completed: true
+    })
+    expect(flushOutbox).toHaveBeenCalled()
+  })
+
+  it('useSetLearningPathPaused queues the paused flag for the path', async () => {
     const { result } = renderHook(() => useSetLearningPathPaused())
     await result.current({ id: 'lp-1', paused: true })
-    expect(mockClient.setLearningPathPaused).toHaveBeenCalledWith({ id: 'lp-1', paused: true })
+    expect(enqueueWrite).toHaveBeenCalledWith(setPausedWrite, { id: 'lp-1', paused: true })
   })
 })
 
