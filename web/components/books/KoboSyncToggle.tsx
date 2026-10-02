@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { mutate } from 'swr'
-import { useEnableKoboSync, useToggleTag, useKEPUBStatus } from '@/hooks/useBooks'
+import { useEnableKoboSync, useSetBookTag, useKEPUBStatus } from '@/hooks/useBooks'
 import { swrKeys } from '@/lib/swrKeys'
 import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -29,7 +29,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
   const [error, setError] = useState<string | null>(null)
 
   const enableKoboSync = useEnableKoboSync()
-  const toggleTag = useToggleTag()
+  const setBookTag = useSetBookTag()
 
   const { data: statusData } = useKEPUBStatus(bookId)
 
@@ -46,7 +46,7 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
     setError(null)
     try {
       if (wasEnabled) {
-        await toggleTag(bookId, 'kobo-sync')
+        await setBookTag(bookId, 'kobo-sync', false)
       } else {
         await enableKoboSync(bookId)
         mutate(swrKeys.kepubStatus(bookId))
@@ -68,10 +68,10 @@ export default function KoboSyncToggle({ bookId, enabled, tags, onChanged }: Kob
     try {
       if (sendPDF) {
         // The tag serves raw PDF.
-        await toggleTag(bookId, 'kobo-format-pdf')
+        await setBookTag(bookId, 'kobo-format-pdf', true)
       } else {
         // Re-trigger conversion so the KEPUB is ready.
-        await toggleTag(bookId, 'kobo-format-pdf')
+        await setBookTag(bookId, 'kobo-format-pdf', false)
         await enableKoboSync(bookId)
         mutate(swrKeys.kepubStatus(bookId))
       }

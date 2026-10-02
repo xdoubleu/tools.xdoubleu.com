@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 
 const mockEnableKoboSync = jest.fn()
-const mockToggleTag = jest.fn()
+const mockSetBookTag = jest.fn()
 const mockUseSWR = jest.fn()
 const mockMutate = jest.fn()
 
@@ -13,7 +13,7 @@ jest.mock('swr', () => ({
 
 jest.mock('@/hooks/useBooks', () => ({
   useEnableKoboSync: () => mockEnableKoboSync,
-  useToggleTag: () => mockToggleTag,
+  useSetBookTag: () => mockSetBookTag,
   useKEPUBStatus: (bookId: string | null) => mockUseSWR(bookId)
 }))
 
@@ -30,7 +30,7 @@ function setupSWR(data: { hasEpub?: boolean; hasPdf?: boolean; kepubStatus?: str
 describe('KoboSyncToggle', () => {
   beforeEach(() => {
     mockEnableKoboSync.mockReset()
-    mockToggleTag.mockReset()
+    mockSetBookTag.mockReset()
     mockUseSWR.mockReset()
     mockMutate.mockReset()
     setupSWR()
@@ -78,9 +78,9 @@ describe('KoboSyncToggle', () => {
     expect(onChanged).toHaveBeenCalled()
   })
 
-  it('calls toggleTag to disable kobo-sync when unchecked', async () => {
+  it('calls setBookTag to disable kobo-sync when unchecked', async () => {
     setupSWR({ hasEpub: true, kepubStatus: 'ready' })
-    mockToggleTag.mockResolvedValue({})
+    mockSetBookTag.mockResolvedValue({})
 
     const onChanged = jest.fn()
     render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} onChanged={onChanged} />)
@@ -89,7 +89,7 @@ describe('KoboSyncToggle', () => {
       fireEvent.click(screen.getByTestId('kobo-sync-checkbox'))
     })
 
-    expect(mockToggleTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-sync')
+    expect(mockSetBookTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-sync', false)
     expect(onChanged).toHaveBeenCalled()
   })
 
@@ -162,7 +162,7 @@ describe('KoboSyncToggle', () => {
 
   it('unchecks immediately on click when disabling', async () => {
     setupSWR({ hasEpub: true, kepubStatus: 'ready' })
-    mockToggleTag.mockResolvedValue({})
+    mockSetBookTag.mockResolvedValue({})
 
     render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} />)
     const checkbox = screen.getByTestId('kobo-sync-checkbox')
@@ -241,9 +241,9 @@ describe('KoboSyncToggle', () => {
       expect(screen.getByTestId('kobo-format-kepub')).not.toBeChecked()
     })
 
-    it('toggles kobo-format-pdf tag when PDF radio is selected', async () => {
+    it('sets the kobo-format-pdf tag when PDF radio is selected', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockResolvedValue({})
+      mockSetBookTag.mockResolvedValue({})
       const onChanged = jest.fn()
 
       render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} onChanged={onChanged} />)
@@ -252,13 +252,13 @@ describe('KoboSyncToggle', () => {
         fireEvent.click(screen.getByTestId('kobo-format-pdf'))
       })
 
-      expect(mockToggleTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-format-pdf')
+      expect(mockSetBookTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-format-pdf', true)
       expect(onChanged).toHaveBeenCalled()
     })
 
-    it('toggles kobo-format-pdf tag and re-triggers enableKoboSync when EPUB radio is selected', async () => {
+    it('clears the kobo-format-pdf tag and re-triggers enableKoboSync when EPUB radio is selected', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockResolvedValue({})
+      mockSetBookTag.mockResolvedValue({})
       mockEnableKoboSync.mockResolvedValue({ kepubStatus: 'converting' })
       const onChanged = jest.fn()
 
@@ -275,7 +275,7 @@ describe('KoboSyncToggle', () => {
         fireEvent.click(screen.getByTestId('kobo-format-kepub'))
       })
 
-      expect(mockToggleTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-format-pdf')
+      expect(mockSetBookTag).toHaveBeenCalledWith(BOOK_ID, 'kobo-format-pdf', false)
       expect(mockEnableKoboSync).toHaveBeenCalledWith(BOOK_ID)
       expect(onChanged).toHaveBeenCalled()
     })
@@ -288,7 +288,7 @@ describe('KoboSyncToggle', () => {
 
     it('flips PDF radio to checked immediately (optimistic) on click', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockImplementation(
+      mockSetBookTag.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({}), 200))
       )
 
@@ -303,9 +303,9 @@ describe('KoboSyncToggle', () => {
       expect(screen.getByTestId('kobo-format-kepub')).not.toBeChecked()
     })
 
-    it('rolls back PDF radio on toggleTag failure', async () => {
+    it('rolls back PDF radio on setBookTag failure', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockRejectedValue(new Error('network error'))
+      mockSetBookTag.mockRejectedValue(new Error('network error'))
 
       render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={[]} />)
       expect(screen.getByTestId('kobo-format-kepub')).toBeChecked()
@@ -323,7 +323,7 @@ describe('KoboSyncToggle', () => {
 
     it('flips KEPUB radio to checked immediately (optimistic) on click', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockImplementation(
+      mockSetBookTag.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({}), 200))
       )
       mockEnableKoboSync.mockResolvedValue({ kepubStatus: 'converting' })
@@ -339,7 +339,7 @@ describe('KoboSyncToggle', () => {
 
     it('rolls back KEPUB radio on enableKoboSync failure', async () => {
       setupSWR({ hasEpub: true, hasPdf: true, kepubStatus: 'ready' })
-      mockToggleTag.mockResolvedValue({})
+      mockSetBookTag.mockResolvedValue({})
       mockEnableKoboSync.mockRejectedValue(new Error('sync error'))
 
       render(<KoboSyncToggle bookId={BOOK_ID} enabled={true} tags={['kobo-format-pdf']} />)

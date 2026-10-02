@@ -44,6 +44,39 @@ func (h *booksConnectHandler) ToggleTag(
 	return connect.NewResponse(&booksv1.ToggleTagResponse{}), nil
 }
 
+func (h *booksConnectHandler) SetBookTag(
+	ctx context.Context,
+	req *connect.Request[booksv1.SetBookTagRequest],
+) (*connect.Response[booksv1.SetBookTagResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	if req.Msg.Tag == "" {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("tag cannot be empty"),
+		)
+	}
+	err = h.app.Services.Books.SetTag(
+		ctx, user.ID, bookID, req.Msg.Tag, req.Msg.Enabled,
+	)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&booksv1.SetBookTagResponse{}), nil
+}
+
 func (h *booksConnectHandler) CreateShelf(
 	ctx context.Context,
 	req *connect.Request[booksv1.CreateShelfRequest],

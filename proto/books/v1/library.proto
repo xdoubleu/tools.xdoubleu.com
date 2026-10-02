@@ -128,6 +128,14 @@ message ToggleTagRequest {
 }
 message ToggleTagResponse {}
 
+// SetBookTag adds (enabled) or removes a tag; repeating it changes nothing.
+message SetBookTagRequest {
+  string book_id = 1;
+  string tag = 2;
+  bool enabled = 3;
+}
+message SetBookTagResponse {}
+
 // RemoveBook removes the book from the caller's library; an unreferenced
 // catalog row and its R2 objects are deleted too.
 message RemoveBookRequest { string book_id = 1; }
@@ -186,6 +194,7 @@ service LibraryService {
   rpc UpdateFinishedAt(UpdateFinishedAtRequest) returns (UpdateFinishedAtResponse);
   rpc UpdateProgress(UpdateProgressRequest) returns (UpdateProgressResponse);
   rpc ToggleTag(ToggleTagRequest) returns (ToggleTagResponse);
+  rpc SetBookTag(SetBookTagRequest) returns (SetBookTagResponse);
   rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);

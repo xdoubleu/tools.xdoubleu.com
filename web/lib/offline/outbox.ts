@@ -1,6 +1,7 @@
 import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
+import { bookWrites } from '@/lib/books/offlineWrites'
 import { feedWrites } from '@/lib/feeds/offlineWrites'
 import { mealPlanWrites } from '@/lib/mealplans/offlineWrites'
 import { recipeWrites } from '@/lib/recipes/offlineWrites'
@@ -22,7 +23,8 @@ const writes: OfflineWrite[] = [
   ...shoppingListWrites,
   ...recipeWrites,
   ...mealPlanWrites,
-  ...feedWrites
+  ...feedWrites,
+  ...bookWrites
 ]
 const registry = new Map(writes.map((w) => [w.id, w]))
 

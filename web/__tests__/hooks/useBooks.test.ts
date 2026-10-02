@@ -53,6 +53,22 @@ jest.mock('@/lib/gen/books/v1/catalog_pb', () => ({
   UpdateBookRequestSchema: {}
 }))
 jest.mock('@/lib/env', () => ({ getApiUrl: () => 'https://api.test' }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => 'sent' })),
+  sendWrite: jest.fn(async (pending: Promise<unknown>) => {
+    await pending
+    return 'sent'
+  })
+}))
+jest.mock('@/lib/books/offlineWrites', () => ({
+  removeBookWrite: { id: 'removeBook' },
+  setBookISBNWrite: { id: 'setBookISBN' },
+  setBookTagWrite: { id: 'setBookTag' },
+  updateBookStatusWrite: { id: 'updateBookStatus' },
+  updateBookWrite: { id: 'updateBook' },
+  updateFinishedAtWrite: { id: 'updateFinishedAt' },
+  updateProgressWrite: { id: 'updateProgress' }
+}))
 
 import useSWR from 'swr'
 import { ConnectError, Code } from '@connectrpc/connect'
@@ -65,7 +81,9 @@ import {
   useCreateBook,
   useImportBooks,
   useUpdateBookStatus,
-  useToggleTag,
+  useSetBookTag,
+  useUpdateProgress,
+  useRemoveBook,
   useUpdateFinishedAt,
   useUploadBookFile,
   useEnableKoboSync,
@@ -88,6 +106,16 @@ import {
   useCancelResync
 } from '@/hooks/useBooks'
 import { createServiceClient } from '@/lib/client'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import {
+  removeBookWrite,
+  setBookISBNWrite,
+  setBookTagWrite,
+  updateBookStatusWrite,
+  updateBookWrite,
+  updateFinishedAtWrite,
+  updateProgressWrite
+} from '@/lib/books/offlineWrites'
 
 const mockUseSWR = jest.mocked(useSWR)
 const mockCreateServiceClient = jest.mocked(createServiceClient)
@@ -164,58 +192,37 @@ describe('useSearchExternal', () => {
 })
 
 describe('useSetBookISBN', () => {
-  it('returns a function', () => {
-    const { result } = renderHook(() => useSetBookISBN())
-    expect(typeof result.current).toBe('function')
-  })
-
   it('returns a stable function reference across re-renders', () => {
     const { result, rerender } = renderHook(() => useSetBookISBN())
     const first = result.current
     rerender()
-    const second = result.current
-    expect(Object.is(first, second)).toBe(true)
+    expect(Object.is(first, result.current)).toBe(true)
   })
 
-  it('calls client.setBookISBN with bookId and isbn13', async () => {
-    const mockSet = jest.fn().mockResolvedValue({})
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ setBookISBN: mockSet })
+  it('sends the ISBN through the outbox', async () => {
     const { result } = renderHook(() => useSetBookISBN())
     await result.current('book-1', '9780140449112')
-    expect(mockSet).toHaveBeenCalledWith({ bookId: 'book-1', isbn13: '9780140449112' })
+    expect(enqueueWrite).toHaveBeenCalledWith(setBookISBNWrite, {
+      bookId: 'book-1',
+      isbn13: '9780140449112'
+    })
+    expect(sendWrite).toHaveBeenCalled()
   })
 })
 
 describe('useUpdateBook', () => {
-  it('returns a function', () => {
-    const { result } = renderHook(() => useUpdateBook())
-    expect(typeof result.current).toBe('function')
-  })
-
   it('returns a stable function reference across re-renders', () => {
     const { result, rerender } = renderHook(() => useUpdateBook())
     const first = result.current
     rerender()
-    const second = result.current
-    expect(Object.is(first, second)).toBe(true)
+    expect(Object.is(first, result.current)).toBe(true)
   })
 
-  it('calls client.updateBook with bookId and metadata', async () => {
-    const mockUpdate = jest.fn().mockResolvedValue({})
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ updateBook: mockUpdate })
+  it('sends the metadata through the outbox', async () => {
     const { result } = renderHook(() => useUpdateBook())
-    const metadata = {
-      title: 'New Title',
-      authors: ['New Author'],
-      isbn13: '9780140449112',
-      description: 'New description.',
-      pageCount: 100,
-      coverUrl: 'https://example.com/cover.jpg'
-    }
+    const metadata = { title: 'New Title', authors: ['New Author'], pageCount: 100 }
     await result.current('book-1', metadata)
-    expect(mockUpdate).toHaveBeenCalledWith({ bookId: 'book-1', metadata })
+    expect(enqueueWrite).toHaveBeenCalledWith(updateBookWrite, { bookId: 'book-1', metadata })
   })
 })
 
@@ -447,42 +454,46 @@ describe('useImportBooks', () => {
   })
 })
 
-describe('useUpdateBookStatus', () => {
-  it('returns a function', () => {
+describe('library writes go through the outbox', () => {
+  beforeEach(() => {
+    jest.mocked(enqueueWrite).mockClear()
+    jest.mocked(sendWrite).mockClear()
+  })
+
+  it('useUpdateBookStatus stamps the change with the time it was made', async () => {
     const { result } = renderHook(() => useUpdateBookStatus())
-    expect(typeof result.current).toBe('function')
-  })
-})
-
-describe('useToggleTag', () => {
-  it('returns a function', () => {
-    const { result } = renderHook(() => useToggleTag())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('calls client.toggleTag with bookId and tag', () => {
-    const mockToggle = jest.fn().mockResolvedValue({})
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ toggleTag: mockToggle })
-    const { result } = renderHook(() => useToggleTag())
-    result.current('book-1', 'sci-fi')
-    expect(mockToggle).toHaveBeenCalledWith({ bookId: 'book-1', tag: 'sci-fi' })
-  })
-})
-
-describe('useUpdateFinishedAt', () => {
-  it('returns a function', () => {
-    const { result } = renderHook(() => useUpdateFinishedAt())
-    expect(typeof result.current).toBe('function')
+    const req = { bookId: 'book-1', status: 'read', favourite: true, rating: '4' }
+    await result.current(req)
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      updateBookStatusWrite,
+      req,
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)
+    )
   })
 
-  it('calls client.updateFinishedAt with bookId and finishedAt', () => {
-    const mockUpdate = jest.fn().mockResolvedValue({})
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ updateFinishedAt: mockUpdate })
-    const { result } = renderHook(() => useUpdateFinishedAt())
-    result.current('book-1', ['2024-01-15'])
-    expect(mockUpdate).toHaveBeenCalledWith({ bookId: 'book-1', finishedAt: ['2024-01-15'] })
+  it('useSetBookTag sets the tag to the given state', async () => {
+    const { result } = renderHook(() => useSetBookTag())
+    await result.current('book-1', 'sci-fi', true)
+    expect(enqueueWrite).toHaveBeenCalledWith(setBookTagWrite, {
+      bookId: 'book-1',
+      tag: 'sci-fi',
+      enabled: true
+    })
+  })
+
+  it('useUpdateFinishedAt, useUpdateProgress and useRemoveBook queue their writes', async () => {
+    await renderHook(() => useUpdateFinishedAt()).result.current('book-1', ['2024-01-15'])
+    const progress = { bookId: 'book-1', progressMode: 'pages', currentPage: 10 }
+    await renderHook(() => useUpdateProgress()).result.current(progress)
+    await renderHook(() => useRemoveBook()).result.current('book-1')
+
+    expect(enqueueWrite).toHaveBeenCalledWith(updateFinishedAtWrite, {
+      bookId: 'book-1',
+      finishedAt: ['2024-01-15']
+    })
+    expect(enqueueWrite).toHaveBeenCalledWith(updateProgressWrite, progress)
+    expect(enqueueWrite).toHaveBeenCalledWith(removeBookWrite, { bookId: 'book-1' })
+    expect(sendWrite).toHaveBeenCalledTimes(3)
   })
 })
 

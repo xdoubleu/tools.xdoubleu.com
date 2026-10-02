@@ -44,7 +44,7 @@ jest.mock('@/components/books/BookRemoveAction', () => {
 
 jest.mock('@/hooks/useBooks', () => ({
   useUpdateBookStatus: () => jest.fn(),
-  useToggleTag: () => jest.fn()
+  useSetBookTag: () => jest.fn()
 }))
 
 jest.mock('swr', () => ({

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
 import { mutate } from 'swr'
-import { useUpdateBookStatus, useToggleTag } from '@/hooks/useBooks'
+import { useUpdateBookStatus, useSetBookTag } from '@/hooks/useBooks'
 import type { UserBook } from '@/lib/gen/books/v1/library_pb'
 import { Label } from '@/components/ui/label'
 import { Combobox } from '@/components/ui/combobox'
@@ -41,7 +41,7 @@ export default function BookShelfTagFields({
   const [showShelfInput, setShowShelfInput] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const updateBookStatus = useUpdateBookStatus()
-  const toggleTag = useToggleTag()
+  const setBookTag = useSetBookTag()
 
   const customShelves = knownShelves.filter((s) => !BUILT_IN_STATUSES.has(s))
 
@@ -69,7 +69,7 @@ export default function BookShelfTagFields({
     setTags(checked ? [...tags, tag] : tags.filter((t) => t !== tag))
     setError(null)
     try {
-      await toggleTag(userBook.bookId, tag)
+      await setBookTag(userBook.bookId, tag, checked)
       mutate(swrKeys.books)
       onSaved?.()
     } catch {

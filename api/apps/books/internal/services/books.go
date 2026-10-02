@@ -340,39 +340,66 @@ func (s *BookService) UpdateFinishedAt(
 	return s.books.UpdateFinishedAt(ctx, userID, bookID, finishedAt)
 }
 
-// ToggleTag adds or removes a tag from a user_book atomically.
+// ToggleTag adds the tag when absent, else removes it.
 func (s *BookService) ToggleTag(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	tag string,
 ) error {
-	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	ub, err := s.getTaggedBook(ctx, userID, bookID)
 	if err != nil {
-		if errors.Is(err, database.ErrResourceNotFound) {
-			return fmt.Errorf("book not found")
-		}
 		return err
 	}
+	return s.setTag(ctx, userID, ub, tag, !slices.Contains(ub.Tags, tag))
+}
 
-	newTags := make([]string, 0, len(ub.Tags))
-	found := false
-	for _, t := range ub.Tags {
-		if t == tag {
-			found = true
-			continue
-		}
-		newTags = append(newTags, t)
+// SetTag adds (enabled) or removes a tag; a repeat changes nothing.
+func (s *BookService) SetTag(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	tag string,
+	enabled bool,
+) error {
+	ub, err := s.getTaggedBook(ctx, userID, bookID)
+	if err != nil {
+		return err
 	}
-	if !found {
+	return s.setTag(ctx, userID, ub, tag, enabled)
+}
+
+func (s *BookService) getTaggedBook(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+) (*models.UserBook, error) {
+	ub, err := s.books.GetUserBook(ctx, userID, bookID)
+	if errors.Is(err, database.ErrResourceNotFound) {
+		return nil, fmt.Errorf("book not found")
+	}
+	return ub, err
+}
+
+func (s *BookService) setTag(
+	ctx context.Context,
+	userID string,
+	ub *models.UserBook,
+	tag string,
+	enabled bool,
+) error {
+	newTags := slices.DeleteFunc(slices.Clone(ub.Tags), func(t string) bool {
+		return t == tag
+	})
+	if enabled {
 		newTags = append(newTags, tag)
 	}
 
 	koboSyncEnabled := slices.Contains(newTags, models.TagKoboSync)
-	if updateErr := s.books.UpdateTags(
-		ctx, userID, bookID, newTags, koboSyncEnabled,
-	); updateErr != nil {
-		return updateErr
+	if err := s.books.UpdateTags(
+		ctx, userID, ub.BookID, newTags, koboSyncEnabled,
+	); err != nil {
+		return err
 	}
 
 	if tag != models.TagKoboSync {
@@ -381,9 +408,9 @@ func (s *BookService) ToggleTag(
 	// Disabling leaves the copy on the device, so tombstone it; re-enabling clears
 	// a stale tombstone.
 	if koboSyncEnabled {
-		return s.books.DeleteKoboRemoval(ctx, userID, bookID)
+		return s.books.DeleteKoboRemoval(ctx, userID, ub.BookID)
 	}
-	return s.books.UpsertKoboRemoval(ctx, userID, bookID)
+	return s.books.UpsertKoboRemoval(ctx, userID, ub.BookID)
 }
 
 func (s *BookService) GetUserBook(

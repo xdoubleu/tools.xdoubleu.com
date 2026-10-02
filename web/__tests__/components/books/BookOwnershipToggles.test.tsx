@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import { UserBookSchema, BookSchema } from '@/lib/gen/books/v1/library_pb'
 
-const mockToggleTag = jest.fn()
+const mockSetBookTag = jest.fn()
 const mockMutate = jest.fn()
 
 jest.mock('swr', () => ({
@@ -12,7 +12,7 @@ jest.mock('swr', () => ({
 }))
 
 jest.mock('@/hooks/useBooks', () => ({
-  useToggleTag: () => mockToggleTag
+  useSetBookTag: () => mockSetBookTag
 }))
 
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
@@ -30,9 +30,9 @@ function makeBook(tags: string[] = [], formats: string[] = []) {
 
 describe('BookOwnershipToggles', () => {
   beforeEach(() => {
-    mockToggleTag.mockReset()
+    mockSetBookTag.mockReset()
     mockMutate.mockReset()
-    mockToggleTag.mockResolvedValue({})
+    mockSetBookTag.mockResolvedValue({})
   })
 
   it('always renders Physical chip', () => {
@@ -61,7 +61,7 @@ describe('BookOwnershipToggles', () => {
     fireEvent.click(screen.getByRole('button', { name: /physical/i }))
 
     await waitFor(() => {
-      expect(mockToggleTag).toHaveBeenCalledWith('book-1', 'own-physical')
+      expect(mockSetBookTag).toHaveBeenCalledWith('book-1', 'own-physical', true)
     })
     expect(mockMutate).toHaveBeenCalledWith('/books')
   })
@@ -116,7 +116,7 @@ describe('BookOwnershipToggles', () => {
   })
 
   it('reverts optimistic state on error', async () => {
-    mockToggleTag.mockRejectedValue(new Error('fail'))
+    mockSetBookTag.mockRejectedValue(new Error('fail'))
     render(<BookOwnershipToggles userBook={makeBook()} />)
 
     expect(screen.getByRole('button', { name: /physical/i })).toHaveAttribute(
