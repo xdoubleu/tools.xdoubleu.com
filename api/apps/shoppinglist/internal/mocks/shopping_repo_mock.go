@@ -22,6 +22,7 @@ type ShoppingRepoMock struct {
 	AddCustomItemFn func(
 		ctx context.Context,
 		familyID uuid.UUID,
+		id uuid.NullUUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
@@ -52,7 +53,7 @@ type ShoppingRepoMock struct {
 		ctx context.Context, familyID uuid.UUID,
 	) ([]repositories.Category, error)
 	CreateCategoryFn func(
-		ctx context.Context, familyID uuid.UUID, name string,
+		ctx context.Context, familyID uuid.UUID, id uuid.NullUUID, name string,
 	) (repositories.Category, error)
 	RenameCategoryFn func(
 		ctx context.Context, familyID uuid.UUID, id uuid.UUID, name string,
@@ -62,7 +63,7 @@ type ShoppingRepoMock struct {
 		ctx context.Context, userID string,
 	) ([]repositories.Store, error)
 	CreateStoreFn func(
-		ctx context.Context, userID, name string,
+		ctx context.Context, userID string, id uuid.NullUUID, name string,
 	) (repositories.Store, error)
 	RenameStoreFn func(
 		ctx context.Context, userID string, id uuid.UUID, name string,
@@ -110,10 +111,11 @@ func (m *ShoppingRepoMock) GetCustomItems(
 func (m *ShoppingRepoMock) AddCustomItem(
 	ctx context.Context,
 	familyID uuid.UUID,
+	id uuid.NullUUID,
 	name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
-	return m.AddCustomItemFn(ctx, familyID, name, unit, amount)
+	return m.AddCustomItemFn(ctx, familyID, id, name, unit, amount)
 }
 
 func (m *ShoppingRepoMock) UpdateCustomItem(
@@ -170,9 +172,10 @@ func (m *ShoppingRepoMock) ListCategories(
 func (m *ShoppingRepoMock) CreateCategory(
 	ctx context.Context,
 	familyID uuid.UUID,
+	id uuid.NullUUID,
 	name string,
 ) (repositories.Category, error) {
-	return m.CreateCategoryFn(ctx, familyID, name)
+	return m.CreateCategoryFn(ctx, familyID, id, name)
 }
 
 func (m *ShoppingRepoMock) RenameCategory(
@@ -201,9 +204,11 @@ func (m *ShoppingRepoMock) ListStores(
 
 func (m *ShoppingRepoMock) CreateStore(
 	ctx context.Context,
-	userID, name string,
+	userID string,
+	id uuid.NullUUID,
+	name string,
 ) (repositories.Store, error) {
-	return m.CreateStoreFn(ctx, userID, name)
+	return m.CreateStoreFn(ctx, userID, id, name)
 }
 
 func (m *ShoppingRepoMock) RenameStore(

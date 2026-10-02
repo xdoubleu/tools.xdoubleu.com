@@ -2,6 +2,7 @@ import DeployNotification from '@/components/DeployNotification'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
 import OfflineBanner from '@/components/offline/OfflineBanner'
+import OutboxSync from '@/components/offline/OutboxSync'
 import ServiceWorkerRegistrar from '@/components/offline/ServiceWorkerRegistrar'
 import SWRProvider from '@/components/SWRProvider'
 import { createServerClient } from '@/lib/server/client'
@@ -26,6 +27,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       <Footer />
       <DeployNotification />
       <ServiceWorkerRegistrar />
+      <OutboxSync />
     </SWRProvider>
   )
 }

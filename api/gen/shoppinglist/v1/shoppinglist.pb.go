@@ -190,6 +190,7 @@ type CreateShoppingItemRequest struct {
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	Amount        string                 `protobuf:"bytes,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Unit          string                 `protobuf:"bytes,3,opt,name=unit,proto3" json:"unit,omitempty"`
+	Id            string                 `protobuf:"bytes,5,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -241,6 +242,13 @@ func (x *CreateShoppingItemRequest) GetAmount() string {
 func (x *CreateShoppingItemRequest) GetUnit() string {
 	if x != nil {
 		return x.Unit
+	}
+	return ""
+}
+
+func (x *CreateShoppingItemRequest) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
@@ -852,6 +860,7 @@ func (x *ListCategoriesResponse) GetCategories() []*Category {
 type CreateCategoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Id            string                 `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -889,6 +898,13 @@ func (*CreateCategoryRequest) Descriptor() ([]byte, []int) {
 func (x *CreateCategoryRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateCategoryRequest) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
@@ -1249,6 +1265,7 @@ func (x *ListStoresResponse) GetStores() []*Store {
 type CreateStoreRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Id            string                 `protobuf:"bytes,3,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1286,6 +1303,13 @@ func (*CreateStoreRequest) Descriptor() ([]byte, []int) {
 func (x *CreateStoreRequest) GetName() string {
 	if x != nil {
 		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateStoreRequest) GetId() string {
+	if x != nil {
+		return x.Id
 	}
 	return ""
 }
@@ -2156,11 +2180,12 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"group_name\x18\x06 \x01(\tR\tgroupName\"+\n" +
 	"\x14GetCustomListRequestJ\x04\b\x01\x10\x02R\rowner_user_id\"L\n" +
 	"\x15GetCustomListResponse\x123\n" +
-	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"p\n" +
+	"\x05items\x18\x01 \x03(\v2\x1d.shoppinglist.v1.ShoppingItemR\x05items\"\x80\x01\n" +
 	"\x19CreateShoppingItemRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\tR\x06amount\x12\x12\n" +
-	"\x04unit\x18\x03 \x01(\tR\x04unitJ\x04\b\x04\x10\x05R\rowner_user_id\"O\n" +
+	"\x04unit\x18\x03 \x01(\tR\x04unit\x12\x0e\n" +
+	"\x02id\x18\x05 \x01(\tR\x02idJ\x04\b\x04\x10\x05R\rowner_user_id\"O\n" +
 	"\x1aCreateShoppingItemResponse\x121\n" +
 	"\x04item\x18\x01 \x01(\v2\x1d.shoppinglist.v1.ShoppingItemR\x04item\"\x89\x01\n" +
 	"\x19UpdateShoppingItemRequest\x12\x17\n" +
@@ -2194,9 +2219,10 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x16ListCategoriesResponse\x129\n" +
 	"\n" +
 	"categories\x18\x01 \x03(\v2\x19.shoppinglist.v1.CategoryR\n" +
-	"categories\"@\n" +
+	"categories\"P\n" +
 	"\x15CreateCategoryRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04nameJ\x04\b\x02\x10\x03R\rowner_user_id\"O\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x0e\n" +
+	"\x02id\x18\x03 \x01(\tR\x02idJ\x04\b\x02\x10\x03R\rowner_user_id\"O\n" +
 	"\x16CreateCategoryResponse\x125\n" +
 	"\bcategory\x18\x01 \x01(\v2\x19.shoppinglist.v1.CategoryR\bcategory\"P\n" +
 	"\x15RenameCategoryRequest\x12\x0e\n" +
@@ -2212,9 +2238,10 @@ const file_shoppinglist_v1_shoppinglist_proto_rawDesc = "" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"(\n" +
 	"\x11ListStoresRequestJ\x04\b\x01\x10\x02R\rowner_user_id\"D\n" +
 	"\x12ListStoresResponse\x12.\n" +
-	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"=\n" +
+	"\x06stores\x18\x01 \x03(\v2\x16.shoppinglist.v1.StoreR\x06stores\"M\n" +
 	"\x12CreateStoreRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04nameJ\x04\b\x02\x10\x03R\rowner_user_id\"C\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x0e\n" +
+	"\x02id\x18\x03 \x01(\tR\x02idJ\x04\b\x02\x10\x03R\rowner_user_id\"C\n" +
 	"\x13CreateStoreResponse\x12,\n" +
 	"\x05store\x18\x01 \x01(\v2\x16.shoppinglist.v1.StoreR\x05store\"M\n" +
 	"\x12RenameStoreRequest\x12\x0e\n" +

@@ -1,9 +1,9 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useItemNames, useCategories } from '@/hooks/useShoppingList'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { setItemCategoryWrite, setItemExcludedWrite } from '@/lib/shoppinglist/offlineWrites'
 import type { ItemName } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { Card } from '@/components/ui/card'
 import { Select } from '@/components/ui/select'
@@ -53,11 +53,8 @@ function buildGroups(names: ItemName[], categoryNames: Map<string, string>): Cat
 }
 
 export default function ItemCatalog() {
-  const { data: namesData, isLoading, mutate } = useItemNames()
+  const { data: namesData, isLoading } = useItemNames()
   const { data: categoriesData } = useCategories()
-  const [error, setError] = useState('')
-
-  const client = createServiceClient(ShoppingListService)
   const names = namesData?.names ?? []
   const categories = categoriesData?.categories ?? []
 
@@ -69,25 +66,11 @@ export default function ItemCatalog() {
 
   const groups = useMemo(() => buildGroups(names, categoryNames), [names, categoryNames])
 
-  const handleCategoryChange = async (name: string, categoryId: string) => {
-    setError('')
-    try {
-      await client.setItemCategory({ name, categoryId })
-      await mutate()
-    } catch {
-      setError('Failed to update category.')
-    }
-  }
+  const handleCategoryChange = (name: string, categoryId: string) =>
+    enqueueWrite(setItemCategoryWrite, { name, categoryId })
 
-  const handleExcludedChange = async (name: string, excluded: boolean) => {
-    setError('')
-    try {
-      await client.setItemExcluded({ name, excluded })
-      await mutate()
-    } catch {
-      setError('Failed to update item.')
-    }
-  }
+  const handleExcludedChange = (name: string, excluded: boolean) =>
+    enqueueWrite(setItemExcludedWrite, { name, excluded })
 
   if (isLoading) return <LoadingState className="text-sm" />
   if (names.length === 0) {
@@ -96,7 +79,6 @@ export default function ItemCatalog() {
 
   return (
     <div className="space-y-3">
-      {error && <p className="text-sm text-danger">{error}</p>}
       {groups.map((group) => (
         <Collapsible
           key={group.key}

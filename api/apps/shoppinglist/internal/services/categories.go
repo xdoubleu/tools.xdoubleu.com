@@ -21,13 +21,15 @@ func (s *ShoppingService) ListCategories(
 
 func (s *ShoppingService) CreateCategory(
 	ctx context.Context,
-	userID, name string,
+	userID string,
+	id uuid.NullUUID,
+	name string,
 ) (repositories.Category, error) {
 	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return repositories.Category{}, err
 	}
-	return s.repo.CreateCategory(ctx, familyID, name)
+	return s.repo.CreateCategory(ctx, familyID, id, name)
 }
 
 func (s *ShoppingService) RenameCategory(

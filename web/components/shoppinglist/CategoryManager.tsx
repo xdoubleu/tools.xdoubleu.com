@@ -2,22 +2,26 @@
 
 import { useState } from 'react'
 import { useCategories } from '@/hooks/useShoppingList'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { hasName } from '@/lib/shoppinglist/names'
+import {
+  createCategoryWrite,
+  deleteCategoryWrite,
+  renameCategoryWrite
+} from '@/lib/shoppinglist/offlineWrites'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { EmptyState, LoadingState } from '@/components/ui/states'
 
 export default function CategoryManager() {
-  const { data, isLoading, mutate } = useCategories()
+  const { data, isLoading } = useCategories()
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
   const [editingId, setEditingId] = useState('')
   const [editName, setEditName] = useState('')
   const [error, setError] = useState('')
 
-  const client = createServiceClient(ShoppingListService)
   const categories = data?.categories ?? []
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -25,9 +29,6 @@ export default function CategoryManager() {
     setError('')
     try {
       await fn()
-      await mutate()
-    } catch {
-      setError('Something went wrong. The name may already be in use.')
     } finally {
       setBusy(false)
     }
@@ -35,24 +36,34 @@ export default function CategoryManager() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newName.trim()) return
+    const name = newName.trim()
+    if (!name) return
+    if (hasName(categories, name)) {
+      setError('That name is already in use.')
+      return
+    }
     await run(async () => {
-      await client.createCategory({ name: newName.trim() })
+      await enqueueWrite(createCategoryWrite, { id: crypto.randomUUID(), name })
       setNewName('')
     })
   }
 
   const handleRename = async (id: string) => {
-    if (!editName.trim()) return
+    const name = editName.trim()
+    if (!name) return
+    if (hasName(categories, name, id)) {
+      setError('That name is already in use.')
+      return
+    }
     await run(async () => {
-      await client.renameCategory({ id, name: editName.trim() })
+      await enqueueWrite(renameCategoryWrite, { id, name })
       setEditingId('')
       setEditName('')
     })
   }
 
   const handleDelete = async (id: string) => {
-    await run(() => client.deleteCategory({ id }))
+    await run(() => enqueueWrite(deleteCategoryWrite, { id }))
   }
 
   return (
