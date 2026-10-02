@@ -14,7 +14,7 @@ import (
 )
 
 const readingStateColumns = `user_id, book_id, source, percent, location,
-	kobo_location, read_at, updated_at`
+	kobo_location, position, read_at, updated_at`
 
 type BookReadingStateRepository struct {
 	db postgres.DB
@@ -24,26 +24,34 @@ func (r *BookReadingStateRepository) Upsert(
 	ctx context.Context,
 	state models.BookReadingState,
 ) error {
-	_, err := r.UpsertReturningUpdatedAt(ctx, state)
+	_, err := r.UpsertIfNewer(ctx, state)
 	return err
 }
 
-// UpsertReturningUpdatedAt is Upsert returning the stored row's updated_at.
-func (r *BookReadingStateRepository) UpsertReturningUpdatedAt(
+// UpsertIfNewer stores state and returns its updated_at, or nil when the
+// stored row was read more recently. ReadAt is clamped to now(); a nil ReadAt
+// means now() and always applies. A row without read_at compares by
+// updated_at.
+func (r *BookReadingStateRepository) UpsertIfNewer(
 	ctx context.Context,
 	state models.BookReadingState,
-) (time.Time, error) {
+) (*time.Time, error) {
 	query := `
 		INSERT INTO books.book_reading_state
-		    (user_id, book_id, source, percent, location, kobo_location, read_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		    (user_id, book_id, source, percent, location, kobo_location,
+		     position, read_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, LEAST($8::timestamptz, now()))
 		ON CONFLICT (user_id, book_id) DO UPDATE
 		    SET source = EXCLUDED.source,
 		        percent = EXCLUDED.percent,
 		        location = EXCLUDED.location,
 		        kobo_location = EXCLUDED.kobo_location,
+		        position = EXCLUDED.position,
 		        read_at = EXCLUDED.read_at,
 		        updated_at = now()
+		    WHERE $8::timestamptz IS NULL
+		       OR EXCLUDED.read_at > COALESCE(
+		           book_reading_state.read_at, book_reading_state.updated_at)
 		RETURNING updated_at
 	`
 
@@ -55,9 +63,16 @@ func (r *BookReadingStateRepository) UpsertReturningUpdatedAt(
 		state.Percent,
 		state.Location,
 		state.KoboLocation,
+		state.Position,
 		state.ReadAt,
 	).Scan(&updatedAt)
-	return updatedAt, postgres.PgxErrorToHTTPError(err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil //nolint:nilnil // nil time means the write was older
+	}
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return &updatedAt, nil
 }
 
 func (r *BookReadingStateRepository) Get(
@@ -135,6 +150,7 @@ func scanReadingState(row pgx.Row) (*models.BookReadingState, error) {
 		&s.Percent,
 		&s.Location,
 		&s.KoboLocation,
+		&s.Position,
 		&s.ReadAt,
 		&s.UpdatedAt,
 	)

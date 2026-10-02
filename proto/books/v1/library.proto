@@ -67,11 +67,25 @@ message ExternalBookResult {
   string description = 7;
 }
 
+// ReadingPosition is a format-neutral position: href + offset for EPUB/KEPUB,
+// page for PDF.
+message ReadingPosition {
+  // Content document path as in the EPUB manifest, relative to the zip root.
+  string href = 1;
+  // Character offset into the section body's text.
+  int32 offset = 2;
+  // 1-based PDF page.
+  int32 page = 3;
+}
+
 message BookReadingStateData {
   string source = 1;
   int32 percent = 2;
   string location = 3;
   string updated_at = 4;
+  ReadingPosition position = 5;
+  // When the reading device recorded the position (RFC3339); empty if unknown.
+  string read_at = 6;
 }
 
 message GetLibraryRequest {}
@@ -155,11 +169,15 @@ message UpdateProgressRequest {
 }
 message UpdateProgressResponse {}
 
+// UpdateReadingProgress applies only if read_at (RFC3339, default now) is
+// newer than the stored position's.
 message UpdateReadingProgressRequest {
   string book_id = 1;
   string source = 2;
   int32 percent = 3;
   string location = 4;
+  ReadingPosition position = 5;
+  string read_at = 6;
 }
 message UpdateReadingProgressResponse {}
 

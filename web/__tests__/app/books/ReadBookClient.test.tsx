@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
 import {
   BookSchema,
@@ -10,12 +10,19 @@ import {
 
 const mockUseLibrary = jest.fn()
 const mockUseGetBookFile = jest.fn()
+const mockUseReadingState = jest.fn()
+const mockSave = jest.fn()
 const mockRouterPush = jest.fn()
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: () => mockUseLibrary(),
   useGetBookFile: (...args: unknown[]) => mockUseGetBookFile(...args)
+}))
+
+jest.mock('@/hooks/useReadingState', () => ({
+  useReadingState: (...args: unknown[]) => mockUseReadingState(...args),
+  useReadingProgressSaver: () => mockSave
 }))
 
 jest.mock('next/navigation', () => ({
@@ -25,10 +32,30 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/components/books/reader/BookReader', () => ({
   __esModule: true,
-  default: ({ url, title, onClose }: { url: string; title: string; onClose: () => void }) => (
-    <div data-testid="reader" data-url={url} data-title={title}>
+  default: ({
+    url,
+    title,
+    onClose,
+    onRelocate,
+    initialPosition
+  }: {
+    url: string
+    title: string
+    onClose: () => void
+    onRelocate: (location: unknown) => void
+    initialPosition: unknown
+  }) => (
+    <div
+      data-testid="reader"
+      data-url={url}
+      data-title={title}
+      data-initial={JSON.stringify(initialPosition)}
+    >
       <button type="button" onClick={onClose}>
         Close reader
+      </button>
+      <button type="button" onClick={() => onRelocate({ fraction: 0.5, section: 2 })}>
+        Turn page
       </button>
     </div>
   )
@@ -58,7 +85,15 @@ beforeEach(() => {
   mockSearchParams = new URLSearchParams()
   setLibrary(['epub', 'pdf'])
   mockUseGetBookFile.mockReturnValue({ data: { url: 'https://r2/book' }, error: undefined })
+  setFreshReadingState(undefined)
 })
+
+/** The hook's cached data is stale; only `mutate()` (a fresh read) counts. */
+function setFreshReadingState(state: unknown, stale: unknown = { percent: 99 }) {
+  const mutate = jest.fn(() => Promise.resolve(state === undefined ? undefined : { state }))
+  mockUseReadingState.mockReturnValue({ data: { state: stale }, error: undefined, mutate })
+  return mutate
+}
 
 describe('ReadBookClient', () => {
   it('opens the EPUB by default', async () => {
@@ -153,5 +188,85 @@ describe('ReadBookClient', () => {
     render(<ReadBookClient id="ub-1" />)
     fireEvent.click(await screen.findByRole('button', { name: 'Close reader' }))
     expect(mockRouterPush).toHaveBeenCalledWith('/books/ub-1')
+  })
+
+  it('resumes at the freshly read position, not the cached one', async () => {
+    const mutate = setFreshReadingState({
+      percent: 40,
+      position: { href: 'ch2.xhtml', offset: 15, page: 0 }
+    })
+    render(<ReadBookClient id="ub-1" />)
+    expect(mockUseReadingState).toHaveBeenCalledWith('book-1')
+    expect(await screen.findByTestId('reader')).toHaveAttribute(
+      'data-initial',
+      JSON.stringify({ position: { href: 'ch2.xhtml', offset: 15 }, percent: 40 })
+    )
+    expect(mutate).toHaveBeenCalledTimes(1)
+  })
+
+  it('waits for a fresh reading state before opening', () => {
+    mockUseReadingState.mockReturnValue({
+      data: { state: { percent: 10 } },
+      error: undefined,
+      mutate: () => new Promise(() => {})
+    })
+    render(<ReadBookClient id="ub-1" />)
+    expect(screen.getByText('Loading book…')).toBeInTheDocument()
+    expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
+  })
+
+  it('opens at the start when there is no reading state', async () => {
+    setFreshReadingState(undefined)
+    render(<ReadBookClient id="ub-1" />)
+    expect(await screen.findByTestId('reader')).toHaveAttribute(
+      'data-initial',
+      JSON.stringify({ percent: 0 })
+    )
+  })
+
+  it('falls back to the cached reading state when the fresh read fails', async () => {
+    mockUseReadingState.mockReturnValue({
+      data: { state: { percent: 25 } },
+      error: undefined,
+      mutate: () => Promise.reject(new Error('internal'))
+    })
+    render(<ReadBookClient id="ub-1" />)
+    expect(await screen.findByTestId('reader')).toHaveAttribute(
+      'data-initial',
+      JSON.stringify({ percent: 25 })
+    )
+  })
+
+  it('ignores a fresh read that lands after unmounting', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    mockUseReadingState.mockReturnValue({
+      data: undefined,
+      error: undefined,
+      mutate: () => new Promise((r) => (resolve = r))
+    })
+    const { unmount } = render(<ReadBookClient id="ub-1" />)
+    unmount()
+    await act(async () => resolve({ state: { percent: 50 } }))
+    expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
+  })
+
+  it('keeps the opening position when the reading state changes', async () => {
+    const { rerender } = render(<ReadBookClient id="ub-1" />)
+    expect(await screen.findByTestId('reader')).toHaveAttribute(
+      'data-initial',
+      JSON.stringify({ percent: 0 })
+    )
+    setFreshReadingState({ percent: 80 })
+    rerender(<ReadBookClient id="ub-1" />)
+    expect(screen.getByTestId('reader')).toHaveAttribute(
+      'data-initial',
+      JSON.stringify({ percent: 0 })
+    )
+  })
+
+  it('saves reader page changes', async () => {
+    render(<ReadBookClient id="ub-1" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Turn page' }))
+    expect(mockSave).toHaveBeenCalledWith({ fraction: 0.5, section: 2 })
   })
 })

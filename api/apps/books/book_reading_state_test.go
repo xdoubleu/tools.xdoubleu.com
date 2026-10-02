@@ -255,10 +255,10 @@ func TestConnectGetReadingState_NotFound(t *testing.T) {
 	})
 	req.Header().Set("Cookie", accessToken.String())
 
-	// No state: ErrResourceNotFound, wrapped as Internal.
-	_, err := client.GetReadingState(ctx, req)
-	require.Error(t, err)
-	assert.Equal(t, connect.CodeInternal, connect.CodeOf(err))
+	// No state yet: an empty response, so the reader opens at the start.
+	resp, err := client.GetReadingState(ctx, req)
+	require.NoError(t, err)
+	assert.Nil(t, resp.Msg.State)
 }
 
 func TestConnectGetReadingState_InvalidBookID(t *testing.T) {
@@ -317,10 +317,9 @@ func TestUpdateReadingProgress_PromotesToReading_FromToRead(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusToRead)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceKobo, 10, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 10,
+	})
 
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
@@ -331,10 +330,9 @@ func TestUpdateReadingProgress_UpdatesLibraryProgress(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBookProgress(t, book.ID, models.StatusToRead, models.ProgressModePages, 42)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceKobo, 40, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 40,
+	})
 
 	ub, err := testApp.Repositories.Books.GetUserBook(
 		context.Background(),
@@ -353,10 +351,9 @@ func TestUpdateReadingProgress_PromotesToReading_FromDropped(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusDropped)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceKobo, 5, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 5,
+	})
 
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
@@ -366,10 +363,9 @@ func TestUpdateReadingProgress_NoPromote_AlreadyReading(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusReading)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceWeb, 50, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 50,
+	})
 
 	assert.Equal(t, models.StatusReading, getUserBookStatus(t, book.ID))
 }
@@ -379,10 +375,9 @@ func TestUpdateReadingProgress_NoPromote_AlreadyRead(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusRead)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceWeb, 80, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceWeb, Percent: 80,
+	})
 
 	ub, err := testApp.Repositories.Books.GetUserBook(
 		context.Background(),
@@ -405,10 +400,9 @@ func TestUpdateReadingProgress_NoPromote_ZeroPercent(t *testing.T) {
 	book := addUniqueBook(t)
 	seedUserBook(t, book.ID, models.StatusToRead)
 
-	err := testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), userID, book.ID, models.ReadingSourceKobo, 0, nil,
-	)
-	require.NoError(t, err)
+	writeProgress(t, models.BookReadingState{ //nolint:exhaustruct //optional fields
+		BookID: book.ID, Source: models.ReadingSourceKobo, Percent: 0,
+	})
 
 	assert.Equal(t, models.StatusToRead, getUserBookStatus(t, book.ID))
 }

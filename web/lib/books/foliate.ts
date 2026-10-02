@@ -1,6 +1,8 @@
 // foliate-js is served unbundled from public/foliate-js/ (scripts/copy-foliate.mjs)
 // so its pdf.js can resolve the worker, cmaps and fonts against its own
 // import.meta.url. Browser-only: load it from an effect.
+import type { ReaderSection } from './readerPosition'
+
 const FOLIATE_VIEW_URL = '/foliate-js/view.js'
 
 export interface FoliateTocItem {
@@ -16,6 +18,8 @@ export interface FoliateRelocateDetail {
   section?: { current: number; total: number }
   cfi?: string
   tocItem?: { label?: string; href?: string }
+  /** Visible range in the section document. */
+  range?: Range
 }
 
 interface FoliateViewEventMap extends HTMLElementEventMap {
@@ -36,12 +40,21 @@ export interface FoliateView extends HTMLElement {
     listener: EventListenerOrEventListenerObject,
     options?: boolean | AddEventListenerOptions
   ): void
-  book?: { toc?: FoliateTocItem[]; destroy?: () => void }
+  book?: { toc?: FoliateTocItem[]; sections?: ReaderSection[]; destroy?: () => void }
   isFixedLayout: boolean
-  renderer?: { setStyles?: (css: string) => void }
+  renderer?: {
+    addEventListener?: (
+      type: 'relocate',
+      listener: (e: CustomEvent<{ reason?: string }>) => void,
+      options?: AddEventListenerOptions
+    ) => void
+    setStyles?: (css: string) => void
+    goTo: (target: { index: number; anchor?: (doc: Document) => Range }) => Promise<unknown>
+  }
   open(book: string | Blob): Promise<void>
   init(options: { lastLocation?: string; showTextStart?: boolean }): Promise<void>
   goTo(target: string | number): Promise<unknown>
+  goToFraction(fraction: number): Promise<void>
   goLeft(): unknown
   goRight(): unknown
   close(): void

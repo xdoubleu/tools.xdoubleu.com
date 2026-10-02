@@ -72,7 +72,8 @@ func registerReadingLibraryTools(srv *mcp.Server, h *booksConnectHandler) {
 		"Fetch one external provider's metadata for a book.",
 		h.mcpGetExternalBook)
 	mcptools.AddReadTool(srv, mcpAppName, "books_get_reading_state",
-		"The latest reading position for a book.", h.mcpGetReadingState)
+		"The latest reading position for a book: percent, neutral position "+
+			"(href+offset or page) and when it was read.", h.mcpGetReadingState)
 }
 
 func registerReadingCatalogTools(srv *mcp.Server, h *booksConnectHandler) {

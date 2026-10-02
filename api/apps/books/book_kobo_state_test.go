@@ -122,7 +122,7 @@ func TestKoboPutState_BareStringLocation_ValueOnly(t *testing.T) {
 	assert.Equal(t, "kobo.4.2", *state.Location)
 }
 
-func TestKoboPutState_UnparseableLastModified_NoReadAt(t *testing.T) {
+func TestKoboPutState_UnparseableLastModified_ReadAtIsNow(t *testing.T) {
 	ts := httptest.NewServer(getRoutes())
 	t.Cleanup(ts.Close)
 
@@ -136,7 +136,8 @@ func TestKoboPutState_UnparseableLastModified_NoReadAt(t *testing.T) {
 		context.Background(), owner, bookID,
 	)
 	require.NoError(t, err)
-	assert.Nil(t, state.ReadAt)
+	require.NotNil(t, state.ReadAt)
+	assert.WithinDuration(t, time.Now(), *state.ReadAt, time.Minute)
 	require.NotNil(t, state.KoboLocation)
 }
 
@@ -190,7 +191,10 @@ func TestKoboGetState_WebWriteClearsKoboLocation(t *testing.T) {
 	koboPutState(t, ts, rawToken, bookID,
 		kepubLocationPut(30, "kobo.12.3", "Reading", "2026-09-30T08:15:42Z"))
 	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(
-		context.Background(), owner, bookID, models.ReadingSourceWeb, 55, nil,
+		context.Background(),
+		models.BookReadingState{ //nolint:exhaustruct //optional fields
+			UserID: owner, BookID: bookID, Source: models.ReadingSourceWeb, Percent: 55,
+		},
 	))
 
 	state := koboGetState(t, ts, rawToken, bookID)

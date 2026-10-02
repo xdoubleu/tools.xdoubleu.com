@@ -332,21 +332,29 @@ func TestMergeBooks_ConsolidatesReadingState(t *testing.T) {
 	)
 
 	insertReadingState(t, mergeTestUser, loser.BookID, 42)
+	_, err := testDB.Exec(context.Background(), `
+		UPDATE books.book_reading_state SET position = '{"page": 4}'
+		WHERE user_id = $1 AND book_id = $2
+	`, mergeTestUser, loser.BookID)
+	require.NoError(t, err)
 
-	_, _, err := testApp.Services.Books.MergeBooks(
+	_, _, err = testApp.Services.Books.MergeBooks(
 		context.Background(), mergeTestUser, winner.BookID, []uuid.UUID{loser.BookID},
 		nil, nil, nil,
 	)
 	require.NoError(t, err)
 
 	var percent int
+	var hasPosition bool
 	err = testDB.QueryRow(context.Background(),
-		`SELECT percent FROM books.book_reading_state
+		`SELECT percent, position IS NOT NULL FROM books.book_reading_state
 		 WHERE user_id = $1 AND book_id = $2`,
 		mergeTestUser, winner.BookID,
-	).Scan(&percent)
+	).Scan(&percent, &hasPosition)
 	require.NoError(t, err)
 	assert.Equal(t, 42, percent)
+	// The loser's position need not exist in the winner's file.
+	assert.False(t, hasPosition)
 
 	var loserStateCount int
 	err = testDB.QueryRow(context.Background(),
