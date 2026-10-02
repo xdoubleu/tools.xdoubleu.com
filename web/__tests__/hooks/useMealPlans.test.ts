@@ -4,11 +4,26 @@ jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => ({}))
 }))
-jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
-  MealPlansService: {}
+let mockStatus = 'sent'
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => mockStatus })),
+  flushOutbox: jest.fn().mockResolvedValue(undefined),
+  sendWrite: jest.fn(async (pending: Promise<{ status: () => string }>) => {
+    const status = (await pending).status()
+    if (status === 'failed') throw new Error('The server rejected the change')
+    return status
+  })
 }))
 
 import useSWR from 'swr'
+import { enqueueWrite, flushOutbox } from '@/lib/offline/outbox'
+import {
+  createMealWrite,
+  deleteMealWrite,
+  moveMealWrite,
+  updateMealWrite,
+  updatePlanWrite
+} from '@/lib/mealplans/offlineWrites'
 import {
   useMealPlans,
   useMealPlan,
@@ -68,13 +83,8 @@ describe('useMealSuggestions', () => {
   })
 })
 
-describe('mutation hooks return functions', () => {
-  it('useUpdatePlan returns a function', () => {
-    const { result } = renderHook(() => useUpdatePlan())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('useRotateICalToken calls client.rotateICalToken with the plan id', () => {
+describe('useRotateICalToken', () => {
+  it('calls client.rotateICalToken with the plan id', () => {
     const rotateICalToken = jest.fn()
     jest.mocked(jest.requireMock('@/lib/client').createServiceClient).mockReturnValueOnce({
       rotateICalToken
@@ -83,31 +93,58 @@ describe('mutation hooks return functions', () => {
     result.current('p1')
     expect(rotateICalToken).toHaveBeenCalledWith({ id: 'p1' })
   })
+})
 
-  it('useAddMeal returns a function', () => {
-    const { result } = renderHook(() => useAddMeal())
-    expect(typeof result.current).toBe('function')
+describe('mutation hooks queue writes and send them', () => {
+  beforeEach(() => {
+    mockStatus = 'sent'
+    jest.mocked(enqueueWrite).mockClear()
+    jest.mocked(flushOutbox).mockClear()
   })
 
-  it('useUpdateMeal returns a function that calls client.updateMeal', () => {
-    const updateMeal = jest.fn()
-    jest.mocked(jest.requireMock('@/lib/client').createServiceClient).mockReturnValueOnce({
-      updateMeal
+  it('useUpdatePlan queues the edit and throws when the server rejects it', async () => {
+    const update = renderHook(() => useUpdatePlan()).result.current
+    await update({ id: 'p1', name: 'Week' })
+    expect(enqueueWrite).toHaveBeenCalledWith(updatePlanWrite, { id: 'p1', name: 'Week' })
+
+    mockStatus = 'failed'
+    await expect(update({ id: 'p1' })).rejects.toThrow('The server rejected the change')
+  })
+
+  it('useAddMeal queues a meal with a client ID and the recipe name', async () => {
+    const add = renderHook(() => useAddMeal()).result.current
+    await add({ planId: 'p1', mealDate: '2024-01-22', mealSlot: 'noon' }, 'Soup')
+
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      createMealWrite,
+      expect.objectContaining({ planId: 'p1', id: expect.stringMatching(/^[0-9a-f-]{36}$/) }),
+      'Soup'
+    )
+    expect(flushOutbox).toHaveBeenCalled()
+  })
+
+  it('useUpdateMeal, useDeleteMeal and useMoveMeal queue their writes without throwing', async () => {
+    mockStatus = 'failed'
+    const update = renderHook(() => useUpdateMeal()).result.current
+    const remove = renderHook(() => useDeleteMeal()).result.current
+    const move = renderHook(() => useMoveMeal()).result.current
+
+    await update({ planId: 'p1', mealId: 'm1' }, 'Stew')
+    await remove({ planId: 'p1', mealId: 'm1' })
+    await move({ planId: 'p1', mealId: 'm1', newDate: '2024-01-23', newSlot: 'noon' })
+
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      updateMealWrite,
+      { planId: 'p1', mealId: 'm1' },
+      'Stew'
+    )
+    expect(enqueueWrite).toHaveBeenCalledWith(deleteMealWrite, { planId: 'p1', mealId: 'm1' })
+    expect(enqueueWrite).toHaveBeenCalledWith(moveMealWrite, {
+      planId: 'p1',
+      mealId: 'm1',
+      newDate: '2024-01-23',
+      newSlot: 'noon'
     })
-    const { result } = renderHook(() => useUpdateMeal())
-    expect(typeof result.current).toBe('function')
-    const req = { planId: 'p1', mealId: 'm1', customName: 'X', servings: 2 }
-    result.current(req)
-    expect(updateMeal).toHaveBeenCalledWith(req)
-  })
-
-  it('useDeleteMeal returns a function', () => {
-    const { result } = renderHook(() => useDeleteMeal())
-    expect(typeof result.current).toBe('function')
-  })
-
-  it('useMoveMeal returns a function', () => {
-    const { result } = renderHook(() => useMoveMeal())
-    expect(typeof result.current).toBe('function')
+    expect(flushOutbox).toHaveBeenCalledTimes(3)
   })
 })

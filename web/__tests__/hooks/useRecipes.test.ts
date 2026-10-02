@@ -10,11 +10,17 @@ jest.mock('@/lib/client', () => ({
 let mockStatus = 'sent'
 jest.mock('@/lib/offline/outbox', () => ({
   enqueueWrite: jest.fn(async () => ({ status: () => mockStatus })),
-  flushOutbox: jest.fn().mockResolvedValue(undefined)
+  flushOutbox: jest.fn().mockResolvedValue(undefined),
+  // Mirrors the real sendWrite over the mocked handle.
+  sendWrite: jest.fn(async (pending: Promise<{ status: () => string }>) => {
+    const status = (await pending).status()
+    if (status === 'failed') throw new Error('The server rejected the change')
+    return status
+  })
 }))
 
 import useSWR from 'swr'
-import { enqueueWrite, flushOutbox } from '@/lib/offline/outbox'
+import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
 import {
   createRecipeWrite,
   deleteRecipeWrite,
@@ -78,7 +84,7 @@ describe('mutation hooks queue writes and send them', () => {
       createRecipeWrite,
       expect.objectContaining({ id, name: 'Soup' })
     )
-    expect(flushOutbox).toHaveBeenCalled()
+    expect(sendWrite).toHaveBeenCalled()
   })
 
   it('useCreateRecipe reports a create still queued offline as unsynced', async () => {
@@ -106,6 +112,7 @@ describe('mutation hooks queue writes and send them', () => {
     const { result } = renderHook(() => useDeleteRecipe())
     await result.current({ id: 'r-1' })
     expect(enqueueWrite).toHaveBeenCalledWith(deleteRecipeWrite, { id: 'r-1' })
+    expect(flushOutbox).toHaveBeenCalled()
   })
 })
 

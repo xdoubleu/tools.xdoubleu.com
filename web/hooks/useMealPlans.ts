@@ -1,7 +1,15 @@
 import useSWR from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
-import type { MessageInitShape } from '@bufbuild/protobuf'
+import { create, type MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
+import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
+import {
+  createMealWrite,
+  deleteMealWrite,
+  moveMealWrite,
+  updateMealWrite,
+  updatePlanWrite
+} from '@/lib/mealplans/offlineWrites'
 import {
   MealPlansService,
   UpdatePlanRequestSchema,
@@ -44,32 +52,48 @@ export function useMealSuggestions(planId: string, mealDate: string, mealSlot: s
   )
 }
 
-export function useUpdatePlan() {
-  const client = createServiceClient(MealPlansService)
-  return (req: UpdatePlanInput) => client.updatePlan(req)
-}
-
 export function useRotateICalToken() {
   const client = createServiceClient(MealPlansService)
   return (id: string) => client.rotateICalToken({ id })
 }
 
+// Writes go through the offline outbox: they show at once and wait for the
+// send attempt. A rejected meal write rolls back and shows in the offline
+// banner; a rejected plan edit throws.
+
+export function useUpdatePlan() {
+  return async (req: UpdatePlanInput) => {
+    await sendWrite(enqueueWrite(updatePlanWrite, req))
+  }
+}
+
+/** Queues a meal with a client ID; `recipeName` labels it until it syncs. */
 export function useAddMeal() {
-  const client = createServiceClient(MealPlansService)
-  return (req: AddMealInput) => client.createMeal(req)
+  return async (req: AddMealInput, recipeName?: string) => {
+    const msg = create(CreateMealRequestSchema, req)
+    msg.id = crypto.randomUUID()
+    await enqueueWrite(createMealWrite, msg, recipeName)
+    await flushOutbox()
+  }
 }
 
 export function useUpdateMeal() {
-  const client = createServiceClient(MealPlansService)
-  return (req: UpdateMealInput) => client.updateMeal(req)
+  return async (req: UpdateMealInput, recipeName?: string) => {
+    await enqueueWrite(updateMealWrite, req, recipeName)
+    await flushOutbox()
+  }
 }
 
 export function useDeleteMeal() {
-  const client = createServiceClient(MealPlansService)
-  return (req: DeleteMealInput) => client.deleteMeal(req)
+  return async (req: DeleteMealInput) => {
+    await enqueueWrite(deleteMealWrite, req)
+    await flushOutbox()
+  }
 }
 
 export function useMoveMeal() {
-  const client = createServiceClient(MealPlansService)
-  return (req: MoveMealInput) => client.moveMeal(req)
+  return async (req: MoveMealInput) => {
+    await enqueueWrite(moveMealWrite, req)
+    await flushOutbox()
+  }
 }

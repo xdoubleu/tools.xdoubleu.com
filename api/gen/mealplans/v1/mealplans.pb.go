@@ -713,8 +713,11 @@ type CreateMealRequest struct {
 	CustomName              string                 `protobuf:"bytes,5,opt,name=custom_name,json=customName,proto3" json:"custom_name,omitempty"`
 	Servings                int32                  `protobuf:"varint,6,opt,name=servings,proto3" json:"servings,omitempty"`
 	ExcludeFromShoppingList bool                   `protobuf:"varint,7,opt,name=exclude_from_shopping_list,json=excludeFromShoppingList,proto3" json:"exclude_from_shopping_list,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// Optional client-generated UUID: repeating the call with it changes
+	// nothing (offline replay).
+	Id            string `protobuf:"bytes,8,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateMealRequest) Reset() {
@@ -794,6 +797,13 @@ func (x *CreateMealRequest) GetExcludeFromShoppingList() bool {
 		return x.ExcludeFromShoppingList
 	}
 	return false
+}
+
+func (x *CreateMealRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 type CreateMealResponse struct {
@@ -1363,7 +1373,7 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\x16RotateICalTokenRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"4\n" +
 	"\x17RotateICalTokenResponse\x12\x19\n" +
-	"\bical_url\x18\x01 \x01(\tR\aicalUrl\"\xfd\x01\n" +
+	"\bical_url\x18\x01 \x01(\tR\aicalUrl\"\x8d\x02\n" +
 	"\x11CreateMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x1b\n" +
 	"\tmeal_date\x18\x02 \x01(\tR\bmealDate\x12\x1b\n" +
@@ -1372,7 +1382,8 @@ const file_mealplans_v1_mealplans_proto_rawDesc = "" +
 	"\vcustom_name\x18\x05 \x01(\tR\n" +
 	"customName\x12\x1a\n" +
 	"\bservings\x18\x06 \x01(\x05R\bservings\x12;\n" +
-	"\x1aexclude_from_shopping_list\x18\a \x01(\bR\x17excludeFromShoppingList\"\x14\n" +
+	"\x1aexclude_from_shopping_list\x18\a \x01(\bR\x17excludeFromShoppingList\x12\x0e\n" +
+	"\x02id\x18\b \x01(\tR\x02id\"\x14\n" +
 	"\x12CreateMealResponse\"\xdc\x01\n" +
 	"\x11UpdateMealRequest\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +

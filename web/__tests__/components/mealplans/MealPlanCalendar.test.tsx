@@ -198,6 +198,7 @@ describe('MealPlanCalendar', () => {
     await waitFor(() => expect(mockAddMeal).toHaveBeenCalled())
     const req = mockAddMeal.mock.calls[0][0]
     expect(req.recipeId).toBe('r1')
+    expect(mockAddMeal.mock.calls[0][1]).toBe('Pasta')
     expect(req.customName).toBe('')
     expect(req.mealSlot).toBe('breakfast')
     expect(req.servings).toBe(1)
@@ -582,6 +583,7 @@ describe('MealPlanCalendar', () => {
     const req = mockUpdateMeal.mock.calls[0][0]
     expect(req.mealId).toBe('m1')
     expect(req.customName).toBe('Updated meal')
+    expect(mockUpdateMeal.mock.calls[0][1]).toBeUndefined()
     expect(mockAddMeal).not.toHaveBeenCalled()
     expect(mockDeleteMeal).not.toHaveBeenCalled()
     expect(onMutate).toHaveBeenCalled()

@@ -9,6 +9,7 @@ import {
   getOutboxServerSnapshot,
   getOutboxSnapshot,
   resetOutbox,
+  sendWrite,
   subscribeOutbox,
   type WriteHandle
 } from '@/lib/offline/outbox'
@@ -197,6 +198,21 @@ describe('outbox', () => {
 
     await act(() => dismissFailed())
     expect(getOutboxSnapshot().failed).toEqual([])
+  })
+
+  it('sendWrite resolves to the send result and throws on rejection', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+    const queue = (value: string) => enqueueWrite(write, { value } as never)
+
+    await act(async () => expect(await sendWrite(queue('b'))).toBe('sent'))
+
+    send.mockRejectedValueOnce(networkError())
+    await act(async () => expect(await sendWrite(queue('c'))).toBe('queued'))
+
+    send.mockRejectedValue(new ConnectError('item not found', Code.NotFound))
+    await act(async () => {
+      await expect(sendWrite(queue('d'))).rejects.toThrow('The server rejected the change')
+    })
   })
 
   it('retries server errors, then gives up after five attempts', async () => {
