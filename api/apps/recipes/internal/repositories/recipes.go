@@ -79,15 +79,21 @@ func (r *RecipesRepository) GetByID(
 	return &recipe, nil
 }
 
+// Create inserts a recipe. A non-nil recipe.ID is used as the row ID, and a
+// repeat returns the existing row; an ID from another family is
+// ErrResourceNotFound.
 func (r *RecipesRepository) Create(
 	ctx context.Context,
 	recipe models.Recipe,
 ) (*models.Recipe, error) {
+	clientID := uuid.NullUUID{UUID: recipe.ID, Valid: recipe.ID != uuid.Nil}
 	err := r.db.QueryRow(
 		ctx,
 		`INSERT INTO recipes.recipes
-		(user_id, family_id, name, instructions, base_servings, batch_servings, is_draft)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		(id, user_id, family_id, name, instructions, base_servings, batch_servings, is_draft)
+		VALUES (COALESCE($8::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
+			WHERE recipes.family_id = EXCLUDED.family_id
 		RETURNING id, created_at, updated_at`,
 		recipe.UserID,
 		recipe.FamilyID,
@@ -96,9 +102,10 @@ func (r *RecipesRepository) Create(
 		recipe.BaseServings,
 		recipe.BatchServings,
 		recipe.IsDraft,
+		clientID,
 	).Scan(&recipe.ID, &recipe.CreatedAt, &recipe.UpdatedAt)
 	if err != nil {
-		return nil, err
+		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return &recipe, nil
 }

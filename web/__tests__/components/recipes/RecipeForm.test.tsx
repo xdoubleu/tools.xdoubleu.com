@@ -11,9 +11,8 @@ const mockShopping = {
   itemNames: [] as { name: string; categoryId: string; excluded: boolean }[],
   categories: [] as { id: string; name: string }[]
 }
-const mockSetItemCategory = jest.fn().mockResolvedValue({})
-const mockCreateCategory = jest.fn()
-const mockMutateCategories = jest.fn().mockResolvedValue(undefined)
+const mockQueueItemCategory = jest.fn().mockResolvedValue(undefined)
+const mockQueueCategory = jest.fn()
 
 jest.mock('@/hooks/useRecipes', () => ({
   useCreateRecipe: () => mockCreateRecipe,
@@ -22,17 +21,9 @@ jest.mock('@/hooks/useRecipes', () => ({
 
 jest.mock('@/hooks/useShoppingList', () => ({
   useItemNames: () => ({ data: { names: mockShopping.itemNames } }),
-  useCategories: () => ({
-    data: { categories: mockShopping.categories },
-    mutate: mockMutateCategories
-  })
-}))
-
-jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({
-    createCategory: mockCreateCategory,
-    setItemCategory: mockSetItemCategory
-  })
+  useCategories: () => ({ data: { categories: mockShopping.categories } }),
+  queueCategory: (...args: unknown[]) => mockQueueCategory(...args),
+  queueItemCategory: (...args: unknown[]) => mockQueueItemCategory(...args)
 }))
 
 jest.mock('@/lib/recipes/parseFraction', () => ({
@@ -68,7 +59,7 @@ describe('RecipeForm (new recipe)', () => {
 
   it('calls createRecipe and onSave on submit', async () => {
     const onSave = jest.fn()
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={onSave} onCancel={jest.fn()} />)
 
     const nameInputs = screen.getAllByRole('textbox')
@@ -77,12 +68,26 @@ describe('RecipeForm (new recipe)', () => {
 
     await waitFor(() => {
       expect(mockCreateRecipe).toHaveBeenCalled()
-      expect(onSave).toHaveBeenCalledWith('new-id')
+      expect(onSave).toHaveBeenCalledWith('new-id', true)
     })
   })
 
+  it('stays on the form when the server rejects the recipe', async () => {
+    const onSave = jest.fn()
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+    mockCreateRecipe.mockRejectedValue(new Error('The server rejected the change'))
+    render(<RecipeForm onSave={onSave} onCancel={jest.fn()} />)
+
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'Pasta' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
+
+    await waitFor(() => expect(error).toHaveBeenCalled())
+    expect(onSave).not.toHaveBeenCalled()
+    error.mockRestore()
+  })
+
   it('sends batchServings when set', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.change(screen.getByPlaceholderText('e.g. 10'), { target: { value: '10' } })
@@ -94,7 +99,7 @@ describe('RecipeForm (new recipe)', () => {
   })
 
   it('omits batchServings when field is empty', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
@@ -107,7 +112,7 @@ describe('RecipeForm (new recipe)', () => {
   })
 
   it('sends isDraft when the Draft box is checked', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.click(screen.getByLabelText('Draft'))
@@ -119,7 +124,7 @@ describe('RecipeForm (new recipe)', () => {
   })
 
   it('defaults isDraft to false for a new recipe', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'new-id' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'new-id', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
@@ -166,24 +171,19 @@ describe('RecipeForm (new recipe)', () => {
   })
 
   it('assigns a selected existing category to a new ingredient on save', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'r-9', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'carrot' } })
     fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'cat-produce' } })
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
-    await waitFor(() =>
-      expect(mockSetItemCategory).toHaveBeenCalledWith({
-        name: 'carrot',
-        categoryId: 'cat-produce'
-      })
-    )
+    await waitFor(() => expect(mockQueueItemCategory).toHaveBeenCalledWith('carrot', 'cat-produce'))
   })
 
   it('creates a new category inline and assigns it on save', async () => {
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
-    mockCreateCategory.mockResolvedValue({ category: { id: 'cat-bakery' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'r-9', synced: true })
+    mockQueueCategory.mockResolvedValue('cat-bakery')
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'eggs' } })
@@ -192,17 +192,14 @@ describe('RecipeForm (new recipe)', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => {
-      expect(mockCreateCategory).toHaveBeenCalledWith({ name: 'Bakery' })
-      expect(mockSetItemCategory).toHaveBeenCalledWith({
-        name: 'eggs',
-        categoryId: 'cat-bakery'
-      })
+      expect(mockQueueCategory).toHaveBeenCalledWith('Bakery', mockShopping.categories)
+      expect(mockQueueItemCategory).toHaveBeenCalledWith('eggs', 'cat-bakery')
     })
   })
 
   it('does not re-write a category that already matches the catalog', async () => {
     mockShopping.itemNames = [{ name: 'tomato', categoryId: 'cat-produce', excluded: false }]
-    mockCreateRecipe.mockResolvedValue({ recipe: { id: 'r-9' } })
+    mockCreateRecipe.mockResolvedValue({ id: 'r-9', synced: true })
     render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'tom' } })
@@ -210,7 +207,7 @@ describe('RecipeForm (new recipe)', () => {
     fireEvent.submit(screen.getByRole('button', { name: 'Save Recipe' }).closest('form')!)
 
     await waitFor(() => expect(mockCreateRecipe).toHaveBeenCalled())
-    expect(mockSetItemCategory).not.toHaveBeenCalled()
+    expect(mockQueueItemCategory).not.toHaveBeenCalled()
   })
 })
 
@@ -291,7 +288,7 @@ describe('RecipeForm (edit recipe)', () => {
 
     await waitFor(() => {
       expect(mockUpdateRecipe).toHaveBeenCalled()
-      expect(onSave).toHaveBeenCalledWith('r-1')
+      expect(onSave).toHaveBeenCalledWith('r-1', true)
     })
   })
 })

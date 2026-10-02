@@ -16,14 +16,18 @@ const mockClient = {
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
 }))
-jest.mock('@/lib/gen/shoppinglist/v1/shoppinglist_pb', () => ({
-  ShoppingListService: {}
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn().mockResolvedValue(undefined)
 }))
 jest.mock('@/lib/gen/mealplans/v1/mealplans_pb', () => ({
   MealPlansService: {}
 }))
 
 import useSWR from 'swr'
+import { create } from '@bufbuild/protobuf'
+import { CategorySchema } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { createCategoryWrite, setItemCategoryWrite } from '@/lib/shoppinglist/offlineWrites'
 import {
   useCustomList,
   useMealPlanExportItems,
@@ -34,7 +38,9 @@ import {
   useItemNames,
   useItemCategories,
   useAllMealPlanExportItems,
-  useAllPlanIngredientGroups
+  useAllPlanIngredientGroups,
+  queueCategory,
+  queueItemCategory
 } from '@/hooks/useShoppingList'
 
 const mockUseSWR = jest.mocked(useSWR)
@@ -259,6 +265,31 @@ describe('useAllPlanIngredientGroups', () => {
         { recipeName: 'Pasta', groupName: 'Base' },
         { recipeName: 'Soup', groupName: 'Broth' }
       ]
+    })
+  })
+})
+
+describe('queueCategory', () => {
+  beforeEach(() => jest.mocked(enqueueWrite).mockClear())
+  const categories = [create(CategorySchema, { id: 'cat-1', name: 'Produce' })]
+
+  it('reuses a same-named category', async () => {
+    expect(await queueCategory('produce', categories)).toBe('cat-1')
+    expect(enqueueWrite).not.toHaveBeenCalled()
+  })
+
+  it('queues a new category with a client ID', async () => {
+    const id = await queueCategory('Bakery', categories)
+    expect(enqueueWrite).toHaveBeenCalledWith(createCategoryWrite, { id, name: 'Bakery' })
+  })
+})
+
+describe('queueItemCategory', () => {
+  it('queues the catalog write', async () => {
+    await queueItemCategory('milk', 'cat-1')
+    expect(enqueueWrite).toHaveBeenCalledWith(setItemCategoryWrite, {
+      name: 'milk',
+      categoryId: 'cat-1'
     })
   })
 })

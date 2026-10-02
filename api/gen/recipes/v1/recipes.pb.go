@@ -532,8 +532,11 @@ type CreateRecipeRequest struct {
 	BatchServings        *int32                 `protobuf:"varint,7,opt,name=batch_servings,json=batchServings,proto3,oneof" json:"batch_servings,omitempty"`
 	IngredientGroupNames []string               `protobuf:"bytes,8,rep,name=ingredient_group_names,json=ingredientGroupNames,proto3" json:"ingredient_group_names,omitempty"`
 	IsDraft              bool                   `protobuf:"varint,9,opt,name=is_draft,json=isDraft,proto3" json:"is_draft,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// Optional client-generated UUID: repeating the call with it updates
+	// nothing and returns the existing recipe (offline replay).
+	Id            string `protobuf:"bytes,10,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateRecipeRequest) Reset() {
@@ -627,6 +630,13 @@ func (x *CreateRecipeRequest) GetIsDraft() bool {
 		return x.IsDraft
 	}
 	return false
+}
+
+func (x *CreateRecipeRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 type CreateRecipeResponse struct {
@@ -957,7 +967,7 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\bservings\x18\x02 \x01(\x05R\bservings\x12\x19\n" +
 	"\bis_owner\x18\x03 \x01(\bR\aisOwner\x12K\n" +
 	"\x12scaled_ingredients\x18\x04 \x03(\v2\x1c.recipes.v1.ScaledIngredientR\x11scaledIngredients\x12\x19\n" +
-	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\xf9\x02\n" +
+	"\bcan_edit\x18\x05 \x01(\bR\acanEdit\"\x89\x03\n" +
 	"\x13CreateRecipeRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05steps\x18\x02 \x03(\tR\x05steps\x12#\n" +
@@ -967,7 +977,9 @@ const file_recipes_v1_recipes_proto_rawDesc = "" +
 	"\x10ingredient_units\x18\x06 \x03(\tR\x0fingredientUnits\x12*\n" +
 	"\x0ebatch_servings\x18\a \x01(\x05H\x00R\rbatchServings\x88\x01\x01\x124\n" +
 	"\x16ingredient_group_names\x18\b \x03(\tR\x14ingredientGroupNames\x12\x19\n" +
-	"\bis_draft\x18\t \x01(\bR\aisDraftB\x11\n" +
+	"\bis_draft\x18\t \x01(\bR\aisDraft\x12\x0e\n" +
+	"\x02id\x18\n" +
+	" \x01(\tR\x02idB\x11\n" +
 	"\x0f_batch_servings\"B\n" +
 	"\x14CreateRecipeResponse\x12*\n" +
 	"\x06recipe\x18\x01 \x01(\v2\x12.recipes.v1.RecipeR\x06recipe\"\x89\x03\n" +

@@ -9,7 +9,8 @@ import {
   getOutboxServerSnapshot,
   getOutboxSnapshot,
   resetOutbox,
-  subscribeOutbox
+  subscribeOutbox,
+  type WriteHandle
 } from '@/lib/offline/outbox'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
 import { addQueued, type QueuedWrite } from '@/lib/offline/store'
@@ -98,8 +99,12 @@ function renderProbe() {
 const networkError = () => new TypeError('Failed to fetch')
 
 async function enqueue(value: string) {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
-  await act(() => enqueueWrite(write, { value } as never))
+  let handle: WriteHandle | undefined
+  await act(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+    handle = await enqueueWrite(write, { value } as never)
+  })
+  return handle
 }
 
 describe('outbox', () => {
@@ -144,8 +149,9 @@ describe('outbox', () => {
     await screen.findByText('a')
     fetcher.mockResolvedValue(['a', 'b'])
 
-    await enqueue('b')
+    const handle = await enqueue('b')
     await act(() => flushOutbox())
+    expect(handle?.status()).toBe('sent')
 
     await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
     expect(getOutboxSnapshot().pending).toBe(0)
@@ -155,9 +161,10 @@ describe('outbox', () => {
   it('keeps writes queued while offline and overlays them on fetched data', async () => {
     send.mockRejectedValue(networkError())
 
-    await enqueue('b')
+    const handle = await enqueue('b')
     await act(() => flushOutbox())
 
+    expect(handle?.status()).toBe('queued')
     expect(getOutboxSnapshot().pending).toBe(1)
     expect(await applyPending('/list', ['a'])).toEqual(['a', 'b'])
     expect(await applyPending('/other', ['a'])).toEqual(['a'])
@@ -179,8 +186,9 @@ describe('outbox', () => {
   it('moves a rejected write to the failed list until dismissed', async () => {
     send.mockRejectedValue(new ConnectError('item not found', Code.NotFound))
 
-    await enqueue('b')
+    const handle = await enqueue('b')
     await act(() => flushOutbox())
+    expect(handle?.status()).toBe('failed')
 
     expect(getOutboxSnapshot()).toMatchObject({
       pending: 0,
@@ -229,10 +237,13 @@ describe('outbox', () => {
     storeMock.mockMemoryOnly.on = true
     send.mockRejectedValue(networkError())
 
-    await enqueue('b')
+    const handle = await enqueue('b')
     await act(() => flushOutbox())
-
     expect(getOutboxSnapshot().pending).toBe(1)
+
+    send.mockResolvedValue({})
+    await act(() => flushOutbox())
+    expect(handle?.status()).toBe('sent')
   })
 
   it('runs one drain at a time, under a cross-tab lock when available', async () => {
@@ -262,5 +273,93 @@ describe('outbox', () => {
     resetOutbox()
     expect(listener).not.toHaveBeenCalled()
     expect(getOutboxServerSnapshot()).toEqual({ pending: 0, failed: [], authBlocked: false })
+  })
+
+  it('loads stored writes and failures before the first overlay', async () => {
+    await addQueued({
+      writeId: write.id,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      request: write.encode({ value: 'b' } as never),
+      createdAt: 1
+    })
+    await addQueued({ writeId: 'gone/Write', request: new Uint8Array(), createdAt: 1 })
+    resetOutbox()
+
+    expect(await applyPending('/list', ['a'])).toEqual(['a', 'b'])
+  })
+
+  it('shows failures stored by an earlier session once loaded', async () => {
+    const { addFailed } = jest.requireMock<{ addFailed: (f: unknown) => Promise<void> }>(
+      '@/lib/offline/store'
+    )
+    await addFailed({ description: 'Old', reason: 'gone' })
+    resetOutbox()
+
+    await act(() => flushOutbox())
+    expect(getOutboxSnapshot().failed).toEqual([{ description: 'Old', reason: 'gone' }])
+  })
+
+  it('removes only the sent write from the queue', async () => {
+    send.mockResolvedValueOnce({}).mockRejectedValue(networkError())
+
+    await enqueue('b')
+    await enqueue('c')
+    await act(() => flushOutbox())
+
+    expect(getOutboxSnapshot().pending).toBe(1)
+    expect(await applyPending('/list', ['a'])).toEqual(['a', 'c'])
+  })
+
+  it('never gives up on network errors', async () => {
+    send.mockRejectedValue(networkError())
+
+    await enqueue('b')
+    for (let i = 0; i < 6; i++) await act(() => flushOutbox())
+
+    expect(getOutboxSnapshot()).toMatchObject({ pending: 1, failed: [] })
+  })
+
+  it('clears the expired-session state once a drain succeeds', async () => {
+    send.mockRejectedValue(new ConnectError('expired', Code.Unauthenticated))
+
+    await enqueue('b')
+    await act(() => flushOutbox())
+    expect(getOutboxSnapshot().authBlocked).toBe(true)
+
+    send.mockResolvedValue({})
+    await act(() => flushOutbox())
+    expect(getOutboxSnapshot()).toMatchObject({ authBlocked: false, pending: 0 })
+  })
+
+  it('refetches only keys under the written app', async () => {
+    const other = jest.fn(async () => ['x'])
+    function OtherProbe() {
+      const { data } = useSWR<string[]>('/other', other)
+      return <span>{data?.join(',')}</span>
+    }
+    render(
+      <SWRConfig value={{ dedupingInterval: 0 }}>
+        <Probe />
+        <OtherProbe />
+      </SWRConfig>
+    )
+    await screen.findByText('x')
+    await screen.findByText('a')
+
+    await enqueue('b')
+    await act(() => flushOutbox())
+
+    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    expect(other).toHaveBeenCalledTimes(1)
+  })
+
+  it('reset forgets queued writes, failures and the expired session', async () => {
+    send.mockRejectedValue(new ConnectError('expired', Code.Unauthenticated))
+    await enqueue('b')
+    await act(() => flushOutbox())
+
+    resetOutbox()
+
+    expect(getOutboxSnapshot()).toEqual({ pending: 0, failed: [], authBlocked: false })
   })
 })

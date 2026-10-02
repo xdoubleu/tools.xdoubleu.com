@@ -15,7 +15,8 @@ export default function NewRecipePage() {
         breadcrumb={[{ label: 'Recipes', href: '/recipes/list' }, { label: 'New' }]}
       />
       <RecipeForm
-        onSave={(id) => router.push(`/recipes/${id}`)}
+        // A recipe still queued offline has no page until it syncs.
+        onSave={(id, synced) => router.push(synced ? `/recipes/${id}` : '/recipes/list')}
         onCancel={() => router.push('/recipes/list')}
       />
     </PageContainer>

@@ -12,6 +12,7 @@ import (
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
 // fakeRecipesStore implements recipesStore in memory for family-scoping tests.
@@ -271,4 +272,57 @@ func TestFamilyResolutionErrors_Propagate(t *testing.T) {
 
 	err = svc.Delete(ctx, uuid.New(), "member")
 	assert.ErrorIs(t, err, familyErr)
+}
+
+func TestRecipeCreate_ReplayReturnsStoredRecipe(t *testing.T) {
+	fixture := newRecipeFixture()
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{
+		recipe:      fixture,
+		ingredients: []models.Ingredient{{Name: "kept"}}, //nolint:exhaustruct // name only
+	}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+
+	//nolint:exhaustruct //only the replayed ID matters
+	got, err := svc.Create(
+		t.Context(),
+		"member",
+		models.Recipe{ID: fixture.ID, Name: "new"},
+	)
+	require.NoError(t, err)
+	assert.Equal(t, fixture.ID, got.ID)
+	assert.Equal(t, "kept", got.Ingredients[0].Name)
+}
+
+func TestRecipeCreate_ReplayOfAnotherFamilysIDIsNotFound(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{recipe: newRecipeFixture()}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+
+	//nolint:exhaustruct //only the ID matters
+	_, err := svc.Create(t.Context(), "other", models.Recipe{ID: store.recipe.ID})
+	assert.ErrorIs(t, err, database.ErrResourceNotFound)
+}
+
+func TestRecipeCreate_NewClientIDIsInserted(t *testing.T) {
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{getErr: database.ErrResourceNotFound}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+	id := uuid.New()
+
+	//nolint:exhaustruct //only the ID matters
+	got, err := svc.Create(t.Context(), "owner", models.Recipe{ID: id})
+	require.NoError(t, err)
+	assert.Equal(t, id, got.ID)
+}
+
+func TestRecipeCreate_LookupErrorIsReturned(t *testing.T) {
+	lookupErr := errors.New("db down")
+	//nolint:exhaustruct //unset fields are the fixture defaults
+	store := &fakeRecipesStore{getErr: lookupErr}
+	svc := &RecipeService{repo: store, family: newFamilyStore()}
+
+	//nolint:exhaustruct //only the ID matters
+	_, err := svc.Create(t.Context(), "owner", models.Recipe{ID: uuid.New()})
+	assert.ErrorIs(t, err, lookupErr)
 }

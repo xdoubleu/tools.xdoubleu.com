@@ -88,7 +88,7 @@ func (h *shoppingConnectHandler) CreateShoppingItem(
 		)
 	}
 
-	id, err := parseClientID(req.Msg.Id)
+	id, err := connecttools.ParseClientID(req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}

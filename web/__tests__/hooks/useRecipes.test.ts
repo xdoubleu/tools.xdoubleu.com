@@ -7,11 +7,19 @@ const mockClient = {
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => mockClient)
 }))
-jest.mock('@/lib/gen/recipes/v1/recipes_pb', () => ({
-  RecipesService: {}
+let mockStatus = 'sent'
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => mockStatus })),
+  flushOutbox: jest.fn().mockResolvedValue(undefined)
 }))
 
 import useSWR from 'swr'
+import { enqueueWrite, flushOutbox } from '@/lib/offline/outbox'
+import {
+  createRecipeWrite,
+  deleteRecipeWrite,
+  updateRecipeWrite
+} from '@/lib/recipes/offlineWrites'
 import {
   useRecipes,
   useRecipe,
@@ -55,20 +63,49 @@ describe('useRecipe', () => {
   })
 })
 
-describe('mutation hooks return functions', () => {
-  it('useCreateRecipe returns a function', () => {
+describe('mutation hooks queue writes and send them', () => {
+  beforeEach(() => {
+    mockStatus = 'sent'
+  })
+
+  it('useCreateRecipe queues with a client ID and resolves to it', async () => {
     const { result } = renderHook(() => useCreateRecipe())
-    expect(typeof result.current).toBe('function')
+    const { id, synced } = await result.current({ name: 'Soup' })
+
+    expect(id).toMatch(/^[0-9a-f-]{36}$/)
+    expect(synced).toBe(true)
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      createRecipeWrite,
+      expect.objectContaining({ id, name: 'Soup' })
+    )
+    expect(flushOutbox).toHaveBeenCalled()
   })
 
-  it('useUpdateRecipe returns a function', () => {
+  it('useCreateRecipe reports a create still queued offline as unsynced', async () => {
+    mockStatus = 'queued'
+    const { result } = renderHook(() => useCreateRecipe())
+    expect((await result.current({ name: 'Soup' })).synced).toBe(false)
+  })
+
+  it('throws when the server rejects a create or update', async () => {
+    mockStatus = 'failed'
+    const create = renderHook(() => useCreateRecipe()).result.current
+    const update = renderHook(() => useUpdateRecipe()).result.current
+    await expect(create({ name: 'Soup' })).rejects.toThrow('The server rejected the change')
+    await expect(update({ id: 'r-1' })).rejects.toThrow('The server rejected the change')
+  })
+
+  it('useUpdateRecipe queues the update', async () => {
     const { result } = renderHook(() => useUpdateRecipe())
-    expect(typeof result.current).toBe('function')
+    await result.current({ id: 'r-1', name: 'Stew' })
+    expect(enqueueWrite).toHaveBeenCalledWith(updateRecipeWrite, { id: 'r-1', name: 'Stew' })
   })
 
-  it('useDeleteRecipe returns a function', () => {
+  it('useDeleteRecipe queues the delete without throwing on rejection', async () => {
+    mockStatus = 'failed'
     const { result } = renderHook(() => useDeleteRecipe())
-    expect(typeof result.current).toBe('function')
+    await result.current({ id: 'r-1' })
+    expect(enqueueWrite).toHaveBeenCalledWith(deleteRecipeWrite, { id: 'r-1' })
   })
 })
 

@@ -11,8 +11,12 @@ import type {
   ListItemNamesResponse,
   ListItemCategoriesResponse
 } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import type { Category } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { MealPlansService } from '@/lib/gen/mealplans/v1/mealplans_pb'
 import { swrKeys } from '@/lib/swrKeys'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { hasName } from '@/lib/shoppinglist/names'
+import { createCategoryWrite, setItemCategoryWrite } from '@/lib/shoppinglist/offlineWrites'
 
 export function useCustomList() {
   const client = createServiceClient(ShoppingListService)
@@ -122,4 +126,18 @@ export function useAllPlanIngredientGroups() {
       return { groups }
     }
   )
+}
+
+/** Queues a category create, reusing a same-named one, and resolves to its ID. */
+export async function queueCategory(name: string, categories: Category[]): Promise<string> {
+  const existing = categories.find((c) => hasName([c], name))
+  if (existing) return existing.id
+  const id = crypto.randomUUID()
+  await enqueueWrite(createCategoryWrite, { id, name })
+  return id
+}
+
+/** Queues a name→category catalog write. */
+export async function queueItemCategory(name: string, categoryId: string): Promise<void> {
+  await enqueueWrite(setItemCategoryWrite, { name, categoryId })
 }

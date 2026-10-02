@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	recipesv1 "tools.xdoubleu.com/gen/recipes/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *recipesConnectHandler) ListRecipes(
@@ -108,6 +109,11 @@ func (h *recipesConnectHandler) CreateRecipe(
 		v := int(*req.Msg.BatchServings)
 		recipe.BatchServings = &v
 	}
+	clientID, err := connecttools.ParseClientID(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+	recipe.ID = clientID.UUID
 
 	created, err := h.app.services.Recipes.Create(ctx, user.ID, recipe)
 	if err != nil {
