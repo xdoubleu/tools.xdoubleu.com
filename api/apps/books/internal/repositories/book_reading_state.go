@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,7 +13,8 @@ import (
 	"tools.xdoubleu.com/internal/database/postgres"
 )
 
-const readingStateColumns = `user_id, book_id, source, percent, location, updated_at`
+const readingStateColumns = `user_id, book_id, source, percent, location,
+	kobo_location, read_at, updated_at`
 
 type BookReadingStateRepository struct {
 	db postgres.DB
@@ -22,25 +24,40 @@ func (r *BookReadingStateRepository) Upsert(
 	ctx context.Context,
 	state models.BookReadingState,
 ) error {
+	_, err := r.UpsertReturningUpdatedAt(ctx, state)
+	return err
+}
+
+// UpsertReturningUpdatedAt is Upsert returning the stored row's updated_at.
+func (r *BookReadingStateRepository) UpsertReturningUpdatedAt(
+	ctx context.Context,
+	state models.BookReadingState,
+) (time.Time, error) {
 	query := `
 		INSERT INTO books.book_reading_state
-		    (user_id, book_id, source, percent, location)
-		VALUES ($1, $2, $3, $4, $5)
+		    (user_id, book_id, source, percent, location, kobo_location, read_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		ON CONFLICT (user_id, book_id) DO UPDATE
 		    SET source = EXCLUDED.source,
 		        percent = EXCLUDED.percent,
 		        location = EXCLUDED.location,
+		        kobo_location = EXCLUDED.kobo_location,
+		        read_at = EXCLUDED.read_at,
 		        updated_at = now()
+		RETURNING updated_at
 	`
 
-	_, err := r.db.Exec(ctx, query,
+	var updatedAt time.Time
+	err := r.db.QueryRow(ctx, query,
 		state.UserID,
 		state.BookID,
 		state.Source,
 		state.Percent,
 		state.Location,
-	)
-	return postgres.PgxErrorToHTTPError(err)
+		state.KoboLocation,
+		state.ReadAt,
+	).Scan(&updatedAt)
+	return updatedAt, postgres.PgxErrorToHTTPError(err)
 }
 
 func (r *BookReadingStateRepository) Get(
@@ -117,6 +134,8 @@ func scanReadingState(row pgx.Row) (*models.BookReadingState, error) {
 		&s.Source,
 		&s.Percent,
 		&s.Location,
+		&s.KoboLocation,
+		&s.ReadAt,
 		&s.UpdatedAt,
 	)
 	if err != nil {

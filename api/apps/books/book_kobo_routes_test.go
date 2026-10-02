@@ -872,8 +872,7 @@ func TestKoboState_PutLocationEmptyValueOmitted(t *testing.T) {
 	defer putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
 
-	var state map[string]any
-	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	state := koboGetState(t, ts, rawToken, bookID)
 	bm, ok := state["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
 	assert.Nil(t, bm["Location"], "empty Value must not be stored as a location")
@@ -922,7 +921,11 @@ func TestKoboState_PutThenGetRoundTrip(t *testing.T) {
 	require.True(t, ok)
 	assert.InDelta(t, 1.0, bm["ProgressPercent"], 0.01)
 	assert.InDelta(t, 1.0, bm["ContentSourceProgressPercent"], 0.01)
-	assert.Equal(t, location, bm["Location"])
+	assert.Equal(t, map[string]any{
+		"Source": "index_split_000.html",
+		"Type":   "KoboSpan",
+		"Value":  location,
+	}, bm["Location"])
 	si, ok := state["StatusInfo"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "Reading", si["Status"])
@@ -956,8 +959,7 @@ func TestKoboState_PutEmptyReadingStates(t *testing.T) {
 	defer putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
 
-	var state map[string]any
-	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	state := koboGetState(t, ts, rawToken, bookID)
 	bm, ok := state["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
 	assert.InDelta(t, 50.0, bm["ProgressPercent"], 0.01,
@@ -999,8 +1001,7 @@ func TestKoboState_PutLowerProgress_DoesNotRegress(t *testing.T) {
 	defer putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
 
-	var state map[string]any
-	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	state := koboGetState(t, ts, rawToken, bookID)
 	bm, ok := state["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
 	assert.InDelta(t, 80.0, bm["ProgressPercent"], 0.01,
@@ -1029,8 +1030,7 @@ func TestKoboState_PutZeroProgressReportsReadyToRead(t *testing.T) {
 	defer putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
 
-	var state map[string]any
-	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	state := koboGetState(t, ts, rawToken, bookID)
 	si, ok := state["StatusInfo"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "ReadyToRead", si["Status"])
@@ -1058,8 +1058,7 @@ func TestKoboState_PutFullProgressReportsFinished(t *testing.T) {
 	defer putResp.Body.Close()
 	require.Equal(t, http.StatusOK, putResp.StatusCode)
 
-	var state map[string]any
-	require.NoError(t, json.NewDecoder(putResp.Body).Decode(&state))
+	state := koboGetState(t, ts, rawToken, bookID)
 	si, ok := state["StatusInfo"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "Finished", si["Status"])
@@ -1150,7 +1149,11 @@ func TestKoboLibrarySync_ReadingStateReflectsProgress(t *testing.T) {
 	bm, ok := rs["CurrentBookmark"].(map[string]any)
 	require.True(t, ok)
 	assert.InDelta(t, 65.0, bm["ProgressPercent"], 0.01)
-	assert.Equal(t, location, bm["Location"])
+	assert.Equal(t, map[string]any{
+		"Source": "index_split_000.html",
+		"Type":   "KoboSpan",
+		"Value":  location,
+	}, bm["Location"])
 	si, ok := rs["StatusInfo"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "Reading", si["Status"],
