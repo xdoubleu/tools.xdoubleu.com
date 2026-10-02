@@ -47,6 +47,8 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
     })
     .filter((s): s is MealSuggestion => s !== undefined)
 
+  const recipeName = (id: string) => recipes.find((r) => r.id === id)?.name
+
   // A slot can hold any number of meals.
   const getMealsForSlot = (date: string, slot: string) =>
     (plan.meals || []).filter((m) => m.mealDate === date && m.mealSlot === slot)
@@ -93,7 +95,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
         servings,
         excludeFromShoppingList
       }
-      await createMeal(req)
+      await createMeal(req, recipeName(recipeId))
       setSelectedSlot(null)
       setSelectedDate(null)
       onMutate?.()
@@ -191,7 +193,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
         servings,
         excludeFromShoppingList
       }
-      await updateMeal(req)
+      await updateMeal(req, recipeName(recipeId))
       setEditingMeal(null)
       onMutate?.()
     } catch (err) {
@@ -225,7 +227,7 @@ export function useMealCalendarState(plan: Plan, recipes: Recipe[], onMutate?: (
           servings,
           excludeFromShoppingList
         }
-        await createMeal(req)
+        await createMeal(req, recipeName(recipeId))
       }
       setFillingDate(null)
       onMutate?.()

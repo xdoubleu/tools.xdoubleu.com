@@ -10,6 +10,7 @@ import (
 
 	"tools.xdoubleu.com/apps/mealplans/internal/models"
 	mealplansv1 "tools.xdoubleu.com/gen/mealplans/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *mealplansConnectHandler) CreateMeal(
@@ -64,7 +65,13 @@ func (h *mealplansConnectHandler) CreateMeal(
 		servings = int(req.Msg.Servings)
 	}
 
+	clientID, err := connecttools.ParseClientID(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+
 	meal := models.PlanMeal{ //nolint:exhaustruct // other fields optional
+		ID:                      clientID.UUID,
 		PlanID:                  planID,
 		MealDate:                mealDate,
 		MealSlot:                req.Msg.MealSlot,

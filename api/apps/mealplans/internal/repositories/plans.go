@@ -173,22 +173,28 @@ func (r *PlansRepository) Delete(
 	return err
 }
 
+// CreateMeal inserts a meal. A non-nil meal.ID is used as the row ID and a
+// repeat leaves the stored meal unchanged; an ID on another plan is
+// ErrResourceNotFound.
 func (r *PlansRepository) CreateMeal(
 	ctx context.Context,
 	meal models.PlanMeal,
 ) (*models.PlanMeal, error) {
+	clientID := uuid.NullUUID{UUID: meal.ID, Valid: meal.ID != uuid.Nil}
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO mealplans.plan_meals
-		       (plan_id, meal_date, meal_slot, recipe_id, custom_name,
+		       (id, plan_id, meal_date, meal_slot, recipe_id, custom_name,
 		        servings, exclude_from_shopping_list)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES (COALESCE($8::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
+			WHERE plan_meals.plan_id = EXCLUDED.plan_id
 		RETURNING id`,
 		meal.PlanID, meal.MealDate, meal.MealSlot,
 		meal.RecipeID, meal.CustomName, meal.Servings,
-		meal.ExcludeFromShoppingList,
+		meal.ExcludeFromShoppingList, clientID,
 	).Scan(&meal.ID)
 	if err != nil {
-		return nil, err
+		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return &meal, nil
 }

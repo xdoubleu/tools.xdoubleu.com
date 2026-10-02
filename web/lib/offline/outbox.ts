@@ -1,6 +1,7 @@
 import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
+import { mealPlanWrites } from '@/lib/mealplans/offlineWrites'
 import { recipeWrites } from '@/lib/recipes/offlineWrites'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
 import { isNetworkError } from './network'
@@ -16,7 +17,7 @@ import {
   type QueuedWrite
 } from './store'
 
-const writes: OfflineWrite[] = [...shoppingListWrites, ...recipeWrites]
+const writes: OfflineWrite[] = [...shoppingListWrites, ...recipeWrites, ...mealPlanWrites]
 const registry = new Map(writes.map((w) => [w.id, w]))
 
 // A write failing with a server error this many times is given up on.
@@ -207,6 +208,15 @@ export function flushOutbox(): Promise<void> {
     flushing = null
   })
   return flushing
+}
+
+/** Sends a just-queued write; throws if the server rejected it. */
+export async function sendWrite(pending: Promise<WriteHandle>): Promise<WriteStatus> {
+  const handle = await pending
+  await flushOutbox()
+  const status = handle.status()
+  if (status === 'failed') throw new Error('The server rejected the change')
+  return status
 }
 
 export async function dismissFailed(): Promise<void> {

@@ -76,6 +76,9 @@ message CreateMealRequest {
   string custom_name = 5;
   int32 servings = 6;
   bool exclude_from_shopping_list = 7;
+  // Optional client-generated UUID: repeating the call with it changes
+  // nothing (offline replay).
+  string id = 8;
 }
 message CreateMealResponse {}
 

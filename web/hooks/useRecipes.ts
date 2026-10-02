@@ -11,7 +11,7 @@ import {
 } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
-import { enqueueWrite, flushOutbox, type WriteHandle, type WriteStatus } from '@/lib/offline/outbox'
+import { enqueueWrite, flushOutbox, sendWrite } from '@/lib/offline/outbox'
 import {
   createRecipeWrite,
   deleteRecipeWrite,
@@ -55,27 +55,20 @@ export function useRecipe(id: string, servings?: number) {
 // Writes go through the offline outbox and wait for the send attempt, so a
 // following navigation sees the server's state when online. A create or edit
 // the server rejects throws; one still queued (offline) resolves.
-async function queueAndSend(pending: Promise<WriteHandle>): Promise<WriteStatus> {
-  const handle = await pending
-  await flushOutbox()
-  const status = handle.status()
-  if (status === 'failed') throw new Error('The server rejected the change')
-  return status
-}
 
 /** Queues a create with a client ID; `synced` is false while it waits offline. */
 export function useCreateRecipe() {
   return async (req: CreateRecipeInput) => {
     const msg = create(CreateRecipeRequestSchema, req)
     msg.id = crypto.randomUUID()
-    const status = await queueAndSend(enqueueWrite(createRecipeWrite, msg))
+    const status = await sendWrite(enqueueWrite(createRecipeWrite, msg))
     return { id: msg.id, synced: status === 'sent' }
   }
 }
 
 export function useUpdateRecipe() {
   return async (req: UpdateRecipeInput) => {
-    await queueAndSend(enqueueWrite(updateRecipeWrite, req))
+    await sendWrite(enqueueWrite(updateRecipeWrite, req))
   }
 }
 
