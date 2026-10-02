@@ -33,6 +33,8 @@ ENV KOBO_GATEWAY_RELEASE=${KOBO_GATEWAY_RELEASE} \
 WORKDIR /app
 
 COPY --from=builder /app/.next/standalone ./
+# foliate-js, served unbundled for the book reader (scripts/copy-foliate.mjs).
+COPY --from=builder /app/public/foliate-js ./public/foliate-js
 
 # Standalone only serves public/ next to server.js. build-web.yml stages the
 # kobo-gateway downloads here before `docker build`.

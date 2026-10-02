@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "node scripts/copy-foliate.mjs",
     "build": "next build",
+    "predev": "node scripts/copy-foliate.mjs",
     "dev": "next dev",
     "lint": "eslint . && npm run test:eslint-rules && tsc --noEmit && prettier --check './**/*.{ts,tsx}' && knip && syncpack lint && npm run generate:ui-catalog:check && npm run arch:check",
     "lint:fix": "eslint . --fix && prettier --write './**/*.{ts,tsx}'",
@@ -34,6 +36,7 @@
     "@sentry/nextjs": "11.1.0",
     "clsx": "2.1.1",
     "dompurify": "3.4.16",
+    "foliate-js": "github:johnfactotum/foliate-js#78914aef4466eb960965702401634c2cb348e9b1",
     "next": "16.3.7",
     "posthog-js": "1.434.18",
     "prom-client": "15.1.3",

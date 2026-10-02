@@ -31,11 +31,14 @@ export function middleware(request: NextRequest) {
   const csp = [
     "default-src 'self'",
     `script-src ${scriptSrc.join(' ')}`,
-    "style-src 'self' 'unsafe-inline'",
+    // blob:: EPUB stylesheets and fonts inside the foliate-js reader's frames.
+    "style-src 'self' 'unsafe-inline' blob:",
+    "font-src 'self' blob:",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
-    // PDF previews use an <iframe> on a presigned R2 URL.
-    "frame-src 'self' https://*.r2.cloudflarestorage.com",
+    // BookPreviewDialog frames presigned R2 PDFs; the foliate-js reader
+    // renders book sections into blob: iframes.
+    "frame-src 'self' blob: https://*.r2.cloudflarestorage.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -52,5 +55,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)']
+  // foliate-js: static reader modules (scripts/copy-foliate.mjs).
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|foliate-js/).*)']
 }

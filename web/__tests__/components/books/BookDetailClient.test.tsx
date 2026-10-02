@@ -371,13 +371,45 @@ describe('BookDetailClient', () => {
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument()
   })
 
-  it('shows preview buttons when book has epub format', () => {
+  function setFormats(formats: string[]) {
+    // @ts-expect-error -- mock returns partial SWRResponse for test purposes
+    jest.mocked(useLibrary).mockReturnValue({
+      data: makeLibraryData([create(UserBookSchema, { ...mockUserBook, formats })]),
+      isLoading: false,
+      error: undefined
+    })
+  }
+
+  it('links an EPUB book to the reader instead of a preview', () => {
     render(<BookDetailClient id="ub-1" />)
-    expect(screen.getByRole('button', { name: 'Preview EPUB' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open reader' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read'
+    )
+    expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
   })
 
-  it('shows preview dialog when preview button is clicked', () => {
+  it('links a book with both files to each format', () => {
+    setFormats(['epub', 'pdf'])
     render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByRole('link', { name: 'Open EPUB' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read?format=epub'
+    )
+    expect(screen.getByRole('link', { name: 'Open PDF' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read?format=pdf'
+    )
+    expect(screen.queryByRole('button', { name: 'Preview PDF' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the converted KEPUB preview for a PDF-only book', () => {
+    setFormats(['pdf'])
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByRole('link', { name: 'Open reader' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read'
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Preview EPUB' }))
     expect(screen.getByTestId('book-preview-dialog')).toBeInTheDocument()
   })
@@ -393,6 +425,7 @@ describe('BookDetailClient', () => {
     render(<BookDetailClient id="ub-1" />)
     expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Preview PDF' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open reader' })).not.toBeInTheDocument()
   })
 
   it('shows added date', () => {

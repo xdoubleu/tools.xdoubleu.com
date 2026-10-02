@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { mutate } from 'swr'
 import { useLibrary } from '@/hooks/useBooks'
@@ -9,6 +10,7 @@ import BookCover from '@/components/books/BookCover'
 import BookDescription from '@/components/books/BookDescription'
 import BookSourceSync from '@/components/books/BookSourceSync'
 import { SPECIAL_TAGS, flattenLibrary } from '@/lib/books/bookShelves'
+import { readerFormats } from '@/lib/books/readerSettings'
 import BookProgressEditor from '@/components/books/BookProgressEditor'
 import BookRatingStars from '@/components/books/BookRatingStars'
 import BookReadDatesEditor from '@/components/books/BookReadDatesEditor'
@@ -33,7 +35,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   const { data, error, isLoading } = useLibrary()
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'
-  const [previewFormat, setPreviewFormat] = useState<'pdf' | 'epub' | 'kepub' | null>(null)
+  const [kepubPreviewOpen, setKepubPreviewOpen] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [readerOpen, setReaderOpen] = useState(false)
@@ -47,6 +49,7 @@ export default function BookDetailClient({ id }: { id: string }) {
   }, [data, id])
 
   const book = userBook?.book
+  const readerFormatList = readerFormats(userBook?.formats ?? [])
 
   const knownShelves = data?.library?.shelves.map((s) => s.name) ?? []
 
@@ -180,8 +183,8 @@ export default function BookDetailClient({ id }: { id: string }) {
                 <BookReadDatesEditor userBook={userBook} onSaved={handleSaved} />
               )}
 
-              {/* Keyed off actual files (like the preview buttons), not the own-digital tag, which can drift. */}
-              {(userBook.formats.includes('epub') || userBook.formats.includes('pdf')) && (
+              {/* Keyed off actual files, not the own-digital tag, which can drift. */}
+              {readerFormatList.length > 0 && (
                 <div>
                   <p className="text-xs text-muted mb-1">Kobo sync</p>
                   <KoboSyncToggle
@@ -193,43 +196,40 @@ export default function BookDetailClient({ id }: { id: string }) {
                 </div>
               )}
 
-              {(userBook.formats.includes('pdf') || userBook.formats.includes('epub')) && (
+              {readerFormatList.length > 0 && (
                 <div>
-                  <p className="text-xs text-muted mb-1">Preview</p>
+                  <p className="text-xs text-muted mb-1">Read</p>
                   <div className="flex gap-2 flex-wrap">
-                    {userBook.formats.includes('pdf') && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => setPreviewFormat('pdf')}
-                      >
-                        Preview PDF
-                      </Button>
-                    )}
-                    {userBook.formats.includes('epub') ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => setPreviewFormat('epub')}
-                      >
-                        Preview EPUB
+                    {readerFormatList.length === 1 ? (
+                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                        <Link href={`/books/${userBook.id}/read`}>Open reader</Link>
                       </Button>
                     ) : (
-                      userBook.formats.includes('pdf') && (
+                      readerFormatList.map((format) => (
                         <Button
-                          type="button"
+                          key={format}
+                          asChild
                           variant="secondary"
                           size="sm"
                           className="text-xs"
-                          onClick={() => setPreviewFormat('kepub')}
                         >
-                          Preview EPUB
+                          <Link href={`/books/${userBook.id}/read?format=${format}`}>
+                            Open {format.toUpperCase()}
+                          </Link>
                         </Button>
-                      )
+                      ))
+                    )}
+                    {/* PDF-only books preview their converted KEPUB until the reader can open it. */}
+                    {!userBook.formats.includes('epub') && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => setKepubPreviewOpen(true)}
+                      >
+                        Preview EPUB
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -255,13 +255,13 @@ export default function BookDetailClient({ id }: { id: string }) {
         </>
       )}
 
-      {previewFormat && userBook && (
+      {kepubPreviewOpen && userBook && (
         <BookPreviewDialog
           bookId={userBook.bookId}
-          format={previewFormat}
+          format="kepub"
           title={book?.title ?? 'Book Preview'}
-          open={!!previewFormat}
-          onOpenChange={(open) => !open && setPreviewFormat(null)}
+          open={kepubPreviewOpen}
+          onOpenChange={setKepubPreviewOpen}
         />
       )}
 
