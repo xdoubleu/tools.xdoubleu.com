@@ -22,12 +22,28 @@ const clientMocks = {
 jest.mock('@/lib/client', () => ({
   createServiceClient: jest.fn(() => clientMocks)
 }))
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn(async () => ({ status: () => 'sent' })),
+  sendWrite: jest.fn(async (pending: Promise<unknown>) => {
+    await pending
+    return 'sent'
+  })
+}))
+jest.mock('@/lib/feeds/offlineWrites', () => ({
+  deleteFeedWrite: { id: 'deleteFeed' },
+  updateItemWrite: { id: 'updateItem' },
+  deleteFilterRuleWrite: { id: 'deleteFilterRule' }
+}))
+jest.mock('@/lib/feeds/prefetch', () => ({ prefetchFeedBodies: jest.fn() }))
 jest.mock('@/lib/gen/feeds/v1/feeds_pb', () => ({
   FeedService: {},
   FeedKind: { UNSPECIFIED: 0, RSS: 1, EMAIL: 2 }
 }))
 
 import useSWR from 'swr'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import { deleteFeedWrite, updateItemWrite } from '@/lib/feeds/offlineWrites'
+import { prefetchFeedBodies } from '@/lib/feeds/prefetch'
 import {
   useFeeds,
   useFeedItems,
@@ -39,7 +55,8 @@ import {
   useUpdateItem,
   useFeedStats,
   useFeedsSummary,
-  useUnhealthyFeeds
+  useUnhealthyFeeds,
+  usePrefetchFeedBodies
 } from '@/hooks/useFeeds'
 import { swrKeys } from '@/lib/swrKeys'
 
@@ -161,12 +178,18 @@ describe('useFeeds', () => {
     })
   })
 
-  it('useDeleteFeed deletes and invalidates feeds + items', async () => {
+  it('useDeleteFeed sends the delete through the outbox', async () => {
     const { result } = renderHook(() => useDeleteFeed())
     await result.current('f1')
-    expect(clientMocks.deleteFeed).toHaveBeenCalledWith({ feedId: 'f1' })
-    expect(mutateMock).toHaveBeenCalledWith(swrKeys.feeds)
-    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
+    expect(enqueueWrite).toHaveBeenCalledWith(deleteFeedWrite, { feedId: 'f1' })
+    expect(sendWrite).toHaveBeenCalled()
+  })
+
+  it('usePrefetchFeedBodies starts the body prefetch once on mount', () => {
+    const { rerender } = renderHook(() => usePrefetchFeedBodies())
+    rerender()
+    expect(prefetchFeedBodies).toHaveBeenCalledTimes(1)
+    expect(prefetchFeedBodies).toHaveBeenCalledWith(clientMocks)
   })
 
   it('useRefreshFeed skips the items invalidation when nothing was ingested', async () => {
@@ -184,57 +207,15 @@ describe('useFeeds', () => {
     expect(mutateMock).toHaveBeenCalledWith(expect.any(Function))
   })
 
-  it('useUpdateItem patches cached pages in place instead of refetching them', async () => {
+  it('useUpdateItem queues the change stamped with the time it was made', async () => {
     const { result } = renderHook(() => useUpdateItem())
-    await result.current('item-1', { read: true })
-    expect(clientMocks.updateItem).toHaveBeenCalledWith({ itemId: 'item-1', read: true })
-
-    // No refetch: UpdateItem already returned the row.
-    expect(mutateMock).toHaveBeenCalledWith(expect.any(Function), expect.any(Function), {
-      revalidate: false
-    })
-
-    const matcher = mutateMock.mock.calls[0]![0]
-    if (typeof matcher !== 'function') throw new Error('expected a matcher function')
-    expect(matcher(swrKeys.feedItems(true))).toBe(true)
-    expect(matcher(swrKeys.feedItems(false))).toBe(true)
-    expect(matcher(swrKeys.feeds)).toBe(false)
-    // Single-item bodies are keyed separately so they survive the patch.
-    expect(matcher(swrKeys.feedItem('item-1'))).toBe(false)
-  })
-
-  it('useUpdateItem replaces only the changed item in a cached page', async () => {
-    const { result } = renderHook(() => useUpdateItem())
-    await result.current('item-1', { read: true })
-
-    const updater = mutateMock.mock.calls[0]![1]
-    if (typeof updater !== 'function') throw new Error('expected an updater function')
-
-    const page = { items: [{ id: 'item-1', readAt: '' }, { id: 'item-2' }], hasMore: false }
-    expect(updater(page)).toEqual({
-      items: [{ id: 'item-1', readAt: 'now' }, { id: 'item-2' }],
-      hasMore: false
-    })
-    // A page that doesn't hold the item is returned untouched.
-    const other = { items: [{ id: 'item-9' }], hasMore: false }
-    expect(updater(other)).toBe(other)
-    expect(updater(undefined)).toBeUndefined()
-  })
-
-  it('useUpdateItem touches no cache when the server returns no item', async () => {
-    clientMocks.updateItem.mockResolvedValueOnce({})
-    const { result } = renderHook(() => useUpdateItem())
-    await result.current('item-1', { read: true })
-    expect(mutateMock).not.toHaveBeenCalled()
-  })
-
-  it('useUpdateItem passes readProgressPct through', async () => {
-    const { result } = renderHook(() => useUpdateItem())
-    await result.current('item-1', { readProgressPct: 42 })
-    expect(clientMocks.updateItem).toHaveBeenCalledWith({
-      itemId: 'item-1',
-      readProgressPct: 42
-    })
+    await result.current('item-1', { read: true, readProgressPct: 42 })
+    expect(enqueueWrite).toHaveBeenCalledWith(
+      updateItemWrite,
+      { itemId: 'item-1', read: true, readProgressPct: 42 },
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)
+    )
+    expect(sendWrite).not.toHaveBeenCalled()
   })
 
   it('useFeedStats queries the feed stats key', async () => {

@@ -1,7 +1,12 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { useFeeds, useFeedItems, useFetchFeedItemsPage } from '@/hooks/useFeeds'
+import {
+  useFeeds,
+  useFeedItems,
+  useFetchFeedItemsPage,
+  usePrefetchFeedBodies
+} from '@/hooks/useFeeds'
 import { usePaginatedList } from '@/hooks/usePaginatedList'
 import ArticleReaderDialog from '@/components/feeds/ArticleReaderDialog'
 import FeedBookmarkButton from '@/components/feeds/FeedBookmarkButton'
@@ -27,6 +32,7 @@ function readAndBumpLastVisit(): number {
 }
 
 export default function FeedReaderClient() {
+  usePrefetchFeedBodies()
   const [showRead, setShowRead] = useState(false)
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false)
   // Bookmarks are a keep-list, so that view ignores the unread filter.

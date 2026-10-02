@@ -1,18 +1,19 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import useSWR, { mutate } from 'swr'
 import { swrKeys } from '@/lib/swrKeys'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
 import { createServiceClient } from '@/lib/client'
 import { FeedService, FeedKind } from '@/lib/gen/feeds/v1/feeds_pb'
+import { enqueueWrite, sendWrite } from '@/lib/offline/outbox'
+import { deleteFeedWrite, deleteFilterRuleWrite, updateItemWrite } from '@/lib/feeds/offlineWrites'
+import { prefetchFeedBodies } from '@/lib/feeds/prefetch'
 import type {
   CreateFilterRuleResponse,
   FilterRuleKind,
-  Item,
   ListFilterRulesResponse,
   ListFeedsResponse,
   ListFeedItemsResponse,
   GetFeedItemResponse,
-  UpdateItemResponse,
   GetFeedStatsResponse,
   GetUnhealthyFeedsResponse
 } from '@/lib/gen/feeds/v1/feeds_pb'
@@ -31,25 +32,9 @@ export interface FeedsSummary {
 }
 
 // Invalidates every cached item list, filtered ones included. Only for
-// create/delete/refresh/restore; per-item changes use patchCachedItem.
-export function mutateFeedItems() {
+// create and refresh; other changes go through the offline outbox.
+function mutateFeedItems() {
   return mutate((key) => typeof key === 'string' && key.startsWith('/feeds/items'))
-}
-
-// patchCachedItem writes UpdateItem's returned row into every cached page
-// without refetching.
-function patchCachedItem(updated: Item) {
-  return mutate(
-    (key) => typeof key === 'string' && key.startsWith('/feeds/items'),
-    (current?: ListFeedItemsResponse) => {
-      if (!current?.items.some((item) => item.id === updated.id)) return current
-      return {
-        ...current,
-        items: current.items.map((item) => (item.id === updated.id ? updated : item))
-      } as ListFeedItemsResponse
-    },
-    { revalidate: false }
-  )
 }
 
 // No refetch on focus/reconnect: pages are server-prefetched and refetching
@@ -96,6 +81,13 @@ export function useFeedItem(itemId: string | null) {
   )
 }
 
+// usePrefetchFeedBodies saves unread article bodies for offline reading.
+export function usePrefetchFeedBodies() {
+  useEffect(() => {
+    void prefetchFeedBodies(createServiceClient(FeedService))
+  }, [])
+}
+
 export function useFetchFeedItemsPage(
   unreadOnly: boolean,
   feedId?: string,
@@ -123,17 +115,13 @@ export function useCreateFeed() {
   )
 }
 
+// Writes below go through the offline outbox and show at once; a rejection
+// throws (or, for item state, shows in the offline banner) and rolls back.
+
 export function useDeleteFeed() {
-  const client = useMemo(() => createServiceClient(FeedService), [])
-  return useCallback(
-    async (feedId: string) => {
-      await client.deleteFeed({ feedId })
-      await mutate(swrKeys.feeds)
-      await mutateFeedItems()
-      await mutate(swrKeys.feedFilterRules)
-    },
-    [client]
-  )
+  return useCallback(async (feedId: string) => {
+    await sendWrite(enqueueWrite(deleteFeedWrite, { feedId }))
+  }, [])
 }
 
 export function useRefreshFeed() {
@@ -158,15 +146,9 @@ export interface UpdateItemInput {
 
 // useUpdateItem partially updates an item; unset keys are left unchanged.
 export function useUpdateItem() {
-  const client = useMemo(() => createServiceClient(FeedService), [])
-  return useCallback(
-    async (itemId: string, updates: UpdateItemInput): Promise<UpdateItemResponse> => {
-      const resp = await client.updateItem({ itemId, ...updates })
-      if (resp.item) await patchCachedItem(resp.item)
-      return resp
-    },
-    [client]
-  )
+  return useCallback(async (itemId: string, updates: UpdateItemInput) => {
+    await enqueueWrite(updateItemWrite, { itemId, ...updates }, new Date().toISOString())
+  }, [])
 }
 
 // useFilterRules lists the caller's filter rules with their filtered counts.
@@ -210,15 +192,9 @@ export function useCreateFilterRule() {
 // useDeleteFilterRule deletes a rule; its items stay filtered, and the
 // suggestions it covered can return.
 export function useDeleteFilterRule() {
-  const client = useMemo(() => createServiceClient(FeedService), [])
-  return useCallback(
-    async (ruleId: string) => {
-      await client.deleteFilterRule({ ruleId })
-      await mutate(swrKeys.feedFilterRules)
-      await mutate(swrKeys.feedFilterRuleSuggestions)
-    },
-    [client]
-  )
+  return useCallback(async (ruleId: string) => {
+    await sendWrite(enqueueWrite(deleteFilterRuleWrite, { ruleId }))
+  }, [])
 }
 
 // useFeedStats fetches per-feed cadence/read stats and the 90-day histogram.

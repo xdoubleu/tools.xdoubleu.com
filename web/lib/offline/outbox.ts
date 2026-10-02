@@ -1,6 +1,7 @@
 import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
+import { feedWrites } from '@/lib/feeds/offlineWrites'
 import { mealPlanWrites } from '@/lib/mealplans/offlineWrites'
 import { recipeWrites } from '@/lib/recipes/offlineWrites'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
@@ -17,7 +18,12 @@ import {
   type QueuedWrite
 } from './store'
 
-const writes: OfflineWrite[] = [...shoppingListWrites, ...recipeWrites, ...mealPlanWrites]
+const writes: OfflineWrite[] = [
+  ...shoppingListWrites,
+  ...recipeWrites,
+  ...mealPlanWrites,
+  ...feedWrites
+]
 const registry = new Map(writes.map((w) => [w.id, w]))
 
 // A write failing with a server error this many times is given up on.
@@ -172,6 +178,7 @@ async function drain() {
       await def.send(write.request)
       settled.set(write.seq ?? write, 'sent')
       await remove(write)
+      if (def.revalidateOnSuccess) refetch.add(def.revalidate)
     } catch (err) {
       if (isNetworkError(err)) break
       const code = err instanceof ConnectError ? err.code : Code.Unknown
@@ -186,8 +193,8 @@ async function drain() {
         description: def.describe(write.request),
         reason: err instanceof ConnectError ? err.rawMessage : String(err)
       })
+      refetch.add(def.revalidate)
     }
-    refetch.add(def.revalidate)
     publish({})
   }
   for (const prefix of refetch) {

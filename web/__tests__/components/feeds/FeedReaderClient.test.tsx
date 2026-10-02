@@ -7,6 +7,7 @@ const mockUseFeedItems = jest.fn()
 const mockUseFetchFeedItemsPage = jest.fn()
 
 jest.mock('@/hooks/useFeeds', () => ({
+  usePrefetchFeedBodies: () => {},
   useFeeds: () => mockUseFeeds(),
   useFeedItems: (unreadOnly: boolean, feedId?: string, bookmarkedOnly?: boolean) =>
     mockUseFeedItems(unreadOnly, feedId, bookmarkedOnly),
