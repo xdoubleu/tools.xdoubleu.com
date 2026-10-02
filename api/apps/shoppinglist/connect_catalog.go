@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *shoppingConnectHandler) ListCategories(
@@ -40,7 +41,7 @@ func (h *shoppingConnectHandler) CreateCategory(
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
-	id, err := parseClientID(req.Msg.Id)
+	id, err := connecttools.ParseClientID(req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -217,17 +218,4 @@ func errNameRequired() error {
 
 func errInvalidID() error {
 	return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid ID"))
-}
-
-// parseClientID parses a Create's optional client-generated ID; an invalid
-// NullUUID means the database generates one.
-func parseClientID(raw string) (uuid.NullUUID, error) {
-	if raw == "" {
-		return uuid.NullUUID{UUID: uuid.Nil, Valid: false}, nil
-	}
-	id, err := uuid.Parse(raw)
-	if err != nil {
-		return uuid.NullUUID{UUID: uuid.Nil, Valid: false}, errInvalidID()
-	}
-	return uuid.NullUUID{UUID: id, Valid: true}, nil
 }

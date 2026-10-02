@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { useCallback, useMemo } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
-import type { MessageInitShape } from '@bufbuild/protobuf'
+import { create, type MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
 import {
   RecipesService,
@@ -11,6 +11,12 @@ import {
 } from '@/lib/gen/recipes/v1/recipes_pb'
 import type { ListRecipesResponse, GetRecipeResponse } from '@/lib/gen/recipes/v1/recipes_pb'
 import { DEFAULT_PAGE_SIZE } from '@/lib/pagination'
+import { enqueueWrite, flushOutbox, type WriteHandle, type WriteStatus } from '@/lib/offline/outbox'
+import {
+  createRecipeWrite,
+  deleteRecipeWrite,
+  updateRecipeWrite
+} from '@/lib/recipes/offlineWrites'
 
 export type CreateRecipeInput = MessageInitShape<typeof CreateRecipeRequestSchema>
 export type UpdateRecipeInput = MessageInitShape<typeof UpdateRecipeRequestSchema>
@@ -46,17 +52,37 @@ export function useRecipe(id: string, servings?: number) {
   )
 }
 
+// Writes go through the offline outbox and wait for the send attempt, so a
+// following navigation sees the server's state when online. A create or edit
+// the server rejects throws; one still queued (offline) resolves.
+async function queueAndSend(pending: Promise<WriteHandle>): Promise<WriteStatus> {
+  const handle = await pending
+  await flushOutbox()
+  const status = handle.status()
+  if (status === 'failed') throw new Error('The server rejected the change')
+  return status
+}
+
+/** Queues a create with a client ID; `synced` is false while it waits offline. */
 export function useCreateRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: CreateRecipeInput) => client.createRecipe(req)
+  return async (req: CreateRecipeInput) => {
+    const msg = create(CreateRecipeRequestSchema, req)
+    msg.id = crypto.randomUUID()
+    const status = await queueAndSend(enqueueWrite(createRecipeWrite, msg))
+    return { id: msg.id, synced: status === 'sent' }
+  }
 }
 
 export function useUpdateRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: UpdateRecipeInput) => client.updateRecipe(req)
+  return async (req: UpdateRecipeInput) => {
+    await queueAndSend(enqueueWrite(updateRecipeWrite, req))
+  }
 }
 
+/** Queues a delete; a rejection shows in the offline banner instead of throwing. */
 export function useDeleteRecipe() {
-  const client = createServiceClient(RecipesService)
-  return (req: DeleteRecipeInput) => client.deleteRecipe(req)
+  return async (req: DeleteRecipeInput) => {
+    await enqueueWrite(deleteRecipeWrite, req)
+    await flushOutbox()
+  }
 }

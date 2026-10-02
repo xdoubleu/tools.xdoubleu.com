@@ -1,6 +1,7 @@
 import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf'
 import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
+import { recipeWrites } from '@/lib/recipes/offlineWrites'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
 import { isNetworkError } from './network'
 import type { OfflineWrite } from './registry'
@@ -15,7 +16,8 @@ import {
   type QueuedWrite
 } from './store'
 
-const registry = new Map<string, OfflineWrite>(shoppingListWrites.map((w) => [w.id, w]))
+const writes: OfflineWrite[] = [...shoppingListWrites, ...recipeWrites]
+const registry = new Map(writes.map((w) => [w.id, w]))
 
 // A write failing with a server error this many times is given up on.
 const MAX_ATTEMPTS = 5
@@ -43,6 +45,14 @@ const listeners = new Set<() => void>()
 let queue: QueuedWrite[] = []
 // Keyed by seq, which survives the reload at the start of every drain.
 const attempts = new Map<number | QueuedWrite, number>()
+const settled = new Map<number | QueuedWrite, 'sent' | 'failed'>()
+
+export type WriteStatus = 'queued' | 'sent' | 'failed'
+
+/** Reports a queued write's progress, as of the last drain. */
+export interface WriteHandle {
+  status(): WriteStatus
+}
 let loading: Promise<void> | null = null
 let flushing: Promise<void> | null = null
 
@@ -117,7 +127,7 @@ export async function enqueueWrite<I extends DescMessage>(
   def: OfflineWrite<I>,
   init: MessageInitShape<I>,
   hint?: unknown
-): Promise<void> {
+): Promise<WriteHandle> {
   await outboxReady()
   const write: QueuedWrite = {
     writeId: def.id,
@@ -130,6 +140,7 @@ export async function enqueueWrite<I extends DescMessage>(
   publish({})
   await applyOptimistic(def, write)
   void flushOutbox()
+  return { status: () => settled.get(write.seq ?? write) ?? 'queued' }
 }
 
 async function remove(write: QueuedWrite) {
@@ -138,6 +149,7 @@ async function remove(write: QueuedWrite) {
 }
 
 async function reject(write: QueuedWrite, failure: FailedWrite) {
+  settled.set(write.seq ?? write, 'failed')
   await remove(write)
   await addFailed(failure)
   publish({ failed: [...state.failed, failure] })
@@ -157,6 +169,7 @@ async function drain() {
     }
     try {
       await def.send(write.request)
+      settled.set(write.seq ?? write, 'sent')
       await remove(write)
     } catch (err) {
       if (isNetworkError(err)) break

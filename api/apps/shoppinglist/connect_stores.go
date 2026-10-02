@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	shoppinglistv1 "tools.xdoubleu.com/gen/shoppinglist/v1"
+	"tools.xdoubleu.com/internal/connecttools"
 )
 
 func (h *shoppingConnectHandler) ListStores(
@@ -37,7 +38,7 @@ func (h *shoppingConnectHandler) CreateStore(
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
-	id, err := parseClientID(req.Msg.Id)
+	id, err := connecttools.ParseClientID(req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}

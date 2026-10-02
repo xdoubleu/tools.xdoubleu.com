@@ -3,11 +3,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useCreateRecipe, useUpdateRecipe } from '@/hooks/useRecipes'
 import type { CreateRecipeInput, UpdateRecipeInput } from '@/hooks/useRecipes'
-import { useItemNames, useCategories } from '@/hooks/useShoppingList'
+import {
+  useItemNames,
+  useCategories,
+  queueCategory,
+  queueItemCategory
+} from '@/hooks/useShoppingList'
 import type { Recipe } from '@/lib/gen/recipes/v1/recipes_pb'
 import { parseFraction } from '@/lib/recipes/parseFraction'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,7 +21,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 
 interface RecipeFormProps {
   recipe?: Recipe
-  onSave: (id: string) => void
+  /** `synced` is false for a new recipe still queued offline. */
+  onSave: (id: string, synced: boolean) => void
   onCancel: () => void
 }
 
@@ -56,7 +60,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   const createRecipe = useCreateRecipe()
   const updateRecipe = useUpdateRecipe()
   const { data: itemNamesData } = useItemNames()
-  const { data: categoriesData, mutate: mutateCategories } = useCategories()
+  const { data: categoriesData } = useCategories()
   const categories = categoriesData?.categories ?? []
 
   const itemNameSuggestions = useMemo(
@@ -113,11 +117,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
   // Save chosen categories to the shared name->category catalog, creating new
   // categories first (mirrors the shopping list add-form).
   const syncIngredientCategories = async () => {
-    const client = createServiceClient(ShoppingListService)
     const createdCategories = new Map<string, string>()
-    let categoryCreated = false
-
-    const writes: Promise<unknown>[] = []
     for (const ing of ingredients) {
       const itemName = ing.name.trim()
       if (!itemName) continue
@@ -127,23 +127,13 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
         const newName = ing.newCategoryName.trim()
         if (!newName) continue
         const key = newName.toLowerCase()
-        let id = createdCategories.get(key)
-        if (!id) {
-          const resp = await client.createCategory({ name: newName })
-          id = resp.category?.id ?? ''
-          createdCategories.set(key, id)
-          categoryCreated = true
-        }
-        categoryId = id
+        categoryId = createdCategories.get(key) ?? (await queueCategory(newName, categories))
+        createdCategories.set(key, categoryId)
       }
       if (!categoryId) continue
-
       if (nameToCategory.get(normalizeName(itemName)) === categoryId) continue
-      writes.push(client.setItemCategory({ name: itemName, categoryId }))
+      await queueItemCategory(itemName, categoryId)
     }
-
-    await Promise.all(writes)
-    if (categoryCreated) await mutateCategories()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,18 +156,18 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
       }
 
       let savedId: string
+      let synced = true
       if (recipe?.id) {
         const req: UpdateRecipeInput = { id: recipe.id, ...base }
         await updateRecipe(req)
         savedId = recipe.id
       } else {
         const req: CreateRecipeInput = base
-        const result = await createRecipe(req)
-        savedId = result.recipe?.id || ''
+        ;({ id: savedId, synced } = await createRecipe(req))
       }
 
       await syncIngredientCategories()
-      onSave(savedId)
+      onSave(savedId, synced)
     } catch (err) {
       console.error('Failed to save recipe:', err)
     }

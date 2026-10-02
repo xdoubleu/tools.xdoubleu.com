@@ -65,15 +65,21 @@ export default function ShoppingListPageClient() {
       return next
     })
 
-  const handleDelete = (itemId: string) => enqueueWrite(deleteShoppingItemWrite, { itemId })
+  const handleDelete = async (itemId: string) => {
+    await enqueueWrite(deleteShoppingItemWrite, { itemId })
+  }
 
-  const handleEdit = (itemId: string, values: { name: string; amount: string; unit: string }) =>
-    enqueueWrite(updateShoppingItemWrite, {
+  const handleEdit = async (
+    itemId: string,
+    values: { name: string; amount: string; unit: string }
+  ) => {
+    await enqueueWrite(updateShoppingItemWrite, {
       itemId,
       name: values.name,
       amount: values.amount || '0',
       unit: values.unit
     })
+  }
 
   return (
     <PageContainer>

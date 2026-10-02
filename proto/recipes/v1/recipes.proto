@@ -63,6 +63,9 @@ message CreateRecipeRequest {
   optional int32 batch_servings = 7;
   repeated string ingredient_group_names = 8;
   bool is_draft = 9;
+  // Optional client-generated UUID: repeating the call with it updates
+  // nothing and returns the existing recipe (offline replay).
+  string id = 10;
 }
 message CreateRecipeResponse { Recipe recipe = 1; }
 

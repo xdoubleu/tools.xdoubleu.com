@@ -2,12 +2,14 @@ package services
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/recipes/internal/models"
 	"tools.xdoubleu.com/internal/app"
+	"tools.xdoubleu.com/internal/database"
 )
 
 const errNotInFamily = "You do not have access to this recipe"
@@ -122,6 +124,23 @@ func (s *RecipeService) Create(
 	}
 	recipe.UserID = userID
 	recipe.FamilyID = familyID
+
+	// A replayed offline create returns the stored recipe unchanged.
+	if recipe.ID != uuid.Nil {
+		existing, getErr := s.repo.GetByID(ctx, recipe.ID)
+		switch {
+		case getErr == nil && existing.FamilyID != familyID:
+			return nil, database.ErrResourceNotFound
+		case getErr == nil:
+			existing.Ingredients, err = s.repo.GetIngredients(ctx, recipe.ID)
+			if err != nil {
+				return nil, err
+			}
+			return existing, nil
+		case !errors.Is(getErr, database.ErrResourceNotFound):
+			return nil, getErr
+		}
+	}
 
 	created, err := s.repo.Create(ctx, recipe)
 	if err != nil {
