@@ -78,7 +78,7 @@ export function stepFontSize(current: number, direction: 1 | -1): number {
 
 /** Page turn for a tap at window x over a reading area starting at `left`. */
 export function tapDirection(x: number, left: number, width: number): PageTurn | null {
-  if (width <= 0) return null
+  // A zero width gives NaN or ±Infinity, which the range check rejects.
   const fraction = (x - left) / width
   if (fraction < 0 || fraction > 1) return null
   if (fraction < TAP_EDGE) return 'left'
@@ -88,6 +88,8 @@ export function tapDirection(x: number, left: number, width: number): PageTurn |
 
 /** Page turn for a horizontal swipe; a leftward swipe reveals the page on the right. */
 export function swipeDirection(dx: number, dy: number): PageTurn | null {
-  if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dy) > Math.abs(dx)) return null
-  return dx < 0 ? 'right' : 'left'
+  if (Math.abs(dy) > Math.abs(dx)) return null
+  if (dx <= -SWIPE_MIN_PX) return 'right'
+  if (dx >= SWIPE_MIN_PX) return 'left'
+  return null
 }

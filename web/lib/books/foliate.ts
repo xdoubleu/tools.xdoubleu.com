@@ -5,7 +5,8 @@ const FOLIATE_VIEW_URL = '/foliate-js/view.js'
 
 export interface FoliateTocItem {
   label: string
-  href: string
+  /** Missing on grouping entries that don't link anywhere. */
+  href?: string
   subitems?: FoliateTocItem[]
 }
 

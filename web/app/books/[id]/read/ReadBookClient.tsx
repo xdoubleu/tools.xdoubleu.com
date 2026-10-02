@@ -92,6 +92,7 @@ export default function ReadBookClient({ id }: { id: string }) {
 
   return (
     <BookReader
+      key={url}
       url={url}
       title={userBook.book?.title ?? 'Book'}
       onClose={() => router.push(`/books/${id}`)}

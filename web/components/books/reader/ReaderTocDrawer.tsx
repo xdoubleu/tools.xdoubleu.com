@@ -32,28 +32,29 @@ function TocList({
 }) {
   return (
     <ul className={cn(depth > 0 && 'ml-4 border-l border-border')}>
-      {items.map((item, i) => {
-        const current = currentHref !== undefined && item.href === currentHref
-        return (
-          <li key={`${item.href}-${i}`}>
+      {items.map(({ label, href, subitems }, i) => (
+        <li key={i}>
+          {href === undefined ? (
+            <p className="px-4 py-2 text-sm text-muted">{label}</p>
+          ) : (
             <MenuItem
-              aria-current={current ? 'location' : undefined}
-              className={cn(current && 'font-semibold text-accent')}
-              onClick={() => onSelect(item.href)}
+              aria-current={href === currentHref ? 'location' : undefined}
+              className={cn(href === currentHref && 'font-semibold text-accent')}
+              onClick={() => onSelect(href)}
             >
-              {item.label}
+              {label}
             </MenuItem>
-            {item.subitems && item.subitems.length > 0 && (
-              <TocList
-                items={item.subitems}
-                depth={depth + 1}
-                currentHref={currentHref}
-                onSelect={onSelect}
-              />
-            )}
-          </li>
-        )
-      })}
+          )}
+          {subitems && subitems.length > 0 && (
+            <TocList
+              items={subitems}
+              depth={depth + 1}
+              currentHref={currentHref}
+              onSelect={onSelect}
+            />
+          )}
+        </li>
+      ))}
     </ul>
   )
 }

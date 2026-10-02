@@ -13,15 +13,21 @@ import BookReader from '@/components/books/reader/BookReader'
 function makeView({
   toc = [],
   fixedLayout = false,
-  openError
-}: { toc?: FoliateTocItem[]; fixedLayout?: boolean; openError?: Error } = {}) {
+  openError,
+  withBook = true
+}: {
+  toc?: FoliateTocItem[]
+  fixedLayout?: boolean
+  openError?: Error
+  withBook?: boolean
+} = {}) {
   const view = Object.assign(document.createElement('div'), {
     isFixedLayout: fixedLayout,
     book: undefined as { toc: FoliateTocItem[] } | undefined,
-    renderer: { setStyles: jest.fn() },
+    renderer: { setStyles: jest.fn() } as { setStyles: jest.Mock } | undefined,
     open: jest.fn(async () => {
       if (openError) throw openError
-      view.book = { toc }
+      if (withBook) view.book = { toc }
     }),
     init: jest.fn(async () => {}),
     goTo: jest.fn(async () => {}),
@@ -75,8 +81,18 @@ function loadSection(view: FakeView) {
   return doc
 }
 
+// A handler that throws inside a section document only shows up as a logged error.
+let consoleError: jest.SpyInstance
+
 describe('BookReader', () => {
+  afterEach(() => {
+    document.querySelectorAll('iframe').forEach((frame) => frame.remove())
+    expect(consoleError).not.toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
   beforeEach(() => {
+    consoleError = jest.spyOn(console, 'error')
     mockCreateFoliateView.mockReset()
     localStorage.clear()
   })
@@ -129,6 +145,7 @@ describe('BookReader', () => {
     })
     const bar = screen.getByRole('progressbar')
     expect(bar).toHaveAttribute('aria-valuenow', '42')
+    expect(bar.firstElementChild).toHaveStyle({ width: '42%' })
     expect(screen.getByText('42%')).toBeInTheDocument()
     expect(screen.getByText('Chapter 2')).toBeInTheDocument()
     expect(onRelocate).toHaveBeenCalledWith({
@@ -167,6 +184,8 @@ describe('BookReader', () => {
     const link = doc.createElement('a')
     link.setAttribute('href', '#note')
     doc.body.append(link)
+    // Runs after the reader's listener; jsdom can't follow the link.
+    doc.addEventListener('click', (e) => e.preventDefault())
     fireEvent.click(link, { clientX: 290 })
     expect(view.goRight).not.toHaveBeenCalled()
   })
@@ -289,6 +308,7 @@ describe('BookReader', () => {
     const { unmount } = render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
     unmount()
     await act(async () => resolveView(view))
+    expect(view.style.display).toBe('')
     expect(view.open).not.toHaveBeenCalled()
   })
 
@@ -319,6 +339,164 @@ describe('BookReader', () => {
     expect(view.goRight).not.toHaveBeenCalled()
   })
 
+  it('shows loading until the book opens', async () => {
+    const view = makeView()
+    let resolveOpen = () => {}
+    view.open.mockImplementation(
+      () =>
+        new Promise<void>((r) => {
+          resolveOpen = () => {
+            view.book = { toc: [{ label: 'One', href: 'one.xhtml' }] }
+            r()
+          }
+        })
+    )
+    mockCreateFoliateView.mockResolvedValue(view)
+    render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    await waitFor(() => expect(view.open).toHaveBeenCalled())
+    expect(screen.getByText('Loading book…')).toBeInTheDocument()
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Contents' })).not.toBeInTheDocument()
+    const area = view.parentElement!.parentElement!
+    expect(area).toHaveAttribute('aria-busy', 'true')
+
+    await act(async () => resolveOpen())
+    expect(screen.queryByText('Loading book…')).not.toBeInTheDocument()
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+    expect(area).toHaveAttribute('aria-busy', 'false')
+    expect(screen.getByRole('button', { name: 'Contents' })).toBeInTheDocument()
+  })
+
+  it('fills the reading area with the view on the theme background', async () => {
+    const view = makeView()
+    await renderReader(view)
+    expect(view.style.display).toBe('block')
+    expect(view.style.width).toBe('100%')
+    expect(view.style.height).toBe('100%')
+    expect(view.parentElement!.parentElement).toHaveStyle({ background: '#ffffff' })
+  })
+
+  it("starts in the app's dark theme", async () => {
+    document.documentElement.dataset.theme = 'dark'
+    try {
+      const view = makeView()
+      await renderReader(view)
+      expect(view.renderer!.setStyles).toHaveBeenLastCalledWith(
+        expect.stringContaining('background: #161616')
+      )
+    } finally {
+      delete document.documentElement.dataset.theme
+    }
+  })
+
+  it('remembers the theme and font size on this device', async () => {
+    const first = makeView()
+    const { unmount } = await renderReader(first)
+    fireEvent.click(screen.getByRole('button', { name: 'Reading settings' }))
+    const sheet = await screen.findByRole('dialog', { name: 'Reading settings' })
+    fireEvent.click(within(sheet).getByRole('tab', { name: 'Dark' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Larger text' }))
+    expect(localStorage.getItem('books:reader-theme')).toBe('"dark"')
+    expect(localStorage.getItem('books:reader-font-size')).toBe('110')
+    unmount()
+
+    const second = makeView()
+    await renderReader(second)
+    await waitFor(() =>
+      expect(second.renderer!.setStyles).toHaveBeenLastCalledWith(
+        expect.stringMatching(/font-size: 110%[\s\S]*background: #161616/)
+      )
+    )
+  })
+
+  it('copes with a renderer that takes no styles', async () => {
+    const bare = makeView()
+    bare.renderer = undefined
+    await renderReader(bare)
+    const noSetStyles = makeView()
+    Object.assign(noSetStyles, { renderer: {} })
+    await renderReader(noSetStyles)
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+  })
+
+  it('opens a book that exposes no TOC', async () => {
+    await renderReader(makeView({ withBook: false }))
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Contents' })).not.toBeInTheDocument()
+  })
+
+  it('reports locations to the latest onRelocate', async () => {
+    const view = makeView()
+    const first = jest.fn()
+    const { rerender } = await renderReader(view, { onRelocate: first })
+    const second = jest.fn()
+    rerender(<BookReader url={URL_} title="Dune" onClose={jest.fn()} onRelocate={second} />)
+    relocate(view, { fraction: 0.5 })
+    expect(second).toHaveBeenCalled()
+    expect(first).not.toHaveBeenCalled()
+  })
+
+  it('reopens on a new URL and ignores the old one failing', async () => {
+    const old = makeView()
+    let rejectOld = () => {}
+    old.open.mockImplementation(
+      () => new Promise<void>((_, reject) => (rejectOld = () => reject(new Error('closed'))))
+    )
+    const fresh = makeView()
+    mockCreateFoliateView.mockResolvedValueOnce(old).mockResolvedValueOnce(fresh)
+    const { rerender } = render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    await waitFor(() => expect(old.open).toHaveBeenCalled())
+
+    rerender(<BookReader url="https://r2.example.com/new" title="Dune" onClose={jest.fn()} />)
+    await waitFor(() => expect(fresh.init).toHaveBeenCalled())
+    expect(fresh.open).toHaveBeenCalledWith('https://r2.example.com/new')
+    expect(old.close).toHaveBeenCalled()
+    await act(async () => rejectOld())
+    expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
+  })
+
+  it('stops turning pages on keys after unmount', async () => {
+    const view = makeView()
+    const { unmount } = await renderReader(view)
+    unmount()
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(view.goRight).not.toHaveBeenCalled()
+  })
+
+  it('maps taps in a scaled frame to the window', async () => {
+    const view = makeView({ fixedLayout: true })
+    await renderReader(view)
+    const doc = loadSection(view)
+    const frame = doc.defaultView!.frameElement!
+    frame.getBoundingClientRect = () => ({
+      x: 100,
+      y: 0,
+      left: 100,
+      top: 0,
+      width: 200,
+      height: 400,
+      right: 300,
+      bottom: 400,
+      toJSON: () => ({})
+    })
+    Object.defineProperty(frame, 'clientWidth', { value: 100 })
+    fireEvent.click(doc.body, { clientX: 20 })
+    expect(view.goLeft).not.toHaveBeenCalled()
+    fireEvent.click(doc.body, { clientX: 95 })
+    expect(view.goRight).toHaveBeenCalledTimes(1)
+  })
+
+  it('handles taps in a section document without a window', async () => {
+    const view = makeView()
+    await renderReader(view)
+    const doc = document.implementation.createHTMLDocument('section')
+    act(() => {
+      view.dispatchEvent(new CustomEvent('load', { detail: { doc, index: 0 } }))
+    })
+    doc.body.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 290 }))
+    expect(view.goRight).toHaveBeenCalledTimes(1)
+  })
+
   it('hides the contents control for a book without a TOC', async () => {
     await renderReader(makeView())
     expect(screen.queryByRole('button', { name: 'Contents' })).not.toBeInTheDocument()
@@ -327,7 +505,7 @@ describe('BookReader', () => {
   it('applies the theme and font size to reflowable books', async () => {
     const view = makeView()
     await renderReader(view)
-    expect(view.renderer.setStyles).toHaveBeenLastCalledWith(
+    expect(view.renderer!.setStyles).toHaveBeenLastCalledWith(
       expect.stringContaining('font-size: 100%')
     )
 
@@ -336,13 +514,13 @@ describe('BookReader', () => {
     fireEvent.click(within(sheet).getByRole('tab', { name: 'Sepia' }))
     fireEvent.click(within(sheet).getByRole('button', { name: 'Larger text' }))
 
-    const css = String(view.renderer.setStyles.mock.calls.at(-1)?.[0])
+    const css = String(view.renderer!.setStyles.mock.calls.at(-1)?.[0])
     expect(css).toContain('font-size: 110%')
     expect(css).toContain('color-scheme: light')
     expect(within(sheet).getByText('110%')).toBeInTheDocument()
 
     fireEvent.click(within(sheet).getByRole('button', { name: 'Smaller text' }))
-    expect(view.renderer.setStyles).toHaveBeenLastCalledWith(
+    expect(view.renderer!.setStyles).toHaveBeenLastCalledWith(
       expect.stringContaining('font-size: 100%')
     )
   })
@@ -355,6 +533,6 @@ describe('BookReader', () => {
     expect(within(sheet).queryByRole('button', { name: 'Larger text' })).not.toBeInTheDocument()
     fireEvent.click(within(sheet).getByRole('tab', { name: 'Dark' }))
     expect(view.style.filter).toContain('invert')
-    expect(view.renderer.setStyles).not.toHaveBeenCalled()
+    expect(view.renderer!.setStyles).not.toHaveBeenCalled()
   })
 })

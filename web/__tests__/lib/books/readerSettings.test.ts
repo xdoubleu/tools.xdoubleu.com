@@ -1,9 +1,11 @@
 import {
+  READER_THEMES,
   READER_FONT_SIZE_DEFAULT,
   READER_FONT_SIZE_MAX,
   READER_FONT_SIZE_MIN,
   fixedLayoutFilter,
   pickReaderFormat,
+  readerBackground,
   readerFormats,
   readerStyles,
   stepFontSize,
@@ -44,7 +46,36 @@ describe('pickReaderFormat', () => {
   })
 })
 
+describe('READER_THEMES', () => {
+  it('lists the themes in display order', () => {
+    expect(READER_THEMES).toEqual([
+      { value: 'light', label: 'Light' },
+      { value: 'sepia', label: 'Sepia' },
+      { value: 'dark', label: 'Dark' }
+    ])
+  })
+})
+
+describe('readerBackground', () => {
+  it('matches the page colour of each theme', () => {
+    expect(readerBackground('light')).toBe('#ffffff')
+    expect(readerBackground('sepia')).toBe('#f4ecd8')
+    expect(readerBackground('dark')).toBe('#161616')
+  })
+})
+
 describe('readerStyles', () => {
+  it.each([
+    ['light', '#ffffff', '#1f1f1f', '#1d4ed8'],
+    ['sepia', '#f4ecd8', '#5b4636', '#8a4b14'],
+    ['dark', '#161616', '#e3e3e3', '#8ab4f8']
+  ] as const)('colours %s pages', (theme, bg, fg, link) => {
+    const css = readerStyles(theme, 100)
+    expect(css).toContain(`background: ${bg} !important`)
+    expect(css).toContain(`color: ${fg} !important`)
+    expect(css).toContain(`color: ${link} !important`)
+  })
+
   it('applies the theme colours and font size', () => {
     const css = readerStyles('dark', 120)
     expect(css).toContain('color-scheme: dark')
@@ -91,6 +122,21 @@ describe('tapDirection', () => {
     expect(tapDirection(50, 0, 100)).toBeNull()
   })
 
+  it('includes both edges of the area', () => {
+    expect(tapDirection(0, 0, 100)).toBe('left')
+    expect(tapDirection(100, 0, 100)).toBe('right')
+  })
+
+  it('leaves the band between the edge zones alone', () => {
+    expect(tapDirection(30, 0, 100)).toBeNull()
+    expect(tapDirection(70, 0, 100)).toBeNull()
+  })
+
+  it('ignores taps outside the area', () => {
+    expect(tapDirection(150, 0, 100)).toBeNull()
+    expect(tapDirection(-10, 0, 100)).toBeNull()
+  })
+
   it('is relative to the reading area', () => {
     expect(tapDirection(110, 100, 100)).toBe('left')
     expect(tapDirection(50, 100, 100)).toBeNull()
@@ -98,6 +144,8 @@ describe('tapDirection', () => {
 
   it('ignores an empty area', () => {
     expect(tapDirection(0, 0, 0)).toBeNull()
+    expect(tapDirection(5, 0, 0)).toBeNull()
+    expect(tapDirection(-5, 0, 0)).toBeNull()
   })
 })
 
@@ -107,8 +155,18 @@ describe('swipeDirection', () => {
     expect(swipeDirection(80, 5)).toBe('left')
   })
 
+  it('turns from the minimum swipe distance', () => {
+    expect(swipeDirection(-40, 0)).toBe('right')
+    expect(swipeDirection(40, 0)).toBe('left')
+  })
+
+  it('turns on an exact diagonal', () => {
+    expect(swipeDirection(-80, 80)).toBe('right')
+  })
+
   it('ignores short or vertical swipes', () => {
     expect(swipeDirection(-20, 0)).toBeNull()
+    expect(swipeDirection(39, 0)).toBeNull()
     expect(swipeDirection(-80, 120)).toBeNull()
   })
 })

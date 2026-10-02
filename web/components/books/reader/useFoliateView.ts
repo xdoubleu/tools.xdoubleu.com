@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 import {
   createFoliateView,
   type FoliateRelocateDetail,
-  type FoliateTocItem,
   type FoliateView
 } from '@/lib/books/foliate'
 import { swipeDirection, tapDirection, type PageTurn } from '@/lib/books/readerSettings'
@@ -30,17 +29,22 @@ function toLocation(detail: FoliateRelocateDetail): ReaderLocation {
   }
 }
 
-function turn(view: FoliateView, direction: PageTurn) {
-  if (direction === 'left') view.goLeft()
-  else view.goRight()
+const TURNS: Record<PageTurn, (view: FoliateView) => unknown> = {
+  left: (view) => view.goLeft(),
+  right: (view) => view.goRight()
+}
+
+const KEY_TURNS: Partial<Record<string, PageTurn>> = { ArrowLeft: 'left', ArrowRight: 'right' }
+
+function turn(view: FoliateView, direction: PageTurn | null | undefined) {
+  if (direction) TURNS[direction](view)
 }
 
 function onArrowKey(view: FoliateView) {
   return (e: KeyboardEvent) => {
     // Leave keys alone while the contents or settings dialog is open.
     if (e.target instanceof Element && e.target.closest('[role="dialog"]')) return
-    if (e.key === 'ArrowLeft') turn(view, 'left')
-    else if (e.key === 'ArrowRight') turn(view, 'right')
+    turn(view, KEY_TURNS[e.key])
   }
 }
 
@@ -61,8 +65,7 @@ function attachSectionHandlers(view: FoliateView, doc: Document) {
       x = rect.left + e.clientX * scale
     }
     const area = view.getBoundingClientRect()
-    const direction = tapDirection(x, area.left, area.width)
-    if (direction) turn(view, direction)
+    turn(view, tapDirection(x, area.left, area.width))
   })
   doc.addEventListener('keydown', onArrowKey(view))
 
@@ -78,12 +81,13 @@ function attachSectionHandlers(view: FoliateView, doc: Document) {
     if (!start || !touch) return
     const direction = swipeDirection(touch.screenX - start.x, touch.screenY - start.y)
     start = null
-    if (direction) turn(view, direction)
+    turn(view, direction)
   })
 }
 
 /**
  * Mounts a foliate-js view for `url` into `containerRef`, opening at the start.
+ * Status isn't reset when `url` changes; key the caller on it.
  * `onRelocate` fires on every page change.
  */
 export function useFoliateView(
@@ -93,7 +97,6 @@ export function useFoliateView(
 ) {
   const [view, setView] = useState<FoliateView | null>(null)
   const [status, setStatus] = useState<Status>('loading')
-  const [toc, setToc] = useState<FoliateTocItem[]>([])
   const [location, setLocation] = useState<ReaderLocation | null>(null)
   const onRelocateRef = useRef(onRelocate)
   useEffect(() => {
@@ -103,8 +106,7 @@ export function useFoliateView(
   useEffect(() => {
     let cancelled = false
     let created: FoliateView | null = null
-    let onKey: ((e: KeyboardEvent) => void) | null = null
-    setStatus('loading')
+    let onKey: (e: KeyboardEvent) => void = () => {}
 
     void (async () => {
       try {
@@ -122,13 +124,11 @@ export function useFoliateView(
         })
         v.addEventListener('click', (e) => {
           const area = v.getBoundingClientRect()
-          const direction = tapDirection(e.clientX, area.left, area.width)
-          if (direction) turn(v, direction)
+          turn(v, tapDirection(e.clientX, area.left, area.width))
         })
-        containerRef.current?.append(v)
+        containerRef.current!.append(v)
         await v.open(url)
         if (cancelled) return
-        setToc(v.book?.toc ?? [])
         setView(v)
         setStatus('ready')
         onKey = onArrowKey(v)
@@ -141,12 +141,12 @@ export function useFoliateView(
 
     return () => {
       cancelled = true
-      if (onKey) window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey)
       created?.close()
       created?.book?.destroy?.()
       created?.remove()
     }
   }, [containerRef, url])
 
-  return { view, status, toc, location }
+  return { view, status, location }
 }

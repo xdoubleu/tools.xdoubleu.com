@@ -11,8 +11,7 @@ import {
   readerStyles,
   type ReaderTheme
 } from '@/lib/books/readerSettings'
-import ReaderSettingsSheet from './ReaderSettingsSheet'
-import ReaderTocDrawer from './ReaderTocDrawer'
+import ReaderControls from './ReaderControls'
 import { useFoliateView, type ReaderLocation } from './useFoliateView'
 
 export type { ReaderLocation }
@@ -33,14 +32,12 @@ function appTheme(): ReaderTheme {
 /** Full-screen foliate-js reader: paginated, with tap zones, swipe, TOC and themes. */
 export default function BookReader({ url, title, onClose, onRelocate }: BookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { view, status, toc, location } = useFoliateView(containerRef, url, onRelocate)
+  const { view, status, location } = useFoliateView(containerRef, url, onRelocate)
   const [storedTheme, setTheme] = useLocalStorage<ReaderTheme | null>('books:reader-theme', null)
   const [fontSize, setFontSize] = useLocalStorage(
     'books:reader-font-size',
     READER_FONT_SIZE_DEFAULT
   )
-  const [tocOpen, setTocOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [defaultTheme] = useState(appTheme)
   const theme = storedTheme ?? defaultTheme
 
@@ -67,34 +64,23 @@ export default function BookReader({ url, title, onClose, onRelocate }: BookRead
           </span>
         </Button>
         <p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
-        {toc.length > 0 && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Contents"
-            onClick={() => setTocOpen(true)}
-          >
-            <span aria-hidden="true" className="text-lg">
-              ☰
-            </span>
-          </Button>
+        {view && (
+          <ReaderControls
+            view={view}
+            currentHref={location?.tocHref}
+            theme={theme}
+            onThemeChange={setTheme}
+            fontSize={fontSize}
+            onFontSizeChange={setFontSize}
+          />
         )}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="Reading settings"
-          disabled={!view}
-          onClick={() => setSettingsOpen(true)}
-        >
-          <span aria-hidden="true" className="text-sm font-semibold">
-            Aa
-          </span>
-        </Button>
       </div>
 
-      <div className="relative min-h-0 flex-1" style={{ background: readerBackground(theme) }}>
+      <div
+        className="relative min-h-0 flex-1"
+        aria-busy={status !== 'ready'}
+        style={{ background: readerBackground(theme) }}
+      >
         <div ref={containerRef} className="absolute inset-0" />
         {status === 'loading' && (
           <LoadingState label="book" className="absolute inset-x-0 top-1/3 text-center" />
@@ -120,26 +106,6 @@ export default function BookReader({ url, title, onClose, onRelocate }: BookRead
           <span className="shrink-0 tabular-nums">{percent}%</span>
         </div>
       </div>
-
-      <ReaderTocDrawer
-        open={tocOpen}
-        onOpenChange={setTocOpen}
-        toc={toc}
-        currentHref={location?.tocHref}
-        onSelect={(href) => {
-          setTocOpen(false)
-          void view?.goTo(href)
-        }}
-      />
-      <ReaderSettingsSheet
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        theme={theme}
-        onThemeChange={setTheme}
-        fontSize={fontSize}
-        onFontSizeChange={setFontSize}
-        reflowable={!view?.isFixedLayout}
-      />
     </div>
   )
 }
