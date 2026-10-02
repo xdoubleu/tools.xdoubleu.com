@@ -4,3 +4,4 @@ out/
 coverage/
 .env*.local
 build-artifact/
+public/foliate-js/

@@ -19,7 +19,15 @@ const uiCallSites = {
 
 export default [
   {
-    ignores: ['.next', 'node_modules', 'dist', 'lib/gen/**', '.stryker-tmp', 'reports']
+    ignores: [
+      '.next',
+      'node_modules',
+      'dist',
+      'lib/gen/**',
+      '.stryker-tmp',
+      'reports',
+      'public/foliate-js'
+    ]
   },
   js.configs.recommended,
   ...typescriptEslint.configs.recommended,

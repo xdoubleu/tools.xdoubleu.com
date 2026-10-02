@@ -3,7 +3,7 @@
  */
 // next/server needs the real Request/Response globals, which jsdom lacks.
 import { NextRequest } from 'next/server'
-import { middleware } from '@/middleware'
+import { config, middleware } from '@/middleware'
 
 function run() {
   return middleware(new NextRequest('https://tools.example.com/'))
@@ -63,6 +63,18 @@ describe('middleware CSP', () => {
     expect(res.headers.get('x-middleware-request-content-security-policy')).toEqual(
       res.headers.get('Content-Security-Policy')
     )
+  })
+
+  it('allows the foliate-js reader its blob: frames, stylesheets and fonts', () => {
+    expect(cspDirective('frame-src')).toContain('blob:')
+    expect(cspDirective('style-src')).toContain('blob:')
+    expect(cspDirective('font-src')).toBe("font-src 'self' blob:")
+  })
+
+  it('skips the static foliate-js files', () => {
+    const matcher = new RegExp(`^${config.matcher[0]}$`)
+    expect(matcher.test('/foliate-js/vendor/pdfjs/pdf.worker.mjs')).toBe(false)
+    expect(matcher.test('/books/ub-1/read')).toBe(true)
   })
 
   it('adds unsafe-eval only in development', () => {
