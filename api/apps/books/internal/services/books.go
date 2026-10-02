@@ -731,9 +731,7 @@ func (s *BookService) GetKoboSyncBook(
 }
 
 // UpdateReadingProgress upserts a resumable reading position (source
-// web/kobo/manual; percent clamped to 0-100). A kobo update lowering the stored
-// percent is dropped: devices re-report possibly stale local bookmarks (e.g.
-// after a KEPUB re-download). web/manual reflect explicit user action.
+// web/kobo/manual; percent clamped to 0-100).
 func (s *BookService) UpdateReadingProgress(
 	ctx context.Context,
 	userID string,
@@ -742,28 +740,7 @@ func (s *BookService) UpdateReadingProgress(
 	percent int,
 	location *string,
 ) error {
-	if source != models.ReadingSourceWeb &&
-		source != models.ReadingSourceKobo &&
-		source != models.ReadingSourceManual {
-		return fmt.Errorf("invalid reading source %q", source)
-	}
-	if percent < 0 {
-		percent = 0
-	}
-	if percent > models.MaxProgressPercent {
-		percent = models.MaxProgressPercent
-	}
-
-	if source == models.ReadingSourceKobo {
-		// Any error here (including "no existing state") just means there's
-		// nothing to regress against — fall through to the upsert below.
-		if existing, err := s.readingState.Get(ctx, userID, bookID); err == nil &&
-			percent < existing.Percent {
-			return nil
-		}
-	}
-
-	if err := s.readingState.Upsert(
+	_, err := s.upsertReadingProgress(
 		ctx,
 		models.BookReadingState{ //nolint:exhaustruct //UpdatedAt set by DB
 			UserID:   userID,
@@ -772,15 +749,46 @@ func (s *BookService) UpdateReadingProgress(
 			Percent:  percent,
 			Location: location,
 		},
-	); err != nil {
-		return err
+	)
+	return err
+}
+
+// upsertReadingProgress returns the stored updated_at, nil when the write was
+// dropped. A kobo update lowering the stored percent is dropped: devices
+// re-report possibly stale local bookmarks (e.g. after a KEPUB re-download).
+// web/manual reflect explicit user action.
+func (s *BookService) upsertReadingProgress(
+	ctx context.Context,
+	state models.BookReadingState,
+) (*time.Time, error) {
+	if state.Source != models.ReadingSourceWeb &&
+		state.Source != models.ReadingSourceKobo &&
+		state.Source != models.ReadingSourceManual {
+		return nil, fmt.Errorf("invalid reading source %q", state.Source)
+	}
+	state.Percent = max(0, min(state.Percent, models.MaxProgressPercent))
+
+	if state.Source == models.ReadingSourceKobo {
+		// Any error here (including "no existing state") just means there's
+		// nothing to regress against — fall through to the upsert below.
+		existing, err := s.readingState.Get(ctx, state.UserID, state.BookID)
+		if err == nil && state.Percent < existing.Percent {
+			return nil, nil //nolint:nilnil // nil time means the write was dropped
+		}
+	}
+
+	updatedAt, err := s.readingState.UpsertReturningUpdatedAt(ctx, state)
+	if err != nil {
+		return nil, err
 	}
 
 	// Non-zero progress promotes to-read/dropped to currently-reading.
-	if percent > 0 {
-		return s.books.UpdateLibraryProgress(ctx, userID, bookID, percent)
+	if state.Percent > 0 {
+		err = s.books.UpdateLibraryProgress(
+			ctx, state.UserID, state.BookID, state.Percent,
+		)
 	}
-	return nil
+	return &updatedAt, err
 }
 
 // GetReadingState returns the current resumable position for a book.
@@ -1102,6 +1110,8 @@ func (s *BookService) consolidateUserBookData(
 		if winnerState == nil {
 			copied := *loserState
 			copied.BookID = winnerBookID
+			// The loser's Kobo span need not exist in the winner's file.
+			copied.KoboLocation = nil
 			if upsertErr := s.readingState.Upsert(ctx, copied); upsertErr != nil {
 				return deletedKeys, fmt.Errorf(
 					"upsert reading state loser %s user %s: %w",
