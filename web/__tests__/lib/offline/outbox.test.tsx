@@ -15,7 +15,7 @@ import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
 import { addQueued, type QueuedWrite } from '@/lib/offline/store'
 import type { OfflineWrite } from '@/lib/offline/registry'
 
-// Writes that append their JSON `value` to the cached '/list' array.
+// Writes that append their JSON `value` to cached '/list…' arrays.
 jest.mock('@/lib/shoppinglist/offlineWrites', () => {
   const decode = (bytes: Uint8Array): string => {
     const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes))
@@ -29,7 +29,7 @@ jest.mock('@/lib/shoppinglist/offlineWrites', () => {
     send: jest.fn(async () => ({})),
     apply: (key: unknown, data: unknown, bytes: Uint8Array) => {
       const value = decode(bytes)
-      return key === '/list' && Array.isArray(data)
+      return typeof key === 'string' && key.startsWith('/list') && Array.isArray(data)
         ? [...data.filter((v) => v !== value), value]
         : data
     },
@@ -79,8 +79,11 @@ const write: OfflineWrite = shoppingListWrites[0]
 const send = jest.mocked(write.send)
 const fetcher = jest.fn<Promise<string[]>, []>()
 
+// A fresh key per test, so no test joins another's in-flight refetch.
+let listKey = '/list'
+
 function Probe() {
-  const { data } = useSWR<string[]>('/list', fetcher)
+  const { data } = useSWR<string[]>(listKey, fetcher)
   return <span data-testid="list">{data?.join(',') ?? 'loading'}</span>
 }
 
@@ -100,7 +103,10 @@ async function enqueue(value: string) {
 }
 
 describe('outbox', () => {
+  let testIndex = 0
+
   beforeEach(async () => {
+    listKey = `/list/${++testIndex}`
     // The outbox mutates SWR's global cache, as the app does.
     await mutate(() => true, undefined, { revalidate: false })
     storeMock.mockReset()
