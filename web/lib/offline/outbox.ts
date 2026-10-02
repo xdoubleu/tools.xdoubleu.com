@@ -3,6 +3,7 @@ import { Code, ConnectError } from '@connectrpc/connect'
 import { mutate, type Arguments } from 'swr'
 import { bookWrites } from '@/lib/books/offlineWrites'
 import { feedWrites } from '@/lib/feeds/offlineWrites'
+import { learningPathWrites } from '@/lib/learningpaths/offlineWrites'
 import { mealPlanWrites } from '@/lib/mealplans/offlineWrites'
 import { recipeWrites } from '@/lib/recipes/offlineWrites'
 import { shoppingListWrites } from '@/lib/shoppinglist/offlineWrites'
@@ -24,7 +25,8 @@ const writes: OfflineWrite[] = [
   ...recipeWrites,
   ...mealPlanWrites,
   ...feedWrites,
-  ...bookWrites
+  ...bookWrites,
+  ...learningPathWrites
 ]
 const registry = new Map(writes.map((w) => [w.id, w]))
 
