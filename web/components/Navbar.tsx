@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import SettingsIcon from '@/components/SettingsIcon'
+import { clearOfflineData } from '@/lib/offline/session'
 
 const navItemClass = 'text-muted hover:bg-transparent hover:text-accent'
 // Icon-only below `sm`; the text label stays for screen readers.
@@ -43,6 +44,7 @@ export default function Navbar() {
 
   const handleSignOut = async () => {
     await signOut()
+    await clearOfflineData()
     if (typeof window !== 'undefined') {
       window.location.href = '/'
     }

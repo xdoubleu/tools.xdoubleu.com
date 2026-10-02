@@ -12,8 +12,13 @@ jest.mock('next/navigation', () => ({
   usePathname: jest.fn()
 }))
 
+jest.mock('@/lib/offline/session', () => ({
+  clearOfflineData: jest.fn(async () => {})
+}))
+
 import { useCurrentUser, useSignOut } from '@/hooks/useAuth'
 import { usePathname } from 'next/navigation'
+import { clearOfflineData } from '@/lib/offline/session'
 
 const mockUseCurrentUser = jest.mocked(useCurrentUser)
 const mockUseSignOut = jest.mocked(useSignOut)
@@ -93,7 +98,7 @@ describe('Navbar', () => {
     expect(container.firstChild).toBeNull()
   })
 
-  it('calls signOut and redirects to / on sign out', async () => {
+  it('calls signOut, clears offline data and redirects to / on sign out', async () => {
     // @ts-expect-error -- mock returns partial hook response for test purposes
     mockUseCurrentUser.mockReturnValue({
       data: create(GetCurrentUserResponseSchema, { role: 'user', appAccess: [] }),
@@ -108,7 +113,8 @@ describe('Navbar', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
 
     await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalledTimes(1)
+      expect(clearOfflineData).toHaveBeenCalledTimes(1)
     })
+    expect(mockSignOut).toHaveBeenCalledTimes(1)
   })
 })

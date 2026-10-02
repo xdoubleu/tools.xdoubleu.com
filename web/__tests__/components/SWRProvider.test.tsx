@@ -4,8 +4,13 @@ import { create } from '@bufbuild/protobuf'
 import posthog from 'posthog-js'
 import SWRProvider from '@/components/SWRProvider'
 import { swrKeys } from '@/lib/swrKeys'
+import { claimOfflineData } from '@/lib/offline/session'
 import { GetCurrentUserResponseSchema } from '@/lib/gen/auth/v1/auth_pb'
 import type { GetCurrentUserResponse } from '@/lib/gen/auth/v1/auth_pb'
+
+jest.mock('@/lib/offline/session', () => ({
+  claimOfflineData: jest.fn(async () => {})
+}))
 
 jest.mock('posthog-js', () => ({
   __esModule: true,
@@ -41,6 +46,7 @@ describe('SWRProvider', () => {
     )
 
     expect(posthog.identify).toHaveBeenCalledWith('user-123')
+    expect(claimOfflineData).toHaveBeenCalledWith('user-123')
   })
 
   it('does not re-identify when already identified as the current user', () => {
@@ -99,6 +105,7 @@ describe('SWRProvider', () => {
     )
 
     expect(posthog.identify).not.toHaveBeenCalled()
+    expect(claimOfflineData).not.toHaveBeenCalled()
   })
 
   it('exposes the server-fetched user as fallback for the current-user key', () => {

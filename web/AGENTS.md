@@ -17,6 +17,10 @@ Next.js 16 App Router, React 19, TypeScript strict, standalone Node server (`out
 - **Every SWR key goes through `lib/swrKeys.ts`**, for both hooks and `mutate()`; an inline literal splits the cache from its invalidator. `<SWRFallback>` keys must match the hook's exactly.
 - `getApiUrl()` (`lib/env.ts`) reads `window.__ENV__.API_URL` in the browser (injected in `app/layout.tsx`, since one build serves every environment) and `process.env.API_URL` on the server.
 
+## Offline → [`adr-0027`](../docs/adr-0027-offline-service-worker-and-persisted-swr.md)
+
+Add live-only or admin SWR keys to `NOT_PERSISTED` (`lib/offline/persist.ts`); everything else is saved for offline use.
+
 ## Commands
 
 ```bash

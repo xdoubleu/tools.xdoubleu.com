@@ -10,8 +10,8 @@ module.exports = {
       },
       to: {
         // Shared folders, not domains. lib/oauth2as belongs to app/oauth (mirrors
-        // the api's package name).
-        path: '^(?:components|lib)/(?!ui/|notifications/|gen/|server/|oauth2as/)([^/]+)/',
+        // the api's package name); offline serves every app (app/sw.js).
+        path: '^(?:components|lib)/(?!ui/|notifications/|gen/|server/|oauth2as/|offline/)([^/]+)/',
         pathNot: ['^components/$1/', '^lib/$1/']
       }
     },
