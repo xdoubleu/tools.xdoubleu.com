@@ -47,11 +47,12 @@ race each other and lose the session.
 
 ## Consequences
 
-- Writes no longer raise errors to their form. Server rejections surface in
-  the banner, so forms check obvious conflicts, such as duplicate names,
-  against cached data before queueing.
+- A form only sees a rejection that comes back while it waits on the send
+  (`sendWrite`). Later rejections surface in the banner, so forms check
+  obvious conflicts, such as duplicate names, against cached data first.
 - A write's reducer mirrors server behaviour (sort order, formatting) until
-  the follow-up refetch replaces it.
+  the follow-up refetch replaces it. A write whose reducer matches the
+  server exactly skips that refetch unless rejected.
 - A later write that depends on a rejected create fails as well.
 
 ## Revisit when
