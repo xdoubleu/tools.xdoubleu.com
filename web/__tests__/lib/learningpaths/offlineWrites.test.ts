@@ -51,6 +51,10 @@ describe('learning path offline writes', () => {
     expect(run(setPausedWrite, { id: 'a' }, swrKeys.learningPath('a'), empty)).toBe(empty)
     expect(run(setPausedWrite, { id: 'a', paused: true }, swrKeys.learningPaths, data)).toBe(data)
     expect(run(setPausedWrite, { id: 'a' }, ['/learningpaths/a'], data)).toBe(data)
+    const paths = list()
+    expect(run(setPausedWrite, { id: 'a', paused: true }, '/learningpaths/other', paths)).toBe(
+      paths
+    )
   })
 
   it('ticks an item off in its path, leaving book-linked items alone', () => {
