@@ -1,7 +1,7 @@
 # Wrapper around grafana/grafana: adds the `service` label Kamal's
 # `validate_image` requires and bakes in provisioning and dashboards
 # (infra/grafana/dashboards/ is the source of truth).
-FROM grafana/grafana:13.2.2
+FROM grafana/grafana:13.2.3
 
 # GitHub and Sentry datasources, wired up in provisioning/datasources/issue-signals.yml.
 ENV GF_INSTALL_PLUGINS=grafana-github-datasource,grafana-sentry-datasource
