@@ -244,6 +244,7 @@ func TestConnectReadingPosition_RoundTrip(t *testing.T) {
 		BookId:   book.ID.String(),
 		Source:   models.ReadingSourceWeb,
 		Percent:  12,
+		Location: "epubcfi(/6/4!/4/2/1:0)",
 		Position: &booksv1.ReadingPosition{Href: "text/part1.xhtml", Offset: 812},
 		ReadAt:   readAt.Format(time.RFC3339),
 	})
@@ -263,6 +264,7 @@ func TestConnectReadingPosition_RoundTrip(t *testing.T) {
 	assert.Equal(t, int32(812), state.Position.Offset)
 	assert.Equal(t, int32(0), state.Position.Page)
 	assert.Equal(t, readAt.Format(time.RFC3339), state.ReadAt)
+	assert.Equal(t, "epubcfi(/6/4!/4/2/1:0)", state.Location)
 }
 
 func TestConnectReadingPosition_PercentOnlyHasNoPosition(t *testing.T) {
