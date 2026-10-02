@@ -1,0 +1,49 @@
+import { create } from '@bufbuild/protobuf'
+import { defineOfflineWrite } from '@/lib/offline/registry'
+import { transport } from '@/lib/client'
+import {
+  DeleteShoppingItemRequestSchema,
+  ShoppingListService
+} from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+
+jest.mock('@/lib/client', () => ({ transport: { unary: jest.fn(async () => ({})) } }))
+
+describe('defineOfflineWrite', () => {
+  const apply = jest.fn((_key: unknown, data: unknown) => data)
+  const write = defineOfflineWrite({
+    method: ShoppingListService.method.deleteShoppingItem,
+    apply,
+    describe: (req) => `Delete ${req.itemId}`,
+    revalidate: '/shoppinglist'
+  })
+  const bytes = write.encode({ itemId: 'i1' })
+
+  it('identifies the write by service and method', () => {
+    expect(write.id).toBe('shoppinglist.v1.ShoppingListService/DeleteShoppingItem')
+    expect(write.revalidate).toBe('/shoppinglist')
+  })
+
+  it('decodes the stored request for apply and describe', () => {
+    write.apply('/k', 'data', bytes, 'hint')
+
+    expect(apply).toHaveBeenCalledWith(
+      '/k',
+      'data',
+      create(DeleteShoppingItemRequestSchema, { itemId: 'i1' }),
+      'hint'
+    )
+    expect(write.describe(bytes)).toBe('Delete i1')
+  })
+
+  it('sends the decoded request over the shared transport', async () => {
+    await write.send(bytes)
+
+    expect(transport.unary).toHaveBeenCalledWith(
+      ShoppingListService.method.deleteShoppingItem,
+      undefined,
+      undefined,
+      undefined,
+      create(DeleteShoppingItemRequestSchema, { itemId: 'i1' })
+    )
+  })
+})

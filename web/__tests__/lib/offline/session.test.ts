@@ -6,6 +6,7 @@ import {
 } from '@/lib/offline/session'
 import { clearStore, getOwner, pruneEntries, setOwner } from '@/lib/offline/store'
 import { logger } from '@/lib/logger'
+import { resetOutbox } from '@/lib/offline/outbox'
 
 jest.mock('@/lib/offline/store', () => ({
   clearStore: jest.fn(async () => {}),
@@ -14,6 +15,7 @@ jest.mock('@/lib/offline/store', () => ({
   setOwner: jest.fn(async () => {})
 }))
 jest.mock('@/lib/logger', () => ({ logger: { warn: jest.fn() } }))
+jest.mock('@/lib/offline/outbox', () => ({ resetOutbox: jest.fn() }))
 
 const postMessage = jest.fn()
 const register = jest.fn()
@@ -77,6 +79,7 @@ describe('offline session', () => {
     expect(postMessage).toHaveBeenCalledWith({ type: 'clear' })
     expect(clearStore).toHaveBeenCalled()
     expect(cachesDelete).toHaveBeenCalledWith('tools-pages')
+    expect(resetOutbox).toHaveBeenCalled()
   })
 
   it('clears data saved for another user before claiming it', async () => {

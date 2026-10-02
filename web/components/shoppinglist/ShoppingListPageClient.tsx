@@ -15,8 +15,8 @@ import MealPlanItemsPreview from '@/components/shoppinglist/MealPlanItemsPreview
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader, PageHeaderSettingsLink } from '@/components/ui/page-header'
 import { LoadingState } from '@/components/ui/states'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { deleteShoppingItemWrite, updateShoppingItemWrite } from '@/lib/shoppinglist/offlineWrites'
 import type { ShoppingItem as ShoppingItemExport } from '@/lib/shoppinglist/shoppingExport'
 import type { ShoppingItem } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 
@@ -33,8 +33,8 @@ export default function ShoppingListPageClient() {
   const [showExport, setShowExport] = useState(false)
   const [excludedGroups, setExcludedGroups] = useState<Set<string>>(new Set())
 
-  const { data, isLoading, mutate } = useCustomList()
-  const { data: categoriesData, mutate: mutateCategories } = useCategories()
+  const { data, isLoading } = useCustomList()
+  const { data: categoriesData } = useCategories()
   const categories = categoriesData?.categories ?? []
 
   const items = (data?.items ?? []).map(toExportItem)
@@ -65,25 +65,15 @@ export default function ShoppingListPageClient() {
       return next
     })
 
-  const handleDelete = async (itemId: string) => {
-    const client = createServiceClient(ShoppingListService)
-    await client.deleteShoppingItem({ itemId })
-    await mutate()
-  }
+  const handleDelete = (itemId: string) => enqueueWrite(deleteShoppingItemWrite, { itemId })
 
-  const handleEdit = async (
-    itemId: string,
-    values: { name: string; amount: string; unit: string }
-  ) => {
-    const client = createServiceClient(ShoppingListService)
-    await client.updateShoppingItem({
+  const handleEdit = (itemId: string, values: { name: string; amount: string; unit: string }) =>
+    enqueueWrite(updateShoppingItemWrite, {
       itemId,
       name: values.name,
       amount: values.amount || '0',
       unit: values.unit
     })
-    await mutate()
-  }
 
   return (
     <PageContainer>
@@ -92,11 +82,7 @@ export default function ShoppingListPageClient() {
         actions={<PageHeaderSettingsLink href="/shoppinglist/settings" />}
       />
 
-      <AddItemForm
-        categories={categories}
-        onAdded={mutate}
-        onCategoriesChanged={mutateCategories}
-      />
+      <AddItemForm categories={categories} />
 
       {isLoading && <LoadingState />}
       {!isLoading && (

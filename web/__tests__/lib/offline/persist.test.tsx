@@ -1,13 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import useSWR, { SWRConfig, unstable_serialize } from 'swr'
 import { Code, ConnectError } from '@connectrpc/connect'
-import { isNetworkError, persistMiddleware } from '@/lib/offline/persist'
+import { persistMiddleware } from '@/lib/offline/persist'
+import { applyPending } from '@/lib/offline/outbox'
 import { loadEntry, saveEntry } from '@/lib/offline/store'
 import { getSnapshot, markLive } from '@/lib/offline/status'
 
 jest.mock('@/lib/offline/store', () => ({
   loadEntry: jest.fn(),
   saveEntry: jest.fn()
+}))
+jest.mock('@/lib/offline/outbox', () => ({
+  applyPending: jest.fn(async (_key: unknown, data: unknown) => data)
 }))
 
 const mockLoad = jest.mocked(loadEntry)
@@ -80,6 +84,16 @@ describe('persistMiddleware', () => {
     expect(mockLoad).not.toHaveBeenCalled()
   })
 
+  it('re-applies queued writes to fetched and saved data', async () => {
+    jest.mocked(applyPending).mockImplementation(async (_key, data) => `${String(data)}+pending`)
+    renderProbe('/recipes', () => Promise.resolve('live'))
+
+    expect(await screen.findByText('live+pending')).toBeInTheDocument()
+    expect(applyPending).toHaveBeenCalledWith('/recipes', 'live')
+    expect(mockSave).toHaveBeenCalledWith(unstable_serialize('/recipes'), 'live')
+    jest.mocked(applyPending).mockImplementation(async (_key, data) => data)
+  })
+
   it('neither saves nor falls back for excluded keys', async () => {
     renderProbe('/trains/journey', () => Promise.resolve('live'))
     expect(await screen.findByText('live')).toBeInTheDocument()
@@ -89,24 +103,5 @@ describe('persistMiddleware', () => {
 
     expect(mockSave).not.toHaveBeenCalled()
     expect(mockLoad).not.toHaveBeenCalled()
-  })
-})
-
-describe('isNetworkError', () => {
-  afterEach(() => {
-    Object.defineProperty(navigator, 'onLine', { value: true, configurable: true })
-  })
-
-  it('classifies errors', () => {
-    expect(isNetworkError(new TypeError('Failed to fetch'))).toBe(true)
-    expect(isNetworkError(networkError())).toBe(true)
-    expect(isNetworkError(new ConnectError('down', Code.Unavailable))).toBe(true)
-    expect(isNetworkError(new ConnectError('nope', Code.NotFound))).toBe(false)
-    expect(isNetworkError(new Error('boom'))).toBe(false)
-  })
-
-  it('treats any error as a network error while the browser is offline', () => {
-    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true })
-    expect(isNetworkError(new Error('boom'))).toBe(true)
   })
 })

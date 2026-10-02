@@ -63,6 +63,7 @@ type shoppingRepo interface {
 	AddCustomItem(
 		ctx context.Context,
 		familyID uuid.UUID,
+		id uuid.NullUUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error)
@@ -95,6 +96,7 @@ type shoppingRepo interface {
 	CreateCategory(
 		ctx context.Context,
 		familyID uuid.UUID,
+		id uuid.NullUUID,
 		name string,
 	) (repositories.Category, error)
 	RenameCategory(
@@ -106,7 +108,12 @@ type shoppingRepo interface {
 	DeleteCategory(ctx context.Context, familyID uuid.UUID, id uuid.UUID) error
 
 	ListStores(ctx context.Context, userID string) ([]repositories.Store, error)
-	CreateStore(ctx context.Context, userID, name string) (repositories.Store, error)
+	CreateStore(
+		ctx context.Context,
+		userID string,
+		id uuid.NullUUID,
+		name string,
+	) (repositories.Store, error)
 	RenameStore(
 		ctx context.Context,
 		userID string,
@@ -186,16 +193,19 @@ func (s *ShoppingService) GetCustomList(
 	return s.repo.GetCustomItems(ctx, familyID)
 }
 
+// AddItem adds a custom item; a valid id makes repeats idempotent.
 func (s *ShoppingService) AddItem(
 	ctx context.Context,
-	userID, name, unit string,
+	userID string,
+	id uuid.NullUUID,
+	name, unit string,
 	amount float64,
 ) (repositories.ShoppingItem, error) {
 	familyID, err := s.family.EnsureFamily(ctx, userID)
 	if err != nil {
 		return repositories.ShoppingItem{}, err
 	}
-	return s.repo.AddCustomItem(ctx, familyID, name, unit, amount)
+	return s.repo.AddCustomItem(ctx, familyID, id, name, unit, amount)
 }
 
 func (s *ShoppingService) UpdateItem(

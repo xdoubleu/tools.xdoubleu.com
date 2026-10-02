@@ -35,6 +35,11 @@ jest.mock('@/components/offline/OfflineBanner', () => ({
   default: () => <div data-testid="offline-banner" />
 }))
 
+jest.mock('@/components/offline/OutboxSync', () => ({
+  __esModule: true,
+  default: () => <div data-testid="outbox-sync" />
+}))
+
 jest.mock('@/components/offline/ServiceWorkerRegistrar', () => ({
   __esModule: true,
   default: () => <div data-testid="sw-registrar" />
@@ -58,6 +63,7 @@ describe('AppShell', () => {
     expect(screen.getByTestId('deploy-notification')).toBeInTheDocument()
     expect(screen.getByTestId('offline-banner')).toBeInTheDocument()
     expect(screen.getByTestId('sw-registrar')).toBeInTheDocument()
+    expect(screen.getByTestId('outbox-sync')).toBeInTheDocument()
     expect(screen.getByTestId('child')).toHaveTextContent('content')
   })
 

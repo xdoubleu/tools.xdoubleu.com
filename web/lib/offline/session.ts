@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger'
+import { resetOutbox } from './outbox'
 import { PAGE_CACHE } from './serviceWorker'
 import { clearStore, getOwner, pruneEntries, setOwner } from './store'
 
@@ -19,7 +20,7 @@ export function savePageForOffline(url: string) {
   )
 }
 
-/** Deletes every saved page and response; run on sign-out. */
+/** Deletes every saved page, response and queued write; run on sign-out. */
 export async function clearOfflineData() {
   if ('serviceWorker' in navigator)
     navigator.serviceWorker.controller?.postMessage({ type: 'clear' })
@@ -27,6 +28,7 @@ export async function clearOfflineData() {
     clearStore(),
     typeof caches === 'undefined' ? undefined : caches.delete(PAGE_CACHE).catch(() => false)
   ])
+  resetOutbox()
 }
 
 /** Wipes data saved for a different user, then drops entries older than 30 days. */

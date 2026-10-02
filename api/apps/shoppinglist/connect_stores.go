@@ -37,12 +37,16 @@ func (h *shoppingConnectHandler) CreateStore(
 	if req.Msg.Name == "" {
 		return nil, errNameRequired()
 	}
+	id, err := parseClientID(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
 	userID, err := h.callerID(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	s, err := h.app.services.Shopping.CreateStore(ctx, userID, req.Msg.Name)
+	s, err := h.app.services.Shopping.CreateStore(ctx, userID, id, req.Msg.Name)
 	if err != nil {
 		return nil, mapError(err)
 	}

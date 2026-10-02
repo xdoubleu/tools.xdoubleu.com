@@ -4,8 +4,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { hasName } from '@/lib/shoppinglist/names'
+import {
+  createCategoryWrite,
+  createShoppingItemWrite,
+  setItemCategoryWrite
+} from '@/lib/shoppinglist/offlineWrites'
 import type { Category } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
 
 // Sentinel select value that reveals the new-category name input.
@@ -13,15 +18,9 @@ const NEW_CATEGORY = '__new__'
 
 interface AddItemFormProps {
   categories: Category[]
-  onAdded: () => Promise<unknown>
-  onCategoriesChanged: () => Promise<unknown>
 }
 
-export default function AddItemForm({
-  categories,
-  onAdded,
-  onCategoriesChanged
-}: AddItemFormProps) {
+export default function AddItemForm({ categories }: AddItemFormProps) {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [newUnit, setNewUnit] = useState('')
@@ -35,8 +34,8 @@ export default function AddItemForm({
     if (!name) return
     setAdding(true)
     try {
-      const client = createServiceClient(ShoppingListService)
-      await client.createShoppingItem({
+      await enqueueWrite(createShoppingItemWrite, {
+        id: crypto.randomUUID(),
         amount: newAmount || '0',
         unit: newUnit.trim(),
         name
@@ -44,23 +43,23 @@ export default function AddItemForm({
       let categoryId = newCategoryId
       if (newCategoryId === NEW_CATEGORY) {
         const trimmed = newCategoryName.trim()
-        categoryId = ''
-        if (trimmed) {
-          const resp = await client.createCategory({ name: trimmed })
-          categoryId = resp.category?.id ?? ''
-          await onCategoriesChanged()
+        // Reuse a same-named category rather than queue a create the API rejects.
+        const existing = categories.find((c) => hasName([c], trimmed))
+        categoryId = existing?.id ?? ''
+        if (trimmed && !existing) {
+          categoryId = crypto.randomUUID()
+          await enqueueWrite(createCategoryWrite, { id: categoryId, name: trimmed })
         }
       }
       // Categories live in the name->category catalog, so this persists by name.
       if (categoryId) {
-        await client.setItemCategory({ name, categoryId })
+        await enqueueWrite(setItemCategoryWrite, { name, categoryId })
       }
       setNewName('')
       setNewAmount('')
       setNewUnit('')
       setNewCategoryId('')
       setNewCategoryName('')
-      await onAdded()
     } finally {
       setAdding(false)
     }

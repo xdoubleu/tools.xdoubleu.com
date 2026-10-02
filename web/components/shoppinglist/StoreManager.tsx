@@ -19,8 +19,13 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useStores, useStoreCategories, useCategories } from '@/hooks/useShoppingList'
-import { createServiceClient } from '@/lib/client'
-import { ShoppingListService } from '@/lib/gen/shoppinglist/v1/shoppinglist_pb'
+import { enqueueWrite } from '@/lib/offline/outbox'
+import { hasName } from '@/lib/shoppinglist/names'
+import {
+  createStoreWrite,
+  deleteStoreWrite,
+  setStoreCategoriesWrite
+} from '@/lib/shoppinglist/offlineWrites'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -33,13 +38,12 @@ interface OrderedCategory {
 }
 
 export default function StoreManager() {
-  const { data: storesData, isLoading, mutate: mutateStores } = useStores()
+  const { data: storesData, isLoading } = useStores()
   const [selectedStoreId, setSelectedStoreId] = useState('')
   const [newName, setNewName] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
-  const client = createServiceClient(ShoppingListService)
   const stores = storesData?.stores ?? []
 
   const run = async (fn: () => Promise<unknown>) => {
@@ -47,8 +51,6 @@ export default function StoreManager() {
     setError('')
     try {
       await fn()
-    } catch {
-      setError('Something went wrong. The name may already be in use.')
     } finally {
       setBusy(false)
     }
@@ -56,19 +58,22 @@ export default function StoreManager() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newName.trim()) return
+    const name = newName.trim()
+    if (!name) return
+    if (hasName(stores, name)) {
+      setError('That name is already in use.')
+      return
+    }
     await run(async () => {
-      await client.createStore({ name: newName.trim() })
+      await enqueueWrite(createStoreWrite, { id: crypto.randomUUID(), name })
       setNewName('')
-      await mutateStores()
     })
   }
 
   const handleDelete = async (id: string) => {
     await run(async () => {
-      await client.deleteStore({ id })
+      await enqueueWrite(deleteStoreWrite, { id })
       if (selectedStoreId === id) setSelectedStoreId('')
-      await mutateStores()
     })
   }
 
@@ -121,13 +126,11 @@ export default function StoreManager() {
 }
 
 function StoreCategoryOrder({ storeId }: { storeId: string }) {
-  const { data: storeCategoriesData, mutate } = useStoreCategories(storeId)
+  const { data: storeCategoriesData } = useStoreCategories(storeId)
   const { data: categoriesData } = useCategories()
   const [order, setOrder] = useState<OrderedCategory[]>([])
   const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
-
-  const client = createServiceClient(ShoppingListService)
 
   // Initialize order once per storeId so SWR refetches don't wipe local reordering.
   const lastInitializedStoreId = useRef<string>('')
@@ -173,8 +176,11 @@ function StoreCategoryOrder({ storeId }: { storeId: string }) {
     setBusy(true)
     setSaved(false)
     try {
-      await client.setStoreCategories({ storeId, categoryIds: order.map((o) => o.id) })
-      await mutate()
+      await enqueueWrite(
+        setStoreCategoriesWrite,
+        { storeId, categoryIds: order.map((o) => o.id) },
+        Object.fromEntries(order.map((o) => [o.id, o.name]))
+      )
       setSaved(true)
     } finally {
       setBusy(false)

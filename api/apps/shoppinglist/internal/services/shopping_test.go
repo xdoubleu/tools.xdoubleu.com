@@ -128,13 +128,16 @@ func TestAddItem_Success(t *testing.T) {
 	}
 	family := newFamilyStore()
 	m := baseMock()
+	clientID := uuid.New()
 	m.AddCustomItemFn = func(
 		_ context.Context,
 		familyID uuid.UUID,
+		id uuid.NullUUID,
 		name, unit string,
 		amount float64,
 	) (repositories.ShoppingItem, error) {
 		assert.Equal(t, family.familyID, familyID)
+		assert.Equal(t, uuid.NullUUID{UUID: clientID, Valid: true}, id)
 		assert.Equal(t, "milk", name)
 		assert.Equal(t, "L", unit)
 		assert.InDelta(t, 1.0, amount, 1e-9)
@@ -142,7 +145,14 @@ func TestAddItem_Success(t *testing.T) {
 	}
 
 	svc := services.NewShoppingService(m, family)
-	got, err := svc.AddItem(context.Background(), "user1", "milk", "L", 1)
+	got, err := svc.AddItem(
+		context.Background(),
+		"user1",
+		uuid.NullUUID{UUID: clientID, Valid: true},
+		"milk",
+		"L",
+		1,
+	)
 	require.NoError(t, err)
 	assert.Equal(t, want, got)
 }
@@ -151,13 +161,20 @@ func TestAddItem_RepoError(t *testing.T) {
 	repoErr := errors.New("db error")
 	m := baseMock()
 	m.AddCustomItemFn = func(
-		_ context.Context, _ uuid.UUID, _, _ string, _ float64,
+		_ context.Context, _ uuid.UUID, _ uuid.NullUUID, _, _ string, _ float64,
 	) (repositories.ShoppingItem, error) {
 		return repositories.ShoppingItem{}, repoErr
 	}
 
 	svc := services.NewShoppingService(m, newFamilyStore())
-	_, err := svc.AddItem(context.Background(), "user1", "milk", "L", 1)
+	_, err := svc.AddItem(
+		context.Background(),
+		"user1",
+		uuid.NullUUID{UUID: uuid.Nil, Valid: false},
+		"milk",
+		"L",
+		1,
+	)
 	assert.ErrorIs(t, err, repoErr)
 }
 
@@ -369,7 +386,14 @@ func TestFamilyResolutionErrors_PropagateWithoutTouchingRepo(t *testing.T) {
 	_, err := svc.GetCustomList(ctx, "user1")
 	assert.ErrorIs(t, err, familyErr)
 
-	_, err = svc.AddItem(ctx, "user1", "milk", "L", 1)
+	_, err = svc.AddItem(
+		ctx,
+		"user1",
+		uuid.NullUUID{UUID: uuid.Nil, Valid: false},
+		"milk",
+		"L",
+		1,
+	)
 	assert.ErrorIs(t, err, familyErr)
 
 	_, err = svc.UpdateItem(ctx, "user1", uuid.New(), "milk", "L", 1)
@@ -392,7 +416,12 @@ func TestFamilyResolutionErrors_PropagateWithoutTouchingRepo(t *testing.T) {
 	_, err = svc.ListCategories(ctx, "user1")
 	assert.ErrorIs(t, err, familyErr)
 
-	_, err = svc.CreateCategory(ctx, "user1", "Produce")
+	_, err = svc.CreateCategory(
+		ctx,
+		"user1",
+		uuid.NullUUID{UUID: uuid.Nil, Valid: false},
+		"Produce",
+	)
 	assert.ErrorIs(t, err, familyErr)
 
 	_, err = svc.RenameCategory(ctx, "user1", uuid.New(), "Produce")

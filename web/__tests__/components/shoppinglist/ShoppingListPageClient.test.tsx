@@ -1,13 +1,14 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-const createShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
-const setItemCategory = jest.fn().mockResolvedValue({})
-const createCategory = jest.fn().mockResolvedValue({ category: { id: 'cat-new' } })
-const deleteShoppingItem = jest.fn().mockResolvedValue({})
-const updateShoppingItem = jest.fn().mockResolvedValue({ item: { id: 'i1' } })
-const listMutate = jest.fn().mockResolvedValue(undefined)
-const categoriesMutate = jest.fn().mockResolvedValue(undefined)
+import { enqueueWrite } from '@/lib/offline/outbox'
+import {
+  createCategoryWrite,
+  createShoppingItemWrite,
+  deleteShoppingItemWrite,
+  setItemCategoryWrite,
+  updateShoppingItemWrite
+} from '@/lib/shoppinglist/offlineWrites'
 
 // Mutable meal-plan mock state (mock-prefixed for jest.mock); reset per test.
 let mockMealExport: { data: { items: unknown[] }; isLoading: boolean } = {
@@ -20,12 +21,10 @@ let mockPlanGroups: { data: { groups: unknown[] } } = { data: { groups: [] } }
 jest.mock('@/hooks/useShoppingList', () => ({
   useCustomList: () => ({
     data: { items: [{ id: 'i1', name: 'Milk', amount: '1', unit: 'L' }] },
-    isLoading: mockListLoading,
-    mutate: listMutate
+    isLoading: mockListLoading
   }),
   useCategories: () => ({
-    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] },
-    mutate: categoriesMutate
+    data: { categories: [{ id: 'cat-produce', name: 'Produce' }] }
   }),
   useAllMealPlanExportItems: () => mockMealExport,
   useAllPlanIngredientGroups: () => mockPlanGroups,
@@ -34,15 +33,12 @@ jest.mock('@/hooks/useShoppingList', () => ({
   useItemCategories: () => ({ data: { items: [] }, isLoading: false })
 }))
 
-jest.mock('@/lib/client', () => ({
-  createServiceClient: () => ({
-    createShoppingItem,
-    setItemCategory,
-    createCategory,
-    deleteShoppingItem,
-    updateShoppingItem
-  })
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: jest.fn().mockResolvedValue(undefined)
 }))
+
+const enqueue = jest.mocked(enqueueWrite)
+const uuid = expect.stringMatching(/^[0-9a-f-]{36}$/)
 
 import ShoppingListPageClient from '@/components/shoppinglist/ShoppingListPageClient'
 
@@ -62,15 +58,16 @@ describe('ShoppingPage add form', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     await waitFor(() =>
-      expect(createShoppingItem).toHaveBeenCalledWith({
+      expect(enqueue).toHaveBeenCalledWith(setItemCategoryWrite, {
         name: 'Apples',
-        amount: '0',
-        unit: ''
+        categoryId: 'cat-produce'
       })
     )
-    expect(setItemCategory).toHaveBeenCalledWith({
+    expect(enqueue).toHaveBeenCalledWith(createShoppingItemWrite, {
+      id: uuid,
       name: 'Apples',
-      categoryId: 'cat-produce'
+      amount: '0',
+      unit: ''
     })
   })
 
@@ -80,8 +77,9 @@ describe('ShoppingPage add form', () => {
     fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Bread' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-    await waitFor(() => expect(createShoppingItem).toHaveBeenCalled())
-    expect(setItemCategory).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByPlaceholderText('Item name')).toHaveValue(''))
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith(createShoppingItemWrite, expect.anything())
   })
 
   it('creates a new category inline and assigns it on add', async () => {
@@ -92,17 +90,36 @@ describe('ShoppingPage add form', () => {
     fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'Fruit' } })
     fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
-    await waitFor(() => expect(createCategory).toHaveBeenCalledWith({ name: 'Fruit' }))
-    expect(setItemCategory).toHaveBeenCalledWith({
-      name: 'Kiwi',
-      categoryId: 'cat-new'
-    })
-    expect(categoriesMutate).toHaveBeenCalled()
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(setItemCategoryWrite, { name: 'Kiwi', categoryId: uuid })
+    )
+    const created: unknown = enqueue.mock.calls.find(([w]) => w === createCategoryWrite)?.[1]
+    const assigned: unknown = enqueue.mock.calls.find(([w]) => w === setItemCategoryWrite)?.[1]
+    expect(created).toEqual({ id: uuid, name: 'Fruit' })
+    // The item's category is the client id just queued.
+    expect(created).toHaveProperty('id', Reflect.get(Object(assigned), 'categoryId'))
+  })
+
+  it('reuses an existing category typed as new', async () => {
+    render(<ShoppingListPageClient />)
+
+    fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Pear' } })
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: '__new__' } })
+    fireEvent.change(screen.getByLabelText('New category name'), { target: { value: 'produce' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(setItemCategoryWrite, {
+        name: 'Pear',
+        categoryId: 'cat-produce'
+      })
+    )
+    expect(enqueue).not.toHaveBeenCalledWith(createCategoryWrite, expect.anything())
   })
 })
 
 describe('ShoppingPage edit', () => {
-  it('updates a custom item and refreshes the list', async () => {
+  it('queues an update of a custom item', async () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: /Edit Milk/ }))
@@ -112,23 +129,23 @@ describe('ShoppingPage edit', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     await waitFor(() =>
-      expect(updateShoppingItem).toHaveBeenCalledWith({
+      expect(enqueue).toHaveBeenCalledWith(updateShoppingItemWrite, {
         itemId: 'i1',
         name: 'Oat Milk',
         amount: '2',
         unit: 'cartons'
       })
     )
-    expect(listMutate).toHaveBeenCalled()
   })
 
-  it('deletes a custom item and refreshes the list', async () => {
+  it('queues a delete of a custom item', async () => {
     render(<ShoppingListPageClient />)
 
     fireEvent.click(screen.getByRole('button', { name: /Remove Milk/ }))
 
-    await waitFor(() => expect(deleteShoppingItem).toHaveBeenCalledWith({ itemId: 'i1' }))
-    expect(listMutate).toHaveBeenCalled()
+    await waitFor(() =>
+      expect(enqueue).toHaveBeenCalledWith(deleteShoppingItemWrite, { itemId: 'i1' })
+    )
   })
 })
 

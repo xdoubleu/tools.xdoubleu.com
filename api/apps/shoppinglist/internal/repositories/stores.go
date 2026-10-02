@@ -43,16 +43,22 @@ func (r *ShoppingRepository) ListStores(
 	return result, rows.Err()
 }
 
+// CreateStore inserts a store; a valid id makes repeats idempotent like
+// AddCustomItem.
 func (r *ShoppingRepository) CreateStore(
 	ctx context.Context,
-	userID, name string,
+	userID string,
+	id uuid.NullUUID,
+	name string,
 ) (Store, error) {
 	var s Store
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO shoppinglist.stores (user_id, name)
-		VALUES ($1, $2)
+		INSERT INTO shoppinglist.stores (id, user_id, name)
+		VALUES (COALESCE($3::uuid, gen_random_uuid()), $1, $2)
+		ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id
+			WHERE stores.user_id = EXCLUDED.user_id
 		RETURNING id::text, name`,
-		userID, name,
+		userID, name, id,
 	).Scan(&s.ID, &s.Name)
 	if err != nil {
 		return Store{}, postgres.PgxErrorToHTTPError(err)

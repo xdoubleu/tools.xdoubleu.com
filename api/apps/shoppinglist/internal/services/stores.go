@@ -17,9 +17,11 @@ func (s *ShoppingService) ListStores(
 
 func (s *ShoppingService) CreateStore(
 	ctx context.Context,
-	userID, name string,
+	userID string,
+	id uuid.NullUUID,
+	name string,
 ) (repositories.Store, error) {
-	return s.repo.CreateStore(ctx, userID, name)
+	return s.repo.CreateStore(ctx, userID, id, name)
 }
 
 func (s *ShoppingService) RenameStore(

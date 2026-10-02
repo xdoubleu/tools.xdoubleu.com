@@ -1,5 +1,6 @@
 import { unstable_serialize, type Middleware } from 'swr'
-import { Code, ConnectError } from '@connectrpc/connect'
+import { isNetworkError } from './network'
+import { applyPending } from './outbox'
 import { loadEntry, saveEntry } from './store'
 import { markLive, markServedFromCache } from './status'
 
@@ -20,16 +21,6 @@ const NOT_PERSISTED = [
 function isPersisted(key: unknown): key is string | readonly [string, ...unknown[]] {
   const path: unknown = Array.isArray(key) ? key[0] : key
   return typeof path === 'string' && !NOT_PERSISTED.some((p) => path.startsWith(p))
-}
-
-/** True when the request never reached the API (offline, DNS, proxy down). */
-export function isNetworkError(err: unknown): boolean {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) return true
-  if (err instanceof TypeError) return true
-  if (err instanceof ConnectError) {
-    return err.code === Code.Unavailable || err.cause instanceof TypeError
-  }
-  return false
 }
 
 async function fetchWithFallback<T>(
@@ -56,7 +47,13 @@ async function fetchWithFallback<T>(
 /**
  * Saves every successful fetch to IndexedDB and, when the network is down,
  * resolves with the last saved copy instead of an error. SWR's
- * revalidate-on-reconnect then replaces it with live data.
+ * revalidate-on-reconnect then replaces it with live data. Queued offline
+ * writes are re-applied on top, so they survive refetches until sent.
  */
 export const persistMiddleware: Middleware = (useSWRNext) => (key, fetcher, config) =>
-  useSWRNext(key, fetcher && ((...args: unknown[]) => fetchWithFallback(args, fetcher)), config)
+  useSWRNext(
+    key,
+    fetcher &&
+      (async (...args: unknown[]) => applyPending(args[0], await fetchWithFallback(args, fetcher))),
+    config
+  )

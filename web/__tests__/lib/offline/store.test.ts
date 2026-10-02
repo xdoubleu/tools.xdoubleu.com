@@ -1,8 +1,14 @@
 /** @jest-environment node */
 import 'fake-indexeddb/auto'
 import {
+  addFailed,
+  addQueued,
+  clearFailed,
   clearStore,
+  deleteQueued,
   getOwner,
+  listFailed,
+  listQueued,
   loadEntry,
   pruneEntries,
   saveEntry,
@@ -52,6 +58,46 @@ describe('offline store', () => {
   })
 })
 
+describe('offline store queue', () => {
+  beforeEach(async () => {
+    await clearStore()
+  })
+
+  const write = (writeId: string) => ({
+    writeId,
+    request: new Uint8Array([1, 2]),
+    hint: { a: 'b' },
+    createdAt: 1
+  })
+
+  it('keeps queued writes in insertion order until deleted', async () => {
+    const first = await addQueued(write('w/A'))
+    const second = await addQueued(write('w/B'))
+    expect(second).toBeGreaterThan(first ?? Infinity)
+
+    expect((await listQueued()).map((w) => w.writeId)).toEqual(['w/A', 'w/B'])
+
+    await deleteQueued(first ?? 0)
+    expect(await listQueued()).toEqual([{ ...write('w/B'), seq: second }])
+  })
+
+  it('stores failed writes until cleared, and clearStore wipes both', async () => {
+    await addFailed({ description: 'Add “milk”', reason: 'gone' })
+    expect(await listFailed()).toEqual([
+      { description: 'Add “milk”', reason: 'gone', seq: expect.any(Number) }
+    ])
+
+    await clearFailed()
+    expect(await listFailed()).toEqual([])
+
+    await addQueued(write('w/A'))
+    await addFailed({ description: 'x', reason: 'y' })
+    await clearStore()
+    expect(await listQueued()).toEqual([])
+    expect(await listFailed()).toEqual([])
+  })
+})
+
 describe('offline store write failures', () => {
   it('swallows values IndexedDB cannot store', async () => {
     await expect(saveEntry('fn', () => {})).resolves.toBeUndefined()
@@ -68,6 +114,11 @@ describe('offline store without IndexedDB', () => {
       await saveEntry('k', 1)
       expect(await loadEntry('k')).toBeUndefined()
       expect(await getOwner()).toBeUndefined()
+      expect(
+        await addQueued({ writeId: 'w', request: new Uint8Array(), createdAt: 1 })
+      ).toBeUndefined()
+      expect(await listQueued()).toEqual([])
+      expect(await listFailed()).toEqual([])
     } finally {
       globalThis.indexedDB = original
     }
