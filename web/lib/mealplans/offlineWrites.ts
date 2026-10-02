@@ -14,9 +14,7 @@ import { RecipeSchema } from '@/lib/gen/recipes/v1/recipes_pb'
 const { method } = MealPlansService
 const REVALIDATE = '/mealplans'
 
-/** Hint for meal writes: the chosen recipe's name, which requests don't carry. */
-export type MealHint = string | undefined
-
+// Meal writes' hint is the chosen recipe's name, which requests don't carry.
 function recipeRef(recipeId: string, hint: unknown, current?: PlanMeal) {
   if (!recipeId) return undefined
   if (typeof hint === 'string') return create(RecipeSchema, { id: recipeId, name: hint })
