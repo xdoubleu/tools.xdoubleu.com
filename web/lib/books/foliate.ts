@@ -43,9 +43,13 @@ export interface FoliateView extends HTMLElement {
   book?: { toc?: FoliateTocItem[]; sections?: ReaderSection[]; destroy?: () => void }
   isFixedLayout: boolean
   renderer?: {
-    addEventListener?: HTMLElement['addEventListener']
+    addEventListener?: (
+      type: 'relocate',
+      listener: (e: CustomEvent<{ reason?: string }>) => void,
+      options?: AddEventListenerOptions
+    ) => void
     setStyles?: (css: string) => void
-    goTo?: (target: { index: number; anchor?: (doc: Document) => Range }) => Promise<unknown>
+    goTo: (target: { index: number; anchor?: (doc: Document) => Range }) => Promise<unknown>
   }
   open(book: string | Blob): Promise<void>
   init(options: { lastLocation?: string; showTextStart?: boolean }): Promise<void>

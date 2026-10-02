@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
@@ -31,18 +31,8 @@ export function useReadingProgressSaver(bookId: string | null) {
   const pending = useRef<SaveRequest | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
-  const flush = useCallback(() => {
-    clearTimeout(timer.current)
-    const req = pending.current
-    if (!req) return
-    pending.current = null
-    // A lost save is superseded by the next one; never interrupt reading.
-    createServiceClient(LibraryService)
-      .updateReadingProgress(req)
-      .catch(() => {})
-  }, [])
-
   useEffect(() => {
+    const flush = () => flushSave(pending)
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush()
     }
@@ -53,21 +43,29 @@ export function useReadingProgressSaver(bookId: string | null) {
       window.removeEventListener('pagehide', flush)
       flush()
     }
-  }, [flush])
+  }, [])
 
-  return useCallback(
-    (location: ReaderLocation) => {
-      if (!bookId) return
-      pending.current = {
-        bookId,
-        source: 'web',
-        percent: Math.round(location.fraction * 100),
-        position: location.position,
-        readAt: new Date().toISOString()
-      }
-      clearTimeout(timer.current)
-      timer.current = setTimeout(flush, READING_SAVE_DELAY_MS)
-    },
-    [bookId, flush]
-  )
+  return (location: ReaderLocation) => {
+    if (!bookId) return
+    pending.current = {
+      bookId,
+      source: 'web',
+      percent: Math.round(location.fraction * 100),
+      position: location.position,
+      readAt: new Date().toISOString()
+    }
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => flushSave(pending), READING_SAVE_DELAY_MS)
+  }
+}
+
+// A stale timer finding nothing pending is a no-op, so flushing leaves it.
+function flushSave(pending: RefObject<SaveRequest | null>) {
+  const req = pending.current
+  if (!req) return
+  pending.current = null
+  // A lost save is superseded by the next one; never interrupt reading.
+  createServiceClient(LibraryService)
+    .updateReadingProgress(req)
+    .catch(() => {})
 }

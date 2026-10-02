@@ -37,19 +37,12 @@ function toLocation(detail: FoliateRelocateDetail): ReaderLocation {
   }
 }
 
-function relocateReason(e: Event): unknown {
-  const detail: unknown = e instanceof CustomEvent ? e.detail : undefined
-  return typeof detail === 'object' && detail !== null && 'reason' in detail
-    ? detail.reason
-    : undefined
-}
-
 // Opens at the stored position, else the stored percent, else the start.
 async function openAt(view: FoliateView, resume: ReaderResume | undefined) {
   const target = resumeTarget(view.book?.sections, resume)
   try {
     if (target && 'fraction' in target) return await view.goToFraction(target.fraction)
-    if (target && view.renderer?.goTo) return await view.renderer.goTo(target)
+    if (target) return await view.renderer!.goTo(target)
   } catch {
     // Fall through to the start.
   }
@@ -137,7 +130,7 @@ export function useFoliateView(
     let cancelled = false
     let created: FoliateView | null = null
     let opened = false
-    let reason: unknown
+    let reason: string | undefined
     let onKey: (e: KeyboardEvent) => void = () => {}
 
     void (async () => {
@@ -167,7 +160,7 @@ export function useFoliateView(
         if (cancelled) return
         // The view re-emits the renderer's relocate without its reason; a
         // capture listener runs first at the target, so it sees it in time.
-        v.renderer?.addEventListener?.('relocate', (e) => (reason = relocateReason(e)), {
+        v.renderer?.addEventListener?.('relocate', (e) => (reason = e.detail.reason), {
           capture: true
         })
         setView(v)

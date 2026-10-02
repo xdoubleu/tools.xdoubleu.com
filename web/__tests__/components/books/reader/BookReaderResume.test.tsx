@@ -162,4 +162,19 @@ describe('BookReader resume', () => {
     relocate(view, { fraction: 0.5, section: { current: 1, total: 3 } })
     expect(onRelocate).toHaveBeenCalledWith(expect.objectContaining({ position: { page: 2 } }))
   })
+
+  it('reports no position for a book without sections', async () => {
+    const view = makeView()
+    view.open.mockImplementation(async () => {})
+    const onRelocate = await renderReader(view)
+    relocate(view, { fraction: 0.2 })
+    expect(onRelocate).toHaveBeenCalledWith(expect.objectContaining({ position: undefined }))
+  })
+
+  it('opens at the start when a position has no renderer to seek with', async () => {
+    const view = makeView()
+    Object.assign(view, { renderer: undefined })
+    await renderReader(view, { position: { href: 'OEBPS/ch1.xhtml', offset: 6 }, percent: 40 })
+    expect(view.init).toHaveBeenCalledWith({})
+  })
 })

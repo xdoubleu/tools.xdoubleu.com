@@ -19,8 +19,9 @@ export type ResumeTarget =
   { index: number; anchor?: (doc: Document) => Range } | { fraction: number } | null
 
 /** Text offset of the boundary point (node, offset) within the body. */
-export function textOffsetAt(doc: Document, node: Node, offset: number): number {
-  if (!doc.body.contains(node)) return 0
+export function textOffsetAt(node: Node, offset: number): number {
+  const doc = node.ownerDocument
+  if (!doc?.body) return 0
   const range = doc.createRange()
   range.setStart(doc.body, 0)
   range.setEnd(node, offset)
@@ -56,8 +57,7 @@ export function positionAt(
   const section = sections?.[index]
   if (!section) return undefined
   if (typeof section.id === 'number') return { page: index + 1 }
-  const doc = range?.startContainer.ownerDocument
-  const offset = range && doc ? textOffsetAt(doc, range.startContainer, range.startOffset) : 0
+  const offset = range ? textOffsetAt(range.startContainer, range.startOffset) : 0
   return { href: section.id, offset }
 }
 

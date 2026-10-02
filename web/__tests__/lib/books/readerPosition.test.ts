@@ -19,17 +19,21 @@ describe('textOffsetAt', () => {
   it('counts the body text before a point inside a text node', () => {
     const doc = sectionDoc('<h1>Title</h1><p>One <em>two</em> three</p>')
     const em = doc.querySelector('em')!.firstChild!
-    expect(textOffsetAt(doc, em, 1)).toBe('Title'.length + 'One '.length + 1)
+    expect(textOffsetAt(em, 1)).toBe('Title'.length + 'One '.length + 1)
   })
 
   it('counts the text before a point between elements', () => {
     const doc = sectionDoc('<p>abc</p><p>def</p>')
-    expect(textOffsetAt(doc, doc.body, 1)).toBe(3)
+    expect(textOffsetAt(doc.body, 1)).toBe(3)
   })
 
   it('is zero for a point outside the body', () => {
     const doc = sectionDoc('<p>abc</p>')
-    expect(textOffsetAt(doc, doc.head, 0)).toBe(0)
+    expect(textOffsetAt(doc.head, 0)).toBe(0)
+  })
+
+  it('is zero for a node outside any document body', () => {
+    expect(textOffsetAt(document.implementation.createHTMLDocument('x'), 0)).toBe(0)
   })
 })
 
@@ -46,8 +50,15 @@ describe('rangeAtTextOffset', () => {
     const doc = sectionDoc('<p>alpha</p><div><p>beta <b>gamma</b></p></div>')
     for (const offset of [0, 3, 5, 8, 12, 15]) {
       const range = rangeAtTextOffset(doc, offset)
-      expect(textOffsetAt(doc, range.startContainer, range.startOffset)).toBe(offset)
+      expect(textOffsetAt(range.startContainer, range.startOffset)).toBe(offset)
     }
+  })
+
+  it('starts at the next text node on a boundary', () => {
+    const doc = sectionDoc('<p>abc</p><p>def</p>')
+    const range = rangeAtTextOffset(doc, 3)
+    expect(range.startContainer).toBe(doc.querySelectorAll('p')[1]!.firstChild)
+    expect(range.startOffset).toBe(0)
   })
 
   it('clamps an offset past the end to the end of the text', () => {
@@ -97,6 +108,15 @@ describe('resumeTarget', () => {
     const doc = sectionDoc('<p>Call me Ishmael.</p>')
     const range = target && 'anchor' in target ? target.anchor?.(doc) : undefined
     expect(range?.startOffset).toBe(4)
+  })
+
+  it('opens the first section by href', () => {
+    expect(
+      resumeTarget(EPUB_SECTIONS, {
+        position: { href: 'OEBPS/cover.xhtml', offset: 0 },
+        percent: 1
+      })
+    ).toEqual({ index: 0, anchor: expect.any(Function) })
   })
 
   it('opens a PDF at the stored page', () => {

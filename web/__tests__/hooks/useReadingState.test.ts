@@ -124,4 +124,43 @@ describe('useReadingProgressSaver', () => {
     })
     expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
   })
+
+  it('waits a full pause after a flush before saving again', () => {
+    const { result } = renderHook(() => useReadingProgressSaver('book-1'))
+    act(() => result.current(EPUB_LOCATION))
+    window.dispatchEvent(new Event('pagehide'))
+    jest.advanceTimersByTime(1000)
+    act(() => result.current(EPUB_LOCATION))
+    jest.advanceTimersByTime(READING_SAVE_DELAY_MS - 1)
+    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    jest.advanceTimersByTime(1)
+    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(2)
+  })
+
+  it('stops listening for hide and pagehide after unmount', () => {
+    const { result, unmount } = renderHook(() => useReadingProgressSaver('book-1'))
+    const save = result.current
+    unmount()
+    act(() => save(EPUB_LOCATION))
+    window.dispatchEvent(new Event('pagehide'))
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockUpdateReadingProgress).not.toHaveBeenCalled()
+  })
+
+  it('saves for the current book', () => {
+    const { result, rerender } = renderHook(({ id }) => useReadingProgressSaver(id), {
+      initialProps: { id: null as string | null }
+    })
+    act(() => result.current(EPUB_LOCATION))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(mockUpdateReadingProgress).not.toHaveBeenCalled()
+
+    rerender({ id: 'book-2' })
+    act(() => result.current(EPUB_LOCATION))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(mockUpdateReadingProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ bookId: 'book-2' })
+    )
+  })
 })
