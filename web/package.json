@@ -73,7 +73,7 @@
     "fake-indexeddb": "6.2.5",
     "jest": "30.5.2",
     "jest-environment-jsdom": "30.5.2",
-    "knip": "6.38.0",
+    "knip": "6.39.0",
     "postcss": "8.5.28",
     "prettier": "3.9.9",
     "react-is": "19.3.0",
