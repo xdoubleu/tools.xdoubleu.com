@@ -28,7 +28,8 @@ var (
 	})
 	githubWorkflowRunFailed = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "github_workflow_run_failed",
-		Help: "Recent GitHub Actions workflow runs that concluded in failure, by branch.",
+		Help: "1 when the most recent completed workflow run on the main " +
+			"branch failed, else 0.",
 	}, []string{"branch"})
 	githubWorkflowRunDurationSeconds = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "github_workflow_run_duration_seconds",
@@ -278,11 +279,20 @@ func (j *IssueSignalCollectorJob) collectWorkflowRuns(
 		return
 	}
 
-	failed := 0
+	// mainFailed is 1 iff the most recent completed run on main concluded
+	// failure. Counting every failure in ListWorkflowRuns' last-20-push window
+	// kept the gauge set for ~8h after a transient red push, so IssueMainCIRed
+	// fired while main was green.
+	mainFailed := 0.0
+	haveMainRun := false
+	var latestMain github.WorkflowRun
 	latestByWorkflow := make(map[string]github.WorkflowRun)
 	for _, run := range runs {
-		if run.Branch == mainBranch && run.Conclusion == "failure" {
-			failed++
+		if run.Branch == mainBranch && run.Status == "completed" {
+			if !haveMainRun || run.StartedAt.After(latestMain.StartedAt) {
+				haveMainRun = true
+				latestMain = run
+			}
 		}
 		if run.Branch != mainBranch || run.Status != "completed" {
 			continue
@@ -292,8 +302,11 @@ func (j *IssueSignalCollectorJob) collectWorkflowRuns(
 			latestByWorkflow[run.Name] = run
 		}
 	}
+	if haveMainRun && latestMain.Conclusion == "failure" {
+		mainFailed = 1
+	}
 	githubWorkflowRunFailed.Reset()
-	githubWorkflowRunFailed.WithLabelValues(mainBranch).Set(float64(failed))
+	githubWorkflowRunFailed.WithLabelValues(mainBranch).Set(mainFailed)
 
 	githubWorkflowRunDurationSeconds.Reset()
 	for name, run := range latestByWorkflow {
