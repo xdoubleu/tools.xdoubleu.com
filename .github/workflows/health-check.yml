@@ -1,0 +1,80 @@
+name: Scheduled health check
+
+# Independent, scheduled run of the repo's lint and test suites. Push/PR CI only
+# re-runs when code changes; this catches drift in between (dependency rot,
+# flaky services, expired credentials). Detection-only: it never pushes code.
+# Failures are reported by .github/workflows/health-check-report.yml.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # 06:07 UTC daily: 08:07 Brussels summer, 07:07 in winter, ahead of the digest.
+    - cron: '7 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_fail:
+        description: >-
+          Fail the check on purpose, to verify that a failure files an issue.
+        type: boolean
+        default: false
+
+jobs:
+  force-fail:
+    name: Forced failure (self-test)
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.force_fail }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail on purpose
+        run: |
+          echo "force_fail=true: failing on purpose to test the report path."
+          exit 1
+
+  api-lint:
+    name: API Lint Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/api-lint.yml
+    secrets: inherit
+
+  web-lint:
+    name: Web Lint Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/web-lint.yml
+    secrets: inherit
+
+  kobo-gateway-lint:
+    name: Kobo Gateway Lint Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/kobo-gateway-lint.yml
+    secrets: inherit
+
+  sentrytools-lint:
+    name: Sentrytools Lint Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/sentrytools-lint.yml
+    secrets: inherit
+
+  api-test:
+    name: API Test Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/api-test.yml
+    secrets: inherit
+
+  web-test:
+    name: Web Test Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/web-test.yml
+    secrets: inherit
+
+  kobo-gateway-test:
+    name: Kobo Gateway Test Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/kobo-gateway-test.yml
+    secrets: inherit
+
+  sentrytools-test:
+    name: Sentrytools Test Workflow
+    if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force_fail) }}
+    uses: ./.github/workflows/sentrytools-test.yml
+    secrets: inherit

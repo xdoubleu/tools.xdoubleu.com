@@ -1,0 +1,31 @@
+name: Health check report
+
+# Files a tracking issue when the scheduled health-check workflow fails. Runs
+# after that workflow finishes, so per-job logs are available to quote.
+# Detection-only: it never pushes code or edits the failing run.
+
+permissions:
+  contents: read
+
+on:
+  workflow_run:
+    workflows: ["Scheduled health check"]
+    types: [completed]
+
+jobs:
+  report:
+    name: File an issue
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: File or update the health-check issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HEALTH_CHECK_RUN_ID: ${{ github.event.workflow_run.id }}
+          HEALTH_CHECK_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: scripts/ci_health_report.sh
