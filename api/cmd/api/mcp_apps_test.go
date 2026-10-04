@@ -228,6 +228,46 @@ func TestAppsMCPListToolsAsAdmin(t *testing.T) {
 	}
 }
 
+func TestAppsMCPProjectIssuesToolRequiresProjectNumber(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	session := appsMCPSession(t, accessToken.Value)
+	res, err := session.ListTools(context.Background(), nil)
+	require.NoError(t, err)
+
+	var tool *mcp.Tool
+	for _, tl := range res.Tools {
+		if tl.Name == "get_project_issues_by_status" {
+			tool = tl
+			break
+		}
+	}
+	require.NotNil(t, tool, "get_project_issues_by_status not advertised")
+
+	schemaJSON, err := json.Marshal(tool.InputSchema)
+	require.NoError(t, err)
+	var schema struct {
+		Required []string `json:"required"`
+	}
+	require.NoError(t, json.Unmarshal(schemaJSON, &schema))
+	assert.Contains(t, schema.Required, "project_number")
+}
+
+func TestAppsMCPProjectIssuesToolRejectsMissingProjectNumber(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	session := appsMCPSession(t, accessToken.Value)
+	//nolint:exhaustruct // name + optional arguments are all a call needs
+	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+		Name:      "get_project_issues_by_status",
+		Arguments: map[string]any{"status": "Ready"},
+	})
+	require.NoError(t, err)
+	assert.True(t, res.IsError, "missing project_number must be rejected before the call")
+}
+
 // TestAppsMCPReadToolsReturnData: a hermetic subset of tools returns content.
 func TestAppsMCPReadToolsReturnData(t *testing.T) {
 	promoteToAdmin(t)
@@ -252,10 +292,18 @@ func TestAppsMCPReadToolsReturnData(t *testing.T) {
 		"get_sentry_issues", "get_logs", "get_slow_transactions",
 		"get_oauth_connections", "get_project_issues_by_status",
 	}
+	// get_project_issues_by_status requires project_number since the field
+	// became required; the others take no arguments.
+	toolArgs := map[string]any{
+		"get_project_issues_by_status": map[string]any{
+			"project_number": 8, "status": "Ready",
+		},
+	}
 	for _, name := range tools {
-		//nolint:exhaustruct // only the tool name is required to call it
+		//nolint:exhaustruct // name + optional arguments are all a call needs
 		res, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-			Name: name,
+			Name:      name,
+			Arguments: toolArgs[name],
 		})
 		require.NoErrorf(t, err, "tool %s", name)
 		assert.Falsef(t, res.IsError, "tool %s returned an error result", name)

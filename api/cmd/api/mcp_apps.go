@@ -98,8 +98,8 @@ func (m *runMetricsArgs) proto() *observabilityv1.RunMetrics {
 
 // projectIssuesByStatusArgs is the input for get_project_issues_by_status.
 type projectIssuesByStatusArgs struct {
-	ProjectNumber int32  `json:"project_number,omitempty" jsonschema:"board number"`
-	Status        string `json:"status,omitempty"         jsonschema:"e.g. Ready"`
+	ProjectNumber int32  `json:"project_number"   jsonschema:"board number (required)"`
+	Status        string `json:"status,omitempty" jsonschema:"e.g. Ready"`
 }
 
 // promQueryArgs is the input for prom_query.
@@ -292,7 +292,9 @@ func registerAlertMCPTools(srv *mcp.Server, h *obsConnectHandler) {
 			"(v2) board whose Status column matches the given name (e.g. "+
 			"\"Ready\"). The generic GitHub MCP server can't resolve custom "+
 			"fields on a personal (user-owned) project board, so this is the "+
-			"only way to answer \"which issues are in column X\".",
+			"only way to answer \"which issues are in column X\". "+
+			"project_number is required — pass the board's number explicitly "+
+			"(there is no configured default).",
 		func(ctx context.Context, a projectIssuesByStatusArgs) (proto.Message, error) {
 			return h.projectIssuesByStatus(ctx, a.ProjectNumber, a.Status)
 		})
