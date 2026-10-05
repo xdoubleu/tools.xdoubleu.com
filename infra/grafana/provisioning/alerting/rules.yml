@@ -501,7 +501,7 @@ groups:
           severity: critical
         annotations:
           summary: CI on the main branch is failing
-          description: "{{ $values.A }} failed workflow run(s) on main."
+          description: "The most recent workflow run on main failed."
         noDataState: OK
         execErrState: Alerting
         data:

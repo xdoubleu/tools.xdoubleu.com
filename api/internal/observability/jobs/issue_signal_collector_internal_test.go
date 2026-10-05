@@ -182,6 +182,105 @@ func completedRun(name string, durationMs int64) github.WorkflowRun {
 	}
 }
 
+// mainCompletedRun builds a completed main-branch run; only these fields
+// drive the workflow-run gauges.
+func mainCompletedRun(
+	name string, startedAt time.Time, conclusion string,
+) github.WorkflowRun {
+	//nolint:exhaustruct //only these fields drive the workflow-run gauges
+	return github.WorkflowRun{
+		Name:       name,
+		Branch:     "main",
+		Status:     "completed",
+		Conclusion: conclusion,
+		StartedAt:  startedAt,
+	}
+}
+
+// inProgressMainRun builds a main-branch run that is still running, so its
+// conclusion is empty and it must not count as the latest completed run.
+func inProgressMainRun(startedAt time.Time) github.WorkflowRun {
+	//nolint:exhaustruct //only these fields drive the workflow-run gauges
+	return github.WorkflowRun{
+		Branch:    "main",
+		Status:    "in_progress",
+		StartedAt: startedAt,
+	}
+}
+
+// workflowRunsJob builds a collector whose only contributing input is runs.
+func workflowRunsJob(runs []github.WorkflowRun) *IssueSignalCollectorJob {
+	return newStubJob(
+		stubGithubClient{
+			prs: nil, prsErr: nil, runs: runs, runsErr: nil,
+			alerts: nil, alertsErr: nil,
+			vars: nil, varsErr: nil,
+		},
+		stubSentryClient{issues: nil, err: nil},
+		stubStorageGetter{snap: nil, err: database.ErrResourceNotFound},
+		stubSchemaSizer{sizes: nil, err: nil},
+		stubAutomatedActionGetter{firedAt: time.Now(), err: nil, byRoutine: nil},
+	)
+}
+
+func TestIssueSignalCollectorWorkflowRunFailedLatestMain(t *testing.T) {
+	t.Run("latest completed main run failed sets 1", func(t *testing.T) {
+		resetGauges()
+		job := workflowRunsJob([]github.WorkflowRun{
+			mainCompletedRun("CI", time.Unix(100, 0), "success"),
+			mainCompletedRun("CI", time.Unix(200, 0), "failure"),
+		})
+		logger, _ := loggerWithBuf()
+		require.NoError(t, job.Run(t.Context(), logger))
+		assert.InDelta(t, 1.0, testutil.ToFloat64(
+			githubWorkflowRunFailed.WithLabelValues("main")), 0)
+	})
+	t.Run("newer completed success clears an older failure", func(t *testing.T) {
+		resetGauges()
+		job := workflowRunsJob([]github.WorkflowRun{
+			mainCompletedRun("CI", time.Unix(100, 0), "failure"),
+			mainCompletedRun("CI", time.Unix(200, 0), "success"),
+		})
+		logger, _ := loggerWithBuf()
+		require.NoError(t, job.Run(t.Context(), logger))
+		assert.InDelta(t, 0.0, testutil.ToFloat64(
+			githubWorkflowRunFailed.WithLabelValues("main")), 0)
+	})
+	t.Run("in-progress newer run does not clear a completed failure", func(t *testing.T) {
+		resetGauges()
+		job := workflowRunsJob([]github.WorkflowRun{
+			mainCompletedRun("CI", time.Unix(200, 0), "failure"),
+			inProgressMainRun(time.Unix(300, 0)),
+		})
+		logger, _ := loggerWithBuf()
+		require.NoError(t, job.Run(t.Context(), logger))
+		assert.InDelta(t, 1.0, testutil.ToFloat64(
+			githubWorkflowRunFailed.WithLabelValues("main")), 0)
+	})
+	t.Run("no completed main run keeps 0", func(t *testing.T) {
+		resetGauges()
+		job := workflowRunsJob([]github.WorkflowRun{
+			inProgressMainRun(time.Unix(300, 0)),
+			failedRun("feature", "failure"),
+		})
+		logger, _ := loggerWithBuf()
+		require.NoError(t, job.Run(t.Context(), logger))
+		assert.InDelta(t, 0.0, testutil.ToFloat64(
+			githubWorkflowRunFailed.WithLabelValues("main")), 0)
+	})
+	t.Run("feature-branch failure is ignored", func(t *testing.T) {
+		resetGauges()
+		job := workflowRunsJob([]github.WorkflowRun{
+			mainCompletedRun("CI", time.Unix(100, 0), "success"),
+			failedRun("feature", "failure"),
+		})
+		logger, _ := loggerWithBuf()
+		require.NoError(t, job.Run(t.Context(), logger))
+		assert.InDelta(t, 0.0, testutil.ToFloat64(
+			githubWorkflowRunFailed.WithLabelValues("main")), 0)
+	})
+}
+
 func alertWithSeverity(sev string) github.SecurityAlert {
 	//nolint:exhaustruct //only Severity drives the security-alert gauge
 	return github.SecurityAlert{Severity: sev}
@@ -385,13 +484,11 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 			prs:    failingPRs(2),
 			prsErr: nil,
 			runs: []github.WorkflowRun{
-				failedRun("main", "failure"),
-				failedRun("main", "failure"),
-				failedRun("main", "success"),
 				failedRun("feature", "failure"),
 				completedRun("CI", 300),
 				completedRun("CI", 420),
 				completedRun("Deploy", 90),
+				mainCompletedRun("triage", time.Unix(500, 0), "failure"),
 			},
 			runsErr: nil,
 			alerts: []github.SecurityAlert{
@@ -430,7 +527,7 @@ func TestIssueSignalCollectorConnectedSetsGauges(t *testing.T) {
 	require.NoError(t, job.Run(t.Context(), logger))
 
 	assert.InDelta(t, 2.0, testutil.ToFloat64(githubFailingPullRequests), 0)
-	assert.InDelta(t, 2.0,
+	assert.InDelta(t, 1.0,
 		testutil.ToFloat64(githubWorkflowRunFailed.WithLabelValues("main")), 0)
 	assert.InDelta(t, 2.0,
 		testutil.ToFloat64(githubOpenSecurityAlerts.WithLabelValues("high")), 0)
