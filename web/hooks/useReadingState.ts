@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
-import { createServiceClient } from '@/lib/client'
+import { createKeepaliveClient, createServiceClient } from '@/lib/client'
 import { updateReadingProgressWrite } from '@/lib/books/offlineWrites'
 import { enqueueWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
@@ -39,11 +39,12 @@ export function useReadingProgressSaver(bookId: string | null) {
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush()
     }
+    const onPageHide = () => flushSave(pending, true)
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', flush)
+    window.addEventListener('pagehide', onPageHide)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', flush)
+      window.removeEventListener('pagehide', onPageHide)
       flush()
     }
   }, [])
@@ -63,10 +64,17 @@ export function useReadingProgressSaver(bookId: string | null) {
 }
 
 // A stale timer finding nothing pending is a no-op, so flushing leaves it.
-function flushSave(pending: RefObject<SaveRequest | null>) {
+function flushSave(pending: RefObject<SaveRequest | null>, unloading = false) {
   const req = pending.current
   if (!req) return
   pending.current = null
+  // An unloading page can die before the outbox stores the save, so also send
+  // it now; the queued copy's replay is then a no-op (same read_at).
+  if (unloading) {
+    createKeepaliveClient(LibraryService)
+      .updateReadingProgress(req)
+      .catch(() => {})
+  }
   // Never interrupt reading; a save that can't be queued is superseded by the next.
   enqueueWrite(updateReadingProgressWrite, req).catch(() => {})
 }

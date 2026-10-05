@@ -2,10 +2,12 @@ import { act, renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockGetReadingState = jest.fn()
+const mockKeepaliveSave = jest.fn()
 jest.mock('@/lib/client', () => ({
   createServiceClient: () => ({
     getReadingState: mockGetReadingState
-  })
+  }),
+  createKeepaliveClient: () => ({ updateReadingProgress: mockKeepaliveSave })
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({ LibraryService: {} }))
 const mockEnqueue = jest.fn()
@@ -55,6 +57,8 @@ describe('useReadingProgressSaver', () => {
     jest.setSystemTime(new Date('2026-10-02T12:00:00Z'))
     mockEnqueue.mockReset()
     mockEnqueue.mockResolvedValue({})
+    mockKeepaliveSave.mockReset()
+    mockKeepaliveSave.mockResolvedValue({})
   })
   afterEach(() => jest.useRealTimers())
 
@@ -108,6 +112,25 @@ describe('useReadingProgressSaver', () => {
     window.dispatchEvent(new Event('pagehide'))
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS)
     expect(mockEnqueue).toHaveBeenCalledTimes(2)
+  })
+
+  it('also sends directly on pagehide, since the page may unload before the queue stores it', () => {
+    const { result, unmount } = renderHook(() => useReadingProgressSaver('book-1'))
+    act(() => result.current(EPUB_LOCATION))
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockKeepaliveSave).not.toHaveBeenCalled()
+
+    act(() => result.current(EPUB_LOCATION))
+    mockKeepaliveSave.mockRejectedValue(new Error('offline'))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(1)
+    expect(mockKeepaliveSave).toHaveBeenCalledWith(mockEnqueue.mock.calls[1][1])
+
+    act(() => result.current(EPUB_LOCATION))
+    unmount()
+    expect(mockEnqueue).toHaveBeenCalledTimes(3)
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(1)
   })
 
   it('flushes when the reader closes', () => {

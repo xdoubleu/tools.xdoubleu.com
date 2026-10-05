@@ -1,5 +1,10 @@
 /** @jest-environment node */
-import { createServiceClient, keepaliveTransport, transport } from '@/lib/client'
+import {
+  createKeepaliveClient,
+  createServiceClient,
+  keepaliveTransport,
+  transport
+} from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
 import { LibraryService } from '@/lib/gen/books/v1/library_pb'
 import { RecipesService } from '@/lib/gen/recipes/v1/recipes_pb'
@@ -15,6 +20,10 @@ describe('createServiceClient', () => {
     const a = createServiceClient(AuthService)
     const b = createServiceClient(RecipesService)
     expect(a).not.toBe(b)
+  })
+
+  it('builds keepalive clients with the service methods', () => {
+    expect(typeof createKeepaliveClient(LibraryService).updateReadingProgress).toBe('function')
   })
 
   it('exposes the service methods', () => {
