@@ -308,10 +308,12 @@ groups:
                     params: [0]
 
       # The global p95 rules above dilute one slow route or job among the fast
-      # majority; this fires per Sentry transaction instead. The 1s floor keeps
-      # sub-second noise quiet; the gauge already omits transactions with too
-      # few requests in either week (Trends). No notify label: the nightly
-      # sweep picks it up.
+      # majority; this fires per Sentry transaction instead. The floor is the
+      # recent p95 in seconds, not a ratio of the prior window: a high-traffic
+      # page whose aggregate p95 sits just over 1s is dominated by device mix
+      # and cold-Node loads, so a <2s recent p95 reads as artifact even at a 2x
+      # trend. The gauge already omits transactions with too few requests in
+      # either week (Trends). No notify label: the nightly sweep picks it up.
       - uid: transaction-latency-regression
         title: TransactionLatencyRegression
         condition: C
@@ -337,7 +339,7 @@ groups:
               expr: >-
                 transaction_p95_seconds{window="recent"}
                 / ignoring(window) transaction_p95_seconds{window="prior"} >= 2
-                and ignoring(window) transaction_p95_seconds{window="recent"} >= 1
+                and ignoring(window) transaction_p95_seconds{window="recent"} >= 2
           - refId: C
             datasourceUid: __expr__
             model:
