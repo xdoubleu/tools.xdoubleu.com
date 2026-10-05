@@ -146,83 +146,165 @@ func (r *LearningPathsRepository) Delete(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
-// ReplaceModules deletes and reinserts a path's modules and items. Completed
-// flags come from the caller; progress toggling belongs in
+// ReplaceModules reconciles a path's modules and items in place: each row is
+// matched by the content the client round-trips (title for modules, type and
+// description for items), falling back to position, so an edit keeps the IDs —
+// and with them recorded progress, Todoist task ids and book links. New rows
+// are inserted; rows with no incoming match are deleted (items cascade). A
+// matched item's completed flag is never overwritten: progress belongs to
 // RecordItemProgress.
 func (r *LearningPathsRepository) ReplaceModules(
 	ctx context.Context,
 	learningPathID uuid.UUID,
 	modules []models.Module,
 ) error {
-	_, err := r.db.Exec(ctx,
-		`DELETE FROM learningpaths.modules WHERE learning_path_id = $1`,
-		learningPathID,
-	)
+	existing, err := r.GetModules(ctx, learningPathID)
 	if err != nil {
-		return postgres.PgxErrorToHTTPError(err)
+		return err
 	}
 
-	if len(modules) == 0 {
-		return nil
-	}
-
+	used := make([]bool, len(existing))
 	for i := range modules {
 		quizJSON, marshalErr := json.Marshal(modules[i].Quiz)
 		if marshalErr != nil {
 			return marshalErr
 		}
 
-		var moduleID uuid.UUID
-		err = r.db.QueryRow(
-			ctx,
-			`INSERT INTO learningpaths.modules (learning_path_id, title, sort_order, quiz)
-			VALUES ($1, $2, $3, $4)
-			RETURNING id`,
-			learningPathID,
-			modules[i].Title,
-			i,
-			quizJSON,
-		).Scan(&moduleID)
+		var (
+			moduleID uuid.UUID
+			oldItems []models.Item
+		)
+		if k := matchModule(existing, used, i, &modules[i]); k >= 0 {
+			used[k] = true
+			moduleID = existing[k].ID
+			oldItems = existing[k].Items
+			_, err = r.db.Exec(ctx, `
+				UPDATE learningpaths.modules
+				SET title = $2, sort_order = $3, quiz = $4
+				WHERE id = $1`,
+				moduleID, modules[i].Title, i, quizJSON,
+			)
+		} else {
+			err = r.db.QueryRow(ctx, `
+				INSERT INTO learningpaths.modules (learning_path_id, title, sort_order, quiz)
+				VALUES ($1, $2, $3, $4)
+				RETURNING id`,
+				learningPathID, modules[i].Title, i, quizJSON,
+			).Scan(&moduleID)
+		}
 		if err != nil {
 			return postgres.PgxErrorToHTTPError(err)
 		}
 		modules[i].ID = moduleID
 		modules[i].LearningPathID = learningPathID
 
-		if len(modules[i].Items) == 0 {
-			continue
-		}
-
-		//nolint:exhaustruct //other fields optional
-		batch := &pgx.Batch{}
-		for j, item := range modules[i].Items {
-			batch.Queue(`
-				INSERT INTO learningpaths.items
-				(module_id, type, description, sort_order, completed,
-				linked_book_id, due)
-				VALUES ($1, $2, $3, $4, $5, $6, $7)
-				RETURNING id`,
-				moduleID, item.Type, item.Description, j, item.Completed,
-				item.LinkedBookID, item.Due,
-			)
-		}
-
-		br := r.db.SendBatch(ctx, batch)
-		for j := range modules[i].Items {
-			var itemID uuid.UUID
-			if err = br.QueryRow().Scan(&itemID); err != nil {
-				_ = br.Close()
-				return postgres.PgxErrorToHTTPError(err)
-			}
-			modules[i].Items[j].ID = itemID
-			modules[i].Items[j].ModuleID = moduleID
-		}
-		if err = br.Close(); err != nil {
-			return postgres.PgxErrorToHTTPError(err)
+		if err = replaceModuleItems(
+			ctx, r.db, moduleID, oldItems, modules[i].Items,
+		); err != nil {
+			return err
 		}
 	}
 
+	// Delete modules with no incoming match; their items cascade.
+	for i, m := range existing {
+		if !used[i] {
+			if _, err = r.db.Exec(ctx,
+				`DELETE FROM learningpaths.modules WHERE id = $1`, m.ID,
+			); err != nil {
+				return postgres.PgxErrorToHTTPError(err)
+			}
+		}
+	}
 	return nil
+}
+
+// matchModule finds the existing module the incoming one continues: the same
+// title first (the stable key the client round-trips), then the unused module
+// at the same position, so a removed module's row is not taken over by the
+// one that shifts into its place.
+func matchModule(existing []models.Module, used []bool, pos int, m *models.Module) int {
+	for i := range existing {
+		if !used[i] && existing[i].Title == m.Title {
+			return i
+		}
+	}
+	if pos < len(existing) && !used[pos] {
+		return pos
+	}
+	return -1
+}
+
+// replaceModuleItems reconciles a module's items: matched rows are updated in
+// place, keeping their IDs and completed flags; new items are inserted with
+// the caller's flag; unmatched old rows are deleted.
+func replaceModuleItems(
+	ctx context.Context,
+	db postgres.DB,
+	moduleID uuid.UUID,
+	oldItems, newItems []models.Item,
+) error {
+	used := make([]bool, len(oldItems))
+	for j := range newItems {
+		item := &newItems[j]
+		if k := matchItem(oldItems, used, j, item); k >= 0 {
+			used[k] = true
+			_, err := db.Exec(ctx, `
+				UPDATE learningpaths.items
+				SET type = $2, description = $3, sort_order = $4,
+					linked_book_id = $5, due = $6
+				WHERE id = $1`,
+				oldItems[k].ID, item.Type, item.Description, j,
+				item.LinkedBookID, item.Due,
+			)
+			if err != nil {
+				return postgres.PgxErrorToHTTPError(err)
+			}
+			item.ID = oldItems[k].ID
+			item.ModuleID = moduleID
+			continue
+		}
+
+		err := db.QueryRow(ctx, `
+			INSERT INTO learningpaths.items
+			(module_id, type, description, sort_order, completed,
+			linked_book_id, due)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			RETURNING id`,
+			moduleID, item.Type, item.Description, j, item.Completed,
+			item.LinkedBookID, item.Due,
+		).Scan(&item.ID)
+		if err != nil {
+			return postgres.PgxErrorToHTTPError(err)
+		}
+		item.ModuleID = moduleID
+	}
+
+	for i, old := range oldItems {
+		if !used[i] {
+			if _, err := db.Exec(ctx,
+				`DELETE FROM learningpaths.items WHERE id = $1`, old.ID,
+			); err != nil {
+				return postgres.PgxErrorToHTTPError(err)
+			}
+		}
+	}
+	return nil
+}
+
+// matchItem finds the old item the incoming one continues: same type and
+// description first (the stable key the client round-trips), then the unused
+// item at the same position.
+func matchItem(oldItems []models.Item, used []bool, pos int, item *models.Item) int {
+	for i := range oldItems {
+		if !used[i] && oldItems[i].Type == item.Type &&
+			oldItems[i].Description == item.Description {
+			return i
+		}
+	}
+	if pos < len(oldItems) && !used[pos] {
+		return pos
+	}
+	return -1
 }
 
 func (r *LearningPathsRepository) GetModules(

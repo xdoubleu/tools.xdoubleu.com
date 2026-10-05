@@ -209,6 +209,139 @@ func TestUpdateLearningPath_Success(t *testing.T) {
 	assert.Len(t, updateResp.Msg.LearningPath.Modules[0].Items, 2)
 }
 
+// TestUpdateLearningPath_KeepsItemIDsAndProgress: an update reconciles
+// modules/items in place, so item IDs — and progress recorded on them via
+// RecordItemProgress / offline queue — survive an unrelated edit, including an
+// in-place description edit.
+func TestUpdateLearningPath_KeepsItemIDsAndProgress(t *testing.T) {
+	client := setupClient(getRoutes())
+	ctx := newCtx()
+
+	createResp, err := client.CreateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Keep IDs",
+			Modules: []*learningpathsv1.Module{
+				{Title: "M1", Items: []*learningpathsv1.Item{
+					{Description: "item 1"}, {Description: "item 2"},
+				}},
+			},
+		}),
+	)
+	require.NoError(t, err)
+	pathID := createResp.Msg.LearningPath.Id
+	modules := createResp.Msg.LearningPath.Modules
+	require.Len(t, modules, 1)
+	require.Len(t, modules[0].Items, 2)
+	itemID, item2ID := modules[0].Items[0].Id, modules[0].Items[1].Id
+
+	_, err = client.RecordItemProgress(
+		ctx,
+		connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+			ItemId: itemID, Completed: true,
+		}),
+	)
+	require.NoError(t, err)
+
+	_, err = client.UpdateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+			Id:    pathID,
+			Title: "Renamed",
+			Modules: []*learningpathsv1.Module{
+				{Title: "M1", Items: []*learningpathsv1.Item{
+					{Description: "item 1"}, {Description: "item 2 edited"},
+				}},
+			},
+		}),
+	)
+	require.NoError(t, err)
+
+	got, err := client.GetLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+	)
+	require.NoError(t, err)
+	require.Len(t, got.Msg.LearningPath.Modules, 1)
+	items := got.Msg.LearningPath.Modules[0].Items
+	require.Len(t, items, 2)
+	assert.Equal(t, itemID, items[0].Id, "item ID survives an update")
+	assert.True(t, items[0].Completed, "recorded progress survives an update")
+	assert.Equal(t, item2ID, items[1].Id, "an edited item keeps its ID")
+	assert.Equal(t, "item 2 edited", items[1].Description)
+}
+
+// TestUpdateLearningPath_AddRemoveItemsReconciles: removing a middle item or
+// module keeps the survivors' IDs and progress (matched by content, not by
+// the row's old position), appends get fresh IDs, and the removed rows are
+// gone.
+func TestUpdateLearningPath_AddRemoveItemsReconciles(t *testing.T) {
+	client := setupClient(getRoutes())
+	ctx := newCtx()
+
+	createResp, err := client.CreateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.CreateLearningPathRequest{
+			Title: "Reconcile",
+			Modules: []*learningpathsv1.Module{
+				{Title: "M1", Items: []*learningpathsv1.Item{
+					{Description: "alpha"},
+					{Description: "beta"},
+					{Description: "gamma"},
+				}},
+				{Title: "M2", Items: []*learningpathsv1.Item{{Description: "gone"}}},
+			},
+		}),
+	)
+	require.NoError(t, err)
+	pathID := createResp.Msg.LearningPath.Id
+	modules := createResp.Msg.LearningPath.Modules
+	require.Len(t, modules, 2)
+	alphaID := modules[0].Items[0].Id
+	gammaID := modules[0].Items[2].Id
+
+	for _, itemID := range []string{alphaID, gammaID} {
+		_, err = client.RecordItemProgress(
+			ctx,
+			connect.NewRequest(&learningpathsv1.RecordItemProgressRequest{
+				ItemId: itemID, Completed: true,
+			}),
+		)
+		require.NoError(t, err)
+	}
+
+	_, err = client.UpdateLearningPath(
+		ctx,
+		connect.NewRequest(&learningpathsv1.UpdateLearningPathRequest{
+			Id:    pathID,
+			Title: "Reconcile",
+			Modules: []*learningpathsv1.Module{
+				{Title: "M1", Items: []*learningpathsv1.Item{
+					{Description: "alpha"},
+					{Description: "gamma"},
+					{Description: "new item", Completed: true},
+				}},
+			},
+		}),
+	)
+	require.NoError(t, err)
+
+	got, err := client.GetLearningPath(
+		ctx, connect.NewRequest(&learningpathsv1.GetLearningPathRequest{Id: pathID}),
+	)
+	require.NoError(t, err)
+	require.Len(t, got.Msg.LearningPath.Modules, 1, "removed module is deleted")
+	items := got.Msg.LearningPath.Modules[0].Items
+	require.Len(t, items, 3)
+	assert.Equal(t, alphaID, items[0].Id, "surviving item keeps its ID")
+	assert.True(t, items[0].Completed, "surviving item keeps its progress")
+	assert.Equal(t, gammaID, items[1].Id,
+		"shifted item keeps its own ID, not the removed row's")
+	assert.True(t, items[1].Completed, "shifted item keeps its own progress")
+	assert.Equal(t, "new item", items[2].Description)
+	assert.True(t, items[2].Completed, "new item takes the caller's flag")
+	assert.NotEqual(t, gammaID, items[2].Id, "new item gets a fresh ID")
+}
+
 // TestCreateLearningPath_QuizRoundTrip: a module's quiz persists and returns
 // through the Connect CRUD surface. A nil quiz element is skipped by dtoToQuiz.
 func TestCreateLearningPath_QuizRoundTrip(t *testing.T) {
