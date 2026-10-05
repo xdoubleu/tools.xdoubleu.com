@@ -2,8 +2,10 @@ import { create, isMessage } from '@bufbuild/protobuf'
 import { defineOfflineWrite } from '@/lib/offline/registry'
 import { swrKeys } from '@/lib/swrKeys'
 import {
+  BookReadingStateDataSchema,
   BookShelfSchema,
   GetLibraryResponseSchema,
+  GetReadingStateResponseSchema,
   LibraryService,
   type LibraryResponse,
   type UserBook
@@ -219,6 +221,43 @@ export const updateBookWrite = defineOfflineWrite({
   revalidate: REVALIDATE
 })
 
+const READING_STATE = swrKeys.readingState('')[0]
+
+/** The reader's position save; mirrors the server's most-recently-read-wins rule. */
+export const updateReadingProgressWrite = defineOfflineWrite({
+  method: library.updateReadingProgress,
+  apply: (key, data, req) => {
+    if (
+      !Array.isArray(key) ||
+      key[0] !== READING_STATE ||
+      key[1] !== req.bookId ||
+      !isMessage(data, GetReadingStateResponseSchema)
+    ) {
+      return data
+    }
+    const stored = data.state
+    if (stored && Date.parse(stored.readAt || stored.updatedAt) >= Date.parse(req.readAt)) {
+      return data
+    }
+    return {
+      ...data,
+      state: create(BookReadingStateDataSchema, {
+        source: req.source,
+        percent: req.percent,
+        location: req.location,
+        position: req.position,
+        readAt: req.readAt,
+        updatedAt: req.readAt
+      })
+    }
+  },
+  describe: () => 'Save reading position',
+  revalidate: READING_STATE,
+  revalidateOnSuccess: false,
+  coalesce: (req) => req.bookId,
+  keepalive: true
+})
+
 export const bookWrites = [
   updateBookStatusWrite,
   updateFinishedAtWrite,
@@ -226,5 +265,6 @@ export const bookWrites = [
   setBookTagWrite,
   removeBookWrite,
   setBookISBNWrite,
-  updateBookWrite
+  updateBookWrite,
+  updateReadingProgressWrite
 ]

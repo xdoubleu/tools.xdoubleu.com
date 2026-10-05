@@ -66,3 +66,17 @@ func TestReconcileOwnDigitalTag_LeavesConsistentTagsUnchanged(t *testing.T) {
 	withoutFormat := reconcileOwnDigitalTag([]string{"fantasy"}, nil)
 	assert.Equal(t, []string{"fantasy"}, withoutFormat)
 }
+
+func TestProtoUserBook_CarriesFileVersions(t *testing.T) {
+	versions := map[string]string{models.FileFormatEPUB: "file-id:0"}
+	ub := models.UserBook{ //nolint:exhaustruct //optional fields omitted
+		ID:           uuid.New(),
+		BookID:       uuid.New(),
+		Formats:      []string{models.FileFormatEPUB},
+		FileVersions: versions,
+	}
+
+	pb := protoUserBook(ub, "http://api.test")
+
+	assert.Equal(t, versions, pb.FileVersions)
+}

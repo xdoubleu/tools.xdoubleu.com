@@ -147,6 +147,12 @@ export async function enqueueWrite<I extends DescMessage>(
     createdAt: Date.now()
   }
   write.seq = await addQueued(write)
+  // Stored before the superseded write is dropped, so a crash loses neither.
+  const key = def.coalesceKey(write.request)
+  const tail = queue.at(-1)
+  if (key !== undefined && tail?.writeId === def.id && def.coalesceKey(tail.request) === key) {
+    await remove(tail)
+  }
   queue.push(write)
   publish({})
   await applyOptimistic(def, write)

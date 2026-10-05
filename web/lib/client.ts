@@ -3,17 +3,24 @@ import { createClient, type Client } from '@connectrpc/connect'
 import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from './env'
 
-export const transport = createConnectTransport({
-  baseUrl: getApiUrl(),
-  // Binary avoids base64 inflation of bytes fields (a 75 MB upload would
-  // exceed the server cap).
-  useBinaryFormat: true,
-  fetch: (input, init) =>
-    fetch(input, {
-      ...init,
-      credentials: 'include'
-    })
-})
+const createTransport = (keepalive: boolean) =>
+  createConnectTransport({
+    baseUrl: getApiUrl(),
+    // Binary avoids base64 inflation of bytes fields (a 75 MB upload would
+    // exceed the server cap).
+    useBinaryFormat: true,
+    fetch: (input, init) =>
+      fetch(input, {
+        ...init,
+        credentials: 'include',
+        keepalive
+      })
+  })
+
+export const transport = createTransport(false)
+
+/** For small writes sent while the page unloads; keepalive bodies are capped at 64 KB. */
+export const keepaliveTransport = createTransport(true)
 
 // One client per service, reused for the page's lifetime.
 const clients = new Map<DescService, Client<DescService>>()

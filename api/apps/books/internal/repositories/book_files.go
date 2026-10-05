@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"errors"
+	"fmt"
+	"slices"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -341,18 +343,17 @@ func (r *BookFilesRepository) queryOne(
 	return f, nil
 }
 
-// FormatsByUser returns book ID -> sorted ready formats (pdf, epub; no kepub).
-func (r *BookFilesRepository) FormatsByUser(
+// FilesByUser returns, per book, the sorted ready formats (pdf, epub; no
+// kepub) and the version of each ready file GetByBookAndFormat serves.
+func (r *BookFilesRepository) FilesByUser(
 	ctx context.Context,
 	userID string,
-) (map[uuid.UUID][]string, error) {
+) (map[uuid.UUID]models.LibraryFiles, error) {
 	query := `
-		SELECT book_id, array_agg(DISTINCT format ORDER BY format)
+		SELECT book_id, format, id, converter_version, status
 		FROM books.book_files
 		WHERE user_id = $1
-		  AND status = 'ready'
-		  AND format IN ('pdf', 'epub')
-		GROUP BY book_id
+		ORDER BY book_id, format, created_at
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -361,14 +362,36 @@ func (r *BookFilesRepository) FormatsByUser(
 	}
 	defer rows.Close()
 
-	result := make(map[uuid.UUID][]string)
+	result := make(map[uuid.UUID]models.LibraryFiles)
+	// Rows come grouped by (book, format), oldest first.
+	var prevBook uuid.UUID
+	prevFormat := ""
 	for rows.Next() {
-		var bookID uuid.UUID
-		var formats []string
-		if scanErr := rows.Scan(&bookID, &formats); scanErr != nil {
+		var bookID, fileID uuid.UUID
+		var format, status string
+		var converterVersion int16
+		if scanErr := rows.Scan(
+			&bookID, &format, &fileID, &converterVersion, &status,
+		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
-		result[bookID] = formats
+		served := bookID != prevBook || format != prevFormat
+		prevBook, prevFormat = bookID, format
+		if status != models.FileStatusReady {
+			continue
+		}
+		files := result[bookID]
+		if served {
+			if files.Versions == nil {
+				files.Versions = make(map[string]string)
+			}
+			files.Versions[format] = fmt.Sprintf("%s:%d", fileID, converterVersion)
+		}
+		isOriginal := format == models.FileFormatPDF || format == models.FileFormatEPUB
+		if isOriginal && !slices.Contains(files.Formats, format) {
+			files.Formats = append(files.Formats, format)
+		}
+		result[bookID] = files
 	}
 
 	if err = rows.Err(); err != nil {

@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import 'fake-indexeddb/auto'
-import { listQueued, loadEntry } from '@/lib/offline/store'
+import { listBookFiles, listQueued, loadEntry } from '@/lib/offline/store'
 
 function openV1(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -23,10 +23,11 @@ function openV1(): Promise<void> {
 }
 
 describe('offline store upgrade', () => {
-  it('adds the queue stores to a version 1 database and keeps its entries', async () => {
+  it('adds the queue and book stores to a version 1 database and keeps its entries', async () => {
     await openV1()
 
     expect(await loadEntry('k')).toEqual({ data: 'kept', savedAt: 1 })
     expect(await listQueued()).toEqual([])
+    expect(await listBookFiles()).toEqual([])
   })
 })

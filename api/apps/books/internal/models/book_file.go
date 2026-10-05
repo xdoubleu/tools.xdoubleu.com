@@ -50,3 +50,11 @@ type BookFile struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
+
+// LibraryFiles summarizes a book's files for the library view.
+type LibraryFiles struct {
+	// Ready original formats (pdf, epub), sorted.
+	Formats []string
+	// Format -> "<file id>:<converter version>" of the ready file served.
+	Versions map[string]string
+}

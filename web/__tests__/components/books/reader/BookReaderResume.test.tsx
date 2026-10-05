@@ -52,7 +52,7 @@ async function renderReader(
   mockCreateFoliateView.mockResolvedValue(view)
   render(
     <BookReader
-      url="https://r2/book"
+      file="https://r2/book"
       title="Dune"
       onClose={jest.fn()}
       onRelocate={onRelocate}

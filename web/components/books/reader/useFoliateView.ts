@@ -106,14 +106,14 @@ function attachSectionHandlers(view: FoliateView, doc: Document) {
 }
 
 /**
- * Mounts a foliate-js view for `url` into `containerRef`, opening at
- * `initialPosition` (read once). Status isn't reset when `url` changes; key the
- * caller on it. `onRelocate` fires on page changes after the book has opened,
+ * Mounts a foliate-js view for `file` into `containerRef`, opening at
+ * `initialPosition` (read once). Status isn't reset when `file` changes; key
+ * the caller on it. `onRelocate` fires on page changes after the book has opened,
  * so opening alone never reports a position.
  */
 export function useFoliateView(
   containerRef: RefObject<HTMLDivElement | null>,
-  url: string,
+  file: Blob | string,
   onRelocate?: (location: ReaderLocation) => void,
   initialPosition?: ReaderResume
 ) {
@@ -156,7 +156,7 @@ export function useFoliateView(
           turn(v, tapDirection(e.clientX, area.left, area.width))
         })
         containerRef.current!.append(v)
-        await v.open(url)
+        await v.open(file)
         if (cancelled) return
         // The view re-emits the renderer's relocate without its reason; a
         // capture listener runs first at the target, so it sees it in time.
@@ -181,7 +181,7 @@ export function useFoliateView(
       created?.book?.destroy?.()
       created?.remove()
     }
-  }, [containerRef, url])
+  }, [containerRef, file])
 
   return { view, status, location }
 }

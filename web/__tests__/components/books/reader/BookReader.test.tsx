@@ -51,7 +51,7 @@ function makeView({
 
 type FakeView = ReturnType<typeof makeView>
 
-const URL_ = 'https://r2.example.com/book.epub?sig=1'
+const BOOK = new File(['PK'], 'book-1.epub')
 
 async function renderReader(
   view: FakeView,
@@ -59,7 +59,7 @@ async function renderReader(
 ) {
   mockCreateFoliateView.mockResolvedValue(view)
   const onClose = jest.fn()
-  const utils = render(<BookReader url={URL_} title="Dune" onClose={onClose} {...props} />)
+  const utils = render(<BookReader file={BOOK} title="Dune" onClose={onClose} {...props} />)
   await waitFor(() => expect(view.init).toHaveBeenCalled())
   return { ...utils, onClose }
 }
@@ -100,7 +100,7 @@ describe('BookReader', () => {
   it('opens the file from the start', async () => {
     const view = makeView()
     await renderReader(view)
-    expect(view.open).toHaveBeenCalledWith(URL_)
+    expect(view.open).toHaveBeenCalledWith(BOOK)
     expect(view.init).toHaveBeenCalledWith({})
     expect(screen.queryByText(/Loading book/)).not.toBeInTheDocument()
     expect(screen.getByText('Dune')).toBeInTheDocument()
@@ -109,14 +109,14 @@ describe('BookReader', () => {
   it('shows an error when the file fails to open', async () => {
     const view = makeView({ openError: new Error('403 Forbidden') })
     mockCreateFoliateView.mockResolvedValue(view)
-    render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     expect(await screen.findByText('Failed to load book.')).toBeInTheDocument()
     expect(view.init).not.toHaveBeenCalled()
   })
 
   it('shows an error when foliate-js fails to load', async () => {
     mockCreateFoliateView.mockRejectedValue(new Error('chunk failed'))
-    render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     expect(await screen.findByText('Failed to load book.')).toBeInTheDocument()
   })
 
@@ -293,7 +293,7 @@ describe('BookReader', () => {
     let resolveOpen = () => {}
     view.open.mockImplementation(() => new Promise<void>((r) => (resolveOpen = r)))
     mockCreateFoliateView.mockResolvedValue(view)
-    const { unmount } = render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    const { unmount } = render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     await waitFor(() => expect(view.open).toHaveBeenCalled())
     unmount()
     await act(async () => resolveOpen())
@@ -305,7 +305,7 @@ describe('BookReader', () => {
     const view = makeView()
     let resolveView: (v: FakeView) => void = () => {}
     mockCreateFoliateView.mockImplementation(() => new Promise((r) => (resolveView = r)))
-    const { unmount } = render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    const { unmount } = render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     unmount()
     await act(async () => resolveView(view))
     expect(view.style.display).toBe('')
@@ -352,7 +352,7 @@ describe('BookReader', () => {
         })
     )
     mockCreateFoliateView.mockResolvedValue(view)
-    render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     await waitFor(() => expect(view.open).toHaveBeenCalled())
     expect(screen.getByText('Loading book…')).toBeInTheDocument()
     expect(screen.queryByText('Failed to load book.')).not.toBeInTheDocument()
@@ -430,13 +430,13 @@ describe('BookReader', () => {
     const first = jest.fn()
     const { rerender } = await renderReader(view, { onRelocate: first })
     const second = jest.fn()
-    rerender(<BookReader url={URL_} title="Dune" onClose={jest.fn()} onRelocate={second} />)
+    rerender(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} onRelocate={second} />)
     relocate(view, { fraction: 0.5 })
     expect(second).toHaveBeenCalled()
     expect(first).not.toHaveBeenCalled()
   })
 
-  it('reopens on a new URL and ignores the old one failing', async () => {
+  it('reopens on a new file and ignores the old one failing', async () => {
     const old = makeView()
     let rejectOld = () => {}
     old.open.mockImplementation(
@@ -444,10 +444,10 @@ describe('BookReader', () => {
     )
     const fresh = makeView()
     mockCreateFoliateView.mockResolvedValueOnce(old).mockResolvedValueOnce(fresh)
-    const { rerender } = render(<BookReader url={URL_} title="Dune" onClose={jest.fn()} />)
+    const { rerender } = render(<BookReader file={BOOK} title="Dune" onClose={jest.fn()} />)
     await waitFor(() => expect(old.open).toHaveBeenCalled())
 
-    rerender(<BookReader url="https://r2.example.com/new" title="Dune" onClose={jest.fn()} />)
+    rerender(<BookReader file="https://r2.example.com/new" title="Dune" onClose={jest.fn()} />)
     await waitFor(() => expect(fresh.init).toHaveBeenCalled())
     expect(fresh.open).toHaveBeenCalledWith('https://r2.example.com/new')
     expect(old.close).toHaveBeenCalled()

@@ -1,7 +1,11 @@
 import { create, isMessage, type DescMessage, type MessageInitShape } from '@bufbuild/protobuf'
 import type { OfflineWrite } from '@/lib/offline/registry'
 import { swrKeys } from '@/lib/swrKeys'
-import { GetLibraryResponseSchema, type LibraryResponse } from '@/lib/gen/books/v1/library_pb'
+import {
+  GetLibraryResponseSchema,
+  GetReadingStateResponseSchema,
+  type LibraryResponse
+} from '@/lib/gen/books/v1/library_pb'
 import {
   bookWrites,
   removeBookWrite,
@@ -10,7 +14,8 @@ import {
   updateBookStatusWrite,
   updateBookWrite,
   updateFinishedAtWrite,
-  updateProgressWrite
+  updateProgressWrite,
+  updateReadingProgressWrite
 } from '@/lib/books/offlineWrites'
 
 function run<I extends DescMessage>(
@@ -268,10 +273,64 @@ describe('book offline writes', () => {
     expect(describe(setBookISBNWrite, {})).toBe('Set a book’s ISBN')
     expect(describe(updateBookWrite, { metadata: { title: 'Dune' } })).toBe('Edit “Dune”')
     expect(describe(updateBookWrite, {})).toBe('Edit “a book”')
+    expect(describe(updateReadingProgressWrite, {})).toBe('Save reading position')
   })
 
   it('refetches books and registers every write', () => {
-    expect(bookWrites).toHaveLength(7)
-    for (const write of bookWrites) expect(write.revalidate).toBe('/books')
+    expect(bookWrites).toHaveLength(8)
+    for (const write of bookWrites) expect(write.revalidate).toMatch(/^\/books/)
+  })
+})
+
+describe('reading position write', () => {
+  const save = {
+    bookId: 'b',
+    source: 'web',
+    percent: 42,
+    position: { href: 'ch2.xhtml', offset: 7 },
+    readAt: '2026-10-02T12:00:00.000Z'
+  }
+  const stateAt = (readAt: string, updatedAt = '') =>
+    create(GetReadingStateResponseSchema, {
+      state: { source: 'kobo', percent: 10, readAt, updatedAt }
+    })
+  const apply = (data: unknown, key: unknown = swrKeys.readingState('b')) =>
+    run(updateReadingProgressWrite, save, data, undefined, key)
+
+  it('replaces an older or missing cached position', () => {
+    for (const data of [
+      stateAt('2026-10-01T00:00:00Z'),
+      stateAt('', '2026-10-01T00:00:00Z'),
+      create(GetReadingStateResponseSchema, {})
+    ]) {
+      const next = apply(data)
+      expect(isMessage(next, GetReadingStateResponseSchema) && next.state).toMatchObject({
+        source: 'web',
+        percent: 42,
+        position: { href: 'ch2.xhtml', offset: 7 },
+        readAt: save.readAt,
+        updatedAt: save.readAt
+      })
+    }
+  })
+
+  it('keeps a position read at the same time or later, like the server', () => {
+    for (const data of [stateAt(save.readAt), stateAt('2026-10-03T00:00:00Z')]) {
+      expect(apply(data)).toBe(data)
+    }
+  })
+
+  it('leaves other books, keys and data alone', () => {
+    const data = stateAt('')
+    expect(apply(data, swrKeys.readingState('other'))).toBe(data)
+    expect(apply(data, swrKeys.books)).toBe(data)
+    expect(apply('nope')).toBe('nope')
+  })
+
+  it('coalesces per book and skips the success refetch', () => {
+    const bytes = updateReadingProgressWrite.encode(save)
+    expect(updateReadingProgressWrite.coalesceKey(bytes)).toBe('b')
+    expect(updateReadingProgressWrite.revalidate).toBe('/books/reading-state')
+    expect(updateReadingProgressWrite.revalidateOnSuccess).toBe(false)
   })
 })

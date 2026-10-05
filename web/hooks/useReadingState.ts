@@ -2,6 +2,8 @@ import { useEffect, useRef, type RefObject } from 'react'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { createServiceClient } from '@/lib/client'
+import { updateReadingProgressWrite } from '@/lib/books/offlineWrites'
+import { enqueueWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
 import {
   LibraryService,
@@ -25,7 +27,8 @@ export function useReadingState(bookId: string | null) {
 /**
  * Returns a relocate handler that saves the reading position once reading
  * pauses, stamped with when it was read. A pending save is flushed when the
- * page is hidden or unloaded, and on unmount.
+ * page is hidden or unloaded, and on unmount. Saves go through the outbox, so
+ * offline reading syncs later.
  */
 export function useReadingProgressSaver(bookId: string | null) {
   const pending = useRef<SaveRequest | null>(null)
@@ -64,8 +67,6 @@ function flushSave(pending: RefObject<SaveRequest | null>) {
   const req = pending.current
   if (!req) return
   pending.current = null
-  // A lost save is superseded by the next one; never interrupt reading.
-  createServiceClient(LibraryService)
-    .updateReadingProgress(req)
-    .catch(() => {})
+  // Never interrupt reading; a save that can't be queued is superseded by the next.
+  enqueueWrite(updateReadingProgressWrite, req).catch(() => {})
 }

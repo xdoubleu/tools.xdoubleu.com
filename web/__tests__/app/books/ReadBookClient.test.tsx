@@ -9,15 +9,18 @@ import {
 } from '@/lib/gen/books/v1/library_pb'
 
 const mockUseLibrary = jest.fn()
-const mockUseGetBookFile = jest.fn()
+const mockUseOfflineBookFile = jest.fn()
 const mockUseReadingState = jest.fn()
 const mockSave = jest.fn()
 const mockRouterPush = jest.fn()
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/hooks/useBooks', () => ({
-  useLibrary: () => mockUseLibrary(),
-  useGetBookFile: (...args: unknown[]) => mockUseGetBookFile(...args)
+  useLibrary: () => mockUseLibrary()
+}))
+
+jest.mock('@/hooks/useOfflineBooks', () => ({
+  useOfflineBookFile: (...args: unknown[]) => mockUseOfflineBookFile(...args)
 }))
 
 jest.mock('@/hooks/useReadingState', () => ({
@@ -33,13 +36,13 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/components/books/reader/BookReader', () => ({
   __esModule: true,
   default: ({
-    url,
+    file,
     title,
     onClose,
     onRelocate,
     initialPosition
   }: {
-    url: string
+    file: File
     title: string
     onClose: () => void
     onRelocate: (location: unknown) => void
@@ -47,7 +50,7 @@ jest.mock('@/components/books/reader/BookReader', () => ({
   }) => (
     <div
       data-testid="reader"
-      data-url={url}
+      data-file={file.name}
       data-title={title}
       data-initial={JSON.stringify(initialPosition)}
     >
@@ -69,7 +72,8 @@ function setLibrary(formats: string[]) {
     bookId: 'book-1',
     book: create(BookSchema, { id: 'book-1', title: 'Dune' }),
     status: 'currently-reading',
-    formats
+    formats,
+    fileVersions: { epub: 'v-epub' }
   })
   mockUseLibrary.mockReturnValue({
     data: create(GetLibraryResponseSchema, {
@@ -84,7 +88,9 @@ beforeEach(() => {
   jest.clearAllMocks()
   mockSearchParams = new URLSearchParams()
   setLibrary(['epub', 'pdf'])
-  mockUseGetBookFile.mockReturnValue({ data: { url: 'https://r2/book' }, error: undefined })
+  mockUseOfflineBookFile.mockImplementation((bookId: string, format: string) => ({
+    file: new File(['x'], `${bookId}.${format}`)
+  }))
   setFreshReadingState(undefined)
 })
 
@@ -98,28 +104,28 @@ function setFreshReadingState(state: unknown, stale: unknown = { percent: 99 }) 
 describe('ReadBookClient', () => {
   it('opens the EPUB by default', async () => {
     render(<ReadBookClient id="ub-1" />)
-    expect(mockUseGetBookFile).toHaveBeenCalledWith('book-1', 'epub')
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'epub', 'v-epub')
     const reader = await screen.findByTestId('reader')
-    expect(reader).toHaveAttribute('data-url', 'https://r2/book')
+    expect(reader).toHaveAttribute('data-file', 'book-1.epub')
     expect(reader).toHaveAttribute('data-title', 'Dune')
   })
 
   it('opens the requested format', () => {
     mockSearchParams = new URLSearchParams('format=pdf')
     render(<ReadBookClient id="ub-1" />)
-    expect(mockUseGetBookFile).toHaveBeenCalledWith('book-1', 'pdf')
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'pdf', '')
   })
 
   it('opens the PDF of a PDF-only book', () => {
     setLibrary(['pdf', 'kepub'])
     render(<ReadBookClient id="ub-1" />)
-    expect(mockUseGetBookFile).toHaveBeenCalledWith('book-1', 'pdf')
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith('book-1', 'pdf', '')
   })
 
   it('explains when the book has no readable file', () => {
     setLibrary([])
     render(<ReadBookClient id="ub-1" />)
-    expect(mockUseGetBookFile).toHaveBeenCalledWith(null, null)
+    expect(mockUseOfflineBookFile).toHaveBeenCalledWith(null, null, '')
     expect(screen.getByText('This book has no EPUB or PDF file.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Back to book' })).toHaveAttribute(
       'href',
@@ -127,15 +133,15 @@ describe('ReadBookClient', () => {
     )
   })
 
-  it('shows an error when the signed URL fails', () => {
-    mockUseGetBookFile.mockReturnValue({ data: undefined, error: new Error('boom') })
+  it('shows an error when the file can neither be loaded nor downloaded', () => {
+    mockUseOfflineBookFile.mockReturnValue({ error: new Error('boom') })
     render(<ReadBookClient id="ub-1" />)
     expect(screen.getByText('Failed to load book file.')).toBeInTheDocument()
     expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
   })
 
-  it('shows loading while the URL is fetched', () => {
-    mockUseGetBookFile.mockReturnValue({ data: undefined, error: undefined })
+  it('shows loading while the file loads', () => {
+    mockUseOfflineBookFile.mockReturnValue({})
     render(<ReadBookClient id="ub-1" />)
     expect(screen.getByText('Loading book…')).toBeInTheDocument()
   })
@@ -157,31 +163,12 @@ describe('ReadBookClient', () => {
     expect(screen.getByText('Book not found.')).toBeInTheDocument()
   })
 
-  it('waits for a fresh URL instead of opening a cached one', () => {
-    mockUseGetBookFile.mockReturnValue({
-      data: { url: 'https://r2/stale' },
-      error: undefined,
-      isValidating: true
-    })
-    render(<ReadBookClient id="ub-1" />)
-    expect(screen.getByText('Loading book…')).toBeInTheDocument()
-    expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
-  })
-
-  it('keeps the first URL and the open reader across refetches and their errors', async () => {
+  it('keeps the open reader when the library later fails', async () => {
     const { rerender } = render(<ReadBookClient id="ub-1" />)
-    expect(await screen.findByTestId('reader')).toHaveAttribute('data-url', 'https://r2/book')
-    mockUseGetBookFile.mockReturnValue({
-      data: { url: 'https://r2/new' },
-      error: new Error('offline'),
-      isValidating: false
-    })
-    mockUseLibrary.mockReturnValue({
-      ...mockUseLibrary(),
-      error: new Error('offline')
-    })
+    expect(await screen.findByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
+    mockUseLibrary.mockReturnValue({ ...mockUseLibrary(), error: new Error('offline') })
     rerender(<ReadBookClient id="ub-1" />)
-    expect(screen.getByTestId('reader')).toHaveAttribute('data-url', 'https://r2/book')
+    expect(screen.getByTestId('reader')).toHaveAttribute('data-file', 'book-1.epub')
   })
 
   it('returns to the book page on close', async () => {

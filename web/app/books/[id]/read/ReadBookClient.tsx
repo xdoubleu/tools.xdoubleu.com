@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { ErrorState, LoadingState } from '@/components/ui/states'
-import { useGetBookFile, useLibrary } from '@/hooks/useBooks'
+import { useLibrary } from '@/hooks/useBooks'
+import { useOfflineBookFile } from '@/hooks/useOfflineBooks'
 import { useReadingProgressSaver, useReadingState } from '@/hooks/useReadingState'
 import { flattenLibrary } from '@/lib/books/bookShelves'
 import { resumeFromState, type ReaderResume } from '@/lib/books/readerPosition'
@@ -29,7 +30,8 @@ function Fallback({ id, children }: { id: string; children: ReactNode }) {
 
 /**
  * Opens the book's original EPUB (preferred) or PDF at the newest saved
- * position; `?format=` picks one. Page changes are saved back.
+ * position; `?format=` picks one. The file is kept on the device for offline
+ * reading. Page changes are saved back.
  */
 export default function ReadBookClient({ id }: { id: string }) {
   const router = useRouter()
@@ -42,15 +44,11 @@ export default function ReadBookClient({ id }: { id: string }) {
   }, [data, id])
 
   const format = userBook ? pickReaderFormat(userBook.formats, requestedFormat) : null
-  const file = useGetBookFile(format ? userBook!.bookId : null, format)
-
-  // Pin the first fresh URL: a refetch mints a new presigned URL, which would
-  // reopen the book at the start, and a cached one may have expired.
-  const [pinned, setPinned] = useState<{ format: string; url: string } | null>(null)
-  const url = pinned && pinned.format === format ? pinned.url : null
-  if (!url && format && file.data && !file.isValidating) {
-    setPinned({ format, url: file.data.url })
-  }
+  const { file, error: fileError } = useOfflineBookFile(
+    format ? userBook!.bookId : null,
+    format,
+    (format && userBook?.fileVersions[format]) || ''
+  )
 
   // Resume from a read made after mounting: the SWR cache may predate this
   // session's saves or another device's. A failed read falls back to the cache.
@@ -104,14 +102,14 @@ export default function ReadBookClient({ id }: { id: string }) {
       </Fallback>
     )
   }
-  if (!url && file.error) {
+  if (!file && fileError) {
     return (
       <Fallback id={id}>
         <ErrorState what="book file" />
       </Fallback>
     )
   }
-  if (!url || !resume) {
+  if (!file || !resume) {
     return (
       <Fallback id={id}>
         <LoadingState label="book" />
@@ -121,8 +119,8 @@ export default function ReadBookClient({ id }: { id: string }) {
 
   return (
     <BookReader
-      key={url}
-      url={url}
+      key={format}
+      file={file}
       title={userBook.book?.title ?? 'Book'}
       onClose={() => router.push(`/books/${id}`)}
       onRelocate={saveProgress}

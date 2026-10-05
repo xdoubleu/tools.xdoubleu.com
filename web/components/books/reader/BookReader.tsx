@@ -18,8 +18,8 @@ import { useFoliateView, type ReaderLocation } from './useFoliateView'
 export type { ReaderLocation, ReaderResume }
 
 interface BookReaderProps {
-  /** Signed URL of the EPUB or PDF. */
-  url: string
+  /** The EPUB or PDF, or a URL to fetch it from. */
+  file: Blob | string
   title: string
   onClose: () => void
   /** Fires on every page change after the book opens. */
@@ -34,14 +34,14 @@ function appTheme(): ReaderTheme {
 
 /** Full-screen foliate-js reader: paginated, with tap zones, swipe, TOC and themes. */
 export default function BookReader({
-  url,
+  file,
   title,
   onClose,
   onRelocate,
   initialPosition
 }: BookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const { view, status, location } = useFoliateView(containerRef, url, onRelocate, initialPosition)
+  const { view, status, location } = useFoliateView(containerRef, file, onRelocate, initialPosition)
   const [storedTheme, setTheme] = useLocalStorage<ReaderTheme | null>('books:reader-theme', null)
   const [fontSize, setFontSize] = useLocalStorage(
     'books:reader-font-size',

@@ -43,13 +43,17 @@ export const PAGE_CACHE = 'tools-pages'
 
 /**
  * Navigations go network-first and fall back to the last saved copy of the
- * page; `/_next/static` (content-hashed) is cache-first. With `enabled`
- * false it deletes its caches and unregisters itself (the kill switch).
+ * page; `/_next/static` (content-hashed) and the reader's `/foliate-js/`
+ * modules are cache-first, the latter in a cache named after
+ * `readerVersion`. With `enabled` false it deletes its caches and
+ * unregisters itself (the kill switch).
  */
-export function serviceWorker(sw: SwScope, enabled: boolean): void {
+export function serviceWorker(sw: SwScope, enabled: boolean, readerVersion: string): void {
   const PREFIX = 'tools-'
   const PAGES = 'tools-pages'
   const STATIC = 'tools-static'
+  // foliate-js URLs aren't content-hashed, so a new pin gets a new cache.
+  const READER = `tools-reader-${readerVersion}`
   const MAX_PAGES = 100
   const MAX_STATIC = 500
   // A page saved this recently isn't re-fetched on a 'save-page' message.
@@ -86,7 +90,7 @@ export function serviceWorker(sw: SwScope, enabled: boolean): void {
   }
 
   sw.addEventListener('activate', (event) =>
-    event.waitUntil(deleteCaches([PAGES, STATIC]).then(() => sw.clients.claim()))
+    event.waitUntil(deleteCaches([PAGES, STATIC, READER]).then(() => sw.clients.claim()))
   )
 
   // cache.keys() lists oldest writes first.
@@ -133,14 +137,15 @@ export function serviceWorker(sw: SwScope, enabled: boolean): void {
     }
   }
 
-  const cacheFirst = async (request: Request) => {
-    const cache = await sw.caches.open(STATIC)
+  // `max` 0 keeps every entry: the reader's files are a fixed set.
+  const cacheFirst = async (request: Request, name: string, max: number) => {
+    const cache = await sw.caches.open(name)
     const hit = await cache.match(request)
     if (hit) return hit
     const res = await sw.fetch(request)
     if (res.status === 200) {
       await cache.put(request, res.clone())
-      await trim(cache, MAX_STATIC)
+      if (max) await trim(cache, max)
     }
     return res
   }
@@ -166,7 +171,9 @@ export function serviceWorker(sw: SwScope, enabled: boolean): void {
     const url = new URL(request.url)
     if (url.origin !== sw.location.origin) return
     if (url.pathname.startsWith('/_next/static/')) {
-      event.respondWith(cacheFirst(request))
+      event.respondWith(cacheFirst(request, STATIC, MAX_STATIC))
+    } else if (url.pathname.startsWith('/foliate-js/')) {
+      event.respondWith(cacheFirst(request, READER, 0))
     } else if (request.mode === 'navigate' && isPage(url)) {
       url.hash = ''
       event.respondWith(networkFirst(event, url.href))
@@ -179,11 +186,11 @@ export function serviceWorker(sw: SwScope, enabled: boolean): void {
     if (data.type === 'save-page' && 'url' in data && typeof data.url === 'string') {
       event.waitUntil(refreshPage(data.url).catch(() => undefined))
     } else if (data.type === 'clear') {
-      event.waitUntil(deleteCaches([STATIC]))
+      event.waitUntil(deleteCaches([STATIC, READER]))
     }
   })
 }
 
-export function serviceWorkerScript(enabled: boolean): string {
-  return `(${serviceWorker.toString()})(self, ${String(enabled)});\n`
+export function serviceWorkerScript(enabled: boolean, readerVersion: string): string {
+  return `(${serviceWorker.toString()})(self, ${String(enabled)}, ${JSON.stringify(readerVersion)});\n`
 }

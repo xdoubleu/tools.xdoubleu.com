@@ -744,10 +744,11 @@ func (s *BookService) resolveBookFile(
 	return nil, database.ErrResourceNotFound
 }
 
-// FormatsByUser returns book ID -> ready formats for the user's whole library.
-func (s *BookService) FormatsByUser(
+// FilesByUser returns book ID -> ready formats and file versions for the
+// user's whole library.
+func (s *BookService) FilesByUser(
 	ctx context.Context,
 	userID string,
-) (map[uuid.UUID][]string, error) {
-	return s.bookFiles.FormatsByUser(ctx, userID)
+) (map[uuid.UUID]models.LibraryFiles, error) {
+	return s.bookFiles.FilesByUser(ctx, userID)
 }

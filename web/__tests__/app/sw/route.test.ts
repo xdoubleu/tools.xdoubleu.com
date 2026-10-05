@@ -11,12 +11,12 @@ describe('GET /sw.js', () => {
 
     expect(res.headers.get('Content-Type')).toBe('application/javascript; charset=utf-8')
     expect(res.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate')
-    expect(await res.text()).toMatch(/\(self, true\);\n$/)
+    expect(await res.text()).toMatch(/\(self, true, "[0-9a-f]{40}"\);\n$/)
   })
 
   it('serves the self-unregistering worker when OFFLINE_DISABLED=1', async () => {
     process.env.OFFLINE_DISABLED = '1'
 
-    expect(await GET().text()).toMatch(/\(self, false\);\n$/)
+    expect(await GET().text()).toMatch(/\(self, false, "[0-9a-f]+"\);\n$/)
   })
 })

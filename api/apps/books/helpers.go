@@ -79,12 +79,13 @@ func (app *Books) buildLibraryData(
 		return booksPageData{}, err
 	}
 
-	formats, err := app.Services.Books.FormatsByUser(ctx, userID)
+	files, err := app.Services.Books.FilesByUser(ctx, userID)
 	if err != nil {
 		return booksPageData{}, err
 	}
 	for i := range library {
-		library[i].Formats = formats[library[i].BookID]
+		library[i].Formats = files[library[i].BookID].Formats
+		library[i].FileVersions = files[library[i].BookID].Versions
 	}
 
 	var reading, wishlist, finished []models.UserBook
