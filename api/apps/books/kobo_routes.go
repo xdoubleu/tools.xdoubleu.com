@@ -215,6 +215,14 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	kepubBooks := make([]uuid.UUID, 0, len(books))
+	for _, b := range books {
+		if b.Format == models.FileFormatKEPUB {
+			kepubBooks = append(kepubBooks, b.BookID)
+		}
+	}
+	pending := app.koboWithSpans(r.Context(), userID, kepubBooks, stateByBook)
+
 	libraryBase := app.koboLibraryBase(r)
 
 	ourEntries := make([]json.RawMessage, len(books))
@@ -236,7 +244,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	// Last before responding: this marks the states as delivered.
 	stateEntries, err := app.koboChangedReadingStates(
-		r.Context(), deviceID, books, stateByBook,
+		r.Context(), deviceID, books, stateByBook, pending,
 	)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)

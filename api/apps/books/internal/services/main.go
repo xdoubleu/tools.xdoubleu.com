@@ -19,6 +19,7 @@ type Services struct {
 	Auth       auth.Service
 	Books      *BookService
 	Conversion *ConversionService
+	Positions  *PositionService
 	Progress   *ProgressService
 	Kobo       *KoboService
 	KoboLog    *KoboLogStore
@@ -75,10 +76,13 @@ func New(
 		Auth:       authService,
 		Books:      booksSvc,
 		Conversion: conversionSvc,
-		Progress:   NewProgressService(repositories.Progress),
-		Kobo:       kobo,
-		KoboLog:    koboLog,
-		Ingest:     ingestSvc,
+		Positions: newPositionService(
+			logger, repositories.BookFiles, objectStore, translateBudget,
+		),
+		Progress: NewProgressService(repositories.Progress),
+		Kobo:     kobo,
+		KoboLog:  koboLog,
+		Ingest:   ingestSvc,
 		WebSocket: progressws.NewService(
 			ctx,
 			logger,

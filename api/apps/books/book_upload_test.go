@@ -106,12 +106,13 @@ func simulateUpload(
 
 func uploadViaTestApp(
 	t *testing.T,
-	uid, filename, contentType string,
+	uid, filename string,
 	data []byte,
 ) (*bsvc.UploadFileResult, error) {
 	t.Helper()
 	return simulateUpload(
-		context.Background(), t, uid, filename, contentType, data, fakeStore,
+		context.Background(), t, uid, filename, "application/epub+zip", data,
+		fakeStore,
 	)
 }
 
@@ -454,7 +455,7 @@ func TestUploadFile_GlobalDedup_UsesServerChecksum(t *testing.T) {
 func TestBookFilesRepo_FindByChecksumForUser(t *testing.T) {
 	addTestBookWithISBN(t, "ForUserChecksumBook", "9780001006006")
 	r1, err := uploadViaTestApp(
-		t, userID, "for-user.epub", "application/epub+zip",
+		t, userID, "for-user.epub",
 		buildEPUBBytes("ForUserChecksumBook", "FU Author", "9780001006006"),
 	)
 	require.NoError(t, err)

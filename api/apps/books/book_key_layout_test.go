@@ -21,7 +21,6 @@ func TestUploadUsesPerBookKey(t *testing.T) {
 		t,
 		userID,
 		"odyssey.epub",
-		"application/epub+zip",
 		epubData,
 	)
 	require.NoError(t, err)

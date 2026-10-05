@@ -72,19 +72,20 @@ const koboStatusFinished = "Finished"
 const koboResultSuccess = "Success"
 
 // koboChangedReadingStates builds ChangedReadingState entries for the states
-// deviceID lacks.
+// deviceID lacks, leaving pending books for the next sync.
 func (app *Books) koboChangedReadingStates(
 	ctx context.Context,
 	deviceID string,
 	books []models.KoboSyncBook,
 	stateByBook map[uuid.UUID]*models.BookReadingState,
+	pending map[uuid.UUID]bool,
 ) ([]json.RawMessage, error) {
 	bookIDs := make([]uuid.UUID, len(books))
 	for i, b := range books {
 		bookIDs[i] = b.BookID
 	}
 	changed, err := app.Services.Books.SyncKoboDeviceReadingStates(
-		ctx, deviceID, bookIDs, stateByBook,
+		ctx, deviceID, bookIDs, stateByBook, pending,
 	)
 	if err != nil {
 		return nil, err
@@ -118,6 +119,12 @@ func (app *Books) koboGetStateHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
+	}
+	format, err := app.Services.Books.GetKoboFileFormat(r.Context(), userID, bookID)
+	if state != nil && err == nil && format == models.FileFormatKEPUB {
+		states := map[uuid.UUID]*models.BookReadingState{bookID: state}
+		app.koboWithSpans(r.Context(), userID, []uuid.UUID{bookID}, states)
+		state = states[bookID]
 	}
 
 	koboWriteJSON(w, buildKoboState(bookID.String(), state))
@@ -172,6 +179,9 @@ func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 			state.Location = &loc.Value
 			if loc.Source != "" && rs.StatusInfo.Status != koboStatusFinished {
 				state.KoboLocation = loc
+				state.Position = app.Services.Positions.KoboPosition(
+					r.Context(), userID, bookID, *loc,
+				)
 			}
 		}
 
