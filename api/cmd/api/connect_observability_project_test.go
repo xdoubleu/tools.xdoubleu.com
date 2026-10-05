@@ -56,6 +56,16 @@ func TestObservabilityGetProjectIssuesByStatus_AsAdmin(t *testing.T) {
 	assert.True(t, is.BodyEditedAfterStatus)
 }
 
+func TestObservabilityGetProjectIssuesByStatus_ZeroProjectNumber(t *testing.T) {
+	promoteToAdmin(t)
+	t.Cleanup(func() { demoteToUser(t) })
+
+	_, err := callProjectIssuesByStatus(t, 0, "Ready")
+	require.Error(t, err)
+	assert.Equal(t, connect.CodeInvalidArgument, connect.CodeOf(err))
+	assert.Contains(t, err.Error(), "project_number is required")
+}
+
 func TestObservabilityGetProjectIssuesByStatus_NotConfigured(t *testing.T) {
 	promoteToAdmin(t)
 	t.Cleanup(func() { demoteToUser(t) })

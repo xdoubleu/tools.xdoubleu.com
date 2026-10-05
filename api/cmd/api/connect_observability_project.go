@@ -34,6 +34,11 @@ func (h *obsConnectHandler) GetProjectIssuesByStatus(
 func (h *obsConnectHandler) projectIssuesByStatus(
 	ctx context.Context, projectNumber int32, status string,
 ) (*observabilityv1.GetProjectIssuesByStatusResponse, error) {
+	if projectNumber <= 0 {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument, errors.New("project_number is required"),
+		)
+	}
 	resp := &observabilityv1.GetProjectIssuesByStatusResponse{
 		Issues:     []*observabilityv1.ProjectIssue{},
 		Configured: true,
