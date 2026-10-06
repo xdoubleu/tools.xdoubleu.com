@@ -14,7 +14,6 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
-	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -216,21 +215,22 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	held, err := app.Services.Books.ListKoboDeviceHeld(r.Context(), deviceID)
+	// The upstream fetch overlaps the span translation's wait.
+	var upstreamItems []json.RawMessage
+	var upstreamHdrs http.Header
+	upstreamDone := make(chan struct{})
+	go func() {
+		defer close(upstreamDone)
+		upstreamItems, upstreamHdrs = app.koboFetchUpstreamSync(r)
+	}()
+
+	held, pending, err := app.koboSyncSpans(
+		r.Context(), userID, deviceID, books, stateByBook,
+	)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	// Only states the device lacks are translated: it ignores the state in a
-	// repeated NewEntitlement.
-	var lacking []uuid.UUID
-	for _, b := range books {
-		if b.Format == models.FileFormatKEPUB &&
-			services.KoboDeviceLacks(held, b.BookID, stateByBook[b.BookID]) {
-			lacking = append(lacking, b.BookID)
-		}
-	}
-	pending := app.koboWithSpans(r.Context(), userID, lacking, stateByBook)
 
 	libraryBase := app.koboLibraryBase(r)
 
@@ -249,7 +249,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		removalEntries[i] = buildKoboRemovalEntry(rm)
 	}
 
-	upstreamItems, upstreamHdrs := app.koboFetchUpstreamSync(r)
+	<-upstreamDone
 
 	// Last before responding: this marks the states as delivered.
 	stateEntries, err := app.koboChangedReadingStates(

@@ -180,21 +180,18 @@ func (app *Books) koboPutStateHandler(w http.ResponseWriter, r *http.Request) {
 			Percent: rs.CurrentBookmark.ProgressPercent,
 			ReadAt:  parseKoboTime(rs.CurrentBookmark.LastModified),
 		}
-		if loc := parseKoboLocation(rs.CurrentBookmark.Location); loc != nil {
-			state.Location = &loc.Value
-			if loc.Source != "" && rs.StatusInfo.Status != koboStatusFinished {
-				state.KoboLocation = loc
-				state.Position = app.Services.Positions.KoboPosition(
-					r.Context(), userID, bookID, *loc,
-				)
-			}
-		}
+		backfill := app.koboPutLocation(
+			r.Context(), &state, rs.CurrentBookmark.Location, rs.StatusInfo.Status,
+		)
 
 		if err = app.Services.Books.UpdateKoboReadingProgress(
 			r.Context(), deviceID, state,
 		); err != nil {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
+		}
+		if backfill {
+			app.backfillKoboPosition(r.Context(), userID, bookID, *state.KoboLocation)
 		}
 		ack.UpdateResults = append(ack.UpdateResults, koboUpdateResult{
 			EntitlementId:         bookID.String(),

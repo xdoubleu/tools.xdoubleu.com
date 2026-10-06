@@ -238,20 +238,40 @@ func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
 	changed, err = syncStates(states, nil)
 	require.NoError(t, err)
 	assert.Empty(t, changed)
+}
 
-	webWrite(t, owner, onDevice, 3)
-	states, err = svc.ListReadingStates(ctx, owner)
+func TestSetKoboPosition_OnlyFillsTheSameBookmark(t *testing.T) {
+	ctx := context.Background()
+	owner := "kobo-backfill-" + uuid.NewString()
+	bookID := addUniqueBook(t).ID
+	loc := models.KoboLocation{
+		Source: mocks.ChapterTwoHref, Type: "KoboSpan", Value: "kobo.1.2",
+	}
+	require.NoError(t, testApp.Services.Books.UpdateReadingProgress(ctx,
+		models.BookReadingState{ //nolint:exhaustruct //optional fields
+			UserID: owner, BookID: bookID, Source: models.ReadingSourceKobo,
+			Percent: 30, Location: &loc.Value, KoboLocation: &loc,
+		}))
+	pos := models.ReadingPosition{Href: mocks.ChapterTwoHref, Offset: 28, Page: 0}
+	other := loc
+	other.Value = "kobo.2.1"
+	svc := testApp.Services.Books
+
+	require.NoError(t, svc.SetKoboPosition(ctx, owner, bookID, other, pos))
+	state, err := svc.GetReadingState(ctx, owner, bookID)
 	require.NoError(t, err)
-	stale := *states[onDevice]
-	stale.UpdatedAt = stale.UpdatedAt.Add(-10 * time.Minute)
-	states[onDevice] = &stale
-	held, err := svc.ListKoboDeviceHeld(ctx, deviceID)
+	assert.Nil(t, state.Position, "a replaced bookmark isn't backfilled")
+
+	require.NoError(t, svc.SetKoboPosition(ctx, owner, bookID, loc, pos))
+	state, err = svc.GetReadingState(ctx, owner, bookID)
 	require.NoError(t, err)
-	held[onDevice] = stale.UpdatedAt.Add(-time.Minute)
-	changed, err = svc.SyncKoboDeviceReadingStates(
-		ctx, deviceID, []uuid.UUID{onDevice}, states, held,
-		map[uuid.UUID]bool{onDevice: true},
-	)
+	require.NotNil(t, state.Position)
+	assert.Equal(t, pos, *state.Position)
+
+	later := pos
+	later.Offset = 99
+	require.NoError(t, svc.SetKoboPosition(ctx, owner, bookID, loc, later))
+	state, err = svc.GetReadingState(ctx, owner, bookID)
 	require.NoError(t, err)
-	assert.Len(t, changed, 1, "past the grace the state goes out as percent only")
+	assert.Equal(t, pos, *state.Position, "an existing position is kept")
 }

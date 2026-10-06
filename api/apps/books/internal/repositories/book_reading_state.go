@@ -75,6 +75,24 @@ func (r *BookReadingStateRepository) UpsertIfNewer(
 	return &updatedAt, nil
 }
 
+// SetPositionForKoboLocation sets position on the row still holding loc and
+// no position. updated_at is left alone: devices already hold this state.
+func (r *BookReadingStateRepository) SetPositionForKoboLocation(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	loc models.KoboLocation,
+	pos models.ReadingPosition,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE books.book_reading_state
+		SET position = $4
+		WHERE user_id = $1 AND book_id = $2
+		  AND kobo_location = $3 AND position IS NULL
+	`, userID, bookID, loc, pos)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func (r *BookReadingStateRepository) Get(
 	ctx context.Context,
 	userID string,

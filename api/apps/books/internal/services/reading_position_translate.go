@@ -1,13 +1,11 @@
 package services
 
 import (
-	"archive/zip"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"os"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,18 +17,17 @@ import (
 )
 
 const (
-	// translateBudget is how long a request waits for a span map before
-	// falling back to percent (ADR-0017); the build carries on for the next.
+	// translateBudget is how long a request waits for span maps before
+	// falling back to percent (ADR-0017); builds carry on for the next one.
 	translateBudget     = 3 * time.Second
 	spanMapBuildTimeout = time.Minute
+	// spanMapPendingGrace bounds how long a span map counts as pending, so a
+	// book that never builds still syncs as percent only.
+	spanMapPendingGrace = 5 * time.Minute
 	spanMapCacheSize    = 16
 	// spanMapBuildSlots caps concurrent builds; each holds two parsed books.
 	spanMapBuildSlots = 2
 )
-
-// errSpanMapRetry marks a build failure worth retrying (download, timeout)
-// rather than caching.
-var errSpanMapRetry = errors.New("span map build can be retried")
 
 // kepubFileStore is the slice of BookFilesRepository the translator reads.
 type kepubFileStore interface {
@@ -51,6 +48,9 @@ type PositionService struct {
 	slots        chan struct{}
 	budget       time.Duration
 	buildTimeout time.Duration
+	pendingGrace time.Duration
+	pendingMu    sync.Mutex
+	pendingSince map[spanMapKey]time.Time
 }
 
 func newPositionService(
@@ -68,25 +68,51 @@ func newPositionService(
 		slots:        make(chan struct{}, spanMapBuildSlots),
 		budget:       budget,
 		buildTimeout: spanMapBuildTimeout,
+		pendingGrace: spanMapPendingGrace,
+		pendingMu:    sync.Mutex{},
+		pendingSince: map[spanMapKey]time.Time{},
 	}
 }
 
 // KoboPosition is the neutral position of a KoboSpan bookmark, nil when it
-// can't be translated within the budget.
+// can't be translated within the budget; pending is true while its span map
+// is still building.
 func (s *PositionService) KoboPosition(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	loc models.KoboLocation,
-) *models.ReadingPosition {
+) (*models.ReadingPosition, bool) {
 	if loc.Type != koboSpanType {
-		return nil
+		return nil, false
 	}
-	maps, _ := s.spanMaps(ctx, userID, []uuid.UUID{bookID})
+	maps, pending := s.spanMaps(ctx, userID, []uuid.UUID{bookID}, s.budget)
 	if m := maps[bookID]; m != nil {
-		return m.position(loc)
+		return m.position(loc), false
 	}
-	return nil
+	return nil, pending[bookID]
+}
+
+// BackfillKoboPosition waits up to the build timeout for loc's span map and
+// passes the translated position to store, for a write that couldn't wait.
+func (s *PositionService) BackfillKoboPosition(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	loc models.KoboLocation,
+	store func(context.Context, models.ReadingPosition) error,
+) {
+	maps, _ := s.spanMaps(ctx, userID, []uuid.UUID{bookID}, s.buildTimeout)
+	m := maps[bookID]
+	if m == nil {
+		return
+	}
+	if pos := m.position(loc); pos != nil {
+		if err := store(ctx, *pos); err != nil {
+			s.logger.WarnContext(ctx, "kobo position backfill failed",
+				"book_id", bookID, "err", err)
+		}
+	}
 }
 
 // KoboLocations translates neutral EPUB positions to KoboSpan locations.
@@ -102,7 +128,7 @@ func (s *PositionService) KoboLocations(
 			ids = append(ids, id)
 		}
 	}
-	maps, pending := s.spanMaps(ctx, userID, ids)
+	maps, pending := s.spanMaps(ctx, userID, ids, s.budget)
 
 	locs := make(map[uuid.UUID]*models.KoboLocation, len(maps))
 	for id, m := range maps {
@@ -113,16 +139,25 @@ func (s *PositionService) KoboLocations(
 	return locs, pending
 }
 
+type spanMapWait struct {
+	key spanMapKey
+	ch  <-chan singleflight.Result
+}
+
 // spanMaps returns the span maps of the books that have one, waiting up to
-// the budget for builds; pending holds the books still building or whose
-// build failed in a way worth retrying.
+// budget (lookups included) for builds. pending holds the books still
+// building, or whose build failed in a way worth retrying, within the grace.
 func (s *PositionService) spanMaps(
 	ctx context.Context,
 	userID string,
 	bookIDs []uuid.UUID,
+	budget time.Duration,
 ) (map[uuid.UUID]*spanMap, map[uuid.UUID]bool) {
+	timer := time.NewTimer(budget)
+	defer timer.Stop()
+
 	maps := make(map[uuid.UUID]*spanMap, len(bookIDs))
-	waiting := make(map[uuid.UUID]<-chan singleflight.Result)
+	waiting := make(map[uuid.UUID]spanMapWait)
 	for _, bookID := range bookIDs {
 		key, kepubKey, sourceKey, ok := s.resolve(ctx, userID, bookID)
 		if !ok {
@@ -133,49 +168,74 @@ func (s *PositionService) spanMaps(
 			continue
 		}
 		buildCtx := context.WithoutCancel(ctx)
-		waiting[bookID] = s.builds.DoChan(fmt.Sprint(key), func() (any, error) {
+		ch := s.builds.DoChan(fmt.Sprint(key), func() (any, error) {
+			if m, hit := s.cache.get(key); hit {
+				return m, nil
+			}
 			return s.build(buildCtx, key, kepubKey, sourceKey), nil
 		})
+		waiting[bookID] = spanMapWait{key: key, ch: ch}
 	}
 
+	return maps, s.await(ctx, timer, waiting, maps)
+}
+
+// await collects finished builds into maps until timer fires or ctx ends,
+// returning the books still pending.
+func (s *PositionService) await(
+	ctx context.Context,
+	timer *time.Timer,
+	waiting map[uuid.UUID]spanMapWait,
+	maps map[uuid.UUID]*spanMap,
+) map[uuid.UUID]bool {
 	pending := make(map[uuid.UUID]bool)
-	timer := time.NewTimer(s.budget)
-	defer timer.Stop()
 	expired := false
-	for bookID, ch := range waiting {
+	for bookID, w := range waiting {
+		var res singleflight.Result
+		got := false
 		if !expired {
 			select {
-			case res := <-ch:
-				addBuilt(maps, pending, bookID, res)
-				continue
+			case res = <-w.ch:
+				got = true
 			case <-timer.C:
 				expired = true
 			case <-ctx.Done():
 				expired = true
 			}
 		}
-		select {
-		case res := <-ch:
-			addBuilt(maps, pending, bookID, res)
-		default:
+		if !got {
+			select {
+			case res = <-w.ch:
+				got = true
+			default:
+			}
+		}
+		if m, ok := res.Val.(*spanMap); got && ok && m != nil {
+			maps[bookID] = m
+		} else if s.stillPending(w.key) {
 			pending[bookID] = true
 		}
 	}
-	return maps, pending
+	return pending
 }
 
-// addBuilt records a finished build; a nil map is a retryable failure.
-func addBuilt(
-	maps map[uuid.UUID]*spanMap,
-	pending map[uuid.UUID]bool,
-	bookID uuid.UUID,
-	res singleflight.Result,
-) {
-	if m, ok := res.Val.(*spanMap); ok && m != nil {
-		maps[bookID] = m
-		return
+// stillPending reports whether key first went pending within the grace.
+func (s *PositionService) stillPending(key spanMapKey) bool {
+	s.pendingMu.Lock()
+	defer s.pendingMu.Unlock()
+	since, ok := s.pendingSince[key]
+	if !ok {
+		s.pendingSince[key] = time.Now()
+		return true
 	}
-	pending[bookID] = true
+	return time.Since(since) < s.pendingGrace
+}
+
+func (s *PositionService) markBuilt(key spanMapKey, m *spanMap) {
+	s.cache.add(key, m)
+	s.pendingMu.Lock()
+	delete(s.pendingSince, key)
+	s.pendingMu.Unlock()
 }
 
 // resolve finds the user's ready KEPUB of bookID and its EPUB source; ok is
@@ -203,111 +263,4 @@ func (s *PositionService) resolve(
 			"book_id", bookID, "err", err)
 	}
 	return spanMapKey{kepubID: uuid.Nil, sourceID: uuid.Nil, version: 0}, "", "", false
-}
-
-// build parses both files into a span map and caches it. A broken book caches
-// an empty map so it isn't downloaded again on every sync; a retryable
-// failure returns nil and caches nothing.
-func (s *PositionService) build(
-	ctx context.Context,
-	key spanMapKey,
-	kepubKey, sourceKey string,
-) *spanMap {
-	ctx, cancel := context.WithTimeout(ctx, s.buildTimeout)
-	defer cancel()
-	select {
-	case s.slots <- struct{}{}:
-		defer func() { <-s.slots }()
-	case <-ctx.Done():
-		return nil
-	}
-
-	m := &spanMap{docs: nil}
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				s.logger.ErrorContext(ctx, "kepub span map build panicked",
-					"kepub_file_id", key.kepubID, "panic", r)
-			}
-		}()
-		built, err := s.buildFromStore(ctx, kepubKey, sourceKey)
-		if err != nil {
-			s.logger.WarnContext(ctx, "kepub span map build failed",
-				"kepub_file_id", key.kepubID, "err", err)
-			if errors.Is(err, errSpanMapRetry) || ctx.Err() != nil {
-				m = nil
-			}
-			return
-		}
-		m = built
-	}()
-	if m != nil {
-		s.cache.add(key, m)
-	}
-	return m
-}
-
-func (s *PositionService) buildFromStore(
-	ctx context.Context,
-	kepubKey, sourceKey string,
-) (*spanMap, error) {
-	kepub, err := s.openZip(ctx, kepubKey)
-	if err != nil {
-		return nil, err
-	}
-	defer kepub.close()
-	source, err := s.openZip(ctx, sourceKey)
-	if err != nil {
-		return nil, err
-	}
-	defer source.close()
-	return buildSpanMap(ctx, &kepub.zr.Reader, &source.zr.Reader)
-}
-
-type tempZip struct {
-	zr   *zip.ReadCloser
-	path string
-}
-
-func (t *tempZip) close() {
-	_ = t.zr.Close()
-	_ = os.Remove(t.path)
-}
-
-// openZip downloads key to a temp file rather than memory: books can be large
-// and the API's memory limit is tight.
-func (s *PositionService) openZip(ctx context.Context, key string) (*tempZip, error) {
-	rc, err := s.objectStore.Get(ctx, key)
-	if err != nil {
-		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
-	}
-	defer func() { _ = rc.Close() }()
-
-	tmp, err := os.CreateTemp("", "spanmap-*.zip")
-	if err != nil {
-		return nil, fmt.Errorf("%w: create temp file: %w", errSpanMapRetry, err)
-	}
-	n, err := io.Copy(tmp, io.LimitReader(rc, maxConversionInputBytes+1))
-	_ = tmp.Close()
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
-	}
-	if n > maxConversionInputBytes {
-		err = fmt.Errorf("%s exceeds %d bytes", key, maxConversionInputBytes)
-	}
-	var zr *zip.ReadCloser
-	if err == nil {
-		zr, err = zip.OpenReader(tmp.Name())
-	}
-	if err == nil {
-		if err = checkEPUBSize(&zr.Reader); err != nil {
-			_ = zr.Close()
-		}
-	}
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		return nil, fmt.Errorf("open %s: %w", key, err)
-	}
-	return &tempZip{zr: zr, path: tmp.Name()}, nil
 }

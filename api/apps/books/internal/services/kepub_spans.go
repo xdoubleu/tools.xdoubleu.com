@@ -109,12 +109,19 @@ func buildSpanMap(ctx context.Context, kepub, original *zip.Reader) (*spanMap, e
 	return m, nil
 }
 
+// maxContentDocBytes bounds one document's size: its text is held several
+// times over in memory while aligning.
+const maxContentDocBytes = 16 << 20
+
 func zipDocText(zr *zip.Reader, name string) (docText, error) {
 	f, err := zr.Open(name)
 	if err != nil {
 		return docText{units: nil, spans: nil}, err
 	}
 	defer func() { _ = f.Close() }()
+	if info, statErr := f.Stat(); statErr == nil && info.Size() > maxContentDocBytes {
+		return docText{units: nil, spans: nil}, fmt.Errorf("%s is too large", name)
+	}
 	return parseBodyText(f)
 }
 

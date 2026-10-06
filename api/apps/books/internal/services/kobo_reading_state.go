@@ -26,10 +26,6 @@ func (s *BookService) UpdateKoboReadingProgress(
 	)
 }
 
-// koboSpanPendingGrace bounds how long a state waits for its span location
-// before the device gets it as percent only.
-const koboSpanPendingGrace = 5 * time.Minute
-
 // ListKoboDeviceHeld returns, per book, the state updated_at deviceID holds.
 func (s *BookService) ListKoboDeviceHeld(
 	ctx context.Context,
@@ -53,8 +49,8 @@ func KoboDeviceLacks(
 // last held them (held, from ListKoboDeviceHeld), for books it already has,
 // then records every book's current state as held. A book new to the device
 // gets its state with its entitlement. A pending book (its span location still
-// being computed, for up to koboSpanPendingGrace) is left for the next sync:
-// not returned, and held at the epoch if new to the device.
+// being computed) is left for the next sync: not returned, and held at the
+// epoch if new to the device.
 func (s *BookService) SyncKoboDeviceReadingStates(
 	ctx context.Context,
 	deviceID string,
@@ -73,11 +69,11 @@ func (s *BookService) SyncKoboDeviceReadingStates(
 		if state != nil {
 			at = state.UpdatedAt
 		}
-		prev, onDevice := held[bookID]
-		if onDevice && !at.After(prev) {
+		if !KoboDeviceLacks(held, bookID, state) {
 			continue
 		}
-		if pending[bookID] && time.Since(at) < koboSpanPendingGrace {
+		_, onDevice := held[bookID]
+		if pending[bookID] {
 			if !onDevice {
 				markIDs = append(markIDs, bookID)
 				markAts = append(markAts, epoch)
@@ -99,4 +95,16 @@ func (s *BookService) SyncKoboDeviceReadingStates(
 		}
 	}
 	return changed, nil
+}
+
+// SetKoboPosition fills in the neutral position of a stored Kobo bookmark that
+// was saved without one; a no-op once the bookmark changed.
+func (s *BookService) SetKoboPosition(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	loc models.KoboLocation,
+	pos models.ReadingPosition,
+) error {
+	return s.readingState.SetPositionForKoboLocation(ctx, userID, bookID, loc, pos)
 }
