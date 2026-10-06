@@ -10,24 +10,24 @@ description: >-
 
 # Finish Task
 
-Closing half of every task, paired with `start-task`; implements
+Closing half of every task (pairs with `start-task`); implements
 [`docs/convention-task-lifecycle.md`](../../../docs/convention-task-lifecycle.md).
 Run the steps in order. Opening the PR is pre-authorized; a pushed branch
-without a PR, or "CI is running", isn't done.
+without a PR, or running CI, isn't done.
 
 ## 1. Lint
 
-- API, single package: `cd api && make lint/fix/pkg PKG=apps/<pkg>` (repo-wide
-  golines reformats unrelated files). Multiple packages or `api/internal`:
+- API, single package: `cd api && make lint/fix/pkg PKG=apps/<pkg>` (repo-wide golines reformats other files). Multiple packages or `api/internal`:
   `cd api && make lint/fix`.
 - Web: `cd web && npm run lint`.
 - kobo-gateway: `cd kobo-gateway && make lint/fix`.
 - sentrytools: `cd sentrytools && make lint/fix`; if its public API changed,
   re-run `go mod tidy` in `api`.
+- `infra/grafana` changed: `make lint/grafana` and `make grafana/verify`.
 - Always: `make lint/docs` from the repo root must pass (rule:
   [`docs/convention-concise-docs-and-comments.md`](../../../docs/convention-concise-docs-and-comments.md)).
-- Re-read the diff and cut any comment or doc text that restates the code or
-  repeats something said elsewhere.
+- Re-read the diff; cut comment/doc text that restates the code or repeats
+  itself.
 - `.proto` changed: `cd api && make proto/check` and `cd web && npm run
   generate:check`, commit the result.
 
@@ -38,12 +38,14 @@ without a PR, or "CI is running", isn't done.
 - Web: `cd web && npm run test:cov`.
 
 **Sandboxed (routine) runs:** `routine-sandbox` points `GOLANGCI_LINT_CACHE`
-and the coverage profile at the sandbox user's home; run lint read-only.
+and the coverage profile at the sandbox home; run lint read-only.
 `make lint/fix/*` reflows files in place; hand-apply golines/gci diffs.
+`make grafana/verify` needs Docker, unreachable here: skip it, rely on CI's
+Build Grafana job, and say so in the PR body.
 
 ## 3. Build (web changes)
 
-`cd web && npm run build` — the only check of the server/client boundary.
+`cd web && npm run build` checks the server/client boundary.
 
 ## 4. Decide the issue reference
 
@@ -55,8 +57,8 @@ Check the tracking issue before handing `ship-pr` a reference:
   board Status to **"Needs you"** (step 5's command, option id `f83bddc3`)
   and leave it open.
 - **Bug report**: a green suite doesn't close it. Verify the symptom is
-  gone in production after deploy (MCP read tools or the UI); until then,
-  name that check as a post-deploy step in the PR body. If unverifiable
+  gone in production after deploy (MCP read tools or UI); name that check as
+  a post-deploy step in the PR body. If unverifiable
   (third party, hardware), say so; the user's confirmation is acceptance.
 - Otherwise: closing keyword (`Fixes #123`).
 
@@ -79,9 +81,9 @@ whichever side changed:
 3. `cd api && make test/mutation/diff` / `cd web && npm run
    test:mutation:diff`; kill every surviving mutant.
 
-Then tell `ship-pr` to enable auto-merge. Feature work is never completed
-headless — a human drives the implementation and tests the output at the
-end; no PR under a feature epic is reviewed
+Then have `ship-pr` enable auto-merge. Feature work is never completed
+headless: a human drives implementation and tests the output; no PR under a
+feature epic is reviewed
 ([`docs/convention-feature-review-policy.md`](../../../docs/convention-feature-review-policy.md)).
 
 **B — no `feature` label: tiered rule.**
@@ -100,7 +102,7 @@ end; no PR under a feature epic is reviewed
   Then append (never overwrite: `gh pr view --json body -q .body`, then
   `gh pr edit <n> --body ...`) a `## Manual review needed` section naming
   **every** triggered signal, each with a specific "what to double check"
-  (e.g. migration: backward-compatible with deployed code).
+  (e.g. migration: backward-compatible).
 
 Board Status edits (project #8 is personal; GitHub MCP can't write it):
 
@@ -111,7 +113,7 @@ gh project item-edit --id <ITEM_ID> --field-id PVTSSF_lAHOAzw7nc4BdsAmzhYLzDw \
 
 `<ITEM_ID>`: `gh project item-list 8 --owner xdoubleu --format json`,
 matched on `content.number`. Without `gh`, use the
-`updateProjectV2ItemFieldValue` mutation, or report that you couldn't.
+`updateProjectV2ItemFieldValue` mutation, or report you couldn't.
 Unattended: the routine's GitHub App token can't write this user-owned board
 (`updateProjectV2ItemFieldValue` is denied) — leave Status as-is and report
 which status edits were skipped.
@@ -124,7 +126,7 @@ issue, call `resolve_sentry_issue` (`issue_id` = `<id>`).
 ## 7. Session retro
 
 Once CI is green, always run `session-retro`. Any fix it finds ships as its
-own issue and PR, never stacked on this one.
+own issue and PR, not stacked here.
 
 ## Missing skills or `gh`
 
