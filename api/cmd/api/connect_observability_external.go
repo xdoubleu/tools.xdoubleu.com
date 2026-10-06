@@ -198,6 +198,7 @@ func (h *obsConnectHandler) securityAlerts(
 			Ecosystem:   a.Ecosystem,
 			Severity:    a.Severity,
 			Summary:     a.Summary,
+			AdvisoryId:  a.AdvisoryID,
 			Url:         a.URL,
 			CreatedAt:   a.CreatedAt.Format(time.RFC3339),
 			AlertType:   securityAlertTypeToProto(a.Type),
@@ -205,6 +206,8 @@ func (h *obsConnectHandler) securityAlerts(
 			FilePath:    a.FilePath,
 			Line:        int32(a.Line), //nolint:gosec // line numbers fit int32
 			SecretType:  a.SecretTypeDisplayName,
+
+			FirstPatchedVersion: a.FirstPatchedVersion,
 		}
 	}
 	resp.Alerts = protoAlerts

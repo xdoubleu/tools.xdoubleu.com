@@ -46,7 +46,8 @@ const (
 )
 
 // SecurityAlert is one open alert. PackageName/Ecosystem are set for
-// Dependabot, RuleID/FilePath/Line for code scanning, SecretTypeDisplayName for
+// Dependabot (plus AdvisoryID/FirstPatchedVersion; the latter is empty while
+// unpatched), RuleID/FilePath/Line for code scanning, SecretTypeDisplayName for
 // secret scanning.
 type SecurityAlert struct {
 	Type                  SecurityAlertType
@@ -55,6 +56,8 @@ type SecurityAlert struct {
 	Ecosystem             string
 	Severity              string
 	Summary               string
+	AdvisoryID            string
+	FirstPatchedVersion   string
 	URL                   string
 	CreatedAt             time.Time
 	RuleID                string
@@ -224,9 +227,13 @@ type securityAlertWire struct {
 	} `json:"dependency"`
 	SecurityAdvisory struct {
 		Summary string `json:"summary"`
+		GHSAID  string `json:"ghsa_id"`
 	} `json:"security_advisory"`
 	SecurityVulnerability struct {
-		Severity string `json:"severity"`
+		Severity            string `json:"severity"`
+		FirstPatchedVersion *struct {
+			Identifier string `json:"identifier"`
+		} `json:"first_patched_version"`
 	} `json:"security_vulnerability"`
 }
 

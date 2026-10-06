@@ -322,8 +322,10 @@ func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
 					{"number":83,"html_url":"https://gh/security/dependabot/83",
 					 "created_at":"2026-08-19T16:34:44Z",
 					 "dependency":{"package":{"name":"otel","ecosystem":"go"}},
-					 "security_advisory":{"summary":"unbounded body read"},
-					 "security_vulnerability":{"severity":"medium"}}
+					 "security_advisory":{"summary":"unbounded body read",
+					                      "ghsa_id":"GHSA-xxxx-yyyy-zzzz"},
+					 "security_vulnerability":{"severity":"medium",
+					   "first_patched_version":{"identifier":"1.9.0"}}}
 				]`))
 			case "/repos/" + testRepo + "/code-scanning/alerts":
 				_, _ = w.Write([]byte(`[
@@ -356,6 +358,8 @@ func TestListSecurityAlerts_ReturnsAlerts(t *testing.T) {
 	assert.Equal(t, "go", dependabot.Ecosystem)
 	assert.Equal(t, "medium", dependabot.Severity)
 	assert.Equal(t, "unbounded body read", dependabot.Summary)
+	assert.Equal(t, "GHSA-xxxx-yyyy-zzzz", dependabot.AdvisoryID)
+	assert.Equal(t, "1.9.0", dependabot.FirstPatchedVersion)
 	assert.Equal(t, "https://gh/security/dependabot/83", dependabot.URL)
 
 	codeScanning := alerts[1]

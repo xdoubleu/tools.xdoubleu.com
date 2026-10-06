@@ -348,15 +348,21 @@ func (c *client) fetchDependabotAlerts(
 
 	alerts := make([]SecurityAlert, len(wires))
 	for i, w := range wires {
+		patched := ""
+		if fp := w.SecurityVulnerability.FirstPatchedVersion; fp != nil {
+			patched = fp.Identifier
+		}
 		alerts[i] = SecurityAlert{ //nolint:exhaustruct // type-specific fields left zero
-			Type:        SecurityAlertTypeDependabot,
-			Number:      w.Number,
-			PackageName: w.Dependency.Package.Name,
-			Ecosystem:   w.Dependency.Package.Ecosystem,
-			Severity:    w.SecurityVulnerability.Severity,
-			Summary:     w.SecurityAdvisory.Summary,
-			URL:         w.HTMLURL,
-			CreatedAt:   w.CreatedAt,
+			Type:                SecurityAlertTypeDependabot,
+			Number:              w.Number,
+			PackageName:         w.Dependency.Package.Name,
+			Ecosystem:           w.Dependency.Package.Ecosystem,
+			Severity:            w.SecurityVulnerability.Severity,
+			Summary:             w.SecurityAdvisory.Summary,
+			AdvisoryID:          w.SecurityAdvisory.GHSAID,
+			FirstPatchedVersion: patched,
+			URL:                 w.HTMLURL,
+			CreatedAt:           w.CreatedAt,
 		}
 	}
 	return alerts, nil

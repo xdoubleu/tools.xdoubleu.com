@@ -1667,21 +1667,23 @@ func (x *GetWorkflowRunsResponse) GetConfigured() bool {
 // SecurityAlert is one open alert. package_name/ecosystem are Dependabot-only,
 // rule_id/file_path/line code-scanning-only, secret_type secret-scanning-only.
 type SecurityAlert struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
-	PackageName   string                 `protobuf:"bytes,2,opt,name=package_name,json=packageName,proto3" json:"package_name,omitempty"`
-	Ecosystem     string                 `protobuf:"bytes,3,opt,name=ecosystem,proto3" json:"ecosystem,omitempty"`
-	Severity      string                 `protobuf:"bytes,4,opt,name=severity,proto3" json:"severity,omitempty"` // "low" | "medium" | "high" | "critical"
-	Summary       string                 `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
-	Url           string                 `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339
-	AlertType     SecurityAlertType      `protobuf:"varint,8,opt,name=alert_type,json=alertType,proto3,enum=observability.v1.SecurityAlertType" json:"alert_type,omitempty"`
-	RuleId        string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
-	FilePath      string                 `protobuf:"bytes,10,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
-	Line          int32                  `protobuf:"varint,11,opt,name=line,proto3" json:"line,omitempty"`
-	SecretType    string                 `protobuf:"bytes,12,opt,name=secret_type,json=secretType,proto3" json:"secret_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Number              int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	PackageName         string                 `protobuf:"bytes,2,opt,name=package_name,json=packageName,proto3" json:"package_name,omitempty"`
+	Ecosystem           string                 `protobuf:"bytes,3,opt,name=ecosystem,proto3" json:"ecosystem,omitempty"`
+	Severity            string                 `protobuf:"bytes,4,opt,name=severity,proto3" json:"severity,omitempty"` // "low" | "medium" | "high" | "critical"
+	Summary             string                 `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
+	Url                 string                 `protobuf:"bytes,6,opt,name=url,proto3" json:"url,omitempty"`
+	CreatedAt           string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"` // RFC3339
+	AlertType           SecurityAlertType      `protobuf:"varint,8,opt,name=alert_type,json=alertType,proto3,enum=observability.v1.SecurityAlertType" json:"alert_type,omitempty"`
+	RuleId              string                 `protobuf:"bytes,9,opt,name=rule_id,json=ruleId,proto3" json:"rule_id,omitempty"`
+	FilePath            string                 `protobuf:"bytes,10,opt,name=file_path,json=filePath,proto3" json:"file_path,omitempty"`
+	Line                int32                  `protobuf:"varint,11,opt,name=line,proto3" json:"line,omitempty"`
+	SecretType          string                 `protobuf:"bytes,12,opt,name=secret_type,json=secretType,proto3" json:"secret_type,omitempty"`
+	AdvisoryId          string                 `protobuf:"bytes,13,opt,name=advisory_id,json=advisoryId,proto3" json:"advisory_id,omitempty"`                              // Dependabot GHSA id
+	FirstPatchedVersion string                 `protobuf:"bytes,14,opt,name=first_patched_version,json=firstPatchedVersion,proto3" json:"first_patched_version,omitempty"` // Dependabot; empty while unpatched
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *SecurityAlert) Reset() {
@@ -1794,6 +1796,20 @@ func (x *SecurityAlert) GetLine() int32 {
 func (x *SecurityAlert) GetSecretType() string {
 	if x != nil {
 		return x.SecretType
+	}
+	return ""
+}
+
+func (x *SecurityAlert) GetAdvisoryId() string {
+	if x != nil {
+		return x.AdvisoryId
+	}
+	return ""
+}
+
+func (x *SecurityAlert) GetFirstPatchedVersion() string {
+	if x != nil {
+		return x.FirstPatchedVersion
 	}
 	return ""
 }
@@ -4345,7 +4361,7 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	"\x04runs\x18\x01 \x03(\v2\x1d.observability.v1.WorkflowRunR\x04runs\x12\x1e\n" +
 	"\n" +
 	"configured\x18\x02 \x01(\bR\n" +
-	"configured\"\xfe\x02\n" +
+	"configured\"\xd3\x03\n" +
 	"\rSecurityAlert\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12!\n" +
 	"\fpackage_name\x18\x02 \x01(\tR\vpackageName\x12\x1c\n" +
@@ -4362,7 +4378,10 @@ const file_observability_v1_observability_proto_rawDesc = "" +
 	" \x01(\tR\bfilePath\x12\x12\n" +
 	"\x04line\x18\v \x01(\x05R\x04line\x12\x1f\n" +
 	"\vsecret_type\x18\f \x01(\tR\n" +
-	"secretType\"\x1a\n" +
+	"secretType\x12\x1f\n" +
+	"\vadvisory_id\x18\r \x01(\tR\n" +
+	"advisoryId\x122\n" +
+	"\x15first_patched_version\x18\x0e \x01(\tR\x13firstPatchedVersion\"\x1a\n" +
 	"\x18GetSecurityAlertsRequest\"\xab\x01\n" +
 	"\x19GetSecurityAlertsResponse\x127\n" +
 	"\x06alerts\x18\x01 \x03(\v2\x1f.observability.v1.SecurityAlertR\x06alerts\x12\x1e\n" +
