@@ -243,6 +243,8 @@ message SecurityAlert {
   string file_path = 10;
   int32 line = 11;
   string secret_type = 12;
+  string advisory_id = 13;            // Dependabot GHSA id
+  string first_patched_version = 14;  // Dependabot; empty while unpatched
 }
 
 message GetSecurityAlertsRequest {}

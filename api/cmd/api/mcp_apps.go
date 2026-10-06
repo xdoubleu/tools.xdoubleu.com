@@ -210,7 +210,8 @@ func registerObservabilityMCPTools(srv *mcp.Server, app *Application) {
 	addObsTool(srv, "get_security_alerts",
 		"Open GitHub security alerts: Dependabot (dependencies), code "+
 			"scanning (CodeQL/SARIF findings), and secret scanning (leaked "+
-			"credentials). A set error means the fetch failed and the alerts "+
+			"credentials). Dependabot alerts carry advisory_id and "+
+			"first_patched_version. A set error means the fetch failed and the alerts "+
 			"are unknown, not zero.",
 		func(ctx context.Context, _ noArgs) (proto.Message, error) {
 			return h.securityAlerts(ctx), nil
