@@ -7,6 +7,8 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   testEnvironment: 'jest-environment-jsdom',
+  // Stale Stryker sandboxes hold outdated copies of the tests.
+  testPathIgnorePatterns: ['<rootDir>/.stryker-tmp/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^(.+)\\.js$': '$1'
