@@ -21,7 +21,9 @@ export function useOfflineBookFile(
   format: string | null,
   version: string
 ): OfflineBookFile {
-  const key = bookId && format ? `${bookId}:${format}` : null
+  // Results are tagged with their book and format, so a late one for another
+  // file is never shown.
+  const key = `${bookId}:${format}`
   const [result, setResult] = useState<OfflineBookFile & { key?: string }>({})
   const [attempt, setAttempt] = useState(0)
   const versionRef = useRef(version)
@@ -31,16 +33,12 @@ export function useOfflineBookFile(
 
   useEffect(() => {
     if (!bookId || !format) return
-    let cancelled = false
     const key = `${bookId}:${format}`
     openBookFile({ bookId, format, version: versionRef.current }).then(
-      (file) => !cancelled && setResult({ key, file }),
+      (file) => setResult({ key, file }),
       (err: unknown) =>
-        !cancelled && setResult({ key, error: err instanceof Error ? err : new Error(String(err)) })
+        setResult({ key, error: err instanceof Error ? err : new Error(String(err)) })
     )
-    return () => {
-      cancelled = true
-    }
   }, [bookId, format, attempt])
 
   const failed = result.error !== undefined
@@ -51,7 +49,7 @@ export function useOfflineBookFile(
     return () => window.removeEventListener('online', retry)
   }, [failed])
 
-  if (!key || result.key !== key) return {}
+  if (result.key !== key) return {}
   return result.error ? { error: result.error } : { file: result.file }
 }
 
@@ -96,23 +94,15 @@ export function useStoredBookVersion(
   bookId: string | null,
   format: string
 ): string | null | undefined {
-  const key = bookId ? `${bookId}:${format}` : null
   const [stored, setStored] = useState<{ key: string; version: string | null } | null>(null)
   useEffect(() => {
     if (!bookId) return
-    let active = true
     const key = `${bookId}:${format}`
     const load = () =>
-      void storedBookVersion(bookId, format).then((version) => {
-        if (active) setStored({ key, version })
-      })
+      void storedBookVersion(bookId, format).then((version) => setStored({ key, version }))
     load()
-    const unsubscribe = subscribeStoredBooks(load)
-    return () => {
-      active = false
-      unsubscribe()
-    }
+    return subscribeStoredBooks(load)
   }, [bookId, format])
-  if (!key) return null
-  return stored?.key === key ? stored.version : undefined
+  if (!bookId) return null
+  return stored?.key === `${bookId}:${format}` ? stored.version : undefined
 }

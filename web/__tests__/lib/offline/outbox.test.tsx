@@ -371,6 +371,27 @@ describe('outbox', () => {
     expect(await applyPending('/list', [])).toEqual(['k1:2'])
   })
 
+  it('never coalesces writes without a key', async () => {
+    send.mockRejectedValue(networkError())
+    await enqueue('b')
+    await enqueue('c')
+    expect(getOutboxSnapshot().pending).toBe(2)
+  })
+
+  it('coalesces writes kept only in memory', async () => {
+    storeMock.mockMemoryOnly.on = true
+    const set: OfflineWrite = shoppingListWrites[1]
+    jest.mocked(set.send).mockRejectedValue(networkError())
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      await enqueueWrite(set, { value: 'k1:1' } as never)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      await enqueueWrite(set, { value: 'k1:2' } as never)
+    })
+    expect(getOutboxSnapshot().pending).toBe(1)
+    expect(await applyPending('/list', [])).toEqual(['k1:2'])
+  })
+
   it('removes only the sent write from the queue', async () => {
     send.mockResolvedValueOnce({}).mockRejectedValue(networkError())
 

@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
+import { renderToString } from 'react-dom/server'
 import { useOfflineBookFile, useStoredBookIds, useStoredBookVersion } from '@/hooks/useOfflineBooks'
 
 const mockOpenBookFile = jest.fn()
@@ -65,6 +66,37 @@ describe('useOfflineBookFile', () => {
     expect(mockOpenBookFile).toHaveBeenCalledTimes(2)
   })
 
+  it('opens another format with the version current at that time', async () => {
+    mockOpenBookFile.mockResolvedValue(new File(['x'], 'b1'))
+    const { rerender } = renderHook(
+      ({ format, version }) => useOfflineBookFile('b1', format, version),
+      { initialProps: { format: 'epub', version: 'v1' } }
+    )
+    rerender({ format: 'epub', version: 'v2' })
+    rerender({ format: 'kepub', version: 'v3' })
+    await waitFor(() => expect(mockOpenBookFile).toHaveBeenCalledTimes(2))
+    expect(mockOpenBookFile).toHaveBeenLastCalledWith({
+      bookId: 'b1',
+      format: 'kepub',
+      version: 'v3'
+    })
+  })
+
+  it('keeps retrying on each reconnect until the open succeeds', async () => {
+    const file = new File(['x'], 'b1.epub')
+    mockOpenBookFile
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockRejectedValueOnce(new Error('still offline'))
+      .mockResolvedValueOnce(file)
+    const { result } = renderHook(() => useOfflineBookFile('b1', 'epub', ''))
+    await waitFor(() => expect(result.current.error?.message).toBe('offline'))
+
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(result.current.error?.message).toBe('still offline'))
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(result.current.file).toBe(file))
+  })
+
   it('does nothing without a book or format', () => {
     const { result } = renderHook(() => useOfflineBookFile('b1', null, ''))
     expect(result.current).toEqual({})
@@ -93,6 +125,13 @@ describe('useOfflineBookFile', () => {
 })
 
 describe('useStoredBookIds', () => {
+  it('reports nothing stored when rendered on the server', () => {
+    function Probe() {
+      return <span>{useStoredBookIds().size}</span>
+    }
+    expect(renderToString(<Probe />)).toBe('<span>0</span>')
+  })
+
   it('shares one listing across components and refreshes when books change', async () => {
     mockStoredBookIds.mockResolvedValueOnce(new Set(['b1']))
     const first = renderHook(() => useStoredBookIds())
@@ -122,6 +161,25 @@ describe('useStoredBookVersion', () => {
     act(() => storedListeners.forEach((l) => l()))
     await waitFor(() => expect(result.current).toBe('v1'))
     unmount()
+  })
+
+  it('rechecks for another format and stops listening once unmounted', async () => {
+    mockStoredBookVersion.mockResolvedValue(null)
+    const before = storedListeners.size
+    const { result, rerender, unmount } = renderHook(
+      ({ format }) => useStoredBookVersion('b1', format),
+      { initialProps: { format: 'epub' } }
+    )
+    await waitFor(() => expect(result.current).toBeNull())
+    expect(storedListeners.size).toBe(before + 1)
+
+    rerender({ format: 'kepub' })
+    expect(result.current).toBeUndefined()
+    await waitFor(() => expect(result.current).toBeNull())
+    expect(mockStoredBookVersion).toHaveBeenLastCalledWith('b1', 'kepub')
+
+    unmount()
+    expect(storedListeners.size).toBe(before)
   })
 
   it('checks nothing without a book', () => {

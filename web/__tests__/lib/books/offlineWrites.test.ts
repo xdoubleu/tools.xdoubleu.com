@@ -1,5 +1,6 @@
 import { create, isMessage, type DescMessage, type MessageInitShape } from '@bufbuild/protobuf'
 import type { OfflineWrite } from '@/lib/offline/registry'
+import { keepaliveTransport, transport } from '@/lib/client'
 import { swrKeys } from '@/lib/swrKeys'
 import {
   GetLibraryResponseSchema,
@@ -17,6 +18,11 @@ import {
   updateProgressWrite,
   updateReadingProgressWrite
 } from '@/lib/books/offlineWrites'
+
+jest.mock('@/lib/client', () => ({
+  transport: { unary: jest.fn(async () => ({})) },
+  keepaliveTransport: { unary: jest.fn(async () => ({})) }
+}))
 
 function run<I extends DescMessage>(
   write: OfflineWrite<I>,
@@ -323,6 +329,7 @@ describe('reading position write', () => {
   it('leaves other books, keys and data alone', () => {
     const data = stateAt('')
     expect(apply(data, swrKeys.readingState('other'))).toBe(data)
+    expect(apply(data, ['/books/other', 'b'])).toBe(data)
     expect(apply(data, swrKeys.books)).toBe(data)
     expect(apply('nope')).toBe('nope')
   })
@@ -332,5 +339,11 @@ describe('reading position write', () => {
     expect(updateReadingProgressWrite.coalesceKey(bytes)).toBe('b')
     expect(updateReadingProgressWrite.revalidate).toBe('/books/reading-state')
     expect(updateReadingProgressWrite.revalidateOnSuccess).toBe(false)
+  })
+
+  it('sends on the keepalive transport', async () => {
+    await updateReadingProgressWrite.send(updateReadingProgressWrite.encode(save))
+    expect(keepaliveTransport.unary).toHaveBeenCalledTimes(1)
+    expect(transport.unary).not.toHaveBeenCalled()
   })
 })
