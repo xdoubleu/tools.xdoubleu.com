@@ -95,7 +95,7 @@ func buildSpanMap(ctx context.Context, kepub, original *zip.Reader) (*spanMap, e
 		for i, s := range k.spans {
 			starts[i] = s.start
 		}
-		mapped, ok := alignStarts(k.units, o.units, starts)
+		mapped, ok := alignStarts(ctx, k.units, o.units, starts)
 		if !ok {
 			continue
 		}
@@ -123,16 +123,23 @@ func zipDocText(zr *zip.Reader, name string) (docText, error) {
 func epubContentDocs(zr *zip.Reader) ([]string, error) {
 	var container struct {
 		RootFiles []struct {
-			FullPath string `xml:"full-path,attr"`
+			FullPath  string `xml:"full-path,attr"`
+			MediaType string `xml:"media-type,attr"`
 		} `xml:"rootfiles>rootfile"`
 	}
 	if err := decodeZipXML(zr, "META-INF/container.xml", &container); err != nil {
 		return nil, err
 	}
-	if len(container.RootFiles) == 0 {
+	opfPath := ""
+	for _, rf := range container.RootFiles {
+		if rf.MediaType == "application/oebps-package+xml" {
+			opfPath = rf.FullPath
+			break
+		}
+	}
+	if opfPath == "" {
 		return nil, errors.New("container.xml names no package document")
 	}
-	opfPath := container.RootFiles[0].FullPath
 
 	var opf struct {
 		Items []struct {

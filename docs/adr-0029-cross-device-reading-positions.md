@@ -35,9 +35,10 @@ on a different paragraph in each format.
   - Neutral → Kobo: the span containing, or nearest before, `offset` (the
     first of spans sharing a start), sent with the zip-root path as `Source`.
   - Span maps are built lazily and kept in an in-memory LRU keyed by KEPUB
-    file, converter version and source file. A request waits up to 3 s;
-    past that the PUT stores no `position`, and a sync leaves that book's
-    `ChangedReadingState` for the next sync.
+    file, converter version and source file. Only states the device lacks
+    are translated. A request waits up to 3 s; past that the PUT stores no
+    `position`, and a sync holds that book's `ChangedReadingState` back for
+    up to 5 min, then sends it as percent only.
   - Span ↔ PDF page (#2160), at page precision.
   - Clients send and read only their own form, so an offline write can be
     translated when it replays.

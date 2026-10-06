@@ -7,8 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
-// spanMapKey identifies the exact KEPUB a device downloaded and the original
-// its offsets point into.
+// spanMapKey identifies a stored KEPUB and the original its offsets point
+// into.
 type spanMapKey struct {
 	kepubID  uuid.UUID
 	sourceID uuid.UUID

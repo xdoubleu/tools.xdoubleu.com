@@ -1,5 +1,7 @@
 package services
 
+import "context"
+
 // maxAlignEdits bounds the edit distance between a KEPUB document's text and
 // the original's; kepubify changes a few units per document, not thousands.
 const maxAlignEdits = 1000
@@ -8,8 +10,10 @@ const maxAlignEdits = 1000
 // from has maps to where that difference starts in to. Ambiguous characters
 // match as late as possible, so a span right after text kepubify dropped
 // lands on its own text rather than on the dropped text. ok is false when the
-// texts differ by more than maxAlignEdits.
-func alignStarts(from, to []uint16, starts []int) ([]int, bool) {
+// texts differ by more than maxAlignEdits or ctx ends.
+func alignStarts(
+	ctx context.Context, from, to []uint16, starts []int,
+) ([]int, bool) {
 	// Only the common suffix is trimmed: it is matched late, as lateMatches
 	// does; a trimmed prefix would match early.
 	s := 0
@@ -21,7 +25,7 @@ func alignStarts(from, to []uint16, starts []int) ([]int, bool) {
 	// at[i] is where a[i] lands in b.
 	at := make([]int, len(a))
 	if len(b) > 0 && len(a) > 0 {
-		match, ok := lateMatches(a, b)
+		match, ok := lateMatches(ctx, a, b)
 		if !ok {
 			return nil, false
 		}
@@ -49,9 +53,9 @@ func alignStarts(from, to []uint16, starts []int) ([]int, bool) {
 
 // lateMatches is myersMatches run backwards, which matches as late as
 // possible.
-func lateMatches(a, b []uint16) ([]int, bool) {
+func lateMatches(ctx context.Context, a, b []uint16) ([]int, bool) {
 	ra, rb := reversed(a), reversed(b)
-	rm, ok := myersMatches(ra, rb, maxAlignEdits)
+	rm, ok := myersMatches(ctx, ra, rb, maxAlignEdits)
 	if !ok {
 		return nil, false
 	}
@@ -75,8 +79,8 @@ func reversed(s []uint16) []uint16 {
 }
 
 // myersMatches returns, per index of a, the index of b it matches in a
-// shortest edit script, or -1. ok is false past maxD edits.
-func myersMatches(a, b []uint16, maxD int) ([]int, bool) {
+// shortest edit script, or -1. ok is false past maxD edits or when ctx ends.
+func myersMatches(ctx context.Context, a, b []uint16, maxD int) ([]int, bool) {
 	n, m := len(a), len(b)
 	maxD = min(maxD, n+m)
 	off := maxD + 1
@@ -84,6 +88,9 @@ func myersMatches(a, b []uint16, maxD int) ([]int, bool) {
 	// trace[d] holds v[-d..d] after round d, for backtracking.
 	var trace [][]int
 	for d := 0; d <= maxD; d++ {
+		if ctx.Err() != nil {
+			return nil, false
+		}
 		for k := -d; k <= d; k += 2 {
 			var x int
 			if k == -d || (k != d && v[off+k-1] < v[off+k+1]) {

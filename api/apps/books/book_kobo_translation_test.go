@@ -200,10 +200,19 @@ func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
 	deviceID := device.ID
 	svc := testApp.Services.Books
 	ids := []uuid.UUID{onDevice}
+	syncStates := func(
+		states map[uuid.UUID]*models.BookReadingState, pending map[uuid.UUID]bool,
+	) ([]*models.BookReadingState, error) {
+		held, heldErr := svc.ListKoboDeviceHeld(ctx, deviceID)
+		require.NoError(t, heldErr)
+		return svc.SyncKoboDeviceReadingStates(
+			ctx, deviceID, ids, states, held, pending,
+		)
+	}
 
 	states, err := svc.ListReadingStates(ctx, owner)
 	require.NoError(t, err)
-	_, err = svc.SyncKoboDeviceReadingStates(ctx, deviceID, ids, states, nil)
+	_, err = syncStates(states, nil)
 	require.NoError(t, err)
 
 	webWrite(t, owner, onDevice, 0)
@@ -213,11 +222,11 @@ func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
 	ids = []uuid.UUID{onDevice, newBook}
 	pending := map[uuid.UUID]bool{onDevice: true, newBook: true}
 
-	changed, err := svc.SyncKoboDeviceReadingStates(ctx, deviceID, ids, states, pending)
+	changed, err := syncStates(states, pending)
 	require.NoError(t, err)
 	assert.Empty(t, changed)
 
-	changed, err = svc.SyncKoboDeviceReadingStates(ctx, deviceID, ids, states, nil)
+	changed, err = syncStates(states, nil)
 	require.NoError(t, err)
 	got := make([]uuid.UUID, len(changed))
 	for i, s := range changed {
@@ -226,7 +235,23 @@ func TestSyncKoboDeviceReadingStates_PendingIsRetried(t *testing.T) {
 	assert.ElementsMatch(t, []uuid.UUID{onDevice, newBook}, got,
 		"the on-device book is retried; the new book now gets a ChangedReadingState")
 
-	changed, err = svc.SyncKoboDeviceReadingStates(ctx, deviceID, ids, states, nil)
+	changed, err = syncStates(states, nil)
 	require.NoError(t, err)
 	assert.Empty(t, changed)
+
+	webWrite(t, owner, onDevice, 3)
+	states, err = svc.ListReadingStates(ctx, owner)
+	require.NoError(t, err)
+	stale := *states[onDevice]
+	stale.UpdatedAt = stale.UpdatedAt.Add(-10 * time.Minute)
+	states[onDevice] = &stale
+	held, err := svc.ListKoboDeviceHeld(ctx, deviceID)
+	require.NoError(t, err)
+	held[onDevice] = stale.UpdatedAt.Add(-time.Minute)
+	changed, err = svc.SyncKoboDeviceReadingStates(
+		ctx, deviceID, []uuid.UUID{onDevice}, states, held,
+		map[uuid.UUID]bool{onDevice: true},
+	)
+	require.NoError(t, err)
+	assert.Len(t, changed, 1, "past the grace the state goes out as percent only")
 }

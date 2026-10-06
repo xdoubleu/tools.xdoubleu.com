@@ -2,6 +2,7 @@
 package services
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -36,7 +37,7 @@ func TestAlignStarts(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got, ok := alignStarts(u16(c.from), u16(c.to), c.starts)
+			got, ok := alignStarts(context.Background(), u16(c.from), u16(c.to), c.starts)
 			require.True(t, ok)
 			assert.Equal(t, c.want, got)
 		})
@@ -46,7 +47,14 @@ func TestAlignStarts(t *testing.T) {
 func TestAlignStarts_TooManyEdits(t *testing.T) {
 	from := strings.Repeat("a", maxAlignEdits)
 	to := strings.Repeat("b", maxAlignEdits)
-	_, ok := alignStarts(u16(from), u16(to), []int{0})
+	_, ok := alignStarts(context.Background(), u16(from), u16(to), []int{0})
+	assert.False(t, ok)
+}
+
+func TestAlignStarts_CanceledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, ok := alignStarts(ctx, u16("abc"), u16("xbc"), []int{0})
 	assert.False(t, ok)
 }
 
@@ -62,7 +70,9 @@ func TestAlignStarts_ManySmallEditsInLongText(t *testing.T) {
 			to.WriteString("\n")
 		}
 	}
-	got, ok := alignStarts(u16(from.String()), u16(to.String()), starts)
+	got, ok := alignStarts(
+		context.Background(), u16(from.String()), u16(to.String()), starts,
+	)
 	require.True(t, ok)
 	assert.Equal(t, want, got)
 }

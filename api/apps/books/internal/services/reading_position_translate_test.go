@@ -194,12 +194,38 @@ func TestPositionService_BrokenKEPUBIsCachedAsEmpty(t *testing.T) {
 	assert.LessOrEqual(t, f.store.gets.Load(), int32(2), "not rebuilt per request")
 }
 
-func TestPositionService_MissingObjectIsCachedAsEmpty(t *testing.T) {
+func TestPositionService_DownloadFailureIsRetried(t *testing.T) {
 	f := newTranslatorFixture(t, nil, models.FileFormatEPUB, time.Minute)
-	require.NoError(t, f.store.Delete(context.Background(), "kepub"))
+	ctx := context.Background()
+	positions := map[uuid.UUID]models.ReadingPosition{
+		f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
+	}
+	kepub, _ := f.store.GetContent("kepub")
+	require.NoError(t, f.store.Delete(ctx, "kepub"))
 
-	assert.Nil(t, f.svc.KoboPosition(
-		context.Background(), "u", f.bookID, chapterTwoSpan("kobo.1.2")))
+	locs, pending := f.svc.KoboLocations(ctx, "u", positions)
+	assert.Empty(t, locs)
+	assert.True(t, pending[f.bookID], "a failed download is retried, not cached")
+
+	f.store.PutAt("kepub", kepub, time.Now())
+	locs, pending = f.svc.KoboLocations(ctx, "u", positions)
+	assert.Empty(t, pending)
+	assert.Equal(t, chapterTwoSpan("kobo.1.1"), *locs[f.bookID])
+}
+
+func TestPositionService_NoFreeBuildSlotIsPending(t *testing.T) {
+	f := newTranslatorFixture(t, nil, models.FileFormatEPUB, time.Minute)
+	f.svc.buildTimeout = 10 * time.Millisecond
+	for range spanMapBuildSlots {
+		f.svc.slots <- struct{}{}
+	}
+
+	_, pending := f.svc.KoboLocations(context.Background(), "u",
+		map[uuid.UUID]models.ReadingPosition{
+			f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
+		})
+	assert.True(t, pending[f.bookID])
+	assert.Zero(t, f.store.gets.Load())
 }
 
 func TestPositionService_BudgetExceededReportsPendingThenTranslates(t *testing.T) {

@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"tools.xdoubleu.com/apps/books/internal/models"
+	"tools.xdoubleu.com/apps/books/internal/services"
 	"tools.xdoubleu.com/internal/database"
 )
 
@@ -215,13 +216,21 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	kepubBooks := make([]uuid.UUID, 0, len(books))
+	held, err := app.Services.Books.ListKoboDeviceHeld(r.Context(), deviceID)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	// Only states the device lacks are translated: it ignores the state in a
+	// repeated NewEntitlement.
+	var lacking []uuid.UUID
 	for _, b := range books {
-		if b.Format == models.FileFormatKEPUB {
-			kepubBooks = append(kepubBooks, b.BookID)
+		if b.Format == models.FileFormatKEPUB &&
+			services.KoboDeviceLacks(held, b.BookID, stateByBook[b.BookID]) {
+			lacking = append(lacking, b.BookID)
 		}
 	}
-	pending := app.koboWithSpans(r.Context(), userID, kepubBooks, stateByBook)
+	pending := app.koboWithSpans(r.Context(), userID, lacking, stateByBook)
 
 	libraryBase := app.koboLibraryBase(r)
 
@@ -244,7 +253,7 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 
 	// Last before responding: this marks the states as delivered.
 	stateEntries, err := app.koboChangedReadingStates(
-		r.Context(), deviceID, books, stateByBook, pending,
+		r.Context(), deviceID, books, stateByBook, held, pending,
 	)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)

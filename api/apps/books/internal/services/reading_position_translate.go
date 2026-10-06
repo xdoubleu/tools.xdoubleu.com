@@ -28,6 +28,10 @@ const (
 	spanMapBuildSlots = 2
 )
 
+// errSpanMapRetry marks a build failure worth retrying (download, timeout)
+// rather than caching.
+var errSpanMapRetry = errors.New("span map build can be retried")
+
 // kepubFileStore is the slice of BookFilesRepository the translator reads.
 type kepubFileStore interface {
 	GetByBookAndFormat(
@@ -39,13 +43,14 @@ type kepubFileStore interface {
 // PositionService translates between Kobo span bookmarks and neutral
 // positions in the original EPUB (ADR-0029).
 type PositionService struct {
-	logger      *slog.Logger
-	files       kepubFileStore
-	objectStore objectstore.Client
-	cache       *spanMapCache
-	builds      singleflight.Group
-	slots       chan struct{}
-	budget      time.Duration
+	logger       *slog.Logger
+	files        kepubFileStore
+	objectStore  objectstore.Client
+	cache        *spanMapCache
+	builds       singleflight.Group
+	slots        chan struct{}
+	budget       time.Duration
+	buildTimeout time.Duration
 }
 
 func newPositionService(
@@ -55,13 +60,14 @@ func newPositionService(
 	budget time.Duration,
 ) *PositionService {
 	return &PositionService{
-		logger:      logger,
-		files:       files,
-		objectStore: objectStore,
-		cache:       newSpanMapCache(spanMapCacheSize),
-		builds:      singleflight.Group{},
-		slots:       make(chan struct{}, spanMapBuildSlots),
-		budget:      budget,
+		logger:       logger,
+		files:        files,
+		objectStore:  objectStore,
+		cache:        newSpanMapCache(spanMapCacheSize),
+		builds:       singleflight.Group{},
+		slots:        make(chan struct{}, spanMapBuildSlots),
+		budget:       budget,
+		buildTimeout: spanMapBuildTimeout,
 	}
 }
 
@@ -108,7 +114,8 @@ func (s *PositionService) KoboLocations(
 }
 
 // spanMaps returns the span maps of the books that have one, waiting up to
-// the budget for builds; pending holds the books still building.
+// the budget for builds; pending holds the books still building or whose
+// build failed in a way worth retrying.
 func (s *PositionService) spanMaps(
 	ctx context.Context,
 	userID string,
@@ -139,9 +146,7 @@ func (s *PositionService) spanMaps(
 		if !expired {
 			select {
 			case res := <-ch:
-				if m, ok := res.Val.(*spanMap); ok {
-					maps[bookID] = m
-				}
+				addBuilt(maps, pending, bookID, res)
 				continue
 			case <-timer.C:
 				expired = true
@@ -151,14 +156,26 @@ func (s *PositionService) spanMaps(
 		}
 		select {
 		case res := <-ch:
-			if m, ok := res.Val.(*spanMap); ok {
-				maps[bookID] = m
-			}
+			addBuilt(maps, pending, bookID, res)
 		default:
 			pending[bookID] = true
 		}
 	}
 	return maps, pending
+}
+
+// addBuilt records a finished build; a nil map is a retryable failure.
+func addBuilt(
+	maps map[uuid.UUID]*spanMap,
+	pending map[uuid.UUID]bool,
+	bookID uuid.UUID,
+	res singleflight.Result,
+) {
+	if m, ok := res.Val.(*spanMap); ok && m != nil {
+		maps[bookID] = m
+		return
+	}
+	pending[bookID] = true
 }
 
 // resolve finds the user's ready KEPUB of bookID and its EPUB source; ok is
@@ -188,17 +205,22 @@ func (s *PositionService) resolve(
 	return spanMapKey{kepubID: uuid.Nil, sourceID: uuid.Nil, version: 0}, "", "", false
 }
 
-// build parses both files into a span map and caches it. A failure caches an
-// empty map so a broken book isn't downloaded again on every sync.
+// build parses both files into a span map and caches it. A broken book caches
+// an empty map so it isn't downloaded again on every sync; a retryable
+// failure returns nil and caches nothing.
 func (s *PositionService) build(
 	ctx context.Context,
 	key spanMapKey,
 	kepubKey, sourceKey string,
 ) *spanMap {
-	s.slots <- struct{}{}
-	defer func() { <-s.slots }()
-	ctx, cancel := context.WithTimeout(ctx, spanMapBuildTimeout)
+	ctx, cancel := context.WithTimeout(ctx, s.buildTimeout)
 	defer cancel()
+	select {
+	case s.slots <- struct{}{}:
+		defer func() { <-s.slots }()
+	case <-ctx.Done():
+		return nil
+	}
 
 	m := &spanMap{docs: nil}
 	func() {
@@ -212,11 +234,16 @@ func (s *PositionService) build(
 		if err != nil {
 			s.logger.WarnContext(ctx, "kepub span map build failed",
 				"kepub_file_id", key.kepubID, "err", err)
+			if errors.Is(err, errSpanMapRetry) || ctx.Err() != nil {
+				m = nil
+			}
 			return
 		}
 		m = built
 	}()
-	s.cache.add(key, m)
+	if m != nil {
+		s.cache.add(key, m)
+	}
 	return m
 }
 
@@ -252,17 +279,21 @@ func (t *tempZip) close() {
 func (s *PositionService) openZip(ctx context.Context, key string) (*tempZip, error) {
 	rc, err := s.objectStore.Get(ctx, key)
 	if err != nil {
-		return nil, fmt.Errorf("download %s: %w", key, err)
+		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
 	}
 	defer func() { _ = rc.Close() }()
 
 	tmp, err := os.CreateTemp("", "spanmap-*.zip")
 	if err != nil {
-		return nil, fmt.Errorf("create temp file: %w", err)
+		return nil, fmt.Errorf("%w: create temp file: %w", errSpanMapRetry, err)
 	}
 	n, err := io.Copy(tmp, io.LimitReader(rc, maxConversionInputBytes+1))
 	_ = tmp.Close()
-	if err == nil && n > maxConversionInputBytes {
+	if err != nil {
+		_ = os.Remove(tmp.Name())
+		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
+	}
+	if n > maxConversionInputBytes {
 		err = fmt.Errorf("%s exceeds %d bytes", key, maxConversionInputBytes)
 	}
 	var zr *zip.ReadCloser
