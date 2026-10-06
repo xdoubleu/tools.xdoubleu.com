@@ -26,10 +26,7 @@ export default {
     '!app/**/icon.tsx',
     '!app/manifest.ts',
     '!app/layout.tsx',
-    '!**/*.d.ts',
-    // Instrumentation breaks next/dynamic's "options must be an object literal"
-    // check; the only next/dynamic user.
-    '!components/books/BookPreviewDialog.tsx'
+    '!**/*.d.ts'
   ],
   incremental: true,
   incrementalFile: '.stryker-tmp/incremental.json'
