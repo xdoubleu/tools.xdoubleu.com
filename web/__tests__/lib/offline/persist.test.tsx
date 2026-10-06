@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import useSWR, { SWRConfig, unstable_serialize } from 'swr'
 import { Code, ConnectError } from '@connectrpc/connect'
-import { persistMiddleware } from '@/lib/offline/persist'
+import { persistMiddleware, servedFromCache } from '@/lib/offline/persist'
 import { applyPending } from '@/lib/offline/outbox'
 import { loadEntry, saveEntry } from '@/lib/offline/store'
 import { getSnapshot, markLive } from '@/lib/offline/status'
@@ -68,6 +68,18 @@ describe('persistMiddleware', () => {
     expect(await screen.findByText('saved')).toBeInTheDocument()
     expect(mockLoad).toHaveBeenCalledWith(unstable_serialize('/recipes'))
     expect(getSnapshot().servedFromCacheAt).toBe(42)
+  })
+
+  it('tracks per key whether the last response was the saved copy', async () => {
+    mockLoad.mockResolvedValue({ data: 'saved', savedAt: 42 })
+    renderProbe(['/shoppinglist', 'a'], () => Promise.reject(networkError()))
+    expect(await screen.findByText('saved')).toBeInTheDocument()
+    expect(servedFromCache(['/shoppinglist', 'a'])).toBe(true)
+    expect(servedFromCache('/never-fetched')).toBe(false)
+
+    renderProbe(['/shoppinglist', 'a'], () => Promise.resolve('live'))
+    expect(await screen.findByText('live')).toBeInTheDocument()
+    expect(servedFromCache(['/shoppinglist', 'a'])).toBe(false)
   })
 
   it('surfaces the network error when nothing was saved', async () => {

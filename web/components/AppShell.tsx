@@ -1,3 +1,4 @@
+import OfflineBooksSync from '@/components/books/OfflineBooksSync'
 import DeployNotification from '@/components/DeployNotification'
 import Footer from '@/components/Footer'
 import Navbar from '@/components/Navbar'
@@ -14,6 +15,9 @@ export default async function AppShell({ children }: { children: React.ReactNode
   const currentUser = await fetchOrNull(async () =>
     (await createServerClient(AuthService)).getCurrentUser({})
   )
+  const booksAccess =
+    currentUser !== null &&
+    (currentUser.role === 'admin' || currentUser.appAccess.includes('books'))
 
   return (
     <SWRProvider currentUser={currentUser}>
@@ -28,6 +32,7 @@ export default async function AppShell({ children }: { children: React.ReactNode
       <DeployNotification />
       <ServiceWorkerRegistrar />
       <OutboxSync />
+      {booksAccess && <OfflineBooksSync />}
     </SWRProvider>
   )
 }

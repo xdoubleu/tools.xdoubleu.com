@@ -5,6 +5,7 @@ import { useImportBooks } from '@/hooks/useBooks'
 import BulkBookUploader from '@/components/books/BulkBookUploader'
 import KoboSetup from '@/components/books/KoboSetup'
 import KoboDevices from '@/components/books/KoboDevices'
+import OfflineBooksSettings from '@/components/books/OfflineBooksSettings'
 import { mutate } from 'swr'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
@@ -99,6 +100,8 @@ export default function BooksSettingsClient() {
           <KoboDevices />
         </div>
       </section>
+
+      <OfflineBooksSettings />
     </PageContainer>
   )
 }

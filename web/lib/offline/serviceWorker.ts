@@ -162,7 +162,21 @@ export function serviceWorker(sw: SwScope, enabled: boolean, readerVersion: stri
     const saved = await (await sw.caches.open(PAGES)).match(key)
     if (Date.now() - Date.parse(saved?.headers.get('Date') ?? '') < SAVE_INTERVAL_MS) return
     const res = await sw.fetch(key, { credentials: 'same-origin' })
-    if (isSavable(res)) await savePage(key, res)
+    if (!isSavable(res)) return
+    const html = await res.clone().text()
+    await savePage(key, res)
+    await cacheAssets(html)
+  }
+
+  // A page saved before it was ever opened (a prefetched book's reader) can
+  // only hydrate offline with its route's chunks cached too.
+  const cacheAssets = async (html: string) => {
+    const paths = new Set(html.match(/\/_next\/static\/[^"'\s<>\\)]+/g))
+    for (const path of paths) {
+      await cacheFirst(new Request(new URL(path, sw.location.origin)), STATIC, MAX_STATIC).catch(
+        () => undefined
+      )
+    }
   }
 
   sw.addEventListener('fetch', (event) => {

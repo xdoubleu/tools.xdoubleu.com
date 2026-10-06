@@ -1,8 +1,8 @@
 # ADR-0027: offline reads via a hand-written service worker and a persisted SWR cache
 
 - Status: Accepted
-- Issues: #2133 (part of epic #386); book files #2161
-- Affects: `web/lib/offline/`, `web/app/sw.js/route.ts`, `web/components/SWRProvider.tsx`, `web/lib/books/offlineBooks.ts`
+- Issues: #2133 (part of epic #386); book files #2161, #2162
+- Affects: `web/lib/offline/`, `web/app/sw.js/route.ts`, `web/components/SWRProvider.tsx`, `web/lib/books/offlineBooks.ts`, `web/lib/books/offlineSync.ts`
 
 ## Context
 
@@ -24,16 +24,25 @@ which the HTTP cache and the Cache API can't key. Next's
   - `/foliate-js/` (the reader and pdf.js) is cache-first in a cache named
     after the pinned commit, since its URLs aren't hashed.
   - After each client-side route change, the page asks the worker to save its
-    URL. These requests are throttled to once per 10 min per URL.
+    URL. These requests are throttled to once per 10 min per URL. Saving a
+    page also caches the `/_next/static` assets it references.
 - **Data**: an SWR middleware saves every successful fetch to IndexedDB. On a
   network error it resolves with the saved copy instead of failing, and the
   banner shows how old that copy is. Live-only and admin keys are excluded.
 - **Books**: a file opened in the reader is stored in IndexedDB by book and
   format, with the version the library reports for it. The reader opens the
   stored copy until that version changes, and still opens it offline.
+  - After each live library fetch, currently-reading books are downloaded
+    one at a time in this device's chosen format. This is skipped offline
+    or with data saver on. Each book's reader page and the reader modules
+    are saved with it.
+  - Stored files of finished or removed books are deleted. So is a book's
+    other format (KEPUB vs original) once the stored choice's file is stored.
+    Only a live library fetch triggers deletion, never a failed, cached or
+    still-revalidating one.
 - **Privacy**: signing out, or a different user ID appearing, wipes IndexedDB
   and the page cache. Entries older than 30 days are pruned; stored books
-  are not.
+  are not, but `/books/settings` can remove them.
 - **Kill switch**: with `OFFLINE_DISABLED=1`, `/sw.js` serves a worker that
   deletes its caches and unregisters itself.
 

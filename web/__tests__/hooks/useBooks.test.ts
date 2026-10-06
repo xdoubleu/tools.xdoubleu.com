@@ -129,7 +129,14 @@ beforeEach(() => {
 describe('useLibrary', () => {
   it('uses /books as key', () => {
     renderHook(() => useLibrary())
-    expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function), undefined)
+  })
+
+  it('passes SWR options through', () => {
+    renderHook(() => useLibrary({ revalidateOnFocus: false }))
+    expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function), {
+      revalidateOnFocus: false
+    })
   })
 })
 

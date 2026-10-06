@@ -1,4 +1,4 @@
-import { unstable_serialize, type Middleware } from 'swr'
+import { unstable_serialize, type Key, type Middleware } from 'swr'
 import { isNetworkError } from './network'
 import { applyPending } from './outbox'
 import { loadEntry, saveEntry } from './store'
@@ -23,6 +23,14 @@ function isPersisted(key: unknown): key is string | readonly [string, ...unknown
   return typeof path === 'string' && !NOT_PERSISTED.some((p) => path.startsWith(p))
 }
 
+// Serialized keys whose latest response was the saved copy.
+const cachedKeys = new Set<string>()
+
+/** Whether `key`'s latest response was the saved copy rather than live data. */
+export function servedFromCache(key: Key): boolean {
+  return cachedKeys.has(unstable_serialize(key))
+}
+
 async function fetchWithFallback<T>(
   args: unknown[],
   fetcher: (...args: unknown[]) => T | Promise<T>
@@ -32,6 +40,7 @@ async function fetchWithFallback<T>(
   try {
     const data = await fetcher(...args)
     markLive()
+    cachedKeys.delete(storageKey)
     void saveEntry(storageKey, data)
     return data
   } catch (err) {
@@ -39,6 +48,7 @@ async function fetchWithFallback<T>(
     const entry = await loadEntry(storageKey)
     if (!entry) throw err
     markServedFromCache(entry.savedAt)
+    cachedKeys.add(storageKey)
     // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- saved from this same key's fetcher
     return entry.data as T
   }

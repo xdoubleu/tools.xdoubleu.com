@@ -1,0 +1,170 @@
+// Keeps currently-reading books on the device in the format this device reads
+// them in, and removes stored files the library no longer needs.
+import { flattenLibrary } from './bookShelves'
+import { warmReaderModules } from './foliate'
+import {
+  deleteStoredBook,
+  downloadBookFile,
+  listStoredBooks,
+  type BookFileRef
+} from './offlineBooks'
+import { loadReaderChoice, readerFileFormat } from './readerChoice'
+import { pickReaderFormat, readerFormats } from './readerSettings'
+import type { LibraryResponse, UserBook } from '@/lib/gen/books/v1/library_pb'
+import { savePageForOffline } from '@/lib/offline/session'
+import type { StoredBookInfo } from '@/lib/offline/store'
+
+const FINISHED = 'read'
+const DOWNLOAD_GAP_MS = 3000
+const FAILURE_BACKOFF_MS = 30 * 60 * 1000
+
+interface PlannedDownload extends BookFileRef {
+  /** The book's reader page, saved for offline use once the file is stored. */
+  readerPath: string
+}
+
+export interface OfflinePlan {
+  downloads: PlannedDownload[]
+  evictions: { bookId: string; format: string }[]
+}
+
+/**
+ * The file this device reads the book in: its stored choice as
+ * `ReadBookClient` applies it, else a file already stored (one opened through
+ * `?format=`, which isn't remembered), else the default original.
+ */
+export function preferredBookFormat(
+  userBook: UserBook,
+  stored: ReadonlySet<string> = new Set()
+): string | null {
+  const original = pickReaderFormat(userBook.formats, null)
+  if (!original) return null
+  const choice = loadReaderChoice(userBook.bookId)
+  if (choice) return readerFileFormat(original, choice)
+  return [...readerFormats(userBook.formats), 'kepub'].find((f) => stored.has(f)) ?? original
+}
+
+/**
+ * Downloads: currently-reading books whose preferred file is ready but not
+ * stored at its current version. Evictions: every file of a finished book or
+ * one no longer in the library, and, once the file of a book's stored
+ * choice is stored, its files of the other kind (KEPUB vs original).
+ */
+export function planOfflineBooks(library: LibraryResponse, stored: StoredBookInfo[]): OfflinePlan {
+  const books = new Map(flattenLibrary(library).map((ub) => [ub.bookId, ub]))
+  const storedVersions = new Map<string, Map<string, string>>()
+  for (const { bookId, format, version } of stored) {
+    const formats = storedVersions.get(bookId) ?? new Map<string, string>()
+    formats.set(format, version)
+    storedVersions.set(bookId, formats)
+  }
+
+  const evictions: OfflinePlan['evictions'] = []
+  for (const [bookId, formats] of storedVersions) {
+    const userBook = books.get(bookId)
+    const evictAll = !userBook || userBook.status === FINISHED
+    const chosen = userBook && loadReaderChoice(bookId) ? preferredBookFormat(userBook) : null
+    for (const format of formats.keys()) {
+      const otherKind =
+        chosen !== null && formats.has(chosen) && (format === 'kepub') !== (chosen === 'kepub')
+      if (evictAll || otherKind) evictions.push({ bookId, format })
+    }
+  }
+
+  const downloads: PlannedDownload[] = []
+  for (const userBook of library.reading) {
+    const storedFormats = storedVersions.get(userBook.bookId)
+    const format = preferredBookFormat(userBook, new Set(storedFormats?.keys()))
+    const version = format ? userBook.fileVersions[format] : undefined
+    if (!format || !version) continue
+    if (storedFormats?.get(format) === version) continue
+    downloads.push({
+      bookId: userBook.bookId,
+      format,
+      version,
+      readerPath: `/books/${userBook.id}/read`
+    })
+  }
+  return { downloads, evictions }
+}
+
+interface NetworkInformation {
+  saveData?: boolean
+}
+
+/** Online, without the browser's data saver. */
+export function canPrefetch(): boolean {
+  const connection = (navigator as Navigator & { connection?: NetworkInformation }).connection
+  return navigator.onLine && connection?.saveData !== true
+}
+
+// A download that failed (e.g. a missing file) waits before it is retried.
+const failedAt = new Map<string, number>()
+const refKey = (ref: BookFileRef) => `${ref.bookId}:${ref.format}:${ref.version}`
+
+async function evict(library: LibraryResponse): Promise<StoredBookInfo[]> {
+  const stored = await listStoredBooks()
+  const { evictions } = planOfflineBooks(library, stored)
+  for (const { bookId, format } of evictions) await deleteStoredBook(bookId, format)
+  return stored.filter(
+    (s) => !evictions.some((e) => e.bookId === s.bookId && e.format === s.format)
+  )
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function syncOnce(library: LibraryResponse, gapMs: number) {
+  const stored = await evict(library)
+  const { downloads } = planOfflineBooks(library, stored)
+  let downloaded = 0
+  for (const { readerPath, ...ref } of downloads) {
+    if (Date.now() - (failedAt.get(refKey(ref)) ?? -Infinity) < FAILURE_BACKOFF_MS) continue
+    if (downloaded > 0) await sleep(gapMs)
+    if (!canPrefetch()) break
+    try {
+      await downloadBookFile(ref)
+      downloaded++
+      failedAt.delete(refKey(ref))
+      savePageForOffline(readerPath)
+    } catch {
+      // Losing the connection isn't the file's fault.
+      if (!canPrefetch()) break
+      failedAt.set(refKey(ref), Date.now())
+    }
+  }
+  const remaining = downloaded > 0 ? await evict(library) : stored
+  if (remaining.length > 0 && canPrefetch()) await warmReaderModules()
+}
+
+let running: Promise<void> | null = null
+let queued: LibraryResponse | null = null
+
+/**
+ * Applies `planOfflineBooks` to `library`, which must be live: evicting
+ * against stale or partial data would delete books still in use. Downloads
+ * run one at a time, `gapMs` apart, and only while `canPrefetch`. A call
+ * during a run queues one rerun with the newest library.
+ */
+export function syncOfflineBooks(
+  library: LibraryResponse,
+  { gapMs = DOWNLOAD_GAP_MS }: { gapMs?: number } = {}
+): Promise<void> {
+  if (running) {
+    queued = library
+    return running
+  }
+  running = (async () => {
+    // Cleared in the same tick as the last `queued` check, so no call is lost.
+    try {
+      let next: LibraryResponse | null = library
+      while (next) {
+        queued = null
+        await syncOnce(next, gapMs)
+        next = queued
+      }
+    } finally {
+      running = null
+    }
+  })()
+  return running
+}

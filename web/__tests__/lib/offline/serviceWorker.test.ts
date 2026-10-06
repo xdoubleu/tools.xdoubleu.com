@@ -207,6 +207,50 @@ describe('serviceWorker', () => {
     expect(caches.stores.get('tools-pages')?.entries.has(`${ORIGIN}/feeds?x=1`)).toBe(true)
   })
 
+  it("caches a saved page's static assets, so it can hydrate offline", async () => {
+    const { caches, fetch, dispatch } = setup()
+    const page =
+      '<link rel="stylesheet" href="/_next/static/css/a.css">' +
+      '<script src="/_next/static/chunks/read.js" async></script>' +
+      '<script>self.__next_f.push([1,"\\"/_next/static/chunks/read.js\\""])</script>'
+    fetch.mockImplementation(async (req) =>
+      keyOf(req).includes('/_next/static/') ? new Response('asset') : html(page)
+    )
+    const assets = await caches.open('tools-static')
+    await assets.put(`${ORIGIN}/_next/static/css/a.css`, new Response('old'))
+
+    await dispatch('message', { data: { type: 'save-page', url: '/books/1/read' } })
+
+    expect([...assets.entries.keys()].sort()).toEqual([
+      `${ORIGIN}/_next/static/chunks/read.js`,
+      `${ORIGIN}/_next/static/css/a.css`
+    ])
+    // The page, then only the asset that wasn't cached yet.
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('saves nothing for a response that is not a page', async () => {
+    const { caches, fetch, dispatch } = setup()
+    fetch.mockResolvedValue(new Response('{}', { headers: { 'Content-Type': 'application/json' } }))
+
+    await dispatch('message', { data: { type: 'save-page', url: '/feeds' } })
+
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(caches.stores.get('tools-pages')?.entries.size ?? 0).toBe(0)
+  })
+
+  it('saves the page even when an asset fails', async () => {
+    const { caches, fetch, dispatch } = setup()
+    fetch.mockImplementation(async (req) => {
+      if (keyOf(req).includes('/_next/static/')) throw new TypeError('Failed to fetch')
+      return html('<script src="/_next/static/chunks/x.js"></script>')
+    })
+
+    await dispatch('message', { data: { type: 'save-page', url: '/feeds' } })
+
+    expect(caches.stores.get('tools-pages')?.entries.has(`${ORIGIN}/feeds`)).toBe(true)
+  })
+
   it('re-saves a page once its saved copy is older than the interval', async () => {
     const { fetch, dispatch } = setup()
     const stale = new Date(Date.now() - 11 * 60_000).toUTCString()
