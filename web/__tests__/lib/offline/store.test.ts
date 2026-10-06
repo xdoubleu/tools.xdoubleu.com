@@ -5,15 +5,33 @@ import {
   addQueued,
   clearFailed,
   clearStore,
+  deleteBookFile,
   deleteQueued,
   getOwner,
+  listBookFileKeys,
+  listBookFiles,
   listFailed,
   listQueued,
+  loadBookFile,
   loadEntry,
   pruneEntries,
+  saveBookFile,
   saveEntry,
-  setOwner
+  setOwner,
+  subscribeBookFiles,
+  type StoredBookFile
 } from '@/lib/offline/store'
+
+function bookFile(bookId: string, format = 'epub'): StoredBookFile {
+  return {
+    bookId,
+    format,
+    version: 'f1:0',
+    blob: new Blob(['PK\u0003\u0004'], { type: 'application/epub+zip' }),
+    size: 4,
+    savedAt: 1
+  }
+}
 
 describe('offline store', () => {
   beforeEach(async () => {
@@ -122,5 +140,62 @@ describe('offline store without IndexedDB', () => {
     } finally {
       globalThis.indexedDB = original
     }
+  })
+
+  it('stores book files by book and format, listing them without the bytes', async () => {
+    await saveBookFile(bookFile('b1'))
+    await saveBookFile(bookFile('b1', 'pdf'))
+    await saveBookFile({ ...bookFile('b2'), version: 'f2:0' })
+
+    const stored = await loadBookFile('b1', 'epub')
+    expect(stored).toMatchObject({ bookId: 'b1', format: 'epub', version: 'f1:0', size: 4 })
+    expect(await stored?.blob.text()).toBe('PK\u0003\u0004')
+    expect(await loadBookFile('b1', 'kepub')).toBeUndefined()
+
+    const listed = await listBookFiles()
+    expect(listed).toHaveLength(3)
+    expect(listed).toContainEqual({
+      bookId: 'b2',
+      format: 'epub',
+      version: 'f2:0',
+      size: 4,
+      savedAt: 1
+    })
+
+    await deleteBookFile('b1', 'pdf')
+    expect(await loadBookFile('b1', 'pdf')).toBeUndefined()
+    expect(await loadBookFile('b1', 'epub')).toBeDefined()
+  })
+
+  it('wipes stored books on clear but never prunes them', async () => {
+    await saveBookFile(bookFile('b1'))
+
+    await pruneEntries(Number.MAX_SAFE_INTEGER)
+    expect(await loadBookFile('b1', 'epub')).toBeDefined()
+
+    await clearStore()
+    expect(await listBookFiles()).toEqual([])
+  })
+
+  it('lists stored book keys and notifies subscribers of every change', async () => {
+    const listener = jest.fn()
+    const unsubscribe = subscribeBookFiles(listener)
+
+    await saveBookFile(bookFile('b1'))
+    await saveBookFile(bookFile('b2', 'pdf'))
+    expect(listener).toHaveBeenCalledTimes(2)
+    expect(await listBookFileKeys()).toEqual([
+      { bookId: 'b1', format: 'epub' },
+      { bookId: 'b2', format: 'pdf' }
+    ])
+
+    await deleteBookFile('b1', 'epub')
+    await clearStore()
+    expect(listener).toHaveBeenCalledTimes(4)
+    expect(await listBookFileKeys()).toEqual([])
+
+    unsubscribe()
+    await saveBookFile(bookFile('b3'))
+    expect(listener).toHaveBeenCalledTimes(4)
   })
 })

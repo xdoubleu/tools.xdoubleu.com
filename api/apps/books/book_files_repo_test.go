@@ -209,7 +209,7 @@ func TestBookFilesRepo_Delete(t *testing.T) {
 	assert.Nil(t, got)
 }
 
-func TestBookFilesRepo_FormatsByUser_PDFOnly(t *testing.T) {
+func TestBookFilesRepo_FilesByUser_PDFOnly(t *testing.T) {
 	book := addUniqueBook(t)
 
 	f := models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
@@ -223,16 +223,16 @@ func TestBookFilesRepo_FormatsByUser_PDFOnly(t *testing.T) {
 	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FormatsByUser(
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
 	require.NoError(t, err)
-	assert.Contains(t, result[book.ID], models.FileFormatPDF)
-	assert.NotContains(t, result[book.ID], models.FileFormatEPUB)
+	assert.Contains(t, result[book.ID].Formats, models.FileFormatPDF)
+	assert.NotContains(t, result[book.ID].Formats, models.FileFormatEPUB)
 }
 
-func TestBookFilesRepo_FormatsByUser_EPUBOnly(t *testing.T) {
+func TestBookFilesRepo_FilesByUser_EPUBOnly(t *testing.T) {
 	book := addUniqueBook(t)
 
 	f := models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
@@ -246,16 +246,16 @@ func TestBookFilesRepo_FormatsByUser_EPUBOnly(t *testing.T) {
 	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FormatsByUser(
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
 	require.NoError(t, err)
-	assert.Contains(t, result[book.ID], models.FileFormatEPUB)
-	assert.NotContains(t, result[book.ID], models.FileFormatPDF)
+	assert.Contains(t, result[book.ID].Formats, models.FileFormatEPUB)
+	assert.NotContains(t, result[book.ID].Formats, models.FileFormatPDF)
 }
 
-func TestBookFilesRepo_FormatsByUser_BothFormats(t *testing.T) {
+func TestBookFilesRepo_FilesByUser_BothFormats(t *testing.T) {
 	book := addUniqueBook(t)
 
 	for _, format := range []string{models.FileFormatPDF, models.FileFormatEPUB} {
@@ -271,7 +271,7 @@ func TestBookFilesRepo_FormatsByUser_BothFormats(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	result, err := testApp.Repositories.BookFiles.FormatsByUser(
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
@@ -279,11 +279,11 @@ func TestBookFilesRepo_FormatsByUser_BothFormats(t *testing.T) {
 	assert.ElementsMatch(
 		t,
 		[]string{models.FileFormatEPUB, models.FileFormatPDF},
-		result[book.ID],
+		result[book.ID].Formats,
 	)
 }
 
-func TestBookFilesRepo_FormatsByUser_KEPUBExcluded(t *testing.T) {
+func TestBookFilesRepo_FilesByUser_KEPUBExcluded(t *testing.T) {
 	book := addUniqueBook(t)
 
 	f := models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
@@ -294,18 +294,23 @@ func TestBookFilesRepo_FormatsByUser_KEPUBExcluded(t *testing.T) {
 		SizeBytes:  512,
 		Status:     models.FileStatusReady,
 	}
-	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
+	inserted, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FormatsByUser(
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
 	require.NoError(t, err)
-	assert.NotContains(t, result, book.ID)
+	assert.Empty(t, result[book.ID].Formats)
+	assert.Equal(
+		t,
+		map[string]string{models.FileFormatKEPUB: inserted.ID.String() + ":0"},
+		result[book.ID].Versions,
+	)
 }
 
-func TestBookFilesRepo_FormatsByUser_NotReadyExcluded(t *testing.T) {
+func TestBookFilesRepo_FilesByUser_NotReadyExcluded(t *testing.T) {
 	book := addUniqueBook(t)
 
 	f := models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
@@ -319,10 +324,86 @@ func TestBookFilesRepo_FormatsByUser_NotReadyExcluded(t *testing.T) {
 	_, err := testApp.Repositories.BookFiles.Insert(context.Background(), f)
 	require.NoError(t, err)
 
-	result, err := testApp.Repositories.BookFiles.FormatsByUser(
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
 		context.Background(),
 		userID,
 	)
 	require.NoError(t, err)
-	assert.NotContains(t, result, book.ID)
+	assert.Empty(t, result[book.ID].Formats)
+	assert.Empty(t, result[book.ID].Versions)
+}
+
+// The version names the file GetBookFile serves (the oldest row per format)
+// and changes when a conversion rewrites it.
+func TestBookFilesRepo_FilesByUser_VersionsFollowServedFile(t *testing.T) {
+	book := addUniqueBook(t)
+
+	insert := func(format, key string) *models.BookFile {
+		f, err := testApp.Repositories.BookFiles.Insert(
+			context.Background(),
+			models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+				BookID:     book.ID,
+				UserID:     userID,
+				Format:     format,
+				StorageKey: key,
+				SizeBytes:  512,
+				Status:     models.FileStatusReady,
+			},
+		)
+		require.NoError(t, err)
+		return f
+	}
+	epub := insert(models.FileFormatEPUB, "users/test/books/epub/v1.epub")
+	insert(models.FileFormatEPUB, "users/test/books/epub/v2.epub")
+	kepub := insert(models.FileFormatKEPUB, "users/test/books/kepub/v1.kepub")
+
+	served, err := testApp.Repositories.BookFiles.GetByBookAndFormat(
+		context.Background(), userID, book.ID, models.FileFormatEPUB,
+	)
+	require.NoError(t, err)
+	require.Equal(t, epub.ID, served.ID)
+
+	require.NoError(t, testApp.Repositories.BookFiles.UpdateAfterConversion(
+		context.Background(), kepub.ID, "users/test/books/kepub/v2.kepub", 600, 7,
+	))
+
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
+		context.Background(),
+		userID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, []string{models.FileFormatEPUB}, result[book.ID].Formats)
+	assert.Equal(t, map[string]string{
+		models.FileFormatEPUB:  epub.ID.String() + ":0",
+		models.FileFormatKEPUB: kepub.ID.String() + ":7",
+	}, result[book.ID].Versions)
+}
+
+// A format with any ready file is listed, but only a ready served (oldest)
+// file has a version.
+func TestBookFilesRepo_FilesByUser_ServedFileNotReady(t *testing.T) {
+	book := addUniqueBook(t)
+
+	for _, status := range []string{models.FileStatusConverting, models.FileStatusReady} {
+		_, err := testApp.Repositories.BookFiles.Insert(
+			context.Background(),
+			models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+				BookID:     book.ID,
+				UserID:     userID,
+				Format:     models.FileFormatEPUB,
+				StorageKey: "users/test/books/epub/" + status + ".epub",
+				SizeBytes:  512,
+				Status:     status,
+			},
+		)
+		require.NoError(t, err)
+	}
+
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
+		context.Background(),
+		userID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, []string{models.FileFormatEPUB}, result[book.ID].Formats)
+	assert.Empty(t, result[book.ID].Versions)
 }

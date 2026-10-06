@@ -18,6 +18,7 @@ import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import BookShelfTagFields from '@/components/books/BookShelfTagFields'
 import KoboSyncToggle from '@/components/books/KoboSyncToggle'
+import OfflineBookBadge from '@/components/books/OfflineBookBadge'
 import ArticleReaderDialog from '@/components/books/ArticleReaderDialog'
 import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 import BookEditDialog from '@/components/books/BookEditDialog'
@@ -197,7 +198,8 @@ export default function BookDetailClient({ id }: { id: string }) {
               {readerFormatList.length > 0 && (
                 <div>
                   <p className="text-xs text-muted mb-1">Read</p>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <OfflineBookBadge bookId={userBook.bookId} />
                     {readerFormatList.length === 1 ? (
                       <Button asChild variant="secondary" size="sm" className="text-xs">
                         <Link href={`/books/${userBook.id}/read`}>Open reader</Link>

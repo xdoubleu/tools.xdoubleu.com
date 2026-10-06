@@ -46,6 +46,12 @@ jest.mock('@/components/books/BookFavouriteButton', () => {
   }
 })
 
+jest.mock('@/components/books/OfflineBookBadge', () => {
+  return function MockOfflineBadge({ bookId }: { bookId: string }) {
+    return <span>offline:{bookId}</span>
+  }
+})
+
 jest.mock('@/components/books/BookOwnershipToggles', () => {
   return function MockOwnership({ userBook }: { userBook: { tags: string[]; formats: string[] } }) {
     return (
@@ -60,6 +66,7 @@ jest.mock('@/components/books/BookOwnershipToggles', () => {
 })
 
 type BookOverride = {
+  bookId?: string
   status?: string
   tags?: string[]
   formats?: string[]
@@ -90,6 +97,11 @@ describe('BookCard', () => {
     render(<BookCard userBook={makeBook()} onSaved={jest.fn()} />)
     expect(screen.getByText('Test Book')).toBeInTheDocument()
     expect(screen.getByText('Test Author')).toBeInTheDocument()
+  })
+
+  it('shows whether the book is available offline', () => {
+    render(<BookCard userBook={makeBook({ bookId: 'b-1' })} onSaved={jest.fn()} />)
+    expect(screen.getByText('offline:b-1')).toBeInTheDocument()
   })
 
   it('renders a link to the book detail page', () => {

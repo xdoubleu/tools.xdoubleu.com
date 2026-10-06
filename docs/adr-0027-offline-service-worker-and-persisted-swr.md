@@ -1,8 +1,8 @@
 # ADR-0027: offline reads via a hand-written service worker and a persisted SWR cache
 
 - Status: Accepted
-- Issues: #2133 (part of epic #386)
-- Affects: `web/lib/offline/`, `web/app/sw.js/route.ts`, `web/components/SWRProvider.tsx`
+- Issues: #2133 (part of epic #386); book files #2161
+- Affects: `web/lib/offline/`, `web/app/sw.js/route.ts`, `web/components/SWRProvider.tsx`, `web/lib/books/offlineBooks.ts`
 
 ## Context
 
@@ -15,19 +15,25 @@ which the HTTP cache and the Cache API can't key. Next's
 ## Decision
 
 - **Service worker** (`lib/offline/serviceWorker.ts`): one self-contained
-  function that `/sw.js` serves as `(${fn})(self, enabled)`, so Jest tests
-  the real logic.
+  function that `/sw.js` serves as `(${fn})(self, enabled, readerVersion)`,
+  so Jest tests the real logic.
   - Navigations are network-first, falling back to the last saved copy, or an
     offline page if there is none. A saved page keeps its own CSP header and
     nonce together.
   - `/_next/static` is cache-first, since it is content-hashed.
+  - `/foliate-js/` (the reader and pdf.js) is cache-first in a cache named
+    after the pinned commit, since its URLs aren't hashed.
   - After each client-side route change, the page asks the worker to save its
     URL. These requests are throttled to once per 10 min per URL.
 - **Data**: an SWR middleware saves every successful fetch to IndexedDB. On a
   network error it resolves with the saved copy instead of failing, and the
   banner shows how old that copy is. Live-only and admin keys are excluded.
+- **Books**: a file opened in the reader is stored in IndexedDB by book and
+  format, with the version the library reports for it. The reader opens the
+  stored copy until that version changes, and still opens it offline.
 - **Privacy**: signing out, or a different user ID appearing, wipes IndexedDB
-  and the page cache. Entries older than 30 days are pruned.
+  and the page cache. Entries older than 30 days are pruned; stored books
+  are not.
 - **Kill switch**: with `OFFLINE_DISABLED=1`, `/sw.js` serves a worker that
   deletes its caches and unregisters itself.
 

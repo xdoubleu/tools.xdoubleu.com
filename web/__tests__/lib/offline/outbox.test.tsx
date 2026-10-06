@@ -37,9 +37,11 @@ jest.mock('@/lib/shoppinglist/offlineWrites', () => {
     },
     describe: (bytes: Uint8Array) => `Add ${decode(bytes)}`,
     revalidate: '/list',
-    revalidateOnSuccess: true
+    revalidateOnSuccess: true,
+    // 'set' writes of `<key>:<n>` collapse per key.
+    coalesceKey: (bytes: Uint8Array) => (name === 'set' ? decode(bytes).split(':')[0] : undefined)
   })
-  return { shoppingListWrites: [make('add')] }
+  return { shoppingListWrites: [make('add'), make('set')] }
 })
 
 jest.mock('@/lib/offline/store', () => {
@@ -314,6 +316,80 @@ describe('outbox', () => {
 
     await act(() => flushOutbox())
     expect(getOutboxSnapshot().failed).toEqual([{ description: 'Old', reason: 'gone' }])
+  })
+
+  it('coalesces consecutive writes with the same key into the latest', async () => {
+    const set: OfflineWrite = shoppingListWrites[1]
+    const sendSet = jest.mocked(set.send)
+    send.mockRejectedValue(networkError())
+    sendSet.mockRejectedValue(networkError())
+    const queue = (value: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      act(async () => void (await enqueueWrite(set, { value } as never)))
+
+    await queue('k1:1')
+    await queue('k1:2')
+    await queue('k2:1')
+    await queue('k2:2')
+    await enqueue('b')
+    await queue('k2:3')
+
+    expect(getOutboxSnapshot().pending).toBe(4)
+    expect(await applyPending('/list', [])).toEqual(['k1:2', 'k2:2', 'b', 'k2:3'])
+
+    // The coalesced writes are gone from storage too.
+    resetOutbox()
+    expect(await applyPending('/list', [])).toEqual(['k1:2', 'k2:2', 'b', 'k2:3'])
+
+    sendSet.mockReset().mockResolvedValue({})
+    send.mockResolvedValue({})
+    await act(() => flushOutbox())
+    const sent = sendSet.mock.calls.map(([bytes]) => new TextDecoder().decode(bytes as Uint8Array))
+    expect(sent).toEqual(['{"value":"k1:2"}', '{"value":"k2:2"}', '{"value":"k2:3"}'])
+    expect(getOutboxSnapshot().pending).toBe(0)
+  })
+
+  it('never coalesces a write with its own copy reloaded by a concurrent drain', async () => {
+    const set: OfflineWrite = shoppingListWrites[1]
+    jest.mocked(set.send).mockRejectedValue(networkError())
+    const queue = (value: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      act(async () => void (await enqueueWrite(set, { value } as never)))
+    await queue('k1:1')
+    const add = jest.mocked(addQueued)
+    const store = add.getMockImplementation()!
+    add.mockImplementationOnce(async (write) => {
+      const seq = await store(write)
+      await flushOutbox()
+      return seq
+    })
+
+    await queue('k1:2')
+
+    expect(getOutboxSnapshot().pending).toBe(1)
+    resetOutbox()
+    expect(await applyPending('/list', [])).toEqual(['k1:2'])
+  })
+
+  it('never coalesces writes without a key', async () => {
+    send.mockRejectedValue(networkError())
+    await enqueue('b')
+    await enqueue('c')
+    expect(getOutboxSnapshot().pending).toBe(2)
+  })
+
+  it('coalesces writes kept only in memory', async () => {
+    storeMock.mockMemoryOnly.on = true
+    const set: OfflineWrite = shoppingListWrites[1]
+    jest.mocked(set.send).mockRejectedValue(networkError())
+    await act(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      await enqueueWrite(set, { value: 'k1:1' } as never)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      await enqueueWrite(set, { value: 'k1:2' } as never)
+    })
+    expect(getOutboxSnapshot().pending).toBe(1)
+    expect(await applyPending('/list', [])).toEqual(['k1:2'])
   })
 
   it('removes only the sent write from the queue', async () => {

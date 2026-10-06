@@ -147,8 +147,11 @@ type UserBook struct {
 	CurrentPage     int32                  `protobuf:"varint,13,opt,name=current_page,json=currentPage,proto3" json:"current_page,omitempty"`
 	ProgressPercent int32                  `protobuf:"varint,14,opt,name=progress_percent,json=progressPercent,proto3" json:"progress_percent,omitempty"`
 	Formats         []string               `protobuf:"bytes,15,rep,name=formats,proto3" json:"formats,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Format (incl. kepub) -> version of the file GetBookFile serves; changes
+	// when that file is replaced or reconverted.
+	FileVersions  map[string]string `protobuf:"bytes,16,rep,name=file_versions,json=fileVersions,proto3" json:"file_versions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UserBook) Reset() {
@@ -275,6 +278,13 @@ func (x *UserBook) GetProgressPercent() int32 {
 func (x *UserBook) GetFormats() []string {
 	if x != nil {
 		return x.Formats
+	}
+	return nil
+}
+
+func (x *UserBook) GetFileVersions() map[string]string {
+	if x != nil {
+		return x.FileVersions
 	}
 	return nil
 }
@@ -2672,7 +2682,7 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\vhas_content\x18\f \x01(\bR\n" +
 	"hasContentJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
 	"J\x04\b\n" +
-	"\x10\vR\x06isbn10R\rexternal_refsR\bcategory\"\xa2\x03\n" +
+	"\x10\vR\x06isbn10R\rexternal_refsR\bcategory\"\xae\x04\n" +
 	"\bUserBook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x17\n" +
@@ -2690,7 +2700,11 @@ const file_books_v1_library_proto_rawDesc = "" +
 	"\rprogress_mode\x18\f \x01(\tR\fprogressMode\x12!\n" +
 	"\fcurrent_page\x18\r \x01(\x05R\vcurrentPage\x12)\n" +
 	"\x10progress_percent\x18\x0e \x01(\x05R\x0fprogressPercent\x12\x18\n" +
-	"\aformats\x18\x0f \x03(\tR\aformatsJ\x04\b\b\x10\t\"I\n" +
+	"\aformats\x18\x0f \x03(\tR\aformats\x12I\n" +
+	"\rfile_versions\x18\x10 \x03(\v2$.books.v1.UserBook.FileVersionsEntryR\ffileVersions\x1a?\n" +
+	"\x11FileVersionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\b\x10\t\"I\n" +
 	"\tBookShelf\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12(\n" +
 	"\x05books\x18\x02 \x03(\v2\x12.books.v1.UserBookR\x05books\"\xd9\x01\n" +
@@ -2873,7 +2887,7 @@ func file_books_v1_library_proto_rawDescGZIP() []byte {
 	return file_books_v1_library_proto_rawDescData
 }
 
-var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
+var file_books_v1_library_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_books_v1_library_proto_goTypes = []any{
 	(*Book)(nil),                          // 0: books.v1.Book
 	(*UserBook)(nil),                      // 1: books.v1.UserBook
@@ -2923,67 +2937,69 @@ var file_books_v1_library_proto_goTypes = []any{
 	(*RenameTagResponse)(nil),             // 45: books.v1.RenameTagResponse
 	(*DeleteTagRequest)(nil),              // 46: books.v1.DeleteTagRequest
 	(*DeleteTagResponse)(nil),             // 47: books.v1.DeleteTagResponse
+	nil,                                   // 48: books.v1.UserBook.FileVersionsEntry
 }
 var file_books_v1_library_proto_depIdxs = []int32{
 	0,  // 0: books.v1.UserBook.book:type_name -> books.v1.Book
-	1,  // 1: books.v1.BookShelf.books:type_name -> books.v1.UserBook
-	1,  // 2: books.v1.LibraryResponse.reading:type_name -> books.v1.UserBook
-	1,  // 3: books.v1.LibraryResponse.wishlist:type_name -> books.v1.UserBook
-	1,  // 4: books.v1.LibraryResponse.finished:type_name -> books.v1.UserBook
-	2,  // 5: books.v1.LibraryResponse.shelves:type_name -> books.v1.BookShelf
-	6,  // 6: books.v1.BookReadingStateData.position:type_name -> books.v1.ReadingPosition
-	3,  // 7: books.v1.GetLibraryResponse.library:type_name -> books.v1.LibraryResponse
-	4,  // 8: books.v1.GetBooksProgressResponse.progress:type_name -> books.v1.BooksProgressResponse
-	1,  // 9: books.v1.SearchLibraryResponse.books:type_name -> books.v1.UserBook
-	5,  // 10: books.v1.SearchExternalResponse.results:type_name -> books.v1.ExternalBookResult
-	5,  // 11: books.v1.GetExternalBookResponse.result:type_name -> books.v1.ExternalBookResult
-	6,  // 12: books.v1.UpdateReadingProgressRequest.position:type_name -> books.v1.ReadingPosition
-	7,  // 13: books.v1.GetReadingStateResponse.state:type_name -> books.v1.BookReadingStateData
-	8,  // 14: books.v1.LibraryService.GetLibrary:input_type -> books.v1.GetLibraryRequest
-	10, // 15: books.v1.LibraryService.GetBooksProgress:input_type -> books.v1.GetBooksProgressRequest
-	12, // 16: books.v1.LibraryService.SearchLibrary:input_type -> books.v1.SearchLibraryRequest
-	14, // 17: books.v1.LibraryService.SearchExternal:input_type -> books.v1.SearchExternalRequest
-	16, // 18: books.v1.LibraryService.GetExternalBook:input_type -> books.v1.GetExternalBookRequest
-	18, // 19: books.v1.LibraryService.CreateBook:input_type -> books.v1.CreateBookRequest
-	20, // 20: books.v1.LibraryService.UpdateBookStatus:input_type -> books.v1.UpdateBookStatusRequest
-	28, // 21: books.v1.LibraryService.UpdateFinishedAt:input_type -> books.v1.UpdateFinishedAtRequest
-	30, // 22: books.v1.LibraryService.UpdateProgress:input_type -> books.v1.UpdateProgressRequest
-	22, // 23: books.v1.LibraryService.ToggleTag:input_type -> books.v1.ToggleTagRequest
-	24, // 24: books.v1.LibraryService.SetBookTag:input_type -> books.v1.SetBookTagRequest
-	26, // 25: books.v1.LibraryService.RemoveBook:input_type -> books.v1.RemoveBookRequest
-	32, // 26: books.v1.LibraryService.UpdateReadingProgress:input_type -> books.v1.UpdateReadingProgressRequest
-	34, // 27: books.v1.LibraryService.GetReadingState:input_type -> books.v1.GetReadingStateRequest
-	36, // 28: books.v1.LibraryService.GetBookContent:input_type -> books.v1.GetBookContentRequest
-	38, // 29: books.v1.LibraryService.CreateShelf:input_type -> books.v1.CreateShelfRequest
-	40, // 30: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
-	42, // 31: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
-	44, // 32: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
-	46, // 33: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
-	9,  // 34: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
-	11, // 35: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
-	13, // 36: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
-	15, // 37: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
-	17, // 38: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
-	19, // 39: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
-	21, // 40: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
-	29, // 41: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
-	31, // 42: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
-	23, // 43: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
-	25, // 44: books.v1.LibraryService.SetBookTag:output_type -> books.v1.SetBookTagResponse
-	27, // 45: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
-	33, // 46: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
-	35, // 47: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
-	37, // 48: books.v1.LibraryService.GetBookContent:output_type -> books.v1.GetBookContentResponse
-	39, // 49: books.v1.LibraryService.CreateShelf:output_type -> books.v1.CreateShelfResponse
-	41, // 50: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
-	43, // 51: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
-	45, // 52: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
-	47, // 53: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
-	34, // [34:54] is the sub-list for method output_type
-	14, // [14:34] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	48, // 1: books.v1.UserBook.file_versions:type_name -> books.v1.UserBook.FileVersionsEntry
+	1,  // 2: books.v1.BookShelf.books:type_name -> books.v1.UserBook
+	1,  // 3: books.v1.LibraryResponse.reading:type_name -> books.v1.UserBook
+	1,  // 4: books.v1.LibraryResponse.wishlist:type_name -> books.v1.UserBook
+	1,  // 5: books.v1.LibraryResponse.finished:type_name -> books.v1.UserBook
+	2,  // 6: books.v1.LibraryResponse.shelves:type_name -> books.v1.BookShelf
+	6,  // 7: books.v1.BookReadingStateData.position:type_name -> books.v1.ReadingPosition
+	3,  // 8: books.v1.GetLibraryResponse.library:type_name -> books.v1.LibraryResponse
+	4,  // 9: books.v1.GetBooksProgressResponse.progress:type_name -> books.v1.BooksProgressResponse
+	1,  // 10: books.v1.SearchLibraryResponse.books:type_name -> books.v1.UserBook
+	5,  // 11: books.v1.SearchExternalResponse.results:type_name -> books.v1.ExternalBookResult
+	5,  // 12: books.v1.GetExternalBookResponse.result:type_name -> books.v1.ExternalBookResult
+	6,  // 13: books.v1.UpdateReadingProgressRequest.position:type_name -> books.v1.ReadingPosition
+	7,  // 14: books.v1.GetReadingStateResponse.state:type_name -> books.v1.BookReadingStateData
+	8,  // 15: books.v1.LibraryService.GetLibrary:input_type -> books.v1.GetLibraryRequest
+	10, // 16: books.v1.LibraryService.GetBooksProgress:input_type -> books.v1.GetBooksProgressRequest
+	12, // 17: books.v1.LibraryService.SearchLibrary:input_type -> books.v1.SearchLibraryRequest
+	14, // 18: books.v1.LibraryService.SearchExternal:input_type -> books.v1.SearchExternalRequest
+	16, // 19: books.v1.LibraryService.GetExternalBook:input_type -> books.v1.GetExternalBookRequest
+	18, // 20: books.v1.LibraryService.CreateBook:input_type -> books.v1.CreateBookRequest
+	20, // 21: books.v1.LibraryService.UpdateBookStatus:input_type -> books.v1.UpdateBookStatusRequest
+	28, // 22: books.v1.LibraryService.UpdateFinishedAt:input_type -> books.v1.UpdateFinishedAtRequest
+	30, // 23: books.v1.LibraryService.UpdateProgress:input_type -> books.v1.UpdateProgressRequest
+	22, // 24: books.v1.LibraryService.ToggleTag:input_type -> books.v1.ToggleTagRequest
+	24, // 25: books.v1.LibraryService.SetBookTag:input_type -> books.v1.SetBookTagRequest
+	26, // 26: books.v1.LibraryService.RemoveBook:input_type -> books.v1.RemoveBookRequest
+	32, // 27: books.v1.LibraryService.UpdateReadingProgress:input_type -> books.v1.UpdateReadingProgressRequest
+	34, // 28: books.v1.LibraryService.GetReadingState:input_type -> books.v1.GetReadingStateRequest
+	36, // 29: books.v1.LibraryService.GetBookContent:input_type -> books.v1.GetBookContentRequest
+	38, // 30: books.v1.LibraryService.CreateShelf:input_type -> books.v1.CreateShelfRequest
+	40, // 31: books.v1.LibraryService.RenameShelf:input_type -> books.v1.RenameShelfRequest
+	42, // 32: books.v1.LibraryService.DeleteShelf:input_type -> books.v1.DeleteShelfRequest
+	44, // 33: books.v1.LibraryService.RenameTag:input_type -> books.v1.RenameTagRequest
+	46, // 34: books.v1.LibraryService.DeleteTag:input_type -> books.v1.DeleteTagRequest
+	9,  // 35: books.v1.LibraryService.GetLibrary:output_type -> books.v1.GetLibraryResponse
+	11, // 36: books.v1.LibraryService.GetBooksProgress:output_type -> books.v1.GetBooksProgressResponse
+	13, // 37: books.v1.LibraryService.SearchLibrary:output_type -> books.v1.SearchLibraryResponse
+	15, // 38: books.v1.LibraryService.SearchExternal:output_type -> books.v1.SearchExternalResponse
+	17, // 39: books.v1.LibraryService.GetExternalBook:output_type -> books.v1.GetExternalBookResponse
+	19, // 40: books.v1.LibraryService.CreateBook:output_type -> books.v1.CreateBookResponse
+	21, // 41: books.v1.LibraryService.UpdateBookStatus:output_type -> books.v1.UpdateBookStatusResponse
+	29, // 42: books.v1.LibraryService.UpdateFinishedAt:output_type -> books.v1.UpdateFinishedAtResponse
+	31, // 43: books.v1.LibraryService.UpdateProgress:output_type -> books.v1.UpdateProgressResponse
+	23, // 44: books.v1.LibraryService.ToggleTag:output_type -> books.v1.ToggleTagResponse
+	25, // 45: books.v1.LibraryService.SetBookTag:output_type -> books.v1.SetBookTagResponse
+	27, // 46: books.v1.LibraryService.RemoveBook:output_type -> books.v1.RemoveBookResponse
+	33, // 47: books.v1.LibraryService.UpdateReadingProgress:output_type -> books.v1.UpdateReadingProgressResponse
+	35, // 48: books.v1.LibraryService.GetReadingState:output_type -> books.v1.GetReadingStateResponse
+	37, // 49: books.v1.LibraryService.GetBookContent:output_type -> books.v1.GetBookContentResponse
+	39, // 50: books.v1.LibraryService.CreateShelf:output_type -> books.v1.CreateShelfResponse
+	41, // 51: books.v1.LibraryService.RenameShelf:output_type -> books.v1.RenameShelfResponse
+	43, // 52: books.v1.LibraryService.DeleteShelf:output_type -> books.v1.DeleteShelfResponse
+	45, // 53: books.v1.LibraryService.RenameTag:output_type -> books.v1.RenameTagResponse
+	47, // 54: books.v1.LibraryService.DeleteTag:output_type -> books.v1.DeleteTagResponse
+	35, // [35:55] is the sub-list for method output_type
+	15, // [15:35] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_books_v1_library_proto_init() }
@@ -2997,7 +3013,7 @@ func file_books_v1_library_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_books_v1_library_proto_rawDesc), len(file_books_v1_library_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   48,
+			NumMessages:   49,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

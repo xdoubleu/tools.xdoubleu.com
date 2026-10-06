@@ -1,4 +1,4 @@
-import { loadEntry } from '@/lib/offline/store'
+import { listBookFileKeys, listBookFiles, loadEntry } from '@/lib/offline/store'
 
 describe('offline store when IndexedDB fails to open', () => {
   it('resolves to undefined and retries the open next time', async () => {
@@ -12,5 +12,7 @@ describe('offline store when IndexedDB fails to open', () => {
     expect(await loadEntry('k')).toBeUndefined()
     expect(await loadEntry('k')).toBeUndefined()
     expect(open).toHaveBeenCalledTimes(2)
+    expect(await listBookFiles()).toEqual([])
+    expect(await listBookFileKeys()).toEqual([])
   })
 })

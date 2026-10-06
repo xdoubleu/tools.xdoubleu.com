@@ -82,6 +82,7 @@ func protoUserBook(ub models.UserBook, coverBaseURL string) *booksv1.UserBook {
 		Status:          ub.Status,
 		Tags:            reconcileOwnDigitalTag(ub.Tags, ub.Formats),
 		Formats:         ub.Formats,
+		FileVersions:    ub.FileVersions,
 		Rating:          int32PtrFromInt16(ub.Rating),
 		FinishedAt:      finishedAt,
 		ProgressMode:    ub.ProgressMode,

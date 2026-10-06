@@ -35,7 +35,7 @@ import type {
   GetBookContentResponse,
   Book
 } from '@/lib/gen/books/v1/library_pb'
-import type { GetKEPUBStatusResponse, GetBookFileResponse } from '@/lib/gen/books/v1/files_pb'
+import type { GetKEPUBStatusResponse } from '@/lib/gen/books/v1/files_pb'
 import type { ListKoboDevicesResponse, GetKoboDeviceLogsResponse } from '@/lib/gen/books/v1/kobo_pb'
 import type {
   FindDuplicatesResponse,
@@ -420,14 +420,6 @@ export function useKEPUBStatus(bookId: string | null) {
     bookId ? swrKeys.kepubStatus(bookId) : null,
     () => client.getKEPUBStatus({ bookId: bookId! }),
     { refreshInterval: (data) => (data?.kepubStatus === 'converting' ? 2000 : 0) }
-  )
-}
-
-export function useGetBookFile(bookId: string | null, format: string | null) {
-  const client = createServiceClient(BookFilesService)
-  return useSWR<GetBookFileResponse, Error>(
-    bookId && format ? swrKeys.bookFile(bookId, format) : null,
-    () => client.getBookFile({ bookId: bookId!, format: format! })
   )
 }
 

@@ -1,7 +1,7 @@
 # ADR-0028: offline writes go through a client outbox with client-generated IDs
 
 - Status: Accepted
-- Issues: #2135 (part of epic #386)
+- Issues: #2135 (part of epic #386); coalescing and keepalive #2161
 - Affects: `web/lib/offline/outbox.ts`, `web/lib/offline/registry.ts`, `web/lib/<app>/offlineWrites.ts`, create RPCs of apps with offline writes
 
 ## Context
@@ -31,6 +31,10 @@ race each other and lose the session.
   re-applies it to every fetched or saved response while the write is still
   queued, so a refetch never hides a pending change.
 - **Last write wins.** Writes replay as sent, with no version checks.
+- **Coalescing.** A write may name a key; queuing it drops a directly
+  preceding write with the same key (e.g. reading positions per book).
+- **Keepalive.** Small writes may send with `keepalive`, so a send started
+  as the page unloads still arrives.
 - **Client IDs.** A create used offline takes an optional client UUID. A
   repeat with the same ID returns the existing row, while an ID owned by
   someone else is `NotFound`. With no ID, the database generates one, as

@@ -3,17 +3,24 @@ import { createClient, type Client } from '@connectrpc/connect'
 import type { DescService } from '@bufbuild/protobuf'
 import { getApiUrl } from './env'
 
-export const transport = createConnectTransport({
-  baseUrl: getApiUrl(),
-  // Binary avoids base64 inflation of bytes fields (a 75 MB upload would
-  // exceed the server cap).
-  useBinaryFormat: true,
-  fetch: (input, init) =>
-    fetch(input, {
-      ...init,
-      credentials: 'include'
-    })
-})
+const createTransport = (keepalive: boolean) =>
+  createConnectTransport({
+    baseUrl: getApiUrl(),
+    // Binary avoids base64 inflation of bytes fields (a 75 MB upload would
+    // exceed the server cap).
+    useBinaryFormat: true,
+    fetch: (input, init) =>
+      fetch(input, {
+        ...init,
+        credentials: 'include',
+        keepalive
+      })
+  })
+
+export const transport = createTransport(false)
+
+/** For small writes sent while the page unloads; keepalive bodies are capped at 64 KB. */
+export const keepaliveTransport = createTransport(true)
 
 // One client per service, reused for the page's lifetime.
 const clients = new Map<DescService, Client<DescService>>()
@@ -25,5 +32,18 @@ export function createServiceClient<T extends DescService>(service: T): Client<T
     clients.set(service, client)
   }
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the map stores each client under its own service descriptor, so the entry for T is always a Client<T>
+  return client as Client<T>
+}
+
+const keepaliveClients = new Map<DescService, Client<DescService>>()
+
+/** A client whose calls survive page unload; for small requests only. */
+export function createKeepaliveClient<T extends DescService>(service: T): Client<T> {
+  let client = keepaliveClients.get(service)
+  if (!client) {
+    client = createClient(service, keepaliveTransport)
+    keepaliveClients.set(service, client)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- keyed by its own service descriptor, as in createServiceClient
   return client as Client<T>
 }

@@ -4,21 +4,20 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { mutate } from 'swr'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { PageContainer } from '@/components/ui/page-container'
 import { ErrorState, LoadingState } from '@/components/ui/states'
 import type { ReaderLocation } from '@/components/books/reader/BookReader'
-import { useGetBookFile, useLibrary } from '@/hooks/useBooks'
+import { useLibrary } from '@/hooks/useBooks'
 import { useKEPUBConversion } from '@/hooks/useKEPUBConversion'
+import { useOfflineBookFile, useStoredBookVersion } from '@/hooks/useOfflineBooks'
 import { useReaderChoice } from '@/hooks/useReaderChoice'
 import { useReadingProgressSaver, useReadingState } from '@/hooks/useReadingState'
 import { flattenLibrary } from '@/lib/books/bookShelves'
 import { readerFileFormat, type ReaderChoice } from '@/lib/books/readerChoice'
 import { resumeFromState, type ReaderResume } from '@/lib/books/readerPosition'
 import { pickReaderFormat } from '@/lib/books/readerSettings'
-import { swrKeys } from '@/lib/swrKeys'
 
 // foliate-js drives the DOM directly; never render the reader on the server.
 // Stryker disable next-line all: next/dynamic options must stay an object literal.
@@ -37,8 +36,9 @@ function Fallback({ id, children }: { id: string; children: ReactNode }) {
 
 /**
  * Opens the book's original EPUB (preferred) or PDF, or its converted KEPUB,
- * at the newest saved position; `?format=` picks one. Page changes are saved
- * back, and switching files keeps the position.
+ * at the newest saved position; `?format=` picks one. The file is kept on the
+ * device for offline reading. Page changes are saved back, and switching
+ * files keeps the position.
  */
 export default function ReadBookClient({ id }: { id: string }) {
   const router = useRouter()
@@ -54,17 +54,20 @@ export default function ReadBookClient({ id }: { id: string }) {
   const [choice, choose] = useReaderChoice(bookId, requestedFormat)
   const original = userBook ? pickReaderFormat(userBook.formats, requestedFormat) : null
   const format = original && choice ? readerFileFormat(original, choice) : null
+  const version = (format && userBook?.fileVersions[format]) || ''
   const conversion = useKEPUBConversion(format === 'kepub' ? bookId : null)
-  const fileFormat = format === 'kepub' && conversion !== 'ready' ? null : format
-  const file = useGetBookFile(fileFormat ? bookId : null, fileFormat)
-
-  // Pin the first fresh URL: a refetch mints a new presigned URL, which would
-  // reopen the book at the start, and a cached one may have expired.
-  const [pinned, setPinned] = useState<{ format: string; url: string } | null>(null)
-  const url = pinned && pinned.format === format ? pinned.url : null
-  if (!url && format && file.data && !file.isValidating) {
-    setPinned({ format, url: file.data.url })
-  }
+  // A stored KEPUB opens without waiting for the conversion when it is
+  // current, or when the conversion can't be confirmed (e.g. offline).
+  const storedKEPUB = useStoredBookVersion(format === 'kepub' ? bookId : null, 'kepub')
+  const kepubOpenable =
+    conversion === 'ready' ||
+    (typeof storedKEPUB === 'string' && (storedKEPUB === version || conversion === 'failed'))
+  const fileFormat = format === 'kepub' && !kepubOpenable ? null : format
+  const { file, error: fileError } = useOfflineBookFile(
+    fileFormat ? bookId : null,
+    fileFormat,
+    version
+  )
 
   // Resume from a read made after mounting: the SWR cache may predate this
   // session's saves or another device's. A failed read falls back to the cache.
@@ -99,10 +102,6 @@ export default function ReadBookClient({ id }: { id: string }) {
   const switchTo = (next: ReaderChoice) => {
     const at = lastLocation.current
     if (at) setResume({ position: at.position, percent: at.fraction * 100 })
-    // Drop a cached URL for the other file; it may have expired.
-    void mutate(swrKeys.bookFile(bookId!, readerFileFormat(original!, next)), undefined, {
-      revalidate: false
-    })
     choose(next)
   }
 
@@ -134,7 +133,14 @@ export default function ReadBookClient({ id }: { id: string }) {
       </Fallback>
     )
   }
-  if (format === 'kepub' && conversion !== 'ready') {
+  if (format === 'kepub' && !kepubOpenable) {
+    if (storedKEPUB === undefined) {
+      return (
+        <Fallback id={id}>
+          <LoadingState label="book" />
+        </Fallback>
+      )
+    }
     return (
       <Fallback id={id}>
         <div className="space-y-3">
@@ -150,14 +156,14 @@ export default function ReadBookClient({ id }: { id: string }) {
       </Fallback>
     )
   }
-  if (!url && file.error) {
+  if (!file && fileError) {
     return (
       <Fallback id={id}>
         <ErrorState what="book file" />
       </Fallback>
     )
   }
-  if (!url || !resume) {
+  if (!file || !resume) {
     return (
       <Fallback id={id}>
         <LoadingState label="book" />
@@ -167,8 +173,8 @@ export default function ReadBookClient({ id }: { id: string }) {
 
   return (
     <BookReader
-      key={url}
-      url={url}
+      key={format}
+      file={file}
       title={userBook.book?.title ?? 'Book'}
       onClose={() => router.push(`/books/${id}`)}
       onRelocate={onRelocate}

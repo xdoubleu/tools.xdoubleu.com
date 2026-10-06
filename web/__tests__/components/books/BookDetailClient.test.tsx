@@ -86,6 +86,12 @@ jest.mock('@/components/books/BookShelfTagFields', () => {
   }
 })
 
+jest.mock('@/components/books/OfflineBookBadge', () => {
+  return function MockOfflineBadge({ bookId }: { bookId: string }) {
+    return <span>offline:{bookId}</span>
+  }
+})
+
 jest.mock('@/components/books/KoboSyncToggle', () => {
   return function MockKoboSyncToggle() {
     return <div data-testid="kobo-sync-toggle" />
@@ -381,6 +387,11 @@ describe('BookDetailClient', () => {
       '/books/ub-1/read'
     )
     expect(screen.queryByRole('link', { name: 'Open KEPUB' })).not.toBeInTheDocument()
+  })
+
+  it('shows whether the book is available offline next to the reader links', () => {
+    render(<BookDetailClient id="ub-1" />)
+    expect(screen.getByText(`offline:${mockUserBook.bookId}`)).toBeInTheDocument()
   })
 
   it('links a book with both files to each format', () => {

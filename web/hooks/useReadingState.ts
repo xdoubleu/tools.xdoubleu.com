@@ -1,7 +1,9 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import useSWR from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
-import { createServiceClient } from '@/lib/client'
+import { createKeepaliveClient, createServiceClient } from '@/lib/client'
+import { updateReadingProgressWrite } from '@/lib/books/offlineWrites'
+import { enqueueWrite } from '@/lib/offline/outbox'
 import { swrKeys } from '@/lib/swrKeys'
 import {
   LibraryService,
@@ -25,23 +27,24 @@ export function useReadingState(bookId: string | null) {
 /**
  * Returns a relocate handler that saves the reading position once reading
  * pauses, stamped with when it was read. A pending save is flushed when the
- * page is hidden or unloaded, and on unmount.
+ * page is hidden or unloaded, and on unmount. Saves go through the outbox, so
+ * offline reading syncs later.
  */
 export function useReadingProgressSaver(bookId: string | null) {
   const pending = useRef<SaveRequest | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
-    const flush = () => flushSave(pending)
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') flush()
+      if (document.visibilityState === 'hidden') flushSave(pending, true)
     }
+    const onPageHide = () => flushSave(pending, true)
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', flush)
+    window.addEventListener('pagehide', onPageHide)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', flush)
-      flush()
+      window.removeEventListener('pagehide', onPageHide)
+      flushSave(pending)
     }
   }, [])
 
@@ -60,12 +63,18 @@ export function useReadingProgressSaver(bookId: string | null) {
 }
 
 // A stale timer finding nothing pending is a no-op, so flushing leaves it.
-function flushSave(pending: RefObject<SaveRequest | null>) {
+function flushSave(pending: RefObject<SaveRequest | null>, leaving = false) {
   const req = pending.current
   if (!req) return
   pending.current = null
-  // A lost save is superseded by the next one; never interrupt reading.
-  createServiceClient(LibraryService)
-    .updateReadingProgress(req)
-    .catch(() => {})
+  // A hidden or unloading page can be frozen or killed before the outbox
+  // stores the save, so also send it now; the queued copy's replay is then a
+  // no-op (same read_at).
+  if (leaving) {
+    createKeepaliveClient(LibraryService)
+      .updateReadingProgress(req)
+      .catch(() => {})
+  }
+  // Never interrupt reading; a save that can't be queued is superseded by the next.
+  enqueueWrite(updateReadingProgressWrite, req).catch(() => {})
 }

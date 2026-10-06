@@ -1,5 +1,12 @@
-import { createServiceClient } from '@/lib/client'
+/** @jest-environment node */
+import {
+  createKeepaliveClient,
+  createServiceClient,
+  keepaliveTransport,
+  transport
+} from '@/lib/client'
 import { AuthService } from '@/lib/gen/auth/v1/auth_pb'
+import { LibraryService } from '@/lib/gen/books/v1/library_pb'
 import { RecipesService } from '@/lib/gen/recipes/v1/recipes_pb'
 
 describe('createServiceClient', () => {
@@ -15,8 +22,37 @@ describe('createServiceClient', () => {
     expect(a).not.toBe(b)
   })
 
+  it('reuses one keepalive client per service', () => {
+    const client = createKeepaliveClient(LibraryService)
+    expect(typeof client.updateReadingProgress).toBe('function')
+    expect(createKeepaliveClient(LibraryService)).toBe(client)
+    expect(createKeepaliveClient(LibraryService)).not.toBe(createServiceClient(LibraryService))
+  })
+
   it('exposes the service methods', () => {
     const client = createServiceClient(AuthService)
     expect(typeof client.signIn).toBe('function')
+  })
+})
+
+describe('transports', () => {
+  it('sends keepalive only on the keepalive transport, both with credentials', async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(
+        async () =>
+          new Response(new Uint8Array(), { headers: { 'Content-Type': 'application/proto' } })
+      )
+    try {
+      const method = LibraryService.method.updateReadingProgress
+      await transport.unary(method, undefined, undefined, undefined, {})
+      await keepaliveTransport.unary(method, undefined, undefined, undefined, {})
+      expect(fetchMock.mock.calls.map(([, init]) => [init?.credentials, init?.keepalive])).toEqual([
+        ['include', false],
+        ['include', true]
+      ])
+    } finally {
+      fetchMock.mockRestore()
+    }
   })
 })

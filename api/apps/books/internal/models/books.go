@@ -94,6 +94,7 @@ type UserBook struct {
 	Status          string
 	Tags            []string
 	Formats         []string
+	FileVersions    map[string]string
 	ShelfPositions  map[string]int
 	Rating          *int16
 	FinishedAt      []time.Time

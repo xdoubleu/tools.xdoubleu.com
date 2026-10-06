@@ -34,6 +34,9 @@ message UserBook {
   int32 current_page = 13;
   int32 progress_percent = 14;
   repeated string formats = 15;
+  // Format (incl. kepub) -> version of the file GetBookFile serves; changes
+  // when that file is replaced or reconverted.
+  map<string, string> file_versions = 16;
 }
 
 message BookShelf {

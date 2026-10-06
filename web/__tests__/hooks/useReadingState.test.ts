@@ -1,15 +1,20 @@
 import { act, renderHook } from '@testing-library/react'
 
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
-const mockUpdateReadingProgress = jest.fn()
 const mockGetReadingState = jest.fn()
+const mockKeepaliveSave = jest.fn()
 jest.mock('@/lib/client', () => ({
   createServiceClient: () => ({
-    updateReadingProgress: mockUpdateReadingProgress,
     getReadingState: mockGetReadingState
-  })
+  }),
+  createKeepaliveClient: () => ({ updateReadingProgress: mockKeepaliveSave })
 }))
 jest.mock('@/lib/gen/books/v1/library_pb', () => ({ LibraryService: {} }))
+const mockEnqueue = jest.fn()
+jest.mock('@/lib/offline/outbox', () => ({
+  enqueueWrite: (...args: unknown[]) => mockEnqueue(...args)
+}))
+jest.mock('@/lib/books/offlineWrites', () => ({ updateReadingProgressWrite: { id: 'progress' } }))
 
 import useSWR from 'swr'
 import {
@@ -18,6 +23,7 @@ import {
   useReadingState
 } from '@/hooks/useReadingState'
 import { swrKeys } from '@/lib/swrKeys'
+import { updateReadingProgressWrite as mockWrite } from '@/lib/books/offlineWrites'
 
 const mockUseSWR = jest.mocked(useSWR)
 
@@ -49,8 +55,10 @@ describe('useReadingProgressSaver', () => {
   beforeEach(() => {
     jest.useFakeTimers()
     jest.setSystemTime(new Date('2026-10-02T12:00:00Z'))
-    mockUpdateReadingProgress.mockReset()
-    mockUpdateReadingProgress.mockResolvedValue({})
+    mockEnqueue.mockReset()
+    mockEnqueue.mockResolvedValue({})
+    mockKeepaliveSave.mockReset()
+    mockKeepaliveSave.mockResolvedValue({})
   })
   afterEach(() => jest.useRealTimers())
 
@@ -60,11 +68,11 @@ describe('useReadingProgressSaver', () => {
     jest.advanceTimersByTime(1000)
     act(() => result.current(EPUB_LOCATION))
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS - 1)
-    expect(mockUpdateReadingProgress).not.toHaveBeenCalled()
+    expect(mockEnqueue).not.toHaveBeenCalled()
 
     jest.advanceTimersByTime(1)
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
-    expect(mockUpdateReadingProgress).toHaveBeenCalledWith({
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledWith(mockWrite, {
       bookId: 'book-1',
       source: 'web',
       percent: 43,
@@ -79,8 +87,8 @@ describe('useReadingProgressSaver', () => {
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS)
     act(() => result.current({ fraction: 0.6, section: 4 }))
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS)
-    expect(mockUpdateReadingProgress.mock.calls[0][0]).toMatchObject({ position: { page: 4 } })
-    expect(mockUpdateReadingProgress.mock.calls[1][0]).toMatchObject({
+    expect(mockEnqueue.mock.calls[0][1]).toMatchObject({ position: { page: 4 } })
+    expect(mockEnqueue.mock.calls[1][1]).toMatchObject({
       percent: 60,
       position: undefined
     })
@@ -90,39 +98,58 @@ describe('useReadingProgressSaver', () => {
     const { result } = renderHook(() => useReadingProgressSaver('book-1'))
     act(() => result.current(EPUB_LOCATION))
     window.dispatchEvent(new Event('pagehide'))
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
 
     act(() => result.current(EPUB_LOCATION))
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(2)
+    expect(mockEnqueue).toHaveBeenCalledTimes(2)
 
     // Nothing pending: no extra save, and the timer was cleared.
     window.dispatchEvent(new Event('pagehide'))
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS)
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(2)
+    expect(mockEnqueue).toHaveBeenCalledTimes(2)
+  })
+
+  it('also sends directly when the page is hidden or unloads, as it may die before the queue stores it', () => {
+    const { result, unmount } = renderHook(() => useReadingProgressSaver('book-1'))
+    act(() => result.current(EPUB_LOCATION))
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
+    document.dispatchEvent(new Event('visibilitychange'))
+    expect(mockKeepaliveSave).toHaveBeenCalledWith(mockEnqueue.mock.calls[0][1])
+
+    act(() => result.current(EPUB_LOCATION))
+    mockKeepaliveSave.mockRejectedValue(new Error('offline'))
+    window.dispatchEvent(new Event('pagehide'))
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(2)
+    expect(mockKeepaliveSave).toHaveBeenLastCalledWith(mockEnqueue.mock.calls[1][1])
+
+    act(() => result.current(EPUB_LOCATION))
+    unmount()
+    expect(mockEnqueue).toHaveBeenCalledTimes(3)
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(2)
   })
 
   it('flushes when the reader closes', () => {
     const { result, unmount } = renderHook(() => useReadingProgressSaver('book-1'))
     act(() => result.current(EPUB_LOCATION))
     unmount()
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
     window.dispatchEvent(new Event('pagehide'))
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
   })
 
-  it('ignores a failed save', async () => {
-    mockUpdateReadingProgress.mockRejectedValue(new Error('offline'))
+  it('ignores a save the outbox could not queue', async () => {
+    mockEnqueue.mockRejectedValue(new Error('quota'))
     const { result } = renderHook(() => useReadingProgressSaver('book-1'))
     act(() => result.current(EPUB_LOCATION))
     await act(async () => {
       jest.advanceTimersByTime(READING_SAVE_DELAY_MS)
     })
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
   })
 
   it('waits a full pause after a flush before saving again', () => {
@@ -132,9 +159,9 @@ describe('useReadingProgressSaver', () => {
     jest.advanceTimersByTime(1000)
     act(() => result.current(EPUB_LOCATION))
     jest.advanceTimersByTime(READING_SAVE_DELAY_MS - 1)
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(1)
+    expect(mockEnqueue).toHaveBeenCalledTimes(1)
     jest.advanceTimersByTime(1)
-    expect(mockUpdateReadingProgress).toHaveBeenCalledTimes(2)
+    expect(mockEnqueue).toHaveBeenCalledTimes(2)
   })
 
   it('stops listening for hide and pagehide after unmount', () => {
@@ -145,7 +172,7 @@ describe('useReadingProgressSaver', () => {
     window.dispatchEvent(new Event('pagehide'))
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
-    expect(mockUpdateReadingProgress).not.toHaveBeenCalled()
+    expect(mockEnqueue).not.toHaveBeenCalled()
   })
 
   it('saves for the current book', () => {
@@ -154,12 +181,13 @@ describe('useReadingProgressSaver', () => {
     })
     act(() => result.current(EPUB_LOCATION))
     window.dispatchEvent(new Event('pagehide'))
-    expect(mockUpdateReadingProgress).not.toHaveBeenCalled()
+    expect(mockEnqueue).not.toHaveBeenCalled()
 
     rerender({ id: 'book-2' })
     act(() => result.current(EPUB_LOCATION))
     window.dispatchEvent(new Event('pagehide'))
-    expect(mockUpdateReadingProgress).toHaveBeenCalledWith(
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      mockWrite,
       expect.objectContaining({ bookId: 'book-2' })
     )
   })

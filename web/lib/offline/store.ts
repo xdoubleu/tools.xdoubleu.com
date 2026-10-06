@@ -2,11 +2,12 @@
 // no-op) where IndexedDB is missing or fails, so callers never need a guard.
 
 const DB_NAME = 'tools-offline'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const ENTRIES = 'swr'
 const META = 'meta'
 const OUTBOX = 'outbox'
 const FAILED = 'failed'
+const BOOKS = 'books'
 const OWNER_KEY = 'owner'
 
 export interface StoredEntry {
@@ -32,6 +33,19 @@ export interface FailedWrite {
   reason: string
 }
 
+/** A downloaded book file, keyed by book and format. */
+export interface StoredBookFile {
+  bookId: string
+  format: string
+  /** The server's file version (`UserBook.fileVersions`); '' when unknown. */
+  version: string
+  blob: Blob
+  size: number
+  savedAt: number
+}
+
+export type StoredBookInfo = Omit<StoredBookFile, 'blob'>
+
 let dbPromise: Promise<IDBDatabase> | null = null
 
 function openDb(): Promise<IDBDatabase> {
@@ -39,7 +53,7 @@ function openDb(): Promise<IDBDatabase> {
     const req = indexedDB.open(DB_NAME, DB_VERSION)
     req.onupgradeneeded = () => {
       const db = req.result
-      for (const name of [ENTRIES, META]) {
+      for (const name of [ENTRIES, META, BOOKS]) {
         if (!db.objectStoreNames.contains(name)) db.createObjectStore(name)
       }
       for (const name of [OUTBOX, FAILED]) {
@@ -99,9 +113,10 @@ export async function setOwner(userId: string): Promise<void> {
 }
 
 export async function clearStore(): Promise<void> {
-  for (const name of [ENTRIES, META, OUTBOX, FAILED]) {
+  for (const name of [ENTRIES, META, OUTBOX, FAILED, BOOKS]) {
     await withStore(name, 'readwrite', (s) => s.clear())
   }
+  bookFilesChanged()
 }
 
 /** Appends a write and resolves to its `seq`. */
@@ -145,4 +160,57 @@ export async function pruneEntries(cutoff: number): Promise<void> {
     }
     return cursorReq
   })
+}
+
+const bookKey = (bookId: string, format: string) => `${bookId}:${format}`
+
+const bookListeners = new Set<() => void>()
+const bookFilesChanged = () => bookListeners.forEach((l) => l())
+
+/** Runs `listener` whenever a book file is saved, deleted or wiped. */
+export function subscribeBookFiles(listener: () => void): () => void {
+  bookListeners.add(listener)
+  return () => bookListeners.delete(listener)
+}
+
+export async function saveBookFile(file: StoredBookFile): Promise<void> {
+  await withStore(BOOKS, 'readwrite', (s) => s.put(file, bookKey(file.bookId, file.format)))
+  bookFilesChanged()
+}
+
+export async function loadBookFile(
+  bookId: string,
+  format: string
+): Promise<StoredBookFile | undefined> {
+  const file = await withStore<unknown>(BOOKS, 'readonly', (s) => s.get(bookKey(bookId, format)))
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only saveBookFile writes this store
+  return file as StoredBookFile | undefined
+}
+
+export async function deleteBookFile(bookId: string, format: string): Promise<void> {
+  await withStore(BOOKS, 'readwrite', (s) => s.delete(bookKey(bookId, format)))
+  bookFilesChanged()
+}
+
+/** The stored books and formats, without reading any file. */
+export async function listBookFileKeys(): Promise<{ bookId: string; format: string }[]> {
+  const keys = (await withStore(BOOKS, 'readonly', (s) => s.getAllKeys())) ?? []
+  return keys.map((key) => {
+    const k = String(key)
+    const at = k.lastIndexOf(':')
+    return { bookId: k.slice(0, at), format: k.slice(at + 1) }
+  })
+}
+
+/** Every stored book file's details, without its bytes. */
+export async function listBookFiles(): Promise<StoredBookInfo[]> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only saveBookFile writes this store
+  const files = ((await withStore(BOOKS, 'readonly', (s) => s.getAll())) ?? []) as StoredBookFile[]
+  return files.map(({ bookId, format, version, size, savedAt }) => ({
+    bookId,
+    format,
+    version,
+    size,
+    savedAt
+  }))
 }

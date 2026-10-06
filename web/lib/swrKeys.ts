@@ -48,7 +48,6 @@ export const swrKeys = {
   bookBooksInExactSources: (sources: string[]) =>
     ['/books/exact-sources', [...sources].sort().join(',')] as const,
   kepubStatus: (bookId: string) => ['/books/kepub-status', bookId] as const,
-  bookFile: (bookId: string, format: string) => ['/books/file', bookId, format] as const,
   bookContent: (bookId: string) => ['/books/content', bookId] as const,
   readingState: (bookId: string) => ['/books/reading-state', bookId] as const,
   externalBook: (provider: string, providerId: string) =>

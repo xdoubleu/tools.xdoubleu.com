@@ -89,7 +89,6 @@ import {
   useEnableKoboSync,
   useRequestKEPUBConversion,
   useKEPUBStatus,
-  useGetBookFile,
   useGetBookContent,
   useRegisterKoboDevice,
   useListKoboDevices,
@@ -853,46 +852,6 @@ describe('useKEPUBStatus', () => {
     const fetcher = mockUseSWR.mock.calls[0]![1]!
     await fetcher()
     expect(mockGetStatus).toHaveBeenCalledWith({ bookId: 'book-abc' })
-  })
-})
-
-describe('useGetBookFile', () => {
-  it('uses null key when bookId is null', () => {
-    renderHook(() => useGetBookFile(null, 'pdf'))
-    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
-  })
-
-  it('uses null key when format is null', () => {
-    renderHook(() => useGetBookFile('book-abc', null))
-    expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
-  })
-
-  it('uses composite key when both bookId and format are provided', () => {
-    renderHook(() => useGetBookFile('book-abc', 'pdf'))
-    expect(mockUseSWR).toHaveBeenCalledWith(
-      ['/books/file', 'book-abc', 'pdf'],
-      expect.any(Function)
-    )
-  })
-
-  it('fetcher calls client.getBookFile with bookId and format', async () => {
-    const mockGetFile = jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.pdf' })
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ getBookFile: mockGetFile })
-    renderHook(() => useGetBookFile('book-abc', 'pdf'))
-    const fetcher = mockUseSWR.mock.calls[0]![1]!
-    await fetcher()
-    expect(mockGetFile).toHaveBeenCalledWith({ bookId: 'book-abc', format: 'pdf' })
-  })
-
-  it('fetcher calls client.getBookFile with epub format', async () => {
-    const mockGetFile = jest.fn().mockResolvedValue({ url: 'https://r2.example.com/file.epub' })
-    // @ts-expect-error -- mock client returns partial shape
-    mockCreateServiceClient.mockReturnValueOnce({ getBookFile: mockGetFile })
-    renderHook(() => useGetBookFile('book-xyz', 'epub'))
-    const fetcher = mockUseSWR.mock.calls[0]![1]!
-    await fetcher()
-    expect(mockGetFile).toHaveBeenCalledWith({ bookId: 'book-xyz', format: 'epub' })
   })
 })
 
