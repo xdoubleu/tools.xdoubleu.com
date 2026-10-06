@@ -23,10 +23,7 @@ func withPageAnchor(blk htmlBlock) string {
 	if blk.page <= 0 {
 		return blk.html
 	}
-	anchor := fmt.Sprintf(
-		`<span epub:type="pagebreak" id="%s%d" role="doc-pagebreak"></span>`,
-		pageAnchorPrefix, blk.page,
-	)
+	anchor := pageAnchorHTML(blk.page)
 	end := strings.IndexByte(blk.html, '>')
 	if blk.tag == imgTag || end <= 0 || blk.html[end-1] == '/' {
 		return anchor + blk.html
@@ -34,11 +31,20 @@ func withPageAnchor(blk htmlBlock) string {
 	return blk.html[:end+1] + anchor + blk.html[end+1:]
 }
 
+// pageAnchorHTML marks where PDF page starts.
+func pageAnchorHTML(page int) string {
+	return fmt.Sprintf(
+		`<span epub:type="pagebreak" id="%s%d" role="doc-pagebreak"></span>`,
+		pageAnchorPrefix, page,
+	)
+}
+
 // pageListEntries returns the page anchors in document order as page-list
 // entries labelled with their page number.
 func pageListEntries(root *xhtml.Node) []tocEntry {
 	anchors := headingsWhere(root, func(n *xhtml.Node) bool {
-		return n.Data == "span" && strings.HasPrefix(attrValue(n, "id"), pageAnchorPrefix)
+		return n.Data == "span" && attrValue(n, "epub:type") == "pagebreak" &&
+			strings.HasPrefix(attrValue(n, "id"), pageAnchorPrefix)
 	})
 	entries := make([]tocEntry, 0, len(anchors))
 	for _, n := range anchors {

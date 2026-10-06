@@ -159,6 +159,10 @@ func TestKoboSync_PDFSourcedRegeneration_ReDerivesStaleLocation(t *testing.T) {
 		"page 2's span in the new KEPUB, not the old kobo.3.1")
 	assert.Equal(t, pagedSpan(mocks.PagedDocOne, "kobo.4.1"),
 		bookmarkLocation(t, koboGetState(t, ts, rawToken, bookID)))
+	changed := changedReadingStates(koboSync(t, ts, rawToken))
+	require.Len(t, changed, 1, "the cleared bookmark goes out again")
+	assert.Equal(t, pagedSpan(mocks.PagedDocOne, "kobo.4.1"),
+		bookmarkLocation(t, changed[0]))
 
 	state, err := testApp.Services.Books.GetReadingState(
 		context.Background(), owner, bookID,
@@ -182,6 +186,27 @@ func TestKoboSync_PDFSourcedRegeneration_NoPositionIsPercentOnly(t *testing.T) {
 	rs := changedEntitlementState(t, koboSync(t, ts, rawToken))
 	assert.Nil(t, bookmarkLocation(t, rs), "never a span from the old KEPUB")
 	assert.Nil(t, bookmarkLocation(t, koboGetState(t, ts, rawToken, bookID)))
+}
+
+func TestKoboPutState_PDFSourcedOutdatedDevice_NoPosition(t *testing.T) {
+	ts := httptest.NewServer(getRoutes())
+	t.Cleanup(ts.Close)
+	owner := "kobo-pdf-outdated-put-" + uuid.NewString()
+	bookID := setupPagedBook(t, owner)
+	rawToken := registerTestDevice(t, owner)
+	koboSync(t, ts, rawToken)
+	regeneratePaged(t, owner, bookID)
+
+	koboPutState(t, ts, rawToken, bookID, pagedPut("kobo.3.1"))
+	state, err := testApp.Services.Books.GetReadingState(
+		context.Background(), owner, bookID,
+	)
+	require.NoError(t, err)
+	assert.Nil(t, state.Position,
+		"a span of the old KEPUB isn't looked up in the new one")
+
+	rs := changedEntitlementState(t, koboSync(t, ts, rawToken))
+	assert.Nil(t, bookmarkLocation(t, rs))
 }
 
 func TestKoboSync_PDFSourcedCurrentLocationIsKept(t *testing.T) {

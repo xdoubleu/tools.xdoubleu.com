@@ -78,17 +78,26 @@ func newPositionService(
 
 // KoboPosition is the neutral position of a KoboSpan bookmark, nil when it
 // can't be translated within the budget; pending is true while its span map
-// is still building.
+// is still building. A device that hasn't been sent the current KEPUB
+// (outdated) reads an older one, whose spans a PDF-sourced KEPUB's
+// regeneration can renumber, so its bookmark isn't translated then.
 func (s *PositionService) KoboPosition(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	loc models.KoboLocation,
+	outdated bool,
 ) (*models.ReadingPosition, bool) {
 	if loc.Type != koboSpanType {
 		return nil, false
 	}
-	maps, pending := s.spanMaps(ctx, userID, []uuid.UUID{bookID}, s.budget)
+	timer := time.NewTimer(s.budget)
+	defer timer.Stop()
+	refs := s.resolveAll(ctx, userID, []uuid.UUID{bookID})
+	if outdated && refs[bookID].pdf {
+		return nil, false
+	}
+	maps, pending := s.mapsOf(ctx, timer, refs)
 	if m := maps[bookID]; m != nil {
 		return m.position(loc), false
 	}

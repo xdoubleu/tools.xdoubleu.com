@@ -149,20 +149,14 @@ func originalStarts(
 const maxContentDocBytes = 16 << 20
 
 func zipDocText(zr *zip.Reader, name string) (docText, error) {
+	var none docText
 	f, err := zr.Open(name)
 	if err != nil {
-		return docText{units: nil, spans: nil, anchors: nil}, err
+		return none, err
 	}
 	defer func() { _ = f.Close() }()
 	if info, statErr := f.Stat(); statErr == nil && info.Size() > maxContentDocBytes {
-		return docText{
-				units:   nil,
-				spans:   nil,
-				anchors: nil,
-			}, fmt.Errorf(
-				"%s is too large",
-				name,
-			)
+		return none, fmt.Errorf("%s is too large", name)
 	}
 	return parseBodyText(f)
 }

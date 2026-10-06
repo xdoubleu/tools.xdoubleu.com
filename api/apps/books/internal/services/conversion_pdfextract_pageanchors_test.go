@@ -18,8 +18,8 @@ const (
 	pagedHeading   = "Opening Chapter"
 	pagedParaOne   = "First page paragraph opens the book here."
 	pagedParaTwo   = "Second page paragraph carries on with the story."
-	pagedParaTwoB  = "Another paragraph sits lower on page two."
-	pagedParaThree = "Third page paragraph closes the tale."
+	pagedParaTwoB  = "Another paragraph sits lower on page two and"
+	pagedParaThree = "continues onto page three, closing the tale."
 )
 
 // pagedTexts is each anchored page's first text.
@@ -27,7 +27,8 @@ const (
 //nolint:gochecknoglobals // read-only fixture table
 var pagedTexts = map[int]string{1: pagedHeading, 2: pagedParaTwo, 3: pagedParaThree}
 
-// makePagedPDF has text on pages 1–3 and a blank page 4.
+// makePagedPDF has text on pages 1–3, page 2's last paragraph continuing on
+// page 3, and a blank page 4.
 func makePagedPDF(t *testing.T) string {
 	t.Helper()
 	pdf := newFixturePDF()
@@ -87,6 +88,40 @@ func TestCaptionFigures_KeepsPage(t *testing.T) {
 	captionFigures(blocks)
 	assert.Contains(t, blocks[0].html, `alt="Figure 1 A caption"`)
 	assert.Equal(t, 7, blocks[0].page)
+}
+
+func TestJoinPageContinuations_AnchorsThePageAtTheJoin(t *testing.T) {
+	half := func(text string) htmlBlock {
+		b := flowBlock(text)
+		b.inline = text
+		return b
+	}
+	figure := imageBlock("f.png", "Figure")
+	pages := [][]htmlBlock{
+		{half("The earth")},
+		{half("is a system. So is the sun")},
+		{figure, half("and the moon.")},
+	}
+	joined, inline := joinPageContinuations(pages, 10)
+
+	assert.Equal(t, map[int]bool{1: true}, inline,
+		"a page opening with a figure keeps its anchor on the figure")
+	assert.Equal(
+		t,
+		"The earth "+pageAnchorHTML(2)+"is a system. So is the sun and the moon.",
+		joined[0][0].inline,
+	)
+}
+
+func TestPageListEntries_OnlyPageBreaks(t *testing.T) {
+	inPath := writeArticleFixture(t, "<html><body>"+
+		`<p><span id="pdfpage-4">Not a page break.</span></p>`+
+		"</body></html>", nil)
+	zr := convertToEPUBZip(
+		t, inPath,
+		ArticleMeta{Title: "Book", Authors: nil, Identifier: "", CoverImage: ""},
+	)
+	assert.NotContains(t, zipEntryContent(t, zr, "OEBPS/nav.xhtml"), "page-list")
 }
 
 func TestGoHTMLConverter_PageListNav(t *testing.T) {

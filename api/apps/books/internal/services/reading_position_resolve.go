@@ -17,27 +17,27 @@ type kepubRef struct {
 	kepubKey, sourceKey string
 	// pdf: converted from a PDF, so the map needs only the KEPUB.
 	pdf bool
-	// readyAt is when this KEPUB was (re)generated.
-	readyAt time.Time
 }
 
 // KoboLocations returns, for the states whose Kobo location changes, the one
 // to send (nil: none). A state without a bookmark gets its neutral position
-// translated. A PDF-sourced KEPUB's bookmark recorded before the KEPUB was
-// regenerated points into the old span set, so it is re-derived from the
-// position, or dropped. pending holds the books whose span map was still
-// building at the budget.
+// translated. A replaced book's device still holds the old KEPUB, and a
+// PDF-sourced KEPUB's regeneration can renumber its spans, so its bookmark is
+// re-derived from the position, or dropped. pending holds the books whose
+// span map was still building at the budget.
 func (s *PositionService) KoboLocations(
 	ctx context.Context,
 	userID string,
 	states map[uuid.UUID]*models.BookReadingState,
+	replaced map[uuid.UUID]bool,
 ) (map[uuid.UUID]*models.KoboLocation, map[uuid.UUID]bool) {
 	timer := time.NewTimer(s.budget)
 	defer timer.Stop()
 
 	ids := make([]uuid.UUID, 0, len(states))
 	for id, st := range states {
-		if st != nil && (st.KoboLocation != nil || st.Position != nil) {
+		if st != nil && (st.KoboLocation == nil && st.Position != nil ||
+			st.KoboLocation != nil && replaced[id]) {
 			ids = append(ids, id)
 		}
 	}
@@ -46,7 +46,7 @@ func (s *PositionService) KoboLocations(
 	for id, ref := range s.resolveAll(ctx, userID, ids) {
 		st := states[id]
 		if st.KoboLocation != nil {
-			if !ref.pdf || !st.UpdatedAt.Before(ref.readyAt) {
+			if !ref.pdf {
 				continue
 			}
 			locs[id] = nil
@@ -128,7 +128,6 @@ func (s *PositionService) resolve(
 				kepubKey:  kepub.StorageKey,
 				sourceKey: source.StorageKey,
 				pdf:       source.Format == models.FileFormatPDF,
-				readyAt:   kepub.UpdatedAt,
 			}, true
 		}
 	}

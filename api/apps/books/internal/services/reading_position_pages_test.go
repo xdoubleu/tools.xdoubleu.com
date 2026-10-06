@@ -13,25 +13,26 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 )
 
-// kepubReadyAt is when the fixtures' KEPUB was (re)generated.
-//
-//nolint:gochecknoglobals // fixed fixture time
-var kepubReadyAt = time.Date(2026, 10, 1, 12, 0, 0, 0, time.UTC)
-
 func pagedFixture(t *testing.T, budget time.Duration) *translatorFixture {
 	t.Helper()
-	f := newTranslatorFixture(t, pagedKEPUBBytes(t), models.FileFormatPDF, budget)
-	f.files.byFormat[models.FileFormatKEPUB].UpdatedAt = kepubReadyAt
-	return f
+	return newTranslatorFixture(t, pagedKEPUBBytes(t), models.FileFormatPDF, budget)
 }
 
-// koboState is a reading state recorded at updatedAt.
 func koboState(
-	loc *models.KoboLocation, pos *models.ReadingPosition, updatedAt time.Time,
+	loc *models.KoboLocation, pos *models.ReadingPosition,
 ) *models.BookReadingState {
 	return &models.BookReadingState{ //nolint:exhaustruct //optional fields
-		Percent: 30, KoboLocation: loc, Position: pos, UpdatedAt: updatedAt,
+		Percent: 30, KoboLocation: loc, Position: pos,
 	}
+}
+
+// replacedLocations is KoboLocations for one book, replaced or not.
+func replacedLocations(
+	f *translatorFixture, st *models.BookReadingState, replaced bool,
+) (map[uuid.UUID]*models.KoboLocation, map[uuid.UUID]bool) {
+	return f.svc.KoboLocations(context.Background(), "u",
+		map[uuid.UUID]*models.BookReadingState{f.bookID: st},
+		map[uuid.UUID]bool{f.bookID: replaced})
 }
 
 func TestPositionService_PDFSourcedTranslatesPages(t *testing.T) {
@@ -43,10 +44,7 @@ func TestPositionService_PDFSourcedTranslatesPages(t *testing.T) {
 		"a PDF-sourced span is stored as its page")
 
 	page := pagePos(5)
-	locs, pending := f.svc.KoboLocations(ctx, "u",
-		map[uuid.UUID]*models.BookReadingState{
-			f.bookID: koboState(nil, &page, kepubReadyAt.Add(time.Hour)),
-		})
+	locs, pending := replacedLocations(f, koboState(nil, &page), false)
 	assert.Empty(t, pending)
 	assert.Equal(t, map[uuid.UUID]*models.KoboLocation{
 		f.bookID: spanLoc(pagedDoc1, "kobo.2.1"),
@@ -58,6 +56,21 @@ func TestPositionService_PDFSourcedTranslatesPages(t *testing.T) {
 
 	assert.Equal(t, int32(1), f.store.gets.Load(),
 		"only the KEPUB is downloaded, once")
+}
+
+func TestPositionService_OutdatedDeviceSpanIsNotTranslated(t *testing.T) {
+	ctx := context.Background()
+	f := pagedFixture(t, time.Minute)
+	pos, pending := f.svc.KoboPosition(ctx, "u", f.bookID,
+		*spanLoc(pagedDoc1, "kobo.1.2"), true)
+	assert.Nil(t, pos, "the device reads an older KEPUB")
+	assert.False(t, pending)
+	assert.Zero(t, f.store.gets.Load())
+
+	epub := newTranslatorFixture(t, nil, models.FileFormatEPUB, time.Minute)
+	pos, _ = epub.svc.KoboPosition(ctx, "u", epub.bookID,
+		chapterTwoSpan("kobo.1.2"), true)
+	assert.NotNil(t, pos, "an EPUB source's spans don't move")
 }
 
 func TestPositionService_ReaderPositionLeavesOthersAlone(t *testing.T) {
@@ -84,53 +97,42 @@ func TestPositionService_ReaderPositionPendingKeepsStored(t *testing.T) {
 	close(f.store.gate)
 }
 
-func TestPositionService_StaleKoboLocationOfPDFSourcedKEPUB(t *testing.T) {
-	ctx := context.Background()
+func TestPositionService_ReplacedPDFSourcedBookmark(t *testing.T) {
 	old := spanLoc(pagedDoc0, "kobo.2.1")
-	before, after := kepubReadyAt.Add(-time.Hour), kepubReadyAt.Add(time.Hour)
 	page := pagePos(5)
 
 	f := pagedFixture(t, time.Minute)
-	locs, pending := f.svc.KoboLocations(ctx, "u",
-		map[uuid.UUID]*models.BookReadingState{
-			f.bookID: koboState(old, &page, before),
-		})
+	locs, pending := replacedLocations(f, koboState(old, &page), true)
 	assert.Empty(t, pending)
 	assert.Equal(t, map[uuid.UUID]*models.KoboLocation{
 		f.bookID: spanLoc(pagedDoc1, "kobo.2.1"),
 	}, locs, "re-derived from the stored page against the new KEPUB")
 
 	noPos := pagedFixture(t, time.Minute)
-	locs, _ = noPos.svc.KoboLocations(ctx, "u", map[uuid.UUID]*models.BookReadingState{
-		noPos.bookID: koboState(old, nil, before),
-	})
+	locs, _ = replacedLocations(noPos, koboState(old, nil), true)
 	require.Contains(t, locs, noPos.bookID)
 	assert.Nil(t, locs[noPos.bookID], "no position: percent only")
 	assert.Zero(t, noPos.store.gets.Load())
 
-	fresh := pagedFixture(t, time.Minute)
-	locs, _ = fresh.svc.KoboLocations(ctx, "u", map[uuid.UUID]*models.BookReadingState{
-		fresh.bookID: koboState(old, &page, after),
-	})
-	assert.Empty(t, locs, "a bookmark from the current KEPUB is kept")
+	kept := pagedFixture(t, time.Minute)
+	locs, _ = replacedLocations(kept, koboState(old, &page), false)
+	assert.Empty(t, locs, "a bookmark from the KEPUB the device has is kept")
+	assert.Zero(t, kept.store.gets.Load())
 
 	epub := newTranslatorFixture(t, nil, models.FileFormatEPUB, time.Minute)
-	epub.files.byFormat[models.FileFormatKEPUB].UpdatedAt = kepubReadyAt
-	locs, _ = epub.svc.KoboLocations(ctx, "u", map[uuid.UUID]*models.BookReadingState{
-		epub.bookID: koboState(chapterTwoSpanPtr("kobo.1.2"), nil, before),
-	})
+	locs, _ = replacedLocations(epub, koboState(chapterTwoSpanPtr("kobo.1.2"), nil), true)
 	assert.Empty(t, locs, "kepubify output is stable for an EPUB source")
 }
 
-func TestPositionService_StaleKoboLocationPendingDegradesToPercent(t *testing.T) {
+func TestPositionService_ReplacedBookmarkPendingDegradesToPercent(t *testing.T) {
 	f := pagedFixture(t, 10*time.Millisecond)
 	f.store.gate = make(chan struct{})
 	page := pagePos(5)
-	locs, pending := f.svc.KoboLocations(context.Background(), "u",
-		map[uuid.UUID]*models.BookReadingState{
-			f.bookID: koboState(spanLoc(pagedDoc0, "kobo.2.1"), &page,
-				kepubReadyAt.Add(-time.Hour)),
-		})
+	locs, pending := replacedLocations(
+		f,
+		koboState(spanLoc(pagedDoc0, "kobo.2.1"), &page),
+		true,
+	)
 	close(f.store.gate)
 	require.Contains(t, locs, f.bookID)
 	assert.Nil(t, locs[f.bookID], "never the old span while the map builds")

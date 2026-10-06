@@ -29,9 +29,11 @@ func (app *Books) koboPutLocation(
 		return false
 	}
 	state.KoboLocation = loc
+	book, err := app.Services.Books.GetKoboSyncBook(ctx, state.UserID, state.BookID)
+	outdated := err == nil && koboIsReplace(book)
 	var backfill bool
 	state.Position, backfill = app.Services.Positions.KoboPosition(
-		ctx, state.UserID, state.BookID, *loc,
+		ctx, state.UserID, state.BookID, *loc, outdated,
 	)
 	return backfill
 }
@@ -50,13 +52,17 @@ func (app *Books) koboSyncSpans(
 		return nil, nil, err
 	}
 	var lacking []uuid.UUID
+	replaced := make(map[uuid.UUID]bool)
 	for _, b := range books {
-		if b.Format == models.FileFormatKEPUB && (koboIsReplace(b) ||
-			services.KoboDeviceLacks(held, b.BookID, states[b.BookID])) {
+		if b.Format != models.FileFormatKEPUB {
+			continue
+		}
+		replaced[b.BookID] = koboIsReplace(b)
+		if replaced[b.BookID] || services.KoboDeviceLacks(held, b.BookID, states[b.BookID]) {
 			lacking = append(lacking, b.BookID)
 		}
 	}
-	return held, app.koboWithSpans(ctx, userID, lacking, states), nil
+	return held, app.koboWithSpans(ctx, userID, lacking, states, replaced), nil
 }
 
 // koboIsReplace reports whether b's file was regenerated since it was last
@@ -67,13 +73,17 @@ func koboIsReplace(b models.KoboSyncBook) bool {
 }
 
 // koboWithSpans replaces each KEPUB book's state in states with one carrying
-// the KoboSpan location to send (PositionService.KoboLocations). pending
-// holds books whose span map is still building.
+// the KoboSpan location to send (PositionService.KoboLocations). A replaced
+// book's stale bookmark is also cleared from the row, so later reads translate
+// the position, and the bumped state reaches the device again on a later sync
+// even if this one went out without a location. pending holds books whose
+// span map is still building.
 func (app *Books) koboWithSpans(
 	ctx context.Context,
 	userID string,
 	kepubBooks []uuid.UUID,
 	states map[uuid.UUID]*models.BookReadingState,
+	replaced map[uuid.UUID]bool,
 ) map[uuid.UUID]bool {
 	sub := make(map[uuid.UUID]*models.BookReadingState, len(kepubBooks))
 	for _, id := range kepubBooks {
@@ -85,9 +95,17 @@ func (app *Books) koboWithSpans(
 		return nil
 	}
 
-	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, sub)
+	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, sub, replaced)
 	for id, loc := range locs {
 		withLoc := *states[id]
+		if stale := withLoc.KoboLocation; stale != nil {
+			if err := app.Services.Books.ClearKoboLocation(
+				ctx, userID, id, *stale,
+			); err != nil {
+				app.Logger.WarnContext(ctx, "clearing a stale kobo location failed",
+					"book_id", id, "err", err)
+			}
+		}
 		withLoc.KoboLocation = loc
 		states[id] = &withLoc
 	}

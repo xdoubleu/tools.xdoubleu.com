@@ -93,6 +93,22 @@ func (r *BookReadingStateRepository) SetPositionForKoboLocation(
 	return postgres.PgxErrorToHTTPError(err)
 }
 
+// ClearKoboLocation drops the Kobo bookmark of the row still holding loc,
+// keeping its position.
+func (r *BookReadingStateRepository) ClearKoboLocation(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	loc models.KoboLocation,
+) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE books.book_reading_state
+		SET kobo_location = NULL, location = NULL
+		WHERE user_id = $1 AND book_id = $2 AND kobo_location = $3
+	`, userID, bookID, loc)
+	return postgres.PgxErrorToHTTPError(err)
+}
+
 func (r *BookReadingStateRepository) Get(
 	ctx context.Context,
 	userID string,
