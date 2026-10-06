@@ -25,6 +25,45 @@ func (r *BookFilesRepository) Insert(
 	ctx context.Context,
 	f models.BookFile,
 ) (*models.BookFile, error) {
+	return insertBookFile(ctx, r.db, f)
+}
+
+// ErrBookFileReplaced means Replace found the row to replace already gone.
+var ErrBookFileReplaced = errors.New("book file already replaced")
+
+// Replace deletes staleID and inserts f in one transaction, so readers see
+// one row or the other, never neither. ErrBookFileReplaced when staleID no
+// longer exists (a concurrent Replace won).
+func (r *BookFilesRepository) Replace(
+	ctx context.Context,
+	staleID uuid.UUID,
+	f models.BookFile,
+) (*models.BookFile, error) {
+	var row *models.BookFile
+	err := pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `DELETE FROM books.book_files WHERE id = $1`, staleID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrBookFileReplaced
+		}
+		row, err = insertBookFile(ctx, tx, f)
+		return err
+	})
+	if err != nil {
+		return nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return row, nil
+}
+
+func insertBookFile(
+	ctx context.Context,
+	q interface {
+		QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	},
+	f models.BookFile,
+) (*models.BookFile, error) {
 	query := `
 		INSERT INTO books.book_files
 		    (book_id, user_id, format, storage_key, size_bytes,
@@ -32,7 +71,7 @@ func (r *BookFilesRepository) Insert(
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING ` + bookFileColumns
 
-	row := r.db.QueryRow(ctx, query,
+	row := q.QueryRow(ctx, query,
 		f.BookID,
 		f.UserID,
 		f.Format,
