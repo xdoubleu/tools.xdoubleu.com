@@ -140,6 +140,20 @@ describe('resumeTarget', () => {
     })
   })
 
+  it('uses whichever form of a PDF-sourced position fits the open file', () => {
+    const resume = {
+      position: { page: 2 },
+      alsoAt: { href: 'OEBPS/ch1.xhtml', offset: 4 },
+      percent: 30
+    }
+    expect(resumeTarget(PDF_SECTIONS, resume)).toEqual({ index: 1 })
+    const target = resumeTarget(EPUB_SECTIONS, resume)
+    expect(target).toEqual({ index: 1, anchor: expect.any(Function) })
+    expect(resumeTarget(EPUB_SECTIONS, { ...resume, alsoAt: { page: 9 } })).toEqual({
+      fraction: 0.3
+    })
+  })
+
   it('seeks to the percent when only a percent is stored', () => {
     expect(resumeTarget(EPUB_SECTIONS, { percent: 55 })).toEqual({ fraction: 0.55 })
   })
@@ -163,6 +177,12 @@ describe('resumeFromState', () => {
       position: { page: 4 },
       percent: 12
     })
+  })
+
+  it('reads both forms of a PDF-sourced position', () => {
+    expect(
+      resumeFromState({ percent: 12, position: { href: 'a.xhtml', offset: 3, page: 4 } })
+    ).toEqual({ position: { page: 4 }, alsoAt: { href: 'a.xhtml', offset: 3 }, percent: 12 })
   })
 
   it('reads a percent-only or missing state', () => {

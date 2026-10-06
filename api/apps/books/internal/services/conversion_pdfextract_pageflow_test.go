@@ -11,7 +11,7 @@ import (
 func flowBlock(text string) htmlBlock {
 	return htmlBlock{
 		html: "", tag: "p", text: text, medHeight: 10, isText: true, listItem: false,
-		src: "", inline: "", tocLevel: 0,
+		src: "", inline: "", tocLevel: 0, page: 0,
 	}
 }
 
@@ -62,7 +62,7 @@ func TestJoinPageContinuations(t *testing.T) {
 
 	aside := htmlBlock{
 		html: "<blockquote/>", tag: asideTag, text: "note", medHeight: 0,
-		isText: false, listItem: false, src: "", inline: "", tocLevel: 0,
+		isText: false, listItem: false, src: "", inline: "", tocLevel: 0, page: 0,
 	}
 	heading := flowBlock("Runaway Loops")
 	heading.medHeight = 16

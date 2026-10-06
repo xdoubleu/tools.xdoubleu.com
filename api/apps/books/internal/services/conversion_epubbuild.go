@@ -59,7 +59,7 @@ func goHTMLConverter(
 	}
 
 	imgDir := filepath.Dir(inPath)
-	docs, images, toc, err := buildArticleXHTML(htmlBytes, imgDir)
+	article, err := buildArticleXHTML(htmlBytes, imgDir)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func goHTMLConverter(
 	}
 	defer func() { _ = out.Close() }()
 
-	if err = writeEPUBZip(out, meta, images, toc, docs, imgDir); err != nil {
+	if err = writeEPUBZip(out, meta, article, imgDir); err != nil {
 		return fmt.Errorf("write epub zip: %w", err)
 	}
 	return nil
@@ -82,9 +82,7 @@ func goHTMLConverter(
 func writeEPUBZip(
 	w io.Writer,
 	meta ArticleMeta,
-	images []epubImage,
-	toc []tocEntry,
-	docs []contentDoc,
+	article articleXHTML,
 	imgDir string,
 ) error {
 	zw := zip.NewWriter(w)
@@ -92,14 +90,18 @@ func writeEPUBZip(
 	if err := writeStoredEntry(zw, "mimetype", "application/epub+zip"); err != nil {
 		return err
 	}
+	images := article.images
 	cover, hasCover := coverImage(meta)
 	entries := []contentDoc{
 		{Name: "META-INF/container.xml", XHTML: buildContainerXML()},
 		{
 			Name:  "OEBPS/content.opf",
-			XHTML: buildContentOPF(meta, images, docs, cover, hasCover),
+			XHTML: buildContentOPF(meta, images, article.docs, cover, hasCover),
 		},
-		{Name: "OEBPS/nav.xhtml", XHTML: buildNavXHTML(meta.Title, toc)},
+		{
+			Name:  "OEBPS/nav.xhtml",
+			XHTML: buildNavXHTML(meta.Title, article.toc, article.pages),
+		},
 	}
 	if hasCover {
 		entries = append(entries, contentDoc{
@@ -107,7 +109,7 @@ func writeEPUBZip(
 		})
 		images = append([]epubImage{cover}, images...)
 	}
-	for _, doc := range docs {
+	for _, doc := range article.docs {
 		entries = append(entries, contentDoc{Name: "OEBPS/" + doc.Name, XHTML: doc.XHTML})
 	}
 	for _, e := range entries {

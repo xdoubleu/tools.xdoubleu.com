@@ -147,8 +147,8 @@ func buildContentOPF(
 // buildNavXHTML renders the EPUB nav document's TOC as a nested list of
 // links to the toc entries (assignHeadingIDs), falling back to a single
 // link to the whole book when the article has no TOC headings at all (a
-// short feed article).
-func buildNavXHTML(title string, toc []tocEntry) string {
+// short feed article), then a converted PDF's page-list.
+func buildNavXHTML(title string, toc, pages []tocEntry) string {
 	escaped := escapeXMLText(title)
 
 	var b strings.Builder
@@ -171,6 +171,7 @@ func buildNavXHTML(title string, toc []tocEntry) string {
 		writeNavList(&b, toc)
 	}
 	b.WriteString("  </nav>\n")
+	writePageList(&b, pages)
 	b.WriteString("</body>\n")
 	b.WriteString("</html>\n")
 	return b.String()

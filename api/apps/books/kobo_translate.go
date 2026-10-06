@@ -37,7 +37,8 @@ func (app *Books) koboPutLocation(
 }
 
 // koboSyncSpans translates the states deviceID lacks (it ignores the state in
-// a repeated NewEntitlement), returning what it holds and the pending books.
+// a repeated NewEntitlement) and those of regenerated KEPUBs, returning what
+// it holds and the pending books.
 func (app *Books) koboSyncSpans(
 	ctx context.Context,
 	userID, deviceID string,
@@ -50,36 +51,41 @@ func (app *Books) koboSyncSpans(
 	}
 	var lacking []uuid.UUID
 	for _, b := range books {
-		if b.Format == models.FileFormatKEPUB &&
-			services.KoboDeviceLacks(held, b.BookID, states[b.BookID]) {
+		if b.Format == models.FileFormatKEPUB && (koboIsReplace(b) ||
+			services.KoboDeviceLacks(held, b.BookID, states[b.BookID])) {
 			lacking = append(lacking, b.BookID)
 		}
 	}
 	return held, app.koboWithSpans(ctx, userID, lacking, states), nil
 }
 
-// koboWithSpans gives each KEPUB book's state that has a neutral EPUB position
-// but no Kobo bookmark the KoboSpan location it translates to, replacing the
-// entry in states. pending holds books whose span map is still building.
+// koboIsReplace reports whether b's file was regenerated since it was last
+// sent, so it goes out as a ChangedEntitlement.
+func koboIsReplace(b models.KoboSyncBook) bool {
+	return b.LastSyncedConverterVersion != nil &&
+		*b.LastSyncedConverterVersion != b.ConverterVersion
+}
+
+// koboWithSpans replaces each KEPUB book's state in states with one carrying
+// the KoboSpan location to send (PositionService.KoboLocations). pending
+// holds books whose span map is still building.
 func (app *Books) koboWithSpans(
 	ctx context.Context,
 	userID string,
 	kepubBooks []uuid.UUID,
 	states map[uuid.UUID]*models.BookReadingState,
 ) map[uuid.UUID]bool {
-	positions := make(map[uuid.UUID]models.ReadingPosition)
+	sub := make(map[uuid.UUID]*models.BookReadingState, len(kepubBooks))
 	for _, id := range kepubBooks {
-		st := states[id]
-		if st != nil && st.KoboLocation == nil && st.Position != nil &&
-			st.Position.Href != "" {
-			positions[id] = *st.Position
+		if st := states[id]; st != nil {
+			sub[id] = st
 		}
 	}
-	if len(positions) == 0 {
+	if len(sub) == 0 {
 		return nil
 	}
 
-	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, positions)
+	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, sub)
 	for id, loc := range locs {
 		withLoc := *states[id]
 		withLoc.KoboLocation = loc

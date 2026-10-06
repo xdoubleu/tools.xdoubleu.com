@@ -91,7 +91,7 @@ func TestBuildSpanMap_EverySpanStartsAtItsTextInOriginal(t *testing.T) {
 	} {
 		ou := docTextOf(t, orig, href).units
 		kt := docTextOf(t, kepub, href)
-		d := m.doc(href)
+		d := docOf(m, href)
 		require.NotNil(t, d, href)
 		require.Len(t, d.spans, len(kt.spans), href)
 
@@ -199,7 +199,7 @@ func TestSpanMap_DocMatchesSourceVariants(t *testing.T) {
 		{href: "OEBPS/Text/ch1.xhtml", spans: nil},
 		{href: "OEBPS/a/same.xhtml", spans: nil},
 		{href: "OEBPS/b/same.xhtml", spans: nil},
-	}}
+	}, pages: nil, pdf: false}
 	for source, want := range map[string]string{
 		"OEBPS/Text/ch1.xhtml":                   "OEBPS/Text/ch1.xhtml",
 		"oebps/text/CH1.xhtml":                   "OEBPS/Text/ch1.xhtml",
@@ -213,7 +213,7 @@ func TestSpanMap_DocMatchesSourceVariants(t *testing.T) {
 		"OEBPS/Text/ch2.xhtml":                   "",
 		"file:///mnt/onboard/OEBPS/Text/ch1.xhtml": "OEBPS/Text/ch1.xhtml",
 	} {
-		d := m.doc(source)
+		d := docOf(m, source)
 		if want == "" {
 			assert.Nil(t, d, source)
 			continue
@@ -279,8 +279,8 @@ func TestBuildSpanMap_BadArchives(t *testing.T) {
 	noCh3 := stripEntry(t, orig, mocks.ChapterThreeHref)
 	m, err := buildSpanMap(context.Background(), kepub, noCh3)
 	require.NoError(t, err)
-	assert.Nil(t, m.doc(mocks.ChapterThreeHref))
-	assert.NotNil(t, m.doc(mocks.ChapterTwoHref))
+	assert.Nil(t, docOf(m, mocks.ChapterThreeHref))
+	assert.NotNil(t, docOf(m, mocks.ChapterTwoHref))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -300,4 +300,12 @@ func stripEntry(t *testing.T, zr *zip.Reader, name string) *zip.Reader {
 	}
 	require.NoError(t, zw.Close())
 	return openZip(t, buf.Bytes())
+}
+
+// docOf is the content document name resolves to, nil for none.
+func docOf(m *spanMap, name string) *docSpans {
+	if i := m.docIndex(name); i >= 0 {
+		return &m.docs[i]
+	}
+	return nil
 }

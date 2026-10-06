@@ -17,11 +17,8 @@ var errSpanMapRetry = errors.New("span map build can be retried")
 // an empty map so it isn't downloaded again on every sync; a retryable
 // failure, including no free build slot within the timeout, returns nil and
 // caches nothing.
-func (s *PositionService) build(
-	ctx context.Context,
-	key spanMapKey,
-	kepubKey, sourceKey string,
-) *spanMap {
+func (s *PositionService) build(ctx context.Context, ref kepubRef) *spanMap {
+	key := ref.key
 	waitCtx, cancelWait := context.WithTimeout(ctx, s.buildTimeout)
 	defer cancelWait()
 	select {
@@ -33,7 +30,7 @@ func (s *PositionService) build(
 	ctx, cancel := context.WithTimeout(ctx, s.buildTimeout)
 	defer cancel()
 
-	m := &spanMap{docs: nil}
+	m := &spanMap{docs: nil, pages: nil, pdf: false}
 	func() {
 		defer func() {
 			if r := recover(); r != nil {
@@ -41,7 +38,7 @@ func (s *PositionService) build(
 					"kepub_file_id", key.kepubID, "panic", r)
 			}
 		}()
-		built, err := s.buildFromStore(ctx, kepubKey, sourceKey)
+		built, err := s.buildFromStore(ctx, ref)
 		if err != nil {
 			s.logger.WarnContext(ctx, "kepub span map build failed",
 				"kepub_file_id", key.kepubID, "err", err)
@@ -60,14 +57,17 @@ func (s *PositionService) build(
 
 func (s *PositionService) buildFromStore(
 	ctx context.Context,
-	kepubKey, sourceKey string,
+	ref kepubRef,
 ) (*spanMap, error) {
-	kepub, err := s.openZip(ctx, kepubKey)
+	kepub, err := s.openZip(ctx, ref.kepubKey)
 	if err != nil {
 		return nil, err
 	}
 	defer kepub.close()
-	source, err := s.openZip(ctx, sourceKey)
+	if ref.pdf {
+		return buildSpanMap(ctx, &kepub.zr.Reader, nil)
+	}
+	source, err := s.openZip(ctx, ref.sourceKey)
 	if err != nil {
 		return nil, err
 	}

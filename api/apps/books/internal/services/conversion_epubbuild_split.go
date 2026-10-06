@@ -29,8 +29,9 @@ func contentDocName(i int) string {
 // shallower, with anything before the first in a document of its own.
 // Kobo lays out and paginates a whole content document at once, so one
 // document per chapter keeps a long book responsive and gives its chapter
-// progress real boundaries. toc entries get the document they land in.
-func splitContentDocs(root *xhtml.Node, toc []tocEntry) ([]contentDoc, error) {
+// progress real boundaries. toc and pages entries get the document they land
+// in.
+func splitContentDocs(root *xhtml.Node, toc, pages []tocEntry) ([]contentDoc, error) {
 	body := findElement(findHTMLElement(root), "body")
 	if body == nil {
 		doc, err := renderXHTMLDocument(root)
@@ -59,8 +60,10 @@ func splitContentDocs(root *xhtml.Node, toc []tocEntry) ([]contentDoc, error) {
 			body.RemoveChild(n)
 		}
 	}
-	for i := range toc {
-		toc[i].File = fileOf[toc[i].ID]
+	for _, entries := range [][]tocEntry{toc, pages} {
+		for i := range entries {
+			entries[i].File = fileOf[entries[i].ID]
+		}
 	}
 	return docs, nil
 }

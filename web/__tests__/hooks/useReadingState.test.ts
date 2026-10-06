@@ -3,9 +3,11 @@ import { act, renderHook } from '@testing-library/react'
 jest.mock('swr', () => ({ __esModule: true, default: jest.fn() }))
 const mockGetReadingState = jest.fn()
 const mockKeepaliveSave = jest.fn()
+const mockTranslate = jest.fn()
 jest.mock('@/lib/client', () => ({
   createServiceClient: () => ({
-    getReadingState: mockGetReadingState
+    getReadingState: mockGetReadingState,
+    translateReadingPosition: mockTranslate
   }),
   createKeepaliveClient: () => ({ updateReadingProgress: mockKeepaliveSave })
 }))
@@ -19,6 +21,7 @@ jest.mock('@/lib/books/offlineWrites', () => ({ updateReadingProgressWrite: { id
 import useSWR from 'swr'
 import {
   READING_SAVE_DELAY_MS,
+  translateReadingPosition,
   useReadingProgressSaver,
   useReadingState
 } from '@/hooks/useReadingState'
@@ -48,6 +51,15 @@ describe('useReadingState', () => {
   it('waits for a book id', () => {
     renderHook(() => useReadingState(null))
     expect(mockUseSWR).toHaveBeenCalledWith(null, expect.any(Function))
+  })
+})
+
+describe('translateReadingPosition', () => {
+  it('returns the server-translated position', async () => {
+    const translated = { href: 'OEBPS/index.xhtml', offset: 7, page: 3 }
+    mockTranslate.mockResolvedValue({ position: translated })
+    await expect(translateReadingPosition('book-1', { page: 3 })).resolves.toBe(translated)
+    expect(mockTranslate).toHaveBeenCalledWith({ bookId: 'book-1', position: { page: 3 } })
   })
 })
 

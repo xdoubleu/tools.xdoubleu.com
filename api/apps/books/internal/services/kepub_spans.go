@@ -57,15 +57,29 @@ type docSpans struct {
 	spans []spanStart
 }
 
-// spanMap is a KEPUB's spans in original-EPUB offsets (ADR-0029).
-type spanMap struct{ docs []docSpans }
+// spanMap is a KEPUB's spans in original-EPUB offsets (ADR-0029). For a
+// KEPUB converted from a PDF (pdf), offsets are the KEPUB's own and pages
+// holds its page anchors in document order.
+type spanMap struct {
+	docs  []docSpans
+	pages []pageAnchor
+	pdf   bool
+}
+
+// pageAnchor is where a PDF page starts: docs[doc] at offset start.
+type pageAnchor struct {
+	page, doc, start int32
+}
 
 // docText is a document's body text in UTF-16 units, plus its koboSpans'
-// [start, end) in that text.
+// [start, end) in that text and its page anchors.
 type docText struct {
-	units []uint16
-	spans []textSpan
+	units   []uint16
+	spans   []textSpan
+	anchors []textAnchor
 }
+
+type textAnchor struct{ page, at int }
 
 type textSpan struct {
 	id         spanID
@@ -73,29 +87,25 @@ type textSpan struct {
 }
 
 // buildSpanMap maps every content document of kepub that the original EPUB
-// also has. A document either side can't parse, or whose texts can't be
-// aligned, is left out.
+// also has. A nil original means kepub was converted from a PDF: its own
+// text is the original, and its page anchors are kept. A document either
+// side can't parse, or whose texts can't be aligned, is left out.
 func buildSpanMap(ctx context.Context, kepub, original *zip.Reader) (*spanMap, error) {
 	docs, err := epubContentDocs(kepub)
 	if err != nil {
 		return nil, err
 	}
 
-	m := &spanMap{docs: make([]docSpans, 0, len(docs))}
+	m := &spanMap{docs: make([]docSpans, 0, len(docs)), pages: nil, pdf: original == nil}
 	for _, href := range docs {
 		if err = ctx.Err(); err != nil {
 			return nil, err
 		}
 		k, kErr := zipDocText(kepub, href)
-		o, oErr := zipDocText(original, href)
-		if kErr != nil || oErr != nil || len(k.spans) == 0 {
+		if kErr != nil || len(k.spans) == 0 {
 			continue
 		}
-		starts := make([]int, len(k.spans))
-		for i, s := range k.spans {
-			starts[i] = s.start
-		}
-		mapped, ok := alignStarts(ctx, k.units, o.units, starts)
+		mapped, ok := originalStarts(ctx, k, original, href)
 		if !ok {
 			continue
 		}
@@ -104,9 +114,34 @@ func buildSpanMap(ctx context.Context, kepub, original *zip.Reader) (*spanMap, e
 			start := int32(mapped[i]) //nolint:gosec // texts are under 1 GiB
 			d.spans[i] = spanStart{id: s.id, start: start}
 		}
+		for _, a := range k.anchors {
+			//nolint:gosec // pages, documents and texts are far under 2^31
+			m.pages = append(m.pages, pageAnchor{
+				page: int32(a.page), doc: int32(len(m.docs)), start: int32(a.at),
+			})
+		}
 		m.docs = append(m.docs, d)
 	}
 	return m, nil
+}
+
+// originalStarts maps k's span starts into the original's text: aligned
+// against an EPUB's document, or unchanged for a PDF-sourced KEPUB.
+func originalStarts(
+	ctx context.Context, k docText, original *zip.Reader, href string,
+) ([]int, bool) {
+	starts := make([]int, len(k.spans))
+	for i, s := range k.spans {
+		starts[i] = s.start
+	}
+	if original == nil {
+		return starts, true
+	}
+	o, err := zipDocText(original, href)
+	if err != nil {
+		return nil, false
+	}
+	return alignStarts(ctx, k.units, o.units, starts)
 }
 
 // maxContentDocBytes bounds one document's size: its text is held several
@@ -116,11 +151,18 @@ const maxContentDocBytes = 16 << 20
 func zipDocText(zr *zip.Reader, name string) (docText, error) {
 	f, err := zr.Open(name)
 	if err != nil {
-		return docText{units: nil, spans: nil}, err
+		return docText{units: nil, spans: nil, anchors: nil}, err
 	}
 	defer func() { _ = f.Close() }()
 	if info, statErr := f.Stat(); statErr == nil && info.Size() > maxContentDocBytes {
-		return docText{units: nil, spans: nil}, fmt.Errorf("%s is too large", name)
+		return docText{
+				units:   nil,
+				spans:   nil,
+				anchors: nil,
+			}, fmt.Errorf(
+				"%s is too large",
+				name,
+			)
 	}
 	return parseBodyText(f)
 }
@@ -199,7 +241,7 @@ func parseBodyText(r io.Reader) (docText, error) {
 	d.CharsetReader = charset.NewReaderLabel
 
 	b := &bodyTextReader{
-		dt: docText{units: nil, spans: nil}, depth: 0, open: -1, openDepth: 0,
+		dt: docText{units: nil, spans: nil, anchors: nil}, depth: 0, open: -1, openDepth: 0,
 	}
 	for {
 		tok, err := d.Token()
@@ -207,7 +249,7 @@ func parseBodyText(r io.Reader) (docText, error) {
 			return b.dt, nil
 		}
 		if err != nil {
-			return docText{units: nil, spans: nil}, err
+			return docText{units: nil, spans: nil, anchors: nil}, err
 		}
 		switch v := tok.(type) {
 		case xml.StartElement:
@@ -238,6 +280,9 @@ func (b *bodyTextReader) start(e xml.StartElement) {
 		return
 	}
 	b.depth++
+	if page := pageAnchorOf(e); page > 0 {
+		b.dt.anchors = append(b.dt.anchors, textAnchor{page: page, at: len(b.dt.units)})
+	}
 	if id, ok := koboSpanID(e); ok && b.open < 0 {
 		n := len(b.dt.units)
 		b.dt.spans = append(b.dt.spans, textSpan{id: id, start: n, end: n})

@@ -75,6 +75,9 @@ const (
 	// LibraryServiceGetReadingStateProcedure is the fully-qualified name of the LibraryService's
 	// GetReadingState RPC.
 	LibraryServiceGetReadingStateProcedure = "/books.v1.LibraryService/GetReadingState"
+	// LibraryServiceTranslateReadingPositionProcedure is the fully-qualified name of the
+	// LibraryService's TranslateReadingPosition RPC.
+	LibraryServiceTranslateReadingPositionProcedure = "/books.v1.LibraryService/TranslateReadingPosition"
 	// LibraryServiceGetBookContentProcedure is the fully-qualified name of the LibraryService's
 	// GetBookContent RPC.
 	LibraryServiceGetBookContentProcedure = "/books.v1.LibraryService/GetBookContent"
@@ -111,6 +114,7 @@ type LibraryServiceClient interface {
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
 	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
@@ -214,6 +218,12 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
 			connect.WithClientOptions(opts...),
 		),
+		translateReadingPosition: connect.NewClient[v1.TranslateReadingPositionRequest, v1.TranslateReadingPositionResponse](
+			httpClient,
+			baseURL+LibraryServiceTranslateReadingPositionProcedure,
+			connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
+			connect.WithClientOptions(opts...),
+		),
 		getBookContent: connect.NewClient[v1.GetBookContentRequest, v1.GetBookContentResponse](
 			httpClient,
 			baseURL+LibraryServiceGetBookContentProcedure,
@@ -255,26 +265,27 @@ func NewLibraryServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 
 // libraryServiceClient implements LibraryServiceClient.
 type libraryServiceClient struct {
-	getLibrary            *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
-	getBooksProgress      *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
-	searchLibrary         *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
-	searchExternal        *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
-	getExternalBook       *connect.Client[v1.GetExternalBookRequest, v1.GetExternalBookResponse]
-	createBook            *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
-	updateBookStatus      *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
-	updateFinishedAt      *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
-	updateProgress        *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
-	toggleTag             *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
-	setBookTag            *connect.Client[v1.SetBookTagRequest, v1.SetBookTagResponse]
-	removeBook            *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
-	updateReadingProgress *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
-	getReadingState       *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
-	getBookContent        *connect.Client[v1.GetBookContentRequest, v1.GetBookContentResponse]
-	createShelf           *connect.Client[v1.CreateShelfRequest, v1.CreateShelfResponse]
-	renameShelf           *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
-	deleteShelf           *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
-	renameTag             *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
-	deleteTag             *connect.Client[v1.DeleteTagRequest, v1.DeleteTagResponse]
+	getLibrary               *connect.Client[v1.GetLibraryRequest, v1.GetLibraryResponse]
+	getBooksProgress         *connect.Client[v1.GetBooksProgressRequest, v1.GetBooksProgressResponse]
+	searchLibrary            *connect.Client[v1.SearchLibraryRequest, v1.SearchLibraryResponse]
+	searchExternal           *connect.Client[v1.SearchExternalRequest, v1.SearchExternalResponse]
+	getExternalBook          *connect.Client[v1.GetExternalBookRequest, v1.GetExternalBookResponse]
+	createBook               *connect.Client[v1.CreateBookRequest, v1.CreateBookResponse]
+	updateBookStatus         *connect.Client[v1.UpdateBookStatusRequest, v1.UpdateBookStatusResponse]
+	updateFinishedAt         *connect.Client[v1.UpdateFinishedAtRequest, v1.UpdateFinishedAtResponse]
+	updateProgress           *connect.Client[v1.UpdateProgressRequest, v1.UpdateProgressResponse]
+	toggleTag                *connect.Client[v1.ToggleTagRequest, v1.ToggleTagResponse]
+	setBookTag               *connect.Client[v1.SetBookTagRequest, v1.SetBookTagResponse]
+	removeBook               *connect.Client[v1.RemoveBookRequest, v1.RemoveBookResponse]
+	updateReadingProgress    *connect.Client[v1.UpdateReadingProgressRequest, v1.UpdateReadingProgressResponse]
+	getReadingState          *connect.Client[v1.GetReadingStateRequest, v1.GetReadingStateResponse]
+	translateReadingPosition *connect.Client[v1.TranslateReadingPositionRequest, v1.TranslateReadingPositionResponse]
+	getBookContent           *connect.Client[v1.GetBookContentRequest, v1.GetBookContentResponse]
+	createShelf              *connect.Client[v1.CreateShelfRequest, v1.CreateShelfResponse]
+	renameShelf              *connect.Client[v1.RenameShelfRequest, v1.RenameShelfResponse]
+	deleteShelf              *connect.Client[v1.DeleteShelfRequest, v1.DeleteShelfResponse]
+	renameTag                *connect.Client[v1.RenameTagRequest, v1.RenameTagResponse]
+	deleteTag                *connect.Client[v1.DeleteTagRequest, v1.DeleteTagResponse]
 }
 
 // GetLibrary calls books.v1.LibraryService.GetLibrary.
@@ -347,6 +358,11 @@ func (c *libraryServiceClient) GetReadingState(ctx context.Context, req *connect
 	return c.getReadingState.CallUnary(ctx, req)
 }
 
+// TranslateReadingPosition calls books.v1.LibraryService.TranslateReadingPosition.
+func (c *libraryServiceClient) TranslateReadingPosition(ctx context.Context, req *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error) {
+	return c.translateReadingPosition.CallUnary(ctx, req)
+}
+
 // GetBookContent calls books.v1.LibraryService.GetBookContent.
 func (c *libraryServiceClient) GetBookContent(ctx context.Context, req *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {
 	return c.getBookContent.CallUnary(ctx, req)
@@ -393,6 +409,7 @@ type LibraryServiceHandler interface {
 	RemoveBook(context.Context, *connect.Request[v1.RemoveBookRequest]) (*connect.Response[v1.RemoveBookResponse], error)
 	UpdateReadingProgress(context.Context, *connect.Request[v1.UpdateReadingProgressRequest]) (*connect.Response[v1.UpdateReadingProgressResponse], error)
 	GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error)
+	TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error)
 	GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error)
 	CreateShelf(context.Context, *connect.Request[v1.CreateShelfRequest]) (*connect.Response[v1.CreateShelfResponse], error)
 	RenameShelf(context.Context, *connect.Request[v1.RenameShelfRequest]) (*connect.Response[v1.RenameShelfResponse], error)
@@ -492,6 +509,12 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 		connect.WithSchema(libraryServiceMethods.ByName("GetReadingState")),
 		connect.WithHandlerOptions(opts...),
 	)
+	libraryServiceTranslateReadingPositionHandler := connect.NewUnaryHandler(
+		LibraryServiceTranslateReadingPositionProcedure,
+		svc.TranslateReadingPosition,
+		connect.WithSchema(libraryServiceMethods.ByName("TranslateReadingPosition")),
+		connect.WithHandlerOptions(opts...),
+	)
 	libraryServiceGetBookContentHandler := connect.NewUnaryHandler(
 		LibraryServiceGetBookContentProcedure,
 		svc.GetBookContent,
@@ -558,6 +581,8 @@ func NewLibraryServiceHandler(svc LibraryServiceHandler, opts ...connect.Handler
 			libraryServiceUpdateReadingProgressHandler.ServeHTTP(w, r)
 		case LibraryServiceGetReadingStateProcedure:
 			libraryServiceGetReadingStateHandler.ServeHTTP(w, r)
+		case LibraryServiceTranslateReadingPositionProcedure:
+			libraryServiceTranslateReadingPositionHandler.ServeHTTP(w, r)
 		case LibraryServiceGetBookContentProcedure:
 			libraryServiceGetBookContentHandler.ServeHTTP(w, r)
 		case LibraryServiceCreateShelfProcedure:
@@ -633,6 +658,10 @@ func (UnimplementedLibraryServiceHandler) UpdateReadingProgress(context.Context,
 
 func (UnimplementedLibraryServiceHandler) GetReadingState(context.Context, *connect.Request[v1.GetReadingStateRequest]) (*connect.Response[v1.GetReadingStateResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.GetReadingState is not implemented"))
+}
+
+func (UnimplementedLibraryServiceHandler) TranslateReadingPosition(context.Context, *connect.Request[v1.TranslateReadingPositionRequest]) (*connect.Response[v1.TranslateReadingPositionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("books.v1.LibraryService.TranslateReadingPosition is not implemented"))
 }
 
 func (UnimplementedLibraryServiceHandler) GetBookContent(context.Context, *connect.Request[v1.GetBookContentRequest]) (*connect.Response[v1.GetBookContentResponse], error) {

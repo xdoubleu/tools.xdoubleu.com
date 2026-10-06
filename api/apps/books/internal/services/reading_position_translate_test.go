@@ -175,9 +175,13 @@ func TestPositionService_TranslatesBothWaysAndCaches(t *testing.T) {
 		Href: mocks.ChapterTwoHref, Offset: second, Page: 0,
 	}, *pos)
 
-	locs, pending := f.svc.KoboLocations(ctx, "u", map[uuid.UUID]models.ReadingPosition{
-		f.bookID: {Href: mocks.ChapterTwoHref, Offset: second + 4, Page: 0},
-	})
+	locs, pending := f.svc.KoboLocations(
+		ctx,
+		"u",
+		statesOf(map[uuid.UUID]models.ReadingPosition{
+			f.bookID: {Href: mocks.ChapterTwoHref, Offset: second + 4, Page: 0},
+		}),
+	)
 	assert.Empty(t, pending)
 	require.Contains(t, locs, f.bookID)
 	assert.Equal(t, chapterTwoSpan("kobo.1.2"), *locs[f.bookID])
@@ -191,15 +195,19 @@ func TestPositionService_NothingToTranslate(t *testing.T) {
 	assert.Nil(t, settledPosition(t, f.svc, ctx, f.bookID, models.KoboLocation{
 		Source: mocks.ChapterTwoHref, Type: "EpubCfi", Value: "kobo.1.2",
 	}), "only KoboSpan bookmarks translate")
-	locs, pending := f.svc.KoboLocations(ctx, "u", map[uuid.UUID]models.ReadingPosition{
-		f.bookID: {Href: "", Offset: 0, Page: 4},
-	})
+	locs, pending := f.svc.KoboLocations(
+		ctx,
+		"u",
+		statesOf(map[uuid.UUID]models.ReadingPosition{
+			f.bookID: {Href: "", Offset: 0, Page: 4},
+		}),
+	)
 	assert.Empty(t, locs, "a PDF page has no span")
 	assert.Empty(t, pending)
 
 	pdf := newTranslatorFixture(t, nil, models.FileFormatPDF, time.Minute)
 	assert.Nil(t, settledPosition(t, pdf.svc, ctx, pdf.bookID, chapterTwoSpan("kobo.1.2")),
-		"a PDF-sourced KEPUB has no original EPUB to point into")
+		"a PDF-sourced KEPUB without page anchors has no page")
 
 	converting := newTranslatorFixture(t, nil, models.FileFormatEPUB, time.Minute)
 	converting.files.byFormat[models.FileFormatKEPUB].Status = models.FileStatusConverting
@@ -226,8 +234,9 @@ func TestPositionService_NothingToTranslate(t *testing.T) {
 	assert.Nil(t, settledPosition(t, dbErr.svc,
 		ctx, dbErr.bookID, chapterTwoSpan("kobo.1.2")))
 
+	assert.Equal(t, int32(1), pdf.store.gets.Load(), "only the KEPUB")
 	for _, fx := range []*translatorFixture{
-		pdf, converting, orphan, missingSrc, noKEPUB, dbErr,
+		converting, orphan, missingSrc, noKEPUB, dbErr,
 	} {
 		assert.Zero(t, fx.store.gets.Load())
 	}
@@ -251,12 +260,12 @@ func TestPositionService_DownloadFailureIsRetried(t *testing.T) {
 	kepub, _ := f.store.GetContent("kepub")
 	require.NoError(t, f.store.Delete(ctx, "kepub"))
 
-	locs, pending := f.svc.KoboLocations(ctx, "u", positions)
+	locs, pending := f.svc.KoboLocations(ctx, "u", statesOf(positions))
 	assert.Empty(t, locs)
 	assert.True(t, pending[f.bookID], "a failed download is retried, not cached")
 
 	f.store.PutAt("kepub", kepub, time.Now())
-	locs, pending = f.svc.KoboLocations(ctx, "u", positions)
+	locs, pending = f.svc.KoboLocations(ctx, "u", statesOf(positions))
 	assert.Empty(t, pending)
 	assert.Equal(t, chapterTwoSpan("kobo.1.1"), *locs[f.bookID])
 }
@@ -269,9 +278,9 @@ func TestPositionService_NoFreeBuildSlotIsPending(t *testing.T) {
 	}
 
 	_, pending := f.svc.KoboLocations(context.Background(), "u",
-		map[uuid.UUID]models.ReadingPosition{
+		statesOf(map[uuid.UUID]models.ReadingPosition{
 			f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
-		})
+		}))
 	assert.True(t, pending[f.bookID])
 	assert.Zero(t, f.store.gets.Load())
 }
@@ -284,7 +293,7 @@ func TestPositionService_BudgetExceededReportsPendingThenTranslates(t *testing.T
 		f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
 	}
 
-	locs, pending := f.svc.KoboLocations(ctx, "u", positions)
+	locs, pending := f.svc.KoboLocations(ctx, "u", statesOf(positions))
 	assert.Empty(t, locs)
 	assert.True(t, pending[f.bookID])
 	pos, pendingPos := f.svc.KoboPosition(ctx, "u", f.bookID, chapterTwoSpan("kobo.1.1"))
@@ -293,7 +302,7 @@ func TestPositionService_BudgetExceededReportsPendingThenTranslates(t *testing.T
 
 	close(f.store.gate)
 	require.Eventually(t, func() bool {
-		locs, pending = f.svc.KoboLocations(ctx, "u", positions)
+		locs, pending = f.svc.KoboLocations(ctx, "u", statesOf(positions))
 		return len(pending) == 0 && locs[f.bookID] != nil
 	}, 5*time.Second, 10*time.Millisecond)
 	assert.Equal(t, chapterTwoSpan("kobo.1.1"), *locs[f.bookID])
@@ -307,9 +316,13 @@ func TestPositionService_CanceledRequestIsPending(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, pending := f.svc.KoboLocations(ctx, "u", map[uuid.UUID]models.ReadingPosition{
-		f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
-	})
+	_, pending := f.svc.KoboLocations(
+		ctx,
+		"u",
+		statesOf(map[uuid.UUID]models.ReadingPosition{
+			f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
+		}),
+	)
 	assert.True(t, pending[f.bookID])
 }
 
@@ -322,9 +335,9 @@ func TestPositionService_PendingEndsAfterGrace(t *testing.T) {
 		f.bookID: {Href: mocks.ChapterTwoHref, Offset: 0, Page: 0},
 	}
 
-	_, pending := f.svc.KoboLocations(context.Background(), "u", positions)
+	_, pending := f.svc.KoboLocations(context.Background(), "u", statesOf(positions))
 	assert.True(t, pending[f.bookID], "first seen pending")
-	locs, pending := f.svc.KoboLocations(context.Background(), "u", positions)
+	locs, pending := f.svc.KoboLocations(context.Background(), "u", statesOf(positions))
 	assert.Empty(t, pending, "past the grace the book goes out as percent only")
 	assert.Empty(t, locs)
 }
@@ -348,4 +361,18 @@ func TestPositionService_BackfillKoboPosition(t *testing.T) {
 	f.files.byFormat = map[string]*models.BookFile{}
 	f.svc.BackfillKoboPosition(ctx, "u", f.bookID, chapterTwoSpan("kobo.1.2"), store)
 	assert.Len(t, stored, 1, "unknown spans and books without a KEPUB store nothing")
+}
+
+// statesOf wraps positions as reading states with no Kobo bookmark.
+func statesOf(
+	positions map[uuid.UUID]models.ReadingPosition,
+) map[uuid.UUID]*models.BookReadingState {
+	states := make(map[uuid.UUID]*models.BookReadingState, len(positions))
+	for id, pos := range positions {
+		//nolint:exhaustruct // only the position matters
+		states[id] = &models.BookReadingState{
+			Position: &pos,
+		}
+	}
+	return states
 }

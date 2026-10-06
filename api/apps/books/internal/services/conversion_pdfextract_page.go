@@ -312,7 +312,10 @@ func extractDocument(
 	}
 
 	var blocks []htmlBlock
-	for _, pb := range pageBlocks {
+	for i, pb := range pageBlocks {
+		if len(pb) > 0 {
+			pb[0].page = i + 1
+		}
 		blocks = append(blocks, pb...)
 	}
 	captionFigures(blocks)

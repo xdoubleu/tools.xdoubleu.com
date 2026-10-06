@@ -51,6 +51,8 @@ type htmlBlock struct {
 	// tocLevel is the heading level a PDF outline entry gives the block
 	// (0: not in the outline).
 	tocLevel int
+	// page is the 1-based PDF page the block opens (0: not a page's first).
+	page int
 }
 
 // imageBlock renders an <img> block.
@@ -79,7 +81,9 @@ func captionFigures(blocks []htmlBlock) {
 			continue
 		}
 		if next := blocks[i+1]; next.isText && captionRe.MatchString(next.text) {
+			page := blocks[i].page
 			blocks[i] = imageBlock(blocks[i].src, next.text)
+			blocks[i].page = page
 		}
 	}
 }
@@ -276,6 +280,7 @@ func renderParagraph(lines []pdfLine) htmlBlock {
 		src:       "",
 		inline:    paragraphHTML(lines),
 		tocLevel:  0,
+		page:      0,
 	}
 }
 

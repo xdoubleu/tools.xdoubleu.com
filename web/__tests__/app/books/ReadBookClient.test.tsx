@@ -13,6 +13,7 @@ const mockUseOfflineBookFile = jest.fn()
 const mockUseStoredBookVersion = jest.fn()
 const mockUseReadingState = jest.fn()
 const mockSave = jest.fn()
+const mockTranslate = jest.fn()
 const mockUseKEPUBConversion = jest.fn()
 const mockUseReaderChoice = jest.fn()
 const mockRouterPush = jest.fn()
@@ -42,7 +43,8 @@ jest.mock('@/hooks/useKEPUBConversion', () => ({
 
 jest.mock('@/hooks/useReadingState', () => ({
   useReadingState: (...args: unknown[]) => mockUseReadingState(...args),
-  useReadingProgressSaver: () => mockSave
+  useReadingProgressSaver: () => mockSave,
+  translateReadingPosition: (...args: unknown[]) => mockTranslate(...args)
 }))
 
 jest.mock('next/navigation', () => ({
@@ -424,17 +426,63 @@ describe('ReadBookClient', () => {
       expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ fraction: 0.1234 }))
     })
 
-    it('carries a PDF page with its unrounded percent', async () => {
+    it('carries a PDF page into the KEPUB as the server translates it', async () => {
       setLibrary(['pdf'])
+      mockTranslate.mockResolvedValue({ href: 'OEBPS/index.xhtml', offset: 7, page: 3 })
       render(<ReadBookClient id="ub-1" />)
       fireEvent.click(await screen.findByRole('button', { name: 'Read PDF page' }))
       fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
       const reader = await screen.findByTestId('reader')
+      expect(mockTranslate).toHaveBeenCalledWith('book-1', { page: 3 })
       expect(reader).toHaveAttribute('data-file', 'book-1.kepub')
       expect(reader).toHaveAttribute(
         'data-initial',
+        JSON.stringify({
+          position: { page: 3 },
+          alsoAt: { href: 'OEBPS/index.xhtml', offset: 7 },
+          percent: 12.34
+        })
+      )
+    })
+
+    it('carries a PDF page with its unrounded percent when translating fails', async () => {
+      setLibrary(['pdf'])
+      mockTranslate.mockRejectedValue(new Error('offline'))
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read PDF page' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
+      expect(await screen.findByTestId('reader')).toHaveAttribute(
+        'data-initial',
         JSON.stringify({ position: { page: 3 }, percent: 12.34 })
       )
+    })
+
+    it('keeps only the latest switch when translations finish out of order', async () => {
+      setLibrary(['pdf'])
+      mockUseKEPUBConversion.mockReturnValue('converting')
+      let resolveFirst: (p: unknown) => void = () => {}
+      mockTranslate
+        .mockReturnValueOnce(new Promise((resolve) => (resolveFirst = resolve)))
+        .mockResolvedValueOnce({ href: '', offset: 0, page: 3 })
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read PDF page' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Read original' }))
+      const reader = await screen.findByTestId('reader')
+      expect(reader).toHaveAttribute('data-file', 'book-1.pdf')
+      await act(async () => resolveFirst({ href: 'OEBPS/index.xhtml', offset: 7, page: 3 }))
+      expect(screen.getByTestId('reader')).toHaveAttribute(
+        'data-initial',
+        JSON.stringify({ position: { page: 3 }, percent: 12.34 })
+      )
+    })
+
+    it('needs no translation for an EPUB', async () => {
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read on' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
+      await screen.findByTestId('reader')
+      expect(mockTranslate).not.toHaveBeenCalled()
     })
 
     it('reopens at the opening position when switching before reading', async () => {

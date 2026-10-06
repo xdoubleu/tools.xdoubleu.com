@@ -14,6 +14,11 @@ import (
 // zipOf builds an archive of name → content, stored uncompressed.
 func zipOf(t *testing.T, files map[string]string) *zip.Reader {
 	t.Helper()
+	return openZip(t, zipBytesOf(t, files))
+}
+
+func zipBytesOf(t *testing.T, files map[string]string) []byte {
+	t.Helper()
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
 	for name, content := range files {
@@ -24,7 +29,7 @@ func zipOf(t *testing.T, files map[string]string) *zip.Reader {
 		require.NoError(t, err)
 	}
 	require.NoError(t, zw.Close())
-	return openZip(t, buf.Bytes())
+	return buf.Bytes()
 }
 
 const testContainer = `<?xml version="1.0"?>` +

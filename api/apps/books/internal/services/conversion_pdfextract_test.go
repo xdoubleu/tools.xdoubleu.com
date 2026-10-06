@@ -104,6 +104,7 @@ type extractedBlock struct {
 // matched separately and merged by position.
 func extractBlocks(t *testing.T, xhtmlDoc string) []extractedBlock {
 	t.Helper()
+	xhtmlDoc = pageBreakRe.ReplaceAllString(xhtmlDoc, "")
 
 	type positioned struct {
 		pos   int
@@ -137,6 +138,9 @@ func extractBlocks(t *testing.T, xhtmlDoc string) []extractedBlock {
 	}
 	return blocks
 }
+
+// pageBreakRe matches a PDF page-start anchor, which holds no text.
+var pageBreakRe = regexp.MustCompile(`<span epub:type="pagebreak"[^>]*></span>`)
 
 func unescapeXML(s string) string {
 	return strings.NewReplacer("&amp;", "&", "&lt;", "<", "&gt;", ">").Replace(s)

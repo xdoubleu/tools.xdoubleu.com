@@ -86,7 +86,19 @@ func TestSpanMapCache_EvictsLeastRecentlyUsed(t *testing.T) {
 	k1 := spanMapKey{kepubID: uuid.New(), sourceID: uuid.New(), version: 1}
 	k2 := spanMapKey{kepubID: uuid.New(), sourceID: uuid.New(), version: 1}
 	k3 := spanMapKey{kepubID: uuid.New(), sourceID: uuid.New(), version: 1}
-	m1, m2, m3 := &spanMap{docs: nil}, &spanMap{docs: nil}, &spanMap{docs: nil}
+	m1, m2, m3 := &spanMap{
+		docs:  nil,
+		pages: nil,
+		pdf:   false,
+	}, &spanMap{
+		docs:  nil,
+		pages: nil,
+		pdf:   false,
+	}, &spanMap{
+		docs:  nil,
+		pages: nil,
+		pdf:   false,
+	}
 
 	c.add(k1, m1)
 	c.add(k2, m2)

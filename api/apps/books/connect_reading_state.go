@@ -97,9 +97,55 @@ func (h *booksConnectHandler) GetReadingState(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	if state.Position != nil {
+		pos := h.app.Services.Positions.ReaderPosition(
+			ctx, user.ID, bookID, *state.Position,
+		)
+		state.Position = &pos
+	}
 	return connect.NewResponse(&booksv1.GetReadingStateResponse{
 		State: readingStateToProto(state),
 	}), nil
+}
+
+// TranslateReadingPosition adds the forms GetReadingState would.
+func (h *booksConnectHandler) TranslateReadingPosition(
+	ctx context.Context,
+	req *connect.Request[booksv1.TranslateReadingPositionRequest],
+) (*connect.Response[booksv1.TranslateReadingPositionResponse], error) {
+	user := contexttools.GetValue[sharedmodels.User](ctx, constants.UserContextKey)
+	if user == nil {
+		return nil, connect.NewError(
+			connect.CodeUnauthenticated,
+			errors.New("unauthorized"),
+		)
+	}
+	bookID, err := uuid.Parse(req.Msg.BookId)
+	if err != nil {
+		return nil, connect.NewError(
+			connect.CodeInvalidArgument,
+			errors.New("invalid book ID"),
+		)
+	}
+	position, err := readingPositionFromProto(req.Msg.Position)
+	if err == nil && position == nil {
+		err = errors.New("position is required")
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	pos := h.app.Services.Positions.ReaderPosition(ctx, user.ID, bookID, *position)
+	return connect.NewResponse(&booksv1.TranslateReadingPositionResponse{
+		Position: readingPositionToProto(pos),
+	}), nil
+}
+
+func readingPositionToProto(p models.ReadingPosition) *booksv1.ReadingPosition {
+	return &booksv1.ReadingPosition{
+		Href:   p.Href,
+		Offset: int32FromInt(p.Offset),
+		Page:   int32FromInt(p.Page),
+	}
 }
 
 func readingStateToProto(state *models.BookReadingState) *booksv1.BookReadingStateData {
@@ -110,11 +156,7 @@ func readingStateToProto(state *models.BookReadingState) *booksv1.BookReadingSta
 		UpdatedAt: state.UpdatedAt.Format(time.RFC3339),
 	}
 	if state.Position != nil {
-		out.Position = &booksv1.ReadingPosition{
-			Href:   state.Position.Href,
-			Offset: int32FromInt(state.Position.Offset),
-			Page:   int32FromInt(state.Position.Page),
-		}
+		out.Position = readingPositionToProto(*state.Position)
 	}
 	if state.ReadAt != nil {
 		out.ReadAt = state.ReadAt.UTC().Format(time.RFC3339)
