@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -429,7 +430,7 @@ func (c *client) fetchSecretScanningAlerts(
 const runsPerEvent = 20
 
 // fetchWorkflowRuns fetches PR and push runs separately so each gets its own
-// recency window.
+// recency window, then merges them newest-first by start time.
 func (c *client) fetchWorkflowRuns(
 	ctx context.Context, token, repo string,
 ) ([]WorkflowRun, error) {
@@ -445,6 +446,10 @@ func (c *client) fetchWorkflowRuns(
 	runs := make([]WorkflowRun, 0, len(prRuns)+len(pushRuns))
 	runs = append(runs, prRuns...)
 	runs = append(runs, pushRuns...)
+	// Newest first, so the order doesn't depend on which event was fetched first.
+	slices.SortStableFunc(runs, func(a, b WorkflowRun) int {
+		return b.StartedAt.Compare(a.StartedAt)
+	})
 	return runs, nil
 }
 

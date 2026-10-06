@@ -475,12 +475,44 @@ func TestListWorkflowRuns_ComputesDurationForCompletedRuns(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, runs, 2)
 
-	assert.Equal(t, "pull_request", runs[0].Event)
-	assert.Equal(t, int64(5*60*1000), runs[0].DurationMs)
+	assert.Equal(t, "push", runs[0].Event)
+	assert.Equal(t, "in_progress", runs[0].Status)
+	assert.Equal(t, int64(0), runs[0].DurationMs)
 
-	assert.Equal(t, "push", runs[1].Event)
-	assert.Equal(t, "in_progress", runs[1].Status)
-	assert.Equal(t, int64(0), runs[1].DurationMs)
+	assert.Equal(t, "pull_request", runs[1].Event)
+	assert.Equal(t, int64(5*60*1000), runs[1].DurationMs)
+}
+
+func TestListWorkflowRuns_SortsNewestFirstAcrossEvents(t *testing.T) {
+	run := func(id int, event, started string) string {
+		return fmt.Sprintf(`{"id":%d,"name":"CI","event":%q,"status":"completed",
+			"conclusion":"success","run_started_at":%q,"updated_at":%q}`,
+			id, event, started, started)
+	}
+	cleanup := buildServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			switch r.URL.Query().Get("event") {
+			case "pull_request":
+				_, _ = w.Write([]byte(`{"workflow_runs":[` +
+					run(1, "pull_request", "2026-09-20T10:00:00Z") + `,` +
+					run(4, "pull_request", "2026-10-06T10:00:00Z") + `]}`))
+			case "push":
+				_, _ = w.Write([]byte(`{"workflow_runs":[` +
+					run(3, "push", "2026-10-06T11:00:00Z") + `,` +
+					run(2, "push", "2026-10-01T10:00:00Z") + `]}`))
+			}
+		}))
+	defer cleanup()
+
+	runs, err := newClient().ListWorkflowRuns(context.Background())
+	require.NoError(t, err)
+
+	ids := make([]int64, 0, len(runs))
+	for _, r := range runs {
+		ids = append(ids, r.ID)
+	}
+	assert.Equal(t, []int64{3, 4, 2, 1}, ids)
 }
 
 func TestListWorkflowRuns_NotConfigured_NoConnection(t *testing.T) {
