@@ -36,6 +36,9 @@ question.
      `body_has_html_comment` (hidden text) or `body_edited_after_status`
      (edited after the Ready move); the owner re-approves by removing the
      comment or moving it out of Ready and back.
+   - **Skip issues needing a `.github/workflows/` change** (the routine App
+     deliberately lacks the Workflows permission, so the push is rejected;
+     `docs/spec-agent-routines-on-actions.md`). Leave them for a human.
    - List each skipped issue with its reason in the summary.
 
 2. **Overlap:** note in each affected prompt when two issues touch the same
