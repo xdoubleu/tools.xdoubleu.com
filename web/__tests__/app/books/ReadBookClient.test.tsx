@@ -12,12 +12,33 @@ const mockUseLibrary = jest.fn()
 const mockUseGetBookFile = jest.fn()
 const mockUseReadingState = jest.fn()
 const mockSave = jest.fn()
+const mockUseKEPUBConversion = jest.fn()
+const mockSwrMutate = jest.fn()
+const mockUseReaderChoice = jest.fn()
 const mockRouterPush = jest.fn()
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/hooks/useBooks', () => ({
   useLibrary: () => mockUseLibrary(),
   useGetBookFile: (...args: unknown[]) => mockUseGetBookFile(...args)
+}))
+
+jest.mock('swr', () => ({
+  ...jest.requireActual('swr'),
+  mutate: (...args: unknown[]) => mockSwrMutate(...args)
+}))
+
+// The real hook unless a test stubs it (e.g. the hydration pass).
+jest.mock('@/hooks/useReaderChoice', () => {
+  const actual = jest.requireActual('@/hooks/useReaderChoice')
+  return {
+    useReaderChoice: (...args: [string | null, string | null]) =>
+      mockUseReaderChoice(...args) ?? actual.useReaderChoice(...args)
+  }
+})
+
+jest.mock('@/hooks/useKEPUBConversion', () => ({
+  useKEPUBConversion: (...args: unknown[]) => mockUseKEPUBConversion(...args)
 }))
 
 jest.mock('@/hooks/useReadingState', () => ({
@@ -30,26 +51,24 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams
 }))
 
+interface MockReaderProps {
+  url: string
+  title: string
+  onClose: () => void
+  onRelocate: (location: unknown) => void
+  initialPosition: unknown
+  format?: { value: string; original: string; onChange: (choice: string) => void }
+}
+
 jest.mock('@/components/books/reader/BookReader', () => ({
   __esModule: true,
-  default: ({
-    url,
-    title,
-    onClose,
-    onRelocate,
-    initialPosition
-  }: {
-    url: string
-    title: string
-    onClose: () => void
-    onRelocate: (location: unknown) => void
-    initialPosition: unknown
-  }) => (
+  default: ({ url, title, onClose, onRelocate, initialPosition, format }: MockReaderProps) => (
     <div
       data-testid="reader"
       data-url={url}
       data-title={title}
       data-initial={JSON.stringify(initialPosition)}
+      data-format={JSON.stringify(format && { value: format.value, original: format.original })}
     >
       <button type="button" onClick={onClose}>
         Close reader
@@ -57,11 +76,36 @@ jest.mock('@/components/books/reader/BookReader', () => ({
       <button type="button" onClick={() => onRelocate({ fraction: 0.5, section: 2 })}>
         Turn page
       </button>
+      <button
+        type="button"
+        onClick={() =>
+          onRelocate({
+            fraction: 0.1234,
+            section: 3,
+            position: { href: 'OEBPS/ch3.xhtml', offset: 42 }
+          })
+        }
+      >
+        Read on
+      </button>
+      <button
+        type="button"
+        onClick={() => onRelocate({ fraction: 0.1234, section: 2, position: { page: 3 } })}
+      >
+        Read PDF page
+      </button>
+      <button type="button" onClick={() => format?.onChange('kepub')}>
+        Use converted
+      </button>
+      <button type="button" onClick={() => format?.onChange('original')}>
+        Use original
+      </button>
     </div>
   )
 }))
 
 import ReadBookClient from '@/app/books/[id]/read/ReadBookClient'
+import { swrKeys } from '@/lib/swrKeys'
 
 function setLibrary(formats: string[]) {
   const userBook = create(UserBookSchema, {
@@ -82,7 +126,10 @@ function setLibrary(formats: string[]) {
 
 beforeEach(() => {
   jest.clearAllMocks()
+  localStorage.clear()
+  mockUseReaderChoice.mockReturnValue(undefined)
   mockSearchParams = new URLSearchParams()
+  mockUseKEPUBConversion.mockReturnValue('ready')
   setLibrary(['epub', 'pdf'])
   mockUseGetBookFile.mockReturnValue({ data: { url: 'https://r2/book' }, error: undefined })
   setFreshReadingState(undefined)
@@ -268,5 +315,128 @@ describe('ReadBookClient', () => {
     render(<ReadBookClient id="ub-1" />)
     fireEvent.click(await screen.findByRole('button', { name: 'Turn page' }))
     expect(mockSave).toHaveBeenCalledWith({ fraction: 0.5, section: 2 })
+  })
+
+  describe('original or converted KEPUB', () => {
+    // One fresh URL per format, so a switch reopens the reader.
+    beforeEach(() => {
+      mockUseGetBookFile.mockImplementation((_bookId: unknown, format: string | null) => ({
+        data: format ? { url: `https://r2/${format}` } : undefined,
+        error: undefined
+      }))
+    })
+
+    it('opens the original and converts nothing by default', async () => {
+      render(<ReadBookClient id="ub-1" />)
+      const reader = await screen.findByTestId('reader')
+      expect(reader).toHaveAttribute('data-url', 'https://r2/epub')
+      expect(reader).toHaveAttribute(
+        'data-format',
+        JSON.stringify({ value: 'original', original: 'epub' })
+      )
+      expect(mockUseKEPUBConversion).toHaveBeenLastCalledWith(null)
+    })
+
+    it('opens the KEPUB this device chose for the book', async () => {
+      localStorage.setItem('books:reader-choice:book-1', 'kepub')
+      render(<ReadBookClient id="ub-1" />)
+      const reader = await screen.findByTestId('reader')
+      expect(reader).toHaveAttribute('data-url', 'https://r2/kepub')
+      expect(reader).toHaveAttribute(
+        'data-format',
+        JSON.stringify({ value: 'kepub', original: 'epub' })
+      )
+      expect(mockUseKEPUBConversion).toHaveBeenLastCalledWith('book-1')
+    })
+
+    it('opens the KEPUB for ?format=kepub without remembering it', async () => {
+      mockSearchParams = new URLSearchParams('format=kepub')
+      render(<ReadBookClient id="ub-1" />)
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-url', 'https://r2/kepub')
+      expect(localStorage.getItem('books:reader-choice:book-1')).toBeNull()
+    })
+
+    it('remembers a switch for this book', async () => {
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Use converted' }))
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-url', 'https://r2/kepub')
+      expect(localStorage.getItem('books:reader-choice:book-1')).toBe('kepub')
+      fireEvent.click(screen.getByRole('button', { name: 'Use original' }))
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-url', 'https://r2/epub')
+      expect(localStorage.getItem('books:reader-choice:book-1')).toBe('original')
+    })
+
+    it('fetches a fresh URL for the file switched to', async () => {
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Use converted' }))
+      expect(mockSwrMutate).toHaveBeenCalledWith(swrKeys.bookFile('book-1', 'kepub'), undefined, {
+        revalidate: false
+      })
+    })
+
+    it('loads, fetching nothing, until the stored choice is read', () => {
+      mockUseReaderChoice.mockReturnValue([undefined, jest.fn()])
+      render(<ReadBookClient id="ub-1" />)
+      expect(screen.getByText('Loading book…')).toBeInTheDocument()
+      expect(screen.queryByText('This book has no EPUB or PDF file.')).not.toBeInTheDocument()
+      expect(mockUseGetBookFile).toHaveBeenLastCalledWith(null, null)
+      expect(mockUseKEPUBConversion).toHaveBeenLastCalledWith(null)
+    })
+
+    it('waits for the conversion before fetching the KEPUB', () => {
+      localStorage.setItem('books:reader-choice:book-1', 'kepub')
+      mockUseKEPUBConversion.mockReturnValue('converting')
+      render(<ReadBookClient id="ub-1" />)
+      expect(screen.getByRole('status')).toHaveTextContent('Converting… this may take a moment.')
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(mockUseGetBookFile).toHaveBeenLastCalledWith(null, null)
+      expect(screen.queryByTestId('reader')).not.toBeInTheDocument()
+    })
+
+    it('offers the original when the conversion fails', async () => {
+      localStorage.setItem('books:reader-choice:book-1', 'kepub')
+      mockUseKEPUBConversion.mockReturnValue('failed')
+      render(<ReadBookClient id="ub-1" />)
+      expect(screen.getByRole('alert')).toHaveTextContent('Conversion failed.')
+      fireEvent.click(screen.getByRole('button', { name: 'Read original' }))
+      expect(await screen.findByTestId('reader')).toHaveAttribute('data-url', 'https://r2/epub')
+      expect(localStorage.getItem('books:reader-choice:book-1')).toBe('original')
+    })
+
+    it('carries the EPUB position into the KEPUB', async () => {
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read on' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
+      const reader = await screen.findByTestId('reader')
+      expect(reader).toHaveAttribute('data-url', 'https://r2/kepub')
+      expect(reader).toHaveAttribute(
+        'data-initial',
+        JSON.stringify({ position: { href: 'OEBPS/ch3.xhtml', offset: 42 }, percent: 12.34 })
+      )
+      expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ fraction: 0.1234 }))
+    })
+
+    it('carries a PDF page with its unrounded percent', async () => {
+      setLibrary(['pdf'])
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Read PDF page' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Use converted' }))
+      const reader = await screen.findByTestId('reader')
+      expect(reader).toHaveAttribute('data-url', 'https://r2/kepub')
+      expect(reader).toHaveAttribute(
+        'data-initial',
+        JSON.stringify({ position: { page: 3 }, percent: 12.34 })
+      )
+    })
+
+    it('reopens at the opening position when switching before reading', async () => {
+      setFreshReadingState({ percent: 40, position: { href: 'ch2.xhtml', offset: 15, page: 0 } })
+      render(<ReadBookClient id="ub-1" />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Use converted' }))
+      expect(await screen.findByTestId('reader')).toHaveAttribute(
+        'data-initial',
+        JSON.stringify({ position: { href: 'ch2.xhtml', offset: 15 }, percent: 40 })
+      )
+    })
   })
 })

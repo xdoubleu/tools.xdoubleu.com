@@ -18,7 +18,6 @@ import BookFavouriteButton from '@/components/books/BookFavouriteButton'
 import BookOwnershipToggles from '@/components/books/BookOwnershipToggles'
 import BookShelfTagFields from '@/components/books/BookShelfTagFields'
 import KoboSyncToggle from '@/components/books/KoboSyncToggle'
-import BookPreviewDialog from '@/components/books/BookPreviewDialog'
 import ArticleReaderDialog from '@/components/books/ArticleReaderDialog'
 import RemoveBookDialog from '@/components/books/RemoveBookDialog'
 import BookEditDialog from '@/components/books/BookEditDialog'
@@ -35,7 +34,6 @@ export default function BookDetailClient({ id }: { id: string }) {
   const { data, error, isLoading } = useLibrary()
   const { data: currentUser } = useCurrentUser()
   const isAdmin = currentUser?.role === 'admin'
-  const [kepubPreviewOpen, setKepubPreviewOpen] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [readerOpen, setReaderOpen] = useState(false)
@@ -219,16 +217,10 @@ export default function BookDetailClient({ id }: { id: string }) {
                         </Button>
                       ))
                     )}
-                    {/* PDF-only books preview their converted KEPUB until the reader can open it. */}
+                    {/* A PDF-only book also links straight to its reflowable KEPUB. */}
                     {!userBook.formats.includes('epub') && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => setKepubPreviewOpen(true)}
-                      >
-                        Preview EPUB
+                      <Button asChild variant="secondary" size="sm" className="text-xs">
+                        <Link href={`/books/${userBook.id}/read?format=kepub`}>Open KEPUB</Link>
                       </Button>
                     )}
                   </div>
@@ -253,16 +245,6 @@ export default function BookDetailClient({ id }: { id: string }) {
             </Card>
           </section>
         </>
-      )}
-
-      {kepubPreviewOpen && userBook && (
-        <BookPreviewDialog
-          bookId={userBook.bookId}
-          format="kepub"
-          title={book?.title ?? 'Book Preview'}
-          open={kepubPreviewOpen}
-          onOpenChange={setKepubPreviewOpen}
-        />
       )}
 
       {userBook && book && (
