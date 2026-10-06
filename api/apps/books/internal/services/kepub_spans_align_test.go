@@ -3,6 +3,7 @@ package services
 
 import (
 	"context"
+	"math/rand/v2"
 	"strings"
 	"testing"
 	"unicode/utf16"
@@ -34,6 +35,9 @@ func TestAlignStarts(t *testing.T) {
 			[]int{0, 4}, []int{0, 9}},
 		{"span after dropped space", "doc tail.", "doc  tail.", []int{3}, []int{4}},
 		{"to empty", "abc", "", []int{0, 1, 3}, []int{0, 0, 0}},
+		{"text only in from after a first-char match", "aZb", "ab",
+			[]int{1}, []int{1}},
+		{"match on to's last char", "Yx", "aY", []int{0}, []int{1}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -104,4 +108,90 @@ func TestSpanMapCache_EvictsLeastRecentlyUsed(t *testing.T) {
 	other.version = 2
 	_, ok = c.get(other)
 	assert.False(t, ok, "converter version is part of the key")
+}
+
+func TestAlignStarts_OneSideEmptyIgnoresEditLimit(t *testing.T) {
+	long := u16(strings.Repeat("x", maxAlignEdits+5))
+	got, ok := alignStarts(context.Background(), long, nil, []int{0, 3})
+	require.True(t, ok)
+	assert.Equal(t, []int{0, 0}, got)
+
+	got, ok = alignStarts(context.Background(), nil, long, []int{0})
+	require.True(t, ok)
+	assert.Equal(t, []int{len(long)}, got)
+}
+
+// lcsLen is the textbook LCS length, the reference for myersMatches.
+func lcsLen(a, b []uint16) int {
+	prev := make([]int, len(b)+1)
+	for i := range a {
+		cur := make([]int, len(b)+1)
+		for j := range b {
+			switch {
+			case a[i] == b[j]:
+				cur[j+1] = prev[j] + 1
+			case prev[j+1] >= cur[j]:
+				cur[j+1] = prev[j+1]
+			default:
+				cur[j+1] = cur[j]
+			}
+		}
+		prev = cur
+	}
+	return prev[len(b)]
+}
+
+func randomText(r *rand.Rand, alphabet string) []uint16 {
+	out := make([]uint16, r.IntN(10))
+	for i := range out {
+		out[i] = uint16(alphabet[r.IntN(len(alphabet))])
+	}
+	return out
+}
+
+// TestMyersMatches_OptimalAndValid: on random pairs the matching is a valid
+// common subsequence of maximal length, and ok flips exactly at the edit
+// distance.
+func TestMyersMatches_OptimalAndValid(t *testing.T) {
+	r := rand.New(rand.NewPCG(2158, 1))
+	ctx := context.Background()
+	for range 3000 {
+		alphabet := []string{"ab", "abc", "abcd"}[r.IntN(3)]
+		a, b := randomText(r, alphabet), randomText(r, alphabet)
+		lcs := lcsLen(a, b)
+		dist := len(a) + len(b) - 2*lcs
+
+		match, ok := myersMatches(ctx, a, b, dist)
+		require.True(t, ok, "%v %v", a, b)
+		require.Len(t, match, len(a))
+		matched, last := 0, -1
+		for i, j := range match {
+			if j < 0 {
+				continue
+			}
+			require.Greater(t, j, last, "%v %v", a, b)
+			require.Equal(t, a[i], b[j], "%v %v", a, b)
+			last = j
+			matched++
+		}
+		require.Equal(t, lcs, matched, "%v %v", a, b)
+
+		if dist > 0 {
+			_, ok = myersMatches(ctx, a, b, dist-1)
+			require.False(t, ok, "%v %v", a, b)
+		}
+
+		late, ok := lateMatches(ctx, a, b)
+		require.True(t, ok)
+		matched, last = 0, -1
+		for i, j := range late {
+			if j >= 0 {
+				require.Greater(t, j, last)
+				require.Equal(t, a[i], b[j])
+				last = j
+				matched++
+			}
+		}
+		require.Equal(t, lcs, matched, "%v %v", a, b)
+	}
 }

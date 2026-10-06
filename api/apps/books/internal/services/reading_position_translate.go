@@ -49,6 +49,8 @@ type PositionService struct {
 	budget       time.Duration
 	buildTimeout time.Duration
 	pendingGrace time.Duration
+	maxDownload  int64
+	now          func() time.Time
 	pendingMu    sync.Mutex
 	pendingSince map[spanMapKey]time.Time
 }
@@ -69,6 +71,8 @@ func newPositionService(
 		budget:       budget,
 		buildTimeout: spanMapBuildTimeout,
 		pendingGrace: spanMapPendingGrace,
+		maxDownload:  maxConversionInputBytes,
+		now:          time.Now,
 		pendingMu:    sync.Mutex{},
 		pendingSince: map[spanMapKey]time.Time{},
 	}
@@ -223,12 +227,13 @@ func (s *PositionService) await(
 func (s *PositionService) stillPending(key spanMapKey) bool {
 	s.pendingMu.Lock()
 	defer s.pendingMu.Unlock()
+	now := s.now()
 	since, ok := s.pendingSince[key]
 	if !ok {
-		s.pendingSince[key] = time.Now()
+		s.pendingSince[key] = now
 		return true
 	}
-	return time.Since(since) < s.pendingGrace
+	return now.Sub(since) < s.pendingGrace
 }
 
 func (s *PositionService) markBuilt(key spanMapKey, m *spanMap) {

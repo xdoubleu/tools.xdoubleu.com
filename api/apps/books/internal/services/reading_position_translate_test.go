@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -19,7 +21,6 @@ import (
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
 	"tools.xdoubleu.com/internal/database"
-	"tools.xdoubleu.com/internal/logging"
 )
 
 type fakeKEPUBFiles struct {
@@ -50,11 +51,12 @@ func (f *fakeKEPUBFiles) GetByID(
 }
 
 // countingStore counts Gets and, while gate is set, blocks them until it
-// closes.
+// closes; panics makes Get panic.
 type countingStore struct {
 	*objectstore.FakeClient
-	gets atomic.Int32
-	gate chan struct{}
+	gets   atomic.Int32
+	gate   chan struct{}
+	panics bool
 }
 
 func (s *countingStore) Get(ctx context.Context, key string) (io.ReadCloser, error) {
@@ -62,13 +64,41 @@ func (s *countingStore) Get(ctx context.Context, key string) (io.ReadCloser, err
 	if s.gate != nil {
 		<-s.gate
 	}
+	if s.panics {
+		panic("store exploded")
+	}
 	return s.FakeClient.Get(ctx, key)
+}
+
+// logRecorder is a slog.Handler keeping each record's message.
+type logRecorder struct {
+	mu   sync.Mutex
+	msgs []string
+}
+
+func (r *logRecorder) Enabled(context.Context, slog.Level) bool { return true }
+
+func (r *logRecorder) Handle(_ context.Context, rec slog.Record) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.msgs = append(r.msgs, rec.Message)
+	return nil
+}
+
+func (r *logRecorder) WithAttrs([]slog.Attr) slog.Handler { return r }
+func (r *logRecorder) WithGroup(string) slog.Handler      { return r }
+
+func (r *logRecorder) messages() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.msgs...)
 }
 
 type translatorFixture struct {
 	svc    *PositionService
 	store  *countingStore
 	files  *fakeKEPUBFiles
+	logs   *logRecorder
 	bookID uuid.UUID
 }
 
@@ -85,6 +115,7 @@ func newTranslatorFixture(
 
 	store := &countingStore{
 		FakeClient: objectstore.NewFake(), gets: atomic.Int32{}, gate: nil,
+		panics: false,
 	}
 	ctx := context.Background()
 	require.NoError(t, store.Put(ctx, "src", bytes.NewReader(orig),
@@ -106,8 +137,11 @@ func newTranslatorFixture(
 		byID:     map[uuid.UUID]*models.BookFile{src.ID: src},
 		err:      nil,
 	}
-	svc := newPositionService(logging.NewNopLogger(), files, store, budget)
-	return &translatorFixture{svc: svc, store: store, files: files, bookID: uuid.New()}
+	logs := &logRecorder{mu: sync.Mutex{}, msgs: nil}
+	svc := newPositionService(slog.New(logs), files, store, budget)
+	return &translatorFixture{
+		svc: svc, store: store, files: files, logs: logs, bookID: uuid.New(),
+	}
 }
 
 // settledPosition is KoboPosition for a translation that isn't pending.

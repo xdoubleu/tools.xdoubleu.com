@@ -98,14 +98,14 @@ func (s *PositionService) openZip(ctx context.Context, key string) (*tempZip, er
 	if err != nil {
 		return nil, fmt.Errorf("%w: create temp file: %w", errSpanMapRetry, err)
 	}
-	n, err := io.Copy(tmp, io.LimitReader(rc, maxConversionInputBytes+1))
+	n, err := io.Copy(tmp, io.LimitReader(rc, s.maxDownload+1))
 	_ = tmp.Close()
 	if err != nil {
 		_ = os.Remove(tmp.Name())
 		return nil, fmt.Errorf("%w: download %s: %w", errSpanMapRetry, key, err)
 	}
-	if n > maxConversionInputBytes {
-		err = fmt.Errorf("%s exceeds %d bytes", key, maxConversionInputBytes)
+	if n > s.maxDownload {
+		err = fmt.Errorf("%s exceeds %d bytes", key, s.maxDownload)
 	}
 	var zr *zip.ReadCloser
 	if err == nil {

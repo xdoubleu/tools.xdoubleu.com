@@ -105,8 +105,8 @@ func myersMatches(ctx context.Context, a, b []uint16, maxD int) ([]int, bool) {
 			}
 			v[off+k] = x
 			if x >= n && y >= m {
-				trace = append(trace, append([]int(nil), v[off-d:off+d+1]...))
-				return myersBacktrack(trace, n, m), true
+				// Backtracking never reads the last round, only counts it.
+				return myersBacktrack(append(trace, nil), n, m), true
 			}
 		}
 		trace = append(trace, append([]int(nil), v[off-d:off+d+1]...))
