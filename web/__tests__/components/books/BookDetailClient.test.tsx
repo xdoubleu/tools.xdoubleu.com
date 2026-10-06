@@ -92,12 +92,6 @@ jest.mock('@/components/books/KoboSyncToggle', () => {
   }
 })
 
-jest.mock('@/components/books/BookPreviewDialog', () => {
-  return function MockBookPreviewDialog() {
-    return <div data-testid="book-preview-dialog" />
-  }
-})
-
 jest.mock('@/components/books/RemoveBookDialog', () => {
   return function MockRemoveBookDialog({
     open,
@@ -386,7 +380,7 @@ describe('BookDetailClient', () => {
       'href',
       '/books/ub-1/read'
     )
-    expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Open KEPUB' })).not.toBeInTheDocument()
   })
 
   it('links a book with both files to each format', () => {
@@ -403,15 +397,18 @@ describe('BookDetailClient', () => {
     expect(screen.queryByRole('button', { name: 'Preview PDF' })).not.toBeInTheDocument()
   })
 
-  it('keeps the converted KEPUB preview for a PDF-only book', () => {
+  it('opens the converted KEPUB of a PDF-only book in the reader', () => {
     setFormats(['pdf'])
     render(<BookDetailClient id="ub-1" />)
     expect(screen.getByRole('link', { name: 'Open reader' })).toHaveAttribute(
       'href',
       '/books/ub-1/read'
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Preview EPUB' }))
-    expect(screen.getByTestId('book-preview-dialog')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open KEPUB' })).toHaveAttribute(
+      'href',
+      '/books/ub-1/read?format=kepub'
+    )
+    expect(screen.queryByRole('button', { name: 'Preview EPUB' })).not.toBeInTheDocument()
   })
 
   it('does not show preview buttons when no formats', () => {

@@ -66,7 +66,7 @@ describe('middleware CSP', () => {
   })
 
   it('allows the foliate-js reader its blob: frames, stylesheets and fonts', () => {
-    expect(cspDirective('frame-src')).toContain('blob:')
+    expect(cspDirective('frame-src')).toBe("frame-src 'self' blob:")
     expect(cspDirective('style-src')).toContain('blob:')
     expect(cspDirective('font-src')).toBe("font-src 'self' blob:")
   })
