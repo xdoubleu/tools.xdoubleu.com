@@ -48,10 +48,10 @@ The invoking prompt states the mode; default to interactive.
      `TransactionLatencyRegression` for `trending` — `rules.yml`).
    - `prom_query` for raw gauges (`issue_signal_collector.go`).
 
-2. **Sentry resolution backstop** (inline, no subagent; independent of page
+2. **Sentry resolution backstop** (inline; independent of page
    counts):
-   - `list_issues(state: "CLOSED", since: <~14 days back>, fields: ["number",
-     "title", "body", "closed_at", "html_url"])`.
+   - `gh issue list --state closed --search "closed:>=<~14 days back>"
+     --json number,title,body,closedAt,url` (no MCP tool).
    - For each body containing `https://xdoubleu.sentry.io/issues/<id>/`,
      check the id against step 1's unresolved list (don't re-fetch).
    - `resolve_sentry_issue(issue_id)` only on evidence the fix shipped and

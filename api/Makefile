@@ -170,8 +170,9 @@ test/mutation: tools/mutation
 # Overridable so a sandbox can point coverage artifacts outside the checkout.
 COVERAGE ?= coverage.out
 
+# -count=1: a cached package result would leave stale blocks in the profile.
 test/cov/report:
-	go test -p 1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
+	go test -p 1 -count=1 ./... -coverpkg=./cmd/api,./internal/...,./apps/... -covermode=set -coverprofile=$(COVERAGE).tmp
 	cat $(COVERAGE).tmp | grep -v "_mock.go" | grep -v "/gen/" > $(COVERAGE).filtered
 	echo "mode: set" > $(COVERAGE)
 	# -coverpkg makes other binaries emit count=0 duplicates that Codecov doesn't
