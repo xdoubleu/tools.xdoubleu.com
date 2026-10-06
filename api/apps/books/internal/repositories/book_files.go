@@ -38,25 +38,19 @@ func (r *BookFilesRepository) Replace(
 	staleID uuid.UUID,
 	f models.BookFile,
 ) (*models.BookFile, error) {
-	tx, err := r.db.Begin(ctx)
+	var row *models.BookFile
+	err := pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		tag, err := tx.Exec(ctx, `DELETE FROM books.book_files WHERE id = $1`, staleID)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrBookFileReplaced
+		}
+		row, err = insertBookFile(ctx, tx, f)
+		return err
+	})
 	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	tag, err := tx.Exec(ctx, `DELETE FROM books.book_files WHERE id = $1`, staleID)
-	if err != nil {
-		return nil, postgres.PgxErrorToHTTPError(err)
-	}
-	if tag.RowsAffected() == 0 {
-		return nil, ErrBookFileReplaced
-	}
-
-	row, err := insertBookFile(ctx, tx, f)
-	if err != nil {
-		return nil, err
-	}
-	if err = tx.Commit(ctx); err != nil {
 		return nil, postgres.PgxErrorToHTTPError(err)
 	}
 	return row, nil

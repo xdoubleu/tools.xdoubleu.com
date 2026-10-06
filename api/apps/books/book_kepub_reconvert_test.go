@@ -150,6 +150,58 @@ func TestEnsureKEPUB_StaleReplacementHasNoGap(t *testing.T) {
 	assert.Equal(t, 1, countKEPUBRows(t, book.ID))
 }
 
+// TestBookFilesReplace_FailedInsertKeepsStaleRow: the delete rolls back with
+// a failed insert.
+func TestBookFilesReplace_FailedInsertKeepsStaleRow(t *testing.T) {
+	book := addUniqueBook(t)
+	_, store := newTestConversionService(nil, nil)
+	source := seedEPUBFile(t, store, book.ID)
+	stale := insertStaleKEPUBFrom(t, book.ID, source.ID)
+
+	_, err := testApp.Repositories.BookFiles.Replace(
+		context.Background(), stale.ID,
+		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+			BookID: book.ID,
+			UserID: userID,
+			Format: "not-a-format",
+			Status: models.FileStatusConverting,
+		},
+	)
+	require.Error(t, err)
+
+	kept, err := testApp.Repositories.BookFiles.GetByID(context.Background(), stale.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.FileStatusReady, kept.Status)
+}
+
+// TestEnsureKEPUB_InProgressPlaceholderIsKept: a converting placeholder
+// (version 0) belongs to a running conversion and is not replaced.
+func TestEnsureKEPUB_InProgressPlaceholderIsKept(t *testing.T) {
+	book := addUniqueBook(t)
+	conv, store := newTestConversionService(
+		&fakeEPUBConverter{out: []byte("fresh kepub"), err: nil}, nil,
+	)
+	source := seedEPUBFile(t, store, book.ID)
+	sourceID := source.ID
+	placeholder, err := testApp.Repositories.BookFiles.Insert(
+		context.Background(),
+		models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+			BookID:       book.ID,
+			UserID:       userID,
+			Format:       models.FileFormatKEPUB,
+			Status:       models.FileStatusConverting,
+			SourceFileID: &sourceID,
+		},
+	)
+	require.NoError(t, err)
+
+	result, err := conv.EnsureKEPUB(context.Background(), userID, book.ID)
+	require.NoError(t, err)
+	assert.Equal(t, placeholder.ID, result.ID)
+	assert.Equal(t, models.FileStatusConverting, result.Status)
+	assert.Equal(t, 1, countKEPUBRows(t, book.ID))
+}
+
 // TestEnsureKEPUB_ConcurrentStaleReplacement: two reconversions of one stale
 // row leave a single KEPUB row.
 func TestEnsureKEPUB_ConcurrentStaleReplacement(t *testing.T) {

@@ -142,16 +142,12 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	// A stale KEPUB is never served as ready: reconvert it, as
+	// A stale KEPUB is never reported ready: reconvert it, as
 	// RequestKEPUBConversion would, so "converting" resolves.
 	kepubStatus := result.KepubStatus
-	if result.KepubStale {
-		kepubStatus, err = h.maybeStartKEPUBConversion(
-			ctx, user.ID, bookID, result, false,
-		)
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInternal, err)
-		}
+	if result.KepubStale && (result.HasEPUB || result.HasPDF) {
+		h.app.startKEPUBRegeneration(ctx, user.ID, bookID)
+		kepubStatus = models.FileStatusConverting
 	}
 	return connect.NewResponse(&booksv1.GetKEPUBStatusResponse{
 		HasEpub:     result.HasEPUB,

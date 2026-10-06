@@ -84,7 +84,8 @@ func NewConversionService(
 }
 
 // EnsureKEPUB returns the KEPUB row for (userID, bookID), converting the stored
-// EPUB or PDF if needed; FailedPrecondition when neither exists.
+// EPUB or PDF if needed, or the converting row of a conversion already
+// running; FailedPrecondition when neither source exists.
 func (s *ConversionService) EnsureKEPUB(
 	ctx context.Context,
 	userID string,
@@ -111,7 +112,8 @@ func (s *ConversionService) ensureKEPUB(
 	// A stale KEPUB stays until its replacement row is inserted.
 	var staleID *uuid.UUID
 	if err == nil {
-		if existing.ConverterVersion >= currentKEPUBConverterVersion {
+		if existing.Status == models.FileStatusConverting ||
+			existing.ConverterVersion >= currentKEPUBConverterVersion {
 			return existing, nil
 		}
 		staleID = &existing.ID
