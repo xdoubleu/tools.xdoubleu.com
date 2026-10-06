@@ -36,9 +36,8 @@ export function middleware(request: NextRequest) {
     "font-src 'self' blob:",
     "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc.join(' ')}`,
-    // BookPreviewDialog frames presigned R2 PDFs; the foliate-js reader
-    // renders book sections into blob: iframes.
-    "frame-src 'self' blob: https://*.r2.cloudflarestorage.com",
+    // The foliate-js reader renders book sections into blob: iframes.
+    "frame-src 'self' blob:",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

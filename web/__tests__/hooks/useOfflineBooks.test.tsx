@@ -1,13 +1,15 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
-import { useOfflineBookFile, useStoredBookIds } from '@/hooks/useOfflineBooks'
+import { useOfflineBookFile, useStoredBookIds, useStoredBookVersion } from '@/hooks/useOfflineBooks'
 
 const mockOpenBookFile = jest.fn()
 const mockStoredBookIds = jest.fn()
+const mockStoredBookVersion = jest.fn()
 const storedListeners = new Set<() => void>()
 
 jest.mock('@/lib/books/offlineBooks', () => ({
   openBookFile: (...args: unknown[]) => mockOpenBookFile(...args),
   storedBookIds: () => mockStoredBookIds(),
+  storedBookVersion: (...args: unknown[]) => mockStoredBookVersion(...args),
   subscribeStoredBooks: (listener: () => void) => {
     storedListeners.add(listener)
     return () => storedListeners.delete(listener)
@@ -16,6 +18,7 @@ jest.mock('@/lib/books/offlineBooks', () => ({
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockStoredBookIds.mockResolvedValue(new Set())
 })
 
 describe('useOfflineBookFile', () => {
@@ -104,5 +107,26 @@ describe('useStoredBookIds', () => {
 
     first.unmount()
     second.unmount()
+  })
+})
+
+describe('useStoredBookVersion', () => {
+  it('reports the stored version, refreshing when books change', async () => {
+    mockStoredBookVersion.mockResolvedValueOnce(null)
+    const { result, unmount } = renderHook(() => useStoredBookVersion('b1', 'kepub'))
+    expect(result.current).toBeUndefined()
+    await waitFor(() => expect(result.current).toBeNull())
+    expect(mockStoredBookVersion).toHaveBeenCalledWith('b1', 'kepub')
+
+    mockStoredBookVersion.mockResolvedValueOnce('v1')
+    act(() => storedListeners.forEach((l) => l()))
+    await waitFor(() => expect(result.current).toBe('v1'))
+    unmount()
+  })
+
+  it('checks nothing without a book', () => {
+    const { result } = renderHook(() => useStoredBookVersion(null, 'kepub'))
+    expect(result.current).toBeNull()
+    expect(mockStoredBookVersion).not.toHaveBeenCalled()
   })
 })

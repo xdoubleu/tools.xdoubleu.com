@@ -25,7 +25,6 @@ describe('swrKeys', () => {
   it('dynamic keys match their historical shapes', () => {
     expect(swrKeys.booksProgress('a', 'b')).toEqual(['/books/progress', 'a', 'b'])
     expect(swrKeys.kepubStatus('42')).toEqual(['/books/kepub-status', '42'])
-    expect(swrKeys.bookFile('42', 'epub')).toEqual(['/books/file', '42', 'epub'])
     expect(swrKeys.game(7)).toBe('/games/7')
     expect(swrKeys.gamesDistribution(3)).toBe('/games/distribution/3')
     expect(swrKeys.gamesProgress('a', 'b')).toEqual(['/games/progress', 'a', 'b'])

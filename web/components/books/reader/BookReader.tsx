@@ -11,6 +11,7 @@ import {
   readerStyles,
   type ReaderTheme
 } from '@/lib/books/readerSettings'
+import type { ReaderChoiceControl } from '@/lib/books/readerChoice'
 import type { ReaderResume } from '@/lib/books/readerPosition'
 import ReaderControls from './ReaderControls'
 import { useFoliateView, type ReaderLocation } from './useFoliateView'
@@ -18,7 +19,7 @@ import { useFoliateView, type ReaderLocation } from './useFoliateView'
 export type { ReaderLocation, ReaderResume }
 
 interface BookReaderProps {
-  /** The EPUB or PDF, or a URL to fetch it from. */
+  /** The EPUB, KEPUB or PDF, or a URL to fetch it from. */
   file: Blob | string
   title: string
   onClose: () => void
@@ -26,6 +27,8 @@ interface BookReaderProps {
   onRelocate?: (location: ReaderLocation) => void
   /** Where to open; read once. Defaults to the start. */
   initialPosition?: ReaderResume
+  /** Offers switching between the original file and its converted KEPUB. */
+  format?: ReaderChoiceControl
 }
 
 function appTheme(): ReaderTheme {
@@ -38,7 +41,8 @@ export default function BookReader({
   title,
   onClose,
   onRelocate,
-  initialPosition
+  initialPosition,
+  format
 }: BookReaderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const { view, status, location } = useFoliateView(containerRef, file, onRelocate, initialPosition)
@@ -81,6 +85,7 @@ export default function BookReader({
             onThemeChange={setTheme}
             fontSize={fontSize}
             onFontSizeChange={setFontSize}
+            format={format}
           />
         )}
       </div>

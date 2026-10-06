@@ -65,7 +65,7 @@ const FeedItemMarkReadButton = forwardRef<FeedItemMarkReadHandle, FeedItemMarkRe
       return (
         <span className="flex items-center gap-1 text-xs text-muted whitespace-nowrap">
           Marked as read
-          <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={handleUndo}>
+          <Button variant="secondary" size="sm" className="min-w-11" onClick={handleUndo}>
             Undo
           </Button>
         </span>

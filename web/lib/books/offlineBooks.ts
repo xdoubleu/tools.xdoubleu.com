@@ -68,6 +68,11 @@ export function listStoredBooks(): Promise<StoredBookInfo[]> {
   return listBookFiles()
 }
 
+/** The stored file's version, or null when the format isn't stored. */
+export async function storedBookVersion(bookId: string, format: string): Promise<string | null> {
+  return (await loadBookFile(bookId, format))?.version ?? null
+}
+
 /** IDs of books with at least one stored format. */
 export async function storedBookIds(): Promise<Set<string>> {
   return new Set((await listBookFileKeys()).map((k) => k.bookId))

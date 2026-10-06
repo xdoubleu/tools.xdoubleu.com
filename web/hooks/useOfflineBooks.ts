@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { openBookFile, storedBookIds, subscribeStoredBooks } from '@/lib/books/offlineBooks'
+import {
+  openBookFile,
+  storedBookIds,
+  storedBookVersion,
+  subscribeStoredBooks
+} from '@/lib/books/offlineBooks'
 
 interface OfflineBookFile {
   file?: File
@@ -81,4 +86,33 @@ export function useStoredBookIds(): ReadonlySet<string> {
     () => storedIds,
     () => NONE
   )
+}
+
+/**
+ * The version of the book's stored `format`: undefined while checking, null
+ * when none is stored (or no book is given).
+ */
+export function useStoredBookVersion(
+  bookId: string | null,
+  format: string
+): string | null | undefined {
+  const key = bookId ? `${bookId}:${format}` : null
+  const [stored, setStored] = useState<{ key: string; version: string | null } | null>(null)
+  useEffect(() => {
+    if (!bookId) return
+    let active = true
+    const key = `${bookId}:${format}`
+    const load = () =>
+      void storedBookVersion(bookId, format).then((version) => {
+        if (active) setStored({ key, version })
+      })
+    load()
+    const unsubscribe = subscribeStoredBooks(load)
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [bookId, format])
+  if (!key) return null
+  return stored?.key === key ? stored.version : undefined
 }

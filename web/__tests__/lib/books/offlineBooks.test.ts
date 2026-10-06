@@ -6,6 +6,7 @@ import {
   listStoredBooks,
   openBookFile,
   storedBookIds,
+  storedBookVersion,
   storedBooksSize,
   subscribeStoredBooks
 } from '@/lib/books/offlineBooks'
@@ -115,6 +116,8 @@ describe('stored book management', () => {
     ])
     expect(await storedBooksSize()).toBe(5)
     expect(await storedBookIds()).toEqual(new Set(['b1']))
+    expect(await storedBookVersion('b1', 'epub')).toBe('f1:0')
+    expect(await storedBookVersion('b1', 'kepub')).toBeNull()
 
     await deleteStoredBook('b1', 'epub')
     expect(listener).toHaveBeenCalledTimes(2)
