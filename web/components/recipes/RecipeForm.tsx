@@ -232,7 +232,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 placeholder="e.g. 1/3"
                 value={ing.amount}
                 onChange={(e) => updateIngredient(idx, 'amount', e.target.value)}
-                className="w-16"
+                className="min-w-0 flex-1 sm:w-16 sm:flex-none"
               />
               <Input
                 type="text"
@@ -261,7 +261,7 @@ export default function RecipeForm({ recipe, onSave, onCancel }: RecipeFormProps
                 aria-label="Category"
                 value={ing.categoryId}
                 onChange={(e) => updateIngredient(idx, 'categoryId', e.target.value)}
-                className="w-auto"
+                className="w-full sm:w-auto"
               >
                 <option value="">-- Category --</option>
                 {categories.map((category) => (

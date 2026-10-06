@@ -50,6 +50,15 @@ describe('RecipeForm (new recipe)', () => {
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
   })
 
+  it('gives the amount and category controls phone-sized tap targets', () => {
+    render(<RecipeForm onSave={jest.fn()} onCancel={jest.fn()} />)
+    const amount = screen.getByPlaceholderText('e.g. 1/3')
+    expect(amount).toHaveClass('min-w-0', 'flex-1', 'sm:w-16', 'sm:flex-none')
+    expect(amount).not.toHaveClass('w-16')
+    const category = screen.getByRole('combobox', { name: 'Category' })
+    expect(category).toHaveClass('w-full', 'sm:w-auto')
+  })
+
   it('calls onCancel when Cancel is clicked', () => {
     const onCancel = jest.fn()
     render(<RecipeForm onSave={jest.fn()} onCancel={onCancel} />)
