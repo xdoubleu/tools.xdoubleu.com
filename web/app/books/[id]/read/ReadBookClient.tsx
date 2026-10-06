@@ -100,14 +100,15 @@ export default function ReadBookClient({ id }: { id: string }) {
   // exactly; a PDF-sourced book's position is translated by the server, and
   // falls back to the percent when that fails (e.g. offline).
   const lastLocation = useRef<ReaderLocation | null>(null)
-  const switches = useRef(0)
+  const latestSwitch = useRef<object | null>(null)
   const onRelocate = (location: ReaderLocation) => {
     lastLocation.current = location
     saveProgress(location)
   }
   const switchTo = (next: ReaderChoice) => {
     const at = lastLocation.current
-    const seq = ++switches.current
+    const thisSwitch = {}
+    latestSwitch.current = thisSwitch
     const position = at?.position
     if (at && original === 'pdf' && bookId && position) {
       const percent = at.fraction * 100
@@ -116,7 +117,7 @@ export default function ReadBookClient({ id }: { id: string }) {
         .then((translated) => resumeFromState({ percent, position: translated }))
         .catch(() => ({ position, percent }))
         .then((r) => {
-          if (seq === switches.current) setResume(r)
+          if (latestSwitch.current === thisSwitch) setResume(r)
         })
     } else if (at) {
       setResume({ position, percent: at.fraction * 100 })
