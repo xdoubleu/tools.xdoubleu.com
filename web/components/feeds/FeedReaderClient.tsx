@@ -100,7 +100,7 @@ export default function FeedReaderClient() {
           value={selectedFeedId ?? ''}
           onChange={(e) => setSelectedFeedId(e.target.value || undefined)}
           aria-label="Filter by feed"
-          className="w-full sm:w-auto"
+          className="w-full cursor-pointer sm:w-auto"
         >
           <option value="">All feeds</option>
           {(feedsData?.feeds ?? []).map((feed) => (

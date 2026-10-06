@@ -56,6 +56,13 @@ describe('FeedItemMarkReadButton', () => {
     expect(onSettled).toHaveBeenCalledWith('item-1')
   })
 
+  it('renders Undo as a sized action button, not an inline link', async () => {
+    render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={jest.fn()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+    const undo = await screen.findByRole('button', { name: 'Undo' })
+    expect(undo).toHaveClass('h-11', 'min-w-11')
+  })
+
   it('reverts to the prior state and never settles when Undo is clicked', async () => {
     const onSettled = jest.fn()
     render(<FeedItemMarkReadButton itemId="item-1" onMarkRead={jest.fn()} onSettled={onSettled} />)
