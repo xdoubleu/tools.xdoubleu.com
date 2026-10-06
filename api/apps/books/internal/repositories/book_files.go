@@ -24,6 +24,40 @@ func (r *BookFilesRepository) Insert(
 	ctx context.Context,
 	f models.BookFile,
 ) (*models.BookFile, error) {
+	return insertBookFile(ctx, r.db, f)
+}
+
+// Replace swaps the row staleID for f in one transaction, so readers see the
+// old row or the new one, never none. replaced is false (nothing inserted)
+// when staleID is already gone, i.e. a concurrent caller replaced it.
+func (r *BookFilesRepository) Replace(
+	ctx context.Context,
+	staleID uuid.UUID,
+	f models.BookFile,
+) (bool, *models.BookFile, error) {
+	var row *models.BookFile
+	err := pgx.BeginFunc(ctx, r.db, func(tx pgx.Tx) error {
+		tag, execErr := tx.Exec(
+			ctx, `DELETE FROM books.book_files WHERE id = $1`, staleID,
+		)
+		if execErr != nil || tag.RowsAffected() == 0 {
+			return execErr
+		}
+		var insertErr error
+		row, insertErr = insertBookFile(ctx, tx, f)
+		return insertErr
+	})
+	if err != nil {
+		return false, nil, postgres.PgxErrorToHTTPError(err)
+	}
+	return row != nil, row, nil
+}
+
+func insertBookFile(
+	ctx context.Context,
+	q Querier,
+	f models.BookFile,
+) (*models.BookFile, error) {
 	query := `
 		INSERT INTO books.book_files
 		    (book_id, user_id, format, storage_key, size_bytes,
@@ -31,7 +65,7 @@ func (r *BookFilesRepository) Insert(
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING ` + bookFileColumns
 
-	row := r.db.QueryRow(ctx, query,
+	row := q.QueryRow(ctx, query,
 		f.BookID,
 		f.UserID,
 		f.Format,

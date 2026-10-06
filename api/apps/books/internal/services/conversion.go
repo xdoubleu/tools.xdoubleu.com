@@ -90,7 +90,8 @@ func (s *ConversionService) EnsureKEPUB(
 	userID string,
 	bookID uuid.UUID,
 ) (*models.BookFile, error) {
-	// A stale existing KEPUB is deleted and regenerated.
+	// A stale existing KEPUB is replaced atomically by the new row below.
+	var staleID *uuid.UUID
 	existing, err := s.bookFiles.GetByBookAndFormat(
 		ctx, userID, bookID, models.FileFormatKEPUB,
 	)
@@ -98,9 +99,7 @@ func (s *ConversionService) EnsureKEPUB(
 		if existing.ConverterVersion >= currentKEPUBConverterVersion {
 			return existing, nil
 		}
-		if delErr := s.bookFiles.Delete(ctx, existing.ID); delErr != nil {
-			return nil, delErr
-		}
+		staleID = &existing.ID
 	} else if !errors.Is(err, database.ErrResourceNotFound) {
 		return nil, err
 	}
@@ -120,13 +119,15 @@ func (s *ConversionService) EnsureKEPUB(
 		return nil, err
 	}
 	if shared != nil {
-		return shared, nil
+		row, _, putErr := s.putKEPUBRow(ctx, staleID, *shared)
+		return row, putErr
 	}
 
 	// Placeholder row exposes the "converting" state to concurrent callers and the UI.
 	sourceID := sourceFile.ID
-	kepubRow, err := s.bookFiles.Insert(
+	kepubRow, won, err := s.putKEPUBRow(
 		ctx,
+		staleID,
 		models.BookFile{ //nolint:exhaustruct //optional fields not applicable here
 			BookID:       bookID,
 			UserID:       userID,
@@ -137,8 +138,8 @@ func (s *ConversionService) EnsureKEPUB(
 			SourceFileID: &sourceID,
 		},
 	)
-	if err != nil {
-		return nil, err
+	if err != nil || !won {
+		return kepubRow, err
 	}
 
 	epubData, convertErr := s.prepareEPUBData(ctx, bookID, sourceFile, sourceFormat)
@@ -217,9 +218,34 @@ func (s *ConversionService) prepareEPUBData(
 	return epubData, nil
 }
 
+// putKEPUBRow stores f, replacing staleID atomically when set. won is false
+// when a concurrent caller already replaced staleID; row is then its current
+// row and nothing was inserted.
+func (s *ConversionService) putKEPUBRow(
+	ctx context.Context,
+	staleID *uuid.UUID,
+	f models.BookFile,
+) (*models.BookFile, bool, error) {
+	if staleID == nil {
+		row, err := s.bookFiles.Insert(ctx, f)
+		return row, err == nil, err
+	}
+	replaced, row, err := s.bookFiles.Replace(ctx, *staleID, f)
+	if err != nil {
+		return nil, false, err
+	}
+	if replaced {
+		return row, true, nil
+	}
+	current, err := s.bookFiles.GetByBookAndFormat(
+		ctx, f.UserID, f.BookID, models.FileFormatKEPUB,
+	)
+	return current, false, err
+}
+
 // resolveCanonicalKEPUB looks up a shared KEPUB by source checksum. A non-nil
-// row is a dedup hit; otherwise convert and Put at canonicalKey, or use a
-// per-user key when canonicalKey is "" (no checksum).
+// row (not yet inserted) is a dedup hit; otherwise convert and Put at
+// canonicalKey, or use a per-user key when canonicalKey is "" (no checksum).
 func (s *ConversionService) resolveCanonicalKEPUB(
 	ctx context.Context,
 	userID string,
@@ -243,20 +269,16 @@ func (s *ConversionService) resolveCanonicalKEPUB(
 	}
 
 	sourceID := sourceFile.ID
-	row, insertErr := s.bookFiles.Insert(
-		ctx,
-		models.BookFile{ //nolint:exhaustruct //optional fields not applicable here
-			BookID:           bookID,
-			UserID:           userID,
-			Format:           models.FileFormatKEPUB,
-			StorageKey:       canonicalKey,
-			SizeBytes:        globalRow.SizeBytes,
-			Status:           models.FileStatusReady,
-			SourceFileID:     &sourceID,
-			ConverterVersion: globalRow.ConverterVersion,
-		},
-	)
-	return row, canonicalKey, insertErr
+	return &models.BookFile{ //nolint:exhaustruct //optional fields not applicable here
+		BookID:           bookID,
+		UserID:           userID,
+		Format:           models.FileFormatKEPUB,
+		StorageKey:       canonicalKey,
+		SizeBytes:        globalRow.SizeBytes,
+		Status:           models.FileStatusReady,
+		SourceFileID:     &sourceID,
+		ConverterVersion: globalRow.ConverterVersion,
+	}, canonicalKey, nil
 }
 
 // resolveSourceFile prefers EPUB, then PDF; FailedPrecondition when neither.

@@ -142,10 +142,21 @@ func (h *booksConnectHandler) GetKEPUBStatus(
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
+	kepubStatus := result.KepubStatus
+	if result.KepubStale {
+		// Never report an outdated KEPUB as ready: start the reconversion
+		// RequestKEPUBConversion would, so "converting" is truthful.
+		kepubStatus, err = h.maybeStartKEPUBConversion(
+			ctx, user.ID, bookID, result, false,
+		)
+		if err != nil {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+	}
 	return connect.NewResponse(&booksv1.GetKEPUBStatusResponse{
 		HasEpub:     result.HasEPUB,
 		HasPdf:      result.HasPDF,
-		KepubStatus: result.KepubStatus,
+		KepubStatus: kepubStatus,
 	}), nil
 }
 
