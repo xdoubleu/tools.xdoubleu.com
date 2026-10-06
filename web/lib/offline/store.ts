@@ -112,7 +112,16 @@ export async function setOwner(userId: string): Promise<void> {
   await withStore(META, 'readwrite', (s) => s.put(userId, OWNER_KEY))
 }
 
+// Bumped by clearStore, so work started for a wiped session can tell.
+let generation = 0
+
+/** Changes whenever the store is wiped (sign-out or a user switch). */
+export function storeGeneration(): number {
+  return generation
+}
+
 export async function clearStore(): Promise<void> {
+  generation++
   for (const name of [ENTRIES, META, OUTBOX, FAILED, BOOKS]) {
     await withStore(name, 'readwrite', (s) => s.clear())
   }
@@ -189,6 +198,11 @@ export async function loadBookFile(
 
 export async function deleteBookFile(bookId: string, format: string): Promise<void> {
   await withStore(BOOKS, 'readwrite', (s) => s.delete(bookKey(bookId, format)))
+  bookFilesChanged()
+}
+
+export async function clearBookFiles(): Promise<void> {
+  await withStore(BOOKS, 'readwrite', (s) => s.clear())
   bookFilesChanged()
 }
 

@@ -22,6 +22,11 @@ jest.mock('@/components/books/KoboDevices', () => ({
   default: () => <div data-testid="kobo-devices" />
 }))
 
+jest.mock('@/components/books/OfflineBooksSettings', () => ({
+  __esModule: true,
+  default: () => <div data-testid="offline-books-settings" />
+}))
+
 jest.mock('swr', () => ({ __esModule: true, mutate: jest.fn(), default: jest.fn() }))
 
 import BooksSettingsClient from '@/components/books/BooksSettingsClient'
@@ -29,6 +34,11 @@ import BooksSettingsClient from '@/components/books/BooksSettingsClient'
 describe('BooksSettingsClient', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('includes the offline books section', () => {
+    render(<BooksSettingsClient />)
+    expect(screen.getByTestId('offline-books-settings')).toBeInTheDocument()
   })
 
   it('renders the Books Settings heading', () => {

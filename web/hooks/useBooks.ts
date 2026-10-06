@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { swrKeys } from '@/lib/swrKeys'
-import useSWR from 'swr'
+import useSWR, { type SWRConfiguration } from 'swr'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { ConnectError, Code } from '@connectrpc/connect'
 import { createServiceClient } from '@/lib/client'
@@ -52,9 +52,9 @@ export type UpdateBookMetadataInput = NonNullable<
   MessageInitShape<typeof UpdateBookRequestSchema>['metadata']
 >
 
-export function useLibrary() {
+export function useLibrary(config?: SWRConfiguration<GetLibraryResponse, Error>) {
   const client = createServiceClient(LibraryService)
-  return useSWR<GetLibraryResponse, Error>(swrKeys.books, () => client.getLibrary({}))
+  return useSWR<GetLibraryResponse, Error>(swrKeys.books, () => client.getLibrary({}), config)
 }
 
 export function useBooksProgress(dateStart?: string, dateEnd?: string) {

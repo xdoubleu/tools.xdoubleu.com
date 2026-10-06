@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import 'fake-indexeddb/auto'
 import {
+  deleteAllStoredBooks,
   deleteStoredBook,
   downloadBookFile,
   listStoredBooks,
@@ -10,7 +11,7 @@ import {
   storedBooksSize,
   subscribeStoredBooks
 } from '@/lib/books/offlineBooks'
-import { clearStore, loadBookFile, saveBookFile } from '@/lib/offline/store'
+import { clearStore, loadBookFile, loadEntry, saveBookFile, saveEntry } from '@/lib/offline/store'
 
 const mockGetBookFile = jest.fn()
 jest.mock('@/lib/client', () => ({
@@ -103,6 +104,42 @@ describe('openBookFile', () => {
   })
 })
 
+describe('a wipe during a download', () => {
+  // Resolves once the file's fetch is in flight.
+  async function fetchStarted() {
+    while (fetchMock.mock.calls.length === 0) await new Promise((resolve) => setTimeout(resolve, 1))
+  }
+
+  it('drops a file downloaded for the wiped session', async () => {
+    let finish: ((res: Response) => void) | undefined
+    mockGetBookFile.mockResolvedValue({ url: 'https://r2/signed' })
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => (finish = resolve)))
+
+    const download = downloadBookFile(ref)
+    await fetchStarted()
+    await clearStore()
+    finish?.(new Response('late'))
+
+    expect(await (await download).text()).toBe('late')
+    expect(await loadBookFile('b1', 'epub')).toBeUndefined()
+  })
+
+  it('does not store a file opened before the wipe', async () => {
+    let finish: ((res: Response) => void) | undefined
+    mockGetBookFile.mockResolvedValue({ url: 'https://r2/signed' })
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => (finish = resolve)))
+
+    const open = openBookFile(ref)
+    await fetchStarted()
+    await clearStore()
+    finish?.(new Response('late'))
+
+    expect(await (await open).text()).toBe('late')
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(await loadBookFile('b1', 'epub')).toBeUndefined()
+  })
+})
+
 describe('stored book management', () => {
   it('lists, sizes and deletes stored books, notifying subscribers', async () => {
     const listener = jest.fn()
@@ -126,5 +163,27 @@ describe('stored book management', () => {
     unsubscribe()
     await downloadBookFile(ref)
     expect(listener).toHaveBeenCalledTimes(2)
+  })
+
+  it('deletes every stored book, and nothing else', async () => {
+    await store('f1:0')
+    await saveBookFile({
+      bookId: 'b2',
+      format: 'pdf',
+      version: 'p',
+      blob: new Blob(['p']),
+      size: 1,
+      savedAt: 1
+    })
+    await saveEntry('library', { kept: true })
+    const listener = jest.fn()
+    const unsubscribe = subscribeStoredBooks(listener)
+
+    await deleteAllStoredBooks()
+
+    expect(await listStoredBooks()).toEqual([])
+    expect((await loadEntry('library'))?.data).toEqual({ kept: true })
+    expect(listener).toHaveBeenCalledTimes(1)
+    unsubscribe()
   })
 })

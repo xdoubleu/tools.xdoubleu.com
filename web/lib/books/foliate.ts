@@ -63,6 +63,46 @@ export interface FoliateView extends HTMLElement {
 const importModule = (url: string) =>
   import(/* webpackIgnore: true */ /* turbopackIgnore: true */ url)
 
+// The modules an EPUB or PDF needs, cmaps and standard fonts aside (fetched
+// per PDF on demand). A path missing after a pin bump just isn't warmed.
+const READER_MODULES = [
+  'view.js',
+  'epubcfi.js',
+  'progress.js',
+  'overlayer.js',
+  'text-walker.js',
+  'vendor/zip.js',
+  'epub.js',
+  'paginator.js',
+  'fixed-layout.js',
+  'pdf.js',
+  'vendor/pdfjs/pdf.mjs',
+  'vendor/pdfjs/pdf.worker.mjs',
+  'vendor/pdfjs/text_layer_builder.css',
+  'vendor/pdfjs/annotation_layer_builder.css'
+].map((path) => `/foliate-js/${path}`)
+
+let warmed = false
+
+/**
+ * Fetches the reader's modules through the service worker, which caches
+ * them, so a downloaded book opens offline before the reader was ever used
+ * online. Repeats until every fetch succeeds once in this page load; a no-op
+ * without a controlling worker.
+ */
+export async function warmReaderModules(): Promise<void> {
+  if (warmed || !navigator.serviceWorker?.controller) return
+  let ok = true
+  for (const url of READER_MODULES) {
+    try {
+      if (!(await fetch(url)).ok) ok = false
+    } catch {
+      ok = false
+    }
+  }
+  warmed = ok
+}
+
 export async function createFoliateView(load: (url: string) => Promise<unknown> = importModule) {
   await load(FOLIATE_VIEW_URL)
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- view.js registers <foliate-view> as its View class

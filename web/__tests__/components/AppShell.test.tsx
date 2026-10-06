@@ -50,11 +50,16 @@ jest.mock('@/components/DeployNotification', () => ({
   default: () => <div data-testid="deploy-notification" />
 }))
 
+jest.mock('@/components/books/OfflineBooksSync', () => ({
+  __esModule: true,
+  default: () => <div data-testid="offline-books-sync" />
+}))
+
 import AppShell from '@/components/AppShell'
 
 describe('AppShell', () => {
   it('renders the app chrome and children once the current-user fetch resolves', async () => {
-    fetchOrNull.mockResolvedValue({})
+    fetchOrNull.mockResolvedValue({ role: 'user', appAccess: [] })
     render(await AppShell({ children: <div data-testid="child">content</div> }))
 
     expect(screen.getByTestId('swr-provider')).toBeInTheDocument()
@@ -72,5 +77,23 @@ describe('AppShell', () => {
     render(await AppShell({ children: <div data-testid="child" /> }))
 
     expect(screen.getByTestId('child')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['a user with books access', { role: 'user', appAccess: ['books'] }, true],
+    ['an admin', { role: 'admin', appAccess: [] }, true],
+    ['a user without books access', { role: 'user', appAccess: ['games'] }, false]
+  ])('keeps books downloaded for offline only for %s', async (_, user, synced) => {
+    fetchOrNull.mockResolvedValue(user)
+    render(await AppShell({ children: null }))
+
+    expect(screen.queryByTestId('offline-books-sync') !== null).toBe(synced)
+  })
+
+  it('keeps no books offline when signed out', async () => {
+    fetchOrNull.mockResolvedValue(null)
+    render(await AppShell({ children: null }))
+
+    expect(screen.queryByTestId('offline-books-sync')).not.toBeInTheDocument()
   })
 })
