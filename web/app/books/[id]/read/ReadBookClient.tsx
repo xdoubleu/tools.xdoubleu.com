@@ -13,7 +13,11 @@ import { useLibrary } from '@/hooks/useBooks'
 import { useKEPUBConversion } from '@/hooks/useKEPUBConversion'
 import { useOfflineBookFile, useStoredBookVersion } from '@/hooks/useOfflineBooks'
 import { useReaderChoice } from '@/hooks/useReaderChoice'
-import { useReadingProgressSaver, useReadingState } from '@/hooks/useReadingState'
+import {
+  translateReadingPosition,
+  useReadingProgressSaver,
+  useReadingState
+} from '@/hooks/useReadingState'
 import { flattenLibrary } from '@/lib/books/bookShelves'
 import { readerFileFormat, type ReaderChoice } from '@/lib/books/readerChoice'
 import { resumeFromState, type ReaderResume } from '@/lib/books/readerPosition'
@@ -93,15 +97,31 @@ export default function ReadBookClient({ id }: { id: string }) {
   const saveProgress = useReadingProgressSaver(bookId)
 
   // A switch reopens at the last page read. An EPUB position fits its KEPUB
-  // exactly; a PDF page doesn't, so the reader falls back to the percent.
+  // exactly; a PDF-sourced book's position is translated by the server, and
+  // falls back to the percent when that fails (e.g. offline).
   const lastLocation = useRef<ReaderLocation | null>(null)
+  const latestSwitch = useRef<object | null>(null)
   const onRelocate = (location: ReaderLocation) => {
     lastLocation.current = location
     saveProgress(location)
   }
   const switchTo = (next: ReaderChoice) => {
     const at = lastLocation.current
-    if (at) setResume({ position: at.position, percent: at.fraction * 100 })
+    const thisSwitch = {}
+    latestSwitch.current = thisSwitch
+    const position = at?.position
+    if (at && original === 'pdf' && bookId && position) {
+      const percent = at.fraction * 100
+      setResume(null)
+      void translateReadingPosition(bookId, position)
+        .then((translated) => resumeFromState({ percent, position: translated }))
+        .catch(() => ({ position, percent }))
+        .then((r) => {
+          if (latestSwitch.current === thisSwitch) setResume(r)
+        })
+    } else if (at) {
+      setResume({ position, percent: at.fraction * 100 })
+    }
     choose(next)
   }
 

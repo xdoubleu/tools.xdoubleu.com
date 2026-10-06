@@ -3,6 +3,7 @@ package services
 
 import (
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -98,6 +99,7 @@ func TestGoPDFConverter_OutlineDrivesTOC(t *testing.T) {
 	requireValidKEPUB(t, epubPath)
 
 	nav := string(readZipEntryNamed(t, epubPath, "OEBPS/nav.xhtml"))
+	nav, _, _ = strings.Cut(nav, `epub:type="page-list"`)
 	titles := regexp.MustCompile(`<a [^>]*>([^<]*)</a>`).FindAllStringSubmatch(nav, -1)
 	var got []string
 	for _, m := range titles {
@@ -114,7 +116,7 @@ func TestGoPDFConverter_OutlineDrivesTOC(t *testing.T) {
 		nav,
 	)
 
-	body := string(readZipEntry(t, epubPath))
+	body := pageBreakRe.ReplaceAllString(string(readZipEntry(t, epubPath)), "")
 	require.Regexp(t, `<h1[^>]*>PART ONE System Structure</h1>`, body)
 	require.Regexp(t, `<h2[^>]*>The Basics</h2>`, body)
 	require.Regexp(t, `<h3[^>]*>More Than the Sum</h3>`, body)

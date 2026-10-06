@@ -11,6 +11,7 @@ import {
   type UpdateReadingProgressRequestSchema
 } from '@/lib/gen/books/v1/library_pb'
 import type { ReaderLocation } from '@/components/books/reader/BookReader'
+import type { ReaderPosition } from '@/lib/books/readerPosition'
 
 /** How long reading pauses before the position is saved. */
 export const READING_SAVE_DELAY_MS = 2000
@@ -22,6 +23,15 @@ export function useReadingState(bookId: string | null) {
   return useSWR<GetReadingStateResponse, Error>(bookId ? swrKeys.readingState(bookId) : null, () =>
     client.getReadingState({ bookId: bookId! })
   )
+}
+
+/** A PDF-sourced book's position with its page and its KEPUB form, as far as the server can tell. */
+export async function translateReadingPosition(bookId: string, position: ReaderPosition) {
+  const res = await createServiceClient(LibraryService).translateReadingPosition({
+    bookId,
+    position
+  })
+  return res.position
 }
 
 /**

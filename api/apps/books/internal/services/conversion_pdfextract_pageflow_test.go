@@ -11,7 +11,7 @@ import (
 func flowBlock(text string) htmlBlock {
 	return htmlBlock{
 		html: "", tag: "p", text: text, medHeight: 10, isText: true, listItem: false,
-		src: "", inline: "", tocLevel: 0,
+		src: "", inline: "", tocLevel: 0, page: 0,
 	}
 }
 
@@ -62,7 +62,7 @@ func TestJoinPageContinuations(t *testing.T) {
 
 	aside := htmlBlock{
 		html: "<blockquote/>", tag: asideTag, text: "note", medHeight: 0,
-		isText: false, listItem: false, src: "", inline: "", tocLevel: 0,
+		isText: false, listItem: false, src: "", inline: "", tocLevel: 0, page: 0,
 	}
 	heading := flowBlock("Runaway Loops")
 	heading.medHeight = 16
@@ -84,7 +84,8 @@ func TestJoinPageContinuations(t *testing.T) {
 		{flowBlock("because a heading is never continued.")},
 	}
 
-	got := flowTexts(joinPageContinuations(pages, 10))
+	joined, _ := joinPageContinuations(pages, 10)
+	got := flowTexts(joined)
 	assert.Equal(t, [][]string{
 		{
 			"A tree is a system, and a forest is a larger system. The earth is a " +
@@ -143,7 +144,8 @@ func TestJoinPageContinuations_SkipsFootnote(t *testing.T) {
 		{flowBlock("A tree is a system. The earth"), note},
 		{flowBlock("is a system.")},
 	}
-	got := flowTexts(joinPageContinuations(pages, 10))
+	joined, _ := joinPageContinuations(pages, 10)
+	got := flowTexts(joined)
 	assert.Equal(t, [][]string{
 		{"A tree is a system. The earth is a system.", note.text},
 		{},

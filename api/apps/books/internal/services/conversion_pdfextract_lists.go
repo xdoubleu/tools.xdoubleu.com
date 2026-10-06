@@ -60,7 +60,7 @@ func writeBlocksHTML(b *strings.Builder, blocks []htmlBlock) {
 			}
 			inList = isItem
 		}
-		b.WriteString(blk.html)
+		b.WriteString(withPageAnchor(blk))
 		b.WriteByte('\n')
 	}
 	if inList {

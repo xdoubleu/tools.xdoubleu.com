@@ -29,15 +29,18 @@ func (app *Books) koboPutLocation(
 		return false
 	}
 	state.KoboLocation = loc
+	book, err := app.Services.Books.GetKoboSyncBook(ctx, state.UserID, state.BookID)
+	outdated := err == nil && koboIsReplace(book)
 	var backfill bool
 	state.Position, backfill = app.Services.Positions.KoboPosition(
-		ctx, state.UserID, state.BookID, *loc,
+		ctx, state.UserID, state.BookID, *loc, outdated,
 	)
 	return backfill
 }
 
 // koboSyncSpans translates the states deviceID lacks (it ignores the state in
-// a repeated NewEntitlement), returning what it holds and the pending books.
+// a repeated NewEntitlement) and those of regenerated KEPUBs, returning what
+// it holds and the pending books.
 func (app *Books) koboSyncSpans(
 	ctx context.Context,
 	userID, deviceID string,
@@ -49,39 +52,60 @@ func (app *Books) koboSyncSpans(
 		return nil, nil, err
 	}
 	var lacking []uuid.UUID
+	replaced := make(map[uuid.UUID]bool)
 	for _, b := range books {
-		if b.Format == models.FileFormatKEPUB &&
-			services.KoboDeviceLacks(held, b.BookID, states[b.BookID]) {
+		if b.Format != models.FileFormatKEPUB {
+			continue
+		}
+		replaced[b.BookID] = koboIsReplace(b)
+		if replaced[b.BookID] || services.KoboDeviceLacks(held, b.BookID, states[b.BookID]) {
 			lacking = append(lacking, b.BookID)
 		}
 	}
-	return held, app.koboWithSpans(ctx, userID, lacking, states), nil
+	return held, app.koboWithSpans(ctx, userID, lacking, states, replaced), nil
 }
 
-// koboWithSpans gives each KEPUB book's state that has a neutral EPUB position
-// but no Kobo bookmark the KoboSpan location it translates to, replacing the
-// entry in states. pending holds books whose span map is still building.
+// koboIsReplace reports whether b's file was regenerated since it was last
+// sent, so it goes out as a ChangedEntitlement.
+func koboIsReplace(b models.KoboSyncBook) bool {
+	return b.LastSyncedConverterVersion != nil &&
+		*b.LastSyncedConverterVersion != b.ConverterVersion
+}
+
+// koboWithSpans replaces each KEPUB book's state in states with one carrying
+// the KoboSpan location to send (PositionService.KoboLocations). A replaced
+// book's stale bookmark is also cleared from the row, so later reads translate
+// the position, and the bumped state reaches the device again on a later sync
+// even if this one went out without a location. pending holds books whose
+// span map is still building.
 func (app *Books) koboWithSpans(
 	ctx context.Context,
 	userID string,
 	kepubBooks []uuid.UUID,
 	states map[uuid.UUID]*models.BookReadingState,
+	replaced map[uuid.UUID]bool,
 ) map[uuid.UUID]bool {
-	positions := make(map[uuid.UUID]models.ReadingPosition)
+	sub := make(map[uuid.UUID]*models.BookReadingState, len(kepubBooks))
 	for _, id := range kepubBooks {
-		st := states[id]
-		if st != nil && st.KoboLocation == nil && st.Position != nil &&
-			st.Position.Href != "" {
-			positions[id] = *st.Position
+		if st := states[id]; st != nil {
+			sub[id] = st
 		}
 	}
-	if len(positions) == 0 {
+	if len(sub) == 0 {
 		return nil
 	}
 
-	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, positions)
+	locs, pending := app.Services.Positions.KoboLocations(ctx, userID, sub, replaced)
 	for id, loc := range locs {
 		withLoc := *states[id]
+		if stale := withLoc.KoboLocation; stale != nil {
+			if err := app.Services.Books.ClearKoboLocation(
+				ctx, userID, id, *stale,
+			); err != nil {
+				app.Logger.WarnContext(ctx, "clearing a stale kobo location failed",
+					"book_id", id, "err", err)
+			}
+		}
 		withLoc.KoboLocation = loc
 		states[id] = &withLoc
 	}

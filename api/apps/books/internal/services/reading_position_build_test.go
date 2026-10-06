@@ -73,7 +73,7 @@ func TestPositionService_PendingGraceIsExclusive(t *testing.T) {
 	clock = clock.Add(time.Nanosecond)
 	assert.False(t, f.svc.stillPending(key), "exactly the grace is past it")
 
-	f.svc.markBuilt(key, &spanMap{docs: nil})
+	f.svc.markBuilt(key, &spanMap{docs: nil, pages: nil, pdf: false})
 	assert.True(t, f.svc.stillPending(key), "a build resets the clock")
 }
 

@@ -45,22 +45,30 @@ type tocEntry struct {
 // file by localizeImages), assigns anchor ids to its TOC headings for the
 // nav document, and serializes the result as one XHTML content document per
 // chapter.
-func buildArticleXHTML(
-	htmlBytes []byte, imgDir string,
-) ([]contentDoc, []epubImage, []tocEntry, error) {
+func buildArticleXHTML(htmlBytes []byte, imgDir string) (articleXHTML, error) {
 	root, err := xhtml.Parse(bytes.NewReader(htmlBytes))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("parse input html: %w", err)
+		return articleXHTML{docs: nil, images: nil, toc: nil, pages: nil},
+			fmt.Errorf("parse input html: %w", err)
 	}
 
-	images := sanitizeAndCollectImages(root, imgDir)
-	toc := assignHeadingIDs(root)
-
-	docs, err := splitContentDocs(root, toc)
-	if err != nil {
-		return nil, nil, nil, err
+	a := articleXHTML{
+		docs:   nil,
+		images: sanitizeAndCollectImages(root, imgDir),
+		toc:    assignHeadingIDs(root),
+		pages:  pageListEntries(root),
 	}
-	return docs, images, toc, nil
+	a.docs, err = splitContentDocs(root, a.toc, a.pages)
+	return a, err
+}
+
+// articleXHTML is an article as content documents, plus the images to embed
+// and its nav document's entries.
+type articleXHTML struct {
+	docs   []contentDoc
+	images []epubImage
+	toc    []tocEntry
+	pages  []tocEntry
 }
 
 // assignHeadingIDs gives the article's TOC headings anchor ids
@@ -257,6 +265,7 @@ func renderXHTMLDocument(root *xhtml.Node) (string, error) {
 		return "", errors.New("parsed document has no html element")
 	}
 	setAttr(htmlEl, "xmlns", xhtmlNamespace)
+	setAttr(htmlEl, "xmlns:epub", epubNamespace)
 
 	var buf strings.Builder
 	buf.WriteString(`<?xml version="1.0" encoding="utf-8"?>` + "\n")

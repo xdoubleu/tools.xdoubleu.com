@@ -97,6 +97,17 @@ func (s *BookService) SyncKoboDeviceReadingStates(
 	return changed, nil
 }
 
+// ClearKoboLocation drops a Kobo bookmark that no longer fits the KEPUB the
+// device gets; a no-op once the bookmark changed.
+func (s *BookService) ClearKoboLocation(
+	ctx context.Context,
+	userID string,
+	bookID uuid.UUID,
+	loc models.KoboLocation,
+) error {
+	return s.readingState.ClearKoboLocation(ctx, userID, bookID, loc)
+}
+
 // SetKoboPosition fills in the neutral position of a stored Kobo bookmark that
 // was saved without one; a no-op once the bookmark changed.
 func (s *BookService) SetKoboPosition(

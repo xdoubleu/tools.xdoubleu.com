@@ -18,6 +18,7 @@ import (
 var pipelineFiles = []string{
 	"conversion_epubbuild.go",
 	"conversion_epubbuild_opf.go",
+	"conversion_epubbuild_pages.go",
 	"conversion_epubbuild_split.go",
 	"conversion_epubbuild_xhtml.go",
 	"conversion_pdfextract.go",
@@ -61,6 +62,7 @@ var pipelineFilesHashForVersion = map[int16]string{
 	11: "7edf20385a07433654781d7987b6e1feaed07c24047c90b2ac2c746a3b160126",
 	12: "65f5b8506c78773d4f83fe8b12a2f0962c1fb806cfd722498a1037675a12019a",
 	13: "51ac2e6279975fb18ab29c1bce52a462dbd935561ceb49a699ee4f9f05f8dbca",
+	14: "717f5c152c220239b1e707b30a2b63c26e265cd450260c0bc354c47fd4b1a822",
 }
 
 func hashPipelineFiles(t *testing.T) string {

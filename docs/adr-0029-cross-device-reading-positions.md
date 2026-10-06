@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Issues: #2156 (part of epic #2154); translation in #2158, #2160
-- Affects: `books.book_reading_state`, `api/apps/books/internal/services/books.go` (`upsertReadingProgress`), `api/apps/books/internal/repositories/book_reading_state.go`, `api/apps/books/internal/services/kepub_spans*.go`, `api/apps/books/internal/services/reading_position_translate.go`, `web/lib/books/readerPosition.ts`, `web/hooks/useReadingState.ts`
+- Affects: `books.book_reading_state`, `api/apps/books/internal/services/books.go` (`upsertReadingProgress`), `api/apps/books/internal/repositories/book_reading_state.go`, `api/apps/books/internal/services/kepub_spans*.go`, `api/apps/books/internal/services/reading_position_*.go`, `api/apps/books/internal/services/conversion_epubbuild_pages.go`, `web/lib/books/readerPosition.ts`, `web/hooks/useReadingState.ts`
 
 ## Context
 
@@ -39,8 +39,28 @@ on a different paragraph in each format.
     are translated. A request waits up to 3 s; past that a PUT's `position`
     is filled in once the map is built, and a sync holds that book's
     `ChangedReadingState` back for up to 5 min, then sends percent only.
-  - Span ↔ PDF page (#2160), at page precision.
-  - Clients send and read only their own form, so an offline write can be
+  - Span ↔ PDF page, at page precision. The PDF converter marks where each
+    page starts with `<span epub:type="pagebreak" id="pdfpage-N">`, inside
+    the paragraph when one continues from the page before, plus a
+    `page-list` nav; kepubify keeps both.
+    - A PDF-sourced KEPUB's map is built from the KEPUB alone, so offsets
+      are its own text's.
+    - Its neutral form is `{page}`: a span maps to the page whose anchor
+      precedes it, and a page to the first span at or after its anchor (a
+      page with no anchor, such as a blank one, uses the nearest page before
+      it).
+    - `GetReadingState` and `TranslateReadingPosition` return both `{page}`
+      and the KEPUB's `{href, offset}`, so the web reader resumes either
+      file at the page.
+  - A regenerated PDF-sourced KEPUB can renumber its spans, so until a
+    device is sent the current KEPUB its bookmarks belong to the old one.
+    - Such a PUT stores no position.
+    - The sync that sends the replacement (`ChangedEntitlement`) re-derives
+      the bookmark from the stored page, or sends percent only. It also
+      clears `kobo_location`, so the bumped state goes out again on the next
+      sync, translated from the page.
+    - An EPUB source's spans are stable, because kepubify is deterministic.
+  - Clients send and store only their own form, so an offline write can be
     translated when it replays.
 - **Most recently read wins.** Each write carries `read_at`: the web's client
   time, or the Kobo bookmark's `LastModified`.
@@ -80,8 +100,11 @@ on a different paragraph in each format.
 
 - Device clocks matter. A slow clock loses to reading done just before; the
   clamp stops a fast clock from pinning the position.
-- A book with no ready KEPUB, a PDF source, or the `kobo-format-pdf` tag
-  syncs percent only to the Kobo.
+- A book with no ready KEPUB, or the `kobo-format-pdf` tag, syncs percent
+  only to the Kobo.
+- A PDF-sourced KEPUB's `{href, offset}` (from the web reader on the KEPUB)
+  is in the KEPUB's own text, so a regeneration that changes that text can
+  shift it.
 - Whether the device sends `Source` as a zip-root or OPF-relative path is
   unverified; matching accepts both.
 - A position from a different file (PDF page in an EPUB) falls back to

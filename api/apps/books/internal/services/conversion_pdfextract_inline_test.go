@@ -36,6 +36,7 @@ func makeInlineStylesPDF(t *testing.T) string {
 func TestGoPDFConverter_InlineStyles(t *testing.T) {
 	t.Parallel()
 	doc := string(readZipEntry(t, convertToEPUB(t, makeInlineStylesPDF(t))))
+	doc = pageBreakRe.ReplaceAllString(doc, "")
 	paras := regexp.MustCompile(`<p>(.*?)</p>`).FindAllStringSubmatch(doc, -1)
 	require.Len(t, paras, 2, doc)
 	require.Equal(t,

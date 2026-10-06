@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -13,7 +12,6 @@ import (
 
 	"tools.xdoubleu.com/apps/books/internal/models"
 	"tools.xdoubleu.com/apps/books/pkg/objectstore"
-	"tools.xdoubleu.com/internal/database"
 )
 
 const (
@@ -80,17 +78,26 @@ func newPositionService(
 
 // KoboPosition is the neutral position of a KoboSpan bookmark, nil when it
 // can't be translated within the budget; pending is true while its span map
-// is still building.
+// is still building. A device that hasn't been sent the current KEPUB
+// (outdated) reads an older one, whose spans a PDF-sourced KEPUB's
+// regeneration can renumber, so its bookmark isn't translated then.
 func (s *PositionService) KoboPosition(
 	ctx context.Context,
 	userID string,
 	bookID uuid.UUID,
 	loc models.KoboLocation,
+	outdated bool,
 ) (*models.ReadingPosition, bool) {
 	if loc.Type != koboSpanType {
 		return nil, false
 	}
-	maps, pending := s.spanMaps(ctx, userID, []uuid.UUID{bookID}, s.budget)
+	timer := time.NewTimer(s.budget)
+	defer timer.Stop()
+	refs := s.resolveAll(ctx, userID, []uuid.UUID{bookID})
+	if outdated && refs[bookID].pdf {
+		return nil, false
+	}
+	maps, pending := s.mapsOf(ctx, timer, refs)
 	if m := maps[bookID]; m != nil {
 		return m.position(loc), false
 	}
@@ -119,30 +126,6 @@ func (s *PositionService) BackfillKoboPosition(
 	}
 }
 
-// KoboLocations translates neutral EPUB positions to KoboSpan locations.
-// pending holds the books whose span map was still building at the budget.
-func (s *PositionService) KoboLocations(
-	ctx context.Context,
-	userID string,
-	positions map[uuid.UUID]models.ReadingPosition,
-) (map[uuid.UUID]*models.KoboLocation, map[uuid.UUID]bool) {
-	ids := make([]uuid.UUID, 0, len(positions))
-	for id, pos := range positions {
-		if pos.Href != "" {
-			ids = append(ids, id)
-		}
-	}
-	maps, pending := s.spanMaps(ctx, userID, ids, s.budget)
-
-	locs := make(map[uuid.UUID]*models.KoboLocation, len(maps))
-	for id, m := range maps {
-		if loc := m.location(positions[id]); loc != nil {
-			locs[id] = loc
-		}
-	}
-	return locs, pending
-}
-
 type spanMapWait struct {
 	key spanMapKey
 	ch  <-chan singleflight.Result
@@ -159,26 +142,30 @@ func (s *PositionService) spanMaps(
 ) (map[uuid.UUID]*spanMap, map[uuid.UUID]bool) {
 	timer := time.NewTimer(budget)
 	defer timer.Stop()
+	return s.mapsOf(ctx, timer, s.resolveAll(ctx, userID, bookIDs))
+}
 
-	maps := make(map[uuid.UUID]*spanMap, len(bookIDs))
+// mapsOf is spanMaps for already resolved books, waiting until timer fires.
+func (s *PositionService) mapsOf(
+	ctx context.Context,
+	timer *time.Timer,
+	refs map[uuid.UUID]kepubRef,
+) (map[uuid.UUID]*spanMap, map[uuid.UUID]bool) {
+	maps := make(map[uuid.UUID]*spanMap, len(refs))
 	waiting := make(map[uuid.UUID]spanMapWait)
-	for _, bookID := range bookIDs {
-		key, kepubKey, sourceKey, ok := s.resolve(ctx, userID, bookID)
-		if !ok {
-			continue
-		}
-		if m, hit := s.cache.get(key); hit {
+	for bookID, ref := range refs {
+		if m, hit := s.cache.get(ref.key); hit {
 			maps[bookID] = m
 			continue
 		}
 		buildCtx := context.WithoutCancel(ctx)
-		ch := s.builds.DoChan(fmt.Sprint(key), func() (any, error) {
-			if m, hit := s.cache.get(key); hit {
+		ch := s.builds.DoChan(fmt.Sprint(ref.key), func() (any, error) {
+			if m, hit := s.cache.get(ref.key); hit {
 				return m, nil
 			}
-			return s.build(buildCtx, key, kepubKey, sourceKey), nil
+			return s.build(buildCtx, ref), nil
 		})
-		waiting[bookID] = spanMapWait{key: key, ch: ch}
+		waiting[bookID] = spanMapWait{key: ref.key, ch: ch}
 	}
 
 	return maps, s.await(ctx, timer, waiting, maps)
@@ -241,31 +228,4 @@ func (s *PositionService) markBuilt(key spanMapKey, m *spanMap) {
 	s.pendingMu.Lock()
 	delete(s.pendingSince, key)
 	s.pendingMu.Unlock()
-}
-
-// resolve finds the user's ready KEPUB of bookID and its EPUB source; ok is
-// false when there's nothing to translate against.
-func (s *PositionService) resolve(
-	ctx context.Context,
-	userID string,
-	bookID uuid.UUID,
-) (spanMapKey, string, string, bool) {
-	kepub, err := s.files.GetByBookAndFormat(
-		ctx, userID, bookID, models.FileFormatKEPUB,
-	)
-	if err == nil && kepub.Status == models.FileStatusReady &&
-		kepub.SourceFileID != nil {
-		var source *models.BookFile
-		source, err = s.files.GetByID(ctx, *kepub.SourceFileID)
-		if err == nil && source.Format == models.FileFormatEPUB {
-			return spanMapKey{
-				kepubID: kepub.ID, sourceID: source.ID, version: kepub.ConverterVersion,
-			}, kepub.StorageKey, source.StorageKey, true
-		}
-	}
-	if err != nil && !errors.Is(err, database.ErrResourceNotFound) {
-		s.logger.WarnContext(ctx, "kepub span map lookup failed",
-			"book_id", bookID, "err", err)
-	}
-	return spanMapKey{kepubID: uuid.Nil, sourceID: uuid.Nil, version: 0}, "", "", false
 }

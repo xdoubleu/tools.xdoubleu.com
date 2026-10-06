@@ -7,6 +7,8 @@ export type ReaderPosition = { href: string; offset: number } | { page: number }
 /** Where to reopen a book: the stored position, else the stored percent. */
 export interface ReaderResume {
   position?: ReaderPosition
+  /** The same place in the other file of a PDF-sourced book, as the server translates it. */
+  alsoAt?: ReaderPosition
   percent: number
 }
 
@@ -61,26 +63,28 @@ export function positionAt(
   return { href: section.id, offset }
 }
 
-/** Where to open: the stored position if it fits this file, else the percent. */
+/** Where to open: a stored position that fits this file, else the percent. */
 export function resumeTarget(
   sections: ReaderSection[] | undefined,
   resume: ReaderResume | undefined
 ): ResumeTarget {
-  const position = resume?.position
-  if (sections && position) {
-    if ('page' in position) {
-      const index = position.page - 1
-      if (typeof sections[index]?.id === 'number') return { index }
-    } else {
-      const index = sections.findIndex((s) => s.id === position.href)
-      if (index >= 0) {
-        const { offset } = position
-        return { index, anchor: (doc) => rangeAtTextOffset(doc, offset) }
-      }
-    }
+  for (const position of [resume?.position, resume?.alsoAt]) {
+    const target = sections && position && targetIn(sections, position)
+    if (target) return target
   }
   const percent = resume?.percent ?? 0
   return percent > 0 ? { fraction: percent / 100 } : null
+}
+
+function targetIn(sections: ReaderSection[], position: ReaderPosition): ResumeTarget {
+  if ('page' in position) {
+    const index = position.page - 1
+    return typeof sections[index]?.id === 'number' ? { index } : null
+  }
+  const index = sections.findIndex((s) => s.id === position.href)
+  if (index < 0) return null
+  const { offset } = position
+  return { index, anchor: (doc) => rangeAtTextOffset(doc, offset) }
 }
 
 /** Reads GetReadingState's state; a missing state opens at the start. */
@@ -89,7 +93,8 @@ export function resumeFromState(
 ): ReaderResume {
   const percent = state?.percent ?? 0
   const p = state?.position
-  if (p?.page) return { position: { page: p.page }, percent }
-  if (p?.href) return { position: { href: p.href, offset: p.offset }, percent }
+  const epub = p?.href ? { href: p.href, offset: p.offset } : undefined
+  if (p?.page) return { position: { page: p.page }, ...(epub && { alsoAt: epub }), percent }
+  if (epub) return { position: epub, percent }
   return { percent }
 }

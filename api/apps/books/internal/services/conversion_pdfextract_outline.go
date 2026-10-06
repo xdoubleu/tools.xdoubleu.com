@@ -93,7 +93,7 @@ func applyOutline(pages [][]htmlBlock, outline []outlineEntry) [][]htmlBlock {
 func outlineHeading(title string, level int) htmlBlock {
 	return htmlBlock{
 		html: "", tag: "p", text: title, medHeight: 0, isText: true,
-		listItem: false, src: "", inline: "", tocLevel: level,
+		listItem: false, src: "", inline: "", tocLevel: level, page: 0,
 	}
 }
 

@@ -185,7 +185,17 @@ message UpdateReadingProgressRequest {
 message UpdateReadingProgressResponse {}
 
 message GetReadingStateRequest { string book_id = 1; }
+// For a PDF-sourced book the position carries both the page and its
+// converted KEPUB's href + offset, when the server can translate it.
 message GetReadingStateResponse { BookReadingStateData state = 1; }
+
+// TranslateReadingPosition returns position with the forms GetReadingState
+// adds, or unchanged.
+message TranslateReadingPositionRequest {
+  string book_id = 1;
+  ReadingPosition position = 2;
+}
+message TranslateReadingPositionResponse { ReadingPosition position = 1; }
 
 // GetBookContent returns a URL-ingested book's extracted body; html is empty
 // when none was extracted.
@@ -219,6 +229,7 @@ service LibraryService {
   rpc RemoveBook(RemoveBookRequest) returns (RemoveBookResponse);
   rpc UpdateReadingProgress(UpdateReadingProgressRequest) returns (UpdateReadingProgressResponse);
   rpc GetReadingState(GetReadingStateRequest) returns (GetReadingStateResponse);
+  rpc TranslateReadingPosition(TranslateReadingPositionRequest) returns (TranslateReadingPositionResponse);
   rpc GetBookContent(GetBookContentRequest) returns (GetBookContentResponse);
   rpc CreateShelf(CreateShelfRequest) returns (CreateShelfResponse);
   rpc RenameShelf(RenameShelfRequest) returns (RenameShelfResponse);

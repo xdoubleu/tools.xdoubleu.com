@@ -293,8 +293,7 @@ func (app *Books) buildKoboSyncEntry(
 	// KoboSyncEnabledAt keeps the payload byte-identical across syncs; time.Now()
 	// makes the firmware recreate the entitlement each time (books flicker).
 	enabled := b.KoboSyncEnabledAt.UTC().Format(time.RFC3339)
-	isReplace := b.LastSyncedConverterVersion != nil &&
-		*b.LastSyncedConverterVersion != b.ConverterVersion
+	isReplace := koboIsReplace(b)
 
 	if b.Format == models.FileFormatKEPUB &&
 		app.Services.Conversion.IsKEPUBStale(b.ConverterVersion) {

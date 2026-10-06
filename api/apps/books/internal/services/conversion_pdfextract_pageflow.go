@@ -107,19 +107,28 @@ func edgeKeyCounts(pages [][]htmlBlock) map[string]int {
 // last body paragraph that doesn't end a sentence absorbs the next page's
 // first text paragraph when that starts in lowercase at a similar size.
 // Figures, notes, and footnotes (text set smaller than body text) after the
-// first half stay after the joined paragraph.
-func joinPageContinuations(pages [][]htmlBlock, docModalHeight float64) [][]htmlBlock {
+// first half stay after the joined paragraph. A page that opens with the
+// continuation gets its anchor at the join; inlineAnchors holds those pages.
+func joinPageContinuations(
+	pages [][]htmlBlock, docModalHeight float64,
+) ([][]htmlBlock, map[int]bool) {
+	inlineAnchors := map[int]bool{}
 	var last *htmlBlock
 	for p := range pages {
 		blocks := pages[p]
 		if j := firstTextBlock(blocks); last != nil && j >= 0 &&
 			continuesOnNextPage(*last, blocks[j]) {
 			next := blocks[j]
+			nextInline := next.inline
+			if j == 0 {
+				nextInline = pageAnchorHTML(p+1) + nextInline
+				inlineAnchors[p] = true
+			}
 			last.inline = joinContinuationHTML(
 				last.text,
 				last.inline,
 				next.text,
-				next.inline,
+				nextInline,
 			)
 			last.text = joinContinuation(last.text, next.text)
 			pages[p] = append(blocks[:j:j], blocks[j+1:]...)
@@ -132,7 +141,7 @@ func joinPageContinuations(pages [][]htmlBlock, docModalHeight float64) [][]html
 			}
 		}
 	}
-	return pages
+	return pages, inlineAnchors
 }
 
 func firstTextBlock(blocks []htmlBlock) int {
