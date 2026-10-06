@@ -34,7 +34,7 @@ func uploadFileForOwner(
 		seedBookInLibrary(t, ownerID, title, "Author", "")
 		data := buildEPUBBytes(title, "Author", "")
 		result, err := uploadViaTestApp(
-			t, ownerID, "test.epub", "application/epub+zip", data,
+			t, ownerID, "test.epub", data,
 		)
 		require.NoError(t, err)
 		return result.BookFile, result.UserBook.BookID

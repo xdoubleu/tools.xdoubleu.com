@@ -215,6 +215,23 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// The upstream fetch overlaps the span translation's wait.
+	var upstreamItems []json.RawMessage
+	var upstreamHdrs http.Header
+	upstreamDone := make(chan struct{})
+	go func() {
+		defer close(upstreamDone)
+		upstreamItems, upstreamHdrs = app.koboFetchUpstreamSync(r)
+	}()
+
+	held, pending, err := app.koboSyncSpans(
+		r.Context(), userID, deviceID, books, stateByBook,
+	)
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	libraryBase := app.koboLibraryBase(r)
 
 	ourEntries := make([]json.RawMessage, len(books))
@@ -232,11 +249,11 @@ func (app *Books) koboLibrarySyncHandler(w http.ResponseWriter, r *http.Request)
 		removalEntries[i] = buildKoboRemovalEntry(rm)
 	}
 
-	upstreamItems, upstreamHdrs := app.koboFetchUpstreamSync(r)
+	<-upstreamDone
 
 	// Last before responding: this marks the states as delivered.
 	stateEntries, err := app.koboChangedReadingStates(
-		r.Context(), deviceID, books, stateByBook,
+		r.Context(), deviceID, books, stateByBook, held, pending,
 	)
 	if err != nil {
 		http.Error(w, "internal error", http.StatusInternalServerError)
