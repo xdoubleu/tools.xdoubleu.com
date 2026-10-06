@@ -93,6 +93,7 @@
     "@xmldom/xmldom": "0.9.12",
     "browserslist": "4.29.3",
     "baseline-browser-mapping": "2.11.27",
+    "postcss-selector-parser": "7.1.6",
     "qs": "6.16.0"
   },
   "engines": {
