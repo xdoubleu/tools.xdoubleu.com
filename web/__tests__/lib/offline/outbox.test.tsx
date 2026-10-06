@@ -349,6 +349,28 @@ describe('outbox', () => {
     expect(getOutboxSnapshot().pending).toBe(0)
   })
 
+  it('never coalesces a write with its own copy reloaded by a concurrent drain', async () => {
+    const set: OfflineWrite = shoppingListWrites[1]
+    jest.mocked(set.send).mockRejectedValue(networkError())
+    const queue = (value: string) =>
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the fake write encodes any JSON
+      act(async () => void (await enqueueWrite(set, { value } as never)))
+    await queue('k1:1')
+    const add = jest.mocked(addQueued)
+    const store = add.getMockImplementation()!
+    add.mockImplementationOnce(async (write) => {
+      const seq = await store(write)
+      await flushOutbox()
+      return seq
+    })
+
+    await queue('k1:2')
+
+    expect(getOutboxSnapshot().pending).toBe(1)
+    resetOutbox()
+    expect(await applyPending('/list', [])).toEqual(['k1:2'])
+  })
+
   it('removes only the sent write from the queue', async () => {
     send.mockResolvedValueOnce({}).mockRejectedValue(networkError())
 

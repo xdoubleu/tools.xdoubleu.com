@@ -114,23 +114,23 @@ describe('useReadingProgressSaver', () => {
     expect(mockEnqueue).toHaveBeenCalledTimes(2)
   })
 
-  it('also sends directly on pagehide, since the page may unload before the queue stores it', () => {
+  it('also sends directly when the page is hidden or unloads, as it may die before the queue stores it', () => {
     const { result, unmount } = renderHook(() => useReadingProgressSaver('book-1'))
     act(() => result.current(EPUB_LOCATION))
     Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true })
     document.dispatchEvent(new Event('visibilitychange'))
-    expect(mockKeepaliveSave).not.toHaveBeenCalled()
+    expect(mockKeepaliveSave).toHaveBeenCalledWith(mockEnqueue.mock.calls[0][1])
 
     act(() => result.current(EPUB_LOCATION))
     mockKeepaliveSave.mockRejectedValue(new Error('offline'))
     window.dispatchEvent(new Event('pagehide'))
-    expect(mockKeepaliveSave).toHaveBeenCalledTimes(1)
-    expect(mockKeepaliveSave).toHaveBeenCalledWith(mockEnqueue.mock.calls[1][1])
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(2)
+    expect(mockKeepaliveSave).toHaveBeenLastCalledWith(mockEnqueue.mock.calls[1][1])
 
     act(() => result.current(EPUB_LOCATION))
     unmount()
     expect(mockEnqueue).toHaveBeenCalledTimes(3)
-    expect(mockKeepaliveSave).toHaveBeenCalledTimes(1)
+    expect(mockKeepaliveSave).toHaveBeenCalledTimes(2)
   })
 
   it('flushes when the reader closes', () => {

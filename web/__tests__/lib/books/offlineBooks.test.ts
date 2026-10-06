@@ -5,6 +5,7 @@ import {
   downloadBookFile,
   listStoredBooks,
   openBookFile,
+  storedBookIds,
   storedBooksSize,
   subscribeStoredBooks
 } from '@/lib/books/offlineBooks'
@@ -54,14 +55,21 @@ describe('openBookFile', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('downloads and stores a book that was never stored', async () => {
+  it('opens a download without waiting for it to be stored, then stores it', async () => {
     serve('fresh')
+    const stored = new Promise<void>((resolve) => {
+      const unsubscribe = subscribeStoredBooks(() => {
+        unsubscribe()
+        resolve()
+      })
+    })
 
     const file = await openBookFile(ref)
 
     expect(await file.text()).toBe('fresh')
     expect(mockGetBookFile).toHaveBeenCalledWith({ bookId: 'b1', format: 'epub' })
     expect(fetchMock).toHaveBeenCalledWith('https://r2/signed')
+    await stored
     expect(await loadBookFile('b1', 'epub')).toMatchObject({ version: 'f1:0', size: 5 })
   })
 
@@ -72,6 +80,7 @@ describe('openBookFile', () => {
     const file = await openBookFile(ref)
 
     expect(await file.text()).toBe('newer')
+    await new Promise((resolve) => setTimeout(resolve, 50))
     expect((await loadBookFile('b1', 'epub'))?.version).toBe('f1:0')
   })
 
@@ -105,6 +114,7 @@ describe('stored book management', () => {
       expect.objectContaining({ bookId: 'b1', format: 'epub', size: 5 })
     ])
     expect(await storedBooksSize()).toBe(5)
+    expect(await storedBookIds()).toEqual(new Set(['b1']))
 
     await deleteStoredBook('b1', 'epub')
     expect(listener).toHaveBeenCalledTimes(2)

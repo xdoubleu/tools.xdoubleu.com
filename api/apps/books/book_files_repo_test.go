@@ -378,3 +378,32 @@ func TestBookFilesRepo_FilesByUser_VersionsFollowServedFile(t *testing.T) {
 		models.FileFormatKEPUB: kepub.ID.String() + ":7",
 	}, result[book.ID].Versions)
 }
+
+// A format with any ready file is listed, but only a ready served (oldest)
+// file has a version.
+func TestBookFilesRepo_FilesByUser_ServedFileNotReady(t *testing.T) {
+	book := addUniqueBook(t)
+
+	for _, status := range []string{models.FileStatusConverting, models.FileStatusReady} {
+		_, err := testApp.Repositories.BookFiles.Insert(
+			context.Background(),
+			models.BookFile{ //nolint:exhaustruct //optional nullable fields omitted
+				BookID:     book.ID,
+				UserID:     userID,
+				Format:     models.FileFormatEPUB,
+				StorageKey: "users/test/books/epub/" + status + ".epub",
+				SizeBytes:  512,
+				Status:     status,
+			},
+		)
+		require.NoError(t, err)
+	}
+
+	result, err := testApp.Repositories.BookFiles.FilesByUser(
+		context.Background(),
+		userID,
+	)
+	require.NoError(t, err)
+	assert.Equal(t, []string{models.FileFormatEPUB}, result[book.ID].Formats)
+	assert.Empty(t, result[book.ID].Versions)
+}

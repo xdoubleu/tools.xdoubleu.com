@@ -35,7 +35,15 @@ export function createServiceClient<T extends DescService>(service: T): Client<T
   return client as Client<T>
 }
 
+const keepaliveClients = new Map<DescService, Client<DescService>>()
+
 /** A client whose calls survive page unload; for small requests only. */
 export function createKeepaliveClient<T extends DescService>(service: T): Client<T> {
-  return createClient(service, keepaliveTransport)
+  let client = keepaliveClients.get(service)
+  if (!client) {
+    client = createClient(service, keepaliveTransport)
+    keepaliveClients.set(service, client)
+  }
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- keyed by its own service descriptor, as in createServiceClient
+  return client as Client<T>
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
-import { listStoredBooks, openBookFile, subscribeStoredBooks } from '@/lib/books/offlineBooks'
+import { openBookFile, storedBookIds, subscribeStoredBooks } from '@/lib/books/offlineBooks'
 
 interface OfflineBookFile {
   file?: File
@@ -7,8 +7,9 @@ interface OfflineBookFile {
 }
 
 /**
- * Opens a book's file, stored copy first (see `openBookFile`). `version` is
- * read once per book and format, so a library refetch never reopens the book.
+ * Opens a book's file, stored copy first (see `openBookFile`), retrying a
+ * failed open when the connection returns. `version` is read once per book
+ * and format, so a library refetch never reopens the book.
  */
 export function useOfflineBookFile(
   bookId: string | null,
@@ -17,6 +18,7 @@ export function useOfflineBookFile(
 ): OfflineBookFile {
   const key = bookId && format ? `${bookId}:${format}` : null
   const [result, setResult] = useState<OfflineBookFile & { key?: string }>({})
+  const [attempt, setAttempt] = useState(0)
   const versionRef = useRef(version)
   useEffect(() => {
     versionRef.current = version
@@ -34,7 +36,15 @@ export function useOfflineBookFile(
     return () => {
       cancelled = true
     }
-  }, [bookId, format])
+  }, [bookId, format, attempt])
+
+  const failed = result.error !== undefined
+  useEffect(() => {
+    if (!failed) return
+    const retry = () => setAttempt((n) => n + 1)
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [failed])
 
   if (!key || result.key !== key) return {}
   return result.error ? { error: result.error } : { file: result.file }
@@ -46,8 +56,8 @@ let watching = false
 const idListeners = new Set<() => void>()
 
 function loadStoredIds() {
-  void listStoredBooks().then((files) => {
-    storedIds = new Set(files.map((f) => f.bookId))
+  void storedBookIds().then((ids) => {
+    storedIds = ids
     idListeners.forEach((l) => l())
   })
 }

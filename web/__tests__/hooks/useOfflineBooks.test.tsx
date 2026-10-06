@@ -2,12 +2,12 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { useOfflineBookFile, useStoredBookIds } from '@/hooks/useOfflineBooks'
 
 const mockOpenBookFile = jest.fn()
-const mockListStoredBooks = jest.fn()
+const mockStoredBookIds = jest.fn()
 const storedListeners = new Set<() => void>()
 
 jest.mock('@/lib/books/offlineBooks', () => ({
   openBookFile: (...args: unknown[]) => mockOpenBookFile(...args),
-  listStoredBooks: () => mockListStoredBooks(),
+  storedBookIds: () => mockStoredBookIds(),
   subscribeStoredBooks: (listener: () => void) => {
     storedListeners.add(listener)
     return () => storedListeners.delete(listener)
@@ -45,6 +45,23 @@ describe('useOfflineBookFile', () => {
     expect(result.current.file).toBeUndefined()
   })
 
+  it('retries a failed open when the connection returns', async () => {
+    const file = new File(['x'], 'b1.epub')
+    mockOpenBookFile.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(file)
+
+    const { result, unmount } = renderHook(() => useOfflineBookFile('b1', 'epub', ''))
+    await waitFor(() => expect(result.current.error).toBeDefined())
+
+    act(() => void window.dispatchEvent(new Event('online')))
+    await waitFor(() => expect(result.current.file).toBe(file))
+    expect(mockOpenBookFile).toHaveBeenCalledTimes(2)
+
+    // Once open, reconnecting doesn't reopen it.
+    act(() => void window.dispatchEvent(new Event('online')))
+    unmount()
+    expect(mockOpenBookFile).toHaveBeenCalledTimes(2)
+  })
+
   it('does nothing without a book or format', () => {
     const { result } = renderHook(() => useOfflineBookFile('b1', null, ''))
     expect(result.current).toEqual({})
@@ -74,17 +91,14 @@ describe('useOfflineBookFile', () => {
 
 describe('useStoredBookIds', () => {
   it('shares one listing across components and refreshes when books change', async () => {
-    mockListStoredBooks.mockResolvedValueOnce([
-      { bookId: 'b1', format: 'epub' },
-      { bookId: 'b1', format: 'pdf' }
-    ])
+    mockStoredBookIds.mockResolvedValueOnce(new Set(['b1']))
     const first = renderHook(() => useStoredBookIds())
     const second = renderHook(() => useStoredBookIds())
     await waitFor(() => expect([...first.result.current]).toEqual(['b1']))
     expect([...second.result.current]).toEqual(['b1'])
-    expect(mockListStoredBooks).toHaveBeenCalledTimes(1)
+    expect(mockStoredBookIds).toHaveBeenCalledTimes(1)
 
-    mockListStoredBooks.mockResolvedValueOnce([{ bookId: 'b2', format: 'epub' }])
+    mockStoredBookIds.mockResolvedValueOnce(new Set(['b2']))
     act(() => storedListeners.forEach((l) => l()))
     await waitFor(() => expect([...first.result.current]).toEqual(['b2']))
 

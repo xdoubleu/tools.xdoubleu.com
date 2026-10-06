@@ -35,9 +35,8 @@ export function useReadingProgressSaver(bookId: string | null) {
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
-    const flush = () => flushSave(pending)
     const onVisibility = () => {
-      if (document.visibilityState === 'hidden') flush()
+      if (document.visibilityState === 'hidden') flushSave(pending, true)
     }
     const onPageHide = () => flushSave(pending, true)
     document.addEventListener('visibilitychange', onVisibility)
@@ -45,7 +44,7 @@ export function useReadingProgressSaver(bookId: string | null) {
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       window.removeEventListener('pagehide', onPageHide)
-      flush()
+      flushSave(pending)
     }
   }, [])
 
@@ -64,13 +63,14 @@ export function useReadingProgressSaver(bookId: string | null) {
 }
 
 // A stale timer finding nothing pending is a no-op, so flushing leaves it.
-function flushSave(pending: RefObject<SaveRequest | null>, unloading = false) {
+function flushSave(pending: RefObject<SaveRequest | null>, leaving = false) {
   const req = pending.current
   if (!req) return
   pending.current = null
-  // An unloading page can die before the outbox stores the save, so also send
-  // it now; the queued copy's replay is then a no-op (same read_at).
-  if (unloading) {
+  // A hidden or unloading page can be frozen or killed before the outbox
+  // stores the save, so also send it now; the queued copy's replay is then a
+  // no-op (same read_at).
+  if (leaving) {
     createKeepaliveClient(LibraryService)
       .updateReadingProgress(req)
       .catch(() => {})

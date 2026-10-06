@@ -116,6 +116,7 @@ export async function clearStore(): Promise<void> {
   for (const name of [ENTRIES, META, OUTBOX, FAILED, BOOKS]) {
     await withStore(name, 'readwrite', (s) => s.clear())
   }
+  bookFilesChanged()
 }
 
 /** Appends a write and resolves to its `seq`. */
@@ -163,8 +164,18 @@ export async function pruneEntries(cutoff: number): Promise<void> {
 
 const bookKey = (bookId: string, format: string) => `${bookId}:${format}`
 
+const bookListeners = new Set<() => void>()
+const bookFilesChanged = () => bookListeners.forEach((l) => l())
+
+/** Runs `listener` whenever a book file is saved, deleted or wiped. */
+export function subscribeBookFiles(listener: () => void): () => void {
+  bookListeners.add(listener)
+  return () => bookListeners.delete(listener)
+}
+
 export async function saveBookFile(file: StoredBookFile): Promise<void> {
   await withStore(BOOKS, 'readwrite', (s) => s.put(file, bookKey(file.bookId, file.format)))
+  bookFilesChanged()
 }
 
 export async function loadBookFile(
@@ -178,9 +189,20 @@ export async function loadBookFile(
 
 export async function deleteBookFile(bookId: string, format: string): Promise<void> {
   await withStore(BOOKS, 'readwrite', (s) => s.delete(bookKey(bookId, format)))
+  bookFilesChanged()
 }
 
-/** Every stored book file, without its bytes. */
+/** The stored books and formats, without reading any file. */
+export async function listBookFileKeys(): Promise<{ bookId: string; format: string }[]> {
+  const keys = (await withStore(BOOKS, 'readonly', (s) => s.getAllKeys())) ?? []
+  return keys.map((key) => {
+    const k = String(key)
+    const at = k.lastIndexOf(':')
+    return { bookId: k.slice(0, at), format: k.slice(at + 1) }
+  })
+}
+
+/** Every stored book file's details, without its bytes. */
 export async function listBookFiles(): Promise<StoredBookInfo[]> {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- only saveBookFile writes this store
   const files = ((await withStore(BOOKS, 'readonly', (s) => s.getAll())) ?? []) as StoredBookFile[]

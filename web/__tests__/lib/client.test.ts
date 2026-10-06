@@ -22,8 +22,11 @@ describe('createServiceClient', () => {
     expect(a).not.toBe(b)
   })
 
-  it('builds keepalive clients with the service methods', () => {
-    expect(typeof createKeepaliveClient(LibraryService).updateReadingProgress).toBe('function')
+  it('reuses one keepalive client per service', () => {
+    const client = createKeepaliveClient(LibraryService)
+    expect(typeof client.updateReadingProgress).toBe('function')
+    expect(createKeepaliveClient(LibraryService)).toBe(client)
+    expect(createKeepaliveClient(LibraryService)).not.toBe(createServiceClient(LibraryService))
   })
 
   it('exposes the service methods', () => {

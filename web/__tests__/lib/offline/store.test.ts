@@ -8,6 +8,7 @@ import {
   deleteBookFile,
   deleteQueued,
   getOwner,
+  listBookFileKeys,
   listBookFiles,
   listFailed,
   listQueued,
@@ -17,6 +18,7 @@ import {
   saveBookFile,
   saveEntry,
   setOwner,
+  subscribeBookFiles,
   type StoredBookFile
 } from '@/lib/offline/store'
 
@@ -173,5 +175,27 @@ describe('offline store without IndexedDB', () => {
 
     await clearStore()
     expect(await listBookFiles()).toEqual([])
+  })
+
+  it('lists stored book keys and notifies subscribers of every change', async () => {
+    const listener = jest.fn()
+    const unsubscribe = subscribeBookFiles(listener)
+
+    await saveBookFile(bookFile('b1'))
+    await saveBookFile(bookFile('b2', 'pdf'))
+    expect(listener).toHaveBeenCalledTimes(2)
+    expect(await listBookFileKeys()).toEqual([
+      { bookId: 'b1', format: 'epub' },
+      { bookId: 'b2', format: 'pdf' }
+    ])
+
+    await deleteBookFile('b1', 'epub')
+    await clearStore()
+    expect(listener).toHaveBeenCalledTimes(4)
+    expect(await listBookFileKeys()).toEqual([])
+
+    unsubscribe()
+    await saveBookFile(bookFile('b3'))
+    expect(listener).toHaveBeenCalledTimes(4)
   })
 })

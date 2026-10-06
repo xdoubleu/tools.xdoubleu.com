@@ -47,7 +47,8 @@ on a different paragraph in each format.
     otherwise to the percent.
   - It saves 2 s after the last page turn, and flushes on hide, pagehide and
     close. Saves queue in the outbox (ADR-0028), so offline reading syncs
-    later; pagehide also sends directly, since the page may die first.
+    later; hide and pagehide also send directly, since the page may be
+    frozen or killed first.
   - The relocates fired while opening are never saved, so opening a book
     doesn't overwrite a Kobo position.
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -349,8 +348,12 @@ func (r *BookFilesRepository) FilesByUser(
 	ctx context.Context,
 	userID string,
 ) (map[uuid.UUID]models.LibraryFiles, error) {
+	// One row per (book, format): the served (oldest) file, and whether any
+	// file of that format is ready.
 	query := `
-		SELECT book_id, format, id, converter_version, status
+		SELECT DISTINCT ON (book_id, format)
+		    book_id, format, id, converter_version, status = 'ready',
+		    bool_or(status = 'ready') OVER (PARTITION BY book_id, format)
 		FROM books.book_files
 		WHERE user_id = $1
 		ORDER BY book_id, format, created_at
@@ -363,32 +366,25 @@ func (r *BookFilesRepository) FilesByUser(
 	defer rows.Close()
 
 	result := make(map[uuid.UUID]models.LibraryFiles)
-	// Rows come grouped by (book, format), oldest first.
-	var prevBook uuid.UUID
-	prevFormat := ""
 	for rows.Next() {
 		var bookID, fileID uuid.UUID
-		var format, status string
+		var format string
 		var converterVersion int16
+		var servedReady, anyReady bool
 		if scanErr := rows.Scan(
-			&bookID, &format, &fileID, &converterVersion, &status,
+			&bookID, &format, &fileID, &converterVersion, &servedReady, &anyReady,
 		); scanErr != nil {
 			return nil, postgres.PgxErrorToHTTPError(scanErr)
 		}
-		served := bookID != prevBook || format != prevFormat
-		prevBook, prevFormat = bookID, format
-		if status != models.FileStatusReady {
-			continue
-		}
 		files := result[bookID]
-		if served {
+		if servedReady {
 			if files.Versions == nil {
 				files.Versions = make(map[string]string)
 			}
 			files.Versions[format] = fmt.Sprintf("%s:%d", fileID, converterVersion)
 		}
 		isOriginal := format == models.FileFormatPDF || format == models.FileFormatEPUB
-		if isOriginal && !slices.Contains(files.Formats, format) {
+		if anyReady && isOriginal {
 			files.Formats = append(files.Formats, format)
 		}
 		result[bookID] = files

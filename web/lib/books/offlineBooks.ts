@@ -5,11 +5,14 @@ import { createServiceClient } from '@/lib/client'
 import { BookFilesService } from '@/lib/gen/books/v1/files_pb'
 import {
   deleteBookFile,
+  listBookFileKeys,
   listBookFiles,
   loadBookFile,
   saveBookFile,
   type StoredBookInfo
 } from '@/lib/offline/store'
+
+export { subscribeBookFiles as subscribeStoredBooks } from '@/lib/offline/store'
 
 export interface BookFileRef {
   bookId: string
@@ -18,36 +21,36 @@ export interface BookFileRef {
   version: string
 }
 
-const listeners = new Set<() => void>()
-const notify = () => listeners.forEach((l) => l())
-
-/** Runs `listener` whenever a book is stored or deleted. */
-export function subscribeStoredBooks(listener: () => void): () => void {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
-}
-
-/** Downloads the file through a fresh presigned URL and stores it. */
-export async function downloadBookFile({ bookId, format, version }: BookFileRef): Promise<Blob> {
+async function fetchBookFile({ bookId, format }: BookFileRef): Promise<Blob> {
   const { url } = await createServiceClient(BookFilesService).getBookFile({ bookId, format })
   const res = await fetch(url)
   if (!res.ok) throw new Error(`book download failed: ${res.status}`)
-  const blob = await res.blob()
-  await saveBookFile({ bookId, format, version, blob, size: blob.size, savedAt: Date.now() })
-  notify()
+  return res.blob()
+}
+
+function storeBookFile(ref: BookFileRef, blob: Blob): Promise<void> {
+  return saveBookFile({ ...ref, blob, size: blob.size, savedAt: Date.now() })
+}
+
+/** Downloads the file through a fresh presigned URL and stores it. */
+export async function downloadBookFile(ref: BookFileRef): Promise<Blob> {
+  const blob = await fetchBookFile(ref)
+  await storeBookFile(ref, blob)
   return blob
 }
 
 /**
  * The file to open: the stored copy while its version matches, else a fresh
- * download. A stale copy is still opened when the download fails (offline).
+ * download, stored in the background. A stale copy is still opened when the
+ * download fails (offline).
  */
 export async function openBookFile(ref: BookFileRef): Promise<File> {
   const stored = await loadBookFile(ref.bookId, ref.format)
   let blob = stored?.version === ref.version ? stored.blob : undefined
   if (!blob) {
     try {
-      blob = await downloadBookFile(ref)
+      blob = await fetchBookFile(ref)
+      void storeBookFile(ref, blob)
     } catch (err) {
       if (!stored) throw err
       blob = stored.blob
@@ -57,13 +60,17 @@ export async function openBookFile(ref: BookFileRef): Promise<File> {
   return new File([blob], `${ref.bookId}.${ref.format}`, { type: blob.type })
 }
 
-export async function deleteStoredBook(bookId: string, format: string): Promise<void> {
-  await deleteBookFile(bookId, format)
-  notify()
+export function deleteStoredBook(bookId: string, format: string): Promise<void> {
+  return deleteBookFile(bookId, format)
 }
 
 export function listStoredBooks(): Promise<StoredBookInfo[]> {
   return listBookFiles()
+}
+
+/** IDs of books with at least one stored format. */
+export async function storedBookIds(): Promise<Set<string>> {
+  return new Set((await listBookFileKeys()).map((k) => k.bookId))
 }
 
 /** Total bytes of stored book files. */
