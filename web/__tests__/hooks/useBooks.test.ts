@@ -132,6 +132,16 @@ describe('useLibrary', () => {
     expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function), undefined)
   })
 
+  it('fetcher calls client.getLibrary', async () => {
+    const mockClient = { getLibrary: jest.fn().mockResolvedValue({}) }
+    // @ts-expect-error -- mock client returns partial shape
+    mockCreateServiceClient.mockReturnValueOnce(mockClient)
+    renderHook(() => useLibrary())
+    const fetcher = mockUseSWR.mock.calls[0]![1]!
+    await fetcher()
+    expect(mockClient.getLibrary).toHaveBeenCalledWith({})
+  })
+
   it('passes SWR options through', () => {
     renderHook(() => useLibrary({ revalidateOnFocus: false }))
     expect(mockUseSWR).toHaveBeenCalledWith('/books', expect.any(Function), {

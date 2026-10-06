@@ -44,17 +44,24 @@ describe('warmReaderModules', () => {
     const warm = freshWarm()
     await warm()
     await warm()
-    const urls = fetchMock.mock.calls.map(([url]) => url)
-    expect(urls).toEqual(
-      expect.arrayContaining([
-        '/foliate-js/view.js',
-        '/foliate-js/epub.js',
-        '/foliate-js/pdf.js',
-        '/foliate-js/vendor/pdfjs/pdf.mjs',
-        '/foliate-js/vendor/pdfjs/pdf.worker.mjs'
-      ])
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(
+      [
+        'view.js',
+        'epubcfi.js',
+        'progress.js',
+        'overlayer.js',
+        'text-walker.js',
+        'vendor/zip.js',
+        'epub.js',
+        'paginator.js',
+        'fixed-layout.js',
+        'pdf.js',
+        'vendor/pdfjs/pdf.mjs',
+        'vendor/pdfjs/pdf.worker.mjs',
+        'vendor/pdfjs/text_layer_builder.css',
+        'vendor/pdfjs/annotation_layer_builder.css'
+      ].map((path) => `/foliate-js/${path}`)
     )
-    expect(new Set(urls).size).toBe(urls.length)
   })
 
   it.each([
@@ -72,6 +79,13 @@ describe('warmReaderModules', () => {
     expect(fetchMock).toHaveBeenCalledTimes(perRun * 2)
     await warm()
     expect(fetchMock).toHaveBeenCalledTimes(perRun * 2)
+  })
+
+  it('does nothing where service workers are unsupported', async () => {
+    setController(undefined)
+    Object.defineProperty(navigator, 'serviceWorker', { value: undefined, configurable: true })
+    await freshWarm()()
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('does nothing without a controlling service worker', async () => {

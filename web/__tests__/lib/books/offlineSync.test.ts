@@ -84,6 +84,8 @@ describe('preferredBookFormat', () => {
 
   it('has no format for a book without an EPUB or PDF', () => {
     expect(preferredBookFormat(book('a', { formats: [] }))).toBeNull()
+    saveReaderChoice('a', 'kepub')
+    expect(preferredBookFormat(book('a', { formats: [] }))).toBeNull()
   })
 
   it('without a choice, keeps to a stored file opened through ?format=', () => {
@@ -126,6 +128,12 @@ describe('planOfflineBooks', () => {
       []
     )
     expect(plan.downloads).toEqual([])
+  })
+
+  it('keeps a stored KEPUB, without downloading, while it is being reconverted', () => {
+    saveReaderChoice('rc', 'kepub')
+    const plan = planOfflineBooks(library({ reading: [book('rc')] }), [stored('rc', 'kepub', 'k1')])
+    expect(plan).toEqual({ downloads: [], evictions: [] })
   })
 
   it('only downloads currently-reading books', () => {
@@ -343,6 +351,10 @@ describe('syncOfflineBooks', () => {
       await syncOfflineBooks(lib, { gapMs: 0 })
       expect(mockDownload).not.toHaveBeenCalled()
 
+      now.mockReturnValue(1_000_000 + 29 * 60 * 1000)
+      await syncOfflineBooks(lib, { gapMs: 0 })
+      expect(mockDownload).not.toHaveBeenCalled()
+
       now.mockReturnValue(1_000_000 + 30 * 60 * 1000)
       await syncOfflineBooks(lib, { gapMs: 0 })
       expect(mockDownload).toHaveBeenCalledWith({
@@ -364,6 +376,30 @@ describe('syncOfflineBooks', () => {
     await syncOfflineBooks(library({ reading: [ub] }), { gapMs: 0 })
     expect(mockDownload).toHaveBeenCalledWith({ bookId: 'sw', format: 'kepub', version: 'k' })
     expect(mockDelete).toHaveBeenCalledWith('sw', 'epub')
+  })
+
+  it('does not warm the reader modules once every stored book is evicted', async () => {
+    mockList.mockResolvedValue([stored('gone', 'epub', 'x')])
+    await syncOfflineBooks(library({}), { gapMs: 0 })
+    expect(mockWarm).not.toHaveBeenCalled()
+  })
+
+  it('warms the reader modules while a stored book survives eviction', async () => {
+    mockList.mockResolvedValue([stored('gone', 'epub', 'x'), stored('kept', 'epub', 'kept-v1')])
+    await syncOfflineBooks(library({ wishlist: [book('kept', { status: 'to-read' })] }), {
+      gapMs: 0
+    })
+    expect(mockWarm).toHaveBeenCalled()
+  })
+
+  it('warms the reader modules while a book keeps its chosen format', async () => {
+    saveReaderChoice('cf', 'kepub')
+    mockList.mockResolvedValue([stored('cf', 'epub', 'e'), stored('cf', 'kepub', 'k')])
+    const ub = book('cf', { fileVersions: { epub: 'e', kepub: 'k' } })
+    await syncOfflineBooks(library({ reading: [ub] }), { gapMs: 0 })
+    expect(mockDelete).toHaveBeenCalledWith('cf', 'epub')
+    expect(mockDownload).not.toHaveBeenCalled()
+    expect(mockWarm).toHaveBeenCalled()
   })
 
   it('warms the reader modules while any book is stored', async () => {

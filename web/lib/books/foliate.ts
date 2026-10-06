@@ -94,8 +94,11 @@ export async function warmReaderModules(): Promise<void> {
   if (warmed || !navigator.serviceWorker?.controller) return
   let ok = true
   for (const url of READER_MODULES) {
-    const res = await fetch(url).catch(() => null)
-    if (!res?.ok) ok = false
+    try {
+      if (!(await fetch(url)).ok) ok = false
+    } catch {
+      ok = false
+    }
   }
   warmed = ok
 }

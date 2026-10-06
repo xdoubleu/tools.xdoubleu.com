@@ -34,6 +34,9 @@ describe('formatStorageSize', () => {
   it.each([
     [0, '0 KB'],
     [512, '1 KB'],
+    [1024 * 1024 - 1, '1024 KB'],
+    [1024 * 1024, '1.0 MB'],
+    [1024 * 1024 * 1024, '1.0 GB'],
     [1536 * 1024, '1.5 MB'],
     [3 * 1024 * 1024 * 1024, '3.0 GB']
   ])('formats %d bytes as %s', (bytes, text) => {
@@ -80,6 +83,31 @@ describe('OfflineBooksSettings', () => {
     expect(mockDeleteAll).toHaveBeenCalledTimes(1)
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(await screen.findByText('No books stored on this device.')).toBeInTheDocument()
+  })
+
+  it('shows the removal as pending, and is ready for the next one', async () => {
+    let finish!: () => void
+    mockDeleteAll.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => {
+            listeners.forEach((l) => l())
+            resolve()
+          }
+        })
+    )
+    mockList.mockResolvedValue([file('a', 'epub', 1024)])
+    render(<OfflineBooksSettings />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove offline books' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+    expect(await screen.findByRole('button', { name: 'Removing…' })).toBeDisabled()
+
+    await act(async () => finish())
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+    // Books stored again later can be removed again.
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove offline books' }))
+    expect(screen.getByRole('button', { name: 'Remove' })).toBeEnabled()
   })
 
   it('keeps the books when the confirmation is cancelled', async () => {

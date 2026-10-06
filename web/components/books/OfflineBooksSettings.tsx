@@ -27,23 +27,19 @@ export default function OfflineBooksSettings() {
   const [confirming, setConfirming] = useState(false)
   const [removing, setRemoving] = useState(false)
 
+  // Stryker disable ArrayDeclaration: any constant deps list runs the effect once.
   useEffect(() => {
-    let active = true
     const load = () =>
-      void listStoredBooks().then((files) => {
-        if (!active) return
+      void listStoredBooks().then((files) =>
         setSummary({
           books: new Set(files.map((f) => f.bookId)).size,
           bytes: files.reduce((sum, f) => sum + f.size, 0)
         })
-      })
+      )
     load()
-    const unsubscribe = subscribeStoredBooks(load)
-    return () => {
-      active = false
-      unsubscribe()
-    }
+    return subscribeStoredBooks(load)
   }, [])
+  // Stryker restore ArrayDeclaration
 
   async function handleRemove() {
     setRemoving(true)

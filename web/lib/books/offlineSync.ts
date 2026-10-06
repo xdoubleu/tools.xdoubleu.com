@@ -64,9 +64,10 @@ export function planOfflineBooks(library: LibraryResponse, stored: StoredBookInf
     const userBook = books.get(bookId)
     const evictAll = !userBook || userBook.status === FINISHED
     const chosen = userBook && loadReaderChoice(bookId) ? preferredBookFormat(userBook) : null
+    // The chosen file, when it is stored.
+    const keep = [...formats.keys()].find((f) => f === chosen)
     for (const format of formats.keys()) {
-      const otherKind =
-        chosen !== null && formats.has(chosen) && (format === 'kepub') !== (chosen === 'kepub')
+      const otherKind = keep !== undefined && (format === 'kepub') !== (keep === 'kepub')
       if (evictAll || otherKind) evictions.push({ bookId, format })
     }
   }
@@ -76,8 +77,7 @@ export function planOfflineBooks(library: LibraryResponse, stored: StoredBookInf
     const storedFormats = storedVersions.get(userBook.bookId)
     const format = preferredBookFormat(userBook, new Set(storedFormats?.keys()))
     const version = format ? userBook.fileVersions[format] : undefined
-    if (!format || !version) continue
-    if (storedFormats?.get(format) === version) continue
+    if (!format || !version || storedFormats?.get(format) === version) continue
     downloads.push({
       bookId: userBook.bookId,
       format,
@@ -124,7 +124,6 @@ async function syncOnce(library: LibraryResponse, gapMs: number) {
     try {
       await downloadBookFile(ref)
       downloaded++
-      failedAt.delete(refKey(ref))
       savePageForOffline(readerPath)
     } catch {
       // Losing the connection isn't the file's fault.
@@ -132,7 +131,8 @@ async function syncOnce(library: LibraryResponse, gapMs: number) {
       failedAt.set(refKey(ref), Date.now())
     }
   }
-  const remaining = downloaded > 0 ? await evict(library) : stored
+  // Again, so a newly stored format replaces the old one.
+  const remaining = await evict(library)
   if (remaining.length > 0 && canPrefetch()) await warmReaderModules()
 }
 
