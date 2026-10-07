@@ -17,7 +17,7 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
-  const { data, error, isLoading } = useMovieTitle(id)
+  const { data, isLoading } = useMovieTitle(id)
   const { setStatus, remove } = useMoviesActions()
   const [pending, setPending] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -27,7 +27,8 @@ export default function MovieTitleClient({ id }: { id: string }) {
   const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
 
   if (isLoading && !data) return <LoadingState label="title" />
-  if (error || !data?.entry) {
+  // A failed revalidation keeps showing the data already loaded.
+  if (!data?.entry) {
     return (
       <PageContainer>
         <PageHeader title="Movies & Series" breadcrumb={breadcrumb} />
@@ -113,6 +114,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
               <p className="text-sm text-subtle">Watched</p>
               <ul className="text-sm">
                 {entry.watchedAt.map((w, i) => (
+                  // Stryker disable next-line StringLiteral: React keys aren't observable.
                   <li key={`${w}-${i}`} suppressHydrationWarning>
                     {watchDateLabel(w)}
                   </li>

@@ -29,14 +29,13 @@ export function posterUrl(posterPath: string, width: 'w92' | 'w185' | 'w342' = '
   return posterPath ? `https://image.tmdb.org/t/p/${width}${posterPath}` : ''
 }
 
-/** Whether a YYYY-MM-DD release date lies after `today` (also YYYY-MM-DD). */
+/** Whether a YYYY-MM-DD release date lies after `today`; "" never does. */
 export function isUnreleased(releaseDate: string, today: string): boolean {
-  return releaseDate !== '' && releaseDate > today
+  return releaseDate > today
 }
 
 /** "1999", "Releases 2027-05-01", or "" when TMDB has no date. */
 export function releaseLabel(releaseDate: string, today: string): string {
-  if (!releaseDate) return ''
   return isUnreleased(releaseDate, today) ? `Releases ${releaseDate}` : releaseDate.slice(0, 4)
 }
 

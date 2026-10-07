@@ -207,10 +207,29 @@ describe('MoviesClient search', () => {
     expect(screen.queryByRole('region', { name: 'Backlog' })).not.toBeInTheDocument()
   })
 
-  it('keeps the backlog for one-character queries', () => {
+  it('keeps the backlog for one-character queries, ignoring padding', () => {
     render(<MoviesClient />)
-    search('b')
+    expect(screen.getByLabelText('Search TMDB')).toHaveValue('')
+    search('  b  ')
     expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+  })
+
+  it('restarts the wait on every keystroke', () => {
+    render(<MoviesClient />)
+    const input = screen.getByLabelText('Search TMDB')
+    fireEvent.change(input, { target: { value: 'ab' } })
+    act(() => {
+      jest.advanceTimersByTime(200)
+    })
+    fireEvent.change(input, { target: { value: 'abc' } })
+    act(() => {
+      jest.advanceTimersByTime(200)
+    })
+    expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+    act(() => {
+      jest.advanceTimersByTime(100)
+    })
+    expect(jest.mocked(useMovieSearch).mock.calls.map(([q]) => q)).toEqual(['abc'])
   })
 
   it('shows results with quick actions or the existing status', () => {

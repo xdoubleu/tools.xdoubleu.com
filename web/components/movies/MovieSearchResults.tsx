@@ -89,6 +89,7 @@ export default function MovieSearchResults({ query }: { query: string }) {
   return (
     <ul className="space-y-2" aria-label="Search results">
       {data.results.map((r) => (
+        // Stryker disable next-line StringLiteral: React keys aren't observable.
         <li key={`${r.mediaType}-${r.tmdbId}`}>
           <SearchResultRow result={r} today={today} />
         </li>

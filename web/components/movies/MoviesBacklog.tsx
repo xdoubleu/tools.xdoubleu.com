@@ -93,6 +93,7 @@ export default function MoviesBacklog() {
   const { data, error, isLoading } = useMoviesBacklog(filter)
   const fetchPage = useFetchMoviesBacklogPage(filter)
   const initialPage = useMemo(
+    // Stryker disable next-line BooleanLiteral: without data there are no entries to load more of.
     () => ({ items: data?.entries ?? [], hasMore: data?.hasMore ?? false }),
     [data]
   )
