@@ -2,7 +2,8 @@
 # Diff-scoped mutation testing: resolves the TS/TSX lines changed vs
 # origin/main via ../tools/diff_files_ts.py ("path" or "path:start-end"),
 # then runs StrykerJS --mutate on just those (StrykerJS has no built-in
-# git-diff scoping).
+# git-diff scoping). --force re-tests every scoped mutant: the incremental
+# cache reuses stale results for static mutants after only tests change.
 # MUTATION_DIFF_FILES (newline-separated) and STRYKER_BIN override the inputs
 # for testing.
 set -euo pipefail
@@ -35,4 +36,4 @@ fi
 
 files=$(printf '%s\n' "${patterns[@]}" | paste -sd, -)
 echo "Diff-scoped mutation testing: $files"
-${STRYKER_BIN:-npx stryker} run --mutate "$files"
+${STRYKER_BIN:-npx stryker} run --force --mutate "$files"
