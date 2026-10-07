@@ -5,6 +5,7 @@ package csa
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -545,4 +546,47 @@ func TestStopDisplayName_UsesDisplayNameNotFrenchOnly(t *testing.T) {
 	}
 	assert.Equal(t, "Brussel-Zuid / Bruxelles-Midi", stopDisplayName(stop))
 	assert.NotEqual(t, stop.NameFR, stopDisplayName(stop))
+}
+
+// TestSearchJourneys_NearbyTimesListSameJourneys: with a fast train at :12 and
+// a slow one at :23, searching at 17:12 or 17:23 lists the same trains instead
+// of whichever earliest-arrival chain starts at the requested minute.
+func TestSearchJourneys_NearbyTimesListSameJourneys(t *testing.T) {
+	window := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
+	var instances []models.ActiveTrip
+	patterns := map[string][]models.StopTime{}
+	add := func(id string, depSec, durSec int) {
+		instances = append(instances, mkTrip(id, id, "Bravo", day(window, 0)))
+		patterns[id] = []models.StopTime{
+			mkST(1, "A1", depSec, depSec, 0, 0),
+			mkST(2, "B1", depSec+durSec, depSec+durSec, 0, 0),
+		}
+	}
+	for h := 8; h <= 22; h++ {
+		add(fmt.Sprintf("fast%d", h), h*3600+12*60, 100*60)
+		add(fmt.Sprintf("slow%d", h), h*3600+23*60, 130*60)
+	}
+	idx := Build(loc, window, baseStops(), nil, instances, flattenPatterns(patterns))
+
+	names := func(when time.Time) []string {
+		js, err := idx.SearchJourneys("SA", "SB", when, false)
+		require.NoError(t, err)
+		var out []string
+		for _, j := range js {
+			out = append(out, j.Legs[0].TripShortName)
+		}
+		return out
+	}
+	a := names(time.Date(2026, 10, 1, 17, 12, 0, 0, loc))
+	b := names(time.Date(2026, 10, 1, 17, 23, 0, 0, loc))
+
+	assert.Contains(t, b, "fast17", "17:23 search must still list the 17:12 train")
+	assert.Contains(t, a, "slow17")
+	shared := 0
+	for _, n := range a {
+		if slices.Contains(b, n) {
+			shared++
+		}
+	}
+	assert.GreaterOrEqual(t, shared, len(a)-1, "lists %v vs %v", a, b)
 }
