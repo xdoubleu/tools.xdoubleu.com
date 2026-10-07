@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -49,16 +48,14 @@ type Client interface {
 }
 
 type client struct {
-	logger     *slog.Logger
 	httpClient *http.Client
 	limiter    *rate.Limiter
 	token      string
 }
 
 // New creates a client authenticating with an API Read Access Token.
-func New(logger *slog.Logger, token string) Client {
+func New(token string) Client {
 	return client{
-		logger:     logger,
 		httpClient: &http.Client{Timeout: apiTimeout},
 		limiter:    rate.NewLimiter(requestsPerSecond, burst),
 		token:      token,
@@ -117,28 +114,28 @@ func (c client) get(
 
 	var lastErr error
 	for i := range maxAttempts {
+		if i > 0 {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(backoffDelay(i - 1)):
+			}
+		}
 		retryable, err := c.do(ctx, endpoint, dst)
 		if err == nil {
 			return nil
 		}
 		lastErr = err
-		if !retryable || i == maxAttempts-1 {
+		if !retryable {
 			break
-		}
-
-		delay := backoffBase * (1 << i)
-		c.logger.DebugContext(ctx, "retrying tmdb request",
-			slog.Int("attempt", i+1),
-			slog.Duration("backoff", delay),
-			slog.Any("error", err),
-		)
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(delay):
 		}
 	}
 	return lastErr
+}
+
+// backoffDelay doubles from backoffBase with each retry.
+func backoffDelay(retry int) time.Duration {
+	return backoffBase << retry
 }
 
 func (c client) do(ctx context.Context, endpoint string, dst any) (bool, error) {

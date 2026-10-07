@@ -57,7 +57,7 @@ func newTMDBClient(logger *slog.Logger, cfg config.Config) tmdb.Client {
 		logger.Warn("TMDB_API_KEY not set; movies search is disabled")
 		return nil
 	}
-	return tmdb.New(logger, cfg.TMDBAPIKey)
+	return tmdb.New(cfg.TMDBAPIKey)
 }
 
 func (a *Movies) ApplyMigrations(ctx context.Context, db *pgxpool.Pool) error {

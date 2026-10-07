@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"tools.xdoubleu.com/apps/movies/pkg/tmdb"
-	"tools.xdoubleu.com/internal/logging"
 )
 
 func TestMain(m *testing.M) {
@@ -29,7 +28,7 @@ func serve(t *testing.T, handler http.HandlerFunc) tmdb.Client {
 		srv.Close()
 		tmdb.SetBaseURL("https://api.themoviedb.org/3")
 	})
-	return tmdb.New(logging.NewNopLogger(), "token")
+	return tmdb.New("token")
 }
 
 func TestSearch_KeepsMoviesAndSeries(t *testing.T) {
@@ -88,7 +87,7 @@ func TestGetSeries(t *testing.T) {
 		assert.Equal(t, "/tv/1396", r.URL.Path)
 		_, _ = w.Write([]byte(`{"id":1396,"name":"Breaking Bad",
 			"original_name":"Breaking Bad","first_air_date":"2008-01-20",
-			"number_of_seasons":5,"genres":[{"name":"Drama"}]}`))
+			"number_of_seasons":5,"genres":[{"name":"Drama"},{"name":""}]}`))
 	})
 
 	got, err := c.GetSeries(context.Background(), 1396)
@@ -97,6 +96,16 @@ func TestGetSeries(t *testing.T) {
 	assert.Equal(t, "Breaking Bad", got.Title)
 	require.NotNil(t, got.SeasonCount)
 	assert.Equal(t, 5, *got.SeasonCount)
+	assert.Nil(t, got.Runtime)
+}
+
+func TestGetMovie_ZeroRuntimeIsUnknown(t *testing.T) {
+	c := serve(t, func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"id":1,"title":"Short","runtime":0}`))
+	})
+
+	got, err := c.GetMovie(context.Background(), 1)
+	require.NoError(t, err)
 	assert.Nil(t, got.Runtime)
 }
 
