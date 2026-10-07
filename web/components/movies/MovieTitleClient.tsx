@@ -9,6 +9,7 @@ import MoviePoster from '@/components/movies/MoviePoster'
 import MovieWatches from '@/components/movies/MovieWatches'
 import SeasonChecklist from '@/components/movies/SeasonChecklist'
 import TitleStatus from '@/components/movies/TitleStatus'
+import MovieRating from '@/components/movies/MovieRating'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,6 +90,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
           )}
           {data.overview && <p className="text-sm">{data.overview}</p>}
           <TitleStatus entry={entry} seasons={data.seasons} />
+          <MovieRating entry={entry} />
           {entry.mediaType === 'series' ? (
             <SeasonChecklist entryId={entry.id} seasons={data.seasons} />
           ) : (

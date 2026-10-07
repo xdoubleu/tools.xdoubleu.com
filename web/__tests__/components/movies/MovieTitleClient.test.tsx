@@ -71,6 +71,7 @@ describe('MovieTitleClient', () => {
     expect(screen.getByLabelText('Watch 2 date')).toHaveValue('')
     expect(screen.getByText('Date unknown')).toBeInTheDocument()
     expect(screen.getByLabelText('Status')).toHaveValue('watched')
+    expect(screen.getByRole('region', { name: 'Rating' })).toBeInTheDocument()
   })
 
   it('shows the season count for series', () => {

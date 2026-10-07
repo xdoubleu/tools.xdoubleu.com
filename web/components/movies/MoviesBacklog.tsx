@@ -17,6 +17,7 @@ import MoviePoster from '@/components/movies/MoviePoster'
 import StatusSelect from '@/components/movies/StatusSelect'
 import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Field } from '@/components/ui/field'
+import { RatingStars } from '@/components/ui/rating-stars'
 import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
 import { SegmentedTabs } from '@/components/ui/segmented-tabs'
@@ -104,6 +105,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
             </>
           )}
         </p>
+        {entry.rating !== undefined && <RatingStars value={entry.rating} />}
         {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
       </div>
     </LinkCard>
@@ -151,6 +153,7 @@ export default function MoviesBacklog() {
             <option value="added">Recently added</option>
             <option value="title">Title</option>
             <option value="release">Release date</option>
+            <option value="rating">Rating</option>
           </Select>
         </Field>
       </div>

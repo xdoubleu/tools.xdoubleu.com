@@ -17,6 +17,7 @@ const mockClient = {
   addTitle: jest.fn().mockResolvedValue({ entry: { id: 'e-2' } }),
   setStatus: jest.fn().mockResolvedValue({}),
   removeTitle: jest.fn().mockResolvedValue({}),
+  setRating: jest.fn().mockResolvedValue({}),
   setSeasonWatched: jest.fn().mockResolvedValue({}),
   addWatchDate: jest.fn().mockResolvedValue({}),
   editWatchDate: jest.fn().mockResolvedValue({}),
@@ -152,6 +153,16 @@ describe('useMoviesActions', () => {
     expect(mockMutate).toHaveBeenCalledTimes(5)
     // The removed title itself is not revalidated.
     expect(revalidated).toEqual([['/movies/backlog', '', '', 'added']])
+  })
+
+  it('rates and clears a rating, then revalidates', async () => {
+    const { result } = renderHook(() => useMoviesActions())
+
+    await result.current.setRating('e-1', 4)
+    expect(mockClient.setRating).toHaveBeenCalledWith({ id: 'e-1', rating: 4 })
+    await result.current.setRating('e-1', 0)
+    expect(mockClient.setRating).toHaveBeenLastCalledWith({ id: 'e-1', rating: undefined })
+    expect(mockMutate).toHaveBeenCalledTimes(2)
   })
 
   it('writes seasons and watch dates, then revalidates', async () => {
