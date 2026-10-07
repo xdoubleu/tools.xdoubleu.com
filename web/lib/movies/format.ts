@@ -48,8 +48,3 @@ export function todayISO(now: Date = new Date()): string {
 export function watchDay(watchedAt: string): string {
   return watchedAt ? todayISO(new Date(watchedAt)) : ''
 }
-
-/** A watch date as YYYY-MM-DD in local time, or "Date unknown". */
-export function watchDateLabel(watchedAt: string): string {
-  return watchDay(watchedAt) || 'Date unknown'
-}

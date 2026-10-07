@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DateInput } from '@/components/ui/date-input'
 import { todayISO, watchDay } from '@/lib/movies/format'
@@ -14,6 +15,45 @@ interface WatchDatesProps {
   onAdd: (date: string) => void
   onEdit: (index: number, date: string) => void
   onRemove: (index: number) => void
+}
+
+// Typing a year passes through 0002, 0020, 0202; earlier years and cleared
+// inputs wait for blur.
+const MIN_COMMIT_YEAR = 1900
+
+function WatchDateInput({
+  id,
+  index,
+  watchedAt,
+  onEdit
+}: {
+  id: string
+  index: number
+  watchedAt: string
+  onEdit: (index: number, date: string) => void
+}) {
+  const saved = watchDay(watchedAt)
+  // A draft is dropped once the saved date changes under it; sent is the
+  // last date handed to onEdit, so blur doesn't resend it.
+  const [draft, setDraft] = useState({ from: saved, value: saved, sent: saved })
+  const current = draft.from === saved ? draft : { from: saved, value: saved, sent: saved }
+
+  const change = (value: string, commit: boolean) => {
+    const send = commit && value !== current.sent
+    setDraft({ from: saved, value, sent: send ? value : current.sent })
+    if (send) onEdit(index, value)
+  }
+
+  return (
+    <DateInput
+      id={id}
+      aria-label={`Watch ${index + 1} date`}
+      className="w-full sm:w-44"
+      value={current.value}
+      onChange={(date) => change(date, Number(date.slice(0, 4)) >= MIN_COMMIT_YEAR)}
+      onBlur={() => change(current.value, true)}
+    />
+  )
 }
 
 /** Editable list of watches; clearing a date makes it unknown. */
@@ -32,13 +72,7 @@ export default function WatchDates({
           {dates.map((w, i) => (
             // Index keys: a date edit must not remount (and blur) its input.
             <li key={i} className="flex flex-wrap items-center gap-2">
-              <DateInput
-                id={`${idPrefix}-${i}`}
-                aria-label={`Watch ${i + 1} date`}
-                className="w-full sm:w-44"
-                value={watchDay(w)}
-                onChange={(date) => onEdit(i, date)}
-              />
+              <WatchDateInput id={`${idPrefix}-${i}`} index={i} watchedAt={w} onEdit={onEdit} />
               {!w && <span className="text-sm text-muted">Date unknown</span>}
               <Button variant="ghost" disabled={pending} onClick={() => onRemove(i)}>
                 Remove

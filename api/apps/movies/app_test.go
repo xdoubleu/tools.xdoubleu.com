@@ -82,6 +82,15 @@ var catalog = []tmdb.Title{
 		},
 	},
 	{
+		MediaType: tmdb.MediaTypeSeries, TMDBID: 136315, Title: "The Bear",
+		OriginalTitle: "The Bear", ReleaseDate: date("2022-06-23"), PosterPath: "",
+		Overview: "", Genres: nil, Runtime: nil, SeasonCount: intPtr(2),
+		Seasons: []tmdb.Season{
+			{Number: 1, Name: "Season 1", AirDate: date("2022-06-23"), EpisodeCount: 8},
+			{Number: 2, Name: "Season 2", AirDate: date("2099-06-22"), EpisodeCount: 0},
+		},
+	},
+	{
 		MediaType: tmdb.MediaTypeMovie, TMDBID: 999, Title: "Avatar 5",
 		OriginalTitle: "Avatar 5", ReleaseDate: nil, PosterPath: "",
 		Overview: "", Genres: nil, Runtime: nil, SeasonCount: nil, Seasons: nil,

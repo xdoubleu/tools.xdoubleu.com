@@ -179,3 +179,15 @@ func TestGetTitle_LoadsMissingSeasonsOnce(t *testing.T) {
 
 	assert.Len(t, getTitle(t, newKeepingClient(t, userID, fakeTMDB{}), e.Id).Seasons, 2)
 }
+
+// A series marked watched before its seasons were stored keeps its status:
+// the first season load ticks its aired seasons, dated unknown.
+func TestGetTitle_LoadingSeasonsOfAWatchedSeriesTicksThem(t *testing.T) {
+	old := newClient(t, userID, seasonlessTMDB{fakeTMDB{}})
+	e := add(t, old, "series", 136315, "watched")
+
+	got := getTitle(t, newKeepingClient(t, userID, fakeTMDB{}), e.Id)
+	assert.Equal(t, "watched", got.Entry.Status)
+	assert.Equal(t, []string{""}, ticks(got.Seasons)[1])
+	assert.Empty(t, ticks(got.Seasons)[2], "unaired")
+}

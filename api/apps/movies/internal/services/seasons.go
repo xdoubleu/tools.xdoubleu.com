@@ -13,7 +13,9 @@ import (
 )
 
 // loadSeasons fills a series' missing catalog seasons from TMDB. A TMDB
-// failure leaves the entry without seasons rather than failing the read.
+// failure leaves the entry without seasons rather than failing the read. A
+// series already marked watched gets its aired seasons ticked, dated unknown,
+// so its first season edit doesn't demote it.
 func (s *MovieService) loadSeasons(
 	ctx context.Context,
 	userID string,
@@ -29,8 +31,13 @@ func (s *MovieService) loadSeasons(
 	if _, err = s.storeTitle(ctx, *t); err != nil {
 		return nil, err
 	}
-	entry.Seasons, err = s.repo.ListSeasons(ctx, userID, entry.ID)
-	return entry, err
+	if entry.Seasons, err = s.repo.ListSeasons(ctx, userID, entry.ID); err != nil {
+		return nil, err
+	}
+	if entry.Status != models.StatusWatched {
+		return entry, nil
+	}
+	return s.markSeriesWatched(ctx, userID, entry, true)
 }
 
 // watchAt is a new watch: now, or unknown.

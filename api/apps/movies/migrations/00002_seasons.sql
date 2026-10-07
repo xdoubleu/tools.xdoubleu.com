@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS movies.seasons (
 );
 
 -- A season is ticked while it has at least one watch; a NULL element is a
--- watch with an unknown date.
+-- watch with an unknown date. No backfill: seasons load from TMDB per entry
+-- on first read, which ticks a watched series' aired seasons.
 CREATE TABLE IF NOT EXISTS movies.user_seasons (
     user_title_id UUID NOT NULL REFERENCES movies.user_titles (
         id
