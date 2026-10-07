@@ -122,3 +122,15 @@ func TestGetStats_CountsSeededWatches(t *testing.T) {
 	assert.Equal(t, []string{"Action", "Drama", "Science Fiction"}, genres,
 		"genres of titles with a watch; the unwatched Animation is left out")
 }
+
+func TestGetStats_WatchedSeriesWithoutSeasonWatches(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	e := add(t, c, "series", 95396, "watched")
+	_, err := testDB.Exec(context.Background(),
+		"DELETE FROM movies.user_seasons WHERE user_title_id = $1", e.Id)
+	require.NoError(t, err)
+
+	got := stats(t, c)
+	assert.Equal(t, int32(1), got.SeriesWatched, "status decides series watched")
+	assert.Zero(t, got.SeasonsWatched)
+}

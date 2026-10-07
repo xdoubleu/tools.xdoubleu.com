@@ -17,12 +17,20 @@ import { RatingStars } from '@/components/ui/rating-stars'
 import { StatTile } from '@/components/ui/stat'
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
 
-const tooltipContentStyle = {
-  backgroundColor: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: '0.75rem',
-  color: 'var(--color-fg)'
+// Stryker disable StringLiteral,ObjectLiteral: chart colours and tooltip styling are presentation only.
+const axisTick = { fontSize: 11, fill: 'var(--color-muted)' }
+const tooltipProps = {
+  cursor: { fill: 'rgb(var(--hover-rgb) / 0.5)' },
+  contentStyle: {
+    backgroundColor: 'var(--color-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '0.75rem',
+    color: 'var(--color-fg)'
+  },
+  labelStyle: { color: 'var(--color-fg)' },
+  itemStyle: { color: 'var(--color-fg)' }
 }
+// Stryker restore StringLiteral,ObjectLiteral
 
 /** Watching totals, watches per month, top genres and ratings. */
 export default function MoviesStatsClient() {
@@ -31,7 +39,8 @@ export default function MoviesStatsClient() {
   if (isLoading && !data) return <LoadingState label="stats" />
   if (error && !data) return <ErrorState what="stats" />
   if (!data) return null
-  if (data.moviesWatched + data.seasonsWatched === 0) {
+  const rated = data.ratings.some((n) => n > 0)
+  if (data.moviesWatched + data.seriesWatched + data.seasonsWatched === 0 && !rated) {
     return (
       <EmptyState>Nothing watched yet. Mark a movie or season watched to see stats.</EmptyState>
     )
@@ -42,7 +51,6 @@ export default function MoviesStatsClient() {
     Movies: m.movies,
     Seasons: m.seasons
   }))
-  const rated = data.ratings.some((n) => n > 0)
 
   return (
     <div className="space-y-6">
@@ -61,14 +69,9 @@ export default function MoviesStatsClient() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={months}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-muted)' }} />
-                <YAxis allowDecimals={false} tick={{ fill: 'var(--color-muted)' }} width={32} />
-                <Tooltip
-                  cursor={{ fill: 'rgb(var(--hover-rgb) / 0.5)' }}
-                  contentStyle={tooltipContentStyle}
-                  labelStyle={{ color: 'var(--color-fg)' }}
-                  itemStyle={{ color: 'var(--color-fg)' }}
-                />
+                <XAxis dataKey="month" tick={axisTick} />
+                <YAxis allowDecimals={false} tick={axisTick} width={32} />
+                <Tooltip {...tooltipProps} />
                 <Legend />
                 <Bar dataKey="Movies" stackId="watches" fill="var(--color-accent)" />
                 <Bar dataKey="Seasons" stackId="watches" fill="var(--color-star)" />

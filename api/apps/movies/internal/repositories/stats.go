@@ -50,8 +50,10 @@ func (r *MoviesRepository) Stats(
 			watched AS (`+watchedTitles+`)
 		SELECT
 			(SELECT count(*) FROM watched WHERE media_type = 'movie'),
-			(SELECT count(*) FROM watched
-				WHERE media_type = 'series' AND status = 'watched'),
+			(SELECT count(*) FROM movies.user_titles ut
+				JOIN movies.titles t ON t.id = ut.title_id
+				WHERE ut.user_id = $1 AND t.media_type = 'series'
+					AND ut.status = 'watched'),
 			(SELECT count(*) FROM season_watches)`,
 		userID,
 	).Scan(&stats.MoviesWatched, &stats.SeriesWatched, &stats.SeasonsWatched)

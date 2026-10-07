@@ -12,8 +12,10 @@ jest.mock('recharts', () => ({
   Bar: ({ dataKey, stackId }: { dataKey: string; stackId: string }) => (
     <span data-testid="bar">{`${dataKey}:${stackId}`}</span>
   ),
-  XAxis: () => null,
-  YAxis: () => null,
+  XAxis: ({ dataKey }: { dataKey: string }) => <span data-testid="x-axis">{dataKey}</span>,
+  YAxis: ({ allowDecimals }: { allowDecimals: boolean }) => (
+    <span data-testid="y-axis">{String(allowDecimals)}</span>
+  ),
   CartesianGrid: () => null,
   Tooltip: () => null,
   Legend: () => null,
@@ -97,6 +99,8 @@ describe('MoviesStatsClient', () => {
       { month: 'Nov 25', Movies: 0, Seasons: 2 },
       { month: 'Jan 26', Movies: 3, Seasons: 1 }
     ])
+    expect(screen.getByTestId('x-axis')).toHaveTextContent('month')
+    expect(screen.getByTestId('y-axis')).toHaveTextContent('false')
     expect(screen.getAllByTestId('bar').map((b) => b.textContent)).toEqual([
       'Movies:watches',
       'Seasons:watches'
@@ -127,9 +131,16 @@ describe('MoviesStatsClient', () => {
     expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 
-  it('counts seasons alone as something watched', () => {
-    mockStats({ data: create(GetStatsResponseSchema, { seasonsWatched: 1 }) })
+  it.each([
+    ['seasons', { seasonsWatched: 1 }],
+    ['a watched series', { seriesWatched: 1 }],
+    ['a rating', { ratings: [0, 0, 1, 0, 0] }],
+    ['a movie and a series', { moviesWatched: 1, seriesWatched: 1 }],
+    ['a series and a season', { seriesWatched: 1, seasonsWatched: 1 }]
+  ])('shows stats for %s alone', (_name, fields) => {
+    mockStats({ data: create(GetStatsResponseSchema, fields) })
     render(<MoviesStatsClient />)
     expect(screen.queryByText(/Nothing watched yet/)).not.toBeInTheDocument()
+    expect(screen.getByText('Movies watched')).toBeInTheDocument()
   })
 })

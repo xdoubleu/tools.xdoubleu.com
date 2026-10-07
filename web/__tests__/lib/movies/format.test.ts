@@ -84,10 +84,13 @@ describe('isNewSeason', () => {
 })
 
 describe('monthLabel', () => {
-  it.each([
-    ['2026-01', 'Jan 26'],
-    ['2025-12', 'Dec 25']
-  ])('labels %s as %s', (month, label) => {
-    expect(monthLabel(month)).toBe(label)
+  it('names every month', () => {
+    const months = Array.from({ length: 12 }, (_, i) =>
+      monthLabel(`2026-${String(i + 1).padStart(2, '0')}`)
+    )
+    expect(months.join(' ')).toBe(
+      'Jan 26 Feb 26 Mar 26 Apr 26 May 26 Jun 26 Jul 26 Aug 26 Sep 26 Oct 26 Nov 26 Dec 26'
+    )
+    expect(monthLabel('2025-12')).toBe('Dec 25')
   })
 })

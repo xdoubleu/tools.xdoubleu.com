@@ -100,6 +100,7 @@ describe('MoviesStatsPage', () => {
       expect.objectContaining({ fallback: { '/movies/stats': stats } })
     )
     expect(screen.getByRole('link', { name: 'Movies & Series' })).toHaveAttribute('href', '/movies')
+    expect(screen.getByRole('navigation')).toHaveTextContent('Movies & Series/Stats')
   })
 
   it('renders without seeding when the fetch fails', async () => {
