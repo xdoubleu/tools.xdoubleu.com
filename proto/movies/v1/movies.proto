@@ -1,0 +1,88 @@
+syntax = "proto3";
+package movies.v1;
+option go_package = "tools.xdoubleu.com/gen/movies/v1;moviesv1";
+
+// media_type is "movie" or "series"; status is "want", "watching",
+// "watched" or "dropped".
+
+message SearchResult {
+  string media_type = 1;
+  int64 tmdb_id = 2;
+  string title = 3;
+  string original_title = 4;
+  // YYYY-MM-DD; empty when TMDB has no date.
+  string release_date = 5;
+  string poster_path = 6;
+  // The caller's status when the title is already in their backlog.
+  optional string status = 7;
+}
+
+message BacklogEntry {
+  string id = 1;
+  string media_type = 2;
+  int64 tmdb_id = 3;
+  string title = 4;
+  string original_title = 5;
+  string release_date = 6;
+  string poster_path = 7;
+  repeated string genres = 8;
+  // Minutes; movies only.
+  optional int32 runtime = 9;
+  // Series only.
+  optional int32 season_count = 10;
+  string status = 11;
+  // RFC3339; an empty string is a watch with an unknown date.
+  repeated string watched_at = 12;
+  string added_at = 13;
+  string updated_at = 14;
+}
+
+message SearchTitlesRequest { string query = 1; }
+message SearchTitlesResponse { repeated SearchResult results = 1; }
+
+message AddTitleRequest {
+  string media_type = 1;
+  int64 tmdb_id = 2;
+  // "want" or "watched".
+  string status = 3;
+}
+message AddTitleResponse { BacklogEntry entry = 1; }
+
+message SetStatusRequest {
+  string id = 1;
+  string status = 2;
+}
+message SetStatusResponse { BacklogEntry entry = 1; }
+
+message RemoveTitleRequest { string id = 1; }
+message RemoveTitleResponse {}
+
+message ListBacklogRequest {
+  // Empty means every status.
+  string status = 1;
+  // Empty means both media types.
+  string media_type = 2;
+  // "added" (default, newest first), "title" or "release" (newest first).
+  string sort = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+message ListBacklogResponse {
+  repeated BacklogEntry entries = 1;
+  bool has_more = 2;
+}
+
+message GetTitleRequest { string id = 1; }
+message GetTitleResponse {
+  BacklogEntry entry = 1;
+  string overview = 2;
+}
+
+service MoviesService {
+  rpc SearchTitles(SearchTitlesRequest) returns (SearchTitlesResponse);
+  rpc AddTitle(AddTitleRequest) returns (AddTitleResponse);
+  rpc SetStatus(SetStatusRequest) returns (SetStatusResponse);
+  rpc RemoveTitle(RemoveTitleRequest) returns (RemoveTitleResponse);
+  rpc ListBacklog(ListBacklogRequest) returns (ListBacklogResponse);
+  rpc GetTitle(GetTitleRequest) returns (GetTitleResponse);
+}

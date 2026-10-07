@@ -51,6 +51,8 @@ type Config struct {
 	AuthIssuer      string
 	SteamAPIKey     string
 	HardcoverAPIKey string
+	// TMDBAPIKey is a TMDB API Read Access Token. Empty disables movies search.
+	TMDBAPIKey string
 
 	// BMCHost is the Belgian Mobility Company APIM host for the GTFS feeds (kept
 	// as config: the host spelling has changed). BMCPartnerKey is sent as the
@@ -240,6 +242,7 @@ func New(logger *slog.Logger) Config {
 
 	cfg.SteamAPIKey = p.envSecret("STEAM_API_KEY", "")
 	cfg.HardcoverAPIKey = p.envSecret("HARDCOVER_API_KEY", "")
+	cfg.TMDBAPIKey = p.envSecret("TMDB_API_KEY", "")
 
 	cfg.BMCHost = p.envStr(
 		"BMC_HOST", "api-management-opendata-production.azure-api.net",

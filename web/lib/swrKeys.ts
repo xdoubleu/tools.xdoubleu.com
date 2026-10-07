@@ -88,6 +88,11 @@ export const swrKeys = {
   learningPath: (id: string) => `/learningpaths/${id}`,
   todoistConnection: '/learningpaths/todoist-connection',
 
+  moviesBacklog: (status: string, mediaType: string, sort: string) =>
+    ['/movies/backlog', status, mediaType, sort] as const,
+  moviesSearch: (query: string) => ['/movies/search', query] as const,
+  moviesTitle: (id: string) => `/movies/title/${id}`,
+
   shoppingList: (ownerUserId: string) => `/shoppinglist?owner=${ownerUserId}`,
   shoppingListExport: (planId: string, excludedGroups: readonly string[]) =>
     `/shoppinglist/export/${planId}?excluded=${[...excludedGroups].sort().join(',')}`,

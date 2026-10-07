@@ -75,6 +75,7 @@ env:
     # provisions the host, it doesn't deploy the app.
     - STEAM_API_KEY
     - HARDCOVER_API_KEY
+    - TMDB_API_KEY
     # SNCB GTFS feed key, sent as bmc-partner-key.
     - BMC_PARTNER_KEY
     - R2_ACCOUNT_ID
