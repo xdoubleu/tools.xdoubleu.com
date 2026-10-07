@@ -11,8 +11,8 @@ jest.mock('@/lib/server/client', () => ({
 
 // Runs the fetch so the request arguments are checked.
 jest.mock('@/lib/server/fetchers', () => ({
-  fetchOrNull: (fn: () => Promise<unknown>) => {
-    void fn()
+  fetchOrNull: async (fn: () => Promise<unknown>) => {
+    await fn()
     return fetchOrNull(fn)
   }
 }))

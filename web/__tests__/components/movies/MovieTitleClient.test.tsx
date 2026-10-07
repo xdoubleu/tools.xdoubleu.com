@@ -1,6 +1,7 @@
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { create } from '@bufbuild/protobuf'
+import { Code, ConnectError } from '@connectrpc/connect'
 
 const mockSetStatus = jest.fn()
 const mockRemove = jest.fn()
@@ -147,6 +148,12 @@ describe('MovieTitleClient', () => {
     mockTitle({ data: spirited, error: new Error('offline') })
     render(<MovieTitleClient id="e-1" />)
     expect(screen.getByRole('heading', { name: 'Spirited Away' })).toBeInTheDocument()
+  })
+
+  it('stops showing a title removed elsewhere', () => {
+    mockTitle({ data: spirited, error: new ConnectError('gone', Code.NotFound) })
+    render(<MovieTitleClient id="e-1" />)
+    expect(screen.getByText('Failed to load title.')).toBeInTheDocument()
   })
 
   it('links back and names the title in the breadcrumb and dialog', () => {

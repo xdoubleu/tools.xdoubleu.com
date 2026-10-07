@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Code, ConnectError } from '@connectrpc/connect'
 import { useMovieTitle, useMoviesActions } from '@/hooks/useMovies'
 import { mediaTypeLabel, releaseLabel, todayISO, watchDateLabel } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
@@ -17,7 +18,7 @@ import { ErrorState, LoadingState } from '@/components/ui/states'
 
 export default function MovieTitleClient({ id }: { id: string }) {
   const router = useRouter()
-  const { data, isLoading } = useMovieTitle(id)
+  const { data, error, isLoading } = useMovieTitle(id)
   const { setStatus, remove } = useMoviesActions()
   const [pending, setPending] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -27,8 +28,9 @@ export default function MovieTitleClient({ id }: { id: string }) {
   const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
 
   if (isLoading && !data) return <LoadingState label="title" />
-  // A failed revalidation keeps showing the data already loaded.
-  if (!data?.entry) {
+  // Other failed revalidations (e.g. offline) keep showing the loaded data.
+  const removed = ConnectError.from(error).code === Code.NotFound
+  if (removed || !data?.entry) {
     return (
       <PageContainer>
         <PageHeader title="Movies & Series" breadcrumb={breadcrumb} />

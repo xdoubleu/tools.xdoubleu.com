@@ -86,6 +86,17 @@ describe('MovieSearchResults', () => {
     await act(async () => add.resolve())
   })
 
+  it('keeps a failed add on its own row when results change', async () => {
+    mockSearch({ data: results })
+    const { rerender } = render(<MovieSearchResults query="dune" />)
+    mockAdd.mockRejectedValueOnce(new Error('nope'))
+    await act(async () => fireEvent.click(screen.getAllByRole('button', { name: 'Want' })[1]))
+
+    mockSearch({ data: create(SearchTitlesResponseSchema, { results: [results.results[1]] }) })
+    rerender(<MovieSearchResults query="dune" />)
+    expect(screen.getByRole('listitem')).toHaveTextContent(/Couldn.t add/)
+  })
+
   it('keeps previous results while a new search loads', () => {
     mockSearch({ data: results, isLoading: true })
     render(<MovieSearchResults query="dune" />)
