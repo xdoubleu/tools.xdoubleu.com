@@ -33,12 +33,12 @@ beforeEach(() => jest.clearAllMocks())
 
 describe('SeasonChecklist', () => {
   it('renders nothing for no seasons', () => {
-    const { container } = render(<SeasonChecklist entryId="e-1" seasons={[]} />)
+    const { container } = render(<SeasonChecklist entryId="e-1" status="watching" seasons={[]} />)
     expect(container).toBeEmptyDOMElement()
   })
 
   it('lists seasons with their state and details', () => {
-    render(<SeasonChecklist entryId="e-1" seasons={seasons} />)
+    render(<SeasonChecklist entryId="e-1" status="watching" seasons={seasons} />)
     expect(screen.getByLabelText('Specials')).not.toBeChecked()
     expect(screen.getByLabelText('Season 1')).toBeChecked()
     expect(screen.getByLabelText('Season 2')).not.toBeChecked()
@@ -51,10 +51,29 @@ describe('SeasonChecklist', () => {
     expect(screen.getAllByRole('button', { name: /Watch dates/ })).toHaveLength(1)
   })
 
+  it("marks a watched series' aired, unticked seasons new", () => {
+    const aired = create(SeasonSchema, { number: 3, name: 'Season 3', aired: true })
+    const specials = create(SeasonSchema, { number: 0, name: 'Extras', aired: true })
+    const { rerender } = render(
+      <SeasonChecklist entryId="e-1" status="watched" seasons={[...seasons, aired, specials]} />
+    )
+    const rows = screen.getAllByRole('listitem')
+    expect(rows.map((r) => r.textContent?.includes('New'))).toEqual([
+      false,
+      false,
+      false,
+      true,
+      false
+    ])
+
+    rerender(<SeasonChecklist entryId="e-1" status="watching" seasons={[...seasons, aired]} />)
+    expect(screen.queryByText('New')).not.toBeInTheDocument()
+  })
+
   it('ticks and unticks seasons, locking the row while saving', async () => {
     let resolve!: () => void
     actions.setSeasonWatched.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))
-    render(<SeasonChecklist entryId="e-1" seasons={seasons} />)
+    render(<SeasonChecklist entryId="e-1" status="watching" seasons={seasons} />)
 
     fireEvent.click(screen.getByLabelText('Season 2'))
     expect(actions.setSeasonWatched).toHaveBeenCalledWith('e-1', 2, true)
@@ -68,7 +87,7 @@ describe('SeasonChecklist', () => {
   })
 
   it('reports a failed save until the next one succeeds', async () => {
-    render(<SeasonChecklist entryId="e-1" seasons={seasons} />)
+    render(<SeasonChecklist entryId="e-1" status="watching" seasons={seasons} />)
     actions.setSeasonWatched.mockRejectedValueOnce(new Error('nope'))
     await act(async () => fireEvent.click(screen.getByLabelText('Season 2')))
     expect(screen.getByText(/Couldn.t save/)).toBeInTheDocument()
@@ -82,7 +101,7 @@ describe('SeasonChecklist', () => {
     actions.addWatchDate.mockResolvedValue(undefined)
     actions.editWatchDate.mockResolvedValue(undefined)
     actions.removeWatchDate.mockResolvedValue(undefined)
-    render(<SeasonChecklist entryId="e-1" seasons={seasons} />)
+    render(<SeasonChecklist entryId="e-1" status="watching" seasons={seasons} />)
     fireEvent.click(screen.getByRole('button', { name: /Watch dates/ }))
 
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Add unknown date' })))

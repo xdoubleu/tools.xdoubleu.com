@@ -4,6 +4,8 @@ import { useState } from 'react'
 import type { Season } from '@/lib/gen/movies/v1/movies_pb'
 import { useMoviesActions } from '@/hooks/useMovies'
 import WatchDates from '@/components/movies/WatchDates'
+import { isNewSeason } from '@/lib/movies/format'
+import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Collapsible } from '@/components/ui/collapsible'
@@ -17,7 +19,15 @@ function seasonMeta(season: Season): string {
   return parts.filter(Boolean).join(' · ')
 }
 
-function SeasonRow({ entryId, season }: { entryId: string; season: Season }) {
+function SeasonRow({
+  entryId,
+  season,
+  isNew
+}: {
+  entryId: string
+  season: Season
+  isNew: boolean
+}) {
   const actions = useMoviesActions()
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -37,14 +47,17 @@ function SeasonRow({ entryId, season }: { entryId: string; season: Season }) {
 
   return (
     <Card variant="inset" className="space-y-1">
-      <Checkbox
-        label={season.name || `Season ${season.number}`}
-        checked={ticked}
-        disabled={pending}
-        onChange={(e) =>
-          void run(() => actions.setSeasonWatched(entryId, season.number, e.target.checked))
-        }
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Checkbox
+          label={season.name || `Season ${season.number}`}
+          checked={ticked}
+          disabled={pending}
+          onChange={(e) =>
+            void run(() => actions.setSeasonWatched(entryId, season.number, e.target.checked))
+          }
+        />
+        {isNew && <Badge variant="warn">New</Badge>}
+      </div>
       <p className="text-xs text-muted" suppressHydrationWarning>
         {seasonMeta(season)}
       </p>
@@ -67,12 +80,17 @@ function SeasonRow({ entryId, season }: { entryId: string; season: Season }) {
   )
 }
 
-/** A series' seasons to tick off; ticking moves the series status. */
+/**
+ * A series' seasons to tick off; ticking moves the series status. Seasons a
+ * watched series hasn't caught up on are marked new.
+ */
 export default function SeasonChecklist({
   entryId,
+  status,
   seasons
 }: {
   entryId: string
+  status: string
   seasons: Season[]
 }) {
   if (seasons.length === 0) return null
@@ -82,7 +100,7 @@ export default function SeasonChecklist({
       <ul className="space-y-2">
         {seasons.map((s) => (
           <li key={s.number}>
-            <SeasonRow entryId={entryId} season={s} />
+            <SeasonRow entryId={entryId} season={s} isNew={isNewSeason(status, s)} />
           </li>
         ))}
       </ul>
