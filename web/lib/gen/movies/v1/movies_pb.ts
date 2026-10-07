@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file movies/v1/movies.proto.
  */
 export const file_movies_v1_movies: GenFile = /*@__PURE__*/
-  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMi8QIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciJAoTU2VhcmNoVGl0bGVzUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJAChRTZWFyY2hUaXRsZXNSZXNwb25zZRIoCgdyZXN1bHRzGAEgAygLMhcubW92aWVzLnYxLlNlYXJjaFJlc3VsdCJcCg9BZGRUaXRsZVJlcXVlc3QSEgoKbWVkaWFfdHlwZRgBIAEoCRIPCgd0bWRiX2lkGAIgASgDEg4KBnN0YXR1cxgDIAEoCRIUCgx1bmtub3duX2RhdGUYBCABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiRAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIIjsKEVNldFN0YXR1c1Jlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeSI+ChBTZXRSYXRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJEhMKBnJhdGluZxgCIAEoBUgAiAEBQgkKB19yYXRpbmciOwoRU2V0UmF0aW5nUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlInkKEkxpc3RCYWNrbG9nUmVxdWVzdBIOCgZzdGF0dXMYASABKAkSEgoKbWVkaWFfdHlwZRgCIAEoCRIMCgRzb3J0GAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBm9mZnNldBgFIAEoBRISCgpuZXdfc2Vhc29uGAYgASgIIlEKE0xpc3RCYWNrbG9nUmVzcG9uc2USKAoHZW50cmllcxgBIAMoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIaGFzX21vcmUYAiABKAgicgoGU2Vhc29uEg4KBm51bWJlchgBIAEoBRIMCgRuYW1lGAIgASgJEhAKCGFpcl9kYXRlGAMgASgJEhUKDWVwaXNvZGVfY291bnQYBCABKAUSEgoKd2F0Y2hlZF9hdBgFIAMoCRINCgVhaXJlZBgGIAEoCCIdCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkicAoQR2V0VGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIb3ZlcnZpZXcYAiABKAkSIgoHc2Vhc29ucxgDIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYwoXU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QSCgoCaWQYASABKAkSFQoNc2Vhc29uX251bWJlchgCIAEoBRIPCgd3YXRjaGVkGAMgASgIEhQKDHVua25vd25fZGF0ZRgEIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIl0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAlCEAoOX3NlYXNvbl9udW1iZXIiYgoUQWRkV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KFEVkaXRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIMCgRkYXRlGAQgASgJQhAKDl9zZWFzb25fbnVtYmVyImMKFUVkaXRXYXRjaERhdGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSIgoHc2Vhc29ucxgCIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYQoWUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAVCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMvIGCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkYKCVNldFJhdGluZxIbLm1vdmllcy52MS5TZXRSYXRpbmdSZXF1ZXN0GhwubW92aWVzLnYxLlNldFJhdGluZ1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
+  fileDesc("ChZtb3ZpZXMvdjEvbW92aWVzLnByb3RvEgltb3ZpZXMudjEipQEKDFNlYXJjaFJlc3VsdBISCgptZWRpYV90eXBlGAEgASgJEg8KB3RtZGJfaWQYAiABKAMSDQoFdGl0bGUYAyABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBCABKAkSFAoMcmVsZWFzZV9kYXRlGAUgASgJEhMKC3Bvc3Rlcl9wYXRoGAYgASgJEhMKBnN0YXR1cxgHIAEoCUgAiAEBQgkKB19zdGF0dXMi8QIKDEJhY2tsb2dFbnRyeRIKCgJpZBgBIAEoCRISCgptZWRpYV90eXBlGAIgASgJEg8KB3RtZGJfaWQYAyABKAMSDQoFdGl0bGUYBCABKAkSFgoOb3JpZ2luYWxfdGl0bGUYBSABKAkSFAoMcmVsZWFzZV9kYXRlGAYgASgJEhMKC3Bvc3Rlcl9wYXRoGAcgASgJEg4KBmdlbnJlcxgIIAMoCRIUCgdydW50aW1lGAkgASgFSACIAQESGQoMc2Vhc29uX2NvdW50GAogASgFSAGIAQESDgoGc3RhdHVzGAsgASgJEhIKCndhdGNoZWRfYXQYDCADKAkSEAoIYWRkZWRfYXQYDSABKAkSEgoKdXBkYXRlZF9hdBgOIAEoCRITCgZyYXRpbmcYDyABKAVIAogBARIWCg5oYXNfbmV3X3NlYXNvbhgQIAEoCEIKCghfcnVudGltZUIPCg1fc2Vhc29uX2NvdW50QgkKB19yYXRpbmciEQoPR2V0U3RhdHNSZXF1ZXN0Ij4KDE1vbnRoV2F0Y2hlcxINCgVtb250aBgBIAEoCRIOCgZtb3ZpZXMYAiABKAUSDwoHc2Vhc29ucxgDIAEoBSIqCgpHZW5yZUNvdW50Eg0KBWdlbnJlGAEgASgJEg0KBWNvdW50GAIgASgFIrwBChBHZXRTdGF0c1Jlc3BvbnNlEicKBm1vbnRocxgBIAMoCzIXLm1vdmllcy52MS5Nb250aFdhdGNoZXMSJQoGZ2VucmVzGAIgAygLMhUubW92aWVzLnYxLkdlbnJlQ291bnQSDwoHcmF0aW5ncxgDIAMoBRIWCg5tb3ZpZXNfd2F0Y2hlZBgEIAEoBRIWCg5zZXJpZXNfd2F0Y2hlZBgFIAEoBRIXCg9zZWFzb25zX3dhdGNoZWQYBiABKAUiJAoTU2VhcmNoVGl0bGVzUmVxdWVzdBINCgVxdWVyeRgBIAEoCSJAChRTZWFyY2hUaXRsZXNSZXNwb25zZRIoCgdyZXN1bHRzGAEgAygLMhcubW92aWVzLnYxLlNlYXJjaFJlc3VsdCJcCg9BZGRUaXRsZVJlcXVlc3QSEgoKbWVkaWFfdHlwZRgBIAEoCRIPCgd0bWRiX2lkGAIgASgDEg4KBnN0YXR1cxgDIAEoCRIUCgx1bmtub3duX2RhdGUYBCABKAgiOgoQQWRkVGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkiRAoQU2V0U3RhdHVzUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZzdGF0dXMYAiABKAkSFAoMdW5rbm93bl9kYXRlGAMgASgIIjsKEVNldFN0YXR1c1Jlc3BvbnNlEiYKBWVudHJ5GAEgASgLMhcubW92aWVzLnYxLkJhY2tsb2dFbnRyeSI+ChBTZXRSYXRpbmdSZXF1ZXN0EgoKAmlkGAEgASgJEhMKBnJhdGluZxgCIAEoBUgAiAEBQgkKB19yYXRpbmciOwoRU2V0UmF0aW5nUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5IiAKElJlbW92ZVRpdGxlUmVxdWVzdBIKCgJpZBgBIAEoCSIVChNSZW1vdmVUaXRsZVJlc3BvbnNlInkKEkxpc3RCYWNrbG9nUmVxdWVzdBIOCgZzdGF0dXMYASABKAkSEgoKbWVkaWFfdHlwZRgCIAEoCRIMCgRzb3J0GAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBm9mZnNldBgFIAEoBRISCgpuZXdfc2Vhc29uGAYgASgIIlEKE0xpc3RCYWNrbG9nUmVzcG9uc2USKAoHZW50cmllcxgBIAMoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIaGFzX21vcmUYAiABKAgicgoGU2Vhc29uEg4KBm51bWJlchgBIAEoBRIMCgRuYW1lGAIgASgJEhAKCGFpcl9kYXRlGAMgASgJEhUKDWVwaXNvZGVfY291bnQYBCABKAUSEgoKd2F0Y2hlZF9hdBgFIAMoCRINCgVhaXJlZBgGIAEoCCIdCg9HZXRUaXRsZVJlcXVlc3QSCgoCaWQYASABKAkicAoQR2V0VGl0bGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSEAoIb3ZlcnZpZXcYAiABKAkSIgoHc2Vhc29ucxgDIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYwoXU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QSCgoCaWQYASABKAkSFQoNc2Vhc29uX251bWJlchgCIAEoBRIPCgd3YXRjaGVkGAMgASgIEhQKDHVua25vd25fZGF0ZRgEIAEoCCJmChhTZXRTZWFzb25XYXRjaGVkUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIl0KE0FkZFdhdGNoRGF0ZVJlcXVlc3QSCgoCaWQYASABKAkSGgoNc2Vhc29uX251bWJlchgCIAEoBUgAiAEBEgwKBGRhdGUYAyABKAlCEAoOX3NlYXNvbl9udW1iZXIiYgoUQWRkV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uIm0KFEVkaXRXYXRjaERhdGVSZXF1ZXN0EgoKAmlkGAEgASgJEhoKDXNlYXNvbl9udW1iZXIYAiABKAVIAIgBARINCgVpbmRleBgDIAEoBRIMCgRkYXRlGAQgASgJQhAKDl9zZWFzb25fbnVtYmVyImMKFUVkaXRXYXRjaERhdGVSZXNwb25zZRImCgVlbnRyeRgBIAEoCzIXLm1vdmllcy52MS5CYWNrbG9nRW50cnkSIgoHc2Vhc29ucxgCIAMoCzIRLm1vdmllcy52MS5TZWFzb24iYQoWUmVtb3ZlV2F0Y2hEYXRlUmVxdWVzdBIKCgJpZBgBIAEoCRIaCg1zZWFzb25fbnVtYmVyGAIgASgFSACIAQESDQoFaW5kZXgYAyABKAVCEAoOX3NlYXNvbl9udW1iZXIiZQoXUmVtb3ZlV2F0Y2hEYXRlUmVzcG9uc2USJgoFZW50cnkYASABKAsyFy5tb3ZpZXMudjEuQmFja2xvZ0VudHJ5EiIKB3NlYXNvbnMYAiADKAsyES5tb3ZpZXMudjEuU2Vhc29uMrcHCg1Nb3ZpZXNTZXJ2aWNlEk8KDFNlYXJjaFRpdGxlcxIeLm1vdmllcy52MS5TZWFyY2hUaXRsZXNSZXF1ZXN0Gh8ubW92aWVzLnYxLlNlYXJjaFRpdGxlc1Jlc3BvbnNlEkMKCEFkZFRpdGxlEhoubW92aWVzLnYxLkFkZFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5BZGRUaXRsZVJlc3BvbnNlEkYKCVNldFN0YXR1cxIbLm1vdmllcy52MS5TZXRTdGF0dXNSZXF1ZXN0GhwubW92aWVzLnYxLlNldFN0YXR1c1Jlc3BvbnNlEkYKCVNldFJhdGluZxIbLm1vdmllcy52MS5TZXRSYXRpbmdSZXF1ZXN0GhwubW92aWVzLnYxLlNldFJhdGluZ1Jlc3BvbnNlEkwKC1JlbW92ZVRpdGxlEh0ubW92aWVzLnYxLlJlbW92ZVRpdGxlUmVxdWVzdBoeLm1vdmllcy52MS5SZW1vdmVUaXRsZVJlc3BvbnNlEkwKC0xpc3RCYWNrbG9nEh0ubW92aWVzLnYxLkxpc3RCYWNrbG9nUmVxdWVzdBoeLm1vdmllcy52MS5MaXN0QmFja2xvZ1Jlc3BvbnNlEkMKCEdldFRpdGxlEhoubW92aWVzLnYxLkdldFRpdGxlUmVxdWVzdBobLm1vdmllcy52MS5HZXRUaXRsZVJlc3BvbnNlEkMKCEdldFN0YXRzEhoubW92aWVzLnYxLkdldFN0YXRzUmVxdWVzdBobLm1vdmllcy52MS5HZXRTdGF0c1Jlc3BvbnNlElsKEFNldFNlYXNvbldhdGNoZWQSIi5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlcXVlc3QaIy5tb3ZpZXMudjEuU2V0U2Vhc29uV2F0Y2hlZFJlc3BvbnNlEk8KDEFkZFdhdGNoRGF0ZRIeLm1vdmllcy52MS5BZGRXYXRjaERhdGVSZXF1ZXN0Gh8ubW92aWVzLnYxLkFkZFdhdGNoRGF0ZVJlc3BvbnNlElIKDUVkaXRXYXRjaERhdGUSHy5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlcXVlc3QaIC5tb3ZpZXMudjEuRWRpdFdhdGNoRGF0ZVJlc3BvbnNlElgKD1JlbW92ZVdhdGNoRGF0ZRIhLm1vdmllcy52MS5SZW1vdmVXYXRjaERhdGVSZXF1ZXN0GiIubW92aWVzLnYxLlJlbW92ZVdhdGNoRGF0ZVJlc3BvbnNlQitaKXRvb2xzLnhkb3VibGV1LmNvbS9nZW4vbW92aWVzL3YxO21vdmllc3YxYgZwcm90bzM");
 
 /**
  * @generated from message movies.v1.SearchResult
@@ -166,6 +166,124 @@ export const BacklogEntrySchema: GenMessage<BacklogEntry> = /*@__PURE__*/
   messageDesc(file_movies_v1_movies, 1);
 
 /**
+ * @generated from message movies.v1.GetStatsRequest
+ */
+export type GetStatsRequest = Message<"movies.v1.GetStatsRequest"> & {
+};
+
+/**
+ * Describes the message movies.v1.GetStatsRequest.
+ * Use `create(GetStatsRequestSchema)` to create a new message.
+ */
+export const GetStatsRequestSchema: GenMessage<GetStatsRequest> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 2);
+
+/**
+ * @generated from message movies.v1.MonthWatches
+ */
+export type MonthWatches = Message<"movies.v1.MonthWatches"> & {
+  /**
+   * YYYY-MM, in Europe/Brussels.
+   *
+   * @generated from field: string month = 1;
+   */
+  month: string;
+
+  /**
+   * @generated from field: int32 movies = 2;
+   */
+  movies: number;
+
+  /**
+   * @generated from field: int32 seasons = 3;
+   */
+  seasons: number;
+};
+
+/**
+ * Describes the message movies.v1.MonthWatches.
+ * Use `create(MonthWatchesSchema)` to create a new message.
+ */
+export const MonthWatchesSchema: GenMessage<MonthWatches> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 3);
+
+/**
+ * @generated from message movies.v1.GenreCount
+ */
+export type GenreCount = Message<"movies.v1.GenreCount"> & {
+  /**
+   * @generated from field: string genre = 1;
+   */
+  genre: string;
+
+  /**
+   * @generated from field: int32 count = 2;
+   */
+  count: number;
+};
+
+/**
+ * Describes the message movies.v1.GenreCount.
+ * Use `create(GenreCountSchema)` to create a new message.
+ */
+export const GenreCountSchema: GenMessage<GenreCount> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 4);
+
+/**
+ * A title counts as watched once it has any watch: a movie watch, or a
+ * ticked season (specials excluded).
+ *
+ * @generated from message movies.v1.GetStatsResponse
+ */
+export type GetStatsResponse = Message<"movies.v1.GetStatsResponse"> & {
+  /**
+   * This month and the 11 before it, oldest first; dated watches only,
+   * rewatches included.
+   *
+   * @generated from field: repeated movies.v1.MonthWatches months = 1;
+   */
+  months: MonthWatches[];
+
+  /**
+   * Top 10 across watched titles, each title once.
+   *
+   * @generated from field: repeated movies.v1.GenreCount genres = 2;
+   */
+  genres: GenreCount[];
+
+  /**
+   * Rated titles per star; index 0 is 1 star.
+   *
+   * @generated from field: repeated int32 ratings = 3;
+   */
+  ratings: number[];
+
+  /**
+   * @generated from field: int32 movies_watched = 4;
+   */
+  moviesWatched: number;
+
+  /**
+   * Series whose status is watched.
+   *
+   * @generated from field: int32 series_watched = 5;
+   */
+  seriesWatched: number;
+
+  /**
+   * @generated from field: int32 seasons_watched = 6;
+   */
+  seasonsWatched: number;
+};
+
+/**
+ * Describes the message movies.v1.GetStatsResponse.
+ * Use `create(GetStatsResponseSchema)` to create a new message.
+ */
+export const GetStatsResponseSchema: GenMessage<GetStatsResponse> = /*@__PURE__*/
+  messageDesc(file_movies_v1_movies, 5);
+
+/**
  * @generated from message movies.v1.SearchTitlesRequest
  */
 export type SearchTitlesRequest = Message<"movies.v1.SearchTitlesRequest"> & {
@@ -180,7 +298,7 @@ export type SearchTitlesRequest = Message<"movies.v1.SearchTitlesRequest"> & {
  * Use `create(SearchTitlesRequestSchema)` to create a new message.
  */
 export const SearchTitlesRequestSchema: GenMessage<SearchTitlesRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 2);
+  messageDesc(file_movies_v1_movies, 6);
 
 /**
  * @generated from message movies.v1.SearchTitlesResponse
@@ -197,7 +315,7 @@ export type SearchTitlesResponse = Message<"movies.v1.SearchTitlesResponse"> & {
  * Use `create(SearchTitlesResponseSchema)` to create a new message.
  */
 export const SearchTitlesResponseSchema: GenMessage<SearchTitlesResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 3);
+  messageDesc(file_movies_v1_movies, 7);
 
 /**
  * @generated from message movies.v1.AddTitleRequest
@@ -234,7 +352,7 @@ export type AddTitleRequest = Message<"movies.v1.AddTitleRequest"> & {
  * Use `create(AddTitleRequestSchema)` to create a new message.
  */
 export const AddTitleRequestSchema: GenMessage<AddTitleRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 4);
+  messageDesc(file_movies_v1_movies, 8);
 
 /**
  * @generated from message movies.v1.AddTitleResponse
@@ -251,7 +369,7 @@ export type AddTitleResponse = Message<"movies.v1.AddTitleResponse"> & {
  * Use `create(AddTitleResponseSchema)` to create a new message.
  */
 export const AddTitleResponseSchema: GenMessage<AddTitleResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 5);
+  messageDesc(file_movies_v1_movies, 9);
 
 /**
  * @generated from message movies.v1.SetStatusRequest
@@ -281,7 +399,7 @@ export type SetStatusRequest = Message<"movies.v1.SetStatusRequest"> & {
  * Use `create(SetStatusRequestSchema)` to create a new message.
  */
 export const SetStatusRequestSchema: GenMessage<SetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 6);
+  messageDesc(file_movies_v1_movies, 10);
 
 /**
  * @generated from message movies.v1.SetStatusResponse
@@ -298,7 +416,7 @@ export type SetStatusResponse = Message<"movies.v1.SetStatusResponse"> & {
  * Use `create(SetStatusResponseSchema)` to create a new message.
  */
 export const SetStatusResponseSchema: GenMessage<SetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 7);
+  messageDesc(file_movies_v1_movies, 11);
 
 /**
  * @generated from message movies.v1.SetRatingRequest
@@ -322,7 +440,7 @@ export type SetRatingRequest = Message<"movies.v1.SetRatingRequest"> & {
  * Use `create(SetRatingRequestSchema)` to create a new message.
  */
 export const SetRatingRequestSchema: GenMessage<SetRatingRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 8);
+  messageDesc(file_movies_v1_movies, 12);
 
 /**
  * @generated from message movies.v1.SetRatingResponse
@@ -339,7 +457,7 @@ export type SetRatingResponse = Message<"movies.v1.SetRatingResponse"> & {
  * Use `create(SetRatingResponseSchema)` to create a new message.
  */
 export const SetRatingResponseSchema: GenMessage<SetRatingResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 9);
+  messageDesc(file_movies_v1_movies, 13);
 
 /**
  * @generated from message movies.v1.RemoveTitleRequest
@@ -356,7 +474,7 @@ export type RemoveTitleRequest = Message<"movies.v1.RemoveTitleRequest"> & {
  * Use `create(RemoveTitleRequestSchema)` to create a new message.
  */
 export const RemoveTitleRequestSchema: GenMessage<RemoveTitleRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 10);
+  messageDesc(file_movies_v1_movies, 14);
 
 /**
  * @generated from message movies.v1.RemoveTitleResponse
@@ -369,7 +487,7 @@ export type RemoveTitleResponse = Message<"movies.v1.RemoveTitleResponse"> & {
  * Use `create(RemoveTitleResponseSchema)` to create a new message.
  */
 export const RemoveTitleResponseSchema: GenMessage<RemoveTitleResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 11);
+  messageDesc(file_movies_v1_movies, 15);
 
 /**
  * @generated from message movies.v1.ListBacklogRequest
@@ -420,7 +538,7 @@ export type ListBacklogRequest = Message<"movies.v1.ListBacklogRequest"> & {
  * Use `create(ListBacklogRequestSchema)` to create a new message.
  */
 export const ListBacklogRequestSchema: GenMessage<ListBacklogRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 12);
+  messageDesc(file_movies_v1_movies, 16);
 
 /**
  * @generated from message movies.v1.ListBacklogResponse
@@ -442,7 +560,7 @@ export type ListBacklogResponse = Message<"movies.v1.ListBacklogResponse"> & {
  * Use `create(ListBacklogResponseSchema)` to create a new message.
  */
 export const ListBacklogResponseSchema: GenMessage<ListBacklogResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 13);
+  messageDesc(file_movies_v1_movies, 17);
 
 /**
  * A series season; number 0 is TMDB's "Specials", which never counts toward
@@ -492,7 +610,7 @@ export type Season = Message<"movies.v1.Season"> & {
  * Use `create(SeasonSchema)` to create a new message.
  */
 export const SeasonSchema: GenMessage<Season> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 14);
+  messageDesc(file_movies_v1_movies, 18);
 
 /**
  * @generated from message movies.v1.GetTitleRequest
@@ -509,7 +627,7 @@ export type GetTitleRequest = Message<"movies.v1.GetTitleRequest"> & {
  * Use `create(GetTitleRequestSchema)` to create a new message.
  */
 export const GetTitleRequestSchema: GenMessage<GetTitleRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 15);
+  messageDesc(file_movies_v1_movies, 19);
 
 /**
  * @generated from message movies.v1.GetTitleResponse
@@ -538,7 +656,7 @@ export type GetTitleResponse = Message<"movies.v1.GetTitleResponse"> & {
  * Use `create(GetTitleResponseSchema)` to create a new message.
  */
 export const GetTitleResponseSchema: GenMessage<GetTitleResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 16);
+  messageDesc(file_movies_v1_movies, 20);
 
 /**
  * Ticking adds one watch (now, or unknown); unticking clears the season's
@@ -573,7 +691,7 @@ export type SetSeasonWatchedRequest = Message<"movies.v1.SetSeasonWatchedRequest
  * Use `create(SetSeasonWatchedRequestSchema)` to create a new message.
  */
 export const SetSeasonWatchedRequestSchema: GenMessage<SetSeasonWatchedRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 17);
+  messageDesc(file_movies_v1_movies, 21);
 
 /**
  * @generated from message movies.v1.SetSeasonWatchedResponse
@@ -595,7 +713,7 @@ export type SetSeasonWatchedResponse = Message<"movies.v1.SetSeasonWatchedRespon
  * Use `create(SetSeasonWatchedResponseSchema)` to create a new message.
  */
 export const SetSeasonWatchedResponseSchema: GenMessage<SetSeasonWatchedResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 18);
+  messageDesc(file_movies_v1_movies, 22);
 
 /**
  * Watch-date edits target the entry's own watches (movies) or, with
@@ -625,7 +743,7 @@ export type AddWatchDateRequest = Message<"movies.v1.AddWatchDateRequest"> & {
  * Use `create(AddWatchDateRequestSchema)` to create a new message.
  */
 export const AddWatchDateRequestSchema: GenMessage<AddWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 19);
+  messageDesc(file_movies_v1_movies, 23);
 
 /**
  * @generated from message movies.v1.AddWatchDateResponse
@@ -647,7 +765,7 @@ export type AddWatchDateResponse = Message<"movies.v1.AddWatchDateResponse"> & {
  * Use `create(AddWatchDateResponseSchema)` to create a new message.
  */
 export const AddWatchDateResponseSchema: GenMessage<AddWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 20);
+  messageDesc(file_movies_v1_movies, 24);
 
 /**
  * @generated from message movies.v1.EditWatchDateRequest
@@ -679,7 +797,7 @@ export type EditWatchDateRequest = Message<"movies.v1.EditWatchDateRequest"> & {
  * Use `create(EditWatchDateRequestSchema)` to create a new message.
  */
 export const EditWatchDateRequestSchema: GenMessage<EditWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 21);
+  messageDesc(file_movies_v1_movies, 25);
 
 /**
  * @generated from message movies.v1.EditWatchDateResponse
@@ -701,7 +819,7 @@ export type EditWatchDateResponse = Message<"movies.v1.EditWatchDateResponse"> &
  * Use `create(EditWatchDateResponseSchema)` to create a new message.
  */
 export const EditWatchDateResponseSchema: GenMessage<EditWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 22);
+  messageDesc(file_movies_v1_movies, 26);
 
 /**
  * @generated from message movies.v1.RemoveWatchDateRequest
@@ -728,7 +846,7 @@ export type RemoveWatchDateRequest = Message<"movies.v1.RemoveWatchDateRequest">
  * Use `create(RemoveWatchDateRequestSchema)` to create a new message.
  */
 export const RemoveWatchDateRequestSchema: GenMessage<RemoveWatchDateRequest> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 23);
+  messageDesc(file_movies_v1_movies, 27);
 
 /**
  * @generated from message movies.v1.RemoveWatchDateResponse
@@ -750,7 +868,7 @@ export type RemoveWatchDateResponse = Message<"movies.v1.RemoveWatchDateResponse
  * Use `create(RemoveWatchDateResponseSchema)` to create a new message.
  */
 export const RemoveWatchDateResponseSchema: GenMessage<RemoveWatchDateResponse> = /*@__PURE__*/
-  messageDesc(file_movies_v1_movies, 24);
+  messageDesc(file_movies_v1_movies, 28);
 
 /**
  * @generated from service movies.v1.MoviesService
@@ -811,6 +929,14 @@ export const MoviesService: GenService<{
     methodKind: "unary";
     input: typeof GetTitleRequestSchema;
     output: typeof GetTitleResponseSchema;
+  },
+  /**
+   * @generated from rpc movies.v1.MoviesService.GetStats
+   */
+  getStats: {
+    methodKind: "unary";
+    input: typeof GetStatsRequestSchema;
+    output: typeof GetStatsResponseSchema;
   },
   /**
    * @generated from rpc movies.v1.MoviesService.SetSeasonWatched
