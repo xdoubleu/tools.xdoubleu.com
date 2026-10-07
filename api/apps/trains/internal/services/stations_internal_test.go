@@ -94,3 +94,15 @@ func TestMatchStations_SortsByDutchName(t *testing.T) {
 	}
 	assert.Equal(t, []string{"4", "2", "3", "1"}, ids)
 }
+
+func TestMatchStations_SameDutchNameOrderedByStopID(t *testing.T) {
+	stops := []models.Stop{
+		mkStop("b", "Lier", "Lierre", "Lierre / Lier", stationLocationType, ""),
+		mkStop("a", "LIER", "Lierre", "Lierre / Lier", stationLocationType, ""),
+	}
+
+	got := matchStations(stops, "")
+
+	assert.Equal(t, "a", got[0].StopID)
+	assert.Equal(t, "b", got[1].StopID)
+}
