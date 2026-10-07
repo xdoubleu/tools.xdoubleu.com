@@ -105,6 +105,28 @@ describe('MovieTitleClient', () => {
     expect(mockPush).toHaveBeenCalledWith('/movies')
   })
 
+  it('reports a failed status change', async () => {
+    mockSetStatus.mockRejectedValue(new Error('nope'))
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+
+    await act(async () =>
+      fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'dropped' } })
+    )
+    expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
+  })
+
+  it('reports a failed remove and stays on the page', async () => {
+    mockRemove.mockRejectedValue(new Error('nope'))
+    mockTitle({ data: spirited })
+    render(<MovieTitleClient id="e-1" />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from backlog' }))
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Remove' })))
+    expect(screen.getByText(/Couldn.t remove/)).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
+  })
+
   it('shows loading and error states', () => {
     mockTitle({ isLoading: true })
     const { rerender } = render(<MovieTitleClient id="e-1" />)

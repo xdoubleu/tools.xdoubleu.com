@@ -320,6 +320,7 @@ func TestListBacklog_RejectsUnknownFilters(t *testing.T) {
 		{Status: "finished"},
 		{MediaType: "book"},
 		{Sort: "rating"},
+		{Offset: -1},
 	} {
 		_, err := c.ListBacklog(ctx, connect.NewRequest(req))
 		assert.Equal(t, connect.CodeInvalidArgument, code(err))

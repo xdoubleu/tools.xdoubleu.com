@@ -56,7 +56,7 @@ const isMoviesKey = (key: unknown) => {
 export function useMoviesActions() {
   const client = createServiceClient(MoviesService)
   const { mutate } = useSWRConfig()
-  const refresh = () => mutate(isMoviesKey)
+  const refresh = (except?: string) => mutate((key) => key !== except && isMoviesKey(key))
 
   return {
     add: async (mediaType: string, tmdbId: bigint, status: 'want' | 'watched') => {
@@ -70,7 +70,8 @@ export function useMoviesActions() {
     },
     remove: async (id: string) => {
       await client.removeTitle({ id })
-      await refresh()
+      // The removed title would only revalidate to NotFound.
+      await refresh(swrKeys.moviesTitle(id))
     }
   }
 }

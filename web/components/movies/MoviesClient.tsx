@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MovieSearchResults from '@/components/movies/MovieSearchResults'
 import MoviesBacklog from '@/components/movies/MoviesBacklog'
 import TmdbAttribution from '@/components/movies/TmdbAttribution'
@@ -9,10 +9,19 @@ import { Input } from '@/components/ui/input'
 import { PageContainer } from '@/components/ui/page-container'
 import { PageHeader } from '@/components/ui/page-header'
 
+// Each search is a TMDB request; wait for typing to pause.
+const SEARCH_DEBOUNCE_MS = 300
+
 /** Backlog by default; a two-character search swaps in TMDB results. */
 export default function MoviesClient() {
   const [query, setQuery] = useState('')
-  const searching = query.trim().length >= 2
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  const searching = debouncedQuery.trim().length >= 2
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [query])
 
   return (
     <PageContainer>
@@ -27,7 +36,7 @@ export default function MoviesClient() {
           onChange={(e) => setQuery(e.target.value)}
         />
       </Field>
-      {searching ? <MovieSearchResults query={query} /> : <MoviesBacklog />}
+      {searching ? <MovieSearchResults query={debouncedQuery} /> : <MoviesBacklog />}
       <TmdbAttribution />
     </PageContainer>
   )

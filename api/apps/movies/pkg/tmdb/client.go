@@ -23,7 +23,9 @@ var baseURL = "https://api.themoviedb.org/3"
 var backoffBase = 500 * time.Millisecond
 
 const (
-	apiTimeout = 15 * time.Second
+	// All attempts plus backoff (~24s) stay under kamal-proxy's 30s default
+	// response timeout; callers are request handlers.
+	apiTimeout = 5 * time.Second
 	language   = "en-US"
 
 	// TMDB allows roughly 50 req/s; stay well below it.

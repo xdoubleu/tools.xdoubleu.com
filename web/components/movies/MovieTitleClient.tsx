@@ -22,6 +22,7 @@ export default function MovieTitleClient({ id }: { id: string }) {
   const [pending, setPending] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [removing, setRemoving] = useState(false)
+  const [failed, setFailed] = useState<'status' | 'remove' | null>(null)
 
   const breadcrumb = [{ label: 'Movies & Series', href: '/movies' }]
 
@@ -46,8 +47,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
 
   const change = async (status: string) => {
     setPending(true)
+    setFailed(null)
     try {
       await setStatus(entry.id, status)
+    } catch {
+      setFailed('status')
     } finally {
       setPending(false)
     }
@@ -55,9 +59,12 @@ export default function MovieTitleClient({ id }: { id: string }) {
 
   const confirmRemove = async () => {
     setRemoving(true)
+    setFailed(null)
     try {
       await remove(entry.id)
       router.push('/movies')
+    } catch {
+      setFailed('remove')
     } finally {
       setRemoving(false)
     }
@@ -98,6 +105,9 @@ export default function MovieTitleClient({ id }: { id: string }) {
               onChange={(s) => void change(s)}
             />
           </Field>
+          {failed === 'status' && (
+            <p className="text-sm text-danger">Couldn&apos;t update status. Try again.</p>
+          )}
           {entry.watchedAt.length > 0 && (
             <div>
               <p className="text-sm text-subtle">Watched</p>
@@ -125,7 +135,11 @@ export default function MovieTitleClient({ id }: { id: string }) {
         destructive
         pending={removing}
         onConfirm={() => void confirmRemove()}
-      />
+      >
+        {failed === 'remove' && (
+          <p className="text-sm text-danger">Couldn&apos;t remove. Try again.</p>
+        )}
+      </ConfirmDialog>
       <TmdbAttribution />
     </PageContainer>
   )

@@ -180,6 +180,9 @@ func (s *MovieService) List(
 	userID string,
 	f models.ListFilter,
 ) ([]models.Entry, bool, error) {
+	if f.Offset < 0 {
+		return nil, false, badRequest("offset must not be negative")
+	}
 	if f.Status != "" && !models.IsStatus(f.Status) {
 		return nil, false, badRequest("unknown status")
 	}

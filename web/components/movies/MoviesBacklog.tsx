@@ -36,12 +36,21 @@ const TYPE_TABS = [
 function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
   const { setStatus } = useMoviesActions()
   const [pending, setPending] = useState(false)
+  const [failed, setFailed] = useState(false)
+  // Rows past the first page aren't refetched, so a saved status is held
+  // locally until the entry itself changes.
+  const [saved, setSaved] = useState<{ from: string; to: string } | null>(null)
+  const status = saved?.from === entry.status ? saved.to : entry.status
   const release = releaseLabel(entry.releaseDate, today)
 
-  const change = async (status: string) => {
+  const change = async (next: string) => {
     setPending(true)
+    setFailed(false)
     try {
-      await setStatus(entry.id, status)
+      await setStatus(entry.id, next)
+      setSaved({ from: entry.status, to: next })
+    } catch {
+      setFailed(true)
     } finally {
       setPending(false)
     }
@@ -55,7 +64,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
         <StatusSelect
           id={`status-${entry.id}`}
           aria-label={`Status of ${entry.title}`}
-          value={entry.status}
+          value={status}
           disabled={pending}
           onChange={(s) => void change(s)}
         />
@@ -73,6 +82,7 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
             </>
           )}
         </p>
+        {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
       </div>
     </LinkCard>
   )

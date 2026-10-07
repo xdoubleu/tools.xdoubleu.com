@@ -72,6 +72,9 @@ function mockSearch(value: { data?: unknown; error?: Error; isLoading?: boolean 
 
 function search(text: string) {
   fireEvent.change(screen.getByLabelText('Search TMDB'), { target: { value: text } })
+  act(() => {
+    jest.advanceTimersByTime(300)
+  })
 }
 
 beforeEach(() => {
@@ -113,6 +116,24 @@ describe('MoviesClient backlog', () => {
       target: { value: 'watched' }
     })
     await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'watched'))
+    // Held even though the (unrefetched) entry still says "want".
+    await waitFor(() =>
+      expect(screen.getByLabelText('Status of The Matrix')).toHaveValue('watched')
+    )
+  })
+
+  it('reports a failed status change', async () => {
+    mockSetStatus.mockRejectedValue(new Error('nope'))
+    mockBacklog({ data: create(ListBacklogResponseSchema, { entries: [matrix] }) })
+    render(<MoviesClient />)
+
+    await act(async () =>
+      fireEvent.change(screen.getByLabelText('Status of The Matrix'), {
+        target: { value: 'watched' }
+      })
+    )
+    expect(screen.getByText(/Couldn.t update status/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Status of The Matrix')).toHaveValue('want')
   })
 
   it('refetches with the chosen filters', () => {
@@ -170,7 +191,21 @@ describe('MoviesClient search', () => {
     ]
   })
 
-  beforeEach(() => mockBacklog({}))
+  beforeEach(() => {
+    mockBacklog({})
+    jest.useFakeTimers()
+  })
+  afterEach(() => jest.useRealTimers())
+
+  it('waits for typing to pause before searching', () => {
+    render(<MoviesClient />)
+    fireEvent.change(screen.getByLabelText('Search TMDB'), { target: { value: 'br' } })
+    expect(screen.getByRole('region', { name: 'Backlog' })).toBeInTheDocument()
+    act(() => {
+      jest.advanceTimersByTime(300)
+    })
+    expect(screen.queryByRole('region', { name: 'Backlog' })).not.toBeInTheDocument()
+  })
 
   it('keeps the backlog for one-character queries', () => {
     render(<MoviesClient />)

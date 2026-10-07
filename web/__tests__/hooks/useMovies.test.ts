@@ -104,10 +104,12 @@ describe('useMoviesActions', () => {
     })
     await result.current.setStatus('e-2', 'watched')
     expect(mockClient.setStatus).toHaveBeenCalledWith({ id: 'e-2', status: 'watched' })
-    await result.current.remove('e-2')
-    expect(mockClient.removeTitle).toHaveBeenCalledWith({ id: 'e-2' })
+    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
+    await result.current.remove('x')
+    expect(mockClient.removeTitle).toHaveBeenCalledWith({ id: 'x' })
 
     expect(mockMutate).toHaveBeenCalledTimes(3)
-    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added'], '/movies/title/x'])
+    // The removed title itself is not revalidated.
+    expect(revalidated).toEqual([['/movies/backlog', '', '', 'added']])
   })
 })
