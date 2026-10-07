@@ -66,13 +66,34 @@ func optionalInt32(n *int) *int32 {
 	return &v
 }
 
-func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
-	watched := make([]string, len(e.WatchedAt))
-	for i, w := range e.WatchedAt {
+func protoWatches(watchedAt []*time.Time) []string {
+	watched := make([]string, len(watchedAt))
+	for i, w := range watchedAt {
 		if w != nil {
 			watched[i] = w.Format(time.RFC3339)
 		}
 	}
+	return watched
+}
+
+func protoSeasons(seasons []models.Season) []*moviesv1.Season {
+	now := time.Now()
+	out := make([]*moviesv1.Season, len(seasons))
+	for i, s := range seasons {
+		out[i] = &moviesv1.Season{
+			Number:       int32(s.Number),       //nolint:gosec // season numbers fit
+			EpisodeCount: int32(s.EpisodeCount), //nolint:gosec // episode counts fit
+			Name:         s.Name,
+			AirDate:      formatDate(s.AirDate),
+			WatchedAt:    protoWatches(s.WatchedAt),
+			Aired:        s.Aired(now),
+		}
+	}
+	return out
+}
+
+func protoEntry(e *models.Entry) *moviesv1.BacklogEntry {
+	watched := protoWatches(e.WatchedAt)
 	return &moviesv1.BacklogEntry{
 		Id:            e.ID.String(),
 		MediaType:     e.Title.MediaType,

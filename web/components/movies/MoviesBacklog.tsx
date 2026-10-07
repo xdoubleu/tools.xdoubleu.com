@@ -15,6 +15,7 @@ import {
 } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
 import StatusSelect from '@/components/movies/StatusSelect'
+import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Field } from '@/components/ui/field'
 import { LinkCard } from '@/components/ui/link-card'
 import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
@@ -40,19 +41,31 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
   // Rows past the first page aren't refetched, so a saved status is held
   // locally until the entry itself changes.
   const [saved, setSaved] = useState<{ from: string; to: string } | null>(null)
+  const [asking, setAsking] = useState(false)
   const status = saved?.from === entry.status ? saved.to : entry.status
   const release = releaseLabel(entry.releaseDate, today)
 
-  const change = async (next: string) => {
+  const change = async (next: string, unknownDate = false) => {
     setPending(true)
     setFailed(false)
     try {
-      await setStatus(entry.id, next)
+      await setStatus(entry.id, next, unknownDate)
       setSaved({ from: entry.status, to: next })
     } catch {
       setFailed(true)
     } finally {
       setPending(false)
+      setAsking(false)
+    }
+  }
+
+  // Marking a multi-season series (only series have a season count) watched
+  // asks when, so old binges don't date as today.
+  const select = (next: string) => {
+    if (next === 'watched' && (entry.seasonCount ?? 0) > 1) {
+      setAsking(true)
+    } else {
+      void change(next)
     }
   }
 
@@ -61,13 +74,22 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
       href={`/movies/${entry.id}`}
       linkClassName="flex items-center gap-3 p-3"
       actions={
-        <StatusSelect
-          id={`status-${entry.id}`}
-          aria-label={`Status of ${entry.title}`}
-          value={status}
-          disabled={pending}
-          onChange={(s) => void change(s)}
-        />
+        <>
+          <StatusSelect
+            id={`status-${entry.id}`}
+            aria-label={`Status of ${entry.title}`}
+            value={status}
+            disabled={pending}
+            onChange={select}
+          />
+          <WatchedWhenDialog
+            open={asking}
+            onOpenChange={setAsking}
+            title={entry.title}
+            pending={pending}
+            onChoose={(unknownDate) => void change('watched', unknownDate)}
+          />
+        </>
       }
     >
       <MoviePoster posterPath={entry.posterPath} title={entry.title} />

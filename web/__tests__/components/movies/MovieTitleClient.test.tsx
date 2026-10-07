@@ -29,7 +29,11 @@ jest.mock('next/link', () => {
 
 import MovieTitleClient from '@/components/movies/MovieTitleClient'
 import { useMovieTitle } from '@/hooks/useMovies'
-import { BacklogEntrySchema, GetTitleResponseSchema } from '@/lib/gen/movies/v1/movies_pb'
+import {
+  BacklogEntrySchema,
+  GetTitleResponseSchema,
+  SeasonSchema
+} from '@/lib/gen/movies/v1/movies_pb'
 
 function mockTitle(value: { data?: unknown; error?: Error; isLoading?: boolean }) {
   // @ts-expect-error -- partial SWRResponse
@@ -63,7 +67,8 @@ describe('MovieTitleClient', () => {
     expect(screen.getByText('Movie · 2001 · 125 min')).toBeInTheDocument()
     expect(screen.getByText('Fantasy')).toBeInTheDocument()
     expect(screen.getByText('A girl in a spirit world.')).toBeInTheDocument()
-    expect(screen.getByText('2026-10-07')).toBeInTheDocument()
+    expect(screen.getByLabelText('Watch 1 date')).toHaveValue('2026-10-07')
+    expect(screen.getByLabelText('Watch 2 date')).toHaveValue('')
     expect(screen.getByText('Date unknown')).toBeInTheDocument()
     expect(screen.getByLabelText('Status')).toHaveValue('watched')
   })
@@ -92,7 +97,7 @@ describe('MovieTitleClient', () => {
     render(<MovieTitleClient id="e-1" />)
 
     fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'dropped' } })
-    await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'dropped'))
+    await waitFor(() => expect(mockSetStatus).toHaveBeenCalledWith('e-1', 'dropped', false))
   })
 
   it('removes after confirming, then returns to the backlog', async () => {
@@ -226,5 +231,25 @@ describe('MovieTitleClient', () => {
     expect(screen.queryByText(/Couldn.t remove/)).not.toBeInTheDocument()
     await act(async () => resolve())
     expect(mockPush).toHaveBeenCalledWith('/movies')
+  })
+})
+
+describe('MovieTitleClient series', () => {
+  it('shows the season checklist instead of movie watches', () => {
+    mockTitle({
+      data: create(GetTitleResponseSchema, {
+        entry: create(BacklogEntrySchema, {
+          id: 's-1',
+          mediaType: 'series',
+          title: 'Dark',
+          status: 'watching'
+        }),
+        seasons: [create(SeasonSchema, { number: 1, name: 'Season 1', aired: true })]
+      })
+    })
+    render(<MovieTitleClient id="s-1" />)
+    expect(screen.getByRole('region', { name: 'Seasons' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Season 1')).not.toBeChecked()
+    expect(screen.queryByRole('region', { name: 'Watched' })).not.toBeInTheDocument()
   })
 })

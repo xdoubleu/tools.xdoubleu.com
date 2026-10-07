@@ -153,3 +153,51 @@ describe('MoviesBacklog pagination on revalidation', () => {
     expect(screen.queryByText('Dune')).not.toBeInTheDocument()
   })
 })
+
+describe('MoviesBacklog series status', () => {
+  const series = (seasonCount: number) =>
+    create(BacklogEntrySchema, {
+      id: 's-1',
+      mediaType: 'series',
+      title: 'Dark',
+      seasonCount,
+      status: 'want'
+    })
+
+  it('asks when a multi-season series was watched', async () => {
+    mockSetStatus.mockResolvedValue(undefined)
+    mockBacklog({ data: page([series(2)]) })
+    render(<MoviesBacklog />)
+
+    fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'watched' } })
+    expect(mockSetStatus).not.toHaveBeenCalled()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'A while ago' })))
+    expect(mockSetStatus).toHaveBeenCalledWith('s-1', 'watched', true)
+    expect(screen.queryByText('When did you watch Dark?')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['a single-season series', 1],
+    ['a series without a known season count', 0]
+  ])('marks %s watched today in one step', async (_name, seasonCount) => {
+    mockSetStatus.mockResolvedValue(undefined)
+    mockBacklog({ data: page([series(seasonCount)]) })
+    render(<MoviesBacklog />)
+
+    await act(async () =>
+      fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'watched' } })
+    )
+    expect(mockSetStatus).toHaveBeenCalledWith('s-1', 'watched', false)
+  })
+
+  it('asks only for watched', async () => {
+    mockSetStatus.mockResolvedValue(undefined)
+    mockBacklog({ data: page([series(2)]) })
+    render(<MoviesBacklog />)
+
+    await act(async () =>
+      fireEvent.change(screen.getByLabelText('Status of Dark'), { target: { value: 'dropped' } })
+    )
+    expect(mockSetStatus).toHaveBeenCalledWith('s-1', 'dropped', false)
+  })
+})

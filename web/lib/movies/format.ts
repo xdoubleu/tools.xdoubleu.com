@@ -44,7 +44,7 @@ export function todayISO(now: Date = new Date()): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
-/** A watch date as YYYY-MM-DD in local time, or "Date unknown". */
-export function watchDateLabel(watchedAt: string): string {
-  return watchedAt ? todayISO(new Date(watchedAt)) : 'Date unknown'
+/** A watch's day as YYYY-MM-DD in local time; '' for an unknown date. */
+export function watchDay(watchedAt: string): string {
+  return watchedAt ? todayISO(new Date(watchedAt)) : ''
 }

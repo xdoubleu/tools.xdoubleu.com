@@ -6,6 +6,7 @@ import type { SearchResult } from '@/lib/gen/movies/v1/movies_pb'
 import { useMovieSearch, useMoviesActions } from '@/hooks/useMovies'
 import { mediaTypeLabel, releaseLabel, statusLabel, todayISO } from '@/lib/movies/format'
 import MoviePoster from '@/components/movies/MoviePoster'
+import WatchedWhenDialog from '@/components/movies/WatchedWhenDialog'
 import { Alert } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,17 +26,25 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
   const { add } = useMoviesActions()
   const [pending, setPending] = useState<QuickStatus | null>(null)
   const [failed, setFailed] = useState(false)
+  const [asking, setAsking] = useState(false)
 
-  const quickAdd = async (status: QuickStatus) => {
+  const quickAdd = async (status: QuickStatus, unknownDate = false) => {
     setPending(status)
     setFailed(false)
     try {
-      await add(result.mediaType, result.tmdbId, status)
+      await add(result.mediaType, result.tmdbId, status, unknownDate)
     } catch {
       setFailed(true)
     } finally {
       setPending(null)
+      setAsking(false)
     }
+  }
+
+  // Search carries no season count, so a series always asks when it was seen.
+  const watched = () => {
+    if (result.mediaType === 'series') setAsking(true)
+    else void quickAdd('watched')
   }
 
   const release = releaseLabel(result.releaseDate, today)
@@ -67,11 +76,18 @@ function SearchResultRow({ result, today }: { result: SearchResult; today: strin
           >
             {pending === 'want' ? 'Adding…' : 'Want'}
           </Button>
-          <Button disabled={pending !== null} onClick={() => void quickAdd('watched')}>
+          <Button disabled={pending !== null} onClick={watched}>
             {pending === 'watched' ? 'Adding…' : 'Watched'}
           </Button>
         </div>
       )}
+      <WatchedWhenDialog
+        open={asking}
+        onOpenChange={setAsking}
+        title={result.title}
+        pending={pending !== null}
+        onChoose={(unknownDate) => void quickAdd('watched', unknownDate)}
+      />
     </Card>
   )
 }

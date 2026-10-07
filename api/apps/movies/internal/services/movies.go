@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -21,9 +22,19 @@ var ErrNotConfigured = errors.New("TMDB is not configured")
 type moviesStore interface {
 	UpsertTitle(ctx context.Context, t models.Title) (uuid.UUID, error)
 	AddEntry(
-		ctx context.Context, userID string, titleID uuid.UUID, status string,
+		ctx context.Context,
+		userID string,
+		titleID uuid.UUID,
+		status string,
+		unknownDate bool,
 	) (uuid.UUID, error)
-	SetStatus(ctx context.Context, userID string, id uuid.UUID, status string) error
+	SetStatus(
+		ctx context.Context,
+		userID string,
+		id uuid.UUID,
+		status string,
+		unknownDate bool,
+	) error
 	DeleteEntry(ctx context.Context, userID string, id uuid.UUID) error
 	GetEntry(ctx context.Context, userID string, id uuid.UUID) (*models.Entry, error)
 	ListEntries(
@@ -32,6 +43,20 @@ type moviesStore interface {
 	StatusesByKey(
 		ctx context.Context, userID string, keys []models.TitleKey,
 	) (map[models.TitleKey]string, error)
+	UpsertSeasons(ctx context.Context, titleID uuid.UUID, seasons []models.Season) error
+	ListSeasons(
+		ctx context.Context, userID string, entryID uuid.UUID,
+	) ([]models.Season, error)
+	SetSeasonWatchedAt(
+		ctx context.Context,
+		userID string,
+		entryID uuid.UUID,
+		number int,
+		watchedAt []*time.Time,
+	) error
+	SetWatchedAt(
+		ctx context.Context, userID string, entryID uuid.UUID, watchedAt []*time.Time,
+	) error
 }
 
 type MovieService struct {
@@ -101,13 +126,15 @@ func (s *MovieService) Search(
 }
 
 // Add fetches the title's details from TMDB into the catalog and puts it in
-// the user's backlog; re-adding only changes the status.
+// the user's backlog; re-adding only changes the status. A series added as
+// watched ticks its aired seasons; unknownDate dates those watches unknown.
 func (s *MovieService) Add(
 	ctx context.Context,
 	userID string,
 	mediaType string,
 	tmdbID int64,
 	status string,
+	unknownDate bool,
 ) (*models.Entry, error) {
 	if !isMediaType(mediaType) {
 		return nil, badRequest("media_type must be movie or series")
@@ -133,30 +160,62 @@ func (s *MovieService) Add(
 		return nil, err
 	}
 
-	titleID, err := s.repo.UpsertTitle(ctx, fromTMDB(*t))
+	titleID, err := s.storeTitle(ctx, *t)
 	if err != nil {
 		return nil, err
 	}
-	id, err := s.repo.AddEntry(ctx, userID, titleID, status)
+	id, err := s.repo.AddEntry(ctx, userID, titleID, status, unknownDate)
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.GetEntry(ctx, userID, id)
+	entry, err := s.Get(ctx, userID, id)
+	if err != nil || status != models.StatusWatched {
+		return entry, err
+	}
+	return s.markSeriesWatched(ctx, userID, entry, unknownDate)
 }
 
+func (s *MovieService) storeTitle(
+	ctx context.Context,
+	t tmdb.Title,
+) (uuid.UUID, error) {
+	titleID, err := s.repo.UpsertTitle(ctx, fromTMDB(t))
+	if err != nil || len(t.Seasons) == 0 {
+		return titleID, err
+	}
+	seasons := make([]models.Season, len(t.Seasons))
+	for i, ts := range t.Seasons {
+		//nolint:exhaustruct // catalog fields only; watches are per user
+		seasons[i] = models.Season{
+			Number:       ts.Number,
+			Name:         ts.Name,
+			AirDate:      ts.AirDate,
+			EpisodeCount: ts.EpisodeCount,
+		}
+	}
+	return titleID, s.repo.UpsertSeasons(ctx, titleID, seasons)
+}
+
+// SetStatus changes the entry's status. Setting a series to watched ticks
+// its aired seasons; unknownDate dates new watches unknown.
 func (s *MovieService) SetStatus(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 	status string,
+	unknownDate bool,
 ) (*models.Entry, error) {
 	if !models.IsStatus(status) {
 		return nil, badRequest("unknown status")
 	}
-	if err := s.repo.SetStatus(ctx, userID, id, status); err != nil {
+	if err := s.repo.SetStatus(ctx, userID, id, status, unknownDate); err != nil {
 		return nil, err
 	}
-	return s.repo.GetEntry(ctx, userID, id)
+	entry, err := s.Get(ctx, userID, id)
+	if err != nil || status != models.StatusWatched {
+		return entry, err
+	}
+	return s.markSeriesWatched(ctx, userID, entry, unknownDate)
 }
 
 func (s *MovieService) Remove(
@@ -167,12 +226,27 @@ func (s *MovieService) Remove(
 	return s.repo.DeleteEntry(ctx, userID, id)
 }
 
+// Get returns the entry with its seasons, loading a series' seasons from
+// TMDB the first time they are missing.
 func (s *MovieService) Get(
 	ctx context.Context,
 	userID string,
 	id uuid.UUID,
 ) (*models.Entry, error) {
-	return s.repo.GetEntry(ctx, userID, id)
+	entry, err := s.repo.GetEntry(ctx, userID, id)
+	if err != nil {
+		return nil, err
+	}
+	if entry.Title.MediaType != tmdb.MediaTypeSeries {
+		return entry, nil
+	}
+	if entry.Seasons, err = s.repo.ListSeasons(ctx, userID, id); err != nil {
+		return nil, err
+	}
+	if len(entry.Seasons) == 0 {
+		return s.loadSeasons(ctx, userID, entry)
+	}
+	return entry, nil
 }
 
 func (s *MovieService) List(

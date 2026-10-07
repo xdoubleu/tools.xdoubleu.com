@@ -71,21 +71,23 @@ func (r *MoviesRepository) UpsertTitle(
 }
 
 // AddEntry puts a title in the user's backlog, or updates its status when it
-// is already there.
+// is already there. unknownDate dates a new movie watch as unknown, not now.
 func (r *MoviesRepository) AddEntry(
 	ctx context.Context,
 	userID string,
 	titleID uuid.UUID,
 	status string,
+	unknownDate bool,
 ) (uuid.UUID, error) {
 	var id uuid.UUID
-	// A movie added as watched gets one watch dated now; re-adding keeps
-	// existing watches.
+	// A movie added as watched gets one watch; re-adding keeps existing
+	// watches.
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO movies.user_titles AS ut
 			(user_id, title_id, status, watched_at)
 		SELECT $1, t.id, $3, CASE
-			WHEN $3 = 'watched' AND t.media_type = 'movie' THEN ARRAY[now()]
+			WHEN $3 = 'watched' AND t.media_type = 'movie'
+			THEN ARRAY[CASE WHEN $4 THEN NULL ELSE now() END]::timestamptz[]
 			ELSE '{}'::timestamptz[]
 		END
 		FROM movies.titles t WHERE t.id = $2
@@ -97,7 +99,7 @@ func (r *MoviesRepository) AddEntry(
 			END,
 			updated_at = now()
 		RETURNING id`,
-		userID, titleID, status,
+		userID, titleID, status, unknownDate,
 	).Scan(&id)
 	return id, postgres.PgxErrorToHTTPError(err)
 }
@@ -107,21 +109,23 @@ func (r *MoviesRepository) SetStatus(
 	userID string,
 	id uuid.UUID,
 	status string,
+	unknownDate bool,
 ) error {
-	// A movie becoming watched with no recorded watch gets one dated now.
+	// A movie becoming watched with no recorded watch gets one, dated now
+	// unless unknownDate.
 	tag, err := r.db.Exec(ctx, `
 		UPDATE movies.user_titles ut
 		SET status = $3,
 			watched_at = CASE
 				WHEN $3 = 'watched' AND t.media_type = 'movie'
 					AND cardinality(ut.watched_at) = 0
-				THEN ARRAY[now()]
+				THEN ARRAY[CASE WHEN $4 THEN NULL ELSE now() END]::timestamptz[]
 				ELSE ut.watched_at
 			END,
 			updated_at = now()
 		FROM movies.titles t
 		WHERE ut.id = $1 AND ut.user_id = $2 AND t.id = ut.title_id`,
-		id, userID, status,
+		id, userID, status, unknownDate,
 	)
 	if err != nil {
 		return err
