@@ -16,7 +16,30 @@ describe('WatchDates', () => {
     expect(screen.getByLabelText('Watch 1 date')).toHaveValue('2026-01-02')
     expect(screen.getByLabelText('Watch 1 date')).toHaveAttribute('id', 'w-0')
     expect(screen.getByLabelText('Watch 2 date')).toHaveValue('')
-    expect(screen.getAllByText('Date unknown')).toHaveLength(1)
+    const [known, unknown] = screen.getAllByRole('listitem')
+    expect(known).not.toHaveTextContent('Date unknown')
+    expect(unknown).toHaveTextContent('Date unknown')
+  })
+
+  it('follows a saved date that changes under it, dropping any draft', () => {
+    const props = { idPrefix: 'w', pending: false, onAdd: jest.fn(), onRemove: jest.fn() }
+    const onEdit = jest.fn()
+    const { rerender } = render(<WatchDates {...props} onEdit={onEdit} dates={['']} />)
+    const input = screen.getByLabelText('Watch 1 date')
+    fireEvent.change(input, { target: { value: '0202-01-02' } })
+
+    rerender(
+      <WatchDates {...props} onEdit={onEdit} dates={[new Date(2026, 0, 2, 12).toISOString()]} />
+    )
+    expect(input).toHaveValue('2026-01-02')
+    fireEvent.blur(input)
+    expect(onEdit).not.toHaveBeenCalled()
+  })
+
+  it('commits from 1900 on while typing', () => {
+    const h = setup([''])
+    fireEvent.change(screen.getByLabelText('Watch 1 date'), { target: { value: '1900-01-02' } })
+    expect(h.onEdit).toHaveBeenCalledWith(0, '1900-01-02')
   })
 
   it('shows no list without watches', () => {

@@ -59,10 +59,10 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
     }
   }
 
-  // Marking a multi-season series watched asks when, so old binges don't
-  // date as today.
+  // Marking a multi-season series (only series have a season count) watched
+  // asks when, so old binges don't date as today.
   const select = (next: string) => {
-    if (next === 'watched' && entry.mediaType === 'series' && (entry.seasonCount ?? 0) > 1) {
+    if (next === 'watched' && (entry.seasonCount ?? 0) > 1) {
       setAsking(true)
     } else {
       void change(next)

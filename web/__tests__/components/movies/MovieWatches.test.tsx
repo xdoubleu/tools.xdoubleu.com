@@ -42,6 +42,7 @@ describe('MovieWatches', () => {
   it('locks while saving and reports a failure until the next success', async () => {
     render(<MovieWatches entry={movie} />)
     expect(screen.getByRole('button', { name: 'Remove' })).toBeEnabled()
+    expect(screen.queryByText(/Couldn.t save/)).not.toBeInTheDocument()
 
     let resolve!: () => void
     actions.removeWatchDate.mockReturnValueOnce(new Promise<void>((r) => (resolve = r)))

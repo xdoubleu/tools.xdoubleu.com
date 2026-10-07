@@ -35,8 +35,8 @@ function WatchDateInput({
   const saved = watchDay(watchedAt)
   // A draft is dropped once the saved date changes under it; sent is the
   // last date handed to onEdit, so blur doesn't resend it.
-  const [draft, setDraft] = useState({ from: saved, value: saved, sent: saved })
-  const current = draft.from === saved ? draft : { from: saved, value: saved, sent: saved }
+  const [draft, setDraft] = useState<{ from: string; value: string; sent: string } | null>(null)
+  const current = draft?.from === saved ? draft : { value: saved, sent: saved }
 
   const change = (value: string, commit: boolean) => {
     const send = commit && value !== current.sent

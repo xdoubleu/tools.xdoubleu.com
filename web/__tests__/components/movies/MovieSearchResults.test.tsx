@@ -70,6 +70,20 @@ describe('MovieSearchResults', () => {
     buttons().forEach((b) => expect(b).toBeEnabled())
   })
 
+  it("locks a series' when-watched prompt while adding", async () => {
+    mockSearch({ data: results })
+    render(<MovieSearchResults query="dune" />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'Watched' })[1])
+
+    const add = deferred()
+    mockAdd.mockReturnValueOnce(add.promise)
+    fireEvent.click(screen.getByRole('button', { name: 'A while ago' }))
+    expect(mockAdd).toHaveBeenCalledWith('series', 1n, 'watched', true)
+    expect(screen.getByRole('button', { name: 'A while ago' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Saving…' })).toBeDisabled()
+    await act(async () => add.resolve())
+  })
+
   it('clears a failed add on retry', async () => {
     mockSearch({ data: results })
     render(<MovieSearchResults query="dune" />)
