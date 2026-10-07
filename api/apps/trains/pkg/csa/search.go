@@ -15,8 +15,8 @@ const maxTransfersSearched = 3
 // maxJourneyResults caps the returned window (windowBefore + windowAfter).
 const maxJourneyResults = 8
 
-// windowBefore/windowAfter: how many journeys to surface before/after the
-// requested time, beyond what searchOnce finds at it.
+// windowBefore/windowAfter: how many journeys to surface before the
+// requested time and after the first one at/after it.
 const windowBefore = 3
 const windowAfter = 3
 
@@ -27,6 +27,13 @@ var beforeAnchorOffsets = []time.Duration{ //nolint:gochecknoglobals //readonly 
 }
 
 const arriveByLookback = 3 * time.Hour
+
+// profileLookback is how far before the requested time a departure search
+// starts enumerating, so windowBefore earlier journeys are available.
+const profileLookback = 4 * time.Hour
+
+// maxProfileSteps caps the searchOnce runs of one departure search.
+const maxProfileSteps = 48
 
 // searchHorizon bounds how far past the requested time to look, so a pair
 // with no service today returns empty rather than days later.
@@ -70,12 +77,18 @@ type hop struct {
 	from       stopIdx
 }
 
-// SearchJourneys returns journeys around when: searchOnce's result plus up
-// to windowBefore earlier and windowAfter later, deduped and sorted. arriveBy
-// only widens before, since later arrivals miss the deadline.
+// SearchJourneys returns journeys around when. A departure search lists the
+// timetable's non-dominated journeys, so nearby times (17:12, 17:23) yield
+// the same list: up to windowBefore earlier and windowAfter+1 at/after when.
+// An arriveBy search returns searchOnce's result plus earlier ones, since
+// later arrivals miss the deadline.
 func (idx *Index) SearchJourneys(
 	originID, destID string, when time.Time, arriveBy bool,
 ) ([]Journey, error) {
+	if !arriveBy {
+		return idx.departureWindow(originID, destID, when)
+	}
+
 	primary, err := idx.searchOnce(originID, destID, when, arriveBy)
 	if err != nil {
 		return nil, err
@@ -84,20 +97,131 @@ func (idx *Index) SearchJourneys(
 	w := newJourneyWindow(len(primary))
 	w.add(primary)
 	idx.widenBefore(w, originID, destID, when, arriveBy)
-	if !arriveBy {
-		idx.widenAfter(w, originID, destID, when)
-	}
 
 	sort.Slice(w.all, func(i, j int) bool {
-		if arriveBy {
-			return w.all[i].ArrivalTime.Before(w.all[j].ArrivalTime)
-		}
-		return w.all[i].DepartureTime.Before(w.all[j].DepartureTime)
+		return w.all[i].ArrivalTime.Before(w.all[j].ArrivalTime)
 	})
 	if len(w.all) > maxJourneyResults {
 		w.all = w.all[:maxJourneyResults]
 	}
 	return w.all, nil
+}
+
+// departureWindow picks the journeys around when from the departure profile.
+func (idx *Index) departureWindow(
+	originID, destID string, when time.Time,
+) ([]Journey, error) {
+	profile, err := idx.departureProfile(originID, destID, when)
+	if err != nil {
+		return nil, err
+	}
+	profile = dropDominated(profile)
+	split := sort.Search(len(profile), func(i int) bool {
+		return !profile[i].DepartureTime.Before(when)
+	})
+	lo := max(0, split-windowBefore)
+	hi := min(len(profile), split+windowAfter+1)
+	return profile[lo:hi], nil
+}
+
+// departureProfile enumerates journeys by repeatedly searching from just past
+// the earliest departure found, which depends on the timetable rather than on
+// the requested minute. Journeys before when come from a walk starting
+// profileLookback earlier; those at/after it from a walk starting at when, so
+// none relies on being at the origin earlier than requested. Sorted by
+// departure.
+func (idx *Index) departureProfile(
+	originID, destID string, when time.Time,
+) ([]Journey, error) {
+	w := newJourneyWindow(0)
+	before := func(j Journey) bool { return j.DepartureTime.Before(when) }
+	atOrAfter := func(j Journey) bool { return !before(j) }
+
+	err := idx.walkDepartures(
+		w, originID, destID, when.Add(-profileLookback), before,
+		func(t time.Time) bool { return !t.Before(when) },
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = idx.walkDepartures(
+		w, originID, destID, when, atOrAfter,
+		func(time.Time) bool { return w.count(atOrAfter) > windowAfter },
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(w.all, func(i, j int) bool {
+		return w.all[i].DepartureTime.Before(w.all[j].DepartureTime)
+	})
+	return w.all, nil
+}
+
+// walkDepartures adds the journeys keep accepts from searchOnce runs, each
+// starting just past the earliest departure of the previous one, until done
+// reports true for the next start (checked before every run), the horizon
+// passes, or nothing is found.
+func (idx *Index) walkDepartures(
+	w *journeyWindow,
+	originID, destID string,
+	start time.Time,
+	keep func(Journey) bool,
+	done func(next time.Time) bool,
+) error {
+	end := start.Add(profileLookback + searchHorizon)
+	t := start
+	for range maxProfileSteps {
+		if t.After(end) || done(t) {
+			return nil
+		}
+		js, err := idx.searchOnce(originID, destID, t, false)
+		if err != nil {
+			return err
+		}
+		if len(js) == 0 {
+			return nil
+		}
+		w.add(filterJourneys(js, keep))
+		earliest := js[0].DepartureTime
+		for _, j := range js[1:] {
+			if j.DepartureTime.Before(earliest) {
+				earliest = j.DepartureTime
+			}
+		}
+		t = earliest.Add(time.Minute)
+	}
+	return nil
+}
+
+// dropDominated removes journeys another one beats: departing no earlier,
+// arriving no later and with no more transfers.
+func dropDominated(js []Journey) []Journey {
+	var out []Journey
+	for i, j := range js {
+		dominated := false
+		for k, o := range js {
+			if k == i {
+				continue
+			}
+			if o.DepartureTime.Before(j.DepartureTime) ||
+				o.ArrivalTime.After(j.ArrivalTime) ||
+				o.Transfers > j.Transfers {
+				continue
+			}
+			strictly := o.DepartureTime.After(j.DepartureTime) ||
+				o.ArrivalTime.Before(j.ArrivalTime) ||
+				o.Transfers < j.Transfers
+			if strictly || k < i {
+				dominated = true
+				break
+			}
+		}
+		if !dominated {
+			out = append(out, j)
+		}
+	}
+	return out
 }
 
 // widenBefore probes earlier anchors until windowBefore journeys precede when.
@@ -119,26 +243,6 @@ func (idx *Index) widenBefore(
 			continue
 		}
 		w.add(filterJourneys(probe, before))
-	}
-}
-
-// widenAfter probes later anchors (reusing beforeAnchorOffsets) until
-// windowAfter journeys depart at/after when.
-func (idx *Index) widenAfter(
-	w *journeyWindow,
-	originID, destID string,
-	when time.Time,
-) {
-	atOrAfter := func(j Journey) bool { return !j.DepartureTime.Before(when) }
-	for _, offset := range beforeAnchorOffsets {
-		if w.count(atOrAfter) >= windowAfter+1 {
-			return
-		}
-		probe, err := idx.searchOnce(originID, destID, when.Add(offset), false)
-		if err != nil {
-			continue
-		}
-		w.add(probe)
 	}
 }
 
@@ -272,10 +376,10 @@ func (idx *Index) scanPass(
 	arrival []int64, parent []hop, startAbs, deadlineAbs int64,
 ) {
 	entered := make(map[int32]bool)
-	for _, c := range idx.connections {
-		if c.depTime < startAbs {
-			continue
-		}
+	first := sort.Search(len(idx.connections), func(i int) bool {
+		return idx.connections[i].depTime >= startAbs
+	})
+	for _, c := range idx.connections[first:] {
 		if c.depTime > deadlineAbs {
 			break
 		}
