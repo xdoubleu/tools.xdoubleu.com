@@ -111,12 +111,10 @@ function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
             </>
           )}
         </p>
-        {(entry.hasNewSeason || entry.rating !== undefined) && (
-          <div className="flex flex-wrap items-center gap-2">
-            {entry.hasNewSeason && <Badge variant="warn">New season</Badge>}
-            {entry.rating !== undefined && <RatingStars value={entry.rating} />}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {entry.hasNewSeason && <Badge variant="warn">New season</Badge>}
+          {entry.rating !== undefined && <RatingStars value={entry.rating} />}
+        </div>
         {failed && <p className="text-xs text-danger">Couldn&apos;t update status. Try again.</p>}
       </div>
     </LinkCard>

@@ -23,15 +23,16 @@ func (r *MoviesRepository) DeleteOrphanTitles(ctx context.Context) (int64, error
 }
 
 // DueTitles returns the titles to re-fetch from TMDB: any fetched over 30
-// days ago, and series someone is watching or has watched fetched over a day
-// ago, so new seasons show up.
+// days ago, and series someone is watching or has watched fetched over 20
+// hours ago (under the daily run, so each run catches them), so new seasons
+// show up.
 func (r *MoviesRepository) DueTitles(ctx context.Context) ([]models.TitleKey, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT t.media_type, t.tmdb_id
 		FROM movies.titles t
 		WHERE t.fetched_at < now() - interval '30 days'
 			OR (t.media_type = 'series'
-				AND t.fetched_at < now() - interval '1 day'
+				AND t.fetched_at < now() - interval '20 hours'
 				AND EXISTS (
 					SELECT 1 FROM movies.user_titles ut
 					WHERE ut.title_id = t.id

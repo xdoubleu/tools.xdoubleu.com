@@ -219,3 +219,50 @@ func TestRefresh_WithoutTMDBOnlyPrunes(t *testing.T) {
 	assert.True(t, titleExists(t, 999), "an orphan fetched today may be mid-add")
 	assert.True(t, titleExists(t, 129), "a held title is kept")
 }
+
+func TestRefresh_SeriesDueAfterTwentyHours(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	add(t, c, "series", 95396, "watched")
+	add(t, c, "series", 83867, "watched")
+	age(t, 95396, 21*time.Hour)
+	age(t, 83867, 19*time.Hour)
+
+	client := newRecordingTMDB(0, 0)
+	refresh(t, client)
+	assert.Equal(t, []int64{95396}, *client.asked)
+}
+
+func TestRefresh_FailsOnlyWhenEveryTitleFails(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	add(t, c, "movie", 603, "want")
+	age(t, 603, 31*24*time.Hour)
+
+	err := newApp(userID, newRecordingTMDB(603, 0)).RefreshNow(context.Background())
+	assert.ErrorContains(t, err, "refreshing all 1 due titles failed: tmdb down")
+}
+
+// cancellingTMDB cancels the run on its first lookup, as a shutdown would.
+type cancellingTMDB struct {
+	recordingTMDB
+	cancel context.CancelFunc
+}
+
+func (f cancellingTMDB) GetMovie(ctx context.Context, id int64) (*tmdb.Title, error) {
+	f.cancel()
+	return f.recordingTMDB.GetMovie(ctx, id)
+}
+
+func TestRefresh_StopsWhenCancelled(t *testing.T) {
+	c := newClient(t, userID, fakeTMDB{})
+	add(t, c, "movie", 603, "want")
+	add(t, c, "movie", 129, "want")
+	age(t, 603, 31*24*time.Hour)
+	age(t, 129, 31*24*time.Hour)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	client := cancellingTMDB{recordingTMDB: newRecordingTMDB(0, 0), cancel: cancel}
+	err := newApp(userID, client).RefreshNow(ctx)
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.Len(t, *client.asked, 1)
+}

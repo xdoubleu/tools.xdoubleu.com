@@ -109,6 +109,7 @@ describe('MoviesBacklog rows', () => {
     const [first, second] = screen.getAllByRole('link')
     expect(first).not.toHaveTextContent('New season')
     expect(second).toHaveTextContent('New season')
+    expect(screen.queryByRole('img', { name: 'No rating' })).not.toBeInTheDocument()
   })
 
   it('shows a rating read-only, and nothing when unrated', () => {
