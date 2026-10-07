@@ -41,7 +41,10 @@ as a manual aid):
    route segregation — imports reaching where they shouldn't.
 3. **Diff-scoped mutation testing** (`gremlins`, StrykerJS), scoped like
    [`adr-0013`](adr-0013-diff-scoped-coverage.md)'s coverage — tests that
-   don't assert anything.
+   don't assert anything. gremlins only runs a package's own tests, so code
+   reached solely by app-root integration tests is listed NOT COVERED, never
+   run: keep branching logic in pure functions unit-tested in their own
+   package.
 
 ## Why
 
