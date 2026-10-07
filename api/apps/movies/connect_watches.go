@@ -25,7 +25,7 @@ func parseDay(raw string) (*time.Time, error) {
 	return &day, nil
 }
 
-func optionalSeason(n *int32) *int {
+func optionalInt(n *int32) *int {
 	if n == nil {
 		return nil
 	}
@@ -33,7 +33,7 @@ func optionalSeason(n *int32) *int {
 	return &v
 }
 
-// target resolves the caller and entry id shared by every watch RPC.
+// target resolves the caller and entry id of an entry RPC.
 func target(ctx context.Context, rawID string) (string, uuid.UUID, error) {
 	uid, err := userID(ctx)
 	if err != nil {
@@ -76,7 +76,7 @@ func (h *moviesConnectHandler) AddWatchDate(
 		return nil, err
 	}
 	entry, err := h.app.services.Movies.AddWatchDate(
-		ctx, uid, id, optionalSeason(req.Msg.SeasonNumber), day,
+		ctx, uid, id, optionalInt(req.Msg.SeasonNumber), day,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -100,7 +100,7 @@ func (h *moviesConnectHandler) EditWatchDate(
 		return nil, err
 	}
 	entry, err := h.app.services.Movies.EditWatchDate(
-		ctx, uid, id, optionalSeason(req.Msg.SeasonNumber), int(req.Msg.Index), day,
+		ctx, uid, id, optionalInt(req.Msg.SeasonNumber), int(req.Msg.Index), day,
 	)
 	if err != nil {
 		return nil, mapError(err)
@@ -120,7 +120,7 @@ func (h *moviesConnectHandler) RemoveWatchDate(
 		return nil, err
 	}
 	entry, err := h.app.services.Movies.RemoveWatchDate(
-		ctx, uid, id, optionalSeason(req.Msg.SeasonNumber), int(req.Msg.Index),
+		ctx, uid, id, optionalInt(req.Msg.SeasonNumber), int(req.Msg.Index),
 	)
 	if err != nil {
 		return nil, mapError(err)

@@ -79,21 +79,14 @@ func (h *moviesConnectHandler) SetRating(
 	ctx context.Context,
 	req *connect.Request[moviesv1.SetRatingRequest],
 ) (*connect.Response[moviesv1.SetRatingResponse], error) {
-	uid, err := userID(ctx)
-	if err != nil {
-		return nil, err
-	}
-	id, err := parseID(req.Msg.Id)
+	uid, id, err := target(ctx, req.Msg.Id)
 	if err != nil {
 		return nil, err
 	}
 
-	var rating *int
-	if req.Msg.Rating != nil {
-		r := int(*req.Msg.Rating)
-		rating = &r
-	}
-	entry, err := h.app.services.Movies.SetRating(ctx, uid, id, rating)
+	entry, err := h.app.services.Movies.SetRating(
+		ctx, uid, id, optionalInt(req.Msg.Rating),
+	)
 	if err != nil {
 		return nil, mapError(err)
 	}

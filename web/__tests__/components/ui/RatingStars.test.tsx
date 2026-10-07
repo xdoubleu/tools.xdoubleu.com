@@ -8,7 +8,7 @@ describe('RatingStars', () => {
     render(<RatingStars value={2} size="md" />)
     expect(screen.queryAllByRole('button')).toHaveLength(0)
     const img = screen.getByRole('img', { name: '2 out of 5 stars' })
-    expect(img).toHaveClass('text-lg')
+    expect(img).toHaveClass('inline-flex', 'text-lg')
     const glyphs = img.querySelectorAll('span')
     expect(glyphs).toHaveLength(5)
     expect(glyphs[1]).toHaveClass('text-star')
@@ -43,6 +43,16 @@ describe('RatingStars', () => {
     expect(screen.getByRole('button', { name: 'Rate 1 star' })).toHaveClass('text-star')
   })
 
+  it('drops a tapped preview so a cleared rating shows empty', () => {
+    const { rerender } = render(<RatingStars value={3} onChange={jest.fn()} />)
+    const third = screen.getByRole('button', { name: 'Rate 3 stars' })
+    fireEvent.mouseEnter(third)
+    fireEvent.click(third)
+    rerender(<RatingStars value={0} onChange={jest.fn()} />)
+    expect(third).toHaveClass('text-border')
+    expect(screen.getByRole('group', { name: 'No rating' })).toBeInTheDocument()
+  })
+
   it('locks its stars while disabled', () => {
     render(<RatingStars value={0} onChange={jest.fn()} disabled />)
     for (const b of screen.getAllByRole('button')) expect(b).toBeDisabled()
@@ -50,7 +60,10 @@ describe('RatingStars', () => {
 
   it('is enabled by default', () => {
     render(<RatingStars value={0} onChange={jest.fn()} />)
-    expect(screen.getByRole('button', { name: 'Rate 2 stars' })).toBeEnabled()
+    const star = screen.getByRole('button', { name: 'Rate 2 stars' })
+    expect(star).toBeEnabled()
+    expect(star).toHaveClass('leading-none', 'hover:text-star')
+    expect(star).not.toHaveClass('text-xl')
     expect(screen.getByLabelText('No rating')).toBeInTheDocument()
   })
 })
