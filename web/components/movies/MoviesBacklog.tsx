@@ -1,0 +1,142 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import type { BacklogEntry } from '@/lib/gen/movies/v1/movies_pb'
+import { useFetchMoviesBacklogPage, useMoviesActions, useMoviesBacklog } from '@/hooks/useMovies'
+import { usePaginatedList } from '@/hooks/usePaginatedList'
+import {
+  type BacklogFilter,
+  DEFAULT_BACKLOG_FILTER,
+  STATUSES,
+  STATUS_LABELS,
+  mediaTypeLabel,
+  releaseLabel,
+  todayISO
+} from '@/lib/movies/format'
+import MoviePoster from '@/components/movies/MoviePoster'
+import StatusSelect from '@/components/movies/StatusSelect'
+import { Field } from '@/components/ui/field'
+import { LinkCard } from '@/components/ui/link-card'
+import { LoadMoreButton } from '@/components/ui/LoadMoreButton'
+import { SegmentedTabs } from '@/components/ui/segmented-tabs'
+import { Select } from '@/components/ui/select'
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states'
+
+const STATUS_TABS = [
+  { value: '', label: 'All statuses' },
+  ...STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))
+]
+
+const TYPE_TABS = [
+  { value: '', label: 'All types' },
+  { value: 'movie', label: 'Movies' },
+  { value: 'series', label: 'Series' }
+]
+
+function BacklogRow({ entry, today }: { entry: BacklogEntry; today: string }) {
+  const { setStatus } = useMoviesActions()
+  const [pending, setPending] = useState(false)
+  const release = releaseLabel(entry.releaseDate, today)
+
+  const change = async (status: string) => {
+    setPending(true)
+    try {
+      await setStatus(entry.id, status)
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <LinkCard
+      href={`/movies/${entry.id}`}
+      linkClassName="flex items-center gap-3 p-3"
+      actions={
+        <StatusSelect
+          id={`status-${entry.id}`}
+          aria-label={`Status of ${entry.title}`}
+          value={entry.status}
+          disabled={pending}
+          onChange={(s) => void change(s)}
+        />
+      }
+    >
+      <MoviePoster posterPath={entry.posterPath} title={entry.title} />
+      <div className="min-w-0">
+        <p className="break-words font-medium">{entry.title}</p>
+        <p className="text-xs text-muted">
+          {mediaTypeLabel(entry.mediaType)}
+          {release && (
+            <>
+              {' '}
+              &middot; <span suppressHydrationWarning>{release}</span>
+            </>
+          )}
+        </p>
+      </div>
+    </LinkCard>
+  )
+}
+
+export default function MoviesBacklog() {
+  const [filter, setFilter] = useState<BacklogFilter>(DEFAULT_BACKLOG_FILTER)
+  const { data, error, isLoading } = useMoviesBacklog(filter)
+  const fetchPage = useFetchMoviesBacklogPage(filter)
+  const initialPage = useMemo(
+    () => ({ items: data?.entries ?? [], hasMore: data?.hasMore ?? false }),
+    [data]
+  )
+  const {
+    items: entries,
+    hasMore,
+    loading: loadingMore,
+    loadMore
+  } = usePaginatedList(initialPage, fetchPage, (a, b) => a.id === b.id)
+  const today = todayISO()
+
+  return (
+    <section className="space-y-4" aria-label="Backlog">
+      <SegmentedTabs
+        aria-label="Filter by status"
+        value={filter.status}
+        options={STATUS_TABS}
+        onChange={(status) => setFilter((f) => ({ ...f, status }))}
+      />
+      <div className="flex flex-wrap items-end gap-3">
+        <SegmentedTabs
+          aria-label="Filter by type"
+          value={filter.mediaType}
+          options={TYPE_TABS}
+          onChange={(mediaType) => setFilter((f) => ({ ...f, mediaType }))}
+        />
+        <Field label="Sort" htmlFor="movies-sort" className="w-44">
+          <Select
+            id="movies-sort"
+            value={filter.sort}
+            onChange={(e) => setFilter((f) => ({ ...f, sort: e.target.value }))}
+          >
+            <option value="added">Recently added</option>
+            <option value="title">Title</option>
+            <option value="release">Release date</option>
+          </Select>
+        </Field>
+      </div>
+
+      {isLoading && !data && <LoadingState label="backlog" />}
+      {error && <ErrorState what="backlog" />}
+      {data && entries.length === 0 && (
+        <EmptyState>Nothing here yet. Search above to add a movie or series.</EmptyState>
+      )}
+      {entries.length > 0 && (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {entries.map((e) => (
+              <BacklogRow key={e.id} entry={e} today={today} />
+            ))}
+          </div>
+          {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
+        </>
+      )}
+    </section>
+  )
+}

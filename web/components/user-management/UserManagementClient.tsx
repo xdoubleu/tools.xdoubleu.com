@@ -19,7 +19,16 @@ import {
 } from '@/components/ui/table'
 import { swrKeys } from '@/lib/swrKeys'
 
-const APP_NAMES = ['games', 'books', 'feeds', 'mealplans', 'recipes', 'shoppinglist', 'watchparty']
+const APP_NAMES = [
+  'games',
+  'books',
+  'feeds',
+  'mealplans',
+  'movies',
+  'recipes',
+  'shoppinglist',
+  'watchparty'
+]
 
 function useUserActions(user: AppUser) {
   const setRole = useSetRole()

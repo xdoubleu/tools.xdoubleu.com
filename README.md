@@ -22,6 +22,7 @@ frontend. Architecture, commands, and conventions live in
 - **dashboard** — Read-only games and reading dashboards, including the public share views.
 - **trains** — SNCB/NMBS journey planner built on the open GTFS timetable (refreshed daily) with a realtime overlay, re-planning when a delay breaks a journey.
 - **learningpaths** — Personal learning curricula: ordered modules of checkable items plus resources, with an optional one-way Todoist connection. Per-user, no family sharing.
+- **movies** — Movies & series backlog: search TMDB, add in one tap, and track want/watching/watched/dropped. Per-user, no family sharing.
 
 Books and games can also be shared publicly via a revocable token link from the share button on their dashboards, at `/dashboard/games/<token>` and `/dashboard/reading/<token>` — read-only, no account needed.
 

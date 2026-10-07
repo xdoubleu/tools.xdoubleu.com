@@ -12,6 +12,7 @@ const NOT_PERSISTED = [
   '/books/kobo/',
   '/books/file',
   '/books/content',
+  '/movies/search',
   '/monitoring/',
   '/user-management/'
 ]
